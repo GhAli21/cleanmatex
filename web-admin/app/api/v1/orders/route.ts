@@ -13,6 +13,11 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { logger } from '@/lib/utils/logger';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import {
+  isWorkflowProfileCreateErrorCode,
+  workflowProfileCreateErrorPayload,
+  WORKFLOW_PROFILE_CREATE_HTTP_STATUS,
+} from '@/lib/services/workflow/workflow-profile-error-catalog';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
 import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
@@ -146,6 +151,12 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.success) {
+      if (isWorkflowProfileCreateErrorCode(result.errorCode)) {
+        return NextResponse.json(
+          workflowProfileCreateErrorPayload(result.errorCode, { serviceCode: result.serviceCode }),
+          { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
+        );
+      }
       return NextResponse.json(
         { success: false, error: result.error },
         { status: 400 }

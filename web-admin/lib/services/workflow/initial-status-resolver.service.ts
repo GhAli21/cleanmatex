@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { WORKFLOW_PROFILE_STAFF_EN } from './workflow-profile-error-catalog';
 import type { ResolvedWorkflowInitialRule } from './workflow-profile-resolution.service';
 
 /** Inputs used to match a creation context against immutable profile rules. */
@@ -28,7 +29,7 @@ export class SemanticInitialStatusResolutionError extends Error {
 
   /** Creates the stable semantic configuration error used by order adapters. */
   constructor() {
-    super('The assigned workflow profile has no initial rule matching this order. Contact your platform administrator.');
+    super(WORKFLOW_PROFILE_STAFF_EN.PROFILE_INITIAL_RULE_UNMATCHED);
     this.name = 'SemanticInitialStatusResolutionError';
   }
 }

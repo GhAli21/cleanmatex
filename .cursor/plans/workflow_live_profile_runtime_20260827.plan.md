@@ -10,13 +10,13 @@ todos:
     content: Confirm the shared direct-live-policy contract, order-version binding, lifecycle, and no-fallback rules.
     status: completed
   - id: lwpr-tenant-schema
-    content: "0470 applied locally and remotely (plus 0471). Guard allows only pickup_handover CONFIRM_PICKUP from observed ready to delivered. Types regenerated. Do not edit applied 0470."
+    content: "0470-0475 applied locally and remotely. Guard allows only pickup_handover CONFIRM_PICKUP from observed ready to delivered. Types regenerated. Do not edit applied 0470-0475."
     status: completed
   - id: lwpr-tenant-baseline
-    content: "0472 live policy seed applied. Read-only preflight in. HQ Check policy/assign-without-artifact in. Remote demo tenant has default WF_V2_SIMPLE latest Published. Local DB still has no assignment."
+    content: "0472 live policy seed applied locally and remotely. 0475 SIMPLE DRAFT repair applied. Read-only preflight in. HQ Check policy/assign-without-artifact/demote in. Local and remote each have one active assignment."
     status: completed
   - id: lwpr-tenant-profile-level-seed
-    content: "0472 applied locally. Live policy v2 (v1 for WF_V2_ROUTED_POD) seeded for laundry business levels. Do not edit 0444/0445/0470/0471/0472."
+    content: "0472 applied locally and remotely. 0475 SIMPLE DRAFT repair applied. Live policy v2 (v1 for WF_V2_ROUTED_POD) seeded for laundry business levels. Do not edit 0444/0445/0470-0475."
     status: completed
   - id: lwpr-tenant-resolver
     content: Implement the tenant-scoped normalized WorkflowPolicyResolver and policy row mapper with fail-closed behavior.
@@ -34,7 +34,7 @@ todos:
     content: "Privacy-safe wf.* observe events, in-process counters, support runbook (technical_docs/live_runtime_support.md), and 09 observability refresh. Successful policy loads stay DEBUG."
     status: completed
   - id: lwpr-tenant-assurance
-    content: "Unit+source-scan live runtime plus HQ Check policy. Residual: local demo assign if using local DB, S10, soak, Studio rewrite / compiler retirement."
+    content: "Unit+source-scan live runtime plus HQ Check policy. Residual: S10 canary, soak, Studio rewrite / compiler retirement (Gate 5)."
     status: in_progress
   - id: lwpr-tenant-progress
     content: After every completed implementation step, update this plan and the paired HQ plan with status, evidence, changed contracts, validation results, risks, and the next concrete action.

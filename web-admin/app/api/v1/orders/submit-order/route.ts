@@ -16,6 +16,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { WorkflowProfileResolutionError } from '@/lib/services/workflow/workflow-profile-resolution.service';
+import { SemanticInitialStatusResolutionError } from '@/lib/services/workflow/initial-status-resolver.service';
+import {
+  isWorkflowProfileCreateErrorCode,
+  workflowProfileCreateErrorPayload,
+  WORKFLOW_PROFILE_CREATE_HTTP_STATUS,
+} from '@/lib/services/workflow/workflow-profile-error-catalog';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { submitOrderRequestSchema } from '@/lib/validations/new-order-payment-schemas';
@@ -353,25 +359,20 @@ export async function POST(request: NextRequest) {
         });
       });
 
-    if (profileResolutionCode === 'PROFILE_SERVICE_SCOPE_CONFLICT') {
+    if (error instanceof SemanticInitialStatusResolutionError) {
       return NextResponse.json(
-        {
-          success: false,
-          errorCode: profileResolutionCode,
-          error: 'This order contains services governed by different workflows. Split the order before creating it.',
-        },
-        { status: 422 },
+        workflowProfileCreateErrorPayload(error.code),
+        { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
       );
     }
 
-    if (profileResolutionCode === 'PROFILE_ASSIGNMENT_CONFLICT') {
+    if (profileResolutionCode && isWorkflowProfileCreateErrorCode(profileResolutionCode)) {
       return NextResponse.json(
-        {
-          success: false,
-          errorCode: profileResolutionCode,
-          error: 'The tenant workflow profile assignments conflict. Contact your platform administrator.',
-        },
-        { status: 422 },
+        workflowProfileCreateErrorPayload(
+          profileResolutionCode,
+          error instanceof WorkflowProfileResolutionError ? error.details : undefined,
+        ),
+        { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
       );
     }
 
@@ -425,17 +426,6 @@ export async function POST(request: NextRequest) {
           error: 'Choose how the remaining balance should be handled.',
         },
         { status: 400 }
-      );
-    }
-
-    if (message.includes('assigned workflow profile has no initial rule matching this order')) {
-      return NextResponse.json(
-        {
-          success: false,
-          errorCode: 'PROFILE_INITIAL_RULE_UNMATCHED',
-          error: 'The assigned workflow profile is not configured for this order. Contact your platform administrator.',
-        },
-        { status: 422 },
       );
     }
 

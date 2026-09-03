@@ -34,6 +34,34 @@ describe('semantic initial-status resolver', () => {
     })).toEqual({ initialStatus: 'preparing', ruleCode: 'QUICK_DROP' });
   });
 
+  it('matches a typed POS laundry order against a POS-scoped start rule', () => {
+    expect(resolveInitialStatusFromSemanticRules([
+      {
+        rule_code: 'INIT_RETAIL_DELIVERED',
+        order_source_code: null,
+        order_type_id: null,
+        is_retail: true,
+        is_quick_drop: false,
+        initial_status: 'delivered',
+        priority: 100,
+      },
+      {
+        rule_code: 'INIT_TO_PROCESSING',
+        order_source_code: 'pos',
+        order_type_id: 'POS',
+        is_retail: null,
+        is_quick_drop: null,
+        initial_status: 'processing',
+        priority: 111,
+      },
+    ], {
+      orderSourceCode: 'pos',
+      orderTypeId: 'POS',
+      isRetail: false,
+      isQuickDrop: false,
+    })).toEqual({ initialStatus: 'processing', ruleCode: 'INIT_TO_PROCESSING' });
+  });
+
   it('fails closed instead of applying the legacy intake fallback to an unmatched semantic order', () => {
     expect(() => resolveInitialStatusFromSemanticRules(rules, {
       orderSourceCode: 'customer_mobile_app',

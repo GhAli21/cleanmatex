@@ -60,7 +60,31 @@ import {
 import {
   resolveWorkflowProfileBindingForOrderWithPrisma,
   resolveWorkflowProfileBindingForOrderWithSupabase,
+  WorkflowProfileResolutionError,
 } from '@/lib/services/workflow/workflow-profile-resolution.service';
+import { SemanticInitialStatusResolutionError } from '@/lib/services/workflow/initial-status-resolver.service';
+import {
+  staffEnForWorkflowProfileError,
+} from '@/lib/services/workflow/workflow-profile-error-catalog';
+
+function createOrderFailureFromProfileError(error: unknown): CreateOrderResult | null {
+  if (error instanceof SemanticInitialStatusResolutionError) {
+    return {
+      success: false,
+      error: staffEnForWorkflowProfileError(error.code) ?? error.message,
+      errorCode: error.code,
+    };
+  }
+  if (error instanceof WorkflowProfileResolutionError) {
+    return {
+      success: false,
+      error: staffEnForWorkflowProfileError(error.code, error.details) ?? error.message,
+      errorCode: error.code,
+      ...(error.details.serviceCode ? { serviceCode: error.details.serviceCode } : {}),
+    };
+  }
+  return null;
+}
 
 /** Packing codes from order item payload (ITEM + piece rows). */
 function collectPackingPrefCodesFromOrderPayload(
@@ -269,6 +293,8 @@ export interface CreateOrderResult {
     readyByAt: string;
   };
   error?: string;
+  errorCode?: string;
+  serviceCode?: string;
 }
 
 export interface EstimateReadyByParams {
@@ -336,6 +362,7 @@ export class OrderService {
     quickDropQuantity?: number;
     physicalIntakeStatus?: CreateOrderParams['physicalIntakeStatus'];
     initialWorkflowScreen?: string;
+    orderTypeId?: string | null;
     sourceRow: OrderSourceCatalogRow;
     semanticInitialRules: Parameters<typeof resolveInitialStatus>[0]['semanticInitialRules'];
   }): Promise<{
@@ -355,6 +382,7 @@ export class OrderService {
       quickDropQuantity,
       physicalIntakeStatus,
       initialWorkflowScreen,
+      orderTypeId,
       sourceRow,
     } = args;
 
@@ -365,6 +393,7 @@ export class OrderService {
       // V1.0 ADR: retail must not auto-close; the profile rule decides its initial stage.
       const resolved = await resolveInitialStatus({
         orderSourceCode: sourceRow.order_source_code,
+        orderTypeId,
         isRetail: true,
         isQuickDrop,
         semanticInitialRules: args.semanticInitialRules,
@@ -396,6 +425,7 @@ export class OrderService {
       const screen = initialWorkflowScreen ?? 'new_order';
       const resolved = await resolveInitialStatus({
         orderSourceCode: sourceRow.order_source_code,
+        orderTypeId,
         isRetail: false,
         isQuickDrop,
         semanticInitialRules: args.semanticInitialRules,
@@ -416,6 +446,7 @@ export class OrderService {
 
     const resolved = await resolveInitialStatus({
       orderSourceCode: sourceRow.order_source_code,
+      orderTypeId,
       isRetail: false,
       isQuickDrop,
       semanticInitialRules: args.semanticInitialRules,
@@ -495,6 +526,7 @@ export class OrderService {
         quickDropQuantity,
         physicalIntakeStatus: params.physicalIntakeStatus,
         initialWorkflowScreen: params.initialWorkflowScreen,
+        orderTypeId,
         sourceRow: sourceValidated.row,
         semanticInitialRules: workflowProfileBinding.initialRules,
       });
@@ -1084,6 +1116,8 @@ export class OrderService {
         feature: 'orders',
         action: 'create_order',
       });
+      const profileFailure = createOrderFailureFromProfileError(error);
+      if (profileFailure) return profileFailure;
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -1152,6 +1186,7 @@ export class OrderService {
       quickDropQuantity,
       physicalIntakeStatus: params.physicalIntakeStatus,
       initialWorkflowScreen: params.initialWorkflowScreen,
+      orderTypeId,
       sourceRow: sourceValidated.row,
       semanticInitialRules: workflowProfileBinding.initialRules,
     });

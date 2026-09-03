@@ -158,7 +158,7 @@ describe('workflow profile resolution', () => {
 
     await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).rejects.toMatchObject({
       name: 'WorkflowProfileResolutionError',
-      message: expect.stringContaining('Multiple equally specific'),
+      code: 'PROFILE_ASSIGNMENT_CONFLICT',
     });
   });
 
@@ -193,7 +193,7 @@ describe('workflow profile resolution', () => {
       serviceCodes: ['WASH_FOLD', 'DRY_CLEAN'],
     })).rejects.toMatchObject({
       name: 'WorkflowProfileResolutionError',
-      message: expect.stringContaining('Split the order'),
+      code: 'PROFILE_SERVICE_SCOPE_CONFLICT',
     });
   });
 
@@ -211,9 +211,10 @@ describe('workflow profile resolution', () => {
       [],
     );
 
-    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).rejects.toBeInstanceOf(
-      WorkflowProfileResolutionError,
-    );
+    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).rejects.toMatchObject({
+      name: 'WorkflowProfileResolutionError',
+      code: 'PROFILE_NO_EXECUTABLE_VERSION',
+    });
   });
 
   it('permits a pinned Pilot version only on an HQ-validated test/demo tenant', async () => {
@@ -251,9 +252,10 @@ describe('workflow profile resolution', () => {
       [executableVersion(1, null, 'PILOT')],
     );
 
-    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).rejects.toBeInstanceOf(
-      WorkflowProfileResolutionError,
-    );
+    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).rejects.toMatchObject({
+      name: 'WorkflowProfileResolutionError',
+      code: 'PROFILE_NO_EXECUTABLE_VERSION',
+    });
   });
 
   it('ignores Pilot candidates when the assignment asks for the latest published version', async () => {

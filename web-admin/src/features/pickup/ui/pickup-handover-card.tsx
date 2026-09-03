@@ -16,6 +16,7 @@ import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
 import { PickupApiError } from '@features/pickup/api/pickup-api';
 import { usePickupHandover } from '@features/pickup/hooks/use-pickup-handover';
+import { localizeWorkflowProfileError } from '@/lib/services/workflow/workflow-profile-error-catalog';
 
 /** Props supplied by the Ready screen's tenant-scoped order read model. */
 export interface PickupHandoverCardProps {
@@ -58,6 +59,8 @@ export function PickupHandoverCard({
   showCollectAction = true,
 }: PickupHandoverCardProps) {
   const t = useTranslations('workflow.pickup');
+  const tProfileErrors = useTranslations('workflow.profileErrors');
+  const tEngine = useTranslations('workflow.engine');
   const tCommon = useTranslations('common');
   const locale = useLocale();
   const { showError, showSuccess, showWarning } = useMessage();
@@ -120,13 +123,16 @@ export function PickupHandoverCard({
       }
       if (
         error instanceof PickupApiError
-        && (
-          error.code === 'PICKUP_POLICY_UNAVAILABLE'
-          || error.code === 'PICKUP_DIRECT_NOT_ALLOWED'
-          || error.code.startsWith('PROFILE_')
-        )
+        && (error.code === 'PICKUP_POLICY_UNAVAILABLE' || error.code === 'PICKUP_DIRECT_NOT_ALLOWED')
       ) {
         showError(t('notConfigured'));
+        return;
+      }
+      if (error instanceof PickupApiError && error.code.startsWith('PROFILE_')) {
+        showError(
+          localizeWorkflowProfileError(tProfileErrors, error.code)
+            ?? tEngine('profileUnavailable'),
+        );
         return;
       }
       showError(error instanceof Error ? error.message : t('failed'));

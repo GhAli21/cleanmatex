@@ -7,6 +7,7 @@ import {
   SemanticWorkflowArtifactError,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service'
 import { deriveSemanticWorkflowContext } from '@/lib/services/workflow/semantic-workflow-context.service'
+import { WORKFLOW_PROFILE_STAFF_EN } from '@/lib/services/workflow/workflow-profile-error-catalog'
 
 export const dynamic = 'force-dynamic'
 
@@ -99,7 +100,7 @@ export async function GET(
 
     return NextResponse.json(
       {
-        error: 'This order has no live workflow profile binding and cannot expose workflow context. Recreate the order under an assigned workflow profile.',
+        error: WORKFLOW_PROFILE_STAFF_EN.PROFILE_SNAPSHOT_INCOMPLETE,
         code: 'PROFILE_SNAPSHOT_INCOMPLETE',
       },
       { status: 409 },

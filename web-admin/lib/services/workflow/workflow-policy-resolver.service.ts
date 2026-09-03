@@ -6,6 +6,7 @@ import type {
   SemanticWorkflowOrderSnapshot,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service';
 import { observeWorkflowPolicy } from '@/lib/services/workflow/workflow-observability';
+import { WORKFLOW_PROFILE_STAFF_EN } from './workflow-profile-error-catalog';
 
 /**
  * Fail-closed policy loader errors. Codes stay on the existing PROFILE_*
@@ -180,7 +181,7 @@ export async function loadLiveWorkflowPolicyForOrder(
     });
     throw new SemanticWorkflowArtifactError(
       'PROFILE_SNAPSHOT_INCOMPLETE',
-      'The order has an incomplete workflow profile-version binding.',
+      WORKFLOW_PROFILE_STAFF_EN.PROFILE_SNAPSHOT_INCOMPLETE,
     );
   }
 
@@ -213,7 +214,7 @@ export async function loadLiveWorkflowPolicyForOrder(
     });
     throw new SemanticWorkflowArtifactError(
       'PROFILE_ARTIFACT_UNAVAILABLE',
-      'The bound workflow profile version is not an executable Pilot or Published policy.',
+      WORKFLOW_PROFILE_STAFF_EN.PROFILE_ARTIFACT_UNAVAILABLE,
     );
   }
 
@@ -365,7 +366,7 @@ async function assembleLivePolicy(
   if (!policyRow || modules.length === 0 || initialRules.length === 0) {
     throw new SemanticWorkflowArtifactError(
       'PROFILE_ARTIFACT_INVALID',
-      'The bound workflow profile version is missing required live policy rows.',
+      WORKFLOW_PROFILE_STAFF_EN.PROFILE_ARTIFACT_INVALID,
     );
   }
 
@@ -389,7 +390,7 @@ async function assembleLivePolicy(
     if (execChannels.length === 0) {
       throw new SemanticWorkflowArtifactError(
         'PROFILE_ARTIFACT_INVALID',
-        'The bound workflow profile version has an executable without an active channel.',
+        WORKFLOW_PROFILE_STAFF_EN.PROFILE_ARTIFACT_INVALID,
       );
     }
     return {

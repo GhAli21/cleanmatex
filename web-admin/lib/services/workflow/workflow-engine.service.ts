@@ -18,6 +18,7 @@ import {
   classifyWorkflowCommandError,
   observeWorkflowCommand,
 } from '@/lib/services/workflow/workflow-observability';
+import { WORKFLOW_PROFILE_STAFF_EN } from '@/lib/services/workflow/workflow-profile-error-catalog';
 import { resolveOrderControlTransition } from '@/lib/workflow/order-control-transition';
 import {
   loadSemanticWorkflowArtifactForOrder,
@@ -324,7 +325,7 @@ async function resolveWorkflowRuntimeForOrder(
 
   throw new WorkflowEngineError(
     'PROFILE_SNAPSHOT_INCOMPLETE',
-    'This order has no workflow profile-version binding and cannot be operated. Recreate the order under an assigned workflow profile.',
+    WORKFLOW_PROFILE_STAFF_EN.PROFILE_SNAPSHOT_INCOMPLETE,
   );
 }
 async function isScreenStatusMemberForOrder(
@@ -986,7 +987,7 @@ async function executeConfiguredAction(
         ) {
           throw new WorkflowEngineError(
             'PROFILE_EXECUTION_INVALID',
-            'The semantic profile execution is incompatible with the order-control state.',
+            WORKFLOW_PROFILE_STAFF_EN.PROFILE_EXECUTION_INVALID,
           );
         }
       }

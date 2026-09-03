@@ -2,6 +2,12 @@ import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { Prisma } from '@prisma/client';
+import {
+  WORKFLOW_PROFILE_STAFF_EN,
+  staffEnForWorkflowProfileError,
+  type WorkflowProfileCreateErrorCode,
+  type WorkflowProfileErrorDetails,
+} from './workflow-profile-error-catalog';
 
 /** Persisted workflow profile/version binding for a newly created order. */
 export interface ResolvedWorkflowProfileBinding {
@@ -46,10 +52,12 @@ export class WorkflowProfileResolutionError extends Error {
   /**
    * @param message - Safe configuration guidance for the order-creation adapter.
    * @param code - Stable machine-readable response for web and integration callers.
+   * @param details - Optional service category when assignment is missing for a scoped item.
    */
   constructor(
     message: string,
-    readonly code: 'PROFILE_ASSIGNMENT_REQUIRED' | 'PROFILE_ASSIGNMENT_CONFLICT' | 'PROFILE_SERVICE_SCOPE_CONFLICT' | 'PROFILE_RESOLUTION_FAILED' = 'PROFILE_RESOLUTION_FAILED',
+    readonly code: WorkflowProfileCreateErrorCode = 'PROFILE_RESOLUTION_FAILED',
+    readonly details: WorkflowProfileErrorDetails = {},
   ) {
     super(message);
     this.name = 'WorkflowProfileResolutionError';
@@ -129,7 +137,7 @@ function chooseAssignment(
   );
   if (competingBindings.size > 1) {
     throw new WorkflowProfileResolutionError(
-      'Multiple equally specific workflow profile assignments apply to this order. Resolve the assignment conflict in HQ before creating orders.',
+      WORKFLOW_PROFILE_STAFF_EN.PROFILE_ASSIGNMENT_CONFLICT,
       'PROFILE_ASSIGNMENT_CONFLICT',
     );
   }
@@ -152,7 +160,8 @@ function chooseExecutableVersion(
 
   if (!version) {
     throw new WorkflowProfileResolutionError(
-      'The assigned workflow profile has no executable published version or eligible Pilot candidate. Contact your platform administrator.',
+      WORKFLOW_PROFILE_STAFF_EN.PROFILE_NO_EXECUTABLE_VERSION,
+      'PROFILE_NO_EXECUTABLE_VERSION',
     );
   }
 
@@ -162,7 +171,8 @@ function chooseExecutableVersion(
 function parseInitialRules(rows: ResolvedWorkflowInitialRule[]): ResolvedWorkflowInitialRule[] {
   if (rows.length === 0) {
     throw new WorkflowProfileResolutionError(
-      'The assigned workflow profile has no initial-rule contract. Contact your platform administrator.',
+      WORKFLOW_PROFILE_STAFF_EN.PROFILE_NO_INITIAL_RULES,
+      'PROFILE_NO_INITIAL_RULES',
     );
   }
 
@@ -172,7 +182,10 @@ function parseInitialRules(rows: ResolvedWorkflowInitialRule[]): ResolvedWorkflo
       || typeof rule.initial_status !== 'string'
       || !Number.isInteger(rule.priority)
     ) {
-      throw new WorkflowProfileResolutionError('The workflow profile contains an invalid initial-rule shape.');
+      throw new WorkflowProfileResolutionError(
+        WORKFLOW_PROFILE_STAFF_EN.PROFILE_INITIAL_RULES_INVALID,
+        'PROFILE_INITIAL_RULES_INVALID',
+      );
     }
     return {
       rule_code: rule.rule_code,
@@ -234,7 +247,7 @@ async function resolveOrderServiceBindings(
   const identities = new Set(bindings.map(bindingIdentity));
   if (identities.size > 1) {
     throw new WorkflowProfileResolutionError(
-      'This order contains service categories governed by different workflow profiles. Split the order before creation.',
+      WORKFLOW_PROFILE_STAFF_EN.PROFILE_SERVICE_SCOPE_CONFLICT,
       'PROFILE_SERVICE_SCOPE_CONFLICT',
     );
   }
@@ -265,10 +278,11 @@ export async function resolveWorkflowProfileBindingWithSupabase(
 
   const assignment = chooseAssignment((assignmentData ?? []) as AssignmentRow[], input.branchId, input.serviceCode);
   if (!assignment) {
-    const scope = input.serviceCode ? `service category "${input.serviceCode}"` : 'this order';
     throw new WorkflowProfileResolutionError(
-      `No active workflow profile assignment applies to ${scope}. Assign and publish a workflow profile before creating orders.`,
+      staffEnForWorkflowProfileError('PROFILE_ASSIGNMENT_REQUIRED', { serviceCode: input.serviceCode })
+        ?? WORKFLOW_PROFILE_STAFF_EN.PROFILE_ASSIGNMENT_REQUIRED,
       'PROFILE_ASSIGNMENT_REQUIRED',
+      { serviceCode: input.serviceCode },
     );
   }
 
@@ -288,7 +302,10 @@ export async function resolveWorkflowProfileBindingWithSupabase(
     .maybeSingle();
   if (profileError) throw profileError;
   if (!profileData) {
-    throw new WorkflowProfileResolutionError('The assigned workflow profile is no longer active.');
+    throw new WorkflowProfileResolutionError(
+      WORKFLOW_PROFILE_STAFF_EN.PROFILE_INACTIVE,
+      'PROFILE_INACTIVE',
+    );
   }
 
   const { data: versionData, error: versionError } = await supabase
@@ -341,10 +358,11 @@ export async function resolveWorkflowProfileBindingWithPrisma(
   `);
   const assignment = chooseAssignment(assignments, input.branchId, input.serviceCode);
   if (!assignment) {
-    const scope = input.serviceCode ? `service category "${input.serviceCode}"` : 'this order';
     throw new WorkflowProfileResolutionError(
-      `No active workflow profile assignment applies to ${scope}. Assign and publish a workflow profile before creating orders.`,
+      staffEnForWorkflowProfileError('PROFILE_ASSIGNMENT_REQUIRED', { serviceCode: input.serviceCode })
+        ?? WORKFLOW_PROFILE_STAFF_EN.PROFILE_ASSIGNMENT_REQUIRED,
       'PROFILE_ASSIGNMENT_REQUIRED',
+      { serviceCode: input.serviceCode },
     );
   }
 

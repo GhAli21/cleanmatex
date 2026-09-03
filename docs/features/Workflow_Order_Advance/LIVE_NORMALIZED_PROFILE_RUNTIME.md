@@ -8,8 +8,9 @@ Vocabulary: [future_work_in_wf/00_WF_ENTITY_GLOSSARY.md](future_work_in_wf/00_WF
 
 `WorkflowPolicyResolver` is the **only** tenant policy loader. HQ
 `WorkflowPolicyValidator` authors/checks policy; the tenant must not grow a
-second Check-policy engine. The DB helper `sys_wf_prof_ver_validate_live` is
-integrity-only. Check-policy issue metadata lives in the HQ catalog
+second Check-policy engine. Tenant `sys_wf_prof_ver_live_rpt` is the shared
+structural report (catalog codes only). `sys_wf_prof_ver_validate_live` fails
+closed when that report is non-empty. Check-policy issue metadata lives in the HQ catalog
 ([generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md](generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md)).
 Add/update/retire codes in HQ after loading `/manage-wf-policy-issues-catalog`;
 do not hand-edit the tenant pin. Tenant uses `seed_must_pass` for platform seed CI.
@@ -66,7 +67,10 @@ execution rights. Workboard (`module_mode = observer`) never executes.
 
 `public_tracking` may execute public OFD `CONFIRM_DELIVERY`. Released customer
 pickup still runs `pickup_handover` via the pickup service. Do not bind
-`CONFIRM_PICKUP` onto `public_tracking`.
+`CONFIRM_PICKUP` onto `public_tracking`. The DB helper
+`sys_wf_prof_ver_live_rpt` allows that public OFD confirm and reports every
+other structural miss as catalog codes (`0476` + `0477` applied locally and
+remotely). Do not edit those migrations.
 
 Partial pickup or delivery is enabled only when the corresponding stage-owned
 service can atomically validate selected pieces, financial/evidence gates,
@@ -89,10 +93,10 @@ tenant runtime fallback data.
 
 ## Migration gate
 
-**0470 is applied** locally and remotely (`live_normalized_workflow_profile_runtime`), plus follow-up `0471`. Types have been regenerated.
+**0470 is applied** locally and remotely (`live_normalized_workflow_profile_runtime`), plus follow-up `0471`–`0475`. Types have been regenerated.
 
 Runtime loads **live normalized profile-version rows**. Artifact columns on orders are historical audit only and are not written for new orders. `WorkflowPolicyResolver` is the tenant policy loader; `sys_wf_prof_ver_validate_live` remains integrity-only for Pilot/Publish/assignment.
 
 The helper allows only `pickup_handover` / `CONFIRM_PICKUP` / observed `ready` → `delivered`, and rejects other observer executes. Coverage: `web-admin/__tests__/db-integration/wf-prof-ver-validate-live.db.test.ts`.
 
-Do not edit applied 0470. Further schema changes use a later sequence. Agents never apply migrations. Workboard grouping, delivery fail-closed, public-tracking HTTP mapping, verified POS `pos` on pickup/intake/delivery, privacy-safe observe events, and live-runtime unit/source-scan assurance are in. Remaining: S10 canary, soak, apply reviewed `scripts/workflow/local_demo_wf_v2_simple_assign.sql` on local DB if needed, and compiler-retirement docs.
+Do not edit applied `0470`–`0475`. Further schema changes use a later sequence. Agents never apply migrations. Workboard grouping, delivery fail-closed, public-tracking HTTP mapping, verified POS `pos` on pickup/intake/delivery, privacy-safe observe events, and live-runtime unit/source-scan assurance are in. Local and remote each have one active profile assignment. Remaining: S10 canary, soak, and Gate 5 compiler-retirement docs.

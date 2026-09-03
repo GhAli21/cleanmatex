@@ -42,13 +42,14 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
       fullWidth = true,
       className = '',
       id: idProp,
+      'aria-invalid': ariaInvalid,
       ...props
     },
     ref
   ) => {
     const generatedId = React.useId()
     const inputId = idProp ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : generatedId)
-    const hasError = !!error
+    const hasError = !!error || ariaInvalid === true || ariaInvalid === 'true'
 
     const inputClassName = cn(
       inputBaseClasses,
@@ -83,11 +84,11 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
             ref={ref}
             id={inputId}
             className={inputClassName}
-            aria-invalid={hasError}
             aria-describedby={
               error ? `${inputId}-error` : helpText ? `${inputId}-help` : undefined
             }
             {...props}
+            aria-invalid={hasError}
           />
 
           {rightIcon && (

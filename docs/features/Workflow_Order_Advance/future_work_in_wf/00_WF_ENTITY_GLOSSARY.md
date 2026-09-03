@@ -236,7 +236,7 @@ Matcher that chooses the order’s **first** `current_status` at create (source,
 | **Profile** | Named HQ policy product (`sys_wf_profiles_cd`). |
 | **Profile version** | Draft/Pilot/Published revision (`sys_wf_profile_ver_mst`). Pilot is editable only for test/demo tenants; Published is immutable. |
 | **Policy / live rows** | Modules, memberships, executions/channels/gates, initial rules, evidence, and switches used directly by runtime. |
-| **Validation** | HQ `WorkflowPolicyValidator` (detailed Check policy) plus the DB relational guard; neither creates a runtime artifact. Tenant `WorkflowPolicyResolver` loads the bound version’s live rows; it does not validate Studio. |
+| **Validation** | HQ `WorkflowPolicyValidator` (Check policy) maps the tenant `sys_wf_prof_ver_live_rpt` structural report through the catalog; `sys_wf_prof_ver_validate_live` fails closed on any report row. Neither creates a runtime artifact. Tenant `WorkflowPolicyResolver` loads the bound version’s live rows; it does not validate Studio. |
 | **Assignment** | Which tenant / branch / service uses which version. Affects **new** orders only. |
 | **Order binding** | `wf_profile_id`, `wf_profile_version_id`, and `wf_version_no` on `org_orders_mst`. Existing orders retain this direct binding when assignment changes. |
 

@@ -1,5 +1,5 @@
 {
-  "catalog_version": "1.0.0",
+  "catalog_version": "1.1.0",
   "schema_version": 1,
   "generated_from": "cleanmatexsaas/platform-api/src/modules/workflow-engine-config/catalog",
   "issues": [
@@ -25,7 +25,7 @@
       },
       "seed_must_pass": true,
       "exception_of": null,
-      "db_guard": "overlap",
+      "db_guard": "reporter",
       "aliases": [],
       "implementation_status": "emitted"
     },
@@ -54,7 +54,36 @@
       },
       "seed_must_pass": true,
       "exception_of": null,
-      "db_guard": "overlap",
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "profile_no_primary_owner_module",
+      "category": "profile",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "modules",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.profile_no_primary_owner_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.profile_no_primary_owner_module.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "reporter",
       "aliases": [],
       "implementation_status": "emitted"
     },
@@ -341,7 +370,7 @@
       },
       "seed_must_pass": true,
       "exception_of": "direct_counter_pickup_confirm",
-      "db_guard": "overlap",
+      "db_guard": "none",
       "aliases": [],
       "implementation_status": "emitted"
     },
@@ -370,13 +399,14 @@
         "mode": "options",
         "option_ids": [
           "use_ready_for_pickup_from",
+          "enable_driver_ofd_owner",
           "move_command_to_owner",
           "give_command_screen_ownership"
         ]
       },
       "seed_must_pass": true,
       "exception_of": "direct_counter_pickup_confirm",
-      "db_guard": "overlap",
+      "db_guard": "reporter",
       "aliases": [],
       "implementation_status": "emitted"
     },
@@ -474,7 +504,7 @@
       },
       "seed_must_pass": true,
       "exception_of": null,
-      "db_guard": "overlap",
+      "db_guard": "reporter",
       "aliases": [],
       "implementation_status": "emitted"
     },
@@ -799,7 +829,7 @@
       },
       "seed_must_pass": true,
       "exception_of": null,
-      "db_guard": "overlap",
+      "db_guard": "reporter",
       "aliases": [],
       "implementation_status": "emitted"
     },
@@ -865,7 +895,7 @@
       },
       "seed_must_pass": true,
       "exception_of": null,
-      "db_guard": "overlap",
+      "db_guard": "reporter",
       "aliases": [],
       "implementation_status": "emitted"
     },
@@ -1473,7 +1503,33 @@
       },
       "seed_must_pass": true,
       "exception_of": null,
-      "db_guard": "overlap",
+      "db_guard": "reporter",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "live_structural_report_unavailable",
+      "category": "lifecycle",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "policy",
+      "studio_tab": "validation",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.live_structural_report_unavailable.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.live_structural_report_unavailable.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
       "aliases": [],
       "implementation_status": "emitted"
     },

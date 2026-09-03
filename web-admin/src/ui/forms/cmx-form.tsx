@@ -8,6 +8,7 @@
 
 import { FormProvider, type FieldErrors, type FieldValues, type UseFormReturn } from 'react-hook-form'
 import { useId, useMemo, type ReactNode } from 'react'
+import { cmxFocusField } from './cmx-focus-field'
 import { CmxFormStatusBanner } from './cmx-form-status-banner'
 
 export type CmxFormLayout = 'stacked' | 'twoColumn' | 'autoFit'
@@ -33,27 +34,6 @@ function collectErrorEntries(errors: FieldErrors<FieldValues>, prefix = ''): Err
 
     return collectErrorEntries(value as FieldErrors<FieldValues>, path)
   })
-}
-
-function focusField(name: string) {
-  if (typeof document === 'undefined') {
-    return
-  }
-
-  const target =
-    document.querySelector<HTMLElement>(`[name="${name}"]`) ??
-    document.querySelector<HTMLElement>(`[data-cmx-field-name="${name}"] [data-cmx-select-trigger]`) ??
-    document.querySelector<HTMLElement>(`[data-cmx-field-name="${name}"] input, [data-cmx-field-name="${name}"] textarea, [data-cmx-field-name="${name}"] button`)
-
-  if (!target) {
-    return
-  }
-
-  target.scrollIntoView({ behavior: 'smooth', block: 'center' })
-
-  if ('focus' in target) {
-    window.setTimeout(() => target.focus(), 120)
-  }
 }
 
 interface CmxFormProps<TFieldValues extends FieldValues = FieldValues> {
@@ -138,7 +118,7 @@ export function CmxForm<TFieldValues extends FieldValues = FieldValues>({
           onSubmit={form.handleSubmit(onSubmit, () => {
             const firstError = collectErrorEntries(form.formState.errors as FieldErrors<FieldValues>)[0]
             if (firstError) {
-              focusField(firstError.name)
+              cmxFocusField({ name: firstError.name })
             }
           })}
           className={[

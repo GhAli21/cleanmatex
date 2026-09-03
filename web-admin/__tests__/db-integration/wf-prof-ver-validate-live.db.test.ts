@@ -1,13 +1,13 @@
 /**
- * Draft `sys_wf_prof_ver_validate_live` ownership-guard tests (0470 OPEN).
+ * Shared structural report + write-lock tests.
  *
- * 0470 is an unapplied review draft. The public function does not exist until
- * the product owner applies it. These tests install a session `pg_temp` copy
- * extracted from the draft file so the predicate can be proven on pre-0470
- * schema without applying the migration.
+ * Extracts `sys_wf_prof_ver_live_rpt` and `sys_wf_prof_ver_validate_live`
+ * from 0477 into `pg_temp` so the predicates can be proven without depending
+ * on which host already applied 0477. Pickup and public OFD exceptions stay
+ * in the reporter.
  *
- * Local DB only. The suite skips when 0457 policy tables or the draft file
- * are unavailable. Agents never apply 0470.
+ * Local DB only. The suite skips when 0457 policy tables or the migration
+ * file are unavailable. Agents never apply migrations.
  *
  * @jest-environment node
  */
@@ -15,18 +15,27 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 
-const MIGRATION_PATH = path.resolve(
+const MIGRATION_0470_PATH = path.resolve(
   process.cwd(),
   '..',
   'supabase',
   'migrations',
   '0470_live_normalized_workflow_profile_runtime.sql'
 );
+const MIGRATION_PATH = path.resolve(
+  process.cwd(),
+  '..',
+  'supabase',
+  'migrations',
+  '0477_wf_live_structural_report.sql'
+);
 
 let dbReady = false;
-let draftFnSql: string | null = null;
+let draftRptSql: string | null = null;
+let draftValidateSql: string | null = null;
 
 interface DraftSeed {
   profileId: string;
@@ -35,7 +44,8 @@ interface DraftSeed {
 
 beforeAll(async () => {
   try {
-    draftFnSql = extractValidateLiveFnSql();
+    draftRptSql = extractFnSql('sys_wf_prof_ver_live_rpt');
+    draftValidateSql = extractFnSql('sys_wf_prof_ver_validate_live');
     const readiness = await prisma.$queryRaw<Array<{ ready: boolean }>>`
       SELECT
         to_regclass('public.sys_wf_prof_ver_module_cf') IS NOT NULL
@@ -49,9 +59,21 @@ beforeAll(async () => {
         )
         AND EXISTS (
           SELECT 1 FROM public.sys_wf_statuses_cd WHERE status_code = 'ready_for_pickup'
+        )
+        AND EXISTS (
+          SELECT 1 FROM public.sys_wf_screens_cd WHERE screen_key = 'public_tracking'
+        )
+        AND EXISTS (
+          SELECT 1 FROM public.sys_wf_actions_cd WHERE action_code = 'CONFIRM_DELIVERY'
+        )
+        AND EXISTS (
+          SELECT 1 FROM public.sys_wf_statuses_cd WHERE status_code = 'out_for_delivery'
+        )
+        AND EXISTS (
+          SELECT 1 FROM public.sys_wf_screens_cd WHERE screen_key = 'driver_delivery'
         ) AS ready
     `;
-    dbReady = readiness[0]?.ready === true && Boolean(draftFnSql);
+    dbReady = readiness[0]?.ready === true && Boolean(draftRptSql) && Boolean(draftValidateSql);
   } catch {
     dbReady = false;
   }
@@ -63,9 +85,9 @@ afterAll(async () => {
 
 function dbit(name: string, fn: () => Promise<void>): void {
   it(name, async () => {
-    if (!dbReady || !draftFnSql) {
+    if (!dbReady || !draftRptSql || !draftValidateSql) {
       console.warn(
-        `[wf-validate-live-db] Local DB or 0470 draft extract unavailable - skipping: ${name}`
+        `[wf-validate-live-db] Local DB or 0477 extract unavailable - skipping: ${name}`
       );
       return;
     }
@@ -74,36 +96,47 @@ function dbit(name: string, fn: () => Promise<void>): void {
 }
 
 /**
- * Pulls the draft helper from 0470 so tests share one source of truth with the
- * unapplied migration instead of duplicating the predicate.
+ * Pulls one helper from 0477 so tests share the migration source of truth.
  */
-function extractValidateLiveFnSql(): string {
+function extractFnSql(fnName: 'sys_wf_prof_ver_live_rpt' | 'sys_wf_prof_ver_validate_live'): string {
   const sql = readFileSync(MIGRATION_PATH, 'utf8');
-  const start = sql.indexOf(
-    'CREATE OR REPLACE FUNCTION public.sys_wf_prof_ver_validate_live('
-  );
-  const end = sql.indexOf(
-    '\nREVOKE ALL ON FUNCTION public.sys_wf_prof_ver_validate_live',
-    start
-  );
+  const start = sql.indexOf(`CREATE OR REPLACE FUNCTION public.${fnName}(`);
+  const end = sql.indexOf(`\nREVOKE ALL ON FUNCTION public.${fnName}`, start);
   if (start < 0 || end < 0) {
-    throw new Error('Could not extract sys_wf_prof_ver_validate_live from 0470');
+    throw new Error(`Could not extract ${fnName} from 0477`);
   }
   return sql
     .slice(start, end)
-    .replaceAll(
-      'public.sys_wf_prof_ver_validate_live',
-      'pg_temp.sys_wf_prof_ver_validate_live'
-    )
+    .replaceAll('public.sys_wf_prof_ver_validate_live', 'pg_temp.sys_wf_prof_ver_validate_live')
+    .replaceAll('public.sys_wf_prof_ver_live_rpt', 'pg_temp.sys_wf_prof_ver_live_rpt')
     .trim();
+}
+
+async function installDraftFns(tx: Prisma.TransactionClient): Promise<void> {
+  await tx.$executeRawUnsafe(draftRptSql as string);
+  await tx.$executeRawUnsafe(draftValidateSql as string);
 }
 
 async function callDraftValidate(versionId: string): Promise<void> {
   await prisma.$transaction(
     async (tx) => {
-      await tx.$executeRawUnsafe(draftFnSql as string);
+      await installDraftFns(tx);
       await tx.$executeRaw`
         SELECT pg_temp.sys_wf_prof_ver_validate_live(${versionId}::uuid)
+      `;
+    },
+    { timeout: 20000 }
+  );
+}
+
+async function callDraftReport(versionId: string): Promise<Array<{ issue_code: string }>> {
+  return prisma.$transaction(
+    async (tx) => {
+      await installDraftFns(tx);
+      return tx.$queryRaw<Array<{ issue_code: string }>>`
+        SELECT issue_code
+        FROM pg_temp.sys_wf_prof_ver_live_rpt(${versionId}::uuid)
+        ORDER BY issue_code, issue_path
       `;
     },
     { timeout: 20000 }
@@ -138,7 +171,7 @@ async function seedDraftVersion(): Promise<DraftSeed> {
 async function insertModule(
   versionId: string,
   screenKey: string,
-  moduleMode: 'primary_owner' | 'observer',
+  moduleMode: 'primary_owner' | 'observer' | 'cross_cutting_command',
   displayOrder: number
 ): Promise<void> {
   await prisma.$executeRaw`
@@ -181,7 +214,8 @@ async function insertExec(
   screenKey: string,
   actionCode: string,
   fromStatus: string,
-  toStatus: string
+  toStatus: string,
+  channelCode = 'staff_web'
 ): Promise<void> {
   const rows = await prisma.$queryRaw<Array<{ exec_id: string }>>`
     INSERT INTO public.sys_wf_prof_ver_exec_cf (
@@ -195,7 +229,7 @@ async function insertExec(
   `;
   await prisma.$executeRaw`
     INSERT INTO public.sys_wf_prof_ver_exec_ch_cf (exec_id, channel_code, is_active, rec_status)
-    VALUES (${rows[0].exec_id}::uuid, 'staff_web', true, 1)
+    VALUES (${rows[0].exec_id}::uuid, ${channelCode}, true, 1)
   `;
 }
 
@@ -245,9 +279,9 @@ async function cleanupSeed(seed: DraftSeed): Promise<void> {
   `;
 }
 
-describe('0470 sys_wf_prof_ver_validate_live (OPEN draft)', () => {
-  dbit('0470 still drops the live pre-0470 snapshot constraint names and has no CASCADE', async () => {
-    const sql = readFileSync(MIGRATION_PATH, 'utf8');
+describe('0477 sys_wf_prof_ver_live_rpt', () => {
+  dbit('0470 dropped the pre-0470 snapshot constraints and has no CASCADE', async () => {
+    const sql = readFileSync(MIGRATION_0470_PATH, 'utf8');
     expect(sql).toMatch(/DROP CONSTRAINT IF EXISTS chk_ord_wf_sem_snapshot/);
     expect(sql).toMatch(/DROP CONSTRAINT IF EXISTS chk_ord_wf_snap_required/);
     expect(sql).not.toMatch(/\bCASCADE\b/);
@@ -258,10 +292,7 @@ describe('0470 sys_wf_prof_ver_validate_live (OPEN draft)', () => {
       WHERE conrelid = 'public.org_orders_mst'::regclass
         AND conname IN ('chk_ord_wf_sem_snapshot', 'chk_ord_wf_snap_required')
     `;
-    expect(constraints.map((row) => row.conname).sort()).toEqual([
-      'chk_ord_wf_sem_snapshot',
-      'chk_ord_wf_snap_required',
-    ]);
+    expect(constraints).toEqual([]);
   });
 
   dbit('allows pickup_handover CONFIRM_PICKUP from observed ready to delivered plus staged owner confirm', async () => {
@@ -307,7 +338,7 @@ describe('0470 sys_wf_prof_ver_validate_live (OPEN draft)', () => {
         'delivered'
       );
       await expect(callDraftValidate(seed.versionId)).rejects.toThrow(
-        /CONFIRM_PICKUP must be bound on pickup_handover/
+        /confirm_pickup_not_on_pickup_handover/
       );
     } finally {
       await cleanupSeed(seed);
@@ -330,7 +361,7 @@ describe('0470 sys_wf_prof_ver_validate_live (OPEN draft)', () => {
         'delivered'
       );
       await expect(callDraftValidate(seed.versionId)).rejects.toThrow(
-        /owner visibility for its source status/
+        /execution_not_from_status_owner/
       );
     } finally {
       await cleanupSeed(seed);
@@ -354,7 +385,7 @@ describe('0470 sys_wf_prof_ver_validate_live (OPEN draft)', () => {
         'ready_for_pickup'
       );
       await expect(callDraftValidate(seed.versionId)).rejects.toThrow(
-        /owner visibility for its source status/
+        /execution_not_from_status_owner/
       );
     } finally {
       await cleanupSeed(seed);
@@ -377,7 +408,7 @@ describe('0470 sys_wf_prof_ver_validate_live (OPEN draft)', () => {
         'ready_for_pickup'
       );
       await expect(callDraftValidate(seed.versionId)).rejects.toThrow(
-        /owner visibility for its source status/
+        /execution_not_from_status_owner/
       );
     } finally {
       await cleanupSeed(seed);
@@ -401,7 +432,70 @@ describe('0470 sys_wf_prof_ver_validate_live (OPEN draft)', () => {
         'processing'
       );
       await expect(callDraftValidate(seed.versionId)).rejects.toThrow(
-        /owner visibility for its source status/
+        /execution_not_from_status_owner/
+      );
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbit('allows public_tracking CONFIRM_DELIVERY from observed OFD when driver_delivery owns OFD', async () => {
+    const seed = await seedDraftVersion();
+    try {
+      await seedIntakeOwner(seed.versionId);
+      await insertModule(seed.versionId, 'driver_delivery', 'primary_owner', 40);
+      await insertMembership(seed.versionId, 'driver_delivery', 'out_for_delivery', 'owner', 10);
+      await insertModule(seed.versionId, 'public_tracking', 'cross_cutting_command', 50);
+      await insertMembership(seed.versionId, 'public_tracking', 'out_for_delivery', 'observer', 10);
+      await insertExec(
+        seed.versionId,
+        'public_tracking',
+        'CONFIRM_DELIVERY',
+        'out_for_delivery',
+        'delivered',
+        'public_web'
+      );
+      await expect(callDraftValidate(seed.versionId)).resolves.toBeUndefined();
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbit('rejects public_tracking CONFIRM_DELIVERY when driver_delivery does not own OFD', async () => {
+    const seed = await seedDraftVersion();
+    try {
+      await seedIntakeOwner(seed.versionId);
+      await insertModule(seed.versionId, 'public_tracking', 'cross_cutting_command', 50);
+      await insertMembership(seed.versionId, 'public_tracking', 'out_for_delivery', 'observer', 10);
+      await insertExec(
+        seed.versionId,
+        'public_tracking',
+        'CONFIRM_DELIVERY',
+        'out_for_delivery',
+        'delivered',
+        'public_web'
+      );
+      await expect(callDraftValidate(seed.versionId)).rejects.toThrow(
+        /execution_not_from_status_owner/
+      );
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbit('returns every structural catalog code in one report', async () => {
+    const seed = await seedDraftVersion();
+    try {
+      const rows = await callDraftReport(seed.versionId);
+      expect(rows.map((row) => row.issue_code).sort()).toEqual([
+        'initial_rule_missing',
+        'profile_no_primary_owner_module',
+      ]);
+      await expect(callDraftValidate(seed.versionId)).rejects.toThrow(
+        /initial_rule_missing/
+      );
+      await expect(callDraftValidate(seed.versionId)).rejects.toThrow(
+        /profile_no_primary_owner_module/
       );
     } finally {
       await cleanupSeed(seed);

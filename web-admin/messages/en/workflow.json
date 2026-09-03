@@ -602,6 +602,22 @@
     "goToProcessing": "Go to Processing",
     "orderCreatedSuccess": "Order {orderNo} created successfully"
   },
+  "profileErrors": {
+    "PROFILE_ASSIGNMENT_REQUIRED": "No workflow profile is assigned for this order. Ask your platform administrator to assign a Published profile, or an eligible Pilot on a test/demo tenant, before creating orders.",
+    "PROFILE_ASSIGNMENT_REQUIRED_SERVICE": "No workflow profile is assigned for service category \"{service}\". Ask your platform administrator to assign a profile for that service before creating this order.",
+    "PROFILE_ASSIGNMENT_CONFLICT": "More than one workflow profile applies to this order equally. Ask your platform administrator to remove the duplicate assignment in HQ.",
+    "PROFILE_SERVICE_SCOPE_CONFLICT": "This order mixes services that use different workflow profiles. Split them into separate orders, then submit each one.",
+    "PROFILE_INITIAL_RULE_UNMATCHED": "This order does not match any start rule on the assigned workflow profile. Retail, quick drop, order source, and order type each need a matching Initial rule. Ask HQ to add or widen those rules, then try again.",
+    "PROFILE_NO_EXECUTABLE_VERSION": "The assigned workflow profile has no runnable version. A Published version is required, or a Pilot version only on an HQ test/demo tenant. Ask your platform administrator.",
+    "PROFILE_NO_INITIAL_RULES": "The assigned workflow profile has no start rules. Ask HQ to add Initial rules before creating orders.",
+    "PROFILE_INITIAL_RULES_INVALID": "The assigned workflow profile has a damaged start-rule setup. Ask HQ to repair Initial rules.",
+    "PROFILE_INACTIVE": "The assigned workflow profile is no longer active. Ask your platform administrator to assign an active profile.",
+    "PROFILE_RESOLUTION_FAILED": "The workflow profile for this order could not be resolved. Contact your platform administrator.",
+    "PROFILE_SNAPSHOT_INCOMPLETE": "This order has no workflow profile binding, so it cannot be processed. Recreate the order after a workflow profile is assigned.",
+    "PROFILE_ARTIFACT_UNAVAILABLE": "The workflow version on this order is not a runnable Pilot or Published policy. Recreate the order, or ask HQ to publish the bound version.",
+    "PROFILE_ARTIFACT_INVALID": "The workflow profile on this order is missing required setup (modules, start rules, or action channels). Ask HQ to repair that profile version.",
+    "PROFILE_EXECUTION_INVALID": "This action does not match the order’s workflow profile. Refresh the order and use a listed action, or ask HQ to check the profile."
+  },
   "engine": {
     "actionBarLabel": "Workflow actions",
     "actionBarTitle": "Available actions",

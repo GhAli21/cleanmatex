@@ -6,6 +6,7 @@ import {
   loadLiveWorkflowPolicyForOrder,
   SemanticWorkflowArtifactError,
 } from '@/lib/services/workflow/workflow-policy-resolver.service';
+import { WORKFLOW_PROFILE_STAFF_EN } from './workflow-profile-error-catalog';
 
 export { SemanticWorkflowArtifactError } from '@/lib/services/workflow/workflow-policy-resolver.service';
 
@@ -119,7 +120,7 @@ export async function loadSemanticWorkflowArtifactForOrder(
   if (!parsed.success) {
     throw new SemanticWorkflowArtifactError(
       'PROFILE_ARTIFACT_INVALID',
-      'The live workflow policy failed projection validation.',
+      WORKFLOW_PROFILE_STAFF_EN.PROFILE_ARTIFACT_INVALID,
     );
   }
   return parsed.data;

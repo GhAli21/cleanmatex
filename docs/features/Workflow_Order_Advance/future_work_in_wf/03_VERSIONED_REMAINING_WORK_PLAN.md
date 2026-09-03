@@ -90,7 +90,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 |----|------|--------|-----|
 | V10x-S1 | Gate `parameters_json` JSON Schema | Evaluators already fail unknown | `gate_parameters_invalid` |
 | V10x-S2 | Nav from server workflow-context | Hide/disable Off modules using context, not a second client policy | Preview the same contract |
-| V10x-S3 | Submit-order error mapping | All `PROFILE_*` / resolution codes → stable HTTP + i18n | — |
+| V10x-S3 | Submit-order error mapping | **Done 2026-09-03:** create `PROFILE_*` → 422 + `workflow.profileErrors`; runtime integrity stays 409 | — |
 
 ### Could
 

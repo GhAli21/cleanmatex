@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
-import { Alert, AlertDescription, CmxButton, CmxInput, Label } from '@ui/primitives';
+import { Alert, AlertDescription, CmxButton, CmxInput } from '@ui/primitives';
 import { CmxEmptyState } from '@ui/data-display';
 import { CmxConfirmDialog, cmxMessage } from '@ui/feedback';
+import { CmxFieldShell, cmxFocusField } from '@ui/forms';
 import { useTranslations, useLocale } from 'next-intl';
 import {
   toSubmittedGateDecisions,
@@ -17,11 +18,23 @@ import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 const GATE_RACK_REQUIRED = 'GATE_RACK_REQUIRED';
 
 const MIN_CONTROL_NOTES = 10;
+/** Actions whose policy requires an audit reason/note (must stay aligned with workflow profile seeds). */
 const CONTROL_ACTIONS_NEEDING_NOTES = new Set<string>([
   WORKFLOW_ACTIONS.HOLD_ORDER_WORK,
+  WORKFLOW_ACTIONS.RESUME_ORDER_WORK,
   WORKFLOW_ACTIONS.STOP_ORDER_WORK,
   WORKFLOW_ACTIONS.FAIL_QA,
 ]);
+
+const WF_FIELD_NAMES = {
+  rackLocation: 'wf-rack-location',
+  controlNotes: 'wf-control-notes',
+  overrideReason: 'wf-override-reason',
+} as const;
+
+function actionNeedsControlNotes(actionCode: string): boolean {
+  return CONTROL_ACTIONS_NEEDING_NOTES.has(actionCode);
+}
 
 export interface WorkflowActionBarProps {
   orderId: string;
@@ -117,6 +130,23 @@ export function WorkflowActionBar({
   const [overrideReason, setOverrideReason] = useState('');
   const [overrideReasonError, setOverrideReasonError] = useState<string | null>(null);
   const didRedirectRef = useRef(false);
+  const rackInputRef = useRef<HTMLInputElement>(null);
+  const controlNotesInputRef = useRef<HTMLInputElement>(null);
+  const overrideReasonInputRef = useRef<HTMLInputElement>(null);
+
+  const failField = (
+    field: (typeof WF_FIELD_NAMES)[keyof typeof WF_FIELD_NAMES],
+    message: string,
+    inputRef: RefObject<HTMLInputElement | null>,
+    setError: (value: string | null) => void,
+  ) => {
+    setError(message);
+    cmxFocusField({
+      name: field,
+      id: inputRef.current?.id,
+      element: inputRef.current,
+    });
+  };
 
   const visible = actions.filter(
     (action) =>
@@ -126,9 +156,7 @@ export function WorkflowActionBar({
   // Wait for first fetch — initial [] must not count as empty (false bounce).
   const isEmpty = enabled && hasLoaded && !loading && visible.length === 0;
   const hasSupplementalActions = supplementalActions != null;
-  const needsControlNotes = visible.some((a) =>
-    CONTROL_ACTIONS_NEEDING_NOTES.has(a.actionCode),
-  );
+  const needsControlNotes = visible.some((a) => actionNeedsControlNotes(a.actionCode));
 
   useEffect(() => {
     if (!isEmpty || !emptyBackHref || didRedirectRef.current) return;
@@ -206,7 +234,7 @@ export function WorkflowActionBar({
   ) => {
     const input: Record<string, unknown> = {};
     if (rackTrimmed) input.rackLocation = rackTrimmed;
-    if (CONTROL_ACTIONS_NEEDING_NOTES.has(action.actionCode)) {
+    if (actionNeedsControlNotes(action.actionCode)) {
       input.notes = notesTrimmed;
       input.reason = notesTrimmed;
     }
@@ -264,9 +292,16 @@ export function WorkflowActionBar({
         </div>
 
         {showRackField ? (
-          <div className="space-y-1.5">
-            <Label htmlFor={`wf-rack-${orderId}`}>{t('rackLocationLabel')}</Label>
+          <CmxFieldShell
+            id={`wf-rack-${orderId}`}
+            name={WF_FIELD_NAMES.rackLocation}
+            label={t('rackLocationLabel')}
+            hint={t('rackLocationHelp')}
+            error={rackError}
+            required
+          >
             <CmxInput
+              ref={rackInputRef}
               id={`wf-rack-${orderId}`}
               value={rackLocation}
               onChange={(e) => {
@@ -278,19 +313,20 @@ export function WorkflowActionBar({
               aria-invalid={Boolean(rackError)}
               aria-describedby={rackError ? `wf-rack-err-${orderId}` : undefined}
             />
-            <p className="text-xs text-muted-foreground">{t('rackLocationHelp')}</p>
-            {rackError ? (
-              <p id={`wf-rack-err-${orderId}`} className="text-xs text-destructive" role="alert">
-                {rackError}
-              </p>
-            ) : null}
-          </div>
+          </CmxFieldShell>
         ) : null}
 
         {needsControlNotes ? (
-          <div className="space-y-1.5">
-            <Label htmlFor={`wf-control-notes-${orderId}`}>{t('controlNotesLabel')}</Label>
+          <CmxFieldShell
+            id={`wf-control-notes-${orderId}`}
+            name={WF_FIELD_NAMES.controlNotes}
+            label={t('controlNotesLabel')}
+            hint={t('controlNotesHelp', { min: MIN_CONTROL_NOTES })}
+            error={controlNotesError}
+            required
+          >
             <CmxInput
+              ref={controlNotesInputRef}
               id={`wf-control-notes-${orderId}`}
               value={controlNotes}
               onChange={(e) => {
@@ -304,19 +340,7 @@ export function WorkflowActionBar({
                 controlNotesError ? `wf-control-notes-err-${orderId}` : undefined
               }
             />
-            <p className="text-xs text-muted-foreground">
-              {t('controlNotesHelp', { min: MIN_CONTROL_NOTES })}
-            </p>
-            {controlNotesError ? (
-              <p
-                id={`wf-control-notes-err-${orderId}`}
-                className="text-xs text-destructive"
-                role="alert"
-              >
-                {controlNotesError}
-              </p>
-            ) : null}
-          </div>
+          </CmxFieldShell>
         ) : null}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -345,13 +369,23 @@ export function WorkflowActionBar({
                   onClick={() => {
                     void (async () => {
                       if (isOnlyRackBlocked(action) && !rackTrimmed) {
-                        setRackError(t('rackLocationRequired'));
+                        failField(
+                          WF_FIELD_NAMES.rackLocation,
+                          t('rackLocationRequired'),
+                          rackInputRef,
+                          setRackError,
+                        );
                         return;
                       }
-                      const needsNotes = CONTROL_ACTIONS_NEEDING_NOTES.has(action.actionCode);
-                      if (needsNotes && notesTrimmed.length < MIN_CONTROL_NOTES) {
-                        setControlNotesError(
+                      if (
+                        actionNeedsControlNotes(action.actionCode) &&
+                        notesTrimmed.length < MIN_CONTROL_NOTES
+                      ) {
+                        failField(
+                          WF_FIELD_NAMES.controlNotes,
                           t('controlNotesRequired', { min: MIN_CONTROL_NOTES }),
+                          controlNotesInputRef,
+                          setControlNotesError,
                         );
                         return;
                       }
@@ -412,7 +446,12 @@ export function WorkflowActionBar({
         onConfirm={async () => {
           if (!pendingGateAction) return;
           if (pendingNeedsOverride && overrideReason.trim().length < pendingOverrideMin) {
-            setOverrideReasonError(t('gateOverrideReasonRequired', { min: pendingOverrideMin }));
+            failField(
+              WF_FIELD_NAMES.overrideReason,
+              t('gateOverrideReasonRequired', { min: pendingOverrideMin }),
+              overrideReasonInputRef,
+              setOverrideReasonError,
+            );
             return;
           }
           await executeWorkflowAction(
@@ -435,9 +474,20 @@ export function WorkflowActionBar({
           </p>
         ))}
         {pendingNeedsOverride ? (
-          <div className="space-y-1.5">
-            <Label htmlFor={`wf-override-reason-${orderId}`}>{t('gateOverrideReasonLabel')}</Label>
+          <CmxFieldShell
+            id={`wf-override-reason-${orderId}`}
+            name={WF_FIELD_NAMES.overrideReason}
+            label={t('gateOverrideReasonLabel')}
+            hint={
+              pendingOverridePermission
+                ? t('gateOverridePermissionHint', { permission: pendingOverridePermission })
+                : undefined
+            }
+            error={overrideReasonError}
+            required
+          >
             <CmxInput
+              ref={overrideReasonInputRef}
               id={`wf-override-reason-${orderId}`}
               value={overrideReason}
               onChange={(event) => {
@@ -451,21 +501,7 @@ export function WorkflowActionBar({
                 overrideReasonError ? `wf-override-reason-err-${orderId}` : undefined
               }
             />
-            {pendingOverridePermission ? (
-              <p className="text-xs text-muted-foreground">
-                {t('gateOverridePermissionHint', { permission: pendingOverridePermission })}
-              </p>
-            ) : null}
-            {overrideReasonError ? (
-              <p
-                id={`wf-override-reason-err-${orderId}`}
-                className="text-xs text-destructive"
-                role="alert"
-              >
-                {overrideReasonError}
-              </p>
-            ) : null}
-          </div>
+          </CmxFieldShell>
         ) : null}
       </CmxConfirmDialog>
       {children}

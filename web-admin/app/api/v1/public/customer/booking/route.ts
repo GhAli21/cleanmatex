@@ -11,6 +11,11 @@ import { PreferenceCatalogService } from '@/lib/services/preference-catalog.serv
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import {
+  isWorkflowProfileCreateErrorCode,
+  workflowProfileCreateErrorPayload,
+  WORKFLOW_PROFILE_CREATE_HTTP_STATUS,
+} from '@/lib/services/workflow/workflow-profile-error-catalog';
 
 const bookingItemPieceSchema = z.object({
   pieceSeq: z.coerce.number().int().min(1),
@@ -1032,7 +1037,16 @@ export async function POST(request: NextRequest) {
         ...submitContext,
         customerId: session.customerId,
         error: creationResult.error,
+        errorCode: creationResult.errorCode,
       });
+      if (isWorkflowProfileCreateErrorCode(creationResult.errorCode)) {
+        return NextResponse.json(
+          workflowProfileCreateErrorPayload(creationResult.errorCode, {
+            serviceCode: creationResult.serviceCode,
+          }),
+          { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
+        );
+      }
       return jsonError(
         'booking_create_failed',
         creationResult.error ?? 'Failed to create booking',
