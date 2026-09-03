@@ -8,5 +8,7 @@
   "outForDelivery": "Out for Delivery",
   "delivered": "Delivered",
   "closed": "Closed",
-  "cancelled": "Cancelled"
+  "cancelled": "Cancelled",
+  "onHold": "On Hold",
+  "stopped": "Stopped"
 }

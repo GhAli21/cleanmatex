@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
@@ -16,16 +16,21 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { CmxEmptyState, CmxKpiStatCard } from '@ui/data-display';
+import { CmxStatusBadge } from '@ui/feedback';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
 import { Alert, CmxButton, CmxSpinner } from '@ui/primitives';
 import { Truck, CheckCircle2 } from 'lucide-react';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
+import { OrderStatusBadge } from '@features/orders/ui/order-status-badge';
 import { WORKFLOW_SCREENS } from '@/lib/constants/workflow-screens';
+import { STATUS_META, type OrderStatus } from '@/lib/types/workflow';
 
 interface DeliveryOrderRecord {
   id: string;
   order_no: string;
+  current_status?: string | null;
+  status?: string | null;
   customer?: { name?: string; phone?: string };
   org_customers_mst?: { id?: string | null } | Array<{ id?: string | null }> | null;
   branch_id?: string | null;
@@ -38,12 +43,43 @@ interface DeliveryOrderRecord {
 interface DeliveryOrder {
   id: string;
   order_no: string;
+  status: string;
   customer: { id?: string | null; name: string; phone: string };
   branchId?: string | null;
   currencyCode: string;
   paymentTypeCode?: string | null;
   outstandingAmount: number;
   total_items: number;
+}
+
+/** Maps `out_for_delivery` → `outForDelivery` so catalog keys stay camelCase. */
+function statusI18nKey(status: string): string {
+  return status.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+}
+
+/**
+ * Workflow status chip next to the order number. Known statuses reuse the
+ * shared badge; hold/stop and other live codes fall back to i18n or a readable code.
+ */
+function DeliveryOrderStatusBadge({ status }: { status: string }) {
+  const locale = useLocale();
+  const tStatuses = useTranslations('orders.statuses');
+  const normalized = status.trim().toLowerCase();
+  if (!normalized) return null;
+
+  if (normalized in STATUS_META) {
+    return (
+      <OrderStatusBadge
+        status={normalized as OrderStatus}
+        locale={locale.startsWith('ar') ? 'ar' : 'en'}
+        size="sm"
+      />
+    );
+  }
+
+  const key = statusI18nKey(normalized);
+  const label = tStatuses.has(key) ? tStatuses(key) : normalized.replace(/_/g, ' ');
+  return <CmxStatusBadge label={label} size="sm" variant="outline" />;
 }
 
 interface DeliveryRoute {
@@ -92,6 +128,7 @@ function DeliveryReadOnlyScreen() {
     return (rawOrders ?? []).map((o) => ({
       id: o.id,
       order_no: o.order_no,
+      status: String(o.current_status || o.status || '').toLowerCase(),
       total_items: o.total_items || 0,
       branchId: o.branch_id,
       currencyCode: o.currency_code || 'OMR',
@@ -190,7 +227,7 @@ function DeliveryReadOnlyScreen() {
               <CmxCardContent className="p-6">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/dashboard/delivery/${order.id}?returnUrl=${encodeURIComponent('/dashboard/delivery')}&returnLabel=${encodeURIComponent(
                           t('delivery.actions.backToDelivery')
@@ -199,6 +236,7 @@ function DeliveryReadOnlyScreen() {
                       >
                         {order.order_no}
                       </Link>
+                      <DeliveryOrderStatusBadge status={order.status} />
                     </div>
                     <div className="text-sm text-gray-600 mt-1">
                       {order.customer.name} • {order.customer.phone}

@@ -8,5 +8,7 @@
   "outForDelivery": "في الطريق للتوصيل",
   "delivered": "تم التسليم",
   "closed": "مغلق",
-  "cancelled": "ملغى"
+  "cancelled": "ملغى",
+  "onHold": "معلق",
+  "stopped": "متوقف"
 }
