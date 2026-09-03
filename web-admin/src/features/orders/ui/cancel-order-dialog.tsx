@@ -21,6 +21,7 @@ import {
 } from '@ui/overlays';
 import { Label, CmxTextarea, Alert, AlertDescription } from '@ui/primitives';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
@@ -57,6 +58,7 @@ export function CancelOrderDialog({
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const { showSuccess, showErrorFrom, showError } = useMessage();
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
   const transition = useOrderTransition();
   const { formatMoneyWithCode } = useTenantCurrency();
   const engineV2 = isWorkflowEngineV2Enabled();
@@ -114,7 +116,9 @@ export function CancelOrderDialog({
         onOpenChange(false);
         onSuccess?.();
       } else {
-        showError(data.error || t('error'));
+        showError(
+          profileStaffMessage(data.code, data.error || t('error')) || t('error'),
+        );
       }
     } catch (error) {
       showErrorFrom(error, { fallback: t('error') });

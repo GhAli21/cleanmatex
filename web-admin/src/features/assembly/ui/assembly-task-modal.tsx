@@ -18,6 +18,7 @@ import {
   useCompleteAssemblyTask,
 } from '../hooks/use-assembly';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback/useMessage';
 import { X, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -48,6 +49,7 @@ export function AssemblyTaskModal({
   const t = useTranslations('workflow.assembly.task');
   const [showExceptionDialog, setShowExceptionDialog] = useState(false);
   const { showSuccess, showError } = useMessage();
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
   const { mutate: startTask, isPending: isStarting } = useStartAssemblyTask();
   const { mutateAsync: completeTask, isPending: isCompletingTask } =
     useCompleteAssemblyTask();
@@ -123,7 +125,10 @@ export function AssemblyTaskModal({
       });
 
       if (result.success === false) {
-        showError(result.error || t('messages.completeFailed'));
+        showError(
+          profileStaffMessage(result.code, result.error || t('messages.completeFailed'))
+            || t('messages.completeFailed'),
+        );
         return;
       }
 

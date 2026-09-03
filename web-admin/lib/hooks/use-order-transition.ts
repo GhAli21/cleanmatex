@@ -3,6 +3,7 @@ import { workflowContextQueryKey } from '@/lib/hooks/use-workflow-context';
 import { leaveActionForScreen } from '@/lib/constants/workflow-leave-actions';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { postStaffWorkflowCommand } from '@/lib/workflow/post-staff-workflow-command';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 
 /**
  *
@@ -61,6 +62,7 @@ function resolveActionCode(input: TransitionInput): string | null {
  */
 export function useOrderTransition() {
   const queryClient = useQueryClient();
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
 
   return useMutation<TransitionResult, Error, { orderId: string; input: TransitionInput }>({
     mutationFn: async ({ orderId, input }) => {
@@ -83,7 +85,9 @@ export function useOrderTransition() {
         return {
           success: false,
           ok: false,
-          error: availJson.error || 'Failed to load available actions',
+          error: profileStaffMessage(availJson.code, availJson.error || 'Failed to load available actions')
+            || availJson.error
+            || 'Failed to load available actions',
           code: availJson.code,
         };
       }
@@ -114,7 +118,9 @@ export function useOrderTransition() {
         return {
           success: false,
           ok: false,
-          error: actionResult.error || 'Action failed',
+          error: profileStaffMessage(actionResult.code, actionResult.error || 'Action failed')
+            || actionResult.error
+            || 'Action failed',
           code: actionResult.code,
           blockers: actionResult.blockedReasons?.map(
             (b) => b.message || '',

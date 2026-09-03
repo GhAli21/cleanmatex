@@ -16,7 +16,7 @@ import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
 import { PickupApiError } from '@features/pickup/api/pickup-api';
 import { usePickupHandover } from '@features/pickup/hooks/use-pickup-handover';
-import { localizeWorkflowProfileError } from '@/lib/services/workflow/workflow-profile-error-catalog';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 
 /** Props supplied by the Ready screen's tenant-scoped order read model. */
 export interface PickupHandoverCardProps {
@@ -59,9 +59,8 @@ export function PickupHandoverCard({
   showCollectAction = true,
 }: PickupHandoverCardProps) {
   const t = useTranslations('workflow.pickup');
-  const tProfileErrors = useTranslations('workflow.profileErrors');
-  const tEngine = useTranslations('workflow.engine');
   const tCommon = useTranslations('common');
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
   const locale = useLocale();
   const { showError, showSuccess, showWarning } = useMessage();
   const { action, currentStatus, loading, submitting, confirm } = usePickupHandover(orderId);
@@ -129,10 +128,7 @@ export function PickupHandoverCard({
         return;
       }
       if (error instanceof PickupApiError && error.code.startsWith('PROFILE_')) {
-        showError(
-          localizeWorkflowProfileError(tProfileErrors, error.code)
-            ?? tEngine('profileUnavailable'),
-        );
+        showError(profileStaffMessage(error.code, t('failed')) ?? t('failed'));
         return;
       }
       showError(error instanceof Error ? error.message : t('failed'));

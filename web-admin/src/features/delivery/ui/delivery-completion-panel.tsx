@@ -17,6 +17,7 @@ import {
 import { useMessage } from '@ui/feedback';
 import { STAFF_DELIVERY_COMPLETION_ENABLED } from '@/lib/config/delivery-safety';
 import { useHasAllPermissions } from '@/lib/hooks/usePermissions';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 import type { DeliveryStopView } from '@/lib/services/delivery/delivery-route-query.service';
 import {
   completeDelivery,
@@ -47,6 +48,7 @@ function evidenceRequirements(methodCode: string | null) {
 export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletionPanelProps) {
   const t = useTranslations('workflow.delivery.completion');
   const { showError, showSuccess } = useMessage();
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
   const canComplete = useHasAllPermissions(['delivery:pod', 'orders:transition']);
   const [methodCode, setMethodCode] = useState('');
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
@@ -146,11 +148,14 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
       onCompleted();
     } catch (error) {
       const isVersionConflict = error instanceof DeliveryApiError && error.code === 'VERSION_CONFLICT';
+      const profileMessage = error instanceof DeliveryApiError
+        ? profileStaffMessage(error.code)
+        : undefined;
       const message = error instanceof DeliveryApiError && error.code === 'DELIVERY_COLLECTION_REQUIRED'
         ? t('errors.collectionRequired')
         : isVersionConflict
           ? t('errors.staleVersion')
-          : t('messages.failed');
+          : profileMessage ?? t('messages.failed');
       if (error instanceof DeliveryApiError && error.code === 'POD_EVIDENCE_INVALID') {
         completionKeyRef.current = null;
         evidenceReceiptsRef.current = { signature: null, photos: [] };

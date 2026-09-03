@@ -2,7 +2,7 @@
 
 ## Unreleased — 2026-09-03
 
-- New-order start-rule matching now includes `orderTypeId` (Studio “Order type code”). Create-time `PROFILE_*` failures return HTTP 422 with staff EN/AR copy in `workflow.profileErrors` instead of a generic 500 or “not configured” toast. Floor/pickup toasts split runtime integrity codes instead of one `profileUnavailable` sentence.
+- New-order start-rule matching now includes `orderTypeId` (Studio “Order type code”). Create-time `PROFILE_*` failures return HTTP 422 with staff EN/AR copy in `workflow.profileErrors` instead of a generic 500 or “not configured” toast. Floor writers (ActionBar, processing Mark Ready, pickup/delivery handover, delivery proof complete, preparation complete, assembly complete, cancel/return) split runtime integrity codes instead of one `profileUnavailable` sentence or raw English `json.error`.
 - HQ Check-policy issue catalog is the emit registry (severity, gates, Studio tab, Auto Fix IDs, seed_must_pass). Tenant pin: [generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md](generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md). File 02 remains narrative for planned codes. Maintain the catalog in HQ via `/manage-wf-policy-issues-catalog`; never hand-edit generated JSON.
 - **0474 applied** locally and remotely. HQ Published→Pilot/Draft demote (`sys_wf_prof_ver_demote_sem`) is live. Do not edit applied `0474`.
 - **0475 applied** locally and remotely. SIMPLE live-policy DRAFT repair seed is in; Check policy / Pilot / Publish of that draft remain manual. Do not edit applied `0475`.

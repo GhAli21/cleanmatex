@@ -17,6 +17,7 @@ import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collec
 import { DeliveryApiError } from '@features/delivery/api/delivery-completion-api';
 import { DeliveryCompletionPanel } from '@features/delivery/ui/delivery-completion-panel';
 import { useDeliveryHandover } from '@features/delivery/hooks/use-delivery-handover';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 
 /** Props supplied by the Delivery floor order read model. */
 export interface DeliveryHandoverCardProps {
@@ -52,6 +53,7 @@ export function DeliveryHandoverCard({
 }: DeliveryHandoverCardProps) {
   const t = useTranslations('workflow.delivery.handover');
   const tCommon = useTranslations('common');
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
   const locale = useLocale();
   const { showError, showSuccess, showWarning } = useMessage();
   const { action, activeStop, loading, submitting, confirm } = useDeliveryHandover(orderId);
@@ -107,6 +109,10 @@ export function DeliveryHandoverCard({
       if (error instanceof DeliveryApiError && error.code === 'DELIVERY_COLLECTION_REQUIRED') {
         setDialogOpen(false);
         promptForCollection();
+        return;
+      }
+      if (error instanceof DeliveryApiError && error.code.startsWith('PROFILE_')) {
+        showError(profileStaffMessage(error.code, t('failed')) ?? t('failed'));
         return;
       }
       showError(error instanceof Error ? error.message : t('failed'));

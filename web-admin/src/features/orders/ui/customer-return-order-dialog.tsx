@@ -21,6 +21,7 @@ import {
 } from '@ui/overlays';
 import { Label, CmxTextarea } from '@ui/primitives';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 
 interface CustomerReturnOrderDialogProps {
   orderId: string;
@@ -50,6 +51,7 @@ export function CustomerReturnOrderDialog({
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const { showSuccess, showErrorFrom, showError } = useMessage();
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
   const transition = useOrderTransition();
   const [reason, setReason] = useState('');
   const [reasonCode, setReasonCode] = useState<string>('');
@@ -80,7 +82,9 @@ export function CustomerReturnOrderDialog({
         onOpenChange(false);
         onSuccess?.();
       } else {
-        showError(data.error || t('error'));
+        showError(
+          profileStaffMessage(data.code, data.error || t('error')) || t('error'),
+        );
       }
     } catch (error) {
       showErrorFrom(error, { fallback: t('error') });

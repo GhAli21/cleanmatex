@@ -9,7 +9,7 @@
 | Scope ADR | [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) |
 | Checkpoint | [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md) |
 | Writers | [WRITER_INVENTORY.md](WRITER_INVENTORY.md) |
-| Next (engineering) | Deploy HQ API + Studio (catalog 1.1.0 + Check policy reporter). Then Check policy and Start Pilot on SIMPLE v4. After that: staff S10 delivery canary and soak. |
+| Next (engineering) | Deploy tenant web-admin (order-type start-rule match + `workflow.profileErrors` toasts). Deploy HQ API + Studio (catalog 1.1.0 + Check policy reporter). Then Check policy and Start Pilot on SIMPLE v4. After that: staff S10 delivery canary and soak. |
 | Next (operator) | Recreate any pre-cutover unsnapshotted test orders under an assigned live profile when you next need floor smoke. This is not a required handoff to continue implementation. |
 | Next (product) | V1.1 return sub-order / projection follow-up after V1.0 acceptance |
 | Ready for production canary | **No for full V1.0** — public confirmation is green; staff S10 delivery canary is not signed off |

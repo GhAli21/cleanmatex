@@ -30,6 +30,7 @@ import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row
 import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { postStaffWorkflowCommand } from '@/lib/workflow/post-staff-workflow-command';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 
 const sortableHeaderClass =
   'px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right';
@@ -554,6 +555,7 @@ function SharedMarkReadyDialog({
   const t = useTranslations('processing.table');
   const tDetail = useTranslations('processing.detail');
   const tCommon = useTranslations('common');
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
   const [isLoading, setIsLoading] = useState(false);
   const [rackLocation, setRackLocation] = useState('');
   const [rackLocationError, setRackLocationError] = useState('');
@@ -591,7 +593,11 @@ function SharedMarkReadyDialog({
       );
       const availJson = await availRes.json().catch(() => ({}));
       if (!availRes.ok || !availJson.success) {
-        throw new Error(availJson.error || t('markReadyError') || 'Failed to update order status');
+        throw new Error(
+          profileStaffMessage(availJson.code, availJson.error || t('markReadyError'))
+            || t('markReadyError')
+            || 'Failed to update order status',
+        );
       }
       const payload = availJson.data ?? availJson;
       const expectedStateVersion = Number(payload.stateVersion ?? 0);
@@ -611,7 +617,7 @@ function SharedMarkReadyDialog({
       onBusy(null);
       setIsLoading(false);
       cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
-        description: result.error,
+        description: profileStaffMessage(result.code, result.error) || result.error,
         duration: 5000,
       });
     } catch (error) {

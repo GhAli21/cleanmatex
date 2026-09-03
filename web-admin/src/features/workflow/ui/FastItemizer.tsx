@@ -14,6 +14,7 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 import { useMessage } from '@ui/feedback';
 
 interface FastItemizerProps {
@@ -43,6 +44,7 @@ export function FastItemizer({ order, returnUrl = '/dashboard/preparation' }: Fa
   const t = useTranslations('workflow');
   const tOrderActions = useTranslations('orders.actions');
   const { showSuccess, showErrorFrom, showInfo } = useMessage();
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const transition = useOrderTransition();
   const { token: csrfToken } = useCSRFToken();
@@ -91,9 +93,12 @@ export function FastItemizer({ order, returnUrl = '/dashboard/preparation' }: Fa
             internalNotes: t('preparation.actions.preparationCompleteNote'),
           }),
         });
-        const res = await response.json();
+        const res = await response.json() as { success?: boolean; code?: string; error?: string };
         if (!response.ok || !res.success) {
-          throw new Error(res.error || t('validation.transitionNotAllowed'));
+          throw new Error(
+            profileStaffMessage(res.code, res.error || t('validation.transitionNotAllowed'))
+              || t('validation.transitionNotAllowed'),
+          );
         }
         showSuccess(t('preparation.actions.preparationCompleteSuccess'));
         // Stay on preparation worklist — do not auto-advance to the next stage.

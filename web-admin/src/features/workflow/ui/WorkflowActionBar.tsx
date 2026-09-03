@@ -14,6 +14,7 @@ import {
   type WorkflowGateDecisionDto,
 } from '@/lib/hooks/use-workflow-actions';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
+import { workflowActionBarEmptyMode } from '@features/workflow/ui/workflow-action-bar-empty';
 
 const GATE_RACK_REQUIRED = 'GATE_RACK_REQUIRED';
 
@@ -51,6 +52,7 @@ export interface WorkflowActionBarProps {
   /**
    * When the engine returns no actions for this screen (wrong stage / not a member),
    * navigate here (e.g. list `returnUrl` or `/dashboard/preparation`).
+   * Hidden leave-actions do not count as empty — bounce only on a true engine miss.
    */
   emptyBackHref?: string;
   /**
@@ -153,17 +155,26 @@ export function WorkflowActionBar({
       !hiddenActionCodes.includes(action.actionCode) &&
       (action.enabled || action.blockedReasons.length > 0),
   );
-  // Wait for first fetch — initial [] must not count as empty (false bounce).
-  const isEmpty = enabled && hasLoaded && !loading && visible.length === 0;
   const hasSupplementalActions = supplementalActions != null;
+  // Wait for first fetch — initial [] must not count as empty (false bounce).
+  const emptyMode =
+    enabled && hasLoaded && !loading
+      ? workflowActionBarEmptyMode({
+          visibleCount: visible.length,
+          engineActionCount: actions.length,
+          hasSupplementalActions,
+          hideWhenEmpty,
+          hasEmptyBackHref: Boolean(emptyBackHref),
+        })
+      : 'ready';
   const needsControlNotes = visible.some((a) => actionNeedsControlNotes(a.actionCode));
 
   useEffect(() => {
-    if (!isEmpty || !emptyBackHref || didRedirectRef.current) return;
+    if (emptyMode !== 'redirect' || !emptyBackHref || didRedirectRef.current) return;
     didRedirectRef.current = true;
     cmxMessage.info(t('redirectedNoActions'));
     router.replace(emptyBackHref);
-  }, [isEmpty, emptyBackHref, router, t]);
+  }, [emptyMode, emptyBackHref, router, t]);
 
   if (!enabled && hideWhenDisabled) {
     return children ? <>{children}</> : null;
@@ -196,19 +207,20 @@ export function WorkflowActionBar({
     );
   }
 
-  if (isEmpty && !hasSupplementalActions) {
-    if (hideWhenEmpty) {
-      return children ? <>{children}</> : null;
-    }
-    if (emptyBackHref) {
-      // Redirect in flight — avoid flashing floor tools for the wrong stage.
-      return (
-        <p className="text-sm text-muted-foreground" role="status">
-          {t('redirecting')}
-        </p>
-      );
-    }
+  if (emptyMode === 'hide') {
+    return children ? <>{children}</> : null;
+  }
 
+  if (emptyMode === 'redirect') {
+    // Redirect in flight — avoid flashing floor tools for the wrong stage.
+    return (
+      <p className="text-sm text-muted-foreground" role="status">
+        {t('redirecting')}
+      </p>
+    );
+  }
+
+  if (emptyMode === 'empty') {
     return (
       <>
         <CmxEmptyState

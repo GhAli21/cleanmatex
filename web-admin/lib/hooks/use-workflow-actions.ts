@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
 import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
 import { postStaffWorkflowCommand } from '@/lib/workflow/post-staff-workflow-command';
-import { localizeWorkflowProfileError } from '@/lib/services/workflow/workflow-profile-error-catalog';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 
 export interface WorkflowGateDecisionDto {
   gateCode: string;
@@ -76,7 +76,7 @@ export function useWorkflowActions(
   screen: string,
 ): UseWorkflowActionsResult {
   const t = useTranslations('workflow.engine');
-  const tProfileErrors = useTranslations('workflow.profileErrors');
+  const profileStaffMessage = useWorkflowProfileStaffMessage();
   const enabled = isWorkflowEngineV2Enabled();
   // Start loading when canary+order are present so ActionBar does not treat the
   // pre-fetch empty list as "no actions" and bounce via emptyBackHref.
@@ -101,12 +101,8 @@ export function useWorkflowActions(
       const json = await res.json();
       if (!res.ok || !json.success) {
         const code = typeof json.code === 'string' ? json.code : undefined;
-        const profileCopy = localizeWorkflowProfileError(tProfileErrors, code);
         throw new Error(
-          profileCopy
-            || (code?.startsWith('PROFILE_') ? t('profileUnavailable') : undefined)
-            || json.error
-            || t('actionFailed'),
+          profileStaffMessage(code, json.error || t('actionFailed')) || t('actionFailed'),
         );
       }
       const payload = json.data ?? json;
@@ -120,7 +116,7 @@ export function useWorkflowActions(
       setLoading(false);
       setHasLoaded(true);
     }
-  }, [enabled, orderId, screen, t, tProfileErrors]);
+  }, [enabled, orderId, screen, t, profileStaffMessage]);
 
   useEffect(() => {
     void refresh();
@@ -154,12 +150,8 @@ export function useWorkflowActions(
           gateDecisions,
         });
         if (!result.ok || !result.success) {
-          const profileCopy = localizeWorkflowProfileError(tProfileErrors, result.code);
           throw new Error(
-            profileCopy
-              || (result.code?.startsWith('PROFILE_') ? t('profileUnavailable') : undefined)
-              || result.error
-              || t('actionFailed'),
+            profileStaffMessage(result.code, result.error || t('actionFailed')) || t('actionFailed'),
           );
         }
         cmxMessage.success(t('actionSuccess'));
@@ -172,7 +164,7 @@ export function useWorkflowActions(
         setLoading(false);
       }
     },
-    [enabled, orderId, screen, stateVersion, refresh, t, tProfileErrors],
+    [enabled, orderId, screen, stateVersion, refresh, t, profileStaffMessage],
   );
 
   return {

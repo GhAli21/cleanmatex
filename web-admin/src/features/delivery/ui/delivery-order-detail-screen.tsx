@@ -142,6 +142,7 @@ export function DeliveryOrderDetailScreen() {
         screen={WORKFLOW_SCREENS.DRIVER_DELIVERY}
         hideWhenEmpty
         emptyBackHref={returnUrl}
+        // Handover card owns CONFIRM_DELIVERY; do not treat that hide as "no actions".
         hiddenActionCodes={[WORKFLOW_ACTIONS.CONFIRM_DELIVERY]}
         onActionSuccess={() => {
           void loadOrder();

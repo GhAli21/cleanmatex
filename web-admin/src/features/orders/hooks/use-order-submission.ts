@@ -25,7 +25,7 @@ import {
     routeServerErrorToGuard,
     type ServerErrorGuardRoute,
 } from '../payment/domain/server-error-routing';
-import { localizeWorkflowProfileError } from '@/lib/services/workflow/workflow-profile-error-catalog';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 
 /**
  * A server submit rejection routed to its owning payment capability (Phase 5 —
@@ -142,7 +142,7 @@ function formatValidationErrorMessage(
 export function useOrderSubmission() {
     const t = useTranslations('newOrder');
     const tWorkflow = useTranslations('workflow');
-    const tProfileErrors = useTranslations('workflow.profileErrors');
+    const profileStaffMessage = useWorkflowProfileStaffMessage();
     const tEdit = useTranslations('orders.edit');
     const router = useRouter();
     const { currentTenant, user } = useAuth();
@@ -573,9 +573,9 @@ export function useOrderSubmission() {
 
                     const submitErrorCode = typeof json.errorCode === 'string' ? json.errorCode : '';
                     const submitServiceCode = typeof json.serviceCode === 'string' ? json.serviceCode : undefined;
-                    const profileCopy = localizeWorkflowProfileError(
-                        tProfileErrors,
+                    const profileCopy = profileStaffMessage(
                         submitErrorCode,
+                        undefined,
                         { serviceCode: submitServiceCode },
                     );
                     if (profileCopy) {
@@ -831,7 +831,7 @@ export function useOrderSubmission() {
         [
             t,
             tWorkflow,
-            tProfileErrors,
+            profileStaffMessage,
             state,
             trackByPiece,
             packingPerPieceEnabled,
