@@ -23,13 +23,13 @@ export function HomeCollectionListScreen() {
   const t = useTranslations('workflow.homeCollection');
   const tWorkflow = useTranslations('workflow');
   const { currentTenant } = useAuth();
-  const { orders, loading, error } = useScreenOrders(WORKFLOW_SCREENS.HOME_COLLECTION, {
-    pageSize: 50,
+  const { orders, isLoading, error } = useScreenOrders(WORKFLOW_SCREENS.HOME_COLLECTION, {
+    limit: 50,
   });
 
   if (!currentTenant) return null;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <CmxSpinner size="lg" />

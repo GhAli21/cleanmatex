@@ -66,7 +66,7 @@ const semanticExecutionSchema = z.object({
 }).passthrough();
 
 const semanticEvidenceSchema = z.object({
-  fulfilment_channel: z.enum(['pickup', 'delivery']),
+  fulfilment_channel: z.enum(['pickup', 'delivery', 'home_collection']),
   evidence_method_code: z.string().min(1),
   is_required: z.boolean(),
   minimum_count: z.number().int().nonnegative(),

@@ -102,7 +102,7 @@ type InitRow = {
 };
 
 type EvidenceRow = {
-  fulfilment_channel: 'pickup' | 'delivery';
+  fulfilment_channel: 'pickup' | 'delivery' | 'home_collection';
   evidence_method_code: string;
   is_required: boolean;
   minimum_count: number;

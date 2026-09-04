@@ -9,7 +9,7 @@
 | Scope ADR | [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) |
 | Checkpoint | [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md) |
 | Writers | [WRITER_INVENTORY.md](WRITER_INVENTORY.md) |
-| Next (engineering) | Confirmed on remote: `WF_V2_HOME_COLLECTION` v1 is **PILOT**, assigned to tenant `c9ac29d1-219c-4a3a-8887-f860550c32be` (`is_hq_test_demo: true`). HC1 create step confirmed — `ORD-20260904-0001` bound to the new profile, `status=awaiting_collection`. Remaining: Assign → Confirm (HC1), then a second order for Fail (HC2). Hold H1–H4 remain. S10 delivery canary remains unsigned. Gate 5 compile retirement stays out of this slice. |
+| Next (engineering) | Bug found + fixed: tenant-side `semanticEvidenceSchema` rejected `fulfilment_channel='home_collection'` (DB/HQ already allowed it), so `WF_V2_HOME_COLLECTION` orders were invisible on **every** floor screen. Fixed in `semantic-workflow-artifact.service.ts` + `workflow-policy-resolver.service.ts`, typecheck clean, **needs commit + deploy**. After deploy: re-check `/dashboard/home-collection`, `/dashboard/processing`, `/dashboard/workboard` for `ORD-20260904-0001`/`0002`, then run HC1 Assign → Confirm, HC2 Fail on a new order. Hold H1–H4 remain. S10 delivery canary remains unsigned. Gate 5 compile retirement stays out of this slice. |
 | Next (operator) | Recreate any pre-cutover unsnapshotted test orders under an assigned live profile when you next need floor smoke. This is not a required handoff to continue implementation. |
 | Next (product) | V1.1 return sub-order / projection follow-up after V1.0 acceptance |
 | Ready for production canary | **No for full V1.0** — public confirmation is green; staff S10 delivery canary is not signed off |
