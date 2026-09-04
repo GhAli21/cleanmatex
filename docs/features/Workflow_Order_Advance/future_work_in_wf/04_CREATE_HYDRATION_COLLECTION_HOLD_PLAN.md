@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-03  
 **Repos:** `cleanmatex` (tenant + **all** migrations) · `cleanmatexsaas` (HQ Studio authoring / Check policy / catalog)  
-**Status:** T0–T4 **done**. HQ H1–H3 **done**. Catalog **1.3.0** (`evidence_without_home_collection`). Tenant leftover close-out **done** (`createOrderInTransaction` preset mapping, home-collection action gates, V10-C1 JSON editors redirect). New Order now exposes typed `order_type_id` and editable `order_source_code` context (default `POS` / `pos`) through the canonical submit path. Floor smoke HC1/HC2 + H1–H4 remain.
+**Status:** T0–T4 **done**. HQ H1–H3 **done**. Catalog **1.3.0** (`evidence_without_home_collection`). Tenant leftover close-out **done** (`createOrderInTransaction` preset mapping, home-collection action gates, V10-C1 JSON editors redirect). New Order now exposes typed `order_type_id` and editable `order_source_code` context (default `POS` / `pos`) through the canonical submit path. Migration **0488 applied by operator**: `WF_V2_HOME_COLLECTION` is an unsigned DRAFT v1 with a structural Check-policy postcondition; operator must Check policy, Compile, then Pilot. Floor smoke HC1/HC2 + H1–H4 remain.
 **Authority:** Extends [LIVE_NORMALIZED_PROFILE_RUNTIME.md](../LIVE_NORMALIZED_PROFILE_RUNTIME.md), [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md), [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md)  
 **Companion Cursor plan:** `.cursor/plans/wf_create_hydration_collection_hold_20260903.plan.md`
 
@@ -441,6 +441,7 @@ Do **not** edit applied `0470`–`0478`. After operator applies 0478, create **n
 | **0485** | `nav_home_collection` | Sidebar dual-write for `/dashboard/home-collection` (**applied**) |
 | **0486** | `wf_hold_edges_expand` | HOLD edges from allowlisted plant statuses + observer exceptions (**applied**) |
 | **0487** | `wf_live_rpt_create_presets` | live_rpt reporter rows: missing/unknown create preset + wildcard-draft (**applied**) |
+| **0488** | `wf_v2_home_collection_profile_seed` | `WF_V2_HOME_COLLECTION` standalone normalized DRAFT v1 with home-collection invariants (**applied by operator; Check policy required**) |
 
 Exact seq numbers were taken after applied **0478**. Agents never apply.
 

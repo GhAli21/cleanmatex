@@ -16,7 +16,7 @@
 | **After each WP step** | Run **STATUS-*** + **DOC-*** tasks below before starting the next step. |
 | **End of programme slice** | Run **DOC-FINAL** (`/documentation` skill) before sign-off. |
 
-**Operator apply gate:** `0479`–`0487` **applied** (local + remote; types regen confirmed). HQ H1–H3 **done**. Catalog **1.3.0**. Tenant leftover close-out **done**. Floor smoke HC1/HC2 + H1–H4 remain.
+**Operator apply gate:** `0479`–`0488` **applied**. `0488` now seeds the unsigned `WF_V2_HOME_COLLECTION` DRAFT; next operator gate is HQ Check policy → Compile → Pilot. HQ H1–H3 **done**. Catalog **1.3.0**. Tenant leftover close-out **done**. Floor smoke HC1/HC2 + H1–H4 remain.
 
 ---
 
