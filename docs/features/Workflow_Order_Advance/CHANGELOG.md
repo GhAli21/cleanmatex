@@ -7,6 +7,7 @@
 - **HQ leftover close-out:** Studio persist from any tab is blocked when Initial rules lack a create preset or include a wildcard Draft. Check-policy catalog **1.3.0** emits `evidence_without_home_collection`.
 - **0487 applied** locally and remotely; types regenerated. `sys_wf_prof_ver_live_rpt` emits `initial_rule_preset_missing`, `initial_rule_preset_unknown`, `initial_rule_wildcard_draft`. Do not edit applied 0479–0487.
 - **0488 applied by operator:** `WF_V2_HOME_COLLECTION` is a standalone normalized unsigned DRAFT v1, with explicit home-collection ownership, commands, channels, evidence, preset-backed Initial rules, and a structural validation postcondition. It creates no tenant assignment; HQ Check policy → Compile → Pilot remains required.
+- **Check policy + Compile verified clean (local):** ran `WorkflowPolicyValidator.checkProfileVersion` and `WfSemanticProfileCompilerService.compileProfileVersion` directly (`cleanmatexsaas/platform-api`) against `WF_V2_HOME_COLLECTION` v1 on local DB — both `ok: true`, 0 issues, catalog **1.3.0**. Pilot promotion (`POST .../pilot`, `workflows.manage`) is a mutating, audited lifecycle action and stays an operator step in Studio; not run.
 - **HQ H1–H3 coded** in `cleanmatexsaas`: Studio Initial-rule preset picker + catalog selects; Check-policy catalog **1.2.0** (later bumped to **1.3.0**); `POST .../simulate-create`; home_collection evidence channel. Tenant pin regenerated under `generated/`.
 
 ## Unreleased — 2026-09-03

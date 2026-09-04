@@ -1136,8 +1136,9 @@ export class OrderService {
     }
 
     let wf: Awaited<ReturnType<typeof OrderService.computeCreateOrderWorkflowState>>;
+    let workflowProfileBinding: Awaited<ReturnType<typeof resolveWorkflowProfileBindingForOrderWithPrisma>>;
     try {
-      const workflowProfileBinding = await resolveWorkflowProfileBindingForOrderWithPrisma(tx, {
+      workflowProfileBinding = await resolveWorkflowProfileBindingForOrderWithPrisma(tx, {
         tenantId,
         branchId,
         serviceCodes: items.flatMap((item) => item.serviceCategoryCode ? [item.serviceCategoryCode] : []),
