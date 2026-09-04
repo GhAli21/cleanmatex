@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
 **Updated:** 2026-09-04  
-**Overall:** Create hydration leftover close-out **done**. Catalog **1.3.0**. New Order now submits selected type/source context (default `POS` / `pos`) rather than hardcoded values. `0488_wf_v2_home_collection_profile_seed.sql` is operator-applied: `WF_V2_HOME_COLLECTION` v1 passed Check policy + Compile clean (`ok: true`, 0 issues, verified against local DB) and remains an unsigned DRAFT pending operator **Pilot**. **Next:** operator Pilot promotion, then floor smoke HC1/HC2 + H1–H4; S10 canary unsigned.
+**Overall:** Create hydration leftover close-out **done**. Catalog **1.3.0**. New Order now submits selected type/source context (default `POS` / `pos`) rather than hardcoded values. `0488_wf_v2_home_collection_profile_seed.sql` is operator-applied: `WF_V2_HOME_COLLECTION` v1 passed Check policy + Compile clean, is now **PILOT** on remote, and assigned to tenant `c9ac29d1-219c-4a3a-8887-f860550c32be` (confirmed `is_hq_test_demo: true`). HC1 create step confirmed live: `ORD-20260904-0001` bound to the new profile at `status=awaiting_collection`. **Next:** Assign → Confirm to finish HC1, a second order for HC2 Fail, then hold H1–H4; S10 canary unsigned.
 
 ## Accurate status
 

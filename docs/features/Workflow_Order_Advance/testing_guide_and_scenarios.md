@@ -311,6 +311,29 @@ Staff UX / labels:
 5. Mobile booking API accepts `fulfillmentType` `home_collection` and `collection_and_delivery` and maps to the correct `order_type_id`.
 6. New Order’s top toolbar defaults to `POS` / `pos`, allows type/source selection before create, and hides those immutable create facts in edit mode. Use `HOME_COLLECTION` + `customer_mobile_app` for the existing HC1 Initial-rule matrix; the source must be tenant-allowed.
 
+### HC1/HC2 runbook — `WF_V2_HOME_COLLECTION` v1, tenant `c9ac29d1-219c-4a3a-8887-f860550c32be` (2026-09-04)
+
+**Confirmed on remote (2026-09-04):** profile `WF_V2_HOME_COLLECTION` v1 (`a1000000-…073` / version `a1000000-…074`) is **PILOT** and assigned to this tenant (`is_hq_test_demo: true`, governance rule satisfied).
+
+**Pre-flight — done:** `ORD-20260904-0001` created with `order_type_id=HOME_COLLECTION`, `order_source_code=customer_mobile_app` → `status=awaiting_collection`, and `org_orders_mst.wf_profile_id/wf_version_no` bound to `a1000000-…073` / `1` — confirms the tenant's effective profile resolves to the new version and `customer_mobile_app` is allowed for this tenant. No further pre-flight needed.
+
+**HC1 — ASSIGN then CONFIRM (expect: plant status + intake received):**
+1. ~~Create the order~~ — done: `ORD-20260904-0001`, currently `awaiting_collection`.
+2. Go to `/dashboard/home-collection` — the order shows with the **Awaiting home collection** badge.
+3. Open the order (`/dashboard/home-collection/[id]`).
+4. Click **Assign** (`ASSIGN_HOME_COLLECTION`) on the action bar. Expect status → `out_for_collection`.
+5. The Confirm-collection card now appears (`HomeCollectionHandoverCard`) — click **Confirm collection**, optionally enter collection notes, confirm.
+6. Expect status → `intake` (owned by `new_order`) — the order now shows in the plant intake queue. This is the "plant status + intake received" outcome.
+
+**HC2 — FAIL (expect: back to awaiting + audit note):** use a **second, separate** order — HC1's order already moved past `out_for_collection` into `intake`, a terminal state for this screen.
+1. Repeat HC1 steps 1–5 for a new order.
+2. Click **Assign** → status `out_for_collection`.
+3. Click **Fail** (`FAIL_HOME_COLLECTION`) on the action bar. A reason is required, minimum 10 characters (`min_reason_length: 10` in `0488`).
+4. Expect status back to `awaiting_collection`.
+5. Check the order's History tab (or `org_order_hist_tr`) for a `FAIL_HOME_COLLECTION` entry carrying the reason as the audit note.
+
+Both actions are enabled on `staff_web` channel per `0488`, so this runbook can be exercised entirely from the web-admin UI — no mobile client needed.
+
 Access contract:
 
 ```bash
