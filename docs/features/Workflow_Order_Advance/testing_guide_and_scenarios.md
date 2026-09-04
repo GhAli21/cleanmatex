@@ -296,6 +296,7 @@ npx jest __tests__/services/order-create-workflow.service.test.ts __tests__/cons
 | C1–C4 | POS / mobile remote create | See `order-create-workflow.service.test.ts` | Jest |
 | C5 | Mobile + `HOME_COLLECTION` | `awaiting_collection` + `HOME_COLLECTION_PENDING` + `pending_dropoff` | Jest |
 | C6 | Mobile + `COLLECTION_AND_DELIVERY` | same inbound start as C5 | Jest |
+| C7 | Staff New Order type/source context | defaults `POS` / `pos`; selected DB-mirror values reach canonical submit; unknown codes reject | reducer + submit-schema Jest |
 | C8 | Rule without preset | fail closed at create / Check policy | Jest `order-create-workflow.service.test.ts`; `createOrder` + `createOrderInTransaction` map to profile 422; HQ persist + catalog; live_rpt **0487 applied** |
 | C9 | Wildcard draft Initial rule | Check policy / live_rpt blocks | HQ persist from any Studio tab + catalog; live_rpt **0487 applied** |
 | HC1 | ASSIGN then CONFIRM home collection | plant status + intake received | Manual smoke on `/dashboard/home-collection` |
@@ -308,6 +309,7 @@ Staff UX / labels:
 3. Order full detail shows sky banner + link to home collection floor when status is `awaiting_collection` and intake is pending.
 4. Order type field shows localized labels: **Branch drop-off** vs **Home collection** vs **Collection & delivery** (EN/AR `orders.orderTypes.*`).
 5. Mobile booking API accepts `fulfillmentType` `home_collection` and `collection_and_delivery` and maps to the correct `order_type_id`.
+6. New Order’s top toolbar defaults to `POS` / `pos`, allows type/source selection before create, and hides those immutable create facts in edit mode. Use `HOME_COLLECTION` + `customer_mobile_app` for the existing HC1 Initial-rule matrix; the source must be tenant-allowed.
 
 Access contract:
 

@@ -613,7 +613,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     giftCardDiscountAmount: serverTotals.giftCardApplied,
     paymentTypeCode:        paymentTypeCodeForOrder ?? getPaymentTypeFromMethod(input.paymentMethod),
     currencyCode:           serverTotals.currencyCode,
-    orderSourceCode:        'pos',
+    // Preserve the validated operator-selected channel for reporting and downstream integration routing.
+    orderSourceCode:        input.orderSourceCode,
     useOldWfCodeOrNew:      false,
     stockDeductionAudit: {
       referenceType: 'ORDER',

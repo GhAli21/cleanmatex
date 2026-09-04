@@ -152,7 +152,7 @@ Cancellation loads available actions with `screen=canceling` and executes throug
 
 Inbound dirty-item collection is **not** branch pickup (`PICKUP`).
 
-1. Create a mobile booking with fulfilment `home_collection` (order type `HOME_COLLECTION`). The order starts at `awaiting_collection` with pending intake.
+1. Create a customer-mobile booking with fulfilment `home_collection` (order type `HOME_COLLECTION`), or on New Order choose type `HOME_COLLECTION` and source `customer_mobile_app` when the tenant allows that source. The order starts at `awaiting_collection` with pending intake. `fulfillmentType` is the customer-booking API name; New Order stores `order_type_id` directly.
 2. Open **Orders → Home Collection** (`/dashboard/home-collection`).
 3. Assign the order, then on the detail page confirm collection received (or Fail with a reason of at least 10 characters).
 4. Confirm moves the order to plant `intake` and stamps physical intake. Fail returns it to `awaiting_collection`.

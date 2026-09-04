@@ -2,6 +2,7 @@
 
 ## Unreleased — 2026-09-04
 
+- **New Order create context gap repair:** the sticky toolbar now exposes bilingual `order_type_id` and editable `order_source_code` selectors, defaulting to `POS` / `pos`. Both values are reducer-backed, enum-validated at `/api/v1/orders/submit-order`, and passed through the canonical submit orchestrator into live Initial-rule resolution. `legacy_unknown` remains unavailable to staff entry; the service still enforces active, tenant-allowed sources.
 - **WF leftover close-out:** `createOrderInTransaction` maps `OrderCreatePresetError` to the same 422 profile codes as `createOrder`. Home-collection confirm/assign/fail require `orders:transition`. Legacy JSON editors at `/dashboard/settings/workflows/new` and `[id]/edit` redirect to the hub.
 - **HQ leftover close-out:** Studio persist from any tab is blocked when Initial rules lack a create preset or include a wildcard Draft. Check-policy catalog **1.3.0** emits `evidence_without_home_collection`.
 - **0487 applied** locally and remotely; types regenerated. `sys_wf_prof_ver_live_rpt` emits `initial_rule_preset_missing`, `initial_rule_preset_unknown`, `initial_rule_wildcard_draft`. Do not edit applied 0479–0487.

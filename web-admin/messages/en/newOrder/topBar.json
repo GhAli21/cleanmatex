@@ -3,5 +3,18 @@
   "expressOn": "Express On",
   "expressOff": "Express Off",
   "orderPreferences": "Preferences",
-  "orderPreferencesAria": "{count, plural, =0 {Order preferences} other {Order preferences, # applied}}"
+  "orderPreferencesAria": "{count, plural, =0 {Order preferences} other {Order preferences, # applied}}",
+  "orderTypeLabel": "Order type",
+  "orderSourceLabel": "Order source",
+  "orderSources": {
+    "pos": "Point of sale",
+    "web_admin": "Web admin",
+    "customer_mobile_app": "Customer mobile app",
+    "staff_mobile_app": "Staff mobile app",
+    "driver_mobile_app": "Driver mobile app",
+    "kiosk": "Self-service kiosk",
+    "whatsapp_bot": "WhatsApp bot",
+    "b2b_portal": "B2B portal",
+    "api_partner": "API partner"
+  }
 }

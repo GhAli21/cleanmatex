@@ -305,7 +305,8 @@ export function useOrderSubmission() {
 
                 const createWithPaymentBody = {
                     customerId: state.state.customer?.id || '',
-                    orderTypeId: 'POS',
+                    orderTypeId: state.state.orderTypeId,
+                    orderSourceCode: state.state.orderSourceCode,
                     items: state.state.items.map((item) => ({
                         productId: item.productId,
                         productName: item.productName ?? undefined,

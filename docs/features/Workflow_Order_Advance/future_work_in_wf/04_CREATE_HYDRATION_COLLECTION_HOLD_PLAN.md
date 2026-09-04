@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-03  
 **Repos:** `cleanmatex` (tenant + **all** migrations) · `cleanmatexsaas` (HQ Studio authoring / Check policy / catalog)  
-**Status:** T0–T4 **done**. HQ H1–H3 **done**. Catalog **1.3.0** (`evidence_without_home_collection`). Tenant leftover close-out **done** (`createOrderInTransaction` preset mapping, home-collection action gates, V10-C1 JSON editors redirect). Floor smoke HC1/HC2 + H1–H4 remain.  
+**Status:** T0–T4 **done**. HQ H1–H3 **done**. Catalog **1.3.0** (`evidence_without_home_collection`). Tenant leftover close-out **done** (`createOrderInTransaction` preset mapping, home-collection action gates, V10-C1 JSON editors redirect). New Order now exposes typed `order_type_id` and editable `order_source_code` context (default `POS` / `pos`) through the canonical submit path. Floor smoke HC1/HC2 + H1–H4 remain.
 **Authority:** Extends [LIVE_NORMALIZED_PROFILE_RUNTIME.md](../LIVE_NORMALIZED_PROFILE_RUNTIME.md), [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md), [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md)  
 **Companion Cursor plan:** `.cursor/plans/wf_create_hydration_collection_hold_20260903.plan.md`
 
@@ -166,6 +166,8 @@ UI labels (tenant + HQ):
 | `HOME_COLLECTION` | Home collection | We’ll collect from you | استلام من المنزل |
 | `COLLECTION_AND_DELIVERY` | Collection & delivery | Collect & deliver | جمع وتوصيل |
 | `DELIVERY` | Delivery | Delivery | توصيل |
+
+New Order uses `order_type_id` directly; `fulfillmentType` remains the public customer-booking DTO that maps to it. The staff surface defaults to `POS` / `pos`, allows the operator to select a supported source/type pair before submit, and forwards both values through the canonical submit orchestrator. The server validates the DB-mirror enums and enforces that the chosen source is active and allowed for the tenant; an unmatched Initial rule remains a typed, fail-closed create error.
 
 ### 3.4 Home-collection workflow catalog (Now)
 
@@ -348,7 +350,7 @@ Compatible preset↔status matrix (validator):
 
 ### WP-T4 — Tenant UX polish
 
-1. New Order / type picker: clear labels for PICKUP vs HOME_COLLECTION vs COLLECTION_AND_DELIVERY.
+1. New Order / type and source pickers: clear labels for PICKUP vs HOME_COLLECTION vs COLLECTION_AND_DELIVERY; defaults `POS` / `pos`; selected values reach Initial-rule resolution. **Done** (gap repair, 2026-09-04).
 2. Remote draft banner: pending physical intake.
 3. Home collection floor card: assign / confirm / fail with notes.
 4. Access contracts + permissions if new screens/APIs (golden path).

@@ -7,9 +7,15 @@
 import { z } from 'zod';
 import {
   PAYMENT_METHODS,
+  ORDER_TYPE_IDS,
+  ORDER_TYPE_ID_VALUES,
   normalizePaymentMethodCode,
   type PaymentMethodCode,
 } from '@/lib/constants/order-types';
+import {
+  NEW_ORDER_DEFAULT_SOURCE_CODE,
+  ORDER_SOURCE_CODES,
+} from '@/lib/constants/order-sources';
 import {
   OVERPAYMENT_RESOLUTIONS,
   SETTLEMENT_MONEY_EPSILON,
@@ -462,7 +468,10 @@ export const clientTotalsSchema = z.object({
 
 export const createWithPaymentRequestSchema = z.object({
   customerId: z.string(),
-  orderTypeId: z.string().default('POS'),
+  /** Restricts workflow initialization to catalog-backed order classifications. */
+  orderTypeId: z.enum(ORDER_TYPE_ID_VALUES).default(ORDER_TYPE_IDS.POS),
+  /** Preserves the chosen sales or integration channel through the payment-create boundary. */
+  orderSourceCode: z.enum(ORDER_SOURCE_CODES).default(NEW_ORDER_DEFAULT_SOURCE_CODE),
   /** Canonical tax profile selection used by web-admin and external clients. */
   taxProfileIds: z.array(z.string().uuid()).optional(),
   items: z.array(

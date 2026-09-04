@@ -11,7 +11,12 @@ import { newOrderFormSchema, type NewOrderFormData } from '../model/new-order-fo
 import { useNewOrderState } from '../ui/context/new-order-context';
 
 /**
- * Hook to use order form with React Hook Form
+ * Bridges the reducer-backed New Order model into React Hook Form validation.
+ *
+ * @returns React Hook Form controls plus a reducer-to-form synchronization helper.
+ * @example
+ * const form = useOrderForm();
+ * form.syncFormWithState();
  */
 export function useOrderForm() {
   const state = useNewOrderState();
@@ -20,7 +25,8 @@ export function useOrderForm() {
     resolver: zodResolver(newOrderFormSchema) as Resolver<NewOrderFormData>,
     defaultValues: {
       customerId: state.customer?.id || '',
-      orderTypeId: 'POS',
+      orderTypeId: state.orderTypeId,
+      orderSourceCode: state.orderSourceCode,
       items: [],
       isQuickDrop: state.isQuickDrop,
       quickDropQuantity: state.quickDropQuantity,
@@ -32,9 +38,12 @@ export function useOrderForm() {
     mode: 'onChange',
   });
 
-  // Sync form with state
+  // Keep submission validation aligned with the reducer-owned creation context.
+  // The top-bar selectors are outside the form tree, so they must be copied explicitly.
   const syncFormWithState = () => {
     form.setValue('customerId', state.customer?.id || '');
+    form.setValue('orderTypeId', state.orderTypeId);
+    form.setValue('orderSourceCode', state.orderSourceCode);
     form.setValue('items', state.items.map((item) => ({
       productId: item.productId,
       productName: item.productName,

@@ -91,10 +91,12 @@
     "supabase_remote_with_token",
     "supabase_remote",
     "supabase_local",
-    "supabase_remote_db"
+    "supabase_remote_db",
+    "supabase_remote_mcp"
   ],
   "disabledMcpjsonServers": [
     "supabase"
   ],
-  "outputStyle": "concise"
+  "outputStyle": "concise",
+  "enableAllProjectMcpServers": true
 }

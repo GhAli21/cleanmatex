@@ -4,6 +4,8 @@
  */
 
 import type { NewOrderState, NewOrderAction, PreSubmissionPiece } from '../../model/new-order-types';
+import { NEW_ORDER_DEFAULT_SOURCE_CODE } from '@/lib/constants/order-sources';
+import { ORDER_TYPE_IDS } from '@/lib/constants/order-types';
 
 /**
  * Base line (qty × unit) plus service prefs charge and packing surcharge (catalog extra_price; per line, not × qty).
@@ -57,6 +59,9 @@ export const initialState: NewOrderState = {
 
   // Order Settings
   branchId: null,
+  // Counter entry is the safe staff default; reset restores it rather than carrying context to a new sale.
+  orderTypeId: ORDER_TYPE_IDS.POS,
+  orderSourceCode: NEW_ORDER_DEFAULT_SOURCE_CODE,
   isQuickDrop: false,
   quickDropQuantity: 0,
   express: false,
@@ -104,9 +109,11 @@ export const initialState: NewOrderState = {
 };
 
 /**
- * New Order Reducer
- * @param state
- * @param action
+ * Applies draft changes while retaining the explicit creation context until the order resets.
+ *
+ * @param state - Current in-memory New Order draft.
+ * @param action - A validated UI intent, including workflow type or source selection.
+ * @returns The next immutable draft state.
  */
 export function newOrderReducer(
   state: NewOrderState,
@@ -142,6 +149,19 @@ export function newOrderReducer(
       return {
         ...state,
         branchId: action.payload,
+      };
+
+    // These remain independent: fulfillment selects workflow behavior, while source records origin.
+    case 'SET_ORDER_TYPE_ID':
+      return {
+        ...state,
+        orderTypeId: action.payload,
+      };
+
+    case 'SET_ORDER_SOURCE_CODE':
+      return {
+        ...state,
+        orderSourceCode: action.payload,
       };
 
     case 'SET_ITEMS': {

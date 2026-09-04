@@ -7,6 +7,41 @@ import { newOrderReducer, initialState } from '@/src/features/orders/ui/context/
 import type { NewOrderState, NewOrderAction, OrderItem, MinimalCustomer } from '@/src/features/orders/model/new-order-types';
 
 describe('newOrderReducer', () => {
+    describe('order creation context', () => {
+        it('defaults to a POS order from the POS source', () => {
+            expect(initialState.orderTypeId).toBe('POS');
+            expect(initialState.orderSourceCode).toBe('pos');
+        });
+
+        it('updates the selected order type and source independently', () => {
+            const withType = newOrderReducer(initialState, {
+                type: 'SET_ORDER_TYPE_ID',
+                payload: 'HOME_COLLECTION',
+            });
+            const withSource = newOrderReducer(withType, {
+                type: 'SET_ORDER_SOURCE_CODE',
+                payload: 'customer_mobile_app',
+            });
+
+            expect(withSource.orderTypeId).toBe('HOME_COLLECTION');
+            expect(withSource.orderSourceCode).toBe('customer_mobile_app');
+        });
+
+        it('restores POS defaults when the order is reset', () => {
+            const result = newOrderReducer(
+                {
+                    ...initialState,
+                    orderTypeId: 'DELIVERY',
+                    orderSourceCode: 'api_partner',
+                },
+                { type: 'RESET_ORDER' }
+            );
+
+            expect(result.orderTypeId).toBe('POS');
+            expect(result.orderSourceCode).toBe('pos');
+        });
+    });
+
     describe('SET_CUSTOMER', () => {
         it('should set customer and customer name', () => {
             const customer: MinimalCustomer = {

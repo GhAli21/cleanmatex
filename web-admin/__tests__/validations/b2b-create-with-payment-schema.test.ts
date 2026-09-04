@@ -7,10 +7,11 @@ import {
   createWithPaymentRequestSchema,
   type CreateWithPaymentRequest,
 } from '@/lib/validations/new-order-payment-schemas';
+import { ORDER_SOURCE_CODES } from '@/lib/constants/order-sources';
+import { ORDER_TYPE_ID_VALUES } from '@/lib/constants/order-types';
 
 const basePayload = {
   customerId: '550e8400-e29b-41d4-a716-446655440000',
-  orderTypeId: 'POS',
   items: [
     {
       productId: '660e8400-e29b-41d4-a716-446655440001',
@@ -28,6 +29,32 @@ const basePayload = {
     saleTotal: 11,
   },
 };
+
+describe('createWithPaymentRequestSchema (order context)', () => {
+  it('defaults omitted order context to POS/pos', () => {
+    const result = createWithPaymentRequestSchema.safeParse(basePayload);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.orderTypeId).toBe('POS');
+      expect(result.data.orderSourceCode).toBe('pos');
+    }
+  });
+
+  it('accepts every DB-mirror order type and source code', () => {
+    for (const orderTypeId of ORDER_TYPE_ID_VALUES) {
+      expect(createWithPaymentRequestSchema.safeParse({ ...basePayload, orderTypeId }).success).toBe(true);
+    }
+    for (const orderSourceCode of ORDER_SOURCE_CODES) {
+      expect(createWithPaymentRequestSchema.safeParse({ ...basePayload, orderSourceCode }).success).toBe(true);
+    }
+  });
+
+  it('rejects unknown order type and source codes', () => {
+    expect(createWithPaymentRequestSchema.safeParse({ ...basePayload, orderTypeId: 'UNKNOWN' }).success).toBe(false);
+    expect(createWithPaymentRequestSchema.safeParse({ ...basePayload, orderSourceCode: 'unknown' }).success).toBe(false);
+  });
+});
 
 describe('createWithPaymentRequestSchema (B2B)', () => {
   it('accepts creditLimitOverride true', () => {

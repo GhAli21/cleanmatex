@@ -5,6 +5,8 @@
 
 import { useNewOrderContext } from '../ui/context/new-order-context';
 import type { NewOrderState, MinimalCustomer, OrderItem, PreSubmissionPiece, OrderItemServicePref, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
+import type { OrderSourceCode } from '@/lib/constants/order-sources';
+import type { OrderTypeId } from '@/lib/constants/order-types';
 
 /**
  * Optional snapshot when setting customer (for org_orders_mst columns)
@@ -17,7 +19,9 @@ export interface SetCustomerSnapshot {
 }
 
 /**
- * Return type for useNewOrderStateWithDispatch
+ * Reducer state with the mutation helpers used by New Order surfaces.
+ * The context itself owns order type and source so every submission path shares
+ * one creation contract.
  */
 export interface UseNewOrderStateWithDispatchReturn {
   state: NewOrderState;
@@ -25,6 +29,10 @@ export interface UseNewOrderStateWithDispatchReturn {
   setCustomer: (customer: MinimalCustomer | null, customerName: string, snapshot?: SetCustomerSnapshot) => void;
   setCustomerSnapshotOverride: (override: CustomerSnapshotOverride | null) => void;
   setBranchId: (branchId: string | null) => void;
+  /** Changes the fulfillment classification before the new order is submitted. */
+  setOrderTypeId: (orderTypeId: OrderTypeId) => void;
+  /** Changes the auditable sales or integration channel before submission. */
+  setOrderSourceCode: (orderSourceCode: OrderSourceCode) => void;
   addItem: (item: OrderItem) => void;
   removeItem: (productId: string) => void;
   updateItemQuantity: (productId: string, quantity: number) => void;
@@ -68,7 +76,12 @@ export interface UseNewOrderStateWithDispatchReturn {
 }
 
 /**
- * Hook to use new order state with dispatch helpers
+ * Provides reducer state and stable-looking semantic dispatch helpers for New Order UI.
+ *
+ * @returns Current draft state and actions, including order type and source setters.
+ * @example
+ * const { state, setOrderTypeId } = useNewOrderStateWithDispatch();
+ * setOrderTypeId('HOME_COLLECTION');
  */
 export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchReturn {
   const { state, dispatch } = useNewOrderContext();
@@ -97,6 +110,14 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
 
     setBranchId: (branchId: string | null) => {
       dispatch({ type: 'SET_BRANCH_ID', payload: branchId });
+    },
+
+    setOrderTypeId: (orderTypeId: OrderTypeId) => {
+      dispatch({ type: 'SET_ORDER_TYPE_ID', payload: orderTypeId });
+    },
+
+    setOrderSourceCode: (orderSourceCode: OrderSourceCode) => {
+      dispatch({ type: 'SET_ORDER_SOURCE_CODE', payload: orderSourceCode });
     },
 
     addItem: (item: typeof state.items[0]) => {

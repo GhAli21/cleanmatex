@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
 **Updated:** 2026-09-04  
-**Overall:** Create hydration leftover close-out **done**. Catalog **1.3.0**. **Next:** floor smoke HC1/HC2 + H1–H4; S10 canary unsigned.
+**Overall:** Create hydration leftover close-out **done**. Catalog **1.3.0**. New Order now submits selected type/source context (default `POS` / `pos`) rather than hardcoded values. **Next:** floor smoke HC1/HC2 + H1–H4; S10 canary unsigned.
 
 ## Accurate status
 

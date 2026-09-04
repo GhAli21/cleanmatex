@@ -3,5 +3,18 @@
   "expressOn": "الخدمة السريعة مفعّلة",
   "expressOff": "الخدمة السريعة معطّلة",
   "orderPreferences": "التفضيلات",
-  "orderPreferencesAria": "{count, plural, =0 {تفضيلات الطلب} other {تفضيلات الطلب، # مطبقة}}"
+  "orderPreferencesAria": "{count, plural, =0 {تفضيلات الطلب} other {تفضيلات الطلب، # مطبقة}}",
+  "orderTypeLabel": "نوع الطلب",
+  "orderSourceLabel": "مصدر الطلب",
+  "orderSources": {
+    "pos": "نقطة البيع",
+    "web_admin": "إدارة الويب",
+    "customer_mobile_app": "تطبيق العميل",
+    "staff_mobile_app": "تطبيق الموظفين",
+    "driver_mobile_app": "تطبيق السائق",
+    "kiosk": "كشك الخدمة الذاتية",
+    "whatsapp_bot": "روبوت واتساب",
+    "b2b_portal": "بوابة الشركات",
+    "api_partner": "شريك واجهة البرمجة"
+  }
 }

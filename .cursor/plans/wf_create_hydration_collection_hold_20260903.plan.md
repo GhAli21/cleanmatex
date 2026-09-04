@@ -117,7 +117,7 @@ Copy this checklist into each WP; mark done before moving on.
 
 | Task | Status |
 |------|--------|
-| T4.1 Type picker labels (PICKUP vs HOME_COLLECTION vs C&D) | done |
+| T4.1 Type/source picker labels (PICKUP vs HOME_COLLECTION vs C&D; defaults `POS` / `pos`) | done — New Order gap repaired 2026-09-04; submitted context reaches Initial-rule resolution |
 | T4.2 Remote draft banner; home collection floor UX | done |
 | T4.3 Full test matrix §9 | done (Jest C5/C6 + manual HC1/HC2 checklist) |
 | T4.4 Navigation dual-write + access contracts | done (0485 applied) |

@@ -3,6 +3,9 @@
  * PRD-010: Advanced Order Management
  */
 
+import type { OrderSourceCode } from '@/lib/constants/order-sources';
+import type { OrderTypeId } from '@/lib/constants/order-types';
+
 // ==================================================================
 // CUSTOMER TYPES
 // ==================================================================
@@ -215,6 +218,10 @@ export interface NewOrderState {
 
   // Order Settings
   branchId: string | null;
+  /** Workflow-relevant fulfillment classification stored in `sys_order_type_cd`. */
+  orderTypeId: OrderTypeId;
+  /** Auditable sales or integration channel selected for this new order. */
+  orderSourceCode: OrderSourceCode;
   isQuickDrop: boolean;
   quickDropQuantity: number;
   express: boolean;
@@ -278,6 +285,10 @@ export type NewOrderAction =
     }
   | { type: 'SET_CUSTOMER_SNAPSHOT_OVERRIDE'; payload: CustomerSnapshotOverride | null }
   | { type: 'SET_BRANCH_ID'; payload: string | null }
+  /** Allows staff to choose the workflow initialization path before submission. */
+  | { type: 'SET_ORDER_TYPE_ID'; payload: OrderTypeId }
+  /** Retains the selected channel as business data rather than deriving it at submit time. */
+  | { type: 'SET_ORDER_SOURCE_CODE'; payload: OrderSourceCode }
   | { type: 'SET_ITEMS'; payload: OrderItem[] }
   | { type: 'ADD_ITEM'; payload: OrderItem }
   | { type: 'REMOVE_ITEM'; payload: string } // productId

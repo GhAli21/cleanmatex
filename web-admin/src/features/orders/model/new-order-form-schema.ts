@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { PAYMENT_METHODS, ORDER_TYPE_ID_VALUES } from '@/lib/constants/order-types';
+import { NEW_ORDER_DEFAULT_SOURCE_CODE, ORDER_SOURCE_CODES } from '@/lib/constants/order-sources';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
 /**
@@ -56,7 +57,10 @@ export const orderItemSchema = z.object({
  */
 export const newOrderFormSchema = z.object({
   customerId: uuidSchema,
+  /** Catalog-backed classification that selects the applicable initial workflow path. */
   orderTypeId: z.enum(ORDER_TYPE_ID_VALUES),
+  /** Auditable creation channel; defaults to staff counter entry when omitted. */
+  orderSourceCode: z.enum(ORDER_SOURCE_CODES).default(NEW_ORDER_DEFAULT_SOURCE_CODE),
   items: z
     .array(orderItemSchema)
     .min(1, 'At least one item is required'),
@@ -73,15 +77,11 @@ export const newOrderFormSchema = z.object({
 });
 
 /**
- * Type inference for new order form
+ * Validated New Order draft shape shared by React Hook Form and submission.
  */
 export type NewOrderFormData = z.infer<typeof newOrderFormSchema>;
-/**
- *
- */
+/** Validated item entry inside a {@link NewOrderFormData} draft. */
 export type OrderItemFormData = z.infer<typeof orderItemSchema>;
-/**
- *
- */
+/** Validated piece metadata collected before the order exists. */
 export type PreSubmissionPieceFormData = z.infer<typeof preSubmissionPieceSchema>;
 

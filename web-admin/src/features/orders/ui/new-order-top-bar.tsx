@@ -13,6 +13,13 @@ import { CategoryTabs } from './category-tabs';
 import { CategoryTabsSkeleton } from './loading-skeletons';
 import { UserPlus, UserCheck, Edit2, Zap, Settings2 } from 'lucide-react';
 import type { BranchOption } from '@/lib/services/inventory-service';
+import { CmxSelect } from '@ui/primitives';
+import {
+  SELECTABLE_NEW_ORDER_SOURCE_CODES,
+  type OrderSourceCode,
+} from '@/lib/constants/order-sources';
+import { ORDER_TYPE_ID_VALUES, type OrderTypeId } from '@/lib/constants/order-types';
+import { ORDER_TYPE_I18N_KEYS } from '@/lib/constants/order-type-labels';
 
 interface ServiceCategory {
   service_category_code: string;
@@ -27,6 +34,14 @@ interface NewOrderTopBarProps {
   branchId: string | null;
   onBranchChange: (id: string | null) => void;
   branchesLoading?: boolean;
+  /** Current fulfillment choice; it must remain visible while staff add items. */
+  orderTypeId: OrderTypeId;
+  onOrderTypeChange: (orderTypeId: OrderTypeId) => void;
+  /** Current auditable channel; user-editable only while creating a new order. */
+  orderSourceCode: OrderSourceCode;
+  onOrderSourceChange: (orderSourceCode: OrderSourceCode) => void;
+  /** Hides creation-only fields when the same top bar renders an existing order. */
+  showOrderContextSelectors?: boolean;
   customerName: string;
   onSelectCustomer: () => void;
   onEditCustomer?: () => void;
@@ -45,11 +60,22 @@ interface NewOrderTopBarProps {
   onOpenOrderPreferences?: () => void;
 }
 
+/**
+ * Keeps creation context and high-frequency order controls visible above every New Order step.
+ *
+ * @param props Tenant-aware branches, order context, and interaction callbacks.
+ * @returns Sticky bilingual controls and the optional service-category row.
+ */
 export const NewOrderTopBar = memo(function NewOrderTopBar({
   branches,
   branchId,
   onBranchChange,
   branchesLoading = false,
+  orderTypeId,
+  onOrderTypeChange,
+  orderSourceCode,
+  onOrderSourceChange,
+  showOrderContextSelectors = true,
   customerName,
   onSelectCustomer,
   onEditCustomer,
@@ -67,7 +93,16 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
 }: NewOrderTopBarProps) {
   const t = useTranslations('newOrder');
   const tCommon = useTranslations('common');
+  const tOrders = useTranslations('orders');
   const isRTL = useRTL();
+  const orderTypeOptions = ORDER_TYPE_ID_VALUES.map((code) => ({
+    value: code,
+    label: tOrders(ORDER_TYPE_I18N_KEYS[code]),
+  }));
+  const orderSourceOptions = SELECTABLE_NEW_ORDER_SOURCE_CODES.map((code) => ({
+    value: code,
+    label: t(`topBar.orderSources.${code}`),
+  }));
 
   return (
     <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
@@ -169,6 +204,45 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
               </span>
             )}
           </button>
+        )}
+
+        {/* Context remains above the fold because it changes workflow and audit semantics, not item pricing. */}
+        {showOrderContextSelectors && (
+          <div className={`flex items-center gap-3 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+                {t('topBar.orderTypeLabel')}
+              </span>
+              <CmxSelect
+                id="new-order-type"
+                value={orderTypeId}
+                onChange={(event) => onOrderTypeChange(event.currentTarget.value as OrderTypeId)}
+                options={orderTypeOptions}
+                size="sm"
+                fullWidth={false}
+                className="min-w-[10.5rem]"
+                dir={isRTL ? 'rtl' : 'ltr'}
+                aria-label={t('topBar.orderTypeLabel')}
+              />
+            </div>
+
+            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+                {t('topBar.orderSourceLabel')}
+              </span>
+              <CmxSelect
+                id="new-order-source"
+                value={orderSourceCode}
+                onChange={(event) => onOrderSourceChange(event.currentTarget.value as OrderSourceCode)}
+                options={orderSourceOptions}
+                size="sm"
+                fullWidth={false}
+                className="min-w-[9.5rem]"
+                dir={isRTL ? 'rtl' : 'ltr'}
+                aria-label={t('topBar.orderSourceLabel')}
+              />
+            </div>
+          </div>
         )}
 
         {sessionSlot ? (

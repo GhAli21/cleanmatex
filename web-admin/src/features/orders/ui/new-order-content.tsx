@@ -634,6 +634,11 @@ export function NewOrderContent() {
                 branchId={state.state.branchId}
                 onBranchChange={state.setBranchId}
                 branchesLoading={branchesLoading}
+                orderTypeId={state.state.orderTypeId}
+                onOrderTypeChange={state.setOrderTypeId}
+                orderSourceCode={state.state.orderSourceCode}
+                onOrderSourceChange={state.setOrderSourceCode}
+                showOrderContextSelectors={!state.state.isEditMode}
                 customerName={state.state.customerName}
                 onSelectCustomer={() => state.openModal('customerPicker')}
                 onEditCustomer={() => state.openModal('customerEdit')}
