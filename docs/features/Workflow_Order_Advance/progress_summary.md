@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
 **Updated:** 2026-09-04  
-**Overall:** Create hydration leftover close-out **done**. Catalog **1.3.0**. `WF_V2_HOME_COLLECTION` v1 is **PILOT** on remote, assigned to tenant `c9ac29d1-219c-4a3a-8887-f860550c32be`. Found + fixed a real bug: tenant-side `semanticEvidenceSchema` didn't accept `fulfilment_channel='home_collection'` (DB/HQ already did), so the whole profile's artifact failed validation and every floor screen (home_collection, processing, workboard) showed empty for its orders. Fixed, deployed, and **HC1 confirmed passing on remote**: `ORD-20260904-0001` reached `status=intake`. Regression-checked clean on `WF_V2_SIMPLE` v4. **Next:** HC2 (Fail) on a new order, then hold H1–H4; S10 canary unsigned.
+**Overall:** Create hydration leftover close-out **done**. Catalog **1.3.0**. `WF_V2_HOME_COLLECTION` v1 is **PILOT** on remote, assigned to tenant `c9ac29d1-219c-4a3a-8887-f860550c32be`. Found + fixed 2 real bugs (tenant-side `semanticEvidenceSchema` missing `fulfilment_channel='home_collection'` which hid every floor screen for this profile's orders; `WorkflowActionBar` missing `FAIL_HOME_COLLECTION` from its reason-prompt set) and confirmed one operator policy fix in Studio (`CONFIRM_HOME_COLLECTION.to_status` changed `intake`→`preparing`, resolving a stuck-at-intake gap for this flow). **HC1 + HC2 both CLOSED**, confirmed on remote via order-history audit trail. Regression-checked clean on `WF_V2_SIMPLE` v4. **Next:** hold H1–H4; general `intake→preparing` gap still open for non-home-collection paths; S10 canary unsigned.
 
 ## Accurate status
 

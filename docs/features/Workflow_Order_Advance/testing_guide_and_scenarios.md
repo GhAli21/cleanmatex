@@ -299,8 +299,8 @@ npx jest __tests__/services/order-create-workflow.service.test.ts __tests__/cons
 | C7 | Staff New Order type/source context | defaults `POS` / `pos`; selected DB-mirror values reach canonical submit; unknown codes reject | reducer + submit-schema Jest |
 | C8 | Rule without preset | fail closed at create / Check policy | Jest `order-create-workflow.service.test.ts`; `createOrder` + `createOrderInTransaction` map to profile 422; HQ persist + catalog; live_rpt **0487 applied** |
 | C9 | Wildcard draft Initial rule | Check policy / live_rpt blocks | HQ persist from any Studio tab + catalog; live_rpt **0487 applied** |
-| HC1 | ASSIGN then CONFIRM home collection | plant status + intake received | Manual smoke on `/dashboard/home-collection` |
-| HC2 | FAIL home collection | back to awaiting + audit note | Manual smoke via ActionBar |
+| HC1 | ASSIGN then CONFIRM home collection | plant status + intake received | **PASS** — Manual smoke on `/dashboard/home-collection`, `ORD-20260904-0001`/`0003`, confirmed on remote 2026-09-04 |
+| HC2 | FAIL home collection | back to awaiting + audit note | **PASS** — Manual smoke via ActionBar, `ORD-20260904-0003`, confirmed via `org_order_history` 2026-09-04 |
 
 Staff UX / labels:
 
@@ -324,6 +324,13 @@ Staff UX / labels:
 4. Clicked **Confirm collection** on the handover card → `intake`.
 5. Confirmed on remote: `status=intake`, `physical_intake_status=received`, `physical_intake_at` stamped.
 6. Regression-checked: tenant `11111111-1111-1111-1111-111111111111` on `WF_V2_SIMPLE` v4 (unaffected profile, no `home_collection` evidence row) — HC1 also completed cleanly, confirming the fix didn't disturb an already-working profile.
+
+**HC2 — FAIL (expect: back to awaiting + audit note): CONFIRMED PASSING on remote.**
+1. `ORD-20260904-0003` created, Assign clicked → `out_for_collection`.
+2. First attempt: clicking **Fail** with no reason correctly rejected (`min_reason_length: 10`) — but the UI had no field to enter one. Fixed: `WorkflowActionBar.tsx`'s `CONTROL_ACTIONS_NEEDING_NOTES` was missing `WORKFLOW_ACTIONS.FAIL_HOME_COLLECTION` (same pattern as `FAIL_QA`); added, deployed.
+3. Retried: entered reason "not in home i will comeback afternoon" → confirmed via `org_order_history`: `out_for_collection → awaiting_collection`, `action_type=FAIL_HOME_COLLECTION`, reason correctly recorded.
+
+**Post-HC1 note — `intake` stuck stage, resolved for this flow:** after HC1, the order landed at `status=intake`, owned by the `new_order` screen — which has no UI trigger to advance it once physical intake is already `received` (a pre-existing, general platform gap, confirmed also present on `WF_V2_SIMPLE`; not fixed generally). For the home-collection flow specifically, the operator resolved this by editing the live policy in Studio: `CONFIRM_HOME_COLLECTION.to_status` changed from `intake` to `preparing` (`sys_wf_prof_ver_exec_cf`), so confirming home collection now lands directly in Preparation. Confirmed on remote: a second Assign→Confirm cycle on `ORD-20260904-0003` went straight `out_for_collection → preparing`, then `preparing → processing` worked normally via the Preparation screen's own action bar.
 
 **HC2 — FAIL (expect: back to awaiting + audit note):** use a **second, separate** order — HC1's order already moved past `out_for_collection` into `intake`, a terminal state for this screen.
 1. Repeat HC1 steps 1–5 for a new order.

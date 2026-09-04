@@ -80,7 +80,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 | ID | Item | Tenant | HQ |
 |----|------|--------|-----|
 | V10x-M1 | `WorkflowPolicyResolver` | Load policy from normalized profile-version tables only; no artifact / graph-pin / template fallback | Same contract in Simulate / Effective preview |
-| V10x-M2 | `WorkflowPolicyValidator` | Shared issue codes from file 02 | Studio **Check policy** (replace Compile-as-authority) |
+| V10x-M2 | `WorkflowPolicyValidator` | Shared issue codes from file 02 | Studio **Check policy** (replace Compile-as-authority). Rollout plan for the 46 planned-but-not-emitted codes: [05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md) — DRAFT, plan only, owner review needed before any batch starts |
 | V10x-M3 | Open-order **version migrate** command (ADR-0010) | Preview eligible orders; validate current status vs target policy; permission + reason + confirmation; idempotent; audit per order; **never** automatic on reassign | HQ UI to launch and monitor migrate |
 | V10x-M4 | Channel uniqueness + permission existence | Execute already fail-closed | File 02 `execution_binding_duplicate` extend + `execution_permission_invalid` |
 | V10x-M5 | Create hydration + Initial-rule matrix + hold harden + home collection | **T0–T4 + leftover close-out done** (0479–0488 applied). `WF_V2_HOME_COLLECTION` is an unsigned DRAFT v1 pending HQ Check policy → Compile → Pilot. `createOrderInTransaction` maps preset errors; home-collection actions gated; JSON editors retired; New Order now submits selected type/source context (default `POS` / `pos`). See [04 plan](04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) | **H1–H3 + leftover close-out done** (Studio persist blocked for missing preset / wildcard-draft; catalog **1.3.0** `evidence_without_home_collection`) |
@@ -92,6 +92,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 | V10x-S1 | Gate `parameters_json` JSON Schema | Evaluators already fail unknown | `gate_parameters_invalid` |
 | V10x-S2 | Nav from server workflow-context | Hide/disable Off modules using context, not a second client policy | Preview the same contract |
 | V10x-S3 | Submit-order error mapping | **Done 2026-09-03:** create `PROFILE_*` → 422 + `workflow.profileErrors`; runtime integrity stays 409 | — |
+| V10x-S4 | `intake → preparing` has no UI trigger once physical intake is already `received` (`CONFIRM_PHYSICAL_INTAKE`, owned by `new_order` screen) | **Open — found 2026-09-04.** No `WorkflowActionBar` renders for the `new_order` screen anywhere; the only intake-confirm UI is an order-detail banner gated to `physical_intake_status === 'pending_dropoff'` (remote/mobile bookings). Confirmed on both `WF_V2_HOME_COLLECTION` and `WF_V2_SIMPLE` — pre-existing, not new-profile-specific. **Not blocking today's home-collection work**: the home-collection path itself was resolved by an operator Studio policy edit (`CONFIRM_HOME_COLLECTION.to_status`: `intake`→`preparing`), which sidesteps this gap for that flow only. Still open for any other path landing an order at `intake` (e.g. POS/staff drop-off). Fix options: extend the order-detail banner condition to cover `status=intake` generally, or add a proper action surface for the `new_order` screen. Owner decision needed before scoping. | — |
 
 ### Could
 
