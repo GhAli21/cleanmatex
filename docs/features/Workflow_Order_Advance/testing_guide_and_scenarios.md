@@ -315,15 +315,15 @@ Staff UX / labels:
 
 **Confirmed on remote (2026-09-04):** profile `WF_V2_HOME_COLLECTION` v1 (`a1000000-…073` / version `a1000000-…074`) is **PILOT** and assigned to this tenant (`is_hq_test_demo: true`, governance rule satisfied).
 
-**Pre-flight — done:** `ORD-20260904-0001` created with `order_type_id=HOME_COLLECTION`, `order_source_code=customer_mobile_app` → `status=awaiting_collection`, and `org_orders_mst.wf_profile_id/wf_version_no` bound to `a1000000-…073` / `1` — confirms the tenant's effective profile resolves to the new version and `customer_mobile_app` is allowed for this tenant. No further pre-flight needed.
+**Bug found + fixed along the way:** the tenant-side `semanticEvidenceSchema` (`web-admin/lib/services/workflow/semantic-workflow-artifact.service.ts`) only allowed `fulfilment_channel` `'pickup'|'delivery'`, but this profile's evidence row uses `'home_collection'` (valid at the DB CHECK-constraint level and in HQ's `FULFILMENT_CHANNELS`). That made the whole-artifact zod parse fail, which excluded every order on this profile from **every** floor screen (`home_collection`, `processing`, `workboard` all confirmed empty), not just home_collection specifically. Fixed the enum (+ the matching `EvidenceRow` type in `workflow-policy-resolver.service.ts`), deployed. Also fixed an unrelated pre-existing bug found via typecheck in `home-collection-list-screen.tsx` (`pageSize`/`loading` props that don't exist on `useScreenOrders`'s interface — should be `limit`/`isLoading`).
 
-**HC1 — ASSIGN then CONFIRM (expect: plant status + intake received):**
-1. ~~Create the order~~ — done: `ORD-20260904-0001`, currently `awaiting_collection`.
-2. Go to `/dashboard/home-collection` — the order shows with the **Awaiting home collection** badge.
-3. Open the order (`/dashboard/home-collection/[id]`).
-4. Click **Assign** (`ASSIGN_HOME_COLLECTION`) on the action bar. Expect status → `out_for_collection`.
-5. The Confirm-collection card now appears (`HomeCollectionHandoverCard`) — click **Confirm collection**, optionally enter collection notes, confirm.
-6. Expect status → `intake` (owned by `new_order`) — the order now shows in the plant intake queue. This is the "plant status + intake received" outcome.
+**HC1 — ASSIGN then CONFIRM (expect: plant status + intake received): CONFIRMED PASSING on remote.**
+1. `ORD-20260904-0001` created (`order_type_id=HOME_COLLECTION`, `order_source_code=customer_mobile_app`) → `awaiting_collection`.
+2. `/dashboard/home-collection` → order visible with **Awaiting home collection** badge (confirmed, post-fix).
+3. Opened the order, clicked **Assign** → `out_for_collection`.
+4. Clicked **Confirm collection** on the handover card → `intake`.
+5. Confirmed on remote: `status=intake`, `physical_intake_status=received`, `physical_intake_at` stamped.
+6. Regression-checked: tenant `11111111-1111-1111-1111-111111111111` on `WF_V2_SIMPLE` v4 (unaffected profile, no `home_collection` evidence row) — HC1 also completed cleanly, confirming the fix didn't disturb an already-working profile.
 
 **HC2 — FAIL (expect: back to awaiting + audit note):** use a **second, separate** order — HC1's order already moved past `out_for_collection` into `intake`, a terminal state for this screen.
 1. Repeat HC1 steps 1–5 for a new order.

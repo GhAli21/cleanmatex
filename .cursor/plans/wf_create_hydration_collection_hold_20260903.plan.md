@@ -16,7 +16,7 @@
 | **After each WP step** | Run **STATUS-*** + **DOC-*** tasks below before starting the next step. |
 | **End of programme slice** | Run **DOC-FINAL** (`/documentation` skill) before sign-off. |
 
-**Operator apply gate:** `0479`–`0488` **applied**. `0488` seeds `WF_V2_HOME_COLLECTION`; Check policy + Compile verified clean. **Confirmed on remote:** PILOT + assigned to tenant `c9ac29d1-219c-4a3a-8887-f860550c32be` (`is_hq_test_demo: true`). HC1 create step confirmed live (`ORD-20260904-0001`, `status=awaiting_collection`, bound to the new profile). HQ H1–H3 **done**. Catalog **1.3.0**. Tenant leftover close-out **done**. Remaining: HC1 Assign→Confirm, HC2 Fail on a second order, hold H1–H4.
+**Operator apply gate:** `0479`–`0488` **applied**. `0488` seeds `WF_V2_HOME_COLLECTION`, **PILOT** + assigned to tenant `c9ac29d1-219c-4a3a-8887-f860550c32be`. Bug found + fixed: tenant-side `semanticEvidenceSchema` rejected `fulfilment_channel='home_collection'`, hiding this profile's orders from every floor screen — fixed in `semantic-workflow-artifact.service.ts` + `workflow-policy-resolver.service.ts`, deployed. **HC1 CLOSED** — `ORD-20260904-0001` confirmed at `status=intake` on remote. HQ H1–H3 **done**. Catalog **1.3.0**. Tenant leftover close-out **done**. Remaining: HC2 Fail on a second order, hold H1–H4.
 
 ---
 
