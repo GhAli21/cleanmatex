@@ -1,5 +1,44 @@
 {
   "allDriversTitle": "All Drivers",
   "routesTitle": "Driver Routes",
-  "comingSoon": "Driver management screens are coming soon. Delivery routes can be created from the Delivery workflow screen in the meantime."
+  "comingSoon": "Route planning is coming soon. Delivery routes can be created from the Delivery workflow screen in the meantime.",
+  "common": {
+    "error": "Something went wrong",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "deactivate": "Deactivate"
+  },
+  "form": {
+    "add": "Add Driver",
+    "addTitle": "Add Driver",
+    "editTitle": "Edit Driver",
+    "saved": "Driver saved",
+    "name": "Name",
+    "name2": "Name (Arabic)",
+    "phone": "Phone",
+    "branch": "Branch",
+    "unassignedBranch": "Unassigned",
+    "vehicleType": "Vehicle Type",
+    "vehicleTypePlaceholder": "e.g. Van, Motorcycle",
+    "vehiclePlateNo": "Vehicle Plate No.",
+    "licenseNo": "License No."
+  },
+  "list": {
+    "vehicle": "Vehicle",
+    "status": "Status",
+    "onRoute": "On route",
+    "available": "Available",
+    "active": "Active"
+  },
+  "empty": {
+    "title": "No drivers yet",
+    "description": "Add your first driver to start assigning delivery routes."
+  },
+  "deactivateConfirm": {
+    "title": "Deactivate driver?",
+    "description": "This driver will no longer be selectable for new routes.",
+    "blockedDescription": "This driver is currently on an active route and cannot be deactivated until reassigned."
+  }
 }

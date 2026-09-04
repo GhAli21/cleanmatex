@@ -442,13 +442,17 @@
     },
     "routes": {
       "createTitle": "Create route",
-      "createHint": "Select orders below, optionally enter a driver ID, then create a route.",
-      "driverIdLabel": "Driver ID (optional)",
-      "driverIdPlaceholder": "Paste driver user ID",
+      "createHint": "Select ready orders below, optionally pick a driver, then create a route.",
+      "driverLabel": "Driver (optional)",
       "selectedCount": "{count} selected",
       "selectOrder": "Select order for route",
+      "selectAll": "Select all",
       "listTitle": "Routes",
       "empty": "No routes yet",
+      "readyOrders": {
+        "title": "Ready for delivery",
+        "empty": "No orders are ready for a route right now."
+      },
       "fields": {
         "status": "Status",
         "stops": "Stops",
@@ -459,11 +463,28 @@
         "create": "Create route",
         "creating": "Creating...",
         "refresh": "Refresh",
-        "openManifest": "Open manifest"
+        "openManifest": "Open manifest",
+        "addSelected": "Add selected orders",
+        "showStops": "Show stops",
+        "hideStops": "Hide stops",
+        "removeStop": "Remove",
+        "cancelRoute": "Cancel route"
       },
       "messages": {
         "created": "Route created: {routeId}",
-        "createFailed": "Failed to create route"
+        "createFailed": "Failed to create route",
+        "ordersAdded": "Orders added to route",
+        "stopRemoved": "Stop removed",
+        "routeCancelled": "Route cancelled",
+        "driverAssigned": "Driver assigned"
+      },
+      "removeStopConfirm": {
+        "title": "Remove this stop?",
+        "description": "The order returns to the ready-for-delivery list."
+      },
+      "cancelRouteConfirm": {
+        "title": "Cancel this route?",
+        "description": "Every stop that has not been delivered yet returns to the ready-for-delivery list. Delivered stops are not affected."
       }
     },
     "messages": {

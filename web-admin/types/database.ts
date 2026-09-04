@@ -5636,6 +5636,49 @@ export type Database = {
           },
         ]
       }
+      org_dlv_route_seq_cf: {
+        Row: {
+          last_seq: number
+          tenant_org_id: string
+          updated_at: string | null
+          year_code: string
+        }
+        Insert: {
+          last_seq?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          year_code: string
+        }
+        Update: {
+          last_seq?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          year_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dlv_route_seq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dlv_route_seq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_dlv_route_seq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_dlv_routes_mst: {
         Row: {
           branch_id: string | null
@@ -5715,6 +5758,13 @@ export type Database = {
             columns: ["branch_id", "tenant_org_id"]
             isOneToOne: false
             referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_dlv_route_driver"
+            columns: ["driver_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_drivers_mst"
             referencedColumns: ["id", "tenant_org_id"]
           },
           {
@@ -6011,6 +6061,111 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
             referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_drivers_mst: {
+        Row: {
+          branch_id: string | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          license_no: string | null
+          linked_user_id: string | null
+          name: string
+          name2: string | null
+          phone: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          vehicle_plate_no: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          license_no?: string | null
+          linked_user_id?: string | null
+          name: string
+          name2?: string | null
+          phone?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          vehicle_plate_no?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          license_no?: string | null
+          linked_user_id?: string | null
+          name?: string
+          name2?: string | null
+          phone?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          vehicle_plate_no?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_drivers_branch"
+            columns: ["branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_drivers_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_drivers_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_drivers_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_drivers_user"
+            columns: ["linked_user_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_users_mst"
+            referencedColumns: ["user_id", "tenant_org_id"]
           },
         ]
       }

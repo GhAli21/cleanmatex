@@ -21,6 +21,15 @@ import { WorkflowEngineError } from '@/lib/services/workflow/workflow-engine.ser
 const DEMO_TENANT = '11111111-1111-1111-1111-111111111111';
 const ACTOR = '98ed3f07-7bbb-4af1-a5cc-c901c625ef2c';
 
+// WF_V2_ROUTED_POD v1 (PUBLISHED) — the seeded reference profile for routed staff
+// POD: require_delivery_stop=true, driver_delivery/CONFIRM_DELIVERY out_for_delivery
+// -> delivered, delivery evidence requires a photo (signature optional). Policy
+// resolution needs all three columns; omitting them makes every command fail
+// closed with DELIVERY_POLICY_UNAVAILABLE regardless of the invariant under test.
+const ROUTED_POD_PROFILE_ID = 'a1000000-0000-4000-8000-000000000061';
+const ROUTED_POD_VERSION_NO = 1;
+const ROUTED_POD_VERSION_ID = 'a1000000-0000-4000-8000-000000000062';
+
 let dbReady = false;
 let otherTenantId: string | null = null;
 
@@ -105,7 +114,10 @@ async function seedDelivery(options?: {
       state_version,
       payment_type_code,
       total_amount,
-      outstanding_amount
+      outstanding_amount,
+      wf_profile_id,
+      wf_version_no,
+      wf_profile_version_id
     ) VALUES (
       ${DEMO_TENANT}::uuid,
       ${customer[0].id}::uuid,
@@ -116,7 +128,10 @@ async function seedDelivery(options?: {
       4,
       ${paymentTypeCode},
       12,
-      ${outstandingAmount}
+      ${outstandingAmount},
+      ${ROUTED_POD_PROFILE_ID}::uuid,
+      ${ROUTED_POD_VERSION_NO},
+      ${ROUTED_POD_VERSION_ID}::uuid
     )
     RETURNING id
   `;
@@ -168,7 +183,7 @@ async function seedDelivery(options?: {
     ) VALUES (
       ${DEMO_TENANT}::uuid,
       ${stop[0].id}::uuid,
-      'signature',
+      'photo',
       ${`${DEMO_TENANT}/delivery/${stop[0].id}/${randomUUID()}.jpeg`},
       'image/jpeg',
       128,
@@ -254,8 +269,8 @@ describe('completeDelivery database invariants', () => {
         actorUserId: ACTOR,
         expectedStateVersion: 4,
         idempotencyKey: seed.idempotencyKey,
-        podMethodCode: 'SIGNATURE',
-        signatureEvidenceId: seed.evidenceId,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
       })).rejects.toMatchObject<DeliveryCompletionError>({
         code: 'DELIVERY_COLLECTION_REQUIRED',
         httpStatus: 422,
@@ -290,8 +305,8 @@ describe('completeDelivery database invariants', () => {
         actorUserId: ACTOR,
         expectedStateVersion: 4,
         idempotencyKey: seed.idempotencyKey,
-        podMethodCode: 'SIGNATURE',
-        signatureEvidenceId: seed.evidenceId,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
       })).rejects.toMatchObject<DeliveryCompletionError>({
         code: 'STOP_NOT_FOUND',
         httpStatus: 404,
@@ -335,8 +350,8 @@ describe('completeDelivery database invariants', () => {
         actorUserId: ACTOR,
         expectedStateVersion: 4,
         idempotencyKey: seed.idempotencyKey,
-        podMethodCode: 'SIGNATURE',
-        signatureEvidenceId: seed.evidenceId,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
       })).rejects.toMatchObject<DeliveryCompletionError>({
         code: 'STOP_ALREADY_DELIVERED',
         httpStatus: 409,
@@ -355,8 +370,8 @@ describe('completeDelivery database invariants', () => {
         actorUserId: ACTOR,
         expectedStateVersion: 4,
         idempotencyKey: seed.idempotencyKey,
-        podMethodCode: 'SIGNATURE',
-        signatureEvidenceId: seed.evidenceId,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
       })).rejects.toBeInstanceOf(WorkflowEngineError);
 
       const stop = await prisma.org_dlv_stops_dtl.findFirst({
@@ -398,8 +413,8 @@ describe('completeDelivery database invariants', () => {
           actorUserId: ACTOR,
           expectedStateVersion: 4,
           idempotencyKey: seed.idempotencyKey,
-          podMethodCode: 'SIGNATURE',
-          signatureEvidenceId: seed.evidenceId,
+          podMethodCode: 'PHOTO',
+          photoEvidenceIds: [seed.evidenceId],
         });
         expect(result.orderId).toBe(seed.orderId);
         expect(result.workflow.currentStatus).toBe('delivered');
@@ -441,8 +456,8 @@ describe('completeDelivery database invariants', () => {
         actorUserId: ACTOR,
         expectedStateVersion: 3,
         idempotencyKey: seed.idempotencyKey,
-        podMethodCode: 'SIGNATURE',
-        signatureEvidenceId: seed.evidenceId,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
       })).rejects.toBeInstanceOf(WorkflowEngineError);
 
       const stop = await prisma.org_dlv_stops_dtl.findFirst({
@@ -477,8 +492,8 @@ describe('completeDelivery database invariants', () => {
           actorUserId: ACTOR,
           expectedStateVersion: 4,
           idempotencyKey: seed.idempotencyKey,
-          podMethodCode: 'SIGNATURE',
-          signatureEvidenceId: seed.evidenceId,
+          podMethodCode: 'PHOTO',
+          photoEvidenceIds: [seed.evidenceId],
         });
       } catch (error) {
         if (error instanceof WorkflowEngineError) {
@@ -494,8 +509,8 @@ describe('completeDelivery database invariants', () => {
         actorUserId: ACTOR,
         expectedStateVersion: 4,
         idempotencyKey: seed.idempotencyKey,
-        podMethodCode: 'SIGNATURE',
-        signatureEvidenceId: seed.evidenceId,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
       });
       expect(replay.podId).toBe(first.podId);
       expect(replay.orderId).toBe(seed.orderId);
@@ -532,7 +547,7 @@ describe('completeDelivery database invariants', () => {
       ) VALUES (
         ${DEMO_TENANT}::uuid,
         ${seed.stopId}::uuid,
-        'signature',
+        'photo',
         ${`${DEMO_TENANT}/delivery/${seed.stopId}/${randomUUID()}.jpeg`},
         'image/jpeg',
         128,
@@ -550,8 +565,8 @@ describe('completeDelivery database invariants', () => {
           actorUserId: ACTOR,
           expectedStateVersion: 4,
           idempotencyKey: seed.idempotencyKey,
-          podMethodCode: 'SIGNATURE',
-          signatureEvidenceId: seed.evidenceId,
+          podMethodCode: 'PHOTO',
+          photoEvidenceIds: [seed.evidenceId],
         }),
         completeDelivery({
           tenantId: DEMO_TENANT,
@@ -559,8 +574,8 @@ describe('completeDelivery database invariants', () => {
           actorUserId: ACTOR,
           expectedStateVersion: 4,
           idempotencyKey: secondKey,
-          podMethodCode: 'SIGNATURE',
-          signatureEvidenceId: secondEvidence[0].id,
+          podMethodCode: 'PHOTO',
+          photoEvidenceIds: [secondEvidence[0].id],
         }),
       ]);
 

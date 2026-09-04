@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-03T19:45:41.366Z
+Generated: 2026-09-04T23:12:27.298Z
 
 ## By surface (counts)
 

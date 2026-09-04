@@ -1,14 +1,13 @@
 /**
- * Delivery API — assign/reassign a driver
- * POST /api/v1/delivery/routes/:id/assign
+ * Delivery API — remove a stop from a not-yet-started route
+ * DELETE /api/v1/delivery/routes/:id/stops/:stopId
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import {
-  assignDriver,
+  removeStopFromRoute,
   DeliveryRouteCommandError,
 } from '@/lib/services/delivery/delivery-route-command.service';
 import {
@@ -16,42 +15,29 @@ import {
   STAFF_DELIVERY_WRITES_ENABLED,
 } from '@/lib/config/delivery-safety';
 
-const assignDriverSchema = z.object({
-  driverId: z.string().uuid(),
-});
-
-/** Assigns or reassigns a driver on a route. A driver double-booking is a non-blocking warning. */
-export async function POST(
+/** Removes one stop from a `planned` route; its order returns to the unassigned pool. */
+export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string; stopId: string }> },
 ) {
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;
 
-  const auth = await requirePermission('delivery:assign')(request);
+  const auth = await requirePermission('delivery:routes')(request);
   if (auth instanceof NextResponse) return auth;
   if (!STAFF_DELIVERY_WRITES_ENABLED) {
     return NextResponse.json(DELIVERY_HARDENING_ERROR, { status: 503 });
   }
 
-  const body = await request.json().catch(() => null);
-  const parsed = assignDriverSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { success: false, code: 'INVALID_REQUEST', error: 'Driver ID is required.' },
-      { status: 400 },
-    );
-  }
-
-  const { id: routeId } = await params;
+  const { id: routeId, stopId } = await params;
   try {
-    const result = await assignDriver({
+    await removeStopFromRoute({
       tenantId: auth.tenantId,
       routeId,
-      driverId: parsed.data.driverId,
+      stopId,
       actorUserId: auth.userId,
     });
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof DeliveryRouteCommandError) {
       return NextResponse.json(
@@ -60,7 +46,7 @@ export async function POST(
       );
     }
     return NextResponse.json(
-      { success: false, code: 'DRIVER_ASSIGN_FAILED', error: 'Failed to assign driver.' },
+      { success: false, code: 'STOP_REMOVE_FAILED', error: 'Failed to remove stop from route.' },
       { status: 500 },
     );
   }

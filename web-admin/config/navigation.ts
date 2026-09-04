@@ -219,7 +219,6 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard/drivers',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
     permissions: ['drivers:read'],
-    featureFlag: FLAG_KEYS.DRIVER_APP,
     children: [
       {
         key: 'drivers_list',
@@ -227,7 +226,6 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/drivers',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
         permissions: ['drivers:read'],
-        featureFlag: FLAG_KEYS.DRIVER_APP,
       },
       {
         key: 'drivers_routes',
@@ -235,7 +233,6 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/drivers/routes',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
         permissions: ['drivers:read'],
-        featureFlag: FLAG_KEYS.DRIVER_APP,
       },
     ],
   },

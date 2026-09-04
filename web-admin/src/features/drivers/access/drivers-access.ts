@@ -1,7 +1,7 @@
 import type { PageAccessContract } from '@/lib/auth/access-contracts';
 
 const DRIVER_NOTES = [
-  'Driver management screens gated by driver_app feature flag and drivers:read permission.',
+  'Driver management screens gated by drivers:read permission. driver_app gates the separate, future driver mobile app — not this staff dispatcher UI.',
 ];
 
 export const DRIVERS_ACCESS_CONTRACTS: PageAccessContract[] = [
@@ -11,8 +11,6 @@ export const DRIVERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {
       permissions: ['drivers:read'],
       requireAllPermissions: true,
-      featureFlags: ['driver_app'],
-      requireAllFeatureFlags: true,
     },
     notes: DRIVER_NOTES,
   },
@@ -22,8 +20,6 @@ export const DRIVERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {
       permissions: ['drivers:read'],
       requireAllPermissions: true,
-      featureFlags: ['driver_app'],
-      requireAllFeatureFlags: true,
     },
     apiDependencies: [
       {

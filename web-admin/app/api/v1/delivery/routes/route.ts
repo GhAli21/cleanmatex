@@ -1,110 +1,89 @@
 /**
- * Delivery API - Create Route
- * POST /api/v1/delivery/routes
- * Creates a delivery route with orders
+ * Delivery API — route planning
+ * GET  /api/v1/delivery/routes         List routes (paginated)
+ * POST /api/v1/delivery/routes         Create a route from ready orders
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { DeliveryService } from '@/lib/services/delivery-service';
+import { z } from 'zod';
+import { validateCSRF } from '@/lib/middleware/csrf';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { DeliveryRouteQueryService } from '@/lib/services/delivery/delivery-route-query.service';
+import {
+  createRoute,
+  DeliveryRouteCommandError,
+} from '@/lib/services/delivery/delivery-route-command.service';
 import {
   DELIVERY_HARDENING_ERROR,
   STAFF_DELIVERY_WRITES_ENABLED,
 } from '@/lib/config/delivery-safety';
 
-/**
- *
- * @param request
- */
+/** Lists tenant-scoped delivery routes for the dispatcher workspace. */
 export async function GET(request: NextRequest) {
-  const authCheck = await requirePermission('drivers:read')(request);
-  if (authCheck instanceof NextResponse) return authCheck;
+  const auth = await requirePermission('drivers:read')(request);
+  if (auth instanceof NextResponse) return auth;
 
-  try {
-    const { tenantId } = authCheck;
-    const { searchParams } = new URL(request.url);
-    const page = Number(searchParams.get('page') || '1');
-    const limit = Number(searchParams.get('limit') || '20');
-    const status = searchParams.get('status') || undefined;
+  const { searchParams } = new URL(request.url);
+  const page = Number(searchParams.get('page') || '1');
+  const limit = Number(searchParams.get('limit') || '20');
+  const status = searchParams.get('status') || undefined;
 
-    const result = await DeliveryService.listRoutes({
-      tenantId,
-      page: Number.isFinite(page) && page > 0 ? page : 1,
-      limit: Number.isFinite(limit) && limit > 0 ? limit : 20,
-      status,
-    });
+  const result = await DeliveryRouteQueryService.listRoutes({
+    tenantId: auth.tenantId,
+    page: Number.isFinite(page) && page > 0 ? page : 1,
+    limit: Number.isFinite(limit) && limit > 0 ? limit : 20,
+    status,
+  });
 
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error || 'Failed to list routes' },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { success: true, data: { routes: result.routes, pagination: result.pagination } },
-      { status: 200 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ success: true, data: result });
 }
 
-/**
- *
- * @param request
- */
+const createRouteSchema = z.object({
+  orderIds: z.array(z.string().uuid()).min(1),
+  driverId: z.string().uuid().optional(),
+  idempotencyKey: z.string().trim().min(1).max(200),
+});
+
+/** Creates a delivery route from ready orders in one atomic command. */
 export async function POST(request: NextRequest) {
-  const authCheck = await requirePermission('delivery:routes')(request);
-  if (authCheck instanceof NextResponse) return authCheck;
+  const csrf = await validateCSRF(request);
+  if (csrf) return csrf;
+
+  const auth = await requirePermission('delivery:routes')(request);
+  if (auth instanceof NextResponse) return auth;
   if (!STAFF_DELIVERY_WRITES_ENABLED) {
     return NextResponse.json(DELIVERY_HARDENING_ERROR, { status: 503 });
   }
 
-  try {
-    const { tenantId, userId } = authCheck;
-    const body = await request.json();
-    const { orderIds, driverId } = body;
-
-    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Order IDs array is required' },
-        { status: 400 }
-      );
-    }
-
-    const result = await DeliveryService.createRoute({
-      orderIds,
-      tenantId,
-      driverId,
-      userId,
-    });
-
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      routeId: result.routeId,
-    });
-  } catch (error) {
+  const body = await request.json().catch(() => null);
+  const parsed = createRouteSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
+      { success: false, code: 'INVALID_REQUEST', error: 'Invalid route creation request.' },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const result = await createRoute({
+      tenantId: auth.tenantId,
+      orderIds: parsed.data.orderIds,
+      driverId: parsed.data.driverId ?? null,
+      actorUserId: auth.userId,
+      actorName: auth.userName,
+      idempotencyKey: parsed.data.idempotencyKey,
+    });
+    return NextResponse.json({ success: true, data: result }, { status: 201 });
+  } catch (error) {
+    if (error instanceof DeliveryRouteCommandError) {
+      return NextResponse.json(
+        { success: false, code: error.code, error: error.message, details: error.details },
+        { status: error.httpStatus },
+      );
+    }
+    return NextResponse.json(
+      { success: false, code: 'ROUTE_CREATE_FAILED', error: 'Failed to create delivery route.' },
+      { status: 500 },
     );
   }
 }
-

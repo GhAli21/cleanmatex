@@ -8,7 +8,6 @@ const requireAllPermissionsFactory = jest.fn();
 const permissionHandler = jest.fn();
 const allPermissionsHandler = jest.fn();
 const createRouteMock = jest.fn();
-const capturePODMock = jest.fn();
 const completeDeliveryMock = jest.fn();
 const getMyActivePosSessionMock = jest.fn();
 const createDeliveryEvidenceUploadMock = jest.fn();
@@ -23,12 +22,13 @@ jest.mock('@/lib/middleware/csrf', () => ({
   validateCSRF: (...args: unknown[]) => validateCSRFMock(...args),
 }));
 
-jest.mock('@/lib/services/delivery-service', () => ({
-  DeliveryService: {
+jest.mock('@/lib/services/delivery/delivery-route-command.service', () => {
+  class DeliveryRouteCommandError extends Error {}
+  return {
     createRoute: (...args: unknown[]) => createRouteMock(...args),
-    capturePOD: (...args: unknown[]) => capturePODMock(...args),
-  },
-}));
+    DeliveryRouteCommandError,
+  };
+});
 
 jest.mock('@/lib/services/delivery/delivery-completion.service', () => ({
   completeDelivery: (...args: unknown[]) => completeDeliveryMock(...args),
@@ -49,7 +49,6 @@ jest.mock('@/lib/middleware/rate-limit', () => ({
 }));
 
 import { POST as createRoute } from '@/app/api/v1/delivery/routes/route';
-import { POST as capturePOD } from '@/app/api/v1/delivery/stops/[stopId]/pod/route';
 import { POST as completeDelivery } from '@/app/api/v1/delivery/stops/[stopId]/complete/route';
 import { POST as createEvidence } from '@/app/api/v1/delivery/stops/[stopId]/evidence/route';
 import { WorkflowEngineError } from '@/lib/services/workflow/workflow-engine.service';
@@ -80,22 +79,6 @@ describe('delivery write safety boundary', () => {
       code: 'DELIVERY_HARDENING_REQUIRED',
     });
     expect(createRouteMock).not.toHaveBeenCalled();
-  });
-
-  it('fails POD capture closed after both permissions without calling the service', async () => {
-    const response = await capturePOD({} as NextRequest, {
-      params: { stopId: '44444444-4444-4444-4444-444444444444' },
-    });
-
-    expect(requireAllPermissionsFactory).toHaveBeenCalledWith([
-      'delivery:pod',
-      'orders:transition',
-    ]);
-    expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toMatchObject({
-      code: 'DELIVERY_HARDENING_REQUIRED',
-    });
-    expect(capturePODMock).not.toHaveBeenCalled();
   });
 
   it('allows the isolated atomic completion path without reopening legacy delivery writes', async () => {

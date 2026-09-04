@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-03T19:45:41.366Z",
-  "gitSha": "c6b296bf",
+  "generatedAt": "2026-09-04T23:12:27.298Z",
+  "gitSha": "d374cfcd",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -8991,13 +8991,10 @@
           "drivers:read"
         ],
         "permissionPrefixes": [],
-        "featureFlags": [
-          "driver_app"
-        ],
+        "featureFlags": [],
         "workflowRoles": [],
         "tenantRoles": [],
-        "requireAllPermissions": true,
-        "requireAllFeatureFlags": true
+        "requireAllPermissions": true
       },
       "actions": [],
       "apiDependencyCount": 0,
@@ -9019,13 +9016,10 @@
           "drivers:read"
         ],
         "permissionPrefixes": [],
-        "featureFlags": [
-          "driver_app"
-        ],
+        "featureFlags": [],
         "workflowRoles": [],
         "tenantRoles": [],
-        "requireAllPermissions": true,
-        "requireAllFeatureFlags": true
+        "requireAllPermissions": true
       },
       "actions": [],
       "apiDependencyCount": 1,
@@ -12044,7 +12038,6 @@
       "permissions": [
         "drivers:read"
       ],
-      "featureFlag": "driver_app",
       "roles": [
         "admin",
         "super_admin",
@@ -12068,7 +12061,6 @@
       "permissions": [
         "drivers:read"
       ],
-      "featureFlag": "driver_app",
       "roles": [
         "admin",
         "super_admin",

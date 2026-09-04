@@ -1,6 +1,6 @@
 # 13 — Production Readiness Checklist (V1.0)
 
-**Status:** **NO-GO for V1.0 routed staff POD (S10)**; Delivery floor confirm and public tracking remain available under their own gates · **Date:** 2026-08-27
+**Status:** **S10 staff routed POD canary SIGNED 2026-09-05** (see audit note below). **Still NO-GO for full V1.0** — `PAY_ON_COLLECTION` gate, central outbox, route-create/assign hardening (`STAFF_DELIVERY_WRITES_ENABLED` stays `false`), canary+rollback rehearsal, and T01–T18 remain open. Delivery floor confirm and public tracking remain available under their own gates · **Date:** 2026-08-27, updated 2026-09-05
 
 ## Design / P0
 
@@ -21,7 +21,7 @@
 - [ ] No tenant graph editing
 - [ ] Fin release gate server-side
 - [x] Retail not auto-`closed`
-- [x] Atomic staff Delivery command implemented; automated rollback, tenant-isolation, concurrency, RBAC, and replay tests pass. Not release-approved until S10 operator/e2e canary.
+- [x] Atomic staff Delivery command implemented; automated rollback, tenant-isolation, concurrency, RBAC, and replay tests pass. **S10 operator/e2e canary signed 2026-09-05** — see audit note.
 - [x] Private POD evidence bucket, durable object keys, tenant-stop upload receipts, and method-specific receipt validation implemented (`0451`, `0452`)
 - [x] Read-only delivery proof/audit is tenant-scoped, access-contract protected, and returns only time-limited authorized evidence links; it does not approve staff completion
 - [ ] OTP retry/expiry controls intentionally deferred to VNext
@@ -39,6 +39,10 @@
 - [ ] Post-`0442` engine smoke passed in production
 - [ ] T01–T18 pass on pilot tenants
 - [ ] Profile runtime enforcement acceptance suite passes before enabling profile-governed operational flows
+
+## 2026-09-05 release audit note — S10 SIGNED
+
+Staff **routed POD (S10)** is now production-signed. Real operator (`admin@demo-laundry.example`, tenant `Demo Laundry LLC`), real UI (`/dashboard/delivery/routes/{route}/stops/{stop}`), real order (`ORD-20260903-0005`, `WF_V2_SIMPLE` v4, the live active profile assignment). Completed with POD method `NOTES` (no photo/signature required by this profile's delivery evidence policy). Verified atomically on remote: order `status → delivered`, `delivered_at` populated, `state_version` 3→4; stop `→ delivered`; route `→ completed`; `org_order_history` records `CONFIRM_DELIVERY` with a real idempotency key and actor. Route/stop were seeded via a one-off reviewed migration (`0490_s10_canary_route_seed.sql`) because `STAFF_DELIVERY_WRITES_ENABLED=false` still blocks route creation through the normal UI/API — that flag stays off pending a separate decision; only the isolated stop-completion command (already `true`) was exercised, which is what S10 actually needed to prove. Companion: the stale `delivery-completion.db.test.ts` DB-integration suite was found and fixed the same session (was silently failing 4/9 since Gate 4 due to a test-fixture gap, not a service bug) — now 9/9 passing, giving both automated and human-operator assurance for this command.
 
 ## 2026-08-27 release audit note
 

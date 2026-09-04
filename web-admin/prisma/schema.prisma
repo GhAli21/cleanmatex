@@ -68,55 +68,55 @@ model schema_migrations {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model users {
-  instance_id                                                   String?                           @db.Uuid
-  id                                                            String                            @id @db.Uuid
-  aud                                                           String?                           @db.VarChar(255)
-  role                                                          String?                           @db.VarChar(255)
-  email                                                         String?                           @db.VarChar(255)
-  encrypted_password                                            String?                           @db.VarChar(255)
-  email_confirmed_at                                            DateTime?                         @db.Timestamptz(6)
-  invited_at                                                    DateTime?                         @db.Timestamptz(6)
-  confirmation_token                                            String?                           @db.VarChar(255)
-  confirmation_sent_at                                          DateTime?                         @db.Timestamptz(6)
-  recovery_token                                                String?                           @db.VarChar(255)
-  recovery_sent_at                                              DateTime?                         @db.Timestamptz(6)
-  email_change_token_new                                        String?                           @db.VarChar(255)
-  email_change                                                  String?                           @db.VarChar(255)
-  email_change_sent_at                                          DateTime?                         @db.Timestamptz(6)
-  last_sign_in_at                                               DateTime?                         @db.Timestamptz(6)
-  raw_app_meta_data                                             Json?
-  raw_user_meta_data                                            Json?
-  is_super_admin                                                Boolean?
-  created_at                                                    DateTime?                         @db.Timestamptz(6)
-  updated_at                                                    DateTime?                         @db.Timestamptz(6)
-  phone                                                         String?                           @unique
-  phone_confirmed_at                                            DateTime?                         @db.Timestamptz(6)
-  phone_change                                                  String?                           @default("")
-  phone_change_token                                            String?                           @default("") @db.VarChar(255)
-  phone_change_sent_at                                          DateTime?                         @db.Timestamptz(6)
-  confirmed_at                                                  DateTime?                         @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
-  email_change_token_current                                    String?                           @default("") @db.VarChar(255)
-  email_change_confirm_status                                   Int?                              @default(0) @db.SmallInt
-  banned_until                                                  DateTime?                         @db.Timestamptz(6)
-  reauthentication_token                                        String?                           @default("") @db.VarChar(255)
-  reauthentication_sent_at                                      DateTime?                         @db.Timestamptz(6)
-  is_sso_user                                                   Boolean                           @default(false)
-  deleted_at                                                    DateTime?                         @db.Timestamptz(6)
-  is_anonymous                                                  Boolean                           @default(false)
-  identities                                                    identities[]
-  mfa_factors                                                   mfa_factors[]
-  one_time_tokens                                               one_time_tokens[]
-  sessions                                                      sessions[]
-  cmx_effective_permissions                                     cmx_effective_permissions[]       @ignore
-  org_order_edit_history                                        org_order_edit_history[]
-  org_order_edit_locks                                          org_order_edit_locks[]
-  org_order_history                                             org_order_history[]
-  org_order_issues_org_order_issues_created_byTousers org_order_issues[]           @relation("org_order_issues_created_byTousers")
-  org_order_issues_org_order_issues_solved_byTousers  org_order_issues[]           @relation("org_order_issues_solved_byTousers")
-  org_order_item_processing_steps                               org_order_item_processing_steps[]
-  org_order_status_history                                      org_order_status_history[]
-  org_users_mst                                                 org_users_mst[]
-  sys_audit_log                                                 sys_audit_log[]
+  instance_id                                         String?                           @db.Uuid
+  id                                                  String                            @id @db.Uuid
+  aud                                                 String?                           @db.VarChar(255)
+  role                                                String?                           @db.VarChar(255)
+  email                                               String?                           @db.VarChar(255)
+  encrypted_password                                  String?                           @db.VarChar(255)
+  email_confirmed_at                                  DateTime?                         @db.Timestamptz(6)
+  invited_at                                          DateTime?                         @db.Timestamptz(6)
+  confirmation_token                                  String?                           @db.VarChar(255)
+  confirmation_sent_at                                DateTime?                         @db.Timestamptz(6)
+  recovery_token                                      String?                           @db.VarChar(255)
+  recovery_sent_at                                    DateTime?                         @db.Timestamptz(6)
+  email_change_token_new                              String?                           @db.VarChar(255)
+  email_change                                        String?                           @db.VarChar(255)
+  email_change_sent_at                                DateTime?                         @db.Timestamptz(6)
+  last_sign_in_at                                     DateTime?                         @db.Timestamptz(6)
+  raw_app_meta_data                                   Json?
+  raw_user_meta_data                                  Json?
+  is_super_admin                                      Boolean?
+  created_at                                          DateTime?                         @db.Timestamptz(6)
+  updated_at                                          DateTime?                         @db.Timestamptz(6)
+  phone                                               String?                           @unique
+  phone_confirmed_at                                  DateTime?                         @db.Timestamptz(6)
+  phone_change                                        String?                           @default("")
+  phone_change_token                                  String?                           @default("") @db.VarChar(255)
+  phone_change_sent_at                                DateTime?                         @db.Timestamptz(6)
+  confirmed_at                                        DateTime?                         @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
+  email_change_token_current                          String?                           @default("") @db.VarChar(255)
+  email_change_confirm_status                         Int?                              @default(0) @db.SmallInt
+  banned_until                                        DateTime?                         @db.Timestamptz(6)
+  reauthentication_token                              String?                           @default("") @db.VarChar(255)
+  reauthentication_sent_at                            DateTime?                         @db.Timestamptz(6)
+  is_sso_user                                         Boolean                           @default(false)
+  deleted_at                                          DateTime?                         @db.Timestamptz(6)
+  is_anonymous                                        Boolean                           @default(false)
+  identities                                          identities[]
+  mfa_factors                                         mfa_factors[]
+  one_time_tokens                                     one_time_tokens[]
+  sessions                                            sessions[]
+  cmx_effective_permissions                           cmx_effective_permissions[]       @ignore
+  org_order_edit_history                              org_order_edit_history[]
+  org_order_edit_locks                                org_order_edit_locks[]
+  org_order_history                                   org_order_history[]
+  org_order_issues_org_order_issues_created_byTousers org_order_issues[]                @relation("org_order_issues_created_byTousers")
+  org_order_issues_org_order_issues_solved_byTousers  org_order_issues[]                @relation("org_order_issues_solved_byTousers")
+  org_order_item_processing_steps                     org_order_item_processing_steps[]
+  org_order_status_history                            org_order_status_history[]
+  org_users_mst                                       org_users_mst[]
+  sys_audit_log                                       sys_audit_log[]
 
   @@index([instance_id])
   @@index([is_anonymous])
@@ -395,6 +395,7 @@ model org_branches_mst {
   org_asm_locations_mst           org_asm_locations_mst[]
   org_tenants_mst                 org_tenants_mst                   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
   org_dlv_pod_tr                  org_dlv_pod_tr[]
+  org_drivers_mst                 org_drivers_mst[]
   org_dlv_routes_mst              org_dlv_routes_mst[]
   org_dlv_slots_mst               org_dlv_slots_mst[]
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
@@ -1452,6 +1453,8 @@ model org_tenants_mst {
   org_customer_merge_log           org_customer_merge_log[]
   org_customers_mst                org_customers_mst[]
   org_discount_rules_cf            org_discount_rules_cf[]
+  org_drivers_mst                  org_drivers_mst[]
+  org_dlv_route_seq_cf             org_dlv_route_seq_cf[]
   org_dlv_routes_mst               org_dlv_routes_mst[]
   org_dlv_slots_mst                org_dlv_slots_mst[]
   org_ff_overrides_cf              org_ff_overrides_cf[]
@@ -1606,6 +1609,7 @@ model org_users_mst {
   building                    String?
   floor                       String?
   is_user                     Boolean                       @default(true)
+  org_drivers_mst             org_drivers_mst[]
   org_invoice_mst_handed_to   org_invoice_mst[]             @relation("invoice_handed_to_user")
   org_order_items_dtl         org_order_items_dtl[]
   org_stng_audit_log_tr       org_stng_audit_log_tr[]
@@ -1949,40 +1953,40 @@ model org_order_history {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_order_issues {
-  id                                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id                          String                     @db.Uuid
-  order_id                               String                     @db.Uuid
+  id                                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                            String                     @db.Uuid
+  order_id                                 String                     @db.Uuid
   /// ORDER | ITEM | PIECE
-  scope_level                            String
+  scope_level                              String
   /// NULL for ORDER scope
-  order_item_id                          String?                    @db.Uuid
+  order_item_id                            String?                    @db.Uuid
   /// NULL for ORDER/ITEM scope
-  order_item_piece_id                    String?                    @db.Uuid
-  issue_code                             String
-  issue_text                             String
-  photo_url                              String?
-  priority                               String?                    @default("normal")
+  order_item_piece_id                      String?                    @db.Uuid
+  issue_code                               String
+  issue_text                               String
+  photo_url                                String?
+  priority                                 String?                    @default("normal")
   /// OPEN | SOLVED — dual-written with solved_at
-  status                                 String                     @default("OPEN")
-  created_by                             String?                    @db.Uuid
-  created_at                             DateTime?                  @default(now()) @db.Timestamptz(6)
-  solved_at                              DateTime?                  @db.Timestamptz(6)
-  solved_by                              String?                    @db.Uuid
-  solved_notes                           String?
-  metadata                               Json?                      @default("{}")
-  created_info                           String?
-  updated_at                             DateTime?                  @db.Timestamp(6)
-  updated_by                             String?
-  updated_info                           String?
-  rec_status                             Int?                       @default(1) @db.SmallInt
-  rec_order                              Int?
-  rec_notes                              String?
-  users_org_order_issues_created_byTousers users?                   @relation("org_order_issues_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_issue_created_by")
-  org_orders_mst                         org_orders_mst             @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order")
-  org_order_items_dtl                    org_order_items_dtl?       @relation(fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order_item")
-  org_order_item_pieces_dtl              org_order_item_pieces_dtl? @relation(fields: [order_item_piece_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order_item_piece")
-  users_org_order_issues_solved_byTousers users?                    @relation("org_order_issues_solved_byTousers", fields: [solved_by], references: [id], onUpdate: NoAction, map: "fk_issue_solved_by")
-  org_tenants_mst                        org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_tenant")
+  status                                   String                     @default("OPEN")
+  created_by                               String?                    @db.Uuid
+  created_at                               DateTime?                  @default(now()) @db.Timestamptz(6)
+  solved_at                                DateTime?                  @db.Timestamptz(6)
+  solved_by                                String?                    @db.Uuid
+  solved_notes                             String?
+  metadata                                 Json?                      @default("{}")
+  created_info                             String?
+  updated_at                               DateTime?                  @db.Timestamp(6)
+  updated_by                               String?
+  updated_info                             String?
+  rec_status                               Int?                       @default(1) @db.SmallInt
+  rec_order                                Int?
+  rec_notes                                String?
+  users_org_order_issues_created_byTousers users?                     @relation("org_order_issues_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_issue_created_by")
+  org_orders_mst                           org_orders_mst             @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order")
+  org_order_items_dtl                      org_order_items_dtl?       @relation(fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order_item")
+  org_order_item_pieces_dtl                org_order_item_pieces_dtl? @relation(fields: [order_item_piece_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order_item_piece")
+  users_org_order_issues_solved_byTousers  users?                     @relation("org_order_issues_solved_byTousers", fields: [solved_by], references: [id], onUpdate: NoAction, map: "fk_issue_solved_by")
+  org_tenants_mst                          org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_tenant")
 
   @@index([order_id, created_at(sort: Desc)], map: "idx_issue_order")
   @@index([order_item_id, created_at(sort: Desc)], map: "idx_issue_order_item")
@@ -4002,22 +4006,22 @@ model sys_issue_type_cd {
 
 /// Reusable priority codes (low, normal, high, urgent) — migration 0416
 model sys_lkp_priority_cd {
-  code           String    @id
-  name           String
-  name2          String?
-  description    String?
-  description2   String?
-  display_order  Int       @default(0)
-  color          String?
-  icon           String?
-  is_default     Boolean   @default(false)
-  is_active      Boolean   @default(true)
-  is_system      Boolean   @default(true)
-  created_at     DateTime  @default(now()) @db.Timestamptz(6)
-  created_by     String?   @db.Uuid
-  updated_at     DateTime? @db.Timestamptz(6)
-  updated_by     String?   @db.Uuid
-  rec_status     Int       @default(1) @db.SmallInt
+  code          String    @id
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  display_order Int       @default(0)
+  color         String?
+  icon          String?
+  is_default    Boolean   @default(false)
+  is_active     Boolean   @default(true)
+  is_system     Boolean   @default(true)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  created_by    String?   @db.Uuid
+  updated_at    DateTime? @db.Timestamptz(6)
+  updated_by    String?   @db.Uuid
+  rec_status    Int       @default(1) @db.SmallInt
 
   @@index([is_active, display_order], map: "idx_sys_lkp_priority_active")
   @@schema("public")
@@ -4909,33 +4913,33 @@ model org_asm_tasks_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_dlv_pod_tr {
-  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  stop_id           String            @db.Uuid
-  tenant_org_id     String            @db.Uuid
-  branch_id         String?           @db.Uuid
-  pod_method_code   String            @db.VarChar(50)
-  otp_code          String?           @db.VarChar(10)
-  otp_verified      Boolean?          @default(false)
-  signature_url     String?
-  photo_urls        Json?             @default("[]")
-  pod_notes         String?
+  id                   String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stop_id              String            @db.Uuid
+  tenant_org_id        String            @db.Uuid
+  branch_id            String?           @db.Uuid
+  pod_method_code      String            @db.VarChar(50)
+  otp_code             String?           @db.VarChar(10)
+  otp_verified         Boolean?          @default(false)
+  signature_url        String?
+  photo_urls           Json?             @default("[]")
+  pod_notes            String?
   signature_object_key String?
-  photo_object_keys Json               @default("[]")
-  verified_at       DateTime?         @db.Timestamp(6)
-  verified_by       String?           @db.Uuid
-  metadata          Json?             @default("{}")
-  is_active         Boolean           @default(true)
-  rec_status        Int?              @default(1) @db.SmallInt
-  rec_order         Int?
-  rec_notes         String?           @db.VarChar(200)
-  created_at        DateTime?         @default(now()) @db.Timestamp(6)
-  created_by        String?           @db.VarChar(120)
-  created_info      String?
-  updated_at        DateTime?         @db.Timestamp(6)
-  updated_by        String?           @db.VarChar(120)
-  updated_info      String?
-  org_branches_mst  org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_pod_branch")
-  org_dlv_stops_dtl org_dlv_stops_dtl @relation(fields: [stop_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_pod_stop")
+  photo_object_keys    Json              @default("[]")
+  verified_at          DateTime?         @db.Timestamp(6)
+  verified_by          String?           @db.Uuid
+  metadata             Json?             @default("{}")
+  is_active            Boolean           @default(true)
+  rec_status           Int?              @default(1) @db.SmallInt
+  rec_order            Int?
+  rec_notes            String?           @db.VarChar(200)
+  created_at           DateTime?         @default(now()) @db.Timestamp(6)
+  created_by           String?           @db.VarChar(120)
+  created_info         String?
+  updated_at           DateTime?         @db.Timestamp(6)
+  updated_by           String?           @db.VarChar(120)
+  updated_info         String?
+  org_branches_mst     org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_pod_branch")
+  org_dlv_stops_dtl    org_dlv_stops_dtl @relation(fields: [stop_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_pod_stop")
 
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_dlv_pod_created")
   @@index([stop_id], map: "idx_dlv_pod_stop")
@@ -4946,6 +4950,51 @@ model org_dlv_pod_tr {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_drivers_mst {
+  id                 String               @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id      String               @db.Uuid
+  branch_id          String?              @db.Uuid
+  linked_user_id     String?              @db.Uuid
+  name               String
+  name2              String?
+  phone              String?
+  vehicle_type       String?
+  vehicle_plate_no   String?
+  license_no         String?
+  is_active          Boolean              @default(true)
+  rec_status         Int?                 @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  created_at         DateTime?            @default(now()) @db.Timestamp(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime?            @db.Timestamp(6)
+  updated_by         String?
+  updated_info       String?
+  org_branches_mst   org_branches_mst?    @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_drivers_branch")
+  org_users_mst      org_users_mst?       @relation(fields: [linked_user_id, tenant_org_id], references: [user_id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_drivers_user")
+  org_tenants_mst    org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_drivers_tenant")
+  org_dlv_routes_mst org_dlv_routes_mst[]
+
+  @@id([id, tenant_org_id], map: "pk_org_drivers_mst")
+  @@index([tenant_org_id], map: "idx_drivers_tenant")
+  @@index([tenant_org_id, is_active], map: "idx_drivers_tenant_active")
+  @@index([tenant_org_id, branch_id], map: "idx_drivers_branch")
+  @@schema("public")
+}
+
+model org_dlv_route_seq_cf {
+  tenant_org_id   String          @db.Uuid
+  year_code       String
+  last_seq        Int             @default(0)
+  updated_at      DateTime?       @default(now()) @db.Timestamp(6)
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_route_seq_tenant")
+
+  @@id([tenant_org_id, year_code], map: "pk_dlv_route_seq_cf")
+  @@schema("public")
+}
+
 model org_dlv_routes_mst {
   id                         String              @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id              String              @db.Uuid
@@ -4970,6 +5019,7 @@ model org_dlv_routes_mst {
   updated_by                 String?             @db.VarChar(120)
   updated_info               String?
   org_branches_mst           org_branches_mst?   @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_route_branch")
+  org_drivers_mst            org_drivers_mst?    @relation(fields: [driver_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_route_driver")
   org_tenants_mst            org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_route_tenant")
   org_dlv_stops_dtl          org_dlv_stops_dtl[]
 
@@ -5018,37 +5068,37 @@ model org_dlv_slots_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_dlv_stops_dtl {
-  id                 String             @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  route_id           String             @db.Uuid
-  order_id           String             @db.Uuid
-  tenant_org_id      String             @db.Uuid
-  branch_id          String?            @db.Uuid
-  sequence           Int
-  address            String
-  address_lat        Decimal?           @db.Decimal(10, 8)
-  address_lng        Decimal?           @db.Decimal(11, 8)
-  stop_status_code   String?            @default("pending") @db.VarChar(50)
-  scheduled_time     DateTime?          @db.Timestamp(6)
-  estimated_arrival  DateTime?          @db.Timestamp(6)
-  actual_time        DateTime?          @db.Timestamp(6)
-  contact_name       String?            @db.VarChar(255)
-  contact_phone      String?            @db.VarChar(50)
-  notes              String?
-  is_active          Boolean            @default(true)
-  rec_status         Int?               @default(1) @db.SmallInt
-  rec_order          Int?
-  rec_notes          String?            @db.VarChar(200)
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
-  created_by         String?            @db.VarChar(120)
-  created_info       String?
-  updated_at         DateTime?          @db.Timestamp(6)
-  updated_by         String?            @db.VarChar(120)
-  updated_info       String?
-  org_branches_mst   org_branches_mst?  @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_stops_branch")
+  id                    String                  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  route_id              String                  @db.Uuid
+  order_id              String                  @db.Uuid
+  tenant_org_id         String                  @db.Uuid
+  branch_id             String?                 @db.Uuid
+  sequence              Int
+  address               String
+  address_lat           Decimal?                @db.Decimal(10, 8)
+  address_lng           Decimal?                @db.Decimal(11, 8)
+  stop_status_code      String?                 @default("pending") @db.VarChar(50)
+  scheduled_time        DateTime?               @db.Timestamp(6)
+  estimated_arrival     DateTime?               @db.Timestamp(6)
+  actual_time           DateTime?               @db.Timestamp(6)
+  contact_name          String?                 @db.VarChar(255)
+  contact_phone         String?                 @db.VarChar(50)
+  notes                 String?
+  is_active             Boolean                 @default(true)
+  rec_status            Int?                    @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?                 @db.VarChar(200)
+  created_at            DateTime?               @default(now()) @db.Timestamp(6)
+  created_by            String?                 @db.VarChar(120)
+  created_info          String?
+  updated_at            DateTime?               @db.Timestamp(6)
+  updated_by            String?                 @db.VarChar(120)
+  updated_info          String?
+  org_branches_mst      org_branches_mst?       @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_stops_branch")
   org_dlv_ev_uploads_tr org_dlv_ev_uploads_tr[]
-  org_dlv_pod_tr     org_dlv_pod_tr[]
-  org_orders_mst     org_orders_mst     @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_order")
-  org_dlv_routes_mst org_dlv_routes_mst @relation(fields: [route_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_route")
+  org_dlv_pod_tr        org_dlv_pod_tr[]
+  org_orders_mst        org_orders_mst          @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_order")
+  org_dlv_routes_mst    org_dlv_routes_mst      @relation(fields: [route_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_route")
 
   @@id([id, tenant_org_id], map: "pk_org_dlv_stops_dtl")
   @@unique([tenant_org_id, route_id, order_id])
@@ -5063,28 +5113,28 @@ model org_dlv_stops_dtl {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_dlv_ev_uploads_tr {
-  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id    String            @db.Uuid
-  stop_id          String            @db.Uuid
-  evidence_type    String
-  object_key       String
-  content_type     String
-  file_size_bytes  Int
-  sha256_hex       String
-  upload_status    String            @default("uploaded")
-  expires_at       DateTime          @db.Timestamp(6)
-  consumed_at      DateTime?         @db.Timestamp(6)
-  consumed_by      String?           @db.Uuid
-  is_active        Boolean           @default(true)
-  rec_status       Int               @default(1) @db.SmallInt
-  rec_order        Int?
-  rec_notes        String?
-  created_at       DateTime          @default(now()) @db.Timestamp(6)
-  created_by       String?
-  created_info     String?
-  updated_at       DateTime?         @db.Timestamp(6)
-  updated_by       String?
-  updated_info     String?
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String            @db.Uuid
+  stop_id           String            @db.Uuid
+  evidence_type     String
+  object_key        String
+  content_type      String
+  file_size_bytes   Int
+  sha256_hex        String
+  upload_status     String            @default("uploaded")
+  expires_at        DateTime          @db.Timestamp(6)
+  consumed_at       DateTime?         @db.Timestamp(6)
+  consumed_by       String?           @db.Uuid
+  is_active         Boolean           @default(true)
+  rec_status        Int               @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?
+  created_at        DateTime          @default(now()) @db.Timestamp(6)
+  created_by        String?
+  created_info      String?
+  updated_at        DateTime?         @db.Timestamp(6)
+  updated_by        String?
+  updated_info      String?
   org_dlv_stops_dtl org_dlv_stops_dtl @relation(fields: [stop_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_dlv_ev_upload_stop")
 
   @@unique([tenant_org_id, object_key], map: "uq_dlv_ev_upload_key")
@@ -6836,88 +6886,88 @@ model org_order_refunds_dtl {
 }
 
 model org_order_payments_dtl {
-  id                            String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id                 String                         @db.Uuid
-  branch_id                     String?                        @db.Uuid
-  order_id                      String                         @db.Uuid
-  customer_id                   String?                        @db.Uuid
-  org_payment_method_id         String?                        @db.Uuid
-  branch_payment_method_id      String?                        @db.Uuid
-  payment_terminal_id           String?                        @db.Uuid
-  cash_drawer_id                String?                        @db.Uuid
-  cash_drawer_session_id        String?                        @db.Uuid
-  pos_session_id                String?                        @db.Uuid
-  payment_method_code           String
-  payment_method_name_snapshot  String?
-  payment_status                String                         @default("COMPLETED")
-  amount                        Decimal                        @db.Decimal(19, 4)
-  currency_code                 String
-  tendered_amount               Decimal?                       @db.Decimal(19, 4)
-  change_returned_amount        Decimal?                       @db.Decimal(19, 4)
-  card_brand_code               String?
-  card_last4                    String?
-  auth_code                     String?
-  gateway_code                  String?
-  gateway_transaction_id        String?
-  gateway_reference             String?
-  check_no                      String?
-  check_bank_name               String?
-  check_due_date                DateTime?                      @db.Date
-  check_status                  String?
-  bank_reference                String?
-  idempotency_key               String?                        @unique(map: "uq_org_ord_pay_dtl_idempotency")
-  paid_at                       DateTime?                      @db.Timestamptz(6)
-  received_by                   String?                        @db.Uuid
-  created_at                    DateTime                       @default(now()) @db.Timestamptz(6)
-  created_by                    String?                        @db.Uuid
-  created_info                  String?
-  updated_at                    DateTime?                      @db.Timestamptz(6)
-  updated_by                    String?                        @db.Uuid
-  updated_info                  String?
-  rec_status                    Int                            @default(1) @db.SmallInt
-  rec_order                     Int?
-  rec_notes                     String?
-  is_active                     Boolean                        @default(true)
-  metadata                      Json                           @default("{}")
+  id                                 String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                      String                          @db.Uuid
+  branch_id                          String?                         @db.Uuid
+  order_id                           String                          @db.Uuid
+  customer_id                        String?                         @db.Uuid
+  org_payment_method_id              String?                         @db.Uuid
+  branch_payment_method_id           String?                         @db.Uuid
+  payment_terminal_id                String?                         @db.Uuid
+  cash_drawer_id                     String?                         @db.Uuid
+  cash_drawer_session_id             String?                         @db.Uuid
+  pos_session_id                     String?                         @db.Uuid
+  payment_method_code                String
+  payment_method_name_snapshot       String?
+  payment_status                     String                          @default("COMPLETED")
+  amount                             Decimal                         @db.Decimal(19, 4)
+  currency_code                      String
+  tendered_amount                    Decimal?                        @db.Decimal(19, 4)
+  change_returned_amount             Decimal?                        @db.Decimal(19, 4)
+  card_brand_code                    String?
+  card_last4                         String?
+  auth_code                          String?
+  gateway_code                       String?
+  gateway_transaction_id             String?
+  gateway_reference                  String?
+  check_no                           String?
+  check_bank_name                    String?
+  check_due_date                     DateTime?                       @db.Date
+  check_status                       String?
+  bank_reference                     String?
+  idempotency_key                    String?                         @unique(map: "uq_org_ord_pay_dtl_idempotency")
+  paid_at                            DateTime?                       @db.Timestamptz(6)
+  received_by                        String?                         @db.Uuid
+  created_at                         DateTime                        @default(now()) @db.Timestamptz(6)
+  created_by                         String?                         @db.Uuid
+  created_info                       String?
+  updated_at                         DateTime?                       @db.Timestamptz(6)
+  updated_by                         String?                         @db.Uuid
+  updated_info                       String?
+  rec_status                         Int                             @default(1) @db.SmallInt
+  rec_order                          Int?
+  rec_notes                          String?
+  is_active                          Boolean                         @default(true)
+  metadata                           Json                            @default("{}")
   // Added in migration 0283 — enforces REAL_PAYMENT legs only in this table
-  payment_nature_snapshot       String                         @default("REAL_PAYMENT")
+  payment_nature_snapshot            String                          @default("REAL_PAYMENT")
   // BVM back-links — populated by wiring service (migration 0303), NOT by posting service
-  fin_voucher_id                String?                        @db.Uuid
-  fin_voucher_trx_line_id       String?                        @unique(map: "uq_ord_pay_vch_line") @db.Uuid
+  fin_voucher_id                     String?                         @db.Uuid
+  fin_voucher_trx_line_id            String?                         @unique(map: "uq_ord_pay_vch_line") @db.Uuid
   // B30 (migration 0415) — dedicated actor-audit + D009 fallback-classification
   // columns for the VERIFY/CANCEL/FAIL_BOUNCE back-office transition service.
-  verified_by                   String?                        @db.Uuid
-  verified_at                   DateTime?                      @db.Timestamptz(6)
-  cancelled_by                  String?                        @db.Uuid
-  cancelled_at                  DateTime?                      @db.Timestamptz(6)
-  failed_by                     String?                        @db.Uuid
-  failed_at                     DateTime?                      @db.Timestamptz(6)
-  transition_reason             String?
-  fallback_classification       String?
+  verified_by                        String?                         @db.Uuid
+  verified_at                        DateTime?                       @db.Timestamptz(6)
+  cancelled_by                       String?                         @db.Uuid
+  cancelled_at                       DateTime?                       @db.Timestamptz(6)
+  failed_by                          String?                         @db.Uuid
+  failed_at                          DateTime?                       @db.Timestamptz(6)
+  transition_reason                  String?
+  fallback_classification            String?
   // B10 (migration 0421) — dedicated actor-audit columns for the VOID/REVERSE
   // back-office transition service (D001 canonical graph; D004 taxonomy).
-  voided_by                     String?                        @db.Uuid
-  voided_at                     DateTime?                      @db.Timestamptz(6)
-  reversed_by                   String?                        @db.Uuid
-  reversed_at                   DateTime?                      @db.Timestamptz(6)
+  voided_by                          String?                         @db.Uuid
+  voided_at                          DateTime?                       @db.Timestamptz(6)
+  reversed_by                        String?                         @db.Uuid
+  reversed_at                        DateTime?                       @db.Timestamptz(6)
   // B08 (migration 0426) — dedicated actor-audit columns for the CAPTURE/SETTLE
   // gateway-webhook/manual-resync transition service (D001 canonical graph,
   // AUTHORIZED -> CAPTURED -> SETTLED). Nullable: a webhook-driven transition
   // has no interactive actor (provenance is the linked sys_gw_webhook_events_tr row).
-  captured_by                   String?                        @db.Uuid
-  captured_at                   DateTime?                      @db.Timestamptz(6)
-  settled_by                    String?                        @db.Uuid
-  settled_at                    DateTime?                      @db.Timestamptz(6)
-  org_tenants_mst               org_tenants_mst                @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  org_payment_methods_cf        org_payment_methods_cf?        @relation("OrdPayMethodConfig", fields: [org_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_branch_payment_methods_cf org_branch_payment_methods_cf? @relation("OrdBranchPayMethodConfig", fields: [branch_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_payment_terminals_cf      org_payment_terminals_cf?      @relation("OrdPayTerminal", fields: [payment_terminal_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_cash_drawers_mst          org_cash_drawers_mst?          @relation("OrdPayCashDrawer", fields: [cash_drawer_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst?  @relation("OrdPayCashDrawerSession", fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_cash_drawer_movements_dtl org_cash_drawer_movements_dtl[] @relation("OrdCdmOrderPayment")
+  captured_by                        String?                         @db.Uuid
+  captured_at                        DateTime?                       @db.Timestamptz(6)
+  settled_by                         String?                         @db.Uuid
+  settled_at                         DateTime?                       @db.Timestamptz(6)
+  org_tenants_mst                    org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_payment_methods_cf             org_payment_methods_cf?         @relation("OrdPayMethodConfig", fields: [org_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_branch_payment_methods_cf      org_branch_payment_methods_cf?  @relation("OrdBranchPayMethodConfig", fields: [branch_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_payment_terminals_cf           org_payment_terminals_cf?       @relation("OrdPayTerminal", fields: [payment_terminal_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_cash_drawers_mst               org_cash_drawers_mst?           @relation("OrdPayCashDrawer", fields: [cash_drawer_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_cash_drawer_sessions_mst       org_cash_drawer_sessions_mst?   @relation("OrdPayCashDrawerSession", fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_cash_drawer_movements_dtl      org_cash_drawer_movements_dtl[] @relation("OrdCdmOrderPayment")
   org_cash_drawer_reversal_movements org_cash_drawer_movements_dtl[] @relation("OrdCdmReversedPayment")
-  org_order_refunds_dtl         org_order_refunds_dtl[]        @relation("RefundOriginalPayment")
-  sys_gw_webhook_events_tr      sys_gw_webhook_events_tr[]      @relation("GwWebhookEventPayment")
+  org_order_refunds_dtl              org_order_refunds_dtl[]         @relation("RefundOriginalPayment")
+  sys_gw_webhook_events_tr           sys_gw_webhook_events_tr[]      @relation("GwWebhookEventPayment")
 
   @@index([tenant_org_id], map: "idx_org_ord_pay_dtl_tenant")
   @@index([tenant_org_id, order_id, is_active], map: "idx_org_ord_pay_dtl_order")
@@ -6932,24 +6982,24 @@ model org_order_payments_dtl {
 // gateway_code serves every tenant configured on that gateway; tenant_org_id
 // is populated only once the event is matched to a payment leg.
 model sys_gw_webhook_events_tr {
-  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  gateway_code        String
-  provider_event_id   String
-  event_type          String
-  raw_payload         Json
-  signature_valid     Boolean   @default(false)
-  tenant_org_id       String?   @db.Uuid
-  order_id            String?   @db.Uuid
-  payment_id          String?   @db.Uuid
-  transition_action   String?
-  processing_status   String    @default("RECEIVED")
-  error_message       String?
-  received_at         DateTime  @default(now()) @db.Timestamptz(6)
-  processed_at        DateTime? @db.Timestamptz(6)
-  created_at          DateTime  @default(now()) @db.Timestamptz(6)
-  created_by          String?
-  updated_at          DateTime? @db.Timestamptz(6)
-  updated_by          String?
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gateway_code      String
+  provider_event_id String
+  event_type        String
+  raw_payload       Json
+  signature_valid   Boolean   @default(false)
+  tenant_org_id     String?   @db.Uuid
+  order_id          String?   @db.Uuid
+  payment_id        String?   @db.Uuid
+  transition_action String?
+  processing_status String    @default("RECEIVED")
+  error_message     String?
+  received_at       DateTime  @default(now()) @db.Timestamptz(6)
+  processed_at      DateTime? @db.Timestamptz(6)
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  updated_at        DateTime? @db.Timestamptz(6)
+  updated_by        String?
 
   sys_payment_gateway_cd sys_payment_gateway_cd  @relation(fields: [gateway_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
   org_order_payments_dtl org_order_payments_dtl? @relation("GwWebhookEventPayment", fields: [payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
@@ -7714,55 +7764,55 @@ model org_fin_voucher_trx_lines_dtl {
 /// matching org_fin_voucher_trx_lines_dtl's own convention for the same kind
 /// of columns (cash_drawer_session_id / org_payment_method_id / pos_session_id).
 model org_sv_funding_tenders_dtl {
-  id                      String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id           String          @db.Uuid
-  branch_id               String?         @db.Uuid
-  fin_voucher_id          String          @db.Uuid
-  fin_voucher_trx_line_id String          @unique(map: "uq_svft_vch_line") @db.Uuid
-  leg_index               Int             @default(0) @db.SmallInt
+  id                      String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String  @db.Uuid
+  branch_id               String? @db.Uuid
+  fin_voucher_id          String  @db.Uuid
+  fin_voucher_trx_line_id String  @unique(map: "uq_svft_vch_line") @db.Uuid
+  leg_index               Int     @default(0) @db.SmallInt
 
   // Denormalized from the voucher line at wire time — see B03 Revision v2.
-  funding_type            String
-  target_type             String
-  target_id               String          @db.Uuid
-  customer_id             String?         @db.Uuid
+  funding_type String
+  target_type  String
+  target_id    String  @db.Uuid
+  customer_id  String? @db.Uuid
 
-  payment_method_code     String
-  org_payment_method_id   String?         @db.Uuid
-  amount                  Decimal         @db.Decimal(19, 4)
-  tendered_amount         Decimal?        @db.Decimal(19, 4)
-  change_returned_amount  Decimal?        @db.Decimal(19, 4)
-  currency_code           String
-  status                  String          @default("COMPLETED")
+  payment_method_code    String
+  org_payment_method_id  String?  @db.Uuid
+  amount                 Decimal  @db.Decimal(19, 4)
+  tendered_amount        Decimal? @db.Decimal(19, 4)
+  change_returned_amount Decimal? @db.Decimal(19, 4)
+  currency_code          String
+  status                 String   @default("COMPLETED")
   // Canonical resolved payment status (B03 Revision v3) — see chk_svft_pay_status.
-  payment_status          String?
+  payment_status         String?
 
-  cash_drawer_session_id  String?         @db.Uuid
-  pos_session_id          String?         @db.Uuid
-  gateway_code            String?
-  gateway_reference       String?
-  check_number            String?
-  check_bank              String?
-  check_date              DateTime?       @db.Date
+  cash_drawer_session_id String?   @db.Uuid
+  pos_session_id         String?   @db.Uuid
+  gateway_code           String?
+  gateway_reference      String?
+  check_number           String?
+  check_bank             String?
+  check_date             DateTime? @db.Date
 
-  idempotency_key         String
+  idempotency_key String
 
-  confirmed_at            DateTime?       @db.Timestamptz(6)
-  failed_at               DateTime?       @db.Timestamptz(6)
-  reversed_at             DateTime?       @db.Timestamptz(6)
+  confirmed_at DateTime? @db.Timestamptz(6)
+  failed_at    DateTime? @db.Timestamptz(6)
+  reversed_at  DateTime? @db.Timestamptz(6)
 
-  created_at              DateTime        @default(now()) @db.Timestamptz(6)
-  created_by              String?
-  created_info            String?
-  updated_at              DateTime?       @db.Timestamptz(6)
-  updated_by              String?
-  updated_info             String?
-  rec_status              Int             @default(1) @db.SmallInt
-  rec_order               Int?
-  rec_notes               String?
-  is_active               Boolean         @default(true)
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  created_by   String?
+  created_info String?
+  updated_at   DateTime? @db.Timestamptz(6)
+  updated_by   String?
+  updated_info String?
+  rec_status   Int       @default(1) @db.SmallInt
+  rec_order    Int?
+  rec_notes    String?
+  is_active    Boolean   @default(true)
 
-  org_tenants_mst         org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_sv_funding_tenders_dtl_tenant_org_id_fkey")
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_sv_funding_tenders_dtl_tenant_org_id_fkey")
 
   @@unique([tenant_org_id, id], map: "uq_svft_tenant_id")
   @@unique([tenant_org_id, fin_voucher_id, leg_index], map: "uq_svft_leg")

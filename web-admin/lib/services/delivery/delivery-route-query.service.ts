@@ -42,6 +42,28 @@ export interface DeliveryRouteManifest {
   stops: DeliveryStopView[];
 }
 
+export interface DeliveryRouteListItem {
+  id: string;
+  routeNumber: string;
+  statusCode: string;
+  driverId: string | null;
+  totalStops: number;
+  completedStops: number;
+  createdAt: string | null;
+}
+
+export interface ListRoutesParams {
+  tenantId: string;
+  page?: number;
+  limit?: number;
+  status?: string;
+}
+
+export interface ListRoutesResult {
+  routes: DeliveryRouteListItem[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
 function toNumber(value: { toString(): string } | number | null): number {
   return value === null ? 0 : Number(value);
 }
@@ -206,5 +228,50 @@ export class DeliveryRouteQueryService {
       select: stopSelect,
     });
     return stop ? mapStop(stop) : null;
+  }
+
+  /** Paginated route list for the dispatcher workspace and route-planning UI. */
+  static async listRoutes(params: ListRoutesParams): Promise<ListRoutesResult> {
+    const page = params.page && params.page > 0 ? params.page : 1;
+    const limit = params.limit && params.limit > 0 ? params.limit : 20;
+
+    const where = {
+      tenant_org_id: params.tenantId,
+      is_active: true,
+      rec_status: 1,
+      ...(params.status ? { route_status_code: params.status } : {}),
+    };
+
+    const [rows, total] = await Promise.all([
+      prisma.org_dlv_routes_mst.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          route_number: true,
+          route_status_code: true,
+          driver_id: true,
+          total_stops: true,
+          completed_stops: true,
+          created_at: true,
+        },
+      }),
+      prisma.org_dlv_routes_mst.count({ where }),
+    ]);
+
+    return {
+      routes: rows.map((route) => ({
+        id: route.id,
+        routeNumber: route.route_number,
+        statusCode: route.route_status_code ?? 'planned',
+        driverId: route.driver_id,
+        totalStops: route.total_stops ?? 0,
+        completedStops: route.completed_stops ?? 0,
+        createdAt: toIso(route.created_at),
+      })),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 }

@@ -442,13 +442,17 @@
     },
     "routes": {
       "createTitle": "إنشاء مسار",
-      "createHint": "حدد الطلبات أدناه، ويمكنك إدخال مُعرّف السائق (اختياريًا)، ثم أنشئ المسار.",
-      "driverIdLabel": "مُعرّف السائق (اختياري)",
-      "driverIdPlaceholder": "ألصق مُعرّف مستخدم السائق",
+      "createHint": "حدد الطلبات الجاهزة أدناه، ويمكنك اختيار سائق (اختياريًا)، ثم أنشئ المسار.",
+      "driverLabel": "السائق (اختياري)",
       "selectedCount": "تم تحديد {count}",
       "selectOrder": "تحديد الطلب للمسار",
+      "selectAll": "تحديد الكل",
       "listTitle": "المسارات",
       "empty": "لا توجد مسارات بعد",
+      "readyOrders": {
+        "title": "جاهز للتوصيل",
+        "empty": "لا توجد طلبات جاهزة لمسار الآن."
+      },
       "fields": {
         "status": "الحالة",
         "stops": "المحطات",
@@ -459,11 +463,28 @@
         "create": "إنشاء مسار",
         "creating": "جارٍ الإنشاء...",
         "refresh": "تحديث",
-        "openManifest": "فتح بيان المسار"
+        "openManifest": "فتح بيان المسار",
+        "addSelected": "إضافة الطلبات المحددة",
+        "showStops": "إظهار المحطات",
+        "hideStops": "إخفاء المحطات",
+        "removeStop": "إزالة",
+        "cancelRoute": "إلغاء المسار"
       },
       "messages": {
         "created": "تم إنشاء المسار: {routeId}",
-        "createFailed": "فشل إنشاء المسار"
+        "createFailed": "فشل إنشاء المسار",
+        "ordersAdded": "تمت إضافة الطلبات إلى المسار",
+        "stopRemoved": "تمت إزالة المحطة",
+        "routeCancelled": "تم إلغاء المسار",
+        "driverAssigned": "تم تعيين السائق"
+      },
+      "removeStopConfirm": {
+        "title": "إزالة هذه المحطة؟",
+        "description": "يعود الطلب إلى قائمة الجاهز للتوصيل."
+      },
+      "cancelRouteConfirm": {
+        "title": "إلغاء هذا المسار؟",
+        "description": "تعود كل محطة لم يتم تسليمها بعد إلى قائمة الجاهز للتوصيل. المحطات التي تم تسليمها لا تتأثر."
       }
     },
     "messages": {
