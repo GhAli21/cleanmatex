@@ -43,6 +43,10 @@ export interface WorkflowActionDto {
   label2: string | null;
   enabled: boolean;
   blockedReasons: Array<{ code: string; message: string; message2?: string }>;
+  /** When true, the reason/notes field renders regardless of `minReasonLength`. */
+  requiresReason?: boolean;
+  /** 0 (or unset) means the field is shown but not enforced; >0 blocks submit below that length. */
+  minReasonLength?: number;
   gateDecisions?: WorkflowGateDecisionDto[];
 }
 

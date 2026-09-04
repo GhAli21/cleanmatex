@@ -18,15 +18,8 @@ import { workflowActionBarEmptyMode } from '@features/workflow/ui/workflow-actio
 
 const GATE_RACK_REQUIRED = 'GATE_RACK_REQUIRED';
 
-const MIN_CONTROL_NOTES = 10;
-/** Actions whose policy requires an audit reason/note (must stay aligned with workflow profile seeds). */
-const CONTROL_ACTIONS_NEEDING_NOTES = new Set<string>([
-  WORKFLOW_ACTIONS.HOLD_ORDER_WORK,
-  WORKFLOW_ACTIONS.RESUME_ORDER_WORK,
-  WORKFLOW_ACTIONS.STOP_ORDER_WORK,
-  WORKFLOW_ACTIONS.FAIL_QA,
-  WORKFLOW_ACTIONS.FAIL_HOME_COLLECTION,
-]);
+/** Fallback only for gate-override reason length; unrelated to per-action control notes below. */
+const DEFAULT_GATE_OVERRIDE_MIN_REASON_LENGTH = 10;
 
 const WF_FIELD_NAMES = {
   rackLocation: 'wf-rack-location',
@@ -34,8 +27,18 @@ const WF_FIELD_NAMES = {
   overrideReason: 'wf-override-reason',
 } as const;
 
-function actionNeedsControlNotes(actionCode: string): boolean {
-  return CONTROL_ACTIONS_NEEDING_NOTES.has(actionCode);
+/**
+ * Reason/notes visibility and enforcement are policy data (`sys_wf_prof_ver_exec_cf`
+ * .requires_reason / .min_reason_length), not a hardcoded action-code list. The
+ * field shows whenever `requiresReason` is true; `minReasonLength` of 0 means
+ * shown-but-optional, >0 blocks submission below that length.
+ */
+function actionNeedsControlNotes(action: WorkflowActionDto): boolean {
+  return action.requiresReason === true;
+}
+
+function actionMinReasonLength(action: WorkflowActionDto): number {
+  return action.minReasonLength && action.minReasonLength > 0 ? action.minReasonLength : 0;
 }
 
 export interface WorkflowActionBarProps {
@@ -90,10 +93,10 @@ function gateDecisionsFor(action: WorkflowActionDto): WorkflowGateDecisionDto[] 
 
 function overrideMinReasonLength(decisions: WorkflowGateDecisionDto[]): number {
   return Math.max(
-    MIN_CONTROL_NOTES,
+    DEFAULT_GATE_OVERRIDE_MIN_REASON_LENGTH,
     ...decisions
       .filter((decision) => decision.result === 'OVERRIDABLE')
-      .map((decision) => decision.overrideMinReasonLength ?? MIN_CONTROL_NOTES),
+      .map((decision) => decision.overrideMinReasonLength ?? DEFAULT_GATE_OVERRIDE_MIN_REASON_LENGTH),
   );
 }
 
@@ -168,7 +171,10 @@ export function WorkflowActionBar({
           hasEmptyBackHref: Boolean(emptyBackHref),
         })
       : 'ready';
-  const needsControlNotes = visible.some((a) => actionNeedsControlNotes(a.actionCode));
+  const controlNotesAction = visible.find((a) => actionNeedsControlNotes(a));
+  const needsControlNotes = controlNotesAction != null;
+  const controlNotesMin = controlNotesAction ? actionMinReasonLength(controlNotesAction) : 0;
+  const controlNotesIsMandatory = controlNotesMin > 0;
 
   useEffect(() => {
     if (emptyMode !== 'redirect' || !emptyBackHref || didRedirectRef.current) return;
@@ -247,7 +253,7 @@ export function WorkflowActionBar({
   ) => {
     const input: Record<string, unknown> = {};
     if (rackTrimmed) input.rackLocation = rackTrimmed;
-    if (actionNeedsControlNotes(action.actionCode)) {
+    if (actionNeedsControlNotes(action)) {
       input.notes = notesTrimmed;
       input.reason = notesTrimmed;
     }
@@ -334,9 +340,13 @@ export function WorkflowActionBar({
             id={`wf-control-notes-${orderId}`}
             name={WF_FIELD_NAMES.controlNotes}
             label={t('controlNotesLabel')}
-            hint={t('controlNotesHelp', { min: MIN_CONTROL_NOTES })}
+            hint={
+              controlNotesIsMandatory
+                ? t('controlNotesHelp', { min: controlNotesMin })
+                : t('controlNotesHelpOptional')
+            }
             error={controlNotesError}
-            required
+            required={controlNotesIsMandatory}
           >
             <CmxInput
               ref={controlNotesInputRef}
@@ -346,7 +356,11 @@ export function WorkflowActionBar({
                 setControlNotes(e.target.value);
                 setControlNotesError(null);
               }}
-              placeholder={t('controlNotesPlaceholder')}
+              placeholder={
+                controlNotesIsMandatory
+                  ? t('controlNotesPlaceholder')
+                  : t('controlNotesPlaceholderOptional')
+              }
               autoComplete="off"
               aria-invalid={Boolean(controlNotesError)}
               aria-describedby={
@@ -390,13 +404,15 @@ export function WorkflowActionBar({
                         );
                         return;
                       }
+                      const actionMin = actionMinReasonLength(action);
                       if (
-                        actionNeedsControlNotes(action.actionCode) &&
-                        notesTrimmed.length < MIN_CONTROL_NOTES
+                        actionNeedsControlNotes(action) &&
+                        actionMin > 0 &&
+                        notesTrimmed.length < actionMin
                       ) {
                         failField(
                           WF_FIELD_NAMES.controlNotes,
-                          t('controlNotesRequired', { min: MIN_CONTROL_NOTES }),
+                          t('controlNotesRequired', { min: actionMin }),
                           controlNotesInputRef,
                           setControlNotesError,
                         );

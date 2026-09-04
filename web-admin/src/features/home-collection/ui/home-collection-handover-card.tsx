@@ -63,7 +63,7 @@ export function HomeCollectionHandoverCard({
   }
 
   const handleConfirm = async () => {
-    if (confirmAction.disabled) {
+    if (!confirmAction.enabled) {
       if (blockedReason) showError(blockedReason);
       return;
     }
@@ -92,7 +92,7 @@ export function HomeCollectionHandoverCard({
       <div className="mt-4 flex flex-wrap gap-3">
         <CmxButton
           type="button"
-          disabled={confirmAction.disabled || submitting}
+          disabled={!confirmAction.enabled || submitting}
           onClick={() => setDialogOpen(true)}
         >
           {t('confirmAction')}
