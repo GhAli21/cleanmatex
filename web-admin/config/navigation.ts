@@ -232,7 +232,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Routes',
         path: '/dashboard/drivers/routes',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-        permissions: ['drivers:read'],
+        permissions: ['drivers:read', 'orders:read'],
       },
     ],
   },

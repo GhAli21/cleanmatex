@@ -15,3 +15,9 @@
 | Next (operator) | Recreate any pre-cutover unsnapshotted test orders under an assigned live profile when you next need floor smoke. This is not a required handoff to continue implementation. |
 | Next (product) | V1.1 return sub-order / projection follow-up after V1.0 acceptance |
 | Ready for production canary | **S10 staff routed POD canary SIGNED 2026-09-05** (real operator, real UI, `ORD-20260903-0005` on `WF_V2_SIMPLE` v4 — see `13_Production_Readiness_Checklist.md`). Public confirmation is also green. **Still No for full V1.0** — `PAY_ON_COLLECTION` gate, outbox, route-create/assign hardening, canary+rollback rehearsal, T01–T18 remain open. |
+
+## Delivery Feature Completion — Phase 4–6 close-out (2026-09-05)
+
+`0491_nav_drivers_remove_driver_app_gate.sql` and `0492_nav_drivers_routes_orders_read.sql` are applied locally and remotely. The dispatcher route-planning workspace replaces `/dashboard/drivers/routes` placeholder: it selects only tenant `out_for_delivery` orders that do not already have an active stop, previews the selection, creates a route, and manages planned-route add/remove/cancel and driver assignment. The shared searchable driver picker is reused on the workspace and Delivery Route Manifest, where an existing active route is a non-blocking warning. All mutations remain in the transactional command service and its tenant/RBAC/CSRF API routes. The DB navigation record now requires the same `drivers:read` + `orders:read` permission set as the live page.
+
+The owner approved Phase 5 rollout, so `STAFF_DELIVERY_WRITES_ENABLED` is now `true`; the retired POD/OTP path remains deleted. Route command tests, access-contract checks, i18n parity, targeted lint, and inventory synchronization are recorded below. A post-deploy browser smoke with live eligible orders is still required as release evidence; it must not be represented as completed until an operator captures it.

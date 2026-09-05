@@ -3,15 +3,15 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-04T23:12:27.298Z
+Generated: 2026-09-05T00:37:45.837Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 261 |
+| api | 262 |
 | middleware | 4 |
-| screen | 51 |
+| screen | 53 |
 | service | 2 |
 
 ## All permission usages
@@ -116,12 +116,15 @@ Generated: 2026-09-04T23:12:27.298Z
 | customers:update | api | app/api/v1/customers/[id]/route.ts | 126 | /api/v1/customers/[id] |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 74 | /api/v1/customers/[id]/service-prefs |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 140 | /api/v1/customers/[id]/service-prefs |
-| delivery:assign | api | app/api/v1/delivery/routes/[id]/assign/route.ts | 26 | /api/v1/delivery/routes/[id]/assign |
-| delivery:pod | api | app/api/v1/delivery/orders/[orderId]/generate-otp/route.ts | 26 | /api/v1/delivery/orders/[orderId]/generate-otp |
-| delivery:pod | api | app/api/v1/delivery/orders/[orderId]/verify-otp/route.ts | 26 | /api/v1/delivery/orders/[orderId]/verify-otp |
-| delivery:routes | api | app/api/v1/delivery/routes/route.ts | 64 | /api/v1/delivery/routes |
-| drivers:read | screen | app/dashboard/delivery/page.tsx | 75 | /dashboard/delivery |
-| drivers:read | api | app/api/v1/delivery/routes/route.ts | 20 | /api/v1/delivery/routes |
+| delivery:assign | screen | src/features/drivers/ui/delivery-route-planning-screen.tsx | 63 | src/features/drivers/ui/delivery-route-planning-screen.tsx |
+| delivery:assign | api | app/api/v1/delivery/routes/[id]/assign/route.ts | 31 | /api/v1/delivery/routes/[id]/assign |
+| delivery:routes | screen | src/features/drivers/ui/delivery-route-planning-screen.tsx | 62 | src/features/drivers/ui/delivery-route-planning-screen.tsx |
+| delivery:routes | api | app/api/v1/delivery/routes/route.ts | 52 | /api/v1/delivery/routes |
+| delivery:routes | api | app/api/v1/delivery/routes/[id]/cancel/route.ts | 34 | /api/v1/delivery/routes/[id]/cancel |
+| delivery:routes | api | app/api/v1/delivery/routes/[id]/orders/route.ts | 32 | /api/v1/delivery/routes/[id]/orders |
+| delivery:routes | api | app/api/v1/delivery/routes/[id]/stops/[stopId]/route.ts | 26 | /api/v1/delivery/routes/[id]/stops/[stopId] |
+| drivers:read | screen | app/dashboard/delivery/page.tsx | 111 | /dashboard/delivery |
+| drivers:read | api | app/api/v1/delivery/routes/route.ts | 23 | /api/v1/delivery/routes |
 | fin_voucher_lines:delete_draft | api | app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts | 43 | /api/v1/finance/vouchers/[voucherId]/lines/[lineId] |
 | fin_voucher_lines:update | api | app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts | 17 | /api/v1/finance/vouchers/[voucherId]/lines/[lineId] |
 | fin_vouchers:cancel | api | app/api/v1/finance/vouchers/[voucherId]/cancel/route.ts | 15 | /api/v1/finance/vouchers/[voucherId]/cancel |
@@ -208,7 +211,7 @@ Generated: 2026-09-04T23:12:27.298Z
 | orders:approve_refund | api | app/api/v1/orders/refunds/[refundId]/approve/route.ts | 19 | /api/v1/orders/refunds/[refundId]/approve |
 | orders:cancel_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 72 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 76 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
-| orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 76 | /dashboard/delivery |
+| orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 112 | /dashboard/delivery |
 | orders:collect_payment | screen | src/features/delivery/ui/delivery-order-detail-screen.tsx | 40 | src/features/delivery/ui/delivery-order-detail-screen.tsx |
 | orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 198 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
 | orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 39 | /api/v1/orders/[id]/collect-payment |
@@ -216,8 +219,8 @@ Generated: 2026-09-04T23:12:27.298Z
 | orders:create | screen | src/features/auth/ui/RequirePermission.tsx | 35 | src/features/auth/ui/RequirePermission.tsx |
 | orders:create | api | app/api/v1/orders/preview-financials/route.ts | 22 | /api/v1/orders/preview-financials |
 | orders:create | api | app/api/v1/orders/preview-payment/route.ts | 26 | /api/v1/orders/preview-payment |
-| orders:create | api | app/api/v1/orders/route.ts | 36 | /api/v1/orders |
-| orders:create | api | app/api/v1/orders/submit-order/route.ts | 73 | /api/v1/orders/submit-order |
+| orders:create | api | app/api/v1/orders/route.ts | 46 | /api/v1/orders |
+| orders:create | api | app/api/v1/orders/submit-order/route.ts | 79 | /api/v1/orders/submit-order |
 | orders:create | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 94 | /api/v1/orders/[id]/items/[itemId]/pieces |
 | orders:create_adjustment | api | app/api/v1/orders/[id]/adjustments/route.ts | 38 | /api/v1/orders/[id]/adjustments |
 | orders:delete | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/route.ts | 193 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId] |
@@ -241,7 +244,7 @@ Generated: 2026-09-04T23:12:27.298Z
 | orders:read | api | app/api/v1/delivery/orders/[orderId]/active-stop/route.ts | 24 | /api/v1/delivery/orders/[orderId]/active-stop |
 | orders:read | api | app/api/v1/delivery/orders/[orderId]/proof/route.ts | 10 | /api/v1/delivery/orders/[orderId]/proof |
 | orders:read | api | app/api/v1/orders/pieces/[pieceId]/history/route.ts | 36 | /api/v1/orders/pieces/[pieceId]/history |
-| orders:read | api | app/api/v1/orders/route.ts | 194 | /api/v1/orders |
+| orders:read | api | app/api/v1/orders/route.ts | 210 | /api/v1/orders |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 27 | /api/v1/orders/[id]/items/[itemId]/pieces |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/scan/route.ts | 24 | /api/v1/orders/[id]/items/[itemId]/pieces/scan |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/route.ts | 44 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences |
@@ -264,12 +267,12 @@ Generated: 2026-09-04T23:12:27.298Z
 | orders:transition | api | app/api/v1/assembly/tasks/[taskId]/qa/route.ts | 19 | /api/v1/assembly/tasks/[taskId]/qa |
 | orders:transition | api | app/api/v1/assembly/tasks/[taskId]/scan/route.ts | 19 | /api/v1/assembly/tasks/[taskId]/scan |
 | orders:transition | api | app/api/v1/assembly/tasks/[taskId]/start/route.ts | 19 | /api/v1/assembly/tasks/[taskId]/start |
-| orders:transition | api | app/api/v1/orders/[id]/actions/route.ts | 31 | /api/v1/orders/[id]/actions |
-| orders:transition | api | app/api/v1/orders/[id]/available-actions/route.ts | 21 | /api/v1/orders/[id]/available-actions |
-| orders:transition | api | app/api/v1/orders/[id]/confirm-physical-intake/route.ts | 29 | /api/v1/orders/[id]/confirm-physical-intake |
-| orders:transition | api | app/api/v1/orders/[id]/transition/route.ts | 43 | /api/v1/orders/[id]/transition |
+| orders:transition | api | app/api/v1/orders/[id]/actions/route.ts | 36 | /api/v1/orders/[id]/actions |
+| orders:transition | api | app/api/v1/orders/[id]/available-actions/route.ts | 22 | /api/v1/orders/[id]/available-actions |
+| orders:transition | api | app/api/v1/orders/[id]/confirm-physical-intake/route.ts | 31 | /api/v1/orders/[id]/confirm-physical-intake |
+| orders:transition | api | app/api/v1/orders/[id]/transition/route.ts | 44 | /api/v1/orders/[id]/transition |
 | orders:update | screen | src/features/orders/ui/order-actions.tsx | 50 | src/features/orders/ui/order-actions.tsx |
-| orders:update | screen | src/features/workflow/ui/FastItemizer.tsx | 50 | src/features/workflow/ui/FastItemizer.tsx |
+| orders:update | screen | src/features/workflow/ui/FastItemizer.tsx | 52 | src/features/workflow/ui/FastItemizer.tsx |
 | orders:update | api | app/api/v1/orders/[id]/batch-update/route.ts | 49 | /api/v1/orders/[id]/batch-update |
 | orders:update | api | app/api/v1/orders/[id]/fix-order-data/route.ts | 110 | /api/v1/orders/[id]/fix-order-data |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode]/route.ts | 30 | /api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode] |

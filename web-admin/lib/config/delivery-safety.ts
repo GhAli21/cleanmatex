@@ -1,9 +1,9 @@
 /**
- * Legacy staff delivery writes stay closed until an explicit rollout decision
- * reopens route creation, assign, and capturePOD. Those paths do not share the
- * atomic completion transaction.
+ * Staff route writes are enabled only after the transactional route-command
+ * service, database race backstop, and operator S10 evidence were accepted.
+ * The retired legacy POD/OTP path is not reopened by this flag.
  */
-export const STAFF_DELIVERY_WRITES_ENABLED = false;
+export const STAFF_DELIVERY_WRITES_ENABLED = true;
 
 /**
  * The isolated completion path (evidence upload + stop complete) is enabled.
@@ -12,6 +12,10 @@ export const STAFF_DELIVERY_WRITES_ENABLED = false;
  */
 export const STAFF_DELIVERY_COMPLETION_ENABLED = true;
 
+/**
+ * Stable fail-closed response retained for delivery surfaces that are not yet
+ * covered by the accepted staff-write safety boundary.
+ */
 export const DELIVERY_HARDENING_ERROR = {
   success: false,
   code: 'DELIVERY_HARDENING_REQUIRED',

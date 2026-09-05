@@ -1,13 +1,13 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-09-04T23:12:27.298Z
-Git SHA: d374cfcd
+Generated: 2026-09-05T00:37:45.837Z
+Git SHA: ee517254
 ## Summary
 | Domain | Count |
 | --- | --- |
 | Access contracts | 150 |
-| Permission usages | 318 |
+| Permission usages | 321 |
 | Feature flag usages | 86 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
@@ -46,7 +46,7 @@ Git SHA: d374cfcd
 | /dashboard/delivery/routes/[id] | Delivery Route Manifest | drivers:read, orders:read | — | 0 |
 | /dashboard/delivery/routes/[id]/stops/[stopId] | Delivery Stop Detail | drivers:read, orders:read | — | 0 |
 | /dashboard/drivers | Drivers | drivers:read | — | 0 |
-| /dashboard/drivers/routes | Driver Routes | drivers:read | — | 0 |
+| /dashboard/drivers/routes | Driver Routes | drivers:read, orders:read | — | 0 |
 | /dashboard/erp-lite | Finance & Accounting | erp_lite:view | erp_lite_enabled | 0 |
 | /dashboard/erp-lite/ap | Accounts Payable | erp_lite_ap:view | erp_lite_enabled, erp_lite_ap_enabled | 0 |
 | /dashboard/erp-lite/ar | AR Aging | erp_lite_ar:view | erp_lite_enabled, erp_lite_ar_enabled | 0 |

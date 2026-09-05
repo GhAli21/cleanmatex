@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-08-26T18:35:31.235Z",
+  "extractedAt": "2026-09-05T00:37:22.309Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -7,7 +7,7 @@
       "route": "/dashboard/delivery",
       "permission": "drivers:read",
       "component": "useHasPermissionCode",
-      "line": 75,
+      "line": 111,
       "surface": "screen"
     },
     {
@@ -15,7 +15,7 @@
       "route": "/dashboard/delivery",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 76,
+      "line": 112,
       "surface": "screen"
     },
     {
@@ -200,6 +200,22 @@
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
       "line": 40,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/drivers/ui/delivery-route-planning-screen.tsx",
+      "route": "src/features/drivers/ui/delivery-route-planning-screen.tsx",
+      "permission": "delivery:routes",
+      "component": "useHasPermissionCode",
+      "line": 62,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/drivers/ui/delivery-route-planning-screen.tsx",
+      "route": "src/features/drivers/ui/delivery-route-planning-screen.tsx",
+      "permission": "delivery:assign",
+      "component": "useHasPermissionCode",
+      "line": 63,
       "surface": "screen"
     },
     {
@@ -407,7 +423,7 @@
       "route": "src/features/workflow/ui/FastItemizer.tsx",
       "permission": "orders:update",
       "component": "useHasPermissionCode",
-      "line": 50,
+      "line": 52,
       "surface": "screen"
     },
     {
@@ -1357,14 +1373,6 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/delivery/orders/[orderId]/generate-otp/route.ts",
-      "method": "POST",
-      "route": "/api/v1/delivery/orders/[orderId]/generate-otp",
-      "permission": "delivery:pod",
-      "line": 26,
-      "surface": "api"
-    },
-    {
       "file": "app/api/v1/delivery/orders/[orderId]/proof/route.ts",
       "method": "GET",
       "route": "/api/v1/delivery/orders/[orderId]/proof",
@@ -1373,19 +1381,11 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/delivery/orders/[orderId]/verify-otp/route.ts",
-      "method": "POST",
-      "route": "/api/v1/delivery/orders/[orderId]/verify-otp",
-      "permission": "delivery:pod",
-      "line": 26,
-      "surface": "api"
-    },
-    {
       "file": "app/api/v1/delivery/routes/route.ts",
       "method": "GET",
       "route": "/api/v1/delivery/routes",
       "permission": "drivers:read",
-      "line": 20,
+      "line": 23,
       "surface": "api"
     },
     {
@@ -1393,7 +1393,7 @@
       "method": "GET",
       "route": "/api/v1/delivery/routes",
       "permission": "delivery:routes",
-      "line": 64,
+      "line": 52,
       "surface": "api"
     },
     {
@@ -1401,6 +1401,30 @@
       "method": "POST",
       "route": "/api/v1/delivery/routes/[id]/assign",
       "permission": "delivery:assign",
+      "line": 31,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/delivery/routes/[id]/cancel/route.ts",
+      "method": "POST",
+      "route": "/api/v1/delivery/routes/[id]/cancel",
+      "permission": "delivery:routes",
+      "line": 34,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/delivery/routes/[id]/orders/route.ts",
+      "method": "POST",
+      "route": "/api/v1/delivery/routes/[id]/orders",
+      "permission": "delivery:routes",
+      "line": 32,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/delivery/routes/[id]/stops/[stopId]/route.ts",
+      "method": "DELETE",
+      "route": "/api/v1/delivery/routes/[id]/stops/[stopId]",
+      "permission": "delivery:routes",
       "line": 26,
       "surface": "api"
     },
@@ -1945,7 +1969,7 @@
       "method": "POST",
       "route": "/api/v1/orders",
       "permission": "orders:create",
-      "line": 36,
+      "line": 46,
       "surface": "api"
     },
     {
@@ -1953,7 +1977,7 @@
       "method": "POST",
       "route": "/api/v1/orders",
       "permission": "orders:read",
-      "line": 194,
+      "line": 210,
       "surface": "api"
     },
     {
@@ -1961,7 +1985,7 @@
       "method": "POST",
       "route": "/api/v1/orders/submit-order",
       "permission": "orders:create",
-      "line": 73,
+      "line": 79,
       "surface": "api"
     },
     {
@@ -1969,7 +1993,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/actions",
       "permission": "orders:transition",
-      "line": 31,
+      "line": 36,
       "surface": "api"
     },
     {
@@ -1985,7 +2009,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/available-actions",
       "permission": "orders:transition",
-      "line": 21,
+      "line": 22,
       "surface": "api"
     },
     {
@@ -2009,7 +2033,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/confirm-physical-intake",
       "permission": "orders:transition",
-      "line": 29,
+      "line": 31,
       "surface": "api"
     },
     {
@@ -2313,7 +2337,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/transition",
       "permission": "orders:transition",
-      "line": 43,
+      "line": 44,
       "surface": "api"
     },
     {

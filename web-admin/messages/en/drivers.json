@@ -32,6 +32,18 @@
     "available": "Available",
     "active": "Active"
   },
+  "picker": {
+    "label": "Driver",
+    "searchLabel": "Search drivers",
+    "searchPlaceholder": "Search by name, phone, or vehicle plate",
+    "placeholder": "Select a driver",
+    "unassigned": "Unassigned",
+    "loading": "Loading drivers…",
+    "empty": "No active drivers are available.",
+    "noMatches": "No drivers match your search.",
+    "onRoute": "Active route",
+    "activeRouteWarning": "This driver already has an active route. Assignment is allowed, but confirm the operational plan."
+  },
   "empty": {
     "title": "No drivers yet",
     "description": "Add your first driver to start assigning delivery routes."

@@ -441,6 +441,7 @@
       "backToDelivery": "العودة إلى التوصيل"
     },
     "routes": {
+      "workspaceTitle": "تخطيط مسارات التوصيل",
       "createTitle": "إنشاء مسار",
       "createHint": "حدد الطلبات الجاهزة أدناه، ويمكنك اختيار سائق (اختياريًا)، ثم أنشئ المسار.",
       "driverLabel": "السائق (اختياري)",
@@ -451,13 +452,21 @@
       "empty": "لا توجد مسارات بعد",
       "readyOrders": {
         "title": "جاهز للتوصيل",
-        "empty": "لا توجد طلبات جاهزة لمسار الآن."
+        "empty": "لا توجد طلبات جاهزة لمسار الآن.",
+        "emptyDescription": "تظهر الطلبات هنا عندما تكون قيد التوصيل ولا تكون مُعيّنة لمحطة نشطة."
       },
+      "readyCount": "{count, plural, one {طلب واحد جاهز} other {# طلبات جاهزة}}",
+      "preview": "الطلبات: {orders}",
+      "loadingStops": "جارٍ تحميل محطات المسار…",
       "fields": {
         "status": "الحالة",
         "stops": "المحطات",
         "driverId": "السائق",
-        "unassigned": "غير مُعيّن"
+        "unassigned": "غير مُعيّن",
+        "orderNumber": "رقم الطلب",
+        "customer": "العميل",
+        "address": "عنوان التوصيل",
+        "addressUnavailable": "العنوان غير متاح"
       },
       "actions": {
         "create": "إنشاء مسار",
@@ -468,7 +477,9 @@
         "showStops": "إظهار المحطات",
         "hideStops": "إخفاء المحطات",
         "removeStop": "إزالة",
-        "cancelRoute": "إلغاء المسار"
+        "cancelRoute": "إلغاء المسار",
+        "assignDriver": "تعيين السائق",
+        "stopAdding": "إنهاء الإضافة"
       },
       "messages": {
         "created": "تم إنشاء المسار: {routeId}",
@@ -476,12 +487,19 @@
         "ordersAdded": "تمت إضافة الطلبات إلى المسار",
         "stopRemoved": "تمت إزالة المحطة",
         "routeCancelled": "تم إلغاء المسار",
-        "driverAssigned": "تم تعيين السائق"
+        "driverAssigned": "تم تعيين السائق",
+        "driverRequired": "اختر سائقًا قبل تعيين المسار.",
+        "driverWarning": "لدى هذا السائق مسار نشط بالفعل. تأكد من جدول التشغيل قبل المتابعة.",
+        "selectionRequired": "حدد طلبًا جاهزًا واحدًا على الأقل أولاً.",
+        "operationFailed": "تعذر إكمال تغيير المسار. حدّث الصفحة وحاول مرة أخرى.",
+        "loadFailed": "تعذر تحميل بيانات تخطيط المسارات.",
+        "createFailed": "فشل إنشاء المسار"
       },
       "removeStopConfirm": {
         "title": "إزالة هذه المحطة؟",
         "description": "يعود الطلب إلى قائمة الجاهز للتوصيل."
       },
+      "emptyDescription": "أنشئ مسارًا من الطلبات الجاهزة لبدء تخطيط الإرسال.",
       "cancelRouteConfirm": {
         "title": "إلغاء هذا المسار؟",
         "description": "تعود كل محطة لم يتم تسليمها بعد إلى قائمة الجاهز للتوصيل. المحطات التي تم تسليمها لا تتأثر."
@@ -514,6 +532,17 @@
       "stopNumber": "المحطة {sequence}",
       "openNavigation": "فتح الملاحة",
       "openStop": "فتح المحطة",
+      "assignDriver": "تعيين سائق",
+      "reassignDriver": "إعادة تعيين السائق",
+      "saveDriver": "حفظ السائق",
+      "assigningDriver": "جار تعيين السائق…",
+      "cancel": "إلغاء",
+      "driverRequired": "اختر سائقاً قبل المتابعة.",
+      "driverAssignmentDescription": "اختر سائقاً نشطاً لهذا المسار. يمكن تعيين السائقين الذين لديهم مسار بالفعل بعد مراجعة تشغيلية.",
+      "driverAssigned": "تم تعيين السائق للمسار.",
+      "driverAssignmentWarning": "لدى هذا السائق مسار نشط بالفعل. أكد خطة التشغيل قبل الإرسال.",
+      "driverLoadFailed": "تعذر تحميل السائقين النشطين. حاول مرة أخرى.",
+      "driverAssignFailed": "تعذر تعيين السائق. حاول مرة أخرى.",
       "backToDelivery": "العودة إلى التوصيل",
       "notFound": "لم يتم العثور على مسار التوصيل",
       "loadFailed": "تعذر تحميل مسار التوصيل"

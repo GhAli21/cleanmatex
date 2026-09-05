@@ -441,6 +441,7 @@
       "backToDelivery": "Back to Delivery"
     },
     "routes": {
+      "workspaceTitle": "Delivery route planning",
       "createTitle": "Create route",
       "createHint": "Select ready orders below, optionally pick a driver, then create a route.",
       "driverLabel": "Driver (optional)",
@@ -451,13 +452,21 @@
       "empty": "No routes yet",
       "readyOrders": {
         "title": "Ready for delivery",
-        "empty": "No orders are ready for a route right now."
+        "empty": "No orders are ready for a route right now.",
+        "emptyDescription": "Orders appear here once they are out for delivery and are not assigned to an active stop."
       },
+      "readyCount": "{count, plural, one {# ready order} other {# ready orders}}",
+      "preview": "Orders: {orders}",
+      "loadingStops": "Loading route stops…",
       "fields": {
         "status": "Status",
         "stops": "Stops",
         "driverId": "Driver",
-        "unassigned": "Unassigned"
+        "unassigned": "Unassigned",
+        "orderNumber": "Order #",
+        "customer": "Customer",
+        "address": "Delivery address",
+        "addressUnavailable": "Address not available"
       },
       "actions": {
         "create": "Create route",
@@ -468,7 +477,9 @@
         "showStops": "Show stops",
         "hideStops": "Hide stops",
         "removeStop": "Remove",
-        "cancelRoute": "Cancel route"
+        "cancelRoute": "Cancel route",
+        "assignDriver": "Assign driver",
+        "stopAdding": "Done adding"
       },
       "messages": {
         "created": "Route created: {routeId}",
@@ -476,12 +487,19 @@
         "ordersAdded": "Orders added to route",
         "stopRemoved": "Stop removed",
         "routeCancelled": "Route cancelled",
-        "driverAssigned": "Driver assigned"
+        "driverAssigned": "Driver assigned",
+        "driverRequired": "Choose a driver before assigning the route.",
+        "driverWarning": "This driver already has an active route. Confirm the operational schedule before continuing.",
+        "selectionRequired": "Select at least one ready order first.",
+        "operationFailed": "The route change could not be completed. Refresh and try again.",
+        "loadFailed": "Route planning data could not be loaded.",
+        "createFailed": "Failed to create route"
       },
       "removeStopConfirm": {
         "title": "Remove this stop?",
         "description": "The order returns to the ready-for-delivery list."
       },
+      "emptyDescription": "Create a route from ready orders to begin dispatch planning.",
       "cancelRouteConfirm": {
         "title": "Cancel this route?",
         "description": "Every stop that has not been delivered yet returns to the ready-for-delivery list. Delivered stops are not affected."
@@ -514,6 +532,17 @@
       "stopNumber": "Stop {sequence}",
       "openNavigation": "Open navigation",
       "openStop": "Open stop",
+      "assignDriver": "Assign driver",
+      "reassignDriver": "Reassign driver",
+      "saveDriver": "Save driver",
+      "assigningDriver": "Assigning driver…",
+      "cancel": "Cancel",
+      "driverRequired": "Select a driver before continuing.",
+      "driverAssignmentDescription": "Choose an active driver for this route. Drivers already on a route can still be assigned after an operational check.",
+      "driverAssigned": "Driver assigned to the route.",
+      "driverAssignmentWarning": "This driver already has an active route. Confirm the operational plan before dispatch.",
+      "driverLoadFailed": "Unable to load active drivers. Try again.",
+      "driverAssignFailed": "Unable to assign the driver. Try again.",
       "backToDelivery": "Back to Delivery",
       "notFound": "Delivery route not found",
       "loadFailed": "Unable to load the delivery route"

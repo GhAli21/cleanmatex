@@ -273,6 +273,16 @@ During and after the smoke window:
 - Pilot-tenant e2e for release, pickup, delivery, finance gates, and outbox consumers
 - Full T01-T18 acceptance and rollback rehearsal
 
+## Delivery route planning — dispatcher click-through (Phase 4–5)
+
+1. Sign in with `drivers:read`, `orders:read`, `delivery:routes`, and `delivery:assign`; open **Drivers & Routes → Routes**.
+2. Confirm only tenant `out_for_delivery` orders without an active stop appear. Select two orders from one branch, review the count/order preview, optionally select a driver, and create the route.
+3. Confirm the new route appears as planned, each selected order has one stop, and another dispatcher cannot assign either order to a second active route.
+4. Expand the route, add one same-branch ready order, remove a stop through the confirmation dialog, then confirm the removed order returns to the eligible list.
+5. Reassign the route on the workspace and on its Delivery Route Manifest. A driver already assigned to another active route must show a warning but remain assignable.
+6. Cancel a separate planned route through its confirmation dialog; non-delivered stops must return to the eligible pool while an already delivered stop, if present, remains unchanged.
+7. Attempt every operation from another tenant and without each mutation permission. Each must be denied without data disclosure or mutation.
+
 ## Workboard smoke
 
 1. Apply `0455_workboard_permission_navigation.sql`, deploy the Workboard build, and sign in as a role with `workboard:read`.

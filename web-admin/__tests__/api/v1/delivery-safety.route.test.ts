@@ -1,5 +1,11 @@
 /** @jest-environment node */
 
+/**
+ * Contract tests for the staff delivery-write boundary.
+ * They prove authorised requests reach the hardened commands while completion
+ * and private evidence remain guarded by their own permission requirements.
+ */
+
 import type { NextRequest } from 'next/server';
 import { File } from 'node:buffer';
 
@@ -70,18 +76,34 @@ describe('delivery write safety boundary', () => {
     getMyActivePosSessionMock.mockResolvedValue({ type: 'NONE' });
   });
 
-  it('fails route creation closed after authorization without calling the service', async () => {
-    const response = await createRoute({} as NextRequest);
+  it('routes an authorized staff create request to the hardened transactional command', async () => {
+    createRouteMock.mockResolvedValue({
+      routeId: '33333333-3333-4333-8333-333333333333',
+      routeNumber: 'DLV-2026-000001',
+      stopIds: ['44444444-4444-4444-8444-444444444444'],
+    });
+    const response = await createRoute(new Request('http://localhost/api/v1/delivery/routes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderIds: ['44444444-4444-4444-8444-444444444444'],
+        idempotencyKey: 'route-create-test',
+      }),
+    }) as NextRequest);
 
     expect(requirePermissionFactory).toHaveBeenCalledWith('delivery:routes');
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(201);
     await expect(response.json()).resolves.toMatchObject({
-      code: 'DELIVERY_HARDENING_REQUIRED',
+      success: true,
     });
-    expect(createRouteMock).not.toHaveBeenCalled();
+    expect(createRouteMock).toHaveBeenCalledWith(expect.objectContaining({
+      tenantId: AUTH_CONTEXT.tenantId,
+      actorUserId: AUTH_CONTEXT.userId,
+      idempotencyKey: 'route-create-test',
+    }));
   });
 
-  it('allows the isolated atomic completion path without reopening legacy delivery writes', async () => {
+  it('keeps the isolated atomic completion path independently protected', async () => {
     completeDeliveryMock.mockResolvedValue({
       stopId: '44444444-4444-4444-8444-444444444444',
       podId: '55555555-5555-4555-8555-555555555555',

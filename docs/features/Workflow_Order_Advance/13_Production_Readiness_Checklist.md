@@ -1,6 +1,6 @@
 # 13 — Production Readiness Checklist (V1.0)
 
-**Status:** **S10 staff routed POD canary SIGNED 2026-09-05** (see audit note below). **Still NO-GO for full V1.0** — `PAY_ON_COLLECTION` gate, central outbox, route-create/assign hardening (`STAFF_DELIVERY_WRITES_ENABLED` stays `false`), canary+rollback rehearsal, and T01–T18 remain open. Delivery floor confirm and public tracking remain available under their own gates · **Date:** 2026-08-27, updated 2026-09-05
+**Status:** **S10 staff routed POD canary SIGNED 2026-09-05** (see audit note below). Route planning is now hardened and owner-enabled after `0490`/`0491`; remaining V1.0 blockers are the `PAY_ON_COLLECTION` acceptance gate, central outbox, canary/rollback rehearsal, and T01–T18. Delivery floor confirm and public tracking remain available under their own gates · **Date:** 2026-08-27, updated 2026-09-05
 
 ## Design / P0
 
@@ -25,7 +25,7 @@
 - [x] Private POD evidence bucket, durable object keys, tenant-stop upload receipts, and method-specific receipt validation implemented (`0451`, `0452`)
 - [x] Read-only delivery proof/audit is tenant-scoped, access-contract protected, and returns only time-limited authorized evidence links; it does not approve staff completion
 - [ ] OTP retry/expiry controls intentionally deferred to VNext
-- [ ] Delivery route creation/counters/status changes are atomic, idempotent, and concurrency-safe
+- [x] Delivery route creation/counters/status changes are atomic, idempotent, tenant-scoped, and concurrency-safe; `0490` database backstop and 12-command DB-integration cases passed.
 - [ ] `PAY_ON_COLLECTION` remaining-balance gate implemented in the P7R command; live collection composition and acceptance coverage remain required before staff rollout
 - [x] Delivery mutation RBAC (`delivery:pod` + `orders:transition`) and explicit tenant filtering verified by automated tests
 - [ ] Central outbox; no duplicate notify
@@ -43,6 +43,10 @@
 ## 2026-09-05 release audit note — S10 SIGNED
 
 Staff **routed POD (S10)** is now production-signed. Real operator (`admin@demo-laundry.example`, tenant `Demo Laundry LLC`), real UI (`/dashboard/delivery/routes/{route}/stops/{stop}`), real order (`ORD-20260903-0005`, `WF_V2_SIMPLE` v4, the live active profile assignment). Completed with POD method `NOTES` (no photo/signature required by this profile's delivery evidence policy). Verified atomically on remote: order `status → delivered`, `delivered_at` populated, `state_version` 3→4; stop `→ delivered`; route `→ completed`; `org_order_history` records `CONFIRM_DELIVERY` with a real idempotency key and actor. Route/stop were seeded via a one-off reviewed migration (`0490_s10_canary_route_seed.sql`) because `STAFF_DELIVERY_WRITES_ENABLED=false` still blocks route creation through the normal UI/API — that flag stays off pending a separate decision; only the isolated stop-completion command (already `true`) was exercised, which is what S10 actually needed to prove. Companion: the stale `delivery-completion.db.test.ts` DB-integration suite was found and fixed the same session (was silently failing 4/9 since Gate 4 due to a test-fixture gap, not a service bug) — now 9/9 passing, giving both automated and human-operator assurance for this command.
+
+## 2026-09-05 route-planning rollout update
+
+The owner confirmed `0491_nav_drivers_remove_driver_app_gate.sql` applied locally and remotely, then authorized the Phase 5 route-planning rollout. `STAFF_DELIVERY_WRITES_ENABLED=true` now enables only the hardened route command APIs. The legacy POD/OTP writers remain deleted; create, add, remove, cancel, and assignment stay tenant-scoped, permission-protected, CSRF-protected, transactional, and constrained by the active-stop uniqueness index. The Phase 4–5 browser scenario in `testing_guide_and_scenarios.md` is the required post-deploy evidence; no live execution result is recorded here yet.
 
 ## 2026-08-27 release audit note
 

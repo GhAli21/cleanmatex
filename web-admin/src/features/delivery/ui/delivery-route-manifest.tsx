@@ -1,14 +1,25 @@
 'use client';
 
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ExternalLink, MapPin, PackageCheck, Truck } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
-import { CmxStatusBadge } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
+import { CmxDialog, CmxDialogContent, CmxDialogDescription, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
+import { getDrivers } from '@/app/actions/drivers/drivers-actions';
+import { DriverPicker } from '@features/drivers/ui/driver-picker';
+import { assignDeliveryDriver } from '@features/drivers/api/delivery-route-command-api';
+import type { OrgDriver } from '@/lib/types/drivers';
 import type { DeliveryRouteManifest } from '@/lib/services/delivery/delivery-route-query.service';
 
+/**
+ * Props for a route manifest that may show a local driver-assignment result
+ * before the authoritative route read model is refreshed.
+ */
 interface DeliveryRouteManifestProps {
+  /** Tenant-scoped manifest supplied by the delivery read contract. */
   route: DeliveryRouteManifest;
 }
 
@@ -30,6 +41,54 @@ function mapHref(address: string, latitude: number | null, longitude: number | n
  */
 export function DeliveryRouteManifest({ route }: DeliveryRouteManifestProps) {
   const t = useTranslations('workflow.delivery');
+  const [driverDialogOpen, setDriverDialogOpen] = useState(false);
+  const [drivers, setDrivers] = useState<OrgDriver[]>([]);
+  const [selectedDriverId, setSelectedDriverId] = useState<string | undefined>(route.driverId ?? undefined);
+  const [assignedDriver, setAssignedDriver] = useState<OrgDriver | null>(null);
+  const [isLoadingDrivers, startLoadingDrivers] = useTransition();
+  const [isAssigning, startAssigning] = useTransition();
+
+  const currentDriverId = assignedDriver?.id ?? route.driverId;
+  const displayDriver = assignedDriver?.name ?? (currentDriverId ? currentDriverId : t('routes.fields.unassigned'));
+
+  /** Load current tenant choices only after an operator asks to change assignment. */
+  const openDriverDialog = () => {
+    setSelectedDriverId(currentDriverId ?? undefined);
+    setDriverDialogOpen(true);
+    startLoadingDrivers(async () => {
+      const result = await getDrivers();
+      if (!result.success || !result.data) {
+        cmxMessage.error(t('manifest.driverLoadFailed'));
+        return;
+      }
+
+      setDrivers(result.data);
+      setAssignedDriver(result.data.find((driver) => driver.id === currentDriverId) ?? null);
+    });
+  };
+
+  /** Server authority validates the driver and returns the non-blocking overlap warning. */
+  const assignDriver = () => {
+    if (!selectedDriverId) {
+      cmxMessage.warning(t('manifest.driverRequired'));
+      return;
+    }
+
+    startAssigning(async () => {
+      try {
+        const result = await assignDeliveryDriver(route.id, selectedDriverId);
+        const selectedDriver = drivers.find((driver) => driver.id === result.driverId) ?? null;
+        setAssignedDriver(selectedDriver);
+        setDriverDialogOpen(false);
+        cmxMessage.success(t('manifest.driverAssigned'));
+        if (result.driverWarning) {
+          cmxMessage.warning(t('manifest.driverAssignmentWarning'));
+        }
+      } catch {
+        cmxMessage.error(t('manifest.driverAssignFailed'));
+      }
+    });
+  };
 
   return (
     <div className="space-y-5">
@@ -56,7 +115,16 @@ export function DeliveryRouteManifest({ route }: DeliveryRouteManifestProps) {
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('manifest.driver')}</p>
-            <p className="mt-1 break-all text-sm font-medium">{route.driverId ?? t('routes.fields.unassigned')}</p>
+            <p className="mt-1 break-all text-sm font-medium">{displayDriver}</p>
+            <CmxButton
+              className="mt-2"
+              variant="outline"
+              size="sm"
+              onClick={openDriverDialog}
+              disabled={isLoadingDrivers || isAssigning}
+            >
+              {currentDriverId ? t('manifest.reassignDriver') : t('manifest.assignDriver')}
+            </CmxButton>
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('manifest.started')}</p>
@@ -115,6 +183,33 @@ export function DeliveryRouteManifest({ route }: DeliveryRouteManifestProps) {
           ))}
         </div>
       </section>
+
+      <CmxDialog open={driverDialogOpen} onOpenChange={setDriverDialogOpen}>
+        <CmxDialogContent className="w-[calc(100%-2rem)] max-w-lg" scrollBody>
+          <CmxDialogHeader>
+            <CmxDialogTitle>{currentDriverId ? t('manifest.reassignDriver') : t('manifest.assignDriver')}</CmxDialogTitle>
+            <CmxDialogDescription>{t('manifest.driverAssignmentDescription')}</CmxDialogDescription>
+          </CmxDialogHeader>
+          <div className="py-4">
+            <DriverPicker
+              drivers={drivers}
+              value={selectedDriverId}
+              onChange={setSelectedDriverId}
+              allowUnassigned={false}
+              isLoading={isLoadingDrivers}
+              disabled={isAssigning}
+            />
+          </div>
+          <CmxDialogFooter>
+            <CmxButton variant="outline" onClick={() => setDriverDialogOpen(false)} disabled={isAssigning}>
+              {t('manifest.cancel')}
+            </CmxButton>
+            <CmxButton onClick={assignDriver} loading={isAssigning} disabled={isLoadingDrivers || !selectedDriverId}>
+              {isAssigning ? t('manifest.assigningDriver') : t('manifest.saveDriver')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
     </div>
   );
 }

@@ -1,12 +1,15 @@
-import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { RequireAllPermissions } from '@features/auth/ui/RequirePermission'
 import { DRIVERS_DRIVERS_ROUTES_ACCESS } from '@features/drivers/access/drivers-access'
-import { DriversPlaceholderScreen } from '@features/drivers/ui/drivers-placeholder-screen';
+import { DeliveryRoutePlanningScreen } from '@features/drivers/ui/delivery-route-planning-screen'
 
-/** Driver routes — placeholder until route planning UI ships. */
+/**
+ * Driver routes dispatcher workspace.
+ * Access includes order reads because route planning exposes customer addresses.
+ */
 export default function DriverRoutesPage() {
   return (
-    <RequireAnyPermission permissions={DRIVERS_DRIVERS_ROUTES_ACCESS.page.permissions ?? []}>
-      <DriversPlaceholderScreen titleKey="routesTitle" />
-    </RequireAnyPermission>
-  );
+    <RequireAllPermissions permissions={DRIVERS_DRIVERS_ROUTES_ACCESS.page.permissions ?? []}>
+      <DeliveryRoutePlanningScreen />
+    </RequireAllPermissions>
+  )
 }
