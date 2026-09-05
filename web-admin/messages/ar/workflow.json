@@ -455,6 +455,11 @@
         "empty": "لا توجد طلبات جاهزة لمسار الآن.",
         "emptyDescription": "تظهر الطلبات هنا عندما تكون قيد التوصيل ولا تكون مُعيّنة لمحطة نشطة."
       },
+      "orderStatus": {
+        "out_for_delivery": "قيد التوصيل",
+        "delivered": "تم التسليم",
+        "in_transit": "في الطريق"
+      },
       "readyCount": "{count, plural, one {طلب واحد جاهز} other {# طلبات جاهزة}}",
       "preview": "الطلبات: {orders}",
       "loadingStops": "جارٍ تحميل محطات المسار…",

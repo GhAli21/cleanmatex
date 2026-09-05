@@ -455,6 +455,11 @@
         "empty": "No orders are ready for a route right now.",
         "emptyDescription": "Orders appear here once they are out for delivery and are not assigned to an active stop."
       },
+      "orderStatus": {
+        "out_for_delivery": "Out for delivery",
+        "delivered": "Delivered",
+        "in_transit": "In transit"
+      },
       "readyCount": "{count, plural, one {# ready order} other {# ready orders}}",
       "preview": "Orders: {orders}",
       "loadingStops": "Loading route stops…",

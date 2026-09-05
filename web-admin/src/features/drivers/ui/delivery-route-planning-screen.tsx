@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { MapPin, Route, Truck } from 'lucide-react'
@@ -34,9 +35,18 @@ interface DeliveryQueueOrder {
   id: string
   order_no: string
   branch_id?: string | null
+  current_status?: string | null
   customer?: { name?: string | null; phone?: string | null }
   delivery_address?: string | null
   address?: string | null
+}
+
+/** Badge tone for an order's live status in the ready-for-delivery list. */
+function orderStatusVariant(status: string | null | undefined): 'success' | 'processing' | 'warning' | 'default' {
+  if (status === 'delivered') return 'success'
+  if (status === 'in_transit') return 'processing'
+  if (status === 'out_for_delivery') return 'warning'
+  return 'default'
 }
 
 /**
@@ -117,7 +127,14 @@ export function DeliveryRoutePlanningScreen() {
   })
 
   const readyOrders = useMemo(
-    () => ordersQuery.orders.filter((order) => !activeStopsQuery.data?.has(order.id)),
+    () => ordersQuery.orders.filter((order) =>
+      // The driver_delivery/delivery floor screen also carries in_transit and
+      // delivered orders (it's a lifecycle worklist, not a "ready to route"
+      // filter) — a delivered order has no *active* stop either, so it must be
+      // excluded explicitly or it slips through as if it were unbooked.
+      (order.current_status ?? '').trim().toLowerCase() === 'out_for_delivery'
+      && !activeStopsQuery.data?.has(order.id),
+    ),
     [activeStopsQuery.data, ordersQuery.orders],
   )
   const selectedOrders = useMemo(
@@ -218,6 +235,27 @@ export function DeliveryRoutePlanningScreen() {
     { key: 'orderNo', header: t('routes.fields.orderNumber'), render: (order: DeliveryQueueOrder) => <span className="font-medium">{order.order_no}</span> },
     { key: 'customer', header: t('routes.fields.customer'), render: (order: DeliveryQueueOrder) => order.customer?.name ?? t('fallbacks.unknownCustomer') },
     { key: 'address', header: t('routes.fields.address'), render: (order: DeliveryQueueOrder) => order.delivery_address ?? order.address ?? t('routes.fields.addressUnavailable') },
+    {
+      key: 'status',
+      header: t('routes.fields.status'),
+      render: (order: DeliveryQueueOrder) => (
+        <CmxStatusBadge
+          label={t(`routes.orderStatus.${order.current_status}`, { default: order.current_status ?? '' })}
+          variant={orderStatusVariant(order.current_status)}
+          size="sm"
+        />
+      ),
+    },
+    {
+      key: 'view',
+      header: '',
+      sortable: false,
+      render: (order: DeliveryQueueOrder) => (
+        <Link href={`/dashboard/orders/${order.id}`} className="text-primary hover:underline">
+          {tCommon('view')}
+        </Link>
+      ),
+    },
   ]
 
   if (ordersQuery.isLoading || driversQuery.isLoading) {

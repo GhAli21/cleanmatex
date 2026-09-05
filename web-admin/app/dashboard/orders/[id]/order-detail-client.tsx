@@ -17,6 +17,7 @@ import { OrderPaymentsCreditsTables } from '@features/orders/ui/order-financial/
 import { OrderInvoiceTaxTab } from '@features/orders/ui/order-financial/order-invoice-tax-tab';
 import { OrderFinancialDebugPanel } from '@features/orders/ui/order-financial/order-financial-debug-panel';
 import { OrderTimeline } from '@features/orders/ui/order-timeline';
+import { OrderStatusLifecycleTab } from '@features/orders/ui/order-status-lifecycle-tab';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
@@ -49,6 +50,7 @@ const TAB_IDS = [
   'payments_credits',
   'invoices',
   'vouchers',
+  'status_lifecycle',
   'history',
   'delivery_proof',
   'edit_history',
@@ -425,6 +427,11 @@ export function OrderDetailClient({
           }}
         />
       ),
+    },
+    {
+      id: 'status_lifecycle',
+      label: tFin('tabs.statusLifecycle'),
+      content: <OrderStatusLifecycleTab order={order} locale={locale} />,
     },
     {
       id: 'history',
