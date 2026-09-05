@@ -5,10 +5,10 @@ import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
-import { MapPin, Route, Truck } from 'lucide-react'
+import { Route, Truck } from 'lucide-react'
 import { CmxDataTable, CmxDataGrid, CmxEmptyState, type AuditExtraRow } from '@ui/data-display'
 import { CmxConfirmDialog, CmxStatusBadge, CmxSummaryMessage, cmxMessage } from '@ui/feedback'
-import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxCheckbox, CmxSkeletonTable } from '@ui/primitives'
+import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxCheckbox, CmxInput, CmxSkeletonTable } from '@ui/primitives'
 import { formatDateTime } from '@/lib/utils/rtl'
 import { WORKFLOW_SCREENS } from '@/lib/constants/workflow-screens'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -102,6 +102,9 @@ export function DeliveryRoutePlanningScreen() {
   const canAssignDrivers = useHasPermissionCode('delivery:assign')
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(() => new Set())
   const [selectedDriverId, setSelectedDriverId] = useState<string | undefined>()
+  const [plannedStartedAt, setPlannedStartedAt] = useState('')
+  const [plannedDurationMinutes, setPlannedDurationMinutes] = useState('')
+  const [plannedDistanceKm, setPlannedDistanceKm] = useState('')
   const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null)
   const [addTargetRouteId, setAddTargetRouteId] = useState<string | null>(null)
   const [removeTarget, setRemoveTarget] = useState<{ routeId: string; stopId: string } | null>(null)
@@ -223,7 +226,16 @@ export function DeliveryRoutePlanningScreen() {
       cmxMessage.warning(t('routes.messages.selectionRequired'))
       return
     }
-    const result = await createDeliveryRoute({ orderIds: selectedOrders.map((order) => order.id), driverId: selectedDriverId })
+    const result = await createDeliveryRoute({
+      orderIds: selectedOrders.map((order) => order.id),
+      driverId: selectedDriverId,
+      startedAt: plannedStartedAt || undefined,
+      estimatedDurationMinutes: plannedDurationMinutes ? Number(plannedDurationMinutes) : undefined,
+      totalDistanceKm: plannedDistanceKm ? Number(plannedDistanceKm) : undefined,
+    })
+    setPlannedStartedAt('')
+    setPlannedDurationMinutes('')
+    setPlannedDistanceKm('')
     cmxMessage.success(t('routes.messages.created', { routeId: result.routeNumber }))
   })
 
@@ -328,6 +340,11 @@ export function DeliveryRoutePlanningScreen() {
       cell: ({ row }) => `${row.original.completedStops}/${row.original.totalStops}`,
     },
     {
+      accessorKey: 'startedAt',
+      header: t('routes.fields.startedAt'),
+      cell: ({ row }) => row.original.startedAt ? formatDateTime(row.original.startedAt, locale) : '—',
+    },
+    {
       accessorKey: 'createdAt',
       header: t('routes.fields.created'),
       cell: ({ row }) => row.original.createdAt ? formatDateTime(row.original.createdAt, locale) : '—',
@@ -336,6 +353,16 @@ export function DeliveryRoutePlanningScreen() {
       accessorKey: 'completedAt',
       header: t('routes.fields.completedAt'),
       cell: ({ row }) => row.original.completedAt ? formatDateTime(row.original.completedAt, locale) : '—',
+    },
+    {
+      accessorKey: 'estimatedDurationMinutes',
+      header: t('routes.fields.estimatedDurationMinutes'),
+      cell: ({ row }) => row.original.estimatedDurationMinutes != null ? t('routes.fields.minutesValue', { count: row.original.estimatedDurationMinutes }) : '—',
+    },
+    {
+      accessorKey: 'totalDistanceKm',
+      header: t('routes.fields.totalDistanceKm'),
+      cell: ({ row }) => row.original.totalDistanceKm != null ? t('routes.fields.kmValue', { count: row.original.totalDistanceKm }) : '—',
     },
     {
       accessorKey: 'notes',
@@ -432,6 +459,20 @@ export function DeliveryRoutePlanningScreen() {
             <div className="space-y-2"><p className="text-sm font-medium">{t('routes.driverLabel')}</p><DriverPicker drivers={driversQuery.data ?? []} value={selectedDriverId} onChange={setSelectedDriverId} disabled={isMutating || !canManageRoutes} /></div>
             {canManageRoutes ? <CmxButton onClick={createRoute} loading={isMutating} disabled={!selectedOrders.length}>{t('routes.actions.create')}</CmxButton> : null}
           </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="route-started-at">{t('routes.fields.startedAt')}</label>
+              <CmxInput id="route-started-at" type="datetime-local" value={plannedStartedAt} onChange={(e) => setPlannedStartedAt(e.target.value)} disabled={isMutating || !canManageRoutes} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="route-duration">{t('routes.fields.estimatedDurationMinutes')}</label>
+              <CmxInput id="route-duration" type="number" min={1} max={1440} value={plannedDurationMinutes} onChange={(e) => setPlannedDurationMinutes(e.target.value)} disabled={isMutating || !canManageRoutes} placeholder={t('routes.fields.minutesPlaceholder')} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="route-distance">{t('routes.fields.totalDistanceKm')}</label>
+              <CmxInput id="route-distance" type="number" min={0.1} step={0.1} max={5000} value={plannedDistanceKm} onChange={(e) => setPlannedDistanceKm(e.target.value)} disabled={isMutating || !canManageRoutes} placeholder={t('routes.fields.kmPlaceholder')} />
+            </div>
+          </div>
           <div className="rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] p-3 text-sm"><span className="font-medium">{t('routes.selectedCount', { count: selectedOrders.length })}</span>{selectedOrders.length > 0 ? <span className="ms-2 text-muted-foreground">{t('routes.preview', { orders: selectedOrders.map((order) => order.order_no).join(', ') })}</span> : null}</div>
         </CmxCardContent>
       </CmxCard>
@@ -460,7 +501,9 @@ export function DeliveryRoutePlanningScreen() {
             isLoading={routesQuery.isLoading}
             dir={locale === 'ar' ? 'rtl' : 'ltr'}
             enableGlobalSearch
+            enableColumnBorders
             initialPageSize={10}
+            auditConfig={true}
           />
         )}
         {expandedRouteId ? (

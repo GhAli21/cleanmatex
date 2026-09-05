@@ -202,6 +202,37 @@ describe('delivery route-planning command database invariants', () => {
     }
   });
 
+  dbit('persists dispatcher-entered planning fields (started at, estimated duration, distance)', async () => {
+    const a = await seedOrder();
+    const key = `route-db-${randomUUID()}`;
+    const startedAt = new Date('2026-09-05T09:00:00.000Z');
+    let routeId: string | undefined;
+    try {
+      const created = await createRoute({
+        tenantId: DEMO_TENANT,
+        orderIds: [a.orderId],
+        actorUserId: ACTOR,
+        idempotencyKey: key,
+        startedAt,
+        estimatedDurationMinutes: 45,
+        totalDistanceKm: 12.5,
+      });
+      routeId = created.routeId;
+
+      const route = await prisma.org_dlv_routes_mst.findFirst({
+        where: { id: routeId, tenant_org_id: DEMO_TENANT },
+        select: { started_at: true, estimated_duration_minutes: true, total_distance_km: true },
+      });
+      expect(route?.started_at?.toISOString()).toBe(startedAt.toISOString());
+      expect(route?.estimated_duration_minutes).toBe(45);
+      expect(Number(route?.total_distance_km)).toBeCloseTo(12.5);
+    } finally {
+      await cleanupIdempotencyKeys([key]);
+      if (routeId) await cleanupRoutes([routeId]);
+      await cleanupOrders([a]);
+    }
+  });
+
   dbit('rejects a mixed-branch batch and creates nothing', async () => {
     if (branchIds.length < 2) {
       console.warn('[delivery-route-command-db] Fewer than 2 branches on the demo tenant - skipping branch-mismatch case');

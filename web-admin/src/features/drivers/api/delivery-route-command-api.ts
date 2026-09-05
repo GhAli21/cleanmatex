@@ -17,9 +17,15 @@ export interface RouteListItem {
   branchId: string | null;
   totalStops: number;
   completedStops: number;
+  startedAt: string | null;
   createdAt: string | null;
   completedAt: string | null;
+  estimatedDurationMinutes: number | null;
+  totalDistanceKm: number | null;
   notes: string | null;
+  createdBy: string | null;
+  updatedBy: string | null;
+  updatedAt: string | null;
 }
 
 export interface RouteCommandResult {
@@ -95,8 +101,17 @@ export async function getRouteManifest(routeId: string): Promise<DeliveryRouteMa
   return readEnvelope<DeliveryRouteManifest>(response);
 }
 
-/** Creates a route from ready orders, optionally assigning a driver at creation. */
-export async function createDeliveryRoute(input: { orderIds: string[]; driverId?: string | null }): Promise<RouteCommandResult> {
+export interface CreateDeliveryRouteInput {
+  orderIds: string[];
+  driverId?: string | null;
+  /** Local datetime-local input value (e.g. "2026-09-05T14:30"); converted to ISO before sending. */
+  startedAt?: string | null;
+  estimatedDurationMinutes?: number | null;
+  totalDistanceKm?: number | null;
+}
+
+/** Creates a route from ready orders, optionally assigning a driver and planning fields at creation. */
+export async function createDeliveryRoute(input: CreateDeliveryRouteInput): Promise<RouteCommandResult> {
   const response = await fetch('/api/v1/delivery/routes', {
     method: 'POST',
     credentials: 'include',
@@ -104,6 +119,9 @@ export async function createDeliveryRoute(input: { orderIds: string[]; driverId?
     body: JSON.stringify({
       orderIds: input.orderIds,
       driverId: input.driverId ?? undefined,
+      startedAt: input.startedAt ? new Date(input.startedAt).toISOString() : undefined,
+      estimatedDurationMinutes: input.estimatedDurationMinutes ?? undefined,
+      totalDistanceKm: input.totalDistanceKm ?? undefined,
       idempotencyKey: newIdempotencyKey('route-create'),
     }),
   });

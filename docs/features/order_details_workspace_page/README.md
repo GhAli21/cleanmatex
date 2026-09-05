@@ -12,15 +12,15 @@ Create an operational Order Workspace at the hidden detail route:
 /dashboard/orders/[id]/workspace
 ```
 
-This is not a reskin of the current financial-first Order Details page and must not be presented to users as “V2”. Its product label is **Open workspace** (or **Order workspace**, subject to product copy approval).
+This is not a reskin of the current financial-first Order Details page and must not be presented to users as “V2”. Its final product label is **Order workspace**.
 
 The existing order detail action row adds the new action beside **View full details**:
 
 ```text
-[Print label] [Open workspace] [View full details] [Edit] [Public tracking]
+[Print label] [Order workspace] [View full details] [Edit] [Public tracking]
 ```
 
-The legacy page remains the safe fallback while the workspace is evaluated. The workspace route is hidden, so it does not create a navigation entry or navigation migration. It inherits the existing tenant-safe order resolution and access contract. It preserves `returnUrl`, `returnLabel`, and a selected workspace section in the URL.
+The legacy page remains the safe fallback while the workspace is evaluated. The workspace route is hidden, so it does not create a navigation entry, navigation migration, feature flag, or new permission. It inherits the existing tenant-safe order resolution and access contract from Order Details. It preserves `returnUrl`, `returnLabel`, and a selected workspace section in the URL.
 
 ## 2. Problem statement
 
@@ -115,7 +115,7 @@ The header is one compact identity surface, not a collection of detached cards.
 | Breadcrumb | Back to the sanitized originating list/location, with an RTL-aware directional icon |
 | Identity | Order number is the single `h1`; display a copy affordance only if it is useful and permission-safe |
 | State badges | Localized workflow status, collection/payment state, and only material risk badges; no raw database codes |
-| Customer line | Name, safe phone action, branch, received time, fulfillment type, and ready-by/SLA summary |
+| Customer line | Name, phone from `org_orders_mst.customer_mobile_number`, branch, received time, fulfillment type, and ready-by/SLA summary |
 | Financial fact | Compact balance/total signal; it must distinguish settled, balance due, pay on collection, pending verification, and refund pending states |
 | Actions | Print, edit, public tracking, and more-actions; the one workflow action is separate and primary |
 
@@ -129,7 +129,7 @@ The rail uses the configured order workflow rather than a frontend-only static l
 Received → Preparation → Processing → QA → Ready → Pickup/Delivery → Completed
 ```
 
-It shows current stage, prior completion, next stages, relevant counts, operator/assignment when available, and a due-time/SLA signal only when an authoritative value exists.
+It shows current stage, prior completion, next stages, and relevant counts. Version 1 does not calculate or infer a ready-by/SLA target. A due-time/SLA signal may be added only after a canonical order-level source, working-hours calendar, and pause/exception policy are confirmed. Timezone resolution is branch timezone first, then tenant timezone when no branch timezone is available.
 
 ### Primary action rules
 
@@ -171,11 +171,11 @@ Show items/pieces total, completed/current-stage/blocked counts, scan state, act
 
 ### Customer and fulfillment card
 
-Show identity, contact, pickup/delivery method, address or collection point, customer notes, internal notes with appropriate permission boundary, and special-care/service preferences. Each visible contact action must have a safe success/failure message and audit policy where applicable.
+Show identity, contact, pickup/delivery method, order address/location details, address or collection point, customer notes, internal notes with appropriate permission boundary, and special-care/service preferences. Use `org_orders_mst.customer_mobile_number` as the order contact value. The address/location details stored on `org_orders_mst` must be displayed in the workspace and passed through the same canonical delivery context used by delivery screens. Version 1 provides a copy-phone affordance with safe success/failure feedback. Call, WhatsApp, and SMS integrations are deferred until their supported channels, consent rules, and audit requirements are confirmed.
 
 ### Financial snapshot card
 
-Show order total, paid, credits applied, balance due, payment plan/collection requirement, and one context-aware financial action. Keep the accepted separation between Order Value, Settlement, Receivable/Collection, and Tax; detailed finance remains under Financials.
+Show order total, paid, credits applied, balance due, payment plan/collection requirement, and one context-aware financial action. For collection, **Collect payment** links to the existing standard payment screen/flow; the workspace does not create, duplicate, or own a new payment workflow. Keep the accepted separation between Order Value, Settlement, Receivable/Collection, and Tax; detailed finance remains under Financials.
 
 ### Recent activity preview
 
@@ -279,13 +279,13 @@ Reuse the existing workflow action and financial view-model contracts where they
 3. **Money safety:** Collection, refunds, credit usage, and adjustments require explicit lineage, safe confirmations, backend authorization, and no silent amount mutation.
 4. **Role variation:** Counter, production, QA, driver, and finance staff must see capability-appropriate actions, not distinct copied pages.
 5. **Performance:** Initial Overview must not eagerly load all invoices, vouchers, preferences, histories, and audit data. Load identity/workflow/attention first; lazy-load selected sections.
-6. **Audit:** Print, tracking share/copy, workflow transitions, collection, overrides, QA failures, and delivery proof should be available in the activity model according to established audit policy.
-7. **SLA truth:** Ready-by and lateness cannot be fabricated by UI. Confirm source, timezone, tenant calendar, and pause/exception rules before exposing an SLA signal.
-8. **Rollout:** A feature flag or permission-aware Workspace affordance is safer than replacing the legacy route immediately. Any new flag must follow the feature-flag migration and inventory process.
+6. **Audit:** Existing activity-source coverage is under investigation. Do not promise print/share/copy, scan, QA, or transition entries until the current source inventory is confirmed; any missing event is a separate backend/audit scope.
+7. **SLA truth:** Ready-by and lateness cannot be fabricated by UI. Version 1 omits SLA calculations until source, timezone, tenant calendar, and pause/exception rules are confirmed.
+8. **Rollout:** The workspace is reached only from existing Order Details. It has no new feature flag or permission, while retaining the legacy route as fallback during evaluation.
 
 ## 14. Delivery sequence
 
-1. Add the hidden workspace route and the legacy-page **Open workspace** action.
+1. Add the hidden workspace route and the legacy-page **Order workspace** action.
 2. Implement shared header, localized semantic status badges, workflow rail, and next-action card.
 3. Implement Overview: attention, work progress, customer context, financial snapshot, and activity preview.
 4. Implement section-level lazy loading and the grouped navigation model.
@@ -310,17 +310,34 @@ Reuse the existing workflow action and financial view-model contracts where they
 - Existing financial details preserve the accepted separation between order value, settlement, receivable/collection, and tax; the workspace uses a compact summary rather than replacing that detailed model.
 - Existing workflow controls are currently represented by `OrderActions` and `WorkflowActionBar`; V2 promotes the next valid workflow action rather than duplicating transition logic.
 
-## 17. Open decisions (must be resolved before implementation)
+### Activity-source findings
 
-- Final user-facing label: **Open workspace** or **Order workspace**.
-Order workspace .
-- Whether access begins with a feature flag, a permission gate, or both.
-Nothing because it will be called from another page which is Order details .
-- Canonical SLA/ready-by source and branch timezone policy.
-what about it ???
-- Which customer contact actions are supported and audited.
-what do you mean ???
-- Whether collection is performed in this workspace or linked to an existing payment flow.
-you can show collect payment and call the standard screen for that , don't create any new thing in this matter.
-- Whether Activity currently has enough source events for print/share/scan/QA/transition auditing; otherwise identify the source change separately.
-you check and tell me.
+The existing `OrderTimeline` is a usable starting point, but it is not yet a complete Workspace Activity feed:
+
+- `web-admin/src/features/orders/ui/order-timeline.tsx` reads `org_order_history` and already recognizes `ORDER_CREATED`, `STATUS_CHANGE`, `FIELD_UPDATE`, `SPLIT`, `QA_DECISION`, `ITEM_STEP`, `ISSUE_CREATED`, `ISSUE_SOLVED`, `ORDER_COMPLETED`, `VOUCHER_POSTED_AND_WIRED`, and `AR_INVOICE_ISSUED`.
+- Therefore, V1 Activity can safely target workflow transitions, item processing steps, issue lifecycle, completion, voucher posting, AR invoice issuance, and existing financial history events when corresponding rows are emitted. It should link to the existing Delivery Proof and Edit History surfaces rather than duplicate them.
+- QA is partial: the stage-command QA pass/fail flow can appear as a workflow `STATUS_CHANGE`, but legacy assembly QA stores decision/note/photo data in `org_qa_decisions_tr` and does not reliably write `org_order_history`. Do not present rich QA pass/fail details in Activity until an aggregate/read-model integration or audited event exists.
+- Scanning is not available in the current order-level Activity. Piece scans update piece state and may have per-piece history, but are not aggregated into `org_order_history`. Keep scan progress in Work and defer audited scan events to a separate source/read-model change.
+- Print-label usage and public tracking-link copy/share are not audited today. The current print button only opens a browser print window, and tracking copy only calls the clipboard API. Do not promise these events in V1 Activity.
+- Payment, refund, collection, and verification events have separate payment/audit surfaces and must be mapped deliberately rather than assumed to be in `org_order_history`.
+- The current timeline query filters by `order_id` but does not visibly add `tenant_org_id` in the component. Any Workspace Activity data access must use the approved tenant-scoped service/API boundary before reuse; do not copy this direct query into the new package.
+- The current timeline includes raw payload expansion and technical event values. Workspace Activity must use a safe localized event mapper and permission-aware detail expansion rather than displaying raw JSON.
+
+## 17. Decision register
+
+| Topic | Decision | Implementation consequence |
+|---|---|---|
+| User-facing label | **Order workspace** | Use this localized label for the legacy-page entry and workspace title. Do not expose “V2”. |
+| Access | No new feature flag or permission | The hidden route is entered from Order Details and inherits its existing tenant-safe access contract. |
+| SLA / ready-by | Deferred calculation; timezone fallback defined | Version 1 does not show a calculated ready-by, overdue, or SLA-risk indicator until the canonical scheduling source is confirmed. Resolve timezone from branch first, then tenant timezone when branch timezone is absent. |
+| Customer contact and location | Use order-level delivery context | Display `org_orders_mst.customer_mobile_number` and the existing address/location details from `org_orders_mst`; use the same context for delivery. V1 supports copy phone only. |
+| Collection | Reuse the standard payment flow | Show **Collect payment** only when applicable; it links to the existing standard payment screen and does not introduce a new payment implementation. |
+| Activity coverage | Under investigation | Confirm existing source coverage for print, public tracking copy/share, scan, QA, and workflow transition events before finalizing Activity scope. |
+
+### SLA / ready-by clarification
+
+This is a business commitment, not a decorative timestamp. The page must not derive lateness from `received_at`, browser time, or a guessed duration. Before displaying it, the product must identify the authoritative order due/ready-by field, working-hours calendar, holidays, pause rules, and exception policy. Resolve timezone from the branch when present; otherwise use the tenant timezone. Until the due/ready-by source is confirmed, V1 should omit the SLA alert and show only known timestamps such as received time.
+
+### Customer contact clarification
+
+“Contact actions” means whether the operator can call, copy the phone number, start WhatsApp, send SMS, or open a customer profile. V1 displays `org_orders_mst.customer_mobile_number` and supports copying it. It also displays the order-level address/location details from `org_orders_mst`, because delivery needs the same canonical context. Call/WhatsApp/SMS require channel availability, customer consent, localization, audit expectations, and possibly an integration; they are not included in this workspace scope.

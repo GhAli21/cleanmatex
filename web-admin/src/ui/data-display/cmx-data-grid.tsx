@@ -64,6 +64,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { useMessage } from '@ui/feedback';
 import { cn } from '@/lib/utils';
+import { useCmxAuditColumn, type CmxAuditConfig } from './cmx-audit-column';
 
 const FILTER_DEBOUNCE_MS = 300;
 const GLOBAL_SEARCH_DEBOUNCE_MS = 300;
@@ -481,6 +482,8 @@ export interface CmxDataGridProps<TData> {
   onExportCsv?: (csv: string, table: Table<TData>) => void;
   /** Pin the first visible column to the inline-start edge while scrolling horizontally (solid background). */
   enableStickyFirstColumn?: boolean;
+  /** Vertical divider lines between columns (header, filter row, and body cells). */
+  enableColumnBorders?: boolean;
   /** Fade gradients on inline-start/end when horizontal overflow remains (offers a scroll affordance). */
   enableScrollEdgeHints?: boolean;
   /** Persist `columnVisibility` under this key (merged with `initialColumnVisibility` on first load). */
@@ -501,6 +504,8 @@ export interface CmxDataGridProps<TData> {
   manualFiltering?: boolean;
   /** Optional total for footer when client row model does not reflect full filtered set. */
   totalFilteredCount?: number;
+  /** Built-in audit action column that opens the shared audit metadata dialog (same behavior as CmxDataTable). */
+  auditConfig?: boolean | CmxAuditConfig<TData>;
 }
 
 /**
@@ -534,6 +539,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
     exportFileName = 'export',
     onExportCsv,
     enableStickyFirstColumn = false,
+    enableColumnBorders = false,
     enableScrollEdgeHints = true,
     columnVisibilityStorageKey,
     enableDensityToggle = false,
@@ -545,6 +551,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
     manualSorting = false,
     manualFiltering = false,
     totalFilteredCount,
+    auditConfig,
   } = props;
 
   const [densityInternal, setDensityInternal] = React.useState<CmxDataGridDensity>(defaultDensity);
@@ -621,10 +628,13 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
     };
   }, [enableRowSelection, labels.selectAll, labels.selectRow]);
 
+  const { auditColumn, auditDialog } = useCmxAuditColumn({ auditConfig, data });
+
   const columns = React.useMemo(() => {
     const base = withDefaultFilterAndSort(columnsProp);
-    return selectColumn ? [selectColumn, ...base] : base;
-  }, [columnsProp, selectColumn]);
+    const withSelect = selectColumn ? [selectColumn, ...base] : base;
+    return auditColumn ? [...withSelect, auditColumn] : withSelect;
+  }, [auditColumn, columnsProp, selectColumn]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -905,6 +915,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                           canSort && 'cursor-pointer select-none hover:bg-black/[0.03]',
                           rb,
                           'bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]',
+                          enableColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                           stickyFirst &&
                             'sticky start-0 z-50 border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]'
                         )}
@@ -958,6 +969,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                           'align-top',
                           rb,
                           'bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]',
+                          enableColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                           stickyFirst &&
                             'sticky start-0 z-50 border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]'
                         )}
@@ -1052,6 +1064,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                           'align-top text-foreground',
                           dir === 'rtl' ? 'text-right' : 'text-left',
                           rb,
+                          enableColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                           stickyFirst &&
                             cn(
                               'sticky start-0 z-10 border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]',
@@ -1171,6 +1184,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
           </div>
         </div>
       )}
+      {auditDialog}
     </div>
   );
 }

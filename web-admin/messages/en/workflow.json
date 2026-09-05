@@ -489,7 +489,14 @@
         "created": "Created",
         "branch": "Branch",
         "completedAt": "Completed at",
-        "notes": "Notes"
+        "notes": "Notes",
+        "startedAt": "Started at",
+        "estimatedDurationMinutes": "Estimated duration",
+        "totalDistanceKm": "Distance",
+        "minutesPlaceholder": "e.g. 45",
+        "kmPlaceholder": "e.g. 12.5",
+        "minutesValue": "{count} min",
+        "kmValue": "{count} km"
       },
       "stopsFor": "Stops — {routeNumber}",
       "actions": {

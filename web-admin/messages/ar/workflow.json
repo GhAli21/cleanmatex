@@ -489,7 +489,14 @@
         "created": "تاريخ الإنشاء",
         "branch": "الفرع",
         "completedAt": "تاريخ الإكمال",
-        "notes": "ملاحظات"
+        "notes": "ملاحظات",
+        "startedAt": "وقت البدء",
+        "estimatedDurationMinutes": "المدة المقدرة",
+        "totalDistanceKm": "المسافة",
+        "minutesPlaceholder": "مثال: 45",
+        "kmPlaceholder": "مثال: 12.5",
+        "minutesValue": "{count} دقيقة",
+        "kmValue": "{count} كم"
       },
       "stopsFor": "المحطات — {routeNumber}",
       "actions": {

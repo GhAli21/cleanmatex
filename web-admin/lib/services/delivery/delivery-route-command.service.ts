@@ -83,6 +83,10 @@ export interface CreateRouteCommand {
   tenantId: string;
   orderIds: string[];
   driverId?: string | null;
+  /** Optional operational planning fields — dispatcher-entered, not system-derived. */
+  startedAt?: Date | null;
+  estimatedDurationMinutes?: number | null;
+  totalDistanceKm?: number | null;
   actorUserId: string;
   actorName?: string;
   idempotencyKey: string;
@@ -356,6 +360,9 @@ export async function createRoute(params: CreateRouteCommand): Promise<RouteComm
   const payloadHash = hashPayload({
     orderIds: [...orderIds].sort(),
     driverId: params.driverId ?? null,
+    startedAt: params.startedAt ? params.startedAt.toISOString() : null,
+    estimatedDurationMinutes: params.estimatedDurationMinutes ?? null,
+    totalDistanceKm: params.totalDistanceKm ?? null,
   });
   const claim = await claimIdempotencyKey(params.tenantId, params.idempotencyKey, ROUTE_CREATE_RESOURCE, payloadHash);
 
@@ -395,6 +402,9 @@ export async function createRoute(params: CreateRouteCommand): Promise<RouteComm
           route_status_code: params.driverId ? 'in_progress' : 'planned',
           total_stops: orderIds.length,
           completed_stops: 0,
+          started_at: params.startedAt ?? null,
+          estimated_duration_minutes: params.estimatedDurationMinutes ?? null,
+          total_distance_km: params.totalDistanceKm ?? null,
           created_at: now,
           created_by: params.actorUserId,
         },

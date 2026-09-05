@@ -44,6 +44,9 @@ const createRouteSchema = z.object({
   orderIds: z.array(z.string().uuid()).min(1),
   driverId: z.string().uuid().optional(),
   idempotencyKey: z.string().trim().min(1).max(200),
+  startedAt: z.string().datetime().optional(),
+  estimatedDurationMinutes: z.number().int().positive().max(1440).optional(),
+  totalDistanceKm: z.number().positive().max(5000).optional(),
 });
 
 /** Creates a delivery route from ready orders in one atomic command. */
@@ -71,6 +74,9 @@ export async function POST(request: NextRequest) {
       tenantId: auth.tenantId,
       orderIds: parsed.data.orderIds,
       driverId: parsed.data.driverId ?? null,
+      startedAt: parsed.data.startedAt ? new Date(parsed.data.startedAt) : null,
+      estimatedDurationMinutes: parsed.data.estimatedDurationMinutes ?? null,
+      totalDistanceKm: parsed.data.totalDistanceKm ?? null,
       actorUserId: auth.userId,
       actorName: auth.userName,
       idempotencyKey: parsed.data.idempotencyKey,

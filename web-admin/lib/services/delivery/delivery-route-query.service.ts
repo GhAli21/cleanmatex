@@ -50,9 +50,15 @@ export interface DeliveryRouteListItem {
   branchId: string | null;
   totalStops: number;
   completedStops: number;
+  startedAt: string | null;
   createdAt: string | null;
   completedAt: string | null;
+  estimatedDurationMinutes: number | null;
+  totalDistanceKm: number | null;
   notes: string | null;
+  createdBy: string | null;
+  updatedBy: string | null;
+  updatedAt: string | null;
 }
 
 export interface ListRoutesParams {
@@ -264,9 +270,15 @@ export class DeliveryRouteQueryService {
           branch_id: true,
           total_stops: true,
           completed_stops: true,
+          started_at: true,
           created_at: true,
           completed_at: true,
+          estimated_duration_minutes: true,
+          total_distance_km: true,
           rec_notes: true,
+          created_by: true,
+          updated_by: true,
+          updated_at: true,
         },
       }),
       prisma.org_dlv_routes_mst.count({ where }),
@@ -281,9 +293,15 @@ export class DeliveryRouteQueryService {
         branchId: route.branch_id,
         totalStops: route.total_stops ?? 0,
         completedStops: route.completed_stops ?? 0,
+        startedAt: toIso(route.started_at),
         createdAt: toIso(route.created_at),
         completedAt: toIso(route.completed_at),
+        estimatedDurationMinutes: route.estimated_duration_minutes,
+        totalDistanceKm: route.total_distance_km === null ? null : toNumber(route.total_distance_km),
         notes: route.rec_notes,
+        createdBy: route.created_by,
+        updatedBy: route.updated_by,
+        updatedAt: toIso(route.updated_at),
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
