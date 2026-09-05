@@ -22,6 +22,10 @@ const FLOOR_SCREEN_ALIASES: Record<string, string[]> = {
   home_collection: ['home_collection'],
 }
 
+// wf_profile_artifact_id/wf_profile_revision/wf_profile_checksum/
+// wf_profile_schema_version: retired compiled-artifact fields (Gate 5,
+// ADR-SAAS-MNG-0010), historical audit only — see the full note on
+// SemanticWorkflowOrderSnapshot in semantic-workflow-artifact.service.ts.
 interface ProfilePairRow {
   wf_profile_id: string | null
   wf_version_no: number | null

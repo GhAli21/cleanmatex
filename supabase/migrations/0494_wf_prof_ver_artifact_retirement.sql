@@ -20,8 +20,12 @@
 --     `current_artifact_id IS NULL`. `sys_wf_prof_ver_artifact_cf` holds
 --     exactly 2 rows, both dated 2026-08-27 (during/before the 0470 cutover),
 --     nothing written since. `org_wf_gate_decision_mst` has 0 rows, so its
---     unrelated `profile_artifact_id` column (left untouched here — different
---     table, out of scope, zero blast radius) was never populated either.
+--     `profile_artifact_id` column (its own FK to the artifact table is
+--     dropped in step 2 below; the column itself is left as-is — different
+--     table, zero rows, out of scope for a column-drop here) was never
+--     populated. 2 of 15 `org_orders_mst` rows have `wf_profile_artifact_id`
+--     set (both dated 2026-08-27, same day as the dead artifact rows) — see
+--     step 2's correction note for why that FK is also dropped here.
 --
 --   Four live functions still referenced the retiring table/columns as
 --   invalidation bookkeeping (always resetting to NULL, never reading a real
@@ -1222,11 +1226,44 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 2. Drop the FK from sys_wf_profile_ver_mst to the retiring artifact table.
+-- 2. Drop every FK that still points at the retiring artifact table.
+--
+--    Correction (found when the operator first ran this migration): the
+--    initial dependency check missed two composite FKs discovered only when
+--    Postgres itself reported them:
+--      - org_orders_mst.fk_ord_wf_prof_artifact — a SEPARATE composite FK on
+--        (wf_profile_artifact_id, wf_profile_version_id, wf_profile_revision,
+--        wf_profile_schema_version, wf_profile_checksum). This is distinct
+--        from org_orders_mst's live, still-used scope FK
+--        (fk_ord_wf_prof_ver_scope, on wf_profile_version_id/wf_profile_id/
+--        wf_version_no -> sys_wf_profile_ver_mst) — that one is untouched.
+--        Checked on remote: 2 of 15 orders have wf_profile_artifact_id set
+--        (both created 2026-08-27, the same day as the 2 dead artifact rows
+--        and the 0470 cutover). Dropping ONLY the FK here, not the columns or
+--        the rows: unlike sys_wf_profile_ver_mst's artifact columns, these 4
+--        columns on org_orders_mst are NOT vestigial — workflow-engine.service.ts,
+--        delivery-completion.service.ts, pickup-completion.service.ts,
+--        workboard-query.service.ts, stage-worklist-query.service.ts,
+--        semantic-workflow-artifact.service.ts, delivery-pod-method.service.ts,
+--        and workflow-policy-resolver.service.ts's hasAnyBindingValue() all
+--        still SELECT and type these 4 fields; order-service.ts still writes a
+--        real wf_profile_revision value on every create. They just no longer
+--        need to reference the artifact table's composite key — that coupling
+--        is what this migration removes, not the columns themselves. Dropping
+--        them would mean rewriting ~9 files' SQL/types for zero functional
+--        gain and is explicitly out of scope for this migration.
+--      - org_wf_gate_decision_mst.fk_wfgd_artifact — org_wf_gate_decision_mst
+--        has 0 rows (verified above), so this is a zero-blast-radius drop.
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE public.sys_wf_profile_ver_mst
   DROP CONSTRAINT IF EXISTS fk_wf_prof_ver_artifact;
+
+ALTER TABLE public.org_orders_mst
+  DROP CONSTRAINT IF EXISTS fk_ord_wf_prof_artifact;
+
+ALTER TABLE public.org_wf_gate_decision_mst
+  DROP CONSTRAINT IF EXISTS fk_wfgd_artifact;
 
 -- ---------------------------------------------------------------------------
 -- 3. Drop the vestigial compiled-artifact bookkeeping columns.

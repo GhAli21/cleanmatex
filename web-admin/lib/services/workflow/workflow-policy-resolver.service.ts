@@ -111,6 +111,11 @@ type EvidenceRow = {
 
 const publishedCache = new Map<string, SemanticWorkflowArtifact>();
 
+// The last 4 terms are the retired compiled-artifact fields (Gate 5,
+// ADR-SAAS-MNG-0010) — kept here only as a safety net for a pre-cutover
+// order stamped under the old regime that might somehow lack
+// wf_profile_version_id. No known order needs this fallback today; it never
+// drives live policy resolution itself.
 function hasAnyBindingValue(snapshot: SemanticWorkflowOrderSnapshot): boolean {
   return Boolean(
     snapshot.wf_profile_id

@@ -5892,6 +5892,8 @@ export type Database = {
           address_lat: number | null
           address_lng: number | null
           branch_id: string | null
+          confirm_level: string | null
+          confirm_notes: string | null
           contact_name: string | null
           contact_phone: string | null
           created_at: string | null
@@ -5920,6 +5922,8 @@ export type Database = {
           address_lat?: number | null
           address_lng?: number | null
           branch_id?: string | null
+          confirm_level?: string | null
+          confirm_notes?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string | null
@@ -5948,6 +5952,8 @@ export type Database = {
           address_lat?: number | null
           address_lng?: number | null
           branch_id?: string | null
+          confirm_level?: string | null
+          confirm_notes?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string | null
@@ -17620,25 +17626,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_ord_wf_prof_artifact"
-            columns: [
-              "wf_profile_artifact_id",
-              "wf_profile_version_id",
-              "wf_profile_revision",
-              "wf_profile_schema_version",
-              "wf_profile_checksum",
-            ]
-            isOneToOne: false
-            referencedRelation: "sys_wf_prof_ver_artifact_cf"
-            referencedColumns: [
-              "artifact_id",
-              "version_id",
-              "policy_revision",
-              "artifact_schema_version",
-              "artifact_checksum",
-            ]
-          },
-          {
             foreignKeyName: "fk_ord_wf_prof_ver_scope"
             columns: ["wf_profile_version_id", "wf_profile_id", "wf_version_no"]
             isOneToOne: false
@@ -22456,13 +22443,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_wf_actions_cd"
             referencedColumns: ["action_code"]
-          },
-          {
-            foreignKeyName: "fk_wfgd_artifact"
-            columns: ["profile_artifact_id"]
-            isOneToOne: false
-            referencedRelation: "sys_wf_prof_ver_artifact_cf"
-            referencedColumns: ["artifact_id"]
           },
           {
             foreignKeyName: "fk_wfgd_gate"
@@ -34213,80 +34193,6 @@ export type Database = {
           },
         ]
       }
-      sys_wf_prof_ver_artifact_cf: {
-        Row: {
-          artifact_checksum: string
-          artifact_id: string
-          artifact_schema_version: number
-          compile_state: string
-          compiled_artifact: Json
-          compiled_at: string
-          compiled_by: string | null
-          created_at: string
-          created_by: string | null
-          created_info: string | null
-          policy_revision: number
-          rec_notes: string | null
-          rec_order: number | null
-          rec_status: number
-          updated_at: string | null
-          updated_by: string | null
-          updated_info: string | null
-          validation_report: Json
-          version_id: string
-        }
-        Insert: {
-          artifact_checksum: string
-          artifact_id?: string
-          artifact_schema_version: number
-          compile_state: string
-          compiled_artifact: Json
-          compiled_at?: string
-          compiled_by?: string | null
-          created_at?: string
-          created_by?: string | null
-          created_info?: string | null
-          policy_revision: number
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-          validation_report?: Json
-          version_id: string
-        }
-        Update: {
-          artifact_checksum?: string
-          artifact_id?: string
-          artifact_schema_version?: number
-          compile_state?: string
-          compiled_artifact?: Json
-          compiled_at?: string
-          compiled_by?: string | null
-          created_at?: string
-          created_by?: string | null
-          created_info?: string | null
-          policy_revision?: number
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-          validation_report?: Json
-          version_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sys_wf_prof_ver_artifact_cf_version_id_fkey"
-            columns: ["version_id"]
-            isOneToOne: false
-            referencedRelation: "sys_wf_profile_ver_mst"
-            referencedColumns: ["version_id"]
-          },
-        ]
-      }
       sys_wf_prof_ver_evidence_cf: {
         Row: {
           created_at: string
@@ -35042,14 +34948,9 @@ export type Database = {
           based_on_template_id: string | null
           change_summary: string | null
           change_summary2: string | null
-          compiled_at: string | null
-          compiled_by: string | null
-          compiled_checksum: string | null
-          compiled_schema_version: number | null
           config_json: Json
           created_at: string
           created_by: string | null
-          current_artifact_id: string | null
           is_active: boolean
           name: string | null
           name2: string | null
@@ -35083,14 +34984,9 @@ export type Database = {
           based_on_template_id?: string | null
           change_summary?: string | null
           change_summary2?: string | null
-          compiled_at?: string | null
-          compiled_by?: string | null
-          compiled_checksum?: string | null
-          compiled_schema_version?: number | null
           config_json?: Json
           created_at?: string
           created_by?: string | null
-          current_artifact_id?: string | null
           is_active?: boolean
           name?: string | null
           name2?: string | null
@@ -35124,14 +35020,9 @@ export type Database = {
           based_on_template_id?: string | null
           change_summary?: string | null
           change_summary2?: string | null
-          compiled_at?: string | null
-          compiled_by?: string | null
-          compiled_checksum?: string | null
-          compiled_schema_version?: number | null
           config_json?: Json
           created_at?: string
           created_by?: string | null
-          current_artifact_id?: string | null
           is_active?: boolean
           name?: string | null
           name2?: string | null
@@ -35161,13 +35052,6 @@ export type Database = {
           wf_graph_def_version_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_wf_prof_ver_artifact"
-            columns: ["current_artifact_id"]
-            isOneToOne: false
-            referencedRelation: "sys_wf_prof_ver_artifact_cf"
-            referencedColumns: ["artifact_id"]
-          },
           {
             foreignKeyName: "sys_wf_profile_ver_mst_based_on_template_id_fkey"
             columns: ["based_on_template_id"]
@@ -37178,26 +37062,6 @@ export type Database = {
         Returns: {
           version_id: string
           version_no: number
-        }[]
-      }
-      sys_wf_prof_ver_commit_art: {
-        Args: {
-          p_actor_id?: string
-          p_artifact_checksum: string
-          p_artifact_schema_version: number
-          p_compiled_artifact: Json
-          p_expected_revision: number
-          p_profile_id: string
-          p_target_status: string
-          p_validation_report: Json
-          p_version_no: number
-        }
-        Returns: {
-          artifact_checksum: string
-          artifact_id: string
-          policy_revision: number
-          version_id: string
-          version_status: string
         }[]
       }
       sys_wf_prof_ver_delete_draft_sem: {

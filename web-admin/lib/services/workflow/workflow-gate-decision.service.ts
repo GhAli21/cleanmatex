@@ -261,6 +261,10 @@ export async function assertAndRecordSemanticGateDecisions(input: {
   orderId: string;
   artifactId: string;
   profileVersionId?: string | null;
+  // Retired compiled-artifact field (Gate 5, ADR-SAAS-MNG-0010) — written
+  // into org_wf_gate_decision_mst.profile_artifact_id as an audit passthrough
+  // only; its FK to the (now-dropped) artifact table was removed in
+  // migration 0494. Never read back to make a decision.
   profileArtifactId?: string | null;
   actionCode: string;
   screen: string;

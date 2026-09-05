@@ -581,6 +581,12 @@ export class OrderService {
         wf_profile_id: workflowProfile.profileId,
         wf_version_no: workflowProfile.versionNo,
         wf_profile_version_id: workflowProfile.versionId,
+        // wf_profile_artifact_id/checksum/schema_version: retired
+        // compiled-artifact fields (Gate 5, ADR-SAAS-MNG-0010) — always null
+        // for new orders. wf_profile_revision is the one field here that
+        // still carries a real, useful value: the live policy_revision at
+        // create time, kept for audit traceability only (nothing re-reads it
+        // to make a decision).
         wf_profile_artifact_id: null,
         wf_profile_revision: workflowProfile.policyRevision,
         wf_profile_checksum: null,
@@ -1227,6 +1233,12 @@ export class OrderService {
         wf_profile_id: workflowProfile.profileId,
         wf_version_no: workflowProfile.versionNo,
         wf_profile_version_id: workflowProfile.versionId,
+        // wf_profile_artifact_id/checksum/schema_version: retired
+        // compiled-artifact fields (Gate 5, ADR-SAAS-MNG-0010) — always null
+        // for new orders. wf_profile_revision is the one field here that
+        // still carries a real, useful value: the live policy_revision at
+        // create time, kept for audit traceability only (nothing re-reads it
+        // to make a decision).
         wf_profile_artifact_id: null,
         wf_profile_revision: workflowProfile.policyRevision,
         wf_profile_checksum: null,

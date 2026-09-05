@@ -92,6 +92,10 @@ export interface CompletePickupResult {
   workflow: ExecuteActionResult;
 }
 
+// wf_profile_artifact_id/wf_profile_revision/wf_profile_checksum/
+// wf_profile_schema_version: retired compiled-artifact fields (Gate 5,
+// ADR-SAAS-MNG-0010), historical audit only — see the full note on
+// SemanticWorkflowOrderSnapshot in semantic-workflow-artifact.service.ts.
 interface LockedPickupOrder {
   id: string;
   current_status: string | null;

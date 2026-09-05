@@ -101,6 +101,14 @@ export interface SemanticWorkflowOrderSnapshot {
   wf_profile_id: string | null;
   wf_version_no: number | null;
   wf_profile_version_id: string | null;
+  // The 4 fields below are historical-audit only, from the retired
+  // compiled-artifact commit mechanism (Gate 5, ADR-SAAS-MNG-0010). Live
+  // policy resolution (loadLiveWorkflowPolicyForOrder) never reads them —
+  // only wf_profile_id/wf_version_no/wf_profile_version_id above drive it.
+  // Kept for: (1) hasAnyBindingValue()'s legacy-order safety net in
+  // workflow-policy-resolver.service.ts, (2) an audit passthrough into
+  // org_wf_gate_decision_mst.profile_artifact_id. Do not use for new
+  // decisions or add new writers.
   wf_profile_artifact_id: string | null;
   wf_profile_revision: number | null;
   wf_profile_checksum: string | null;

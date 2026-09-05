@@ -165,6 +165,11 @@ type LockedOrderRow = {
   wf_profile_id: string | null;
   wf_version_no: number | null;
   wf_profile_version_id: string | null;
+  // Historical-audit only (retired compiled-artifact mechanism, Gate 5,
+  // ADR-SAAS-MNG-0010) — see the matching note on SemanticWorkflowOrderSnapshot
+  // in semantic-workflow-artifact.service.ts. Not read by live policy
+  // resolution; only used as a legacy fallback below (assertAndRecordSemanticGateDecisions)
+  // and org_wf_gate_decision_mst's audit passthrough.
   wf_profile_artifact_id: string | null;
   wf_profile_revision: number | null;
   wf_profile_checksum: string | null;
@@ -849,6 +854,10 @@ async function executeConfiguredAction(
     });
     if (transition.is_semantic && (transition.semantic_gates?.length ?? 0) > 0) {
       try {
+        // wf_profile_artifact_id is a legacy fallback only: every live order
+        // carries wf_profile_version_id, so this `??` never fires in
+        // practice today. profileArtifactId below is an audit passthrough
+        // into org_wf_gate_decision_mst, not read back to decide anything.
         await assertAndRecordSemanticGateDecisions({
           tx,
           tenantId: params.tenantId,
