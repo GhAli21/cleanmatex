@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
+import { isOrderTransitionNotifyEnabled } from '@lib/notifications/config';
 import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
 import { resolveWorkflowCommandChannel } from '@/lib/api/workflow-command-channel';
 import {
@@ -130,8 +131,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ? await executeCancelOrReturnAction(execParams)
         : await executeAction(execParams);
 
+      // Skip on replay: a client retry with the same Idempotency-Key returns
+      // the same cached result and must not re-send a notification.
       const eventCode = ORDER_STATUS_EVENT[result.currentStatus];
-      if (eventCode) {
+      if (eventCode && !result.replay && isOrderTransitionNotifyEnabled()) {
         void emitNotificationEvent({
           code: eventCode,
           tenantOrgId: tenantId,

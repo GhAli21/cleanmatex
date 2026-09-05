@@ -43,7 +43,7 @@ todos:
     content: "Privacy-safe wf.* observe events, in-process counters, support runbook (technical_docs/live_runtime_support.md), and 09 observability refresh. Successful policy loads stay DEBUG."
     status: completed
   - id: lwpr-tenant-assurance
-    content: "Unit+source-scan live runtime plus HQ Check policy. Residual: S10 canary, soak, Studio rewrite / compiler retirement (Gate 5)."
+    content: "Unit+source-scan live runtime plus HQ Check policy. S10 canary SIGNED 2026-09-05. Gate 5 compiler retirement: evidence audit done 2026-09-05 — zero live readers/writers confirmed on both repos plus live-data check (0/19 profile versions stamped, artifact table has 2 dead rows from 2026-08-27, no callers of commitSemanticProfileArtifact/getCurrentSemanticArtifact in HQ). HQ dead code removed; tenant migration 0494_wf_prof_ver_artifact_retirement.sql drafted, awaiting operator review/apply. Residual: soak, then apply 0494 + regenerate HQ types."
     status: in_progress
   - id: lwpr-tenant-progress
     content: After every completed implementation step, update this plan and the paired HQ plan with status, evidence, changed contracts, validation results, risks, and the next concrete action.

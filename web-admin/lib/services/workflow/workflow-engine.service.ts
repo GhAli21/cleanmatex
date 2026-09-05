@@ -2,11 +2,9 @@ import 'server-only';
 
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
-import { OUTBOX_STATUSES } from '@/lib/constants/order-financial';
 import {
   WORKFLOW_ACTIONS,
   WORKFLOW_ACTION_IDEMPOTENCY_RESOURCE,
-  WORKFLOW_OUTBOX_EVENT_TYPE,
   type WorkflowActionCode,
 } from '@/lib/constants/workflow-actions';
 import {
@@ -115,6 +113,13 @@ export interface ExecuteActionResult {
   currentStatus: string;
   stateVersion: number;
   blockedReasons?: BlockedReason[];
+  /**
+   * True when this result came from an idempotency-key cache hit rather than
+   * a fresh transition. Callers that trigger side effects keyed off the
+   * transition (e.g. customer/staff notifications) must skip them on replay
+   * to avoid re-sending on a client retry.
+   */
+  replay?: boolean;
 }
 
 export interface ListAvailableActionsParams {
@@ -473,45 +478,6 @@ async function writeOrderHistory(
   });
 }
 
-async function emitWorkflowTransitionOutbox(
-  tx: PrismaTransactionClient,
-  params: {
-    tenantId: string;
-    orderId: string;
-    actionCode: string;
-    screen: string;
-    fromStatus: string;
-    toStatus: string;
-    stateVersion: number;
-    actorUserId: string;
-    actorName?: string;
-    input?: Record<string, unknown>;
-  },
-): Promise<void> {
-  await tx.org_domain_events_outbox.create({
-    data: {
-      tenant_org_id: params.tenantId,
-      event_type: WORKFLOW_OUTBOX_EVENT_TYPE,
-      aggregate_type: 'order',
-      aggregate_id: params.orderId,
-      payload: {
-        actionCode: params.actionCode,
-        screen: params.screen,
-        fromStatus: params.fromStatus,
-        toStatus: params.toStatus,
-        stateVersion: params.stateVersion,
-        actorUserId: params.actorUserId,
-        actorName: params.actorName ?? null,
-        input: params.input ?? {},
-      } as Prisma.InputJsonValue,
-      status: OUTBOX_STATUSES.PENDING,
-      attempts: 0,
-      max_attempts: 6,
-      next_retry_at: new Date(),
-    },
-  });
-}
-
 function buildIdempotencyPayload(params: ExecuteActionParams): Record<string, unknown> {
   return {
     orderId: params.orderId,
@@ -772,7 +738,7 @@ async function executeConfiguredAction(
           latencyMs: Date.now() - startedAt,
           requestId: params.requestCorrelationId,
         });
-        return cache.result;
+        return { ...cache.result, replay: true };
       }
     }
 
@@ -1146,19 +1112,6 @@ async function executeConfiguredAction(
       actorName: params.actorName,
       stateVersion: nextVersion,
       idempotencyKey: params.idempotencyKey,
-      input: params.input,
-    });
-
-    await emitWorkflowTransitionOutbox(tx, {
-      tenantId: params.tenantId,
-      orderId: params.orderId,
-      actionCode: params.actionCode,
-      screen,
-      fromStatus: currentStatus,
-      toStatus,
-      stateVersion: nextVersion,
-      actorUserId: params.actorUserId,
-      actorName: params.actorName,
       input: params.input,
     });
 

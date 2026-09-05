@@ -31,8 +31,5 @@ export const WORKFLOW_ACTIONS = {
 
 export type WorkflowActionCode = (typeof WORKFLOW_ACTIONS)[keyof typeof WORKFLOW_ACTIONS];
 
-/** Outbox event emitted after a successful workflow transition. */
-export const WORKFLOW_OUTBOX_EVENT_TYPE = 'ORDER_WORKFLOW_TRANSITIONED' as const;
-
 /** Idempotency resource namespace for POST …/actions. */
 export const WORKFLOW_ACTION_IDEMPOTENCY_RESOURCE = 'workflow_action' as const;
