@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
-import { ExternalLink, MapPin, PackageCheck, Truck } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocale, useTranslations } from 'next-intl';
+import { ExternalLink, MapPin, PackageCheck, Phone, Truck } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxDialog, CmxDialogContent, CmxDialogDescription, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
+import { formatDateTime } from '@/lib/utils/rtl';
 import { getDrivers } from '@/app/actions/drivers/drivers-actions';
 import { DriverPicker } from '@features/drivers/ui/driver-picker';
 import { assignDeliveryDriver } from '@features/drivers/api/delivery-route-command-api';
 import type { OrgDriver } from '@/lib/types/drivers';
-import type { DeliveryRouteManifest } from '@/lib/services/delivery/delivery-route-query.service';
+import type { DeliveryRouteManifest, DeliveryRouteManifestDriver } from '@/lib/services/delivery/delivery-route-query.service';
 
 /**
  * Props for a route manifest that may show a local driver-assignment result
@@ -21,6 +23,18 @@ import type { DeliveryRouteManifest } from '@/lib/services/delivery/delivery-rou
 interface DeliveryRouteManifestProps {
   /** Tenant-scoped manifest supplied by the delivery read contract. */
   route: DeliveryRouteManifest;
+  /** Called after a successful driver reassignment so the caller can refetch the manifest. */
+  onDriverAssigned?: () => void;
+}
+
+interface AuditActor {
+  id: string;
+  displayName: string | null;
+}
+
+interface AuditActorsResponse {
+  success: boolean;
+  data?: AuditActor[];
 }
 
 function statusVariant(statusCode: string): 'success' | 'processing' | 'warning' | 'default' {
@@ -35,25 +49,52 @@ function mapHref(address: string, latitude: number | null, longitude: number | n
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+/** Definition-list row for the secondary "Route details" section. */
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-secondary-bg-rgb,248_250_252))] px-3 py-2.5">
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dd className="mt-1 text-sm font-medium text-foreground">{value}</dd>
+    </div>
+  );
+}
+
 /**
  * Route manifest uses the Delivery read contract only; opening a stop never
  * changes its state and keeps the eventual driver/mobile handoff consistent.
  */
-export function DeliveryRouteManifest({ route }: DeliveryRouteManifestProps) {
+export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRouteManifestProps) {
   const t = useTranslations('workflow.delivery');
+  const locale = useLocale() === 'ar' ? 'ar' : 'en';
   const [driverDialogOpen, setDriverDialogOpen] = useState(false);
   const [drivers, setDrivers] = useState<OrgDriver[]>([]);
   const [selectedDriverId, setSelectedDriverId] = useState<string | undefined>(route.driverId ?? undefined);
-  const [assignedDriver, setAssignedDriver] = useState<OrgDriver | null>(null);
   const [isLoadingDrivers, startLoadingDrivers] = useTransition();
   const [isAssigning, startAssigning] = useTransition();
 
-  const currentDriverId = assignedDriver?.id ?? route.driverId;
-  const displayDriver = assignedDriver?.name ?? (currentDriverId ? currentDriverId : t('routes.fields.unassigned'));
+  const driver: DeliveryRouteManifestDriver | null = route.driver;
+  const actorIds = useMemo(
+    () => [...new Set([route.createdBy, route.updatedBy].filter((id): id is string => Boolean(id)))],
+    [route.createdBy, route.updatedBy],
+  );
+
+  const actorsQuery = useQuery({
+    queryKey: ['audit-actors', actorIds.join(',')],
+    enabled: actorIds.length > 0,
+    queryFn: async (): Promise<Map<string, string>> => {
+      const params = new URLSearchParams();
+      actorIds.forEach((id) => params.append('id', id));
+      const response = await fetch(`/api/v1/audit/actors?${params.toString()}`);
+      const payload = await response.json().catch(() => null) as AuditActorsResponse | null;
+      if (!response.ok || !payload?.success) return new Map();
+      return new Map((payload.data ?? []).map((actor) => [actor.id, actor.displayName ?? actor.id]));
+    },
+  });
+  const actorName = (id: string | null) => (id ? actorsQuery.data?.get(id) ?? id : null);
 
   /** Load current tenant choices only after an operator asks to change assignment. */
   const openDriverDialog = () => {
-    setSelectedDriverId(currentDriverId ?? undefined);
+    setSelectedDriverId(route.driverId ?? undefined);
     setDriverDialogOpen(true);
     startLoadingDrivers(async () => {
       const result = await getDrivers();
@@ -61,9 +102,7 @@ export function DeliveryRouteManifest({ route }: DeliveryRouteManifestProps) {
         cmxMessage.error(t('manifest.driverLoadFailed'));
         return;
       }
-
       setDrivers(result.data);
-      setAssignedDriver(result.data.find((driver) => driver.id === currentDriverId) ?? null);
     });
   };
 
@@ -77,13 +116,12 @@ export function DeliveryRouteManifest({ route }: DeliveryRouteManifestProps) {
     startAssigning(async () => {
       try {
         const result = await assignDeliveryDriver(route.id, selectedDriverId);
-        const selectedDriver = drivers.find((driver) => driver.id === result.driverId) ?? null;
-        setAssignedDriver(selectedDriver);
         setDriverDialogOpen(false);
         cmxMessage.success(t('manifest.driverAssigned'));
         if (result.driverWarning) {
           cmxMessage.warning(t('manifest.driverAssignmentWarning'));
         }
+        onDriverAssigned?.();
       } catch {
         cmxMessage.error(t('manifest.driverAssignFailed'));
       }
@@ -115,7 +153,24 @@ export function DeliveryRouteManifest({ route }: DeliveryRouteManifestProps) {
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('manifest.driver')}</p>
-            <p className="mt-1 break-all text-sm font-medium">{displayDriver}</p>
+            {driver ? (
+              <div className="mt-1 space-y-0.5">
+                <p className="text-sm font-medium">{driver.name}</p>
+                {driver.phone ? (
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <a href={`tel:${driver.phone}`} className="hover:underline">{driver.phone}</a>
+                  </p>
+                ) : null}
+                {driver.vehicleType || driver.vehiclePlateNo ? (
+                  <p className="text-xs text-muted-foreground">
+                    {[driver.vehicleType, driver.vehiclePlateNo].filter(Boolean).join(' · ')}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-1 text-sm font-medium text-muted-foreground">{t('routes.fields.unassigned')}</p>
+            )}
             <CmxButton
               className="mt-2"
               variant="outline"
@@ -123,15 +178,34 @@ export function DeliveryRouteManifest({ route }: DeliveryRouteManifestProps) {
               onClick={openDriverDialog}
               disabled={isLoadingDrivers || isAssigning}
             >
-              {currentDriverId ? t('manifest.reassignDriver') : t('manifest.assignDriver')}
+              {driver ? t('manifest.reassignDriver') : t('manifest.assignDriver')}
             </CmxButton>
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('manifest.started')}</p>
-            <p className="mt-1 text-sm font-medium">
-              {route.startedAt ? new Date(route.startedAt).toLocaleString() : t('manifest.notStarted')}
-            </p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('routes.fields.branch')}</p>
+            <p className="mt-1 text-sm font-medium">{route.branchName ?? '—'}</p>
           </div>
+        </CmxCardContent>
+      </CmxCard>
+
+      <CmxCard>
+        <CmxCardHeader><CmxCardTitle className="text-base">{t('manifest.routeDetails')}</CmxCardTitle></CmxCardHeader>
+        <CmxCardContent>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <DetailRow label={t('routes.fields.created')} value={route.createdAt ? formatDateTime(route.createdAt, locale) : '—'} />
+            <DetailRow label={t('routes.fields.startedAt')} value={route.startedAt ? formatDateTime(route.startedAt, locale) : t('manifest.notStarted')} />
+            <DetailRow label={t('routes.fields.completedAt')} value={route.completedAt ? formatDateTime(route.completedAt, locale) : '—'} />
+            <DetailRow label={t('routes.fields.estimatedDurationMinutes')} value={route.estimatedDurationMinutes != null ? t('routes.fields.minutesValue', { count: route.estimatedDurationMinutes }) : '—'} />
+            <DetailRow label={t('routes.fields.totalDistanceKm')} value={route.totalDistanceKm != null ? t('routes.fields.kmValue', { count: route.totalDistanceKm }) : '—'} />
+            <DetailRow label={t('manifest.createdBy')} value={actorName(route.createdBy) ?? '—'} />
+            <DetailRow label={t('manifest.updatedBy')} value={actorName(route.updatedBy) ?? '—'} />
+            <DetailRow label={t('routes.fields.updatedAt')} value={route.updatedAt ? formatDateTime(route.updatedAt, locale) : '—'} />
+          </dl>
+          {route.notes ? (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+              <span className="font-medium">{t('routes.fields.notes')}:</span> {route.notes}
+            </div>
+          ) : null}
         </CmxCardContent>
       </CmxCard>
 
@@ -187,7 +261,7 @@ export function DeliveryRouteManifest({ route }: DeliveryRouteManifestProps) {
       <CmxDialog open={driverDialogOpen} onOpenChange={setDriverDialogOpen}>
         <CmxDialogContent className="w-[calc(100%-2rem)] max-w-lg" scrollBody>
           <CmxDialogHeader>
-            <CmxDialogTitle>{currentDriverId ? t('manifest.reassignDriver') : t('manifest.assignDriver')}</CmxDialogTitle>
+            <CmxDialogTitle>{driver ? t('manifest.reassignDriver') : t('manifest.assignDriver')}</CmxDialogTitle>
             <CmxDialogDescription>{t('manifest.driverAssignmentDescription')}</CmxDialogDescription>
           </CmxDialogHeader>
           <div className="py-4">

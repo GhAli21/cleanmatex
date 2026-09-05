@@ -496,7 +496,8 @@
         "minutesPlaceholder": "مثال: 45",
         "kmPlaceholder": "مثال: 12.5",
         "minutesValue": "{count} دقيقة",
-        "kmValue": "{count} كم"
+        "kmValue": "{count} كم",
+        "updatedAt": "تاريخ التحديث"
       },
       "stopsFor": "المحطات — {routeNumber}",
       "actions": {
@@ -576,7 +577,10 @@
       "driverAssignFailed": "تعذر تعيين السائق. حاول مرة أخرى.",
       "backToDelivery": "العودة إلى التوصيل",
       "notFound": "لم يتم العثور على مسار التوصيل",
-      "loadFailed": "تعذر تحميل مسار التوصيل"
+      "loadFailed": "تعذر تحميل مسار التوصيل",
+      "routeDetails": "تفاصيل المسار",
+      "createdBy": "أُنشئ بواسطة",
+      "updatedBy": "حُدّث بواسطة"
     },
     "stopDetail": {
       "stopNumber": "المحطة {sequence}",

@@ -496,7 +496,8 @@
         "minutesPlaceholder": "e.g. 45",
         "kmPlaceholder": "e.g. 12.5",
         "minutesValue": "{count} min",
-        "kmValue": "{count} km"
+        "kmValue": "{count} km",
+        "updatedAt": "Updated at"
       },
       "stopsFor": "Stops — {routeNumber}",
       "actions": {
@@ -576,7 +577,10 @@
       "driverAssignFailed": "Unable to assign the driver. Try again.",
       "backToDelivery": "Back to Delivery",
       "notFound": "Delivery route not found",
-      "loadFailed": "Unable to load the delivery route"
+      "loadFailed": "Unable to load the delivery route",
+      "routeDetails": "Route details",
+      "createdBy": "Created by",
+      "updatedBy": "Updated by"
     },
     "stopDetail": {
       "stopNumber": "Stop {sequence}",

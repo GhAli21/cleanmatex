@@ -30,15 +30,33 @@ export interface DeliveryStopView {
   };
 }
 
+export interface DeliveryRouteManifestDriver {
+  id: string;
+  name: string;
+  phone: string | null;
+  vehicleType: string | null;
+  vehiclePlateNo: string | null;
+}
+
 export interface DeliveryRouteManifest {
   id: string;
   routeNumber: string;
   statusCode: string;
   driverId: string | null;
+  driver: DeliveryRouteManifestDriver | null;
+  branchId: string | null;
+  branchName: string | null;
   totalStops: number;
   completedStops: number;
   startedAt: string | null;
+  createdAt: string | null;
   completedAt: string | null;
+  estimatedDurationMinutes: number | null;
+  totalDistanceKm: number | null;
+  notes: string | null;
+  createdBy: string | null;
+  updatedBy: string | null;
+  updatedAt: string | null;
   stops: DeliveryStopView[];
 }
 
@@ -182,10 +200,24 @@ export class DeliveryRouteQueryService {
         route_number: true,
         route_status_code: true,
         driver_id: true,
+        branch_id: true,
         total_stops: true,
         completed_stops: true,
         started_at: true,
+        created_at: true,
         completed_at: true,
+        estimated_duration_minutes: true,
+        total_distance_km: true,
+        rec_notes: true,
+        created_by: true,
+        updated_by: true,
+        updated_at: true,
+        org_drivers_mst: {
+          select: { id: true, name: true, phone: true, vehicle_type: true, vehicle_plate_no: true },
+        },
+        org_branches_mst: {
+          select: { branch_name: true },
+        },
         org_dlv_stops_dtl: {
           where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
           orderBy: { sequence: 'asc' },
@@ -201,10 +233,26 @@ export class DeliveryRouteQueryService {
       routeNumber: route.route_number,
       statusCode: route.route_status_code ?? 'planned',
       driverId: route.driver_id,
+      driver: route.org_drivers_mst ? {
+        id: route.org_drivers_mst.id,
+        name: route.org_drivers_mst.name,
+        phone: route.org_drivers_mst.phone,
+        vehicleType: route.org_drivers_mst.vehicle_type,
+        vehiclePlateNo: route.org_drivers_mst.vehicle_plate_no,
+      } : null,
+      branchId: route.branch_id,
+      branchName: route.org_branches_mst?.branch_name ?? null,
       totalStops: route.total_stops ?? route.org_dlv_stops_dtl.length,
       completedStops: route.completed_stops ?? 0,
       startedAt: toIso(route.started_at),
+      createdAt: toIso(route.created_at),
       completedAt: toIso(route.completed_at),
+      estimatedDurationMinutes: route.estimated_duration_minutes,
+      totalDistanceKm: route.total_distance_km === null ? null : toNumber(route.total_distance_km),
+      notes: route.rec_notes,
+      createdBy: route.created_by,
+      updatedBy: route.updated_by,
+      updatedAt: toIso(route.updated_at),
       stops: route.org_dlv_stops_dtl.map(mapStop),
     };
   }

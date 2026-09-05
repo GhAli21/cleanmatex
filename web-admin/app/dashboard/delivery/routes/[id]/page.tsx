@@ -29,7 +29,7 @@ function DeliveryRoutePageContent() {
   const params = useParams<{ id: string }>();
   const t = useTranslations('workflow.delivery');
   const routeId = params.id;
-  const { data, error, isLoading } = useQuery<ApiResponse>({
+  const { data, error, isLoading, refetch } = useQuery<ApiResponse>({
     queryKey: ['delivery', 'route-manifest', routeId],
     queryFn: async () => {
       const response = await fetch(`/api/v1/delivery/routes/${routeId}`);
@@ -49,7 +49,7 @@ function DeliveryRoutePageContent() {
         <Link href="/dashboard/delivery"><ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />{t('manifest.backToDelivery')}</Link>
       </CmxButton>
       {error instanceof Error ? <Alert variant="error" message={error.message} /> : null}
-      {data?.data ? <DeliveryRouteManifest route={data.data} /> : !error ? <CmxEmptyState title={t('manifest.notFound')} /> : null}
+      {data?.data ? <DeliveryRouteManifest route={data.data} onDriverAssigned={() => void refetch()} /> : !error ? <CmxEmptyState title={t('manifest.notFound')} /> : null}
     </div>
   );
 }

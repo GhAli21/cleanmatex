@@ -558,6 +558,14 @@ export function OrderDetailClient({
               {t.viewFullDetails}
             </CmxButton>
           </Link>
+          <Link
+            href={`/dashboard/orders/${order.id}/workspace?returnUrl=${encodeURIComponent(returnUrl)}${returnLabel ? `&returnLabel=${encodeURIComponent(returnLabel)}` : ''}`}
+          >
+            <CmxButton variant="outline" size="sm" className="gap-2">
+              <LayoutList className="h-4 w-4" />
+              {t.orderWorkspace}
+            </CmxButton>
+          </Link>
           <Link href={`/dashboard/orders/${order.id}/edit`}>
             <CmxButton variant="outline" size="sm" className="gap-2">
               <Edit className="h-4 w-4" />

@@ -1,8 +1,16 @@
 # Order Details Workspace
 
-**Status:** Proposed UX and implementation specification  
+**Status:** Implemented in the worktree; live release verification remains pending. This document remains the approved UX and implementation specification.
 **Scope:** Additive Order Workspace screen; the existing Order Details and Full Details screens remain unchanged during rollout.  
 **Audience:** Product, UX, web-admin engineering, workflow engineering, finance, QA, and operations.
+
+## Documentation pack
+
+- [Development plan](development_plan.md) — approved delivery boundaries and component ownership.
+- [Current status](current_status.md) — implemented files, verification status, and honest remaining gaps.
+- [Testing guide and scenarios](testing_guide_and_scenarios.md) — release checks and role/workflow coverage.
+- [Changelog](CHANGELOG.md) — documentation and implementation milestones.
+- [Version](version.txt) — documentation-pack version.
 
 ## 1. Product decision
 
