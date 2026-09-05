@@ -388,7 +388,9 @@ export class OrderService {
     hydrated: Awaited<ReturnType<typeof resolveOrderCreateWorkflowState>>['hydrated'];
   }> {
     const resolved = await resolveOrderCreateWorkflowState({
-      items: args.items,
+      items: args.items.map((item) => ({
+        serviceCategoryCode: item.serviceCategoryCode ?? 'GENERAL',
+      })),
       isQuickDrop: args.isQuickDrop,
       physicalIntakeStatus: args.physicalIntakeStatus,
       initialWorkflowScreen: args.initialWorkflowScreen,

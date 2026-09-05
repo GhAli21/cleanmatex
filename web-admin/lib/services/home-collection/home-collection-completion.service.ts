@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { Prisma } from '@prisma/client';
+
 import { prisma } from '@/lib/db/prisma';
 import {
   claimIdempotencyKey,
@@ -205,7 +207,7 @@ export async function completeHomeCollection(
         resource_type: HOME_COLLECTION_COMPLETE_RESOURCE,
       },
       data: {
-        response_cache: { result },
+        response_cache: { result } as unknown as Prisma.InputJsonValue,
       },
     });
 

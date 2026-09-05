@@ -1406,7 +1406,7 @@ export function OrderDetailsFullClient({
                 'This order is waiting for inbound home collection. Use the home collection floor to assign and confirm.'}
             </p>
             <Link href={`/dashboard/home-collection/${order.id}`}>
-              <CmxButton type="button" variant="default" className="bg-sky-700 hover:bg-sky-800">
+              <CmxButton type="button" variant="primary" className="bg-sky-700 hover:bg-sky-800">
                 {t.openHomeCollectionFloor ?? 'Open home collection floor'}
               </CmxButton>
             </Link>
