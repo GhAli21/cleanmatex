@@ -14,9 +14,12 @@ export interface RouteListItem {
   routeNumber: string;
   statusCode: string;
   driverId: string | null;
+  branchId: string | null;
   totalStops: number;
   completedStops: number;
   createdAt: string | null;
+  completedAt: string | null;
+  notes: string | null;
 }
 
 export interface RouteCommandResult {
@@ -69,11 +72,20 @@ function newIdempotencyKey(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-/** Lists tenant-scoped delivery routes, newest first. Accepts one status code or several. */
-export async function listRoutes(status?: string | string[]): Promise<{ routes: RouteListItem[] }> {
-  const statusValue = Array.isArray(status) ? status.join(',') : status;
-  const query = statusValue ? `?status=${encodeURIComponent(statusValue)}` : '';
-  const response = await fetch(`/api/v1/delivery/routes${query}`, { method: 'GET', credentials: 'include' });
+export interface ListRoutesOptions {
+  /** One status code, several, or omitted for every status. */
+  status?: string | string[];
+  limit?: number;
+}
+
+/** Lists tenant-scoped delivery routes, newest first. Omit `status` to list every route. */
+export async function listRoutes(options?: ListRoutesOptions): Promise<{ routes: RouteListItem[] }> {
+  const params = new URLSearchParams();
+  const statusValue = Array.isArray(options?.status) ? options.status.join(',') : options?.status;
+  if (statusValue) params.set('status', statusValue);
+  if (options?.limit) params.set('limit', String(options.limit));
+  const query = params.toString();
+  const response = await fetch(`/api/v1/delivery/routes${query ? `?${query}` : ''}`, { method: 'GET', credentials: 'include' });
   return readEnvelope<{ routes: RouteListItem[] }>(response);
 }
 

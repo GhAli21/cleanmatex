@@ -2,19 +2,21 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { MapPin, Route, Truck } from 'lucide-react'
-import { CmxDataTable, CmxEmptyState, type AuditExtraRow } from '@ui/data-display'
+import { CmxDataTable, CmxDataGrid, CmxEmptyState, type AuditExtraRow } from '@ui/data-display'
 import { CmxConfirmDialog, CmxStatusBadge, CmxSummaryMessage, cmxMessage } from '@ui/feedback'
 import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxCheckbox, CmxSkeletonTable } from '@ui/primitives'
+import { formatDateTime } from '@/lib/utils/rtl'
 import { WORKFLOW_SCREENS } from '@/lib/constants/workflow-screens'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { getDrivers } from '@/app/actions/drivers/drivers-actions'
+import { getBranchesAction } from '@/app/actions/inventory/inventory-actions'
 import type { OrgDriver } from '@/lib/types/drivers'
-import type { DeliveryRouteManifest } from '@/lib/services/delivery/delivery-route-query.service'
 import {
   addOrdersToDeliveryRoute,
   assignDeliveryDriver,
@@ -92,6 +94,7 @@ interface ActiveStopResponse {
 export function DeliveryRoutePlanningScreen() {
   const t = useTranslations('workflow.delivery')
   const tCommon = useTranslations('common')
+  const locale = useLocale() === 'ar' ? 'ar' : 'en'
   // Scopes workspace data to the authenticated tenant and prevents cross-tenant route planning.
   const { currentTenant } = useAuth()
   const queryClient = useQueryClient()
@@ -124,13 +127,23 @@ export function DeliveryRoutePlanningScreen() {
     },
   })
 
-  const routesQuery = useQuery({
-    queryKey: ['delivery-routes', currentTenant?.tenant_id, 'planned', 'in_progress'],
-    // Prevent query before tenant is confirmed — active routes are tenant-owned operational data.
+  const branchesQuery = useQuery({
+    queryKey: ['branches', currentTenant?.tenant_id],
     enabled: !!currentTenant,
-    // A route with a driver assigned at creation starts in_progress, not planned —
-    // it still needs to show up here so it can be reassigned or cancelled.
-    queryFn: () => listRoutes(['planned', 'in_progress']),
+    queryFn: async (): Promise<Array<{ id: string; branch_name: string }>> => {
+      const result = await getBranchesAction()
+      return (result.data ?? []) as Array<{ id: string; branch_name: string }>
+    },
+  })
+
+  const routesQuery = useQuery({
+    queryKey: ['delivery-routes', currentTenant?.tenant_id, 'all'],
+    // Prevent query before tenant is confirmed — route history is tenant-owned operational data.
+    enabled: !!currentTenant,
+    // No status filter: dispatchers need to see every route (planned, in_progress,
+    // completed, cancelled) — the grid's own Status column and sort make the
+    // active ones easy to find without hiding the rest.
+    queryFn: () => listRoutes({ limit: 100 }),
   })
 
   const activeStopsQuery = useQuery({
@@ -179,6 +192,7 @@ export function DeliveryRoutePlanningScreen() {
       activeStopsQuery.refetch(),
       routesQuery.refetch(),
       driversQuery.refetch(),
+      branchesQuery.refetch(),
     ])
     if (expandedRouteId) await queryClient.invalidateQueries({ queryKey: ['delivery-route-manifest', expandedRouteId] })
   }
@@ -263,6 +277,94 @@ export function DeliveryRoutePlanningScreen() {
     { key: 'physicalIntakeBy', label: t('routes.auditExtras.physicalIntakeBy'), value: order.physical_intake_by, hideWhenEmpty: true },
     { key: 'physicalIntakeInfo', label: t('routes.auditExtras.physicalIntakeInfo'), value: order.physical_intake_info, hideWhenEmpty: true },
   ]
+
+  const driverNameById = useMemo(
+    () => new Map((driversQuery.data ?? []).map((driver) => [driver.id, driver.name])),
+    [driversQuery.data],
+  )
+  const branchNameById = useMemo(
+    () => new Map((branchesQuery.data ?? []).map((branch) => [branch.id, branch.branch_name])),
+    [branchesQuery.data],
+  )
+
+  const routeColumns = useMemo<ColumnDef<RouteListItem, unknown>[]>(() => [
+    {
+      accessorKey: 'routeNumber',
+      header: t('routes.fields.routeNumber'),
+      cell: ({ row }) => <span className="font-medium">{row.original.routeNumber}</span>,
+    },
+    {
+      accessorKey: 'statusCode',
+      header: t('routes.fields.status'),
+      cell: ({ row }) => (
+        <CmxStatusBadge
+          label={t(`routeStatus.${row.original.statusCode}`, { default: row.original.statusCode })}
+          variant={routeStatusVariant(row.original.statusCode)}
+          size="sm"
+        />
+      ),
+    },
+    {
+      id: 'driver',
+      accessorFn: (route) => (route.driverId ? driverNameById.get(route.driverId) ?? route.driverId : ''),
+      header: t('routes.fields.driverId'),
+      cell: ({ row }) => row.original.driverId
+        ? (driverNameById.get(row.original.driverId) ?? row.original.driverId)
+        : <span className="text-muted-foreground">{t('routes.fields.unassigned')}</span>,
+    },
+    {
+      id: 'branch',
+      accessorFn: (route) => (route.branchId ? branchNameById.get(route.branchId) ?? route.branchId : ''),
+      header: t('routes.fields.branch'),
+      cell: ({ row }) => row.original.branchId
+        ? (branchNameById.get(row.original.branchId) ?? row.original.branchId)
+        : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      id: 'stops',
+      accessorFn: (route) => route.totalStops,
+      header: t('routes.fields.stops'),
+      enableSorting: false,
+      cell: ({ row }) => `${row.original.completedStops}/${row.original.totalStops}`,
+    },
+    {
+      accessorKey: 'createdAt',
+      header: t('routes.fields.created'),
+      cell: ({ row }) => row.original.createdAt ? formatDateTime(row.original.createdAt, locale) : '—',
+    },
+    {
+      accessorKey: 'completedAt',
+      header: t('routes.fields.completedAt'),
+      cell: ({ row }) => row.original.completedAt ? formatDateTime(row.original.completedAt, locale) : '—',
+    },
+    {
+      accessorKey: 'notes',
+      header: t('routes.fields.notes'),
+      cell: ({ row }) => row.original.notes || <span className="text-muted-foreground">—</span>,
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      enableColumnFilter: false,
+      cell: ({ row }) => (
+        <RouteActionsCell
+          route={row.original}
+          drivers={driversQuery.data ?? []}
+          expanded={expandedRouteId === row.original.id}
+          addTarget={addTargetRouteId === row.original.id}
+          isMutating={isMutating}
+          canManageRoutes={canManageRoutes}
+          canAssignDrivers={canAssignDrivers}
+          t={t}
+          onToggleManifest={() => setExpandedRouteId(expandedRouteId === row.original.id ? null : row.original.id)}
+          onAddTarget={() => setAddTargetRouteId(addTargetRouteId === row.original.id ? null : row.original.id)}
+          onAssignDriver={assignDriver}
+          onCancel={() => setCancelTargetRouteId(row.original.id)}
+        />
+      ),
+    },
+  ], [addTargetRouteId, assignDriver, branchNameById, canAssignDrivers, canManageRoutes, driverNameById, driversQuery.data, expandedRouteId, isMutating, locale, t])
 
   const allReadySelected = readyOrders.length > 0 && readyOrders.every((order) => selectedOrderIds.has(order.id))
   const readyColumns = [
@@ -349,7 +451,39 @@ export function DeliveryRoutePlanningScreen() {
 
       <section className="space-y-3" aria-labelledby="planned-routes-heading">
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="planned-routes-heading" className="text-lg font-semibold">{t('routes.listTitle')}</h2>{canManageRoutes && addTargetRouteId ? <CmxButton onClick={addOrders} loading={isMutating} disabled={!selectedOrders.length}>{t('routes.actions.addSelected')}</CmxButton> : null}</div>
-        {routes.length === 0 ? <CmxEmptyState icon={<Truck className="h-8 w-8" />} title={t('routes.empty')} description={t('routes.emptyDescription')} /> : <div className="grid gap-4 lg:grid-cols-2">{routes.map((route) => <RouteCard key={route.id} route={route} drivers={driversQuery.data ?? []} expanded={expandedRouteId === route.id} manifest={expandedRouteId === route.id ? manifestQuery.data : undefined} manifestLoading={expandedRouteId === route.id && manifestQuery.isLoading} addTarget={addTargetRouteId === route.id} isMutating={isMutating} canManageRoutes={canManageRoutes} canAssignDrivers={canAssignDrivers} t={t} onToggleManifest={() => setExpandedRouteId(expandedRouteId === route.id ? null : route.id)} onAddTarget={() => setAddTargetRouteId(addTargetRouteId === route.id ? null : route.id)} onAssignDriver={assignDriver} onRemoveStop={(stopId) => setRemoveTarget({ routeId: route.id, stopId })} onCancel={() => setCancelTargetRouteId(route.id)} />)}</div>}
+        {routes.length === 0 && !routesQuery.isLoading ? (
+          <CmxEmptyState icon={<Truck className="h-8 w-8" />} title={t('routes.empty')} description={t('routes.emptyDescription')} />
+        ) : (
+          <CmxDataGrid
+            columns={routeColumns}
+            data={routes}
+            isLoading={routesQuery.isLoading}
+            dir={locale === 'ar' ? 'rtl' : 'ltr'}
+            enableGlobalSearch
+            initialPageSize={10}
+          />
+        )}
+        {expandedRouteId ? (
+          <CmxCard>
+            <CmxCardHeader><CmxCardTitle>{t('routes.stopsFor', { routeNumber: routes.find((r) => r.id === expandedRouteId)?.routeNumber ?? '' })}</CmxCardTitle></CmxCardHeader>
+            <CmxCardContent>
+              {manifestQuery.isLoading ? (
+                <div className="text-sm text-muted-foreground">{t('routes.loadingStops')}</div>
+              ) : (
+                <div className="space-y-2">
+                  {manifestQuery.data?.stops.map((stop) => (
+                    <div key={stop.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] pb-2 text-sm last:border-b-0">
+                      <div className="min-w-0"><span className="font-medium">{stop.order.orderNo}</span><span className="ms-2 text-muted-foreground">{stop.address}</span></div>
+                      {canManageRoutes && routes.find((r) => r.id === expandedRouteId)?.statusCode === 'planned' ? (
+                        <CmxButton variant="ghost" size="sm" onClick={() => setRemoveTarget({ routeId: expandedRouteId, stopId: stop.id })} disabled={isMutating}>{t('routes.actions.removeStop')}</CmxButton>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CmxCardContent>
+          </CmxCard>
+        ) : null}
       </section>
 
       <CmxConfirmDialog open={!!removeTarget} onCancel={() => setRemoveTarget(null)} title={t('routes.removeStopConfirm.title')} description={t('routes.removeStopConfirm.description')} confirmLabel={t('routes.actions.removeStop')} cancelLabel={tCommon('cancel')} onConfirm={removeStop} />
@@ -359,15 +493,13 @@ export function DeliveryRoutePlanningScreen() {
 }
 
 /**
- * Route-card inputs and callbacks owned by the planning workspace so all
+ * Actions-cell inputs and callbacks owned by the planning workspace so all
  * mutations continue through its single refresh and error-handling boundary.
  */
-interface RouteCardProps {
+interface RouteActionsCellProps {
   route: RouteListItem
   drivers: OrgDriver[]
   expanded: boolean
-  manifest?: DeliveryRouteManifest
-  manifestLoading: boolean
   addTarget: boolean
   isMutating: boolean
   canManageRoutes: boolean
@@ -376,16 +508,29 @@ interface RouteCardProps {
   onToggleManifest: () => void
   onAddTarget: () => void
   onAssignDriver: (routeId: string, driverId: string | undefined) => void
-  onRemoveStop: (stopId: string) => void
   onCancel: () => void
 }
 
-/** Compact operational card so dispatchers can inspect and amend a planned route without leaving the queue. */
-function RouteCard({ route, drivers, expanded, manifest, manifestLoading, addTarget, isMutating, canManageRoutes, canAssignDrivers, t, onToggleManifest, onAddTarget, onAssignDriver, onRemoveStop, onCancel }: RouteCardProps) {
+/** Compact per-row controls so dispatchers can amend a route without leaving the grid. */
+function RouteActionsCell({ route, drivers, expanded, addTarget, isMutating, canManageRoutes, canAssignDrivers, t, onToggleManifest, onAddTarget, onAssignDriver, onCancel }: RouteActionsCellProps) {
   const [driverId, setDriverId] = useState<string | undefined>(route.driverId ?? undefined)
-  // Add-orders and remove-stop are only valid on a route that hasn't started yet;
-  // the server rejects both otherwise (ROUTE_NOT_PLANNED) — the UI mirrors that here.
+  // Add-orders is only valid on a route that hasn't started yet; the server
+  // rejects it otherwise (ROUTE_NOT_PLANNED) — the UI mirrors that here.
   const isPlanned = route.statusCode === 'planned'
   const isCancellable = route.statusCode === 'planned' || route.statusCode === 'in_progress'
-  return <CmxCard><CmxCardHeader><div className="flex items-start justify-between gap-3"><div><CmxCardTitle>{route.routeNumber}</CmxCardTitle><p className="mt-1 text-sm text-muted-foreground">{t('routes.fields.stops')}: {route.completedStops}/{route.totalStops}</p></div><CmxStatusBadge label={t(`routeStatus.${route.statusCode}`, { default: route.statusCode })} variant={routeStatusVariant(route.statusCode)} size="sm" /></div></CmxCardHeader><CmxCardContent className="space-y-4">{canAssignDrivers ? <div className="space-y-2"><p className="text-sm font-medium">{t('routes.fields.driverId')}</p><div className="flex flex-col gap-2 sm:flex-row"><div className="min-w-0 flex-1"><DriverPicker drivers={drivers} value={driverId} onChange={setDriverId} disabled={isMutating} /></div><CmxButton variant="outline" onClick={() => onAssignDriver(route.id, driverId)} disabled={isMutating || !driverId}>{t('routes.actions.assignDriver')}</CmxButton></div></div> : null}<div className="flex flex-wrap gap-2"><CmxButton variant="outline" size="sm" onClick={onToggleManifest}>{expanded ? t('routes.actions.hideStops') : t('routes.actions.showStops')}</CmxButton>{canManageRoutes && isPlanned ? <CmxButton variant={addTarget ? 'secondary' : 'outline'} size="sm" onClick={onAddTarget}>{addTarget ? t('routes.actions.stopAdding') : t('routes.actions.addSelected')}</CmxButton> : null}{canManageRoutes && isCancellable ? <CmxButton variant="destructive" size="sm" onClick={onCancel} disabled={isMutating}>{t('routes.actions.cancelRoute')}</CmxButton> : null}</div>{manifestLoading ? <div className="text-sm text-muted-foreground">{t('routes.loadingStops')}</div> : expanded && manifest ? <div className="space-y-2 border-t pt-3">{manifest.stops.map((stop) => <div key={stop.id} className="flex flex-wrap items-center justify-between gap-2 text-sm"><div className="min-w-0"><span className="font-medium">{stop.order.orderNo}</span><span className="ms-2 text-muted-foreground">{stop.address}</span></div>{canManageRoutes && isPlanned ? <CmxButton variant="ghost" size="sm" onClick={() => onRemoveStop(stop.id)} disabled={isMutating}>{t('routes.actions.removeStop')}</CmxButton> : null}</div>)}</div> : null}</CmxCardContent></CmxCard>
+  return (
+    <div className="flex min-w-[16rem] flex-col gap-2">
+      {canAssignDrivers ? (
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1"><DriverPicker drivers={drivers} value={driverId} onChange={setDriverId} disabled={isMutating} /></div>
+          <CmxButton variant="outline" size="sm" onClick={() => onAssignDriver(route.id, driverId)} disabled={isMutating || !driverId}>{t('routes.actions.assignDriver')}</CmxButton>
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <CmxButton variant="outline" size="sm" onClick={onToggleManifest}>{expanded ? t('routes.actions.hideStops') : t('routes.actions.showStops')}</CmxButton>
+        {canManageRoutes && isPlanned ? <CmxButton variant={addTarget ? 'secondary' : 'outline'} size="sm" onClick={onAddTarget}>{addTarget ? t('routes.actions.stopAdding') : t('routes.actions.addSelected')}</CmxButton> : null}
+        {canManageRoutes && isCancellable ? <CmxButton variant="destructive" size="sm" onClick={onCancel} disabled={isMutating}>{t('routes.actions.cancelRoute')}</CmxButton> : null}
+      </div>
+    </div>
+  )
 }

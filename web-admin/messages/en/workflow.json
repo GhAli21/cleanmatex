@@ -484,8 +484,14 @@
         "orderNumber": "Order #",
         "customer": "Customer",
         "address": "Delivery address",
-        "addressUnavailable": "Address not available"
+        "addressUnavailable": "Address not available",
+        "routeNumber": "Route #",
+        "created": "Created",
+        "branch": "Branch",
+        "completedAt": "Completed at",
+        "notes": "Notes"
       },
+      "stopsFor": "Stops — {routeNumber}",
       "actions": {
         "create": "Create route",
         "creating": "Creating...",

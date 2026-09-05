@@ -484,8 +484,14 @@
         "orderNumber": "رقم الطلب",
         "customer": "العميل",
         "address": "عنوان التوصيل",
-        "addressUnavailable": "العنوان غير متاح"
+        "addressUnavailable": "العنوان غير متاح",
+        "routeNumber": "رقم المسار",
+        "created": "تاريخ الإنشاء",
+        "branch": "الفرع",
+        "completedAt": "تاريخ الإكمال",
+        "notes": "ملاحظات"
       },
+      "stopsFor": "المحطات — {routeNumber}",
       "actions": {
         "create": "إنشاء مسار",
         "creating": "جارٍ الإنشاء...",

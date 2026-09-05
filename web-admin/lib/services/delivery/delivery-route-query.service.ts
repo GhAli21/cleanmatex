@@ -47,9 +47,12 @@ export interface DeliveryRouteListItem {
   routeNumber: string;
   statusCode: string;
   driverId: string | null;
+  branchId: string | null;
   totalStops: number;
   completedStops: number;
   createdAt: string | null;
+  completedAt: string | null;
+  notes: string | null;
 }
 
 export interface ListRoutesParams {
@@ -258,9 +261,12 @@ export class DeliveryRouteQueryService {
           route_number: true,
           route_status_code: true,
           driver_id: true,
+          branch_id: true,
           total_stops: true,
           completed_stops: true,
           created_at: true,
+          completed_at: true,
+          rec_notes: true,
         },
       }),
       prisma.org_dlv_routes_mst.count({ where }),
@@ -272,9 +278,12 @@ export class DeliveryRouteQueryService {
         routeNumber: route.route_number,
         statusCode: route.route_status_code ?? 'planned',
         driverId: route.driver_id,
+        branchId: route.branch_id,
         totalStops: route.total_stops ?? 0,
         completedStops: route.completed_stops ?? 0,
         createdAt: toIso(route.created_at),
+        completedAt: toIso(route.completed_at),
+        notes: route.rec_notes,
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
