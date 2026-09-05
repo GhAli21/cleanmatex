@@ -87,7 +87,8 @@
     "activityTitle": "نشاط الطلب",
     "activityDescription": "افتح سجل النشاط الحالي للأحداث المسجلة في الطلب.",
     "openActivity": "فتح سجل النشاط",
-    "sections": { "overview": "نظرة عامة", "work": "العمل", "customer": "العميل", "financials": "المالية", "activity": "النشاط" },
+    "sections": { "overview": "نظرة عامة", "work": "العمل", "customer": "العميل", "financials": "المالية", "activity": "النشاط", "actions": "الإجراءات" },
+    "orderControlTitle": "ضوابط الطلب",
     "stages": { "intake": "الاستلام", "preparation": "التحضير", "processing": "المعالجة", "qa": "فحص الجودة", "ready": "جاهز", "delivered": "تم التسليم", "completed": "مكتمل" },
     "statuses": { "intake": "الاستلام", "preparation": "التحضير", "processing": "المعالجة", "qa": "فحص الجودة", "ready": "جاهز", "delivered": "تم التسليم", "completed": "مكتمل", "cancelled": "ملغي" },
     "paymentPlans": { "pay_on_collection": "الدفع عند الاستلام" }

@@ -85,7 +85,7 @@ export interface OrderWorkspaceProps {
 }
 
 /** Stable URL-safe section identifiers for deep links and analytics. */
-export type OrderWorkspaceSectionId = 'overview' | 'work' | 'customer' | 'financials' | 'activity'
+export type OrderWorkspaceSectionId = 'overview' | 'work' | 'customer' | 'financials' | 'activity' | 'actions'
 
 /** Localized labels required by the workspace shell. */
 export interface OrderWorkspaceLabels {
@@ -101,6 +101,7 @@ export interface OrderWorkspaceLabels {
   customer: string
   financials: string
   activity: string
+  actions: string
   workflow: string
   nextAction: string
   attention: string

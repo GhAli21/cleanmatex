@@ -26,6 +26,7 @@ import {
   hasCompiledDeliveryEvidence,
 } from '@/lib/services/delivery/compiled-delivery-evidence';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
+import { WORKFLOW_SYSTEM_ACTOR } from '@/lib/constants/workflow-system-actor';
 
 const DELIVERY_COMPLETE_IDEMPOTENCY_RESOURCE = 'delivery_complete';
 const DELIVERY_ORDER_COMPLETE_IDEMPOTENCY_RESOURCE = 'delivery_order_complete';
@@ -623,6 +624,7 @@ export async function completeDelivery(
         },
         data: {
           stop_status_code: 'delivered',
+          confirm_level: 'sys_user',
           actual_time: now,
           updated_at: now,
           updated_by: params.actorUserId,
@@ -756,6 +758,56 @@ async function lockActiveDeliveryStopId(
     FOR UPDATE OF s
   `;
   return rows[0]?.stop_id ?? null;
+}
+
+/**
+ * Resolves a still-open delivery stop when the CUSTOMER confirms receipt via
+ * the public tracking link, so the stop is never left orphaned behind an
+ * order the engine already marked delivered. The customer's own confirmation
+ * is treated as a valid delivery confirmation for the stop too — it is marked
+ * `delivered` (never cancelled) and tagged `confirm_level: 'customer'` so it
+ * stays distinguishable from staff/driver completions.
+ *
+ * Staff must still use the explicit stop-complete command; this path is
+ * public-channel only (never called from a staff-authenticated route) and
+ * must run inside the same transaction as the CONFIRM_DELIVERY engine call so
+ * both writes commit together.
+ *
+ * @param tx transaction shared with the caller's CONFIRM_DELIVERY execution
+ * @param tenantId authenticated tenant scope
+ * @param orderId the order the customer is confirming
+ * @param confirmNotes optional short comment the customer added
+ */
+export async function resolveActiveStopForCustomerConfirm(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  orderId: string,
+  confirmNotes?: string,
+): Promise<void> {
+  const activeStopId = await lockActiveDeliveryStopId(tx, tenantId, orderId);
+  if (!activeStopId) return;
+
+  const stop = await tx.org_dlv_stops_dtl.findFirst({
+    where: { id: activeStopId, tenant_org_id: tenantId },
+    select: { route_id: true },
+  });
+  if (!stop) return;
+
+  const now = new Date();
+  const stopUpdate = await tx.org_dlv_stops_dtl.updateMany({
+    where: { id: activeStopId, tenant_org_id: tenantId, stop_status_code: { in: ['pending', 'in_transit'] } },
+    data: {
+      stop_status_code: 'delivered',
+      confirm_level: 'customer',
+      confirm_notes: confirmNotes?.trim() || null,
+      actual_time: now,
+      updated_at: now,
+      updated_info: 'Customer confirmed delivery via public tracking link',
+    },
+  });
+  if (stopUpdate.count !== 1) return;
+
+  await refreshRouteProgress(tx, tenantId, stop.route_id, WORKFLOW_SYSTEM_ACTOR.userId, now);
 }
 
 async function assertOrderKeyedDeliveryEvidence(

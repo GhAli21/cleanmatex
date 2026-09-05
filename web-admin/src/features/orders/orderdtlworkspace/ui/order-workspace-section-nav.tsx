@@ -1,10 +1,16 @@
-import { Activity, CircleDollarSign, ClipboardList, UserRound, Workflow } from 'lucide-react'
+import { Activity, CircleDollarSign, ClipboardList, ListChecks, UserRound, Workflow } from 'lucide-react'
 
 import { cn } from '@lib/utils'
 import { CmxButton } from '@ui/primitives/cmx-button'
 
 import type { OrderWorkspaceSectionId } from './order-workspace-types'
 
+/**
+ * Props for the workspace section navigator.
+ *
+ * Labels and counts are supplied by the tenant-scoped workspace shell so this
+ * navigation primitive does not become a second source of order data.
+ */
 interface OrderWorkspaceSectionNavProps {
   activeSection: OrderWorkspaceSectionId
   onChange: (section: OrderWorkspaceSectionId) => void
@@ -18,11 +24,12 @@ const sectionIcons = {
   customer: UserRound,
   financials: CircleDollarSign,
   activity: Activity,
+  actions: ListChecks,
 } as const
 
 /** Keeps high-frequency workspace sections discoverable on every viewport. */
 export function OrderWorkspaceSectionNav({ activeSection, onChange, labels, counts }: OrderWorkspaceSectionNavProps) {
-  const sections: OrderWorkspaceSectionId[] = ['overview', 'work', 'customer', 'financials', 'activity']
+  const sections: OrderWorkspaceSectionId[] = ['overview', 'work', 'customer', 'financials', 'activity', 'actions']
 
   return (
     <nav aria-label="Order workspace sections" className="-mx-1 overflow-x-auto px-1 pb-1">

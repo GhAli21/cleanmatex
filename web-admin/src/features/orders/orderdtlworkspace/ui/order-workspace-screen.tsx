@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft, ClipboardCheck, Copy, CreditCard, MapPin, Package, Phone, Printer, UserRound } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, ClipboardCheck, Copy, CreditCard, MapPin, Package, Phone, Printer, UserRound } from 'lucide-react';
 
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -13,34 +13,75 @@ import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primit
 import { cmxMessage } from '@ui/feedback';
 import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
+import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 
 import { OrderWorkspaceSectionNav } from './order-workspace-section-nav';
 import { OrderWorkspacePaymentBadge, OrderWorkspaceStatusBadge } from './order-workspace-status-badge';
 import type { OrderWorkspaceSectionId, OrderWorkspaceStage } from './order-workspace-types';
 
+/**
+ * Data and navigation context required to render the order operations workspace.
+ *
+ * `order` is server-sourced for the authenticated tenant; the client component
+ * only derives presentation values and delegates mutations to canonical flows.
+ */
 interface OrderWorkspaceScreenProps {
+  /** Serialized order payload supplied by the tenant-scoped server page. */
   order: Record<string, unknown>;
+  /** Tenant identifier retained for canonical collection-flow integration. */
   tenantOrgId: string;
+  /** Authenticated operator identifier retained for canonical collection-flow integration. */
   userId: string;
+  /** Active application locale used for amounts and timestamps. */
   locale: string;
+  /** Safe legacy-detail destination used when an operator leaves the workspace. */
   returnUrl: string;
+  /** Optional label that preserves the caller's navigation context. */
   returnLabel?: string;
+  /** Section selected when the URL has no valid workspace section. */
   initialSection: OrderWorkspaceSectionId;
 }
 
-const sections: OrderWorkspaceSectionId[] = ['overview', 'work', 'customer', 'financials', 'activity'];
+const sections: OrderWorkspaceSectionId[] = ['overview', 'work', 'customer', 'financials', 'activity', 'actions'];
 
+/**
+ * Returns a non-blank string from an untyped server payload.
+ *
+ * Keeps optional order fields from being rendered as whitespace or unsafe values.
+ *
+ * @param record - Serialized server payload containing the candidate field.
+ * @param key - Field name to read from the payload.
+ * @returns Trimmed string value, or `null` when it is absent or not displayable.
+ */
 function value(record: Record<string, unknown>, key: string): string | null {
   const candidate = record[key];
   return typeof candidate === 'string' && candidate.trim() ? candidate : null;
 }
 
+/**
+ * Normalizes a monetary payload field for display-only calculations.
+ *
+ * Falls back to zero so an incomplete response cannot produce `NaN` in an
+ * operational financial summary.
+ *
+ * @param record - Serialized server payload containing the candidate amount.
+ * @param key - Monetary field name to read from the payload.
+ * @returns Finite numeric amount, or zero when unavailable.
+ */
 function amount(record: Record<string, unknown>, key: string): number {
   const candidate = Number(record[key] ?? 0);
   return Number.isFinite(candidate) ? candidate : 0;
 }
 
-/** Operational workspace that reuses canonical detail routes for deep specialist flows. */
+/**
+ * Renders the responsive order operations workspace without duplicating canonical workflows.
+ *
+ * Read-only workspace data remains tenant-scoped by the server page; payment
+ * collection and specialist actions continue through their existing audited routes.
+ *
+ * @param props - Tenant-scoped order data, locale, and workspace navigation context.
+ * @returns Interactive order workspace screen.
+ */
 export function OrderWorkspaceScreen({
   order,
   locale,
@@ -107,7 +148,9 @@ export function OrderWorkspaceScreen({
   const hasCollectionDue = balance > 0;
 
   return (
-    <main className="space-y-5">
+    <main className="mx-auto max-w-7xl space-y-6 pb-24 lg:pb-6">
+      {/* Centered workspace column preserves scanability and reserves mobile space for sticky browser controls. */}
+      {/* Direction-aware utility row keeps navigation and secondary actions natural in Arabic and English. */}
       <div className={`flex flex-wrap items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <Link href={returnUrl} className={`inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground ${isRTL ? 'flex-row-reverse' : ''}`}>
           <ArrowLeft aria-hidden="true" className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} />
@@ -119,16 +162,17 @@ export function OrderWorkspaceScreen({
         </div>
       </div>
 
-      <CmxCard>
+      <CmxCard className="overflow-hidden border-border/80 shadow-sm">
         <CmxCardContent className="space-y-5 pt-6">
-          <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}>
+          {/* Header stacks on narrow screens, then separates identity from financial priority on wider displays. */}
+          <div className={`flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}>
             <div className={isRTL ? 'text-right' : 'text-left'}>
               <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <h1 className="text-2xl font-bold tracking-tight">{orderNo}</h1>
                 <OrderWorkspaceStatusBadge label={t(`statuses.${status.toLowerCase()}`, { default: status })} tone="info" />
                 {paymentPlan ? <OrderWorkspacePaymentBadge label={t(`paymentPlans.${paymentPlan.toLowerCase()}`, { default: paymentPlan })} /> : null}
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">{customerName}</p>
+              <p className="mt-2 text-base font-medium text-foreground">{customerName}</p>
               {order.received_at ? <p className="mt-1 text-sm text-muted-foreground">{t('receivedAt', { value: new Date(String(order.received_at)).toLocaleString(locale === 'ar' ? 'ar' : 'en') })}</p> : null}
             </div>
             <div className={isRTL ? 'text-left' : 'text-right'}>
@@ -138,14 +182,17 @@ export function OrderWorkspaceScreen({
             </div>
           </div>
 
-          <div className="border-t border-border pt-4">
-            <p className={`mb-3 text-sm font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('workflow')}</p>
-            <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-label={t('workflow')}>
-              {stages.map((stage) => <li key={stage.id} className={`rounded-md border px-3 py-2 text-sm ${stage.state === 'current' ? 'border-primary bg-primary/5 font-semibold' : stage.state === 'complete' ? 'border-border bg-muted/40' : 'border-border text-muted-foreground'}`}>{stage.label}</li>)}
+          <div className="border-t border-border pt-5">
+            <div className={`mb-4 flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <p className={`text-sm font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('workflow')}</p>
+              <p className="text-xs font-medium text-muted-foreground">{stages.findIndex((stage) => stage.state === 'current') + 1} / {stages.length}</p>
+            </div>
+            {/* Horizontal overflow keeps every lifecycle stage legible instead of compressing operational status on mobile. */}
+            <ol className={`flex min-w-max items-center gap-1 overflow-x-auto pb-1 ${isRTL ? 'flex-row-reverse' : ''}`} aria-label={t('workflow')}>
+              {stages.map((stage, index) => <li key={stage.id} className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}><div className={`flex min-w-28 flex-col gap-1 rounded-lg border px-3 py-2.5 text-xs ${stage.state === 'current' ? 'border-primary bg-primary/10 font-semibold text-foreground shadow-sm' : stage.state === 'complete' ? 'border-border bg-muted/50 text-foreground' : 'border-border bg-background text-muted-foreground'}`}><span className="flex items-center gap-1.5">{stage.state === 'complete' ? <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-[rgb(var(--cmx-success-rgb,34_197_94))]" /> : <span className={`h-2 w-2 rounded-full ${stage.state === 'current' ? 'bg-primary' : 'bg-muted-foreground/40'}`} />}{stage.label}</span><span className="text-[10px] text-muted-foreground">{stage.state === 'current' ? t('workflowGuidance') : stage.state === 'complete' ? '✓' : '—'}</span></div>{index < stages.length - 1 ? <ChevronRight aria-hidden="true" className={`mx-1 h-4 w-4 shrink-0 text-muted-foreground/50 ${isRTL ? 'rotate-180' : ''}`} /> : null}</li>)}
             </ol>
-            <div className={`mt-4 flex flex-wrap items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`mt-4 flex flex-wrap items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <p className="text-sm text-muted-foreground">{preparation ? t('preparationStatus', { value: preparation }) : t('workflowGuidance')}</p>
-              {status.toLowerCase() === 'intake' || preparation === 'pending' ? <Link href={`/dashboard/preparation/${orderId}`}><CmxButton>{t('startPreparation')}</CmxButton></Link> : <Link href={detailHref('actions')}><CmxButton>{t('viewAvailableActions')}</CmxButton></Link>}
             </div>
           </div>
         </CmxCardContent>
@@ -153,11 +200,17 @@ export function OrderWorkspaceScreen({
 
       {hasCollectionDue ? <CmxCard className="border-[rgb(var(--cmx-warning-rgb,234_179_8))]/40"><CmxCardContent className={`flex flex-wrap items-center justify-between gap-3 py-4 ${isRTL ? 'flex-row-reverse' : ''}`}><div><p className="font-semibold">{t('collectionAttentionTitle')}</p><p className="text-sm text-muted-foreground">{t('collectionAttentionDescription', { value: fmt(balance) })}</p></div><CollectPaymentButton label={t('collectPayment')} onCollect={() => setCollectOpen(true)} /></CmxCardContent></CmxCard> : null}
 
-      <OrderWorkspaceSectionNav activeSection={activeSection} onChange={changeSection} labels={{ overview: t('sections.overview'), work: t('sections.work'), customer: t('sections.customer'), financials: t('sections.financials'), activity: t('sections.activity') }} counts={{ work: itemRows.length }} />
+      <OrderWorkspaceSectionNav activeSection={activeSection} onChange={changeSection} labels={{ overview: t('sections.overview'), work: t('sections.work'), customer: t('sections.customer'), financials: t('sections.financials'), activity: t('sections.activity'), actions: t('sections.actions') }} counts={{ work: itemRows.length }} />
 
-      {activeSection === 'overview' || activeSection === 'work' ? <section className="grid gap-4 lg:grid-cols-2" aria-label={t('sections.work')}>
-        <CmxCard><CmxCardHeader><CmxCardTitle>{t('workProgress')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="space-y-3"><div className="flex items-center gap-2 text-sm"><Package aria-hidden="true" className="h-4 w-4 text-muted-foreground" />{t('itemCount', { count: itemRows.length })}</div><p className="text-sm text-muted-foreground">{itemRows.length ? t('workReady') : t('noItems')}</p><Link href={detailHref('items')}><CmxButton variant="outline" size="sm"><ClipboardCheck aria-hidden="true" className="h-4 w-4" />{t('openWork')}</CmxButton></Link></CmxCardContent></CmxCard>
-        <CmxCard><CmxCardHeader><CmxCardTitle>{t('financialSnapshot')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="grid grid-cols-2 gap-4 text-sm"><div><p className="text-muted-foreground">{t('paid')}</p><p className="font-semibold tabular-nums">{fmt(paid)}</p></div><div><p className="text-muted-foreground">{t('credits')}</p><p className="font-semibold tabular-nums">{fmt(credits)}</p></div><div className="col-span-2 border-t pt-3"><p className="text-muted-foreground">{t('balance')}</p><p className="text-lg font-bold tabular-nums">{fmt(balance)}</p></div></CmxCardContent></CmxCard>
+      {/* Overview balances work, finance, customer, and activity context before an operator enters a specialist flow. */}
+      {activeSection === 'overview' || activeSection === 'work' ? <section className="grid gap-4 xl:grid-cols-3" aria-label={t('sections.work')}>
+        <CmxCard className="xl:col-span-2"><CmxCardHeader><CmxCardTitle>{t('workProgress')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="space-y-4"><div className="flex items-end justify-between gap-4"><div><div className="flex items-center gap-2 text-sm font-medium"><Package aria-hidden="true" className="h-4 w-4 text-primary" />{t('itemCount', { count: itemRows.length })}</div><p className="mt-2 text-sm text-muted-foreground">{itemRows.length ? t('workReady') : t('noItems')}</p></div><p className="text-3xl font-bold tabular-nums">{itemRows.length}</p></div><div className="h-2 overflow-hidden rounded-full bg-muted">
+          {/* Fixed visual signal avoids claiming precise completion until the order payload exposes verified item-stage progress. */}
+          <div className="h-full w-1/4 rounded-full bg-primary transition-all" />
+        </div><Link href={detailHref('items')}><CmxButton variant="outline" size="sm"><ClipboardCheck aria-hidden="true" className="h-4 w-4" />{t('openWork')}</CmxButton></Link></CmxCardContent></CmxCard>
+        <CmxCard><CmxCardHeader><CmxCardTitle>{t('financialSnapshot')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="space-y-3 text-sm"><div className="flex items-center justify-between"><span className="text-muted-foreground">{t('paid')}</span><span className="font-semibold tabular-nums">{fmt(paid)}</span></div><div className="flex items-center justify-between"><span className="text-muted-foreground">{t('credits')}</span><span className="font-semibold tabular-nums">{fmt(credits)}</span></div><div className="flex items-center justify-between border-t pt-3"><span className="font-medium">{t('balance')}</span><span className="text-lg font-bold tabular-nums">{fmt(balance)}</span></div></CmxCardContent></CmxCard>
+        <CmxCard><CmxCardHeader><CmxCardTitle>{t('customerContext')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="space-y-3"><p className="font-medium">{customerName}</p><p className="text-sm text-muted-foreground" dir="ltr">{mobile ?? t('noMobile')}</p><p className="line-clamp-2 text-sm text-muted-foreground">{address ?? t('noAddress')}</p><CmxButton variant="ghost" size="sm" onClick={() => changeSection('customer')}>{t('sections.customer')}<ChevronRight aria-hidden="true" className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} /></CmxButton></CmxCardContent></CmxCard>
+        <CmxCard className="xl:col-span-2"><CmxCardHeader><CmxCardTitle>{t('activityTitle')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">{t('activityDescription')}</p><CmxButton variant="outline" size="sm" onClick={() => changeSection('activity')}>{t('openActivity')}<ChevronRight aria-hidden="true" className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} /></CmxButton></CmxCardContent></CmxCard>
       </section> : null}
 
       {activeSection === 'customer' ? <CmxCard><CmxCardHeader><CmxCardTitle>{t('customerContext')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="grid gap-4 md:grid-cols-2"><div><p className="text-sm font-medium">{customerName}</p>{mobile ? <div className="mt-2 flex items-center gap-2"><Phone aria-hidden="true" className="h-4 w-4 text-muted-foreground" /><span dir="ltr" className="text-sm">{mobile}</span><CmxButton size="xs" variant="ghost" aria-label={t('copyMobile')} onClick={copyMobile}><Copy aria-hidden="true" className="h-4 w-4" /></CmxButton></div> : <p className="mt-2 text-sm text-muted-foreground">{t('noMobile')}</p>}</div><div><div className="flex gap-2"><MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><div><p className="text-sm">{address ?? t('noAddress')}</p>{location ? <p className="mt-1 text-sm text-muted-foreground">{location}</p> : null}</div></div></div></CmxCardContent></CmxCard> : null}
@@ -165,6 +218,18 @@ export function OrderWorkspaceScreen({
       {activeSection === 'financials' ? <CmxCard><CmxCardHeader><CmxCardTitle>{t('financialsTitle')}</CmxCardTitle></CmxCardHeader><CmxCardContent><p className="mb-4 text-sm text-muted-foreground">{t('financialsDescription')}</p><Link href={detailHref('payments_credits')}><CmxButton><CreditCard aria-hidden="true" className="h-4 w-4" />{t('openFinancials')}</CmxButton></Link></CmxCardContent></CmxCard> : null}
 
       {activeSection === 'activity' ? <CmxCard><CmxCardHeader><CmxCardTitle>{t('activityTitle')}</CmxCardTitle></CmxCardHeader><CmxCardContent><p className="mb-4 text-sm text-muted-foreground">{t('activityDescription')}</p><Link href={`/dashboard/orders/${orderId}?tab=history`}><CmxButton variant="outline">{t('openActivity')}</CmxButton></Link></CmxCardContent></CmxCard> : null}
+      {activeSection === 'actions' ? (
+        <section aria-label={t('sections.actions')}>
+          {/* The workflow engine remains authoritative for allowed order-control actions and their safety gates. */}
+          <WorkflowActionBar
+            orderId={orderId}
+            screen="order_control"
+            title={t('orderControlTitle')}
+            // Re-read the server-sourced workspace after an audited workflow transition changes the order state.
+            onActionSuccess={() => router.refresh()}
+          />
+        </section>
+      ) : null}
       <OrderCollectPaymentModal
         open={collectOpen}
         onOpenChange={setCollectOpen}

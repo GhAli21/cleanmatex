@@ -21,7 +21,7 @@ interface OrderWorkspacePageProps {
 }
 
 function normalizeSection(value?: string): OrderWorkspaceSectionId {
-  return ['overview', 'work', 'customer', 'financials', 'activity'].includes(value ?? '')
+  return ['overview', 'work', 'customer', 'financials', 'activity', 'actions'].includes(value ?? '')
     ? (value as OrderWorkspaceSectionId)
     : 'overview';
 }

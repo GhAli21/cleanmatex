@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/db/prisma';
 import {
   completeDelivery,
+  resolveActiveStopForCustomerConfirm,
   DeliveryCompletionError,
 } from '@/lib/services/delivery/delivery-completion.service';
 import { WorkflowEngineError } from '@/lib/services/workflow/workflow-engine.service';
@@ -32,6 +33,7 @@ const ROUTED_POD_VERSION_ID = 'a1000000-0000-4000-8000-000000000062';
 
 let dbReady = false;
 let otherTenantId: string | null = null;
+let confirmLevelReady = false;
 
 interface DeliverySeed {
   customerId: string;
@@ -68,6 +70,18 @@ beforeAll(async () => {
       } catch {
         otherTenantId = null;
       }
+
+      try {
+        const confirmLevelCheck = await prisma.$queryRaw<Array<{ ready: boolean }>>`
+          SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'org_dlv_stops_dtl' AND column_name = 'confirm_level'
+          ) AS ready
+        `;
+        confirmLevelReady = confirmLevelCheck[0]?.ready === true;
+      } catch {
+        confirmLevelReady = false;
+      }
     }
   } catch {
     dbReady = false;
@@ -82,6 +96,17 @@ function dbit(name: string, fn: () => Promise<void>): void {
   it(name, async () => {
     if (!dbReady) {
       console.warn(`[delivery-completion-db] Local DB is unavailable or delivery tables are missing - skipping: ${name}`);
+      return;
+    }
+    await fn();
+  });
+}
+
+/** Gated on migration 0493 (org_dlv_stops_dtl.confirm_level/confirm_notes) being applied. */
+function dbitConfirmLevel(name: string, fn: () => Promise<void>): void {
+  it(name, async () => {
+    if (!dbReady || !confirmLevelReady) {
+      console.warn(`[delivery-completion-db] confirm_level column not present yet (migration 0493 not applied) - skipping: ${name}`);
       return;
     }
     await fn();
@@ -623,6 +648,83 @@ describe('completeDelivery database invariants', () => {
       expect(order?.current_status).toBe('delivered');
     } finally {
       await cleanupSeed(seed, [secondKey]);
+    }
+  });
+
+  dbitConfirmLevel('marks an open stop delivered with confirm_level=customer when the customer confirms first', async () => {
+    const seed = await seedDelivery({ stopStatus: 'in_transit' });
+    try {
+      await prisma.$transaction((tx) =>
+        resolveActiveStopForCustomerConfirm(tx, DEMO_TENANT, seed.orderId, 'Left with the neighbor'),
+      );
+
+      const stop = await prisma.org_dlv_stops_dtl.findFirst({
+        where: { id: seed.stopId, tenant_org_id: DEMO_TENANT },
+        select: { stop_status_code: true, confirm_level: true, confirm_notes: true, actual_time: true },
+      });
+      expect(stop?.stop_status_code).toBe('delivered');
+      expect(stop?.confirm_level).toBe('customer');
+      expect(stop?.confirm_notes).toBe('Left with the neighbor');
+      expect(stop?.actual_time).not.toBeNull();
+
+      const route = await prisma.org_dlv_routes_mst.findFirst({
+        where: { id: seed.routeId, tenant_org_id: DEMO_TENANT },
+        select: { completed_stops: true, route_status_code: true },
+      });
+      expect(Number(route?.completed_stops ?? 0)).toBe(1);
+      expect(route?.route_status_code).toBe('completed');
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbitConfirmLevel('is a no-op when the stop is already delivered', async () => {
+    const seed = await seedDelivery({ stopStatus: 'delivered' });
+    try {
+      await prisma.$transaction((tx) =>
+        resolveActiveStopForCustomerConfirm(tx, DEMO_TENANT, seed.orderId, 'too late'),
+      );
+
+      const stop = await prisma.org_dlv_stops_dtl.findFirst({
+        where: { id: seed.stopId, tenant_org_id: DEMO_TENANT },
+        select: { stop_status_code: true, confirm_level: true, confirm_notes: true },
+      });
+      expect(stop?.stop_status_code).toBe('delivered');
+      expect(stop?.confirm_level).toBeNull();
+      expect(stop?.confirm_notes).toBeNull();
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbitConfirmLevel('sets confirm_level=sys_user when staff completes the stop', async () => {
+    const seed = await seedDelivery();
+    try {
+      await completeDelivery({
+        tenantId: DEMO_TENANT,
+        stopId: seed.stopId,
+        actorUserId: ACTOR,
+        expectedStateVersion: 4,
+        idempotencyKey: seed.idempotencyKey,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
+      }).catch((error) => {
+        if (error instanceof WorkflowEngineError) {
+          console.warn('[delivery-completion-db] CONFIRM_DELIVERY is not available - skipping confirm_level=sys_user check');
+          return;
+        }
+        throw error;
+      });
+
+      const stop = await prisma.org_dlv_stops_dtl.findFirst({
+        where: { id: seed.stopId, tenant_org_id: DEMO_TENANT },
+        select: { stop_status_code: true, confirm_level: true },
+      });
+      if (stop?.stop_status_code === 'delivered') {
+        expect(stop.confirm_level).toBe('sys_user');
+      }
+    } finally {
+      await cleanupSeed(seed);
     }
   });
 });

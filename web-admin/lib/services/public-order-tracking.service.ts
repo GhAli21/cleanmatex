@@ -16,6 +16,7 @@ import {
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { WORKFLOW_SYSTEM_ACTOR } from '@/lib/constants/workflow-system-actor';
 import { completePickup, PickupCompletionError } from '@/lib/services/pickup/pickup-completion.service';
+import { resolveActiveStopForCustomerConfirm } from '@/lib/services/delivery/delivery-completion.service';
 import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-state.service';
 import { PICKUP_RELEASE_STATES } from '@/lib/types/pickup-release';
 import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
@@ -523,6 +524,12 @@ export async function confirmPublicOrderReceivedResponse(
       });
     }
 
+    // Optional short comment the customer may add when confirming receipt
+    // (e.g. "left with neighbor"). A request with no/invalid body still
+    // confirms normally — this is a courtesy field, never a requirement.
+    const requestBody = await request.json().catch(() => null) as { notes?: unknown } | null;
+    const confirmNotes = typeof requestBody?.notes === 'string' ? requestBody.notes.trim().slice(0, 500) : undefined;
+
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('org_orders_mst')
@@ -569,6 +576,32 @@ export async function confirmPublicOrderReceivedResponse(
 
     const toStatus: OrderStatus = 'delivered';
     if (fromStatus === 'delivered') {
+      // The driver/staff already completed delivery before the customer used
+      // this link — nothing to transition. The customer's own acknowledgment
+      // is still worth keeping as a distinct, queryable timeline fact (not a
+      // second STATUS_CHANGE, since nothing changes), recorded once per order.
+      const alreadyAcknowledged = await prisma.org_order_history.findFirst({
+        where: { tenant_org_id: tenantId, order_id: order.id, action_type: 'CUSTOMER_DELIVERY_ACKNOWLEDGED' },
+        select: { id: true },
+      });
+      if (!alreadyAcknowledged) {
+        await prisma.org_order_history.create({
+          data: {
+            tenant_org_id: tenantId,
+            order_id: order.id,
+            action_type: 'CUSTOMER_DELIVERY_ACKNOWLEDGED',
+            from_value: 'delivered',
+            to_value: 'delivered',
+            done_by: WORKFLOW_SYSTEM_ACTOR.userId,
+            payload: {
+              source: 'public_tracking',
+              notes: confirmNotes ?? null,
+              reason: 'Customer confirmed receipt via public tracking link after delivery was already completed.',
+            } as Prisma.InputJsonValue,
+          },
+        });
+      }
+
       return {
         status: 200,
         body: {
@@ -633,7 +666,9 @@ export async function confirmPublicOrderReceivedResponse(
       });
     }
 
-    const notes = 'Customer confirmed receipt via public tracking link';
+    const notes = confirmNotes
+      ? `Customer confirmed receipt via public tracking link — "${confirmNotes}"`
+      : 'Customer confirmed receipt via public tracking link';
     const metadata = {
       source: 'public_tracking',
       userAgent: request.headers.get('user-agent'),
@@ -648,23 +683,30 @@ export async function confirmPublicOrderReceivedResponse(
         // The tracking token authorizes a public web command, never a staff channel.
         channel: 'public_web',
       });
-      const result = await executeAction({
-        tenantId,
-        orderId: order.id,
-        screen: PUBLIC_TRACKING_SCREEN,
-        actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
-        expectedStateVersion: available.stateVersion,
-        actorUserId: WORKFLOW_SYSTEM_ACTOR.userId,
-        actorName: WORKFLOW_SYSTEM_ACTOR.displayName,
-        input: {
-          notes,
-          preferredToStatus: toStatus,
-          metadata,
-        },
-        channel: 'public_web',
-        idempotencyKey:
-          request.headers.get('Idempotency-Key')?.trim() ||
-          `public-confirm-received:${tenantId}:${order.id}`,
+      const result = await prisma.$transaction(async (tx) => {
+        // A route stop can still be pending/in_transit at this moment; the
+        // customer's own confirmation is a valid delivery confirmation for it
+        // too, so it must resolve atomically with the order-level transition
+        // below rather than being left orphaned behind an already-delivered order.
+        await resolveActiveStopForCustomerConfirm(tx, tenantId, order.id, confirmNotes);
+        return executeAction({
+          tenantId,
+          orderId: order.id,
+          screen: PUBLIC_TRACKING_SCREEN,
+          actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
+          expectedStateVersion: available.stateVersion,
+          actorUserId: WORKFLOW_SYSTEM_ACTOR.userId,
+          actorName: WORKFLOW_SYSTEM_ACTOR.displayName,
+          input: {
+            notes,
+            preferredToStatus: toStatus,
+            metadata,
+          },
+          channel: 'public_web',
+          idempotencyKey:
+            request.headers.get('Idempotency-Key')?.trim() ||
+            `public-confirm-received:${tenantId}:${order.id}`,
+        }, tx);
       });
 
       logger.info('Public confirm-received success (engine)', {

@@ -5078,6 +5078,8 @@ model org_dlv_stops_dtl {
   address_lat           Decimal?                @db.Decimal(10, 8)
   address_lng           Decimal?                @db.Decimal(11, 8)
   stop_status_code      String?                 @default("pending") @db.VarChar(50)
+  confirm_level         String?
+  confirm_notes         String?
   scheduled_time        DateTime?               @db.Timestamp(6)
   estimated_arrival     DateTime?               @db.Timestamp(6)
   actual_time           DateTime?               @db.Timestamp(6)

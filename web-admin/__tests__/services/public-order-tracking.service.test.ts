@@ -3,6 +3,11 @@
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     $queryRaw: jest.fn(),
+    $transaction: jest.fn((callback: (tx: unknown) => unknown) => callback({})),
+    org_order_history: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+    },
   },
 }));
 
@@ -73,6 +78,10 @@ jest.mock('@/lib/services/pickup/pickup-completion.service', () => ({
   },
 }));
 
+jest.mock('@/lib/services/delivery/delivery-completion.service', () => ({
+  resolveActiveStopForCustomerConfirm: jest.fn(),
+}));
+
 jest.mock('@/lib/services/pickup/pickup-release-state.service', () => ({
   getPickupReleaseSummary: jest.fn(),
 }));
@@ -93,6 +102,7 @@ import {
 } from '@/lib/services/workflow/workflow-engine.service';
 import { completePickup } from '@/lib/services/pickup/pickup-completion.service';
 import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-state.service';
+import { resolveActiveStopForCustomerConfirm } from '@/lib/services/delivery/delivery-completion.service';
 import {
   confirmPublicOrderReceivedResponse,
   getPublicTrackingPathForOrderId,
@@ -313,6 +323,7 @@ describe('public-order-tracking service', () => {
 
     it('returns idempotent success for delivered without executing another transition', async () => {
       mockOrderLookup('delivered');
+      (prisma.org_order_history.findFirst as jest.Mock).mockResolvedValueOnce(null);
 
       const result = await confirmPublicOrderReceivedResponse(request as never, {
         tenantId: 'tenant-1',
@@ -324,6 +335,30 @@ describe('public-order-tracking service', () => {
         body: { success: true, data: { status: 'delivered', idempotent: true } },
       });
       expect(executeAction).not.toHaveBeenCalled();
+      expect(prisma.org_order_history.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({
+          tenant_org_id: 'tenant-1',
+          order_id: 'order-1',
+          action_type: 'CUSTOMER_DELIVERY_ACKNOWLEDGED',
+          done_by: 'system-user',
+        }),
+      }));
+    });
+
+    it('does not duplicate the acknowledgment row when the customer confirms delivered twice', async () => {
+      mockOrderLookup('delivered');
+      (prisma.org_order_history.findFirst as jest.Mock).mockResolvedValueOnce({ id: 'history-1' });
+
+      const result = await confirmPublicOrderReceivedResponse(request as never, {
+        tenantId: 'tenant-1',
+        orderNo: 'ORD-20260813-0002',
+      });
+
+      expect(result).toMatchObject({
+        status: 200,
+        body: { success: true, data: { status: 'delivered', idempotent: true } },
+      });
+      expect(prisma.org_order_history.create).not.toHaveBeenCalled();
     });
 
     it('rejects an invalid workflow status before any transition call', async () => {
@@ -350,6 +385,39 @@ describe('public-order-tracking service', () => {
       );
     });
 
+    it('confirms delivery, resolves any open stop for the customer, and includes their note', async () => {
+      mockOrderLookup('out_for_delivery');
+      (listAvailableActions as jest.Mock).mockResolvedValueOnce({ stateVersion: 7 });
+      (executeAction as jest.Mock).mockResolvedValueOnce({ currentStatus: 'delivered', stateVersion: 8 });
+
+      const notedRequest = new Request('https://cmx.cleanmatex.com/api/v1/public/track/token', {
+        method: 'POST',
+        headers: { 'user-agent': 'jest', 'x-forwarded-for': '127.0.0.1', 'content-type': 'application/json' },
+        body: JSON.stringify({ notes: 'Left with the neighbor' }),
+      });
+
+      const result = await confirmPublicOrderReceivedResponse(notedRequest as never, {
+        tenantId: 'tenant-1',
+        orderNo: 'ORD-20260813-0002',
+      });
+
+      expect(result).toMatchObject({ status: 200, body: { success: true } });
+      expect(resolveActiveStopForCustomerConfirm).toHaveBeenCalledWith(
+        expect.anything(),
+        'tenant-1',
+        'order-1',
+        'Left with the neighbor',
+      );
+      expect(executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({
+            notes: expect.stringContaining('Left with the neighbor'),
+          }),
+        }),
+        expect.anything(),
+      );
+    });
+
     it('maps an unbound live-policy confirm to HTTP 409', async () => {
       mockOrderLookup('out_for_delivery');
       (listAvailableActions as jest.Mock).mockResolvedValueOnce({ stateVersion: 7 });
@@ -369,6 +437,7 @@ describe('public-order-tracking service', () => {
         status: 409,
         body: { success: false, code: 'PROFILE_SNAPSHOT_INCOMPLETE' },
       });
+      expect(resolveActiveStopForCustomerConfirm).toHaveBeenCalled();
     });
 
     it('maps a public channel mismatch to HTTP 403', async () => {

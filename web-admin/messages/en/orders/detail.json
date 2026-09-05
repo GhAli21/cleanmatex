@@ -87,7 +87,8 @@
     "activityTitle": "Order activity",
     "activityDescription": "Open the existing activity history for recorded order events.",
     "openActivity": "Open activity history",
-    "sections": { "overview": "Overview", "work": "Work", "customer": "Customer", "financials": "Financials", "activity": "Activity" },
+    "sections": { "overview": "Overview", "work": "Work", "customer": "Customer", "financials": "Financials", "activity": "Activity", "actions": "Actions" },
+    "orderControlTitle": "Order controls",
     "stages": { "intake": "Intake", "preparation": "Preparation", "processing": "Processing", "qa": "Quality check", "ready": "Ready", "delivered": "Delivered", "completed": "Completed" },
     "statuses": { "intake": "Intake", "preparation": "Preparation", "processing": "Processing", "qa": "Quality check", "ready": "Ready", "delivered": "Delivered", "completed": "Completed", "cancelled": "Cancelled" },
     "paymentPlans": { "pay_on_collection": "Pay on collection" }
