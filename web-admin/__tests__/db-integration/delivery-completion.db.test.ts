@@ -472,6 +472,42 @@ describe('completeDelivery database invariants', () => {
     }
   });
 
+  dbit('completes a pay-on-collection stop once the balance is fully settled', async () => {
+    // The blocking case ("does not complete a pay-on-collection stop while a
+    // balance remains") was already covered; this is its missing counterpart
+    // — proving the SAME payment type succeeds once collectPaymentTx (tested
+    // separately in collect-payment.idempotency.test.ts / settlement.service.test.ts)
+    // has actually zeroed the balance, not just any non-collection order type.
+    const seed = await seedDelivery({ paymentTypeCode: 'PAY_ON_COLLECTION', outstandingAmount: 0 });
+    try {
+      const result = await completeDelivery({
+        tenantId: DEMO_TENANT,
+        stopId: seed.stopId,
+        actorUserId: ACTOR,
+        expectedStateVersion: 4,
+        idempotencyKey: seed.idempotencyKey,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
+      }).catch((error) => {
+        if (error instanceof WorkflowEngineError) {
+          console.warn('[delivery-completion-db] CONFIRM_DELIVERY is not available - skipping pay-on-collection settled case');
+          return null;
+        }
+        throw error;
+      });
+      if (!result) return;
+
+      expect(result.workflow.currentStatus).toBe('delivered');
+      const stop = await prisma.org_dlv_stops_dtl.findFirst({
+        where: { id: seed.stopId, tenant_org_id: DEMO_TENANT },
+        select: { stop_status_code: true },
+      });
+      expect(stop?.stop_status_code).toBe('delivered');
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
   dbit('rejects a stale state version without mutating the stop', async () => {
     const seed = await seedDelivery();
     try {

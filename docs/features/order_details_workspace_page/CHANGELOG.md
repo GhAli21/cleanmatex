@@ -16,5 +16,6 @@ All notable Order Workspace documentation and delivery milestones are recorded h
 - Implemented the hidden Workspace route, loading state, additive legacy-page entry, isolated UI package, EN/AR strings, and operational Overview sections.
 - Upgraded the Workspace presentation into a responsive operational command center: stronger header hierarchy, horizontal workflow rail, compact financial snapshot, fulfillment/customer context, and activity preview.
 - Added an Actions tab that delegates `order_control` workflow actions to the existing Workflow Engine action bar, retaining its server authorization, optimistic-concurrency, gate, reason, and confirmation behavior.
+- Replaced the hardcoded lifecycle and false progress signal with the order-pinned profile policy's configured `stage_sequence` and localized workflow-status catalog labels.
 - i18n parity, TypeScript, targeted ESLint, production build, and diff whitespace checks passed.
 - Live responsive, RTL, accessibility, permission, and data-shape verification remain required. See [current_status.md](current_status.md).

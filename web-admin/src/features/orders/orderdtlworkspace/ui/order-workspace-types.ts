@@ -12,6 +12,16 @@ export interface OrderWorkspaceStage {
   description?: string
 }
 
+/** A localized, ordered stage from the workflow policy pinned to this order. */
+export interface OrderWorkspaceWorkflowJourneyStage {
+  /** Persisted workflow status code used to identify the current stage. */
+  statusCode: string
+  /** Locale-selected status label from the workflow status catalog. */
+  label: string
+  /** Whether this policy stage is terminal for the order lifecycle. */
+  isTerminal: boolean
+}
+
 /** A safe, localized operational attention item shown above the work area. */
 export interface OrderWorkspaceAttention {
   id: string

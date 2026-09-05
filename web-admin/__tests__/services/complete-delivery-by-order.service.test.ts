@@ -92,6 +92,24 @@ describe('completeDeliveryByOrder', () => {
     expect(mockExecuteAction).not.toHaveBeenCalled();
   });
 
+  it('allows a pay-on-collection handover once the balance is fully settled', async () => {
+    // Counterpart to the blocking case above: same payment type, balance
+    // already zeroed (as collectPaymentTx leaves it once paid) — the gate
+    // must let this through rather than treating PAY_ON_COLLECTION itself as
+    // a permanent block.
+    mockQueryRaw
+      .mockResolvedValueOnce([lockedOrder({
+        payment_type_code: 'PAY_ON_COLLECTION',
+        outstanding_amount: '0.0000',
+      })])
+      .mockResolvedValueOnce([]);
+
+    const result = await completeDeliveryByOrder(COMMAND);
+
+    expect(result.workflow.currentStatus).toBe('delivered');
+    expect(mockExecuteAction).toHaveBeenCalledTimes(1);
+  });
+
   it('refuses to invent a dummy route when an active stop already exists', async () => {
     mockQueryRaw
       .mockResolvedValueOnce([lockedOrder()])

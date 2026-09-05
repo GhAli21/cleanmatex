@@ -26,7 +26,7 @@ The following implementation artifacts exist in the worktree and indicate the ro
 | `web-admin/messages/en/orders/detail.json` | English workspace strings | Implemented; i18n parity passed |
 | `web-admin/messages/ar/orders/detail.json` | Arabic workspace strings | Implemented; i18n parity passed |
 
-The Workspace implements an operational header, a premium horizontal workflow rail, a responsive command-center overview, standard-payment handoff, work/financial/customer/activity sections, copy-phone feedback, loading state, existing-detail deep links, and an **Actions** tab. The Actions tab reuses the canonical `order_control` Workflow Engine action bar; it does **not** introduce new workflow mutations, payment behavior, SLA calculations, or unsupported audit sources. Manual responsive, accessibility, and live-data verification remain required before release.
+The Workspace implements an operational header, a workflow rail loaded from the order-pinned semantic profile policy's `stage_sequence`, a responsive command-center overview, standard-payment handoff, work/financial/customer/activity sections, copy-phone feedback, loading state, existing-detail deep links, and an **Actions** tab. The Actions tab reuses the canonical `order_control` Workflow Engine action bar; it does **not** introduce new workflow mutations, payment behavior, SLA calculations, or unsupported audit sources. Manual responsive, accessibility, and live-data verification remain required before release.
 
 ## Activity-source boundary
 

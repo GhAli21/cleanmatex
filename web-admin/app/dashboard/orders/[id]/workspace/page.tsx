@@ -7,6 +7,7 @@ import {
   sanitizeOrderDetailsReturnUrl,
 } from '@/lib/orders/order-details-navigation';
 import { OrderWorkspaceScreen } from '@features/orders/orderdtlworkspace/ui/order-workspace-screen';
+import { getOrderWorkspaceWorkflowJourney } from '@features/orders/orderdtlworkspace/ui/order-workspace-workflow-journey.server';
 import type { OrderWorkspaceSectionId } from '@features/orders/orderdtlworkspace/ui/order-workspace-types';
 import { OrderDetailError } from '../order-detail-error';
 
@@ -85,15 +86,23 @@ async function OrderWorkspaceContent({
   // values at the server boundary so the App Router receives serializable data.
   const serializedOrder = JSON.parse(JSON.stringify(result.data)) as typeof result.data;
 
+  const locale = await getLocale();
+  const workflowJourney = await getOrderWorkspaceWorkflowJourney(
+    tenantId,
+    String(result.data.id),
+    locale,
+  );
+
   return (
     <OrderWorkspaceScreen
       order={serializedOrder as unknown as Record<string, unknown>}
       tenantOrgId={tenantId}
       userId={userId ?? ''}
-      locale={await getLocale()}
+      locale={locale}
       returnUrl={safeReturnUrl}
       returnLabel={searchParams.returnLabel}
       initialSection={normalizeSection(searchParams.section)}
+      workflowJourney={workflowJourney}
     />
   );
 }

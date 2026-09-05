@@ -146,6 +146,18 @@ describe('workflow gate evaluator', () => {
       .toBe('GATE_DELIVERY_COLLECTION');
   });
 
+  it('allows pickup and delivery collection once a pay-on-collection order is fully settled', () => {
+    const settled = {
+      ...settledOrder,
+      paymentTypeCode: 'PAY_ON_COLLECTION',
+      outstandingAmount: '0.0000',
+    };
+    expect(evaluateWorkflowGate('pickup_collection_settled', settled, 'semantic'))
+      .toEqual({ allowed: true, blockedReasons: [] });
+    expect(evaluateWorkflowGate('delivery_collection_settled', settled, 'semantic'))
+      .toEqual({ allowed: true, blockedReasons: [] });
+  });
+
   it('requires an open pickup release for staged pickup and an active delivery stop', () => {
     expect(evaluateWorkflowGate(
       'pickup_release_valid',

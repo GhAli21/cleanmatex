@@ -60,6 +60,8 @@
     "balanceDue": "Balance due: {value}",
     "workflow": "Workflow",
     "workflowGuidance": "Review the available action before continuing this order.",
+    "workflowCurrentStatus": "Current workflow status: {value}",
+    "workflowJourneyUnavailable": "The configured workflow journey is unavailable for this order.",
     "preparationStatus": "Preparation: {value}",
     "startPreparation": "Start preparation",
     "viewAvailableActions": "View available actions",

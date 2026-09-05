@@ -9,4 +9,5 @@ export type {
   OrderWorkspaceProps,
   OrderWorkspaceSectionId,
   OrderWorkspaceStage,
+  OrderWorkspaceWorkflowJourneyStage,
 } from './order-workspace-types'

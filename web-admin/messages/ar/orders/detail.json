@@ -60,6 +60,8 @@
     "balanceDue": "الرصيد المستحق: {value}",
     "workflow": "سير العمل",
     "workflowGuidance": "راجع الإجراء المتاح قبل متابعة هذا الطلب.",
+    "workflowCurrentStatus": "حالة سير العمل الحالية: {value}",
+    "workflowJourneyUnavailable": "مسار سير العمل المهيأ غير متاح لهذا الطلب.",
     "preparationStatus": "التحضير: {value}",
     "startPreparation": "بدء التحضير",
     "viewAvailableActions": "عرض الإجراءات المتاحة",

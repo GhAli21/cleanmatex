@@ -17,7 +17,7 @@ import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 
 import { OrderWorkspaceSectionNav } from './order-workspace-section-nav';
 import { OrderWorkspacePaymentBadge, OrderWorkspaceStatusBadge } from './order-workspace-status-badge';
-import type { OrderWorkspaceSectionId, OrderWorkspaceStage } from './order-workspace-types';
+import type { OrderWorkspaceSectionId, OrderWorkspaceStage, OrderWorkspaceWorkflowJourneyStage } from './order-workspace-types';
 
 /**
  * Data and navigation context required to render the order operations workspace.
@@ -40,6 +40,8 @@ interface OrderWorkspaceScreenProps {
   returnLabel?: string;
   /** Section selected when the URL has no valid workspace section. */
   initialSection: OrderWorkspaceSectionId;
+  /** Ordered display journey from the tenant order's pinned workflow policy. */
+  workflowJourney: OrderWorkspaceWorkflowJourneyStage[];
 }
 
 const sections: OrderWorkspaceSectionId[] = ['overview', 'work', 'customer', 'financials', 'activity', 'actions'];
@@ -88,6 +90,7 @@ export function OrderWorkspaceScreen({
   returnUrl,
   returnLabel,
   initialSection,
+  workflowJourney,
 }: OrderWorkspaceScreenProps) {
   const t = useTranslations('orders.detail.workspace');
   const isRTL = useRTL();
@@ -108,9 +111,8 @@ export function OrderWorkspaceScreen({
     ?? [value(customerMaster ?? {}, 'first_name'), value(customerMaster ?? {}, 'last_name')].filter(Boolean).join(' ')
     ?? t('unknownCustomer');
   const mobile = value(order, 'customer_mobile_number') ?? value(customerMaster ?? {}, 'phone');
-  const status = value(order, 'status') ?? 'intake';
+  const status = value(order, 'current_status') ?? value(order, 'status') ?? 'intake';
   const paymentPlan = value(order, 'payment_type_code');
-  const preparation = value(order, 'preparation_status');
   const address = value(order, 'address') ?? value(order, 'delivery_address') ?? value(order, 'customer_address');
   const location = value(order, 'location_details') ?? value(order, 'delivery_location_details');
   const fmt = (number: number) => formatMoneyAmountWithCode(number, { currencyCode: orderCurrency, decimalPlaces: 3, locale: locale === 'ar' ? 'ar' : 'en' });
@@ -119,14 +121,14 @@ export function OrderWorkspaceScreen({
     : initialSection;
 
   const stages = useMemo<OrderWorkspaceStage[]>(() => {
-    const values = ['intake', 'preparation', 'processing', 'qa', 'ready', 'delivered', 'completed'];
-    const currentIndex = Math.max(0, values.indexOf(status.toLowerCase()));
-    return values.map((stage, index) => ({
-      id: stage,
-      label: t(`stages.${stage}`),
-      state: index < currentIndex ? 'complete' : index === currentIndex ? 'current' : 'upcoming',
+    // The pinned policy, rather than a client-maintained lifecycle list, determines the operator-visible journey.
+    const currentIndex = workflowJourney.findIndex((stage) => stage.statusCode.toLowerCase() === status.toLowerCase());
+    return workflowJourney.map((stage, index) => ({
+      id: stage.statusCode,
+      label: stage.label,
+      state: currentIndex < 0 ? 'upcoming' : index < currentIndex ? 'complete' : index === currentIndex ? 'current' : 'upcoming',
     }));
-  }, [status, t]);
+  }, [status, workflowJourney]);
 
   const changeSection = (section: OrderWorkspaceSectionId) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -185,15 +187,15 @@ export function OrderWorkspaceScreen({
           <div className="border-t border-border pt-5">
             <div className={`mb-4 flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <p className={`text-sm font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('workflow')}</p>
-              <p className="text-xs font-medium text-muted-foreground">{stages.findIndex((stage) => stage.state === 'current') + 1} / {stages.length}</p>
+              {stages.length ? <p className="text-xs font-medium text-muted-foreground">{stages.findIndex((stage) => stage.state === 'current') + 1} / {stages.length}</p> : null}
             </div>
-            {/* Horizontal overflow keeps every lifecycle stage legible instead of compressing operational status on mobile. */}
-            <ol className={`flex min-w-max items-center gap-1 overflow-x-auto pb-1 ${isRTL ? 'flex-row-reverse' : ''}`} aria-label={t('workflow')}>
-              {stages.map((stage, index) => <li key={stage.id} className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}><div className={`flex min-w-28 flex-col gap-1 rounded-lg border px-3 py-2.5 text-xs ${stage.state === 'current' ? 'border-primary bg-primary/10 font-semibold text-foreground shadow-sm' : stage.state === 'complete' ? 'border-border bg-muted/50 text-foreground' : 'border-border bg-background text-muted-foreground'}`}><span className="flex items-center gap-1.5">{stage.state === 'complete' ? <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-[rgb(var(--cmx-success-rgb,34_197_94))]" /> : <span className={`h-2 w-2 rounded-full ${stage.state === 'current' ? 'bg-primary' : 'bg-muted-foreground/40'}`} />}{stage.label}</span><span className="text-[10px] text-muted-foreground">{stage.state === 'current' ? t('workflowGuidance') : stage.state === 'complete' ? '✓' : '—'}</span></div>{index < stages.length - 1 ? <ChevronRight aria-hidden="true" className={`mx-1 h-4 w-4 shrink-0 text-muted-foreground/50 ${isRTL ? 'rotate-180' : ''}`} /> : null}</li>)}
-            </ol>
-            <div className={`mt-4 flex flex-wrap items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <p className="text-sm text-muted-foreground">{preparation ? t('preparationStatus', { value: preparation }) : t('workflowGuidance')}</p>
-            </div>
+            {stages.length ? <>
+              {/* The configured policy order is scrollable rather than compressed on mobile. */}
+              <ol className={`flex min-w-max items-center gap-1 overflow-x-auto pb-1 ${isRTL ? 'flex-row-reverse' : ''}`} aria-label={t('workflow')}>
+                {stages.map((stage, index) => <li key={stage.id} className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`} aria-current={stage.state === 'current' ? 'step' : undefined}><div className={`flex min-w-28 items-center gap-1.5 rounded-lg border px-3 py-3 text-xs ${stage.state === 'current' ? 'border-primary bg-primary/10 font-semibold text-foreground shadow-sm' : stage.state === 'complete' ? 'border-border bg-muted/50 text-foreground' : 'border-border bg-background text-muted-foreground'}`}>{stage.state === 'complete' ? <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-[rgb(var(--cmx-success-rgb,34_197_94))]" /> : <span aria-hidden="true" className={`h-2 w-2 rounded-full ${stage.state === 'current' ? 'bg-primary' : 'bg-muted-foreground/40'}`} />}{stage.label}</div>{index < stages.length - 1 ? <ChevronRight aria-hidden="true" className={`mx-1 h-4 w-4 shrink-0 text-muted-foreground/50 ${isRTL ? 'rotate-180' : ''}`} /> : null}</li>)}
+              </ol>
+              <p className={`mt-4 text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('workflowCurrentStatus', { value: value(order, 'current_status') ?? value(order, 'status') ?? status })}</p>
+            </> : <p className="text-sm text-muted-foreground">{t('workflowJourneyUnavailable')}</p>}
           </div>
         </CmxCardContent>
       </CmxCard>
@@ -204,10 +206,7 @@ export function OrderWorkspaceScreen({
 
       {/* Overview balances work, finance, customer, and activity context before an operator enters a specialist flow. */}
       {activeSection === 'overview' || activeSection === 'work' ? <section className="grid gap-4 xl:grid-cols-3" aria-label={t('sections.work')}>
-        <CmxCard className="xl:col-span-2"><CmxCardHeader><CmxCardTitle>{t('workProgress')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="space-y-4"><div className="flex items-end justify-between gap-4"><div><div className="flex items-center gap-2 text-sm font-medium"><Package aria-hidden="true" className="h-4 w-4 text-primary" />{t('itemCount', { count: itemRows.length })}</div><p className="mt-2 text-sm text-muted-foreground">{itemRows.length ? t('workReady') : t('noItems')}</p></div><p className="text-3xl font-bold tabular-nums">{itemRows.length}</p></div><div className="h-2 overflow-hidden rounded-full bg-muted">
-          {/* Fixed visual signal avoids claiming precise completion until the order payload exposes verified item-stage progress. */}
-          <div className="h-full w-1/4 rounded-full bg-primary transition-all" />
-        </div><Link href={detailHref('items')}><CmxButton variant="outline" size="sm"><ClipboardCheck aria-hidden="true" className="h-4 w-4" />{t('openWork')}</CmxButton></Link></CmxCardContent></CmxCard>
+        <CmxCard className="xl:col-span-2"><CmxCardHeader><CmxCardTitle>{t('workProgress')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="space-y-4"><div className="flex items-end justify-between gap-4"><div><div className="flex items-center gap-2 text-sm font-medium"><Package aria-hidden="true" className="h-4 w-4 text-primary" />{t('itemCount', { count: itemRows.length })}</div><p className="mt-2 text-sm text-muted-foreground">{itemRows.length ? t('workReady') : t('noItems')}</p></div><p className="text-3xl font-bold tabular-nums">{itemRows.length}</p></div><Link href={detailHref('items')}><CmxButton variant="outline" size="sm"><ClipboardCheck aria-hidden="true" className="h-4 w-4" />{t('openWork')}</CmxButton></Link></CmxCardContent></CmxCard>
         <CmxCard><CmxCardHeader><CmxCardTitle>{t('financialSnapshot')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="space-y-3 text-sm"><div className="flex items-center justify-between"><span className="text-muted-foreground">{t('paid')}</span><span className="font-semibold tabular-nums">{fmt(paid)}</span></div><div className="flex items-center justify-between"><span className="text-muted-foreground">{t('credits')}</span><span className="font-semibold tabular-nums">{fmt(credits)}</span></div><div className="flex items-center justify-between border-t pt-3"><span className="font-medium">{t('balance')}</span><span className="text-lg font-bold tabular-nums">{fmt(balance)}</span></div></CmxCardContent></CmxCard>
         <CmxCard><CmxCardHeader><CmxCardTitle>{t('customerContext')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="space-y-3"><p className="font-medium">{customerName}</p><p className="text-sm text-muted-foreground" dir="ltr">{mobile ?? t('noMobile')}</p><p className="line-clamp-2 text-sm text-muted-foreground">{address ?? t('noAddress')}</p><CmxButton variant="ghost" size="sm" onClick={() => changeSection('customer')}>{t('sections.customer')}<ChevronRight aria-hidden="true" className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} /></CmxButton></CmxCardContent></CmxCard>
         <CmxCard className="xl:col-span-2"><CmxCardHeader><CmxCardTitle>{t('activityTitle')}</CmxCardTitle></CmxCardHeader><CmxCardContent className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">{t('activityDescription')}</p><CmxButton variant="outline" size="sm" onClick={() => changeSection('activity')}>{t('openActivity')}<ChevronRight aria-hidden="true" className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} /></CmxButton></CmxCardContent></CmxCard>
