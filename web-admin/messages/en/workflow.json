@@ -460,6 +460,19 @@
         "delivered": "Delivered",
         "in_transit": "In transit"
       },
+      "auditExtras": {
+        "receivedAt": "Received at",
+        "readyBy": "Ready by (target)",
+        "readyAt": "Ready at",
+        "readyByOverride": "Ready by override",
+        "readyByAtNew": "Ready by (revised)",
+        "deliveredAt": "Delivered at",
+        "preparationStatus": "Preparation status",
+        "physicalIntakeStatus": "Physical intake status",
+        "physicalIntakeAt": "Physical intake at",
+        "physicalIntakeBy": "Physical intake by",
+        "physicalIntakeInfo": "Physical intake info"
+      },
       "readyCount": "{count, plural, one {# ready order} other {# ready orders}}",
       "preview": "Orders: {orders}",
       "loadingStops": "Loading route stops…",

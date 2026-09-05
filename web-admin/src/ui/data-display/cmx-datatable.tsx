@@ -30,7 +30,7 @@ import {
   CmxDialogTitle,
 } from '../overlays/cmx-dialog'
 import { cn } from '@/lib/utils'
-import type { AuditActor } from './cmx-audit-info-card'
+import type { AuditActor, AuditExtraRow } from './cmx-audit-info-card'
 
 const ROW_NUM_COL_ID = '__cmx_row_no'
 const AUDIT_COL_ID = '__cmx_audit_action'
@@ -97,6 +97,12 @@ export interface CmxDataTableAuditConfig<TData> {
   actionLabel?: string
   /** Override the column header label for the audit action. */
   columnHeader?: ReactNode
+  /**
+   * Per-row domain-specific rows appended to the audit dialog below the
+   * standard created/updated fields (for example order lifecycle timestamps
+   * that aren't part of the generic audit column set).
+   */
+  getExtras?: (row: TData) => AuditExtraRow[]
 }
 
 /**
@@ -178,6 +184,7 @@ interface AuditDialogState<TData> {
   row: TData
   record: Record<string, unknown>
   title?: string
+  extras: AuditExtraRow[]
 }
 
 function isRecordLike(value: unknown): value is Record<string, unknown> {
@@ -481,7 +488,8 @@ export function CmxDataTable<TData>({
     }
 
     const title = resolveAuditTitle(row)
-    setAuditDialog({ row, record, title })
+    const extras = resolvedAuditConfig?.getExtras?.(row) ?? []
+    setAuditDialog({ row, record, title, extras })
 
     const actorIds = collectAuditActorIds(record)
     if (actorIds.length === 0) {
@@ -551,7 +559,7 @@ export function CmxDataTable<TData>({
         // Audit actor name resolution is progressive enhancement only.
       }
     })
-  }, [resolveAuditRecord, resolveAuditTitle, tCommon])
+  }, [resolveAuditRecord, resolveAuditTitle, resolvedAuditConfig, tCommon])
 
   const canShowAuditForRow = useCallback((row: TData): boolean => {
     if (!resolvedAuditConfig) {
@@ -908,6 +916,7 @@ export function CmxDataTable<TData>({
               <CmxAuditInfoCard
                 title={tCommon('auditCard.title')}
                 record={selectedAuditRecord}
+                extras={auditDialog.extras}
                 defaultExpanded
                 collapsibleExtras={false}
                 className="shadow-none"

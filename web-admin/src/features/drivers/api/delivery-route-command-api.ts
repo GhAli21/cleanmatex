@@ -69,9 +69,10 @@ function newIdempotencyKey(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-/** Lists tenant-scoped delivery routes, newest first. */
-export async function listRoutes(status?: string): Promise<{ routes: RouteListItem[] }> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+/** Lists tenant-scoped delivery routes, newest first. Accepts one status code or several. */
+export async function listRoutes(status?: string | string[]): Promise<{ routes: RouteListItem[] }> {
+  const statusValue = Array.isArray(status) ? status.join(',') : status;
+  const query = statusValue ? `?status=${encodeURIComponent(statusValue)}` : '';
   const response = await fetch(`/api/v1/delivery/routes${query}`, { method: 'GET', credentials: 'include' });
   return readEnvelope<{ routes: RouteListItem[] }>(response);
 }

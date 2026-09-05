@@ -26,7 +26,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const page = Number(searchParams.get('page') || '1');
   const limit = Number(searchParams.get('limit') || '20');
-  const status = searchParams.get('status') || undefined;
+  const statusParam = searchParams.get('status') || undefined;
+  const statuses = statusParam?.split(',').map((code) => code.trim()).filter(Boolean);
+  const status = statuses && statuses.length > 1 ? statuses : statuses?.[0];
 
   const result = await DeliveryRouteQueryService.listRoutes({
     tenantId: auth.tenantId,

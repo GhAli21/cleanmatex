@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { MapPin, Route, Truck } from 'lucide-react'
-import { CmxDataTable, CmxEmptyState } from '@ui/data-display'
+import { CmxDataTable, CmxEmptyState, type AuditExtraRow } from '@ui/data-display'
 import { CmxConfirmDialog, CmxStatusBadge, CmxSummaryMessage, cmxMessage } from '@ui/feedback'
 import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxCheckbox, CmxSkeletonTable } from '@ui/primitives'
 import { WORKFLOW_SCREENS } from '@/lib/constants/workflow-screens'
@@ -39,6 +39,17 @@ interface DeliveryQueueOrder {
   customer?: { name?: string | null; phone?: string | null }
   delivery_address?: string | null
   address?: string | null
+  received_at?: string | null
+  ready_by?: string | null
+  ready_at?: string | null
+  ready_by_override?: string | null
+  ready_by_at_new?: string | null
+  delivered_at?: string | null
+  preparation_status?: string | null
+  physical_intake_status?: string | null
+  physical_intake_at?: string | null
+  physical_intake_by?: string | null
+  physical_intake_info?: string | null
 }
 
 /** Badge tone for an order's live status in the ready-for-delivery list. */
@@ -46,6 +57,21 @@ function orderStatusVariant(status: string | null | undefined): 'success' | 'pro
   if (status === 'delivered') return 'success'
   if (status === 'in_transit') return 'processing'
   if (status === 'out_for_delivery') return 'warning'
+  return 'default'
+}
+
+/** Parses a timestamp for the audit dialog; CmxAuditInfoCard formats Date values itself. */
+function toAuditDate(value: string | null | undefined): Date | null {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+/** Badge tone for a route's lifecycle status. */
+function routeStatusVariant(status: string): 'success' | 'processing' | 'warning' | 'default' {
+  if (status === 'completed') return 'success'
+  if (status === 'in_progress') return 'processing'
+  if (status === 'planned') return 'warning'
   return 'default'
 }
 
@@ -99,10 +125,12 @@ export function DeliveryRoutePlanningScreen() {
   })
 
   const routesQuery = useQuery({
-    queryKey: ['delivery-routes', currentTenant?.tenant_id, 'planned'],
-    // Prevent query before tenant is confirmed — planned routes are tenant-owned operational data.
+    queryKey: ['delivery-routes', currentTenant?.tenant_id, 'planned', 'in_progress'],
+    // Prevent query before tenant is confirmed — active routes are tenant-owned operational data.
     enabled: !!currentTenant,
-    queryFn: () => listRoutes('planned'),
+    // A route with a driver assigned at creation starts in_progress, not planned —
+    // it still needs to show up here so it can be reassigned or cancelled.
+    queryFn: () => listRoutes(['planned', 'in_progress']),
   })
 
   const activeStopsQuery = useQuery({
@@ -222,6 +250,20 @@ export function DeliveryRoutePlanningScreen() {
     setCancelTargetRouteId(null)
   }
 
+  const readyOrderAuditExtras = (order: DeliveryQueueOrder): AuditExtraRow[] => [
+    { key: 'receivedAt', label: t('routes.auditExtras.receivedAt'), value: toAuditDate(order.received_at), hideWhenEmpty: true },
+    { key: 'readyBy', label: t('routes.auditExtras.readyBy'), value: toAuditDate(order.ready_by), hideWhenEmpty: true },
+    { key: 'readyAt', label: t('routes.auditExtras.readyAt'), value: toAuditDate(order.ready_at), hideWhenEmpty: true },
+    { key: 'readyByOverride', label: t('routes.auditExtras.readyByOverride'), value: toAuditDate(order.ready_by_override), hideWhenEmpty: true },
+    { key: 'readyByAtNew', label: t('routes.auditExtras.readyByAtNew'), value: toAuditDate(order.ready_by_at_new), hideWhenEmpty: true },
+    { key: 'deliveredAt', label: t('routes.auditExtras.deliveredAt'), value: toAuditDate(order.delivered_at), hideWhenEmpty: true },
+    { key: 'preparationStatus', label: t('routes.auditExtras.preparationStatus'), value: order.preparation_status, hideWhenEmpty: true },
+    { key: 'physicalIntakeStatus', label: t('routes.auditExtras.physicalIntakeStatus'), value: order.physical_intake_status, hideWhenEmpty: true },
+    { key: 'physicalIntakeAt', label: t('routes.auditExtras.physicalIntakeAt'), value: toAuditDate(order.physical_intake_at), hideWhenEmpty: true },
+    { key: 'physicalIntakeBy', label: t('routes.auditExtras.physicalIntakeBy'), value: order.physical_intake_by, hideWhenEmpty: true },
+    { key: 'physicalIntakeInfo', label: t('routes.auditExtras.physicalIntakeInfo'), value: order.physical_intake_info, hideWhenEmpty: true },
+  ]
+
   const allReadySelected = readyOrders.length > 0 && readyOrders.every((order) => selectedOrderIds.has(order.id))
   const readyColumns = [
     {
@@ -294,7 +336,15 @@ export function DeliveryRoutePlanningScreen() {
 
       <section className="space-y-3" aria-labelledby="ready-orders-heading">
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="ready-orders-heading" className="text-lg font-semibold">{t('routes.readyOrders.title')}</h2><span className="text-sm text-muted-foreground">{t('routes.readyCount', { count: readyOrders.length })}</span></div>
-        <CmxDataTable columns={readyColumns} data={readyOrders} loading={activeStopsQuery.isLoading} emptyStateTitle={t('routes.readyOrders.empty')} emptyStateDescription={t('routes.readyOrders.emptyDescription')} paginationFooter="never" />
+        <CmxDataTable
+          columns={readyColumns}
+          data={readyOrders}
+          loading={activeStopsQuery.isLoading}
+          emptyStateTitle={t('routes.readyOrders.empty')}
+          emptyStateDescription={t('routes.readyOrders.emptyDescription')}
+          paginationFooter="never"
+          auditConfig={{ getExtras: readyOrderAuditExtras }}
+        />
       </section>
 
       <section className="space-y-3" aria-labelledby="planned-routes-heading">
@@ -333,5 +383,9 @@ interface RouteCardProps {
 /** Compact operational card so dispatchers can inspect and amend a planned route without leaving the queue. */
 function RouteCard({ route, drivers, expanded, manifest, manifestLoading, addTarget, isMutating, canManageRoutes, canAssignDrivers, t, onToggleManifest, onAddTarget, onAssignDriver, onRemoveStop, onCancel }: RouteCardProps) {
   const [driverId, setDriverId] = useState<string | undefined>(route.driverId ?? undefined)
-  return <CmxCard><CmxCardHeader><div className="flex items-start justify-between gap-3"><div><CmxCardTitle>{route.routeNumber}</CmxCardTitle><p className="mt-1 text-sm text-muted-foreground">{t('routes.fields.stops')}: {route.completedStops}/{route.totalStops}</p></div><CmxStatusBadge label={t(`routeStatus.${route.statusCode}`, { default: route.statusCode })} variant="warning" size="sm" /></div></CmxCardHeader><CmxCardContent className="space-y-4">{canAssignDrivers ? <div className="space-y-2"><p className="text-sm font-medium">{t('routes.fields.driverId')}</p><div className="flex flex-col gap-2 sm:flex-row"><div className="min-w-0 flex-1"><DriverPicker drivers={drivers} value={driverId} onChange={setDriverId} disabled={isMutating} /></div><CmxButton variant="outline" onClick={() => onAssignDriver(route.id, driverId)} disabled={isMutating || !driverId}>{t('routes.actions.assignDriver')}</CmxButton></div></div> : null}<div className="flex flex-wrap gap-2"><CmxButton variant="outline" size="sm" onClick={onToggleManifest}>{expanded ? t('routes.actions.hideStops') : t('routes.actions.showStops')}</CmxButton>{canManageRoutes ? <><CmxButton variant={addTarget ? 'secondary' : 'outline'} size="sm" onClick={onAddTarget}>{addTarget ? t('routes.actions.stopAdding') : t('routes.actions.addSelected')}</CmxButton><CmxButton variant="destructive" size="sm" onClick={onCancel} disabled={isMutating}>{t('routes.actions.cancelRoute')}</CmxButton></> : null}</div>{manifestLoading ? <div className="text-sm text-muted-foreground">{t('routes.loadingStops')}</div> : expanded && manifest ? <div className="space-y-2 border-t pt-3">{manifest.stops.map((stop) => <div key={stop.id} className="flex flex-wrap items-center justify-between gap-2 text-sm"><div className="min-w-0"><span className="font-medium">{stop.order.orderNo}</span><span className="ms-2 text-muted-foreground">{stop.address}</span></div>{canManageRoutes ? <CmxButton variant="ghost" size="sm" onClick={() => onRemoveStop(stop.id)} disabled={isMutating}>{t('routes.actions.removeStop')}</CmxButton> : null}</div>)}</div> : null}</CmxCardContent></CmxCard>
+  // Add-orders and remove-stop are only valid on a route that hasn't started yet;
+  // the server rejects both otherwise (ROUTE_NOT_PLANNED) — the UI mirrors that here.
+  const isPlanned = route.statusCode === 'planned'
+  const isCancellable = route.statusCode === 'planned' || route.statusCode === 'in_progress'
+  return <CmxCard><CmxCardHeader><div className="flex items-start justify-between gap-3"><div><CmxCardTitle>{route.routeNumber}</CmxCardTitle><p className="mt-1 text-sm text-muted-foreground">{t('routes.fields.stops')}: {route.completedStops}/{route.totalStops}</p></div><CmxStatusBadge label={t(`routeStatus.${route.statusCode}`, { default: route.statusCode })} variant={routeStatusVariant(route.statusCode)} size="sm" /></div></CmxCardHeader><CmxCardContent className="space-y-4">{canAssignDrivers ? <div className="space-y-2"><p className="text-sm font-medium">{t('routes.fields.driverId')}</p><div className="flex flex-col gap-2 sm:flex-row"><div className="min-w-0 flex-1"><DriverPicker drivers={drivers} value={driverId} onChange={setDriverId} disabled={isMutating} /></div><CmxButton variant="outline" onClick={() => onAssignDriver(route.id, driverId)} disabled={isMutating || !driverId}>{t('routes.actions.assignDriver')}</CmxButton></div></div> : null}<div className="flex flex-wrap gap-2"><CmxButton variant="outline" size="sm" onClick={onToggleManifest}>{expanded ? t('routes.actions.hideStops') : t('routes.actions.showStops')}</CmxButton>{canManageRoutes && isPlanned ? <CmxButton variant={addTarget ? 'secondary' : 'outline'} size="sm" onClick={onAddTarget}>{addTarget ? t('routes.actions.stopAdding') : t('routes.actions.addSelected')}</CmxButton> : null}{canManageRoutes && isCancellable ? <CmxButton variant="destructive" size="sm" onClick={onCancel} disabled={isMutating}>{t('routes.actions.cancelRoute')}</CmxButton> : null}</div>{manifestLoading ? <div className="text-sm text-muted-foreground">{t('routes.loadingStops')}</div> : expanded && manifest ? <div className="space-y-2 border-t pt-3">{manifest.stops.map((stop) => <div key={stop.id} className="flex flex-wrap items-center justify-between gap-2 text-sm"><div className="min-w-0"><span className="font-medium">{stop.order.orderNo}</span><span className="ms-2 text-muted-foreground">{stop.address}</span></div>{canManageRoutes && isPlanned ? <CmxButton variant="ghost" size="sm" onClick={() => onRemoveStop(stop.id)} disabled={isMutating}>{t('routes.actions.removeStop')}</CmxButton> : null}</div>)}</div> : null}</CmxCardContent></CmxCard>
 }

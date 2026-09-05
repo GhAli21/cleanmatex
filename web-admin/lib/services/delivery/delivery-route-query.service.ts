@@ -56,7 +56,8 @@ export interface ListRoutesParams {
   tenantId: string;
   page?: number;
   limit?: number;
-  status?: string;
+  /** One status code, or several (e.g. the dispatcher's active-work view: planned + in_progress). */
+  status?: string | string[];
 }
 
 export interface ListRoutesResult {
@@ -235,11 +236,15 @@ export class DeliveryRouteQueryService {
     const page = params.page && params.page > 0 ? params.page : 1;
     const limit = params.limit && params.limit > 0 ? params.limit : 20;
 
+    const statusFilter = Array.isArray(params.status)
+      ? (params.status.length > 0 ? { route_status_code: { in: params.status } } : {})
+      : (params.status ? { route_status_code: params.status } : {});
+
     const where = {
       tenant_org_id: params.tenantId,
       is_active: true,
       rec_status: 1,
-      ...(params.status ? { route_status_code: params.status } : {}),
+      ...statusFilter,
     };
 
     const [rows, total] = await Promise.all([

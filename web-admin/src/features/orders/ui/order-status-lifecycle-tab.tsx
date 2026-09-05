@@ -124,7 +124,7 @@ function resolveStatusVariant(key: StatusFieldKey, value: unknown): StatusBadgeV
  * @param props - Tenant-scoped order data and the active UI locale.
  */
 export function OrderStatusLifecycleTab({ order, locale }: OrderStatusLifecycleTabProps) {
-  const t = useTranslations('orders.detail.statusLifecycle');
+  const t = useTranslations('orders.detail.financial.statusLifecycle');
 
   const renderValue = (field: StatusFieldDefinition) => {
     const value = order[field.key];

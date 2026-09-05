@@ -460,6 +460,19 @@
         "delivered": "تم التسليم",
         "in_transit": "في الطريق"
       },
+      "auditExtras": {
+        "receivedAt": "تاريخ الاستلام",
+        "readyBy": "الجاهزية المستهدفة بحلول",
+        "readyAt": "تاريخ الجاهزية",
+        "readyByOverride": "تجاوز موعد الجاهزية",
+        "readyByAtNew": "موعد الجاهزية (المُحدَّث)",
+        "deliveredAt": "تاريخ التسليم",
+        "preparationStatus": "حالة التحضير",
+        "physicalIntakeStatus": "حالة الاستلام الفعلي",
+        "physicalIntakeAt": "تاريخ الاستلام الفعلي",
+        "physicalIntakeBy": "تم الاستلام الفعلي بواسطة",
+        "physicalIntakeInfo": "ملاحظات الاستلام الفعلي"
+      },
       "readyCount": "{count, plural, one {طلب واحد جاهز} other {# طلبات جاهزة}}",
       "preview": "الطلبات: {orders}",
       "loadingStops": "جارٍ تحميل محطات المسار…",
