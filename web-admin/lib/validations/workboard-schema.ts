@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { WORKBOARD_OWNER_SCREEN_KEYS } from '@/lib/types/workboard'
+
 /** Validates the bounded, read-only Workboard query surface. */
 export const workboardQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(100_000).default(1),
@@ -8,7 +10,7 @@ export const workboardQuerySchema = z.object({
   branchId: z.string().uuid().optional(),
   assigneeId: z.string().uuid().optional(),
   priority: z.string().trim().min(1).max(50).optional(),
-  ownerScreenKey: z.enum(['preparation', 'processing', 'assembly', 'qa', 'packing', 'ready_release', 'driver_delivery']).optional(),
+  ownerScreenKey: z.enum(WORKBOARD_OWNER_SCREEN_KEYS).optional(),
   blocker: z.enum(['all', 'blocked', 'clear']).default('all'),
   sla: z.enum(['all', 'overdue', 'due_today', 'not_due']).default('all'),
   sort: z.enum([

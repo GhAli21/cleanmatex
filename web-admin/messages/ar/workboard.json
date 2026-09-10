@@ -33,7 +33,18 @@
     "attention": "الانتباه",
     "open": "الإجراء"
   },
-  "owners": { "preparation": "التحضير", "processing": "المعالجة", "assembly": "التجميع", "qa": "فحص الجودة", "packing": "التغليف", "ready_release": "الجاهز / الإفراج", "driver_delivery": "توصيل السائق" },
+  "owners": {
+    "new_order": "طلب جديد",
+    "home_collection": "استلام من المنزل",
+    "preparation": "التحضير",
+    "processing": "المعالجة",
+    "assembly": "التجميع",
+    "qa": "فحص الجودة",
+    "packing": "التغليف",
+    "ready_release": "الجاهز / الإفراج",
+    "pickup_handover": "استلام العميل",
+    "driver_delivery": "توصيل السائق"
+  },
   "filters": {
     "title": "فلاتر قائمة العمل",
     "searchLabel": "البحث عن عمل",

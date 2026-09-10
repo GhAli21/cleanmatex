@@ -12,11 +12,12 @@ import type { CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable'
 import { CmxSummaryMessage, CmxStatusBadge, useMessage } from '@ui/feedback'
 
 import { useWorkboard } from '@features/workboard/hooks/use-workboard'
-import type {
-  WorkboardOrderRow,
-  WorkboardOwnerScreenKey,
-  WorkboardQueryInput,
-  WorkboardSort,
+import {
+  isWorkboardOwnerScreenKey,
+  type WorkboardOrderRow,
+  type WorkboardOwnerScreenKey,
+  type WorkboardQueryInput,
+  type WorkboardSort,
 } from '@features/workboard/model/workboard-types'
 import { WorkboardFilterToolbar } from '@features/workboard/ui/workboard-filter-toolbar'
 import { WorkboardOverviewCards } from '@features/workboard/ui/workboard-overview-cards'
@@ -61,6 +62,10 @@ function isDueToday(row: WorkboardOrderRow): boolean {
 
 function ownerBadgeVariant(ownerScreenKey: WorkboardOwnerScreenKey): Parameters<typeof CmxStatusBadge>[0]['variant'] {
   switch (ownerScreenKey) {
+    case 'new_order':
+      return 'outline'
+    case 'home_collection':
+      return 'info'
     case 'preparation':
       return 'info'
     case 'processing':
@@ -72,6 +77,8 @@ function ownerBadgeVariant(ownerScreenKey: WorkboardOwnerScreenKey): Parameters<
     case 'packing':
       return 'outline'
     case 'ready_release':
+      return 'success'
+    case 'pickup_handover':
       return 'success'
     case 'driver_delivery':
       return 'warning'
@@ -147,10 +154,7 @@ export function WorkboardScreen() {
   const [priority, setPriority] = useState<string | undefined>(() => searchParams.get('priority') ?? undefined)
   const [ownerScreenKey, setOwnerScreenKey] = useState<WorkboardOwnerScreenKey | undefined>(() => {
     const value = searchParams.get('ownerScreenKey')
-    return value === 'preparation' || value === 'processing' || value === 'assembly' || value === 'qa'
-      || value === 'packing' || value === 'ready_release' || value === 'driver_delivery'
-      ? value
-      : undefined
+    return isWorkboardOwnerScreenKey(value) ? value : undefined
   })
   const [blocker, setBlocker] = useState<WorkboardQueryInput['blocker']>(() => {
     const value = searchParams.get('blocker')

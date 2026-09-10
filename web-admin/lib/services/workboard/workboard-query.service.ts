@@ -10,34 +10,30 @@ import {
   type SemanticWorkflowOrderSnapshot,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service'
 import { isSemanticScreenStatusMember } from '@/lib/services/workflow/semantic-workflow-runtime.service'
-import type {
-  WorkboardConfigurationGap,
-  WorkboardListResponse,
-  WorkboardOwnerScreenKey,
-  WorkboardOrderRow,
-  WorkboardQueryInput,
+import {
+  WORKBOARD_OWNER_SCREEN_KEYS,
+  type WorkboardConfigurationGap,
+  type WorkboardListResponse,
+  type WorkboardOwnerScreenKey,
+  type WorkboardOrderRow,
+  type WorkboardQueryInput,
 } from '@/lib/types/workboard'
 
 const WORKBOARD_SCREEN_KEY = 'workboard'
-const OWNER_SCREEN_KEYS = [
-  'preparation',
-  'processing',
-  'assembly',
-  'qa',
-  'packing',
-  'ready_release',
-  'driver_delivery',
-] as const
+const OWNER_SCREEN_KEYS = WORKBOARD_OWNER_SCREEN_KEYS
 
 type OwnerScreenKey = WorkboardOwnerScreenKey
 
 const EMPTY_OWNER_COUNTS: Record<OwnerScreenKey, number> = {
+  new_order: 0,
+  home_collection: 0,
   preparation: 0,
   processing: 0,
   assembly: 0,
   qa: 0,
   packing: 0,
   ready_release: 0,
+  pickup_handover: 0,
   driver_delivery: 0,
 }
 
@@ -109,18 +105,27 @@ function createEmptyOwnerCounts(): Record<OwnerScreenKey, number> {
 }
 
 function ownerPath(screenKey: OwnerScreenKey, orderId: string): string {
-  const basePath: Record<OwnerScreenKey, string> = {
-    preparation: '/dashboard/preparation',
-    processing: '/dashboard/processing',
-    assembly: '/dashboard/assembly',
-    qa: '/dashboard/qa',
-    packing: '/dashboard/packing',
-    ready_release: '/dashboard/ready',
-    driver_delivery: '/dashboard/delivery',
+  switch (screenKey) {
+    case 'new_order':
+      return `/dashboard/orders/${orderId}`
+    case 'home_collection':
+      return `/dashboard/home-collection/${orderId}`
+    case 'preparation':
+      return `/dashboard/preparation/${orderId}`
+    case 'processing':
+      return `/dashboard/processing/${orderId}`
+    case 'assembly':
+      return `/dashboard/assembly/${orderId}`
+    case 'qa':
+      return `/dashboard/qa/${orderId}`
+    case 'packing':
+      return `/dashboard/packing/${orderId}`
+    case 'ready_release':
+    case 'pickup_handover':
+      return `/dashboard/ready/${orderId}`
+    case 'driver_delivery':
+      return '/dashboard/delivery'
   }
-
-  const base = basePath[screenKey]
-  return screenKey === 'driver_delivery' ? base : `${base}/${orderId}`
 }
 
 function asIso(value: Date | null): string | null {
@@ -135,7 +140,8 @@ function ageMinutes(receivedAt: Date | null, lastTransitionAt: Date | null): num
 /**
  * Uses live primary-owner membership to route a queue item.
  * Workboard itself is an observer: it may expose a queue row but never execute
- * an action or infer an owner from mutable screen memberships.
+ * an action. Owner screens include plant floors plus intake, home collection,
+ * and counter pickup so Studio observer checkboxes are not a no-op.
  */
 function ownerForSemanticStatus(
   artifact: SemanticWorkflowArtifact,
@@ -154,7 +160,9 @@ function ownerForSemanticStatus(
       && membership.visibility_mode === 'owner'
       && moduleConfig?.module_mode === 'primary_owner'
       && moduleConfig.is_enabled
-      && OWNER_SCREEN_KEYS.includes(membership.screen_key as OwnerScreenKey)
+      && OWNER_SCREEN_KEYS.includes(
+        membership.screen_key.trim().toLowerCase() as OwnerScreenKey,
+      )
   })
 
   return (ownerMembership?.screen_key as OwnerScreenKey | undefined) ?? null
@@ -163,13 +171,24 @@ function ownerForSemanticStatus(
 function scopeFromLivePolicy(
   snapshot: ProfilePairRow,
   artifact: SemanticWorkflowArtifact,
+  gaps: WorkboardConfigurationGap[],
 ): StatusScope | null {
   if (!snapshot.wf_profile_version_id) return null
   const ownerByStatus = new Map<string, OwnerScreenKey>()
+  const seenObserved = new Set<string>()
   for (const membership of artifact.module_statuses) {
+    if (membership.screen_key.trim().toLowerCase() !== WORKBOARD_SCREEN_KEY) continue
     const statusCode = membership.status_code.trim().toLowerCase()
+    if (!statusCode || seenObserved.has(statusCode)) continue
+    seenObserved.add(statusCode)
     const owner = ownerForSemanticStatus(artifact, statusCode)
-    if (owner) ownerByStatus.set(statusCode, owner)
+    if (owner) {
+      ownerByStatus.set(statusCode, owner)
+      continue
+    }
+    if (!gaps.some((gap) => gap.statusCode === statusCode && gap.reason === 'no_stage_owner')) {
+      gaps.push({ statusCode, reason: 'no_stage_owner' })
+    }
   }
 
   return {
@@ -329,7 +348,7 @@ export class WorkboardQueryService {
         throw error
       }
       if (!artifact) continue
-      const scope = scopeFromLivePolicy(pair, artifact)
+      const scope = scopeFromLivePolicy(pair, artifact, gaps)
       if (scope && scope.ownerByStatus.size > 0) scopes.push(scope)
     }
     if (scopes.length === 0) return this.emptyResponse(input, gaps)

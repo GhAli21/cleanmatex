@@ -10,15 +10,35 @@ export interface WorkboardAssigneeOption {
   name: string
 }
 
+/**
+ * Stage screens Workboard may route to. Includes intake, home collection, and
+ * counter pickup so observer membership is not silently dropped when those
+ * modules own the live status.
+ */
+export const WORKBOARD_OWNER_SCREEN_KEYS = [
+  'new_order',
+  'home_collection',
+  'preparation',
+  'processing',
+  'assembly',
+  'qa',
+  'packing',
+  'ready_release',
+  'pickup_handover',
+  'driver_delivery',
+] as const
+
 /** Stage screens that can own a Workboard order row. */
-export type WorkboardOwnerScreenKey =
-  | 'preparation'
-  | 'processing'
-  | 'assembly'
-  | 'qa'
-  | 'packing'
-  | 'ready_release'
-  | 'driver_delivery'
+export type WorkboardOwnerScreenKey = (typeof WORKBOARD_OWNER_SCREEN_KEYS)[number]
+
+const WORKBOARD_OWNER_SCREEN_KEY_SET = new Set<string>(WORKBOARD_OWNER_SCREEN_KEYS)
+
+/** Narrows a query/path value to a Workboard owner screen. */
+export function isWorkboardOwnerScreenKey(
+  value: string | null | undefined,
+): value is WorkboardOwnerScreenKey {
+  return Boolean(value) && WORKBOARD_OWNER_SCREEN_KEY_SET.has(value as string)
+}
 
 /** Server-side ordering modes available to the Workboard queue. */
 export type WorkboardSort =

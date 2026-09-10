@@ -6,21 +6,14 @@ import { AlertCircle, Layers3, TimerReset } from 'lucide-react'
 import { CmxButton } from '@ui/primitives'
 import { cn } from '@lib/utils'
 
-import type {
-  WorkboardOwnerScreenKey,
-  WorkboardQueryInput,
-  WorkboardSummary,
+import {
+  WORKBOARD_OWNER_SCREEN_KEYS,
+  type WorkboardOwnerScreenKey,
+  type WorkboardQueryInput,
+  type WorkboardSummary,
 } from '@features/workboard/model/workboard-types'
 
-const OWNER_CARD_ORDER: WorkboardOwnerScreenKey[] = [
-  'preparation',
-  'processing',
-  'assembly',
-  'qa',
-  'packing',
-  'ready_release',
-  'driver_delivery',
-]
+const OWNER_CARD_ORDER = WORKBOARD_OWNER_SCREEN_KEYS
 
 type WorkboardOverviewTone = 'primary' | 'info' | 'success' | 'warning' | 'danger'
 
@@ -55,6 +48,10 @@ const OVERVIEW_TONE_CLASSES: Record<WorkboardOverviewTone, { idle: string; activ
 /** Chooses a stable semantic accent so supervisor focus cards scan quickly. */
 function ownerTone(ownerScreenKey: WorkboardOwnerScreenKey): WorkboardOverviewTone {
   switch (ownerScreenKey) {
+    case 'new_order':
+      return 'primary'
+    case 'home_collection':
+      return 'info'
     case 'preparation':
       return 'info'
     case 'processing':
@@ -66,6 +63,8 @@ function ownerTone(ownerScreenKey: WorkboardOwnerScreenKey): WorkboardOverviewTo
     case 'packing':
       return 'info'
     case 'ready_release':
+      return 'success'
+    case 'pickup_handover':
       return 'success'
     case 'driver_delivery':
       return 'warning'
