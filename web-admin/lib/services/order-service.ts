@@ -37,6 +37,7 @@ import {
 import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
+import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/lib/services/order-source-policy';
 import { buildDiscountLinesFromOrderInput, insertDiscountLines, insertDiscountLinesTx } from '@/lib/db/order-discounts';
 import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
@@ -497,6 +498,18 @@ export class OrderService {
         isRetailOnlyOrder,
         hydrated,
       } = wf;
+
+      // T03: retail must always pay at POS — the client blocks PAY_ON_COLLECTION
+      // for retail-only orders, but retail lands directly at a terminal status
+      // with no downstream collection gate, so a direct/forged API call must be
+      // rejected here too rather than relying on the UI guard alone.
+      if (isRetailOnlyOrder && paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION) {
+        return {
+          success: false,
+          errorCode: 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED',
+          error: 'Retail orders must be paid at POS. Please select Cash or Card.',
+        };
+      }
 
       if (isRetailOnlyOrder) {
         logger.info('Retail order created from workflow initial rules', {
@@ -1183,6 +1196,17 @@ export class OrderService {
       isRetailOnlyOrder,
       hydrated,
     } = wf;
+
+    // T03: same server-side guard as createOrder — retail must always pay at
+    // POS; do not rely on the client-side block alone for the transactional
+    // create-with-payment path either.
+    if (isRetailOnlyOrder && paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION) {
+      return {
+        success: false,
+        errorCode: 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED',
+        error: 'Retail orders must be paid at POS. Please select Cash or Card.',
+      };
+    }
 
     const orderNo = await generateOrderNumberWithTx(tx, tenantId);
 

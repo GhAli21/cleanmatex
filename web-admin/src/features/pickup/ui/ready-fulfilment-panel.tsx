@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives';
 import { CmxSummaryMessage } from '@ui/feedback';
@@ -8,11 +9,14 @@ import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { useWorkflowActions } from '@/lib/hooks/use-workflow-actions';
 import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
 import { PickupHandoverCard } from '@features/pickup/ui/pickup-handover-card';
+import { isOnlyRackBlocked } from '@features/workflow/lib/rack-gate-helpers';
+import { RackBagsModal } from '@features/workflow/ui/rack-bags-modal';
 
 /** Tenant-scoped Ready order facts needed to present pickup fulfilment. */
 export interface ReadyFulfilmentPanelProps {
   orderId: string;
   orderNo: string;
+  customerId?: string | null;
   customerName: string;
   paymentTypeCode?: string | null;
   outstandingAmount: number;
@@ -34,6 +38,7 @@ export interface ReadyFulfilmentPanelProps {
 export function ReadyFulfilmentPanel({
   orderId,
   orderNo,
+  customerId,
   customerName,
   paymentTypeCode,
   outstandingAmount,
@@ -44,6 +49,7 @@ export function ReadyFulfilmentPanel({
   onReleaseSuccess,
 }: ReadyFulfilmentPanelProps) {
   const t = useTranslations('workflow.ready.fulfilment');
+  const tRackBags = useTranslations('workflow.ready.rackBags');
   const tPickup = useTranslations('workflow.pickup');
   const locale = useLocale();
   const release = useWorkflowActions(orderId, 'ready_release');
@@ -56,6 +62,12 @@ export function ReadyFulfilmentPanel({
   const blockedReason = releaseAction?.blockedReasons
     .map((reason) => (isRtl && reason.message2 ? reason.message2 : reason.message))
     .join(' · ');
+  const rackBlockedOnly = releaseAction ? isOnlyRackBlocked(releaseAction) : false;
+  const canClickRelease = releaseAction ? releaseAction.enabled || rackBlockedOnly : false;
+
+  const [rackBagsOpen, setRackBagsOpen] = useState(false);
+  /** Only the primary button's click should auto-retry the release after saving. */
+  const [retryReleaseAfterSave, setRetryReleaseAfterSave] = useState(false);
 
   const handleMakeAvailable = async () => {
     const ok = await release.execute(
@@ -81,12 +93,29 @@ export function ReadyFulfilmentPanel({
             type="button"
             className="w-full"
             loading={release.loading}
-            disabled={release.loading || !releaseAction.enabled}
+            disabled={release.loading || !canClickRelease}
             onClick={() => {
+              if (rackBlockedOnly) {
+                setRetryReleaseAfterSave(true);
+                setRackBagsOpen(true);
+                return;
+              }
               void handleMakeAvailable();
             }}
           >
             {isRtl && releaseAction.label2 ? releaseAction.label2 : releaseAction.label || t('makeAvailable')}
+          </CmxButton>
+          <CmxButton
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={release.loading}
+            onClick={() => {
+              setRetryReleaseAfterSave(false);
+              setRackBagsOpen(true);
+            }}
+          >
+            {tRackBags('trigger')}
           </CmxButton>
         </div>
       ) : null}
@@ -119,6 +148,31 @@ export function ReadyFulfilmentPanel({
         formattedOutstandingAmount={formattedOutstandingAmount}
         onCollectPayment={onCollectPayment}
         onCompleted={onCompleted}
+      />
+
+      <RackBagsModal
+        open={rackBagsOpen}
+        onOpenChange={(next) => {
+          setRackBagsOpen(next);
+          if (!next) setRetryReleaseAfterSave(false);
+        }}
+        orderId={orderId}
+        customerId={customerId}
+        onSaved={(saved) => {
+          setRackBagsOpen(false);
+          if (retryReleaseAfterSave) {
+            setRetryReleaseAfterSave(false);
+            void (async () => {
+              const ok = await release.execute(WORKFLOW_ACTIONS.RELEASE_FOR_PICKUP, {
+                rackLocation: saved.rackLocation,
+              });
+              if (ok) onReleaseSuccess();
+            })();
+          } else {
+            void release.refresh();
+            onReleaseSuccess();
+          }
+        }}
       />
     </section>
   );

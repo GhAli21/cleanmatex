@@ -799,6 +799,10 @@ export interface BatchUpdateRequest {
   updates: PieceUpdate[];
   itemQuantityReady: Record<string, number>; // itemId -> ready count
   orderRackLocation?: string; // Order-level rack location
+  lockerLocation?: string; // Order-level locker identifier
+  lockerCode?: string; // Order-level locker access code
+  bagCount?: number; // Order-level bag count (1-100)
+  hangingCount?: number; // Order-level hanging garment count (>= 0)
 }
 
 /**

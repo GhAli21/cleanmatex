@@ -15,14 +15,13 @@ import {
 } from '@/lib/hooks/use-workflow-actions';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { workflowActionBarEmptyMode } from '@features/workflow/ui/workflow-action-bar-empty';
-
-const GATE_RACK_REQUIRED = 'GATE_RACK_REQUIRED';
+import { isOnlyRackBlocked } from '@features/workflow/lib/rack-gate-helpers';
+import { RackBagsModal } from '@features/workflow/ui/rack-bags-modal';
 
 /** Fallback only for gate-override reason length; unrelated to per-action control notes below. */
 const DEFAULT_GATE_OVERRIDE_MIN_REASON_LENGTH = 10;
 
 const WF_FIELD_NAMES = {
-  rackLocation: 'wf-rack-location',
   controlNotes: 'wf-control-notes',
   overrideReason: 'wf-override-reason',
 } as const;
@@ -75,18 +74,6 @@ export interface WorkflowActionBarProps {
   supplementalActions?: ReactNode;
 }
 
-function isOnlyRackBlocked(action: WorkflowActionDto): boolean {
-  return (
-    !action.enabled &&
-    action.blockedReasons.length > 0 &&
-    action.blockedReasons.every((r) => r.code === GATE_RACK_REQUIRED)
-  );
-}
-
-function needsRackPrompt(actions: WorkflowActionDto[]): boolean {
-  return actions.some((a) => a.blockedReasons.some((r) => r.code === GATE_RACK_REQUIRED));
-}
-
 function gateDecisionsFor(action: WorkflowActionDto): WorkflowGateDecisionDto[] {
   return action.gateDecisions ?? [];
 }
@@ -103,7 +90,9 @@ function overrideMinReasonLength(decisions: WorkflowGateDecisionDto[]): number {
 /**
  * Floor action CTA bar driven by listAvailableActions / executeAction.
  * Shows enabled actions as primary buttons; disabled actions with blocked reasons.
- * When rack_required blocks an action, collects rack and passes it on execute.
+ * When rack_required blocks an action, opens the shared RackBagsModal to
+ * collect rack/locker/bag/hanging fields, then retries the action with the
+ * saved rack merged into its execute input.
  * When no actions: redirect via emptyBackHref, else CmxEmptyState. A stage-owned
  * supplemental command keeps the action panel available without becoming a raw
  * workflow-status write.
@@ -127,16 +116,15 @@ export function WorkflowActionBar({
   const router = useRouter();
   const { enabled, loading, hasLoaded, actions, currentStatus, execute } =
     useWorkflowActions(orderId, screen);
-  const [rackLocation, setRackLocation] = useState('');
-  const [rackError, setRackError] = useState<string | null>(null);
   const [controlNotes, setControlNotes] = useState('');
   const [controlNotesError, setControlNotesError] = useState<string | null>(null);
   const [pendingStopAction, setPendingStopAction] = useState<WorkflowActionDto | null>(null);
   const [pendingGateAction, setPendingGateAction] = useState<WorkflowActionDto | null>(null);
   const [overrideReason, setOverrideReason] = useState('');
   const [overrideReasonError, setOverrideReasonError] = useState<string | null>(null);
+  const [rackBagsOpen, setRackBagsOpen] = useState(false);
+  const [pendingRackAction, setPendingRackAction] = useState<WorkflowActionDto | null>(null);
   const didRedirectRef = useRef(false);
-  const rackInputRef = useRef<HTMLInputElement>(null);
   const controlNotesInputRef = useRef<HTMLInputElement>(null);
   const overrideReasonInputRef = useRef<HTMLInputElement>(null);
 
@@ -243,16 +231,14 @@ export function WorkflowActionBar({
     );
   }
 
-  const showRackField = needsRackPrompt(actions);
-  const rackTrimmed = rackLocation.trim();
   const notesTrimmed = controlNotes.trim();
 
   const executeWorkflowAction = async (
     action: WorkflowActionDto,
     submittedGateDecisions?: ReturnType<typeof toSubmittedGateDecisions>,
+    extraInput?: Record<string, unknown>,
   ) => {
-    const input: Record<string, unknown> = {};
-    if (rackTrimmed) input.rackLocation = rackTrimmed;
+    const input: Record<string, unknown> = { ...extraInput };
     if (actionNeedsControlNotes(action)) {
       input.notes = notesTrimmed;
       input.reason = notesTrimmed;
@@ -264,8 +250,6 @@ export function WorkflowActionBar({
       submittedGateDecisions,
     );
     if (ok) {
-      setRackLocation('');
-      setRackError(null);
       setControlNotes('');
       setControlNotesError(null);
       setPendingGateAction(null);
@@ -310,31 +294,6 @@ export function WorkflowActionBar({
           ) : null}
         </div>
 
-        {showRackField ? (
-          <CmxFieldShell
-            id={`wf-rack-${orderId}`}
-            name={WF_FIELD_NAMES.rackLocation}
-            label={t('rackLocationLabel')}
-            hint={t('rackLocationHelp')}
-            error={rackError}
-            required
-          >
-            <CmxInput
-              ref={rackInputRef}
-              id={`wf-rack-${orderId}`}
-              value={rackLocation}
-              onChange={(e) => {
-                setRackLocation(e.target.value);
-                setRackError(null);
-              }}
-              placeholder={t('rackLocationPlaceholder')}
-              autoComplete="off"
-              aria-invalid={Boolean(rackError)}
-              aria-describedby={rackError ? `wf-rack-err-${orderId}` : undefined}
-            />
-          </CmxFieldShell>
-        ) : null}
-
         {needsControlNotes ? (
           <CmxFieldShell
             id={`wf-control-notes-${orderId}`}
@@ -377,8 +336,8 @@ export function WorkflowActionBar({
             const blockedHint = action.blockedReasons
               .map((r) => (locale.startsWith('ar') && r.message2 ? r.message2 : r.message))
               .join(' · ');
-            const rackUnblocks = isOnlyRackBlocked(action) && rackTrimmed.length > 0;
-            const canClick = (action.enabled || rackUnblocks) && !loading;
+            const rackBlockedOnly = isOnlyRackBlocked(action);
+            const canClick = (action.enabled || rackBlockedOnly) && !loading;
 
             return (
               <div
@@ -395,13 +354,9 @@ export function WorkflowActionBar({
                   title={!canClick ? blockedHint : undefined}
                   onClick={() => {
                     void (async () => {
-                      if (isOnlyRackBlocked(action) && !rackTrimmed) {
-                        failField(
-                          WF_FIELD_NAMES.rackLocation,
-                          t('rackLocationRequired'),
-                          rackInputRef,
-                          setRackError,
-                        );
+                      if (rackBlockedOnly) {
+                        setPendingRackAction(action);
+                        setRackBagsOpen(true);
                         return;
                       }
                       const actionMin = actionMinReasonLength(action);
@@ -533,6 +488,22 @@ export function WorkflowActionBar({
           </CmxFieldShell>
         ) : null}
       </CmxConfirmDialog>
+      <RackBagsModal
+        open={rackBagsOpen}
+        onOpenChange={(next) => {
+          setRackBagsOpen(next);
+          if (!next) setPendingRackAction(null);
+        }}
+        orderId={orderId}
+        onSaved={(saved) => {
+          const action = pendingRackAction;
+          setRackBagsOpen(false);
+          setPendingRackAction(null);
+          if (action) {
+            void executeWorkflowAction(action, undefined, { rackLocation: saved.rackLocation });
+          }
+        }}
+      />
       {children}
     </>
   );

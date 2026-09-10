@@ -13,6 +13,18 @@ export {
   type PaymentMethodCode,
 } from "./payment";
 
+import { ORDER_STATUSES as WORKFLOW_ORDER_STATUSES } from "@/lib/types/workflow";
+
+const TERMINAL_WORKFLOW_STATUSES = ['delivered', 'closed', 'cancelled'] as const;
+
+/**
+ * Non-terminal workflow statuses (current_status), for cross-order "still active" lookups.
+ * Derived from lib/types/workflow.ts ORDER_STATUSES so it can't drift if that set changes.
+ */
+export const ACTIVE_ORDER_STATUS_CODES: readonly string[] = WORKFLOW_ORDER_STATUSES.filter(
+  (s) => !TERMINAL_WORKFLOW_STATUSES.includes(s as typeof TERMINAL_WORKFLOW_STATUSES[number])
+);
+
 /**
  * Order Status Types (simplified set for UI/filters).
  * For workflow transitions and full lifecycle, use lib/types/workflow.ts (OrderStatus, ORDER_STATUSES) as source of truth.

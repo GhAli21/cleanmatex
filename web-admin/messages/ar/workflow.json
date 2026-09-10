@@ -301,10 +301,26 @@
       "blockersTitle": "لا يمكن إكمال الإجراء",
       "rackRequired": "موقع الرف مطلوب",
       "rackSaved": "تم حفظ موقع الرف",
-      "rackSaveFailed": "فشل حفظ موقع الرف"
+      "rackSaveFailed": "فشل حفظ موقع الرف",
+      "rackBagsLoadFailed": "فشل تحميل بيانات الرف والأكياس",
+      "rackBagsSaveFailed": "فشل حفظ بيانات الرف والأكياس",
+      "rackBagsSaved": "تم حفظ بيانات الرف والأكياس"
     },
     "rackPlaceholder": "مثال: رف A-12",
     "rackHelp": "عيّن رفًا حتى يمكن الإفراج للاستلام أو التوصيل.",
+    "rackBags": {
+      "title": "الرف والأكياس",
+      "trigger": "الرف والأكياس",
+      "customerRackWarning": "لدى العميل طلبات على الرف (الأرفف): {rackCount} أكياس:{bags} تعليق:{hanging}",
+      "rack": "الرف",
+      "rackPlaceholder": "مثال: رف A-12",
+      "locker": "الخزانة",
+      "code": "الرمز",
+      "bags": "الأكياس",
+      "hanging": "معلّق",
+      "custom": "مخصص",
+      "submit": "إرسال"
+    },
     "fulfilment": {
       "title": "الاستلام والتحصيل",
       "description": "أتِح الطلب للاستلام، حصّل المبلغ المتبقي، ثم أكد التسليم عندما يستلم العميل القطع.",

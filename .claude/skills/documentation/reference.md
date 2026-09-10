@@ -10,8 +10,9 @@ Stay here when:
 - the task is limited to one feature or sub-scope
 - the work is normal doc writing, updating, or pack completion
 - there is no active ambiguity about which folder is the source of truth
+- the target file doesn't already carry a `**Doc Status:**` marker
 
-Switch to specialist skills when that is no longer true.
+Switch to specialist skills when that is no longer true. A marked target file isn't a routing case exactly — it's a revival decision, so confirm with the user (see Workflow step 3 in SKILL.md) rather than silently editing it or silently routing it away.
 
 ## 2. Specialist Skill Routing
 
@@ -159,3 +160,5 @@ Before finishing:
 - verify links are not obviously broken
 - verify status/progress/changelog do not contradict each other
 - verify technical claims match current repo artifacts
+- verify no new cross-link points at a file carrying a `**Doc Status:**` marker
+- if a marker was intentionally removed to revive a file, verify the file's content was actually brought up to date, not just unflagged

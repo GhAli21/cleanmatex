@@ -17184,6 +17184,7 @@ export type Database = {
           financial_mismatch_warning_count: number
           financial_snapshot_status: string
           gift_card_id: string | null
+          hanging_count: number | null
           has_issue: boolean | null
           has_split: boolean | null
           hold_from_status: string | null
@@ -17198,6 +17199,8 @@ export type Database = {
           items_base_amount: number
           last_transition_at: string | null
           last_transition_by: string | null
+          locker_code: string | null
+          locker_location: string | null
           net_collected_amount: number
           non_taxable_amount: number
           order_no: string
@@ -17350,6 +17353,7 @@ export type Database = {
           financial_mismatch_warning_count?: number
           financial_snapshot_status?: string
           gift_card_id?: string | null
+          hanging_count?: number | null
           has_issue?: boolean | null
           has_split?: boolean | null
           hold_from_status?: string | null
@@ -17364,6 +17368,8 @@ export type Database = {
           items_base_amount?: number
           last_transition_at?: string | null
           last_transition_by?: string | null
+          locker_code?: string | null
+          locker_location?: string | null
           net_collected_amount?: number
           non_taxable_amount?: number
           order_no: string
@@ -17516,6 +17522,7 @@ export type Database = {
           financial_mismatch_warning_count?: number
           financial_snapshot_status?: string
           gift_card_id?: string | null
+          hanging_count?: number | null
           has_issue?: boolean | null
           has_split?: boolean | null
           hold_from_status?: string | null
@@ -17530,6 +17537,8 @@ export type Database = {
           items_base_amount?: number
           last_transition_at?: string | null
           last_transition_by?: string | null
+          locker_code?: string | null
+          locker_location?: string | null
           net_collected_amount?: number
           non_taxable_amount?: number
           order_no?: string

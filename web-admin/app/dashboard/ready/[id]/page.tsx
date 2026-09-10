@@ -15,8 +15,6 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { useMessage } from '@ui/feedback';
-import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
 import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
@@ -44,7 +42,6 @@ export default function ReadyDetailPage() {
   const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant, user } = useAuth();
   const { formatMoneyWithCode, currencyCode: tenantCurrencyCode } = useTenantCurrency();
-  const { showSuccess, showError, showErrorFrom } = useMessage();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
   const [order, setOrder] = useState<ReadyOrder | null>(null);
@@ -60,8 +57,6 @@ export default function ReadyDetailPage() {
   /** Which control opened the collect dialog — the pickup card's CTA collects in
    *  order to release the handover, the payment card's is a plain collection. */
   const [collectIntent, setCollectIntent] = useState<'payment' | 'handover'>('payment');
-  const [rackDraft, setRackDraft] = useState('');
-  const [savingRack, setSavingRack] = useState(false);
   const [actionBarKey, setActionBarKey] = useState(0);
 
   const orderId = (params as any)?.id as string | undefined;
@@ -90,7 +85,6 @@ export default function ReadyDetailPage() {
       const mapped = mapReadyOrderFromStateResponse(json);
       if (mapped) {
         setOrder(mapped);
-        setRackDraft(mapped.rackLocation?.trim() || '');
       } else {
         setError(json.error || t('ready.messages.loadFailed'));
       }
@@ -104,37 +98,6 @@ export default function ReadyDetailPage() {
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
-
-  const saveRackLocation = async () => {
-    if (!orderId) return;
-    const nextRack = rackDraft.trim();
-    if (!nextRack) {
-      showError(t('ready.messages.rackRequired'));
-      return;
-    }
-    setSavingRack(true);
-    try {
-      const res = await fetch(`/api/v1/orders/${orderId}/batch-update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          updates: [],
-          orderRackLocation: nextRack,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || t('ready.messages.rackSaveFailed'));
-      }
-      showSuccess(t('ready.messages.rackSaved'));
-      await loadOrder();
-      setActionBarKey((k) => k + 1);
-    } catch (err) {
-      showErrorFrom(err, { fallback: t('ready.messages.rackSaveFailed') });
-    } finally {
-      setSavingRack(false);
-    }
-  };
 
   const openPrintPreview = (
     type: 'receipt' | 'order-details' | 'invoices-payments-rprt' | 'payments-rprt' | 'history-rprt',
@@ -249,38 +212,12 @@ export default function ReadyDetailPage() {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium text-gray-700">{t('ready.rack')}:</span>
               <span className="font-bold text-xl text-blue-600">
                 {order.rackLocation?.trim() || '—'}
               </span>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor={`ready-rack-${orderId}`}>{t('ready.rack')}</Label>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                <CmxInput
-                  id={`ready-rack-${orderId}`}
-                  value={rackDraft}
-                  onChange={(e) => setRackDraft(e.target.value)}
-                  placeholder={t('ready.rackPlaceholder')}
-                  autoComplete="off"
-                  className="flex-1"
-                />
-                <CmxButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  loading={savingRack}
-                  disabled={savingRack || !rackDraft.trim()}
-                  onClick={() => {
-                    void saveRackLocation();
-                  }}
-                >
-                  {t('ready.actions.saveRack')}
-                </CmxButton>
-              </div>
-              <p className="text-xs text-muted-foreground">{t('ready.rackHelp')}</p>
             </div>
           </div>
         </div>
@@ -308,6 +245,7 @@ export default function ReadyDetailPage() {
                   key={`ready-fulfilment-${actionBarKey}`}
                   orderId={orderId}
                   orderNo={order.orderNo}
+                  customerId={order.customerId}
                   customerName={order.customer.name}
                   paymentTypeCode={order.paymentTypeCode}
                   outstandingAmount={order.paymentSummary?.remaining ?? 0}

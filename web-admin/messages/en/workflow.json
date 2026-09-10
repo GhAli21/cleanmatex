@@ -301,10 +301,26 @@
       "blockersTitle": "Cannot complete action",
       "rackRequired": "Rack location is required",
       "rackSaved": "Rack location saved",
-      "rackSaveFailed": "Failed to save rack location"
+      "rackSaveFailed": "Failed to save rack location",
+      "rackBagsLoadFailed": "Failed to load rack & bags details",
+      "rackBagsSaveFailed": "Failed to save rack & bags details",
+      "rackBagsSaved": "Rack & bags details saved"
     },
     "rackPlaceholder": "e.g., Rack A-12",
     "rackHelp": "Assign a rack so release for pickup/delivery can proceed.",
+    "rackBags": {
+      "title": "Rack & Bags",
+      "trigger": "Rack & Bags",
+      "customerRackWarning": "Customer has orders on rack(s): {rackCount} B:{bags} H:{hanging}",
+      "rack": "Rack",
+      "rackPlaceholder": "e.g., Rack A-12",
+      "locker": "Locker",
+      "code": "Code",
+      "bags": "Bags",
+      "hanging": "Hanging",
+      "custom": "Custom",
+      "submit": "Submit"
+    },
     "fulfilment": {
       "title": "Pickup and collection",
       "description": "Make the order available, collect remaining payment, then confirm handover when the customer receives the items.",

@@ -949,6 +949,10 @@ model org_orders_mst {
   is_order_quick_drop                Boolean?                          @default(false)
   quick_drop_quantity                Int?
   rack_location                      String?                           @db.VarChar(100)
+  // Rack & Bags modal (migration 0497).
+  locker_location                    String?
+  locker_code                        String?
+  hanging_count                      Int?                              @default(0)
   tax_rate                           Decimal?                          @db.Decimal(5, 3)
   currency_code                      String?                           @db.VarChar(3)
   currency_ex_rate                   Decimal                           @default(1.000000) @db.Decimal(10, 6)

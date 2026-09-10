@@ -1,0 +1,1 @@
+v1 (2026-09-11) — migration 0497 applied to local + remote, verified

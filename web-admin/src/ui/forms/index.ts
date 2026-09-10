@@ -11,6 +11,7 @@ export * from './cmx-form-section';
 export * from './cmx-form-actions';
 export * from './cmx-checkbox-group'
 export * from './cmx-radio-group';
+export * from './cmx-count-picker';
 export * from './cmx-select-dropdown';
 export * from './cmx-hex-color-field';
 export * from './cmx-form-status-banner';

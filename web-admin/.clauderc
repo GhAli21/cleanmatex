@@ -175,6 +175,7 @@ ui_components:
   select_dropdown: "import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'"
   checkbox_group: "import { CmxCheckboxGroup } from '@ui/forms'"
   radio_group: "import { CmxRadioGroup } from '@ui/forms'"
+  count_picker: "import { CmxCountPicker } from '@ui/forms'"
   hex_color_field: "import { CmxHexColorField } from '@ui/forms'"
   # ── Overlays ─────────────────────────────────────────────────────
   dialog: "import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'"

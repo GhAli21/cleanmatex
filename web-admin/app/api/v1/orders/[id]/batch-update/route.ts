@@ -63,11 +63,25 @@ export async function POST(
 
     // Parse request body
     const body: BatchUpdateRequest = await request.json();
-    const { updates, itemQuantityReady, orderRackLocation } = body;
+    const { updates, itemQuantityReady, orderRackLocation, lockerLocation, lockerCode, bagCount, hangingCount } = body;
 
     if (!updates || !Array.isArray(updates)) {
       return NextResponse.json(
         { error: 'Invalid request: updates array required' },
+        { status: 400 }
+      );
+    }
+
+    if (bagCount !== undefined && (!Number.isInteger(bagCount) || bagCount < 1 || bagCount > 100)) {
+      return NextResponse.json(
+        { error: 'Invalid request: bagCount must be an integer between 1 and 100' },
+        { status: 400 }
+      );
+    }
+
+    if (hangingCount !== undefined && (!Number.isInteger(hangingCount) || hangingCount < 0)) {
+      return NextResponse.json(
+        { error: 'Invalid request: hangingCount must be a non-negative integer' },
         { status: 400 }
       );
     }
@@ -276,12 +290,22 @@ export async function POST(
       piecesUpdated = batchResult.updated ?? 0;
     }
 
-    // Update order-level rack location if provided
-    if (orderRackLocation !== undefined) {
+    // Update order-level rack/locker/bag/hanging fields if any were provided
+    if (
+      orderRackLocation !== undefined ||
+      lockerLocation !== undefined ||
+      lockerCode !== undefined ||
+      bagCount !== undefined ||
+      hangingCount !== undefined
+    ) {
       await supabase
         .from('org_orders_mst')
         .update({
-          rack_location: orderRackLocation,
+          ...(orderRackLocation !== undefined ? { rack_location: orderRackLocation } : {}),
+          ...(lockerLocation !== undefined ? { locker_location: lockerLocation } : {}),
+          ...(lockerCode !== undefined ? { locker_code: lockerCode } : {}),
+          ...(bagCount !== undefined ? { bag_count: bagCount } : {}),
+          ...(hangingCount !== undefined ? { hanging_count: hangingCount } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq('id', orderId)
