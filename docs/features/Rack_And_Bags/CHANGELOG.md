@@ -19,3 +19,7 @@
 **Gates:** full `eslint`, `tsc --noEmit`, and `next build` all green; `check:i18n` passed; new unit tests (10) plus a 623-test regression sweep across workflow/orders/ui all passing.
 
 **Not yet done:** manual click-through QA (`testing_guide_and_scenarios.md`). Processing modal's own separate piece-level rack section left untouched (explicitly out of scope).
+
+## 2026-09-11 — fix: CSRF token missing on submit
+
+Owner's manual QA (Scenario 1) caught a real bug: `RackBagsModal`'s POST to `batch-update` didn't attach the `X-CSRF-Token` header the route requires (double-submit cookie pattern via `validateCSRF`), so every submit failed with 403 "CSRF token validation failed" before any field was saved. Fixed by wiring `useCSRFToken()` / `getCSRFHeader()` — the same pattern `OrderCollectPaymentModal` already uses — into the modal's fetch call. `eslint` + `tsc --noEmit` clean afterward.

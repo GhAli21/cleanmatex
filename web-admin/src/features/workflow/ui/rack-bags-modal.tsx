@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import {
   CmxDialog,
@@ -71,6 +72,7 @@ export function RackBagsModal({ open, onOpenChange, orderId, onSaved }: RackBags
   const t = useTranslations('workflow.ready.rackBags');
   const tMessages = useTranslations('workflow.ready.messages');
   const isRTL = useRTL();
+  const { token: csrfToken } = useCSRFToken();
 
   const contextQuery = useQuery({
     queryKey: ['rack-bags', orderId],
@@ -104,7 +106,7 @@ export function RackBagsModal({ open, onOpenChange, orderId, onSaved }: RackBags
     try {
       const response = await fetch(`/api/v1/orders/${orderId}/batch-update`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCSRFHeader(csrfToken) },
         credentials: 'include',
         body: JSON.stringify({
           updates: [],
