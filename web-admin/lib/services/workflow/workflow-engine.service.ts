@@ -410,7 +410,7 @@ async function loadActionTransitionsForOrder(
   });
 }
 
-function unsupportedGateModeBlockedReason(locale?: string): BlockedReason {
+export function unsupportedGateModeBlockedReason(locale?: string): BlockedReason {
   const isArabic = locale?.toLowerCase().startsWith('ar');
   return {
     code: 'GATE_DECISION_MODE_UNAVAILABLE',
@@ -423,7 +423,7 @@ function unsupportedGateModeBlockedReason(locale?: string): BlockedReason {
   };
 }
 
-function evidenceRuntimeBlockedReason(locale?: string): BlockedReason {
+export function evidenceRuntimeBlockedReason(locale?: string): BlockedReason {
   const isArabic = locale?.toLowerCase().startsWith('ar');
   return {
     code: 'EVIDENCE_RUNTIME_UNAVAILABLE',
@@ -524,7 +524,7 @@ async function findOpenOrderRelease(input: {
   return rows[0] ?? null;
 }
 
-function openReleaseBlockedReason(locale?: string): BlockedReason {
+export function openReleaseBlockedReason(locale?: string): BlockedReason {
   const isArabic = locale?.toLowerCase().startsWith('ar');
   return {
     code: 'GATE_RELEASE_ALREADY_OPEN',
@@ -534,6 +534,19 @@ function openReleaseBlockedReason(locale?: string): BlockedReason {
     message2: isArabic
       ? 'This order has already been made available for fulfilment.'
       : 'تم بالفعل إتاحة الطلب للاستلام أو التسليم.',
+  };
+}
+
+export function warningAckBlockedReason(locale?: string): BlockedReason {
+  const isArabic = locale?.toLowerCase().startsWith('ar');
+  return {
+    code: 'WF_GATE_ACK_REQUIRED',
+    message: isArabic
+      ? 'يتطلب هذا الإجراء إقرارًا بالتحذير الحالي أو تجاوزًا مصرّحًا به.'
+      : 'This action requires a current warning acknowledgement or authorized override.',
+    message2: isArabic
+      ? 'This action requires a current warning acknowledgement or authorized override.'
+      : 'يتطلب هذا الإجراء إقرارًا بالتحذير الحالي أو تجاوزًا مصرّحًا به.',
   };
 }
 
@@ -626,10 +639,7 @@ export async function listAvailableActions(
           failedBindings: classified.failedBindings,
         });
       } else if (classified.failedBindings.length > 0 && classified.hardReasons.length === 0) {
-        gateBlockedReasons = classified.failedBindings.flatMap((binding) => [{
-          code: 'WF_GATE_ACK_REQUIRED',
-          message: 'This action requires a current warning acknowledgement or authorized override.',
-        }]);
+        gateBlockedReasons = classified.failedBindings.map(() => warningAckBlockedReason(params.locale));
       }
     } else {
       const gateResult = evaluateWorkflowGateSet(

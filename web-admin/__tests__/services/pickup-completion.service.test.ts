@@ -99,6 +99,67 @@ describe('completePickup', () => {
     );
   });
 
+  // T07 — the "partial" half of "no double release": a released partial handover
+  // requires item-level fulfilment and must fail closed rather than being silently
+  // folded into a whole-order pickup complete.
+  it('rejects a whole-order pickup complete when the locked release is partial', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([
+        {
+          id: COMMAND.orderId,
+          current_status: 'ready_for_pickup',
+          payment_type_code: 'PAY_IN_ADVANCE',
+          outstanding_amount: '0.0000',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: '66666666-6666-6666-6666-666666666666',
+          release_type: 'partial',
+          release_status: 'released',
+          has_release_lines: false,
+        },
+      ]);
+
+    await expect(completePickup(COMMAND)).rejects.toMatchObject<PickupCompletionError>({
+      code: 'PICKUP_PARTIAL_RELEASE_UNSUPPORTED',
+      httpStatus: 422,
+    });
+
+    expect(mockExecuteRaw).not.toHaveBeenCalled();
+    expect(mockExecuteAction).not.toHaveBeenCalled();
+  });
+
+  // Same guard, different trigger: a nominally "pickup" release that already has
+  // item-level release lines recorded against it must also fail closed.
+  it('rejects a whole-order pickup complete when the locked release already has item-level lines', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([
+        {
+          id: COMMAND.orderId,
+          current_status: 'ready_for_pickup',
+          payment_type_code: 'PAY_IN_ADVANCE',
+          outstanding_amount: '0.0000',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: '77777777-7777-7777-7777-777777777777',
+          release_type: 'pickup',
+          release_status: 'released',
+          has_release_lines: true,
+        },
+      ]);
+
+    await expect(completePickup(COMMAND)).rejects.toMatchObject<PickupCompletionError>({
+      code: 'PICKUP_PARTIAL_RELEASE_UNSUPPORTED',
+      httpStatus: 422,
+    });
+
+    expect(mockExecuteRaw).not.toHaveBeenCalled();
+    expect(mockExecuteAction).not.toHaveBeenCalled();
+  });
+
   it('fulfils the pickup release and transitions through CONFIRM_PICKUP in one transaction', async () => {
     mockQueryRaw
       .mockResolvedValueOnce([

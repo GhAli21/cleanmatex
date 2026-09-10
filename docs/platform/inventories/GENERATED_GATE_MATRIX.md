@@ -1,12 +1,12 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-09-05T00:58:53.248Z
-Git SHA: 455ac22a
+Generated: 2026-09-10T15:42:10.193Z
+Git SHA: 9a36c42a
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 150 |
+| Access contracts | 151 |
 | Permission usages | 321 |
 | Feature flag usages | 86 |
 | Setting usages | 40 |
@@ -119,6 +119,7 @@ Git SHA: 455ac22a
 | /dashboard/orders/[id]/edit | Edit Order | — | — | 0 |
 | /dashboard/orders/[id]/full | Full Order Details | — | — | 0 |
 | /dashboard/orders/[id]/prepare | Prepare Order | — | — | 0 |
+| /dashboard/orders/[id]/workspace | Workspace | orders:view_financial_breakdown | — | 0 |
 | /dashboard/orders/new | New Order | — | — | 0 |
 | /dashboard/packing | Packing | — | — | 0 |
 | /dashboard/packing/[id] | Packing Details | — | — | 0 |

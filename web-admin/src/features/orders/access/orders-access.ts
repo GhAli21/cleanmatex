@@ -2265,7 +2265,89 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
     notes: ORDER_NOTES,
   },
-]
+
+  {
+    routePattern: '/dashboard/orders/[id]/workspace',
+    label: 'Workspace',
+    page: {
+      permissions: ['orders:view_financial_breakdown'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'V1 Cash Drawers',
+        method: 'GET',
+        path: '/api/v1/cash-drawers',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Open Session',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[id]/open-session',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Payments',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/payments',
+        requirement: {
+          permissions: ['orders:collect_payment'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] State',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/state',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Orders Checkout Options',
+        method: 'GET',
+        path: '/api/v1/orders/checkout-options',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Pos Sessions My Active',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/my-active',
+        requirement: {
+          permissions: ['pos_session:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Payments Card Brands',
+        method: 'GET',
+        path: '/api/v1/settings/payments/card-brands',
+        requirement: {
+          permissions: ['payment_config:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Payments Terminals',
+        method: 'GET',
+        path: '/api/v1/settings/payments/terminals',
+        requirement: {
+          permissions: ['payment_config:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Server action: get-order',
+        method: 'POST',
+        path: '/app/actions/orders/get-order',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+    ],
+},
+];
 
 export const NEW_ORDER_ACCESS =
   ORDERS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/orders/new')!
+export const ORDERS_ORDERS_WORKSPACE_ACCESS =
+  ORDERS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/orders/[id]/workspace')!

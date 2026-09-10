@@ -317,6 +317,68 @@ describe('completeDelivery database invariants', () => {
     }
   });
 
+  // PAY_ON_COLLECTION acceptance loop: the block and the settled-allow cases above
+  // each seed a fresh order at the target balance. This proves the composed flow a
+  // staff member actually lives through on ONE order: blocked while a balance
+  // remains, then — after the exact same mutation collectPaymentTx performs
+  // (zeroing outstanding_amount) — a retry of the identical command succeeds.
+  dbit('retrying the same delivery command succeeds once the balance is collected', async () => {
+    const seed = await seedDelivery({ paymentTypeCode: 'PAY_ON_COLLECTION', outstandingAmount: 5 });
+    try {
+      await expect(completeDelivery({
+        tenantId: DEMO_TENANT,
+        stopId: seed.stopId,
+        actorUserId: ACTOR,
+        expectedStateVersion: 4,
+        idempotencyKey: seed.idempotencyKey,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
+      })).rejects.toMatchObject<DeliveryCompletionError>({
+        code: 'DELIVERY_COLLECTION_REQUIRED',
+        httpStatus: 422,
+      });
+
+      await prisma.$executeRaw`
+        UPDATE public.org_orders_mst
+        SET outstanding_amount = 0
+        WHERE tenant_org_id = ${DEMO_TENANT}::uuid
+          AND id = ${seed.orderId}::uuid
+      `;
+
+      const retryKey = `${seed.idempotencyKey}-retry`;
+      const result = await completeDelivery({
+        tenantId: DEMO_TENANT,
+        stopId: seed.stopId,
+        actorUserId: ACTOR,
+        expectedStateVersion: 4,
+        idempotencyKey: retryKey,
+        podMethodCode: 'PHOTO',
+        photoEvidenceIds: [seed.evidenceId],
+      }).catch((error) => {
+        if (error instanceof WorkflowEngineError) {
+          console.warn('[delivery-completion-db] CONFIRM_DELIVERY is not available - skipping collect-then-retry case');
+          return null;
+        }
+        throw error;
+      });
+      if (!result) return;
+
+      expect(result.workflow.currentStatus).toBe('delivered');
+      const stop = await prisma.org_dlv_stops_dtl.findFirst({
+        where: { id: seed.stopId, tenant_org_id: DEMO_TENANT },
+        select: { stop_status_code: true },
+      });
+      expect(stop?.stop_status_code).toBe('delivered');
+      const order = await prisma.org_orders_mst.findFirst({
+        where: { id: seed.orderId, tenant_org_id: DEMO_TENANT },
+        select: { current_status: true },
+      });
+      expect(order?.current_status).toBe('delivered');
+    } finally {
+      await cleanupSeed(seed, [`${seed.idempotencyKey}-retry`]);
+    }
+  });
+
   dbit('does not reveal another tenant stop', async () => {
     if (!otherTenantId) {
       console.warn('[delivery-completion-db] No second tenant available - skipping isolation case');

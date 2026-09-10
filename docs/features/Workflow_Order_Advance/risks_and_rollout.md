@@ -1,8 +1,8 @@
 # P7R Delivery Risks and Rollout
 
-**Status:** Proof/audit read surface implemented; staff delivery completion remains blocked.  
-**Last updated:** 2026-08-21  
-**Scope:** Delivery proof/audit only. This document does not approve staff delivery completion.
+**Status:** Proof/audit read surface implemented. **Staff routed POD delivery completion is no longer blocked** — S10 canary SIGNED 2026-09-05 (real operator, real UI, verified atomically on remote), and `STAFF_DELIVERY_WRITES_ENABLED=true` since the Delivery Feature Completion Phase 5 rollout the same day. See `current_status.md` and `13_Production_Readiness_Checklist.md` for current evidence; the rest of this document is preserved as the original risk assessment that gated that rollout.
+**Last updated:** 2026-08-21 (status line updated 2026-09-10)  
+**Scope:** Delivery proof/audit only. This document does not itself approve staff delivery completion — that approval is recorded in `13_Production_Readiness_Checklist.md`.
 
 ## What may be released now
 

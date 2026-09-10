@@ -1,5 +1,7 @@
 # Testing Guide And Scenarios — Workflow Order Advance
 
+**See also:** `12_Test_Plan.md` — the authoritative T01–T18 mandatory-scenario traceability matrix (refreshed 2026-09-05, T16/T17 closed with real proofs 2026-09-05/09-10). This file's evidence notes below (dated 2026-08-21/08-29) predate that refresh; treat `12_Test_Plan.md` as current for T-numbered scenario status.
+
 ## Fast validation commands
 
 Run from `web-admin`:
@@ -13,6 +15,7 @@ npx jest __tests__/services/workflow-gate-evaluator.service.test.ts __tests__/se
 npx jest __tests__/services/workboard-query.service.test.ts __tests__/services/stage-worklist-query.service.test.ts --runInBand
 npx jest __tests__/api/workflow-engine-http.test.ts __tests__/api/v1/workflow-stage-command.route.test.ts __tests__/api/v1/workflow-actions-delivery-bypass.route.test.ts --runInBand
 npm run test:db-integration -- delivery-completion.db.test.ts
+npm run test:db-integration -- rls-tenant-isolation.db.test.ts
 npx playwright test e2e/public-order-tracking.spec.ts --project=public-chromium --reporter=line
 npx eslint . --quiet
 npx tsc --noEmit

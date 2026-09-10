@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-05T00:58:53.248Z
+Generated: 2026-09-10T15:42:10.193Z
 
 ## By surface (counts)
 
@@ -116,10 +116,10 @@ Generated: 2026-09-05T00:58:53.248Z
 | customers:update | api | app/api/v1/customers/[id]/route.ts | 126 | /api/v1/customers/[id] |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 74 | /api/v1/customers/[id]/service-prefs |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 140 | /api/v1/customers/[id]/service-prefs |
-| delivery:assign | screen | src/features/drivers/ui/delivery-route-planning-screen.tsx | 63 | src/features/drivers/ui/delivery-route-planning-screen.tsx |
+| delivery:assign | screen | src/features/drivers/ui/delivery-route-planning-screen.tsx | 102 | src/features/drivers/ui/delivery-route-planning-screen.tsx |
 | delivery:assign | api | app/api/v1/delivery/routes/[id]/assign/route.ts | 31 | /api/v1/delivery/routes/[id]/assign |
-| delivery:routes | screen | src/features/drivers/ui/delivery-route-planning-screen.tsx | 62 | src/features/drivers/ui/delivery-route-planning-screen.tsx |
-| delivery:routes | api | app/api/v1/delivery/routes/route.ts | 52 | /api/v1/delivery/routes |
+| delivery:routes | screen | src/features/drivers/ui/delivery-route-planning-screen.tsx | 101 | src/features/drivers/ui/delivery-route-planning-screen.tsx |
+| delivery:routes | api | app/api/v1/delivery/routes/route.ts | 57 | /api/v1/delivery/routes |
 | delivery:routes | api | app/api/v1/delivery/routes/[id]/cancel/route.ts | 34 | /api/v1/delivery/routes/[id]/cancel |
 | delivery:routes | api | app/api/v1/delivery/routes/[id]/orders/route.ts | 32 | /api/v1/delivery/routes/[id]/orders |
 | delivery:routes | api | app/api/v1/delivery/routes/[id]/stops/[stopId]/route.ts | 26 | /api/v1/delivery/routes/[id]/stops/[stopId] |
@@ -270,7 +270,7 @@ Generated: 2026-09-05T00:58:53.248Z
 | orders:transition | api | app/api/v1/orders/[id]/actions/route.ts | 36 | /api/v1/orders/[id]/actions |
 | orders:transition | api | app/api/v1/orders/[id]/available-actions/route.ts | 22 | /api/v1/orders/[id]/available-actions |
 | orders:transition | api | app/api/v1/orders/[id]/confirm-physical-intake/route.ts | 31 | /api/v1/orders/[id]/confirm-physical-intake |
-| orders:transition | api | app/api/v1/orders/[id]/transition/route.ts | 44 | /api/v1/orders/[id]/transition |
+| orders:transition | api | app/api/v1/orders/[id]/transition/route.ts | 45 | /api/v1/orders/[id]/transition |
 | orders:update | screen | src/features/orders/ui/order-actions.tsx | 50 | src/features/orders/ui/order-actions.tsx |
 | orders:update | screen | src/features/workflow/ui/FastItemizer.tsx | 52 | src/features/workflow/ui/FastItemizer.tsx |
 | orders:update | api | app/api/v1/orders/[id]/batch-update/route.ts | 49 | /api/v1/orders/[id]/batch-update |

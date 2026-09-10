@@ -16,6 +16,12 @@ This guide covers the operator-owned V1.0 engine cutover, public tracking, count
 8. `0455_workboard_permission_navigation.sql` (Workboard permission + Orders child navigation)
 9. `0463_sys_wf_gate_ops_fulfilment.sql` (piece/QA/fulfilment/evidence gate catalog seed; operator confirmed applied locally and remotely on 2026-08-22)
 10. `0479`–`0487` create-hydration / home-collection / hold programme (operator confirmed applied locally and remotely on 2026-09-04, types regen)
+11. `0488_wf_v2_home_collection_profile_seed.sql` (operator applied; `WF_V2_HOME_COLLECTION` v1 PILOT seed)
+12. `0490_org_drivers_mst_and_route_safety.sql` (Delivery Feature Completion: `org_drivers_mst`, route/stop safety FKs and partial unique index, `org_dlv_route_seq_cf`; operator applied both DBs 2026-09-05)
+13. `0491_nav_drivers_remove_driver_app_gate.sql` (removes the `driver_app` feature-flag gate from Drivers/Routes nav; operator applied both DBs 2026-09-05)
+14. `0492_nav_drivers_routes_orders_read.sql` (aligns `drivers_routes` nav row with its `drivers:read`+`orders:read` page contract; operator applied both DBs 2026-09-05)
+15. `0493_org_dlv_stops_confirm_level.sql` (adds `confirm_level`/`confirm_notes` to `org_dlv_stops_dtl` for customer-vs-staff delivery confirmation; operator applied both DBs)
+16. `0494_wf_prof_ver_artifact_retirement.sql` (Gate 5: drops the retired HQ compiled-artifact table `sys_wf_prof_ver_artifact_cf`, its 3 FKs, and 5 vestigial columns on `sys_wf_profile_ver_mst`; operator applied both DBs 2026-09-10 — see `CHANGELOG.md` for full evidence)
 
 Do not modify older migrations. Apply them in normal sequence in the environment you are promoting.
 

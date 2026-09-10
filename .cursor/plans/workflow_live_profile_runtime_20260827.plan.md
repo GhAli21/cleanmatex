@@ -1,7 +1,7 @@
 ---
 name: Live Workflow Profile Runtime - Tenant Delivery
 overview: Review-first tenant delivery plan for the direct normalized profile-version runtime defined by HQ ADR-SAAS-MNG-0010. It replaces compiled-artifact reads while preserving order version binding, stage-owned services, tenant isolation, finance, gates, fulfilment, audit, and idempotency.
-status: awaiting_plan_review
+status: in_progress # updated 2026-09-10 — execution is far past review; see individual todo statuses below (most completed, Gate 5 artifact retirement fully applied 2026-09-10)
 depends_on:
   - F:\jhapp\cleanmatexsaas\.cursor\plans\workflow_live_profile_runtime_20260827.plan.md
   - F:\jhapp\cleanmatexsaas\docs\features\SAAS_Platform_Management\ADRs\ADR-SAAS-MNG-0010_Live_Normalized_Workflow_Profile_Runtime.md

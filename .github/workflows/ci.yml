@@ -68,6 +68,8 @@ jobs:
         run: npm ci
       - name: Lint web-admin
         run: npm run lint --workspace=web-admin
+      - name: Test web-admin
+        run: npm run test --workspace=web-admin -- --ci
       - name: Build web-admin
         run: npm run build --workspace=web-admin
 

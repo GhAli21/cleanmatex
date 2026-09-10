@@ -1,6 +1,6 @@
 # Implementation Plan — Workflow Order Advance
 
-**Version:** 0.4.3-p7r-stage-api-architecture
+**Version:** see [version.txt](version.txt) → `0.4.16-p7r-delivery-floor` (this plan's own body is a 2026-08-14 snapshot; consult `current_status.md`/`CHANGELOG.md` for everything shipped since)
 **Date:** 2026-08-14
 **Scope lock:** [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md)  
 **Checkpoint:** [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)

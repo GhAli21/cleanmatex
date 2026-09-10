@@ -48,7 +48,14 @@ describe('POST /api/v1/orders/[id]/transition — replay must not re-notify', ()
     requirePermissionMock.mockResolvedValue(AUTH_CONTEXT);
   });
 
-  it('emits a notification for a fresh transition to a mapped status', async () => {
+  // `isOrderTransitionNotifyEnabled()` (lib/notifications/config.ts) is currently
+  // hardcoded to `return false` — an operator decision to administratively silence
+  // order-transition notifications platform-wide, independent of env config. This
+  // test documents that current, deliberate state: a fresh transition still does
+  // NOT notify. When that hardcode is lifted, this assertion is the one to flip
+  // back to "notifies once" — the replay-suppression and env-flag tests below stay
+  // correct either way since they gate on top of whatever this function returns.
+  it('does not notify a fresh transition while notify is administratively disabled', async () => {
     executeActionMock.mockResolvedValue({ ok: true, currentStatus: 'ready', stateVersion: 2 });
 
     const response = await POST(
@@ -62,10 +69,7 @@ describe('POST /api/v1/orders/[id]/transition — replay must not re-notify', ()
     );
 
     expect(response.status).toBe(200);
-    expect(emitNotificationEventMock).toHaveBeenCalledTimes(1);
-    expect(emitNotificationEventMock).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'order.ready', sourceEntityId: ORDER_ID }),
-    );
+    expect(emitNotificationEventMock).not.toHaveBeenCalled();
   });
 
   it('does not re-notify when executeAction returns a cached idempotent replay', async () => {

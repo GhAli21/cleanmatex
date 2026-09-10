@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-09-05T00:37:22.309Z",
+  "extractedAt": "2026-09-10T15:41:42.062Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -207,7 +207,7 @@
       "route": "src/features/drivers/ui/delivery-route-planning-screen.tsx",
       "permission": "delivery:routes",
       "component": "useHasPermissionCode",
-      "line": 62,
+      "line": 101,
       "surface": "screen"
     },
     {
@@ -215,7 +215,7 @@
       "route": "src/features/drivers/ui/delivery-route-planning-screen.tsx",
       "permission": "delivery:assign",
       "component": "useHasPermissionCode",
-      "line": 63,
+      "line": 102,
       "surface": "screen"
     },
     {
@@ -1393,7 +1393,7 @@
       "method": "GET",
       "route": "/api/v1/delivery/routes",
       "permission": "delivery:routes",
-      "line": 52,
+      "line": 57,
       "surface": "api"
     },
     {
@@ -2337,7 +2337,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/transition",
       "permission": "orders:transition",
-      "line": 44,
+      "line": 45,
       "surface": "api"
     },
     {

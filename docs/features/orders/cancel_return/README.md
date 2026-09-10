@@ -1,5 +1,7 @@
 # Cancel Order and Return Order
 
+> **SUPERSEDED (2026-09-10).** This pack (dated 2026-03-06) describes cancel/return via `cmx_ord_canceling_transition`/`cmx_ord_returning_transition` over the shared `/transition` API — **both functions had their EXECUTE grants revoked by migration `0442_retire_workflow_rpc_grants.sql`** (confirmed directly in that migration's source, lines 27/29), applied 2026-08-14. The current cancel/return model is `docs/features/Workflow_Order_Advance/ADR_CANCEL_RETURN_RULES.md`: a narrower engine-only allowlist (no auto Fin unwind for the legacy path is a separate, still-accurate finding — see that ADR), `HOLD_ORDER_WORK`/`STOP_ORDER_WORK` actions, and Return deferred entirely to V1.1 (V1.0 workaround: create a new order). Kept here as historical record, not rewritten.
+
 This module documents the **Cancel Order** and **Return Order (Customer Return)** flows in CleanMateX.
 
 ## Overview

@@ -32,6 +32,8 @@ Every candidate should end in one state:
 - `redirect-stub`
 - `archive-candidate`
 
+Each non-canonical state maps 1:1 to a `**Doc Status:**` marker value of the same name (see `/documentation-archive-migration` reference.md §1). Write it into the file as part of classification (reference.md §6, step 5), not only in your report.
+
 ## 4. Redirect Stub Minimum Content
 
 Include:
@@ -56,3 +58,13 @@ Treat these as signs that a folder should probably not be canonical:
 3. update indexes
 4. add redirect stubs
 5. migrate useful content selectively
+6. hand off execution: `archive-candidate`/`redirect-stub` folders → `/documentation-archive-migration`; remaining gaps in the winning folder → `/documentation-pack-repair`
+
+## 7. Where `archive-candidate` Actually Lands
+
+This skill only classifies and marks — it does not move files. `/documentation-archive-migration` discovers marked files (`Archive Candidate`, `Legacy`, or `Superseded` — see its reference.md §1 for the full synonym list) and executes against one of two real repo patterns:
+
+- per-feature `history/` folder (e.g. `docs/features/003_customer_management/history/`) for domain-specific legacy material
+- dated top-level sweep `docs/_archive/<YYYY-MM>/<category>/` for repo-wide cleanup passes
+
+Don't propose a third folder shape when recommending an `archive-candidate` outcome.

@@ -10,6 +10,8 @@ import { OrderWorkspaceScreen } from '@features/orders/orderdtlworkspace/ui/orde
 import { getOrderWorkspaceWorkflowJourney } from '@features/orders/orderdtlworkspace/ui/order-workspace-workflow-journey.server';
 import type { OrderWorkspaceSectionId } from '@features/orders/orderdtlworkspace/ui/order-workspace-types';
 import { OrderDetailError } from '../order-detail-error';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { ORDERS_ORDERS_WORKSPACE_ACCESS } from '@features/orders/access/orders-access'
 
 interface OrderWorkspacePageProps {
   params: Promise<{ id: string }>;
@@ -115,8 +117,10 @@ export default async function OrderWorkspacePage({
   const search = await searchParams;
 
   return (
-    <Suspense fallback={<div className="min-h-96" aria-busy="true" />}>
+    <RequireAnyPermission permissions={ORDERS_ORDERS_WORKSPACE_ACCESS.page.permissions ?? []}>
+      <Suspense fallback={<div className="min-h-96" aria-busy="true" />}>
       <OrderWorkspaceContent orderId={id} searchParams={search} />
     </Suspense>
+    </RequireAnyPermission>
   );
 }

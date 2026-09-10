@@ -1,6 +1,6 @@
 # 06 — API Contracts
 
-**Status:** Live normalized profile-version runtime is the tenant policy source. Stage-command contracts remain active for Preparation, Processing, Assembly, QA, Packing, Ready/Release, Pickup, and Delivery (order-keyed or stop-owned). Warning/override gate decisions persist `profile_version_id`. Public confirm maps `PROFILE_*` to HTTP 409. Staff S10 routed POD canary remains unsigned · **Date:** 2026-08-29
+**Status:** Live normalized profile-version runtime is the tenant policy source. Stage-command contracts remain active for Preparation, Processing, Assembly, QA, Packing, Ready/Release, Pickup, and Delivery (order-keyed or stop-owned). Warning/override gate decisions persist `profile_version_id`. Public confirm maps `PROFILE_*` to HTTP 409. Staff S10 routed POD canary **SIGNED 2026-09-05** — see `current_status.md` · **Date:** 2026-08-29, S10 line updated 2026-09-10
 Routes below are **target contracts** for V1.0; align to existing `/api/v1/orders/...` style in P2 implementation. Gaps listed at end must be closed before P0 sign-off.
 
 ## 1. Available actions

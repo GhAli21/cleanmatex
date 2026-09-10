@@ -9,6 +9,12 @@ execute a workflow transition.
 
 ## Runtime policy resolution
 
+> **Terminology note (2026-09-10):** "artifact" below means the live, per-order
+> `SemanticWorkflowArtifact` runtime projection (`loadSemanticWorkflowArtifactForOrder`,
+> computed from live `sys_wf_prof_ver_*` rows at read time) — **not** the retired
+> HQ compiled-artifact commit table (`sys_wf_prof_ver_artifact_cf`, dropped by
+> migration `0494`, see `CHANGELOG.md`). This code path never touched that table.
+
 1. Read the tenant's `workboard` screen contract for the legacy/default status set.
 2. For each compiled artifact represented by tenant orders, load that exact
    immutable artifact. A profile/version pin without artifact identity is excluded.

@@ -22,6 +22,7 @@ This folder holds related deliverables:
 | [GENERATED_WF_POLICY_ISSUE_CATALOG.md](../generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md) | **Emit registry** — severity, gates, Studio tab, Auto Fix IDs, seed_must_pass. Maintain in HQ via `/manage-wf-policy-issues-catalog` | HQ catalog generate; tenant seed CI |
 | [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md) | Must / Should / Could by version, both repos | Product + both engineering tracks |
 | [04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md](04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) | Create presets, Initial-rule matrix, home collection, hold (**tenant T0–T4 + leftover close-out done**, 0479–0487 applied). HQ H1–H3 + leftover close-out done (catalog **1.3.0**) | Product + tenant + HQ Studio |
+| [05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md) | Draft rollout plan for the 46 planned-but-not-yet-emitted Check-policy codes, sequenced safest-first (2026-09-04, owner review pending — zero files changed by the plan itself) | Product + HQ Studio |
 
 ## Authority and limits
 
@@ -36,7 +37,7 @@ This folder holds related deliverables:
 
 A published-looking Module coverage of `new_order` + `processing` + `pickup_handover` + `workboard` + `canceling`, with `ready_release` Off, is invalid for tenant counter pickup: the pickup **card** lives only on Ready Details, and `CONFIRM_PICKUP` must stay on the `pickup_handover` **module** even though that card is on the Ready **page**. See file 01 glossary + §3.A/C and file 02 `pickup_without_ready_release` / `pickup_action_on_wrong_module`.
 
-Order create can still fail with `The assigned workflow profile has no current compiled artifact` when `sys_wf_profile_ver_mst.current_artifact_id` is null. That is independent of module On/Off. See file 01 §2.H.
+**Historical (fixed 2026-09-10):** order create used to be able to fail with `The assigned workflow profile has no current compiled artifact` when `sys_wf_profile_ver_mst.current_artifact_id` was null. That column (and the whole compiled-artifact-commit mechanism) was retired by migration `0494` — see `CHANGELOG.md`. This failure mode can no longer occur; file 01 §2.H's description of it is preserved as historical context only.
 
 ## Related
 

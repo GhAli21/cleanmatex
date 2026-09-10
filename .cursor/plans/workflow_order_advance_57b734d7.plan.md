@@ -117,8 +117,8 @@ todos:
     content: "P6: refresh UI/UX + RBAC/nav docs after Studio"
     status: completed
   - id: p7-harden
-    content: "P7R: harden/e2e/canary after the shared workflow-command platform and Delivery service are complete, including production smoke S10 (staff POD delivery); update production checklist"
-    status: pending
+    content: "P7R: harden/e2e/canary after the shared workflow-command platform and Delivery service are complete, including production smoke S10 (staff POD delivery); update production checklist. UPDATE 2026-09-10: S10 has been SIGNED since 2026-09-05 (real operator, real UI, verified atomically on remote — see 13_Production_Readiness_Checklist.md). This entry's own status text had gone stale on that point — caught and corrected while doing an unrelated pass. Delivery route planning (Phases 1-5) is also code-complete and rolled out (STAFF_DELIVERY_WRITES_ENABLED=true), confirmed directly against the filesystem, not assumed from docs. Production checklist refreshed 2026-09-10 with T05/T12/T13/T15/T18 closures. Remaining for this item: the canary + rollback rehearsal itself (a real operator exercise, not something closeable from code alone) and PAY_ON_COLLECTION acceptance coverage (investigation in progress)."
+    status: in_progress
   - id: p7-docs-update
     content: "P7R: refresh API contracts, testing, deploy, and operations runbooks after stage-service cutover"
     status: completed
@@ -231,7 +231,7 @@ isProject: false
 | ID | Task | Status |
 |---|---|---|
 | p7r-profile-runtime-enforcement | Remaining semantic consumers vs legacy path | completed |
-| p7-harden | Operator/e2e canary, including staff POD delivery smoke **S10** | pending |
+| p7-harden | Operator/e2e canary, including staff POD delivery smoke **S10** | in progress (S10 itself SIGNED 2026-09-05; canary+rollback rehearsal and PAY_ON_COLLECTION acceptance remain) |
 | p7r-profile-assurance | Semantic-profile automated assurance | completed |
 | p7r-profile-no-legacy-cutover | Absolute semantic-only runtime cutover | in progress |
 | p7r-profile-cross-project-docs | Cross-project close-out | in progress |

@@ -1,6 +1,6 @@
 # 13 — Production Readiness Checklist (V1.0)
 
-**Status:** **S10 staff routed POD canary SIGNED 2026-09-05** (see audit note below). Route planning is now hardened and owner-enabled after `0490`/`0491`; central outbox / no-duplicate-notify (T17) closed 2026-09-05; Gate 5 compiler/artifact retirement (`0494`) applied locally and remotely 2026-09-05 — see note below. Remaining V1.0 blockers are the `PAY_ON_COLLECTION` acceptance gate, canary/rollback rehearsal, and the rest of T01–T18. Delivery floor confirm and public tracking remain available under their own gates · **Date:** 2026-08-27, updated 2026-09-05
+**Status:** **S10 staff routed POD canary SIGNED 2026-09-05** (see audit note below). Route planning is now hardened and owner-enabled after `0490`/`0491`; central outbox / no-duplicate-notify (T17) closed 2026-09-05; Gate 5 compiler/artifact retirement (`0494`) applied locally and remotely 2026-09-05 — see note below. **2026-09-10: T05, T07, T12, T13, T18 closed with real automated tests (one real EN/AR bug found and fixed along the way — see `12_Test_Plan.md`); T15 partially closed (CI now runs the full web-admin unit suite — previously zero Jest tests ran in CI at all); the `PAY_ON_COLLECTION` gate was re-verified already implemented and tested (the checklist line had gone stale), with a new DB-integration test proving the full block→collect→retry loop.** Remaining V1.0 blockers are canary/rollback rehearsal, T01–T04 (partial coverage), an operator browser smoke of the collect-payment UI in the pickup/delivery context, and wiring the DB-integration graph validator itself into CI. Delivery floor confirm and public tracking remain available under their own gates · **Date:** 2026-08-27, updated 2026-09-10
 
 ## Design / P0
 
@@ -10,7 +10,7 @@
 
 ## Engineering go-live
 
-- [ ] Additive schema + seed + graph CI + RLS
+- [ ] Additive schema + seed + graph CI + RLS (RLS proven with a real DB-integration test, 2026-09-10 — T16; CI now runs the full unit suite on every push, 2026-09-10 — T15, but the DB-integration graph-structure validator itself is still not wired into CI; schema/seed additive-ness not separately re-verified this pass — see `12_Test_Plan.md`)
 - [x] `state_version` enforced by engine commands
 - [x] Zero production non-engine post-create transition writers in the application
 - [x] New orders snapshot the active, valid tenant workflow profile/version when an assignment applies; historic orders intentionally remain unsnapshotted
@@ -18,15 +18,15 @@
 - [ ] Profile capability flags are server-side gates for initial routing, stage worklists, and commands; profile/template conflicts cannot silently merge
 - [x] Assignment precedence/ambiguity, mixed-service one-order/one-profile policy, HQ assignment audit, and published-version validation are covered
 - [ ] Tenant navigation/deep links consume server-derived workflow context with EN/AR unavailable-state guidance
-- [ ] No tenant graph editing
-- [ ] Fin release gate server-side
+- [x] No tenant graph editing — proven 2026-09-10, T13: both legacy tenant workflow-editor pages (`/dashboard/settings/workflows/new`, `[id]/edit`) unconditionally redirect to the read-only hub; no reachable tenant UI path mutates a transition. HQ-side authoring returns `LEGACY_WORKFLOW_RETIRED` (`cleanmatexsaas`, separately enforced/tested there).
+- [x] Fin release gate server-side — proven by T06 (`12_Test_Plan.md`): `workflow-gate-evaluator.service.test.ts` exercises the real `GATE_FIN_RELEASE` check inside the server-side gate evaluator used by both `executeAction` and `listAvailableActions`, both blocking on an open pay-on-collection balance and allowing a settled one.
 - [x] Retail not auto-`closed`
 - [x] Atomic staff Delivery command implemented; automated rollback, tenant-isolation, concurrency, RBAC, and replay tests pass. **S10 operator/e2e canary signed 2026-09-05** — see audit note.
 - [x] Private POD evidence bucket, durable object keys, tenant-stop upload receipts, and method-specific receipt validation implemented (`0451`, `0452`)
 - [x] Read-only delivery proof/audit is tenant-scoped, access-contract protected, and returns only time-limited authorized evidence links; it does not approve staff completion
 - [ ] OTP retry/expiry controls intentionally deferred to VNext
 - [x] Delivery route creation/counters/status changes are atomic, idempotent, tenant-scoped, and concurrency-safe; `0490` database backstop and 12-command DB-integration cases passed.
-- [ ] `PAY_ON_COLLECTION` remaining-balance gate implemented in the P7R command; live collection composition and acceptance coverage remain required before staff rollout
+- [x] `PAY_ON_COLLECTION` remaining-balance gate implemented in the P7R command — **re-verified 2026-09-10, this line had gone stale (it read as "not yet implemented"; it is)**: real, wired gates block both `pickup-completion.service.ts:412-419` (`PICKUP_COLLECTION_REQUIRED`) and `delivery-completion.service.ts:608-615`/`941-948` (`DELIVERY_COLLECTION_REQUIRED`) before any workflow/DB write, with unit coverage (`pickup-completion.service.test.ts`, `delivery-completion.service.test.ts`), gate-level coverage (`workflow-gate-evaluator.service.test.ts`), and now a real DB-integration acceptance test proving the full loop on one order (`delivery-completion.db.test.ts` — `'retrying the same delivery command succeeds once the balance is collected'`: blocked while a balance remains, then the exact mutation `collectPaymentTx` performs succeeds on retry). The collection UI itself (`CollectPaymentButton` → `order-collect-payment-modal.tsx`, wired from both `pickup-handover-card.tsx` and `delivery-handover-card.tsx` on `PICKUP_COLLECTION_REQUIRED`/`DELIVERY_COLLECTION_REQUIRED`) reuses the general Order Fin collect-payment surface rather than a purpose-built pickup/delivery composition — real and wired, but its actual browser click-through in this specific context is unverified and needs an operator smoke, not something closeable from code alone.
 - [x] Delivery mutation RBAC (`delivery:pod` + `orders:transition`) and explicit tenant filtering verified by automated tests
 - [x] Central outbox; no duplicate notify — dead `ORDER_WORKFLOW_TRANSITIONED` write removed and the legacy `/transition` compat route's replay-path duplicate-notify bug fixed, both 2026-09-05 (see note below)
 - [ ] Canary + rollback rehearsed
@@ -37,8 +37,32 @@
 - [x] Legacy/enhanced RPC grants retirement migration `0442` applied locally and remotely — 2026-08-14
 - [x] Focused hardening: 49 Jest tests and 2 anonymous Playwright tests passed
 - [ ] Post-`0442` engine smoke passed in production
-- [ ] T01–T18 pass on pilot tenants
+- [ ] T01–T18 pass on pilot tenants (T05–T18 except T01–T04 closed with real automated tests as of 2026-09-10 — see `12_Test_Plan.md`; T01–T04 remain partial; T15's CI-gate half closed, its DB-integration graph-validator half still not wired into CI)
 - [ ] Profile runtime enforcement acceptance suite passes before enabling profile-governed operational flows
+
+## 2026-09-10 T07 closure + PAY_ON_COLLECTION re-verification
+
+Continuing the same pass:
+
+- **T07 (Partial release no double-release) closed.** The DB-level "no double release" half already had a real proof (`pickup-handover.db.test.ts`). The untested "partial" half — `pickup-completion.service.ts`'s fail-closed guard (`PICKUP_PARTIAL_RELEASE_UNSUPPORTED`) — now has 2 new unit tests in `__tests__/services/pickup-completion.service.test.ts` covering both real triggers: a locked release with `release_type === 'partial'`, and a locked `pickup` release that already has item-level release lines recorded against it. Both prove no workflow/DB write happens before the throw.
+- **`PAY_ON_COLLECTION` gate re-verified, not re-implemented.** Before touching anything, ran a focused investigation rather than trusting the checklist's own wording (which read as "not yet implemented" — the pattern of this doc going stale on its own claims kept recurring today, so every remaining item is now being checked against real code first). Verdict: the gate is real, wired, and reasonably tested — `pickup-completion.service.ts:412-419` and `delivery-completion.service.ts:608-615`/`941-948` both throw before any workflow/DB write, with unit coverage in both services' test files and gate-level coverage in `workflow-gate-evaluator.service.test.ts`. What was genuinely missing was an end-to-end proof of the *composed* flow — block, then collect, then retry succeeds — rather than two independent fresh-seed tests (one always-blocked, one always-settled). Added `'retrying the same delivery command succeeds once the balance is collected'` to `delivery-completion.db.test.ts`: seeds one real order with an outstanding balance, proves `completeDelivery` is rejected with `DELIVERY_COLLECTION_REQUIRED`, applies the exact mutation `collectPaymentTx` performs (zeroing `outstanding_amount`), then proves a retry of the same command on the same order succeeds — order reaches `delivered`, stop reaches `delivered`. The one remaining gap is a real browser click-through of the collection UI (`CollectPaymentButton` → the shared Order Fin collect-payment modal, wired from both `pickup-handover-card.tsx` and `delivery-handover-card.tsx`) in this specific pickup/delivery context — that needs an operator at the keyboard, not something closeable from code.
+- Gates: `web-admin` tsc clean, eslint clean, `pickup-completion.service.test.ts` 9/9, `delivery-completion.db.test.ts` 14/14 against real local Postgres.
+
+## 2026-09-10 T05/T12/T13/T15/T18 closure
+
+Closed 5 real test-plan gaps with real, working tests (not mocked-into-passing) — each traced from the actual production code, no invented behavior:
+
+- **T05 (Assembly scan gate)**: `__tests__/services/assembly-service.test.ts`, 10 tests covering `AssemblyService.scanItem`'s task-status/barcode-match gate and `completeAssemblyTask`'s pending-items/open-exception completion gate.
+- **T12 (Bulk/PATCH status denied or engine-only)**: `__tests__/api/v1/orders-bulk-status-retired.route.test.ts`, 4 tests proving `POST /api/orders/bulk-status` always 410s (`USE_WORKFLOW_ACTIONS`) without touching the database, and that `[id]/route.ts` exports no `PATCH`/`PUT`/`DELETE`.
+- **T13 (Tenant cannot edit transitions)**: `__tests__/app/dashboard/settings/workflows-legacy-redirect.test.tsx`, 2 tests proving both legacy workflow-editor pages redirect unconditionally.
+- **T18 (EN/AR action labels)**: `__tests__/services/workflow-engine-blocked-reasons.test.ts`, 20 tests across all 4 blocked-reason builders. **Found and fixed a real bug**: `WF_GATE_ACK_REQUIRED` had no Arabic branch or `message2` at all — an Arabic-locale staff member blocked on a warning-acknowledgement gate got an English-only reason. Extracted a `warningAckBlockedReason(locale?)` function matching the other three builders' established EN/AR pattern.
+- **T15 (Graph CI on seed) — partially closed**: `.github/workflows/ci.yml`'s `web-admin` job now runs `npm run test --workspace=web-admin -- --ci`. Previously the job only ran `lint` + `build` — **zero of the 298 Jest suites / 2656 tests ran in CI at all**, a materially bigger gap than T15's own wording suggested. The DB-integration graph validator (`wf-prof-ver-validate-live.db.test.ts`) still isn't wired into CI — that needs a Postgres service container replaying all 504 migrations, a real infra/cost decision left for explicit approval rather than added silently.
+
+Two side-effects surfaced and fixed while wiring the CI test step:
+1. A stale test (`orders-transition.route.test.ts`, "emits a notification for a fresh transition") was asserting behavior from before `isOrderTransitionNotifyEnabled()` was hardcoded to `return false` (owner's own prior decision) — updated to assert the current, deliberate no-notify state, with a comment pointing at the hardcode as the one line to flip when it's lifted.
+2. `/dashboard/orders/[id]/workspace` (from the in-progress order-workspace redesign) had no UI access contract — scaffolded it through the full golden path (`scaffold` → `derive --apply` → `wire --fix` → `check --wire` → `sync`), gated on `orders:view_financial_breakdown` (matching the sibling `/dashboard/orders/[id]` page). Found and fixed a real tooling bug along the way: `orders-access.ts`'s `ORDERS_ACCESS_CONTRACTS` array closed with a bare `]` instead of `];`, which silently broke the scaffold script's closing-bracket search for every future route added to that file, not just this one.
+
+Full suite green after all of the above: `platform-web` n/a (tenant repo) — `web-admin` tsc clean, eslint clean, `npm test` 298/298 suites (2656/2656 tests), `npm run build` green, `sync:ui-access-contract` 151/151 routes with 0 drift.
 
 ## 2026-09-05 release audit note — S10 SIGNED
 
