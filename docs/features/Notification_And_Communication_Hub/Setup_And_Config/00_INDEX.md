@@ -33,6 +33,12 @@
 | 12 | [12_provider_switching.md](./12_provider_switching.md) | Zero-downtime provider switch + rollback |
 | 13 | [13_twilio_waba_and_template_approval.md](./13_twilio_waba_and_template_approval.md) | Twilio WABA Self Sign-up, why templates stay unapproved, sandbox vs production, resubmit + HQ flags |
 
+## Diagnostics
+
+| File | What it covers |
+|------|----------------|
+| [sql_scripts/04_check_whatsapp_tenant.sql](./sql_scripts/04_check_whatsapp_tenant.sql) | Read-only checks: `org_ntf_settings_cf` WHATSAPP `is_enabled`, `org_ntf_channel_provider_cf` TWILIO_WHATSAPP `is_active`, event map, runtime flags, outbox, latest order mobiles |
+
 ---
 
 ## Quick-Start (minimum for EMAIL only)

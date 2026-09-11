@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@/lib/utils/logger';
+import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env';
 
 function isTwilioConfigured(): boolean {
   return !!(
@@ -52,7 +53,17 @@ export async function sendSMS(to: string, message: string): Promise<boolean> {
     }
   }
 
+  const missing = collectMissingEnv([
+    'TWILIO_ACCOUNT_SID',
+    'TWILIO_AUTH_TOKEN',
+    'TWILIO_PHONE_NUMBER',
+  ]);
+
   if (process.env.NODE_ENV === 'development') {
+    logger.warn('SMS mock (Twilio not configured)', {
+      missing,
+      feature: 'sms',
+    });
     logger.info('SMS mock (Twilio not configured)', {
       to: to.slice(-4).padStart(to.length, '*'),
       messagePreview: message.slice(0, 80),
@@ -60,8 +71,13 @@ export async function sendSMS(to: string, message: string): Promise<boolean> {
     return true;
   }
 
+  logMissingNotificationEnv({
+    adapter: 'sms-sender',
+    missing,
+  });
   logger.warn('SMS skipped: Twilio not configured', {
     to: to.slice(-4).padStart(to.length, '*'),
+    missing,
     feature: 'sms',
   });
   return false;

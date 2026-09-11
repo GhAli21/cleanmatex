@@ -10,6 +10,7 @@
 import twilio from 'twilio'
 import { logger } from '@lib/utils/logger'
 import { getNtfHqDispatchUrl, getTwilioSmsFrom, isNtfDispatchViaHq } from '@lib/notifications/config'
+import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env'
 
 /**
  *
@@ -102,10 +103,23 @@ export async function deliverSmsOutbox(row: OutboxSmsRow): Promise<SmsDeliveryRe
   const from       = await getTwilioSmsFrom()
 
   if (!accountSid || !authToken || !from) {
+    const missing = [
+      ...collectMissingEnv(['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN']),
+      ...(!from ? ['TWILIO_SMS_FROM|sys_ntf_runtime_cf.twilio_sms_from'] : []),
+    ]
+    logMissingNotificationEnv({
+      adapter: 'sms-adapter',
+      missing,
+      outboxId: row.id,
+      extra: { tenantOrgId: row.tenant_org_id },
+    })
     return { success: false, errorMessage: 'Twilio SMS credentials not configured (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_SMS_FROM)', permanent: false }
   }
 
   if (!row.recipient_address) {
+    logger.warn('sms-adapter: no recipient phone number', {
+      outboxId: row.id, tenantOrgId: row.tenant_org_id, feature: 'notifications',
+    })
     return { success: false, errorMessage: 'No recipient phone number', permanent: true }
   }
 

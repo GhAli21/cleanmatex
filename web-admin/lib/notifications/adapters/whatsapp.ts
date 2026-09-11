@@ -24,6 +24,7 @@ import {
   isTwilioWhatsappSandboxTemplateEnabled,
 } from '@lib/notifications/config'
 import { buildTwilioContentVariables } from '@lib/notifications/adapters/whatsapp-content-variables'
+import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env'
 import { stripWhatsAppPrefix } from '@lib/notifications/whatsapp-phone'
 
 async function resolveWhatsAppTo(row: OutboxWhatsAppRow): Promise<string | null> {
@@ -88,6 +89,18 @@ async function sendViaTwilio(
     (typeof fromConfig === 'string' && fromConfig.length > 0 ? fromConfig : undefined)
 
   if (!accountSid || !authToken || !from) {
+    const missing = [
+      ...collectMissingEnv(['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN']),
+      ...(!from
+        ? ['TWILIO_WHATSAPP_FROM|sys_ntf_runtime_cf.twilio_whatsapp_from|provider.from_number']
+        : []),
+    ]
+    logMissingNotificationEnv({
+      adapter: 'whatsapp-adapter(twilio)',
+      missing,
+      outboxId: row.id,
+      extra: { tenantOrgId: row.tenant_org_id },
+    })
     return {
       success: false,
       errorMessage: 'Twilio WhatsApp credentials not configured (set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN on the server; set TWILIO_WHATSAPP_FROM or provider config from_number)',
@@ -96,12 +109,21 @@ async function sendViaTwilio(
   }
   const toNumber = await resolveWhatsAppTo(row)
   if (!toNumber) {
+    logger.warn('whatsapp-adapter(twilio): no recipient phone number', {
+      outboxId: row.id, tenantOrgId: row.tenant_org_id, feature: 'notifications',
+    })
     return { success: false, errorMessage: 'No recipient phone number', permanent: true }
   }
 
   const useSandbox = await shouldUseSandboxTemplate(providerConfig)
   const contentSid = await resolveSandboxContentSid(providerConfig)
   if (useSandbox && !contentSid) {
+    logMissingNotificationEnv({
+      adapter: 'whatsapp-adapter(twilio)',
+      missing: ['TWILIO_WHATSAPP_SANDBOX_CONTENT_SID|sys_ntf_runtime_cf.wa_sandbox_content_sid|provider.sandbox_content_sid'],
+      outboxId: row.id,
+      extra: { tenantOrgId: row.tenant_org_id, useSandbox: true },
+    })
     return {
       success: false,
       errorMessage: 'Twilio WhatsApp sandbox template enabled but TWILIO_WHATSAPP_SANDBOX_CONTENT_SID (or provider config sandbox_content_sid) is missing',
@@ -188,10 +210,19 @@ async function sendViaMeta(row: OutboxWhatsAppRow): Promise<WhatsAppDeliveryResu
   const phoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID
 
   if (!accessToken || !phoneNumberId) {
+    logMissingNotificationEnv({
+      adapter: 'whatsapp-adapter(meta)',
+      missing: collectMissingEnv(['META_WHATSAPP_ACCESS_TOKEN', 'META_WHATSAPP_PHONE_NUMBER_ID']),
+      outboxId: row.id,
+      extra: { tenantOrgId: row.tenant_org_id },
+    })
     return { success: false, errorMessage: 'Meta WhatsApp credentials not configured (META_WHATSAPP_ACCESS_TOKEN / META_WHATSAPP_PHONE_NUMBER_ID)', permanent: false }
   }
   const toNumber = await resolveWhatsAppTo(row)
   if (!toNumber) {
+    logger.warn('whatsapp-adapter(meta): no recipient phone number', {
+      outboxId: row.id, tenantOrgId: row.tenant_org_id, feature: 'notifications',
+    })
     return { success: false, errorMessage: 'No recipient phone number', permanent: true }
   }
 
@@ -230,6 +261,9 @@ async function sendViaMeta(row: OutboxWhatsAppRow): Promise<WhatsAppDeliveryResu
     return { success: false, errorMessage: msg, permanent }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Network error'
+    logger.error('whatsapp-adapter(meta): network error', err instanceof Error ? err : new Error(msg), {
+      outboxId: row.id, feature: 'notifications',
+    })
     return { success: false, errorMessage: msg, permanent: false }
   }
 }
@@ -243,8 +277,10 @@ async function deliverViaHqProxy(row: OutboxWhatsAppRow): Promise<WhatsAppDelive
   const hqKey = process.env.NTF_HQ_SERVICE_ROLE_KEY ?? ''
 
   if (!hqKey) {
-    logger.error('whatsapp-adapter: NTF_HQ_SERVICE_ROLE_KEY not set', undefined, {
-      outboxId: row.id, feature: 'notifications',
+    logMissingNotificationEnv({
+      adapter: 'whatsapp-adapter',
+      missing: collectMissingEnv(['NTF_HQ_SERVICE_ROLE_KEY']),
+      outboxId: row.id,
     })
     return { success: false, errorMessage: 'NTF_HQ_SERVICE_ROLE_KEY not configured', permanent: true }
   }
@@ -303,6 +339,14 @@ export async function deliverWhatsAppOutbox(row: OutboxWhatsAppRow): Promise<Wha
   const provider = await notificationSettingsService.getActiveProvider(row.tenant_org_id, 'WHATSAPP')
 
   if (!provider) {
+    logger.warn('whatsapp-adapter: no active WhatsApp provider', {
+      outboxId: row.id,
+      tenantOrgId: row.tenant_org_id,
+      table: 'org_ntf_channel_provider_cf',
+      expectedProvider: 'TWILIO_WHATSAPP|META_WHATSAPP',
+      hint: 'Set is_active=true for TWILIO_WHATSAPP and is_enabled=true on org_ntf_settings_cf WHATSAPP',
+      feature: 'notifications',
+    })
     return { success: false, errorMessage: 'No active WhatsApp provider configured in org_ntf_channel_provider_cf', permanent: false }
   }
 
@@ -312,6 +356,11 @@ export async function deliverWhatsAppOutbox(row: OutboxWhatsAppRow): Promise<Wha
     case 'META_WHATSAPP':
       return sendViaMeta(row)
     default:
+      logger.error('whatsapp-adapter: unknown provider', undefined, {
+        outboxId: row.id,
+        providerCode: provider.providerCode,
+        feature: 'notifications',
+      })
       return { success: false, errorMessage: `Unknown WhatsApp provider: ${provider.providerCode}`, permanent: true }
   }
 }

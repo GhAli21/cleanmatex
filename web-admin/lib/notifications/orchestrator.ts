@@ -172,10 +172,26 @@ export async function orchestrateNotification(
     let whatsappEmailFallback = false;
 
     if (channel === NOTIFICATION_CHANNEL.WHATSAPP) {
+      const waEnabled = await notificationSettingsService.isChannelEnabled(
+        event.tenantOrgId,
+        NOTIFICATION_CHANNEL.WHATSAPP,
+      );
       const waProvider = await notificationSettingsService.getActiveProvider(
         event.tenantOrgId,
         NOTIFICATION_CHANNEL.WHATSAPP,
       );
+      if (!waEnabled || !waProvider) {
+        logger.warn('orchestrator: WhatsApp will not send as WhatsApp', {
+          eventCode: event.code,
+          tenantOrgId: event.tenantOrgId,
+          channelEnabled: waEnabled,
+          hasActiveProvider: Boolean(waProvider),
+          settingsTable: 'org_ntf_settings_cf',
+          providerTable: 'org_ntf_channel_provider_cf',
+          hint: 'Set org_ntf_settings_cf WHATSAPP is_enabled=true and org_ntf_channel_provider_cf TWILIO_WHATSAPP is_active=true',
+          feature: 'notifications',
+        });
+      }
       if (!waProvider && await isWhatsappEmailFallbackEnabled()) {
         const emailEnabled = await notificationSettingsService.isChannelEnabled(
           event.tenantOrgId,
@@ -200,9 +216,13 @@ export async function orchestrateNotification(
       deliveryChannel,
     );
     if (!channelConfig?.isEnabled) {
-      logger.info('orchestrator: external channel disabled — skipping', {
-        channel: deliveryChannel, eventCode: event.code, tenantOrgId: event.tenantOrgId,
-        reason: SKIP_REASON.CHANNEL_DISABLED, feature: 'notifications',
+      logger.warn('orchestrator: external channel disabled — skipping', {
+        channel: deliveryChannel,
+        eventCode: event.code,
+        tenantOrgId: event.tenantOrgId,
+        reason: SKIP_REASON.CHANNEL_DISABLED,
+        settingsTable: 'org_ntf_settings_cf',
+        feature: 'notifications',
       });
       continue;
     }

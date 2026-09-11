@@ -7,6 +7,7 @@
 
 import { logger } from '@/lib/utils/logger';
 import { getResendFromEmail } from '@lib/notifications/config';
+import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env';
 
 /**
  *
@@ -74,7 +75,14 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
     }
   }
 
+  const missing = collectMissingEnv(['RESEND_API_KEY']);
+  if (!from) missing.push('RESEND_FROM_EMAIL|sys_ntf_runtime_cf.resend_from_email');
+
   if (process.env.NODE_ENV === 'development') {
+    logger.warn('Email mock (Resend not configured)', {
+      missing,
+      feature: 'email',
+    });
     logger.info('Email mock (Resend not configured)', {
       to: to.slice(0, 3) + '***',
       subject,
@@ -83,9 +91,15 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
     return true;
   }
 
+  logMissingNotificationEnv({
+    adapter: 'email-sender',
+    missing,
+    extra: { subject },
+  });
   logger.warn('Email skipped: Resend not configured', {
     to: to.slice(0, 3) + '***',
     subject,
+    missing,
     feature: 'email',
   });
   return false;
