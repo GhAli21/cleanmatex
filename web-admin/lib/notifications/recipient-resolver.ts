@@ -6,6 +6,8 @@
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { normalizePhone } from '@lib/services/customers.service';
 import { NOTIFICATION_CHANNEL, type NotificationChannel } from '@lib/notifications/types';
+import { getTwilioWhatsappSandboxToPhone } from '@lib/notifications/config';
+import { pickWhatsAppDestination, stripWhatsAppPrefix } from '@lib/notifications/whatsapp-phone';
 
 export interface RecipientResolveContext {
   tenantOrgId: string;
@@ -18,6 +20,12 @@ export interface RecipientResolveContext {
 interface CustomerContact {
   phone: string | null;
   email: string | null;
+}
+
+/** Normalize a picked phone to E.164; keep the raw value if it cannot be parsed. */
+function toWhatsAppE164(raw: string): string {
+  const normalized = normalizePhone(raw)
+  return normalized.isValid ? normalized.normalized : raw
 }
 
 async function resolveAuthUserEmail(userId: string): Promise<string | null> {
@@ -40,13 +48,17 @@ async function resolveCustomerContactFromOrder(
 
   const { data: order } = await supabase
     .from('org_orders_mst')
-    .select('customer_id')
+    .select('customer_id, customer_mobile_number')
     .eq('tenant_org_id', tenantOrgId)
     .eq('id', sourceEntityId)
     .maybeSingle();
 
   if (!order?.customer_id) {
-    return { phone: null, email: null };
+    const rawPhone = pickWhatsAppDestination(null, null, order?.customer_mobile_number)
+    return {
+      phone: rawPhone ? toWhatsAppE164(rawPhone) : null,
+      email: null,
+    };
   }
 
   const { data: customer } = await supabase
@@ -56,12 +68,8 @@ async function resolveCustomerContactFromOrder(
     .eq('id', order.customer_id)
     .maybeSingle();
 
-  const rawPhone = customer?.phone?.trim() || null;
-  let phone: string | null = null;
-  if (rawPhone) {
-    const normalized = normalizePhone(rawPhone);
-    phone = normalized.isValid ? normalized.normalized : rawPhone;
-  }
+  const rawPhone = pickWhatsAppDestination(null, customer?.phone, order.customer_mobile_number);
+  const phone = rawPhone ? toWhatsAppE164(rawPhone) : null;
 
   const email = customer?.email?.trim() || null;
   return { phone, email };
@@ -81,11 +89,14 @@ export async function resolveRecipientAddress(ctx: RecipientResolveContext): Pro
     return customer.email ?? (await resolveAuthUserEmail(ctx.recipientUserId));
   }
 
-  if (
-    ctx.channelCode === NOTIFICATION_CHANNEL.WHATSAPP ||
-    ctx.channelCode === NOTIFICATION_CHANNEL.SMS
-  ) {
+  if (ctx.channelCode === NOTIFICATION_CHANNEL.SMS) {
     return customer.phone;
+  }
+
+  if (ctx.channelCode === NOTIFICATION_CHANNEL.WHATSAPP) {
+    const sandboxTo = await getTwilioWhatsappSandboxToPhone();
+    const dest = pickWhatsAppDestination(sandboxTo, customer.phone, null);
+    return dest ? toWhatsAppE164(stripWhatsAppPrefix(dest)) : null;
   }
 
   return null;

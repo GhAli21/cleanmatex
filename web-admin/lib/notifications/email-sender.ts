@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@/lib/utils/logger';
+import { getResendFromEmail } from '@lib/notifications/config';
 
 /**
  *
@@ -35,7 +36,7 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
     subject,
     html,
     text,
-    from = process.env.RESEND_FROM_EMAIL || 'noreply@service.cleanmatex.com',
+    from = await getResendFromEmail(),
   } = params;
 
   if (isResendConfigured()) {

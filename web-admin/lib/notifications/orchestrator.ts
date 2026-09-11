@@ -66,8 +66,14 @@ async function getEventMeta(
 // Quiet hours — timezone-aware scheduled delivery time
 // ---------------------------------------------------------------------------
 
-function computeScheduledAt(config: ChannelConfig, priority: NotificationPriority | undefined): Date {
+function computeScheduledAt(
+  config: ChannelConfig,
+  priority: NotificationPriority | undefined,
+  isTransactional = false,
+): Date {
   const now = new Date();
+  // Order lifecycle WA/SMS must leave immediately; quiet hours are for marketing.
+  if (isTransactional) return now;
   if (!config.quietHoursEnabled || !config.quietHoursStart || !config.quietHoursEnd) return now;
   if (priority === NOTIFICATION_PRIORITY.URGENT || priority === NOTIFICATION_PRIORITY.CRITICAL) return now;
 
@@ -170,7 +176,7 @@ export async function orchestrateNotification(
         event.tenantOrgId,
         NOTIFICATION_CHANNEL.WHATSAPP,
       );
-      if (!waProvider && isWhatsappEmailFallbackEnabled()) {
+      if (!waProvider && await isWhatsappEmailFallbackEnabled()) {
         const emailEnabled = await notificationSettingsService.isChannelEnabled(
           event.tenantOrgId,
           NOTIFICATION_CHANNEL.EMAIL,
@@ -201,7 +207,7 @@ export async function orchestrateNotification(
       continue;
     }
 
-    const scheduledAt = computeScheduledAt(channelConfig, event.priority);
+    const scheduledAt = computeScheduledAt(channelConfig, event.priority, isTransactional);
 
     const eligible: string[] = [];
     for (const userId of event.recipientUserIds) {

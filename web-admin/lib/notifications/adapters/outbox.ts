@@ -12,7 +12,8 @@ import type { NotificationEvent } from '@lib/notifications/types';
 import { NOTIFICATION_CHANNEL, OUTBOX_STATUS } from '@lib/notifications/types';
 import { renderChannelTemplate } from '@lib/notifications/template-renderer';
 import { resolveRecipientAddress } from '@lib/notifications/recipient-resolver';
-import { isWhatsappEmailFallbackEnabled } from '@lib/notifications/config';
+import { isOutboxInlineDispatchEnabled, isWhatsappEmailFallbackEnabled } from '@lib/notifications/config';
+import { deliverWhatsAppOutbox } from '@lib/notifications/adapters/whatsapp';
 
 /**
  *
@@ -58,9 +59,9 @@ type OutboxInsert = Database['public']['Tables']['org_ntf_outbox_dtl']['Insert']
 async function insertOutboxRow(
   row: OutboxInsert,
   logContext: Record<string, unknown>,
-): Promise<boolean> {
+): Promise<string | null> {
   const supabase = createAdminSupabaseClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('org_ntf_outbox_dtl')
     .insert(row)
     .select('id')
@@ -72,15 +73,71 @@ async function insertOutboxRow(
         ...logContext,
         feature: 'notifications',
       });
-      return false;
+      return null;
     }
     logger.error('outbox adapter: insert failed', new Error(error.message), {
       ...logContext,
       feature: 'notifications',
     });
-    return false;
+    return null;
   }
-  return true;
+  return data?.id ?? null;
+}
+
+/**
+ * Send a just-queued WhatsApp row immediately so local/sandbox tests do not wait for pg_cron.
+ * @param row Snapshot of the inserted outbox row
+ */
+async function dispatchWhatsAppInline(row: {
+  id: string
+  tenant_org_id: string
+  recipient_address: string | null
+  rendered_body: string
+  rendered_subject: string | null
+  event_code: string | null
+  metadata?: Record<string, unknown> | null
+}): Promise<void> {
+  const supabase = createAdminSupabaseClient();
+  await supabase
+    .from('org_ntf_outbox_dtl')
+    .update({ status: OUTBOX_STATUS.PROCESSING, updated_at: new Date().toISOString() })
+    .eq('id', row.id)
+    .eq('tenant_org_id', row.tenant_org_id);
+
+  const result = await deliverWhatsAppOutbox({
+    id: row.id,
+    tenant_org_id: row.tenant_org_id,
+    recipient_address: row.recipient_address,
+    rendered_body: row.rendered_body,
+    rendered_subject: row.rendered_subject,
+    event_code: row.event_code,
+    retry_count: 0,
+    metadata: row.metadata,
+  });
+
+  const finalStatus = result.success
+    ? OUTBOX_STATUS.SENT
+    : result.permanent
+      ? OUTBOX_STATUS.FAILED_PERMANENT
+      : OUTBOX_STATUS.FAILED_TEMPORARY;
+
+  await supabase
+    .from('org_ntf_outbox_dtl')
+    .update({
+      status: finalStatus,
+      error_message: result.errorMessage ?? null,
+      sent_at: result.success ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', row.id)
+    .eq('tenant_org_id', row.tenant_org_id);
+
+  logger.info('outbox adapter: inline WhatsApp dispatch', {
+    outboxId: row.id,
+    finalStatus,
+    errorMessage: result.errorMessage,
+    feature: 'notifications',
+  });
 }
 
 /**
@@ -91,7 +148,7 @@ export async function enqueueEmailFallbackFromWhatsApp(
   snapshot: OutboxRowSnapshot,
   reason: string,
 ): Promise<boolean> {
-  if (!isWhatsappEmailFallbackEnabled()) return false;
+  if (!(await isWhatsappEmailFallbackEnabled())) return false;
   if (!snapshot.recipient_user_id) return false;
 
   const emailAddress = await resolveRecipientAddress({
@@ -132,7 +189,7 @@ export async function enqueueEmailFallbackFromWhatsApp(
     'wa_fb',
   );
 
-  const inserted = await insertOutboxRow(
+  const insertedId = await insertOutboxRow(
     {
       tenant_org_id:      snapshot.tenant_org_id,
       channel_code:       NOTIFICATION_CHANNEL.EMAIL,
@@ -168,7 +225,7 @@ export async function enqueueEmailFallbackFromWhatsApp(
     },
   );
 
-  if (inserted) {
+  if (insertedId) {
     logger.info('outbox adapter: WHATSAPP→EMAIL fallback queued', {
       tenantOrgId: snapshot.tenant_org_id,
       eventCode,
@@ -177,7 +234,7 @@ export async function enqueueEmailFallbackFromWhatsApp(
     });
   }
 
-  return inserted;
+  return Boolean(insertedId);
 }
 
 /**
@@ -223,7 +280,7 @@ export async function enqueueOutbox(
       if (
         channelCode === NOTIFICATION_CHANNEL.WHATSAPP &&
         !recipientAddress &&
-        isWhatsappEmailFallbackEnabled()
+        await isWhatsappEmailFallbackEnabled()
       ) {
         await enqueueEmailFallbackFromWhatsApp(
           {
@@ -242,7 +299,8 @@ export async function enqueueOutbox(
       }
     }
 
-    await insertOutboxRow(
+    const metadata = { ...rendered.metadata, variables: event.variables };
+    const outboxId = await insertOutboxRow(
       {
         tenant_org_id:      event.tenantOrgId,
         channel_code:       channelCode,
@@ -252,7 +310,7 @@ export async function enqueueOutbox(
         rendered_subject2:  rendered.title2 ?? null,
         rendered_body:      rendered.body,
         rendered_body2:     rendered.body2 ?? null,
-        metadata:           { ...rendered.metadata, variables: event.variables },
+        metadata,
         event_code:         event.code,
         source_entity_type: event.sourceEntityType ?? null,
         source_entity_id:   event.sourceEntityId ?? null,
@@ -271,5 +329,22 @@ export async function enqueueOutbox(
         recipientUserId,
       },
     );
+
+    if (
+      outboxId &&
+      !skipReason &&
+      channelCode === NOTIFICATION_CHANNEL.WHATSAPP &&
+      await isOutboxInlineDispatchEnabled()
+    ) {
+      await dispatchWhatsAppInline({
+        id: outboxId,
+        tenant_org_id: event.tenantOrgId,
+        recipient_address: recipientAddress,
+        rendered_body: rendered.body,
+        rendered_subject: rendered.title,
+        event_code: event.code,
+        metadata,
+      });
+    }
   }
 }

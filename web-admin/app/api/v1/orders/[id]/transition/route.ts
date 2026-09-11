@@ -134,7 +134,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // Skip on replay: a client retry with the same Idempotency-Key returns
       // the same cached result and must not re-send a notification.
       const eventCode = ORDER_STATUS_EVENT[result.currentStatus];
-      if (eventCode && !result.replay && isOrderTransitionNotifyEnabled()) {
+      if (eventCode && !result.replay && await isOrderTransitionNotifyEnabled()) {
         void emitNotificationEvent({
           code: eventCode,
           tenantOrgId: tenantId,

@@ -17,11 +17,12 @@
 -- (intake→processing, home-collection confirm→intake). No
 -- PUBLISHED edits.
 
-BEGIN;
-
-Null;
+-- Placeholder migration (no-op)
+SELECT 1;
 
 /*
+BEGIN;
+
 SELECT set_config('cmx.semantic_policy_command', '1', true);
 
 DO $$
@@ -88,8 +89,8 @@ BEGIN
   END IF;
 END $$;
 
+COMMIT;
 */
 
-COMMIT;
 
 

@@ -11,6 +11,7 @@
 
 import { sendEmail } from '@lib/notifications/email-sender';
 import { logger } from '@lib/utils/logger';
+import { getNtfHqDispatchUrl, isNtfDispatchViaHq } from '@lib/notifications/config';
 
 /**
  *
@@ -40,7 +41,7 @@ export interface EmailDeliveryResult {
 // ---------------------------------------------------------------------------
 
 async function deliverViaHqProxy(row: OutboxEmailRow, subject: string): Promise<EmailDeliveryResult> {
-  const hqUrl  = process.env.NTF_HQ_DISPATCH_URL ?? 'http://localhost:3002/api/hq/v1/notifications/dispatch';
+  const hqUrl  = await getNtfHqDispatchUrl();
   const hqKey  = process.env.NTF_HQ_SERVICE_ROLE_KEY ?? '';
 
   if (!hqKey) {
@@ -120,7 +121,7 @@ export async function deliverEmailOutbox(row: OutboxEmailRow): Promise<EmailDeli
   const subject = row.rendered_subject ?? row.event_code ?? 'CleanMateX Notification';
 
   // NTF_DISPATCH_VIA_HQ kill-switch: route through HQ proxy when enabled
-  if (process.env.NTF_DISPATCH_VIA_HQ === 'true') {
+  if (await isNtfDispatchViaHq()) {
     return deliverViaHqProxy(row, subject);
   }
 

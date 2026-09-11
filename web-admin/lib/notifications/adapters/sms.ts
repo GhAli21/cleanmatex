@@ -9,6 +9,7 @@
 
 import twilio from 'twilio'
 import { logger } from '@lib/utils/logger'
+import { getNtfHqDispatchUrl, getTwilioSmsFrom, isNtfDispatchViaHq } from '@lib/notifications/config'
 
 /**
  *
@@ -32,7 +33,7 @@ export interface SmsDeliveryResult {
 }
 
 async function deliverViaHqProxy(row: OutboxSmsRow): Promise<SmsDeliveryResult> {
-  const hqUrl = process.env.NTF_HQ_DISPATCH_URL ?? 'http://localhost:3002/api/hq/v1/notifications/dispatch'
+  const hqUrl = await getNtfHqDispatchUrl()
   const hqKey = process.env.NTF_HQ_SERVICE_ROLE_KEY ?? ''
 
   if (!hqKey) {
@@ -92,13 +93,13 @@ export async function deliverSmsOutbox(row: OutboxSmsRow): Promise<SmsDeliveryRe
     return { success: false, errorMessage: 'No recipient phone number', permanent: true }
   }
 
-  if (process.env.NTF_DISPATCH_VIA_HQ === 'true') {
+  if (await isNtfDispatchViaHq()) {
     return deliverViaHqProxy(row)
   }
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken  = process.env.TWILIO_AUTH_TOKEN
-  const from       = process.env.TWILIO_SMS_FROM
+  const from       = await getTwilioSmsFrom()
 
   if (!accountSid || !authToken || !from) {
     return { success: false, errorMessage: 'Twilio SMS credentials not configured (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_SMS_FROM)', permanent: false }

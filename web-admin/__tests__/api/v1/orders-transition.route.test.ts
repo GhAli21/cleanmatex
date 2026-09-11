@@ -25,6 +25,10 @@ jest.mock('@/lib/db/prisma', () => ({
   prisma: { $queryRaw: (...args: unknown[]) => queryRawMock(...args) },
 }));
 
+jest.mock('@lib/notifications/config', () => ({
+  isOrderTransitionNotifyEnabled: jest.fn().mockResolvedValue(false),
+}));
+
 import { POST } from '@/app/api/v1/orders/[id]/transition/route';
 
 const AUTH_CONTEXT = {
@@ -48,13 +52,9 @@ describe('POST /api/v1/orders/[id]/transition — replay must not re-notify', ()
     requirePermissionMock.mockResolvedValue(AUTH_CONTEXT);
   });
 
-  // `isOrderTransitionNotifyEnabled()` (lib/notifications/config.ts) is currently
-  // hardcoded to `return false` — an operator decision to administratively silence
-  // order-transition notifications platform-wide, independent of env config. This
-  // test documents that current, deliberate state: a fresh transition still does
-  // NOT notify. When that hardcode is lifted, this assertion is the one to flip
-  // back to "notifies once" — the replay-suppression and env-flag tests below stay
-  // correct either way since they gate on top of whatever this function returns.
+  // `isOrderTransitionNotifyEnabled()` reads sys_ntf_runtime_cf /
+  // NTF_ORDER_TRANSITION_NOTIFY. Seeded default is false. Mocked here so
+  // the route test does not require a live runtime-cf row.
   it('does not notify a fresh transition while notify is administratively disabled', async () => {
     executeActionMock.mockResolvedValue({ ok: true, currentStatus: 'ready', stateVersion: 2 });
 

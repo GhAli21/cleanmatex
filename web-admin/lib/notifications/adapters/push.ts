@@ -14,6 +14,7 @@
 
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { notificationSettingsService } from '@lib/notifications/settings-service'
+import { getNtfHqDispatchUrl, isNtfDispatchViaHq } from '@lib/notifications/config'
 import { logger } from '@lib/utils/logger'
 import { sendVapidPush,     type VapidSubscriptionData     } from './push/vapid'
 import { sendFcmPush,       type FcmSubscriptionData       } from './push/fcm'
@@ -102,7 +103,7 @@ async function recordSuccess(
 // ---------------------------------------------------------------------------
 
 async function deliverViaHqProxy(row: OutboxPushRow): Promise<PushDeliveryResult> {
-  const hqUrl = process.env.NTF_HQ_DISPATCH_URL ?? 'http://localhost:3002/api/hq/v1/notifications/dispatch'
+  const hqUrl = await getNtfHqDispatchUrl()
   const hqKey = process.env.NTF_HQ_SERVICE_ROLE_KEY ?? ''
 
   if (!hqKey) {
@@ -168,7 +169,7 @@ async function deliverViaHqProxy(row: OutboxPushRow): Promise<PushDeliveryResult
  * @param row
  */
 export async function deliverPushOutbox(row: OutboxPushRow): Promise<PushDeliveryResult> {
-  if (process.env.NTF_DISPATCH_VIA_HQ === 'true') {
+  if (await isNtfDispatchViaHq()) {
     return deliverViaHqProxy(row)
   }
 
