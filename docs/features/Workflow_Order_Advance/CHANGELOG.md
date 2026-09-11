@@ -1,5 +1,9 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-09-11 (3)
+
+- **HQ Studio Check policy on `WF_V2_FULL_PATH` v1 — operator confirmed done.** One real UI FULL_PATH order **done**. Delivery route UI smoke **done**. No further Check policy or FULL_PATH/route-UI smoke waiting.
+
 ## Unreleased — 2026-09-11 (2)
 
 - **T15's CI-wiring half — owner decision: not needed for now.** Explained what `wf-prof-ver-validate-live.db.test.ts` actually proves (the `sys_wf_prof_ver_live_rpt`/`sys_wf_prof_ver_validate_live` structural rulebook functions stay correct after a migration change, not any one profile's data — the same rulebook the `WF_V2_FULL_PATH` self-checks used this session) and what standing it up in CI would cost (a Postgres service container + replaying all 503 migrations on every relevant push — no Docker-in-Docker needed, GitHub Actions has a native `services: postgres:` block, but real per-run time). Owner decided this stays a manual `npm run test:db-integration` check, not a CI gate, given pre-launch/no-real-tenants low stakes. Not a V1.0 blocker. Docs updated: `12_Test_Plan.md` (T15 row + status line), `13_Production_Readiness_Checklist.md` (status line + both T15-referencing checklist lines). Also fixed a stale checkbox found in the same pass: "Correction checklist in IMPLEMENTATION_PLAN §6 green" was unchecked despite §6 already being 100% `[x]` — flipped with a note.

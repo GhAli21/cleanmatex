@@ -82,6 +82,8 @@ function ownerBadgeVariant(ownerScreenKey: WorkboardOwnerScreenKey): Parameters<
       return 'success'
     case 'driver_delivery':
       return 'warning'
+    case 'order_detail':
+      return 'outline'
   }
 }
 

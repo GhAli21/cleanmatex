@@ -11,9 +11,8 @@ export interface WorkboardAssigneeOption {
 }
 
 /**
- * Stage screens Workboard may route to. Includes intake, home collection, and
- * counter pickup so observer membership is not silently dropped when those
- * modules own the live status.
+ * Stage screens Workboard can deep-link to. `order_detail` is the fallback
+ * Open-stage target when a Workboard-observed status has no floor owner.
  */
 export const WORKBOARD_OWNER_SCREEN_KEYS = [
   'new_order',
@@ -26,6 +25,7 @@ export const WORKBOARD_OWNER_SCREEN_KEYS = [
   'ready_release',
   'pickup_handover',
   'driver_delivery',
+  'order_detail',
 ] as const
 
 /** Stage screens that can own a Workboard order row. */

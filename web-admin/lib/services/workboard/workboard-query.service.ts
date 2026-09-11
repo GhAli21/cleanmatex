@@ -35,6 +35,7 @@ const EMPTY_OWNER_COUNTS: Record<OwnerScreenKey, number> = {
   ready_release: 0,
   pickup_handover: 0,
   driver_delivery: 0,
+  order_detail: 0,
 }
 
 // wf_profile_artifact_id/wf_profile_revision/wf_profile_checksum/
@@ -125,6 +126,8 @@ function ownerPath(screenKey: OwnerScreenKey, orderId: string): string {
       return `/dashboard/ready/${orderId}`
     case 'driver_delivery':
       return '/dashboard/delivery'
+    case 'order_detail':
+      return `/dashboard/orders/${orderId}`
   }
 }
 
@@ -138,10 +141,8 @@ function ageMinutes(receivedAt: Date | null, lastTransitionAt: Date | null): num
 }
 
 /**
- * Uses live primary-owner membership to route a queue item.
- * Workboard itself is an observer: it may expose a queue row but never execute
- * an action. Owner screens include plant floors plus intake, home collection,
- * and counter pickup so Studio observer checkboxes are not a no-op.
+ * Open stage follows the status Owner module. Do not remap destinations in
+ * Workboard; Observer only controls list visibility, never the detail URL.
  */
 function ownerForSemanticStatus(
   artifact: SemanticWorkflowArtifact,
@@ -156,16 +157,17 @@ function ownerForSemanticStatus(
   )
   const ownerMembership = artifact.module_statuses.find((membership) => {
     const moduleConfig = moduleByScreen.get(membership.screen_key.trim().toLowerCase())
+    const screenKey = membership.screen_key.trim().toLowerCase()
     return membership.status_code.trim().toLowerCase() === statusCode.trim().toLowerCase()
       && membership.visibility_mode === 'owner'
       && moduleConfig?.module_mode === 'primary_owner'
       && moduleConfig.is_enabled
-      && OWNER_SCREEN_KEYS.includes(
-        membership.screen_key.trim().toLowerCase() as OwnerScreenKey,
-      )
+      && screenKey !== WORKBOARD_SCREEN_KEY
+      && OWNER_SCREEN_KEYS.includes(screenKey as OwnerScreenKey)
+      && screenKey !== 'order_detail'
   })
 
-  return (ownerMembership?.screen_key as OwnerScreenKey | undefined) ?? null
+  return (ownerMembership?.screen_key.trim().toLowerCase() as OwnerScreenKey | undefined) ?? null
 }
 
 function scopeFromLivePolicy(
@@ -182,11 +184,8 @@ function scopeFromLivePolicy(
     if (!statusCode || seenObserved.has(statusCode)) continue
     seenObserved.add(statusCode)
     const owner = ownerForSemanticStatus(artifact, statusCode)
-    if (owner) {
-      ownerByStatus.set(statusCode, owner)
-      continue
-    }
-    if (!gaps.some((gap) => gap.statusCode === statusCode && gap.reason === 'no_stage_owner')) {
+    ownerByStatus.set(statusCode, owner ?? 'order_detail')
+    if (!owner && !gaps.some((gap) => gap.statusCode === statusCode && gap.reason === 'no_stage_owner')) {
       gaps.push({ statusCode, reason: 'no_stage_owner' })
     }
   }
@@ -304,8 +303,8 @@ function buildOwnerSummary(
  */
 export class WorkboardQueryService {
   /**
-   * Lists the operational queue using each order's live profile-version policy.
-   * Orders without a complete version binding are excluded from visibility.
+   * Lists every status the live profile assigns to Workboard. Open stage still
+   * prefers a floor owner; statuses without one open the order detail page.
    *
    * @param tenantId Authenticated tenant resolved by the API adapter.
    * @param input Supervisor filters and paging. Never used as a tenant selector.

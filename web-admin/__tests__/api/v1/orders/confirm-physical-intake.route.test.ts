@@ -149,6 +149,61 @@ describe('POST /api/v1/orders/[id]/confirm-physical-intake', () => {
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
+  it('confirms intake for the real customer_mobile_app remote-drop-off source', async () => {
+    mockFindFirst.mockResolvedValueOnce({
+      id: 'order-1',
+      current_status: 'draft',
+      physical_intake_status: 'pending_dropoff',
+      branch_id: 'branch-1',
+      sys_order_sources_cd: {
+        order_source_code: 'customer_mobile_app',
+        requires_remote_intake_confirm: true,
+      },
+    });
+    const request = new NextRequest(
+      'https://cmx.cleanmatex.com/api/v1/orders/order-1/confirm-physical-intake',
+      {
+        method: 'POST',
+        headers: { 'Idempotency-Key': 'customer-mobile-app-intake-1' },
+        body: JSON.stringify({ receivedInfo: 'Received at counter' }),
+      },
+    );
+
+    const response = await POST(request, { params: Promise.resolve({ id: 'order-1' }) });
+
+    expect(response.status).toBe(200);
+    expect(executeAction).toHaveBeenCalledWith(expect.objectContaining({
+      actionCode: 'CONFIRM_PHYSICAL_INTAKE',
+    }));
+  });
+
+  it('rejects intake confirmation for a real staff-present source (pos) that never sets the flag', async () => {
+    mockFindFirst.mockResolvedValueOnce({
+      id: 'order-1',
+      current_status: 'draft',
+      physical_intake_status: 'pending_dropoff',
+      branch_id: 'branch-1',
+      sys_order_sources_cd: {
+        order_source_code: 'pos',
+        requires_remote_intake_confirm: false,
+      },
+    });
+    const request = new NextRequest(
+      'https://cmx.cleanmatex.com/api/v1/orders/order-1/confirm-physical-intake',
+      { method: 'POST' },
+    );
+
+    const response = await POST(request, { params: Promise.resolve({ id: 'order-1' }) });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload).toMatchObject({
+      success: false,
+      error: 'This order source does not require physical intake confirmation',
+    });
+    expect(executeAction).not.toHaveBeenCalled();
+  });
+
   it('maps an incomplete live-policy binding to HTTP 409', async () => {
     (executeAction as jest.Mock).mockRejectedValueOnce(
       new WorkflowEngineError(

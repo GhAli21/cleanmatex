@@ -68,6 +68,8 @@ function ownerTone(ownerScreenKey: WorkboardOwnerScreenKey): WorkboardOverviewTo
       return 'success'
     case 'driver_delivery':
       return 'warning'
+    case 'order_detail':
+      return 'primary'
   }
 }
 

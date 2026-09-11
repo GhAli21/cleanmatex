@@ -45,6 +45,7 @@ function semanticWorkboardArtifact() {
     modules: [
       { screen_key: 'workboard', module_mode: 'observer', is_enabled: true },
       { screen_key: 'new_order', module_mode: 'primary_owner', is_enabled: true },
+      { screen_key: 'preparation', module_mode: 'primary_owner', is_enabled: true },
       { screen_key: 'processing', module_mode: 'primary_owner', is_enabled: true },
       { screen_key: 'qa', module_mode: 'primary_owner', is_enabled: true },
       { screen_key: 'ready_release', module_mode: 'primary_owner', is_enabled: true },
@@ -213,6 +214,52 @@ describe('WorkboardQueryService', () => {
     ]))
     expect(result.summary.byOwner.new_order).toBe(1)
     expect(result.summary.byOwner.pickup_handover).toBe(1)
+    expect(result.metadata.configurationGaps).toEqual([
+      { statusCode: 'awaiting_collection', reason: 'no_stage_owner' },
+    ])
+  })
+
+  it('lists Workboard-observed statuses even when no floor owner exists', async () => {
+    mockLoadSemanticArtifact.mockResolvedValue(semanticWorkboardArtifact())
+    mockQueryRaw
+      .mockResolvedValueOnce([snapshot])
+      .mockResolvedValueOnce([{
+        id: 'order-awaiting',
+        order_no: 'ORD-AWAIT',
+        customer_name: 'Customer',
+        customer_phone: null,
+        branch_name: null,
+        current_status: 'awaiting_collection',
+        priority: 'normal',
+        has_issue: false,
+        is_rejected: false,
+        received_at: new Date('2026-08-20T10:00:00Z'),
+        last_transition_at: null,
+        ready_by_at: null,
+        wf_profile_id: snapshot.wf_profile_id,
+        wf_version_no: 1,
+        wf_profile_version_id: snapshot.wf_profile_version_id,
+        assignee_name: null,
+      }])
+      .mockResolvedValueOnce([{ total: BigInt(1), blocked: BigInt(0), overdue: BigInt(0) }])
+      .mockResolvedValueOnce([
+        { current_status: 'awaiting_collection', wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_version_id: snapshot.wf_profile_version_id, total: BigInt(1) },
+      ])
+      .mockResolvedValueOnce([{ status_code: 'awaiting_collection', name: 'Awaiting collection' }])
+      .mockResolvedValueOnce([{ priority: 'normal' }])
+    mockBranchesFindMany.mockResolvedValue([])
+    mockUsersFindMany.mockResolvedValue([])
+
+    const result = await WorkboardQueryService.list(TENANT_ID, { page: 1, pageSize: 25 })
+
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        statusCode: 'awaiting_collection',
+        ownerScreenKey: 'order_detail',
+        ownerPath: '/dashboard/orders/order-awaiting',
+      }),
+    ])
+    expect(result.summary.byOwner.order_detail).toBe(1)
     expect(result.metadata.configurationGaps).toEqual([
       { statusCode: 'awaiting_collection', reason: 'no_stage_owner' },
     ])

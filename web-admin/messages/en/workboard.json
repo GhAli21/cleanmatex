@@ -43,7 +43,8 @@
     "packing": "Packing",
     "ready_release": "Ready / release",
     "pickup_handover": "Customer pickup",
-    "driver_delivery": "Driver delivery"
+    "driver_delivery": "Driver delivery",
+    "order_detail": "Order detail"
   },
   "filters": {
     "title": "Queue filters",
