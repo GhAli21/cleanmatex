@@ -1,6 +1,6 @@
 # Notification & Communication Hub — Setup & Config Index
 
-**Last Updated:** 2026-06-11  
+**Last Updated:** 2026-09-12  
 **PRD:** CMX-PRD-019  
 **Purpose:** Master index and recommended reading order for all Notification Hub setup documentation. Each file is self-contained; follow the reading order for a fresh deployment.
 
@@ -31,6 +31,7 @@
 | 10 | [10_push_subscription_client.md](./10_push_subscription_client.md) | Browser-side push permission + subscription JS code |
 | 11 | [11_smoke_tests.md](./11_smoke_tests.md) | Per-channel smoke test procedure + SQL test harness |
 | 12 | [12_provider_switching.md](./12_provider_switching.md) | Zero-downtime provider switch + rollback |
+| 13 | [13_twilio_waba_and_template_approval.md](./13_twilio_waba_and_template_approval.md) | Twilio WABA Self Sign-up, why templates stay unapproved, sandbox vs production, resubmit + HQ flags |
 
 ---
 
@@ -53,7 +54,7 @@ If you only need email notifications to work:
 | IN_APP | 01, 02, 03 (outbox secret only) |
 | EMAIL | 01, 02, 03, 04 (RESEND section), 05 |
 | SMS | 01, 02, 03 (Twilio section), 04 (SMS section), 05 |
-| WHATSAPP (Twilio BSP) | 01, 02, 03, 04 (WA-Twilio section), 05, 09 |
+| WHATSAPP (Twilio BSP) | 01, 02, 03, 04 (WA-Twilio section), 05, 09, **13** |
 | WHATSAPP (Meta) | 01, 02, 03, 04 (WA-Meta section), 05, 09 |
 | PUSH (VAPID) | 01, 02, 03, 04 (VAPID section), 05, 06, 10 |
 | PUSH (FCM) | 01, 02, 03, 04 (FCM section), 05, 07, 10 |

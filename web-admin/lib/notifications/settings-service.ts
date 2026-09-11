@@ -11,6 +11,7 @@
  */
 
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
+import { collapseUserPrefRows } from '@lib/notifications/user-prefs'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -176,11 +177,11 @@ class NotificationSettingsService {
     const supabase = createAdminSupabaseClient()
     const { data } = await supabase
       .from('org_ntf_user_prefs_dtl')
-      .select('channel_code, event_code, is_enabled, marketing_consent')
+      .select('user_id, channel_code, event_code, branch_id, is_enabled, marketing_consent, updated_at, created_at')
       .eq('tenant_org_id', tenantOrgId)
       .eq('user_id', userId)
 
-    const prefs: UserPref[] = (data ?? []).map(p => ({
+    const prefs: UserPref[] = collapseUserPrefRows(data ?? []).map(p => ({
       channelCode:       p.channel_code,
       eventCode:         p.event_code         ?? null,
       isEnabled:         p.is_enabled,

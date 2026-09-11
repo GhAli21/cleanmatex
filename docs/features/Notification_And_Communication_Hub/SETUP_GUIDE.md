@@ -344,7 +344,9 @@ Submit these 5 templates to META Business Manager before enabling WhatsApp:
 | `cmx_payment_reminder` | Payment overdue | "Reminder: Your payment of {{1}} {{2}} for order #{{3}} is due." |
 | `cmx_order_delayed` | Order delayed | "Your order #{{1}} is delayed. New estimated time: {{2}}." |
 
-Approval typically takes 24–72 hours. Until approved, use Twilio BSP or disable WhatsApp.
+Approval typically takes 24–72 hours. Until approved, use Twilio BSP sandbox for tests or disable WhatsApp in production.
+
+**Current Twilio BSP playbook (WABA + why templates stay `received`):** [Setup_And_Config/13_twilio_waba_and_template_approval.md](./Setup_And_Config/13_twilio_waba_and_template_approval.md).
 
 ---
 

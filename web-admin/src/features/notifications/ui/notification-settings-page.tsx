@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { CmxButton } from '@ui/primitives/cmx-button'
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
 import { CmxSwitch } from '@ui/primitives/cmx-switch'
 import { CmxTabsPanel } from '@ui/navigation/cmx-tabs-panel'
 import { CmxSkeleton } from '@ui/primitives/cmx-skeleton'
-import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
+import { CmxSummaryMessage, cmxMessage } from '@ui/feedback'
 import { useAuth } from '@/lib/auth/auth-context'
 
 const CHANNELS = ['IN_APP', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH'] as const
@@ -28,6 +27,8 @@ interface ChannelSetting {
   quiet_hours_start: string | null
   quiet_hours_end: string | null
   quiet_hours_tz: string | null
+  /** Present when the tenant has an active send provider for this channel. */
+  active_provider?: { provider_code: string } | null
 }
 
 interface UserPref {
@@ -66,15 +67,27 @@ export function NotificationSettingsPage() {
         fetch('/api/v1/notifications/user-prefs'),
       ])
       if (isAdmin && settingsRes) {
-        const j = await settingsRes.json()
-        if (j.success) setSettings(j.data)
+        const j = await settingsRes.json() as { success?: boolean; data?: ChannelSetting[]; error?: string }
+        if (j.success) setSettings(j.data ?? [])
+        else {
+          setError(j.error ?? t('settings.loadFailed'))
+          cmxMessage.error(j.error ?? t('settings.loadFailed'))
+        }
       }
       if (prefsRes.ok) {
-        const j = await prefsRes.json()
-        if (j.success) setPrefs(j.data)
+        const j = await prefsRes.json() as { success?: boolean; data?: UserPref[]; error?: string }
+        if (j.success) setPrefs(j.data ?? [])
+        else {
+          setError(j.error ?? t('settings.loadFailed'))
+          cmxMessage.error(j.error ?? t('settings.loadFailed'))
+        }
+      } else {
+        setError(t('settings.loadFailed'))
+        cmxMessage.error(t('settings.loadFailed'))
       }
     } catch {
       setError(t('settings.loadFailed'))
+      cmxMessage.error(t('settings.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -85,20 +98,28 @@ export function NotificationSettingsPage() {
   const updatePref = useCallback(async (channelCode: ChannelCode, field: 'is_enabled' | 'marketing_consent', value: boolean) => {
     setSaving(`${channelCode}-${field}`)
     try {
-      await fetch('/api/v1/notifications/user-prefs', {
+      const res = await fetch('/api/v1/notifications/user-prefs', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ channel_code: channelCode, [field]: value }),
       })
+      const j = await res.json() as { success?: boolean; error?: string }
+      if (!res.ok || j.success === false) {
+        cmxMessage.error(j.error ?? t('settings.saveFailed'))
+        return
+      }
       setPrefs((prev) => {
         const existing = prev.find((p) => p.channel_code === channelCode && p.event_code === null)
         if (existing) return prev.map((p) => p.channel_code === channelCode && p.event_code === null ? { ...p, [field]: value } : p)
         return [...prev, { channel_code: channelCode, event_code: null, is_enabled: true, marketing_consent: false, [field]: value }]
       })
+      cmxMessage.success(t('settings.saved'))
+    } catch {
+      cmxMessage.error(t('settings.saveFailed'))
     } finally {
       setSaving(null)
     }
-  }, [])
+  }, [t])
 
   const updateChannelSetting = useCallback(async (channelCode: ChannelCode, field: string, value: boolean | string | null) => {
     setSaving(`admin-${channelCode}-${field}`)
@@ -109,8 +130,8 @@ export function NotificationSettingsPage() {
         body: JSON.stringify({ channel_code: channelCode, [field]: value }),
       })
       const j = await res.json() as { success?: boolean; error?: string }
-      if (!res.ok || !j.success) {
-        setError(j.error ?? t('settings.saveFailed'))
+      if (!res.ok || j.success === false) {
+        cmxMessage.error(j.error ?? t('settings.saveFailed'))
         return
       }
       setSettings((prev) => {
@@ -118,12 +139,19 @@ export function NotificationSettingsPage() {
         if (existing) return prev.map((s) => s.channel_code === channelCode ? { ...s, [field]: value } : s)
         return [...prev, { channel_code: channelCode, is_enabled: false, quiet_hours_enabled: false, quiet_hours_start: null, quiet_hours_end: null, quiet_hours_tz: null, [field]: value }]
       })
+      const enablingWhatsApp = channelCode === 'WHATSAPP' && field === 'is_enabled' && value === true
+      const hasWhatsAppProvider = Boolean(settings.find((s) => s.channel_code === 'WHATSAPP')?.active_provider)
+      if (enablingWhatsApp && !hasWhatsAppProvider) {
+        cmxMessage.warning(t('settings.whatsappNoProvider'))
+      } else {
+        cmxMessage.success(t('settings.saved'))
+      }
     } catch {
-      setError(t('settings.saveFailed'))
+      cmxMessage.error(t('settings.saveFailed'))
     } finally {
       setSaving(null)
     }
-  }, [t])
+  }, [settings, t])
 
   const getPref = (channelCode: ChannelCode) =>
     prefs.find((p) => p.channel_code === channelCode && p.event_code === null)
@@ -136,8 +164,8 @@ export function NotificationSettingsPage() {
    */
   type TabDef = { id: Tab; label: string }
   const TABS: TabDef[] = [
-    { id: 'my-prefs', label: t('settings.myPrefs') },
     ...(isAdmin ? [{ id: 'channel-settings' as Tab, label: t('settings.channelSettings') }] : []),
+    { id: 'my-prefs', label: t('settings.myPrefs') },
   ]
 
   const tabsWithContent = TABS.map(({ id, label }) => ({
@@ -150,7 +178,9 @@ export function NotificationSettingsPage() {
         ) : error ? (
           <CmxSummaryMessage type="error" title={error} items={[]} />
         ) : id === 'my-prefs' ? (
-          CHANNELS.map((ch) => {
+          <>
+          <CmxSummaryMessage type="info" title={t('settings.myPrefsHint')} items={[]} />
+          {CHANNELS.map((ch) => {
             const pref = getPref(ch)
             const enabled = pref?.is_enabled ?? true
             const consent = pref?.marketing_consent ?? false
@@ -187,10 +217,13 @@ export function NotificationSettingsPage() {
                 </CmxCardContent>
               </CmxCard>
             )
-          })
+          })}
+          </>
         ) : (
           // Channel Settings tab (admin only)
-          CHANNELS.map((ch) => {
+          <>
+          <CmxSummaryMessage type="info" title={t('settings.channelSettingsHint')} items={[]} />
+          {CHANNELS.map((ch) => {
             const setting = getChannelSetting(ch)
             const isEnabled = setting?.is_enabled ?? false
             const quietEnabled = setting?.quiet_hours_enabled ?? false
@@ -208,6 +241,11 @@ export function NotificationSettingsPage() {
                     />
                   </div>
                 </CmxCardHeader>
+                {ch === 'WHATSAPP' && isEnabled && !setting?.active_provider && (
+                  <CmxCardContent className="pt-0 pb-2">
+                    <CmxSummaryMessage type="warning" title={t('settings.whatsappNoProvider')} items={[]} />
+                  </CmxCardContent>
+                )}
                 {isEnabled && (
                   <CmxCardContent className="pt-0 pb-4 space-y-3">
                     <div className="flex items-center justify-between gap-4">
@@ -250,7 +288,8 @@ export function NotificationSettingsPage() {
                 )}
               </CmxCard>
             )
-          })
+          })}
+          </>
         )}
       </div>
     ),
@@ -261,7 +300,12 @@ export function NotificationSettingsPage() {
       <h1 className="mb-6 text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
         {t('settings.title')}
       </h1>
-      <CmxTabsPanel tabs={tabsWithContent} defaultTab="my-prefs" />
+      {/* Remount after auth so admins land on tenant Channel Settings, not My Preferences. */}
+      <CmxTabsPanel
+        key={isAdmin ? 'admin-channel-settings' : 'user-prefs'}
+        tabs={tabsWithContent}
+        defaultTab={isAdmin ? 'channel-settings' : 'my-prefs'}
+      />
     </div>
   )
 }

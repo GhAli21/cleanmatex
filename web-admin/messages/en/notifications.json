@@ -35,8 +35,11 @@
   },
   "settings": {
     "title": "Notification Settings",
-    "myPrefs": "My Preferences",
-    "channelSettings": "Channel Settings",
+    "myPrefs": "My Preferences (User)",
+    "myPrefsHint": "These switches apply only to your account, not to customers or other staff.",
+    "channelSettings": "Channel Settings (Tenant)",
+    "channelSettingsHint": "These switches apply to the whole laundry. Customers receive a channel only when it is on here.",
+    "whatsappNoProvider": "WhatsApp is on, but no active provider is configured. Messages will not send until a provider is set.",
     "enableChannel": "Receive notifications via this channel",
     "marketingConsent": "Marketing notification consent",
     "quietHours": "Enable quiet hours",

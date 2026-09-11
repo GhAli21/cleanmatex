@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
+import { collapseUserPrefRows } from '@lib/notifications/user-prefs'
 import { logger } from '@/lib/utils/logger'
 
 const ACTIVATE_BATCH   = 10  // campaigns to activate per run
@@ -187,7 +188,7 @@ async function dispatchTargets(
   // Bulk-fetch marketing consent for all target users in one query
   const { data: prefs } = await supabase
     .from('org_ntf_user_prefs_dtl')
-    .select('user_id, marketing_consent, is_enabled')
+    .select('user_id, channel_code, event_code, marketing_consent, is_enabled, updated_at, created_at')
     .eq('tenant_org_id', campaign.tenant_org_id)
     .eq('channel_code', campaign.channel_code)
     .is('event_code', null)       // global channel-level pref (NULL event_code)
@@ -195,7 +196,7 @@ async function dispatchTargets(
 
   // Build consent lookup: user_id → true/false (missing row = no consent)
   const consentMap = new Map<string, boolean>(
-    (prefs ?? []).map(p => [p.user_id as string, Boolean(p.marketing_consent) && Boolean(p.is_enabled)])
+    collapseUserPrefRows(prefs ?? []).map(p => [p.user_id as string, Boolean(p.marketing_consent) && Boolean(p.is_enabled)])
   )
 
   let queued   = 0
