@@ -10,6 +10,7 @@
 3. **Preparation details Edit Order** — header button on `/dashboard/preparation/[orderId]` (gated `orders:update`, only while the order can still be prepared). Empty-state button in FastItemizer unchanged.
 4. `isOrderEditable` includes live status `preparing`. Access contract `editOrder` on Preparation Details.
 5. HQ ADR-0010 + tenant ADR V1.0 accept (`Approved_By_Jh`). Canary + rollback rehearsal **done**. Hold H1–H4 **done**. Collect-payment on Ready **done**.
+6. **SIMPLE v4 Check policy passed** after `0499`+`0500` + HQ deploy (`POS_QUICK_DROP` + `preparing` on Overview sequence).
 
 **Needs a decision from the user before proceeding (don't guess):**
 - None for this slice. Quick-drop → `preparing` is locked. Optional later: SIMPLE v4 `CONFIRM_HOME_COLLECTION` still lands at `intake` (HOME_COLLECTION profile already goes to `preparing`).

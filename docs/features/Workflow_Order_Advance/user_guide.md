@@ -161,7 +161,7 @@ Do not use **Mark received at branch** (remote drop-off) for these orders. That 
 
 ## Preparation floor (quick-drop itemization)
 
-Quick-drop bags are already in hand. After `0499` they start at `preparing`, not `intake`.
+Quick-drop bags are already in hand. They start at `preparing`, not `intake`.
 
 1. Create a quick-drop order (POS or staff New Order with quick-drop).
 2. Open **Orders → Preparation** and the order detail (`/dashboard/preparation/{id}`).

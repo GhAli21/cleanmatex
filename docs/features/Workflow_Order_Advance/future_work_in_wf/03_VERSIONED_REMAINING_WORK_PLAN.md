@@ -84,7 +84,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 | V10x-M2 | `WorkflowPolicyValidator` | Shared issue codes from file 02 | Studio **Check policy** (replace Compile-as-authority). Rollout plan for the 46 planned-but-not-emitted codes: [05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md) — DRAFT, plan only, owner review needed before any batch starts |
 | V10x-M3 | Open-order **version migrate** command (ADR-0010) | Preview eligible orders; validate current status vs target policy; permission + reason + confirmation; idempotent; audit per order; **never** automatic on reassign | HQ UI to launch and monitor migrate |
 | V10x-M4 | Channel uniqueness + permission existence | Execute already fail-closed | File 02 `execution_binding_duplicate` extend + `execution_permission_invalid` |
-| V10x-M5 | Create hydration + Initial-rule matrix + hold harden + home collection | **T0–T4 done.** HOME_COLLECTION v1 is PILOT on demo. Quick-drop → `preparing` (`0499` applied; `0500` pending for stage_sequence). | **H1–H3 done** (catalog **1.3.0**). `POS_QUICK_DROP` may start at `preparing`. After `0500`, Check policy SIMPLE v4. |
+| V10x-M5 | Create hydration + Initial-rule matrix + hold harden + home collection | **T0–T4 done.** HOME_COLLECTION v1 is PILOT on demo. Quick-drop → `preparing` (`0499`+`0500` applied). | **H1–H3 done** (catalog **1.3.0**). `POS_QUICK_DROP` may start at `preparing`. **SIMPLE v4 Check policy passed** after HQ deploy. |
 
 ### Should
 
@@ -93,7 +93,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 | V10x-S1 | Gate `parameters_json` JSON Schema | Evaluators already fail unknown | `gate_parameters_invalid` |
 | V10x-S2 | Nav from server workflow-context | Hide/disable Off modules using context, not a second client policy | Preview the same contract |
 | V10x-S3 | Submit-order error mapping | **Done 2026-09-03:** create `PROFILE_*` → 422 + `workflow.profileErrors`; runtime integrity stays 409 | — |
-| V10x-S4 | `intake → preparing` UI for received bags | **Closed as product 2026-09-11.** Quick-drop → `preparing`. Preparation details header **Edit Order** (`orders:update`). No `new_order` ActionBar. Remote drop-off banner stays `draft` + `pending_dropoff`. Tenant: `0499` applied; `0500` adds `preparing` to Overview sequence. `isOrderEditable` includes `preparing`. | After `0500`: HQ Check policy on SIMPLE v4 |
+| V10x-S4 | `intake → preparing` UI for received bags | **Closed as product 2026-09-11.** Quick-drop → `preparing`. Preparation details header **Edit Order** (`orders:update`). No `new_order` ActionBar. Remote drop-off banner stays `draft` + `pending_dropoff`. Tenant: `0499`+`0500` applied. `isOrderEditable` includes `preparing`. | HQ Check policy on SIMPLE v4 **passed** after HQ deploy |
 
 ### Could
 
@@ -280,7 +280,7 @@ Do **not** rebuild `/dashboard/settings/workflows/new` or `[id]/edit`.
 
 ## 10. Suggested near-term sequence (owners)
 
-1. **Operator:** apply tenant `0499`, HQ Check policy on SIMPLE v4, quick-drop smoke (Preparation Edit Order).
+1. **Operator:** quick-drop smoke (Preparation **Edit Order**). `0499`+`0500` applied; SIMPLE v4 Check policy passed after HQ deploy.
 2. **HQ docs:** `lwpr-hq-docs-final` + soak.
 3. **V1.0.x (not V1.0 blockers):** 46 planned Check-policy codes ([05](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md)); open-order migrate (V10x-M3).
 4. **Product:** V1.1 returns + work groups after V1.0.x, not before.

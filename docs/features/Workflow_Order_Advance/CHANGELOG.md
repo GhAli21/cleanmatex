@@ -1,5 +1,9 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-09-11 (4)
+
+- **SIMPLE v4 Check policy passed after HQ deploy.** `0499` added Preparation + quick-drop → `preparing`. `0500` put `preparing` on Overview `stage_sequence`. HQ `POS_QUICK_DROP` now allows `preparing`. Operator confirmed Check policy green on `WF_V2_SIMPLE` v4 PILOT. Remaining V1.0 operator work: quick-drop floor smoke (Preparation **Edit Order**).
+
 ## Unreleased — 2026-09-11 (3)
 
 - **Preparation details Edit Order (2026-09-11).** Header button on `/dashboard/preparation/[orderId]` (primary, top-right). Shown only while the order can still be prepared and the actor has `orders:update`. Reuses `orders.actions.buttons.editOrder`. Contract action `editOrder`. Empty-state FastItemizer button kept.

@@ -21,7 +21,7 @@ This folder holds related deliverables:
 | [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md) | Narrative for planned codes and operator intent | HQ `WorkflowPolicyValidator` authors |
 | [GENERATED_WF_POLICY_ISSUE_CATALOG.md](../generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md) | **Emit registry** — severity, gates, Studio tab, Auto Fix IDs, seed_must_pass. Maintain in HQ via `/manage-wf-policy-issues-catalog` | HQ catalog generate; tenant seed CI |
 | [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md) | Must / Should / Could by version, both repos | Product + both engineering tracks |
-| [04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md](04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) | Create presets, Initial-rule matrix, home collection, hold (**T0–T4 done**). Quick-drop → `preparing` is a 2026-09-11 product lock (`0499` unapplied). | Product + tenant + HQ Studio |
+| [04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md](04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) | Create presets, Initial-rule matrix, home collection, hold (**T0–T4 done**). Quick-drop → `preparing` is live (`0499`+`0500` applied; SIMPLE v4 Check policy passed). | Product + tenant + HQ Studio |
 | [05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md) | Draft rollout plan for the 46 planned-but-not-yet-emitted Check-policy codes, sequenced safest-first (2026-09-04, owner review pending — zero files changed by the plan itself) | Product + HQ Studio |
 
 ## Authority and limits

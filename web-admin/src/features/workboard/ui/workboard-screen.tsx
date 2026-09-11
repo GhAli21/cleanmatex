@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useDeferredValue, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useMemo, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
@@ -141,6 +141,18 @@ function buildWorkboardReturnUrl(input: WorkboardQueryInput): string {
   return `/dashboard/workboard?${params.toString()}`
 }
 
+/**
+ * Defers browser-only query-cache output until after hydration so server and
+ * client first renders share the same loading markup.
+ */
+function useHydrationBoundary(): boolean {
+  return useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+}
+
 /** Props for an order reference that supports independent navigation and copying. */
 interface WorkboardOrderReferenceProps {
   /** Tenant-scoped queue record used by the info dialog and details link. */
@@ -229,6 +241,7 @@ export function WorkboardScreen() {
     return supported.includes(value as WorkboardSort) ? value as WorkboardSort : 'age_desc'
   })
   const deferredSearch = useDeferredValue(search.trim())
+  const isHydrated = useHydrationBoundary()
 
   const query = useMemo<WorkboardQueryInput>(() => ({
     page,
@@ -242,7 +255,16 @@ export function WorkboardScreen() {
     sla,
     sort,
   }), [assigneeId, blocker, branchId, deferredSearch, ownerScreenKey, page, pageSize, priority, sla, sort])
-  const { data, error, isLoading, isFetching, refetch } = useWorkboard(query)
+  const {
+    data: cachedData,
+    error: queryError,
+    isLoading: isQueryLoading,
+    isFetching,
+    refetch,
+  } = useWorkboard(query)
+  // A persisted client cache may have rows before React hydrates server markup.
+  const data = isHydrated ? cachedData : undefined
+  const isLoading = !isHydrated || isQueryLoading
   const workboardReturnUrl = useMemo(() => buildWorkboardReturnUrl(query), [query])
 
   const resetPage = () => setPage(1)
@@ -434,7 +456,7 @@ export function WorkboardScreen() {
 
   const metadata = data?.metadata
   const hasRows = (data?.rows.length ?? 0) > 0
-  const errorMessage = error instanceof Error ? error.message : null
+  const errorMessage = isHydrated && queryError instanceof Error ? queryError.message : null
 
   return (
     <div className="w-full space-y-3 px-4 py-2 md:px-6">
