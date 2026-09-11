@@ -42,10 +42,10 @@ Not a new product version. Unsigned / in-flight V1.0.
 
 | ID | Item | cleanmatex (tenant) | cleanmatexsaas (HQ) |
 |----|------|---------------------|---------------------|
-| V10-M1 | Staff routed POD **S10** + T01–T18 + rollback rehearsal | Recreate semantic-snapshot test orders; S10 canary; cancel/hold/resume/stop smoke after `0442`; live PAY_ON_COLLECTION composition | Same published artifact/preview; no extra authoring |
-| V10-M2 | Profiles that tenant can actually run | Keep runtime fail-closed; map `PROFILE_ASSIGNMENT_REQUIRED` to **422** (not generic 500) on submit-order | Implement [02 issue spec](02_HQ_STUDIO_ISSUE_CODE_SPEC.md) — pickup↔Ready **modules**, `staff_web`, initial-rule exhaustiveness, `MARK_READY` ban, `current_artifact_id`. **Stop** preset `CONFIRM_PICKUP` on `ready_release`; extend `execution_not_from_status_owner` for direct pickup |
-| V10-M3 | Artifact vs live rows must not split-brain | Until resolver cutover: create still needs `current_artifact_id`. Prisma `org_orders_mst` snapshot columns must stay in schema | Pilot/Publish refuse null `current_artifact_id` |
-| V10-M4 | ADR-0010 start **or** stay consistent on artifacts | Do not drop artifact reads in tenant while HQ still publishes via compile-only | Do not switch HQ to Check-policy-only while tenant still requires artifacts |
+| V10-M1 | Staff routed POD **S10** + T01–T18 + rollback rehearsal | **Closed 2026-09-11 except T15 CI graph-validator (owner deferred, not a blocker).** S10 signed 2026-09-05. Rollback rehearsal done. | Same published artifact/preview; no extra authoring |
+| V10-M2 | Profiles that tenant can actually run | Runtime fail-closed. Submit maps `PROFILE_*` to 422. **0499 + 0500 applied.** SIMPLE v4 owns Preparation; quick-drop → `preparing`. | Check policy is live. **SIMPLE v4 Check policy passed** after HQ deploy (`POS_QUICK_DROP` + `preparing`). Remaining planned codes: [05 plan](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md) (V1.0.x, owner review). |
+| V10-M3 | Artifact vs live rows must not split-brain | **Done.** `0494` retired compiled artifacts (applied local + remote). Resolver reads live rows. | Pilot/Publish do not require `current_artifact_id` |
+| V10-M4 | ADR-0010 start **or** stay consistent on artifacts | **Done.** Tenant and HQ both use live rows. Gate 5 `/compile` + `commit_art` retired. | Check policy is HQ authority |
 
 ### Should
 
@@ -64,10 +64,11 @@ Not a new product version. Unsigned / in-flight V1.0.
 
 ### V1.0 exit
 
-- S10 signed (or explicitly rejected with a dated product decision).
-- Check policy blocks `pickup_without_ready_release`, the Ready/pickup **module** split, and the rest of file 02 sprint order 1–8.
-- Both repos still agree on artifact **or** both have switched to live rows (not one of each).
-- Pilot assignable only to `is_hq_test_demo` tenants.
+- S10 signed (2026-09-05) and ADR V1.0 accept (2026-09-11).
+- Check policy is HQ authority; compiled artifacts retired (`0494`).
+- **Still operator-owned before calling V1.0 closed:** quick-drop smoke (Preparation **Edit Order**).
+- Pilot assignable only to `is_hq_test_demo` tenants (already true).
+- File 02 remaining planned codes are **V1.0.x** ([05 plan](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md)), not a V1.0 go-live blocker.
 
 ---
 
@@ -83,7 +84,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 | V10x-M2 | `WorkflowPolicyValidator` | Shared issue codes from file 02 | Studio **Check policy** (replace Compile-as-authority). Rollout plan for the 46 planned-but-not-emitted codes: [05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md) — DRAFT, plan only, owner review needed before any batch starts |
 | V10x-M3 | Open-order **version migrate** command (ADR-0010) | Preview eligible orders; validate current status vs target policy; permission + reason + confirmation; idempotent; audit per order; **never** automatic on reassign | HQ UI to launch and monitor migrate |
 | V10x-M4 | Channel uniqueness + permission existence | Execute already fail-closed | File 02 `execution_binding_duplicate` extend + `execution_permission_invalid` |
-| V10x-M5 | Create hydration + Initial-rule matrix + hold harden + home collection | **T0–T4 + leftover close-out done** (0479–0488 applied). `WF_V2_HOME_COLLECTION` is an unsigned DRAFT v1 pending HQ Check policy → Compile → Pilot. `createOrderInTransaction` maps preset errors; home-collection actions gated; JSON editors retired; New Order now submits selected type/source context (default `POS` / `pos`). See [04 plan](04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) | **H1–H3 + leftover close-out done** (Studio persist blocked for missing preset / wildcard-draft; catalog **1.3.0** `evidence_without_home_collection`) |
+| V10x-M5 | Create hydration + Initial-rule matrix + hold harden + home collection | **T0–T4 done.** HOME_COLLECTION v1 is PILOT on demo. Quick-drop → `preparing` (`0499` applied; `0500` pending for stage_sequence). | **H1–H3 done** (catalog **1.3.0**). `POS_QUICK_DROP` may start at `preparing`. After `0500`, Check policy SIMPLE v4. |
 
 ### Should
 
@@ -92,7 +93,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 | V10x-S1 | Gate `parameters_json` JSON Schema | Evaluators already fail unknown | `gate_parameters_invalid` |
 | V10x-S2 | Nav from server workflow-context | Hide/disable Off modules using context, not a second client policy | Preview the same contract |
 | V10x-S3 | Submit-order error mapping | **Done 2026-09-03:** create `PROFILE_*` → 422 + `workflow.profileErrors`; runtime integrity stays 409 | — |
-| V10x-S4 | `intake → preparing` has no UI trigger once physical intake is already `received` (`CONFIRM_PHYSICAL_INTAKE`, owned by `new_order` screen) | **Open — found 2026-09-04.** No `WorkflowActionBar` renders for the `new_order` screen anywhere; the only intake-confirm UI is an order-detail banner gated to `physical_intake_status === 'pending_dropoff'` (remote/mobile bookings). Confirmed on both `WF_V2_HOME_COLLECTION` and `WF_V2_SIMPLE` — pre-existing, not new-profile-specific. **Not blocking today's home-collection work**: the home-collection path itself was resolved by an operator Studio policy edit (`CONFIRM_HOME_COLLECTION.to_status`: `intake`→`preparing`), which sidesteps this gap for that flow only. Still open for any other path landing an order at `intake` (e.g. POS/staff drop-off). Fix options: extend the order-detail banner condition to cover `status=intake` generally, or add a proper action surface for the `new_order` screen. Owner decision needed before scoping. | — |
+| V10x-S4 | `intake → preparing` UI for received bags | **Closed as product 2026-09-11.** Quick-drop → `preparing`. Preparation details header **Edit Order** (`orders:update`). No `new_order` ActionBar. Remote drop-off banner stays `draft` + `pending_dropoff`. Tenant: `0499` applied; `0500` adds `preparing` to Overview sequence. `isOrderEditable` includes `preparing`. | After `0500`: HQ Check policy on SIMPLE v4 |
 
 ### Could
 
@@ -254,7 +255,7 @@ These routes already exist. Later versions add **policy + services**, not a seco
 | `packing` | `/dashboard/packing` | Built |
 | `ready_release` | `/dashboard/ready` | Built; **required** if pickup On |
 | `pickup_handover` | Embedded on Ready Details; list alias `/dashboard/ready?focus=counter` | No standalone page by design |
-| `driver_delivery` | `/dashboard/delivery` | Built; S10 unsigned for routed POD |
+| `driver_delivery` | `/dashboard/delivery` | Built; S10 routed POD **signed 2026-09-05** |
 | `workboard` | `/dashboard/workboard` | Built, read-only |
 | `public_tracking` | `/track/{token}` | Built |
 | `canceling` / `order_control` | Commands on the order | Optional dedicated pages in V1.1 Should |
@@ -279,11 +280,10 @@ Do **not** rebuild `/dashboard/settings/workflows/new` or `[id]/edit`.
 
 ## 10. Suggested near-term sequence (owners)
 
-1. **HQ:** file 02 sprint order 1–8 in Check policy / compiler (including the direct-pickup compiler exception).  
-2. **Tenant:** submit-order HTTP mapping + keep Prisma snapshot fields.  
-3. **Both:** S10 / recreate snapshot orders.  
-4. **Both:** ADR-0010 resolver + validator (V1.0.x).  
-5. **Product:** V1.1 returns + work groups after V1.0.x, not before.
+1. **Operator:** apply tenant `0499`, HQ Check policy on SIMPLE v4, quick-drop smoke (Preparation Edit Order).
+2. **HQ docs:** `lwpr-hq-docs-final` + soak.
+3. **V1.0.x (not V1.0 blockers):** 46 planned Check-policy codes ([05](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md)); open-order migrate (V10x-M3).
+4. **Product:** V1.1 returns + work groups after V1.0.x, not before.
 
 ## 11. Related
 

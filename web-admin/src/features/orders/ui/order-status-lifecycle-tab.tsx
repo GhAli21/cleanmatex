@@ -5,6 +5,9 @@ import { CmxStatusBadge, type StatusBadgeVariant } from '@ui/feedback';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 
 type StatusFieldKey =
+  | 'order_source_code'
+  | 'order_type_id'
+  | 'order_subtype'
   | 'state_version'
   | 'workflow_profile_name'
   | 'wf_profile_id'
@@ -51,50 +54,144 @@ interface StatusFieldDefinition {
   kind?: 'boolean' | 'date' | 'status';
 }
 
-const WORKFLOW_FIELDS: readonly StatusFieldDefinition[] = [
-  { key: 'workflow_profile_name' },
-  { key: 'wf_profile_id' },
-  { key: 'wf_profile_version_id' },
-  { key: 'wf_version_no' },
-  { key: 'wf_profile_revision' },
-  { key: 'state_version' },
-  { key: 'status', kind: 'status' },
-  { key: 'current_status', kind: 'status' },
-  { key: 'current_stage', kind: 'status' },
-  { key: 'preparation_status', kind: 'status' },
-  { key: 'payment_status', kind: 'status' },
-  { key: 'rec_status', kind: 'status' },
-  { key: 'is_rejected', kind: 'boolean' },
-  { key: 'rejected_from_stage', kind: 'status' },
-  { key: 'has_issue', kind: 'boolean' },
-  { key: 'physical_intake_status', kind: 'status' },
-  { key: 'ar_invoice_status', kind: 'status' },
-  { key: 'tax_document_status', kind: 'status' },
-  { key: 'financial_snapshot_status', kind: 'status' },
-  { key: 'last_transition_at', kind: 'date' },
-  { key: 'last_transition_by' },
-  { key: 'physical_intake_at', kind: 'date' },
-  { key: 'physical_intake_by' },
-  { key: 'physical_intake_info' },
-  { key: 'received_info' },
-  { key: 'financial_last_calculated_at', kind: 'date' },
-  { key: 'financial_last_calculated_by' },
+type GroupColor = 'blue' | 'violet' | 'slate' | 'amber' | 'teal' | 'emerald' | 'red' | 'orange';
+
+interface StatusFieldGroup {
+  id: string;
+  color: GroupColor;
+  fields: readonly StatusFieldDefinition[];
+}
+
+const GROUP_COLOR_CLASSES: Record<GroupColor, { frame: string; title: string }> = {
+  blue: {
+    frame: 'border-blue-500/30 bg-blue-500/5',
+    title: 'text-blue-700 dark:text-blue-400',
+  },
+  violet: {
+    frame: 'border-violet-500/30 bg-violet-500/5',
+    title: 'text-violet-700 dark:text-violet-400',
+  },
+  slate: {
+    frame: 'border-slate-400/40 bg-slate-400/5',
+    title: 'text-slate-700 dark:text-slate-300',
+  },
+  amber: {
+    frame: 'border-amber-500/30 bg-amber-500/5',
+    title: 'text-amber-700 dark:text-amber-400',
+  },
+  teal: {
+    frame: 'border-teal-500/30 bg-teal-500/5',
+    title: 'text-teal-700 dark:text-teal-400',
+  },
+  emerald: {
+    frame: 'border-emerald-500/30 bg-emerald-500/5',
+    title: 'text-emerald-700 dark:text-emerald-400',
+  },
+  red: {
+    frame: 'border-red-500/30 bg-red-500/5',
+    title: 'text-red-700 dark:text-red-400',
+  },
+  orange: {
+    frame: 'border-orange-500/30 bg-orange-500/5',
+    title: 'text-orange-700 dark:text-orange-400',
+  },
+};
+
+const WORKFLOW_GROUPS: readonly StatusFieldGroup[] = [
+  {
+    id: 'orderClassification',
+    color: 'blue',
+    fields: [
+      { key: 'order_source_code' },
+      { key: 'order_type_id' },
+      { key: 'order_subtype' },
+    ],
+  },
+  {
+    id: 'workflowProfile',
+    color: 'violet',
+    fields: [
+      { key: 'workflow_profile_name' },
+      { key: 'wf_profile_id' },
+      { key: 'wf_profile_version_id' },
+      { key: 'wf_version_no' },
+      { key: 'wf_profile_revision' },
+      { key: 'state_version' },
+    ],
+  },
+  {
+    id: 'statusFlags',
+    color: 'slate',
+    fields: [
+      { key: 'status', kind: 'status' },
+      { key: 'current_status', kind: 'status' },
+      { key: 'current_stage', kind: 'status' },
+      { key: 'preparation_status', kind: 'status' },
+      { key: 'payment_status', kind: 'status' },
+      { key: 'rec_status', kind: 'status' },
+    ],
+  },
+  {
+    id: 'exceptions',
+    color: 'amber',
+    fields: [
+      { key: 'is_rejected', kind: 'boolean' },
+      { key: 'rejected_from_stage', kind: 'status' },
+      { key: 'has_issue', kind: 'boolean' },
+    ],
+  },
+  {
+    id: 'financialIntake',
+    color: 'teal',
+    fields: [
+      { key: 'physical_intake_status', kind: 'status' },
+      { key: 'ar_invoice_status', kind: 'status' },
+      { key: 'tax_document_status', kind: 'status' },
+      { key: 'financial_snapshot_status', kind: 'status' },
+      { key: 'last_transition_at', kind: 'date' },
+      { key: 'last_transition_by' },
+      { key: 'physical_intake_at', kind: 'date' },
+      { key: 'physical_intake_by' },
+      { key: 'physical_intake_info' },
+      { key: 'received_info' },
+      { key: 'financial_last_calculated_at', kind: 'date' },
+      { key: 'financial_last_calculated_by' },
+    ],
+  },
 ];
 
-const LIFECYCLE_FIELDS: readonly StatusFieldDefinition[] = [
-  { key: 'received_at', kind: 'date' },
-  { key: 'prepared_at', kind: 'date' },
-  { key: 'ready_by', kind: 'date' },
-  { key: 'ready_by_override', kind: 'date' },
-  { key: 'ready_at', kind: 'date' },
-  { key: 'delivered_at', kind: 'date' },
-  { key: 'cancelled_at', kind: 'date' },
-  { key: 'cancelled_by' },
-  { key: 'cancelled_note' },
-  { key: 'returned_at', kind: 'date' },
-  { key: 'returned_by' },
-  { key: 'return_reason' },
-  { key: 'return_reason_code' },
+const LIFECYCLE_GROUPS: readonly StatusFieldGroup[] = [
+  {
+    id: 'fulfilmentTimeline',
+    color: 'emerald',
+    fields: [
+      { key: 'received_at', kind: 'date' },
+      { key: 'prepared_at', kind: 'date' },
+      { key: 'ready_by', kind: 'date' },
+      { key: 'ready_by_override', kind: 'date' },
+      { key: 'ready_at', kind: 'date' },
+      { key: 'delivered_at', kind: 'date' },
+    ],
+  },
+  {
+    id: 'cancellation',
+    color: 'red',
+    fields: [
+      { key: 'cancelled_at', kind: 'date' },
+      { key: 'cancelled_by' },
+      { key: 'cancelled_note' },
+    ],
+  },
+  {
+    id: 'returnGroup',
+    color: 'orange',
+    fields: [
+      { key: 'returned_at', kind: 'date' },
+      { key: 'returned_by' },
+      { key: 'return_reason' },
+      { key: 'return_reason_code' },
+    ],
+  },
 ];
 
 /**
@@ -176,28 +273,40 @@ export function OrderStatusLifecycleTab({ order, locale }: OrderStatusLifecycleT
     return <span className="break-words text-sm font-medium">{String(value)}</span>;
   };
 
-  const renderSection = (title: string, fields: readonly StatusFieldDefinition[]) => (
-    <CmxCard>
-      <CmxCardHeader>
-        <CmxCardTitle>{title}</CmxCardTitle>
-      </CmxCardHeader>
-      <CmxCardContent>
+  const renderGroup = (group: StatusFieldGroup) => {
+    const colors = GROUP_COLOR_CLASSES[group.color];
+    return (
+      <div key={group.id} className={`rounded-lg border p-3 ${colors.frame}`}>
+        <p className={`mb-2 text-xs font-semibold uppercase tracking-wide rtl:text-right ${colors.title}`}>
+          {t(`groups.${group.id}`)}
+        </p>
         <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
-          {fields.map((field) => (
+          {group.fields.map((field) => (
             <div key={field.key} className="min-w-0 space-y-1">
               <dt className="text-xs text-muted-foreground">{t(`fields.${field.key}`)}</dt>
               <dd>{renderValue(field)}</dd>
             </div>
           ))}
         </dl>
+      </div>
+    );
+  };
+
+  const renderSection = (title: string, groups: readonly StatusFieldGroup[]) => (
+    <CmxCard>
+      <CmxCardHeader>
+        <CmxCardTitle>{title}</CmxCardTitle>
+      </CmxCardHeader>
+      <CmxCardContent className="space-y-3">
+        {groups.map((group) => renderGroup(group))}
       </CmxCardContent>
     </CmxCard>
   );
 
   return (
     <div className="space-y-4">
-      {renderSection(t('workflowTitle'), WORKFLOW_FIELDS)}
-      {renderSection(t('lifecycleTitle'), LIFECYCLE_FIELDS)}
+      {renderSection(t('workflowTitle'), WORKFLOW_GROUPS)}
+      {renderSection(t('lifecycleTitle'), LIFECYCLE_GROUPS)}
     </div>
   );
 }

@@ -322,7 +322,20 @@
       "notAvailable": "غير متاح",
       "yes": "نعم",
       "no": "لا",
+      "groups": {
+        "orderClassification": "تصنيف الطلب",
+        "workflowProfile": "ملف سير العمل",
+        "statusFlags": "الحالة",
+        "exceptions": "الاستثناءات",
+        "financialIntake": "الاستلام والمالية",
+        "fulfilmentTimeline": "الجدول الزمني للتنفيذ",
+        "cancellation": "الإلغاء",
+        "returnGroup": "الإرجاع"
+      },
       "fields": {
+        "order_source_code": "مصدر الطلب",
+        "order_type_id": "نوع الطلب",
+        "order_subtype": "النوع الفرعي للطلب",
         "state_version": "إصدار حالة سير العمل",
         "workflow_profile_name": "ملف سير العمل",
         "wf_profile_id": "معرف ملف سير العمل",

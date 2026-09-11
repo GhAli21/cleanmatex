@@ -1,7 +1,7 @@
 # 11 — Implementation Roadmap
 
 **Detail:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) · **Scope:** [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md)
-**Status (2026-09-10):** this table is the original phase plan and is kept for scope-lock traceability; it does not track live status. For current phase/progress see `current_status.md` (updated 2026-09-10) and `13_Production_Readiness_Checklist.md`. Actual progress well past this table's original "P0c (current)" marker: engine cutover, delivery/pickup atomic commands, S10 staff routed POD canary (SIGNED 2026-09-05), Delivery Feature Completion Phases 1–6, and Gate 5 HQ compiled-artifact retirement (applied both DBs 2026-09-10) are all done. Remaining V1.0 blockers per the readiness checklist: `PAY_ON_COLLECTION` acceptance gate (parked), canary/rollback rehearsal, and the rest of T01–T18 (see `12_Test_Plan.md`).
+**Status (2026-09-11):** original phase table kept for scope-lock. Live status: `current_status.md` and `13_Production_Readiness_Checklist.md`. V1.0 engineering is past S10 / T01–T18 (T15 CI graph-validator owner-deferred). Remaining V1.0 operator work: apply `0499`, HQ Check policy on SIMPLE v4, quick-drop smoke. Next product train is V1.0.x (open-order migrate + 46 planned Check-policy codes) then V1.1.
 
 | Phase | Outcome | Status (2026-09-10) |
 |-------|---------|---------|
@@ -12,4 +12,4 @@
 | **P3–P7** | Cutover → Studio-lite → harden | Done — P7R delivery floor + S10 canary signed |
 | **V1.1** | Multidim projections, stage executions, work groups MVP | Not started |
 | **V1.2** | Outsourcing, richer HQ designer | Not started |
-| **Final** | `/documentation` pack | This refresh pass (2026-09-10); V1.0 blockers above still open |
+| **Final** | `/documentation` pack | V1.0 close-out refresh 2026-09-11; full pack audit (`lwpr-tenant-docs-final`) still open |

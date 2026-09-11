@@ -1,6 +1,6 @@
 # Workflow Order Advance
 
-**Status:** Automated delivery assurance is complete. Migration `0464_require_semantic_order_snapshots.sql` is applied locally and remotely, and semantic-only runtime cutover is active. **Create hydration / home collection / hold (T0–T4 + 0487)** landed on **0479–0487** (operator applied local + remote; types regen). **Staff POD delivery smoke S10 is SIGNED (2026-09-05)** — real operator, real UI, `ORD-20260903-0005` on `WF_V2_SIMPLE` v4, verified atomically on remote (order/stop/route/history); see `current_status.md` and `13_Production_Readiness_Checklist.md` for the full audit note. Delivery Feature Completion (driver/route planning) Phases 1–6 also shipped 2026-09-05, `STAFF_DELIVERY_WRITES_ENABLED=true`. Gate 5 (HQ compiled-artifact retirement, `sys_wf_prof_ver_artifact_cf` and its 3 FKs) applied to both DBs 2026-09-10 — see `CHANGELOG.md`.
+**Status:** Automated delivery assurance is complete. **Staff POD delivery smoke S10 is SIGNED (2026-09-05).** Gate 5 compiled-artifact retirement (`0494`) applied both DBs. V1.0 product/engineering accept 2026-09-11. Quick-drop → Preparation is locked (`0499` unapplied); Preparation details has a header **Edit Order** button. See `current_status.md`.
 **Version:** see [version.txt](version.txt) · [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)  
 **Authority:** This folder + [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) + Cursor plan  
 **Reference only:** [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/`](CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/)  

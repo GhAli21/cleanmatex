@@ -2,7 +2,9 @@
 
 ## Unreleased — 2026-09-11 (3)
 
-- **HQ Studio Check policy on `WF_V2_FULL_PATH` v1 — operator confirmed done.** One real UI FULL_PATH order **done**. Delivery route UI smoke **done**. Collect-payment UI smoke on Ready **done**. Hold floor smoke H1–H4 **done**.
+- **Preparation details Edit Order (2026-09-11).** Header button on `/dashboard/preparation/[orderId]` (primary, top-right). Shown only while the order can still be prepared and the actor has `orders:update`. Reuses `orders.actions.buttons.editOrder`. Contract action `editOrder`. Empty-state FastItemizer button kept.
+- **ADR V1.0 product/engineering accept (`Approved_By_Jh`, 2026-09-11).** Tenant `ADR_SCOPE_AND_CORRECTION_PASS.md` and HQ ADR-SAAS-MNG-0010 stamped. Engine-first V1.0 and live normalized runtime stay; V1.1/V1.2 and open-order migrate stay out. Rollback = Assign prior Published for new orders; Workboard follows each order pin.
+- **HQ Studio Check policy on `WF_V2_FULL_PATH` v1 — operator confirmed done.** One real UI FULL_PATH order **done**. Delivery route UI smoke **done**. Collect-payment UI smoke on Ready **done**. Hold floor smoke H1–H4 **done**. **Canary + rollback rehearsal done:** Assign prior Published; in-flight stay pinned. Workboard is per-order pin (Workboard observer module on `wf_profile_version_id`), not the current tenant assignment — operator re-checked 2026-09-11.
 
 ## Unreleased — 2026-09-11 (2)
 

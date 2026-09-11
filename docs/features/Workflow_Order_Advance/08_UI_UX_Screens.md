@@ -15,7 +15,7 @@
 | Feature | Screen | Workflow |
 |---------|--------|----------|
 | New Order | `new_order` | InitialStatusResolver; intake/send actions |
-| Preparation | `preparation` | `COMPLETE_PREPARATION` |
+| Preparation | `preparation` | `COMPLETE_PREPARATION`; header **Edit Order** on `/dashboard/preparation/[orderId]` (`orders:update`) |
 | Processing | `processing` | leave actions |
 | Assembly / QA / Packing | profile-gated | actions + gates |
 | Ready | `ready_release` | `MARK_READY` / `RELEASE_*`; stage-owned pickup panel |
@@ -39,9 +39,9 @@
 
 ## 5. HQ configuration UX
 
-- Lives in Platform HQ (cleanmatexsaas): draft → validate → compile → publish → assign
-- Tenant app consumes published assignments via HQ API
-- Simple vs routed delivery is authored here: bind `delivery_stop_active` (and POD evidence) on `CONFIRM_DELIVERY` only for routed profiles. Do not add that gate to catalog `TR_OFD_DELIV`. Preset screens already include `driver_delivery`; the published artifact must still declare the execution edge.
+- Lives in Platform HQ (`cleanmatexsaas`): Check policy (not Compile) → Pilot / Publish → assign.
+- Tenant app consumes published assignments via HQ API (live profile-version rows).
+- Simple vs routed delivery is authored here: bind `delivery_stop_active` (and POD evidence) on `CONFIRM_DELIVERY` only for routed profiles. Do not add that gate to catalog `TR_OFD_DELIV`. Preset screens already include `driver_delivery`; the published policy must still declare the execution edge.
 
 ## 6. Delivery proof and handover audit
 

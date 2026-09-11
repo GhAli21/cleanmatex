@@ -155,9 +155,20 @@ Inbound dirty-item collection is **not** branch pickup (`PICKUP`).
 1. Create a customer-mobile booking with fulfilment `home_collection` (order type `HOME_COLLECTION`), or on New Order choose type `HOME_COLLECTION` and source `customer_mobile_app` when the tenant allows that source. The order starts at `awaiting_collection` with pending intake. `fulfillmentType` is the customer-booking API name; New Order stores `order_type_id` directly.
 2. Open **Orders → Home Collection** (`/dashboard/home-collection`).
 3. Assign the order, then on the detail page confirm collection received (or Fail with a reason of at least 10 characters).
-4. Confirm moves the order to plant `intake` and stamps physical intake. Fail returns it to `awaiting_collection`.
+4. Confirm moves the order to plant `preparing` (HOME_COLLECTION v1 Studio policy) and stamps physical intake. Fail returns it to `awaiting_collection`. On **SIMPLE** v4, confirm still lands at `intake` until that edge is retargeted.
 
 Do not use **Mark received at branch** (remote drop-off) for these orders. That banner is only for remote `draft` + `pending_dropoff`.
+
+## Preparation floor (quick-drop itemization)
+
+Quick-drop bags are already in hand. After `0499` they start at `preparing`, not `intake`.
+
+1. Create a quick-drop order (POS or staff New Order with quick-drop).
+2. Open **Orders → Preparation** and the order detail (`/dashboard/preparation/{id}`).
+3. Use the header **Edit Order** button (requires `orders:update`) to add items, pieces, and preferences. The empty-state panel has the same action when there are no items yet.
+4. Return to Preparation and **Complete preparation** (`COMPLETE_PREPARATION`) to send the order to processing.
+
+Typed POS (not quick-drop) still starts at `processing`. Remote bookings stay `draft` until the drop-off banner confirms intake.
 
 ## Delivery proof and handover review
 
@@ -183,7 +194,7 @@ Delivery list rows open `/dashboard/delivery/{id}`, the same ActionBar + stage-o
 
 Do not use the generic Order Actions tab to mark an order delivered. Route creation, driver assignment, OTP generate/verify, and legacy POD capture remain disabled (`503 DELIVERY_HARDENING_REQUIRED`). Continue using opaque public `/track/{token}` confirm-received only for its approved customer contract.
 
-**S10** is the production smoke for **routed** staff proof-of-delivery: complete an `out_for_delivery` stop with required POD evidence (not the generic Actions tab) and confirm POD, stop, route counters, and `CONFIRM_DELIVERY` succeed together. That canary is still unsigned. Simple floor confirm is a separate HQ-policy smoke: profile must not bind `delivery_stop_active`.
+**S10** routed POD canary is **signed (2026-09-05)**. Simple floor confirm is a separate HQ-policy smoke: profile must not bind `delivery_stop_active`.
 
 ## Workboard supervisor queue
 

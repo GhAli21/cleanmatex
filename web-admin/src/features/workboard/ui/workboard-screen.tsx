@@ -1,17 +1,19 @@
 'use client'
 
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import type { SortingState } from '@tanstack/react-table'
-import { ClipboardList, ExternalLink, RefreshCw } from 'lucide-react'
+import { ClipboardList, Copy, ExternalLink, RefreshCw } from 'lucide-react'
 import { CmxButton } from '@ui/primitives'
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display'
 import type { CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable'
 import { CmxSummaryMessage, CmxStatusBadge, useMessage } from '@ui/feedback'
 
 import { useWorkboard } from '@features/workboard/hooks/use-workboard'
+import { OrderDetailsLink } from '@features/orders/ui/order-details-link'
+import { WorkboardOrderWorkflowInfoDialog } from '@features/workboard/ui/workboard-order-workflow-info-dialog'
 import {
   isWorkboardOwnerScreenKey,
   type WorkboardOrderRow,
@@ -139,6 +141,61 @@ function buildWorkboardReturnUrl(input: WorkboardQueryInput): string {
   return `/dashboard/workboard?${params.toString()}`
 }
 
+/** Props for an order reference that supports independent navigation and copying. */
+interface WorkboardOrderReferenceProps {
+  /** Tenant-scoped queue record used by the info dialog and details link. */
+  order: WorkboardOrderRow;
+  /** Preserves the supervisor queue state when returning from Order Details. */
+  returnUrl: string;
+}
+
+/**
+ * Keeps the frequent copy task separate from order navigation, preventing a
+ * clipboard action from accidentally opening a different operational screen.
+ */
+function WorkboardOrderReference({ order, returnUrl }: WorkboardOrderReferenceProps) {
+  const { id: orderId, orderNo } = order;
+  const t = useTranslations('workboard');
+  const message = useMessage();
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(orderNo);
+      message.showSuccess(t('messages.orderNumberCopied'));
+    } catch {
+      message.showError(t('messages.orderNumberCopyError'));
+    }
+  }, [message, orderNo, t]);
+
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      <WorkboardOrderWorkflowInfoDialog order={order} />
+      <OrderDetailsLink
+        orderId={orderId}
+        orderNo={orderNo}
+        returnUrl={returnUrl}
+        returnLabel={t('returnToWorkboard')}
+        className="min-w-0 truncate font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-primary-rgb,37_99_235))]"
+        title={t('orderDetailsLinkTitle', { orderNo })}
+        ariaLabel={t('orderDetailsLinkTitle', { orderNo })}
+      >
+        {orderNo}
+      </OrderDetailsLink>
+      <CmxButton
+        type="button"
+        variant="ghost"
+        size="xs"
+        className="h-7 w-7 shrink-0 px-0"
+        aria-label={t('copyOrderNumber', { orderNo })}
+        title={t('copyOrderNumber', { orderNo })}
+        onClick={() => void handleCopy()}
+      >
+        <Copy className="h-3.5 w-3.5" aria-hidden />
+      </CmxButton>
+    </div>
+  );
+}
+
 /** Supervisor view that triages work and routes it to the stage that owns actions. */
 export function WorkboardScreen() {
   const t = useTranslations('workboard')
@@ -238,7 +295,10 @@ export function WorkboardScreen() {
       sortable: true,
       render: (row) => (
         <div className="space-y-1">
-          <div className="font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{row.orderNo}</div>
+          <WorkboardOrderReference
+            order={row}
+            returnUrl={workboardReturnUrl}
+          />
           <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
             {row.customerPhone ?? t('noPhone')}
           </div>

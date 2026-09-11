@@ -82,6 +82,17 @@ export interface WorkboardConfigurationGap {
 export interface WorkboardOrderRow {
   id: string
   orderNo: string
+  /** Immutable workflow and order-classification snapshot from the tenant-scoped queue projection. */
+  stateVersion: number | null
+  workflowProfileId: string | null
+  workflowProfileName: string | null
+  workflowProfileName2: string | null
+  workflowVersionNo: number | null
+  workflowProfileRevision: number | null
+  workflowProfileVersionId: string | null
+  orderSourceCode: string | null
+  orderTypeId: string | null
+  orderSubtype: string | null
   customerName: string
   customerPhone: string | null
   branchName: string | null

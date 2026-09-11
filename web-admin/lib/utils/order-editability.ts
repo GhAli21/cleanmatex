@@ -4,7 +4,8 @@
  *
  * PRD: Edit Order Feature
  * Rules:
- * - Orders can be edited only if in DRAFT, INTAKE, or PREPARATION status
+ * - Orders can be edited in draft, intake, or preparation (`preparing` is the
+ *   live profile status; `preparation` is the legacy alias)
  * - Preparation must not be completed (preparation_status != 'completed')
  * - Split orders cannot be edited (only parent)
  * - Orders that have started processing (SORTING+) cannot be edited
@@ -12,8 +13,15 @@
 
 import type { OrderStatus } from '@/lib/types/workflow';
 
-// Editable statuses per business rules
-const EDITABLE_STATUSES: OrderStatus[] = ['processing', 'draft', 'intake', 'preparation'];
+const EDITABLE_STATUS_CODES = [
+  'processing',
+  'draft',
+  'intake',
+  'preparation',
+  'preparing',
+] as const;
+
+const PREP_STATUSES = new Set(['preparation', 'preparing']);
 
 // Processing has started - cannot edit
 const PROCESSING_STARTED_STATUSES: OrderStatus[] = [
@@ -77,7 +85,7 @@ export function isOrderEditable(order: OrderForEditabilityCheck): EditabilityChe
   }
 
   // Check 2: Status must be editable
-  if (!EDITABLE_STATUSES.includes(order.current_status as OrderStatus)) {
+  if (!(EDITABLE_STATUS_CODES as readonly string[]).includes(order.current_status)) {
     if (PROCESSING_STARTED_STATUSES.includes(order.current_status as OrderStatus)) {
       blockers.push('Order has started processing and cannot be edited');
     } else {
@@ -87,7 +95,7 @@ export function isOrderEditable(order: OrderForEditabilityCheck): EditabilityChe
 
   // Check 3: Preparation must not be completed
   if (
-    order.current_status === 'preparation' &&
+    PREP_STATUSES.has(order.current_status) &&
     order.preparation_status === 'completed'
   ) {
     blockers.push('Order preparation is completed and items may already be tagged');
@@ -157,13 +165,14 @@ export function canDeleteOrder(order: OrderForDeleteCheck): EditabilityCheckResu
 }
 
 /**
- * Helper to check if order is in editable status
- * (Quick check without full validation)
- * @param status
+ * Quick status check for Edit order.
+ * Live Preparation uses `preparing`; `preparation` is the legacy alias.
+ *
+ * @param status - order current_status
  */
 export function isEditableStatus(status: string | null | undefined): boolean {
   if (!status) return false;
-  return EDITABLE_STATUSES.includes(status as OrderStatus);
+  return (EDITABLE_STATUS_CODES as readonly string[]).includes(status);
 }
 
 /**

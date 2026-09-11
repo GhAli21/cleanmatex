@@ -1,7 +1,7 @@
 ---
 name: Live Workflow Profile Runtime - Tenant Delivery
 overview: Review-first tenant delivery plan for the direct normalized profile-version runtime defined by HQ ADR-SAAS-MNG-0010. It replaces compiled-artifact reads while preserving order version binding, stage-owned services, tenant isolation, finance, gates, fulfilment, audit, and idempotency.
-status: in_progress # updated 2026-09-10 — execution is far past review; see individual todo statuses below (most completed, Gate 5 artifact retirement fully applied 2026-09-10)
+status: in_progress # updated 2026-09-11 — V1.0 engineering closed except operator 0499 + SIMPLE Check policy + quick-drop smoke. lwpr-tenant-docs-final still open. Do not start Gate 5.
 depends_on:
   - F:\jhapp\cleanmatexsaas\.cursor\plans\workflow_live_profile_runtime_20260827.plan.md
   - F:\jhapp\cleanmatexsaas\docs\features\SAAS_Platform_Management\ADRs\ADR-SAAS-MNG-0010_Live_Normalized_Workflow_Profile_Runtime.md
@@ -43,13 +43,13 @@ todos:
     content: "Privacy-safe wf.* observe events, in-process counters, support runbook (technical_docs/live_runtime_support.md), and 09 observability refresh. Successful policy loads stay DEBUG."
     status: completed
   - id: lwpr-tenant-assurance
-    content: "Unit+source-scan live runtime plus HQ Check policy. S10 canary SIGNED 2026-09-05. Gate 5 compiler retirement: evidence audit done 2026-09-05 — zero live readers/writers confirmed on both repos plus live-data check. HQ dead code removed. Tenant migration 0494_wf_prof_ver_artifact_retirement.sql drafted, then corrected after the operator's first apply attempt failed on two FKs the initial dependency check missed (org_orders_mst.fk_ord_wf_prof_artifact, org_wf_gate_decision_mst.fk_wfgd_artifact) — full confrelid-based re-check found exactly 3 FKs total, all now handled. **Applied by operator to local and remote 2026-09-05, verified directly (table/columns/FKs/functions all confirmed gone on both DBs).** Types regenerated (database.ts + database.generated.ts, in sync). Post-apply regression: 19 unit + 46 DB-integration tests green. Residual: soak, then close this line."
+    content: "S10 SIGNED 2026-09-05. Gate 5 applied. ADR V1.0 accept 2026-09-11. Residual: soak; operator apply 0499 + HQ Check policy SIMPLE v4 + quick-drop smoke. T15 CI graph-validator owner-deferred."
     status: in_progress
   - id: lwpr-tenant-progress
     content: After every completed implementation step, update this plan and the paired HQ plan with status, evidence, changed contracts, validation results, risks, and the next concrete action.
     status: completed
   - id: lwpr-tenant-docs-per-phase
-    content: Create or refresh tenant and coordinated HQ documentation after each verified phase, including runtime contract, APIs, permissions, UI, testing, deployment, risks, rollout, and current status.
+    content: "2026-09-11 refresh: current_status, 03 remaining-work plan, user/dev/test guides, 0499 + Preparation Edit Order. Full pack audit (no remaining compiled-runtime claims) still lwpr-tenant-docs-final."
     status: in_progress
   - id: lwpr-tenant-docs-final
     content: As the final completion task, load and use the documentation skill to audit, create, refresh, cross-link, and verify the complete canonical workflow documentation pack with no stale compiled-runtime claims.

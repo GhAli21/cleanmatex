@@ -10,17 +10,11 @@
  * 1. Feeds `resolveInitialStatusFromSemanticRules` the REAL seeded
  *    `sys_wf_prof_ver_init_cf` rows for `WF_V2_SIMPLE` v4 (the tenant's real
  *    live/active profile — same version used by the S10 delivery canary),
- *    not a hand-written rule table. The real seed resolves `is_quick_drop`
- *    to `intake` and non-quick-drop staff orders straight to `processing`
- *    for the same `web_admin` source — the OPPOSITE of what
- *    `initial-status-resolver.service.test.ts`'s synthetic fixture happens
- *    to use. Quick-drop does not skip intake in this profile; it requires
- *    it, because a quick-drop order hasn't been itemized yet. A staff order
- *    typed at POS/web-admin has already been itemized, so it starts past
- *    intake at processing. Neither behavior is "sorting" — there is no such
- *    status or action anywhere in the real catalog.
+ *    not a hand-written rule table. After `0499`, quick-drop resolves to
+ *    `preparing` (bag is in hand; itemization is Preparation + Edit order).
+ *    Typed staff orders still start at `processing`.
  * 2. Drives the real engine (`executeAction`) through the resolved chain —
- *    `intake -> processing` (`CONFIRM_PHYSICAL_INTAKE`) then
+ *    `preparing -> processing` (`COMPLETE_PREPARATION`) then
  *    `processing -> ready` (`COMPLETE_PROCESSING`) — on a quick-drop order
  *    pinned to the real `WF_V2_SIMPLE` v4 profile version, proving the real
  *    "prep complete" endpoint for this profile.
@@ -137,7 +131,7 @@ async function cleanup(seed: OrderSeed): Promise<void> {
 }
 
 describe('WF_V2_SIMPLE v4 — quick drop real flow (T04)', () => {
-  dbit('resolves a real quick-drop staff order to intake, not processing, against the live seed', async () => {
+  dbit('resolves a real quick-drop staff order to preparing, not processing, against the live seed', async () => {
     const rules = await loadRealInitRules();
 
     const quickDrop = resolveInitialStatusFromSemanticRules(rules, {
@@ -145,7 +139,7 @@ describe('WF_V2_SIMPLE v4 — quick drop real flow (T04)', () => {
       isRetail: false,
       isQuickDrop: true,
     });
-    expect(quickDrop.initialStatus).toBe('intake');
+    expect(quickDrop.initialStatus).toBe('preparing');
     expect(quickDrop.ruleCode).toBe('INIT_STAFF_QUICK_DROP');
 
     const standard = resolveInitialStatusFromSemanticRules(rules, {
@@ -157,28 +151,28 @@ describe('WF_V2_SIMPLE v4 — quick drop real flow (T04)', () => {
     expect(standard.ruleCode).toBe('INIT_STAFF_PROCESSING');
   });
 
-  dbit('drives a quick-drop order from intake to ready via the real engine (prep complete)', async () => {
-    const seed = await seedOrder('intake');
+  dbit('drives a quick-drop order from preparing to ready via the real engine (prep complete)', async () => {
+    const seed = await seedOrder('preparing');
     try {
       const toProcessing = await listAvailableActions({
         tenantId: DEMO_TENANT,
         orderId: seed.orderId,
-        screen: 'new_order',
+        screen: 'preparation',
         channel: 'staff_web',
         actorUserId: ACTOR,
       });
-      const intakeResult = await executeAction({
+      const prepResult = await executeAction({
         tenantId: DEMO_TENANT,
         orderId: seed.orderId,
-        screen: 'new_order',
-        actionCode: 'CONFIRM_PHYSICAL_INTAKE',
+        screen: 'preparation',
+        actionCode: 'COMPLETE_PREPARATION',
         expectedStateVersion: toProcessing.stateVersion,
         actorUserId: ACTOR,
         actorName: 'T04 Quick Drop Test',
         channel: 'staff_web',
-        idempotencyKey: `wf-v2-simple-quick-drop:${seed.orderId}:confirm-intake`,
+        idempotencyKey: `wf-v2-simple-quick-drop:${seed.orderId}:complete-prep`,
       });
-      expect(intakeResult.currentStatus).toBe('processing');
+      expect(prepResult.currentStatus).toBe('processing');
 
       const toReady = await listAvailableActions({
         tenantId: DEMO_TENANT,

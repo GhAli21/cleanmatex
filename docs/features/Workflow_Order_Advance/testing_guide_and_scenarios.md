@@ -93,7 +93,9 @@ npm run build
 
 ## Post-0442 production smoke
 
-Migration `0442_retire_workflow_rpc_grants.sql` was applied locally and remotely on 2026-08-14. Run this smoke against one pilot tenant before broader rollout. Use disposable orders and record the tenant/order IDs, operator, time, and evidence links.
+**V1.0 environment (owner 2026-09-11):** remote demo **is** the production-like canary. `0442` was applied there 2026-08-14. Do not wait for a separate paying production tenant. Re-run this matrix on a real production tenant only when one is promoted.
+
+Migration `0442_retire_workflow_rpc_grants.sql` was applied locally and remotely on 2026-08-14. For a new environment, use disposable orders and record the tenant/order IDs, operator, time, and evidence links.
 
 ### Preconditions
 
@@ -274,7 +276,7 @@ During and after the smoke window:
 ## Post-deploy pending scenarios
 
 - Pilot-tenant e2e for release, pickup, delivery, finance gates, and outbox consumers
-- Full T01-T18 acceptance and rollback rehearsal
+- Full T01-T18 acceptance and rollback rehearsal — **rollback rehearsal operator-confirmed 2026-09-11** (Workboard follows each order pin, not current assignment). T15 remains 🟡 / owner-deferred.
 
 ## Delivery route planning — dispatcher click-through (Phase 4–5)
 
@@ -343,7 +345,20 @@ Staff UX / labels:
 2. First attempt: clicking **Fail** with no reason correctly rejected (`min_reason_length: 10`) — but the UI had no field to enter one. Fixed: `WorkflowActionBar.tsx`'s `CONTROL_ACTIONS_NEEDING_NOTES` was missing `WORKFLOW_ACTIONS.FAIL_HOME_COLLECTION` (same pattern as `FAIL_QA`); added, deployed.
 3. Retried: entered reason "not in home i will comeback afternoon" → confirmed via `org_order_history`: `out_for_collection → awaiting_collection`, `action_type=FAIL_HOME_COLLECTION`, reason correctly recorded.
 
-**Post-HC1 note — `intake` stuck stage, resolved for this flow:** after HC1, the order landed at `status=intake`, owned by the `new_order` screen — which has no UI trigger to advance it once physical intake is already `received` (a pre-existing, general platform gap, confirmed also present on `WF_V2_SIMPLE`; not fixed generally). For the home-collection flow specifically, the operator resolved this by editing the live policy in Studio: `CONFIRM_HOME_COLLECTION.to_status` changed from `intake` to `preparing` (`sys_wf_prof_ver_exec_cf`), so confirming home collection now lands directly in Preparation. Confirmed on remote: a second Assign→Confirm cycle on `ORD-20260904-0003` went straight `out_for_collection → preparing`, then `preparing → processing` worked normally via the Preparation screen's own action bar.
+**Post-HC1 note — `intake` stuck stage, resolved for HOME_COLLECTION:** confirming home collection on that profile now lands at `preparing`. **Quick-drop (2026-09-11 product lock):** do not add a `new_order` ActionBar. Quick-drop goes to `preparing`; itemization is Preparation **Edit Order**. Migration `0499` (unapplied) adds SIMPLE v4's missing preparation module and retargets DRAFT/PILOT `is_quick_drop` init rules. SIMPLE v4 `CONFIRM_HOME_COLLECTION` still → `intake` (out of this slice).
+
+## Quick-drop → Preparation (T04 product path, 2026-09-11)
+
+After the operator applies `0499`:
+
+1. Create a staff/POS quick-drop order.
+2. Expect `current_status=preparing` (not `intake`), physical intake already `received`.
+3. Open `/dashboard/preparation/{id}`. Header **Edit Order** must be visible (`orders:update`).
+4. Add items via Edit Order, return, then Complete preparation → `processing`.
+
+T04 automated: `web-admin/__tests__/db-integration/wf-v2-simple-quick-drop-flow.db.test.ts` (skips locally until SIMPLE v4 exists). Typed staff creates still resolve to `processing`.
+
+## Hold hardening (§9 H1–H4 — 2026-09-04)
 
 **HC2 — FAIL (expect: back to awaiting + audit note):** use a **second, separate** order — HC1's order already moved past `out_for_collection` into `intake`, a terminal state for this screen.
 1. Repeat HC1 steps 1–5 for a new order.

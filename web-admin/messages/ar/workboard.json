@@ -11,6 +11,27 @@
   "noDueDate": "لا يوجد موعد استحقاق",
   "dueAt": "الاستحقاق {value}",
   "openStage": "فتح المرحلة",
+  "returnToWorkboard": "العودة إلى لوحة العمل",
+  "orderDetailsLinkTitle": "فتح تفاصيل الطلب {orderNo}",
+  "copyOrderNumber": "نسخ رقم الطلب {orderNo}",
+  "orderWorkflowInfo": {
+    "open": "عرض معلومات سير العمل للطلب {orderNo}",
+    "title": "معلومات سير عمل الطلب {orderNo}",
+    "description": "قيم سير العمل وتصنيف الطلب المثبتة عند دخول الطلب إلى العمليات.",
+    "close": "إغلاق",
+    "notAvailable": "غير متاح",
+    "fields": {
+      "stateVersion": "إصدار حالة سير العمل",
+      "workflowProfile": "ملف سير العمل",
+      "workflowProfileId": "معرف ملف سير العمل",
+      "workflowVersionNo": "رقم إصدار سير العمل",
+      "workflowProfileRevision": "مراجعة ملف سير العمل",
+      "workflowProfileVersionId": "معرف إصدار ملف سير العمل",
+      "orderSourceCode": "رمز مصدر الطلب",
+      "orderTypeId": "معرف نوع الطلب",
+      "orderSubtype": "النوع الفرعي للطلب"
+    }
+  },
   "configurationGapTitle": "تحتاج تهيئة لوحة العمل إلى مراجعة.",
   "configurationGapItem": "الحالة {status} لا تملك مرحلة مسؤولة نشطة.",
   "overview": {
@@ -96,6 +117,8 @@
     "refreshLoading": "جار تحديث لوحة العمل...",
     "refreshSuccess": "تم تحديث لوحة العمل.",
     "refreshError": "تعذر تحديث لوحة العمل.",
+    "orderNumberCopied": "تم نسخ رقم الطلب.",
+    "orderNumberCopyError": "تعذر نسخ رقم الطلب.",
     "loadRetryHint": "حاول تحديث القائمة أو مسح الفلاتر الحالية.",
     "tableUnavailableTitle": "لوحة العمل غير متاحة مؤقتاً",
     "tableUnavailableDescription": "تعذر تحميل القائمة حالياً. أعد المحاولة لاسترجاع أحدث عرض إشرافي.",

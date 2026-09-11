@@ -1,10 +1,11 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Pencil } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { getOrder } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 import { FastItemizer } from '@features/workflow/ui/FastItemizer';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
@@ -50,6 +51,7 @@ async function PreparationContent({
 }) {
   const tWorkflow = await getTranslations('workflow');
   const tPrep = await getTranslations('preparation');
+  const tActions = await getTranslations('orders.actions');
 
   let tenantId: string;
   try {
@@ -70,7 +72,9 @@ async function PreparationContent({
     ? tWorkflow(`statuses.${workflowStatus}`)
     : workflowStatus || '—';
   const canPrepare = canPrepareOrder(order);
+  const canEditOrder = canPrepare && (await hasPermissionServer('orders:update'));
   const backHref = resolveSafeDashboardReturnUrl(returnUrl, '/dashboard/preparation');
+  const editHref = `/dashboard/orders/${order.id}/edit`;
 
   return (
     <div className="space-y-6">
@@ -94,6 +98,14 @@ async function PreparationContent({
             {tWorkflow('screens.preparation')} – {order.order_no}
           </h1>
         </div>
+        {canEditOrder ? (
+          <CmxButton asChild variant="primary" size="sm" className="gap-1.5 self-start sm:self-auto">
+            <Link href={editHref}>
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              {tActions('buttons.editOrder')}
+            </Link>
+          </CmxButton>
+        ) : null}
       </div>
 
       <section

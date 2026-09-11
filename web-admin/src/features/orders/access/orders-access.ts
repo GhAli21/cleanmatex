@@ -1223,6 +1223,13 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      editOrder: {
+        label: 'Edit Order',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
     },
     apiDependencies: [
       {

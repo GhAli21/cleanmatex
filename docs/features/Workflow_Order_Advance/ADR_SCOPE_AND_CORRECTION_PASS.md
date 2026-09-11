@@ -2,7 +2,8 @@
 
 **Date:** 2026-07-24  
 **Status:** Accepted  
-**Decider:** Engineering (expert production path)
+**Decider:** Engineering (expert production path)  
+**V1.0 product/engineering accept:** 2026-09-11 · `Approved_By_Jh` — engine-first V1.0 remains; V1.1/V1.2 stay deferred. Post-`0442` rollback is Assign prior Published for **new** orders only; in-flight stay on `wf_profile_id` / `wf_profile_version_id` / `wf_version_no`. Workboard lists by each order’s pinned Workboard observer module, not the tenant’s currently assigned profile.
 
 ## Context
 

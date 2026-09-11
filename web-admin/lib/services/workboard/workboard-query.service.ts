@@ -61,6 +61,16 @@ interface StatusLabelRow {
 interface WorkboardRowSql {
   id: string
   order_no: string
+  state_version: number | null
+  wf_profile_id: string | null
+  workflow_profile_name: string | null
+  workflow_profile_name2: string | null
+  wf_version_no: number | null
+  wf_profile_revision: number | null
+  wf_profile_version_id: string | null
+  order_source_code: string | null
+  order_type_id: string | null
+  order_subtype: string | null
   customer_name: string | null
   customer_phone: string | null
   branch_name: string | null
@@ -71,9 +81,6 @@ interface WorkboardRowSql {
   received_at: Date | null
   last_transition_at: Date | null
   ready_by_at: Date | null
-  wf_profile_id: string | null
-  wf_version_no: number | null
-  wf_profile_version_id: string | null
   assignee_name: string | null
 }
 
@@ -402,10 +409,15 @@ export class WorkboardQueryService {
               COALESCE(o.customer_mobile_number, c.phone) AS customer_phone,
               COALESCE(b.name, b.branch_name) AS branch_name, o.current_status, o.priority,
               o.has_issue, o.is_rejected, o.received_at, o.last_transition_at,
-              COALESCE(o.ready_by_at_new, o.ready_by) AS ready_by_at, o.wf_profile_id::text,
-              o.wf_version_no, o.wf_profile_version_id::text,
+              COALESCE(o.ready_by_at_new, o.ready_by) AS ready_by_at, o.state_version,
+              o.wf_profile_id::text, profile_row.name AS workflow_profile_name,
+              profile_row.name2 AS workflow_profile_name2, o.wf_version_no,
+              o.wf_profile_revision, o.wf_profile_version_id::text, o.order_source_code,
+              o.order_type_id, o.order_subtype,
               COALESCE(u.display_name, u.name) AS assignee_name
             FROM public.org_orders_mst o
+            -- Keep historical profile names visible even after HQ retires a profile.
+            LEFT JOIN public.sys_wf_profiles_cd profile_row ON profile_row.profile_id = o.wf_profile_id
             LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
             LEFT JOIN public.org_branches_mst b ON b.id = o.branch_id AND b.tenant_org_id = o.tenant_org_id
             LEFT JOIN public.org_asm_tasks_mst task ON task.order_id = o.id
@@ -475,6 +487,14 @@ export class WorkboardQueryService {
       if (!owner) return []
       return [{
         id: row.id, orderNo: row.order_no, customerName: row.customer_name ?? 'Unknown customer',
+        stateVersion: row.state_version, workflowProfileId: row.wf_profile_id,
+        workflowProfileName: row.workflow_profile_name,
+        workflowProfileName2: row.workflow_profile_name2,
+        workflowVersionNo: row.wf_version_no,
+        workflowProfileRevision: row.wf_profile_revision,
+        workflowProfileVersionId: row.wf_profile_version_id,
+        orderSourceCode: row.order_source_code, orderTypeId: row.order_type_id,
+        orderSubtype: row.order_subtype,
         customerPhone: row.customer_phone, branchName: row.branch_name, statusCode: row.current_status,
         statusName: labels.get(row.current_status)?.name ?? row.current_status,
         statusName2: labels.get(row.current_status)?.name2 ?? null,

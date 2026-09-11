@@ -322,7 +322,20 @@
       "notAvailable": "Not available",
       "yes": "Yes",
       "no": "No",
+      "groups": {
+        "orderClassification": "Order Classification",
+        "workflowProfile": "Workflow Profile",
+        "statusFlags": "Status",
+        "exceptions": "Exceptions",
+        "financialIntake": "Financial & Intake",
+        "fulfilmentTimeline": "Fulfilment Timeline",
+        "cancellation": "Cancellation",
+        "returnGroup": "Return"
+      },
       "fields": {
+        "order_source_code": "Order source",
+        "order_type_id": "Order type",
+        "order_subtype": "Order subtype",
         "state_version": "Workflow state version",
         "workflow_profile_name": "Workflow profile",
         "wf_profile_id": "Workflow profile ID",

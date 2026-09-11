@@ -41,6 +41,12 @@ This guide is the practical handoff for engineers extending or debugging the V1 
   - `web-admin/app/api/v1/workboard/orders/route.ts`
   - `web-admin/src/features/workboard/`
   - `web-admin/src/features/workboard/access/workboard-access.ts`
+- Preparation floor:
+  - `web-admin/app/dashboard/preparation/[orderId]/page.tsx` (header **Edit Order**)
+  - `web-admin/src/features/workflow/ui/FastItemizer.tsx`
+  - `web-admin/lib/utils/order-editability.ts` (`preparing` is editable)
+  - Migration `0499_wf_quick_drop_to_preparing.sql` (applied; DRAFT/PILOT only)
+  - Migration `0500_wf_preparing_in_stage_sequence.sql` (applied; Overview sequence includes `preparing`)
 
 ## Current rollout state
 
@@ -57,7 +63,7 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 - Do not add alternate customer-facing tracking URL formats outside these helpers.
 - Public order reads and confirm actions must remain tenant-safe and must not bypass the workflow engine when `workflow_engine_v2` is enabled.
 - Keep proof/audit assembly in `DeliveryProofAuditService`; UI code may only consume the API model and must not query POD, route, or storage tables directly.
-- Keep Workboard assembly in `WorkboardQueryService`. It resolves compiled-artifact memberships per order, returns an owning stage path, and must never add workflow or money mutations to this route.
+- Keep Workboard assembly in `WorkboardQueryService`. It resolves live-policy Workboard observer memberships per order pin (`wf_profile_version_id`), returns an owning stage path, and must never add workflow or money mutations to this route.
 - Floor Processing, Assembly, QA, Packing, Ready/Release, and Delivery commands must use the versioned stage adapters. Do not post a guessed `toStatus` from a floor table or ActionBar.
 - Delivery Details owns Confirm Delivery the same way Ready owns pickup. Hide generic `CONFIRM_DELIVERY` on the ActionBar. If an active stop exists, use the stop complete command; otherwise use order-keyed complete. Never auto-create a route or stop.
 - Simple vs routed delivery is compiled profile policy. Catalog already has `CONFIRM_DELIVERY` on `driver_delivery` with no transition `gate_set_code`. HQ binds `delivery_stop_active` / POD evidence only for routed tenants. Do not seed that gate onto `TR_OFD_DELIV`.

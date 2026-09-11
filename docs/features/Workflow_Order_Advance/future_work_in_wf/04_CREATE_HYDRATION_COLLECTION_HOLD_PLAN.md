@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-03  
 **Repos:** `cleanmatex` (tenant + **all** migrations) · `cleanmatexsaas` (HQ Studio authoring / Check policy / catalog)  
-**Status:** T0–T4 **done**. HQ H1–H3 **done**. Catalog **1.3.0** (`evidence_without_home_collection`). Tenant leftover close-out **done** (`createOrderInTransaction` preset mapping, home-collection action gates, V10-C1 JSON editors redirect). New Order now exposes typed `order_type_id` and editable `order_source_code` context (default `POS` / `pos`) through the canonical submit path. Migration **0488 applied by operator**: `WF_V2_HOME_COLLECTION` is an unsigned DRAFT v1 with a structural Check-policy postcondition. Check policy + Compile **verified clean** (`ok: true`, 0 issues, catalog 1.3.0, checked directly against local DB via `WorkflowPolicyValidator`/`WfSemanticProfileCompilerService`). **Confirmed on remote:** PILOT + assigned to tenant `c9ac29d1-219c-4a3a-8887-f860550c32be` (`is_hq_test_demo: true`, governance rule satisfied). 2 bugs found + fixed: (1) tenant-side `semanticEvidenceSchema`/`EvidenceRow` type rejected `fulfilment_channel='home_collection'` (DB CHECK constraint + HQ `FULFILMENT_CHANNELS` already allowed it), so the whole profile artifact failed validation and every floor screen (home_collection, processing, workboard) excluded its orders; (2) `WorkflowActionBar`'s reason-prompt set was missing `FAIL_HOME_COLLECTION`. Both fixed and deployed. Operator also resolved a stuck-at-`intake` gap for this flow via a Studio policy edit (`CONFIRM_HOME_COLLECTION.to_status`: `intake`→`preparing`, confirmed on remote). **HC1 + HC2 both CLOSED**, confirmed via `org_order_history` audit trail; regression-checked clean against `WF_V2_SIMPLE` v4. **Hold floor smoke H1–H4 operator-confirmed done 2026-09-11.** General `intake→preparing` UI gap remains open for non-home-collection paths (logged, out of scope here).
+**Status:** T0–T4 **done**. HQ H1–H3 **done**. Catalog **1.3.0** (`evidence_without_home_collection`). Tenant leftover close-out **done** (`createOrderInTransaction` preset mapping, home-collection action gates, V10-C1 JSON editors redirect). New Order now exposes typed `order_type_id` and editable `order_source_code` context (default `POS` / `pos`) through the canonical submit path. Migration **0488 applied by operator**: `WF_V2_HOME_COLLECTION` is an unsigned DRAFT v1 with a structural Check-policy postcondition. Check policy + Compile **verified clean** (`ok: true`, 0 issues, catalog 1.3.0, checked directly against local DB via `WorkflowPolicyValidator`/`WfSemanticProfileCompilerService`). **Confirmed on remote:** PILOT + assigned to tenant `c9ac29d1-219c-4a3a-8887-f860550c32be` (`is_hq_test_demo: true`, governance rule satisfied). 2 bugs found + fixed: (1) tenant-side `semanticEvidenceSchema`/`EvidenceRow` type rejected `fulfilment_channel='home_collection'` (DB CHECK constraint + HQ `FULFILMENT_CHANNELS` already allowed it), so the whole profile artifact failed validation and every floor screen (home_collection, processing, workboard) excluded its orders; (2) `WorkflowActionBar`'s reason-prompt set was missing `FAIL_HOME_COLLECTION`. Both fixed and deployed. Operator also resolved a stuck-at-`intake` gap for this flow via a Studio policy edit (`CONFIRM_HOME_COLLECTION.to_status`: `intake`→`preparing`, confirmed on remote). **HC1 + HC2 both CLOSED**, confirmed via `org_order_history` audit trail; regression-checked clean against `WF_V2_SIMPLE` v4. **Hold floor smoke H1–H4 operator-confirmed done 2026-09-11.** Quick-drop now goes to `preparing` (`0499` + Preparation header Edit Order); no intake ActionBar. Remote `draft` drop-off banner is unchanged. SIMPLE v4 home-collection confirm still → `intake` (out of this slice).
 **Authority:** Extends [LIVE_NORMALIZED_PROFILE_RUNTIME.md](../LIVE_NORMALIZED_PROFILE_RUNTIME.md), [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md), [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md)  
 **Companion Cursor plan:** `.cursor/plans/wf_create_hydration_collection_hold_20260903.plan.md`
 
@@ -125,7 +125,7 @@ Create request (POS / submit-order / API)
 |------|--------|--------------|------|------------|-------------|
 | `REMOTE_DRAFT` | `pending_dropoff` | false | `pending` | false | Mobile / bot / API when remote confirm required |
 | `POS_IN_HAND` | `received` | true | `pending` | false | POS/staff goods on counter → processing |
-| `POS_QUICK_DROP` | `received` | true | `pending` | false | POS QD → intake |
+| `POS_QUICK_DROP` | `received` | true | `pending` | false | POS QD → preparing |
 | `RETAIL_SOLD` | `received` | true | `completed` | true | Retail → delivered |
 | `STAFF_IN_HAND` | `received` | true | `pending` | false | web_admin / staff_mobile / kiosk |
 | `HOME_COLLECTION_PENDING` | `pending_dropoff` | false | `pending` | false | Dirty items still at customer |
@@ -295,7 +295,7 @@ Compatible preset↔status matrix (validator):
 |--------|--------------------------|
 | `REMOTE_DRAFT` | `draft` |
 | `POS_IN_HAND` / `STAFF_IN_HAND` / `BRANCH_DEFAULT` | `intake`, `preparing`, `processing` |
-| `POS_QUICK_DROP` | `intake` |
+| `POS_QUICK_DROP` | `intake`, `preparing` |
 | `RETAIL_SOLD` | `delivered`, `ready` (prefer `delivered`; never `closed`) |
 | `HOME_COLLECTION_PENDING` | `awaiting_collection` |
 

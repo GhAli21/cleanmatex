@@ -11,6 +11,27 @@
   "noDueDate": "No due date",
   "dueAt": "Due {value}",
   "openStage": "Open stage",
+  "returnToWorkboard": "Back to Workboard",
+  "orderDetailsLinkTitle": "Open details for order {orderNo}",
+  "copyOrderNumber": "Copy order number {orderNo}",
+  "orderWorkflowInfo": {
+    "open": "Show workflow information for order {orderNo}",
+    "title": "Order {orderNo} workflow information",
+    "description": "Pinned workflow and order classification values recorded when this order entered operations.",
+    "close": "Close",
+    "notAvailable": "Not available",
+    "fields": {
+      "stateVersion": "Workflow state version",
+      "workflowProfile": "Workflow profile",
+      "workflowProfileId": "Workflow profile ID",
+      "workflowVersionNo": "Workflow version number",
+      "workflowProfileRevision": "Workflow profile revision",
+      "workflowProfileVersionId": "Workflow profile version ID",
+      "orderSourceCode": "Order source code",
+      "orderTypeId": "Order type ID",
+      "orderSubtype": "Order subtype"
+    }
+  },
   "configurationGapTitle": "Workboard configuration needs attention.",
   "configurationGapItem": "Status {status} has no active stage owner.",
   "overview": {
@@ -96,6 +117,8 @@
     "refreshLoading": "Refreshing Workboard...",
     "refreshSuccess": "Workboard refreshed.",
     "refreshError": "Unable to refresh the Workboard.",
+    "orderNumberCopied": "Order number copied.",
+    "orderNumberCopyError": "Unable to copy the order number.",
     "loadRetryHint": "Try refreshing the queue or clearing the current filters.",
     "tableUnavailableTitle": "The Workboard is temporarily unavailable",
     "tableUnavailableDescription": "We could not load the queue right now. Retry the request to restore the latest supervisor view.",
