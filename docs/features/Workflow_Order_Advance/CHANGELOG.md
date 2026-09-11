@@ -1,5 +1,9 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-09-11 (6)
+
+- **Docs/status alignment (evening).** Remote still ends at `0500`; `0501` not applied. Canonical remaining list added to `current_status.md`. Stale “no intake ActionBar” lines removed. User guide documents **New order actions** + **Order actions**.
+
 ## Unreleased — 2026-09-11 (5)
 
 - **Order details ActionBars + SIMPLE leftover retarget.** `OrderActions` and workspace Actions now mount both `WorkflowActionBar` `screen=new_order` (**New order actions**) and `screen=order_control` (**Order actions**), `hideWhenEmpty`. Engine lists each screen’s edges for the current status — no extra intake-only gate. Remote drop-off banner (`draft` + `pending_dropoff`) unchanged. Contract actions `newOrderActions` / `orderControlActions`. Migration `0501_wf_simple_intake_to_preparing.sql` (do not apply from agent): SIMPLE v4 PILOT `CONFIRM_PHYSICAL_INTAKE` `intake→preparing` and `CONFIRM_HOME_COLLECTION` `out_for_collection→preparing`. DB test lists leftover-intake `CONFIRM_PHYSICAL_INTAKE` on `new_order`.

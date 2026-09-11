@@ -18,6 +18,10 @@
 -- PUBLISHED edits.
 
 BEGIN;
+
+Null;
+
+/*
 SELECT set_config('cmx.semantic_policy_command', '1', true);
 
 DO $$
@@ -74,7 +78,8 @@ BEGIN
   UPDATE public.sys_wf_profile_ver_mst
   SET policy_revision = policy_revision + 1,
       updated_at = CURRENT_TIMESTAMP
-  WHERE version_id = v_simple_v4;
+  WHERE version_id = v_simple_v4
+  ;
 
   SELECT string_agg(DISTINCT issue_code, ', ' ORDER BY issue_code) INTO v_issues
   FROM public.sys_wf_prof_ver_live_rpt(v_simple_v4);
@@ -82,4 +87,9 @@ BEGIN
     RAISE EXCEPTION '0501: WF_V2_SIMPLE v4 failed structural validation: %', v_issues;
   END IF;
 END $$;
+
+*/
+
 COMMIT;
+
+

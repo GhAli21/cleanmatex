@@ -40,8 +40,48 @@
 | Ready for review (not implemented) | [05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md](future_work_in_wf/05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md) — drafted 2026-09-04 while the operator was away. 9 batches sequencing the 46 planned-but-not-emitted Check-policy codes (HQ, `cleanmatexsaas`), safest-first, each gated on a regression dry-run against the two live PILOT profiles (`WF_V2_HOME_COLLECTION` v1, `WF_V2_SIMPLE` v4) before promotion. 2 open product calls flagged (`core_processing_missing`, `fulfilment_missing_collection_gate` severity) + 1 gap found (`initial_rule_uncovered_create_path` has no planned row at all despite being file-01 Must-add). No code changed — plan only. |
 | Next (operator) | Recreate any pre-cutover unsnapshotted test orders under an assigned live profile when you next need floor smoke. This is not a required handoff to continue implementation. |
 | Next (product) | V1.1 return sub-order / projection follow-up after V1.0 acceptance |
-| Ready for production canary | **S10 staff routed POD canary SIGNED 2026-09-05.** Public confirmation is also green. HQ Studio Check policy on `WF_V2_FULL_PATH` v1 **done**. HQ Studio Check policy on `WF_V2_SIMPLE` v4 **done** (after `0499`+`0500` + HQ deploy). One real UI FULL_PATH order **done**. Delivery route UI smoke **done**. Collect-payment UI smoke on Ready **done**. Hold floor smoke H1–H4 **done**. **Canary + rollback rehearsal operator-confirmed done 2026-09-11.** Assign prior Published: new creates follow the new assignment; in-flight pages/actions stay on the order pin. Workboard lists by **each order’s pinned Workboard observer module**, not the tenant’s currently assigned profile — operator re-checked 2026-09-11. **ADR V1.0 product/engineering accept 2026-09-11** (`Approved_By_Jh`) on [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) and HQ ADR-SAAS-MNG-0010. **Post-`0442` engine smoke:** remote demo **is** the V1.0 production-like environment (owner 2026-09-11). **Still No for full V1.0** — quick-drop smoke (Preparation **Edit Order**), then docs close-out. |
+| Ready for production canary | **S10 staff routed POD canary SIGNED 2026-09-05.** Public confirmation is also green. HQ Studio Check policy on `WF_V2_FULL_PATH` v1 **done**. HQ Studio Check policy on `WF_V2_SIMPLE` v4 **done** (after `0499`+`0500` + HQ deploy). One real UI FULL_PATH order **done**. Delivery route UI smoke **done**. Collect-payment UI smoke on Ready **done**. Hold floor smoke H1–H4 **done**. **Canary + rollback rehearsal operator-confirmed done 2026-09-11.** Assign prior Published: new creates follow the new assignment; in-flight pages/actions stay on the order pin. Workboard lists by **each order’s pinned Workboard observer module**, not the tenant’s currently assigned profile — operator re-checked 2026-09-11. **ADR V1.0 product/engineering accept 2026-09-11** (`Approved_By_Jh`) on [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) and HQ ADR-SAAS-MNG-0010. **Post-`0442` engine smoke:** remote demo **is** the V1.0 production-like environment (owner 2026-09-11). **Still No for full V1.0** — leftover-intake ActionBar smoke, quick-drop smoke (Preparation **Edit Order**), optional `0501` apply + Check policy, then docs close-out. |
 | 2026-09-11 session picks back up here | **T03 closed** — found retail's "must pay at POS" rule was client-side only (`use-order-submission.ts`); no server guard existed in `OrderService.createOrder`/`.createOrderInTransaction`, and retail lands straight at terminal `delivered` with no downstream collection gate. Fixed both create paths (`errorCode: RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED`), new test `__tests__/services/order-service-retail-payment-guard.test.ts` (2/2). **`WF_V2_FULL_PATH` test profile** drafted to make T01 (full plant chain prep→processing→assembly→QA→packing→ready) actually testable: `0495` (seed, PILOT) + `0496` (fixed 4 dual-owner Check-policy errors + missing `draft→intake` edge + hold-from-every-stage warnings, reusing `0486`'s existing exception catalog rather than duplicating it). **HQ Studio Check policy after `0496` — operator confirmed done 2026-09-11. One real UI FULL_PATH order — operator confirmed done 2026-09-11. Delivery route UI smoke — operator confirmed done 2026-09-11. Collect-payment UI smoke on Ready — operator confirmed done 2026-09-11. Hold floor smoke H1–H4 — operator confirmed done 2026-09-11.** **T15's CI-wiring half — owner-deferred 2026-09-11**, not a blocker (see `12_Test_Plan.md`). **Canary + rollback rehearsal — operator confirmed done 2026-09-11.** Meaning used: Assign prior Published for **new** orders; in-flight stay pinned (no migrate). Floor pages and ActionBar follow the pin. Workboard is **not** the current assignment’s Workboard module — it unions each open order’s pin (`wf_profile_version_id` + that version’s Workboard observer statuses). Operator re-checked after initially reading it as current-assignment. **Post-`0442` engine smoke — owner 2026-09-11:** remote demo is the V1.0 production-like environment; no extra paying-prod smoke. T01/T02/T04 automated tests are closed. |
+
+## Remaining across all WF plans (2026-09-11 evening)
+
+Remote DB applied through **`0500`**. `0501` exists in the tenant repo and is **not** applied. Order details already shows **New order actions** (`new_order`) and **Order actions** (`order_control`).
+
+### V1.0 — operator / close-out (blocks calling V1.0 done)
+
+| Item | Owner | Notes |
+|------|-------|--------|
+| Leftover-intake ActionBar smoke | Operator | Open an `intake` order (e.g. `ORD-20260911-0002`). **New order actions** must list engine edges (typically `CONFIRM_PHYSICAL_INTAKE`). |
+| Quick-drop floor smoke | Operator | Create quick-drop → `preparing` → Preparation header **Edit Order** → complete preparation. |
+| Optional `0501` | Operator | SIMPLE leftover `intake→preparing` and SIMPLE `CONFIRM_HOME_COLLECTION→preparing`. Skip if SIMPLE leftovers may skip prep to `processing`. After apply: HQ Check policy on SIMPLE v4. |
+| `lwpr-tenant-docs-final` | Engineering | Full pack audit: no stale compiled-runtime claims. |
+| T15 CI graph-validator | Owner deferred | Not a V1.0 blocker. |
+| Local flake | Engineering later | `wf-policy-issue-catalog-seed-invariants` SIMPLE published `sequence.length` 0. |
+
+### V1.0.x — next product train (not V1.0 go-live)
+
+| ID | Item | Repo |
+|----|------|------|
+| V10x-M2 / 05 plan | 46 planned Check-policy codes + missing `initial_rule_uncovered_create_path` | HQ; owner review first |
+| V10x-M3 | Open-order version migrate | Tenant + HQ UI |
+| V10x-M4 | `execution_binding_duplicate` / `execution_permission_invalid` | HQ catalog |
+| V10x-S1 | Gate `parameters_json` schema | HQ |
+| V10x-S2 | Nav from server workflow-context | Tenant |
+| V10x-C1 | Starter-template import polish | HQ |
+| V10x-C2 | Drop leftover artifact runtime columns | Tenant after acceptance |
+
+### Later versions (locked, not started)
+
+| Version | Must |
+|---------|------|
+| V1.1 | Return sub-order, stage executions SoT, work groups, projections |
+| V1.2 | Outsourcing, richer HQ designer, milestone notifications |
+| V1.3 | Partial pickup/delivery, OTP/PIN |
+| V2 | Facade, multidimensional state as contract, legacy purge |
+
+### HQ live-runtime plan leftovers (sibling repo)
+
+Soak; `lwpr-hq-docs-final`; staging S1–S8 / T1–T10; `HQ_RBAC_ENFORCEMENT_ENABLED=true` before a second HQ operator. Do not start Gate 5 again.
 
 ## Delivery Feature Completion — Phase 4–6 close-out (2026-09-05)
 

@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
-import { Alert, AlertDescription, CmxButton, CmxInput } from '@ui/primitives';
+import { Alert, AlertDescription, CmxCard, CmxCardTitle, CmxInput, CmxSkeleton } from '@ui/primitives';
 import { CmxEmptyState } from '@ui/data-display';
-import { CmxConfirmDialog, cmxMessage } from '@ui/feedback';
+import { CmxConfirmDialog, CmxStatusBadge, CmxSummaryMessage, cmxMessage } from '@ui/feedback';
 import { CmxFieldShell, cmxFocusField } from '@ui/forms';
 import { useTranslations, useLocale } from 'next-intl';
 import {
@@ -16,6 +16,15 @@ import {
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { workflowActionBarEmptyMode } from '@features/workflow/ui/workflow-action-bar-empty';
 import { isOnlyRackBlocked } from '@features/workflow/lib/rack-gate-helpers';
+import {
+  isWorkflowActionClickable,
+  workflowActionBarLayout,
+} from '@features/workflow/ui/workflow-action-bar-layout';
+import {
+  formatWorkflowStatusLabel,
+  workflowStatusBadgeVariant,
+} from '@features/workflow/ui/workflow-action-bar-status';
+import { WorkflowActionCommand } from '@features/workflow/ui/workflow-action-command';
 import { RackBagsModal } from '@features/workflow/ui/rack-bags-modal';
 
 /** Fallback only for gate-override reason length; unrelated to per-action control notes below. */
@@ -63,7 +72,7 @@ export interface WorkflowActionBarProps {
    * (avoids editing an order that does not belong on this screen).
    */
   children?: ReactNode;
-  /** Optional title override (e.g. hold/resume/stop). */
+  /** Optional title override for the action-list layout (e.g. hold/resume/stop). */
   title?: string;
   /** Action codes already represented by a stage-specific completion surface. */
   hiddenActionCodes?: readonly string[];
@@ -89,7 +98,7 @@ function overrideMinReasonLength(decisions: WorkflowGateDecisionDto[]): number {
 
 /**
  * Floor action CTA bar driven by listAvailableActions / executeAction.
- * Shows enabled actions as primary buttons; disabled actions with blocked reasons.
+ * One visible action uses the next-step command; two or more use the action list.
  * When rack_required blocks an action, opens the shared RackBagsModal to
  * collect rack/locker/bag/hanging fields, then retries the action with the
  * saved rack merged into its execute input.
@@ -191,12 +200,13 @@ export function WorkflowActionBar({
   if (loading && visible.length === 0) {
     return (
       <>
-        <section
-          className={className ?? 'rounded-lg border border-border bg-card p-4 space-y-3'}
-          aria-label={t('actionBarLabel')}
-        >
-          <p className="text-sm text-muted-foreground">{t('loading')}</p>
-        </section>
+        <CmxCard className={className} role="region" aria-label={t('actionBarLabel')}>
+          <div className="space-y-3 p-4 md:p-5">
+            <CmxSkeleton className="h-4 w-28" />
+            <CmxSkeleton className="h-12 w-full" />
+            <p className="text-sm text-muted-foreground">{t('loading')}</p>
+          </div>
+        </CmxCard>
         {children}
       </>
     );
@@ -215,14 +225,20 @@ export function WorkflowActionBar({
     );
   }
 
+  const statusLabel = formatWorkflowStatusLabel(
+    currentStatus,
+    (key) => t.has(key),
+    (key) => t(key as never),
+  );
+
   if (emptyMode === 'empty') {
     return (
       <>
         <CmxEmptyState
           title={t('emptyScreenTitle')}
           description={
-            currentStatus
-              ? t('emptyScreenBodyWithStatus', { status: currentStatus })
+            statusLabel
+              ? t('emptyScreenBodyWithStatus', { status: statusLabel })
               : t('emptyScreenBody')
           }
         />
@@ -232,6 +248,24 @@ export function WorkflowActionBar({
   }
 
   const notesTrimmed = controlNotes.trim();
+  const layout = workflowActionBarLayout(visible);
+  const heading = layout.mode === 'action-list' ? (title ?? t('actionBarTitle')) : t('nextStepTitle');
+  const primaryClickable = layout.primary ? isWorkflowActionClickable(layout.primary) : false;
+  const primaryStatusLabel = layout.primary
+    ? formatWorkflowStatusLabel(
+        layout.primary.toStatus,
+        (key) => t.has(key),
+        (key) => t(key as never),
+      )
+    : null;
+
+  const intent = (() => {
+    if (layout.mode === 'action-list') return t('actionListIntent');
+    if (!layout.primary) return null;
+    if (!primaryClickable) return t('nextStepIntentBlocked');
+    if (primaryStatusLabel) return t('nextStepIntent', { status: primaryStatusLabel });
+    return t('nextStepIntentNoDest');
+  })();
 
   const executeWorkflowAction = async (
     action: WorkflowActionDto,
@@ -269,6 +303,82 @@ export function WorkflowActionBar({
     await executeWorkflowAction(action);
   };
 
+  const actionLabel = (action: WorkflowActionDto) =>
+    locale.startsWith('ar') && action.label2 ? action.label2 : action.label;
+
+  const actionBlockedReasons = (action: WorkflowActionDto) =>
+    action.blockedReasons
+      .map((reason) => (locale.startsWith('ar') && reason.message2 ? reason.message2 : reason.message))
+      .filter((message) => message.trim().length > 0);
+
+  const actionBlockedHint = (action: WorkflowActionDto) =>
+    actionBlockedReasons(action).join(' · ') || null;
+
+  const actionGateHint = (action: WorkflowActionDto) => {
+    const decisions = gateDecisionsFor(action);
+    if (decisions.length === 0) return null;
+    return decisions.some((decision) => decision.result === 'OVERRIDABLE')
+      ? t('gateOverrideHint')
+      : t('gateWarningHint');
+  };
+
+  const actionDestinationLabel = (action: WorkflowActionDto, usualPath: boolean) => {
+    const toLabel = formatWorkflowStatusLabel(
+      action.toStatus,
+      (key) => t.has(key),
+      (key) => t(key as never),
+    );
+    if (usualPath && toLabel) return t('usualNextStepMovesTo', { status: toLabel });
+    if (usualPath) return t('usualNextStep');
+    if (toLabel) return t('movesToStatus', { status: toLabel });
+    return null;
+  };
+
+  const pressWorkflowAction = async (action: WorkflowActionDto) => {
+    if (isOnlyRackBlocked(action)) {
+      setPendingRackAction(action);
+      setRackBagsOpen(true);
+      return;
+    }
+    const actionMin = actionMinReasonLength(action);
+    if (actionNeedsControlNotes(action) && actionMin > 0 && notesTrimmed.length < actionMin) {
+      failField(
+        WF_FIELD_NAMES.controlNotes,
+        t('controlNotesRequired', { min: actionMin }),
+        controlNotesInputRef,
+        setControlNotesError,
+      );
+      return;
+    }
+    if (action.actionCode === WORKFLOW_ACTIONS.STOP_ORDER_WORK) {
+      setPendingStopAction(action);
+      return;
+    }
+    await requestWorkflowAction(action);
+  };
+
+  const renderActionCommand = (action: WorkflowActionDto, isPrimary: boolean) => {
+    const canClick = isWorkflowActionClickable(action);
+    const blockedHint = actionBlockedHint(action);
+    const showBlockedOnControl = !isPrimary || canClick;
+    return (
+      <WorkflowActionCommand
+        key={`${action.actionCode}:${action.toStatus ?? ''}`}
+        label={actionLabel(action)}
+        destinationLabel={actionDestinationLabel(action, isPrimary && layout.mode === 'action-list')}
+        hint={canClick ? actionGateHint(action) : null}
+        blockedHint={showBlockedOnControl && !canClick ? blockedHint : null}
+        canClick={canClick}
+        loading={loading}
+        isPrimary={isPrimary}
+        isStop={action.actionCode === WORKFLOW_ACTIONS.STOP_ORDER_WORK}
+        onClick={() => {
+          void pressWorkflowAction(action);
+        }}
+      />
+    );
+  };
+
   const pendingGateDecisions = pendingGateAction ? gateDecisionsFor(pendingGateAction) : [];
   const pendingNeedsOverride = pendingGateDecisions.some((decision) => decision.result === 'OVERRIDABLE');
   const pendingNeedsWarning = pendingGateDecisions.some((decision) => decision.result === 'WARNING');
@@ -276,133 +386,80 @@ export function WorkflowActionBar({
   const pendingOverridePermission = pendingGateDecisions.find(
     (decision) => decision.result === 'OVERRIDABLE' && decision.overridePermissionCode,
   )?.overridePermissionCode;
+  const primaryBlockedItems =
+    layout.primary && !primaryClickable ? actionBlockedReasons(layout.primary) : [];
 
   return (
     <>
-      <section
-        className={className ?? 'rounded-lg border border-border bg-card p-4 space-y-3'}
-        aria-label={t('actionBarLabel')}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-foreground">
-            {title ?? t('actionBarTitle')}
-          </h2>
-          {currentStatus ? (
-            <span className="text-xs text-muted-foreground">
-              {t('statusLabel', { status: currentStatus })}
-            </span>
+      <CmxCard className={className} role="region" aria-label={t('actionBarLabel')}>
+        <div className="flex items-start justify-between gap-3 p-4 pb-3 md:p-5 md:pb-3">
+          <div className="min-w-0 space-y-1">
+            <CmxCardTitle>{heading}</CmxCardTitle>
+            {intent ? (
+              <p className="text-sm leading-5 text-muted-foreground">{intent}</p>
+            ) : null}
+          </div>
+          {statusLabel ? (
+            <CmxStatusBadge
+              label={statusLabel}
+              variant={workflowStatusBadgeVariant(currentStatus)}
+              size="sm"
+            />
           ) : null}
         </div>
 
-        {needsControlNotes ? (
-          <CmxFieldShell
-            id={`wf-control-notes-${orderId}`}
-            name={WF_FIELD_NAMES.controlNotes}
-            label={t('controlNotesLabel')}
-            hint={
-              controlNotesIsMandatory
-                ? t('controlNotesHelp', { min: controlNotesMin })
-                : t('controlNotesHelpOptional')
-            }
-            error={controlNotesError}
-            required={controlNotesIsMandatory}
-          >
-            <CmxInput
-              ref={controlNotesInputRef}
+        <div className="space-y-3 px-4 pb-4 md:px-5 md:pb-5">
+          {needsControlNotes ? (
+            <CmxFieldShell
               id={`wf-control-notes-${orderId}`}
-              value={controlNotes}
-              onChange={(e) => {
-                setControlNotes(e.target.value);
-                setControlNotesError(null);
-              }}
-              placeholder={
+              name={WF_FIELD_NAMES.controlNotes}
+              label={t('controlNotesLabel')}
+              hint={
                 controlNotesIsMandatory
-                  ? t('controlNotesPlaceholder')
-                  : t('controlNotesPlaceholderOptional')
+                  ? t('controlNotesHelp', { min: controlNotesMin })
+                  : t('controlNotesHelpOptional')
               }
-              autoComplete="off"
-              aria-invalid={Boolean(controlNotesError)}
-              aria-describedby={
-                controlNotesError ? `wf-control-notes-err-${orderId}` : undefined
-              }
-            />
-          </CmxFieldShell>
-        ) : null}
+              error={controlNotesError}
+              required={controlNotesIsMandatory}
+            >
+              <CmxInput
+                ref={controlNotesInputRef}
+                id={`wf-control-notes-${orderId}`}
+                value={controlNotes}
+                onChange={(e) => {
+                  setControlNotes(e.target.value);
+                  setControlNotesError(null);
+                }}
+                placeholder={
+                  controlNotesIsMandatory
+                    ? t('controlNotesPlaceholder')
+                    : t('controlNotesPlaceholderOptional')
+                }
+                autoComplete="off"
+                aria-invalid={Boolean(controlNotesError)}
+                aria-describedby={
+                  controlNotesError ? `wf-control-notes-err-${orderId}` : undefined
+                }
+              />
+            </CmxFieldShell>
+          ) : null}
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          {visible.map((action) => {
-            const label =
-              locale.startsWith('ar') && action.label2 ? action.label2 : action.label;
-            const blockedHint = action.blockedReasons
-              .map((r) => (locale.startsWith('ar') && r.message2 ? r.message2 : r.message))
-              .join(' · ');
-            const rackBlockedOnly = isOnlyRackBlocked(action);
-            const canClick = (action.enabled || rackBlockedOnly) && !loading;
+          {primaryBlockedItems.length > 0 ? (
+            <CmxSummaryMessage type="warning" title={t('blockedTitle')} items={primaryBlockedItems} />
+          ) : null}
 
-            return (
-              <div
-                key={`${action.actionCode}:${action.toStatus ?? ''}`}
-                className="flex flex-col gap-1 min-w-[10rem] flex-1 sm:flex-none"
-              >
-                <CmxButton
-                  type="button"
-                  variant={canClick ? 'primary' : 'outline'}
-                  size="sm"
-                  className="w-full"
-                  disabled={!canClick}
-                  loading={loading}
-                  title={!canClick ? blockedHint : undefined}
-                  onClick={() => {
-                    void (async () => {
-                      if (rackBlockedOnly) {
-                        setPendingRackAction(action);
-                        setRackBagsOpen(true);
-                        return;
-                      }
-                      const actionMin = actionMinReasonLength(action);
-                      if (
-                        actionNeedsControlNotes(action) &&
-                        actionMin > 0 &&
-                        notesTrimmed.length < actionMin
-                      ) {
-                        failField(
-                          WF_FIELD_NAMES.controlNotes,
-                          t('controlNotesRequired', { min: actionMin }),
-                          controlNotesInputRef,
-                          setControlNotesError,
-                        );
-                        return;
-                      }
-                      if (action.actionCode === WORKFLOW_ACTIONS.STOP_ORDER_WORK) {
-                        setPendingStopAction(action);
-                        return;
-                      }
-                      await requestWorkflowAction(action);
-                    })();
-                  }}
-                >
-                  {label}
-                </CmxButton>
-                {canClick && gateDecisionsFor(action).length > 0 ? (
-                  <p className="text-xs text-muted-foreground" role="status">
-                    {gateDecisionsFor(action).some((decision) => decision.result === 'OVERRIDABLE')
-                      ? t('gateOverrideHint')
-                      : t('gateWarningHint')}
-                  </p>
-                ) : null}
-                {!canClick && blockedHint ? (
-                  <p className="text-xs text-muted-foreground" role="status">
-                    {blockedHint}
-                  </p>
-                ) : null}
-              </div>
-            );
-          })}
+          {layout.primary ? renderActionCommand(layout.primary, true) : null}
+          {layout.rest.length > 0 ? (
+            <div className="space-y-2">
+              {layout.rest.map((action) => renderActionCommand(action, false))}
+            </div>
+          ) : null}
+
+          {hasSupplementalActions ? (
+            <div className="border-t border-border pt-3">{supplementalActions}</div>
+          ) : null}
         </div>
-        {hasSupplementalActions ? (
-          <div className="border-t border-border pt-3">{supplementalActions}</div>
-        ) : null}
-      </section>
+      </CmxCard>
       <CmxConfirmDialog
         open={pendingStopAction !== null}
         title={t('stopConfirmTitle')}

@@ -1,6 +1,6 @@
 # 08 — UI/UX Screens
 
-**Status:** P7R Delivery floor matches Ready · **Date:** 2026-08-27
+**Status:** P7R Delivery floor matches Ready · order details ActionBars (`new_order` + `order_control`) · **Date:** 2026-09-11
 
 ## 1. Floor UX
 
@@ -14,7 +14,7 @@
 
 | Feature | Screen | Workflow |
 |---------|--------|----------|
-| New Order | `new_order` | InitialStatusResolver; intake/send actions |
+| New Order | `new_order` | Create via InitialStatusResolver. Order details / workspace Actions: `WorkflowActionBar` `screen=new_order` (**New order actions**, `hideWhenEmpty`) plus `screen=order_control` (**Order actions**). Remote `draft` + `pending_dropoff` still uses the drop-off banner. |
 | Preparation | `preparation` | `COMPLETE_PREPARATION`; header **Edit Order** on `/dashboard/preparation/[orderId]` (`orders:update`) |
 | Processing | `processing` | leave actions |
 | Assembly / QA / Packing | profile-gated | actions + gates |

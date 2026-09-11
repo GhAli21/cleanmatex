@@ -1,7 +1,7 @@
 ---
 name: Live Workflow Profile Runtime - Tenant Delivery
 overview: Review-first tenant delivery plan for the direct normalized profile-version runtime defined by HQ ADR-SAAS-MNG-0010. It replaces compiled-artifact reads while preserving order version binding, stage-owned services, tenant isolation, finance, gates, fulfilment, audit, and idempotency.
-status: in_progress # updated 2026-09-11 — V1.0 engineering closed except quick-drop smoke + lwpr-tenant-docs-final. 0499+0500 applied; SIMPLE Check policy passed. Do not start Gate 5.
+status: in_progress # updated 2026-09-11 evening — V1.0 engineering closed except operator smokes + optional 0501 + lwpr-tenant-docs-final. Order details ActionBars shipped. 0499+0500 applied; 0501 not applied. Do not start Gate 5.
 depends_on:
   - F:\jhapp\cleanmatexsaas\.cursor\plans\workflow_live_profile_runtime_20260827.plan.md
   - F:\jhapp\cleanmatexsaas\docs\features\SAAS_Platform_Management\ADRs\ADR-SAAS-MNG-0010_Live_Normalized_Workflow_Profile_Runtime.md
@@ -43,13 +43,13 @@ todos:
     content: "Privacy-safe wf.* observe events, in-process counters, support runbook (technical_docs/live_runtime_support.md), and 09 observability refresh. Successful policy loads stay DEBUG."
     status: completed
   - id: lwpr-tenant-assurance
-    content: "S10 SIGNED 2026-09-05. Gate 5 applied. ADR V1.0 accept 2026-09-11. 0499+0500 applied; SIMPLE Check policy passed after HQ deploy. Residual: soak; quick-drop smoke (Preparation Edit Order). T15 CI graph-validator owner-deferred."
+    content: "S10 SIGNED 2026-09-05. Gate 5 applied. ADR V1.0 accept 2026-09-11. 0499+0500 applied; SIMPLE Check policy passed after HQ deploy. Order details ActionBars shipped. Residual: leftover-intake ActionBar smoke; quick-drop smoke; optional 0501; soak. T15 CI graph-validator owner-deferred."
     status: in_progress
   - id: lwpr-tenant-progress
     content: After every completed implementation step, update this plan and the paired HQ plan with status, evidence, changed contracts, validation results, risks, and the next concrete action.
     status: completed
   - id: lwpr-tenant-docs-per-phase
-    content: "2026-09-11 refresh: current_status, 03 remaining-work plan, user/dev/test guides, 0499+0500 + SIMPLE Check policy passed. Full pack audit (no remaining compiled-runtime claims) still lwpr-tenant-docs-final."
+    content: "2026-09-11 evening refresh: current_status remaining inventory, user/dev/test guides, ActionBars shipped, 0501 not applied. Full pack audit still lwpr-tenant-docs-final."
     status: in_progress
   - id: lwpr-tenant-docs-final
     content: As the final completion task, load and use the documentation skill to audit, create, refresh, cross-link, and verify the complete canonical workflow documentation pack with no stale compiled-runtime claims.

@@ -1,7 +1,7 @@
 # 11 — Implementation Roadmap
 
 **Detail:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) · **Scope:** [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md)
-**Status (2026-09-11):** original phase table kept for scope-lock. Live status: `current_status.md` and `13_Production_Readiness_Checklist.md`. V1.0 engineering is past S10 / T01–T18 (T15 CI graph-validator owner-deferred). Remaining V1.0 operator work: quick-drop smoke (Preparation **Edit Order**). `0499`+`0500` applied; SIMPLE v4 Check policy passed. Next product train is V1.0.x (open-order migrate + 46 planned Check-policy codes) then V1.1.
+**Status (2026-09-11 evening):** original phase table kept for scope-lock. Live remaining list: `current_status.md` § Remaining across all WF plans. V1.0 engineering is past S10 / T01–T18 (T15 CI graph-validator owner-deferred). Remaining V1.0 operator work: leftover-intake ActionBar smoke, quick-drop smoke, optional `0501`. Next product train is V1.0.x (open-order migrate + 46 planned Check-policy codes) then V1.1.
 
 | Phase | Outcome | Status (2026-09-10) |
 |-------|---------|---------|

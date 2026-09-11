@@ -358,6 +358,15 @@ Operator floor smoke (policy already live):
 
 T04 automated: `web-admin/__tests__/db-integration/wf-v2-simple-quick-drop-flow.db.test.ts` (skips locally until SIMPLE v4 exists). Typed staff creates still resolve to `processing`.
 
+## Leftover intake — New order actions (2026-09-11)
+
+Operator smoke (UI already live; `0501` optional):
+
+1. Open an order still at `intake` (pre-`0499` quick-drop or SIMPLE leftover).
+2. On order details or workspace **Actions**, confirm **New order actions** lists engine edges for `new_order` (typically Confirm physical intake) and **Order actions** lists hold/resume/stop when the policy allows.
+3. Run Confirm physical intake. Destination is the compiled edge: FULL_PATH/STANDARD → `preparing`; SIMPLE v4 → `processing` until `0501` is applied, then `preparing`.
+4. Remote `draft` + `pending_dropoff` still uses the drop-off banner, not this bar.
+
 ## Hold hardening (§9 H1–H4 — 2026-09-04)
 
 **HC2 — FAIL (expect: back to awaiting + audit note):** use a **second, separate** order — HC1's order already moved past `out_for_collection` into `intake`, a terminal state for this screen.

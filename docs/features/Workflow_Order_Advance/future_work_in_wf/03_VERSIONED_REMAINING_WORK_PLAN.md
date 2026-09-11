@@ -1,7 +1,8 @@
 # 03 — Versioned remaining-work plan (V1.0 close-out through V2)
 
-**Date:** 2026-08-27  
+**Date:** 2026-08-27 (status refreshed 2026-09-11 evening)  
 **Repos:** `cleanmatex` (tenant app + **all** migrations) · `cleanmatexsaas` (HQ authoring)  
+**Live remaining list:** [current_status.md](../current_status.md) § Remaining across all WF plans — this file stays the version Must/Should/Could lock.  
 **Validation handoff:** [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md), [01_HQ_STUDIO_VALIDATION_GAPS.md](01_HQ_STUDIO_VALIDATION_GAPS.md), [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md)  
 **Catalog maintenance:** add/update Check-policy issue codes only in HQ via `/manage-wf-policy-issues-catalog`. File 02 is narrative, not the emit registry.  
 **Scope lock:** [ADR_SCOPE_AND_CORRECTION_PASS.md](../ADR_SCOPE_AND_CORRECTION_PASS.md)  
@@ -66,7 +67,7 @@ Not a new product version. Unsigned / in-flight V1.0.
 
 - S10 signed (2026-09-05) and ADR V1.0 accept (2026-09-11).
 - Check policy is HQ authority; compiled artifacts retired (`0494`).
-- **Still operator-owned before calling V1.0 closed:** quick-drop smoke (Preparation **Edit Order**).
+- **Still operator-owned before calling V1.0 closed:** leftover-intake **New order actions** smoke; quick-drop smoke (Preparation **Edit Order**); optional `0501` apply + SIMPLE Check policy.
 - Pilot assignable only to `is_hq_test_demo` tenants (already true).
 - File 02 remaining planned codes are **V1.0.x** ([05 plan](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md)), not a V1.0 go-live blocker.
 
@@ -80,7 +81,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 
 | ID | Item | Tenant | HQ |
 |----|------|--------|-----|
-| V10x-M1 | `WorkflowPolicyResolver` | Load policy from normalized profile-version tables only; no artifact / graph-pin / template fallback | Same contract in Simulate / Effective preview |
+| V10x-M1 | `WorkflowPolicyResolver` | **Done.** Resolver loads live `sys_wf_prof_ver_*` rows; no artifact / graph-pin / template fallback | Same contract in Simulate / Effective preview |
 | V10x-M2 | `WorkflowPolicyValidator` | Shared issue codes from file 02 | Studio **Check policy** (replace Compile-as-authority). Rollout plan for the 46 planned-but-not-emitted codes: [05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md) — DRAFT, plan only, owner review needed before any batch starts |
 | V10x-M3 | Open-order **version migrate** command (ADR-0010) | Preview eligible orders; validate current status vs target policy; permission + reason + confirmation; idempotent; audit per order; **never** automatic on reassign | HQ UI to launch and monitor migrate |
 | V10x-M4 | Channel uniqueness + permission existence | Execute already fail-closed | File 02 `execution_binding_duplicate` extend + `execution_permission_invalid` |
