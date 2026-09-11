@@ -203,4 +203,47 @@ describe('WF_V2_SIMPLE v4 — quick drop real flow (T04)', () => {
       await cleanup(seed);
     }
   });
+
+  dbit('lists leftover-intake CONFIRM_PHYSICAL_INTAKE on new_order and executes the compiled destination', async () => {
+    const destination = await prisma.$queryRaw<Array<{ to_status: string }>>`
+      SELECT to_status
+      FROM public.sys_wf_prof_ver_exec_cf
+      WHERE version_id = ${SIMPLE_VERSION_ID}::uuid
+        AND screen_key = 'new_order'
+        AND action_code = 'CONFIRM_PHYSICAL_INTAKE'
+        AND from_status = 'intake'
+        AND is_active = true
+        AND rec_status = 1
+    `;
+    expect(destination).toHaveLength(1);
+
+    const seed = await seedOrder('intake');
+    try {
+      const available = await listAvailableActions({
+        tenantId: DEMO_TENANT,
+        orderId: seed.orderId,
+        screen: 'new_order',
+        channel: 'staff_web',
+        actorUserId: ACTOR,
+      });
+      expect(available.actions.map((action) => action.actionCode)).toContain(
+        'CONFIRM_PHYSICAL_INTAKE',
+      );
+
+      const result = await executeAction({
+        tenantId: DEMO_TENANT,
+        orderId: seed.orderId,
+        screen: 'new_order',
+        actionCode: 'CONFIRM_PHYSICAL_INTAKE',
+        expectedStateVersion: available.stateVersion,
+        actorUserId: ACTOR,
+        actorName: 'SIMPLE leftover intake ActionBar',
+        channel: 'staff_web',
+        idempotencyKey: `wf-v2-simple-intake-new-order:${seed.orderId}`,
+      });
+      expect(result.currentStatus).toBe(destination[0].to_status);
+    } finally {
+      await cleanup(seed);
+    }
+  });
 });

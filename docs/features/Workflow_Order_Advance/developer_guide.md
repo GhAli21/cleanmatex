@@ -47,6 +47,8 @@ This guide is the practical handoff for engineers extending or debugging the V1 
   - `web-admin/lib/utils/order-editability.ts` (`preparing` is editable)
   - Migration `0499_wf_quick_drop_to_preparing.sql` (applied; DRAFT/PILOT only)
   - Migration `0500_wf_preparing_in_stage_sequence.sql` (applied; Overview sequence includes `preparing`)
+  - Migration `0501_wf_simple_intake_to_preparing.sql` (not applied; leftover SIMPLE `intake` / home-collection confirm → `preparing`)
+  - Order details / workspace Actions: `WorkflowActionBar` `new_order` + `order_control`
 
 ## Current rollout state
 

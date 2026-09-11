@@ -58,6 +58,17 @@ export function OrderActions({ order }: OrderActionsProps) {
   return (
     <>
       <div className="space-y-2">
+        {/* Engine lists new_order actions for the current status (intake leftovers, draft confirm, etc.). */}
+        {canTransition ? (
+          <WorkflowActionBar
+            orderId={order.id}
+            screen="new_order"
+            hideWhenEmpty
+            title={tEngine('newOrderActionTitle')}
+            onActionSuccess={() => router.refresh()}
+          />
+        ) : null}
+
         {/* Hold / resume / stop (engine V2 order_control) */}
         {canTransition ? (
           <WorkflowActionBar

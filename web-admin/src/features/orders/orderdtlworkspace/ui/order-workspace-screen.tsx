@@ -218,11 +218,20 @@ export function OrderWorkspaceScreen({
 
       {activeSection === 'activity' ? <CmxCard><CmxCardHeader><CmxCardTitle>{t('activityTitle')}</CmxCardTitle></CmxCardHeader><CmxCardContent><p className="mb-4 text-sm text-muted-foreground">{t('activityDescription')}</p><Link href={`/dashboard/orders/${orderId}?tab=history`}><CmxButton variant="outline">{t('openActivity')}</CmxButton></Link></CmxCardContent></CmxCard> : null}
       {activeSection === 'actions' ? (
-        <section aria-label={t('sections.actions')}>
+        <section aria-label={t('sections.actions')} className="space-y-4">
+          {/* Same as other floors: the engine lists whatever new_order owns for the pinned current status. */}
+          <WorkflowActionBar
+            orderId={orderId}
+            screen="new_order"
+            hideWhenEmpty
+            title={t('newOrderActionTitle')}
+            onActionSuccess={() => router.refresh()}
+          />
           {/* The workflow engine remains authoritative for allowed order-control actions and their safety gates. */}
           <WorkflowActionBar
             orderId={orderId}
             screen="order_control"
+            hideWhenEmpty
             title={t('orderControlTitle')}
             // Re-read the server-sourced workspace after an audited workflow transition changes the order state.
             onActionSuccess={() => router.refresh()}

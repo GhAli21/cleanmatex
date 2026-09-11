@@ -1,6 +1,6 @@
 # Workflow Order Advance
 
-**Status:** Automated delivery assurance is complete. **Staff POD delivery smoke S10 is SIGNED (2026-09-05).** Gate 5 compiled-artifact retirement (`0494`) applied both DBs. V1.0 product/engineering accept 2026-09-11. Quick-drop → Preparation is live (`0499`+`0500` applied; HQ Check policy on SIMPLE v4 **passed**). Remaining V1.0 operator work: quick-drop smoke (Preparation **Edit Order**). See `current_status.md`.
+**Status:** Automated delivery assurance is complete. **Staff POD delivery smoke S10 is SIGNED (2026-09-05).** Gate 5 compiled-artifact retirement (`0494`) applied both DBs. V1.0 product/engineering accept 2026-09-11. Quick-drop → Preparation is live (`0499`+`0500` applied; HQ Check policy on SIMPLE v4 **passed**). Order details now shows **New order actions** + **Order actions**. `0501` written (operator apply). Remaining V1.0 operator work: apply `0501` + Check policy, leftover-intake ActionBar smoke, quick-drop smoke (Preparation **Edit Order**). See `current_status.md`.
 **Version:** see [version.txt](version.txt) · [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)  
 **Authority:** This folder + [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) + Cursor plan  
 **Reference only:** [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/`](CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/)  

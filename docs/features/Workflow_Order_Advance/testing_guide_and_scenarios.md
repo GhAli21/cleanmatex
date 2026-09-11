@@ -345,7 +345,7 @@ Staff UX / labels:
 2. First attempt: clicking **Fail** with no reason correctly rejected (`min_reason_length: 10`) — but the UI had no field to enter one. Fixed: `WorkflowActionBar.tsx`'s `CONTROL_ACTIONS_NEEDING_NOTES` was missing `WORKFLOW_ACTIONS.FAIL_HOME_COLLECTION` (same pattern as `FAIL_QA`); added, deployed.
 3. Retried: entered reason "not in home i will comeback afternoon" → confirmed via `org_order_history`: `out_for_collection → awaiting_collection`, `action_type=FAIL_HOME_COLLECTION`, reason correctly recorded.
 
-**Post-HC1 note — `intake` stuck stage, resolved for HOME_COLLECTION:** confirming home collection on that profile now lands at `preparing`. **Quick-drop (2026-09-11 product lock):** do not add a `new_order` ActionBar. Quick-drop goes to `preparing`; itemization is Preparation **Edit Order**. `0499`+`0500` applied; HQ Check policy on SIMPLE v4 **passed**. SIMPLE v4 `CONFIRM_HOME_COLLECTION` still → `intake` (out of this slice).
+**Post-HC1 note — `intake` stuck stage, resolved for HOME_COLLECTION:** confirming home collection on that profile now lands at `preparing`. **Quick-drop (2026-09-11 product lock):** quick-drop goes to `preparing`; itemization is Preparation **Edit Order**. Order details now mounts **New order actions** (`new_order`) and **Order actions** (`order_control`). `0499`+`0500` applied. `0501` retargets SIMPLE leftover `intake` / home-collection confirm → `preparing` (operator apply).
 
 ## Quick-drop → Preparation (T04 product path, 2026-09-11)
 

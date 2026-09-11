@@ -2,8 +2,10 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { OrderActions } from '@features/orders/ui/order-actions';
 
-const workflowActionBarMock = jest.fn((_props: unknown) => (
-  <div data-testid="workflow-action-bar">Engine order controls</div>
+const workflowActionBarMock = jest.fn((props: { screen?: string }) => (
+  <div data-testid={`workflow-action-bar-${props.screen ?? 'unknown'}`}>
+    Engine {props.screen}
+  </div>
 ));
 let grantedPermissions = new Set(['orders:transition', 'orders:update']);
 
@@ -57,7 +59,15 @@ describe('OrderActions', () => {
     expect(screen.queryByText('buttons.markAsReady')).not.toBeInTheDocument();
     expect(screen.queryByText('buttons.markAsDelivered')).not.toBeInTheDocument();
     expect(screen.queryByText('dialog.confirmChange')).not.toBeInTheDocument();
-    expect(screen.getByTestId('workflow-action-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('workflow-action-bar-new_order')).toBeInTheDocument();
+    expect(screen.getByTestId('workflow-action-bar-order_control')).toBeInTheDocument();
+    expect(workflowActionBarMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: '1e844914-cebe-4778-8fe2-94c833521185',
+        screen: 'new_order',
+        hideWhenEmpty: true,
+      }),
+    );
     expect(workflowActionBarMock).toHaveBeenCalledWith(
       expect.objectContaining({
         orderId: '1e844914-cebe-4778-8fe2-94c833521185',
@@ -81,7 +91,8 @@ describe('OrderActions', () => {
       />,
     );
 
-    expect(screen.queryByTestId('workflow-action-bar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('workflow-action-bar-new_order')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('workflow-action-bar-order_control')).not.toBeInTheDocument();
     expect(screen.queryByText('buttons.cancelOrder')).not.toBeInTheDocument();
     expect(screen.queryByText('buttons.editOrder')).not.toBeInTheDocument();
     expect(screen.queryByText('buttons.fixOrderData')).not.toBeInTheDocument();

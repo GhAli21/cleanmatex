@@ -726,6 +726,28 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
       },
       {
+        label: 'Available workflow actions',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/available-actions',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['WorkflowActionBar (new_order + order_control) on order details.'],
+      },
+      {
+        label: 'Execute workflow action',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/actions',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'WorkflowActionBar executeAction; Idempotency-Key required. Used for new_order and order_control.',
+        ],
+      },
+      {
         label: 'Initiate refund (B34 dialog)',
         method: 'POST',
         path: '/api/v1/orders/[id]/refunds',
@@ -783,6 +805,26 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           permissions: ['orders:reverse_payment'],
           requireAllPermissions: true,
         },
+      },
+      newOrderActions: {
+        label: 'New order actions (screen new_order)',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'WorkflowActionBar screen=new_order hideWhenEmpty. Engine lists every new_order edge for the pinned current status. Not the remote pending_dropoff confirm-physical-intake API.',
+        ],
+      },
+      orderControlActions: {
+        label: 'Order actions (screen order_control)',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'WorkflowActionBar screen=order_control hideWhenEmpty. Engine lists hold / resume / stop for the pinned current status.',
+        ],
       },
     },
 },
@@ -1117,6 +1159,31 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           permissions: ['orders:transition'],
           requireAllPermissions: true,
         },
+        notes: [
+          'Remote booking drop-off banner only (draft + pending_dropoff). Received bags use WorkflowActionBar screen=new_order.',
+        ],
+      },
+      {
+        label: 'Available workflow actions',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/available-actions',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['WorkflowActionBar (new_order + order_control) on full order details.'],
+      },
+      {
+        label: 'Execute workflow action',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/actions',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'WorkflowActionBar executeAction; Idempotency-Key required. Used for new_order and order_control.',
+        ],
       },
       {
         label: '[Id] Fix Order Data',
@@ -1185,6 +1252,28 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
       },
     ],
+    actions: {
+      newOrderActions: {
+        label: 'New order actions (screen new_order)',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'WorkflowActionBar screen=new_order hideWhenEmpty. Engine lists every new_order edge for the pinned current status.',
+        ],
+      },
+      orderControlActions: {
+        label: 'Order actions (screen order_control)',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'WorkflowActionBar screen=order_control hideWhenEmpty. Engine lists hold / resume / stop for the pinned current status.',
+        ],
+      },
+    },
 },
   {
     routePattern: '/dashboard/preparation',
@@ -2350,7 +2439,51 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/app/actions/orders/get-order',
         notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
       },
+      {
+        label: 'Available workflow actions',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/available-actions',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['WorkflowActionBar (new_order + order_control) on workspace Actions.'],
+      },
+      {
+        label: 'Execute workflow action',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/actions',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'WorkflowActionBar executeAction; Idempotency-Key required. Used for new_order and order_control.',
+        ],
+      },
     ],
+    actions: {
+      newOrderActions: {
+        label: 'New order actions (screen new_order)',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'WorkflowActionBar screen=new_order hideWhenEmpty. Engine lists every new_order edge for the pinned current status.',
+        ],
+      },
+      orderControlActions: {
+        label: 'Order actions (screen order_control)',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'WorkflowActionBar screen=order_control hideWhenEmpty. Engine lists hold / resume / stop for the pinned current status.',
+        ],
+      },
+    },
 },
 ];
 

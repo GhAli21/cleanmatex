@@ -1,5 +1,9 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-09-11 (5)
+
+- **Order details ActionBars + SIMPLE leftover retarget.** `OrderActions` and workspace Actions now mount both `WorkflowActionBar` `screen=new_order` (**New order actions**) and `screen=order_control` (**Order actions**), `hideWhenEmpty`. Engine lists each screen’s edges for the current status — no extra intake-only gate. Remote drop-off banner (`draft` + `pending_dropoff`) unchanged. Contract actions `newOrderActions` / `orderControlActions`. Migration `0501_wf_simple_intake_to_preparing.sql` (do not apply from agent): SIMPLE v4 PILOT `CONFIRM_PHYSICAL_INTAKE` `intake→preparing` and `CONFIRM_HOME_COLLECTION` `out_for_collection→preparing`. DB test lists leftover-intake `CONFIRM_PHYSICAL_INTAKE` on `new_order`.
+
 ## Unreleased — 2026-09-11 (4)
 
 - **SIMPLE v4 Check policy passed after HQ deploy.** `0499` added Preparation + quick-drop → `preparing`. `0500` put `preparing` on Overview `stage_sequence`. HQ `POS_QUICK_DROP` now allows `preparing`. Operator confirmed Check policy green on `WF_V2_SIMPLE` v4 PILOT. Remaining V1.0 operator work: quick-drop floor smoke (Preparation **Edit Order**).

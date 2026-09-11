@@ -93,7 +93,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 | V10x-S1 | Gate `parameters_json` JSON Schema | Evaluators already fail unknown | `gate_parameters_invalid` |
 | V10x-S2 | Nav from server workflow-context | Hide/disable Off modules using context, not a second client policy | Preview the same contract |
 | V10x-S3 | Submit-order error mapping | **Done 2026-09-03:** create `PROFILE_*` → 422 + `workflow.profileErrors`; runtime integrity stays 409 | — |
-| V10x-S4 | `intake → preparing` UI for received bags | **Closed as product 2026-09-11.** Quick-drop → `preparing`. Preparation details header **Edit Order** (`orders:update`). No `new_order` ActionBar. Remote drop-off banner stays `draft` + `pending_dropoff`. Tenant: `0499`+`0500` applied. `isOrderEditable` includes `preparing`. | HQ Check policy on SIMPLE v4 **passed** after HQ deploy |
+| V10x-S4 | `intake → preparing` UI for received bags | **Reopened 2026-09-11 then shipped UI.** Order details + workspace Actions: `WorkflowActionBar` `new_order` **and** `order_control` (`hideWhenEmpty`). Quick-drop still → `preparing`. Remote drop-off banner stays `draft` + `pending_dropoff`. `0501` written for SIMPLE leftover edges → `preparing` (operator apply + Check policy). | After `0501`: re-run HQ Check policy on SIMPLE v4 |
 
 ### Could
 
@@ -280,7 +280,7 @@ Do **not** rebuild `/dashboard/settings/workflows/new` or `[id]/edit`.
 
 ## 10. Suggested near-term sequence (owners)
 
-1. **Operator:** quick-drop smoke (Preparation **Edit Order**). `0499`+`0500` applied; SIMPLE v4 Check policy passed after HQ deploy.
+1. **Operator:** apply `0501`, HQ Check policy on SIMPLE v4, leftover-intake **New order actions** smoke, quick-drop smoke (Preparation **Edit Order**). `0499`+`0500` applied.
 2. **HQ docs:** `lwpr-hq-docs-final` + soak.
 3. **V1.0.x (not V1.0 blockers):** 46 planned Check-policy codes ([05](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md)); open-order migrate (V10x-M3).
 4. **Product:** V1.1 returns + work groups after V1.0.x, not before.
