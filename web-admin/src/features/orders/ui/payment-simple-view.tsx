@@ -245,6 +245,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             </p>
             {methodsLoading ? (
               <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <p role="status" className="sr-only">
+                  {t('messages.calculating')}
+                </p>
                 <CmxSkeleton className="h-12 w-28" />
                 <CmxSkeleton className="h-12 w-28" />
               </div>
@@ -568,14 +571,18 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             <span className="text-sm font-bold text-slate-900">
               {t('mode.simpleView.change')}
             </span>
-            <span
-              data-testid="payment-simple-change"
-              className={`text-2xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${
-                displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'
-              }`}
-            >
-              {currencyCode} {formatAmount(displayChangeAmount)}
-            </span>
+            {totalsLoading ? (
+              <CmxSkeleton className="h-8 w-24" />
+            ) : (
+              <span
+                data-testid="payment-simple-change"
+                className={`text-2xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${
+                  displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'
+                }`}
+              >
+                {currencyCode} {formatAmount(displayChangeAmount)}
+              </span>
+            )}
           </div>
           <p
             data-testid="payment-simple-status"

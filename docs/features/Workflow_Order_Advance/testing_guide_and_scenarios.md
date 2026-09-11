@@ -376,4 +376,4 @@ npx jest __tests__/lib/workflow/order-control-transition.test.ts __tests__/servi
 | H3 | Hold from preparing / ready | resume restores the exact prior status | Jest |
 | H4 | Nested hold / terminal / draft | reject; do not overwrite `hold_from_status` | Jest |
 
-Floor smoke (**0486 applied**): on a live profile that owns the status, ActionBar Hold from `preparing` and `ready` must appear, then Resume must restore that same status.
+Floor smoke (**0486 applied**): **operator confirmed done 2026-09-11.** ActionBar Hold from `preparing`/`ready` and Resume restoring the prior status are no longer waiting.

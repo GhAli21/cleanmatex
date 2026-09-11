@@ -1139,3 +1139,124 @@ export function deriveSimpleModeMethodOptions<T extends SimpleModeMethodOptionLi
   ];
   return cashFirst.slice(0, SIMPLE_MODE_METHOD_CHIP_LIMIT);
 }
+
+/**
+ * Inputs that decide whether the first `/preview-payment` call is allowed.
+ * Waiting here prevents a throwaway preview with empty tax-profile ids / no
+ * CSRF, which used to paint a first total and then replace it a moment later.
+ */
+export interface ShouldFetchPaymentPreviewParams {
+  open: boolean;
+  itemsCount: number;
+  tenantOrgId: string;
+  taxProfilesReady: boolean;
+  csrfReady: boolean;
+}
+
+/**
+ * True only when a preview request would use the same tax + CSRF context as
+ * the cashier-visible total (no first-pass / second-pass flicker).
+ *
+ * @param params - {@link ShouldFetchPaymentPreviewParams}.
+ * @returns Whether `fetchPreview` should run.
+ */
+export function shouldFetchPaymentPreview(
+  params: ShouldFetchPaymentPreviewParams
+): boolean {
+  return (
+    params.open &&
+    params.itemsCount > 0 &&
+    params.tenantOrgId.length > 0 &&
+    params.taxProfilesReady &&
+    params.csrfReady
+  );
+}
+
+/**
+ * Inputs that decide whether checkout-options may load.
+ * Method chips are amount-eligible; fetching them against the cart subtotal
+ * and then again against the server sale total is what made chips appear,
+ * vanish, and reappear.
+ */
+export interface ShouldEnableCheckoutOptionsParams {
+  open: boolean;
+  itemsCount: number;
+  hasServerTotals: boolean;
+}
+
+/**
+ * Hold checkout-options until the server sale total exists so method
+ * eligibility and suggested cash amounts are not computed twice.
+ *
+ * @param params - {@link ShouldEnableCheckoutOptionsParams}.
+ * @returns Whether the checkout-options query should run.
+ */
+export function shouldEnableCheckoutOptions(
+  params: ShouldEnableCheckoutOptionsParams
+): boolean {
+  if (!params.open) return false;
+  if (params.itemsCount > 0 && !params.hasServerTotals) return false;
+  return true;
+}
+
+/**
+ * Inputs for the cashier-facing "ready to click" gate. Submit, method chips,
+ * and quick actions must share this so a fast click cannot land on the first
+ * incomplete paint.
+ */
+export interface PaymentSurfaceHydratedParams {
+  parentLoading: boolean;
+  totalsLoading: boolean;
+  hasServerTotals: boolean;
+  itemsCount: number;
+  checkoutMethodsLoading: boolean;
+  currencyConfigReady: boolean;
+}
+
+/**
+ * True when totals, method catalog, and currency are all in — the first
+ * interactive paint. `totalsLoading` stays in the submit gate so a later
+ * discount-driven preview cannot be submitted mid-refresh.
+ *
+ * @param params - {@link PaymentSurfaceHydratedParams}.
+ * @returns Whether cashiers may click methods / submit.
+ */
+export function isPaymentSurfaceHydrated(
+  params: PaymentSurfaceHydratedParams
+): boolean {
+  if (params.parentLoading) return false;
+  if (params.totalsLoading) return false;
+  if (params.itemsCount > 0 && !params.hasServerTotals) return false;
+  if (params.checkoutMethodsLoading) return false;
+  if (!params.currencyConfigReady) return false;
+  return true;
+}
+
+/**
+ * Inputs for the initial-load overlay. Distinct from submit-busy: a later
+ * discount preview must not freeze the whole modal, but a failed first
+ * preview must not keep a spinner up with no Retry.
+ */
+export interface PaymentSurfacePendingParams {
+  checkoutMethodsLoading: boolean;
+  hasServerTotals: boolean;
+  itemsCount: number;
+  currencyConfigReady: boolean;
+  previewFailed: boolean;
+}
+
+/**
+ * True while the first complete payment paint is still in flight.
+ * Returns false on preview failure so the overlay can switch to Retry.
+ *
+ * @param params - {@link PaymentSurfacePendingParams}.
+ * @returns Whether the hydrate overlay should show a spinner.
+ */
+export function isPaymentSurfacePending(
+  params: PaymentSurfacePendingParams
+): boolean {
+  if (params.previewFailed) return false;
+  if (!params.currencyConfigReady) return true;
+  if (params.itemsCount > 0 && !params.hasServerTotals) return true;
+  return params.checkoutMethodsLoading;
+}

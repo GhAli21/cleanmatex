@@ -323,6 +323,12 @@
       "yes": "نعم",
       "no": "لا",
       "fields": {
+        "state_version": "إصدار حالة سير العمل",
+        "workflow_profile_name": "ملف سير العمل",
+        "wf_profile_id": "معرف ملف سير العمل",
+        "wf_version_no": "رقم إصدار سير العمل",
+        "wf_profile_revision": "مراجعة ملف سير العمل",
+        "wf_profile_version_id": "معرف إصدار ملف سير العمل",
         "status": "حالة الطلب",
         "current_status": "حالة سير العمل الحالية",
         "current_stage": "مرحلة سير العمل الحالية",

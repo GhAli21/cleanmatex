@@ -71,7 +71,10 @@ import {
   getRemainingToAllocate,
   getSuggestedDefaultLegAmount,
   getSuggestedStoredValueAmount,
+  isPaymentSurfaceHydrated,
+  isPaymentSurfacePending,
   parseDecimalDraft,
+  shouldEnableCheckoutOptions,
   validateCheckDueDate,
   legHasRequiredPaymentReference,
   wasPaymentLegAmountCapped,
@@ -187,6 +190,11 @@ export interface UsePaymentEngineParams {
   defaultOutstandingPolicy: OutstandingPolicy;
   isRTL: boolean;
   csrfToken: string | null | undefined;
+  /**
+   * False while the shell CSRF token is still resolving. Preview waits so the
+   * first POST is not retried when the token arrives a tick later.
+   */
+  csrfReady?: boolean;
   setValue: UseFormSetValue<PaymentFormData>;
   errors: FieldErrors<PaymentFormData>;
   paymentMethod: PaymentFormData['paymentMethod'];
@@ -243,6 +251,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     defaultOutstandingPolicy,
     isRTL,
     csrfToken,
+    csrfReady = true,
     setValue,
     errors,
     paymentMethod,
@@ -335,6 +344,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     appliedGiftCard,
     decimalPlaces,
     csrfToken,
+    csrfReady,
     t,
   });
   const {
@@ -347,6 +357,8 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     profilesTaxAmount,
     checkoutEligibilityAmount,
     roundingAdjustmentAmount,
+    previewFailed,
+    refetchPreview,
   } = totals;
 
   // Read-only payment catalog: card brands, branch terminals, and checkout
@@ -354,6 +366,11 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
   // resolver. Extracted to use-payment-catalog (Phase 2A); behavior-frozen.
   const catalog = usePaymentCatalog({
     open,
+    checkoutOptionsEnabled: shouldEnableCheckoutOptions({
+      open,
+      itemsCount: items.length,
+      hasServerTotals: serverTotals != null,
+    }),
     tenantOrgId,
     branchId,
     customerId,
@@ -630,6 +647,9 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
 
   const handleMethodSelect = useCallback(
     (option: CheckoutSettlementOption) => {
+      if (items.length > 0 && !serverTotals) {
+        return;
+      }
       const existingIndex = paymentLegs.findIndex(
         (leg) =>
           leg.method === option.payment_method_code &&
@@ -666,10 +686,12 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       decimalPlaces,
       focusAmountEditor,
       giftCardSettlementAmount,
+      items.length,
       paymentLegs,
+      saleTotal,
+      serverTotals,
       setActiveLegIndex,
       setValue,
-      saleTotal,
       tryAcceptNewPaymentLeg,
       upsertSettlementLeg,
     ]
@@ -677,6 +699,9 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
 
   const handleCustomerCreditSelect = useCallback(
     (option: CheckoutSettlementOption) => {
+      if (items.length > 0 && !serverTotals) {
+        return;
+      }
       if (option.payment_method_code === 'CREDIT_NOTE') {
         if (storedValueLoading) {
           cmxMessage.info(t('customerCredits.loadingBalance'));
@@ -726,10 +751,12 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       decimalPlaces,
       focusAmountEditor,
       giftCardSettlementAmount,
+      items.length,
       liveAdvanceBalance,
       liveWalletBalance,
       paymentLegs,
       saleTotal,
+      serverTotals,
       storedValueLoading,
       storedValueSummary?.creditNotes.length,
       t,
@@ -1370,7 +1397,22 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     walletLegExceedsLiveBalance,
   ]);
 
-  const submitBusy = loading || totalsLoading || (items.length > 0 && !serverTotals);
+  const paymentSurfaceReady = isPaymentSurfaceHydrated({
+    parentLoading: loading,
+    totalsLoading,
+    hasServerTotals: serverTotals != null,
+    itemsCount: items.length,
+    checkoutMethodsLoading,
+    currencyConfigReady: currencyConfig != null,
+  });
+  const submitBusy = !paymentSurfaceReady;
+  const methodsSurfaceLoading = isPaymentSurfacePending({
+    checkoutMethodsLoading,
+    hasServerTotals: serverTotals != null,
+    itemsCount: items.length,
+    currencyConfigReady: currencyConfig != null,
+    previewFailed,
+  });
   const submitHasBlockingIssues = validationItems.length > 0;
   const rightRailState: PaymentModalRightRailState = useMemo(
     () =>
@@ -1608,6 +1650,10 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     invalidImmediateAmount,
     appliedBadgeCount,
     validationItems,
+    paymentSurfaceReady,
+    methodsSurfaceLoading,
+    previewFailed,
+    refetchPreview,
     submitBusy,
     submitHasBlockingIssues,
     rightRailState,

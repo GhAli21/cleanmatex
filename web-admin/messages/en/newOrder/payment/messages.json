@@ -11,5 +11,8 @@
   "discardChanges": "You have unsaved payment changes. Close this modal and discard them?",
   "readyToSubmit": "Ready to submit",
   "validationErrors": "Please fix the following errors",
-  "totalsAdjusted": "Order total changed. Payment leg amounts were adjusted to match."
+  "totalsAdjusted": "Order total changed. Payment leg amounts were adjusted to match.",
+  "calculating": "Calculating payment totals...",
+  "loadFailedTitle": "Couldn't load payment",
+  "loadFailedDescription": "The payment screen did not finish loading. Retry before collecting payment."
 }

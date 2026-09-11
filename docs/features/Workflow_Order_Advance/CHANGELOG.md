@@ -2,7 +2,7 @@
 
 ## Unreleased — 2026-09-11 (3)
 
-- **HQ Studio Check policy on `WF_V2_FULL_PATH` v1 — operator confirmed done.** One real UI FULL_PATH order **done**. Delivery route UI smoke **done**. No further Check policy or FULL_PATH/route-UI smoke waiting.
+- **HQ Studio Check policy on `WF_V2_FULL_PATH` v1 — operator confirmed done.** One real UI FULL_PATH order **done**. Delivery route UI smoke **done**. Collect-payment UI smoke on Ready **done**. Hold floor smoke H1–H4 **done**.
 
 ## Unreleased — 2026-09-11 (2)
 

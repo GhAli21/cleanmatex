@@ -5,6 +5,12 @@ import { CmxStatusBadge, type StatusBadgeVariant } from '@ui/feedback';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 
 type StatusFieldKey =
+  | 'state_version'
+  | 'workflow_profile_name'
+  | 'wf_profile_id'
+  | 'wf_version_no'
+  | 'wf_profile_revision'
+  | 'wf_profile_version_id'
   | 'status'
   | 'current_status'
   | 'current_stage'
@@ -46,6 +52,12 @@ interface StatusFieldDefinition {
 }
 
 const WORKFLOW_FIELDS: readonly StatusFieldDefinition[] = [
+  { key: 'workflow_profile_name' },
+  { key: 'wf_profile_id' },
+  { key: 'wf_profile_version_id' },
+  { key: 'wf_version_no' },
+  { key: 'wf_profile_revision' },
+  { key: 'state_version' },
   { key: 'status', kind: 'status' },
   { key: 'current_status', kind: 'status' },
   { key: 'current_stage', kind: 'status' },
@@ -127,7 +139,9 @@ export function OrderStatusLifecycleTab({ order, locale }: OrderStatusLifecycleT
   const t = useTranslations('orders.detail.financial.statusLifecycle');
 
   const renderValue = (field: StatusFieldDefinition) => {
-    const value = order[field.key];
+    const value = field.key === 'workflow_profile_name'
+      ? (locale === 'ar' ? order.workflow_profile_name2 ?? order.workflow_profile_name : order.workflow_profile_name)
+      : order[field.key];
     if (value === null || value === undefined || value === '') {
       return <span className="text-sm text-muted-foreground">{t('notAvailable')}</span>;
     }

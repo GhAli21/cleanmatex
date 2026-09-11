@@ -102,12 +102,9 @@ export interface CapabilityViewRendererProps {
   actionVariant?: CapabilityActionVariant;
   /** Dialog-opener arrangement. Defaults to wrapping row. */
   actionLayout?: CapabilityActionLayout;
+  /** When true, dialog openers are inert until the payment surface is hydrated. */
+  actionsDisabled?: boolean;
 }
-
-/**
- * Generic dialog-opener button for a dialog slot. Internal to the renderer — not
- * a shared primitive until a second consumer exists.
- */
 function CapabilityActionButton({
   slot,
   label,
@@ -118,6 +115,7 @@ function CapabilityActionButton({
   variant,
   isActive,
   isApplied,
+  disabled,
   onOpen,
 }: {
   slot: CapabilityViewSlot;
@@ -129,6 +127,7 @@ function CapabilityActionButton({
   variant: CapabilityActionVariant;
   isActive: boolean;
   isApplied: boolean;
+  disabled?: boolean;
   onOpen: () => void;
 }) {
   const { evaluated } = slot;
@@ -170,6 +169,7 @@ function CapabilityActionButton({
         type="button"
         variant={evaluated.required || isActive ? 'primary' : 'outline'}
         size="md"
+        disabled={disabled}
         onClick={onOpen}
         aria-haspopup="dialog"
         aria-pressed={isActive}
@@ -206,11 +206,12 @@ function CapabilityActionButton({
       ? 'border-teal-300 bg-teal-50/60 text-teal-900'
       : '';
 
-  return (
+    return (
     <CmxButton
       type="button"
       variant={evaluated.required || isActive ? 'primary' : 'outline'}
       size="sm"
+      disabled={disabled}
       onClick={onOpen}
       aria-haspopup="dialog"
       aria-pressed={isActive}
@@ -252,6 +253,7 @@ export function CapabilityViewRenderer({
   className,
   actionVariant = 'chip',
   actionLayout = 'wrap',
+  actionsDisabled = false,
 }: CapabilityViewRendererProps) {
   const inlineSlots = selectInlineSlots(plan);
   const dialogSlots = selectDialogSlots(plan);
@@ -308,6 +310,7 @@ export function CapabilityViewRenderer({
               variant={actionVariant}
               isActive={isActionActive?.(slot) === true}
               isApplied={isActionApplied?.(slot) === true}
+              disabled={actionsDisabled}
               onOpen={() => onOpenCapability(slot)}
             />
           ))}

@@ -152,7 +152,7 @@ import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { CmxMoneyField } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
-import { CmxSkeleton } from '@ui/primitives';
+import { CmxSkeleton, CmxSpinner } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
 import { CmxKeypad, KEYPAD_PAYMENT_4COL, PAYMENT_KEY_VARIANT, PAYMENT_KEY_CLASS } from '@ui/utilities';
 import {
@@ -281,6 +281,8 @@ interface PaymentFullViewProps {
   currencyConfig: PaymentEngineCurrencyConfig | null;
   /** CSRF token obtained by the shell's useCSRFToken. */
   csrfToken: string | null | undefined;
+  /** False while the shell CSRF token is still resolving. */
+  csrfReady?: boolean;
   // ---- order context ----
   open: boolean;
   items: PaymentEngineItem[];
@@ -330,6 +332,7 @@ export function PaymentFullView({
   isB2BCustomer,
   currencyConfig,
   csrfToken,
+  csrfReady = true,
   open,
   items,
   orderServicePrefs,
@@ -539,6 +542,7 @@ export function PaymentFullView({
     defaultOutstandingPolicy,
     isRTL,
     csrfToken,
+    csrfReady,
     setValue,
     errors,
     paymentMethod,
@@ -637,6 +641,10 @@ export function PaymentFullView({
     invalidImmediateAmount,
     appliedBadgeCount,
     validationItems,
+    paymentSurfaceReady,
+    methodsSurfaceLoading,
+    previewFailed,
+    refetchPreview,
     submitBusy,
     submitHasBlockingIssues,
     rightRailState,
@@ -656,6 +664,8 @@ export function PaymentFullView({
     cycleActiveLeg,
     fillLegRemaining,
   } = engine;
+
+  const paymentSurfaceLocked = methodsSurfaceLoading || previewFailed;
 
   // Re-destructure the grouped slices into the modal's local names (JSX unchanged).
   const {
@@ -777,8 +787,9 @@ export function PaymentFullView({
    * (engine state survives) — the modal never refuses the return or locks Simple.
    */
   const handleModeChange = useCallback((nextMode: PaymentModalMode) => {
+    if (methodsSurfaceLoading || previewFailed) return;
     setMode(nextMode);
-  }, []);
+  }, [methodsSurfaceLoading, previewFailed]);
 
   // Preserve focus across face switches: when the previously-focused control
   // unmounted with the old face, land on the shared amount editor (both faces
@@ -1921,6 +1932,7 @@ export function PaymentFullView({
 
   const handlePayExtraIntentAttempt = useCallback(
     (next: boolean) => {
+      if (methodsSurfaceLoading || previewFailed) return;
       attemptPayExtraIntentChange({
         next,
         current: payExtraIntent,
@@ -1947,6 +1959,8 @@ export function PaymentFullView({
       setPayExtraIntent,
       t,
       unresolvedOverpaymentAmount,
+      methodsSurfaceLoading,
+      previewFailed,
     ]
   );
 
@@ -2075,7 +2089,7 @@ export function PaymentFullView({
   // Initial focus (polish): place focus on the amount editor when the modal
   // opens with an editable leg, instead of the focus trap's first tabbable.
   useEffect(() => {
-    if (!open) return;
+    if (!open || methodsSurfaceLoading || previewFailed) return;
     const timer = window.setTimeout(() => {
       if (amountInputRef.current && !amountInputRef.current.disabled) {
         amountInputRef.current.focus();
@@ -2083,11 +2097,11 @@ export function PaymentFullView({
       }
     }, 150);
     return () => window.clearTimeout(timer);
-  }, [open]);
+  }, [open, methodsSurfaceLoading, previewFailed]);
 
   const onSubmitForm = (data: PaymentFormData) => {
-    if (totalsLoading) {
-      cmxMessage.info(t('calculating'));
+    if (!paymentSurfaceReady) {
+      cmxMessage.info(t('messages.calculating'));
       return;
     }
 
@@ -2310,6 +2324,7 @@ export function PaymentFullView({
                   fullLabel={t('mode.advanced')}
                   groupLabel={t('mode.toggleLabel')}
                   isRTL={isRTL}
+                  disabled={paymentSurfaceLocked}
                 />
                 <CmxButton type="button" variant="ghost" size="sm" onClick={closeWithGuard} aria-label={tCommon('close')}>
                   <X className="h-5 w-5" />
@@ -2320,11 +2335,13 @@ export function PaymentFullView({
             <PayExtraTopStrip
               checked={payExtraIntent}
               onAttemptChange={handlePayExtraIntentAttempt}
-              disabled={!canEnablePayExtra}
+              disabled={paymentSurfaceLocked || !canEnablePayExtra}
               disabledReason={
-                !checkoutMethodsLoading && !canEnablePayExtra
-                  ? t('payExtraIntent.disabledNoMethods')
-                  : undefined
+                paymentSurfaceLocked
+                  ? t('messages.calculating')
+                  : !checkoutMethodsLoading && !canEnablePayExtra
+                    ? t('payExtraIntent.disabledNoMethods')
+                    : undefined
               }
               ariaDisabled={payExtraStripAriaDisabled}
               isRTL={isRTL}
@@ -2498,17 +2515,22 @@ export function PaymentFullView({
             <form
               onSubmit={(event) => event.preventDefault()}
               className="flex min-h-0 flex-1 flex-col"
+              aria-busy={paymentSurfaceLocked || submitBusy}
             >
-              <div className="flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4">
+              <div className="relative flex min-h-0 flex-1 flex-col">
+              <div
+                className="flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4"
+                inert={paymentSurfaceLocked || undefined}
+              >
               {mode === PAYMENT_MODAL_MODE.SIMPLE ? (
                 <PaymentSimpleView
                   currencyCode={currencyCode}
                   decimalPlaces={decimalPlaces}
                   formatAmount={formatAmount}
                   moneyEpsilon={moneyEpsilon}
-                  totalsLoading={totalsLoading}
+                  totalsLoading={totalsLoading || (items.length > 0 && !serverTotals)}
                   submitBusy={submitBusy}
-                  methodsLoading={checkoutMethodsLoading}
+                  methodsLoading={methodsSurfaceLoading}
                   methodOptions={simpleMethodOptions}
                   paymentLegs={paymentLegs}
                   activeLeg={simpleFaceActiveLeg}
@@ -2516,7 +2538,7 @@ export function PaymentFullView({
                   getOptionDisplayName={getCheckoutOptionDisplayName}
                   onMethodSelect={handleMethodSelect}
                   onMoreOptions={handleSimpleMoreOptions}
-                  showDiscounts={showDiscountsCreditsSection}
+                  showDiscounts={showDiscountsCreditsSection && !methodsSurfaceLoading}
                   discountControl={control}
                   discountSetValue={setValue}
                   discountErrors={errors}
@@ -2574,7 +2596,9 @@ export function PaymentFullView({
                     taxes: t('orderValue.taxes'),
                     taxesHelp: t('orderValue.taxesHelp'),
                   }}
-                  orderValueBreakdownTaxLoading={totalsLoading && items.length > 0 && !serverTotals}
+                  orderValueBreakdownTaxLoading={
+                    totalsLoading || (items.length > 0 && !serverTotals)
+                  }
                   saleTotal={saleTotal}
                   amountAppliedToOrder={amountAppliedToOrder}
                   displayChangeAmount={displayChangeAmount}
@@ -2601,6 +2625,7 @@ export function PaymentFullView({
                             actionVariant="tile"
                             actionLayout="stack"
                             className="min-h-0 flex-1"
+                            actionsDisabled={paymentSurfaceLocked}
                             renderInline={() => null}
                             dialogButtonLabel={(slot) => t(`capabilities.${slot.key}.action`)}
                             dialogButtonIcon={(slot) => {
@@ -2699,7 +2724,7 @@ export function PaymentFullView({
                     <CmxCardContent className="space-y-3">
                       {/* Finding 1.9: three distinct states — loading (skeletons),
                           API failure (retry), genuinely-empty (guidance + settings link). */}
-                      {checkoutMethodsLoading ? (
+                      {methodsSurfaceLoading ? (
                         <div className="space-y-2">
                           <CmxSkeleton className="h-14 w-full" />
                           <CmxSkeleton className="h-14 w-full" />
@@ -4030,7 +4055,7 @@ export function PaymentFullView({
                                 <OrderValueBreakdownPanel
                                   model={orderValueBreakdownModel}
                                   isRTL={isRTL}
-                                  taxLoading={totalsLoading && items.length > 0 && !serverTotals}
+                                  taxLoading={totalsLoading || (items.length > 0 && !serverTotals)}
                                   labels={{
                                     grossValue: t('orderValue.grossValue'),
                                     grossValueHelp: t('orderValue.grossValueHelp'),
@@ -4557,6 +4582,42 @@ export function PaymentFullView({
               </div>
               )}
             </div>
+              {methodsSurfaceLoading || previewFailed ? (
+                <div
+                  data-testid="payment-surface-loading"
+                  className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[rgb(var(--cmx-background-rgb,248_250_252))]/90 px-6"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {previewFailed ? (
+                    <CmxEmptyState
+                      icon={<CircleAlert className="h-8 w-8 text-rose-500" />}
+                      title={t('messages.loadFailedTitle')}
+                      description={t('messages.loadFailedDescription')}
+                      action={
+                        <CmxButton
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void refetchPreview()}
+                          className="min-h-[44px] rounded-xl"
+                        >
+                          <RefreshCw className="me-2 h-4 w-4" />
+                          {tCommon('retry')}
+                        </CmxButton>
+                      }
+                    />
+                  ) : (
+                    <>
+                      <CmxSpinner size="lg" className="text-teal-700" aria-hidden />
+                      <p className="text-sm font-medium text-slate-700">
+                        {t('messages.calculating')}
+                      </p>
+                    </>
+                  )}
+                </div>
+              ) : null}
+              </div>
 
               <CmxDialogFooter className="flex-col items-stretch gap-2 border-t border-slate-200 bg-white">
                 {/* Phase 6 docked bar: Final Total + Change stay visible beside
@@ -4578,6 +4639,7 @@ export function PaymentFullView({
                       size="sm"
                       data-testid="payment-rail-toggle"
                       onClick={() => setRailOpen(true)}
+                      disabled={paymentSurfaceLocked}
                       className="min-h-[44px] shrink-0 rounded-xl border-slate-300 text-slate-700"
                     >
                       {t('sections.receiptBrain')}
@@ -4625,7 +4687,7 @@ export function PaymentFullView({
                   !overpaymentResolutionPayload ? (
                     <PaymentValidateButton
                       onClick={runValidatePayment}
-                      disabled={!canEnablePayExtra}
+                      disabled={paymentSurfaceLocked || !canEnablePayExtra}
                       isRTL={isRTL}
                       className="flex-1"
                     />

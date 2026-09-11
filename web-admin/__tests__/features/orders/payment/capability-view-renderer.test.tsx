@@ -174,4 +174,26 @@ describe('CapabilityViewRenderer', () => {
     expect(screen.queryByTestId('capability-view-guards')).not.toBeInTheDocument();
     expect(screen.getByTestId('capability-view-actions')).toBeInTheDocument();
   });
+
+  it('disables dialog openers while the payment surface is hydrating', () => {
+    const onOpen = jest.fn();
+    const plan = planCapabilityView(
+      [evaluated(PAYMENT_CAPABILITY.SPLIT_TENDER, { presentation: 'dialog' })],
+      FULL_PRESET,
+    );
+    render(
+      <CapabilityViewRenderer
+        plan={plan}
+        renderInline={noopRender}
+        dialogButtonLabel={labelFor}
+        onOpenCapability={onOpen}
+        resolveGuard={noGuard}
+        actionsDisabled
+      />,
+    );
+    const opener = screen.getByTestId('capability-action-SPLIT_TENDER');
+    expect(opener).toBeDisabled();
+    fireEvent.click(opener);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
 });

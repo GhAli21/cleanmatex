@@ -27,7 +27,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { OrgCardBrandConfig } from '@/lib/types/payment';
 
@@ -117,6 +117,11 @@ export type PaymentTerminalOption = {
 export interface UsePaymentCatalogParams {
   /** Gates every query; matches the modal `open` flag. */
   open: boolean;
+  /**
+   * Hold checkout-options until the server sale total exists. Brands/terminals
+   * still load on `open` so they overlap the preview instead of chaining after it.
+   */
+  checkoutOptionsEnabled?: boolean;
   tenantOrgId: string;
   branchId?: string;
   customerId?: string;
@@ -135,6 +140,7 @@ export interface UsePaymentCatalogParams {
  *
  * @param params - {@link UsePaymentCatalogParams}.
  * @param params.open - Gates every query; matches the modal `open` flag.
+ * @param params.checkoutOptionsEnabled - Hold checkout-options until the server sale total exists.
  * @param params.tenantOrgId - Active tenant org id.
  * @param params.branchId - Active branch id (filters terminals + checkout options).
  * @param params.customerId - Active customer id (scopes checkout options).
@@ -146,6 +152,7 @@ export interface UsePaymentCatalogParams {
  */
 export function usePaymentCatalog({
   open,
+  checkoutOptionsEnabled = true,
   tenantOrgId,
   branchId,
   customerId,
@@ -204,7 +211,8 @@ export function usePaymentCatalog({
       const json = await res.json();
       return (json.data ?? { paymentMethods: [], customerCredits: [] }) as CheckoutOptionsResponse;
     },
-    enabled: open,
+    enabled: open && checkoutOptionsEnabled,
+    placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
 

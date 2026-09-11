@@ -28,6 +28,10 @@ import {
   wasPaymentLegAmountCapped,
   getStoredValueCapForLeg,
   canReturnChangeFromAllCashLegs,
+  shouldFetchPaymentPreview,
+  shouldEnableCheckoutOptions,
+  isPaymentSurfaceHydrated,
+  isPaymentSurfacePending,
 } from '@features/orders/ui/payment-modal-v4.utils';
 import {
   resolvePaymentOverpaymentPolicy,
@@ -321,5 +325,64 @@ describe('payment-modal-v4 utils', () => {
     expect(parseGatewayReturnState('not json')).toBeNull();
     expect(parseGatewayReturnState('[1,2,3]')).toBeNull(); // arrays rejected
     expect(parseGatewayReturnState('"plain string"')).toBeNull(); // primitives rejected
+  });
+
+  it('holds preview until tax profiles and CSRF are ready', () => {
+    const ready = {
+      open: true,
+      itemsCount: 1,
+      tenantOrgId: 'tenant-1',
+      taxProfilesReady: true,
+      csrfReady: true,
+    };
+    expect(shouldFetchPaymentPreview(ready)).toBe(true);
+    expect(shouldFetchPaymentPreview({ ...ready, taxProfilesReady: false })).toBe(false);
+    expect(shouldFetchPaymentPreview({ ...ready, csrfReady: false })).toBe(false);
+    expect(shouldFetchPaymentPreview({ ...ready, itemsCount: 0 })).toBe(false);
+    expect(shouldFetchPaymentPreview({ ...ready, open: false })).toBe(false);
+  });
+
+  it('holds checkout-options until the server sale total exists', () => {
+    expect(
+      shouldEnableCheckoutOptions({ open: true, itemsCount: 1, hasServerTotals: false })
+    ).toBe(false);
+    expect(
+      shouldEnableCheckoutOptions({ open: true, itemsCount: 1, hasServerTotals: true })
+    ).toBe(true);
+    expect(
+      shouldEnableCheckoutOptions({ open: false, itemsCount: 1, hasServerTotals: true })
+    ).toBe(false);
+  });
+
+  it('blocks cashier clicks until totals, methods, and currency are hydrated', () => {
+    const ready = {
+      parentLoading: false,
+      totalsLoading: false,
+      hasServerTotals: true,
+      itemsCount: 1,
+      checkoutMethodsLoading: false,
+      currencyConfigReady: true,
+    };
+    expect(isPaymentSurfaceHydrated(ready)).toBe(true);
+    expect(isPaymentSurfaceHydrated({ ...ready, totalsLoading: true })).toBe(false);
+    expect(isPaymentSurfaceHydrated({ ...ready, hasServerTotals: false })).toBe(false);
+    expect(isPaymentSurfaceHydrated({ ...ready, checkoutMethodsLoading: true })).toBe(false);
+    expect(isPaymentSurfaceHydrated({ ...ready, currencyConfigReady: false })).toBe(false);
+  });
+
+  it('keeps the hydrate overlay up until totals and methods are in, then drops it on preview failure', () => {
+    const pending = {
+      checkoutMethodsLoading: false,
+      hasServerTotals: false,
+      itemsCount: 1,
+      currencyConfigReady: true,
+      previewFailed: false,
+    };
+    expect(isPaymentSurfacePending(pending)).toBe(true);
+    expect(isPaymentSurfacePending({ ...pending, hasServerTotals: true })).toBe(false);
+    expect(isPaymentSurfacePending({ ...pending, previewFailed: true })).toBe(false);
+    expect(
+      isPaymentSurfacePending({ ...pending, hasServerTotals: true, checkoutMethodsLoading: true })
+    ).toBe(true);
   });
 });

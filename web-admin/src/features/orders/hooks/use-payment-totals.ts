@@ -32,6 +32,7 @@ import { getTaxProfilesAction } from '@/app/actions/settings/tax-actions';
 import { taxService } from '@/lib/services/tax.service';
 import { cmxMessage } from '@ui/feedback';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
+import { shouldFetchPaymentPreview } from '@features/orders/ui/payment-modal-v4.utils';
 import type { AppliedPromoCode, AppliedGiftCard } from './use-gift-card-and-promo';
 import type { OrderItemServicePref } from '../model/new-order-types';
 
@@ -137,7 +138,12 @@ export interface UsePaymentTotalsParams {
   appliedPromoCode: AppliedPromoCode | null;
   appliedGiftCard: AppliedGiftCard | null;
   decimalPlaces: number;
-  csrfToken: string | null;
+  csrfToken: string | null | undefined;
+  /**
+   * False while the shell's CSRF token is still resolving. Preview waits so
+   * the first POST is not retried when the token arrives a tick later.
+   */
+  csrfReady?: boolean;
   t: PaymentTotalsTranslate;
 }
 
@@ -160,6 +166,7 @@ export interface UsePaymentTotalsParams {
  * @param params.appliedGiftCard - Applied gift card (from useGiftCardAndPromo).
  * @param params.decimalPlaces - Currency decimal places for rounding.
  * @param params.csrfToken - CSRF token for the preview POST.
+ * @param params.csrfReady - False while the shell CSRF token is still resolving.
  * @param params.t - `newOrder.payment` translate function.
  * @returns Server totals, the resolved `totals`/`saleTotal`, tax breakdown, and
  *   `checkoutEligibilityAmount` (consumed by the catalog hook).
@@ -181,15 +188,23 @@ export function usePaymentTotals({
   appliedGiftCard,
   decimalPlaces,
   csrfToken,
+  csrfReady = true,
   t,
 }: UsePaymentTotalsParams) {
   // B15: no invented tax — 0 until the real rate loads; the server preview
   // (serverTotals) owns tax on every settlement path anyway.
   const [taxRate, setTaxRate] = useState<number>(0);
   const [taxProfileEntries, setTaxProfileEntries] = useState<TaxProfileEntry[]>([]);
+  const [taxProfilesReady, setTaxProfilesReady] = useState(false);
   const [serverTotals, setServerTotals] = useState<ServerTotals | null>(null);
   const [totalsLoading, setTotalsLoading] = useState(false);
+  const [previewFailed, setPreviewFailed] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const taxLoadGenRef = useRef(0);
+  const csrfTokenRef = useRef(csrfToken);
+  csrfTokenRef.current = csrfToken;
+  const hasServerTotalsRef = useRef(false);
+  hasServerTotalsRef.current = serverTotals != null;
   // Tracks the promo code that was sent in the last successful preview fetch.
   // When appliedPromoCode.code differs, serverTotals.promoDiscount is stale and
   // we fall back to the client-side validation amount to avoid a 0-flash.
@@ -203,6 +218,8 @@ export function usePaymentTotals({
     setPrevOpen(open);
     if (open) {
       setTaxProfileEntries([]);
+      setTaxProfilesReady(false);
+      setPreviewFailed(false);
     }
   }
 
@@ -213,45 +230,82 @@ export function usePaymentTotals({
     setServerTotals(null);
   }
 
-  // Load tax rate + default tax profiles on open. setState runs in promise
-  // callbacks (not flagged by set-state-in-effect).
+  // Load tax rate + default tax profiles on open. Preview is gated on
+  // `taxProfilesReady` so the first POST includes real profile ids instead of
+  // painting a throwaway total and refreshing when this fetch lands.
   useEffect(() => {
-    if (open && tenantOrgId) {
-      taxService.getTaxRate(tenantOrgId, branchId).then(rate => {
-        setTaxRate(rate);
-      }).catch(() => {
-        // B15: never assume a rate on failure — keep 0 (server preview wins).
-        setTaxRate(0);
-      });
-      getTaxProfilesAction().then(res => {
-        if (res.success && res.data) {
-          const defaultActive = res.data
-            .filter(p => p.is_default && p.is_active)
-            .sort((a, b) => a.tax_type.localeCompare(b.tax_type));
-          setTaxProfileEntries(defaultActive.map(p => ({
-            id: p.id,
-            name: p.name,
-            name2: p.name2,
-            tax_type: p.tax_type,
-            rate: Number(p.rate),
-            is_compound: p.is_compound,
-            enabled: true,
-          })));
-        }
-      }).catch(() => {
-        setTaxProfileEntries([]);
-      });
+    if (!open || !tenantOrgId) {
+      return;
     }
+    const gen = ++taxLoadGenRef.current;
+    let rateDone = false;
+    let profilesDone = false;
+    const markReadyIfSettled = () => {
+      if (gen !== taxLoadGenRef.current) return;
+      if (rateDone && profilesDone) {
+        setTaxProfilesReady(true);
+      }
+    };
+
+    taxService.getTaxRate(tenantOrgId, branchId).then(rate => {
+      if (gen !== taxLoadGenRef.current) return;
+      setTaxRate(rate);
+    }).catch(() => {
+      // B15: never assume a rate on failure — keep 0 (server preview wins).
+      if (gen !== taxLoadGenRef.current) return;
+      setTaxRate(0);
+    }).finally(() => {
+      rateDone = true;
+      markReadyIfSettled();
+    });
+    getTaxProfilesAction().then(res => {
+      if (gen !== taxLoadGenRef.current) return;
+      if (res.success && res.data) {
+        const defaultActive = res.data
+          .filter(p => p.is_default && p.is_active)
+          .sort((a, b) => a.tax_type.localeCompare(b.tax_type));
+        setTaxProfileEntries(defaultActive.map(p => ({
+          id: p.id,
+          name: p.name,
+          name2: p.name2,
+          tax_type: p.tax_type,
+          rate: Number(p.rate),
+          is_compound: p.is_compound,
+          enabled: true,
+        })));
+      }
+    }).catch(() => {
+      if (gen !== taxLoadGenRef.current) return;
+      setTaxProfileEntries([]);
+    }).finally(() => {
+      profilesDone = true;
+      markReadyIfSettled();
+    });
   }, [open, tenantOrgId, branchId]);
 
-  // Preview-payment fetch (debounced 300ms)
+  const previewReady = shouldFetchPaymentPreview({
+    open,
+    itemsCount: items.length,
+    tenantOrgId,
+    taxProfilesReady,
+    csrfReady,
+  });
+
+  // Preview-payment fetch (debounced 300ms after the first hydrated preview)
   const fetchPreview = useCallback(async () => {
-    if (!open || items.length === 0 || !tenantOrgId) return;
+    if (!shouldFetchPaymentPreview({
+      open,
+      itemsCount: items.length,
+      tenantOrgId,
+      taxProfilesReady,
+      csrfReady,
+    })) return;
+    setPreviewFailed(false);
     setTotalsLoading(true);
     try {
       const res = await fetch('/api/v1/orders/preview-payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getCSRFHeader(csrfToken) },
+        headers: { 'Content-Type': 'application/json', ...getCSRFHeader(csrfTokenRef.current) },
         credentials: 'include',
         body: JSON.stringify({
           items,
@@ -297,41 +351,48 @@ export function usePaymentTotals({
           chargesTotal: typeof d.chargesTotal === 'number' ? d.chargesTotal : 0,
           ...(d.creditLimit && { creditLimit: d.creditLimit }),
         });
-      } else if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
+        setPreviewFailed(false);
+      } else {
         setServerTotals(null);
-        cmxMessage.error(json.error ?? t('errors.productNotFound'));
-      } else if (!res.ok && json.error) {
-        setServerTotals(null);
-        const details = json.details as Array<{ path?: (string | number)[]; message?: string }> | undefined;
-        const msg =
-          details && Array.isArray(details) && details.length > 0
-            ? details.map((d) => {
-                const path = (d.path ?? []).join('.');
-                return path ? `${path}: ${d.message ?? ''}` : (d.message ?? '');
-              }).join('. ')
-            : (json.error as string);
-        cmxMessage.error(msg);
+        setPreviewFailed(true);
+        if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
+          cmxMessage.error(json.error ?? t('errors.productNotFound'));
+        } else if (!res.ok && json.error) {
+          const details = json.details as Array<{ path?: (string | number)[]; message?: string }> | undefined;
+          const msg =
+            details && Array.isArray(details) && details.length > 0
+              ? details.map((d) => {
+                  const path = (d.path ?? []).join('.');
+                  return path ? `${path}: ${d.message ?? ''}` : (d.message ?? '');
+                }).join('. ')
+              : (json.error as string);
+          cmxMessage.error(msg);
+        }
       }
     } catch {
       setServerTotals(null);
+      setPreviewFailed(true);
     } finally {
       setTotalsLoading(false);
     }
-  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, serviceCategories, taxProfileEntries, orderServicePrefs, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, appliedGiftCard?.id, csrfToken, t]);
+  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, serviceCategories, taxProfileEntries, taxProfilesReady, csrfReady, orderServicePrefs, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, appliedGiftCard?.id, t]);
 
   useEffect(() => {
-    if (!open || items.length === 0) {
+    if (!previewReady) {
       return;
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    // Read sale-total presence from a ref so completing the first preview
+    // does not immediately schedule a second one (serverTotals is not a dep).
+    const delayMs = hasServerTotalsRef.current ? 300 : 0;
     debounceRef.current = setTimeout(() => {
       fetchPreview();
       debounceRef.current = null;
-    }, 300);
+    }, delayMs);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [open, items, fetchPreview]);
+  }, [previewReady, items, fetchPreview]);
 
   const afterDiscountsForTax = useMemo(() => {
     if (serverTotals) return serverTotals.afterDiscounts;
@@ -468,5 +529,7 @@ export function usePaymentTotals({
     checkoutEligibilityAmount,
     isTaxInclusive,
     roundingAdjustmentAmount,
+    previewFailed,
+    refetchPreview: fetchPreview,
   };
 }

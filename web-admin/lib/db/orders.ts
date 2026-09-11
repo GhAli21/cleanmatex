@@ -19,6 +19,17 @@ import type {
   CompletePreparationInput,
 } from '@/types/order';
 import { generateOrderNumber } from '@/lib/utils/order-number-generator';
+
+/**
+ * Localized profile label attached to an immutable order workflow snapshot.
+ *
+ * The profile catalog remains global, while the owning order predicate keeps
+ * this read within the authenticated tenant boundary.
+ */
+type OrderWorkflowProfileLabelRow = {
+  workflow_profile_name: string | null;
+  workflow_profile_name2: string | null;
+};
 import { generateQRCode, generateBarcode } from '@/lib/utils/barcode-generator';
 import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-calculator';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
@@ -515,6 +526,18 @@ export async function getOrderById(
     return null;
   }
 
+  const workflowProfileLabel = await prisma.$queryRaw<OrderWorkflowProfileLabelRow[]>`
+    SELECT
+      profile_row.name AS workflow_profile_name,
+      profile_row.name2 AS workflow_profile_name2
+    FROM public.org_orders_mst AS order_row
+    LEFT JOIN public.sys_wf_profiles_cd AS profile_row
+      ON profile_row.profile_id = order_row.wf_profile_id
+    WHERE order_row.id = ${orderId}::uuid
+      AND order_row.tenant_org_id = ${tenantOrgId}::uuid
+    LIMIT 1
+  `;
+
   // Get customer data from org_customers_mst, fallback to sys_customers_mst if available
   const customerData = order.org_customers_mst?.sys_customers_mst || order.org_customers_mst;
 
@@ -527,6 +550,9 @@ export async function getOrderById(
     items: order.org_order_items_dtl,
     branch: order.org_branches_mst,
     order_source: order.sys_order_sources_cd,
+    // A pinned profile may be retired after ordering; retain its label for operational traceability.
+    workflow_profile_name: workflowProfileLabel[0]?.workflow_profile_name ?? null,
+    workflow_profile_name2: workflowProfileLabel[0]?.workflow_profile_name2 ?? null,
   } as unknown as OrderWithDetails;
 }
 

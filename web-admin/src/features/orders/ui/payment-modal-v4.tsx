@@ -134,7 +134,7 @@ export function PaymentModalV4({
       ? PAYMENT_METHODS.INVOICE
       : PAYMENT_METHODS.PAY_ON_COLLECTION;
 
-  const { token: csrfToken } = useCSRFToken();
+  const { token: csrfToken, loading: csrfLoading } = useCSRFToken();
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(
@@ -215,6 +215,7 @@ export function PaymentModalV4({
       isB2BCustomer={isB2BCustomer}
       currencyConfig={currencyConfig}
       csrfToken={csrfToken}
+      csrfReady={!csrfLoading}
       open={open}
       items={items}
       orderServicePrefs={orderServicePrefs}
