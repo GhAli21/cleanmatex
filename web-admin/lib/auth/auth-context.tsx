@@ -16,13 +16,13 @@ import {
   getUserWorkflowRoles,
 } from '@/lib/services/permission-service-client'
 import { fetchAuthData } from '@/lib/services/auth-data.service'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   getCachedPermissions,
   setCachedPermissions,
-  getCachedFeatureFlags,
-  setCachedFeatureFlags,
   invalidatePermissionCache,
 } from '@/lib/cache/permission-cache-client'
+import { removeAllFeatureFlagQueries } from '@/lib/query/feature-flag-keys'
 import type {
   AuthContextType,
   AuthUser,
@@ -43,6 +43,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   // State
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -313,7 +314,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       currentTenantRef.current = activeTenant
       // Cache everything
       setCachedPermissions(activeTenant.tenant_id, authData.permissions)
-      setCachedFeatureFlags(activeTenant.tenant_id, authData.featureFlags)
       setPermissions(authData.permissions)
       setWorkflowRoles(authData.workflowRoles)
 
@@ -412,6 +412,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setWorkflowRoles([])
       permissionsLoadedForTenantRef.current = null
       setIsTenantContextReady(true)
+      removeAllFeatureFlagQueries(queryClient)
 
       // Clear browser storage
       localStorage.removeItem('permissions_cache')
@@ -435,7 +436,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
       isSigningOutRef.current = false
     }
-  }, [router, user, currentTenant])
+  }, [router, user, currentTenant, queryClient])
 
   /**
    * Request password reset
@@ -616,6 +617,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Clear session UX log so prior tenant messages do not leak
       sessionActivityStore.clear()
+      removeAllFeatureFlagQueries(queryClient)
 
       // 8. Reload the page to ensure all queries use new tenant context
       window.location.reload()
@@ -625,7 +627,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }, [refreshPermissions])
+  }, [refreshPermissions, queryClient])
 
   /**
    * Update user profile
@@ -687,6 +689,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           permissionsLoadedForTenantRef.current = null
           setIsTenantContextReady(true)
           invalidatePermissionCache()
+          removeAllFeatureFlagQueries(queryClient)
           sessionStorage.clear()
           // Redirect to login with reason when session expired (not user-initiated)
           if (!isSigningOutRef.current) {
@@ -709,7 +712,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [initializeAuth]) // Removed currentTenant and refreshPermissions to prevent re-subscription loops
+  }, [initializeAuth, queryClient]) // Removed currentTenant and refreshPermissions to prevent re-subscription loops
 
   /**
    * Fetch tenants when user changes

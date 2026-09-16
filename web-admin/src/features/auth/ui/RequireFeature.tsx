@@ -1,16 +1,18 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect */
-// Before refactoring the feature flags.
+
 /**
  * RequireFeature Component
  *
- * Conditionally renders children based on feature flag availability
- * Integrates with subscription plan-based feature flags
+ * Conditionally renders children based on tenant-level feature flags.
+ * Reads the shared TanStack Query cache — does not fetch independently.
  */
 
-import { ReactNode, useEffect, useRef, useState } from 'react'
+import { ReactNode } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useFeatureFlagsQuery, useFeature, useFeatureOptional } from '@/lib/hooks/use-feature-flags'
 import type { FeatureFlagKey } from '@/lib/services/feature-flags.service'
+
+export { useFeature, useFeatureOptional }
 
 function FeatureGateSkeleton() {
   return (
@@ -24,31 +26,18 @@ function FeatureGateSkeleton() {
 interface RequireFeatureProps {
   feature: FeatureFlagKey | FeatureFlagKey[]
   fallback?: ReactNode
-  requireAll?: boolean // If multiple features, require all or any
+  requireAll?: boolean
   children: ReactNode
 }
 
 /**
- * Render children only if feature flag is enabled
+ * Render children only if the tenant feature flag is enabled.
  *
  * @param root0
- * @param root0.feature
- * @param root0.fallback
- * @param root0.requireAll
- * @param root0.children
- * @example
- * <RequireFeature feature={FEATURE_FLAG_KEYS.PDF_INVOICES}>
- *   <DownloadPDFButton />
- * </RequireFeature>
- *
- * @example
- * <RequireFeature
- *   feature={[FEATURE_FLAG_KEYS.PDF_INVOICES, FEATURE_FLAG_KEYS.PRINTING]}
- *   requireAll={false}
- *   fallback={<p>Upgrade to access this feature</p>}
- * >
- *   <InvoiceActions />
- * </RequireFeature>
+ * @param root0.feature - One flag or a list of flags
+ * @param root0.fallback - Rendered when the flag is off or the query fails
+ * @param root0.requireAll - When multiple flags, require all (default) or any
+ * @param root0.children - Gated content
  */
 export function RequireFeature({
   feature,
@@ -57,78 +46,22 @@ export function RequireFeature({
   children,
 }: RequireFeatureProps) {
   const { currentTenant, isLoading: authLoading, user, isTenantContextReady } = useAuth()
-  const [hasAccess, setHasAccess] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const lastResolvedKeyRef = useRef<string | null>(null)
+  const canQuery = Boolean(user) && !authLoading && isTenantContextReady && Boolean(currentTenant)
+  const { data: flags, isLoading, isError } = useFeatureFlagsQuery({ enabled: canQuery })
 
-  useEffect(() => {
-    async function checkFeatureAccess() {
-      if (authLoading) {
-        setIsLoading(true)
-        return
-      }
-
-      if (!user) {
-        lastResolvedKeyRef.current = null
-        setHasAccess(false)
-        setIsLoading(false)
-        return
-      }
-
-      if (!isTenantContextReady) {
-        setIsLoading(true)
-        return
-      }
-
-      if (!currentTenant) {
-        setHasAccess(false)
-        setIsLoading(false)
-        return
-      }
-
-      const featurePart = Array.isArray(feature)
-        ? [...feature].sort().join('|')
-        : feature
-      const resolveKey = `${currentTenant.tenant_id}:${featurePart}:${requireAll}`
-      const showBlockingLoad = lastResolvedKeyRef.current !== resolveKey
-      if (showBlockingLoad) {
-        setIsLoading(true)
-      }
-
-      try {
-        const res = await fetch('/api/feature-flags')
-        if (!res.ok) {
-          setHasAccess(false)
-          return
-        }
-        const flags = (await res.json()) as Record<string, boolean>
-
-        let nextAccess = false
-        if (Array.isArray(feature)) {
-          if (requireAll) {
-            nextAccess = feature.every((f) => flags[f] === true)
-          } else {
-            nextAccess = feature.some((f) => flags[f] === true)
-          }
-        } else {
-          nextAccess = flags[feature] === true
-        }
-        setHasAccess(nextAccess)
-        lastResolvedKeyRef.current = resolveKey
-      } catch (error) {
-        console.error('Error checking feature access:', error)
-        setHasAccess(false)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    void checkFeatureAccess()
-  }, [currentTenant, feature, requireAll, authLoading, user, isTenantContextReady])
-
-  if (authLoading || isLoading) {
+  if (authLoading || !isTenantContextReady || (canQuery && isLoading)) {
     return <FeatureGateSkeleton />
   }
+
+  if (!user || !currentTenant || isError || !flags) {
+    return <>{fallback}</>
+  }
+
+  const hasAccess = Array.isArray(feature)
+    ? requireAll
+      ? feature.every((flagKey) => flags[flagKey] === true)
+      : feature.some((flagKey) => flags[flagKey] === true)
+    : flags[feature] === true
 
   if (!hasAccess) {
     return <>{fallback}</>
@@ -138,15 +71,11 @@ export function RequireFeature({
 }
 
 /**
- * Render upgrade prompt for disabled feature
+ * Render upgrade prompt for a disabled feature.
  *
  * @param root0
  * @param root0.feature
  * @param root0.message
- * @example
- * <RequireFeature feature="advanced_analytics" fallback={<UpgradePrompt feature="advanced_analytics" />}>
- *   <AnalyticsDashboard />
- * </RequireFeature>
  */
 export function UpgradePrompt({
   feature,
@@ -190,7 +119,7 @@ export function UpgradePrompt({
           >
             <path
               fillRule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58 9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
               clipRule="evenodd"
             />
           </svg>
@@ -220,59 +149,4 @@ export function UpgradePrompt({
       </div>
     </div>
   )
-}
-
-/**
- * Hook to check feature availability (returns true when no flag specified)
- *
- * @param feature
- * @example
- * const canShow = useFeatureOptional(featureFlag) // true when featureFlag undefined
- * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
- */
-export function useFeatureOptional(feature: FeatureFlagKey | undefined): boolean {
-  const { currentTenant, isLoading: authLoading, user, isTenantContextReady } = useAuth()
-  const [hasAccess, setHasAccess] = useState(!feature)
-
-  useEffect(() => {
-    if (!feature) {
-      setHasAccess(true)
-      return
-    }
-    async function checkFeature() {
-      if (authLoading || !user || !isTenantContextReady || !currentTenant) {
-        setHasAccess(false)
-        return
-      }
-      try {
-        const res = await fetch('/api/feature-flags')
-        if (!res.ok) {
-          setHasAccess(false)
-          return
-        }
-        const flags = (await res.json()) as Record<string, boolean>
-        setHasAccess(flags[feature] === true)
-      } catch (error) {
-        console.error('Error checking feature access:', error)
-        setHasAccess(false)
-      }
-    }
-    void checkFeature()
-  }, [currentTenant, feature, authLoading, user, isTenantContextReady])
-
-  return hasAccess
-}
-
-/**
- * Hook to check feature availability
- *
- * @param feature
- * @example
- * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
- * if (canExportPDF) {
- *   // Show export button
- * }
- */
-export function useFeature(feature: FeatureFlagKey): boolean {
-  return useFeatureOptional(feature)
 }

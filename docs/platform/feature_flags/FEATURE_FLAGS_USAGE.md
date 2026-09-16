@@ -51,6 +51,12 @@ Where each feature flag is checked in the codebase. **All flags resolve via HQ s
 | File | Usage |
 |------|-------|
 | `web-admin/src/features/dashboard/ui/Widget.tsx` | `featureFlag?: FeatureFlagKey` — wired to `useFeatureOptional`; widget hidden when tenant lacks flag |
+| `web-admin/lib/hooks/use-feature-flags.ts` | Shared TanStack Query for `GET /api/feature-flags` (tenant-keyed) |
+| `web-admin/src/features/auth/ui/RequireFeature.tsx` | Gate + re-exports `useFeature` / `useFeatureOptional` |
+| `web-admin/src/ui/navigation/cmx-sidebar.tsx` | Consumes shared query for nav `featureFlag` filtering |
+| `web-admin/src/ui/navigation/permissions-inspector/cmx-permissions-inspector-panel.tsx` | Same query; refresh calls `invalidateTenantFeatureFlags` |
+
+Client consumption details: [docs/feature_flags](../../feature_flags/README.md).
 
 ## Flag-by-Flag Usage
 
@@ -82,3 +88,4 @@ Where each feature flag is checked in the codebase. **All flags resolve via HQ s
 - [FEATURE_FLAGS_REFERENCE](FEATURE_FLAGS_REFERENCE.md)
 - [NAVIGATION_FEATURE_FLAGS](NAVIGATION_FEATURE_FLAGS.md)
 - [TENANT_AND_PLAN_FLAGS](TENANT_AND_PLAN_FLAGS.md)
+- [Client query cache (web-admin)](../../feature_flags/README.md)

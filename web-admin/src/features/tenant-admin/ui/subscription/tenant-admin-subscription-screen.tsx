@@ -18,11 +18,16 @@ import type {
 import { useLocale } from 'next-intl';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/lib/auth/auth-context';
+import { invalidateTenantFeatureFlags } from '@/lib/query/feature-flag-keys';
 
 /**
  *
  */
 export function TenantAdminSubscriptionScreen() {
+  const queryClient = useQueryClient();
+  const { currentTenant } = useAuth();
   const [plans, setPlans] = useState<PlanComparison[]>([]);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -111,6 +116,7 @@ export function TenantAdminSubscriptionScreen() {
 
       setSuccess(`Successfully upgraded to ${selectedPlan.plan_name}!`);
       setShowUpgradeModal(false);
+      void invalidateTenantFeatureFlags(queryClient, currentTenant?.tenant_id);
 
       // Refresh data after 1 second
       setTimeout(() => {
@@ -160,6 +166,7 @@ export function TenantAdminSubscriptionScreen() {
 
       setSuccess('Subscription will be canceled at the end of the billing period');
       setShowCancelModal(false);
+      void invalidateTenantFeatureFlags(queryClient, currentTenant?.tenant_id);
 
       // Refresh data
       setTimeout(() => {

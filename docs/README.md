@@ -44,6 +44,8 @@ Current documentation areas include:
 - `features/` for feature folders, implementation notes, PRD-linked material, and status tracking
 - `plan/` for active roadmap and planning material
 - `plan_cr/` for older and overlapping PRD/planning content that still requires consolidation
+- `platform/` for permissions, settings, feature-flag catalogs, and inventories
+- `feature_flags/` for web-admin client query/cache architecture (TanStack Query; UX gating)
 - `dev/` for development workflows, migration notes, implementation aids, and troubleshooting
 - `api/` for API and backend-facing references
 - `config/` for configuration and environment guidance

@@ -73,7 +73,10 @@ export function setCachedPermissions(tenantId: string, permissions: string[]): v
 // ========================
 
 /**
- * Get cached feature flags for a tenant
+ * Get cached feature flags for a tenant.
+ * @deprecated Cleanup candidate — no longer used for active flag resolution.
+ * TanStack Query (`featureFlagKeys.tenant`) is the client source of truth.
+ * Do not use this for gating. Permission/navigation cache is unchanged.
  * @param tenantId - Tenant ID
  * @returns Cached feature flags or null if not found/invalid
  */
@@ -100,7 +103,8 @@ export function getCachedFeatureFlags(tenantId: string): Record<string, boolean>
 }
 
 /**
- * Cache feature flags for a tenant
+ * Cache feature flags for a tenant.
+ * @deprecated Cleanup candidate — no longer used for active flag resolution.
  * @param tenantId - Tenant ID
  * @param flags - Feature flags to cache
  */

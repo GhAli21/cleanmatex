@@ -109,7 +109,7 @@ Plan-specific values (e.g., max prefs per item). **For boolean flags:** set `pla
 
 **Resolution order (tenant flags):** override (`org_ff_overrides_cf`) → plan-specific (`sys_ff_pln_flag_mappings_dtl`) → plan (`enabled_plan_codes`) → default.
 
-**Cache:** `getFeatureFlags()` caches results for 5 minutes. Call `invalidateCache(tenantId)` after updates.
+**Cache:** Server `getFeatureFlags()` caches results for 5 minutes in-process. Call `invalidateCache(tenantId)` after updates. web-admin UX uses a separate TanStack Query cache — see [docs/feature_flags](../../feature_flags/README.md).
 
 ## See Also
 
@@ -117,3 +117,4 @@ Plan-specific values (e.g., max prefs per item). **For boolean flags:** set `pla
 - [NAVIGATION_FEATURE_FLAGS](NAVIGATION_FEATURE_FLAGS.md)
 - [TENANT_AND_PLAN_FLAGS](TENANT_AND_PLAN_FLAGS.md)
 - [PLAN_FLAGS_IMPLEMENTATION](PLAN_FLAGS_IMPLEMENTATION.md)
+- [Client query cache](../../feature_flags/README.md)

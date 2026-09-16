@@ -281,8 +281,10 @@ export async function requireFeature(
 // ========================
 
 /**
- * Update feature flags for a tenant (admin override)
- * Writes to org_ff_overrides_cf; HQ RPC picks these up with highest priority
+ * Update feature flags for a tenant (admin override).
+ * Writes to org_ff_overrides_cf; HQ RPC picks these up with highest priority.
+ * Any UI that calls this MUST also `invalidateTenantFeatureFlags(queryClient, tenantId)`.
+ * There is currently no tenant-app mutation route wired to this function.
  * @param tenantId - Tenant ID
  * @param flags - Partial feature flags to update
  * @returns Updated feature flags

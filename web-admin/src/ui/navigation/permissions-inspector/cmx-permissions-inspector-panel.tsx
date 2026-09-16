@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { ShieldCheck, Check, X, RefreshCw, GripHorizontal } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import {
@@ -18,6 +18,8 @@ import { getAllPageAccessContracts, getPageAccessContractByPath } from '@feature
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { useDraggablePanel } from '@/lib/hooks/useDraggablePanel'
 import { HELP_PERMISSIONS } from '@/lib/constants/permissions/help'
+import { useFeatureFlagsQuery } from '@/lib/hooks/use-feature-flags'
+import { invalidateTenantFeatureFlags } from '@/lib/query/feature-flag-keys'
 import { CmxInput } from '@ui/primitives'
 import type { PermissionsInspectorTab } from './permissions-inspector-types'
 
@@ -188,23 +190,15 @@ export function CmxPermissionsInspectorPanel({
     try {
       await Promise.all([
         refreshPermissions(),
-        queryClient.invalidateQueries({ queryKey: ['feature-flags', currentTenant?.tenant_id] }),
+        invalidateTenantFeatureFlags(queryClient, currentTenant?.tenant_id),
       ])
     } finally {
       setIsRefreshing(false)
     }
   }
 
-  const { data: featureFlags = {} } = useQuery({
-    queryKey: ['feature-flags', currentTenant?.tenant_id],
-    queryFn: async () => {
-      const response = await fetch('/api/feature-flags')
-      if (!response.ok) {
-        throw new Error('Failed to fetch feature flags')
-      }
-      return (await response.json()) as Record<string, boolean>
-    },
-    enabled: !!currentTenant?.tenant_id && open,
+  const { data: featureFlags = {} } = useFeatureFlagsQuery({
+    enabled: open,
   })
 
   const currentPageContract = getPageAccessContractByPath(effectivePath)

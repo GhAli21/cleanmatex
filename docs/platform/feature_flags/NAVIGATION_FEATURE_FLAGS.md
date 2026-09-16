@@ -56,8 +56,11 @@ Navigation items gated by `sys_components_cd.feature_flag`.
 
 From 0059 seed (partial): items may have `feature_flag` set. Catalog preferences (0141) does not set `feature_flag` — it uses `main_permission_code` and `roles` only.
 
+The sidebar additionally filters `featureFlag` on nav nodes using the shared client query (`useFeatureFlagsQuery`). That is UX-only; `GET /api/navigation` still applies flags server-side.
+
 ## See Also
 
 - [FEATURE_FLAGS_REFERENCE](FEATURE_FLAGS_REFERENCE.md)
 - [FEATURE_FLAGS_USAGE](FEATURE_FLAGS_USAGE.md)
 - [NAVIGATION_PERMISSIONS](../permissions/NAVIGATION_PERMISSIONS.md)
+- [Client query cache](../../feature_flags/README.md)

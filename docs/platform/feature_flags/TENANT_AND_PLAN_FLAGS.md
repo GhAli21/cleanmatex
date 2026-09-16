@@ -55,8 +55,9 @@ Uses `hq_ff_get_plan_defaults(p_plan_code, p_flag_keys)` RPC — plan-level valu
 
 **File:** `web-admin/src/features/dashboard/ui/Widget.tsx`
 
-- `featureFlag?: FeatureFlagKey` prop — intended for feature-flag gating.
-- **TODO:** Not yet wired to `canAccess` / `getFeatureFlags`; currently all features shown in dev.
+- `featureFlag?: FeatureFlagKey` — gated via `useFeatureOptional` (shared tenant query).
+
+Client cache: [docs/feature_flags](../../feature_flags/README.md).
 
 ## See Also
 
