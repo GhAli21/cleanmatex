@@ -118,7 +118,9 @@
       "metadata": "Metadata",
       "activateReminder": "Card is in Generated status — remember to activate it from the list.",
       "tenderSectionTitle": "Tender",
-      "tenderRequired": "Select a payment method to complete the tender before selling this card."
+      "tenderRequired": "Select a payment method to complete the tender before selling this card.",
+      "amountMustBePositive": "Enter a card face value greater than zero before taking tender.",
+      "amountRequiredBeforeTender": "Enter the card face value before taking tender."
     },
     "status": {
       "active": "Active",

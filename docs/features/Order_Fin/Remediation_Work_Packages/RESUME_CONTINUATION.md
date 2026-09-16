@@ -1,6 +1,77 @@
 # RESUME — Order Fin Remediation Program (session continuation)
 
-**Updated:** 2026-08-13 (new session — owner picked up the thread, asked "what next," was offered a choice between more B28 test coverage / committing pending work / something else, and chose "more B28 test coverage." Closed the 3 remaining follow-up items from the 2026-07-26 audit (cancel-chain end-to-end, preview/submit route parity, idempotency-vs-lock design decision) — see the new dated block directly below. Follow-up #4 (route parity) surfaced a real, live, higher-severity bug candidate along the way (preview silently drops the no-tax-profile `additionalTaxRate`/`additionalTaxAmount` fallback), and mid-task the owner flagged `docs/features/Workflow_Order_Advance/ADR_CANCEL_RETURN_RULES.md` — cross-checking it revealed the cancel-chain test covers only the LEGACY (today's default) cancel-money path, which Workflow Engine V2 already supersedes with no automatic Fin unwind. Both are documented precisely, not silently fixed. **Read this file + [CLAUDE.md](CLAUDE.md) first in any new session, then follow it exactly. `npm run build` is GREEN** (exit 0, full route tree); tsc (3 pre-existing unrelated errors)/eslint/full-jest (247/247 suites, 2376/2376 tests) all clean/green too.
+**Updated:** 2026-09-16 (owner-authorized P0 code: B02 voucher labels, B27 stored-value UI gates, B3 sell-amount guard, B34 Refund-and-Rebill picker). Remaining: Preview retest of those four. Previously same day: §14.3 backend `original_amount` fix; triage closed §2.5/§8.1; §12.7 override gate confirmed by owner screenshot.
+
+---
+
+## ⏩ 2026-09-16 — Owner-authorized P0 code + docs (B02 / B27 UI / B3 client / B34 picker)
+
+**Owner authorized all four remaining items** (override-price §12.7 is docs-only — screenshot showed Permission Denied).
+
+**B02 §3.1 — label, not formula.** `voucher.outstanding_amount` is unallocated-on-this-voucher (posted receipts zero it). Relabeled EN/AR; hint added; when `order_id` is present, voucher detail also shows **Order outstanding** from `org_orders_mst`. Order Financial-tab vouchers column uses the same unallocated label. Do **not** copy order outstanding into `voucher.outstanding_amount`.
+
+**B27 §12.7 — closed as PASS (owner).** Operator click on item-price pencil opens Permission Denied (“You do not have permission to override prices”). `pricing:override` is granted to operator by 0411 on purpose; do not revoke. **§12.4 / §12.5 — UI gate added.** Top Up / Issue Advance / Issue Credit Note now soft-lock with `cmxMessage` unless `stored_value:issue_wallet_credit` / `issue_advance` / `issue_credit_note`. Server actions were already gated.
+
+**B3 §14.3 — client amount guard.** Sell Card no longer defaults face value to `0` (empty field; tender waits for a positive amount). Submit refuses `<= 0`. Server already writes `fundedAmount` to `original_amount` and maps CHECK/`FUNDED_AMOUNT_MUST_BE_POSITIVE` to a clear error.
+
+**B34 / B01 §2.3 — Refund-and-Rebill in the picker.** `REFUND_UI_CONTEXTS` includes `REFUND_AND_REBILL`; dialog shows it only with `orders:rebill_authorize`; warning that it reopens due; reason + original payment required. API already enforced the permission.
+
+**▶ NOW:** commit → Preview deploy → re-run §3.1, §12.4, §12.5, §2.3/§12.8, §14.3. §12.7 already PASS. Do **not** start B13/B23/B24/B25. Do **not** apply migrations.
+
+---
+
+## ⏩ 2026-09-16 — §14.3 code-fixed: Sell Gift Card CHECK `original_amount > 0`
+
+**Owner reported** Sell Gift Card on `https://cmx.cleanmatex.com/dashboard/marketing/gift-cards` failing `org_gift_cards_mst_original_amount_check` (Postgres 23514). Failing row: `GENERATED` / `SOLD` / `original_amount = 0.000` while the operator entered 5.000 OMR.
+
+**Root cause (not form state):** with flag `order_fin_sv_funding_capture` ON, `fundStoredValue` creates the card unfunded so the voucher line has a `target_id`. B03 originally specified `original_amount: 0`. The table CHECK from migration 0029 is `original_amount > 0`, so Prisma create always failed. The sell dialog *did* send a positive `fundedAmount`; that amount was used on the voucher and hardcoded-zeroed on the card.
+
+**Fix:** write `fundedAmount` as `original_amount` at create; keep `current_balance`/`available_amount` at 0 until `finalizeGiftCardSaleTx` credits confirmed tender. Test updated. B03 architecture bullet corrected.
+
+**▶ NOW:** deploy then re-run QA §14.3 (generated code + drawer expected-cash). Remaining P0: **B02** §3.1, **B27** operator money controls, **B34/B01** §2.3.
+
+---
+
+## ⏩ 2026-09-16 (continued) — Owner-authorized triage: §2.5 + §8.1 closed as doc-vs-data; §13 repaired; README updated
+
+**Owner chose:** "Triage first — I close §2.5 / §8.1 as doc-vs-data, clean §13, and update README." Folder CLAUDE.md still binds: no application code unless a specific Bxx package is named.
+
+**§2.5 — closed as guide correction, not a missing Cancel button.** [`ADR_CANCEL_RETURN_RULES.md`](../../Workflow_Order_Advance/ADR_CANCEL_RETURN_RULES.md) (accepted 2026-07-25) forbids Cancel at `processing` (allowlist = `draft` / `intake` / incomplete `preparing` before real processing starts). Money after that point is Refund / Reverse / Hold. Tester observation on ORD-20260912-0005 (Complete processing / Hold / Refund / Reverse, no Cancel) matches the ADR. The guide previously asked testers to cancel a paid Processing order — that expected result was wrong. Residual (not P0): optional Preview run of cancel-with-refund on a still-cancellable status if legacy `CANCELLATION_UNWIND` still needs UI evidence (Engine V2 has no auto Fin unwind; B28 already documented that).
+
+**Approved decision:** close §2.5 as a documentation defect. **Not** a B01 implementation gap at Processing.
+
+**§8.1 — closed as demo-data, not a B20 regression.** RECON-2026-002's 24 `TAX_CALCULATION` blockers are the check working on legacy demo tax-line drift. Counter-evidence already in the same QA pass: §10.4 recon covering 2026-09-12 later-collection completed with **0 blockers** + 1 outbox warning. §8.2 (total-checks=38 not shown on run detail) stays P1 observability. Timezone Sep 11 vs Sep 12 stays P1 (tester item 11).
+
+**Approved decision:** close §8.1 as data/fixture noise. Do not open a B20 code package for it.
+
+**§13 — repaired.** The cross-cutting table was numbered `12.1–12.5` in the committed guide (copy-paste from §12) and the Preview pass then pasted leftover §12 Result cells as extra columns. Restored as **13.1–13.5** to match the tester-sheet map in §0.1b. Operator permission FAILs stay in §12; they are not §13 results. 13.3 recast to PASS (triage) because the recon tax blockers are the same §8.1 demo-data.
+
+**README** now carries a current-program-state banner and Preview-QA verification notes on B01 / B02 / B03 / B20 / B27 / B34. Nothing marked `VERIFIED`. B13/B23/B24/B25 remain blocked.
+
+**▶ NOW (superseded same day):** remaining P0 after §14.3 code-fix: **B02**, **B27**, **B34**. See the dated block **above** this one.
+
+---
+
+## ⏩ 2026-09-16 — Preview QA pass complete (Financial_Expert_Tester / Grok-assisted): 6 P0 defects found — program NOT VERIFIED
+
+**What happened:** the owner had an external tester (Grok-assisted, logged in the guide as "Financial_Expert_Tester") execute a real manual Preview QA pass against `https://cmx.cleanmatex.com/` (Demo Laundry LLC tenant) over 2026-09-12→2026-09-16, and wrote the PASS/FAIL/BLOCKED/N/A results directly into [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md)'s scenario `Result` cells, plus an added "Tester suggestions and recommendations" section (P0/P1/P2) at the bottom. This is the first real Preview QA evidence the program has had — everything before this was "IMPLEMENTED, gates green, awaiting Preview QA."
+
+**Sign-off note from the tester (verbatim intent):** "Preview Order Fin is not VERIFIED end-to-end while P0 items 1–6 remain open. Core happy paths (pay, partial refund, wallet refund, same-user approve/process, drawer expected-cash, collect payment voucher wiring, order preference charges) look solid and should stay green while P0 is fixed."
+
+**P0 defects found (fix before any package in this list can be marked VERIFIED):**
+
+1. **§3.1 FAIL — outstanding mismatch between Financial tab and Receipt Voucher** (→ **B02**, the shared outstanding formula). `ORD-20260912-0001`: Financial tab showed outstanding **2.210 OMR**, the Receipt Voucher showed **0.000**. Either the voucher isn't using B02's shared formula, or it needs to be relabeled as "amount on this receipt only" so it stops implying order balance.
+2. **§14.3 FAIL — Gift Card Sell posts amount `0.000`** (→ **B3**, stored-value funding capture). Tender UI/Change Due worked but submit failed `original_amount_check` server-side because the backend received 0.000 — a contract bug between the Sell Card form state and the `org_sv_funding`/gift-card create payload.
+3. **§12.4/§12.5/§12.7 FAIL — Operator role can still Top Up wallet / Issue Advance / Issue Credit Note / Override price** (→ **B27**, financial permissions). Tested as `operator@demo-laundry.example`: all four money-moving controls were open with Save/Apply, no permission-denied. B27's fail-open fix does not appear to be enforced end-to-end (permission seed vs. UI gate vs. server-action check — needs re-verification of all three layers for `stored_value:*` and `pricing:override`).
+4. **§2.3 BLOCKED — Refund-and-Rebill not reachable in UI** (→ **B01/B34**). Admin has `orders:rebill_authorize` but the Initiate Refund dialog's type picker only offers Standard / Price adjustment (goodwill) — no Refund-and-Rebill option. Either the UI needs the third type wired in, or the permission is a false capability today.
+5. **§2.5 BLOCKED — no cancel/refund-disposition action on a paid Processing order** (→ **B01** cancel flow, or a documentation gap). Only Complete processing / Hold / Refund / Reverse were offered. Needs a decision: is cancel-with-refund-disposition supposed to be available at Processing status? If not, the guide's expectation is wrong and should be corrected instead.
+6. **§8.1/§8.2 FAIL/BLOCKED — Reconciliation not clean, checks-count not shown** (→ **B20**). Observed 24 `TAX_CALCULATION` blockers + 1 outbox warning instead of a clean pass (recon run `RECON-2026-002`); the "38 total checks" figure B20 shipped is not visibly surfaced on the run detail screen. May be demo-data fixture noise rather than a code defect — needs triage before treating as a regression.
+
+**Lower-priority findings** (P1 UX/observability, P2 SaaS hygiene — not release blockers) are itemized in QA_TEST_GUIDE.md items 7–18; worth a skim but not urgent.
+
+**Not this session's doing — flagging for accuracy:** the QA pass, its Result-cell fills, and the recommendations section were authored by the tester directly in QA_TEST_GUIDE.md (per the owner's message at the start of this session) before this session began; this session's only change so far is this RESUME entry, recording the outcome and mapping findings to owning packages. No application code has been touched.
+
+**▶ NOW (superseded same day):** owner chose the cheaper option — triage §2.5 / §8.1 as doc-vs-data, clean §13, update README. See the dated block **above** this one. Remaining P0 after that triage: B02, B27, B3, B34/B01 §2.3.
 
 ---
 

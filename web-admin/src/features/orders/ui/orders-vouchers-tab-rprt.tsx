@@ -228,7 +228,7 @@ export function OrdersVouchersTabRprt({
                       })}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {tDetail('outstandingAmount')}: {' '}
+                      {tDetail('unallocatedOnVoucher')}: {' '}
                       {formatMoneyAmountWithCode(Number(voucher.outstanding_amount ?? 0), {
                         currencyCode: voucherCurrency,
                         decimalPlaces,

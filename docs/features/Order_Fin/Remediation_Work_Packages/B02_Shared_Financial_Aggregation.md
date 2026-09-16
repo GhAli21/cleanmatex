@@ -57,8 +57,8 @@ After B1 VERIFIED; before B20/B33 implementation.
 Backend services: new shared aggregation module (lib/services — consumed by order-financial-write, reconciliation/order-checks, order-financial-summary, customer-open-balance-query, AR sizing)
 Database/schema: none (reads existing fact tables)
 API/endpoints: none new — existing summary/reconciliation routes return the same shapes from the shared module
-Frontend page/screen/dialog/action: NOT_APPLICABLE
-Reason: internal refactor — one formula authority replacing per-consumer re-derivation; outputs unchanged for non-refund orders
+Frontend page/screen/dialog/action: voucher detail + order vouchers tab labels (2026-09-16) — `outstandingAmount` is unallocated-on-this-voucher; Order outstanding line when `order_id` is present. Formula unchanged.
+Reason: original delivery was an internal refactor; Preview QA §3.1 mixed voucher unallocated with order due, so labels were added without changing `voucher.outstanding_amount`.
 Existing consumer: order Financial tab, receipts/prints, reconciliation screens, customer balance views (all repointed, visually unchanged)
 Operational visibility: reconciliation run results + snapshot warning counts (existing screens)
 Failure detection: snapshot==recon equality regression suite; OUTSTANDING_TOTAL_MATCH going green on refund fixtures
@@ -66,7 +66,7 @@ Recovery method: module is pure; revert consumer repointing commit; snapshot his
 Reusable components/helpers: the aggregation module itself; grep-guard test forbidding literal 'COMPLETED' in recon
 Permissions: none new
 Validation: D005 frozen component definitions enforced in one place
-i18n/RTL: NOT_APPLICABLE (no new strings)
+i18n/RTL: `finance.vouchers.outstandingAmount` / `outstandingAmountHint` / `orderOutstandingAmount`; `orders.detailFull.unallocatedOnVoucher` (EN/AR, 2026-09-16)
 Accessibility: NOT_APPLICABLE (no UI)
 Audit trail: none new (no fact writes)
 Observability: equality-check metric in recon run output
@@ -90,4 +90,4 @@ Rollback: revert repointing; old formulas remain in git history only (deleted, n
 
 **Gates (2026-07-17):** `npx eslint . --quiet` ✅ 0 · `npx tsc --noEmit` — B02 files clean (same 2 pre-existing errors in owner-committed keypad/split-tender files as recorded in B01 evidence) · targeted suites 139/139 ✅ · full jest + build: recorded below.
 
-**Commit:** — (owner commits) · **Preview QA (deploy/result/approval):** — pending · **Reviewer:** — · **Verification:** — (VERIFIED requires Preview QA approval; B1+B2 QA naturally batch) · **Authoritative report update:** —
+**Commit:** — (owner commits) · **Preview QA (deploy/result/approval):** Preview pass 2026-09-12→2026-09-16 recorded in [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md). §3.1 FAIL was voucher `outstanding_amount` (unallocated-on-voucher after posted receipts) vs Financial-tab order due — **not** a B02 formula bug. **UI fix 2026-09-16:** relabel + Order outstanding line. Pending Preview retest. Not VERIFIED. · **Reviewer:** — · **Verification:** — (VERIFIED requires Preview QA approval; B1+B2 QA naturally batch) · **Authoritative report update:** —

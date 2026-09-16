@@ -28,6 +28,8 @@ interface VoucherDetailClientProps {
   voucher: BizVoucherDetailData;
   userRole: string;
   linkedEffects?: LinkedEffectsResult | null;
+  /** B02 order outstanding when this voucher is linked to an order. */
+  orderOutstandingAmount?: number | null;
 }
 
 function formatDate(value?: string | Date | null) {
@@ -77,13 +79,18 @@ function VoucherDetailField({
 }
 
 /**
- *
  * @param root0
  * @param root0.voucher
  * @param root0.userRole
  * @param root0.linkedEffects
+ * @param root0.orderOutstandingAmount B02 order outstanding when the voucher is linked
  */
-export function VoucherDetailClient({ voucher, userRole, linkedEffects }: VoucherDetailClientProps) {
+export function VoucherDetailClient({
+  voucher,
+  userRole,
+  linkedEffects,
+  orderOutstandingAmount = null,
+}: VoucherDetailClientProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
   const router = useRouter();
@@ -244,6 +251,15 @@ export function VoucherDetailClient({ voucher, userRole, linkedEffects }: Vouche
                         <dt className="text-xs font-medium text-gray-500">{t('outstandingAmount')}</dt>
                         <dd className={`mt-0.5 font-mono font-semibold ${voucher.outstanding_amount > 0 ? 'text-amber-700' : 'text-gray-700'}`}>
                           {voucher.outstanding_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </dd>
+                        <p className="mt-0.5 text-[11px] leading-snug text-gray-500">{t('outstandingAmountHint')}</p>
+                      </div>
+                    )}
+                    {orderOutstandingAmount != null && (
+                      <div>
+                        <dt className="text-xs font-medium text-gray-500">{t('orderOutstandingAmount')}</dt>
+                        <dd className={`mt-0.5 font-mono font-semibold ${orderOutstandingAmount > 0 ? 'text-amber-700' : 'text-gray-700'}`}>
+                          {orderOutstandingAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </dd>
                       </div>
                     )}

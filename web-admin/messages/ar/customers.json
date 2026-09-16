@@ -213,6 +213,8 @@
     "topUp": "شحن الرصيد",
     "issueAdvance": "إصدار سلفة",
     "issueCreditNote": "إصدار إشعار ائتمان",
+    "permissionRequired": "ليس لديك صلاحية لتنفيذ هذا الإجراء. الصلاحية المطلوبة: {permissionCode}.",
+    "amountMustBePositive": "أدخل مبلغاً أكبر من صفر.",
     "noWallet": "لا توجد محفظة",
     "noAdvance": "لا يوجد رصيد سلفة",
     "noCreditNotes": "لا توجد إشعارات ائتمان",

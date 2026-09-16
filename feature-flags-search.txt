@@ -1,0 +1,137 @@
+
+Path                                                                                                      LineNumber Line
+----                                                                                                      ---------- ----
+F:\jhapp\cleanmatex\web-admin\src\features\auth\ui\RequireFeature.tsx                                             13 import type { FeatureFlagKey } from '@/lib/services/feature-flags.service'
+F:\jhapp\cleanmatex\web-admin\src\features\auth\ui\RequireFeature.tsx                                             99         const res = await fetch('/api/feature-flags')
+F:\jhapp\cleanmatex\web-admin\src\features\auth\ui\RequireFeature.tsx                                            248         const res = await fetch('/api/feature-flags')
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                               13       featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                               15       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                               35       featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                               37       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                               66       featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                               68       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                              115       featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                              117       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                              155       featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                              157       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                              196       featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                              198       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                              217       featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\b2b\access\b2b-access.ts                                              219       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\billing\access\billing-access.ts                                       39           featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\billing\access\billing-access.ts                                       40           requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\billing\access\billing-access.ts                                      832           featureFlags: ['order_fin_refund_ui'],
+F:\jhapp\cleanmatex\web-admin\src\features\billing\access\billing-access.ts                                      833           requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\billing\access\billing-access.ts                                      841           featureFlags: ['order_fin_refund_ui'],
+F:\jhapp\cleanmatex\web-admin\src\features\billing\access\billing-access.ts                                      842           requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\billing\ui\invoice-filters-bar.tsx                                      7 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
+F:\jhapp\cleanmatex\web-admin\src\features\customers\access\customers-access.ts                                   16           featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\customers\access\customers-access.ts                                   17           requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\customers\ui\customer-create-modal.tsx                                 16 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
+F:\jhapp\cleanmatex\web-admin\src\features\customers\ui\upgrade-profile-modal.tsx                                 64       const interval = setInterval(() => {
+F:\jhapp\cleanmatex\web-admin\src\features\dashboard\ui\Widget.tsx                                                22 import type { FeatureFlagKey } from '@/lib/services/feature-flags.service'
+F:\jhapp\cleanmatex\web-admin\src\features\dashboard\ui\Widget.tsx                                                63       const interval = setInterval(() => {
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     15       featureFlags: ['erp_lite_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     16       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     26       featureFlags: ['erp_lite_enabled', 'erp_lite_gl_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     27       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     48       featureFlags: ['erp_lite_enabled', 'erp_lite_gl_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     49       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     59       featureFlags: ['erp_lite_enabled', 'erp_lite_reports_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     60       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     70       featureFlags: ['erp_lite_enabled', 'erp_lite_ar_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     71       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     81       featureFlags: ['erp_lite_enabled', 'erp_lite_expenses_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     82       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     92       featureFlags: ['erp_lite_enabled', 'erp_lite_bank_recon_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                     93       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    186       featureFlags: ['erp_lite_enabled', 'erp_lite_ap_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    187       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    226       featureFlags: ['erp_lite_enabled', 'erp_lite_po_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    227       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    248       featureFlags: ['erp_lite_enabled', 'erp_lite_gl_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    249       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    259       featureFlags: ['erp_lite_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    260       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    270       featureFlags: ['erp_lite_enabled', 'erp_lite_periods_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    271       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    281       featureFlags: ['erp_lite_enabled', 'erp_lite_readiness_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    282       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    292       featureFlags: ['erp_lite_enabled', 'erp_lite_usage_map_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    293       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    332       featureFlags: ['erp_lite_enabled', 'erp_lite_exceptions_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    333       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    363       featureFlags: ['erp_lite_enabled', 'erp_lite_periods_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    364       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    394       featureFlags: ['erp_lite_enabled', 'erp_lite_post_audit_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    395       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    405       featureFlags: ['erp_lite_enabled', 'erp_lite_branch_pl_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\access\erp-lite-access.ts                                    406       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\ui\erp-lite-page-guard.tsx                                     9 import type { FeatureFlagKey } from '@/lib/constants/feature-flags'
+F:\jhapp\cleanmatex\web-admin\src\features\erp-lite\ui\erp-lite-shell-screen.tsx                                   4 import type { FeatureFlagKey } from '@/lib/constants/feature-flags'
+F:\jhapp\cleanmatex\web-admin\src\features\help\ui\platform-inventories-screen.tsx                               164             <ChipList items={contract.page.featureFlags ?? []} />
+F:\jhapp\cleanmatex\web-admin\src\features\help\ui\platform-inventories-screen.tsx                               328             key: 'featureFlags',
+F:\jhapp\cleanmatex\web-admin\src\features\help\ui\platform-inventories-screen.tsx                               329             header: t('columns.featureFlags'),
+F:\jhapp\cleanmatex\web-admin\src\features\help\ui\platform-inventories-screen.tsx                               330             render: (row) => <ChipList items={(row.featureFlags as string[]) ?? []} />,
+F:\jhapp\cleanmatex\web-admin\src\features\marketing\access\marketing-access.ts                                   56       featureFlags: ['campaigns_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\marketing\access\marketing-access.ts                                   57       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\marketing\access\marketing-access.ts                                  116       featureFlags: ['campaigns_enabled'],
+F:\jhapp\cleanmatex\web-admin\src\features\marketing\access\marketing-access.ts                                  117       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\notifications\hooks\use-notification-bell.ts                           51     refetchInterval: 60_000, // fallback poll every 60 s in case Realtime drops
+F:\jhapp\cleanmatex\web-admin\src\features\orders\access\orders-access.ts                                         40           featureFlags: ['b2b_contracts'],
+F:\jhapp\cleanmatex\web-admin\src\features\orders\access\orders-access.ts                                         41           requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\orders\access\orders-access.ts                                        791           featureFlags: ['order_fin_refund_ui'],
+F:\jhapp\cleanmatex\web-admin\src\features\orders\access\orders-access.ts                                        792           requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\orders\ui\customer-create-modal.tsx                                    15 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
+F:\jhapp\cleanmatex\web-admin\src\features\orders\ui\order-timeline.tsx                                           80     const interval = setInterval(fetchHistory, 30000);
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                        8       featureFlags: ['advanced_analytics'],
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                        9       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       16       featureFlags: ['advanced_analytics'],
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       17       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       24       featureFlags: ['advanced_analytics'],
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       25       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       32       featureFlags: ['advanced_analytics'],
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       33       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       40       featureFlags: ['advanced_analytics'],
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       41       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       48       featureFlags: ['advanced_analytics'],
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       49       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       56       featureFlags: ['advanced_analytics'],
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       57       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       64       featureFlags: ['advanced_analytics'],
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       65       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       74       featureFlags: ['advanced_analytics'],
+F:\jhapp\cleanmatex\web-admin\src\features\reports\access\reports-access.ts                                       75       requireAllFeatureFlags: true,
+F:\jhapp\cleanmatex\web-admin\src\features\settings\ui\branch-settings-screen.tsx                                 17 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
+F:\jhapp\cleanmatex\web-admin\src\features\settings\ui\FeatureFlagsSettings.tsx                                   29 export function FeatureFlagsSettings() {
+F:\jhapp\cleanmatex\web-admin\src\features\settings\ui\FeatureFlagsSettings.tsx                                   41       const res = await fetch('/api/settings/tenants/me/feature-flags');
+F:\jhapp\cleanmatex\web-admin\src\features\settings\ui\tenant-settings-screen.tsx                                 16 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        191         queryClient.invalidateQueries({ queryKey: ['feature-flags', currentTenant?.tenant_id] }),
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        198   const { data: featureFlags = {} } = useQuery({
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        199     queryKey: ['feature-flags', currentTenant?.tenant_id],
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        201       const response = await fetch('/api/feature-flags')
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        211   const sortedFeatureFlags = Object.entries(featureFlags).sort(
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        225         featureFlags,
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        317                           ? t('permissionsDialog.featureFlagsTab')
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        392                             ...(action.requirement.featureFlags ?? []),
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        404                             featureFlags,
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        498                             featureFlags,
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        527                     const filteredFlags = sortedFeatureFlags.filter(([flagKey]) =>
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx        538                             : t('permissionsDialog.noFeatureFlags')}
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                   25   getCachedFeatureFlags,
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                   26   setCachedFeatureFlags,
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  177   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  187     async function loadFeatureFlags() {
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  190           setFeatureFlags({})
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  196         const cached = getCachedFeatureFlags(currentTenant.tenant_id)
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  198           setFeatureFlags(cached)
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  201         const response = await fetch('/api/feature-flags', { cache: 'no-store' })
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  207         setCachedFeatureFlags(currentTenant.tenant_id, freshFlags)
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  210           setFeatureFlags(freshFlags)
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  214         if (!getCachedFeatureFlags(currentTenant.tenant_id) && isMounted) {
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  215           setFeatureFlags({})
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  220     loadFeatureFlags()
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  275       if (!(flag in featureFlags)) return true
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  276       return featureFlags[flag] === true
+F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx                                                  289   }, [navigation, featureFlags])
+

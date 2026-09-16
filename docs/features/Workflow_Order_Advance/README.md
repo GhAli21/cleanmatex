@@ -1,6 +1,6 @@
 # Workflow Order Advance
 
-**Status:** Automated delivery assurance is complete. **Staff POD delivery smoke S10 is SIGNED (2026-09-05).** Gate 5 compiled-artifact retirement (`0494`) applied both DBs. V1.0 product/engineering accept 2026-09-11. Quick-drop → Preparation is live (`0499`+`0500` applied; HQ Check policy on SIMPLE v4 **passed**). Order details now shows **New order actions** + **Order actions**. `0501` written, **not applied** (optional leftover SIMPLE retarget). Remaining V1.0 operator work: leftover-intake ActionBar smoke, quick-drop smoke (Preparation **Edit Order**), optional `0501` + Check policy. Canonical remaining list: `current_status.md`.
+**Status:** Automated delivery assurance is complete. **Staff POD delivery smoke S10 is SIGNED (2026-09-05).** Gate 5 compiled-artifact retirement (`0494`) applied both DBs. V1.0 product/engineering accept 2026-09-11. Quick-drop → Preparation is live (`0499`+`0500` applied; HQ Check policy on SIMPLE v4 **passed**). Order details now shows **New order actions** + **Order actions**. Leftover-intake ActionBar smoke and quick-drop floor smoke **done 2026-09-12**. SIMPLE leftover dest **accepted as-is** (Studio for later dest edits). **`lwpr-tenant-docs-final` done 2026-09-12.** Remaining operator watch: HQ **soak**. Canonical remaining list: `current_status.md`.
 **Version:** see [version.txt](version.txt) · [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)  
 **Authority:** This folder + [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) + Cursor plan  
 **Reference only:** [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/`](CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/)  
@@ -38,7 +38,7 @@ The staff delivery principle above is an unmet **S10 routed-POD** release gate, 
 
 The implemented P7R proof/audit surface is read-only. Authorized staff can review delivery outcome, payment state, handover actor/time/notes, and time-limited evidence links on Delivery Stop Detail and Order Details. It does not by itself enable completion or expose private storage keys.
 
-The P7R Workboard is read-only. It resolves queue membership and owner routing only through each order's immutable compiled profile artifact. Orders without a valid snapshot are excluded from operational queues; the Workboard never offers a raw status mutation or a second transition writer.
+The P7R Workboard is read-only. It resolves queue membership and owner routing through each order’s bound live profile version (`WorkflowPolicyResolver` on `sys_wf_prof_ver_*` rows). Orders without a valid version binding are excluded from operational queues; the Workboard never offers a raw status mutation or a second transition writer.
 
 ## Activate canary (after you apply `0427`/`0428` and the current rollout migrations)
 
@@ -67,7 +67,7 @@ NEXT_PUBLIC_WORKFLOW_ENGINE_V2=true
 
 ## HQ (cleanmatexsaas) handoff
 
-**Validation + version plan (give to HQ Studio):** [future_work_in_wf/](future_work_in_wf/README.md) — issue-code spec for Check policy/Compile, and the tenant+HQ remaining-work plan through V2.
+**Validation + version plan (give to HQ Studio):** [future_work_in_wf/](future_work_in_wf/README.md) — issue-code spec for **Check policy** (Compile is retired), and the tenant+HQ remaining-work plan through V2.
 
 **Check-policy issue catalog:** generated pin in [generated/](generated/README.md). Add/update/retire codes in HQ (`cleanmatexsaas`) after loading `/manage-wf-policy-issues-catalog`. Do not hand-edit the tenant pin.
 

@@ -273,7 +273,10 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
           pin_hash: giftCardPinHash,
           card_name: giftCard!.cardName,
           card_name2: giftCard!.cardName2,
-          original_amount: 0,
+          // Face value is known at sale time. CHECK org_gift_cards_mst_original_amount_check
+          // requires original_amount > 0, so we cannot park 0 here. Spendable balances
+          // stay 0 until finalizeGiftCardSaleTx credits the confirmed tender.
+          original_amount: fundedAmount,
           current_balance: 0,
           available_amount: 0,
           redeemed_amount: 0,

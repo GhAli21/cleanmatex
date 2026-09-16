@@ -264,8 +264,11 @@
         "context": "السياق",
         "contexts": {
           "STANDARD": "قياسي",
-          "PRICE_ADJUSTMENT_GOODWILL": "تعديل سعر / تعويض ودّي"
+          "PRICE_ADJUSTMENT_GOODWILL": "تعديل سعر / تعويض ودّي",
+          "REFUND_AND_REBILL": "استرداد وإعادة فوترة"
         },
+        "rebillWarningTitle": "يعيد فتح مستحق العميل",
+        "rebillWarning": "استرداد وإعادة الفوترة يعيد فتح مستحق الطلب بمبلغ الاسترداد. السبب إلزامي ويجب اختيار الدفعة الأصلية.",
         "reasonCode": "رمز السبب",
         "reasonCodes": {
           "DUPLICATE": "خصم مكرر",
@@ -285,7 +288,9 @@
           "amountRequired": "أدخل مبلغ استرداد أكبر من صفر",
           "amountExceedsLegCap": "المبلغ يتجاوز ما يمكن استرداده من المصدر المحدد",
           "amountExceedsOverallCap": "المبلغ يتجاوز الرصيد القابل للاسترداد للطلب",
-          "reasonRequiredForGoodwill": "السبب إلزامي للاسترداد الودّي"
+          "reasonRequiredForGoodwill": "السبب إلزامي للاسترداد الودّي",
+          "reasonRequiredForRebill": "السبب إلزامي لاسترداد وإعادة الفوترة",
+          "rebillRequiresSourceLeg": "استرداد وإعادة الفوترة يتطلب اختيار الدفعة أو الائتمان الأصلي"
         }
       },
       "reopensDueAmount": "يعيد فتح رصيد الطلب"

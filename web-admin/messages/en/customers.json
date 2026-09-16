@@ -213,6 +213,8 @@
     "topUp": "Top Up",
     "issueAdvance": "Issue Advance",
     "issueCreditNote": "Issue Credit Note",
+    "permissionRequired": "You do not have permission for this action. Required: {permissionCode}.",
+    "amountMustBePositive": "Enter an amount greater than zero.",
     "noWallet": "No wallet set up",
     "noAdvance": "No advance balance",
     "noCreditNotes": "No credit notes",

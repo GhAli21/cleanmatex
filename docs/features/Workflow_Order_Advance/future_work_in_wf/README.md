@@ -1,6 +1,6 @@
 # Future work in workflow (profile validation + version plan)
 
-**Date:** 2026-08-27 (status refreshed 2026-09-11 evening)  
+**Date:** 2026-08-27 (status refreshed 2026-09-12)  
 **Audience:** HQ Workflow Studio (cleanmatexsaas) and tenant Workflow Order Advance (cleanmatex)  
 **Status:** Planning handoff. Canonical remaining list: [current_status.md](../current_status.md) § Remaining across all WF plans. 04 plan T0–T4 done. 05 plan still DRAFT / owner review.  
 **Does not replace:** [ADR_SCOPE_AND_CORRECTION_PASS.md](../ADR_SCOPE_AND_CORRECTION_PASS.md), HQ coverage matrix, or V1.0 production checklist
@@ -21,7 +21,7 @@ This folder holds related deliverables:
 | [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md) | Narrative for planned codes and operator intent | HQ `WorkflowPolicyValidator` authors |
 | [GENERATED_WF_POLICY_ISSUE_CATALOG.md](../generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md) | **Emit registry** — severity, gates, Studio tab, Auto Fix IDs, seed_must_pass. Maintain in HQ via `/manage-wf-policy-issues-catalog` | HQ catalog generate; tenant seed CI |
 | [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md) | Must / Should / Could by version, both repos | Product + both engineering tracks |
-| [04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md](04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) | Create presets, Initial-rule matrix, home collection, hold (**T0–T4 done**). Quick-drop → `preparing` is live (`0499`+`0500` applied; SIMPLE v4 Check policy passed). Order details ActionBars shipped. `0501` optional, not applied. | Product + tenant + HQ Studio |
+| [04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md](04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) | Create presets, Initial-rule matrix, home collection, hold (**T0–T4 done**). Quick-drop → `preparing` is live (`0499`+`0500` applied; SIMPLE v4 Check policy passed). Order details ActionBars shipped. SIMPLE leftover dest **accepted as-is** (Studio for later dest edits). | Product + tenant + HQ Studio |
 | [05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md) | Draft rollout plan for the 46 planned-but-not-yet-emitted Check-policy codes, sequenced safest-first (2026-09-04, owner review pending — zero files changed by the plan itself) | Product + HQ Studio |
 
 ## Authority and limits

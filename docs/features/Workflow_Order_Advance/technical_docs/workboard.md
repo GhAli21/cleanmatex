@@ -16,12 +16,9 @@ execute a workflow transition.
 > migration `0494`, see `CHANGELOG.md`). This code path never touched that table.
 
 1. Read the tenant's `workboard` screen contract for the legacy/default status set.
-2. For each compiled artifact represented by tenant orders, load that exact
-   immutable artifact. A profile/version pin without artifact identity is excluded.
-3. Include a semantic order only when the artifact has both active `workboard`
-   membership and an enabled primary-owner stage for that status.
-4. For historic/unsnapshotted orders, use the live tenant contract and live owner
-   lookup. Do not backfill or rebind historical orders.
+2. For each bound order, load live policy for that order’s `wf_profile_version_id` (`WorkflowPolicyResolver` / `loadSemanticWorkflowArtifactForOrder`). A profile/version pin without live rows is excluded.
+3. Include a bound order only when the live version has both active `workboard` membership and an enabled primary-owner stage for that status.
+4. Historic/unbound orders stay out of the operational Workboard (audit/history only). Do not backfill or rebind historical orders.
 5. If no stage owner exists, omit the row and return a `configurationGaps` item.
 
 ## Security and data handling

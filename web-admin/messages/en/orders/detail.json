@@ -264,8 +264,11 @@
         "context": "Context",
         "contexts": {
           "STANDARD": "Standard",
-          "PRICE_ADJUSTMENT_GOODWILL": "Price adjustment / goodwill"
+          "PRICE_ADJUSTMENT_GOODWILL": "Price adjustment / goodwill",
+          "REFUND_AND_REBILL": "Refund and rebill"
         },
+        "rebillWarningTitle": "Reopens the customer's due",
+        "rebillWarning": "Refund-and-rebill reopens the order outstanding by the refunded amount. A reason is required, and you must pick the original payment.",
         "reasonCode": "Reason code",
         "reasonCodes": {
           "DUPLICATE": "Duplicate charge",
@@ -285,7 +288,9 @@
           "amountRequired": "Enter a refund amount greater than zero",
           "amountExceedsLegCap": "The amount exceeds what is still refundable from the selected source",
           "amountExceedsOverallCap": "The amount exceeds the order's refundable balance",
-          "reasonRequiredForGoodwill": "A reason is required for a goodwill refund"
+          "reasonRequiredForGoodwill": "A reason is required for a goodwill refund",
+          "reasonRequiredForRebill": "A reason is required for refund-and-rebill",
+          "rebillRequiresSourceLeg": "Refund-and-rebill requires the original payment or credit"
         }
       },
       "reopensDueAmount": "Reopens balance"

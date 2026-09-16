@@ -35,7 +35,7 @@ consults the current assignment.
 
 ## Residual (not this slice)
 
-- Operator/e2e staff POD delivery smoke **S10** (`p7-harden`)
+- Staff S10 POD canary — **SIGNED 2026-09-05**
 - Performance soak under concurrent commands
 - Visual accessibility / RTL review of unavailable-state UI
-- HQ/tenant cross-project close-out docs
+- HQ/tenant docs-final — **done 2026-09-12** (`lwpr-hq-docs-final` + `lwpr-tenant-docs-final`)

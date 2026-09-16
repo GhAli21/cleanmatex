@@ -17,6 +17,7 @@ import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable } from '@ui/data-display';
 import { cmxMessage } from '@ui/feedback';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -78,6 +79,9 @@ export function CustomerStoredValueTab({ customerId }: Props) {
   const { currentTenant, user } = useAuth();
   const tenantOrgId = currentTenant?.tenant_id ?? '';
   const userId = user?.id;
+  const canTopUp = useHasPermissionCode('stored_value:issue_wallet_credit');
+  const canIssueAdvance = useHasPermissionCode('stored_value:issue_advance');
+  const canIssueCreditNote = useHasPermissionCode('stored_value:issue_credit_note');
 
   const [detail, setDetail]       = useState<StoredValueDetail | null>(null);
   const [isLoading, setLoading]   = useState(true);
@@ -107,6 +111,20 @@ export function CustomerStoredValueTab({ customerId }: Props) {
   useEffect(() => { void load(); }, [load]);
 
   function openDialog(type: DialogType) {
+    const allowed =
+      (type === 'topUp' && canTopUp) ||
+      (type === 'advance' && canIssueAdvance) ||
+      (type === 'creditNote' && canIssueCreditNote);
+    if (!allowed) {
+      const permissionCode =
+        type === 'topUp'
+          ? 'stored_value:issue_wallet_credit'
+          : type === 'advance'
+            ? 'stored_value:issue_advance'
+            : 'stored_value:issue_credit_note';
+      cmxMessage.error(t('permissionRequired', { permissionCode }));
+      return;
+    }
     setAmount('');
     setNotes('');
     setReason('');
@@ -117,9 +135,24 @@ export function CustomerStoredValueTab({ customerId }: Props) {
   }
 
   async function handleSubmit() {
+    if (dialog == null) return;
+    const permitted =
+      (dialog === 'topUp' && canTopUp) ||
+      (dialog === 'advance' && canIssueAdvance) ||
+      (dialog === 'creditNote' && canIssueCreditNote);
+    if (!permitted) {
+      const permissionCode =
+        dialog === 'topUp'
+          ? 'stored_value:issue_wallet_credit'
+          : dialog === 'advance'
+            ? 'stored_value:issue_advance'
+            : 'stored_value:issue_credit_note';
+      cmxMessage.error(t('permissionRequired', { permissionCode }));
+      return;
+    }
     const numAmount = parseMoneyDraft(amount);
     if (numAmount <= 0) {
-      cmxMessage.error('Amount must be greater than zero');
+      cmxMessage.error(t('amountMustBePositive'));
       return;
     }
 
@@ -205,7 +238,13 @@ export function CustomerStoredValueTab({ customerId }: Props) {
         <CmxCard>
           <CmxCardHeader className="flex flex-row items-center justify-between pb-2">
             <CmxCardTitle className="text-base">{t('wallet')}</CmxCardTitle>
-            <CmxButton variant="outline" size="sm" onClick={() => openDialog('topUp')}>
+            <CmxButton
+              variant="outline"
+              size="sm"
+              className={canTopUp ? undefined : 'cursor-not-allowed opacity-60'}
+              aria-disabled={!canTopUp || undefined}
+              onClick={() => openDialog('topUp')}
+            >
               <PlusCircle className="me-1.5 h-4 w-4" />
               {t('topUp')}
             </CmxButton>
@@ -225,7 +264,13 @@ export function CustomerStoredValueTab({ customerId }: Props) {
         <CmxCard>
           <CmxCardHeader className="flex flex-row items-center justify-between pb-2">
             <CmxCardTitle className="text-base">{t('advance')}</CmxCardTitle>
-            <CmxButton variant="outline" size="sm" onClick={() => openDialog('advance')}>
+            <CmxButton
+              variant="outline"
+              size="sm"
+              className={canIssueAdvance ? undefined : 'cursor-not-allowed opacity-60'}
+              aria-disabled={!canIssueAdvance || undefined}
+              onClick={() => openDialog('advance')}
+            >
               <PlusCircle className="me-1.5 h-4 w-4" />
               {t('issueAdvance')}
             </CmxButton>
@@ -246,7 +291,13 @@ export function CustomerStoredValueTab({ customerId }: Props) {
       <CmxCard>
         <CmxCardHeader className="flex flex-row items-center justify-between pb-2">
           <CmxCardTitle className="text-base">{t('creditNotes')}</CmxCardTitle>
-          <CmxButton variant="outline" size="sm" onClick={() => openDialog('creditNote')}>
+          <CmxButton
+            variant="outline"
+            size="sm"
+            className={canIssueCreditNote ? undefined : 'cursor-not-allowed opacity-60'}
+            aria-disabled={!canIssueCreditNote || undefined}
+            onClick={() => openDialog('creditNote')}
+          >
             <PlusCircle className="me-1.5 h-4 w-4" />
             {t('issueCreditNote')}
           </CmxButton>

@@ -22,10 +22,9 @@ This is not the staff S10 operator/e2e canary. Support must never edit `org_orde
 
 ## What remains (not this slice)
 
-- Operator/e2e staff POD delivery smoke **S10**
+- Staff S10 POD canary — **SIGNED 2026-09-05**
 - Performance soak under concurrent commands
-- Local demo `org_wf_profile_assign_cf` if running tenant against localhost (reviewed script `scripts/workflow/local_demo_wf_v2_simple_assign.sql`; remote already assigned)
-- Open-order profile migration (explicit approved process, not support)
+- Open-order profile migration (V1.0.x, not support)
 - Partial fulfilment (Off)
 
 ## Commands

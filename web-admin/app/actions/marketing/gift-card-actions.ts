@@ -317,7 +317,14 @@ export async function sellGiftCardWithTenderAction(
     };
   } catch (error) {
     logger.error('sellGiftCardWithTenderAction failed', error as Error, {});
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to sell gift card' };
+    const raw = error instanceof Error ? error.message : 'Failed to sell gift card';
+    if (
+      raw.includes('original_amount_check') ||
+      raw.includes('FUNDED_AMOUNT_MUST_BE_POSITIVE')
+    ) {
+      return { success: false, error: 'GIFT_CARD_AMOUNT_MUST_BE_POSITIVE' };
+    }
+    return { success: false, error: raw };
   }
 }
 

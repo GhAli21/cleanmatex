@@ -58,7 +58,7 @@ const CustomerPickerModal = dynamic(
 const schema = z.object({
   card_name:             z.string().min(1, 'Required').max(200),
   card_name2:            z.string().max(200).optional(),
-  amount:                z.coerce.number().positive('Amount must be positive'),
+  amount:                z.number().positive(),
   expiry_date:           z.string().optional(),
   purchased_by_cust_id:  z.string().uuid().optional().or(z.literal('')),
   issued_to_customer_id: z.string().uuid().optional().or(z.literal('')),
@@ -130,7 +130,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
     defaultValues: {
       card_name:             '',
       card_name2:            '',
-      amount:                0,
+      amount:                undefined as unknown as number,
       expiry_date:           defaultExpiry,
       purchased_by_cust_id:  '',
       issued_to_customer_id: '',
@@ -150,6 +150,10 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
   const sameAsBuyer = useWatch({ control: form.control, name: 'same_as_buyer' });
   const currencyCode = useWatch({ control: form.control, name: 'currency_code' });
   const watchedAmount = useWatch({ control: form.control, name: 'amount' });
+  const faceAmount =
+    typeof watchedAmount === 'number' && Number.isFinite(watchedAmount) && watchedAmount > 0
+      ? watchedAmount
+      : null;
 
   const { formState: { isSubmitting } } = form;
 
@@ -186,6 +190,15 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       ? (values.purchased_by_cust_id || undefined)
       : (values.issued_to_customer_id || undefined);
 
+    const faceValue =
+      typeof values.amount === 'number' && Number.isFinite(values.amount) && values.amount > 0
+        ? values.amount
+        : null;
+    if (faceValue == null) {
+      setServerError(t('fields.amountMustBePositive'));
+      return;
+    }
+
     if (fundingCaptureEnabled) {
       if (!tender) {
         setServerError(t('fields.tenderRequired'));
@@ -194,7 +207,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       const result = await sellGiftCardWithTenderAction({
         card_name:                values.card_name,
         card_name2:               values.card_name2 || undefined,
-        amount:                   values.amount,
+        amount:                   faceValue,
         expiry_date:              values.expiry_date
           ? new Date(values.expiry_date).toISOString()
           : undefined,
@@ -209,7 +222,12 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       });
 
       if (result.success === false) {
-        setServerError(result.error);
+        setServerError(
+          result.error === 'GIFT_CARD_AMOUNT_MUST_BE_POSITIVE' ||
+            result.error === 'FUNDED_AMOUNT_MUST_BE_POSITIVE'
+            ? t('fields.amountMustBePositive')
+            : result.error,
+        );
       } else {
         setGeneratedCode(result.data.giftCardCode);
         onSuccess?.();
@@ -220,7 +238,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
     const result = await sellGiftCardAction({
       card_name:                values.card_name,
       card_name2:               values.card_name2 || undefined,
-      amount:                   values.amount,
+      amount:                   faceValue,
       expiry_date:              values.expiry_date
         ? new Date(values.expiry_date).toISOString()
         : undefined,
@@ -247,7 +265,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
 
   const handleClose = () => {
     form.reset({
-      card_name: '', card_name2: '', amount: 0,
+      card_name: '', card_name2: '', amount: undefined as unknown as number,
       expiry_date: defaultExpiry, purchased_by_cust_id: '',
       issued_to_customer_id: '', card_pin: '',
       currency_code: tenantCurrency || '',
@@ -352,6 +370,11 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                     label={`${t('fields.amount')} *`}
                     min={0.001}
                   />
+                  {form.formState.errors.amount && (
+                    <p className="text-destructive text-xs mt-1">
+                      {t('fields.amountMustBePositive')}
+                    </p>
+                  )}
                 </div>
                 <div className="w-24 pb-0.5">
                   <Label>{t('fields.currency')}</Label>
@@ -366,13 +389,17 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
               {fundingCaptureEnabled && (
                 <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
                   <p className="mb-2 text-sm font-medium">{t('fields.tenderSectionTitle')}</p>
-                  <StoredValueTenderFields
-                    amount={watchedAmount || 0}
-                    currencyCode={currencyCode}
-                    tenantOrgId={tenantOrgId}
-                    userId={userId}
-                    onTenderChange={setTender}
-                  />
+                  {faceAmount == null ? (
+                    <p className="text-sm text-muted-foreground">{t('fields.amountRequiredBeforeTender')}</p>
+                  ) : (
+                    <StoredValueTenderFields
+                      amount={faceAmount}
+                      currencyCode={currencyCode}
+                      tenantOrgId={tenantOrgId}
+                      userId={userId}
+                      onTenderChange={setTender}
+                    />
+                  )}
                 </div>
               )}
 
@@ -514,7 +541,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                 <CmxButton type="button" variant="outline" onClick={handleClose}>
                   {tCommon('cancel')}
                 </CmxButton>
-                <CmxButton type="submit" disabled={isSubmitting || (fundingCaptureEnabled && !tender)}>
+                <CmxButton type="submit" disabled={isSubmitting || (fundingCaptureEnabled && (faceAmount == null || !tender))}>
                   {isSubmitting ? tCommon('loading') : t('actions.sellCard')}
                 </CmxButton>
               </CmxDialogFooter>

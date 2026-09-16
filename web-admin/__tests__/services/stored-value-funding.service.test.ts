@@ -191,11 +191,32 @@ describe('stored-value-funding.service — fundStoredValue', () => {
 
     expect(tx.org_gift_cards_mst.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ status: 'GENERATED', original_amount: 0, current_balance: 0 }),
+        data: expect.objectContaining({
+          status: 'GENERATED',
+          original_amount: 15,
+          current_balance: 0,
+          available_amount: 0,
+        }),
       }),
     );
     expect(result.giftCardId).toBe('card-1');
     expect(result.giftCardCode).toBe('CMX-AAAA-BBBB-CCCC');
+  });
+
+  it('rejects a non-positive funded amount before creating a gift card', async () => {
+    await expect(
+      fundStoredValue({
+        tenantId: TENANT,
+        fundingType: FUNDING_TYPES.GIFT_CARD_SALE,
+        currencyCode: 'OMR',
+        fundedAmount: 0,
+        tenderLegs: [{ paymentMethodId: CASH_METHOD.id, amount: 0 }],
+        performedBy: 'user-1',
+        idempotencyKey: 'fund-gc-zero',
+        giftCard: { cardName: 'Zero Face' },
+      }),
+    ).rejects.toThrow('FUNDED_AMOUNT_MUST_BE_POSITIVE');
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
   it('rejects when tender legs do not sum to the funded amount', async () => {

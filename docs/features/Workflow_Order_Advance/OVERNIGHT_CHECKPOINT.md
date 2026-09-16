@@ -1,6 +1,8 @@
 # Overnight checkpoint — Workflow Order Advance
 
 **Date:** 2026-07-24  
+**Doc Status:** Historical checkpoint. Not the remaining-work list. Current remaining: [current_status.md](current_status.md). Runtime law: [LIVE_NORMALIZED_PROFILE_RUNTIME.md](LIVE_NORMALIZED_PROFILE_RUNTIME.md).
+
 **Authority:** [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md)
 
 ## Expert decision (2026-07-24)

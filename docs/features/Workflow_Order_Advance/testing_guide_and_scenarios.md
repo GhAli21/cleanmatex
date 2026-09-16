@@ -2,6 +2,8 @@
 
 **See also:** `12_Test_Plan.md` — the authoritative T01–T18 mandatory-scenario traceability matrix (refreshed 2026-09-05, T16/T17 closed with real proofs 2026-09-05/09-10). This file's evidence notes below (dated 2026-08-21/08-29) predate that refresh; treat `12_Test_Plan.md` as current for T-numbered scenario status.
 
+**Operator-signed floor (do not treat as remaining):** S10 SIGNED 2026-09-05; Hold H1–H4 2026-09-11; leftover-intake **New order actions** + quick-drop Preparation **Edit Order** 2026-09-12; SIMPLE leftover dest accepted as-is. HQ S7 Effective preview **PASS 2026-09-12**. HQ staging does **not** re-open those — see HQ `test_guide.md`. **Runtime law:** live profile-version rows + Check policy. Dated 2026-08-21/08-26 evidence notes below that mention compiled artifacts / checksums are **historical**, not current create/Workboard contract.
+
 ## Fast validation commands
 
 Run from `web-admin`:
@@ -118,7 +120,7 @@ WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111'::uuid
   AND order_no = 'ORD-REPLACE-WITH-NEW-ORDER';
 ```
 
-Expected: `wf_profile_id` is the assigned profile and `wf_version_no` is its resolved active PUBLISHED version, with exact artifact identity/revision/checksum/schema persisted. A missing assignment or current valid artifact must reject order creation; there is no legacy template-only create path.
+Expected: `wf_profile_id` is the assigned profile and `wf_version_no` is its resolved active PILOT (demo) or PUBLISHED version. Binding is profile/version identity only — do not expect compiled artifact id/checksum. A missing assignment must reject order creation; there is no legacy template-only create path and no `profile_artifact_required`.
 5. Prepare disposable orders in `preparing`, `processing`, `packing`, `ready`, `out_for_delivery`, and `intake` as required below.
 6. Capture each order's initial `current_status`, `status`, `state_version`, financial summary, and outbox/history count.
 
@@ -292,7 +294,7 @@ During and after the smoke window:
 
 1. Apply `0455_workboard_permission_navigation.sql`, deploy the Workboard build, and sign in as a role with `workboard:read`.
 2. Confirm **Orders → Workboard** is visible; a role without the permission must not see it and the API must return `403`.
-3. Verify a semantic order appears only when its compiled artifact contains both `workboard` and owner-stage membership.
+3. Verify a bound order appears only when its live profile version has both `workboard` observer membership and an enabled primary-owner stage.
 4. Verify a historic unsnapshotted order is excluded from the operational Workboard and remains readable only through audit/history views.
 5. Exercise each filter, sorting, quick-focus card, clear-filters action, and pagination; every row/count must remain tenant-scoped.
 6. Verify the owner-stage quick-focus cards continue to show `summary.byOwner` totals for the current non-stage filters even after selecting one owner stage.
@@ -345,11 +347,11 @@ Staff UX / labels:
 2. First attempt: clicking **Fail** with no reason correctly rejected (`min_reason_length: 10`) — but the UI had no field to enter one. Fixed: `WorkflowActionBar.tsx`'s `CONTROL_ACTIONS_NEEDING_NOTES` was missing `WORKFLOW_ACTIONS.FAIL_HOME_COLLECTION` (same pattern as `FAIL_QA`); added, deployed.
 3. Retried: entered reason "not in home i will comeback afternoon" → confirmed via `org_order_history`: `out_for_collection → awaiting_collection`, `action_type=FAIL_HOME_COLLECTION`, reason correctly recorded.
 
-**Post-HC1 note — `intake` stuck stage, resolved for HOME_COLLECTION:** confirming home collection on that profile now lands at `preparing`. **Quick-drop (2026-09-11 product lock):** quick-drop goes to `preparing`; itemization is Preparation **Edit Order**. Order details now mounts **New order actions** (`new_order`) and **Order actions** (`order_control`). `0499`+`0500` applied. `0501` retargets SIMPLE leftover `intake` / home-collection confirm → `preparing` (operator apply).
+**Post-HC1 note — `intake` stuck stage, resolved for HOME_COLLECTION:** confirming home collection on that profile now lands at `preparing`. **Quick-drop (2026-09-11 product lock):** quick-drop goes to `preparing`; itemization is Preparation **Edit Order**. Order details now mounts **New order actions** (`new_order`) and **Order actions** (`order_control`). `0499`+`0500` applied. SIMPLE leftover dest **accepted as-is** (Studio for later dest edits).
 
 ## Quick-drop → Preparation (T04 product path, 2026-09-11)
 
-Operator floor smoke (policy already live):
+Operator floor smoke (**done 2026-09-12**; policy already live):
 
 1. Create a staff/POS quick-drop order.
 2. Expect `current_status=preparing` (not `intake`), physical intake already `received`.
@@ -360,11 +362,11 @@ T04 automated: `web-admin/__tests__/db-integration/wf-v2-simple-quick-drop-flow.
 
 ## Leftover intake — New order actions (2026-09-11)
 
-Operator smoke (UI already live; `0501` optional):
+Operator smoke (**done 2026-09-12**; UI already live; SIMPLE leftover dest accepted as-is):
 
 1. Open an order still at `intake` (pre-`0499` quick-drop or SIMPLE leftover).
 2. On order details or workspace **Actions**, confirm **New order actions** lists engine edges for `new_order` (typically Confirm physical intake) and **Order actions** lists hold/resume/stop when the policy allows.
-3. Run Confirm physical intake. Destination is the compiled edge: FULL_PATH/STANDARD → `preparing`; SIMPLE v4 → `processing` until `0501` is applied, then `preparing`.
+3. Run Confirm physical intake. Destination is the compiled edge: FULL_PATH/STANDARD → `preparing`; SIMPLE leftover → `processing` (accepted as-is; later dest edits in HQ Studio).
 4. Remote `draft` + `pending_dropoff` still uses the drop-off banner, not this bar.
 
 ## Hold hardening (§9 H1–H4 — 2026-09-04)

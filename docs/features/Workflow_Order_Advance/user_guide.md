@@ -155,7 +155,7 @@ Inbound dirty-item collection is **not** branch pickup (`PICKUP`).
 1. Create a customer-mobile booking with fulfilment `home_collection` (order type `HOME_COLLECTION`), or on New Order choose type `HOME_COLLECTION` and source `customer_mobile_app` when the tenant allows that source. The order starts at `awaiting_collection` with pending intake. `fulfillmentType` is the customer-booking API name; New Order stores `order_type_id` directly.
 2. Open **Orders → Home Collection** (`/dashboard/home-collection`).
 3. Assign the order, then on the detail page confirm collection received (or Fail with a reason of at least 10 characters).
-4. Confirm moves the order to plant `preparing` (HOME_COLLECTION v1 Studio policy) and stamps physical intake. Fail returns it to `awaiting_collection`. On **SIMPLE** v4, confirm still lands at `intake` until `0501` is applied (then it goes to `preparing`).
+4. Confirm moves the order to plant `preparing` (HOME_COLLECTION v1 Studio policy) and stamps physical intake. Fail returns it to `awaiting_collection`. On **SIMPLE** v4, confirm lands at `intake` (accepted as-is). Change dest later in HQ Studio, then Check policy.
 
 Do not use **Mark received at branch** (remote drop-off) for these orders. That banner is only for remote `draft` + `pending_dropoff`.
 
@@ -172,7 +172,7 @@ Typed POS (not quick-drop) still starts at `processing`. Remote bookings stay `d
 
 ## Order details — New order actions and Order actions
 
-On standard details, full details, and workspace **Actions**, staff see two engine bars (`orders:transition`):
+On standard details, full details, and workspace **Actions**, staff see two engine bars (`orders:transition`). Operator leftover-intake and quick-drop floor smokes **confirmed 2026-09-12**.
 
 1. **New order actions** (`screen=new_order`) — whatever the pinned profile lists for the current status (leftover `intake` typically `CONFIRM_PHYSICAL_INTAKE`). Hidden when the engine has nothing for that screen.
 2. **Order actions** (`screen=order_control`) — hold / resume / stop. Hidden when empty.

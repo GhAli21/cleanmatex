@@ -8,11 +8,11 @@
 
 ---
 
-> **Superseded runtime record:** This document preserves the retired graph-pin design only for audit history. The current contract is the immutable semantic artifact model in `P0_compiled_profile_runtime_model.md` and `06_API_Contracts.md`. New orders require a complete semantic artifact snapshot. Profile-stamped orders, floor lists, Workboard, and stage commands do not load graph pins, templates, or live workflow catalogs. Orders without a complete snapshot are operationally fail-closed and remain readable only for audit/history. No new work may extend this graph-pin approach.
+> **Superseded runtime record:** This document preserves the retired graph-pin design only for audit history. Current contract: [LIVE_NORMALIZED_PROFILE_RUNTIME.md](LIVE_NORMALIZED_PROFILE_RUNTIME.md) and [06_API_Contracts.md](06_API_Contracts.md). Tenant execute uses `WorkflowPolicyResolver` on live profile-version rows. HQ validation is **Check policy**. Compiled artifacts and graph pins are not runtime. No new work may extend this graph-pin approach.
 
 ## Historical context only
 
-The sections below describe the former P0 graph-pin canary. They are not an implementation or operations guide. Use the current semantic artifact contracts linked above for all runtime, test, rollout, and incident decisions.
+The sections below describe the former P0 graph-pin canary. They are not an implementation or operations guide. Use [LIVE_NORMALIZED_PROFILE_RUNTIME.md](LIVE_NORMALIZED_PROFILE_RUNTIME.md) for all runtime, test, rollout, and incident decisions.
 
 ## Why
 

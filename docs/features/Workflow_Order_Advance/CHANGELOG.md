@@ -1,5 +1,25 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-09-12 (5)
+
+- **`lwpr-tenant-docs-final` done.** Canonical Workflow Order Advance pack audited for live Check policy / live `sys_wf_prof_ver_*` rows. Stale compiled-artifact runtime claims rewritten or marked historical. Full Pack, `old/`, and Audit reports stay archives. Remaining operator watch: HQ soak.
+
+## Unreleased — 2026-09-12 (4)
+
+- **HQ `lwpr-hq-docs-final` done (sibling repo).** HQ `test_guide.md` rewritten for live Check policy. Tenant-signed floor smokes (S10, leftover-intake, quick-drop, Hold, SIMPLE/FULL_PATH Check policy) are listed there as already proven. HQ S/T items that are encoded in code/Jest are marked PASS from code. **S7 PASS 2026-09-12 (operator Effective preview).** **Operator remaining: soak.**
+
+## Unreleased — 2026-09-12 (3)
+
+- **SIMPLE leftover dest accepted as-is.** Owner: keep live SIMPLE v4 dest (`intake→processing`, home-collection confirm `→intake`). Later dest edits are HQ Studio + Check policy, not a tenant migration. `0501` no-op stays in history. Item closed.
+
+## Unreleased — 2026-09-12 (2)
+
+- **`0501` applied as no-op.** Operator nullified the body (`SELECT 1`; retarget SQL commented) and applied local+remote. Verified on remote: SIMPLE v4 leftover dest unchanged (`CONFIRM_PHYSICAL_INTAKE` `intake→processing`, `CONFIRM_HOME_COLLECTION` `→intake`). Later the same day owner accepted that dest as-is (Studio for any future change).
+
+## Unreleased — 2026-09-12
+
+- **Operator smokes signed.** Leftover-intake ActionBar smoke and quick-drop floor smoke **done 2026-09-12**. At that moment remaining V1.0 still listed optional `0501`; later the same day `0501` applied as no-op.
+
 ## Unreleased — 2026-09-11 (6)
 
 - **Docs/status alignment (evening).** Remote still ends at `0500`; `0501` not applied. Canonical remaining list added to `current_status.md`. Stale “no intake ActionBar” lines removed. User guide documents **New order actions** + **Order actions**.

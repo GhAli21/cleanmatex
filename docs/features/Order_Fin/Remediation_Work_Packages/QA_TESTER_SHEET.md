@@ -70,11 +70,11 @@ Put them all in **one folder** called `CleanMateX-Screenshots` and send it back 
 
 | | |
 |---|---|
-| Website address | ......................................................... |
-| **Main** username / password | ......................................................... |
-| **Limited** username / password *(fewer permissions)* | ......................................................... |
-| **View-only** username / password *(optional)* | ......................................................... |
-| Currency you should see | ......................................................... |
+| Website address | https://cmx.cleanmatex.com/ |
+| **Main** username / password | admin@demo-laundry.example/Admin123 |
+| **Limited** username / password *(fewer permissions)* | operator@demo-laundry.example/Operator123 |
+| **View-only** username / password *(optional)* | viewer@demo-laundry.example/Viewer123 |
+| Currency you should see | OMR |
 
 > Several tests ask you to log in as the **Limited** user to check that the app correctly *stops* someone who isn't allowed to do something. Those are clearly marked. If you weren't given that login, mark them **Couldn't test**.
 
@@ -406,9 +406,10 @@ RESULT:  ( ) Worked    ( ) Problem    ( ) Couldn't test
 NOTES:
 ```
 
-### Test 35 — Cancel a paid order
-**Do:** Cancel an order that has been paid → choose the **refund** option in the cancel dialog.
-**Should happen:** Cancels, and refund records are created. The money side is handled, not left stranded.
+### Test 35 — Cancel is not offered after processing starts
+**Do:** Open a **paid Processing** order. Look at the order-control actions. (Cancel is only for **draft**, **intake**, or **preparing** that has not finished prep. After Processing, money is **Refund** or **Reverse**.)
+**Should happen:** You see things like Complete / Hold / Refund / Reverse. You do **not** see Cancel. That is correct, not a missing button.
+**Should NOT happen:** a Cancel button on a Processing order.
 ```
 RESULT:  ( ) Worked    ( ) Problem    ( ) Couldn't test
 NOTES:
@@ -564,8 +565,8 @@ NOTES:
 ```
 
 ### Test 53 — Sell a gift card
-**Do:** **Marketing → Gift Cards → Sell Card** → fill in → complete.
-**Should happen:** Card created, code shown, and a payment step (method + cash/change) appeared during the sale.
+**Do:** **Marketing → Gift Cards → Sell Card** → enter the **card amount first** (not zero) → complete tender (method + cash/change if cash) → sell.
+**Should happen:** Card created, code shown, and a payment step (method + cash/change) appeared during the sale. Tender stays unavailable until the card amount is greater than zero.
 ```
 RESULT:  ( ) Worked    ( ) Problem    ( ) Couldn't test
 NOTES:

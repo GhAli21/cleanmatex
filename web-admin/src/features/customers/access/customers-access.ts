@@ -77,6 +77,29 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/customers/[id]',
     label: 'Customer Details',
     page: {},
+    actions: {
+      topUpWallet: {
+        label: 'Top up customer wallet (stored-value tab)',
+        requirement: {
+          permissions: ['stored_value:issue_wallet_credit'],
+          requireAllPermissions: true,
+        },
+      },
+      issueAdvance: {
+        label: 'Issue customer advance (stored-value tab)',
+        requirement: {
+          permissions: ['stored_value:issue_advance'],
+          requireAllPermissions: true,
+        },
+      },
+      issueCreditNote: {
+        label: 'Issue customer credit note (stored-value tab)',
+        requirement: {
+          permissions: ['stored_value:issue_credit_note'],
+          requireAllPermissions: true,
+        },
+      },
+    },
     apiDependencies: [
       {
         label: 'Get customer details',

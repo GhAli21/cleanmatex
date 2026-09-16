@@ -1,9 +1,20 @@
 # Twilio WhatsApp — WABA Registration and Template Approval
 
-**Last updated:** 2026-09-12  
-**Account checked:** Twilio `cleanmatex_comm` (live API health check)  
+**Last updated:** 2026-09-12 (evening operator session)  
+**Account checked:** Twilio `cleanmatex_comm` (Console + Meta Self Sign-up)  
 **Audience:** Platform operator who needs production WhatsApp (business-initiated) and Meta-approved templates  
 **Related:** [09_whatsapp_templates.md](./09_whatsapp_templates.md) (older Meta-direct copy) · [03_env_vars.md](./03_env_vars.md) · HQ Runtime Config (`/notifications/runtime-config`)
+
+### Status snapshot (end of 12 Sep 2026 session)
+
+| Item | State |
+|---|---|
+| Production WhatsApp sender | **`+96877182624`** registered on Twilio as **CleanMateX** (Online in Edit Sender) |
+| Meta Business portfolio | **Cleanmatex WhatsApp** (Oman; website `https://www.cleanmatex.com/`) — do **not** use locked **Cleanmatex BZNS** for new signup |
+| SMS-only number (keep) | `+17017796841` — **not** the WhatsApp From |
+| Template for go-live | `order_created_v2` · SID `HXc38648fd0b5f5cc743893bfa8ff96b56` · UTILITY · **Under Review** |
+| CleanMateX runtime | **Not flipped yet** — wait until template is **Approved**, then §17 |
+| Sandbox | Still OK for local tests; no longer the approval blocker |
 
 ---
 
@@ -13,13 +24,14 @@ Read once top to bottom the first time. After that, jump:
 
 | If you need… | Go to |
 |---|---|
-| Why templates stay unapproved | [§4](#4-why-templates-are-not-approved) |
-| What is healthy vs broken today | [§6](#6-live-account-health-as-of-12-sep-2026) |
+| Current approval / WABA status | [§4](#4-template-approval-status--what-blocked-us) · [§6](#6-live-account-health-as-of-12-sep-2026) |
+| What we did on 12 Sep 2026 | [§26](#26-operator-session-log--12-sep-2026) |
 | Keep sandbox tests working | [§19](#19-until-the-waba-is-live-keep-sandbox-working) |
 | Register a real WhatsApp sender | [§12](#12-step-0--choose-the-production-sender-number) through [§14](#14-step-2--register-the-whatsapp-sender-3060-min) |
 | Submit / duplicate templates | [§15](#15-step-3--submit-or-resubmit-templates) |
 | Point CleanMateX at the new sender | [§17](#17-step-4--point-cleanmatex-at-the-new-sender) |
 | Prove business-initiated send | [§18](#18-step-5--prove-it) |
+| Chosen production sender | [§25](#25-sender-decision) |
 
 Do **not** treat the Twilio sandbox number as a production sender. Meta will not approve business-initiated templates on it.
 
@@ -29,13 +41,15 @@ Do **not** treat the Twilio sandbox number as a production sender. Meta will not
 
 CleanMateX sends order WhatsApp through Twilio as the Business Solution Provider (BSP).
 
-Today the app can deliver **sandbox** messages to a number that joined the sandbox (and inside the 24-hour customer window). It **cannot** send true business-initiated WhatsApp to arbitrary customers until:
+As of **12 Sep 2026 evening**:
 
-1. A WhatsApp Business Account (WABA) is registered on Twilio (not sandbox).
-2. A WhatsApp **sender** (your own E.164 number) is attached to that WABA.
-3. At least one Content template is **Approved** by Meta for that WABA.
+1. ~~WABA registered on Twilio~~ — **done** (Self Sign-up; portfolio **Cleanmatex WhatsApp**).
+2. ~~WhatsApp sender attached~~ — **done** (`+96877182624` / display name **CleanMateX**).
+3. Content template **Approved** by Meta — **in progress** (`order_created_v2` **Under Review**). Until **Approved**, do not flip production runtime off sandbox.
 
-This document is the operator playbook for those three items, plus the live findings from the `cleanmatex_comm` account.
+The app can still deliver **sandbox** messages for local tests. True business-initiated WhatsApp to arbitrary customers still waits on step 3 + §17 runtime flip.
+
+This document is the operator playbook for those items, plus live findings from `cleanmatex_comm`.
 
 ---
 
@@ -73,19 +87,28 @@ Official: [WhatsApp approval statuses](https://www.twilio.com/docs/content/conte
 
 ---
 
-## 4. Why templates are not approved
+## 4. Template approval status — what blocked us
 
-This is **not** a Meta content rejection. None of the current templates are `rejected`.
+### Historical blocker (morning 12 Sep 2026) — **cleared**
 
-Root cause: the only WhatsApp From in use is the **Twilio sandbox**. Sandbox is for in-session testing. It is not a WhatsApp Business Account. Meta will not move templates to `pending` / `approved` on it.
+This was **not** a Meta content rejection. Templates were stuck because the only WhatsApp From in use was the **Twilio sandbox** (`whatsapp:+14155238886`). Sandbox is for in-session testing; it is not a production WABA. Meta will **not** move templates to `pending` / `approved` on it.
 
-What we observed on this account:
+Observed before Self Sign-up:
 
-- **`order_created_simple`** (`HXf671d04d86dbedf8df5231159beee93a`) — submitted as **UTILITY**, status **`received`**, `rejection_reason` empty. Twilio has the request. Meta never reviewed it.
-- **`notification_order_tracking`** (`HX754046914dd9862c6dc8771154524ff8`) — **`unsubmitted`**.
-- Other Content templates — not in WhatsApp review (empty / unsubmitted).
+- **`order_created_simple`** (`HXf671d04d86dbedf8df5231159beee93a`) — UTILITY, status **`received`** (Twilio accepted; Meta never reviewed).
+- Other templates — unsubmitted / not in review.
 
-Until a real sender exists, the Content Template Builder will keep showing **Business initiated = no**.
+### Current status (evening 12 Sep 2026)
+
+| Item | Status |
+|---|---|
+| Production sender | `+96877182624` registered; Edit Sender shows **Online** |
+| Sandbox still blocking Meta review? | **No** — real WABA sender exists |
+| `order_created_v2` | SID `HXc38648fd0b5f5cc743893bfa8ff96b56` · UTILITY · **Under Review** (Meta is reviewing) |
+| `order_created_simple` (original) | Historical SID; was Under Review / Utility after WABA; **duplicated** to v2 for a clean submit path |
+| Runtime / app From | Still sandbox until **Approved** + §17 |
+
+**Under Review** means the sandbox obstacle is gone. Approval is still Meta’s decision (can **approve** or **reject** for content/policy). Rejection ≠ sandbox problem — fix body and duplicate again (§15 / §16).
 
 ---
 
@@ -108,38 +131,46 @@ Secrets stay in env only: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `NOTIFICATI
 
 ## 6. Live account health (as of 12 Sep 2026)
 
-Pulled from Twilio REST + Content APIs. Do not treat balance or message counts as frozen forever.
+Pulled from Twilio Console + Content Template Builder during the operator session. Do not treat balance or message counts as frozen forever.
 
 | Check | Result | Verdict |
 |---|---|---|
 | Account friendly name | `cleanmatex_comm` | OK |
 | Account status / type | Active, Full | OK |
 | Balance | ~USD 17.63 | OK for tests; top up before production volume |
-| SMS number | `+17017796841` in-use (SMS / MMS / Voice) | OK for SMS. **Not** a WhatsApp sender today |
-| WhatsApp From in use | Sandbox `whatsapp:+14155238886` | Gap — not production |
-| Messaging Service | None | Gap — add after WABA |
-| Production WABA / WhatsApp sender | Missing | **Blocking** for approval |
-| Recent messages (last 40) | 2 delivered + 1 inbound (11 Sep); 37 failed **63015** (July) | Account can send; July = sandbox not joined |
+| SMS number | `+17017796841` (SMS / MMS / Voice) | **Keep for SMS only** — not WhatsApp From |
+| Production WhatsApp sender | `+96877182624` · display name **CleanMateX** | **Registered** (Online in Edit Sender) |
+| Meta portfolio / WABA | **Cleanmatex WhatsApp** (Oman) | OK — Self Sign-up completed |
+| WhatsApp From in CleanMateX runtime | Still sandbox until Approved | Flip in §17 after template **Approved** |
+| Messaging Service | None / not required for first template submit | Add after go-live (§20) |
+| `order_created_v2` | Under Review (UTILITY) | Waiting on Meta |
+| Sandbox From | `whatsapp:+14155238886` | Local tests only |
 
-July **63015** means: sandbox can only send to numbers that joined (or you were outside the session). That is expected sandbox behavior, not a dead account.
+### `+17017796841` notes (attempted as WhatsApp sender, abandoned)
 
-11 Sep deliveries happened after an inbound from the joined test number. That proves credentials and the Content SID path work **inside sandbox**.
+- Capabilities OK: Voice, SMS, MMS; US geo SMS enabled; A2P 10DLC warning is for **outbound** US SMS, not inbound Meta OTP.
+- Meta **SMS** and **voice** OTP for Self Sign-up **never arrived** (no new Messaging / Call log entries to that number).
+- Voice webhook was fixed to Voicemail Twimlet → `cleanmatexsaas@gmail.com` (`https://twimlets.com/voicemail?Email=cleanmatexsaas%40gmail.com`, HTTP POST). Still **no** Meta inbound call. Do not rely on this number for WhatsApp verify.
+- Historical Messaging noise: error **30039** (Filtered to Prevent Message Loops) on old HELP/STOP traffic — unrelated to OTP.
+
+July **63015** on sandbox = recipient not joined / outside session. Expected sandbox behavior.
 
 ---
 
 ## 7. Content templates on this account
 
-| Friendly name | Content SID | Type | WhatsApp approval (12 Sep 2026) |
+| Friendly name | Content SID | Type | WhatsApp approval (12 Sep 2026 evening) |
 |---|---|---|---|
-| `order_created_simple` | `HXf671d04d86dbedf8df5231159beee93a` | `twilio/text` | **`received`** / UTILITY — used by the app today |
-| `notification_order_tracking` | `HX754046914dd9862c6dc8771154524ff8` | `twilio/list-picker` | **`unsubmitted`** |
+| **`order_created_v2`** | **`HXc38648fd0b5f5cc743893bfa8ff96b56`** | `twilio/text` | **Under Review** / UTILITY — **use this after Approved** |
+| `order_created_simple` | `HXf671d04d86dbedf8df5231159beee93a` | `twilio/text` | Historical; was `received`, then Under Review after WABA; duplicated → v2 |
+| `notification_order_tracking` | `HX754046914dd9862c6dc8771154524ff8` | `twilio/list-picker` | Unsubmitted / not go-live critical |
 | `notifications_appointment_reminder_template` | `HX954e684ee0bdbc0abbb53d480be6c3a7` | `twilio/quick-reply` | Not in review |
 | `notifications_order_update_template` | `HXc6b3346db4f86839420ba5fbe7e1f6f6` | `twilio/quick-reply` | Not in review |
 | `verifications_2fa_template` | `HX160a77fd6c62d288204e6f74089d71e8` | `whatsapp/authentication` | Not in review |
 | `message_opt_in` | `HX665e8c7bc5a88ee3cc0127c6991c9081` | `twilio/quick-reply` | Not in review |
 | `cmx_template_a` | `HX815d1b99f53a6a66fb316a8fcebce501` | `twilio/text` | Not in review |
 
-`order_created_simple` body (Twilio Content):
+`order_created_*` body (Twilio Content):
 
 ```text
 Order #{{order_number}} has been created and will be ready by {{estimated_ready_at}}.
@@ -147,7 +178,9 @@ Order #{{order_number}} has been created and will be ready by {{estimated_ready_
 
 App variables: `order_number`, `estimated_ready_at` (plus `date` in the event payload). Named variables must match the Content template, not OTP-style `{1,2}`.
 
-Older catalog names in [09_whatsapp_templates.md](./09_whatsapp_templates.md) (`cmx_order_ready`, etc.) are **Meta-direct** drafts. They are not the seven Twilio Content SIDs above. Do not mix the two catalogs when submitting.
+After **Approved**, set `wa_sandbox_content_sid` / `TWILIO_WHATSAPP_SANDBOX_CONTENT_SID` to `HXc38648fd0b5f5cc743893bfa8ff96b56` (name is historical; it is the Content SID the adapter sends).
+
+Older catalog names in [09_whatsapp_templates.md](./09_whatsapp_templates.md) (`cmx_order_ready`, etc.) are **Meta-direct** drafts. Do not mix catalogs when submitting.
 
 ---
 
@@ -225,6 +258,15 @@ The number must be WhatsApp-compatible and **not already registered on WhatsApp*
 | New Twilio number (OM / AE if sold and WhatsApp-capable) | Better | Closer to customer geography |
 | Company landline / mobile (non-Twilio) | Fine | Must receive SMS or voice OTP. Must not be on WhatsApp already. Must not be outbound-only |
 
+**Chosen for CleanMateX (12 Sep 2026):** company mobile **`+96877182624`** (Oman). See [§25](#25-sender-decision) and [§26](#26-operator-session-log--12-sep-2026).
+
+**Lessons from this session**
+
+- A number already on WhatsApp (consumer or Business app) must use **Delete my account** (not log out) before Twilio Self Sign-up, or Meta fails / **63110**.
+- Twilio virtual numbers can fail Meta SMS **and** voice OTP even when SMS/Voice capabilities look healthy — prefer a handset that receives SMS for Self Sign-up when possible.
+- If using a Twilio number + **voice** OTP: set **A CALL COMES IN** to the Voicemail Twimlet that emails a transcript (`https://twimlets.com/voicemail?Email=...`) **before** requesting the call. Demo voice URL will not capture the code.
+- Meta portfolio **Cleanmatex BZNS** had country locked (“verified or verification in progress”) so **Next** stayed disabled — use / create **Cleanmatex WhatsApp** (or another unlocked portfolio) instead.
+
 **Check if a number is already on WhatsApp**
 
 1. Browser: `https://wa.me/<digits>` with country code and **no** `+` (example: `https://wa.me/17017796841`).
@@ -293,20 +335,17 @@ If registration fails, use the troubleshooting section in the Self Sign-up doc (
 
 Do this **after** the sender is registered. Submitting again on sandbox will stay `received`.
 
-### 15.1 `order_created_simple` (already `received`)
+### 15.1 `order_created_simple` → `order_created_v2` (**done** 12 Sep 2026)
+
+After the WABA sender existed:
 
 1. Console → **Messaging → Content Template Builder**.
-2. Open `order_created_simple`.
-3. If status becomes `pending` or `approved` after the WABA exists, **stop** — do not duplicate.
-4. If it stays `received` for more than a few hours:
-   - Actions → **Duplicate**.
-   - New name: `order_created_v2` (WhatsApp name rules: lowercase, underscores).
-   - Language: **en** (body is English).
-   - **Submit for WhatsApp approval**.
-   - Category: **UTILITY**.
-5. Put the new `HX…` SID into `wa_sandbox_content_sid` / `TWILIO_WHATSAPP_SANDBOX_CONTENT_SID` (name is historical; it is the Content SID the adapter sends).
+2. `order_created_simple` was already Under Review / Utility — still **duplicated** for a clean Content SID path.
+3. Duplicate named **`order_created_v2`** (language **en**).
+4. Submitted for WhatsApp approval as **UTILITY**.
+5. **Result:** SID **`HXc38648fd0b5f5cc743893bfa8ff96b56`**, status **Under Review**.
 
-Same SID cannot be submitted twice (**92009**). Edits are not supported in place — always duplicate.
+When status becomes **Approved**, put that SID into `wa_sandbox_content_sid` / `TWILIO_WHATSAPP_SANDBOX_CONTENT_SID` and flip From per §17. Same SID cannot be submitted twice (**92009**). Edits are not supported in place — always duplicate.
 
 ### 15.2 What else to submit
 
@@ -380,11 +419,13 @@ Prefer HQ **Runtime Config** so you do not redeploy. Remember: **env wins** if t
 
 ### Production / remote
 
+**Target values after `order_created_v2` is Approved** (do **not** apply while still Under Review):
+
 | Key | Value |
 |---|---|
-| `twilio_whatsapp_from` | `whatsapp:+YOUR_NEW_E164` |
-| `wa_use_sandbox_template` | `false` **only after** the template is **Approved**. Until then keep `true` and the approved/pending Content SID will still fail business-initiated |
-| `wa_sandbox_content_sid` | Approved `HX…` (original or `order_created_v2`) |
+| `twilio_whatsapp_from` | `whatsapp:+96877182624` |
+| `wa_use_sandbox_template` | `false` **only after** the template is **Approved** |
+| `wa_sandbox_content_sid` | `HXc38648fd0b5f5cc743893bfa8ff96b56` (`order_created_v2`) |
 | `wa_sandbox_to_phone` | empty |
 | `outbox_inline_dispatch` | `false` (pg_cron owns dispatch) |
 
@@ -515,8 +556,40 @@ The account is healthy for this path.
 
 ---
 
-## 25. Decision still open
+## 25. Sender decision
 
-**Which production sender number?** `+17017796841` vs a new OM/AE Twilio number vs a company PSTN number.
+**Final production WhatsApp sender (2026-09-12 evening):** company mobile **`+96877182624`** (Oman).
 
-Until that is chosen, stop at [§12](#12-step-0--choose-the-production-sender-number). Everything after it is the same.
+| Number | Role |
+|---|---|
+| `+96877182624` | WhatsApp sender · display name **CleanMateX** · registered on `cleanmatex_comm` |
+| `+17017796841` | **SMS / MMS / Voice only** — abandoned as WhatsApp sender after Meta OTP never delivered |
+| `+14155238886` | Twilio sandbox — local tests only |
+
+- Meta portfolio used: **Cleanmatex WhatsApp** (Oman). Avoid **Cleanmatex BZNS** for signup when country is locked.
+- You can add another sender later on the **same** WABA, then change `twilio_whatsapp_from`.
+- Before registering any number: it must **not** already be on WhatsApp (`https://wa.me/<digits>` with no `+`).
+
+
+## 26. Operator session log — 12 Sep 2026
+
+What we actually executed on Twilio `cleanmatex_comm` + Meta Self Sign-up:
+
+1. **Attempted** WhatsApp Self Sign-up with Twilio SMS number `+17017796841`.
+2. Twilio Console login (MFA required; SMS MFA flaky — call / other method / desktop handoff).
+3. Meta Facebook Login for Business: portfolio **Cleanmatex BZNS** blocked **Next** (country locked — verified / verification in progress). Switched to new portfolio **Cleanmatex WhatsApp**, country **Oman**, website `https://www.cleanmatex.com/`, display name **CleanMateX**, category Shopping and Retail.
+4. Meta phone verify for `+17017796841`: SMS OTP never appeared in Console/Messaging logs; voice OTP never appeared in Call Logs even after Voicemail Twimlet → `cleanmatexsaas@gmail.com`.
+5. Decided **not** to buy OM/AE Twilio inventory solely to dodge OTP risk (same Twilio virtual-number OTP class can fail).
+6. Freed company mobile **`+96877182624`** from WhatsApp (**Delete my account**), then Self Sign-up: SMS OTP on handset succeeded; sender registered as **CleanMateX**.
+7. Duplicated Content template to **`order_created_v2`** (`HXc38648fd0b5f5cc743893bfa8ff96b56`), submitted **UTILITY** → **Under Review**.
+8. **Left** CleanMateX runtime on sandbox until Meta **Approves**. Operator will check approval; then apply §17 + §18 smoke test.
+
+### Still open after this session
+
+- [ ] Wait for `order_created_v2` → **Approved** (or handle **rejected** per §16).
+- [ ] Flip remote runtime keys (§17) and clear env overlays.
+- [ ] Update tenant `org_ntf_channel_provider_cf` `from_number` if it still points at sandbox.
+- [ ] Messaging Service + inbound webhook (§20) when ready.
+- [ ] Business-initiated smoke test to a non-sandbox number (§18).
+- [ ] Arabic template later if needed.
+

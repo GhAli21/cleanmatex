@@ -35,13 +35,14 @@ export interface RefundLegOption {
 }
 
 /**
- * Reason contexts the B34 UI offers pre-B27. REFUND_AND_REBILL is
- * intentionally absent (rejected by the API until the B27 permission code
- * ships) and MANUAL_EXCEPTION stays an API-level, permission-gated path.
+ * Reason contexts the B34 UI offers. MANUAL_EXCEPTION stays an API-level,
+ * permission-gated path. REFUND_AND_REBILL is listed here so the picker can
+ * offer it; the dialog still hides it unless `orders:rebill_authorize` is held.
  */
 export const REFUND_UI_CONTEXTS = [
   REFUND_CONTEXTS.STANDARD,
   REFUND_CONTEXTS.PRICE_ADJUSTMENT_GOODWILL,
+  REFUND_CONTEXTS.REFUND_AND_REBILL,
 ] as const satisfies readonly RefundContext[];
 
 function sumProcessedFor(
@@ -119,6 +120,8 @@ export interface RefundInitiateValidation {
     | 'amountExceedsLegCap'
     | 'amountExceedsOverallCap'
     | 'reasonRequiredForGoodwill'
+    | 'reasonRequiredForRebill'
+    | 'rebillRequiresSourceLeg'
     | null;
 }
 
@@ -129,16 +132,22 @@ export interface RefundInitiateValidation {
  * @param input.amount operator-entered refund amount
  * @param input.selectedLeg chosen source leg, or null for a goodwill refund
  * @param input.overallRemaining order-level refundable balance
- * @param input.notes reason text (mandatory for goodwill per D002 v2)
+ * @param input.notes reason text (mandatory for goodwill and refund-and-rebill)
+ * @param input.refundContext selected reason context (rebill requires lineage + notes)
  */
 export function validateRefundInitiate(input: {
   amount: number;
   selectedLeg: RefundLegOption | null;
   overallRemaining: number;
   notes: string;
+  refundContext?: RefundContext;
 }): RefundInitiateValidation {
   if (!Number.isFinite(input.amount) || input.amount <= 0) {
     return { valid: false, errorKey: 'amountRequired' };
+  }
+  const isRebill = input.refundContext === REFUND_CONTEXTS.REFUND_AND_REBILL;
+  if (isRebill && !input.selectedLeg) {
+    return { valid: false, errorKey: 'rebillRequiresSourceLeg' };
   }
   if (input.selectedLeg && input.amount > input.selectedLeg.remaining) {
     return { valid: false, errorKey: 'amountExceedsLegCap' };
@@ -148,6 +157,9 @@ export function validateRefundInitiate(input: {
   }
   if (!input.selectedLeg && !input.notes.trim()) {
     return { valid: false, errorKey: 'reasonRequiredForGoodwill' };
+  }
+  if (isRebill && !input.notes.trim()) {
+    return { valid: false, errorKey: 'reasonRequiredForRebill' };
   }
   return { valid: true, errorKey: null };
 }

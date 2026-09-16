@@ -1,0 +1,415 @@
+================================================================================
+FILE: F:\jhapp\cleanmatex\web-admin\src\features\auth\ui\RequireFeature.tsx
+LINES: 1-300
+================================================================================
+    1: 'use client'
+    2: /* eslint-disable react-hooks/set-state-in-effect */
+    3: 
+    4: /**
+    5:  * RequireFeature Component
+    6:  *
+    7:  * Conditionally renders children based on feature flag availability
+    8:  * Integrates with subscription plan-based feature flags
+    9:  */
+   10: 
+   11: import { ReactNode, useEffect, useRef, useState } from 'react'
+   12: import { useAuth } from '@/lib/auth/auth-context'
+   13: import type { FeatureFlagKey } from '@/lib/services/feature-flags.service'
+   14: 
+   15: function FeatureGateSkeleton() {
+   16:   return (
+   17:     <div className="space-y-6 p-4" role="status" aria-live="polite" aria-busy="true">
+   18:       <div className="h-8 bg-gray-200 rounded w-1/3 max-w-xs animate-pulse" />
+   19:       <div className="h-40 bg-gray-200 rounded animate-pulse" />
+   20:     </div>
+   21:   )
+   22: }
+   23: 
+   24: interface RequireFeatureProps {
+   25:   feature: FeatureFlagKey | FeatureFlagKey[]
+   26:   fallback?: ReactNode
+   27:   requireAll?: boolean // If multiple features, require all or any
+   28:   children: ReactNode
+   29: }
+   30: 
+   31: /**
+   32:  * Render children only if feature flag is enabled
+   33:  *
+   34:  * @param root0
+   35:  * @param root0.feature
+   36:  * @param root0.fallback
+   37:  * @param root0.requireAll
+   38:  * @param root0.children
+   39:  * @example
+   40:  * <RequireFeature feature={FEATURE_FLAG_KEYS.PDF_INVOICES}>
+   41:  *   <DownloadPDFButton />
+   42:  * </RequireFeature>
+   43:  *
+   44:  * @example
+   45:  * <RequireFeature
+   46:  *   feature={[FEATURE_FLAG_KEYS.PDF_INVOICES, FEATURE_FLAG_KEYS.PRINTING]}
+   47:  *   requireAll={false}
+   48:  *   fallback={<p>Upgrade to access this feature</p>}
+   49:  * >
+   50:  *   <InvoiceActions />
+   51:  * </RequireFeature>
+   52:  */
+   53: export function RequireFeature({
+   54:   feature,
+   55:   fallback = null,
+   56:   requireAll = true,
+   57:   children,
+   58: }: RequireFeatureProps) {
+   59:   const { currentTenant, isLoading: authLoading, user, isTenantContextReady } = useAuth()
+   60:   const [hasAccess, setHasAccess] = useState(false)
+   61:   const [isLoading, setIsLoading] = useState(true)
+   62:   const lastResolvedKeyRef = useRef<string | null>(null)
+   63: 
+   64:   useEffect(() => {
+   65:     async function checkFeatureAccess() {
+   66:       if (authLoading) {
+   67:         setIsLoading(true)
+   68:         return
+   69:       }
+   70: 
+   71:       if (!user) {
+   72:         lastResolvedKeyRef.current = null
+   73:         setHasAccess(false)
+   74:         setIsLoading(false)
+   75:         return
+   76:       }
+   77: 
+   78:       if (!isTenantContextReady) {
+   79:         setIsLoading(true)
+   80:         return
+   81:       }
+   82: 
+   83:       if (!currentTenant) {
+   84:         setHasAccess(false)
+   85:         setIsLoading(false)
+   86:         return
+   87:       }
+   88: 
+   89:       const featurePart = Array.isArray(feature)
+   90:         ? [...feature].sort().join('|')
+   91:         : feature
+   92:       const resolveKey = `${currentTenant.tenant_id}:${featurePart}:${requireAll}`
+   93:       const showBlockingLoad = lastResolvedKeyRef.current !== resolveKey
+   94:       if (showBlockingLoad) {
+   95:         setIsLoading(true)
+   96:       }
+   97: 
+   98:       try {
+   99:         const res = await fetch('/api/feature-flags')
+  100:         if (!res.ok) {
+  101:           setHasAccess(false)
+  102:           return
+  103:         }
+  104:         const flags = (await res.json()) as Record<string, boolean>
+  105: 
+  106:         let nextAccess = false
+  107:         if (Array.isArray(feature)) {
+  108:           if (requireAll) {
+  109:             nextAccess = feature.every((f) => flags[f] === true)
+  110:           } else {
+  111:             nextAccess = feature.some((f) => flags[f] === true)
+  112:           }
+  113:         } else {
+  114:           nextAccess = flags[feature] === true
+  115:         }
+  116:         setHasAccess(nextAccess)
+  117:         lastResolvedKeyRef.current = resolveKey
+  118:       } catch (error) {
+  119:         console.error('Error checking feature access:', error)
+  120:         setHasAccess(false)
+  121:       } finally {
+  122:         setIsLoading(false)
+  123:       }
+  124:     }
+  125: 
+  126:     void checkFeatureAccess()
+  127:   }, [currentTenant, feature, requireAll, authLoading, user, isTenantContextReady])
+  128: 
+  129:   if (authLoading || isLoading) {
+  130:     return <FeatureGateSkeleton />
+  131:   }
+  132: 
+  133:   if (!hasAccess) {
+  134:     return <>{fallback}</>
+  135:   }
+  136: 
+  137:   return <>{children}</>
+  138: }
+  139: 
+  140: /**
+  141:  * Render upgrade prompt for disabled feature
+  142:  *
+  143:  * @param root0
+  144:  * @param root0.feature
+  145:  * @param root0.message
+  146:  * @example
+  147:  * <RequireFeature feature="advanced_analytics" fallback={<UpgradePrompt feature="advanced_analytics" />}>
+  148:  *   <AnalyticsDashboard />
+  149:  * </RequireFeature>
+  150:  */
+  151: export function UpgradePrompt({
+  152:   feature,
+  153:   message,
+  154: }: {
+  155:   feature: FeatureFlagKey
+  156:   message?: string
+  157: }) {
+  158:   const featureNames: Partial<Record<FeatureFlagKey, string>> = {
+  159:     pdf_invoices: 'PDF Invoices',
+  160:     whatsapp_receipts: 'WhatsApp Receipts',
+  161:     in_app_receipts: 'In-App Receipts',
+  162:     printing: 'Receipt Printing',
+  163:     b2b_contracts: 'B2B Contracts',
+  164:     white_label: 'White Label',
+  165:     marketplace_listings: 'Marketplace Listings',
+  166:     loyalty_programs: 'Loyalty Programs',
+  167:     driver_app: 'Driver App',
+  168:     multi_branch: 'Multi-Branch',
+  169:     advanced_analytics: 'Advanced Analytics',
+  170:     api_access: 'API Access',
+  171:     erp_lite_enabled: 'ERP-Lite',
+  172:     erp_lite_gl_enabled: 'ERP-Lite General Ledger',
+  173:     erp_lite_reports_enabled: 'ERP-Lite Financial Reports',
+  174:     erp_lite_ar_enabled: 'ERP-Lite AR Aging',
+  175:     erp_lite_expenses_enabled: 'ERP-Lite Expenses',
+  176:     erp_lite_bank_recon_enabled: 'ERP-Lite Bank Reconciliation',
+  177:     erp_lite_ap_enabled: 'ERP-Lite Accounts Payable',
+  178:     erp_lite_po_enabled: 'ERP-Lite Purchase Orders',
+  179:     erp_lite_branch_pl_enabled: 'ERP-Lite Branch P&L',
+  180:   }
+  181: 
+  182:   return (
+  183:     <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+  184:       <div className="flex items-start">
+  185:         <div className="flex-shrink-0">
+  186:           <svg
+  187:             className="h-5 w-5 text-yellow-400"
+  188:             fill="currentColor"
+  189:             viewBox="0 0 20 20"
+  190:           >
+  191:             <path
+  192:               fillRule="evenodd"
+  193:               d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+  194:               clipRule="evenodd"
+  195:             />
+  196:           </svg>
+  197:         </div>
+  198:         <div className="ml-3 flex-1">
+  199:           <h3 className="text-sm font-medium text-yellow-800">
+  200:             Upgrade Required
+  201:           </h3>
+  202:           <div className="mt-2 text-sm text-yellow-700">
+  203:             <p>
+  204:               {message ||
+  205:                 `The "${featureNames[feature] ?? feature.replace(/_/g, ' ')}" feature is not available on your current plan. Upgrade to access this feature.`}
+  206:             </p>
+  207:           </div>
+  208:           <div className="mt-4">
+  209:             <button
+  210:               type="button"
+  211:               className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+  212:               onClick={() => {
+  213:                 window.location.href = '/dashboard/tenant-admin/subscription'
+  214:               }}
+  215:             >
+  216:               Upgrade Plan
+  217:             </button>
+  218:           </div>
+  219:         </div>
+  220:       </div>
+  221:     </div>
+  222:   )
+  223: }
+  224: 
+  225: /**
+  226:  * Hook to check feature availability (returns true when no flag specified)
+  227:  *
+  228:  * @param feature
+  229:  * @example
+  230:  * const canShow = useFeatureOptional(featureFlag) // true when featureFlag undefined
+  231:  * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
+  232:  */
+  233: export function useFeatureOptional(feature: FeatureFlagKey | undefined): boolean {
+  234:   const { currentTenant, isLoading: authLoading, user, isTenantContextReady } = useAuth()
+  235:   const [hasAccess, setHasAccess] = useState(!feature)
+  236: 
+  237:   useEffect(() => {
+  238:     if (!feature) {
+  239:       setHasAccess(true)
+  240:       return
+  241:     }
+  242:     async function checkFeature() {
+  243:       if (authLoading || !user || !isTenantContextReady || !currentTenant) {
+  244:         setHasAccess(false)
+  245:         return
+  246:       }
+  247:       try {
+  248:         const res = await fetch('/api/feature-flags')
+  249:         if (!res.ok) {
+  250:           setHasAccess(false)
+  251:           return
+  252:         }
+  253:         const flags = (await res.json()) as Record<string, boolean>
+  254:         setHasAccess(flags[feature] === true)
+  255:       } catch (error) {
+  256:         console.error('Error checking feature access:', error)
+  257:         setHasAccess(false)
+  258:       }
+  259:     }
+  260:     void checkFeature()
+  261:   }, [currentTenant, feature, authLoading, user, isTenantContextReady])
+  262: 
+  263:   return hasAccess
+  264: }
+  265: 
+  266: /**
+  267:  * Hook to check feature availability
+  268:  *
+  269:  * @param feature
+  270:  * @example
+  271:  * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
+  272:  * if (canExportPDF) {
+  273:  *   // Show export button
+  274:  * }
+  275:  */
+  276: export function useFeature(feature: FeatureFlagKey): boolean {
+  277:   return useFeatureOptional(feature)
+  278: }
+
+================================================================================
+FILE: F:\jhapp\cleanmatex\web-admin\src\ui\navigation\cmx-sidebar.tsx
+LINES: 160-235
+================================================================================
+  160:   internal_fin: 'internalFinanceOps',
+  161:   finance_vouchers: 'businessVouchers',
+  162:   finance_vouchers_new: 'newVoucher',
+  163:   finance_vouchers_reports: 'voucherReports',
+  164:   help: 'help',
+  165:   jhtestui: 'jwtTest',
+  166: }
+  167: 
+  168: export default function CmxSidebar() {
+  169:   const pathname = usePathname()
+  170:   const { currentTenant } = useAuth()
+  171:   const isRTL = useRTL()
+  172:   const { isCollapsed, toggleCollapse, prefersReducedMotion } = useSidebar()
+  173:   const t = useTranslations('layout.sidebar')
+  174:   const tNav = useTranslations('navigation')
+  175:   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  176:   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
+  177:   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
+  178:   const [hoverSectionKey, setHoverSectionKey] = useState<string | null>(null)
+  179:   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  180: 
+  181:   const { navigation, isLoading: navigationLoading } = useNavigation()
+  182:   const userRole = currentTenant?.user_role?.toLowerCase() as UserRole | undefined
+  183: 
+  184:   useEffect(() => {
+  185:     let isMounted = true
+  186: 
+  187:     async function loadFeatureFlags() {
+  188:       if (!currentTenant) {
+  189:         if (isMounted) {
+  190:           setFeatureFlags({})
+  191:         }
+  192:         return
+  193:       }
+  194: 
+  195:       try {
+  196:         const cached = getCachedFeatureFlags(currentTenant.tenant_id)
+  197:         if (cached && isMounted) {
+  198:           setFeatureFlags(cached)
+  199:         }
+  200: 
+  201:         const response = await fetch('/api/feature-flags', { cache: 'no-store' })
+  202:         if (!response.ok) {
+  203:           throw new Error('Failed to fetch feature flags')
+  204:         }
+  205: 
+  206:         const freshFlags = (await response.json()) as Record<string, boolean>
+  207:         setCachedFeatureFlags(currentTenant.tenant_id, freshFlags)
+  208: 
+  209:         if (isMounted) {
+  210:           setFeatureFlags(freshFlags)
+  211:         }
+  212:       } catch (error) {
+  213:         console.error('Error loading feature flags:', error)
+  214:         if (!getCachedFeatureFlags(currentTenant.tenant_id) && isMounted) {
+  215:           setFeatureFlags({})
+  216:         }
+  217:       }
+  218:     }
+  219: 
+  220:     loadFeatureFlags()
+  221: 
+  222:     return () => {
+  223:       isMounted = false
+  224:     }
+  225:   }, [currentTenant])
+  226: 
+  227:   const getSectionIcon = (section: NavigationSection) => {
+  228:     const fromApi =
+  229:       typeof section.icon === 'function'
+  230:         ? section.icon
+  231:         : typeof section.icon === 'string'
+  232:           ? getIcon(section.icon)
+  233:           : null
+  234:     if (fromApi && typeof fromApi === 'function') return fromApi
+  235:     const fallbackName = SECTION_ICON_FALLBACK[section.key] ?? 'Home'
+
+================================================================================
+FILE: F:\jhapp\cleanmatex\web-admin\src\ui\navigation\permissions-inspector\cmx-permissions-inspector-panel.tsx
+LINES: 175-220
+================================================================================
+  175:     if (open) {
+  176:       setActiveInspectorTab(initialTab)
+  177:     }
+  178:   }, [open, initialTab])
+  179: 
+  180:   const handleClose = useCallback(() => {
+  181:     setPermissionSearchQuery('')
+  182:     resetInspectorPosition()
+  183:     onClose()
+  184:   }, [onClose, resetInspectorPosition])
+  185: 
+  186:   const handleRefreshAll = async () => {
+  187:     setIsRefreshing(true)
+  188:     try {
+  189:       await Promise.all([
+  190:         refreshPermissions(),
+  191:         queryClient.invalidateQueries({ queryKey: ['feature-flags', currentTenant?.tenant_id] }),
+  192:       ])
+  193:     } finally {
+  194:       setIsRefreshing(false)
+  195:     }
+  196:   }
+  197: 
+  198:   const { data: featureFlags = {} } = useQuery({
+  199:     queryKey: ['feature-flags', currentTenant?.tenant_id],
+  200:     queryFn: async () => {
+  201:       const response = await fetch('/api/feature-flags')
+  202:       if (!response.ok) {
+  203:         throw new Error('Failed to fetch feature flags')
+  204:       }
+  205:       return (await response.json()) as Record<string, boolean>
+  206:     },
+  207:     enabled: !!currentTenant?.tenant_id && open,
+  208:   })
+  209: 
+  210:   const currentPageContract = getPageAccessContractByPath(effectivePath)
+  211:   const sortedFeatureFlags = Object.entries(featureFlags).sort(
+  212:     ([leftKey, leftEnabled], [rightKey, rightEnabled]) => {
+  213:       if (leftEnabled !== rightEnabled) {
+  214:         return leftEnabled ? -1 : 1
+  215:       }
+  216:       return leftKey.localeCompare(rightKey)
+  217:     }
+  218:   )
+  219: 
+  220:   const pageEvaluation = currentPageContract
+

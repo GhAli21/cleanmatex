@@ -792,6 +792,18 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllFeatureFlags: true,
         },
       },
+      initiateRefundAndRebill: {
+        label: 'Initiate refund-and-rebill context (Financial tab dialog)',
+        requirement: {
+          permissions: ['orders:rebill_authorize'],
+          requireAllPermissions: true,
+          featureFlags: ['order_fin_refund_ui'],
+          requireAllFeatureFlags: true,
+        },
+        notes: [
+          'Shown in the initiate-refund context picker only when orders:rebill_authorize is held. Reopens due by the refunded amount.',
+        ],
+      },
       void_payment: {
         label: 'B10 — Void a PENDING/PROCESSING/AUTHORIZED payment leg',
         requirement: {

@@ -11,8 +11,9 @@
  *
  * Availability: rendered only behind the `order_fin_refund_ui` feature flag +
  * `orders:process_refund` permission (see order-payments-credits-tables.tsx).
- * REFUND_AND_REBILL / MANUAL_EXCEPTION are intentionally not offered pre-B27.
- * CASH / ORIGINAL_METHOD destinations are labeled record-only until B09.
+ * REFUND_AND_REBILL is offered when `orders:rebill_authorize` is held.
+ * MANUAL_EXCEPTION stays an API-level path. CASH / ORIGINAL_METHOD destinations
+ * are labeled record-only until B09.
  */
 
 import { useMemo, useState } from 'react';
@@ -35,8 +36,9 @@ import {
   CmxSelectDropdownContent,
   CmxSelectDropdownItem,
 } from '@ui/forms';
-import { useMessage } from '@ui/feedback';
+import { CmxSummaryMessage, useMessage } from '@ui/feedback';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useFeature } from '@features/auth/ui/RequireFeature';
 import {
   REFUND_CONTEXTS,
@@ -86,6 +88,10 @@ export function RefundInitiateDialog({
   const router = useRouter();
   const { showSuccess } = useMessage();
   const { token: csrfToken } = useCSRFToken();
+  const canRebill = useHasPermissionCode('orders:rebill_authorize');
+  const offeredContexts = REFUND_UI_CONTEXTS.filter(
+    (code) => code !== REFUND_CONTEXTS.REFUND_AND_REBILL || canRebill,
+  );
 
   const { legs, overallRemaining } = useMemo(
     () => computeRefundLegOptions({ payments, creditApplications, refunds }),
@@ -109,12 +115,14 @@ export function RefundInitiateDialog({
       ? legs.find((leg) => `${leg.kind}:${leg.id}` === legKey) ?? null
       : null;
   const isGoodwill = legKey === GOODWILL_LEG_KEY;
+  const isRebill = refundContext === REFUND_CONTEXTS.REFUND_AND_REBILL;
 
   const validation = validateRefundInitiate({
     amount: amount ?? 0,
     selectedLeg,
     overallRemaining,
     notes,
+    refundContext,
   });
   const legMissing = legKey === '';
   const capHint = selectedLeg ? selectedLeg.remaining : overallRemaining;
@@ -135,6 +143,10 @@ export function RefundInitiateDialog({
 
   async function handleSubmit() {
     if (submitting || legMissing || !validation.valid) return;
+    if (isRebill && !canRebill) {
+      setServerError(tErrors('REFUND_AND_REBILL_NOT_AVAILABLE' as never));
+      return;
+    }
     setSubmitting(true);
     setServerError(null);
     try {
@@ -273,7 +285,7 @@ export function RefundInitiateDialog({
                   <CmxSelectDropdownValue />
                 </CmxSelectDropdownTrigger>
                 <CmxSelectDropdownContent>
-                  {REFUND_UI_CONTEXTS.map((code) => (
+                  {offeredContexts.map((code) => (
                     <CmxSelectDropdownItem key={code} value={code}>
                       {t(`contexts.${code}`)}
                     </CmxSelectDropdownItem>
@@ -282,6 +294,14 @@ export function RefundInitiateDialog({
               </CmxSelectDropdown>
             </div>
           </div>
+
+          {isRebill && (
+            <CmxSummaryMessage
+              type="warning"
+              title={t('rebillWarningTitle')}
+              items={[t('rebillWarning')]}
+            />
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="refund-reason-code">{t('reasonCode')}</Label>
@@ -301,14 +321,14 @@ export function RefundInitiateDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="refund-notes">
-              {isGoodwill ? t('reasonRequired') : t('reasonOptional')}
+              {isGoodwill || isRebill ? t('reasonRequired') : t('reasonOptional')}
             </Label>
             <CmxTextarea
               id="refund-notes"
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               rows={2}
-              aria-required={isGoodwill}
+              aria-required={isGoodwill || isRebill}
             />
           </div>
 

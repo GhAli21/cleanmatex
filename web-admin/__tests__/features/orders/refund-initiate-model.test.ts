@@ -4,7 +4,8 @@
  * Covers the client-side mirrors of the B01 rules: source-leg cap math
  * (per-payment / per-credit-app / overall), inline validation (no silent
  * money mutation — invalid entries are explained, never rewritten), the
- * pre-B27 context whitelist, and the per-attempt idempotency key.
+ * context whitelist (Refund-and-Rebill is permission-gated in the dialog),
+ * and the per-attempt idempotency key.
  */
 
 import {
@@ -156,11 +157,45 @@ describe('validateRefundInitiate', () => {
     expect(validateRefundInitiate({ amount: 70, selectedLeg: leg, overallRemaining: 95, notes: '' }))
       .toEqual({ valid: true, errorKey: null });
   });
+
+  it('requires a source leg and a reason for refund-and-rebill', () => {
+    expect(
+      validateRefundInitiate({
+        amount: 10,
+        selectedLeg: null,
+        overallRemaining: 95,
+        notes: 'reopen due',
+        refundContext: 'REFUND_AND_REBILL',
+      }),
+    ).toEqual({ valid: false, errorKey: 'rebillRequiresSourceLeg' });
+    expect(
+      validateRefundInitiate({
+        amount: 10,
+        selectedLeg: leg,
+        overallRemaining: 95,
+        notes: '  ',
+        refundContext: 'REFUND_AND_REBILL',
+      }),
+    ).toEqual({ valid: false, errorKey: 'reasonRequiredForRebill' });
+    expect(
+      validateRefundInitiate({
+        amount: 10,
+        selectedLeg: leg,
+        overallRemaining: 95,
+        notes: 'customer billed the wrong rate',
+        refundContext: 'REFUND_AND_REBILL',
+      }),
+    ).toEqual({ valid: true, errorKey: null });
+  });
 });
 
-describe('pre-B27 context whitelist + attempt key', () => {
-  it('offers only STANDARD and PRICE_ADJUSTMENT_GOODWILL (rebill/manual arrive with B27)', () => {
-    expect(REFUND_UI_CONTEXTS).toEqual(['STANDARD', 'PRICE_ADJUSTMENT_GOODWILL']);
+describe('context whitelist + attempt key', () => {
+  it('offers STANDARD, PRICE_ADJUSTMENT_GOODWILL, and REFUND_AND_REBILL (permission-gated in the dialog)', () => {
+    expect(REFUND_UI_CONTEXTS).toEqual([
+      'STANDARD',
+      'PRICE_ADJUSTMENT_GOODWILL',
+      'REFUND_AND_REBILL',
+    ]);
   });
 
   it('creates unique, prefixed attempt keys within the 120-char API limit', () => {

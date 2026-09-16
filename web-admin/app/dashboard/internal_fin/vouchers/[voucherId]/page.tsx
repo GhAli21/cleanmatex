@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
+import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import {
   getBizVoucherDetailAction,
@@ -57,6 +59,21 @@ export default async function VoucherDetailPage({ params }: PageProps) {
 
   const voucher = result.data;
 
+  // Voucher.outstanding_amount is unallocated-on-this-voucher, not order due.
+  // When the voucher is linked, surface the B02 order outstanding separately.
+  let orderOutstandingAmount: number | null = null;
+  if (voucher.order_id) {
+    const order = await withTenantContext(auth.tenantId, () =>
+      prisma.org_orders_mst.findFirst({
+        where: { id: voucher.order_id!, tenant_org_id: auth.tenantId },
+        select: { outstanding_amount: true },
+      }),
+    );
+    if (order) {
+      orderOutstandingAmount = Number(order.outstanding_amount ?? 0);
+    }
+  }
+
   // Fetch linked operational effects when the voucher is already posted
   const linkedEffectsResult =
     voucher.voucher_status === VOUCHER_STATUS.POSTED
@@ -76,6 +93,7 @@ export default async function VoucherDetailPage({ params }: PageProps) {
         voucher={voucher}
         userRole={auth.userRole}
         linkedEffects={linkedEffectsResult?.data ?? null}
+        orderOutstandingAmount={orderOutstandingAmount}
       />
     </div>
   );

@@ -67,7 +67,7 @@ Not a new product version. Unsigned / in-flight V1.0.
 
 - S10 signed (2026-09-05) and ADR V1.0 accept (2026-09-11).
 - Check policy is HQ authority; compiled artifacts retired (`0494`).
-- **Still operator-owned before calling V1.0 closed:** leftover-intake **New order actions** smoke; quick-drop smoke (Preparation **Edit Order**); optional `0501` apply + SIMPLE Check policy.
+- **Still operator-owned before calling V1.0 closed:** leftover-intake **New order actions** smoke and quick-drop smoke **done 2026-09-12**. SIMPLE leftover dest **accepted as-is** (Studio for later dest edits). **`lwpr-tenant-docs-final` done 2026-09-12.** Remaining: HQ soak.
 - Pilot assignable only to `is_hq_test_demo` tenants (already true).
 - File 02 remaining planned codes are **V1.0.x** ([05 plan](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md)), not a V1.0 go-live blocker.
 
@@ -94,7 +94,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 | V10x-S1 | Gate `parameters_json` JSON Schema | Evaluators already fail unknown | `gate_parameters_invalid` |
 | V10x-S2 | Nav from server workflow-context | Hide/disable Off modules using context, not a second client policy | Preview the same contract |
 | V10x-S3 | Submit-order error mapping | **Done 2026-09-03:** create `PROFILE_*` → 422 + `workflow.profileErrors`; runtime integrity stays 409 | — |
-| V10x-S4 | `intake → preparing` UI for received bags | **Reopened 2026-09-11 then shipped UI.** Order details + workspace Actions: `WorkflowActionBar` `new_order` **and** `order_control` (`hideWhenEmpty`). Quick-drop still → `preparing`. Remote drop-off banner stays `draft` + `pending_dropoff`. `0501` written for SIMPLE leftover edges → `preparing` (operator apply + Check policy). | After `0501`: re-run HQ Check policy on SIMPLE v4 |
+| V10x-S4 | `intake → preparing` UI for received bags | **Done 2026-09-12.** UI + operator smokes shipped. SIMPLE leftover dest **accepted as-is** (`intake→processing`, home-collection confirm `→intake`). Later dest edits: HQ Studio + Check policy. Remote drop-off banner stays `draft` + `pending_dropoff`. | No tenant retarget migration. |
 
 ### Could
 
@@ -281,8 +281,8 @@ Do **not** rebuild `/dashboard/settings/workflows/new` or `[id]/edit`.
 
 ## 10. Suggested near-term sequence (owners)
 
-1. **Operator:** apply `0501`, HQ Check policy on SIMPLE v4, leftover-intake **New order actions** smoke, quick-drop smoke (Preparation **Edit Order**). `0499`+`0500` applied.
-2. **HQ docs:** `lwpr-hq-docs-final` + soak.
+1. **Operator:** leftover-intake **New order actions** smoke and quick-drop smoke **done 2026-09-12**. SIMPLE leftover dest **accepted as-is** (Studio for later dest edits). `0499`+`0500` applied. **`lwpr-tenant-docs-final` done 2026-09-12.**
+2. **HQ:** **soak**. **S7 PASS 2026-09-12** (operator Effective preview). All other S1–S8 / T1–T10 items are code-pass, tenant-signed, or parked (T8 = V10x-M4). `lwpr-hq-docs-final` **done**.
 3. **V1.0.x (not V1.0 blockers):** 46 planned Check-policy codes ([05](05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md)); open-order migrate (V10x-M3).
 4. **Product:** V1.1 returns + work groups after V1.0.x, not before.
 
