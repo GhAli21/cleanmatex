@@ -1,6 +1,24 @@
-# Changelog Ã¢â‚¬â€ Order Financial Platform
+# Changelog — Order Financial Platform
+
+## 2026-09-17 — Finance jobs hub (B07 / B19 follow-up)
+
+**Scope:** Documentation for the Outbox Monitor jobs hub. Migration `0505` already applied by owner (local + remote); types regenerated. No new schema in this doc pass.
+
+### Shipped (runtime, already live)
+
+- Five scheduled jobs on `/dashboard/internal_fin/outbox`: outbox processor, gift-card expiry, credit-note expiry, idempotency cleanup, ERP posting retry.
+- Run history, confirm + overlap-safe Run Now, cron health via `fin_list_job_schedules()`, related-record deep links.
+- Credit-note expiry is ledger-aware (`EXPIRY` txn); raw `expire-credit-notes` cron retired. No invented GL.
+
+### Docs
+
+- Canonical runbook: `Order_Fin_Docs/FINANCE_JOBS_HUB.md`
+- Updated B07 / B19 completion evidence, OUTBOX_PATTERN_GUIDE, STORED_VALUE_GUIDE, developer_guide, QA §11.16–11.22 and §20.12–20.18
+
+---
 
 ## 2026-07-09 — POS Session Hub for order entry
+
 
 **Scope:** New Order UI enhancement, permission-safe POS context projection, access contract refresh, i18n, tests, and docs. No database migrations were created or applied.
 

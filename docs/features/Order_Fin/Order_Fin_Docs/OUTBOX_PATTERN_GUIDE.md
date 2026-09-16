@@ -1,5 +1,7 @@
 # Outbox Pattern Guide — Event Types, Retry Schedule, Worker
 
+> **Current processor (B07, 2026-09-17):** events are consumed by `processOutboxBatch()` via pg_cron `fin-outbox-processor` → `POST /api/finance/process-outbox` (bearer `FINANCE_OUTBOX_SECRET`). Terminal poison status is `DEAD_LETTERED`, not `FAILED`. Ops + Scheduled Jobs: `/dashboard/internal_fin/outbox` — [FINANCE_JOBS_HUB.md](FINANCE_JOBS_HUB.md). The 0296 edge function `outbox-worker` is retired (unscheduled in 0410).
+
 ## Why Outbox?
 
 The transactional outbox pattern ensures domain events are published **if and only if** the business transaction commits. Direct event publishing inside a transaction can lose events if the downstream service is unavailable. With the outbox:
@@ -37,39 +39,43 @@ The function creates a row with `status='PENDING'`, `attempts=0`, `max_attempts=
 
 ## Retry Schedule
 
-Exponential back-off in minutes: **1 → 5 → 15 → 60 → 240 → FAILED**
+Exponential back-off in minutes: **1 → 5 → 15 → 60 → 240 → DEAD_LETTERED**
 
-After 6 attempts (max_attempts), the row is marked `FAILED` and no longer retried. Failed events require manual intervention.
+After 6 attempts (`max_attempts`), the row is marked `DEAD_LETTERED` and no longer retried automatically. Operators re-queue from Outbox Monitor (`finance_outbox:retry`).
 
 ## Worker Architecture
 
-The Supabase Edge Function (`supabase/functions/outbox-worker/index.ts`) runs on a schedule set by pg_cron (migration 0296).
+**Current (B07):** pg_cron `fin-outbox-processor` (every minute) → `POST /api/finance/process-outbox` (bearer `FINANCE_OUTBOX_SECRET`) → `runFinanceJob('outbox_processor')` → `processOutboxBatch()`. Jobs hub: [FINANCE_JOBS_HUB.md](FINANCE_JOBS_HUB.md).
 
-**Claim batch (atomic CTE):**
+The 0296 Edge Function `supabase/functions/outbox-worker/index.ts` is **retired** (cron unscheduled in 0410).
+
+**Claim batch (atomic):**
 ```typescript
-const events = await claimBatch(50);
-// Sets status → PROCESSING for the claimed rows
+const events = await claimBatch(50)
+// claim_outbox_batch RPC — FOR UPDATE SKIP LOCKED
 ```
 
 **Processing loop:**
-1. For each event: publish to downstream (webhook, queue, or direct service call)
-2. On success: `UPDATE org_domain_events_outbox SET status='COMPLETED'`
-3. On failure: `UPDATE ... SET attempts=attempts+1, status='PENDING', next_retry_at=<next>`
-4. After max_attempts: `SET status='FAILED'`
+1. For each event: dispatch to registered handlers (`order-history`, `loyalty-earn`)
+2. On success: status `PROCESSED`
+3. On failure: `attempts+1`, status `FAILED`, `next_retry_at` = next backoff
+4. After max_attempts: status `DEAD_LETTERED`
 
-**Idempotency Key:**
-Pass `idempotency_key` when the same logical event might be emitted multiple times (e.g. retries from the business layer). The worker deduplicates by key.
+**Idempotency:** handlers use deterministic keys (e.g. `loyalty-earn-${event.id}`). Replaying a completed event is a no-op.
 
 ## Monitoring
 
-- Stuck events: reconciliation check `OUTBOX_STUCK` flags PENDING/FAILED events > 1 hour old
-- FAILED events visible in admin interface (future: add alert)
-- Worker logs via Supabase Edge Function logs
+- Outbox Monitor KPIs: pending / processing / failed / dead-lettered / processed-24h
+- Processor last-run, cron health, and history on the Scheduled Jobs card
+- Reconciliation check `OUTBOX_STUCK` (B20) flags old PENDING/FAILED events when that check is wired
 
 ## Local Development
 
-The worker does not run automatically in local dev. To process events locally:
-```bash
-supabase functions serve outbox-worker
-# POST to http://localhost:54321/functions/v1/outbox-worker
+The processor does not run unless pg_cron can reach the app with `FINANCE_OUTBOX_SECRET` set. For a one-off drain:
+
+```http
+POST /api/finance/process-outbox
+Authorization: Bearer <FINANCE_OUTBOX_SECRET>
 ```
+
+Or **Run Now** on Outbox Processor (`finance_jobs:run`).

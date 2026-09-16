@@ -33,6 +33,7 @@ Three distinct stored-value instruments, each with its own ledger:
 - Sequential numbering: `CN-{tenantId[0:8]}-{seq:05d}`
 - `issueCreditNote(tenantId, { customerId, amount, currencyCode, reason, issuedBy })`
 - `redeemCreditNoteTx(tx, { tenantId, customerId, creditNoteId, amount, orderId })`
+- Scheduled expiry: job `credit_note_expiry` (pg_cron `fin-credit-note-expiry`, 02:05 UTC) calls `expireCreditNotes()` — writes `org_credit_note_txn_dtl` `txn_type='EXPIRY'`, sets remaining 0 / status EXPIRED, idempotency `cn-expiry-{id}`. **No ERP-Lite GL** (no credit-note-expired dispatcher). The 0296 raw cron `expire-credit-notes` is unscheduled (0505). Notes already flipped by that cron are not backfilled. Operator hub: [FINANCE_JOBS_HUB.md](FINANCE_JOBS_HUB.md).
 
 ## SELECT FOR UPDATE Pattern
 

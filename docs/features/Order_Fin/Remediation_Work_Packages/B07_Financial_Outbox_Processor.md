@@ -1,7 +1,7 @@
 # B07 — Financial Outbox Processor
 
 ## Metadata
-Backlog ID: B7 · Severity: HIGH · Classification: CONTROL_GAP · Status: **IMPLEMENTED 2026-07-20** (see Completion evidence) — migration 0410 authored, **APPLIED (owner, 2026-07-20)** (owner must apply before the cron/route/screen are live); awaiting owner commit → Preview QA → approval before VERIFIED
+Backlog ID: B7 · Severity: HIGH · Classification: CONTROL_GAP · Status: **IMPLEMENTED 2026-07-20** (see Completion evidence) — migration 0410 **APPLIED (owner, 2026-07-20)**. **2026-09-17 jobs hub:** processor is first-class `outbox_processor` in Scheduled Jobs; current runbook [FINANCE_JOBS_HUB.md](../Order_Fin_Docs/FINANCE_JOBS_HUB.md). Preview drain still needs `FINANCE_OUTBOX_SECRET`.
 Authoritative report sections: H6, H7, §45, §50-B7
 Required decisions: [D010](00_Phase_0_Financial_Semantics/D010_Financial_Idempotency_And_Lineage.md)
 Dependencies: none · Blocks: [B19](B19_Expiry_And_Idempotency_Jobs.md) (hard); [B30](B30_Pending_Payment_Backoffice_Lifecycle.md) (opt — outbox-based durable history only)
@@ -66,7 +66,7 @@ i18n/RTL: `billing.outboxMonitor.*` EN/AR (title, counts, columns, status labels
 Accessibility: status conveyed via badge text (not color-only); retry button has explicit text state (`Retry`/`Retrying…`), not an icon-only control
 Audit trail: `processed_at`/`attempts`/`error_message` per event (existing columns); manual retry is itself a permissioned, auditable action (route-gated, tenant-scoped `manualRetry`)
 Observability: health counts (pending/processing/failed/dead-lettered/processed-24h) exposed on the ops screen; `logger.warn`/`logger.error` on batch failures and processor crashes feed existing log-based alerting. `OUTBOX_STUCK`-style reconciliation wiring **not added this pass** — the existing reconciliation check surface (B20) doesn't yet have this check; noted as a follow-up, not silently implied
-Jobs/workers: `fin-outbox-processor` pg_cron job (every minute, migration 0410) → `POST /api/finance/process-outbox` → `processOutboxBatch()`
+Jobs/workers: `fin-outbox-processor` pg_cron job (every minute, migration 0410) → `POST /api/finance/process-outbox` → `runFinanceJob('outbox_processor')` → `processOutboxBatch()`. Run log, overlap, and the Scheduled Jobs card: [FINANCE_JOBS_HUB.md](../Order_Fin_Docs/FINANCE_JOBS_HUB.md) (migration 0505 APPLIED owner 2026-09-17).
 Feature flag: **none** — this closes a confirmed gap (H6/H7: nothing has ever consumed the outbox); there is no "old behavior" to preserve behind a flag, only a `PENDING`-forever backlog. The doc originally proposed a per-handler flag for staged history→loyalty rollout; both handlers ship together since neither can cause new financial writes beyond what `processEarnPoints`/`consumeOrderHistoryEvent` already do safely (both are already idempotent, already-shipped functions — this package's job was only to finally call them)
 Rollout: migration 0410 (owner applies) → owner copies the generated `outbox_secret_key` into `FINANCE_OUTBOX_SECRET` (env) → cron fires every minute → verify on Preview: a qualifying order's `LOYALTY_EARN`/`ORDER_COMPLETED` events flip PENDING→PROCESSED and the loyalty ledger/order-history rows materialize
 Rollback: `SELECT cron.unschedule('fin-outbox-processor')` — events resume accumulating PENDING (today's state) without data loss; the dead `outbox-worker` job is not re-registered by rollback (it was already permanently broken, not a functioning fallback)
@@ -108,3 +108,7 @@ Rollback: `SELECT cron.unschedule('fin-outbox-processor')` — events resume acc
 **Gates (2026-07-20, all green):** `npx tsc --noEmit` clean · `npx eslint . --quiet` 0 · `npm run check:i18n` ✓ · targeted jest (outbox.service + outbox-processor.service + loyalty-earn.handler) 26/26 · full jest 2060/2068 (8 fails = the pre-existing, documented `order-calculation.service.test.ts` mock gap, unrelated) · `npm run build` ✓ (exit 0, `/dashboard/internal_fin/outbox` in the route manifest) · `npm run sync:ui-access-contract` PASS (142/142 routes, drift 0) · `npm run check:platform-info-inventories` PASS.
 
 **Commit:** — (owner) · **Preview QA (deploy/result/approval):** — pending, **and gated on the owner applying migration 0410 first** (the cron/route/screen have no effect until then) — scenarios: a qualifying order's LOYALTY_EARN event credits the ledger once; ORDER_COMPLETED/PAYMENT_VERIFIED produce order-history rows; Outbox Monitor shows live counts; manual retry re-queues a FAILED event · **Reviewer:** — · **Verification:** — · **Authoritative report update:** — (H6/H7 close once VERIFIED).
+
+### Follow-up — jobs hub (2026-09-17)
+
+Migration **0505 APPLIED (owner, 2026-09-17) local + remote**; types regenerated. Processor runs are logged as `outbox_processor` in `sys_fin_job_run_log` (idle SUCCESS ticks pruned after 36h). Operators use History / Run Now / cron health on the same Outbox Monitor screen. Canonical runbook: [FINANCE_JOBS_HUB.md](../Order_Fin_Docs/FINANCE_JOBS_HUB.md). Preview still requires `FINANCE_OUTBOX_SECRET` for drain (§11.2).

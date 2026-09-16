@@ -36372,6 +36372,15 @@ export type Database = {
         Returns: undefined
       }
       extract_order_sequence: { Args: { p_order_no: string }; Returns: number }
+      fin_list_job_schedules: {
+        Args: never
+        Returns: {
+          cron_name: string
+          is_active: boolean
+          job_code: string
+          schedule: string
+        }[]
+      }
       fin_trigger_job: { Args: { p_job_code: string }; Returns: undefined }
       fin_trigger_outbox_proc: { Args: never; Returns: undefined }
       fix_order_data: {

@@ -61,7 +61,7 @@ Hard after B7.
 
 ## Delivery surfaces
 
-Backend services: `lib/services/finance-jobs.service.ts` — 3 job runners (gift-card expiry via the rewritten ledger+GL-aware `expireGiftCards`; idempotency-key TTL cleanup; ERP posting-retry over SYSTEM_ERROR exceptions) + `runFinanceJob()` run-log wrapper. Wallet/loyalty expiry NOT implemented this pass — see corrections above.
+Backend services: `lib/services/finance-jobs.service.ts` — 3 job runners (gift-card expiry via the rewritten ledger+GL-aware `expireGiftCards`; idempotency-key TTL cleanup; ERP posting-retry over SYSTEM_ERROR exceptions) + `runFinanceJob()` run-log wrapper. Wallet/loyalty expiry NOT implemented this pass — see corrections above. **2026-09-17:** same service now also runs `outbox_processor` and ledger-aware `credit_note_expiry` (no GL) — see Follow-up below.
 Database/schema: `sys_fin_job_run_log` (new run-history table) + 2 new SQL functions (`cleanup_expired_idempotency_keys`, `list_retryable_posting_exceptions`) + `finance_jobs:view`/`finance_jobs:run` permissions — migration 0429 (doc originally said "none new"; corrected during implementation, a run-log needs somewhere to live).
 API/endpoints: `POST /api/finance/process-jobs` (bearer-secret, pg_cron-driven dispatcher for all 3 jobs); `GET /api/v1/finance/jobs` (last-run list); `POST /api/v1/finance/jobs/[jobCode]/run` (interactive manual trigger, ops-gated).
 Frontend page/screen/dialog/action: Scheduled Jobs section appended to the B7 outbox ops-visibility screen (`/dashboard/internal_fin/outbox`) — job name/schedule/last run/status/outcome counts/manual Run Now button; a new Retry button/column on the Exception Workbench (`/dashboard/erp-lite/exceptions`); the pending-payments worklist's Age column now renders elapsed days (amber past 3) instead of a raw timestamp.
@@ -72,7 +72,7 @@ i18n/RTL: EN/AR job names/status (`billing.financeJobs.*`), age column (`billing
 Accessibility: table semantics on both the Jobs section and the age column; hover tooltip retains the exact timestamp behind the age display.
 Audit trail: `sys_fin_job_run_log` per job run (started/finished/counts/actor for manual); `org_fin_post_action_tr` for each manual exception retry (existing table, action_domain=EXCEPTION, action_code=RETRY).
 Observability: run status/outcome counts visible on the ops screen; a job that throws is always finalized FAILED (never left stuck RUNNING).
-Jobs/workers: this package IS the jobs (3 registered: gift_card_expiry, idempotency_cleanup, erp_posting_retry).
+Jobs/workers: this package IS the jobs (0429: `gift_card_expiry`, `idempotency_cleanup`, `erp_posting_retry`). **2026-09-17:** also `outbox_processor` (B07 wrap) and `credit_note_expiry` — [FINANCE_JOBS_HUB.md](../Order_Fin_Docs/FINANCE_JOBS_HUB.md).
 Feature flag: none — each job's own eligibility query is its natural off-switch (e.g. an unconfigured/empty eligible set is a routine no-op); disabling a job means unscheduling its pg_cron entry, not a flag.
 Rollout: STOP-AND-WAIT migration apply → owner commit → Preview QA.
 Rollback: unschedule the 3 new pg_cron jobs, re-schedule the retired `expire-gift-cards` (function never dropped) — see migration 0429's own rollback notes for the full sequence.
@@ -100,3 +100,7 @@ Tests: `__tests__/services/finance-jobs.service.test.ts` (new, 10 tests — per-
 **Gates ALL GREEN:** tsc clean (3 pre-existing unrelated errors, none in any B19 file: `order-service.ts` ×2, `processing-piece-row.tsx` ×1 — all from the owner's own concurrent `order-service.ts` work, confirmed unrelated) · eslint 0 (project-wide) · targeted jest 65/65 across the 3 touched/new suites · full jest **232/232 suites, 2243/2243 tests — zero known failures** · `npm run build` ✓ (exit 0; all 3 new routes confirmed in the route manifest) · `check:i18n` ✓ (pre-existing benign EN=AR placeholder warnings only) · `check:ui-access-contract --wire` PASS for both touched routes (`/dashboard/internal_fin/outbox`, `/dashboard/erp-lite/exceptions`) · `sync:ui-access-contract` PASS (144/144 routes, drift 0; platform inventories regenerated).
 
 Commit: — (uncommitted) · Preview QA (deploy/result/approval): — · Reviewer: — · Verification: — · Authoritative report update: —
+
+### Follow-up — credit-note expiry + jobs hub (2026-09-17)
+
+Migration **0505 APPLIED (owner, 2026-09-17) to local + remote**; types regenerated. Adds `outbox_processor` / `credit_note_expiry` to `chk_fjrl_job_code`, unique RUNNING index `uq_fjrl_one_running`, `fin_list_job_schedules()`, unschedules raw `expire-credit-notes`, schedules `fin-credit-note-expiry` at `5 2 * * *`. Credit-note expire is ledger-aware (`expireCreditNote` / `EXPIRY` txn, remaining 0) and does **not** invent GL. Overlap: MANUAL 409 `JOB_ALREADY_RUNNING`; SCHEDULE skip. Canonical runbook: [FINANCE_JOBS_HUB.md](../Order_Fin_Docs/FINANCE_JOBS_HUB.md). QA: §20.12–20.18.

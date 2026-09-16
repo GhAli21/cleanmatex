@@ -109,7 +109,8 @@ docs/features/Order_Fin/
     ├── TAX_ENGINE_GUIDE.md
     ├── RECONCILIATION_GUIDE.md
     ├── CASH_DRAWER_GUIDE.md
-    └── OUTBOX_PATTERN_GUIDE.md
+    ├── OUTBOX_PATTERN_GUIDE.md
+    └── FINANCE_JOBS_HUB.md              ← outbox + scheduled jobs ops hub (B07/B19, 0505)
 ```
 
 Related ADRs in sibling features:
@@ -124,6 +125,7 @@ Related ADRs in sibling features:
 - [HQ sys_ Catalogs Guide](HQ_Fin_Settlement_Sys_Catalogs_Implementation_Guide.md) (implement in cleanmatexsaas)
 - [Settlement Catalogs (tech)](technical_docs/tech_settlement_catalogs.md)
 - [Customer Receipt Allocation (tech)](technical_docs/tech_customer_receipt_allocation.md)
+- [Finance Jobs Hub](Order_Fin_Docs/FINANCE_JOBS_HUB.md)
 - [Developer Guide](developer_guide.md)
 - [API Reference](technical_docs/tech_api.md)
 - [Data Model](technical_docs/tech_data_model.md)

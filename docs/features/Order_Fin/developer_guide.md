@@ -179,14 +179,16 @@ This creates a row in `org_domain_events_outbox` with `status='PENDING'` and a r
 
 ### Worker Consumption
 
-The Supabase Edge Function at `supabase/functions/outbox-worker/index.ts`:
-1. Calls `claimBatch(50)` — sets matching rows to `PROCESSING`
-2. Publishes each event to the downstream bus (webhook/queue)
-3. On success: marks `COMPLETED`
-4. On failure: increments `attempts`, resets to `PENDING` with exponential back-off (`next_retry_at`)
-5. After `max_attempts` (6): marks `FAILED`
+> **Current path:** `fin-outbox-processor` (pg_cron, every minute) → `POST /api/finance/process-outbox` → `processOutboxBatch()`. Poison events become `DEAD_LETTERED`. Operator hub: [FINANCE_JOBS_HUB.md](Order_Fin_Docs/FINANCE_JOBS_HUB.md). The Edge Function `supabase/functions/outbox-worker/index.ts` is retired (migration 0410).
 
-Retry schedule in minutes: `1 → 5 → 15 → 60 → 240 → FAILED`
+The B07 processor:
+1. Calls `claimBatch(50)` — `claim_outbox_batch` RPC, `FOR UPDATE SKIP LOCKED`
+2. Dispatches each event to registered handlers (`order-history`, `loyalty-earn`)
+3. On success: marks `PROCESSED`
+4. On failure: increments `attempts`, resets to `FAILED` with exponential back-off (`next_retry_at`)
+5. After `max_attempts` (6): marks `DEAD_LETTERED`
+
+Retry schedule in minutes: `1 → 5 → 15 → 60 → 240 → DEAD_LETTERED`
 
 The pg_cron job (migration 0296) triggers the worker on a schedule.
 
@@ -273,6 +275,5 @@ POS session permissions are added in migration `0396_pos_session_catalogs.sql`:
 
 ## Environment Setup
 
-No additional environment variables required beyond the base Supabase config. The outbox worker uses the `SUPABASE_SERVICE_ROLE_KEY` edge function secret already configured.
+`FINANCE_OUTBOX_SECRET` must match `sys_fin_runtime_cf.outbox_secret_key` in every runtime that serves `/api/finance/process-outbox` and `/api/finance/process-jobs`. Without it, pg_cron POSTs 401 and the outbox never drains. Jobs hub: [FINANCE_JOBS_HUB.md](Order_Fin_Docs/FINANCE_JOBS_HUB.md).
 
-For local development, run migrations 0278–0296 via `supabase db push` after they are reviewed and applied.
