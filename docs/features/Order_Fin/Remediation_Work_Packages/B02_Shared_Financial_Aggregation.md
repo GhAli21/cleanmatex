@@ -1,7 +1,7 @@
 # B02 — Shared Financial Aggregation
 
 ## Metadata
-Backlog ID: B2 · Severity: CRITICAL · Classification: BLOCKS_PRODUCTION · Status: **IMPLEMENTED 2026-07-17 (overnight continuation directive)** — awaiting owner commit → Preview QA → approval before VERIFIED; B1 predecessor is itself IMPLEMENTED-not-yet-VERIFIED (start-gate deferred to implementation-order per the recorded overnight extension; nothing promotes to production before both QAs)
+Backlog ID: B2 · Severity: CRITICAL · Classification: BLOCKS_PRODUCTION · Status: **VERIFIED 2026-09-16 (owner-delegated)**
 Authoritative report sections: C2, §5, §13, §50-B2
 Required decisions: [D005](00_Phase_0_Financial_Semantics/D005_Canonical_Outstanding_Formula.md)
 Dependencies: [B01](B01_Refund_Lineage_And_Reopen_Due.md) (hard — reopen facts must exist)
@@ -90,4 +90,4 @@ Rollback: revert repointing; old formulas remain in git history only (deleted, n
 
 **Gates (2026-07-17):** `npx eslint . --quiet` ✅ 0 · `npx tsc --noEmit` — B02 files clean (same 2 pre-existing errors in owner-committed keypad/split-tender files as recorded in B01 evidence) · targeted suites 139/139 ✅ · full jest + build: recorded below.
 
-**Commit:** — (owner commits) · **Preview QA (deploy/result/approval):** Preview pass 2026-09-12→2026-09-16 recorded in [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md). §3.1 FAIL was voucher `outstanding_amount` (unallocated-on-voucher after posted receipts) vs Financial-tab order due — **not** a B02 formula bug. **UI fix 2026-09-16:** relabel + Order outstanding line. Pending Preview retest. Not VERIFIED. · **Reviewer:** — · **Verification:** — (VERIFIED requires Preview QA approval; B1+B2 QA naturally batch) · **Authoritative report update:** —
+**Commit:** — (owner commits) · **Preview QA (deploy/result/approval):** **VERIFIED 2026-09-16 (owner-delegated).** §3.1 RETEST PASS (unallocated-on-voucher + Order outstanding). · **Reviewer:** Owner-delegated · **Verification:** recorded in QA Sign-off table · **Authoritative report update:** —

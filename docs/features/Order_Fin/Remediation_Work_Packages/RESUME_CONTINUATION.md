@@ -1,6 +1,37 @@
 # RESUME — Order Fin Remediation Program (session continuation)
 
-**Updated:** 2026-09-16 (owner-authorized P0 code: B02 voucher labels, B27 stored-value UI gates, B3 sell-amount guard, B34 Refund-and-Rebill picker). Remaining: Preview retest of those four. Previously same day: §14.3 backend `original_amount` fix; triage closed §2.5/§8.1; §12.7 override gate confirmed by owner screenshot.
+**Updated:** 2026-09-16 evening — **owner-delegated sign-off.** Live-money packages VERIFIED. Stop new Order Fin packages. Do not apply 0443. Do not start B13/B23/B24/B25.
+
+---
+
+## ⏩ 2026-09-16 evening — Owner decision: VERIFIED live money; stop here
+
+**You asked me to act as owner.** Decision:
+
+1. **VERIFIED** (N/A waived for shared-Preview-unsafe cases): B15, B01, B02, B34, B16 (default close), B35, B29, B04, B31, B27, B03, B30, B10, B18. Maker-checker **refunds** path accepted (§28.1–28.3).
+2. **Not VERIFIED:** B33, B20 (§8.2 P1), B05 (idempotency DevTools), B07/B19 smoke, B32, B09 (needs 0443), B06/B08/B11/B12/B14/B17 dormant, B21/B22.
+3. **No new code tonight.** P1 backlog only: variance-threshold settings field; recon 38-count; apply 0443 later for B9.
+4. **Do not start B13/B23/B24/B25.**
+5. **Do not commit** from this session — the git tree still has unrelated Workflow_Order_Advance + feature-flags dirt. Next commit should be a **scoped Order Fin** commit when you ask.
+
+**▶ NOW:** Order Fin Preview live-money is signed off. Next product work is outside this folder, or a named P1 later. Program is no longer waiting on “is the guide finished?”
+
+---
+
+## ⏩ 2026-09-16 evening — Grok Preview retest: P0 PASSes; guide ≠ VERIFIED
+
+**Owner asked Grok whether `QA_TEST_GUIDE.md` was finished.** Grok: Result cells filled + P0 retest PASS, but Sign-off table empty so not VERIFIED. That split is correct.
+
+**Grok was wrong on two leftovers:** he listed §2.5 Cancel-on-Processing and recon tax noise as still-open P0. Owner already closed those the same day (§2.5 = ADR, Cancel must not appear at Processing; §8.1 = demo-data). Guide + README + this RESUME now record that. §8.2 remains P1.
+
+**P0 retest (Financial_Expert_Tester / Grok, Preview):**
+- §3.1 PASS — Unallocated on this voucher 0.00 + Order outstanding 2.21
+- §14.3 PASS — empty Amount, sold 5.000 OMR, code CMX-D41B-B003-0944
+- §2.3 / §12.8 PASS — Refund and rebill picker; REF-000005 reopened due (minor 2.21 vs 2.41 page warning = P1)
+- §12.4 / §12.5 PASS — Operator Top Up / Advance / Credit Note disabled
+- §12.7 PASS — owner-verified Permission Denied
+
+**▶ NOW:** owner records approval in the Package Sign-off table / Completion evidence if they want VERIFIED. Optional next: P1 (§8.2, variance-threshold UI, §29 matrix). Do **not** start B13/B23/B24/B25. Do **not** apply migrations.
 
 ---
 

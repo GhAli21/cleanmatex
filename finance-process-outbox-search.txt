@@ -1,0 +1,191 @@
+cmx-api/src/common/guards/jwt-auth.guard.ts:11: * JWT guard. Validates Authorization Bearer token with Supabase JWT secret,
+cmx-api/src/common/guards/jwt-auth.guard.ts:24:    if (!auth?.startsWith('Bearer ')) {
+cmx-api/src/common/guards/jwt-auth.guard.ts:25:      throw new UnauthorizedException('Missing or invalid Authorization header');
+cmx-api/src/main.ts:21:    .addBearerAuth()
+cmx-api/test/openapi-contract.e2e-spec.ts:27:      .addBearerAuth()
+docs/features/Notification_And_Communication_Hub/Setup_And_Config/sql_scripts/01_set_gucs.sql:15:-- app.outbox_secret_key  — must EXACTLY match NOTIFICATIONS_OUTBOX_SECRET in .env.local
+docs/features/Notification_And_Communication_Hub/Setup_And_Config/sql_scripts/01_set_gucs.sql:27:  SET app.outbox_secret_key = '4c19304243e6153064d056e30d7b32dadb5ef86668965ac94760d0a81402dccf';
+docs/features/Notification_And_Communication_Hub/Setup_And_Config/sql_scripts/01_set_gucs.sql:31:SET app.outbox_secret_key = '4c19304243e6153064d056e30d7b32dadb5ef86668965ac94760d0a81402dccf';
+docs/features/Notification_And_Communication_Hub/Setup_And_Config/sql_scripts/01_set_gucs.sql:36:  current_setting('app.outbox_secret_key', true)  AS outbox_secret_key;
+docs/features/Notification_And_Communication_Hub/Setup_And_Config/sql_scripts/01_set_gucs.sql:38:--   next_js_base_url             | outbox_secret_key
+docs/features/Order_Fin/CleanMateX_Payment_Settlement_Catalogs_Upgrade_Reference_v1_1/02_FULL_SEED_DATA_v1_1.sql:155:('VOIDED','Voided','ملغى التفويض','Authorization or payment was voided.','تم إلغاء التفويض أو الدفع.','REVERSED',false,false,false,false,true,false,false,false,120),
+supabase/functions/outbox-worker/index.ts:213:  const authHeader = req.headers.get('Authorization');
+supabase/functions/outbox-worker/index.ts:215:  if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
+supabase/migrations/0271_v1_payment_linking_cols.sql:41:  -- Authorization details
+supabase/migrations/0271_v1_payment_linking_cols.sql:116:  -- Authorization
+supabase/migrations/0296_pg_cron_jobs.sql:130:                 'Authorization', FORMAT('Bearer %s',
+supabase/migrations/0348_ntf_runtime_tables.sql:130:--    Supabase pg_cron calls POST /api/notifications/process-outbox every minute
+supabase/migrations/0348_ntf_runtime_tables.sql:233:  'Multi-channel dispatch queue (outbox pattern). pg_cron processes QUEUED rows every minute via POST /api/notifications/process-outbox.';
+supabase/migrations/0350_ntf_outbox_cron.sql:14:--     ALTER DATABASE postgres SET app.outbox_secret_key = 'your-secret-here';
+supabase/migrations/0350_ntf_outbox_cron.sql:16:--   The outbox_secret_key must match NOTIFICATIONS_OUTBOX_SECRET in your .env.
+supabase/migrations/0350_ntf_outbox_cron.sql:42:--    Calls POST /api/notifications/process-outbox to dispatch QUEUED rows.
+supabase/migrations/0350_ntf_outbox_cron.sql:51:      url     := current_setting('app.next_js_base_url', true) || '/api/notifications/process-outbox',
+supabase/migrations/0350_ntf_outbox_cron.sql:54:                   'Authorization', 'Bearer ' || current_setting('app.outbox_secret_key', true)
+supabase/migrations/0355_ntf_config_table_cron_fix.sql:14:--   UPDATE sys_ntf_runtime_cf SET value = '...' WHERE key = 'outbox_secret_key';
+supabase/migrations/0355_ntf_config_table_cron_fix.sql:43:--    outbox_secret_key: Must match NOTIFICATIONS_OUTBOX_SECRET in .env.local
+supabase/migrations/0355_ntf_config_table_cron_fix.sql:48:  ('outbox_secret_key', '4c19304243e6153064d056e30d7b32dadb5ef86668965ac94760d0a81402dccf')
+supabase/migrations/0355_ntf_config_table_cron_fix.sql:69:  SELECT value INTO v_secret FROM sys_ntf_runtime_cf WHERE key = 'outbox_secret_key';
+supabase/migrations/0355_ntf_config_table_cron_fix.sql:72:    RAISE WARNING '[ntf_trigger_outbox_proc] sys_ntf_runtime_cf is missing base_url or outbox_secret_key — skipping';
+supabase/migrations/0355_ntf_config_table_cron_fix.sql:77:    url     := v_url || '/api/notifications/process-outbox',
+supabase/migrations/0355_ntf_config_table_cron_fix.sql:80:                 'Authorization', 'Bearer ' || v_secret
+supabase/migrations/0355_ntf_config_table_cron_fix.sql:116:    SELECT 1 FROM sys_ntf_runtime_cf WHERE key = 'outbox_secret_key'
+supabase/migrations/0355_ntf_config_table_cron_fix.sql:117:  ), 'outbox_secret_key config missing';
+supabase/migrations/0356_ntf_provider_cf_is_enabled.sql:56:  'Runtime config for the notification outbox cron job (base_url, outbox_secret_key). '
+supabase/migrations/0362_ntf_campaign_scheduler_cron.sql:10:-- Auth: reuses outbox_secret_key from sys_ntf_runtime_cf (same secret, same
+supabase/migrations/0362_ntf_campaign_scheduler_cron.sql:22:--    Reads base_url + outbox_secret_key from sys_ntf_runtime_cf at call time,
+supabase/migrations/0362_ntf_campaign_scheduler_cron.sql:37:  SELECT value INTO v_secret FROM sys_ntf_runtime_cf WHERE key = 'outbox_secret_key';
+supabase/migrations/0362_ntf_campaign_scheduler_cron.sql:40:    RAISE WARNING '[ntf_trigger_campaign_proc] sys_ntf_runtime_cf missing base_url or outbox_secret_key — skipping';
+supabase/migrations/0362_ntf_campaign_scheduler_cron.sql:48:                 'Authorization', 'Bearer ' || v_secret
+supabase/migrations/0410_b07_financial_outbox_processor.sql:34:-- FINANCE_OUTBOX_SECRET in .env.local / .env.dbcloudjh:
+supabase/migrations/0410_b07_financial_outbox_processor.sql:35:--   SELECT value FROM sys_fin_runtime_cf WHERE key = 'outbox_secret_key';
+supabase/migrations/0410_b07_financial_outbox_processor.sql:149:-- FINANCE_OUTBOX_SECRET locally / in the deploy environment.
+supabase/migrations/0410_b07_financial_outbox_processor.sql:151:  ('outbox_secret_key', encode(extensions.gen_random_bytes(32), 'hex'))
+supabase/migrations/0410_b07_financial_outbox_processor.sql:165:  SELECT value INTO v_secret FROM sys_fin_runtime_cf WHERE key = 'outbox_secret_key';
+supabase/migrations/0410_b07_financial_outbox_processor.sql:168:    RAISE WARNING '[fin_trigger_outbox_proc] sys_fin_runtime_cf is missing base_url or outbox_secret_key — skipping';
+supabase/migrations/0410_b07_financial_outbox_processor.sql:173:    url     := v_url || '/api/finance/process-outbox',
+supabase/migrations/0410_b07_financial_outbox_processor.sql:176:                 'Authorization', 'Bearer ' || v_secret
+supabase/migrations/0410_b07_financial_outbox_processor.sql:235:    SELECT 1 FROM public.sys_fin_runtime_cf WHERE key = 'outbox_secret_key'
+supabase/migrations/0410_b07_financial_outbox_processor.sql:236:  ), 'outbox_secret_key config missing';
+supabase/migrations/0429_b19_expiry_and_idempotency_jobs.sql:41:--      reusing sys_fin_runtime_cf's EXISTING outbox_secret_key (no new
+supabase/migrations/0429_b19_expiry_and_idempotency_jobs.sql:259:  SELECT value INTO v_secret FROM public.sys_fin_runtime_cf WHERE key = 'outbox_secret_key';
+supabase/migrations/0429_b19_expiry_and_idempotency_jobs.sql:262:    RAISE WARNING 'B19 fin_trigger_job(%): sys_fin_runtime_cf missing base_url/outbox_secret_key — skipping', p_job_code;
+supabase/migrations/0429_b19_expiry_and_idempotency_jobs.sql:270:      'Authorization', 'Bearer ' || v_secret
+supabase/migrations/0429_b19_expiry_and_idempotency_jobs.sql:346:--    FINANCE_OUTBOX_SECRET — no new env var needed, same secret B7 already
+supabase/migrations/0429_b19_expiry_and_idempotency_jobs.sql:347:--    uses for /api/finance/process-outbox).
+supabase/migrations/0502_ntf_runtime_hub_flags.sql:9:-- Related:   0355 (table + base_url/outbox_secret_key),
+supabase/migrations/0502_ntf_runtime_hub_flags.sql:14:-- NOTIFICATIONS_OUTBOX_SECRET (already outbox_secret_key),
+supabase/migrations/archive/0009_create_demo_admin_user.sql:76:      'Authorization', 'Bearer ' || v_service_key,
+supabase/migrations/archive/0013_create_demo_admin_user_02.sql:76:      'Authorization', 'Bearer ' || v_service_key,
+supabase/snippets/Untitled query 299.sql:4:SELECT value FROM sys_fin_runtime_cf WHERE key = 'outbox_secret_key';
+supabase/snippets/Untitled query 570.sql:7:  SET app.outbox_secret_key = '4c19304243e6153064d056e30d7b32dadb5ef86668965ac94760d0a81402dccf';
+supabase/snippets/Untitled query 570.sql:11:SET app.outbox_secret_key = '4c19304243e6153064d056e30d7b32dadb5ef86668965ac94760d0a81402dccf';
+supabase/snippets/Untitled query 570.sql:16:  current_setting('app.outbox_secret_key', true)   AS outbox_secret_key;
+supabase/snippets/Untitled query 627.sql:34:-- FINANCE_OUTBOX_SECRET in .env.local / .env.dbcloudjh:
+supabase/snippets/Untitled query 627.sql:35:--   SELECT value FROM sys_fin_runtime_cf WHERE key = 'outbox_secret_key';
+supabase/snippets/Untitled query 627.sql:149:-- FINANCE_OUTBOX_SECRET locally / in the deploy environment.
+supabase/snippets/Untitled query 627.sql:151:  ('outbox_secret_key', encode(extensions.gen_random_bytes(32), 'hex'))
+supabase/snippets/Untitled query 627.sql:165:  SELECT value INTO v_secret FROM sys_fin_runtime_cf WHERE key = 'outbox_secret_key';
+supabase/snippets/Untitled query 627.sql:168:    RAISE WARNING '[fin_trigger_outbox_proc] sys_fin_runtime_cf is missing base_url or outbox_secret_key — skipping';
+supabase/snippets/Untitled query 627.sql:173:    url     := v_url || '/api/finance/process-outbox',
+supabase/snippets/Untitled query 627.sql:176:                 'Authorization', 'Bearer ' || v_secret
+supabase/snippets/Untitled query 627.sql:235:    SELECT 1 FROM public.sys_fin_runtime_cf WHERE key = 'outbox_secret_key'
+supabase/snippets/Untitled query 627.sql:236:  ), 'outbox_secret_key config missing';
+web-admin/__tests__/api/v1/pickup-completion.route.test.ts:7:const usesBearerAuthenticationMock = jest.fn();
+web-admin/__tests__/api/v1/pickup-completion.route.test.ts:17:  usesBearerAuthentication: (...args: unknown[]) => usesBearerAuthenticationMock(...args),
+web-admin/__tests__/api/v1/pickup-completion.route.test.ts:52:    usesBearerAuthenticationMock.mockReturnValue(false);
+web-admin/__tests__/api/v1/pickup-completion.route.test.ts:115:    usesBearerAuthenticationMock.mockReturnValue(true);
+web-admin/__tests__/api/v1/pickup-completion.route.test.ts:121:        { Authorization: 'Bearer mobile-access-token', 'Idempotency-Key': 'pickup-command-bearer' },
+web-admin/__tests__/api/v1/workflow-stage-command.route.test.ts:7:const usesBearerAuthenticationMock = jest.fn();
+web-admin/__tests__/api/v1/workflow-stage-command.route.test.ts:16:  usesBearerAuthentication: (...args: unknown[]) => usesBearerAuthenticationMock(...args),
+web-admin/__tests__/api/v1/workflow-stage-command.route.test.ts:49:    usesBearerAuthenticationMock.mockReturnValue(false);
+web-admin/__tests__/api/v1/workflow-stage-command.route.test.ts:121:    usesBearerAuthenticationMock.mockReturnValue(true);
+web-admin/__tests__/api/v1/workflow-stage-command.route.test.ts:127:        { Authorization: 'Bearer mobile-access-token', 'Idempotency-Key': 'processing-command-bearer' },
+web-admin/__tests__/api/workflow-command-channel.test.ts:19:        Authorization: 'Bearer mobile-access-token',
+web-admin/__tests__/api/workflow-command-pos-channel.test.ts:27:    headers: { Authorization: 'Bearer mobile-access-token' },
+web-admin/__tests__/auth/request-permission-auth.test.ts:15:  createBearerSupabaseClient: jest.fn(() => ({
+web-admin/__tests__/auth/request-permission-auth.test.ts:27:  usesBearerAuthentication,
+web-admin/__tests__/auth/request-permission-auth.test.ts:72:      request({ Authorization: 'Bearer verified-mobile-jwt' }),
+web-admin/__tests__/auth/request-permission-auth.test.ts:88:      request({ Authorization: 'Basic unsafe-fallback' }),
+web-admin/__tests__/auth/request-permission-auth.test.ts:98:    expect(usesBearerAuthentication(request({ Authorization: 'Bearer verified-mobile-jwt' }))).toBe(true);
+web-admin/__tests__/auth/request-permission-auth.test.ts:99:    expect(usesBearerAuthentication(request())).toBe(false);
+web-admin/__tests__/lib/session-activity/redact-session-message.test.ts:17:      'Auth failed Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaa.bbb'
+web-admin/app/api/docs/route.ts:51:          BearerAuth: {
+web-admin/app/api/finance/process-jobs/route.ts:9: * Authorization: Bearer {FINANCE_OUTBOX_SECRET} — reuses B7's existing
+web-admin/app/api/finance/process-jobs/route.ts:23:  const secret = process.env.FINANCE_OUTBOX_SECRET;
+web-admin/app/api/finance/process-jobs/route.ts:26:  return authHeader === `Bearer ${secret}`;
+web-admin/app/api/finance/process-outbox/route.ts:2: * POST /api/finance/process-outbox
+web-admin/app/api/finance/process-outbox/route.ts:6: * Authorization: Bearer {FINANCE_OUTBOX_SECRET}
+web-admin/app/api/finance/process-outbox/route.ts:9: * (app/api/notifications/process-outbox/route.ts). All business logic lives
+web-admin/app/api/finance/process-outbox/route.ts:19:  const secret = process.env.FINANCE_OUTBOX_SECRET;
+web-admin/app/api/finance/process-outbox/route.ts:22:  return authHeader === `Bearer ${secret}`;
+web-admin/app/api/notifications/process-campaigns/route.ts:4: * Authorization: Bearer {NOTIFICATIONS_OUTBOX_SECRET}
+web-admin/app/api/notifications/process-campaigns/route.ts:22:  const secret = process.env.NOTIFICATIONS_OUTBOX_SECRET
+web-admin/app/api/notifications/process-campaigns/route.ts:25:  return authHeader === `Bearer ${secret}`
+web-admin/app/api/notifications/process-outbox/route.ts:2: * POST /api/notifications/process-outbox
+web-admin/app/api/notifications/process-outbox/route.ts:4: * Authorization: Bearer {NOTIFICATIONS_OUTBOX_SECRET}
+web-admin/app/api/notifications/process-outbox/route.ts:29:  const secret = process.env.NOTIFICATIONS_OUTBOX_SECRET;
+web-admin/app/api/notifications/process-outbox/route.ts:32:  return authHeader === `Bearer ${secret}`;
+web-admin/app/api/notifications/process-outbox/route.ts:184:  logger.info('process-outbox: row processed', {
+web-admin/app/api/notifications/process-outbox/route.ts:214:    logger.error('process-outbox: failed to fetch QUEUED rows', new Error(queuedErr.message), { feature: 'notifications' });
+web-admin/app/api/notifications/process-outbox/route.ts:227:    logger.error('process-outbox: failed to fetch FAILED_TEMPORARY rows', new Error(retryErr.message), { feature: 'notifications' });
+web-admin/app/api/notifications/process-outbox/route.ts:241:      logger.error('process-outbox: unhandled error for row', err instanceof Error ? err : new Error(String(err)), {
+web-admin/app/api/settings/tenants/[tenantId]/effective/route.ts:62:    // Forward Authorization header from client request (if available)
+web-admin/app/api/settings/tenants/[tenantId]/effective/route.ts:82:          details: 'Set HQ_SERVICE_TOKEN in web-admin/.env.local or ensure the request forwards an Authorization header. See docs/HQ_SERVICE_TOKEN_GUIDE.md.',
+web-admin/app/api/settings/tenants/[tenantId]/explain/[settingCode]/route.ts:62:    // Forward Authorization header from client request (if available)
+web-admin/app/api/settings/tenants/[tenantId]/feature-flags/route.ts:48:            'Set HQ_SERVICE_TOKEN in web-admin/.env.local or ensure requests include an Authorization header.',
+web-admin/app/api/settings/tenants/[tenantId]/overrides/[settingCode]/route.ts:46:    // Forward Authorization header from client request (if available)
+web-admin/app/api/settings/tenants/[tenantId]/overrides/route.ts:54:    // Forward Authorization header from client request (if available)
+web-admin/app/api/settings/tenants/[tenantId]/recompute/route.ts:37:    // Forward Authorization header from client request (if available)
+web-admin/app/api/v1/categories/route.ts:57: *       - BearerAuth: []
+web-admin/app/api/v1/categories/route.ts:173: *       - BearerAuth: []
+web-admin/app/api/v1/home-collection/orders/[orderId]/complete/route.ts:6:  usesBearerAuthentication,
+web-admin/app/api/v1/home-collection/orders/[orderId]/complete/route.ts:40:  if (!usesBearerAuthentication(request)) {
+web-admin/app/api/v1/pickup/orders/[orderId]/complete/route.ts:14:  usesBearerAuthentication,
+web-admin/app/api/v1/pickup/orders/[orderId]/complete/route.ts:64:  // Bearer credentials are not ambient browser credentials, so CSRF applies only
+web-admin/app/api/v1/pickup/orders/[orderId]/complete/route.ts:66:  if (!usesBearerAuthentication(request)) {
+web-admin/app/api/v1/public/customer/addresses/route.ts:17:function extractBearerToken(request: NextRequest): string | null {
+web-admin/app/api/v1/public/customer/addresses/route.ts:39: * @param request Incoming HTTP request with Bearer token and address payload.
+web-admin/app/api/v1/public/customer/addresses/route.ts:50:    const verificationToken = extractBearerToken(request);
+web-admin/app/api/v1/public/customer/addresses/route.ts:86:          error: 'Bearer token is required',
+web-admin/app/api/v1/public/customer/auth/refresh/route.ts:16:function extractBearerToken(request: NextRequest): string | null {
+web-admin/app/api/v1/public/customer/auth/refresh/route.ts:28: * @param request Incoming HTTP request with Bearer token and tenantId body.
+web-admin/app/api/v1/public/customer/auth/refresh/route.ts:40:    const verificationToken = extractBearerToken(request);
+web-admin/app/api/v1/public/customer/booking/route.ts:86:function extractBearerToken(request: NextRequest): string | null {
+web-admin/app/api/v1/public/customer/booking/route.ts:324: * @param request Incoming HTTP request with tenantId query and Bearer token.
+web-admin/app/api/v1/public/customer/booking/route.ts:333:    const verificationToken = extractBearerToken(request);
+web-admin/app/api/v1/public/customer/booking/route.ts:626: * @param request Incoming HTTP request with Bearer token and booking payload body.
+web-admin/app/api/v1/public/customer/booking/route.ts:633:    const verificationToken = extractBearerToken(request);
+web-admin/app/api/v1/public/customer/booking/route.ts:678:      return jsonError('booking_missing_token', 'Bearer token is required', 400);
+web-admin/app/api/v1/public/customer/orders/route.ts:10:function extractBearerToken(request: NextRequest): string | null {
+web-admin/app/api/v1/public/customer/orders/route.ts:22: * @param request Incoming HTTP request with tenantId query and Bearer token.
+web-admin/app/api/v1/public/customer/orders/route.ts:34:    const verificationToken = extractBearerToken(request);
+web-admin/lib/api/hq-api-client.ts:110:    throw new Error('No authentication token available. Set HQ_SERVICE_TOKEN or forward Authorization header.');
+web-admin/lib/api/hq-api-client.ts:113:  return `Bearer ${serviceToken}`;
+web-admin/lib/api/hq-api-client.ts:144:      'Authorization': authToken,
+web-admin/lib/api/rbac-client.ts:9: * Auth: Bearer JWT from session.access_token (obtained via useAuth())
+web-admin/lib/api/rbac-client.ts:56: * @param accessToken - JWT Bearer token from session.access_token
+web-admin/lib/api/rbac-client.ts:82:    headers['Authorization'] = `Bearer ${accessToken}`
+web-admin/lib/api/workflow-command-channel.ts:12: * Bearer JWT means the mobile adapter. Cookie session means staff_web.
+web-admin/lib/api/workflow-command-pos-channel.ts:27: * Bearer JWT stays `mobile` even if a till is open. Cookie sessions become
+web-admin/lib/api/workflow-stage-command-route.ts:6:  usesBearerAuthentication,
+web-admin/lib/api/workflow-stage-command-route.ts:79:    const isBearer = usesBearerAuthentication(request);
+web-admin/lib/api/workflow-stage-command-route.ts:82:    if (!isBearer) {
+web-admin/lib/auth/request-permission-auth.ts:6:import { createBearerSupabaseClient } from '@/lib/supabase/server';
+web-admin/lib/auth/request-permission-auth.ts:24:function invalidBearerResponse(): NextResponse {
+web-admin/lib/auth/request-permission-auth.ts:38:function readBearerToken(request: NextRequest): string | null | undefined {
+web-admin/lib/auth/request-permission-auth.ts:41:  const match = /^Bearer\s+(.+)$/i.exec(authorization.trim());
+web-admin/lib/auth/request-permission-auth.ts:47:export function usesBearerAuthentication(request: NextRequest): boolean {
+web-admin/lib/auth/request-permission-auth.ts:54: * Session calls retain the repository's cookie/RLS permission path. Bearer calls
+web-admin/lib/auth/request-permission-auth.ts:62:  const bearerToken = readBearerToken(request);
+web-admin/lib/auth/request-permission-auth.ts:68:  if (bearerToken === null) return invalidBearerResponse();
+web-admin/lib/auth/request-permission-auth.ts:70:  const supabase = createBearerSupabaseClient(bearerToken);
+web-admin/lib/auth/request-permission-auth.ts:74:    logger.warn('Bearer API authentication failed', {
+web-admin/lib/auth/request-permission-auth.ts:79:    return invalidBearerResponse();
+web-admin/lib/auth/request-permission-auth.ts:84:    logger.warn('Bearer API token has no valid tenant context', {
+web-admin/lib/auth/request-permission-auth.ts:99:    logger.error('Bearer API permission check failed', new Error(permissionError.message), {
+web-admin/lib/auth/request-permission-auth.ts:107:      { success: false, code: 'AUTHORIZATION_UNAVAILABLE', error: 'Authorization check failed.' },
+web-admin/lib/integrations/whatsapp-client.ts:75:          'Authorization': `Bearer ${this.config.accessToken}`,
+web-admin/lib/integrations/whatsapp-client.ts:164:          'Authorization': `Bearer ${this.config.accessToken}`,
+web-admin/lib/integrations/whatsapp-client.ts:238:          'Authorization': `Bearer ${this.config.accessToken}`,
+web-admin/lib/integrations/whatsapp-client.ts:326:            'Authorization': `Bearer ${this.config.accessToken}`,
+web-admin/lib/notifications/adapters/email.ts:68:        Authorization:   `Bearer ${hqKey}`,
+web-admin/lib/notifications/adapters/push.ts:12: * Called by process-outbox for channel_code = 'PUSH'.
+web-admin/lib/notifications/adapters/push.ts:136:      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hqKey}` },
+web-admin/lib/notifications/adapters/push/fcm.ts:137:          'Authorization': `Bearer ${accessToken}`,
+web-admin/lib/notifications/adapters/push/onesignal.ts:62:        'Authorization': `Key ${apiKey}`,
+web-admin/lib/notifications/adapters/sms.ts:63:      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hqKey}` },
+web-admin/lib/notifications/adapters/whatsapp.ts:235:          'Authorization': `Bearer ${accessToken}`,
+web-admin/lib/notifications/adapters/whatsapp.ts:305:      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hqKey}` },
+web-admin/lib/session-activity/redact-session-message.ts:12:const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi
+web-admin/lib/session-activity/redact-session-message.ts:17:    .replace(BEARER_PATTERN, 'Bearer [REDACTED]')
+web-admin/lib/supabase/server.ts:120:export function createBearerSupabaseClient(accessToken: string) {
+web-admin/lib/supabase/server.ts:129:      headers: { Authorization: `Bearer ${accessToken}` },
+web-admin/lib/swagger/swagger.config.ts:37:          BearerAuth: {
+web-admin/lib/swagger/swagger.config.ts:100:          BearerAuth: [],
+web-admin/lib/swagger/swagger.config.ts:144:          BearerAuth: {
+web-admin/lib/types/settlement-plan.ts:47:  /** Authorization code from terminal for CARD legs. */
+web-admin/lib/validations/new-order-payment-schemas.ts:190:    /** Authorization code from terminal/gateway — for CARD legs */
+web-admin/scripts/test-settings-hq-api.js:39:      options.headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
+web-admin/src/features/billing/access/billing-access.ts:746:      'The scheduled processor route (/api/finance/process-outbox) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry.',
+web-admin/src/features/billing/access/billing-access.ts:747:      'B19 — extended with a Scheduled Jobs section (gift-card expiry, idempotency cleanup, ERP posting-retry). The scheduled dispatcher route (/api/finance/process-jobs) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry, same as process-outbox.',
+web-admin/types/auth.ts:2: * Authentication and Authorization Types

@@ -1,7 +1,7 @@
 # B34 — Refund Back-office UI
 
 ## Metadata
-Backlog ID: B34 · Severity: HIGH · Classification: BLOCKS_FEATURE / CONTROL_GAP · Status: **IMPLEMENTED 2026-07-18** — flagged implementation against the B1 contract complete; all gates + contract checks green (see Completion evidence); flag `order_fin_refund_ui` disabled by default everywhere; **awaiting owner commit → Preview QA (flag-on) → approval**; production activation gated per Safety block (D002/D003 APPROVED (Expert) 2026-07-16, v2)
+Backlog ID: B34 · Severity: HIGH · Classification: BLOCKS_FEATURE / CONTROL_GAP · Status: **VERIFIED 2026-09-16 (owner-delegated)** — flag `order_fin_refund_ui` LIVE; cash/original-method execution still gated on B09
 Authoritative report sections: Addendum A1, §8, §43, §50-B34
 Required decisions: [D002](00_Phase_0_Financial_Semantics/D002_Refund_Source_Classification.md), [D003](00_Phase_0_Financial_Semantics/D003_Refund_Reopen_Due_Rules.md) (policy — UI must display/collect the approved v2 semantics)
 Dependencies: [B01](B01_Refund_Lineage_And_Reopen_Due.md) (hard for activation — classification/context/reopen contract), [B02](B02_Shared_Financial_Aggregation.md) (hard for activation — one aggregation authority), [B27](B27_Financial_Permissions_And_Approvals.md) (impl — permission-sensitive actions: rebill, manual exception), [B09](B09_Refund_Execution_Parity.md) (hard for cash/original-method activation only)
@@ -112,4 +112,4 @@ Required verification gates: B1 §14 matrix green; B34 UI/idempotency/access-con
 
 **Deferred (recorded gaps):** reject-with-reason action (needs a small `rejectRefund` service/status transition — B34 declares "no new backend services"; propose with B27/B30 wave) · MANUAL_EXCEPTION UI action · refund receipt/print artifact (B09 voucher) · HQ flag seeding (cleanmatexsaas). **REFUND_AND_REBILL picker shipped 2026-09-16** (was deferred to B27; API already checked `orders:rebill_authorize`).
 
-**Commit:** — (owner) · **Preview QA:** — pending (flag enabled on Preview only for QA per Safety block) · **Verification:** — (production activation requires B01+B02 VERIFIED)
+**Commit:** — (owner) · **Preview QA:** **VERIFIED 2026-09-16 (owner-delegated).** §5.2–5.4/5.6 PASS. §2.3 / §12.8 RETEST PASS. · **Verification:** recorded in QA Sign-off table (production cash/original-method execution still waits on B09)

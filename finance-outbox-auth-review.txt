@@ -1,0 +1,7 @@
+
+Path                                                                           LineNumber Line
+----                                                                           ---------- ----
+F:\jhapp\cleanmatex\web-admin\src\features\billing\access\billing-access.ts           746       'The scheduled processor route (/api/finance/process-outbox) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry.',
+F:\jhapp\cleanmatex\web-admin\src\features\billing\access\billing-access.ts           747       'B19 — extended with a Scheduled Jobs section (gift-card expiry, idempotency cleanup, ERP posting-retry). The scheduled dispatcher route (/api/finance/process-jobs) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry, same as process-outbox.',
+F:\jhapp\cleanmatex\web-admin\src\features\pickup\hooks\use-pickup-handover.ts         27  * Tenant authorization is enforced by the server endpoint; this hook only uses
+

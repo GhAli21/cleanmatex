@@ -111,7 +111,7 @@ Rollback: roles can be unmapped; codes remain seeded (harmless)
 **UI gate follow-up (2026-09-16):** Preview QA §12.4/§12.5 failed because Top Up / Issue Advance / Issue Credit Note buttons were always enabled (server actions already required the codes). `customer-stored-value-tab.tsx` now soft-locks those buttons with `useHasPermissionCode` + `cmxMessage`. Access contract actions added on `/dashboard/customers/[id]`. **§12.7 PASS (owner screenshot):** item-price pencil shows Permission Denied; do not revoke operator `pricing:override` (0411 broadened it to match `orders:create`).
 
 **Commit:** — (uncommitted; owner commits directly per this session's established pattern).
-**Preview QA (deploy/result/approval):** Preview pass 2026-09-12→2026-09-16 in [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md). §12.7 PASS (owner). §12.4/12.5 UI-gated, pending retest. Not VERIFIED.
+**Preview QA (deploy/result/approval):** **VERIFIED 2026-09-16 (owner-delegated).** §12.4 / §12.5 / §12.7 / §12.8 RETEST PASS.
 **Reviewer:** — not yet assigned.
 **Verification:** — not yet performed (post-migration-apply + Preview QA).
 **Authoritative report update:** — not yet done; §43 rows for the 7 newly-seeded codes to be marked resolved once migration `0411` is applied and confirmed.
