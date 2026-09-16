@@ -1,111 +1,117 @@
-'use client';
+'use client'
 
 /**
- * Notification bell hook.
- * Subscribes to Supabase Realtime (org_ntf_inbox_mst postgres_changes) so the
- * badge updates instantly on INSERT without polling.
- * Also exposes markRead / markAllRead actions.
+ * Notification bell data: one unread-count query, Realtime for live badge,
+ * and a recent-list query that starts only when the dropdown opens.
  */
 
-import { useEffect, useCallback, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/auth/auth-context';
-import type { NotificationRow } from '@lib/notifications/types';
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/lib/auth/auth-context'
+import type { NotificationRow } from '@lib/notifications/types'
+import {
+  NOTIFICATION_RECENT_LIMIT,
+  NOTIFICATION_UNREAD_STALE_TIME_MS,
+  notificationKeys,
+} from '@/lib/query/notification-keys'
+import {
+  fetchRecentUnreadNotifications,
+  fetchUnreadNotificationCount,
+} from '../api/notification-bell-api'
+import {
+  isInboxRealtimeRow,
+  isInboxRowInScope,
+  mergeRecentInboxRows,
+  type InboxRealtimeEvent,
+} from '../model/inbox-realtime'
 
-const QUERY_KEY = 'notification-unread-count';
-const RECENT_LIMIT = 10;
-
-async function fetchUnreadCount(): Promise<number> {
-  const res = await fetch('/api/v1/notifications/unread-count', { credentials: 'include' });
-  if (!res.ok) return 0;
-  const json = await res.json();
-  return json.count ?? 0;
+interface UseNotificationBellOptions {
+  /** When false, the recent-list query does not start a network request. */
+  dropdownOpen?: boolean
 }
 
-async function fetchRecentNotifications(): Promise<NotificationRow[]> {
-  const res = await fetch(`/api/v1/notifications?limit=${RECENT_LIMIT}&is_read=false`, {
-    credentials: 'include',
-  });
-  if (!res.ok) return [];
-  const json = await res.json();
-  return json.data ?? [];
+function isInboxRealtimeEvent(value: string): value is InboxRealtimeEvent {
+  return value === 'INSERT' || value === 'UPDATE' || value === 'DELETE'
 }
 
 /**
- *
+ * Shared inbox queries for the top-bar bell.
+ * Unread count is tenant+user scoped and does not poll.
+ * @param options.dropdownOpen - Fetch recent rows only while the dropdown is open
+ * @returns Badge count, recent rows, and recent-list loading flag
  */
-export function useNotificationBell() {
-  const { currentTenant, user } = useAuth();
-  const tenantId = currentTenant?.tenant_id ?? '';
-  const userId   = user?.id ?? '';
-  const qc       = useQueryClient();
-
-  const [recentNotifications, setRecentNotifications] = useState<NotificationRow[]>([]);
+export function useNotificationBell(options: UseNotificationBellOptions = {}) {
+  const { dropdownOpen = false } = options
+  const { currentTenant, user, isTenantContextReady } = useAuth()
+  const tenantId = currentTenant?.tenant_id ?? ''
+  const userId = user?.id ?? ''
+  const qc = useQueryClient()
+  const scoped = Boolean(tenantId && userId && isTenantContextReady)
 
   const { data: unreadCount = 0 } = useQuery({
-    queryKey: [QUERY_KEY, tenantId, userId],
-    queryFn:  fetchUnreadCount,
-    enabled:  !!tenantId && !!userId,
-    staleTime:30_000,        // 30 s cache
-    refetchInterval: 60_000, // fallback poll every 60 s in case Realtime drops
-  });
+    queryKey: notificationKeys.unreadCount(tenantId, userId),
+    queryFn: fetchUnreadNotificationCount,
+    enabled: scoped,
+    staleTime: NOTIFICATION_UNREAD_STALE_TIME_MS,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  })
 
-  // Load recent notifications for the dropdown
+  const { data: recentNotifications = [], isLoading: isRecentLoading } = useQuery({
+    queryKey: notificationKeys.recent(tenantId, userId),
+    queryFn: fetchRecentUnreadNotifications,
+    enabled: scoped && dropdownOpen,
+    staleTime: NOTIFICATION_UNREAD_STALE_TIME_MS,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  })
+
   useEffect(() => {
-    if (!tenantId || !userId) return;
-    fetchRecentNotifications().then(setRecentNotifications);
-  }, [tenantId, userId]);
+    if (!scoped) {
+      return
+    }
 
-  // Supabase Realtime subscription — badge increments on INSERT
-  useEffect(() => {
-    if (!tenantId || !userId) return;
-
-    const supabase = createClient();
-    const channel  = supabase
-      .channel(`ntf-bell-${userId}`)
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`ntf-bell-${tenantId}-${userId}`)
       .on(
         'postgres_changes',
         {
-          event:  'INSERT',
+          event: '*',
           schema: 'public',
-          table:  'org_ntf_inbox_mst',
+          table: 'org_ntf_inbox_mst',
           filter: `recipient_user_id=eq.${userId}`,
         },
         (payload) => {
-          const newRow = payload.new as NotificationRow;
-          setRecentNotifications((prev) => [newRow, ...prev].slice(0, RECENT_LIMIT));
-          qc.invalidateQueries({ queryKey: [QUERY_KEY, tenantId, userId] });
+          const event = payload.eventType
+          if (!isInboxRealtimeEvent(event)) {
+            return
+          }
+          const row = event === 'DELETE' ? payload.old : payload.new
+          if (!isInboxRealtimeRow(row) || !isInboxRowInScope(row, tenantId, userId)) {
+            return
+          }
+
+          void qc.invalidateQueries({
+            queryKey: notificationKeys.unreadCount(tenantId, userId),
+          })
+          void qc.invalidateQueries({ queryKey: notificationKeys.lists })
+
+          const recentKey = notificationKeys.recent(tenantId, userId)
+          if (qc.getQueryState(recentKey)?.status === 'success') {
+            qc.setQueryData(recentKey, (prev: NotificationRow[] | undefined) =>
+              mergeRecentInboxRows(prev, event, row, NOTIFICATION_RECENT_LIMIT)
+            )
+          }
         }
       )
-      .subscribe();
+      .subscribe()
 
     return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [tenantId, userId, qc]);
+      void supabase.removeChannel(channel)
+    }
+  }, [qc, scoped, tenantId, userId])
 
-  const markRead = useCallback(async (id: string) => {
-    await fetch(`/api/v1/notifications/${id}/read`, {
-      method: 'PATCH',
-      credentials: 'include',
-    });
-    setRecentNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-    );
-    qc.invalidateQueries({ queryKey: [QUERY_KEY, tenantId, userId] });
-    qc.invalidateQueries({ queryKey: ['notifications-list'] }); // keep center page in sync
-  }, [tenantId, userId, qc]);
-
-  const markAllRead = useCallback(async () => {
-    await fetch('/api/v1/notifications/read-all', {
-      method: 'PATCH',
-      credentials: 'include',
-    });
-    setRecentNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    qc.invalidateQueries({ queryKey: [QUERY_KEY, tenantId, userId] });
-    qc.invalidateQueries({ queryKey: ['notifications-list'] }); // keep center page in sync
-  }, [tenantId, userId, qc]);
-
-  return { unreadCount, recentNotifications, markRead, markAllRead };
+  return { unreadCount, recentNotifications, isRecentLoading }
 }

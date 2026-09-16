@@ -79,7 +79,7 @@ lib/notifications/orchestrator.ts
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/v1/notifications` | GET | Paginated notification inbox (current user) |
-| `/api/v1/notifications/unread-count` | GET | Unread count (30s cache) |
+| `/api/v1/notifications/unread-count` | GET | Unread count (client cache 2 min; Realtime INSERT/UPDATE/DELETE invalidates; no polling) |
 | `/api/v1/notifications/[id]/read` | PATCH | Mark single notification read |
 | `/api/v1/notifications/read-all` | PATCH | Mark all as read (current user) |
 | `/api/v1/notifications/user-prefs` | GET, PUT | User preference management |
@@ -328,31 +328,29 @@ Campaigns are non-transactional by definition. Before dispatching any target, th
 
 ## 8. Realtime Subscription (Bell UI)
 
-The notification bell subscribes to Supabase Realtime on `org_notifications_mst`:
+The top-bar bell uses one TanStack Query for `GET /api/v1/notifications/unread-count` (`staleTime` 2 minutes, `refetchOnWindowFocus` / `refetchOnReconnect`, **no** `refetchInterval`). The recent-list query starts only when the dropdown opens.
+
+The bell also subscribes to Supabase Realtime on `org_ntf_inbox_mst` (`INSERT` / `UPDATE` / `DELETE`). The Realtime filter is `recipient_user_id`; the handler also drops rows whose `tenant_org_id` is not the active tenant. Matching events invalidate the unread-count query (server is the count source of truth) and patch the recent-list cache only after that list has been fetched once, so an INSERT cannot seed a one-row cache and skip the first fetch.
 
 ```typescript
 const channel = supabase
-  .channel(`notifications:${tenantOrgId}:${userId}`)
+  .channel(`ntf-bell-${tenantId}-${userId}`)
   .on(
     'postgres_changes',
     {
-      event: 'INSERT',
+      event: '*',
       schema: 'public',
-      table: 'org_notifications_mst',
+      table: 'org_ntf_inbox_mst',
       filter: `recipient_user_id=eq.${userId}`,
     },
     (payload) => {
-      // New notification row arrived
-      setUnreadCount(prev => prev + 1)
-      setRecentNotifications(prev => [payload.new, ...prev].slice(0, 20))
+      // invalidate unread-count; patch recent cache if already fetched
     }
   )
   .subscribe()
 ```
 
-**Realtime is enabled** on `org_notifications_mst` via `REPLICA IDENTITY FULL` + `ALTER PUBLICATION supabase_realtime ADD TABLE org_notifications_mst` (migration 0348).
-
-RLS on `org_notifications_mst` ensures each user only receives their own notifications from Realtime.
+**Realtime is enabled** on `org_ntf_inbox_mst` via `REPLICA IDENTITY FULL` + `ALTER PUBLICATION supabase_realtime ADD TABLE org_ntf_inbox_mst` (migration 0348).
 
 ---
 

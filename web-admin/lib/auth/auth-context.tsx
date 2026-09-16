@@ -23,6 +23,7 @@ import {
   invalidatePermissionCache,
 } from '@/lib/cache/permission-cache-client'
 import { removeAllFeatureFlagQueries } from '@/lib/query/feature-flag-keys'
+import { removeAllNotificationQueries } from '@/lib/query/notification-keys'
 import type {
   AuthContextType,
   AuthUser,
@@ -413,6 +414,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       permissionsLoadedForTenantRef.current = null
       setIsTenantContextReady(true)
       removeAllFeatureFlagQueries(queryClient)
+      removeAllNotificationQueries(queryClient)
 
       // Clear browser storage
       localStorage.removeItem('permissions_cache')
@@ -618,6 +620,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear session UX log so prior tenant messages do not leak
       sessionActivityStore.clear()
       removeAllFeatureFlagQueries(queryClient)
+      removeAllNotificationQueries(queryClient)
 
       // 8. Reload the page to ensure all queries use new tenant context
       window.location.reload()
@@ -690,6 +693,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsTenantContextReady(true)
           invalidatePermissionCache()
           removeAllFeatureFlagQueries(queryClient)
+          removeAllNotificationQueries(queryClient)
           sessionStorage.clear()
           // Redirect to login with reason when session expired (not user-initiated)
           if (!isSigningOutRef.current) {

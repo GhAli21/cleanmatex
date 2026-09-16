@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
+import { notificationKeys } from '@/lib/query/notification-keys';
 import type { NotificationRow } from '@lib/notifications/types';
 
 /**
@@ -45,7 +46,7 @@ async function fetchNotifications(
  * @param initialTab
  */
 export function useNotifications(initialTab: NotificationTab = 'all') {
-  const { currentTenant, user } = useAuth();
+  const { currentTenant, user, isTenantContextReady } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';
   const userId   = user?.id ?? '';
 
@@ -54,9 +55,9 @@ export function useNotifications(initialTab: NotificationTab = 'all') {
   const limit = 20;
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ['notifications-list', tenantId, userId, tab, page],
+    queryKey: notificationKeys.list(tenantId, userId, tab, page),
     queryFn:  () => fetchNotifications(tab, page, limit),
-    enabled:  !!tenantId && !!userId,
+    enabled:  !!tenantId && !!userId && isTenantContextReady,
     staleTime:30_000,
     placeholderData: (prev) => prev, // keep previous while loading next page
   });

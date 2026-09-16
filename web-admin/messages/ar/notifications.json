@@ -3,6 +3,8 @@
   "markAllRead": "تحديد الكل كمقروء",
   "clearAll": "مسح الكل",
   "noNotifications": "لا توجد إشعارات",
+  "markReadFailed": "تعذر تحديد هذا الإشعار كمقروء",
+  "markAllReadFailed": "تعذر تحديد كل الإشعارات كمقروءة",
   "types": {
     "order": "طلب",
     "payment": "دفع",

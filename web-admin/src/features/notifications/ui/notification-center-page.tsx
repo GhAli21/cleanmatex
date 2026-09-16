@@ -1,14 +1,12 @@
 'use client'
 
-import { useCallback } from 'react'
 import { Bell } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useQueryClient } from '@tanstack/react-query'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import { CmxSkeleton } from '@ui/primitives/cmx-skeleton'
 import { CmxEmptyState } from '@ui/data-display/cmx-empty-state'
 import { CmxTabsPanel } from '@ui/navigation/cmx-tabs-panel'
-import { useAuth } from '@/lib/auth/auth-context'
+import { useInboxMutations } from '../hooks/use-inbox-mutations'
 import { useNotifications } from '../hooks/use-notifications'
 import { NotificationItem } from './notification-item'
 import type { NotificationTab } from '../hooks/use-notifications'
@@ -45,24 +43,9 @@ function NotificationListSkeleton() {
 export function NotificationCenterPage() {
   const locale = useLocale()
   const t = useTranslations('notifications')
-  const qc = useQueryClient()
-  const { currentTenant, user } = useAuth()
-  const tenantId = currentTenant?.tenant_id ?? ''
-  const userId = user?.id ?? ''
+  const { markRead, markAllRead } = useInboxMutations()
 
   const { notifications, pagination, isLoading, isFetching, tab, page, setPage, changeTab } = useNotifications()
-
-  const markRead = useCallback(async (id: string) => {
-    await fetch(`/api/v1/notifications/${id}/read`, { method: 'PATCH', credentials: 'include' })
-    qc.invalidateQueries({ queryKey: ['notifications-list'] })
-    qc.invalidateQueries({ queryKey: ['notification-unread-count', tenantId, userId] })
-  }, [qc, tenantId, userId])
-
-  const markAllRead = useCallback(async () => {
-    await fetch('/api/v1/notifications/read-all', { method: 'PATCH', credentials: 'include' })
-    qc.invalidateQueries({ queryKey: ['notifications-list'] })
-    qc.invalidateQueries({ queryKey: ['notification-unread-count', tenantId, userId] })
-  }, [qc, tenantId, userId])
 
   const emptyTitle = tab === 'unread' ? t('center.emptyUnread') : t('center.empty')
   const emptyDesc  = tab === 'unread' ? t('center.emptyUnreadDesc') : t('center.emptyDesc')

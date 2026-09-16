@@ -9,6 +9,8 @@ import {
   TOPBAR_POPOVER_OPEN_EVENT,
   type TopbarPopoverOpenDetail,
 } from '@lib/session-activity'
+import { CmxSkeleton } from '@ui/primitives/cmx-skeleton'
+import { useInboxMutations } from '../hooks/use-inbox-mutations'
 import { useNotificationBell } from '../hooks/use-notification-bell'
 import { NotificationItem } from './notification-item'
 
@@ -21,7 +23,10 @@ export function NotificationBell() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const t = useTranslations('notifications')
 
-  const { unreadCount, recentNotifications, markRead, markAllRead } = useNotificationBell()
+  const { unreadCount, recentNotifications, isRecentLoading } = useNotificationBell({
+    dropdownOpen: open,
+  })
+  const { markRead, markAllRead } = useInboxMutations()
 
   // Close when Session Activity (or another top-bar popover) opens
   useEffect(() => {
@@ -124,7 +129,19 @@ export function NotificationBell() {
 
           {/* Notification list */}
           <div className="max-h-80 overflow-y-auto">
-            {recentNotifications.length === 0 ? (
+            {isRecentLoading && recentNotifications.length === 0 ? (
+              <div className="space-y-3 px-4 py-3" aria-busy="true">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="flex gap-3">
+                    <CmxSkeleton className="h-9 w-9 shrink-0 rounded-full" />
+                    <div className="flex-1 space-y-2 py-0.5">
+                      <CmxSkeleton className="h-3.5 w-3/4" />
+                      <CmxSkeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : recentNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
                 <Bell className="mb-3 h-8 w-8 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" />
                 <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
