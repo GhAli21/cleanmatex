@@ -1,16 +1,10 @@
 /**
- * FN-02 disposition gate (Order-Fin remediation Phase 4) — cancelling an order
- * that holds collected money requires an explicit disposition (REFUND /
- * STORE_CREDIT / KEEP_ON_ACCOUNT); KEEP_ON_ACCOUNT additionally requires
- * `orders:approve_refund`. Credit-only and unpaid orders cancel without a
- * disposition (the unwind reverses applied credit unconditionally).
- *
- * Source: docs/features/Order_Fin/Order_Fin_Remediation_2026-07/PLAN.md §Phase 4.
+ * Cancel is operational only (ADR_CANCEL_RETURN_RULES): no disposition gate
+ * and no automatic financial unwind. Money stays until an explicit Fin action.
  */
 
 import { WorkflowServiceEnhanced } from '@/lib/services/workflow-service-enhanced';
 import { WorkflowService } from '@/lib/services/workflow-service';
-import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { unwindOrderFinancialsOnCancel } from '@/lib/services/order-cancel-financials.service';
 
 const mockFrom = jest.fn();
@@ -41,27 +35,8 @@ jest.mock('@/lib/services/workflow-service', () => ({
   },
 }));
 
-jest.mock('@/lib/services/permission-service-server', () => ({
-  hasPermissionServer: jest.fn().mockResolvedValue(true),
-}));
-
 jest.mock('@/lib/services/order-cancel-financials.service', () => ({
-  // Values must mirror the real CANCEL_DISPOSITIONS (requireActual would drag
-  // the whole service import chain — supabase client — into the test env).
-  CANCEL_DISPOSITIONS: {
-    REFUND: 'REFUND',
-    STORE_CREDIT: 'STORE_CREDIT',
-    KEEP_ON_ACCOUNT: 'KEEP_ON_ACCOUNT',
-  },
-  unwindOrderFinancialsOnCancel: jest.fn().mockResolvedValue({
-    reversedCreditApplications: 0,
-    restoredStoredValueAmount: 0,
-    paidAmountDisposed: 0,
-    disposition: null,
-    refundIds: [],
-    creditNoteId: null,
-    warnings: [],
-  }),
+  unwindOrderFinancialsOnCancel: jest.fn(),
 }));
 
 jest.mock('server-only', () => ({}), { virtual: true });
@@ -85,12 +60,10 @@ const baseOrder = {
 
 const cancelInput = {
   cancelled_note: 'Customer requested cancellation',
-  // Old workflow path has no resolver entry for 'canceling'; the real UI
-  // supplies the target status the same way.
   to_status: 'cancelled',
 };
 
-describe('WorkflowServiceEnhanced — FN-02 cancel disposition gate', () => {
+describe('WorkflowServiceEnhanced — cancel has no automatic financial effect', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCreateClient.mockReturnValue({
@@ -100,32 +73,21 @@ describe('WorkflowServiceEnhanced — FN-02 cancel disposition gate', () => {
     });
   });
 
-  it('rejects cancelling a paid order without a disposition', async () => {
+  it('cancels a paid order without a disposition and without unwind', async () => {
     mockOrderFetch({ ...baseOrder, total_paid_amount: 25.5, total_credit_applied_amount: 0 });
 
-    await expect(
-      WorkflowServiceEnhanced.executeScreenTransition('canceling', 'order-1', cancelInput)
-    ).rejects.toMatchObject({
-      name: 'ValidationError',
-      code: 'CANCEL_DISPOSITION_REQUIRED',
-    });
+    const result = await WorkflowServiceEnhanced.executeScreenTransition(
+      'canceling',
+      'order-1',
+      cancelInput,
+    );
 
-    expect(WorkflowService.changeStatus).not.toHaveBeenCalled();
+    expect(result.ok).toBe(true);
+    expect(WorkflowService.changeStatus).toHaveBeenCalledTimes(1);
     expect(unwindOrderFinancialsOnCancel).not.toHaveBeenCalled();
   });
 
-  it('rejects an unknown disposition value', async () => {
-    mockOrderFetch({ ...baseOrder, total_paid_amount: 25.5 });
-
-    await expect(
-      WorkflowServiceEnhanced.executeScreenTransition('canceling', 'order-1', {
-        ...cancelInput,
-        cancellation_disposition: 'BURN_IT',
-      })
-    ).rejects.toMatchObject({ code: 'CANCEL_DISPOSITION_REQUIRED' });
-  });
-
-  it('cancels a paid order with REFUND and runs the financial unwind', async () => {
+  it('ignores a disposition payload if the client still sends one', async () => {
     mockOrderFetch({ ...baseOrder, total_paid_amount: 25.5 });
 
     const result = await WorkflowServiceEnhanced.executeScreenTransition('canceling', 'order-1', {
@@ -134,60 +96,37 @@ describe('WorkflowServiceEnhanced — FN-02 cancel disposition gate', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(unwindOrderFinancialsOnCancel).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderId: 'order-1',
-        tenantId: 'tenant-1',
-        disposition: 'REFUND',
-        reason: 'Customer requested cancellation',
-      })
-    );
-  });
-
-  it('KEEP_ON_ACCOUNT requires orders:approve_refund', async () => {
-    mockOrderFetch({ ...baseOrder, total_paid_amount: 25.5 });
-    (hasPermissionServer as jest.Mock).mockResolvedValue(false);
-
-    await expect(
-      WorkflowServiceEnhanced.executeScreenTransition('canceling', 'order-1', {
-        ...cancelInput,
-        cancellation_disposition: 'KEEP_ON_ACCOUNT',
-      })
-    ).rejects.toMatchObject({ name: 'PermissionError' });
-
-    expect(hasPermissionServer).toHaveBeenCalledWith('orders:approve_refund');
     expect(unwindOrderFinancialsOnCancel).not.toHaveBeenCalled();
   });
 
-  it('credit-only orders cancel without a disposition; the unwind still runs', async () => {
+  it('cancels credit-only orders without unwind', async () => {
     mockOrderFetch({ ...baseOrder, total_paid_amount: 0, total_credit_applied_amount: 10 });
 
     const result = await WorkflowServiceEnhanced.executeScreenTransition(
       'canceling',
       'order-1',
-      cancelInput
+      cancelInput,
     );
 
     expect(result.ok).toBe(true);
-    expect(unwindOrderFinancialsOnCancel).toHaveBeenCalledWith(
-      expect.objectContaining({ disposition: undefined })
-    );
+    expect(unwindOrderFinancialsOnCancel).not.toHaveBeenCalled();
   });
 
-  it('unpaid orders cancel exactly as before', async () => {
+  it('cancels unpaid orders without unwind', async () => {
     mockOrderFetch({ ...baseOrder, total_paid_amount: 0, total_credit_applied_amount: 0 });
 
     const result = await WorkflowServiceEnhanced.executeScreenTransition(
       'canceling',
       'order-1',
-      cancelInput
+      cancelInput,
     );
 
     expect(result.ok).toBe(true);
     expect(WorkflowService.changeStatus).toHaveBeenCalledTimes(1);
+    expect(unwindOrderFinancialsOnCancel).not.toHaveBeenCalled();
   });
 
-  it('does not gate non-cancel transitions on paid orders', async () => {
+  it('does not touch financials on non-cancel transitions', async () => {
     mockOrderFetch({ ...baseOrder, total_paid_amount: 99 });
 
     const result = await WorkflowServiceEnhanced.executeScreenTransition('processing', 'order-1', {});

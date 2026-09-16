@@ -2,10 +2,8 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import type { PrismaTransactionClient } from '@/lib/services/order-settlement.service';
 import {
   CREDIT_APPLICATION_STATUSES,
-  CREDIT_APPLICATION_TYPES,
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
   OUTBOX_EVENT_TYPES,
   REFUND_CONTEXTS,
@@ -14,26 +12,22 @@ import {
 } from '@/lib/constants/order-financial';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import { reversePromoUsageTx } from '@/lib/services/discount-service';
-import { refundGiftCardTx } from '@/lib/services/gift-card-service';
-import {
-  topUpWalletTx,
-  issueAdvanceTx,
-  issueCreditNoteTx,
-} from '@/lib/services/stored-value.service';
+import { issueCreditNoteTx } from '@/lib/services/stored-value.service';
 import { initiateRefund } from '@/lib/services/order-refund.service';
+import { reverseCreditApplicationTx } from '@/lib/services/credit-application-reversal.service';
 import { emitEventTx } from '@/lib/services/outbox.service';
 import { logger } from '@/lib/utils/logger';
 import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 
 /**
  * Why:
- * Cancelling a paid order must never strand the customer's money (validation
- * finding FN-02). This service is the single financial unwind for order
- * cancellation: it reverses APPLIED credit applications back to their source
- * ledgers, routes real payments through an explicit disposition chosen at
- * cancel time, reverses promo usage, recalculates the canonical snapshot, and
- * leaves an outbox audit event — all idempotently, so a failed unwind can be
- * retried after the status transition already committed.
+ * ADR_CANCEL_RETURN_RULES (2026-07-25) forbids automatic Fin unwind on cancel.
+ * Workflow cancel no longer calls this helper. Keep it as a deprecated, explicit
+ * operator tool for tests and any future admin-triggered unwind — money on
+ * cancel is supposed to move through Fin screens (B13 voucher reverse, B09
+ * refunds). D006 credit restore lives in credit-application-reversal.service.ts.
+ *
+ * @deprecated Do not invoke from order cancellation. Use explicit Fin reverse/refund.
  */
 
 /** How the operator disposes of real collected payments on cancellation. */
@@ -70,137 +64,8 @@ export interface UnwindOrderFinancialsResult {
 const MONEY_EPSILON = 0.001;
 
 /**
- * Reverse one APPLIED credit application back to its source ledger.
- * The APPLIED→REVERSED flip is a compare-and-set (`updateMany` with the status
- * in the WHERE) so a retried unwind can never double-restore stored value.
- * @param tx active transaction client
- * @param input unwind input (tenant/order/user/reason)
- * @param app credit application row
- * @param customerId order customer (stored-value restore target)
- * @param warnings mutable warning collector
- * @returns restored amount (0 when skipped)
- */
-async function reverseCreditApplicationTx(
-  tx: PrismaTransactionClient,
-  input: UnwindOrderFinancialsInput,
-  app: {
-    id: string;
-    credit_type: string;
-    credit_source_id: string | null;
-    applied_amount: unknown;
-    currency_code: string;
-  },
-  customerId: string | null,
-  warnings: string[],
-): Promise<number> {
-  const amount = Number(app.applied_amount ?? 0);
-
-  const flipped = await tx.org_order_credit_apps_dtl.updateMany({
-    where: {
-      id: app.id,
-      tenant_org_id: input.tenantId,
-      application_status: CREDIT_APPLICATION_STATUSES.APPLIED,
-    },
-    data: {
-      application_status: CREDIT_APPLICATION_STATUSES.REVERSED,
-      updated_at: new Date(),
-      updated_by: input.userId,
-      updated_info: `Order cancelled — credit application reversed (${input.reason})`.slice(0, 500),
-    },
-  });
-  if (flipped.count === 0) return 0; // already reversed by an earlier attempt
-
-  const restoreKey = `cancel-${input.orderId}-ca-${app.id}`;
-  const restoreNote = `Order cancelled — restored from credit application ${app.id}`;
-
-  switch (app.credit_type) {
-    case CREDIT_APPLICATION_TYPES.GIFT_CARD: {
-      if (!app.credit_source_id) {
-        warnings.push(`Gift-card credit application ${app.id} has no source card — restore manually.`);
-        return 0;
-      }
-      const { actualRefundAmount } = await refundGiftCardTx(tx, {
-        giftCardId: app.credit_source_id,
-        amount,
-        orderId: input.orderId,
-        invoiceId: '',
-        reason: restoreNote.slice(0, 500),
-        processedBy: input.userId,
-        tenantOrgId: input.tenantId,
-        idempotencyKey: restoreKey,
-      });
-      if (actualRefundAmount < amount - MONEY_EPSILON) {
-        warnings.push(
-          `Gift card ${app.credit_source_id}: restored ${actualRefundAmount} of ${amount} (capped at original amount).`,
-        );
-      }
-      return actualRefundAmount;
-    }
-    case CREDIT_APPLICATION_TYPES.WALLET: {
-      if (!customerId) {
-        warnings.push(`Wallet credit application ${app.id}: order has no customer — restore manually.`);
-        return 0;
-      }
-      // topUpWalletTx has no idempotency key — the APPLIED→REVERSED CAS above
-      // is the single-execution guard for this restore.
-      await topUpWalletTx(tx, {
-        tenantId: input.tenantId,
-        customerId,
-        amount,
-        orderId: input.orderId,
-        notes: restoreNote,
-        performedBy: input.userId,
-        currencyCode: app.currency_code,
-      });
-      return amount;
-    }
-    case CREDIT_APPLICATION_TYPES.ADVANCE: {
-      if (!customerId) {
-        warnings.push(`Advance credit application ${app.id}: order has no customer — restore manually.`);
-        return 0;
-      }
-      await issueAdvanceTx(tx, {
-        tenantId: input.tenantId,
-        customerId,
-        amount,
-        notes: restoreNote,
-        performedBy: input.userId,
-        currencyCode: app.currency_code,
-      });
-      return amount;
-    }
-    case CREDIT_APPLICATION_TYPES.CREDIT_NOTE: {
-      if (!customerId) {
-        warnings.push(`Credit-note application ${app.id}: order has no customer — restore manually.`);
-        return 0;
-      }
-      // The consumed note may be expired/exhausted; issuing a fresh note for
-      // the reversed amount is the auditable restore (mirrors refund flow).
-      await issueCreditNoteTx(tx, {
-        tenantId: input.tenantId,
-        customerId,
-        amount,
-        reason: restoreNote,
-        orderId: input.orderId,
-        issuedBy: input.userId,
-        currencyCode: app.currency_code,
-        idempotencyKey: restoreKey,
-      });
-      return amount;
-    }
-    default: {
-      // e.g. LOYALTY_POINTS — no automated restore path yet; surfaced, never silent.
-      warnings.push(
-        `Credit application ${app.id} (${app.credit_type}, ${amount}) marked REVERSED but requires manual restore.`,
-      );
-      return 0;
-    }
-  }
-}
-
-/**
- * Financial unwind for a cancelled order. Call AFTER the status transition
- * commits; safe to retry (every step is CAS- or idempotency-key-guarded).
+ * Explicit financial unwind helper — not invoked by order cancellation.
+ * Call only from tests or a future admin tool. Safe to retry (CAS / keys).
  *
  * @param input tenant/order/user, disposition for real payments, reason
  * @returns per-step outcome + warnings for the UI/audit trail
@@ -255,13 +120,20 @@ export async function unwindOrderFinancialsOnCancel(
       for (const app of creditApps) {
         const restoredNow = await reverseCreditApplicationTx(
           tx,
-          input,
+          {
+            tenantId: input.tenantId,
+            orderId: input.orderId,
+            userId: input.userId,
+            reason: input.reason,
+            idempotencyPrefix: `cancel-${input.orderId}`,
+            updatedInfo: `Explicit unwind — credit application reversed (${input.reason})`,
+          },
           app,
           order.customer_id,
           warnings,
         );
         reversed += 1;
-        restoredAmount += restoredNow;
+        restoredAmount += restoredNow.restoredAmount;
       }
 
       // 2. Real payments — net of change already returned at the counter.

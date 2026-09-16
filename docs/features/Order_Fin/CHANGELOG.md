@@ -1,5 +1,36 @@
 # Changelog — Order Financial Platform
 
+## 2026-09-17 — Reverse voucher completeness + `ref_voucher_id`
+
+**Scope:** Reversal documents were missing date/party/amounts/line facts, and had no parent pointer on the new row (`reversed_by_voucher_id` only lives on the original). Migration **0508 APPLIED** (owner, 2026-09-17) local + remote. Types regenerated.
+
+**0509 APPLIED** (owner, 2026-09-17) local + remote. 0508 backfill keyed off `reversed_by_voucher_id`, which Preview reverse `RV-2026-000087` never stored. 0509 backfilled `ref_voucher_id` from `reversed_line_id` and copied header/date/party. Remote verified: `RV-2026-000087` → ref `RV-2026-000086`, party `Jh Test dev21`, date 2026-09-17, paid 1.070, outstanding 0.
+
+### Shipped
+
+- Reverse copies header + line operational fields; `voucher_date` / `voucher_datetime` are the reverse moment; `posting_status` POSTED.
+- New `org_fin_vouchers_mst.ref_voucher_id` (composite FK + index) filled on reverse; backfill from `reversed_by_voucher_id`.
+- List column + detail original-voucher link use `ref_voucher_id`.
+
+---
+
+## 2026-09-17 — Cash reverse expected-cash double-count (QA §30.2)
+
+**Scope:** B10 `PAYMENT_REVERSAL` OUT was counted as a B35 MANUAL movement after REVERSE already dropped the payment from COMPLETED, so expected cash went `1.070 → −1.070`. No migration.
+
+### Shipped
+
+- MANUAL expected-cash term excludes `reversed_payment_id` and `PAYMENT_REVERSAL` (`cash-drawer-cash-facts.ts`, used by close / summary / list totals).
+- `CASH_REFUND` still counts (original payment stays COMPLETED).
+- Compensating movement remains for recon (`REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT`).
+
+### Docs
+
+- B10 / B13 / B35 / QA §30.2 / README / RESUME
+- **0507 APPLIED (owner, 2026-09-17)** local + remote — `LOYALTY_RESTORE_PENDING` is live on `chk_org_order_credit_apps_dtl_status`
+
+---
+
 ## 2026-09-17 — Finance jobs hub (B07 / B19 follow-up)
 
 **Scope:** Documentation for the Outbox Monitor jobs hub. Migration `0505` already applied by owner (local + remote); types regenerated. No new schema in this doc pass.
@@ -13,7 +44,7 @@
 ### Docs
 
 - Canonical runbook: `Order_Fin_Docs/FINANCE_JOBS_HUB.md`
-- Updated B07 / B19 completion evidence, OUTBOX_PATTERN_GUIDE, STORED_VALUE_GUIDE, developer_guide, QA §11.16–11.22 and §20.12–20.18
+- Updated B07 / B19 completion evidence, OUTBOX_PATTERN_GUIDE, STORED_VALUE_GUIDE, developer_guide, QA §11.8–11.22 and §20.12–20.20
 
 ---
 

@@ -17,9 +17,11 @@ Addendum A2 (code-verified 2026-07-18): the drawer expected-cash formula `expect
 ```
 expected cash = opening float
               + Σ effective cash payments        (active + COMPLETED-set + cash-family)
-              + Σ MANUAL movements (IN − OUT)     (order_payment_id IS NULL)
+              + Σ MANUAL movements (IN − OUT)     (order_payment_id IS NULL
+                                                    AND reversed_payment_id IS NULL
+                                                    AND movement_type ≠ PAYMENT_REVERSAL)
 ```
-Sale-mirror movements (`CASH_SALE` + their change `CASH_OUT`, which carry `order_payment_id`) are **excluded** — the payment already counts that cash. The **same** calculation is used by `closeSession`, `buildSessionReconciliation`/`getSessionSummary`, the list/detail derived-expected loaders, and (via the server value) `buildCashDrawerClosePreview`.
+Sale-mirror movements (`CASH_SALE` + their change `CASH_OUT`, which carry `order_payment_id`) are **excluded** — the payment already counts that cash. B10 `PAYMENT_REVERSAL` compensating OUTs are also **excluded** — reversing a cash payment already drops it from the COMPLETED payment term, so counting the OUT would subtract the same cash twice (QA §30.2: 1.070 → −1.070). `CASH_REFUND` stays in the MANUAL term: the original payment remains COMPLETED, so the OUT is the only decrement. The **same** calculation is used by `closeSession`, `buildSessionReconciliation`/`getSessionSummary`, the list/detail derived-expected loaders, and (via the server value) `buildCashDrawerClosePreview`.
 
 ## Scope
 Server-side expected-cash math in `lib/services/cash-drawer.service.ts` + the client preview fallback in `cash-drawers/api/cash-drawer-api.ts`; removal of the `order_fin_drawer_close_v2` flag. No schema change, no migration.

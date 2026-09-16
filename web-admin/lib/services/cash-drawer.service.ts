@@ -8,6 +8,8 @@ import { withTenantContext } from '@lib/db/tenant-context'
 import { CASH_VARIANCE_TOLERANCE } from '@/lib/constants/financial-tolerances'
 import {
   effectiveCashPaymentWhere,
+  expectedCashManualMovementWhere,
+  isExpectedCashManualMovement,
   sumEffectiveCashPayments,
 } from '@/lib/services/cash-drawer-cash-facts'
 import type {
@@ -278,16 +280,12 @@ function buildSessionReconciliation(
   movements: SummaryDataBundle['movements'],
   payments: SummaryDataBundle['payments'],
 ): CashDrawerReconciliationSummary {
-  // Expected cash counts each cash fact exactly once (B16 M2 + Addendum A2 fix,
-  // applied unconditionally — no feature flag):
-  //   • sale cash comes from the payment ledger — `cashCollected` below counts
-  //     only active, COMPLETED-set, cash-family payments;
-  //   • the drawer-movement term counts only MANUAL movements (float / petty /
-  //     drop / adjustment — `order_payment_id` is null). Sale-mirror movements
-  //     (CASH_SALE + their change CASH_OUT, which carry `order_payment_id`) are
-  //     excluded because the payment already counts that cash — folding them in
-  //     was the audited double-count (A2).
-  const manualMovements = movements.filter((movement) => movement.order_payment_id == null)
+  // Expected cash counts each cash fact exactly once (B16 M2 + Addendum A2 +
+  // QA §30.2): sale cash from the payment ledger; MANUAL movements only
+  // (`order_payment_id` and `reversed_payment_id` both null). Sale-mirror
+  // CASH_SALE/change and B10 PAYMENT_REVERSAL compensating OUTs are excluded —
+  // the payment already counts (or, after REVERSE, no longer counts) that cash.
+  const manualMovements = movements.filter((movement) => isExpectedCashManualMovement(movement))
   const totalCashIn = manualMovements
     .filter((movement) => movement.direction === 'IN')
     .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
@@ -602,12 +600,7 @@ async function loadMovementTotalsBySession(tenantId: string, sessionIds: string[
       where: {
         tenant_org_id: tenantId,
         cash_drawer_session_id: { in: sessionIds },
-        is_active: true,
-        // A2 fix: only MANUAL movements feed expected cash; sale-mirror
-        // movements (CASH_SALE + change, `order_payment_id` set) are already
-        // counted via the payment total, so excluding them avoids the
-        // double-count.
-        order_payment_id: null,
+        ...expectedCashManualMovementWhere(),
       },
       _sum: {
         amount: true,
@@ -1528,11 +1521,11 @@ export async function closeSession(
     }),
   )
 
-  // Expected cash counts each cash fact once (B16 M2 + Addendum A2 fix, applied
-  // unconditionally): sale cash from the payment ledger (active + COMPLETED-set
-  // + cash-family), plus MANUAL drawer movements only (`order_payment_id` null).
-  // Sale-mirror movements (CASH_SALE + change, `order_payment_id` set) are
-  // excluded — the payment already counts that cash (the audited double-count).
+  // Expected cash counts each cash fact once (B16 M2 + Addendum A2 + QA §30.2):
+  // sale cash from the payment ledger, plus MANUAL drawer movements only.
+  // Sale-mirror CASH_SALE/change and B10 PAYMENT_REVERSAL compensating OUTs are
+  // excluded — the payment already counts (or, after REVERSE, no longer counts)
+  // that cash.
   const [cashPayments, movements, drawer] = await Promise.all([
     withTenantContext(tenantId, () =>
       prisma.org_order_payments_dtl.aggregate({
@@ -1549,8 +1542,7 @@ export async function closeSession(
         where: {
           tenant_org_id: tenantId,
           cash_drawer_session_id: sessionId,
-          is_active: true,
-          order_payment_id: null,
+          ...expectedCashManualMovementWhere(),
         },
         select: {
           direction: true,

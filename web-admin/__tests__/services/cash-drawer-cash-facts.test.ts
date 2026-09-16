@@ -10,8 +10,10 @@ import {
   CASH_PAYMENT_METHOD_CODES,
   EFFECTIVE_CASH_PAYMENT_STATUSES,
   effectiveCashPaymentWhere,
+  expectedCashManualMovementWhere,
   isCashFamilyMethod,
   isEffectiveCashPaymentRow,
+  isExpectedCashManualMovement,
   sumEffectiveCashPayments,
 } from '@/lib/services/cash-drawer-cash-facts';
 
@@ -107,5 +109,47 @@ describe('cash-drawer-cash-facts — effectiveCashPaymentWhere', () => {
     expect(where.is_active).toBe(true);
     expect(where.payment_status.in.sort()).toEqual(['CAPTURED', 'COMPLETED', 'SETTLED']);
     expect(where.payment_method_code.in).toContain('CASH');
+  });
+});
+
+describe('cash-drawer-cash-facts — expectedCashManualMovementWhere', () => {
+  it('keeps only active movements with no payment or reversal lineage', () => {
+    const where = expectedCashManualMovementWhere();
+    expect(where.is_active).toBe(true);
+    expect(where.order_payment_id).toBeNull();
+    expect(where.reversed_payment_id).toBeNull();
+    expect(where.NOT).toEqual({ movement_type: 'PAYMENT_REVERSAL' });
+  });
+});
+
+describe('cash-drawer-cash-facts — isExpectedCashManualMovement', () => {
+  const manual = (over: Record<string, unknown> = {}) => ({
+    order_payment_id: null,
+    reversed_payment_id: null,
+    movement_type: 'CASH_IN',
+    is_active: true,
+    ...over,
+  });
+
+  it('includes float / petty / CASH_REFUND (refund payment stays COMPLETED)', () => {
+    expect(isExpectedCashManualMovement(manual())).toBe(true);
+    expect(isExpectedCashManualMovement(manual({ movement_type: 'CASH_REFUND' }))).toBe(true);
+  });
+
+  it('excludes sale-mirror CASH_SALE (order_payment_id set)', () => {
+    expect(isExpectedCashManualMovement(manual({ order_payment_id: 'pay-1', movement_type: 'CASH_SALE' }))).toBe(false);
+  });
+
+  it('excludes B10 PAYMENT_REVERSAL so reverse does not double-decrement expected cash (§30.2)', () => {
+    expect(
+      isExpectedCashManualMovement(
+        manual({ movement_type: 'PAYMENT_REVERSAL', reversed_payment_id: 'pay-1' }),
+      ),
+    ).toBe(false);
+    expect(isExpectedCashManualMovement(manual({ movement_type: 'PAYMENT_REVERSAL' }))).toBe(false);
+  });
+
+  it('excludes inactive rows', () => {
+    expect(isExpectedCashManualMovement(manual({ is_active: false }))).toBe(false);
   });
 });

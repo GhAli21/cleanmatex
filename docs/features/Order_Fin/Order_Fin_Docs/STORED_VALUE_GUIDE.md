@@ -69,6 +69,8 @@ if (existing) return; // already redeemed for this order
 
 ---
 
-## Cancellation restores (Remediation 2026-07 Phase 4 — ADR-053)
+## Cancellation restores (superseded — no auto Fin unwind)
 
-When an order is cancelled, `unwindOrderFinancialsOnCancel` reverses every APPLIED credit application back to its source ledger (gift card refund, wallet top-up, advance re-issue, fresh credit note), CAS-guarded so retries never double-restore. Collected real payments follow the operator's disposition: REFUND (three-stage refund per payment; permission-gated — the same user may approve if they hold `orders:approve_refund`), STORE_CREDIT (one credit note for the net collected amount), or KEEP_ON_ACCOUNT (approval-gated retention). `LOYALTY_POINTS` applications are flipped to REVERSED with a manual-restore warning. Audit: outbox event `ORDER_CANCEL_FINANCIAL_UNWIND`.
+**Do not restore stored value on order cancel.** ADR_CANCEL_RETURN_RULES (2026-07-25) and the 2026-09-17 cancel alignment: cancellation is operational only. Payments stay COMPLETED and credit applications stay APPLIED until an operator uses an explicit Fin action (B13 voucher reverse, B09 refund, stored-value clawback). D006 restore lives in `credit-application-reversal.service.ts` and is driven by voucher reverse (flag `order_fin_voucher_unwind`), not by cancel.
+
+Historical ADR-053 disposition chooser (REFUND / STORE_CREDIT / KEEP_ON_ACCOUNT) is retired from the cancel dialog. `unwindOrderFinancialsOnCancel` remains as a deprecated helper for tests only.

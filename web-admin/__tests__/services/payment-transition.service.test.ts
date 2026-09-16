@@ -689,6 +689,8 @@ describe('transitionPaymentTx — REVERSE (B10)', () => {
       cash_drawer_session_id: sessionId,
     });
     expect(createCall.order_payment_id).toBeUndefined();
+    // Expected cash drops via the payment leaving COMPLETED; this movement is
+    // recon lineage only (B35 excludes reversed_payment_id / PAYMENT_REVERSAL).
   });
 });
 

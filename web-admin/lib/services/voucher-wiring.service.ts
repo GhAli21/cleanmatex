@@ -422,7 +422,8 @@ export async function recalcOrderSnapshotIfLinked(
 
 /**
  * Fetch all operational effects linked to a voucher (read path for UI).
- * Returns three grouped arrays: orderPayments, cashDrawerMovements, creditApplications.
+ * Includes effects on the original and reversal voucher in a reverse pair,
+ * because payments/movements stay on the original `fin_voucher_id`.
  * @param tenantOrgId
  * @param voucherId
  */
@@ -431,9 +432,49 @@ export async function getVoucherLinkedEffects(
   voucherId: string
 ): Promise<LinkedEffectsResult> {
   return withTenantContext(tenantOrgId, async () => {
-    const [payments, movements, creditApps] = await Promise.all([
+    const lines = await prisma.org_fin_voucher_trx_lines_dtl.findMany({
+      where: { tenant_org_id: tenantOrgId, voucher_id: voucherId, is_active: true },
+      select: { id: true, reversed_line_id: true },
+    });
+    const lineIds = lines.map((line) => line.id);
+    const originalLineIds = [...new Set(lines.map((line) => line.reversed_line_id).filter((id): id is string => Boolean(id)))];
+
+    const reversalLines = lineIds.length > 0
+      ? await prisma.org_fin_voucher_trx_lines_dtl.findMany({
+          where: { tenant_org_id: tenantOrgId, reversed_line_id: { in: lineIds } },
+          select: { id: true, voucher_id: true },
+        })
+      : [];
+
+    const originalLines = originalLineIds.length > 0
+      ? await prisma.org_fin_voucher_trx_lines_dtl.findMany({
+          where: { tenant_org_id: tenantOrgId, id: { in: originalLineIds } },
+          select: { id: true, voucher_id: true },
+        })
+      : [];
+
+    const relatedLineIds = [...new Set([
+      ...lineIds,
+      ...originalLineIds,
+      ...reversalLines.map((line) => line.id),
+    ])];
+    const relatedVoucherIds = [...new Set([
+      voucherId,
+      ...originalLines.map((line) => line.voucher_id),
+      ...reversalLines.map((line) => line.voucher_id),
+    ])];
+
+    const effectWhere = {
+      tenant_org_id: tenantOrgId,
+      OR: [
+        { fin_voucher_id: { in: relatedVoucherIds } },
+        ...(relatedLineIds.length > 0 ? [{ fin_voucher_trx_line_id: { in: relatedLineIds } }] : []),
+      ],
+    };
+
+    const [payments, movements, creditApps, fundingTenders] = await Promise.all([
       prisma.org_order_payments_dtl.findMany({
-        where:  { tenant_org_id: tenantOrgId, fin_voucher_id: voucherId },
+        where:  effectWhere,
         select: {
           id:                  true,
           order_id:            true,
@@ -444,7 +485,7 @@ export async function getVoucherLinkedEffects(
         },
       }),
       prisma.org_cash_drawer_movements_dtl.findMany({
-        where:  { tenant_org_id: tenantOrgId, fin_voucher_id: voucherId },
+        where:  effectWhere,
         select: {
           id:                      true,
           cash_drawer_session_id:  true,
@@ -454,7 +495,7 @@ export async function getVoucherLinkedEffects(
         },
       }),
       prisma.org_order_credit_apps_dtl.findMany({
-        where:  { tenant_org_id: tenantOrgId, fin_voucher_id: voucherId },
+        where:  effectWhere,
         select: {
           id:                      true,
           order_id:                true,
@@ -463,31 +504,95 @@ export async function getVoucherLinkedEffects(
           fin_voucher_trx_line_id: true,
         },
       }),
+      prisma.org_sv_funding_tenders_dtl.findMany({
+        where:  effectWhere,
+        select: {
+          id:                      true,
+          funding_type:            true,
+          amount:                  true,
+          status:                  true,
+          fin_voucher_trx_line_id: true,
+        },
+      }),
     ]);
+
+    const uniqueById = <T extends { id: string }>(rows: T[]): T[] => {
+      const seen = new Set<string>();
+      return rows.filter((row) => {
+        if (seen.has(row.id)) return false;
+        seen.add(row.id);
+        return true;
+      });
+    };
+
+    const uniquePayments = uniqueById(payments);
+    const uniqueMovements = uniqueById(movements);
+    const uniqueCredits = uniqueById(creditApps);
+    const uniqueTenders = uniqueById(fundingTenders);
+
+    const orderIds = [...new Set([
+      ...uniquePayments.map((row) => row.order_id),
+      ...uniqueCredits.map((row) => row.order_id),
+    ].filter((id): id is string => Boolean(id)))];
+    const sessionIds = [...new Set(
+      uniqueMovements.map((row) => row.cash_drawer_session_id).filter((id): id is string => Boolean(id)),
+    )];
+
+    const [orders, sessions] = await Promise.all([
+      orderIds.length > 0
+        ? prisma.org_orders_mst.findMany({
+            where: { tenant_org_id: tenantOrgId, id: { in: orderIds } },
+            select: { id: true, order_no: true },
+          })
+        : Promise.resolve([]),
+      sessionIds.length > 0
+        ? prisma.org_cash_drawer_sessions_mst.findMany({
+            where: { tenant_org_id: tenantOrgId, id: { in: sessionIds } },
+            select: { id: true, cash_drawer_id: true, session_no: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const orderNoById = new Map(orders.map((order) => [order.id, order.order_no]));
+    const sessionById = new Map(sessions.map((session) => [session.id, session]));
 
     return {
       voucherId,
-      orderPayments: payments.map((p) => ({
+      orderPayments: uniquePayments.map((p) => ({
         id:                  p.id,
         order_id:            p.order_id,
+        order_no:            p.order_id ? orderNoById.get(p.order_id) ?? null : null,
         amount:              p.amount,
         payment_method_code: p.payment_method_code,
         line_id:             p.fin_voucher_trx_line_id,
         payment_status:      p.payment_status,
       })),
-      cashDrawerMovements: movements.map((m) => ({
-        id:            m.id,
-        session_id:    m.cash_drawer_session_id,
-        amount:        m.amount,
-        movement_type: m.movement_type,
-        line_id:       m.fin_voucher_trx_line_id,
-      })),
-      creditApplications: creditApps.map((c) => ({
+      cashDrawerMovements: uniqueMovements.map((m) => {
+        const session = m.cash_drawer_session_id ? sessionById.get(m.cash_drawer_session_id) : undefined;
+        return {
+          id:            m.id,
+          session_id:    m.cash_drawer_session_id,
+          session_no:    session?.session_no ?? null,
+          cash_drawer_id: session?.cash_drawer_id ?? null,
+          amount:        m.amount,
+          movement_type: m.movement_type,
+          line_id:       m.fin_voucher_trx_line_id,
+        };
+      }),
+      creditApplications: uniqueCredits.map((c) => ({
         id:          c.id,
         order_id:    c.order_id,
+        order_no:    c.order_id ? orderNoById.get(c.order_id) ?? null : null,
         amount:      c.applied_amount,
         credit_type: c.credit_type,
         line_id:     c.fin_voucher_trx_line_id ?? null,
+      })),
+      fundingTenders: uniqueTenders.map((f) => ({
+        id:            f.id,
+        funding_type:  f.funding_type,
+        amount:        f.amount,
+        status:        f.status,
+        line_id:       f.fin_voucher_trx_line_id,
       })),
     };
   });

@@ -1,7 +1,7 @@
 /**
  * Cancel Order Dialog
- * Requires cancellation reason. Engine V2: no auto Fin unwind (money via Fin).
- * Flag off: Enhanced RPC path (may still use disposition).
+ * Requires cancellation reason. Operational cancel only — money stays until
+ * an explicit Fin reverse/refund (ADR_CANCEL_RETURN_RULES).
  */
 
 'use client';
@@ -23,7 +23,6 @@ import { Label, CmxTextarea, Alert, AlertDescription } from '@ui/primitives';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 interface CancelOrderDialogProps {
@@ -35,10 +34,6 @@ interface CancelOrderDialogProps {
 }
 
 const MIN_REASON_LENGTH = 10;
-
-/** Legacy Enhanced path only — mirrors CANCEL_DISPOSITIONS. */
-const DISPOSITIONS = ['REFUND', 'STORE_CREDIT', 'KEEP_ON_ACCOUNT'] as const;
-type Disposition = (typeof DISPOSITIONS)[number];
 
 /**
  *
@@ -61,11 +56,9 @@ export function CancelOrderDialog({
   const profileStaffMessage = useWorkflowProfileStaffMessage();
   const transition = useOrderTransition();
   const { formatMoneyWithCode } = useTenantCurrency();
-  const engineV2 = isWorkflowEngineV2Enabled();
   const [reason, setReason] = useState('');
   const [reasonCode, setReasonCode] = useState<string>('');
   const [paidAmount, setPaidAmount] = useState<number | null>(null);
-  const [disposition, setDisposition] = useState<Disposition>('REFUND');
 
   useEffect(() => {
     if (!open) return;
@@ -101,9 +94,6 @@ export function CancelOrderDialog({
           to_status: 'cancelled',
           cancelled_note: trimmed,
           cancellation_reason_code: reasonCode || undefined,
-          // Legacy Enhanced only — V2 ignores disposition (no auto unwind).
-          cancellation_disposition:
-            !engineV2 && hasCollectedMoney ? disposition : undefined,
           useOldWfCodeOrNew: true,
         },
       });
@@ -112,7 +102,6 @@ export function CancelOrderDialog({
         showSuccess(t('success'));
         setReason('');
         setReasonCode('');
-        setDisposition('REFUND');
         onOpenChange(false);
         onSuccess?.();
       } else {
@@ -129,7 +118,6 @@ export function CancelOrderDialog({
     if (!next) {
       setReason('');
       setReasonCode('');
-      setDisposition('REFUND');
       setPaidAmount(null);
     }
     onOpenChange(next);
@@ -138,8 +126,7 @@ export function CancelOrderDialog({
   const canSubmit =
     reason.trim().length >= MIN_REASON_LENGTH &&
     !transition.isPending &&
-    paidAmount !== null &&
-    (engineV2 || !hasCollectedMoney || Boolean(disposition));
+    paidAmount !== null;
 
   return (
     <CmxDialog open={open} onOpenChange={handleOpenChange}>
@@ -172,7 +159,7 @@ export function CancelOrderDialog({
             </p>
           </div>
 
-          {engineV2 && hasCollectedMoney && (
+          {hasCollectedMoney && (
             <Alert variant="warning">
               <AlertDescription>
                 {t('moneyFinHint', {
@@ -180,40 +167,6 @@ export function CancelOrderDialog({
                 })}
               </AlertDescription>
             </Alert>
-          )}
-
-          {!engineV2 && hasCollectedMoney && (
-            <fieldset className="rounded-md border border-amber-300 bg-amber-50 p-3">
-              <legend className="px-1 text-sm font-semibold text-amber-900">
-                {t('disposition.title', { amount: formatMoneyWithCode(paidAmount ?? 0) })}
-              </legend>
-              <p className={`mb-2 text-xs text-amber-800 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('disposition.hint')}
-              </p>
-              <div className="space-y-2">
-                {DISPOSITIONS.map((value) => (
-                  <label
-                    key={value}
-                    className={`flex cursor-pointer items-start gap-2 text-sm ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
-                  >
-                    <input
-                      type="radio"
-                      name="cancel-disposition"
-                      value={value}
-                      checked={disposition === value}
-                      onChange={() => setDisposition(value)}
-                      className="mt-0.5"
-                    />
-                    <span>
-                      <span className="font-medium">{t(`disposition.options.${value}.label`)}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        {t(`disposition.options.${value}.description`)}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
           )}
 
           <div>

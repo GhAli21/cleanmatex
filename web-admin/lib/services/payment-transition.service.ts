@@ -14,7 +14,7 @@ import {
   type FallbackClassification,
   type PaymentTransitionAction,
 } from '@/lib/constants/order-financial';
-import { PAYMENT_METHODS, type PaymentMethodCode } from '@/lib/constants/payment';
+import { CASH_DRAWER_MOVEMENT_TYPES, PAYMENT_METHODS, type PaymentMethodCode } from '@/lib/constants/payment';
 import { isCashFamilyMethod } from './cash-drawer-cash-facts';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
@@ -32,9 +32,6 @@ const REASON_REQUIRED_ACTIONS = new Set<PaymentTransitionAction>(PAYMENT_TRANSIT
 const FALLBACK_REQUIRED_ACTIONS = new Set<PaymentTransitionAction>(PAYMENT_TRANSITION_ACTIONS_REQUIRING_FALLBACK);
 
 const FALLBACK_CLASSIFICATION_VALUES = new Set<string>(Object.values(FALLBACK_CLASSIFICATIONS));
-
-/** B10 — movement type recorded for a reversal's compensating drawer OUT leg. */
-const PAYMENT_REVERSAL_MOVEMENT_TYPE = 'PAYMENT_REVERSAL';
 
 /**
  * B30/B10/B08 — Pending-Payment Back-office Lifecycle + Payment Reversal and
@@ -631,19 +628,18 @@ async function warnIfOrphanMovementExistsTx(
 /**
  * B10 — REVERSE side effect. A cash-family COMPLETED/CAPTURED/SETTLED leg
  * already put physical cash in a drawer (via `cashDrawerWiringHandler` at
- * settlement time), so negating the payment status alone would silently
- * shrink the live drawer's expected-cash total the instant this transaction
- * commits (B16/B35: expected cash sums the payment ledger's COMPLETED-set
- * cash-family rows, and this row just left that set) — money the operator
- * has not actually removed yet. CLAUDE.md CRITICAL RULE #15 (no silent money
- * mutation) requires a real, auditable compensating fact instead.
+ * settlement time). Flipping the payment out of the COMPLETED set is what
+ * drops that cash from B16/B35 expected cash. CLAUDE.md CRITICAL RULE #15
+ * (no silent money mutation) still requires a real, auditable compensating
+ * movement so recon can prove the reverse (`REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT`)
+ * and so an OPEN session is operator-chosen, never guessed.
  *
- * Deliberately does NOT reuse `order_payment_id` for the new movement's
- * lineage — B16/B35's expected-cash formula only counts movements where
- * `order_payment_id IS NULL` as "manual" (compensating); setting it here
- * would make the movement invisible to that formula and defeat the whole
- * point (same coordination note B9's refund handler already relied on).
- * Lineage instead goes through the dedicated `reversed_payment_id` column.
+ * Deliberately does NOT set `order_payment_id` — CASH_SALE already owns that
+ * unique payment link. Lineage goes through `reversed_payment_id`. That same
+ * discriminator excludes this row from the MANUAL expected-cash term: counting
+ * the OUT after the payment left COMPLETED would subtract the cash twice
+ * (QA §30.2: 1.070 → −1.070). CASH_REFUND is different — the original payment
+ * stays COMPLETED, so that OUT must still count.
  *
  * Non-cash legs (card/bank/gateway/check) get no movement here — gateway-side
  * reversal is B8's job (out of scope; Financial effects table marks it
@@ -683,7 +679,7 @@ async function maybeCreateReversalCompensatingMovementTx(
       branch_id: session.branch_id,
       cash_drawer_id: session.cash_drawer_id,
       cash_drawer_session_id: session.id,
-      movement_type: PAYMENT_REVERSAL_MOVEMENT_TYPE,
+      movement_type: CASH_DRAWER_MOVEMENT_TYPES.PAYMENT_REVERSAL,
       direction: 'OUT',
       amount: payment.amount,
       currency_code: payment.currency_code ?? session.currency_code,

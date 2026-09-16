@@ -27,6 +27,7 @@ const tx = {
   org_orders_mst: { findFirstOrThrow: jest.fn() },
   org_order_credit_apps_dtl: { findMany: jest.fn(), updateMany: jest.fn() },
   org_order_payments_dtl: { findMany: jest.fn() },
+  org_loyalty_txn_dtl: { findFirst: jest.fn() },
 };
 
 jest.mock('@/lib/db/prisma', () => ({
@@ -61,6 +62,10 @@ jest.mock('@/lib/services/order-financial-write.service', () => ({
 
 jest.mock('@/lib/services/outbox.service', () => ({
   emitEventTx: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/lib/services/loyalty.service', () => ({
+  adjustPointsTx: jest.fn().mockRejectedValue(new Error('Loyalty account not found')),
 }));
 
 jest.mock('@/lib/utils/logger', () => ({
@@ -107,6 +112,7 @@ describe('unwindOrderFinancialsOnCancel (FN-02)', () => {
     tx.org_order_credit_apps_dtl.findMany.mockResolvedValue([]);
     tx.org_order_credit_apps_dtl.updateMany.mockResolvedValue({ count: 1 });
     tx.org_order_payments_dtl.findMany.mockResolvedValue([]);
+    tx.org_loyalty_txn_dtl.findFirst.mockResolvedValue(null);
   });
 
   it('reverses each APPLIED credit type back to its source ledger', async () => {
@@ -147,7 +153,7 @@ describe('unwindOrderFinancialsOnCancel (FN-02)', () => {
 
     const result = await unwindOrderFinancialsOnCancel(baseInput);
 
-    expect(result.warnings.some((w) => w.includes('LOYALTY_POINTS'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('LOYALTY_RESTORE_PENDING'))).toBe(true);
     expect(result.restoredStoredValueAmount).toBe(0);
   });
 

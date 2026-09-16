@@ -7,11 +7,16 @@ import { CmxButton } from '@ui/primitives/cmx-button';
 import type { VoucherLineData } from '@/lib/types/voucher';
 import { VOUCHER_STATUS } from '@/lib/constants/voucher';
 import { VoucherDetailCopyValue, VoucherDetailDataTable } from './voucher-detail-data-table';
+import { WiringStatusBadge } from './wiring-status-badge';
+import { VOUCHER_RELATED_HREFS } from '@/lib/constants/voucher-related-hrefs';
 
 interface VoucherLineTableProps {
   lines: VoucherLineData[];
   voucherStatus: string;
   onDeleteLine?: (lineId: string) => void;
+  originalVoucherHref?: string | null;
+  sessionHrefById?: Record<string, string>;
+  viewLabel?: string;
 }
 
 function formatDecimal(value: number | null | undefined, locale: string) {
@@ -42,13 +47,21 @@ function formatDateTime(value: Date | string | null | undefined, locale: string)
  * @param root0.voucherStatus
  * @param root0.onDeleteLine
  */
-export function VoucherLineTable({ lines, voucherStatus, onDeleteLine }: VoucherLineTableProps) {
+export function VoucherLineTable({
+  lines,
+  voucherStatus,
+  onDeleteLine,
+  originalVoucherHref,
+  sessionHrefById = {},
+  viewLabel,
+}: VoucherLineTableProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
   const locale = useLocale();
   const isRtl = locale === 'ar';
   const isDraft = voucherStatus === VOUCHER_STATUS.DRAFT;
   const textAlign = isRtl ? 'right' : 'left';
+  const openLabel = viewLabel ?? tCommon('view');
 
   const total = lines.reduce((sum, l) => sum + l.amount, 0);
   const columns: CmxDataTableSimpleColumn<VoucherLineData>[] = [
@@ -59,9 +72,33 @@ export function VoucherLineTable({ lines, voucherStatus, onDeleteLine }: Voucher
     { key: 'line_type', header: t('lineType'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.line_type} align={textAlign} /> },
     { key: 'line_role', header: t('lineRole'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.line_role} align={textAlign} /> },
     { key: 'target_type', header: t('targetType'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.target_type} align={textAlign} /> },
-    { key: 'target_id', header: t('targetId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.target_id} maxLength={12} align={textAlign} /> },
-    { key: 'order_id', header: t('orderId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.order_id} maxLength={12} align={textAlign} /> },
-    { key: 'customer_id', header: t('customerId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.customer_id} maxLength={12} align={textAlign} /> },
+    { key: 'target_id', header: t('targetId'), sortable: false, render: (line) => (
+      <VoucherDetailCopyValue
+        value={line.target_id}
+        maxLength={12}
+        align={textAlign}
+        href={line.target_type === 'ORDER' && line.target_id ? VOUCHER_RELATED_HREFS.order(line.target_id) : line.target_type === 'CUSTOMER' && line.target_id ? VOUCHER_RELATED_HREFS.customer(line.target_id) : null}
+        linkLabel={openLabel}
+      />
+    ) },
+    { key: 'order_id', header: t('orderId'), sortable: false, render: (line) => (
+      <VoucherDetailCopyValue
+        value={line.order_id}
+        maxLength={12}
+        align={textAlign}
+        href={line.order_id ? VOUCHER_RELATED_HREFS.order(line.order_id) : null}
+        linkLabel={openLabel}
+      />
+    ) },
+    { key: 'customer_id', header: t('customerId'), sortable: false, render: (line) => (
+      <VoucherDetailCopyValue
+        value={line.customer_id}
+        maxLength={12}
+        align={textAlign}
+        href={line.customer_id ? VOUCHER_RELATED_HREFS.customer(line.customer_id) : null}
+        linkLabel={openLabel}
+      />
+    ) },
     { key: 'supplier_id', header: t('supplierId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.supplier_id} maxLength={12} align={textAlign} /> },
     { key: 'employee_id', header: t('employeeId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.employee_id} maxLength={12} align={textAlign} /> },
     { key: 'payment_method_code', header: t('paymentMethod'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.payment_method_code} align={textAlign} /> },
@@ -75,15 +112,39 @@ export function VoucherLineTable({ lines, voucherStatus, onDeleteLine }: Voucher
     { key: 'description', header: t('description'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.description} align={textAlign} maxLength={32} /> },
     { key: 'notes', header: t('notes'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.notes} align={textAlign} maxLength={32} /> },
     { key: 'line_status', header: tCommon('status'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.line_status} align={textAlign} /> },
-    { key: 'wiring_status', header: t('wiringStatus'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.wiring_status} align={textAlign} /> },
-    { key: 'reversed_line_id', header: t('reversedLineId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.reversed_line_id} maxLength={12} align={textAlign} /> },
+    { key: 'wiring_status', header: t('wiringStatus'), sortable: false, render: (line) => <WiringStatusBadge status={line.wiring_status} /> },
+    { key: 'reversed_line_id', header: t('reversedLineId'), sortable: false, render: (line) => (
+      <VoucherDetailCopyValue
+        value={line.reversed_line_id}
+        maxLength={12}
+        align={textAlign}
+        href={line.reversed_line_id ? originalVoucherHref : null}
+        linkLabel={openLabel}
+      />
+    ) },
     { key: 'created_at', header: t('createdAt'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.created_at ? new Date(line.created_at).toISOString() : null} displayValue={formatDateTime(line.created_at, locale)} align={textAlign} /> },
     { key: 'credit_application_type', header: t('creditApplicationType'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.credit_application_type} align={textAlign} /> },
-    { key: 'order_payment_id', header: t('orderPaymentId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.order_payment_id} maxLength={12} align={textAlign} /> },
+    { key: 'order_payment_id', header: t('orderPaymentId'), sortable: false, render: (line) => (
+      <VoucherDetailCopyValue
+        value={line.order_payment_id}
+        maxLength={12}
+        align={textAlign}
+        href={line.order_id ? VOUCHER_RELATED_HREFS.order(line.order_id) : null}
+        linkLabel={openLabel}
+      />
+    ) },
     { key: 'cash_drawer_mvt_id', header: t('cashDrawerMovementId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.cash_drawer_mvt_id} maxLength={12} align={textAlign} /> },
     { key: 'org_payment_method_id', header: t('orgPaymentMethodId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.org_payment_method_id} maxLength={12} align={textAlign} /> },
     { key: 'payment_terminal_id', header: t('paymentTerminalId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.payment_terminal_id} maxLength={12} align={textAlign} /> },
-    { key: 'cash_drawer_session_id', header: t('cashDrawerSessionId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.cash_drawer_session_id} maxLength={12} align={textAlign} /> },
+    { key: 'cash_drawer_session_id', header: t('cashDrawerSessionId'), sortable: false, render: (line) => (
+      <VoucherDetailCopyValue
+        value={line.cash_drawer_session_id}
+        maxLength={12}
+        align={textAlign}
+        href={line.cash_drawer_session_id ? sessionHrefById[line.cash_drawer_session_id] : null}
+        linkLabel={openLabel}
+      />
+    ) },
     { key: 'card_brand_code', header: t('cardBrand'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.card_brand_code} align={textAlign} /> },
     { key: 'card_last4', header: t('cardLast4'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.card_last4} align={textAlign} /> },
     { key: 'auth_code', header: t('authCode'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.auth_code} align={textAlign} /> },
@@ -94,7 +155,15 @@ export function VoucherLineTable({ lines, voucherStatus, onDeleteLine }: Voucher
     { key: 'check_number', header: t('checkNumber'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.check_number} align={textAlign} /> },
     { key: 'check_bank', header: t('checkBank'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.check_bank} align={textAlign} /> },
     { key: 'check_date', header: t('checkDate'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.check_date ? new Date(line.check_date).toISOString() : null} displayValue={formatDateTime(line.check_date, locale)} align={textAlign} /> },
-    { key: 'branch_id', header: t('branchId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.branch_id} maxLength={12} align={textAlign} /> },
+    { key: 'branch_id', header: t('branchId'), sortable: false, render: (line) => (
+      <VoucherDetailCopyValue
+        value={line.branch_id}
+        maxLength={12}
+        align={textAlign}
+        href={line.branch_id ? VOUCHER_RELATED_HREFS.branch(line.branch_id) : null}
+        linkLabel={openLabel}
+      />
+    ) },
   ];
 
   if (isDraft) {

@@ -48,3 +48,4 @@ Sub-order of parent with return details (reason, notes, preferences, scope, mone
 |------|----------|
 | 2026-07-25 | Proposal captured |
 | 2026-07-25 | Locked: cancel allowlist + hold/resume + STOP_ORDER_WORK + no auto unwind + return V1.1 |
+| 2026-09-17 | Enhanced cancel path + cancel dialog aligned: no disposition gate, no `unwindOrderFinancialsOnCancel`. Money via Fin only. |

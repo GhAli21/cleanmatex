@@ -12,6 +12,7 @@ import { VoucherDirectionBadge } from './voucher-direction-badge';
 import { VoucherEditDialog } from './voucher-edit-dialog';
 import type { VoucherListItem } from '@/lib/types/voucher';
 import { VOUCHER_STATUS } from '@/lib/constants/voucher';
+import { VOUCHER_RELATED_HREFS } from '@/lib/constants/voucher-related-hrefs';
 
 interface VouchersTableProps {
   items: VoucherListItem[];
@@ -56,6 +57,25 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
         <span className="font-mono text-sm font-medium text-blue-700">{getValue() as string}</span>
       ),
       meta: { isCopyable: true },
+    },
+    {
+      accessorKey: 'ref_voucher_no',
+      header: t('refVoucher'),
+      cell: ({ row }) => {
+        const refId = row.original.ref_voucher_id;
+        if (!refId) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return (
+          <Link
+            href={VOUCHER_RELATED_HREFS.voucher(refId)}
+            className="font-mono text-sm font-medium text-primary hover:underline"
+          >
+            {row.original.ref_voucher_no ?? refId}
+          </Link>
+        );
+      },
+      enableSorting: false,
     },
     {
       accessorKey: 'voucher_type',

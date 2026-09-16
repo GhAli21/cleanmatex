@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { ArrowUpRight } from 'lucide-react';
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display';
 import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 import { cn } from '@/lib/utils';
@@ -10,6 +12,8 @@ interface VoucherDetailCopyValueProps {
   maxLength?: number;
   align?: 'left' | 'right';
   className?: string;
+  href?: string | null;
+  linkLabel?: string;
 }
 
 interface VoucherDetailDataTableProps<TData> {
@@ -29,6 +33,8 @@ interface VoucherDetailDataTableProps<TData> {
  * @param root0.maxLength
  * @param root0.align
  * @param root0.className
+ * @param root0.href
+ * @param root0.linkLabel
  */
 export function VoucherDetailCopyValue({
   value,
@@ -36,16 +42,30 @@ export function VoucherDetailCopyValue({
   maxLength,
   align = 'left',
   className,
+  href,
+  linkLabel,
 }: VoucherDetailCopyValueProps) {
   return (
-    <CmxCopyableCell
-      as="span"
-      value={value}
-      displayValue={displayValue}
-      maxLength={maxLength}
-      align={align}
-      className={cn('px-0 py-0 text-sm text-foreground', className)}
-    />
+    <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+      <CmxCopyableCell
+        as="span"
+        value={value}
+        displayValue={displayValue}
+        maxLength={maxLength}
+        align={align}
+        className={cn('px-0 py-0 text-sm text-foreground', className)}
+      />
+      {href ? (
+        <Link
+          href={href}
+          onClick={(event) => event.stopPropagation()}
+          className="inline-flex items-center gap-0.5 text-xs font-medium text-primary underline-offset-2 hover:underline"
+        >
+          {linkLabel}
+          <ArrowUpRight className="h-3 w-3" />
+        </Link>
+      ) : null}
+    </span>
   );
 }
 

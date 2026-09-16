@@ -51,7 +51,20 @@
     "reverseErrors": {
       "VOUCHER_UNWIND_PAYMENT_NOT_FOUND": "لا يوجد دفع مرتبط بهذا البند لفكّه. تم إلغاء العكس.",
       "VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED": "افتح جلسة درج نقدي على الدرج الأصلي ثم أعد العكس.",
-      "VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS": "دفع مرتبط بحالة لا يمكن فكّها. تم إلغاء العكس."
+      "VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS": "دفع مرتبط بحالة لا يمكن فكّها. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_CREDIT_APP_NOT_FOUND": "لا يوجد تطبيق ائتمان مرتبط بهذا البند لاستعادته. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_WALLET_TXN_NOT_FOUND": "لم يُعثر على قيد شحن المحفظة لهذا البند. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_WALLET_NOT_FOUND": "محفظة العميل لهذه العملية لم تعد موجودة. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_WALLET_INSUFFICIENT": "رصيد المحفظة أقل من مبلغ الشحن الأصلي. اعكس الصرف اللاحق أولاً ثم أعد عكس هذا السند.",
+      "VOUCHER_UNWIND_GIFT_CARD_TXN_NOT_FOUND": "لم يُعثر على قيد بيع بطاقة الهدية لهذا البند. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_GIFT_CARD_NOT_FOUND": "لم يُعثر على بطاقة الهدية المباعة. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_GIFT_CARD_ALREADY_USED": "تم استخدام بطاقة الهدية مسبقاً. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_ADVANCE_TXN_NOT_FOUND": "لم يُعثر على قيد قبض السلفة لهذا البند. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_ADVANCE_NOT_FOUND": "لم يُعثر على حساب سلفة العميل. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_ADVANCE_INSUFFICIENT": "رصيد السلفة أقل من مبلغ القبض الأصلي. اعكس الاستخدام اللاحق أولاً ثم أعد عكس هذا السند.",
+      "VOUCHER_UNWIND_CREDIT_NOTE_TXN_NOT_FOUND": "لم يُعثر على إشعار دائن صادر لهذا البند. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_CREDIT_NOTE_NOT_FOUND": "لم يُعثر على إشعار الدائن الصادر. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_CREDIT_NOTE_ALREADY_USED": "تم استخدام إشعار الدائن مسبقاً. تم إلغاء العكس."
     },
     "editSuccess": "تم تحديث السند بنجاح.",
     "lineDeleted": "تم حذف البند.",
@@ -185,6 +198,16 @@
     "relatedOrder": "فتح الطلب",
     "relatedInvoice": "فتح الفاتورة",
     "relatedCustomer": "فتح العميل",
+    "relatedBranch": "فتح الفرع",
+    "relatedOriginalVoucher": "السند الأصلي",
+    "relatedReversalVoucher": "سند العكس",
+    "refVoucher": "السند المرجعي",
+    "relatedCashDrawerSession": "جلسة الصندوق",
+    "relatedRecords": "السجلات المرتبطة",
+    "backToVouchers": "العودة إلى السندات",
+    "reversedBy": "عُكس بواسطة",
+    "viewVoucher": "فتح السند",
+    "viewSession": "فتح الجلسة",
     "wiringStatus": "حالة الربط",
     "wiringStatusLabels": {
       "NOT_WIRED": "غير مرتبط",
@@ -198,6 +221,7 @@
       "orderPayments": "مدفوعات الطلبات",
       "cashMovements": "حركات الصندوق النقدي",
       "creditApplications": "تطبيقات الائتمان",
+      "fundingTenders": "تمويل القيمة المخزّنة",
       "noEffects": "لا توجد تأثيرات مرتبطة.",
       "effectId": "رقم التأثير",
       "orderRef": "الطلب",
@@ -207,7 +231,9 @@
       "lineId": "معرّف السطر",
       "paymentStatus": "حالة الدفع",
       "movementType": "نوع الحركة",
-      "viewOrder": "عرض الطلب"
+      "viewOrder": "عرض الطلب",
+      "viewSession": "فتح الجلسة",
+      "viewStoredValue": "فتح القيمة المخزّنة"
     },
     "postPreview": {
       "title": "معاينة الترحيل",
@@ -219,6 +245,16 @@
       "cancel": "إلغاء"
     },
     "postAndWireSuccess": "تم ترحيل السند وربطه بنجاح.",
-    "creditApplicationType": "نوع الائتمان"
+    "creditApplicationType": "نوع الائتمان",
+    "reversePreview": {
+      "unwindTitle": "ستُفك هذه التأثيرات التشغيلية مع هذا العكس",
+      "documentOnlyTitle": "عكس مستندي فقط — لن تُفك التأثيرات المرتبطة بينما علم الفكّ متوقف",
+      "unknown": "تعذّر تحميل التأثيرات المرتبطة. ما زال العكس يتطلب سبباً.",
+      "none": "لا توجد مدفوعات أو ائتمانات أو حركات درج أو تمويلات مرتبطة.",
+      "payments": "{count, plural, one {سيتم إبطال أو عكس دفعة طلب واحدة} other {سيتم إبطال أو عكس # دفعات طلب}}",
+      "credits": "{count, plural, one {سيتم استعادة تطبيق ائتمان واحد إلى دفتر المصدر} other {سيتم استعادة # تطبيقات ائتمان إلى دفاتر المصدر}}",
+      "drawer": "{count, plural, one {توجد حركة درج نقدي واحدة مرتبطة} other {توجد # حركات درج نقدي مرتبطة}}",
+      "funding": "{count, plural, one {سيتم استرداد تمويل قيمة مخزّنة واحد} other {سيتم استرداد # تمويلات قيمة مخزّنة}}"
+    }
   }
 }

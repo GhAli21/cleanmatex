@@ -175,6 +175,7 @@ export const CASH_DRAWER_MOVEMENT_TYPES = {
   SHORTAGE:       'SHORTAGE',
   OVERAGE:        'OVERAGE',
   ADJUSTMENT:     'ADJUSTMENT',
+  PAYMENT_REVERSAL: 'PAYMENT_REVERSAL',
 } as const;
 export type CashDrawerMovementType = (typeof CASH_DRAWER_MOVEMENT_TYPES)[keyof typeof CASH_DRAWER_MOVEMENT_TYPES];
 

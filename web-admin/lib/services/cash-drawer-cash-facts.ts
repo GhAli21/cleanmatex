@@ -26,7 +26,7 @@
  * pass their own rows.
  */
 
-import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { CASH_DRAWER_MOVEMENT_TYPES, PAYMENT_METHODS } from '@/lib/constants/payment';
 import { ORDER_PAYMENT_LIFECYCLE_STATUSES } from '@/lib/constants/order-financial';
 import { isCompletedPaymentStatus } from '@/lib/services/order-financial-aggregation';
 
@@ -108,4 +108,47 @@ export function sumEffectiveCashPayments(
   rows: Array<CashPaymentClassifiable & { amount?: unknown }>,
 ): number {
   return rows.reduce((sum, row) => (isEffectiveCashPaymentRow(row) ? sum + toNumber(row.amount) : sum), 0);
+}
+
+/**
+ * Prisma `where` fragment for the B35 MANUAL movement term of expected cash.
+ *
+ * Sale-mirror rows (`order_payment_id` set — CASH_SALE + change) are already
+ * counted via the payment ledger. B10 PAYMENT_REVERSAL rows (`reversed_payment_id`
+ * set) must also stay out: reversing a cash payment already drops it from the
+ * COMPLETED payment term, so counting the compensating OUT would subtract the
+ * same cash twice (QA §30.2: 1.070 → −1.070). CASH_REFUND stays in — a refund
+ * leaves the original payment COMPLETED, so the OUT is the only decrement.
+ */
+export function expectedCashManualMovementWhere(): {
+  is_active: true;
+  order_payment_id: null;
+  reversed_payment_id: null;
+  NOT: { movement_type: string };
+} {
+  return {
+    is_active: true,
+    order_payment_id: null,
+    reversed_payment_id: null,
+    NOT: { movement_type: CASH_DRAWER_MOVEMENT_TYPES.PAYMENT_REVERSAL },
+  };
+}
+
+/** Minimal shape needed to classify a movement as the expected-cash MANUAL term. */
+export interface CashMovementClassifiable {
+  order_payment_id?: string | null;
+  reversed_payment_id?: string | null;
+  movement_type?: string | null;
+  is_active?: boolean | null;
+}
+
+/**
+ * In-memory equivalent of {@link expectedCashManualMovementWhere}.
+ * @param row drawer movement already tenant/session scoped by the caller
+ */
+export function isExpectedCashManualMovement(row: CashMovementClassifiable): boolean {
+  if (row.is_active === false) return false;
+  if (row.order_payment_id != null) return false;
+  if (row.reversed_payment_id != null) return false;
+  return String(row.movement_type ?? '').toUpperCase() !== CASH_DRAWER_MOVEMENT_TYPES.PAYMENT_REVERSAL;
 }

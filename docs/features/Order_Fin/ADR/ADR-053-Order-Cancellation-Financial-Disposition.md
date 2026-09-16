@@ -1,10 +1,12 @@
 # ADR-053 — Order Cancellation Financial Disposition
 
-**Status:** Accepted
+**Status:** Superseded for auto-unwind (2026-09-17) · Historical Accepted 2026-07-04
 **Area:** Order Financial Platform / Cancellation
 **Date:** 2026-07-04
 
-> **Amended 2026-09-17 (owner):** REFUND disposition still uses `initiateRefund` → `approveRefund` → `processRefund`, but **maker≠checker is not required**. Holding `orders:approve_refund` is enough even when the actor is the requester. Many tenant laundries have a single employee. Canonical rule: [Remediation_Work_Packages/CLAUDE.md](../Remediation_Work_Packages/CLAUDE.md).
+> **Superseded 2026-09-17 (owner):** Order cancellation is **operational only**. It must **not** auto-unwind payments, credits, or stored value. Money moves only through explicit Fin screens (B13 voucher reverse, B09 refunds, stored-value clawback). Canonical product rule: [`ADR_CANCEL_RETURN_RULES.md`](../../Workflow_Order_Advance/ADR_CANCEL_RETURN_RULES.md). Workflow Engine V2 already behaved this way; the Enhanced cancel path and cancel dialog now match. `unwindOrderFinancialsOnCancel` is **deprecated** and is not invoked from cancel.
+
+> **Amended 2026-09-17 (owner):** REFUND disposition still uses `initiateRefund` → `approveRefund` → `processRefund`, but **maker≠checker is not required**. Holding `orders:approve_refund` is enough even when the actor is the requester. Many tenant laundries have a single employee. Canonical rule: [Remediation_Work_Packages/CLAUDE.md](../Remediation_Work_Packages/CLAUDE.md). Historical REFUND/STORE_CREDIT/KEEP_ON_ACCOUNT chooser is retired from cancel UI.
 
 **Source:** Order-Fin validation 2026-07-03 finding FN-02 + Remediation Phase 4
 (`docs/features/Order_Fin/Order_Fin_Remediation_2026-07/PLAN.md`)

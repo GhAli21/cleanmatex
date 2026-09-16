@@ -95,6 +95,7 @@ export interface VoucherData {
   void_reason: string | null;
   reason_code: string | null;
   reversed_by_voucher_id: string | null;
+  ref_voucher_id?: string | null;
   reversed_at?: Date | null;
   reversal_reason?: string | null;
   description?: string | null;
@@ -290,6 +291,32 @@ export interface VoucherLineData {
   check_bank?: string | null;
   check_date?: Date | null;
   branch_id: string | null;
+  sv_funding_tender_id?: string | null;
+}
+
+/**
+ * Clickable related record resolved for the voucher detail screen.
+ */
+export interface VoucherRelatedRef {
+  id: string
+  label: string
+  href: string
+}
+
+/**
+ * Labels and hrefs the voucher header itself may omit (especially reversal documents).
+ */
+export interface VoucherDetailRelatedContext {
+  order: VoucherRelatedRef | null
+  customer: VoucherRelatedRef | null
+  invoice: VoucherRelatedRef | null
+  branch: VoucherRelatedRef | null
+  originalVoucher: VoucherRelatedRef | null
+  reversalVoucher: VoucherRelatedRef | null
+  cashDrawerSession: VoucherRelatedRef | null
+  createdByName: string | null
+  postedByName: string | null
+  reversedByName: string | null
 }
 
 /**
@@ -331,12 +358,16 @@ export interface BizVoucherDetailData {
   posted_at: Date | null;
   posted_by: string | null;
   reversed_at: Date | null;
+  reversed_by?: string | null;
+  reversed_by_voucher_id?: string | null;
+  ref_voucher_id?: string | null;
   reversal_reason: string | null;
   created_at: Date;
   created_by: string | null;
   updated_at: Date | null;
   updated_by?: string | null;
   lines: VoucherLineData[];
+  related?: VoucherDetailRelatedContext;
 }
 
 /**
@@ -353,6 +384,8 @@ export interface VoucherListItem {
   currency_code: string | null;
   voucher_date: string | null;
   created_at: Date;
+  ref_voucher_id?: string | null;
+  ref_voucher_no?: string | null;
 }
 
 /**

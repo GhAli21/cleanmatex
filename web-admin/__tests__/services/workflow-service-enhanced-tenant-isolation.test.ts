@@ -32,14 +32,7 @@ jest.mock('@/lib/services/permission-service-server', () => ({
   hasPermissionServer: jest.fn().mockResolvedValue(true),
 }));
 
-jest.mock('@/lib/services/order-cancel-financials.service', () => ({
-  CANCEL_DISPOSITIONS: {
-    REFUND: 'REFUND',
-    STORE_CREDIT: 'STORE_CREDIT',
-    KEEP_ON_ACCOUNT: 'KEEP_ON_ACCOUNT',
-  },
-  unwindOrderFinancialsOnCancel: jest.fn().mockResolvedValue({ warnings: [] }),
-}));
+jest.mock('server-only', () => ({}), { virtual: true });
 
 describe('WorkflowServiceEnhanced — Tenant Isolation', () => {
   beforeEach(() => {

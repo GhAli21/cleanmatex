@@ -1,6 +1,34 @@
 # RESUME — Order Fin Remediation Program (session continuation)
 
-**Updated:** 2026-09-17 — finance jobs hub documented; 0505 applied.
+**Updated:** 2026-09-17 — **0508 + 0509 APPLIED** (owner, local + remote). Reverse header/`ref_voucher_id` backfilled on Preview `RV-2026-000087`. Next: Preview deploy + §30.2 retest.
+
+---
+
+## ⏩ 2026-09-17 — Reverse voucher still blank after 0508
+
+**0508 + 0509 APPLIED** (owner, local + remote). Column + FK + types confirmed. 0509 backfilled via `reversed_line_id`. Remote verified `RV-2026-000087`: Ref = `RV-2026-000086`, party, date, customer/order, paid 1.070, outstanding 0. Original `RV-2026-000086` now has `reversed_by` = 087.
+
+**▶ NOW:** Preview deploy (reverse-copy code + expected-cash fix). Open `RV-2026-000087` in UI to confirm Ref/date/party. Retest **§30.2** expected-cash (expect **0.000**). Do not enable `order_fin_voucher_unwind` in production until §30 PASSes. Do not start B23–B26.
+
+---
+
+## ⏩ 2026-09-17 — §30.2 expected-cash over-decrement (B10 vs B35)
+
+Preview reverse of cash receipt `ORD-20260912-0009` / `1.070` OMR: payment REVERSED, outstanding reopened, `PAYMENT_REVERSAL` OUT posted, recon §30.8 PASS — but session expected-cash went **1.070 → −1.070** (should be **0.000**). B10 counted the compensating OUT as MANUAL after the payment already left COMPLETED.
+
+**Fix:** B35 MANUAL term now excludes `reversed_payment_id` / `PAYMENT_REVERSAL`. `CASH_REFUND` still counts (refund payment stays COMPLETED). No migration.
+
+**0508 + 0509 APPLIED** (owner, 2026-09-17) local + remote. Reverse header backfill verified on `RV-2026-000087`.
+
+---
+
+## ⏩ 2026-09-17 — Cancel operational-only + B13 rest
+
+**Cancel:** Enhanced cancel path and cancel dialog no longer auto-unwind money (matches ADR_CANCEL_RETURN_RULES / Engine V2). No disposition chooser. Hint: handle refunds/credits in Fin.
+
+**B13 v2:** D006 `reverseCreditApplicationTx` is shared. Flag ON also restores credit applications and claws back unused SV funding. Reverse dialog shows consequence preview. Loyalty restore failure → `LOYALTY_RESTORE_PENDING` (**0507 APPLIED**).
+
+**Owner:** **0507 APPLIED** local + remote (2026-09-17). Regen types if not already done. Do not enable `order_fin_voucher_unwind` in production until QA §30. Do not start B23–B26.
 
 ---
 
@@ -10,7 +38,7 @@ Owner applied **0505** (and remaining migrations) local + remote; types regenera
 
 **Landed:** Outbox Monitor is the jobs hub — five jobs (`outbox_processor`, `gift_card_expiry`, `credit_note_expiry`, `idempotency_cleanup`, `erp_posting_retry`); confirm + overlap on Run Now; run history; cron health via `fin_list_job_schedules()`; ledger-aware credit-note expiry (no GL); related deep links.
 
-**Canonical doc:** [FINANCE_JOBS_HUB.md](../Order_Fin_Docs/FINANCE_JOBS_HUB.md). QA: §11.16–11.22, §20.12–20.18.
+**Canonical doc:** [FINANCE_JOBS_HUB.md](../Order_Fin_Docs/FINANCE_JOBS_HUB.md). QA: §11.8–11.22, §20.12–20.20.
 
 **▶ NOW:** Preview still needs `FINANCE_OUTBOX_SECRET` copied from `sys_fin_runtime_cf` before §11.2 drain. 0506 voucher-unwind remains Preview-only flag. Do not start B23/B24/B25/B26. Do not invent credit-note expiry GL.
 
@@ -457,7 +485,7 @@ Three new scheduled jobs registered via a shared `fin_trigger_job()` dispatcher 
 
 **B10 (Payment Reversal and Void) IMPLEMENTED 2026-07-24 (uncommitted; migration `0421_b10_payment_reversal_and_void.sql` STOP-AND-WAIT).** Extended the shared `payment-transition.service.ts` (B30's `transitionPaymentTx`) with two new actions rather than building parallel services:
 * **VOID** — `PENDING`/`PROCESSING`/`AUTHORIZED` → `VOIDED`. Reason required, **no D009 fallback classification** — deliberately kept distinct from CANCEL (D004: a void is a mistaken/duplicate entry with no real balance-routing decision, vs CANCEL's genuinely-failed settlement plan that does need D009 routing). Both actions now appear side-by-side on `PENDING`/`PROCESSING` rows in the worklist and the order Financial tab — documented as intentional, not redundant.
-* **REVERSE** — `COMPLETED`/`CAPTURED`/`SETTLED` → `REVERSED`. Reason required, no fallback. A cash-family leg requires an operator-picked, server-reverified **OPEN** cash-drawer session and gets a real compensating `PAYMENT_REVERSAL` OUT movement (new `reversed_payment_id` lineage column on `org_cash_drawer_movements_dtl` — deliberately *not* `order_payment_id`, since the B16/B35 expected-cash formula excludes `order_payment_id`-linked rows and this movement must actively count). Non-cash legs (card/bank/check) flip status only — gateway-side reversal is B8, out of scope. **No maker-checker** — single permission-gated step, per the folder's standing "no maker-checker" rule (same precedent as B16/B27/B30).
+* **REVERSE** — `COMPLETED`/`CAPTURED`/`SETTLED` → `REVERSED`. Reason required, no fallback. A cash-family leg requires an operator-picked, server-reverified **OPEN** cash-drawer session and gets a real compensating `PAYMENT_REVERSAL` OUT movement (`reversed_payment_id` lineage — not `order_payment_id`, because CASH_SALE already owns that unique payment link). **Correction 2026-09-17 (QA §30.2):** that OUT is recon/audit only; expected cash drops once via the payment leaving COMPLETED. Non-cash legs (card/bank/check) flip status only — gateway-side reversal is B8, out of scope. **No maker-checker** — single permission-gated step, per the folder's standing "no maker-checker" rule (same precedent as B16/B27/B30).
 * **Out of scope, deferred to B13 (hard dependency, unchanged):** the BVM voucher tied to a reversed payment (via `fin_voucher_id`) is not itself reversed/wired by B10 — that is B13's job, using B10's `REVERSED` write as its "payment reversal primitive." REVERSE's payment-side effects (status flip, snapshot reopen, cash-drawer compensation) are production-correct standalone; full production activation for voucher-wired legs additionally requires B13 VERIFIED (see B10's own Safety block).
 * Migration 0421 adds `voided_by`/`voided_at`/`reversed_by`/`reversed_at` on `org_order_payments_dtl`, `reversed_payment_id` (+FK+index) on `org_cash_drawer_movements_dtl`, seeds movement type `PAYMENT_REVERSAL`, seeds permissions `orders:void_payment`/`orders:reverse_payment` (granted to the same finance-control role set as B30's cancel/fail codes), extends `chk_history_action_type` with `PAYMENT_VOIDED`/`PAYMENT_REVERSED`. Two new reconciliation trip-wires (`VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT`, `REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT`).
 * **Gates ALL GREEN:** tsc clean (2 pre-existing unrelated errors untouched: `order-service.ts`, `processing-piece-row.tsx`) / eslint 0 / full jest **224/224 suites, 2173/2173 tests, zero known failures** / `npm run build` ✓ / `check:i18n` ✓ (pre-existing benign EN=AR placeholder warnings only) / `check:ui-access-contract --wire` PASS for `/dashboard/internal_fin/pending-payments` and `/dashboard/orders/[id]` / `sync:ui-access-contract` PASS (144/144 routes, drift 0). Full detail in [B10](B10_Payment_Reversal_And_Void.md)'s own Completion evidence.

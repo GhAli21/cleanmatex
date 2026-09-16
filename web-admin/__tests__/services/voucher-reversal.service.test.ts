@@ -28,7 +28,13 @@ const mockTx = {
   org_order_payments_dtl: {
     findFirst: jest.fn(),
   },
+  org_order_credit_apps_dtl: {
+    findFirst: jest.fn(),
+  },
   org_cash_drawer_sessions_mst: {
+    findFirst: jest.fn(),
+  },
+  org_customers_mst: {
     findFirst: jest.fn(),
   },
 };
@@ -57,6 +63,22 @@ jest.mock('@/lib/services/payment-transition.service', () => ({
   transitionPaymentTx: (...args: unknown[]) => mockTransitionPaymentTx(...args),
 }));
 
+const mockReverseCreditApplicationTx = jest.fn();
+jest.mock('@/lib/services/credit-application-reversal.service', () => ({
+  reverseCreditApplicationTx: (...args: unknown[]) => mockReverseCreditApplicationTx(...args),
+}));
+
+const mockUnwindStoredValueFundingLine = jest.fn();
+jest.mock('@/lib/services/voucher-funding-unwind.service', () => ({
+  isStoredValueFundingRole: (role: string) =>
+    ['WALLET_TOPUP', 'GIFT_CARD_SALE', 'CUSTOMER_ADVANCE_RECEIPT', 'CUSTOMER_CREDIT_ISSUE', 'CUSTOMER_CREDIT_RECEIPT'].includes(role),
+  unwindStoredValueFundingLine: (...args: unknown[]) => mockUnwindStoredValueFundingLine(...args),
+}));
+
+jest.mock('@/lib/services/order-financial-write.service', () => ({
+  recalculateOrderFinancialSnapshotTx: jest.fn().mockResolvedValue({}),
+}));
+
 import { reverseBizVoucher } from '@/lib/services/voucher-reversal.service';
 import { VOUCHER_STATUS, VOUCHER_TYPE } from '@/lib/constants/voucher';
 
@@ -68,10 +90,34 @@ const makeOriginalVoucher = (status = VOUCHER_STATUS.POSTED) => ({
   id: VOUCHER_ID,
   voucher_no: 'RV-2026-000123',
   voucher_type: VOUCHER_TYPE.RECEIPT,
+  voucher_category: 'CASH',
+  voucher_subtype: null,
   voucher_status: status,
   total_amount: '200',
+  subtotal_amount: '200',
+  discount_amount: null,
+  tax_amount: null,
+  fee_amount: null,
+  paid_amount: '200',
+  refunded_amount: null,
+  outstanding_amount: '0',
   currency_code: 'OMR',
+  currency_ex_rate: '1',
   branch_id: '44444444-4444-4444-4444-444444444444',
+  direction: 'IN',
+  party_type: 'CUSTOMER',
+  party_name: 'Demo Customer',
+  supplier_id: null,
+  employee_id: null,
+  customer_id: '66666666-6666-6666-6666-666666666666',
+  order_id: '55555555-5555-5555-5555-555555555555',
+  invoice_id: null,
+  source_module: 'ORDERS',
+  source_ref_type: 'ORDER',
+  source_ref_id: '55555555-5555-5555-5555-555555555555',
+  reason_code: null,
+  notes: 'Counter receipt',
+  description: 'Cash receipt',
 });
 
 const makePostedLines = () => [
@@ -136,8 +182,14 @@ describe('voucher-reversal.service -> reverseBizVoucher', () => {
         data: expect.objectContaining({
           voucher_type: VOUCHER_TYPE.RECEIPT,
           voucher_status: VOUCHER_STATUS.POSTED,
+          posting_status: 'POSTED',
+          party_name: 'Demo Customer',
+          paid_amount: 200,
+          outstanding_amount: 0,
+          ref_voucher_id: VOUCHER_ID,
           reversal_reason: 'Customer refund',
           posted_by: USER_ID,
+          notes: 'Counter receipt',
         }),
       })
     );
@@ -150,6 +202,7 @@ describe('voucher-reversal.service -> reverseBizVoucher', () => {
           reversed_line_id: 'line-1',
           direction: 'OUT',
           line_status: 'POSTED',
+          party_name: 'Demo Customer',
         }),
       })
     );
@@ -173,6 +226,7 @@ describe('voucher-reversal.service -> reverseBizVoucher', () => {
           voucher_status: VOUCHER_STATUS.REVERSED,
           reversal_reason: 'Customer refund',
           reversed_by: USER_ID,
+          reversed_by_voucher_id: 'reversal-1',
         }),
       })
     );
@@ -187,6 +241,45 @@ describe('voucher-reversal.service -> reverseBizVoucher', () => {
       })
     );
     expect(mockTransitionPaymentTx).not.toHaveBeenCalled();
+    expect(mockTx.org_customers_mst.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('fills party_name from the customer when the original header left it blank', async () => {
+    mockTx.$queryRaw.mockResolvedValue([{ ...makeOriginalVoucher(), party_name: null }]);
+    mockTx.org_fin_voucher_trx_lines_dtl.findMany.mockResolvedValue([makePostedLines()[0]]);
+    mockTx.org_customers_mst.findFirst.mockResolvedValue({
+      display_name: null,
+      name: 'Walk-in Customer',
+      name2: null,
+      first_name: null,
+      last_name: null,
+    });
+    mockTx.org_fin_vouchers_mst.create.mockResolvedValue({
+      id: 'reversal-1',
+      voucher_no: 'RV-REV-2026-000001',
+    });
+    mockTx.org_fin_voucher_trx_lines_dtl.create.mockResolvedValue({ id: 'rev-line-1' });
+    mockTx.org_fin_voucher_trx_lines_dtl.updateMany.mockResolvedValue({ count: 1 });
+    mockTx.org_fin_vouchers_mst.updateMany.mockResolvedValue({ count: 1 });
+    mockTx.org_fin_voucher_audit_log.create.mockResolvedValue({});
+    mockTx.org_domain_events_outbox.create.mockResolvedValue({});
+
+    await reverseBizVoucher(TENANT, VOUCHER_ID, 'Customer refund', USER_ID);
+
+    expect(mockTx.org_customers_mst.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: '66666666-6666-6666-6666-666666666666', tenant_org_id: TENANT },
+      })
+    );
+    expect(mockTx.org_fin_vouchers_mst.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          party_name: 'Walk-in Customer',
+          customer_id: '66666666-6666-6666-6666-666666666666',
+          ref_voucher_id: VOUCHER_ID,
+        }),
+      })
+    );
   });
 
   it('throws when the original voucher is not found', async () => {
@@ -276,5 +369,107 @@ describe('voucher-reversal.service -> reverseBizVoucher', () => {
       reverseBizVoucher(TENANT, VOUCHER_ID, 'Customer refund', USER_ID)
     ).rejects.toThrow('VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED');
     expect(mockTransitionPaymentTx).not.toHaveBeenCalled();
+  });
+
+  it('B13: when unwind is ON, restores ORDER_CREDIT_APPLICATION via D006', async () => {
+    mockCanAccess.mockResolvedValue(true);
+    mockTx.$queryRaw.mockResolvedValue([makeOriginalVoucher()]);
+    mockTx.org_fin_voucher_trx_lines_dtl.findMany.mockResolvedValue([
+      {
+        id: 'line-ca',
+        line_no: 1,
+        line_type: 'RECEIPT',
+        line_role: 'ORDER_CREDIT_APPLICATION',
+        target_type: 'ORDER',
+        target_id: 'order-1',
+        order_id: '55555555-5555-5555-5555-555555555555',
+        customer_id: '66666666-6666-6666-6666-666666666666',
+        payment_method_code: null,
+        amount: 8,
+        currency_code: 'OMR',
+        direction: 'IN',
+      },
+    ]);
+    mockTx.org_fin_vouchers_mst.create.mockResolvedValue({
+      id: 'reversal-1',
+      voucher_no: 'RV-REV-2026-000001',
+    });
+    mockTx.org_fin_voucher_trx_lines_dtl.create.mockResolvedValue({ id: 'rev-line-ca' });
+    mockTx.org_fin_voucher_trx_lines_dtl.updateMany.mockResolvedValue({ count: 1 });
+    mockTx.org_fin_vouchers_mst.updateMany.mockResolvedValue({ count: 1 });
+    mockTx.org_fin_voucher_audit_log.create.mockResolvedValue({});
+    mockTx.org_domain_events_outbox.create.mockResolvedValue({});
+    mockTx.org_order_credit_apps_dtl.findFirst.mockResolvedValue({
+      id: 'ca-1',
+      order_id: '55555555-5555-5555-5555-555555555555',
+      credit_type: 'WALLET',
+      credit_source_id: null,
+      applied_amount: '8',
+      currency_code: 'OMR',
+      application_status: 'APPLIED',
+      fin_voucher_trx_line_id: 'line-ca',
+    });
+    mockReverseCreditApplicationTx.mockResolvedValue({ restoredAmount: 8, status: 'REVERSED' });
+
+    await reverseBizVoucher(TENANT, VOUCHER_ID, 'Customer refund', USER_ID);
+
+    expect(mockReverseCreditApplicationTx).toHaveBeenCalledWith(
+      mockTx,
+      expect.objectContaining({
+        orderId: '55555555-5555-5555-5555-555555555555',
+        idempotencyPrefix: 'voucher_unwind:reversal-1',
+      }),
+      expect.objectContaining({ id: 'ca-1' }),
+      '66666666-6666-6666-6666-666666666666',
+      expect.any(Array),
+    );
+    expect(mockTx.org_fin_voucher_trx_lines_dtl.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'rev-line-ca', tenant_org_id: TENANT },
+        data: expect.objectContaining({ wiring_status: 'WIRED' }),
+      }),
+    );
+  });
+
+  it('B13: when unwind is ON, claws back WALLET_TOPUP funding', async () => {
+    mockCanAccess.mockResolvedValue(true);
+    mockTx.$queryRaw.mockResolvedValue([makeOriginalVoucher()]);
+    mockTx.org_fin_voucher_trx_lines_dtl.findMany.mockResolvedValue([
+      {
+        id: 'line-w',
+        line_no: 1,
+        line_type: 'RECEIPT',
+        line_role: 'WALLET_TOPUP',
+        target_type: 'WALLET',
+        target_id: 'wallet-1',
+        order_id: null,
+        customer_id: '66666666-6666-6666-6666-666666666666',
+        payment_method_code: 'CASH',
+        amount: 20,
+        currency_code: 'OMR',
+        direction: 'IN',
+      },
+    ]);
+    mockTx.org_fin_vouchers_mst.create.mockResolvedValue({
+      id: 'reversal-1',
+      voucher_no: 'RV-REV-2026-000001',
+    });
+    mockTx.org_fin_voucher_trx_lines_dtl.create.mockResolvedValue({ id: 'rev-line-w' });
+    mockTx.org_fin_voucher_trx_lines_dtl.updateMany.mockResolvedValue({ count: 1 });
+    mockTx.org_fin_vouchers_mst.updateMany.mockResolvedValue({ count: 1 });
+    mockTx.org_fin_voucher_audit_log.create.mockResolvedValue({});
+    mockTx.org_domain_events_outbox.create.mockResolvedValue({});
+    mockUnwindStoredValueFundingLine.mockResolvedValue(undefined);
+
+    await reverseBizVoucher(TENANT, VOUCHER_ID, 'Customer refund', USER_ID);
+
+    expect(mockUnwindStoredValueFundingLine).toHaveBeenCalledWith(
+      mockTx,
+      expect.objectContaining({
+        originalLineId: 'line-w',
+        originalLineRole: 'WALLET_TOPUP',
+        reversalLineId: 'rev-line-w',
+      }),
+    );
   });
 });

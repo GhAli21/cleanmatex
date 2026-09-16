@@ -114,7 +114,7 @@ Cmx only: `CmxDataTable`, `CmxConfirmDialog`, `CmxDialog`, `CmxStatusBadge`, `Cm
 - `__tests__/services/finance-jobs.service.test.ts` — five jobs, overlap MANUAL vs SCHEDULE, history, `nextCronOccurrence`
 - `__tests__/services/stored-value.service.test.ts` — `expireCreditNote` / `expireCreditNotes`
 
-Manual QA: [QA_TEST_GUIDE.md](../Remediation_Work_Packages/QA_TEST_GUIDE.md) §11.16–11.22 and §20.12–20.18.
+Manual QA: [QA_TEST_GUIDE.md](../Remediation_Work_Packages/QA_TEST_GUIDE.md) §11.8–11.22 (ops hub UI) and §20.12–20.20 (five jobs / credit-note expiry / overlap).
 
 ---
 

@@ -114,7 +114,7 @@ Origin-only source mapping (D002 v2):
 | Original voucher (`fin_voucher_id` / line) | recorded when resolvable from the original fact row (payments/credit apps already carry backlinks); read-through, no new join table |
 | Original stored-value txn | resolvable via credit app → ledger backlinks; not duplicated on the refund row |
 | Original gateway transaction | copied read-only from the payment row for audit display (no gateway call in B1) |
-| Related cancellation/amendment | cancel unwind passes reason_context = CANCELLATION_UNWIND (⇒ reopen 0); amendment linkage lands with B12 |
+| Related cancellation/amendment | cancel does **not** auto-unwind (2026-09-17). Refunds after cancel use B09 with reason_context as the operator chooses; amendment linkage lands with B12 |
 | Source transaction amount + cumulative refunded | derived by the existing cap queries; cumulative validation moves to indexed column lookups once `original_credit_app_id` is a column |
 
 ## 7. Snapshot effects (expected after B1)

@@ -1171,6 +1171,7 @@ model org_fin_vouchers_mst {
   void_reason                   String?
   reason_code                   String?                         @db.VarChar(50)
   reversed_by_voucher_id        String?                         @db.Uuid
+  ref_voucher_id                String?                         @db.Uuid
   content_html                  String?
   content_text                  String?
   metadata                      Json?
@@ -1225,6 +1226,8 @@ model org_fin_vouchers_mst {
   org_orders_mst                org_orders_mst?                 @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_order")
   org_fin_vouchers_mst          org_fin_vouchers_mst?           @relation("org_fin_vouchers_mstToorg_fin_vouchers_mst", fields: [reversed_by_voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_reversed")
   other_org_fin_vouchers_mst    org_fin_vouchers_mst[]          @relation("org_fin_vouchers_mstToorg_fin_vouchers_mst")
+  referenced_voucher            org_fin_vouchers_mst?           @relation("FinVoucherRef", fields: [ref_voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_vch_ref_voucher")
+  referencing_vouchers          org_fin_vouchers_mst[]          @relation("FinVoucherRef")
   org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_fin_voucher_tenant")
   org_rcpt_receipts_mst         org_rcpt_receipts_mst[]
 
@@ -1236,6 +1239,7 @@ model org_fin_vouchers_mst {
   @@index([tenant_org_id, voucher_no], map: "idx_fin_vouchers_voucher_no")
   @@index([tenant_org_id, voucher_type, voucher_status], map: "idx_fin_vouchers_type")
   @@index([tenant_org_id, direction], map: "idx_fin_vouchers_direction")
+  @@index([tenant_org_id, ref_voucher_id], map: "idx_fin_vch_ref_voucher")
   @@schema("public")
 }
 

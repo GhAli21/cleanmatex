@@ -21,10 +21,14 @@ import type {
   CreateBizVoucherInput,
   UpdateBizVoucherInput,
   BizVoucherDetailData,
+  VoucherDetailRelatedContext,
   VoucherListItem,
   VoucherListFilters,
+  VoucherLineData,
+  VoucherRelatedRef,
   VoucherType,
 } from '../types/voucher';
+import { VOUCHER_RELATED_HREFS } from '@/lib/constants/voucher-related-hrefs';
 
 // ── Internal mapper ───────────────────────────────────────────────────────────
 
@@ -65,12 +69,281 @@ function mapVoucherRow(row: Record<string, unknown>): BizVoucherDetailData {
     posted_at:          (row.posted_at as Date) ?? null,
     posted_by:          (row.posted_by as string) ?? null,
     reversed_at:        (row.reversed_at as Date) ?? null,
+    reversed_by:        (row.reversed_by as string) ?? null,
+    reversed_by_voucher_id: (row.reversed_by_voucher_id as string) ?? null,
+    ref_voucher_id:     (row.ref_voucher_id as string) ?? null,
     reversal_reason:    (row.reversal_reason as string) ?? null,
     created_at:         row.created_at as Date,
     created_by:         (row.created_by as string) ?? null,
     updated_at:         (row.updated_at as Date) ?? null,
     updated_by:         (row.updated_by as string) ?? null,
     lines:              [],
+  };
+}
+
+function uniqueIds(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+}
+
+function relatedRef(id: string | null | undefined, label: string | null | undefined, href: string): VoucherRelatedRef | null {
+  if (!id) return null;
+  return { id, label: label?.trim() || id, href };
+}
+
+async function resolveVoucherRelatedContext(
+  tx: PrismaTransactionClient,
+  tenantOrgId: string,
+  voucher: {
+    id: string;
+    order_id: string | null;
+    customer_id: string | null;
+    invoice_id: string | null;
+    branch_id: string | null;
+    reversed_by_voucher_id: string | null;
+    ref_voucher_id: string | null;
+    created_by: string | null;
+    posted_by: string | null;
+    reversed_by: string | null;
+  },
+  lines: Array<{
+    id: string;
+    order_id: string | null;
+    customer_id: string | null;
+    reversed_line_id: string | null;
+    cash_drawer_session_id: string | null;
+  }>,
+): Promise<VoucherDetailRelatedContext> {
+  const lineIds = lines.map((line) => line.id);
+  const originalLineIds = uniqueIds(lines.map((line) => line.reversed_line_id));
+
+  const [originalLines, reversalLines] = await Promise.all([
+    originalLineIds.length > 0
+      ? tx.org_fin_voucher_trx_lines_dtl.findMany({
+          where: { tenant_org_id: tenantOrgId, id: { in: originalLineIds } },
+          select: {
+            voucher_id: true,
+            cash_drawer_session_id: true,
+            org_fin_vouchers_mst: { select: { id: true, voucher_no: true } },
+          },
+        })
+      : Promise.resolve([]),
+    lineIds.length > 0
+      ? tx.org_fin_voucher_trx_lines_dtl.findMany({
+          where: { tenant_org_id: tenantOrgId, reversed_line_id: { in: lineIds } },
+          select: {
+            voucher_id: true,
+            org_fin_vouchers_mst: { select: { id: true, voucher_no: true } },
+          },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const reversalVoucherId = voucher.reversed_by_voucher_id ?? reversalLines[0]?.voucher_id ?? null;
+  const originalVoucherId = voucher.ref_voucher_id ?? originalLines[0]?.voucher_id ?? null;
+  const originalVoucherRow = originalLines[0]?.org_fin_vouchers_mst ?? null;
+  const reversalVoucherRow = reversalLines[0]?.org_fin_vouchers_mst ?? null;
+
+  const orderId = voucher.order_id ?? lines.find((line) => line.order_id)?.order_id ?? null;
+  const customerId = voucher.customer_id ?? lines.find((line) => line.customer_id)?.customer_id ?? null;
+  const sessionIds = uniqueIds([
+    ...lines.map((line) => line.cash_drawer_session_id),
+    ...originalLines.map((line) => line.cash_drawer_session_id),
+  ]);
+  const userIds = uniqueIds([voucher.created_by, voucher.posted_by, voucher.reversed_by]);
+
+  const [order, customer, invoice, branch, reversalHeader, originalHeader, sessions, users] = await Promise.all([
+    orderId
+      ? tx.org_orders_mst.findFirst({
+          where: { id: orderId, tenant_org_id: tenantOrgId },
+          select: { id: true, order_no: true },
+        })
+      : Promise.resolve(null),
+    customerId
+      ? tx.org_customers_mst.findFirst({
+          where: { id: customerId, tenant_org_id: tenantOrgId },
+          select: { id: true, display_name: true, name: true },
+        })
+      : Promise.resolve(null),
+    voucher.invoice_id
+      ? tx.org_invoice_mst.findFirst({
+          where: { id: voucher.invoice_id, tenant_org_id: tenantOrgId },
+          select: { id: true, invoice_no: true },
+        })
+      : Promise.resolve(null),
+    voucher.branch_id
+      ? tx.org_branches_mst.findFirst({
+          where: { id: voucher.branch_id, tenant_org_id: tenantOrgId },
+          select: { id: true, name: true },
+        })
+      : Promise.resolve(null),
+    reversalVoucherId && !reversalVoucherRow
+      ? tx.org_fin_vouchers_mst.findFirst({
+          where: { id: reversalVoucherId, tenant_org_id: tenantOrgId },
+          select: { id: true, voucher_no: true },
+        })
+      : Promise.resolve(null),
+    originalVoucherId && !originalVoucherRow
+      ? tx.org_fin_vouchers_mst.findFirst({
+          where: { id: originalVoucherId, tenant_org_id: tenantOrgId },
+          select: { id: true, voucher_no: true },
+        })
+      : Promise.resolve(null),
+    sessionIds.length > 0
+      ? tx.org_cash_drawer_sessions_mst.findMany({
+          where: { tenant_org_id: tenantOrgId, id: { in: sessionIds } },
+          select: { id: true, cash_drawer_id: true, session_no: true },
+        })
+      : Promise.resolve([]),
+    userIds.length > 0
+      ? tx.org_users_mst.findMany({
+          where: { tenant_org_id: tenantOrgId, user_id: { in: userIds } },
+          select: { user_id: true, display_name: true, name: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const userNameById = new Map(
+    users.map((user) => [user.user_id, user.display_name?.trim() || user.name?.trim() || user.user_id]),
+  );
+  const session = sessions[0] ?? null;
+  const reversalVoucher = reversalVoucherRow ?? reversalHeader;
+  const originalVoucher = originalVoucherRow ?? originalHeader;
+
+  return {
+    order: relatedRef(order?.id ?? orderId, order?.order_no, orderId ? VOUCHER_RELATED_HREFS.order(orderId) : ''),
+    customer: relatedRef(
+      customer?.id ?? customerId,
+      customer?.display_name ?? customer?.name,
+      customerId ? VOUCHER_RELATED_HREFS.customer(customerId) : '',
+    ),
+    invoice: relatedRef(
+      invoice?.id ?? voucher.invoice_id,
+      invoice?.invoice_no,
+      voucher.invoice_id ? VOUCHER_RELATED_HREFS.invoice(voucher.invoice_id) : '',
+    ),
+    branch: relatedRef(
+      branch?.id ?? voucher.branch_id,
+      branch?.name,
+      voucher.branch_id ? VOUCHER_RELATED_HREFS.branch(voucher.branch_id) : '',
+    ),
+    originalVoucher: relatedRef(
+      originalVoucher?.id,
+      originalVoucher?.voucher_no,
+      originalVoucher?.id ? VOUCHER_RELATED_HREFS.voucher(originalVoucher.id) : '',
+    ),
+    reversalVoucher: relatedRef(
+      reversalVoucher?.id,
+      reversalVoucher?.voucher_no,
+      reversalVoucher?.id ? VOUCHER_RELATED_HREFS.voucher(reversalVoucher.id) : '',
+    ),
+    cashDrawerSession: session
+      ? relatedRef(
+          session.id,
+          session.session_no,
+          VOUCHER_RELATED_HREFS.cashDrawerSession(session.cash_drawer_id, session.id),
+        )
+      : null,
+    createdByName: voucher.created_by ? userNameById.get(voucher.created_by) ?? null : null,
+    postedByName: voucher.posted_by ? userNameById.get(voucher.posted_by) ?? null : null,
+    reversedByName: voucher.reversed_by ? userNameById.get(voucher.reversed_by) ?? null : null,
+  };
+}
+
+function mapVoucherLine(l: {
+  id: string;
+  tenant_org_id: string;
+  voucher_id: string;
+  line_no: number;
+  line_type: string;
+  line_role: string;
+  target_type: string | null;
+  target_id: string | null;
+  order_id: string | null;
+  customer_id: string | null;
+  supplier_id: string | null;
+  employee_id: string | null;
+  payment_method_code: string | null;
+  payment_status: string | null;
+  amount: { toString(): string } | number;
+  currency_code: string | null;
+  direction: string | null;
+  tendered_amount: { toString(): string } | number | null;
+  change_returned_amount: { toString(): string } | number | null;
+  expense_category_code: string | null;
+  party_name: string | null;
+  description: string | null;
+  notes: string | null;
+  line_status: string;
+  wiring_status: string;
+  reversed_line_id: string | null;
+  created_at: Date;
+  credit_application_type: string | null;
+  order_payment_id: string | null;
+  cash_drawer_mvt_id: string | null;
+  org_payment_method_id: string | null;
+  payment_terminal_id: string | null;
+  cash_drawer_session_id: string | null;
+  pos_session_id: string | null;
+  card_brand_code: string | null;
+  card_last4: string | null;
+  auth_code: string | null;
+  gateway_code: string | null;
+  gateway_transaction_id: string | null;
+  gateway_reference: string | null;
+  bank_reference: string | null;
+  check_number: string | null;
+  check_bank: string | null;
+  check_date: Date | null;
+  branch_id: string | null;
+  sv_funding_tender_id: string | null;
+}): VoucherLineData {
+  return {
+    id:                     l.id,
+    tenant_org_id:          l.tenant_org_id,
+    voucher_id:             l.voucher_id,
+    line_no:                l.line_no,
+    line_type:              l.line_type,
+    line_role:              l.line_role,
+    target_type:            l.target_type,
+    target_id:              l.target_id,
+    order_id:               l.order_id,
+    customer_id:            l.customer_id,
+    supplier_id:            l.supplier_id ?? null,
+    employee_id:            l.employee_id ?? null,
+    payment_method_code:    l.payment_method_code,
+    payment_status:         l.payment_status ?? null,
+    amount:                 Number(l.amount),
+    currency_code:          l.currency_code,
+    direction:              l.direction,
+    tendered_amount:        l.tendered_amount != null ? Number(l.tendered_amount) : null,
+    change_returned_amount: l.change_returned_amount != null ? Number(l.change_returned_amount) : null,
+    expense_category_code:  l.expense_category_code,
+    party_name:             l.party_name,
+    description:            l.description,
+    notes:                  l.notes ?? null,
+    line_status:            l.line_status,
+    wiring_status:          l.wiring_status,
+    reversed_line_id:       l.reversed_line_id,
+    created_at:             l.created_at,
+    credit_application_type: l.credit_application_type ?? null,
+    order_payment_id:        l.order_payment_id ?? null,
+    cash_drawer_mvt_id:      l.cash_drawer_mvt_id ?? null,
+    org_payment_method_id:   l.org_payment_method_id ?? null,
+    payment_terminal_id:     l.payment_terminal_id ?? null,
+    cash_drawer_session_id:  l.cash_drawer_session_id ?? null,
+    pos_session_id:          l.pos_session_id ?? null,
+    card_brand_code:         l.card_brand_code ?? null,
+    card_last4:              l.card_last4 ?? null,
+    auth_code:               l.auth_code ?? null,
+    gateway_code:            l.gateway_code ?? null,
+    gateway_transaction_id:  l.gateway_transaction_id ?? null,
+    gateway_reference:       l.gateway_reference ?? null,
+    bank_reference:          l.bank_reference ?? null,
+    check_number:            l.check_number ?? null,
+    check_bank:              l.check_bank ?? null,
+    check_date:              l.check_date ?? null,
+    branch_id:               l.branch_id ?? null,
+    sv_funding_tender_id:    l.sv_funding_tender_id ?? null,
   };
 }
 
@@ -240,53 +513,8 @@ export async function getBizVoucherById(
     });
 
     const detail = mapVoucherRow(voucher as unknown as Record<string, unknown>);
-    detail.lines = lines.map(l => ({
-      id:                     l.id,
-      tenant_org_id:          l.tenant_org_id,
-      voucher_id:             l.voucher_id,
-      line_no:                l.line_no,
-      line_type:              l.line_type,
-      line_role:              l.line_role,
-      target_type:            l.target_type,
-      target_id:              l.target_id,
-      order_id:               l.order_id,
-      customer_id:            l.customer_id,
-      supplier_id:            l.supplier_id ?? null,
-      employee_id:            l.employee_id ?? null,
-      payment_method_code:    l.payment_method_code,
-      payment_status:         l.payment_status ?? null,
-      amount:                 Number(l.amount),
-      currency_code:          l.currency_code,
-      direction:              l.direction,
-      tendered_amount:        l.tendered_amount != null ? Number(l.tendered_amount) : null,
-      change_returned_amount: l.change_returned_amount != null ? Number(l.change_returned_amount) : null,
-      expense_category_code:  l.expense_category_code,
-      party_name:             l.party_name,
-      description:            l.description,
-      notes:                  l.notes ?? null,
-      line_status:            l.line_status,
-      wiring_status:          l.wiring_status,
-      reversed_line_id:       l.reversed_line_id,
-      created_at:             l.created_at,
-      credit_application_type: null,
-      order_payment_id:        l.order_payment_id ?? null,
-      cash_drawer_mvt_id:      l.cash_drawer_mvt_id ?? null,
-      org_payment_method_id:   null,
-      payment_terminal_id:     l.payment_terminal_id ?? null,
-      cash_drawer_session_id:  l.cash_drawer_session_id ?? null,
-      pos_session_id:          l.pos_session_id ?? null,
-      card_brand_code:         l.card_brand_code ?? null,
-      card_last4:              l.card_last4 ?? null,
-      auth_code:               l.auth_code ?? null,
-      gateway_code:            l.gateway_code ?? null,
-      gateway_transaction_id:  l.gateway_transaction_id ?? null,
-      gateway_reference:       l.gateway_reference ?? null,
-      bank_reference:          l.bank_reference ?? null,
-      check_number:            l.check_number ?? null,
-      check_bank:              l.check_bank ?? null,
-      check_date:              l.check_date ?? null,
-      branch_id:               l.branch_id ?? null,
-    }));
+    detail.lines = lines.map(mapVoucherLine);
+    detail.related = await resolveVoucherRelatedContext(prisma, tenantOrgId, voucher, lines);
 
     return detail;
   });
@@ -341,6 +569,8 @@ export async function listBizVouchers(
           currency_code: true,
           voucher_date: true,
           created_at: true,
+          ref_voucher_id: true,
+          referenced_voucher: { select: { voucher_no: true } },
         },
       }),
       prisma.org_fin_vouchers_mst.count({ where }),
@@ -357,6 +587,8 @@ export async function listBizVouchers(
       currency_code:  r.currency_code,
       voucher_date:   r.voucher_date ? r.voucher_date.toISOString().split('T')[0] ?? null : null,
       created_at:     r.created_at,
+      ref_voucher_id: r.ref_voucher_id,
+      ref_voucher_no: r.referenced_voucher?.voucher_no ?? null,
     }));
 
     return { items, total };

@@ -248,9 +248,12 @@ describe('cash-drawer.service — closeSession', () => {
     await closeSession(TENANT, SESSION, { physicalCount: 150, closedBy: USER });
 
     const movementWhere = mockMovementFindMany.mock.calls[0][0].where;
-    // order_payment_id: null keeps only MANUAL movements; CASH_SALE/change
-    // (order_payment_id set) are already counted via the payment total.
+    // MANUAL movements only: sale-mirror CASH_SALE (`order_payment_id` set) and
+    // B10 PAYMENT_REVERSAL (`reversed_payment_id` set) are already counted via
+    // the payment ledger term (or, after REVERSE, no longer counted).
     expect(movementWhere.order_payment_id).toBeNull();
+    expect(movementWhere.reversed_payment_id).toBeNull();
+    expect(movementWhere.NOT).toEqual({ movement_type: 'PAYMENT_REVERSAL' });
     expect(movementWhere.is_active).toBe(true);
   });
 

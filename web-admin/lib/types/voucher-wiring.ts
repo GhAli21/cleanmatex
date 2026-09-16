@@ -157,6 +157,7 @@ export interface LinkedEffectsResult {
   orderPayments: Array<{
     id: string;
     order_id: string | null;
+    order_no: string | null;
     amount: Prisma.Decimal;
     payment_method_code: string | null;
     line_id: string | null;
@@ -165,6 +166,8 @@ export interface LinkedEffectsResult {
   cashDrawerMovements: Array<{
     id: string;
     session_id: string | null;
+    session_no: string | null;
+    cash_drawer_id: string | null;
     amount: Prisma.Decimal;
     movement_type: string | null;
     line_id: string | null;
@@ -172,8 +175,16 @@ export interface LinkedEffectsResult {
   creditApplications: Array<{
     id: string;
     order_id: string | null;
+    order_no: string | null;
     amount: Prisma.Decimal;
     credit_type: string | null;
+    line_id: string | null;
+  }>;
+  fundingTenders: Array<{
+    id: string;
+    funding_type: string | null;
+    amount: Prisma.Decimal;
+    status: string | null;
     line_id: string | null;
   }>;
 }

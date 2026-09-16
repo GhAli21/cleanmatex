@@ -51,7 +51,20 @@
     "reverseErrors": {
       "VOUCHER_UNWIND_PAYMENT_NOT_FOUND": "This voucher line has no linked payment to unwind. Reverse cancelled.",
       "VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED": "Open a cash-drawer session on the original drawer, then reverse again.",
-      "VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS": "A linked payment is in a status that cannot be unwound. Reverse cancelled."
+      "VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS": "A linked payment is in a status that cannot be unwound. Reverse cancelled.",
+      "VOUCHER_UNWIND_CREDIT_APP_NOT_FOUND": "This voucher line has no linked credit application to restore. Reverse cancelled.",
+      "VOUCHER_UNWIND_WALLET_TXN_NOT_FOUND": "No wallet top-up ledger was found for this voucher line. Reverse cancelled.",
+      "VOUCHER_UNWIND_WALLET_NOT_FOUND": "The customer wallet for this top-up no longer exists. Reverse cancelled.",
+      "VOUCHER_UNWIND_WALLET_INSUFFICIENT": "Wallet balance is lower than the original top-up. Reverse the later spend first, then reverse this voucher.",
+      "VOUCHER_UNWIND_GIFT_CARD_TXN_NOT_FOUND": "No gift-card sale ledger was found for this voucher line. Reverse cancelled.",
+      "VOUCHER_UNWIND_GIFT_CARD_NOT_FOUND": "The sold gift card was not found. Reverse cancelled.",
+      "VOUCHER_UNWIND_GIFT_CARD_ALREADY_USED": "This gift card has already been spent. Reverse cancelled.",
+      "VOUCHER_UNWIND_ADVANCE_TXN_NOT_FOUND": "No advance receipt ledger was found for this voucher line. Reverse cancelled.",
+      "VOUCHER_UNWIND_ADVANCE_NOT_FOUND": "The customer advance account was not found. Reverse cancelled.",
+      "VOUCHER_UNWIND_ADVANCE_INSUFFICIENT": "Advance balance is lower than the original receipt. Reverse later applications first, then reverse this voucher.",
+      "VOUCHER_UNWIND_CREDIT_NOTE_TXN_NOT_FOUND": "No issued credit note was found for this voucher line. Reverse cancelled.",
+      "VOUCHER_UNWIND_CREDIT_NOTE_NOT_FOUND": "The issued credit note was not found. Reverse cancelled.",
+      "VOUCHER_UNWIND_CREDIT_NOTE_ALREADY_USED": "This credit note has already been used. Reverse cancelled."
     },
     "editSuccess": "Voucher updated successfully.",
     "lineDeleted": "Line deleted.",
@@ -185,6 +198,16 @@
     "relatedOrder": "Open order",
     "relatedInvoice": "Open invoice",
     "relatedCustomer": "Open customer",
+    "relatedBranch": "Open branch",
+    "relatedOriginalVoucher": "Original voucher",
+    "relatedReversalVoucher": "Reversal voucher",
+    "refVoucher": "Ref voucher",
+    "relatedCashDrawerSession": "Cash drawer session",
+    "relatedRecords": "Related records",
+    "backToVouchers": "Back to vouchers",
+    "reversedBy": "Reversed By",
+    "viewVoucher": "Open voucher",
+    "viewSession": "Open session",
     "wiringStatus": "Wiring Status",
     "wiringStatusLabels": {
       "NOT_WIRED": "Not Wired",
@@ -198,6 +221,7 @@
       "orderPayments": "Order Payments",
       "cashMovements": "Cash Drawer Movements",
       "creditApplications": "Credit Applications",
+      "fundingTenders": "Stored-value funding",
       "noEffects": "No linked effects found.",
       "effectId": "Effect ID",
       "orderRef": "Order",
@@ -207,7 +231,9 @@
       "lineId": "Line ID",
       "paymentStatus": "Payment Status",
       "movementType": "Movement Type",
-      "viewOrder": "View Order"
+      "viewOrder": "View Order",
+      "viewSession": "Open session",
+      "viewStoredValue": "Open stored value"
     },
     "postPreview": {
       "title": "Posting Preview",
@@ -219,6 +245,16 @@
       "cancel": "Cancel"
     },
     "postAndWireSuccess": "Voucher posted and wired successfully.",
-    "creditApplicationType": "Credit Type"
+    "creditApplicationType": "Credit Type",
+    "reversePreview": {
+      "unwindTitle": "These operational effects will unwind with this reverse",
+      "documentOnlyTitle": "Document reverse only — linked effects will not unwind while the unwind flag is off",
+      "unknown": "Linked effects could not be loaded. Reverse still requires a reason.",
+      "none": "No linked payments, credits, drawer movements, or funding tenders.",
+      "payments": "{count, plural, one {# order payment will be voided or reversed} other {# order payments will be voided or reversed}}",
+      "credits": "{count, plural, one {# credit application will be restored to its source ledger} other {# credit applications will be restored to their source ledgers}}",
+      "drawer": "{count, plural, one {# cash-drawer movement is linked} other {# cash-drawer movements are linked}}",
+      "funding": "{count, plural, one {# stored-value funding tender will be clawed back} other {# stored-value funding tenders will be clawed back}}"
+    }
   }
 }

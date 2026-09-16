@@ -66,6 +66,8 @@ export const CREDIT_APPLICATION_STATUSES = {
   CANCELLED: 'CANCELLED',
   REVERSED: 'REVERSED',
   EXPIRED: 'EXPIRED',
+  /** D006 — automatic loyalty restore could not complete; recon-visible. */
+  LOYALTY_RESTORE_PENDING: 'LOYALTY_RESTORE_PENDING',
 } as const;
 /** Derived union for credit-application lifecycle states. */
 export type CreditApplicationStatus =
@@ -594,12 +596,8 @@ export const OUTBOX_EVENT_TYPES = {
    */
   PAYMENT_SETTLED: 'PAYMENT_SETTLED',
   /**
-   * Order-Fin remediation Phase 4 (FN-02). Emitted by
-   * unwindOrderFinancialsOnCancel() after a cancelled order's financial
-   * unwind commits: credit applications reversed to source ledgers, real
-   * payments routed per the chosen disposition (REFUND / STORE_CREDIT /
-   * KEEP_ON_ACCOUNT), promo usage reversed, snapshot recalculated. The
-   * payload is the durable audit record of where the customer's money went.
+   * Historical FN-02 cancel unwind audit. Cancel no longer emits this
+   * (ADR_CANCEL_RETURN_RULES). Kept for existing outbox rows.
    * Not mapped into org_order_history (the cancel RPC already writes the
    * status row); the history consumer intentionally ignores this type.
    */

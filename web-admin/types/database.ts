@@ -11715,6 +11715,7 @@ export type Database = {
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
+          ref_voucher_id: string | null
           refunded_amount: number | null
           reversal_reason: string | null
           reversed_at: string | null
@@ -11777,6 +11778,7 @@ export type Database = {
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          ref_voucher_id?: string | null
           refunded_amount?: number | null
           reversal_reason?: string | null
           reversed_at?: string | null
@@ -11839,6 +11841,7 @@ export type Database = {
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          ref_voucher_id?: string | null
           refunded_amount?: number | null
           reversal_reason?: string | null
           reversed_at?: string | null
@@ -11872,6 +11875,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_fin_voucher_category_cd"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_fin_vch_ref_voucher"
+            columns: ["ref_voucher_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
           },
           {
             foreignKeyName: "fk_fin_vch_sub_cat"
