@@ -8,7 +8,7 @@ Dependencies: [B01](B01_Refund_Lineage_And_Reopen_Due.md) (hard for activation �
 Blocks: — · Recommended phase: Seq 2–3 (design + flagged implementation; activation per Safety block)
 
 ## Confirmed problem
-The refund maker-checker workflow is API-complete but UI-absent (Addendum A1): `initiateOrderRefund` has zero callers, `/dashboard/internal_fin/refunds` is read-only, and the only way refund rows come into existence is the cancel-order REFUND disposition. Users cannot refund a live order or approve/process pending refunds from any screen.
+The refund initiate→approve→process workflow is API-complete but UI-absent (Addendum A1): `initiateOrderRefund` has zero callers, `/dashboard/internal_fin/refunds` is read-only, and the only way refund rows come into existence is the cancel-order REFUND disposition. Users cannot refund a live order or approve/process pending refunds from any screen.
 
 ## Current evidence
 | File or symbol | Current behavior | Gap |
@@ -19,7 +19,7 @@ The refund maker-checker workflow is API-complete but UI-absent (Addendum A1): `
 | cancel-order-dialog.tsx | REFUND disposition on cancel | only creating path |
 
 ## Required outcome (full-cycle rule)
-End-to-end usable refund workflow: **initiate** from order detail (Financial tab) with payment/credit-leg picker supplying lineage (D002 v2 — UI never picks the classification, only the source leg), amount with live cap display, destination + reason, and the D003 v2 **reason-context selector** (STANDARD / PRICE_ADJUSTMENT_GOODWILL; REFUND_AND_REBILL shown only to holders of the B27 rebill permission, with an explicit inline warning that it reopens the amount due and a mandatory reason — a normal refund never silently reopens due); **approval queue** (pending-approval list, approve/reject with reason); **process** action with result feedback; refunds hub upgraded from read-only to actionable; EN/AR i18n; Cmx components; permission-gated per action (`orders:process_refund` / `orders:approve_refund` + B27 codes for rebill/manual exception, maker≠checker enforced visually and server-side).
+End-to-end usable refund workflow: **initiate** from order detail (Financial tab) with payment/credit-leg picker supplying lineage (D002 v2 — UI never picks the classification, only the source leg), amount with live cap display, destination + reason, and the D003 v2 **reason-context selector** (STANDARD / PRICE_ADJUSTMENT_GOODWILL; REFUND_AND_REBILL shown only to holders of the B27 rebill permission, with an explicit inline warning that it reopens the amount due and a mandatory reason — a normal refund never silently reopens due); **approval queue** (pending-approval list, approve/reject with reason); **process** action with result feedback; refunds hub upgraded from read-only to actionable; EN/AR i18n; Cmx components; permission-gated per action (`orders:process_refund` / `orders:approve_refund` + B27 codes for rebill/manual exception; no maker≠checker — the requester may approve if they hold `orders:approve_refund`).
 
 ## Scope
 Screens/dialogs + hooks + server-action/API wiring; navigation entry (dual-write rule); access contracts + page-access registry; i18n keys; receipt/print link-through for processed refunds.
@@ -44,7 +44,7 @@ Classification/reopen write logic ([B01](B01_Refund_Lineage_And_Reopen_Due.md));
 | Audit/outbox | YES (user-driven stage actions now actually occur) |
 
 ## Acceptance criteria
-A user with the right permissions can, from screens alone: refund part of a live order against a chosen payment leg, see caps enforced live, watch it appear in the approval queue, approve as a second user, process it, and see the outcome on the order Financial tab and refunds hub — with maker-checker impossible to self-complete, all texts bilingual, and no raw API usage required.
+A user with the right permissions can, from screens alone: refund part of a live order against a chosen payment leg, see caps enforced live, watch it appear in the approval queue, approve it (the requester may approve their own request if they hold `orders:approve_refund`), process it, and see the outcome on the order Financial tab and refunds hub — all texts bilingual, and no raw API usage required.
 
 ## Required tests
 UI, API (action wiring), integration (full three-stage flow), idempotency (double-click safety), regression, access-contract checks, i18n check.
@@ -59,7 +59,7 @@ Database/schema: none
 API/endpoints: existing three-stage endpoints; initiate gains required key + refundContext with B1
 Frontend page/screen/dialog/action: (1) Initiate Refund dialog from order Financial tab — payment/credit-leg picker (lineage), amount with live remaining-cap display, destination, D003 refund-context selector, reason; (2) Approval queue screen (pending-approval list with order/customer/amount/requester, approve/reject with reason); (3) Process action with outcome feedback; (4) refunds hub upgraded from read-only to actionable; loading/empty/error/retry/success/disabled states throughout
 Reusable components/helpers: leg-picker (payments/credit-apps tables reuse), approval dialog (B27 pattern), amount input with cap hint
-Permissions: `orders:process_refund` (initiate/process), `orders:approve_refund` (approve); maker≠checker enforced server-side and reflected in UI (self-approval buttons disabled with reason)
+Permissions: `orders:process_refund` (initiate/process), `orders:approve_refund` (approve); permission is the only gate (same user may approve — no maker≠checker)
 Validation: client mirrors caps/lineage rules; server remains authoritative; double-click safe (per-attempt key)
 i18n/RTL: full EN/AR for all dialogs/queue/statuses; RTL layouts
 Accessibility: dialogs focus-trapped; cap and error text associated to inputs; queue keyboard-navigable
@@ -96,10 +96,10 @@ Required verification gates: B1 §14 matrix green; B34 UI/idempotency/access-con
 - ~~Maker≠checker guard~~ **REMOVED 2026-08-14** (owner rule: "if the user has the permission it's OK even if same user"). The `approveRefund` self-approval check, the `REFUND_SELF_APPROVAL_BLOCKED` error code, its EN/AR i18n, and the UI button-disable were all deleted; `orders:approve_refund` (route-level `requirePermission`) is now the only gate. Approve/process routes still map `RefundValidationError` to code+status.
 - Initiate dialog: `src/features/orders/ui/order-financial/refund-initiate-dialog.tsx` (Cmx components; leg picker from COMPLETED real payments + APPLIED credits with live per-leg remaining caps; goodwill option with mandatory reason; CmxMoneyField amount with cap hint + inline errors — no silent money mutation; destination select with record-only labeling for CASH/ORIGINAL_METHOD pre-B09; context selector STANDARD / PRICE_ADJUSTMENT_GOODWILL / **REFUND_AND_REBILL** (2026-09-16, gated on `orders:rebill_authorize`, warning + mandatory reason + original payment); reason-code select; per-attempt idempotency key; loading/error/success states) + pure model `src/features/orders/model/refund-initiate.ts` (cap math via the B02 aggregation module, validation, attempt key).
 - Financial tab wiring: `order-payments-credits-tables.tsx` — flag+permission-gated "Refund…" button + dialog mount (`useFeature('order_fin_refund_ui')` + `orders:process_refund`).
-- Refunds hub: `refunds-list-client.tsx` rewritten actionable (Approve on PENDING_APPROVAL with self-approval disabled+reason, Process on APPROVED; confirm dialog; double-click-safe; typed error mapping; permission-gated via `orders:approve_refund`/`orders:process_refund`); `app/dashboard/internal_fin/refunds/page.tsx` passes flag state + current user id.
-- i18n EN/AR: `orders/detail.json` → `refunds.initiate.*` (full dialog) + `REFUND_SELF_APPROVAL_BLOCKED`; `billing.json` → `refunds.actions.*` + `refunds.errors.*`.
+- Refunds hub: `refunds-list-client.tsx` rewritten actionable (Approve on PENDING_APPROVAL, Process on APPROVED; confirm dialog; double-click-safe; typed error mapping; permission-gated via `orders:approve_refund`/`orders:process_refund`; requester may approve their own refund); `app/dashboard/internal_fin/refunds/page.tsx` passes flag state + current user id.
+- i18n EN/AR: `orders/detail.json` → `refunds.initiate.*` (full dialog); `billing.json` → `refunds.actions.*` + `refunds.errors.*`. (`REFUND_SELF_APPROVAL_BLOCKED` strings were deleted 2026-08-14 with the maker≠checker guard.)
 - Access contracts: `/dashboard/internal_fin/refunds` gains approve/process actions (+flag) and PATCH apiDependencies; `/dashboard/orders/[id]` gains `initiateRefund` + `initiateRefundAndRebill` (`orders:rebill_authorize`, 2026-09-16) and the POST refunds apiDependency.
-- Tests: `__tests__/features/orders/refund-initiate-model.test.ts` (caps/validation/whitelist/attempt-key) + maker≠checker service tests — 23/23 green.
+- Tests: `__tests__/features/orders/refund-initiate-model.test.ts` (caps/validation/whitelist/attempt-key) + refund approval service tests (self-approval allowed) — 23/23 green.
 
 **Gates + contract validation (2026-07-18 — all green):**
 - `npx tsc --noEmit`: clean except the 2 known pre-existing errors in owner-committed keypad/split-tender files (outside this program; the earlier useMessage API fallout in B34 files was found and fixed [showSuccess/showError]).

@@ -65,6 +65,7 @@ export function CashDrawerFormDialog({
       requires_session: drawer.requires_session,
       opening_float_required: drawer.opening_float_required,
       max_cash_limit: drawer.max_cash_limit ?? undefined,
+      variance_approval_threshold: drawer.variance_approval_threshold ?? undefined,
       assigned_terminal_id: drawer.assigned_terminal_id ?? undefined,
     } : {
       drawer_type: DRAWER_TYPES.COUNTER,
@@ -98,6 +99,7 @@ export function CashDrawerFormDialog({
             requires_session: values.requires_session,
             opening_float_required: values.opening_float_required,
             max_cash_limit: values.max_cash_limit,
+            variance_approval_threshold: values.variance_approval_threshold,
             assigned_terminal_id: values.assigned_terminal_id,
           })
         : await createCashDrawer({
@@ -176,6 +178,19 @@ export function CashDrawerFormDialog({
                 setValueAs: (value) => (value === '' ? undefined : Number(value)),
               })}
             />
+          </div>
+          <div>
+            <label className="text-sm font-medium">{t('cashDrawers.varianceApprovalThreshold')}</label>
+            <CmxInput
+              type="number"
+              step="0.001"
+              {...form.register('variance_approval_threshold', {
+                setValueAs: (value) => (value === '' ? undefined : Number(value)),
+              })}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('cashDrawers.varianceApprovalThresholdHint')}
+            </p>
           </div>
           <div>
             <label className="text-sm font-medium">{t('cashDrawers.assignedTerminal')}</label>

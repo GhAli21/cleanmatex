@@ -58,7 +58,9 @@ The codebase has one refund workflow and a voucher "reversal" that unwinds nothi
 *Risks:* completed-transaction corrections would have no home or would masquerade as refunds; period reporting corrupted. Rejected.
 
 ## Recommended decision
-**Option B.** Refund = business return (D002/D003 govern classification/reopen). Reversal = maker-checker error correction with mandatory operational unwind. Void = pre-completion cancellation of PENDING/PROCESSING/AUTHORIZED legs (the missing half of H8's lifecycle). Chargebacks, bounced payments, and rejected/failed settlements (B26/B10) are externally-initiated reversals — they reopen due automatically via payment-status change (D003 v2), never via refund rows.
+**Option B.** Refund = business return (D002/D003 govern classification/reopen). Reversal = error correction with mandatory operational unwind (permission-gated; same user may approve — no maker≠checker). Void = pre-completion cancellation of PENDING/PROCESSING/AUTHORIZED legs (the missing half of H8's lifecycle). Chargebacks, bounced payments, and rejected/failed settlements (B26/B10) are externally-initiated reversals — they reopen due automatically via payment-status change (D003 v2), never via refund rows.
+
+**Owner policy (2026-09-17):** maker≠checker is not part of Option B. Where an approval step exists, permission is the only gate so a one-employee laundry can complete the flow. See folder [CLAUDE.md](../CLAUDE.md).
 
 ## Approved decision (Expert)
 **Option B** as recommended — see `Approved decision:` in Metadata for the binding text. Approval type: Expert. Selected for domain correctness (three financially distinct undo semantics) and system integrity (each concept has its own lineage, effects, and reopen mechanism).

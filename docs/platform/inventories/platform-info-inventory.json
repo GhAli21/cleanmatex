@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-11T06:18:14.532Z",
-  "gitSha": "254394bf",
+  "generatedAt": "2026-09-16T21:37:56.206Z",
+  "gitSha": "16bcdd25",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -38,7 +38,7 @@
     "planLimitUsages": 8,
     "accessContracts": 151,
     "navigationEntries": 101,
-    "flagCatalogEntries": 295
+    "flagCatalogEntries": 296
   },
   "permissionUsages": [
     {
@@ -14099,6 +14099,22 @@
       "planBindingType": "independent",
       "dataType": "boolean",
       "governanceCategory": "experimental",
+      "uiGroup": "Billing Features",
+      "provenance": [
+        {
+          "sourceType": "flag-catalog-ts",
+          "sourcePath": "web-admin/lib/constants/feature-flags.ts"
+        }
+      ]
+    },
+    {
+      "id": "flag_catalog:order_fin_voucher_unwind",
+      "kind": "flag_catalog_entry",
+      "flagKey": "order_fin_voucher_unwind",
+      "flagName": "Voucher Reversal Operational Unwind",
+      "planBindingType": "independent",
+      "dataType": "boolean",
+      "governanceCategory": "beta",
       "uiGroup": "Billing Features",
       "provenance": [
         {

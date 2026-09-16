@@ -223,7 +223,7 @@ for the GA process gates (finance sign-off + soak, see `Process_Gates_Guide.md`)
 ## Addendum — Remediation 2026-07 Phase 4 (cancellation disposition)
 
 1. **Cancel unpaid order:** unchanged — reason + confirm.
-2. **Cancel paid order (cash):** the dialog shows "Collected payments: {amount}" with three choices. REFUND → refund requests appear (PENDING, maker-checker) per payment; STORE_CREDIT → an active credit note for the net amount appears on the customer; KEEP_ON_ACCOUNT → allowed only for roles with `orders:approve_refund`, no money movement, decision auditable via the `ORDER_CANCEL_FINANCIAL_UNWIND` outbox event.
+2. **Cancel paid order (cash):** the dialog shows "Collected payments: {amount}" with three choices. REFUND → refund requests appear (PENDING_APPROVAL) per payment — the same user may approve if they hold `orders:approve_refund` (no maker≠checker); STORE_CREDIT → an active credit note for the net amount appears on the customer; KEEP_ON_ACCOUNT → allowed only for roles with `orders:approve_refund`, no money movement, decision auditable via the `ORDER_CANCEL_FINANCIAL_UNWIND` outbox event.
 3. **Cancel order with applied wallet/advance/gift-card/credit-note:** balances return to the source ledger exactly once (retry the cancel → no double restore); credit applications show REVERSED in the Financial tab; snapshot totals recompute (credit no longer counted).
 4. **Loyalty-credit order:** cancellation completes with a warning naming the application that needs manual restore.
 5. **Unwind failure:** if the unwind fails after the status flipped, the UI shows "cancelled but financial unwind failed — retry"; repeating the cancellation completes the unwind without duplicates.

@@ -688,15 +688,36 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      retryMatchingEvents: {
+        label: 'Bulk retry FAILED or DEAD_LETTERED outbox events matching the current filter',
+        requirement: {
+          permissions: ['finance_outbox:retry'],
+          requireAllPermissions: true,
+        },
+      },
+      viewEventDetail: {
+        label: 'Open an outbox event detail dialog (payload, related records, sibling events)',
+        requirement: {
+          permissions: ['finance_outbox:view'],
+          requireAllPermissions: true,
+        },
+      },
       viewFinanceJobs: {
-        label: 'View the B19 scheduled finance jobs section (gift-card expiry, idempotency cleanup, ERP posting-retry)',
+        label: 'View the scheduled finance jobs hub (outbox processor, gift-card expiry, credit-note expiry, idempotency cleanup, ERP posting-retry)',
+        requirement: {
+          permissions: ['finance_jobs:view'],
+          requireAllPermissions: true,
+        },
+      },
+      viewJobHistory: {
+        label: 'Open run history for a finance job',
         requirement: {
           permissions: ['finance_jobs:view'],
           requireAllPermissions: true,
         },
       },
       runFinanceJob: {
-        label: 'Manually trigger an on-demand run of a scheduled finance job',
+        label: 'Manually trigger an on-demand run of a scheduled finance job (confirm + overlap rejected)',
         requirement: {
           permissions: ['finance_jobs:run'],
           requireAllPermissions: true,
@@ -723,7 +744,25 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
-        label: 'B19 — finance jobs last-run list',
+        label: 'Outbox event detail (payload + related records)',
+        method: 'GET',
+        path: '/api/v1/finance/outbox/[eventId]',
+        requirement: {
+          permissions: ['finance_outbox:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Bulk retry matching FAILED or DEAD_LETTERED outbox events',
+        method: 'POST',
+        path: '/api/v1/finance/outbox/retry-bulk',
+        requirement: {
+          permissions: ['finance_outbox:retry'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Finance jobs catalog + last run + cron health',
         method: 'GET',
         path: '/api/v1/finance/jobs',
         requirement: {
@@ -732,7 +771,16 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
-        label: 'B19 — manually run a finance job',
+        label: 'Finance job run history',
+        method: 'GET',
+        path: '/api/v1/finance/jobs/[jobCode]/runs',
+        requirement: {
+          permissions: ['finance_jobs:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Manually run a finance job',
         method: 'POST',
         path: '/api/v1/finance/jobs/[jobCode]/run',
         requirement: {
@@ -742,9 +790,9 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     ],
     notes: [
-      'B7 — ops-visibility screen for the financial domain-event outbox (pending/failed/dead-lettered counts).',
-      'The scheduled processor route (/api/finance/process-outbox) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry.',
-      'B19 — extended with a Scheduled Jobs section (gift-card expiry, idempotency cleanup, ERP posting-retry). The scheduled dispatcher route (/api/finance/process-jobs) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry, same as process-outbox.',
+      'B7 — ops-visibility screen for the financial domain-event outbox (pending/failed/dead-lettered counts, event detail, related-record links, bulk retry).',
+      'The scheduled processor route (/api/finance/process-outbox) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry. Manual Run Now for outbox_processor uses POST /api/v1/finance/jobs/[jobCode]/run.',
+      'Jobs hub — outbox processor, gift-card expiry, credit-note expiry, idempotency cleanup, ERP posting-retry. The scheduled dispatcher route (/api/finance/process-jobs) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry, same as process-outbox.',
     ],
   },
   {

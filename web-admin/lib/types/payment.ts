@@ -879,6 +879,7 @@ export interface OrgCashDrawer {
   requires_session: boolean;
   opening_float_required: boolean;
   max_cash_limit: number | null;
+  variance_approval_threshold: number | null;
   assigned_user_id: string | null;
   assigned_terminal_id: string | null;
   is_active: boolean;
@@ -1043,6 +1044,7 @@ export interface CreateCashDrawerInput {
   requires_session?: boolean;
   opening_float_required?: boolean;
   max_cash_limit?: number;
+  variance_approval_threshold?: number;
   assigned_terminal_id?: string;
 }
 

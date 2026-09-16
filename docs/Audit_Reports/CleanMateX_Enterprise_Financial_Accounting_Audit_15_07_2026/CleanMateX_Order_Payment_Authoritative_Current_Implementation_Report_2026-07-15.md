@@ -6,6 +6,8 @@
 **Status vocabulary:** `IMPLEMENTED` · `IMPLEMENTED_WITH_CONSTRAINTS` · `PARTIAL` · `DISCONNECTED` · `CONFIGURED_ONLY` · `DOCUMENTED_ONLY` · `LEGACY` · `DUPLICATED` · `UNSAFE_DIRECT_UPDATE` · `NOT_FOUND` · `NOT_APPLICABLE`
 **Layer rule (fixed):** BVM = operational voucher/wiring layer. ERP-Lite = double-entry GL. They are never interchangeable.
 
+> **Owner policy update (2026-09-17) — maker≠checker is not required.** This report's 2026-07-15 snapshot described a two-person approval shape. Current policy: approval is **permission-gated only**; the same user may approve. Many tenant laundries have one employee. See Addendum **A3** and [Remediation_Work_Packages/CLAUDE.md](../../../features/Order_Fin/Remediation_Work_Packages/CLAUDE.md). Do not implement or re-plan a different-user requirement from §8 / §43 / A1.
+
 ## Table of Contents
 
 Current state (1–19): [1 Executive Summary](#1-executive-summary) · [2 Runtime Flow](#2-authoritative-runtime-flow) · [3 Canonical Authorities](#3-canonical-authorities) · [4 Commercial Formulas](#4-current-commercial-calculation-formulas) · [5 Snapshot Calculation](#5-canonical-snapshot-calculation) · [6 Payment & Settlement](#6-payment-and-settlement) · [7 Stored Value](#7-credits-and-stored-value) · [8 Refunds & Reversals](#8-refunds-reversals-and-voids) · [9 Cancellation](#9-order-cancellation-and-financial-unwind) · [10 Order Edit](#10-order-edit-and-financial-mutation) · [11 BVM](#11-bvm-operational-voucher-layer) · [12 ERP-Lite](#12-erp-lite-accounting-layer) · [13 Reconciliation](#13-reconciliation) · [14 Tax](#14-tax-tax-inclusive-pricing-and-tax-documents) · [15 Currency/FX](#15-currency-precision-rounding-and-fx) · [16 Transactions & Idempotency](#16-transactions-locking-and-idempotency) · [17 Cash Drawer](#17-cash-drawer-and-pos-session) · [18 Duplicate/Legacy](#18-duplicate-legacy-and-alternative-logic) · [19 Capability Matrix](#19-consolidated-capability-matrix)
@@ -164,7 +166,7 @@ Concern: loyalty points = `ceil(amount / (option.minAmount ?? 1))` — `min_amou
 
 # 8. Refunds, Reversals, and Voids
 
-Workflow `PENDING_APPROVAL → APPROVED → PROCESSED` with maker-checker, `fn_next_fin_doc_no` REF- numbering, caps vs paid+credits−refunded and per-source remainders, FOR UPDATE process lock, `uq_refund_idempotency`.
+Workflow `PENDING_APPROVAL → APPROVED → PROCESSED` with permission-gated approval (same user may approve — **no maker≠checker; SUPERSEDED 2026-09-17, see A3**), `fn_next_fin_doc_no` REF- numbering, caps vs paid+credits−refunded and per-source remainders, FOR UPDATE process lock, `uq_refund_idempotency`.
 
 ## 8.1 Stage-by-stage controls (order-refund.service.ts)
 
@@ -492,7 +494,7 @@ Common engine: `unwindOrderFinancialsOnCancel` + workflow transition (workflow-s
 | With posted GL journal | only AR-invoice journals exist; journal reversal on cancel NOT_FOUND | — | — | — | — | none | — | NOT_FOUND |
 | Partially processed / completed / delivered / closed service | stage gating in workflow; charge-retention policy NOT_FOUND (no charges written) | — | — | — | — | — | — | PARTIAL |
 
-Permissions: cancellation permission exists in workflow gating; refund disposition approval rides refund maker-checker. Charge retention, tax recalculation, and tax credit notes on cancel: NOT_FOUND across all scenarios.
+Permissions: cancellation permission exists in workflow gating; refund disposition approval rides `orders:approve_refund` (same user allowed — **no maker≠checker; SUPERSEDED 2026-09-17, see A3**). Charge retention, tax recalculation, and tax credit notes on cancel: NOT_FOUND across all scenarios.
 
 # 31. Payment-Method Lifecycle Matrix
 
@@ -741,11 +743,11 @@ Hardcoded defaults: consolidated in §15. FX-rounding UI line in payment modal i
 
 # 43. Financial Permission and Approval Matrix
 
-Confirmed permission codes (lib/constants/permissions/): `orders:create`, `orders:collect_payment`, `orders:verify_payment`, `orders:process_refund`, `orders:approve_refund` (maker-checker enforced in service), `orders:create_adjustment`, `fin_vouchers:reverse`, `invoices:write_off`, `cash_drawer:view`, `reconciliation:run`/`view`; AR sensitive-action route `approve-sensitive`.
+Confirmed permission codes (lib/constants/permissions/): `orders:create`, `orders:collect_payment`, `orders:verify_payment`, `orders:process_refund`, `orders:approve_refund` (permission is the only gate — **maker≠checker SUPERSEDED 2026-09-17, see A3**), `orders:create_adjustment`, `fin_vouchers:reverse`, `invoices:write_off`, `cash_drawer:view`, `reconciliation:run`/`view`; AR sensitive-action route `approve-sensitive`.
 
 | Action | Permission | Maker-checker | Reason required | Threshold | Status |
 |---|---|---|---|---|---|
-| Refund request/approve/process | yes (two codes) | yes | manual-exception: yes | NOT_FOUND | IMPLEMENTED (controls only) |
+| Refund request/approve/process | yes (two codes) | **no (SUPERSEDED 2026-09-17 — permission only; see A3)** | manual-exception: yes | NOT_FOUND | IMPLEMENTED (controls only) |
 | Payment verify / cancel-fail | `orders:verify_payment` / NOT_FOUND | no | no | no | PARTIAL — verify gated; cancel/fail actions absent; actor audit not durable (H8) |
 | Order adjustment | yes (+autoApprove flag) | partial | yes | NOT_FOUND | IMPLEMENTED_WITH_CONSTRAINTS |
 | Voucher reversal | yes | no | UNVERIFIED | no | PARTIAL |
@@ -927,7 +929,7 @@ Columns: BVM / Cash / TaxDoc / GL / Snap / Recon; ✓ works, ✗ missing, — n/
 | B31 | `collectPaymentTx` must read and honor `default_creation_status` (and per-leg explicit status) instead of hardcoding COMPLETED for non-gateway methods | MEDIUM | CONTROL_GAP | M6; order-settlement.service.ts:827 | B4 |
 | B32 | Gate drawer movements on effective payment status; implement or remove `allow_status_override` | LOW | CONTROL_GAP | M7/M8 | — |
 | B33 | Correct pending-payment warning semantics so a valid PENDING leg does not emit `PENDING_PAYMENT_COUNTED_AS_PAID` or force MISMATCH unless the pending amount was actually included in paid totals | MEDIUM | CONTROL_GAP | §5.2 / M9 | B2 |
-| B34 | Refund back-office UI: initiate-refund screen (payment/credit-leg picker from order detail), approval queue, process action — the maker-checker workflow is API-complete but UI-absent (Addendum A1) | HIGH | BLOCKS_FEATURE / CONTROL_GAP | A1 | B1 (classification display); B27 (impl) |
+| B34 | Refund back-office UI: initiate-refund screen (payment/credit-leg picker from order detail), approval queue, process action — the three-stage refund workflow is API-complete but UI-absent (Addendum A1); **no maker≠checker (A3)** | HIGH | BLOCKS_FEATURE / CONTROL_GAP | A1 | B1 (classification display); B27 (impl) |
 
 # 51. Final Readiness Verdict
 
@@ -958,7 +960,7 @@ Columns: BVM / Cash / TaxDoc / GL / Snap / Recon; ✓ works, ✗ missing, — n/
 
 ## A1 — Refund workflow is UI-absent (verified 2026-07-16)
 
-The refund maker-checker workflow (§8) is **API-complete but has no usable UI**: no screen can initiate, approve, or process a standalone refund.
+The three-stage refund workflow (§8) is **API-complete but has no usable UI**: no screen can initiate, approve, or process a standalone refund. **(A3: no maker≠checker — permission is the only approval gate.)**
 
 | Layer | Surface | Verified state |
 |---|---|---|
@@ -988,6 +990,14 @@ Scope boundary: **B16 fixes only the documented M2 filter** (active + COMPLETED-
 Recommendation: a dedicated decision + package to unify **one** expected-cash formula across `closeSession`, `buildSessionReconciliation`, and `buildCashDrawerClosePreview` — counting each cash fact exactly once (sale cash from the payment ledger; float/petty/adjustment cash from manual movements; sale-mirror `CASH_SALE`/change movements excluded), with correct change modelling. Until then the drawer-close capability must not be marked production-ready (consistent with B16's own Safety block and the one-package-does-not-make-a-capability-production-ready rule).
 
 **RESOLVED by [B35](../../../features/Order_Fin/Remediation_Work_Packages/B35_Unified_Drawer_Expected_Cash.md) (implemented 2026-07-18, owner directive).** The recommended single-source-of-truth formula was adopted: the payment ledger owns sale cash; the movement term counts only MANUAL movements (`order_payment_id IS NULL`), excluding sale-mirror `CASH_SALE`/change rows. Applied unconditionally across `closeSession`, `buildSessionReconciliation`, the list/detail loaders, and (via the preferred server value) `buildCashDrawerClosePreview`. The `order_fin_drawer_close_v2` feature flag introduced by B16 was removed (the fix is a correctness change, not a gated rollout). Gates green; the two previously-failing `cash-drawer-close-preview` tests now pass. B9 coordination noted (cash-refund OUT movements must not be excluded by the `order_payment_id` rule).
+
+## A3 — Maker≠checker is not required (owner policy, 2026-09-17)
+
+The 2026-07-15 snapshot described refund approval as a two-person (maker≠checker) control. **That rule is withdrawn.** Many tenant laundries operate with a single employee; requiring a second distinct user blocks daily work.
+
+**Current policy:** if the actor holds the required permission (`orders:approve_refund`, `cash_drawer:approve_variance`, or the equivalent for that action), they may approve even when they are the maker (requester, closer, initiator). Do not reintroduce self-approval blocks.
+
+Canonical: [Remediation_Work_Packages/CLAUDE.md](../../../features/Order_Fin/Remediation_Work_Packages/CLAUDE.md). Runtime already matches (refunds + drawer variance). The §43 "Maker-checker" column for refunds is superseded as **no**.
 
 ```text
 AUTHORITATIVE REPORT STATUS:

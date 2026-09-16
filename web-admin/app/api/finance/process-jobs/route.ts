@@ -1,14 +1,9 @@
 /**
  * POST /api/finance/process-jobs
  *
- * Internal-only finance job dispatcher (B19). Called by pg_cron via pg_net
- * from 3 separate schedules, each posting a different `job` body (see
- * migration 0429 — `fin-gift-card-expiry`/`fin-idempotency-cleanup`/
- * `fin-erp-posting-retry`, all routed through the shared
- * `fin_trigger_job()` SQL function).
- * Authorization: Bearer {FINANCE_OUTBOX_SECRET} — reuses B7's existing
- * secret (same `sys_fin_runtime_cf` row, same trust boundary; no new
- * secret minted for this package).
+ * Internal-only finance job dispatcher. Called by pg_cron via pg_net
+ * from schedules posting a `job` body (see migrations 0429 + 0505 —
+ * `fin_trigger_job()`). Authorization: Bearer {FINANCE_OUTBOX_SECRET}.
  *
  * All business logic lives in lib/services/finance-jobs.service.ts — this
  * route only owns auth, body validation, and the HTTP envelope.
@@ -51,12 +46,15 @@ export async function POST(request: NextRequest) {
       jobCode: parsed.data.job as (typeof FINANCE_JOB_CODE_VALUES)[number],
       triggerSource: 'SCHEDULE',
     });
+    if (result.skippedBecauseRunning) {
+      return NextResponse.json({ success: true, data: result });
+    }
     if (result.status === 'FAILED' || result.failedCount > 0) {
-      logger.warn('B19 finance job run had failures', result as unknown as Record<string, unknown>);
+      logger.warn('Finance job run had failures', result as unknown as Record<string, unknown>);
     }
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    logger.error('B19 finance job dispatcher crashed', error instanceof Error ? error : undefined, {
+    logger.error('Finance job dispatcher crashed', error instanceof Error ? error : undefined, {
       job: parsed.data.job,
     });
     return NextResponse.json({ success: false, error: 'JOB_PROCESSING_FAILED' }, { status: 500 });

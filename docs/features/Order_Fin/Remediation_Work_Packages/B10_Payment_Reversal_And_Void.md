@@ -18,11 +18,11 @@ PAYMENT_REVERSAL and PAYMENT_VOID do not exist as transactions; VOIDED/REVERSED 
 | §34 matrix | reversal/void NOT_FOUND | taxonomy per D004 Option B |
 
 ## Required outcome
-Void service (never-effective legs → VOIDED/CANCELLED, no money movement, outstanding recomputes) and reversal service (COMPLETED leg → REVERSED + contra fact with lineage, drawer/voucher compensation via B13 wiring, maker-checker), both keyed and audited.
+Void service (never-effective legs → VOIDED/CANCELLED, no money movement, outstanding recomputes) and reversal service (COMPLETED leg → REVERSED + contra fact with lineage, drawer/voucher compensation via B13 wiring, permission-gated with mandatory reason — no maker≠checker), both keyed and audited.
 
 ## Scope
 Transition services + APIs; contra-fact lineage columns assessment; snapshot interaction tests (FAILED-set aggregation already correct).
-**Frontend surface (rule 7):** VOID action on pending/authorized legs surfaces in the B30 worklist and order Financial tab; REVERSAL action (maker-checker dialog with reason) on the order Financial tab payments table and voucher detail — no API-only transitions.
+**Frontend surface (rule 7):** VOID action on pending/authorized legs surfaces in the B30 worklist and order Financial tab; REVERSAL action (reason dialog, permission-gated, same user allowed) on the order Financial tab payments table and voucher detail — no API-only transitions.
 
 ## Out of scope
 Voucher-side unwind mechanics (B13); gateway void/reversal calls (B8); chargebacks (B26).

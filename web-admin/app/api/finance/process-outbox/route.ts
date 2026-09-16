@@ -5,15 +5,13 @@
  * minute via pg_net (see migration 0410 — `fin-outbox-processor` job).
  * Authorization: Bearer {FINANCE_OUTBOX_SECRET}
  *
- * Mirrors the notifications outbox processor's auth/trigger pattern
- * (app/api/notifications/process-outbox/route.ts). All business logic lives
- * in lib/services/outbox-processor.service.ts — this route only owns auth
- * and the HTTP envelope.
+ * Delegates to runFinanceJob(outbox_processor) so every tick is visible
+ * on the jobs hub (run log, overlap guard, idle-tick prune).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
-import { processOutboxBatch } from '@/lib/services/outbox-processor.service';
+import { FINANCE_JOB_CODES, runFinanceJob } from '@/lib/services/finance-jobs.service';
 
 function isAuthorized(request: NextRequest): boolean {
   const secret = process.env.FINANCE_OUTBOX_SECRET;
@@ -28,8 +26,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await processOutboxBatch();
-    if (result.failed > 0 || result.deadLettered > 0) {
+    const result = await runFinanceJob({
+      jobCode: FINANCE_JOB_CODES.OUTBOX_PROCESSOR,
+      triggerSource: 'SCHEDULE',
+    });
+    if (result.skippedBecauseRunning) {
+      return NextResponse.json({ success: true, data: result });
+    }
+    if (result.status === 'FAILED' || result.failedCount > 0) {
       logger.warn('Financial outbox batch had failures', result as unknown as Record<string, unknown>);
     }
     return NextResponse.json({ success: true, data: result });

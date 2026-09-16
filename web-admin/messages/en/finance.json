@@ -48,6 +48,11 @@
     "postSuccess": "Voucher posted successfully.",
     "cancelSuccess": "Voucher cancelled.",
     "reverseSuccess": "Reversal voucher created.",
+    "reverseErrors": {
+      "VOUCHER_UNWIND_PAYMENT_NOT_FOUND": "This voucher line has no linked payment to unwind. Reverse cancelled.",
+      "VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED": "Open a cash-drawer session on the original drawer, then reverse again.",
+      "VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS": "A linked payment is in a status that cannot be unwound. Reverse cancelled."
+    },
     "editSuccess": "Voucher updated successfully.",
     "lineDeleted": "Line deleted.",
     "actions": {

@@ -1,7 +1,7 @@
 # B09 — Refund Execution Parity
 
 ## Metadata
-Backlog ID: B9 · Severity: HIGH · Classification: CONTROL_GAP · Status: IMPLEMENTED (uncommitted, 2026-07-23)
+Backlog ID: B9 · Severity: HIGH · Classification: CONTROL_GAP · Status: IMPLEMENTED (committed + deployed; **0443 APPLIED** local+remote 2026-09). FLAG_CATALOG `default_value` synced to `true` to match `hq_ff_feature_flags_mst`. Awaiting Preview QA §16.
 Authoritative report sections: §8 (destinations table), §34, §40 (cash refund NOT_FOUND), §50-B9
 Required decisions: [D004](00_Phase_0_Financial_Semantics/D004_Refund_Vs_Reversal_Vs_Void.md), [D007](00_Phase_0_Financial_Semantics/D007_BVM_And_ERP_Lite_Responsibilities.md)
 Dependencies: [B01](B01_Refund_Lineage_And_Reopen_Due.md) (hard — classification input); [B16](B16_Cash_Drawer_Filtering_And_Variance_Approval.md) (opt — drawer expected-cash coordination)
@@ -66,7 +66,7 @@ Accessibility: reused existing Cmx primitives/dialog patterns — no new a11y su
 Audit trail: voucher ↔ refund row ↔ movement backlinks via the 3 new dedicated columns (not metadata); actor stamped via the voucher's `created_by`/`performed_by`.
 Observability: `REFUND_LINK_EXISTS` (ar-checks.ts) rewritten with two verification modes — unambiguous (via the new backlink columns, when execution ran) and the original reverse-pointer fallback (legacy/flag-off rows) — plus a new sub-check that a CASH refund's voucher has a linked drawer movement.
 Jobs/workers: none
-Feature flag: `order_fin_refund_execution` (independent, default OFF — record-only fallback exactly matches pre-B9 behavior)
+Feature flag: `order_fin_refund_execution` (independent; catalog + DB default **true** after 0443 — tenant override can still force record-only)
 Rollout: flag OFF in every environment today; production activation only after B1 VERIFIED (recorded in this package's Safety block) and drawer-parity tests green (already green in this session's gates; still needs the recorded Preview QA approval per the folder's release-promotion rule)
 Rollback: flag off → record-only behavior (today's state), facts remain consistent — verified by dedicated tests (`processRefund — B9 execution flag off`) asserting zero voucher/wiring calls
 
@@ -88,7 +88,7 @@ Required verification gates: drawer-parity tests green; refund voucher ↔ movem
 
 **IMPLEMENTED 2026-07-23 (uncommitted).** Full-cycle: migration, wiring handler, service execution branch, API route, frontend (process dialog + initiate-dialog hint), i18n EN/AR, reconciliation extension, tests.
 
-**Migration `0418_b09_refund_execution_backlinks.sql` — STOP-AND-WAIT, not yet applied.** Adds `fin_voucher_id`/`fin_voucher_trx_line_id`/`cash_drawer_movement_id` to `org_order_refunds_dtl` (nullable, sparse-unique on the two line-scoped columns, no FK — mirrors the exact pattern migration 0303 already established for every other `fin_voucher_id` backlink in this codebase). `prisma/schema.prisma` hand-updated + `npx prisma generate` re-run (same pattern as B3/B4/B7/B27/B30) so the service layer type-checks and unit-tests before the owner applies the migration.
+**Migration `0418` APPLIED (owner).** **Flag seed `0443` APPLIED (owner, 2026-09)** — remote `hq_ff_feature_flags_mst.default_value` is `true`. FLAG_CATALOG mirrored 2026-09-17. Preview QA §16 still pending.
 
 **Backend:**
 - New `lib/services/wiring/order-refund-cash-drawer-wiring.handler.ts` — `canHandle`: `line_role === ORDER_REFUND && direction === 'OUT' && payment_method_code === CASH && cash_drawer_session_id != null`. Distinct from `cashDrawerWiringHandler` (owns ORDER_PAYMENT/IN legs): a refund line is a self-contained OUT leg, not a change-return sub-leg, so its movement links **both** `fin_voucher_id` and `fin_voucher_trx_line_id` (no sparse-index conflict with the change-return convention). Registered in `voucher-wiring.service.ts`'s `WIRING_HANDLERS`.

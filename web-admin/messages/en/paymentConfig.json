@@ -232,6 +232,8 @@
     "assignedTerminal": "Assigned terminal",
     "unassignedTerminal": "No terminal assigned",
     "maxCashLimit": "Maximum cash limit",
+    "varianceApprovalThreshold": "Variance approval threshold",
+    "varianceApprovalThresholdHint": "Optional. When close variance exceeds this amount, a supervisor may record an approval for audit. Leave empty to skip.",
     "requiresSession": "Requires session",
     "openingFloatRequired": "Opening float required",
     "sessionStatus": "Session status",

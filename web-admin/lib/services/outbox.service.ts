@@ -163,3 +163,31 @@ export async function manualRetry(eventId: string, tenantId: string): Promise<vo
     throw new Error('EVENT_NOT_FOUND_OR_NOT_RETRYABLE');
   }
 }
+
+/** Max events a single ops bulk-retry may re-queue in one request. */
+export const OUTBOX_BULK_RETRY_MAX = 50;
+
+/**
+ * Manually re-queue many FAILED/DEAD_LETTERED events (ops bulk action).
+ * Tenant-scoped; silently skips ids that are missing or not retryable.
+ * @param eventIds
+ * @param tenantId
+ */
+export async function manualRetryMany(eventIds: string[], tenantId: string): Promise<number> {
+  const unique = [...new Set(eventIds)].slice(0, OUTBOX_BULK_RETRY_MAX);
+  if (unique.length === 0) return 0;
+  const updated = await prisma.org_domain_events_outbox.updateMany({
+    where: {
+      id: { in: unique },
+      tenant_org_id: tenantId,
+      status: { in: [OUTBOX_STATUSES.FAILED, OUTBOX_STATUSES.DEAD_LETTERED] },
+    },
+    data: {
+      status:        OUTBOX_STATUSES.PENDING,
+      attempts:      0,
+      next_retry_at: new Date(),
+      error_message: null,
+    },
+  });
+  return updated.count;
+}

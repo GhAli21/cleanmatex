@@ -1,6 +1,27 @@
 # RESUME — Order Fin Remediation Program (session continuation)
 
-**Updated:** 2026-09-16 evening — **owner-delegated sign-off.** Live-money packages VERIFIED. Stop new Order Fin packages. Do not apply 0443. Do not start B13/B23/B24/B25.
+**Updated:** 2026-09-17 — expert re-eval after owner commit / deploy / all prior migrations applied. Implemented remaining operational P1s + B13 v1.
+
+---
+
+## ⏩ 2026-09-17 — Expert re-eval; implement remaining needed work
+
+Owner: all previous Order Fin code is committed, deployed, and **all existing migrations applied** locally and remotely. Re-validated pending packages against remote flags and code.
+
+**Decisions**
+- Do **not** start B23 / B24 / B25 / B26 (legacy retirement / AR periods / revenue rec / enterprise FX).
+- B07 remaining is **ops**: copy `FINANCE_OUTBOX_SECRET` from `sys_fin_runtime_cf` into deploy env (not code).
+- B05 / B32 / B33 are already implemented — remaining is thin Preview QA, not more code.
+- B09 is LIVE (`order_fin_refund_execution` default **true** on remote after 0443). FLAG_CATALOG was still `false` — **synced to true**.
+- **B20 §8.2:** show persisted `total_checked` / passed / failed / warnings on recon list + detail.
+- **B16 P1:** `variance_approval_threshold` on Payment Setup drawer form.
+- **B13 v1:** ORDER_PAYMENT unwind via B10, flag `order_fin_voucher_unwind` default **false**. **Migration 0506 — apply locally and remotely, then enable on Preview.** Credit/SV unwind + preview UI remain a later slice.
+
+**▶ NOW:** apply `0506_add_feature_flag_order_fin_voucher_unwind.sql` (do not enable the flag until Preview QA of a cash receipt reverse). Commit this session. Retest §6.4–6.7, §8.2, §16 (B09).
+
+---
+
+## ⏩ 2026-09-16 evening — Owner decision: VERIFIED live money; stop here
 
 ---
 
@@ -8,7 +29,7 @@
 
 **You asked me to act as owner.** Decision:
 
-1. **VERIFIED** (N/A waived for shared-Preview-unsafe cases): B15, B01, B02, B34, B16 (default close), B35, B29, B04, B31, B27, B03, B30, B10, B18. Maker-checker **refunds** path accepted (§28.1–28.3).
+1. **VERIFIED** (N/A waived for shared-Preview-unsafe cases): B15, B01, B02, B34, B16 (default close), B35, B29, B04, B31, B27, B03, B30, B10, B18. Permission-gated refunds approval path accepted (§28.1–28.3), including same-user approval (no maker≠checker).
 2. **Not VERIFIED:** B33, B20 (§8.2 P1), B05 (idempotency DevTools), B07/B19 smoke, B32, B09 (needs 0443), B06/B08/B11/B12/B14/B17 dormant, B21/B22.
 3. **No new code tonight.** P1 backlog only: variance-threshold settings field; recon 38-count; apply 0443 later for B9.
 4. **Do not start B13/B23/B24/B25.**

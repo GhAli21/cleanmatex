@@ -232,6 +232,8 @@
     "assignedTerminal": "الجهاز المخصص",
     "unassignedTerminal": "لا يوجد جهاز مخصص",
     "maxCashLimit": "الحد الأقصى للنقد",
+    "varianceApprovalThreshold": "حد اعتماد فرق الجرد",
+    "varianceApprovalThresholdHint": "اختياري. عند تجاوز فرق الإغلاق لهذا المبلغ يمكن للمشرف تسجيل اعتماد للتدقيق. اتركه فارغاً للتخطي.",
     "requiresSession": "يتطلب جلسة",
     "openingFloatRequired": "يتطلب رصيد افتتاحي",
     "sessionStatus": "حالة الجلسة",

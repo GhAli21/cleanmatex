@@ -291,6 +291,10 @@
     "currency": "العملة",
     "ranAt": "وقت التشغيل",
     "ranBy": "شغّلها",
+    "totalChecked": "الفحوصات المنفذة",
+    "passedChecks": "نجحت",
+    "failedChecks": "فشلت",
+    "warningChecks": "تحذيرات الفحص",
     "blockers": "عوائق",
     "warnings": "تحذيرات",
     "info": "معلومات",
@@ -373,30 +377,54 @@
   },
   "outboxMonitor": {
     "title": "مراقبة صندوق الأحداث",
-    "description": "حالة صندوق أحداث النطاق المالي — الأحداث المعلقة والفاشلة والمتوقفة نهائيًا",
+    "description": "صندوق أحداث النطاق المالي — عرض الحمولة، واسترداد الأحداث العالقة، والانتقال إلى الطلب أو الفاتورة أو السند المرتبط.",
     "refresh": "تحديث",
+    "autoRefresh": "تحديث تلقائي",
+    "jumpToJobs": "المهام المجدولة",
     "allStatuses": "كل الحالات",
+    "allEventTypes": "كل أنواع الأحداث",
+    "allAggregates": "كل الكيانات",
+    "searchPlaceholder": "نوع الحدث أو الخطأ أو المعرّف",
+    "fromDate": "من",
+    "toDate": "إلى",
     "empty": "لا توجد أحداث في الصندوق",
+    "emptyHint": "جرّب حالة أو نوع حدث أو نطاق تاريخ آخر.",
     "loadFailed": "فشل تحميل حالة صندوق الأحداث",
     "retry": "إعادة المحاولة",
     "retrying": "جارٍ إعادة المحاولة…",
     "retrySuccess": "تمت إعادة جدولة الحدث",
     "retryFailed": "فشلت إعادة محاولة الحدث",
+    "retryConfirmTitle": "إعادة جدولة هذا الحدث؟",
+    "retryConfirmDescription": "ستُعاد المحاولات إلى صفر ويلتقطه المعالج في الدورة التالية.",
+    "bulkRetry": "إعادة محاولة الفاشل المطابق",
+    "bulkRetrySuccess": "{count, plural, one {تمت إعادة جدولة حدث واحد} other {تمت إعادة جدولة # أحداث}}",
+    "bulkRetryFailed": "فشلت إعادة محاولة الأحداث المطابقة",
+    "bulkRetryConfirmTitle": "إعادة محاولة الأحداث الفاشلة المطابقة؟",
+    "bulkRetryConfirmDescription": "سيتم إعادة جدولة حتى 50 حدثًا فاشلًا أو متوقفًا نهائيًا ضمن عامل التصفية الحالي.",
+    "copyId": "نسخ المعرّف",
+    "copyFailed": "تعذر نسخ معرّف الحدث",
+    "stuckBadge": "عالِق",
+    "ageMinutes": "{count, plural, =0 {الآن} one {دقيقة} other {# دقائق}}",
     "counts": {
       "pending": "معلق",
       "processing": "قيد المعالجة",
       "failed": "فاشل",
       "deadLettered": "متوقف نهائيًا",
-      "processedLast24h": "تمت معالجته (24 ساعة)"
+      "processedLast24h": "تمت معالجته (24 ساعة)",
+      "stuck": "عالِق"
     },
     "columns": {
       "eventType": "الحدث",
-      "aggregate": "الكيان",
+      "aggregate": "السجل",
       "status": "الحالة",
       "attempts": "المحاولات",
+      "age": "العمر",
       "nextRetryAt": "المحاولة التالية",
+      "processedAt": "تاريخ المعالجة",
       "createdAt": "تاريخ الإنشاء",
-      "error": "الخطأ"
+      "error": "الخطأ",
+      "handlers": "المعالجات",
+      "actions": "إجراءات"
     },
     "statusLabels": {
       "PENDING": "معلق",
@@ -404,6 +432,56 @@
       "PROCESSED": "تمت المعالجة",
       "FAILED": "فاشل",
       "DEAD_LETTERED": "متوقف نهائيًا"
+    },
+    "handlers": {
+      "order-history": "سجل الطلب",
+      "loyalty-earn": "اكتساب نقاط الولاء",
+      "none": "بدون مستهلك"
+    },
+    "health": {
+      "oldestPending": "أقدم معلق: {count, plural, one {دقيقة واحدة} other {# دقائق}}",
+      "noPending": "لا توجد أحداث معلقة",
+      "lastProcessed": "آخر معالجة في {at}",
+      "neverProcessed": "لا توجد أحداث معالجة بعد",
+      "hint": {
+        "healthy": "المعالج يواكب الأحداث",
+        "backlog": "يوجد رصيد أحداث قابل لإعادة المحاولة",
+        "stuck": "بعض الأحداث تنتظر أكثر من ساعة",
+        "idle": "لا يوجد نشاط حديث في الصندوق"
+      }
+    },
+    "detail": {
+      "title": "حدث الصندوق",
+      "loading": "جارٍ تحميل الحدث…",
+      "loadFailed": "فشل تحميل تفاصيل الحدث",
+      "eventId": "معرّف الحدث",
+      "payload": "الحمولة",
+      "relatedRecords": "السجلات المرتبطة",
+      "siblingEvents": "أحداث أخرى على هذا السجل"
+    },
+    "links": {
+      "order": "الطلب",
+      "invoice": "الفاتورة",
+      "voucher": "السند",
+      "pendingPayments": "المدفوعات المعلقة",
+      "refunds": "الاستردادات",
+      "customer": "العميل",
+      "record": "السجل"
+    },
+    "relatedPages": {
+      "title": "صفحات مالية مرتبطة",
+      "pendingPayments": "المدفوعات المعلقة",
+      "refunds": "الاستردادات",
+      "vouchers": "سندات الأعمال",
+      "invoices": "الفواتير",
+      "reconciliation": "المطابقة",
+      "erpExceptions": "استثناءات ERP-Lite",
+      "storedValue": "القيمة المخزّنة"
+    },
+    "catalog": {
+      "title": "مستهلكو الأحداث",
+      "description": "يرسل المعالج كل حدث مُلتقط إلى كل معالج يملك نوعه. الأنواع غير المملوكة تُكمل فورًا.",
+      "unhandledHint": "الأنواع غير المملوكة تُعلَّم كمعالجة دون آثار جانبية."
     }
   },
   "pendingPayments": {
@@ -499,6 +577,7 @@
   },
   "financeJobs": {
     "title": "المهام المجدولة",
+    "description": "سجل التشغيل وصحة الجدولة وتشغيل المهام المالية عند الطلب. عمليات عبر المستأجرين — تعامل مع «تشغيل الآن» كإجراء تشغيلي.",
     "refresh": "تحديث",
     "loading": "جارٍ التحميل…",
     "neverRun": "لم يتم التشغيل بعد",
@@ -506,18 +585,71 @@
     "running": "جارٍ التشغيل…",
     "runSuccess": "اكتمل تشغيل المهمة",
     "runFailed": "فشل تشغيل المهمة",
+    "alreadyRunning": "هذه المهمة قيد التشغيل بالفعل. انتظر حتى تنتهي.",
+    "confirmRunTitle": "تشغيل هذه المهمة الآن؟",
+    "confirmRunDescription": "بدء تشغيل فوري لـ {job}. إذا كان هناك تشغيل جارٍ فسيتم رفض الطلب.",
+    "history": "السجل",
+    "historyTitle": "سجل تشغيل {job}",
+    "historyDescription": "أحدث التشغيلات لهذه المهمة. تُستبعد نبضات المعالج الخاملة كل دقيقة ما عدا آخر نبضة.",
+    "historyEmpty": "لا توجد تشغيلات مسجّلة بعد",
+    "durationMs": "{ms} مللي ثانية",
+    "durationSec": "{sec} ث",
     "outcome": "تمت معالجة {processed}، وفشل {failed}",
     "columns": {
       "job": "المهمة",
       "schedule": "الجدولة",
+      "nextRun": "التشغيل التالي",
+      "cron": "كرون",
       "lastRun": "آخر تشغيل",
+      "trigger": "المصدر",
       "status": "الحالة",
-      "outcome": "النتيجة"
+      "outcome": "النتيجة",
+      "lastError": "آخر خطأ"
+    },
+    "historyColumns": {
+      "started": "البداية",
+      "duration": "المدة"
+    },
+    "cron": {
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "unknown": "غير معروف"
+    },
+    "triggerLabels": {
+      "SCHEDULE": "جدولة",
+      "MANUAL": "يدوي"
     },
     "jobNames": {
+      "outbox_processor": "معالج صندوق الأحداث",
       "gift_card_expiry": "انتهاء صلاحية بطاقات الهدايا",
+      "credit_note_expiry": "انتهاء صلاحية إشعارات الائتمان",
       "idempotency_cleanup": "تنظيف مفاتيح عدم التكرار",
       "erp_posting_retry": "إعادة محاولة ترحيل ERP"
+    },
+    "schedules": {
+      "outbox_processor": "كل دقيقة",
+      "gift_card_expiry": "يومياً 02:00",
+      "credit_note_expiry": "يومياً 02:05",
+      "idempotency_cleanup": "يومياً 03:00",
+      "erp_posting_retry": "كل ساعة عند :15"
+    },
+    "relatedLinks": {
+      "outbox_processor": "جدول الأحداث",
+      "gift_card_expiry": "بطاقات الهدايا",
+      "credit_note_expiry": "القيمة المخزّنة",
+      "erp_posting_retry": "استثناءات ERP"
+    },
+    "statusLabels": {
+      "RUNNING": "قيد التشغيل",
+      "SUCCESS": "نجاح",
+      "FAILED": "فشل"
+    },
+    "health": {
+      "title": "صحة المهام",
+      "secretMissing": "FINANCE_OUTBOX_SECRET غير مُعدّ — لا يمكن لمهام المعالج المجدولة المصادقة.",
+      "cronInactive": "جدولة {job} غير نشطة أو مفقودة. طبّق الترحيل 0505 وتأكد من pg_cron.",
+      "lastFailed": "فشل آخر تشغيل لـ {job}.",
+      "processorStale": "لم ينبض معالج صندوق الأحداث منذ أكثر من 5 دقائق."
     }
   }
 }

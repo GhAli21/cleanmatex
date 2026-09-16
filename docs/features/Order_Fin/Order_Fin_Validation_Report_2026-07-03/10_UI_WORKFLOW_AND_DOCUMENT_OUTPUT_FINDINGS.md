@@ -1,5 +1,7 @@
 # 10 — UI Workflow and Document Output Findings
 
+> **STALE-CLAIM CORRECTION (2026-09-17):** the 2026-07-03 draft described refunds as a "good maker-checker shape." **Owner policy now:** approval is permission-gated only; the same user may approve. Many tenant laundries have one employee. Canonical: [Remediation_Work_Packages/CLAUDE.md](../Remediation_Work_Packages/CLAUDE.md).
+
 Assessed against: easy to learn/use, GCC + worldwide POS patterns, mistake-prevention on sensitive actions, clarity of totals/statuses/next actions, EN/AR + RTL, responsive behavior.
 
 ## Payment Modal v4 (New Order checkout) — 🟢 strong; the reference surface
@@ -27,7 +29,7 @@ Preview-before-post, per-event idempotency key (double-click safe), overpayment 
 
 ## Refund / adjustment / cancel — 🟠 policy gaps, not widget gaps
 
-- Refund: initiate→approve→process with separate permissions (`orders:process_refund` vs `orders:approve_refund`) — good maker-checker shape.
+- Refund: initiate→approve→process with separate permissions (`orders:process_refund` vs `orders:approve_refund`) — permission is the only gate; the requester may approve (no maker≠checker).
 - ❌ **FN-02 UX consequence:** cancelling a **paid** order gives the operator no disposition step (refund vs store credit), no warning that money remains on the order, and failures in the (legacy) unwind are silent. Worldwide-standard flow: cancel of a paid order must show "This order has X paid — choose refund / store credit / keep on account (approval)".
 - Adjustments: exist behind `orders:create_adjustment` with audit rows; fine.
 

@@ -15,7 +15,7 @@ Recommended phase: Seq 1 (first implementation wave)
 
 ## 1. Current-state analysis
 
-**Refund stages (implemented, controls only):** `initiateRefund` → `approveRefund` → `processRefund` (order-refund.service.ts:142 / :365 / :418). Maker-checker, REF- numbering via `fn_next_fin_doc_no` (:303), caps (overall :203; per-payment :231–248; per-credit-app :251–295), FOR UPDATE process lock (:430), `uq_refund_idempotency`.
+**Refund stages (implemented, controls only):** `initiateRefund` → `approveRefund` → `processRefund` (order-refund.service.ts:142 / :365 / :418). Three-stage workflow (permission-gated; requester may approve — no maker≠checker), REF- numbering via `fn_next_fin_doc_no` (:303), caps (overall :203; per-payment :231–248; per-credit-app :251–295), FOR UPDATE process lock (:430), `uq_refund_idempotency`.
 
 **Existing database columns (org_order_refunds_dtl, mig 0340):** `refund_source_type` (never written), `reopens_due_amount` (never written, default 0), `original_payment_id` (written when provided), `refund_method_code`, `refund_status`, `idempotency_key`, `metadata` (JSON — currently holds `refund_scope`, `original_payment_id`, `original_credit_app_id`, requested/approved/processed_by).
 
@@ -38,7 +38,7 @@ Live-schema discovery (read-only) plus owner confirmation corrected the §1/§9 
 1. **`org_order_refunds_dtl` is EMPTY** — 0 rows verified locally (read-only query) and owner-confirmed empty in the deployed database (2026-07-17). No refund was ever successfully created (consistent with defect 4 below). **There are no legacy rows anywhere**, so every legacy-tolerance clause in this file is vacuous: no cutover timestamp, no conditional CHECK arms, no NULL-row heuristic population. The 0404 constraints are **unconditional**; §9.2's cutover-conditional pattern was superseded at authoring (kept below as the documented mechanism for the assumed-legacy case). §10's heuristic-removal criteria and §14 scenario 17 remain as pure-function safety-net coverage of `classifyRefunds`' NULL branch only (synthetic input — no real row can be NULL).
 2. Schema facts: migration 0340 had already made `refund_source_type` NOT NULL with the old 7-value CHECK (replaced by the v2 registry CHECK in 0404); Prisma applies a client-side default `MANUAL_EXCEPTION` on insert (the service never writes the column) — that default is removed in the B01 service phase so a missing classification fails loudly. `refund_context` is added **NOT NULL** (possible because the table is empty).
 3. **`chk_reopens_due_lte_refund` already exists** (0340) — ensured idempotently in 0404, not re-added. **`original_payment_id` FK was single-column** — replaced by tenant-composite `fk_refund_orig_payment_tenant` per §9.3; unique `(tenant_org_id, id)` indexes added on both lineage target tables.
-4. **Defect found and fixed in 0404:** the `refund_status` CHECK (0271) never allowed `PENDING_APPROVAL`, which the maker-checker write path inserts by default — approval-required initiation failed on a real DB (masked in jest by mocked Prisma; also explains why the table stayed empty). CHECK widened; §14 initiate→approve→process scenarios depend on it.
+4. **Defect found and fixed in 0404:** the `refund_status` CHECK (0271) never allowed `PENDING_APPROVAL`, which the initiate write path inserts by default — approval-required initiation failed on a real DB (masked in jest by mocked Prisma; also explains why the table stayed empty). CHECK widened; §14 initiate→approve→process scenarios depend on it.
 
 ## 2. Approved-decision dependencies
 

@@ -70,14 +70,17 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   { flag_key: 'order_fin_sv_funding_capture', flag_name: 'Stored-Value Funding Capture', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 11 },
   // B9 — refund execution parity (REFUND_VOUCHER + cash-drawer CASH_OUT for
   // CASH refunds; manual-settlement reference for ORIGINAL_METHOD). Independent
-  // + default OFF (Safety block: production activation only after B1 VERIFIED
-  // and drawer-parity tests green).
-  { flag_key: 'order_fin_refund_execution', flag_name: 'Refund Execution Parity', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 12 },
+  // + default ON after migration 0443 (applied 2026-09). Tenant override can
+  // still disable record-only behaviour.
+  { flag_key: 'order_fin_refund_execution', flag_name: 'Refund Execution Parity', plan_binding_type: 'independent', data_type: 'boolean', default_value: true, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 12 },
   // B12 — governed order amendments (post-payment item edits require a reason
   // and route the financial delta through a real collect-additional /
   // overpayment-resolution step). Independent + default OFF (Safety block:
   // production activation is per-tenant pilot before broad enable).
   { flag_key: 'order_fin_governed_amendments', flag_name: 'Governed Order Amendments', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'experimental', ui_display_order: 13 },
+  // B13 — voucher reverse operational unwind (ORDER_PAYMENT → B10 VOID/REVERSE).
+  // Independent + default OFF until Preview QA; migration 0506.
+  { flag_key: 'order_fin_voucher_unwind', flag_name: 'Voucher Reversal Operational Unwind', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 14 },
   { flag_key: 'ai_damage_detection', flag_name: 'AI Damage Detection', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'barcode_scanning', flag_name: 'Barcode Scanning', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'image_recognition', flag_name: 'Image Recognition', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },

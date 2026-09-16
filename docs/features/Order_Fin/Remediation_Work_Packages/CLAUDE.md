@@ -2,7 +2,11 @@
 
 These rules apply to all files inside this `Remediation_Work_Packages` folder.
 
-No need for maker-checker in approve even same user can approve if he have the required permission.
+**No maker≠checker.** Approval is gated by permission only: if the actor holds the required permission, they may approve even when they are the maker (requester, closer, initiator). Do **not** require a second distinct user.
+
+Reason: many tenant laundries operate with a **single employee**. A mandatory maker≠checker rule would block their daily work.
+
+Do not reintroduce self-approval blocks in planning, UI disablement, error codes, or server checks.
 
 ## Current stage
 

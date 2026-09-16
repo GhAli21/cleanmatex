@@ -48,6 +48,11 @@
     "postSuccess": "تم ترحيل السند بنجاح.",
     "cancelSuccess": "تم إلغاء السند.",
     "reverseSuccess": "تم إنشاء سند العكس.",
+    "reverseErrors": {
+      "VOUCHER_UNWIND_PAYMENT_NOT_FOUND": "لا يوجد دفع مرتبط بهذا البند لفكّه. تم إلغاء العكس.",
+      "VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED": "افتح جلسة درج نقدي على الدرج الأصلي ثم أعد العكس.",
+      "VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS": "دفع مرتبط بحالة لا يمكن فكّها. تم إلغاء العكس."
+    },
     "editSuccess": "تم تحديث السند بنجاح.",
     "lineDeleted": "تم حذف البند.",
     "actions": {

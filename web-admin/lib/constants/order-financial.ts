@@ -622,6 +622,33 @@ export const OUTBOX_STATUSES = {
 export type OutboxStatus = (typeof OUTBOX_STATUSES)[keyof typeof OUTBOX_STATUSES];
 
 /**
+ * Which processor handlers consume which event types.
+ * Keep in sync with `OUTBOX_HANDLERS` in `outbox-processor.service.ts`.
+ */
+export const OUTBOX_HANDLER_CATALOG = [
+  {
+    handler: 'order-history',
+    eventTypes: [
+      OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
+      OUTBOX_EVENT_TYPES.VOUCHER_POSTED_AND_WIRED,
+      OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
+      OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
+    ],
+  },
+  {
+    handler: 'loyalty-earn',
+    eventTypes: [OUTBOX_EVENT_TYPES.LOYALTY_EARN],
+  },
+] as const;
+
+/** Handler names that own a given outbox event type (empty = auto-processed). */
+export function outboxHandlersForEventType(eventType: string): string[] {
+  return OUTBOX_HANDLER_CATALOG
+    .filter((entry) => (entry.eventTypes as readonly string[]).includes(eventType))
+    .map((entry) => entry.handler);
+}
+
+/**
  * Checkout settlement routing mirrored from `org_payment_methods_cf.payment_nature`.
  *
  * Why:

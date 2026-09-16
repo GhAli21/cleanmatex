@@ -291,6 +291,10 @@
     "currency": "Currency",
     "ranAt": "Ran At",
     "ranBy": "Ran By",
+    "totalChecked": "Checks run",
+    "passedChecks": "Passed",
+    "failedChecks": "Failed",
+    "warningChecks": "Warnings",
     "blockers": "Blockers",
     "warnings": "Warnings",
     "info": "Info",
@@ -373,30 +377,54 @@
   },
   "outboxMonitor": {
     "title": "Outbox Monitor",
-    "description": "Financial domain-event outbox health — pending, failed, and dead-lettered events",
+    "description": "Financial domain-event outbox — inspect payloads, recover stuck events, and jump to the related order, invoice, or voucher.",
     "refresh": "Refresh",
+    "autoRefresh": "Auto-refresh",
+    "jumpToJobs": "Scheduled jobs",
     "allStatuses": "All statuses",
+    "allEventTypes": "All event types",
+    "allAggregates": "All aggregates",
+    "searchPlaceholder": "Event type, error, or ID",
+    "fromDate": "From",
+    "toDate": "To",
     "empty": "No outbox events",
+    "emptyHint": "Try another status, event type, or date range.",
     "loadFailed": "Failed to load outbox status",
     "retry": "Retry",
     "retrying": "Retrying…",
     "retrySuccess": "Event re-queued",
     "retryFailed": "Failed to retry event",
+    "retryConfirmTitle": "Re-queue this event?",
+    "retryConfirmDescription": "Attempts reset to zero and the processor will pick it up on the next tick.",
+    "bulkRetry": "Retry matching failed",
+    "bulkRetrySuccess": "{count, plural, one {# event re-queued} other {# events re-queued}}",
+    "bulkRetryFailed": "Failed to retry matching events",
+    "bulkRetryConfirmTitle": "Retry matching failed events?",
+    "bulkRetryConfirmDescription": "Up to 50 FAILED or dead-lettered events in the current filter will be re-queued.",
+    "copyId": "Copy ID",
+    "copyFailed": "Could not copy the event ID",
+    "stuckBadge": "Stuck",
+    "ageMinutes": "{count, plural, =0 {Just now} one {# min} other {# min}}",
     "counts": {
       "pending": "Pending",
       "processing": "Processing",
       "failed": "Failed",
       "deadLettered": "Dead-lettered",
-      "processedLast24h": "Processed (24h)"
+      "processedLast24h": "Processed (24h)",
+      "stuck": "Stuck"
     },
     "columns": {
       "eventType": "Event",
-      "aggregate": "Aggregate",
+      "aggregate": "Record",
       "status": "Status",
       "attempts": "Attempts",
-      "nextRetryAt": "Next Retry",
+      "age": "Age",
+      "nextRetryAt": "Next retry",
+      "processedAt": "Processed",
       "createdAt": "Created",
-      "error": "Error"
+      "error": "Error",
+      "handlers": "Handlers",
+      "actions": "Actions"
     },
     "statusLabels": {
       "PENDING": "Pending",
@@ -404,6 +432,56 @@
       "PROCESSED": "Processed",
       "FAILED": "Failed",
       "DEAD_LETTERED": "Dead-lettered"
+    },
+    "handlers": {
+      "order-history": "Order history",
+      "loyalty-earn": "Loyalty earn",
+      "none": "No consumer"
+    },
+    "health": {
+      "oldestPending": "Oldest pending: {count, plural, one {# minute} other {# minutes}}",
+      "noPending": "No pending events",
+      "lastProcessed": "Last processed at {at}",
+      "neverProcessed": "No processed events yet",
+      "hint": {
+        "healthy": "Processor is keeping up",
+        "backlog": "There is a retryable backlog",
+        "stuck": "Some events have been waiting more than an hour",
+        "idle": "No recent outbox activity"
+      }
+    },
+    "detail": {
+      "title": "Outbox event",
+      "loading": "Loading event…",
+      "loadFailed": "Failed to load event detail",
+      "eventId": "Event ID",
+      "payload": "Payload",
+      "relatedRecords": "Related records",
+      "siblingEvents": "Other events on this record"
+    },
+    "links": {
+      "order": "Order",
+      "invoice": "Invoice",
+      "voucher": "Voucher",
+      "pendingPayments": "Pending payments",
+      "refunds": "Refunds",
+      "customer": "Customer",
+      "record": "Record"
+    },
+    "relatedPages": {
+      "title": "Related finance pages",
+      "pendingPayments": "Pending payments",
+      "refunds": "Refunds",
+      "vouchers": "Business vouchers",
+      "invoices": "Invoices",
+      "reconciliation": "Reconciliation",
+      "erpExceptions": "ERP-Lite exceptions",
+      "storedValue": "Stored value"
+    },
+    "catalog": {
+      "title": "Event consumers",
+      "description": "The processor fans each claimed event to every handler that owns its type. Unhandled types complete immediately.",
+      "unhandledHint": "Unhandled types are marked processed with no side effects."
     }
   },
   "pendingPayments": {
@@ -499,6 +577,7 @@
   },
   "financeJobs": {
     "title": "Scheduled Jobs",
+    "description": "Run history, cron health, and on-demand trigger for finance maintenance jobs. Cross-tenant sweeps — treat Run Now as an operations action.",
     "refresh": "Refresh",
     "loading": "Loading…",
     "neverRun": "Never run",
@@ -506,18 +585,71 @@
     "running": "Running…",
     "runSuccess": "Job run completed",
     "runFailed": "Job run failed",
+    "alreadyRunning": "This job is already running. Wait for it to finish.",
+    "confirmRunTitle": "Run this job now?",
+    "confirmRunDescription": "Start an on-demand run of {job}. If a run is already in progress, this request is rejected.",
+    "history": "History",
+    "historyTitle": "{job} run history",
+    "historyDescription": "Recent runs for this job. Idle every-minute processor ticks are omitted except the latest heartbeat.",
+    "historyEmpty": "No runs recorded yet",
+    "durationMs": "{ms} ms",
+    "durationSec": "{sec}s",
     "outcome": "{processed} processed, {failed} failed",
     "columns": {
       "job": "Job",
       "schedule": "Schedule",
-      "lastRun": "Last Run",
+      "nextRun": "Next run",
+      "cron": "Cron",
+      "lastRun": "Last run",
+      "trigger": "Trigger",
       "status": "Status",
-      "outcome": "Outcome"
+      "outcome": "Outcome",
+      "lastError": "Last error"
+    },
+    "historyColumns": {
+      "started": "Started",
+      "duration": "Duration"
+    },
+    "cron": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "unknown": "Unknown"
+    },
+    "triggerLabels": {
+      "SCHEDULE": "Schedule",
+      "MANUAL": "Manual"
     },
     "jobNames": {
+      "outbox_processor": "Outbox Processor",
       "gift_card_expiry": "Gift-Card Expiry",
+      "credit_note_expiry": "Credit-Note Expiry",
       "idempotency_cleanup": "Idempotency-Key Cleanup",
       "erp_posting_retry": "ERP Posting Retry"
+    },
+    "schedules": {
+      "outbox_processor": "Every minute",
+      "gift_card_expiry": "02:00 daily",
+      "credit_note_expiry": "02:05 daily",
+      "idempotency_cleanup": "03:00 daily",
+      "erp_posting_retry": "Hourly at :15"
+    },
+    "relatedLinks": {
+      "outbox_processor": "Event table",
+      "gift_card_expiry": "Gift cards",
+      "credit_note_expiry": "Stored value",
+      "erp_posting_retry": "ERP exceptions"
+    },
+    "statusLabels": {
+      "RUNNING": "Running",
+      "SUCCESS": "Success",
+      "FAILED": "Failed"
+    },
+    "health": {
+      "title": "Job health",
+      "secretMissing": "FINANCE_OUTBOX_SECRET is not configured — scheduled processor ticks cannot authenticate.",
+      "cronInactive": "{job} cron is inactive or missing. Apply migration 0505 and confirm pg_cron.",
+      "lastFailed": "{job} last run failed.",
+      "processorStale": "Outbox processor has not ticked in more than 5 minutes."
     }
   }
 }

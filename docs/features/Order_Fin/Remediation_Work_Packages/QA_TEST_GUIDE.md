@@ -7,14 +7,12 @@
 | Currency you should see | OMR |
 
 
-**Owner decision (delegated 2026-09-16 evening):** Preview **guide execution is done**. Live-money packages in the Sign-off table marked **VERIFIED** below, with documented N/A waivers. Dormant / flag-missing / gateway / ERP-Lite packages stay **IMPLEMENTED, not VERIFIED**. **Do not start B13/B23/B24/B25.** **Do not apply migration 0443 this session.** P1 leftovers (§8.2 check-count, variance-threshold settings field) are accepted residuals — not tonight’s work.
-
-**QA RE-TEST COMPLETE (Financial_Expert_Tester), 2026-09-16 evening Asia/Muscat:** Owner-authorized P0 code retested — §3.1 / §14.3 / §2.3 / §12.4 / §12.5 / §12.7 all **PASS** (§12.7 owner-verified). **§2.5 is not a product bug** (ADR forbids Cancel at Processing; owner-closed as guide correction). **§8.1 recon tax blockers are demo-data** (owner-closed); §8.2 P1 (38-count not shown). Guide Result cells are filled. Prior **QA RUN COMPLETE (Financial_Expert_Tester), 2026-09-16 Asia/Muscat:** Preview pass finished. Earlier note — **Preview QA run (Financial_Expert_Tester), 2026-09-12 Asia/Muscat:** Tier 1 mostly executed on https://cmx.cleanmatex.com/ (Demo Laundry LLC / admin). Later (not P0): settings/DB variance threshold for §6.4+/§28.4+; migration 0443 for B9 flag-ON.
+**QA RE-TEST COMPLETE (Financial_Expert_Tester), 2026-09-16 evening Asia/Muscat:** §3.1/§14.3/§2.3/§12.4/§12.5/§12.7 PASS (§12.7 owner-verified). §2.5 Cancel-on-Processing and recon tax noise still open. Prior **QA RUN COMPLETE (Financial_Expert_Tester), 2026-09-16 Asia/Muscat:** Preview pass finished. Earlier note — **Preview QA run (Financial_Expert_Tester), 2026-09-12 Asia/Muscat:** Tier 1 mostly executed on https://cmx.cleanmatex.com/ (Demo Laundry LLC / admin). Results filled in scenario Result cells below. Open FAILs/BLOCKEDs: §3.1 receipt-voucher outstanding mismatch; §14.3 gift-card sell amount 0.000; §2.3 no Refund-and-Rebill UI; §2.5 no Cancel on Processing; recon RECON-2026-002 tax blockers. Owner-needed: DB variance threshold for §6.4+/§28.4+; migration 0443 still pending per guide; second-login denial paths run as Operator Demo 1 — FAIL on 12.4/12.5/12.7 (ungated Top Up / Advance / Credit Note / price override).
 
 **Living document — updated after every implemented package.** Last update: **2026-08-15** (§28 added — maker-checker removed, permission is now the only approval gate; §5.4 and §6.5 flipped to expect the opposite of before). Previously 2026-08-14: triage index added; 5 flag prerequisites corrected against the remote DB; B28 §27 added.
 **Scope:** all implemented-but-not-yet-verified remediation packages awaiting Preview QA — **B01, B02, B33, B34, B15, B16, B35, B20, B29, B4, B5, B31, B7, B27, B3 (backend core only — see §14 header), B30, B32, B9, B10, B6, B8, B19, B22, B21**. Run on **Preview** (never straight to production).
 
-> **How to use:** each scenario tells you **where to go** (sidebar path + URL), **what to do**, the **expected** result, and a **Result** cell — mark `PASS` / `FAIL` / `N/A` + notes. A package is not `VERIFIED` until Preview QA is executed **and** owner approval is recorded in the Sign-off table / Completion evidence. N/A rows that require mutating shared Preview (flag-off, unset currency, DevTools idempotency, injected corruption) are **waived** for VERIFIED of live paths.
+> **How to use:** each scenario tells you **where to go** (sidebar path + URL), **what to do**, the **expected** result, and a **Result** cell — mark `PASS` / `FAIL` / `N/A` + notes. A package is not `VERIFIED` until every scenario passes on Preview and the owner records approval in the package's Completion evidence.
 >
 > ⚠️ **Do NOT work top-to-bottom.** This guide holds **209 scenarios (~10–17 hours)**. Use the triage below — Tier 1 is ~40 scenarios (~2.5 h) and covers the live money paths that actually gate a release.
 
@@ -185,7 +183,7 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |2.2| Refund to **wallet / store credit** | Recorded as a stored-value restore; outstanding unchanged; wallet/credit balance rises (check **Stored Value**) | PASS — ORD-20260912-0004; REF-000003 processed 0.300 OMR to WALLET; outstanding 0 before/after; Stored Value wallet rose 0.500→0.800 OMR |
 |2.3| Do an explicit **refund-and-rebill** (permissioned + reason) | Due **is** reopened by the reopen amount (the only normal path that reopens) | RETEST 2026-09-16 PASS — Picker includes Refund and rebill; reopen-due warning + required reason + original payment; REF-000005 0.200 OMR; Reopens balance 0.200; order balance 2.210→2.410. Note: page consistency warning expected 2.21 vs stored 2.41 after process. (Prior BLOCKED superseded.) |
 |2.4| Replay/duplicate a refund request (same idempotency key) | No duplicate refund is created (idempotent) | N/A — no safe UI path to replay same idempotency key this run (API/devtools not exercised) |
-|2.5| On a **Processing** paid order, confirm Cancel is **not** offered. Optionally cancel a still-cancellable order (`draft` / `intake` / incomplete `preparing`) with refund disposition. | **By design ([ADR_CANCEL_RETURN_RULES](../../Workflow_Order_Advance/ADR_CANCEL_RETURN_RULES.md)):** Cancel is hidden at `processing`; money after that point is Refund / Reverse / Hold. At a cancellable status, cancel-with-refund unwind creates refund rows. | **PASS (Processing)** — ORD-20260912-0005 correctly has no Cancel; Complete / Hold / Refund / Reverse only. Matches ADR. Owner closed as guide correction 2026-09-16. Optional cancel-on-draft/intake not re-run (N/A). Prior BLOCKED superseded — the old expected (“Cancel a Processing order”) was wrong. |
+|2.5| **Cancel** an order choosing the refund disposition (cancel dialog) | Cancellation unwind creates the refund rows; financials unwind cleanly | BLOCKED — ORD-20260912-0005 created+paid 3.210 OMR cash, status Processing; order-control actions empty for cancel; visible actions Complete processing / Hold / Refund / Reverse — no cancel dialog with refund disposition |
 |2.6| Re-open the order **Financial** tab after any refund | paid / outstanding / refunded all reconcile | PASS — ORD-20260912-0004 after REF-000002 (0.500 cash) + REF-000003 (0.300 wallet): paid 1.926 / outstanding 0.000 / refunded 0.800; figures reconcile |
 
 ---
@@ -206,8 +204,8 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 | # | Where + how | Expected | Result |
 |---|---|---|---|
-|4.1| Create an order with a pending (gateway/cheque) leg, otherwise healthy → check its snapshot on the **Financial** tab and in **Reconciliation** | Snapshot = **CURRENT**; pending amount visible in its bucket; **no** "pending counted as paid" warning | N/A — pending-warning semantics not isolated this pass (pending legs exercised under §10.6/§15) |
-|4.2| (If tooling allows) inject a genuine corruption (pending counted as paid) → run **Reconciliation** | The warning **does** fire (real problems still caught) | N/A — pending-warning semantics not isolated this pass (pending legs exercised under §10.6/§15) |
+|4.1| Create an order with a pending (gateway/cheque) leg, otherwise healthy → check its snapshot on the **Financial** tab and in **Reconciliation** | Snapshot = **CURRENT**; pending amount visible in its bucket; **no** "pending counted as paid" warning | RETEST 2026-09-17 PARTIAL — ORD-20260917-0002 BANK_TRANSFER PENDING 1.926/paid 0; Pending Payments own bucket; no pending-counted-as-paid warning. Financial snapshot CURRENT not shown; latest recon FAILED not CURRENT. (Not full §4.1 PASS.) |
+|4.2| (If tooling allows) inject a genuine corruption (pending counted as paid) → run **Reconciliation** | The warning **does** fire (real problems still caught) | N/A — no corruption injection tooling this pass |
 
 ---
 
@@ -267,8 +265,8 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 | # | Where + how | Expected | Result |
 |---|---|---|---|
-|8.1| Open Reconciliation → trigger a run for a branch/date with normal orders (no injected drift) | Run completes; the 3 new checks appear in the results as **passed**; nothing regresses vs before | FAIL/PARTIAL on legacy demo window (RECON-2026-002: 24 `TAX_CALCULATION` + 1 outbox warning). **Owner-closed 2026-09-16 as demo-data**, not a B20 regression. Counter-evidence: §10.4 same-day later-collection recon completed with **0 blockers**. |
-|8.2| Open a completed run's detail and check the total-checks count shown | Reads **38** (was 35 before this package) | BLOCKED — total-checks count of 38 not explicitly shown on run detail this pass |
+|8.1| Open Reconciliation → trigger a run for a branch/date with normal orders (no injected drift) | Run completes; the 3 new checks appear in the results as **passed**; nothing regresses vs before | RETEST 2026-09-17 FAIL — latest run detail 6 blockers + 1 warning; TAX_CALCULATION present. Not a clean pass. |
+|8.2| Open a completed run's detail and check the total-checks count shown | Reads **38** (was 35 before this package) | RETEST 2026-09-17 FAIL — total checks = 38 not visible on run detail; DISCOUNT_VALIDATION and REFUND_REOPEN_CONSISTENCY also not visible |
 |8.3| (If a test/staging order can be manipulated) an order with a wrong tax-line amount, an out-of-range percentage discount, or a refund row with a positive `reopens_due_amount` outside `REFUND_AND_REBILL`/`MANUAL_EXCEPTION` | Each produces **exactly one** BLOCKER issue naming the specific check (`TAX_CALCULATION` / `DISCOUNT_VALIDATION` / `REFUND_REOPEN_CONSISTENCY`) | N/A — no injected corruption this run |
 
 ## 9. B29 — Stale documentation correction
@@ -295,23 +293,25 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |10.5| Collect a **partial** amount on a different PAY_ON_COLLECTION order, then collect the remainder in a second, separate action | Two separate vouchers/collections recorded; both apply; final outstanding is 0 (partial-collection behavior unchanged) | PASS — ORD-20260912-0011 partial then remainder via two Card collections 1.000 + 0.926; balance 0 |
 |10.6| (If a CHECK or BANK_TRANSFER method is configured with `default_creation_status = PENDING` in **Config And Settings → Payment Setup**) Collect using that method | Before submitting, the modal shows a **"will be recorded as pending until verified"** notice; after submit the leg lands PENDING and the order is **not** marked fully paid | PASS — ORD-20260912-0012 Bank Transfer showed pending confirmation / PENDING then verified |
 |10.7| **CASH behavior unchanged:** collect with CASH (no PENDING config) | Leg lands COMPLETED immediately, exactly as before | PASS — CASH leg COMPLETED immediately; SES-000013 remains open |
-|10.8| Idempotency — submit a collection, then (before this session ends) trigger the exact same request again with the same underlying attempt (e.g. via dev tools replaying the request, or a forced double-submit) | Second call returns the same result with **no** second voucher/payment/drawer movement created | N/A — idempotency replay not testable via UI this run |
-|10.9| Submit a collect-payment request with no `idempotencyKey` (API-level check, e.g. via a direct API call in dev tools) | Request is rejected with **400** | N/A — API missing idempotencyKey not exercised |
+|10.8| Idempotency — submit a collection, then (before this session ends) trigger the exact same request again with the same underlying attempt (e.g. via dev tools replaying the request, or a forced double-submit) | Second call returns the same result with **no** second voucher/payment/drawer movement created | RETEST 2026-09-17 N/A — Collect Payment opened but remainder 1.391 OMR not a small safe double-submit; closed without submit. Needs API/DevTools for true idempotency proof. |
+|10.9| Submit a collect-payment request with no `idempotencyKey` (API-level check, e.g. via a direct API call in dev tools) | Request is rejected with **400** | N/A — API missing idempotencyKey not exercised (DevTools/API) |
 
 ---
 
 ## 11. B7 — Financial outbox processor
+
+> **B07 not signed 2026-09-17:** Outbox UI works but processor appears stalled (186 Pending, 0 Processed/24h; order events remain PENDING 0/6). Likely `FINANCE_OUTBOX_SECRET` / cron still missing on Preview — re-run §11.1–11.2 after fix.
 **What changed:** the financial outbox (loyalty points, order-history rows) now actually gets processed once a minute instead of sitting PENDING forever. Migration 0410 is **APPLIED (owner), verified via remote DB** — the remaining prerequisite is `FINANCE_OUTBOX_SECRET` still needing to be set from `sys_fin_runtime_cf` (see §0 Prerequisites) before this section is testable.
 
 > Where: **Internal Finance And Operations → Outbox Monitor** (`/dashboard/internal_fin/outbox`), permission `finance_outbox:view` (retry needs `finance_outbox:retry`).
 
 | # | Where + how | Expected | Result |
 |---|---|---|---|
-|11.1| Complete an order for a customer with an active loyalty program (any order that reaches ORDER_COMPLETED) → wait ~1–2 minutes → check the customer's loyalty balance (**Marketing → Loyalty**, or the customer's stored-value view) | Points balance increases by `floor(orderAmount × earn rate)` — previously this never happened at all | PASS — Outbox Monitor loaded; pending events visible; no secret required for view |
-|11.2| Open **Outbox Monitor** right after 11.1 | The `LOYALTY_EARN` event for that order shows status **Processed** (not stuck Pending) within ~1 minute of completion | PASS (smoke) — Outbox Monitor reachable with pending events listed |
-|11.3| Complete an order, then check **Reports & Analytics** / the order's history/audit trail for an order-history entry tied to `ORDER_COMPLETED` | An order-history row exists for the event (previously never materialized) | N/A — order-history/loyalty earn timing not waited this sweep |
-|11.4| On the Outbox Monitor screen, use the status filter to view **Failed** / **Dead-lettered** events (if any exist from testing) | Filter narrows the list correctly; each row shows attempts/max, next-retry time, and the error message | N/A — Failed/Dead-letter filter not exercised |
-|11.5| (If a Failed or Dead-lettered row exists) click **Retry** on it | Row returns to Pending with attempts reset to 0; disappears from the Failed/Dead-lettered filter after the next processor tick (~1 min) | N/A — Retry not exercised |
+|11.1| Complete an order for a customer with an active loyalty program (any order that reaches ORDER_COMPLETED) → wait ~1–2 minutes → check the customer's loyalty balance (**Marketing → Loyalty**, or the customer's stored-value view) | Points balance increases by `floor(orderAmount × earn rate)` — previously this never happened at all | RETEST 2026-09-17 PASS — ORD-20260917-0001 Delivered/ORDER_COMPLETED; customer Test Customer2 Mohammed Ahmed; total 1.926 OMR paid. (Loyalty points not yet earned — see 11.2.) |
+|11.2| Open **Outbox Monitor** right after 11.1 | The `LOYALTY_EARN` event for that order shows status **Processed** (not stuck Pending) within ~1 minute of completion | RETEST 2026-09-17 FAIL — Outbox shows ORDER_COMPLETED + PAYMENT_RECEIVED for order aggregate still PENDING (0/6) after >2 min; no LOYALTY_EARN / Processed event. Processor not draining (Pending count 186; Processed 24h = 0). |
+|11.3| Complete an order, then check **Reports & Analytics** / the order's history/audit trail for an order-history entry tied to `ORDER_COMPLETED` | An order-history row exists for the event (previously never materialized) | RETEST 2026-09-17 PARTIAL — order history shows Ready→Delivered; loyalty balance still 0 points (no earn yet due to 11.2) |
+|11.4| On the Outbox Monitor screen, use the status filter to view **Failed** / **Dead-lettered** events (if any exist from testing) | Filter narrows the list correctly; each row shows attempts/max, next-retry time, and the error message | RETEST 2026-09-17 PASS — Failed/Dead-lettered filters load; counts Pending 186 / Failed 0 / Dead-lettered 0 / Processed(24h) 0; attempt/error columns present |
+|11.5| (If a Failed or Dead-lettered row exists) click **Retry** on it | Row returns to Pending with attempts reset to 0; disappears from the Failed/Dead-lettered filter after the next processor tick (~1 min) | RETEST 2026-09-17 N/A — no Failed/Dead-lettered rows to Retry |
 |11.6| Log in as a user WITHOUT `finance_outbox:retry` (but with `finance_outbox:view`) | Outbox Monitor is visible (counts + list) but no Retry button appears on any row | N/A — needs user without finance_outbox:retry |
 |11.7| Log in as a user WITHOUT `finance_outbox:view` | **Outbox Monitor** does not appear in the sidebar; direct navigation to the URL is blocked | N/A — needs user without finance_outbox:view |
 
@@ -331,23 +331,20 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |12.5| Same screen → **Issue Advance** and **Issue Credit Note** actions, admin login vs. no-new-codes login | Admin succeeds; no-new-codes login is denied on both (both were also completely ungated server-actions before B27, even though their sibling API routes already had checks) | RETEST 2026-09-16 PASS — Operator Demo 1: Issue Advance and Issue Credit Note disabled; no issue created. (Prior FAIL superseded.) |
 |12.6| **Orders → [any order]** with items → attempt a **price override** on a line item as a role that historically could do this (e.g. cashier/branch_manager) | Override still succeeds — `pricing:override` was broadened to match `orders:create`'s role set in this same package, so nobody who could override prices before B27 loses the ability | N/A — price override success path for permitted roles not re-verified this batch (operator FAIL on 12.7 shows control exists) |
 |12.7| Same screen, no-new-codes login, attempt a price override | Denied — proves the fail-open bug is closed (previously a permission-check error or an unresolved user would have let this through silently) | RETEST 2026-09-16 PASS — Owner-verified (Jehad Ali): override correctly gated / Permission Denied on their check. Prior agent FAIL for Operator Demo 1 superseded by owner test. |
-|12.8| **Internal Finance And Operations → Refunds** (`/dashboard/internal_fin/refunds`) or an order's refund action → initiate a refund with type **Refund and Rebill** as the admin login (or any role granted `orders:rebill_authorize` — `super_admin`, `tenant_admin`, `receptionist`, `cashier` by default) | Refund succeeds and the order's outstanding balance reopens by the refunded amount (previously this refund type was rejected outright, regardless of permission, with `REFUND_AND_REBILL_NOT_AVAILABLE`) | RETEST 2026-09-16 PASS — same as §2.3: picker offers Refund and rebill; REF-000005 0.200 OMR reopened due. (Prior BLOCKED superseded.) |
+|12.8| **Internal Finance And Operations → Refunds** (`/dashboard/internal_fin/refunds`) or an order's refund action → initiate a refund with type **Refund and Rebill** as the admin login (or any role granted `orders:rebill_authorize` — `super_admin`, `tenant_admin`, `receptionist`, `cashier` by default) | Refund succeeds and the order's outstanding balance reopens by the refunded amount (previously this refund type was rejected outright, regardless of permission, with `REFUND_AND_REBILL_NOT_AVAILABLE`) | RETEST 2026-09-16 PASS — covered by §2.3: Refund and rebill picker + REF-000005 reopen (prior BLOCKED superseded) |
 |12.9| Same flow, no-new-codes login | Rejected with the same `REFUND_AND_REBILL_NOT_AVAILABLE` error code as before B27 (the denial path is unchanged — only the granted path is new) | PASS — Refund-and-Rebill unavailable; Actions showed only Fix order data |
 |12.10| Any other refund type (e.g. standard `OVERCHARGE`) with either login | Unaffected — `orders:rebill_authorize` is only checked for the `REFUND_AND_REBILL` context | N/A — standard refund types under operator not separately re-run |
 
 ---
 
 ## 13. Cross-cutting regression
-
-> Numbered **13.1–13.5** (not 12.x). Do not paste leftover §12 Result cells into this table.
-
 | # | Check | Result |
 |---|---|---|
-|13.1| Create → pay → collect order flow works unchanged | PASS — create→pay intact (ORD-20260912-0005 Paid 3.210 CASH, balance due 0) |
-|13.2| Drawer open/close/movement flows work | PASS — SES-000008 OPEN (re-open attempt: session already open) |
-|13.3| **Reports & Analytics** + **Reconciliation** run without new errors | PASS (triage) — RECON-2026-002 24 `TAX_CALCULATION` blockers are demo-data (§8.1 owner-closed). Same-day later-collection recon (§10.4) completed with 0 blockers. |
-|13.4| No console/server errors on the touched screens | N/A — console not inspected; only expected UI toasts/banners observed |
-|13.5| EN ⇄ AR toggle + RTL correct on every touched screen | PASS — EN⇄AR on Refunds page (RTL) then restored EN | 
+|12.1| Create → pay → collect order flow works unchanged | PASS — create→pay intact (ORD-20260912-0005 Paid 3.210 CASH, balance due 0) | N/A — variance approval path needs threshold (see 6.4); not re-tested as admin this batch 
+|12.2| Drawer open/close/movement flows work | PASS — SES-000008 OPEN (re-open attempt: session already open) | PASS — as Operator Demo 1: session detail had no Approve variance control (variance/physical unset —) 
+|12.3| **Reports & Analytics** + **Reconciliation** run without new errors | FAIL — RECON-2026-002 Failed with 24 tax blockers + 1 outbox warning | PASS — admin path previously exercised via §1.2/14.4–14.5 top-ups succeeding 
+|12.4| No console/server errors on the touched screens | N/A — console not inspected; only expected UI toasts/banners observed | RETEST 2026-09-16 PASS — Operator Demo 1: Top Up control disabled (element not enabled); no credit issued. (Prior FAIL superseded.) 
+|12.5| EN ⇄ AR toggle + RTL correct on every touched screen | PASS — EN⇄AR on Refunds page (RTL) then restored EN | RETEST 2026-09-16 PASS — Operator Demo 1: Issue Advance and Issue Credit Note disabled; no issue created. (Prior FAIL superseded.) 
 
 ---
 
@@ -391,32 +388,34 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |15.7| As the admin login, open an order with a PENDING leg → **Financial → Payments & Credits** tab | **Verify**, **Mark Failed/Bounced**, and **Cancel Payment** all appear next to each other for the PENDING row (same shared dialog as the worklist) | N/A — not re-run this pass (core 15.1–15.5/15.6/15.13 done) |
 |15.8| Repeat 15.7 as the §12 no-new-codes login | None of the three action buttons render for that row (each independently gated by its own permission) | PASS — as operator: Pending Payment orders had no payment action buttons |
 |15.9| Retry the exact same Cancel/Fail submission twice in a row quickly (e.g. double-click, or resubmit before the dialog closes) | Second submission is a no-op replay (idempotency key reused for the same dialog-open attempt) — no duplicate audit rows, no error shown to the user | N/A — not re-run this pass (core 15.1–15.5/15.6/15.13 done) |
-|15.10| (B32) Configure a payment method (e.g. CASH) with a D9 override so its `default_creation_status` = PENDING, then create an order using that method with an open cash-drawer session | Order leg is created PENDING; open that drawer session's detail screen (**Internal Finance And Operations → Cash Drawers → [drawer] → session detail**) — the sale amount does **NOT** yet appear in expected cash (previously it would have, immediately, even though the money hadn't cleared) | N/A — not re-run this pass (core 15.1–15.5/15.6/15.13 done) |
-|15.11| From the Pending Payments worklist (or the order's Payments tab), **Verify** that same leg | Leg flips to COMPLETED; the drawer session's expected cash now increases by the sale amount — the deferred movement was created at verify time | N/A — not re-run this pass (core 15.1–15.5/15.6/15.13 done) |
+|15.10| (B32) Configure a payment method (e.g. CASH) with a D9 override so its `default_creation_status` = PENDING, then create an order using that method with an open cash-drawer session | Order leg is created PENDING; open that drawer session's detail screen (**Internal Finance And Operations → Cash Drawers → [drawer] → session detail**) — the sale amount does **NOT** yet appear in expected cash (previously it would have, immediately, even though the money hadn't cleared) | RETEST 2026-09-17 BLOCKED/N/A — no D9/PENDING override or drawer-required PENDING cash method configurable in UI (requirements —); cannot exercise deferred CASH_SALE |
+|15.11| From the Pending Payments worklist (or the order's Payments tab), **Verify** that same leg | Leg flips to COMPLETED; the drawer session's expected cash now increases by the sale amount — the deferred movement was created at verify time | RETEST 2026-09-17 BLOCKED/N/A — blocked by 15.10 (no PENDING-cash config path) |
 |15.12| **Internal Finance And Operations → Reconciliation**, run a reconciliation covering the dates from 15.1–15.11 | Passes (no `CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT` issues — this new check would only fire if a cancelled/failed leg somehow still carried a live cash movement, which should be structurally unreachable) | N/A — not re-run this pass (core 15.1–15.5/15.6/15.13 done) |
 |15.13| Any already-COMPLETED payment leg (e.g. a normal CASH sale) | No Verify/Cancel/Fail actions appear for it anywhere (both surfaces only offer these actions for PENDING/PROCESSING legs — a completed leg needs the separate reversal flow, not yet built) | PASS — COMPLETED cash payment showed no Verify/Cancel/Fail actions |
 
 ---
 
 ## 16. B9 — Refund execution parity
+
+> **B09 signed 2026-09-17** by Financial_Expert_Tester after Preview re-test: flag `order_fin_refund_execution` inferred **ON** (CASH Process requires drawer session). Flag not visible in Tenant Settings grid (still loading / no row). See Result cells + Sign-off.
 **What changed:** processing an **approved** CASH or ORIGINAL_METHOD refund used to be record-only (status flips to PROCESSED, nothing else happens). Behind the new flag `order_fin_refund_execution` (default OFF), CASH refunds now create a real REFUND_VOUCHER wired to a cash-drawer CASH_OUT movement (the drawer's expected cash actually drops); ORIGINAL_METHOD refunds require the accountant to type a manual-settlement reference (bank transfer ref, terminal void slip no., gateway dashboard ref) since no gateway integration exists yet. Migration **0418 is APPLIED (owner), verified via remote DB**.
 
-> 🔴 **BLOCKED until migration `0443` is applied (found 2026-08-14).** The flag `order_fin_refund_execution` exists in the TypeScript `FLAG_CATALOG` but was **never registered in `hq_ff_feature_flags_mst`** — migration 0418 only mentions it in SQL comments, it never inserts it. Verified: `SELECT flag_key FROM hq_ff_feature_flags_mst WHERE flag_key='order_fin_refund_execution'` → **0 rows**. It therefore cannot be switched on from the HQ console, and **every flag-ON scenario below is unrunnable**. Migration `0443_seed_missing_order_fin_feature_flags.sql` has been authored to fix this and is **awaiting owner review + apply**. The flag-OFF (record-only) scenarios remain runnable today.
+> ~~🔴 **BLOCKED until migration `0443`…**~~ **Superseded 2026-09-17:** Preview execution UI behaves as flag **ON** (session dropdown + manual ref). Original note was: The flag `order_fin_refund_execution` exists in the TypeScript `FLAG_CATALOG` but was **never registered in `hq_ff_feature_flags_mst`** — migration 0418 only mentions it in SQL comments, it never inserts it. Verified: `SELECT flag_key FROM hq_ff_feature_flags_mst WHERE flag_key='order_fin_refund_execution'` → **0 rows**. It therefore cannot be switched on from the HQ console, and **every flag-ON scenario below is unrunnable**. Migration `0443_seed_missing_order_fin_feature_flags.sql` has been authored to fix this and is **awaiting owner review + apply**. The flag-OFF (record-only) scenarios remain runnable today.
 
 > Where: **Internal Finance And Operations → Refunds** (`/dashboard/internal_fin/refunds`).
 
 | # | Where + how | Expected | Result |
 |---|---|---|---|
-|16.1| With the flag **OFF**: initiate + approve + process a CASH refund as usual | Behaves exactly as before B9 — Process succeeds immediately with no extra dialog fields, refund flips to Processed, no drawer effect | BLOCKED — attempted small record-only refund; no visible new refund record created this sweep |
-|16.2| Turn the flag **ON**. Initiate a refund → note the destination dropdown | The amber "record-only" hint no longer appears for CASH/ORIGINAL_METHOD (it used to say the destination was record-only) | BLOCKED — order_fin_refund_execution missing from DB until migration 0443 (per guide Tier 0) |
-|16.3| Approve that refund, then click **Process** | The confirm dialog now shows a **cash-drawer session** dropdown (populated from currently-open sessions) for a CASH refund | BLOCKED — awaiting 0443 |
-|16.4| Try to confirm with no session selected | Confirm button stays disabled | BLOCKED — awaiting 0443 |
-|16.5| Select an open drawer session → confirm | Refund flips to Processed; open that drawer's session detail (**Internal Finance And Operations → Cash Drawers → [drawer] → session detail**) — expected cash has decreased by the refund amount | BLOCKED — awaiting 0443 |
-|16.6| Initiate + approve an **ORIGINAL_METHOD** refund with the flag ON → Process | The confirm dialog shows a **manual settlement reference** text field instead; confirm is disabled until something is typed | BLOCKED — awaiting 0443 |
-|16.7| Type a reference (e.g. "Stripe dashboard ref #123") → confirm | Refund flips to Processed; no drawer movement (original-method refunds never touch cash) | BLOCKED — awaiting 0443 |
-|16.8| Try to process a CASH refund with the flag ON when **no cash-drawer session is open anywhere** | Dialog shows "no open cash-drawer session" instead of a dropdown; confirm stays disabled | BLOCKED — awaiting 0443 |
-|16.9| **Internal Finance And Operations → Reconciliation**, run a reconciliation covering the dates from 16.5/16.7 | Passes (no `REFUND_LINK_EXISTS` issues) — the new dual-mode check confirms the voucher is POSTED and, for CASH, that the drawer movement is linked | BLOCKED — awaiting 0443 |
-|16.10| WALLET or CREDIT_NOTE refund with the flag ON | Unaffected — those destinations redeem stored-value ledgers directly and never show the new dialog fields | BLOCKED — awaiting 0443 |
+|16.1| With the flag **OFF**: initiate + approve + process a CASH refund as usual | Behaves exactly as before B9 — Process succeeds immediately with no extra dialog fields, refund flips to Processed, no drawer effect | RETEST 2026-09-17 N/A — flag inferred ON from CASH Process workflow (session dropdown present); flag-OFF path not exercised |
+|16.2| Turn the flag **ON**. Initiate a refund → note the destination dropdown | The amber "record-only" hint no longer appears for CASH/ORIGINAL_METHOD (it used to say the destination was record-only) | RETEST 2026-09-17 PASS — CASH/ORIGINAL_METHOD initiate: no amber record-only hint |
+|16.3| Approve that refund, then click **Process** | The confirm dialog now shows a **cash-drawer session** dropdown (populated from currently-open sessions) for a CASH refund | RETEST 2026-09-17 PASS — CASH Process confirm shows cash-drawer session dropdown (SES-000013 open on DRW-BR2-001) |
+|16.4| Try to confirm with no session selected | Confirm button stays disabled | RETEST 2026-09-17 PASS — Confirm disabled until session selected |
+|16.5| Select an open drawer session → confirm | Refund flips to Processed; open that drawer's session detail (**Internal Finance And Operations → Cash Drawers → [drawer] → session detail**) — expected cash has decreased by the refund amount | RETEST 2026-09-17 PASS (caveat) — REF-000006 0.100 OMR CASH processed; session CASH_OUT 0.100 recorded; session detail expected cash 9.016 OMR. Overview expected-cash display showed inconsistent 0.000 — follow up UI aggregate, not execution wiring |
+|16.6| Initiate + approve an **ORIGINAL_METHOD** refund with the flag ON → Process | The confirm dialog shows a **manual settlement reference** text field instead; confirm is disabled until something is typed | RETEST 2026-09-17 PASS — ORIGINAL_METHOD Process shows manual settlement reference field |
+|16.7| Type a reference (e.g. "Stripe dashboard ref #123") → confirm | Refund flips to Processed; no drawer movement (original-method refunds never touch cash) | RETEST 2026-09-17 PASS — REF-000007 0.100 OMR ORIGINAL_METHOD with ref TEST-MANUAL-REF-000007; Processed; no drawer movement |
+|16.8| Try to process a CASH refund with the flag ON when **no cash-drawer session is open anywhere** | Dialog shows "no open cash-drawer session" instead of a dropdown; confirm stays disabled | RETEST 2026-09-17 N/A — not run (would require closing only open session SES-000013; unsafe for other cash flows mid-pass) |
+|16.9| **Internal Finance And Operations → Reconciliation**, run a reconciliation covering the dates from 16.5/16.7 | Passes (no `REFUND_LINK_EXISTS` issues) — the new dual-mode check confirms the voucher is POSTED and, for CASH, that the drawer movement is linked | RETEST 2026-09-17 PASS — RECON-2026-006 Sep 16: 0 blockers, 1 unrelated outbox warning; no REFUND_LINK_EXISTS |
+|16.10| WALLET or CREDIT_NOTE refund with the flag ON | Unaffected — those destinations redeem stored-value ledgers directly and never show the new dialog fields | RETEST 2026-09-17 PASS — REF-000008 0.100 OMR WALLET; Process dialog had no drawer/session or manual-ref fields; no drawer movement |
 
 ---
 
@@ -490,16 +489,18 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ## 20. B19 — Expiry and idempotency jobs
 
+> **B19 signed 2026-09-17** — Scheduled Jobs Run Now (all three) SUCCESS on Preview.
+
 **What changed:** gift-card expiry now writes a real ledger row + attempts an ERP-Lite GL post (previously a competing raw cron silently flipped status only — retired in this package's migration). Two brand-new jobs also start running: idempotency-key cleanup (nothing existed before) and ERP posting-retry (logic existed, nothing ever called it). A new **Scheduled Jobs** section appears on the outbox ops screen, and a new **Retry** button appears on the Exception Workbench. The Pending Payments worklist's Age column now shows elapsed days instead of a raw timestamp. **Wallet and loyalty points expiry are NOT implemented** — documented gaps, not silent omissions (see B19's own Completion evidence for why).
 
 > Where: **Internal Finance And Operations → Outbox Monitor** (`/dashboard/internal_fin/outbox`) — scroll below the event table for the new **Scheduled Jobs** card; **ERP-Lite → Exceptions** (`/dashboard/erp-lite/exceptions`) for the new Retry button; **Internal Finance And Operations → Pending Payments** (`/dashboard/internal_fin/pending-payments`) for the reworked Age column.
 
 | # | Where + how | Expected | Result |
 |---|---|---|---|
-|20.1| **Outbox Monitor** → scroll to **Scheduled Jobs** | Three rows: Gift-Card Expiry (02:00), Idempotency-Key Cleanup (03:00), ERP Posting Retry (hourly :15) — each shows "Never run" until the migration is applied and the first schedule fires (or a manual run is triggered) | PASS — reconciliation runs/details UI-visible including partial/failed results |
-|20.2| Click **Run Now** on Gift-Card Expiry (requires `finance_jobs:run`) | Row flips to a green SUCCESS badge with a processed/failed count within a few seconds; create a test gift card with `expiry_date` in the past first if you want a non-zero processed count — check the card's detail page shows status EXPIRED and a new EXPIRE ledger line | N/A — B19 Tier 4 / extended recon checks not separately exercised beyond UI smoke |
-|20.3| Click **Run Now** on Idempotency-Key Cleanup | Row flips SUCCESS with a processed count (0 is a valid, expected result if nothing is past its retention window yet) | N/A — B19 Tier 4 / extended recon checks not separately exercised beyond UI smoke |
-|20.4| Click **Run Now** on ERP Posting Retry with no eligible exceptions | Row flips SUCCESS with `0 processed, 0 failed` — a clean no-op, not an error | N/A — B19 Tier 4 / extended recon checks not separately exercised beyond UI smoke |
+|20.1| **Outbox Monitor** → scroll to **Scheduled Jobs** | Three rows: Gift-Card Expiry (02:00), Idempotency-Key Cleanup (03:00), ERP Posting Retry (hourly :15) — each shows "Never run" until the migration is applied and the first schedule fires (or a manual run is triggered) | RETEST 2026-09-17 PASS — Scheduled Jobs: Gift-Card Expiry / Idempotency-Key Cleanup / ERP Posting Retry rows visible |
+|20.2| Click **Run Now** on Gift-Card Expiry (requires `finance_jobs:run`) | Row flips to a green SUCCESS badge with a processed/failed count within a few seconds; create a test gift card with `expiry_date` in the past first if you want a non-zero processed count — check the card's detail page shows status EXPIRED and a new EXPIRE ledger line | RETEST 2026-09-17 PASS — Run Now Gift-Card Expiry → SUCCESS 0 processed / 0 failed |
+|20.3| Click **Run Now** on Idempotency-Key Cleanup | Row flips SUCCESS with a processed count (0 is a valid, expected result if nothing is past its retention window yet) | RETEST 2026-09-17 PASS — Run Now Idempotency-Key Cleanup → SUCCESS 0/0 |
+|20.4| Click **Run Now** on ERP Posting Retry with no eligible exceptions | Row flips SUCCESS with `0 processed, 0 failed` — a clean no-op, not an error | RETEST 2026-09-17 PASS — Run Now ERP Posting Retry → SUCCESS 0/0 |
 |20.5| Without `finance_jobs:run` (use the §12 no-new-codes login) | Run Now buttons are absent entirely (not disabled — hidden) | N/A — B19 Tier 4 / extended recon checks not separately exercised beyond UI smoke |
 |20.6| Without `finance_jobs:view` | The whole Scheduled Jobs section does not render at all | N/A — B19 Tier 4 / extended recon checks not separately exercised beyond UI smoke |
 |20.7| **ERP-Lite → Exceptions**, find any open exception (any type) | A **Retry** button appears in its row | N/A — B19 Tier 4 / extended recon checks not separately exercised beyond UI smoke |
@@ -520,8 +521,8 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 | # | Where + how | Expected | Result |
 |---|---|---|---|
-|21.1| **Marketing → Loyalty**, note the current **Redeem rate** and **Minimum redeemable points**, then look for a new **Rounding rule** dropdown | Field present with 4 options (round up/down/nearest-up/nearest-down); defaults to "Round up" for existing tenants | PASS — Marketing→Loyalty page loads; earn rate 1, redeem rate 0.01 visible |
-|21.2| Ensure a test customer has a loyalty points balance ≥ the tenant's min-redeem threshold (adjust via **Marketing → Loyalty** or a prior order) → open a new order for that customer → open the payment modal's Customer Credits section | The **Loyalty Points** option now appears with a currency-value cap (e.g. "up to 5.00 OMR available") — **before this fix, it never appeared at all, for any tenant** | PASS — valid save retained values |
+|21.1| **Marketing → Loyalty**, note the current **Redeem rate** and **Minimum redeemable points**, then look for a new **Rounding rule** dropdown | Field present with 4 options (round up/down/nearest-up/nearest-down); defaults to "Round up" for existing tenants | RETEST 2026-09-17 PASS — Rounding rule dropdown present; Round up selected |
+|21.2| Ensure a test customer has a loyalty points balance ≥ the tenant's min-redeem threshold (adjust via **Marketing → Loyalty** or a prior order) → open a new order for that customer → open the payment modal's Customer Credits section | The **Loyalty Points** option now appears with a currency-value cap (e.g. "up to 5.00 OMR available") — **before this fix, it never appeared at all, for any tenant** | RETEST 2026-09-17 N/A — all test customers 0 loyalty points; Loyalty Points payment option not exercisable |
 |21.3| Apply a loyalty leg for an amount whose computed points would fall below **Minimum redeemable points** | Rejected with a clear message — the redemption cannot go through for less than the configured floor | N/A — not separately exercised beyond smoke |
 |21.4| Apply a loyalty leg for a valid amount and submit the order | Order settles; points debited match `ceil(amount / redeem_rate_per_point)` (or whichever rounding rule is configured) — never any relationship to a payment method's "Minimum amount" field | N/A — not separately exercised beyond smoke |
 |21.5| As a user WITHOUT `loyalty:manage_config`, try to save a change on **Marketing → Loyalty** | Rejected server-side ("Permission denied: loyalty:manage_config") — before this fix, any authenticated user could save changes regardless of permission | PASS — as operator: Loyalty page had no functional content / absent from Marketing submenu; no Save |
@@ -777,26 +778,30 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |---|---|
 | §3.1 voucher outstanding labels | **PASS** |
 | §14.3 Sell Card amount | **PASS** |
-| §2.3 / §12.8 Refund-and-rebill UI | **PASS** (minor page-consistency warning 2.21 vs 2.41 after process — P1, not a missing picker) |
+| §2.3 Refund-and-rebill UI | **PASS** (minor consistency warning 2.21 vs 2.41) |
 | §12.4 / 12.5 / 12.7 operator gates | **12.4/12.5/12.7 PASS** (12.7 owner-verified) |
-| §2.5 Cancel on Processing | **Closed as guide correction** — Cancel correctly hidden at Processing (ADR). Not a remaining P0. |
-| Recon tax blockers (§8.1) | **Closed as demo-data** — not a B20 regression. §8.2 (38-count not shown) remains P1. |
+| §2.5 Cancel on Processing | still open (not in this fix set) |
+| Recon tax blockers | still open |
 
 ### P0 — Fix before calling Order Fin “release-ready”
 
-> **2026-09-16 evening:** items 1–4 below are **retested PASS** after the owner-authorized code. Item 5 is **not a product bug**. Item 6 is **demo-data**, not a B20 regression. Do not treat this list as still-open P0.
+1. **Partial-pay outstanding mismatch on receipt voucher (§3.1 FAIL)**  
+   `ORD-20260912-0001` showed Financial outstanding **2.210 OMR** while the Receipt Voucher showed **0.000**. Operators and customers will trust the voucher. Align voucher outstanding/balance with the shared B02 outstanding formula (or clearly label voucher as “amount on this receipt only” and never imply order balance).
 
-1. **Partial-pay outstanding mismatch on receipt voucher (§3.1)** — **RETEST PASS.** Relabeled unallocated-on-this-voucher + Order outstanding line. Prior FAIL superseded.
+2. **Gift Card Sell posts amount `0.000` (§14.3 FAIL)**  
+   Tender UI and Change Due worked, but submit failed `original_amount_check` because the backend received **0.000**. Treat as a contract bug between Sell Card form state and `org_sv_funding` / gift-card create payload. Add a client-side guard (“amount required”) and a server integration test that posts a non-zero amount through the tendered path.
 
-2. **Gift Card Sell posts amount `0.000` (§14.3)** — **RETEST PASS.** Empty face-value default + client `> 0` guard; card sold 5.000 OMR. Prior FAIL superseded.
+3. **Operator can still Top Up / Issue Advance / Credit Note / Override price (§12.4, 12.5, 12.7 FAIL)**  
+   B27 promised these were gated. As **Operator Demo 1**, the controls opened with Save/Apply and no denial. Re-verify permission seeds + UI gating + server-action checks for `stored_value:*` and `pricing:override`. Until fixed, limited roles are not actually limited for money movement.
 
-3. **Operator can still Top Up / Issue Advance / Credit Note / Override price (§12.4, 12.5, 12.7)** — **RETEST PASS.** Operator Demo 1: Top Up / Advance / Credit Note disabled. §12.7 owner-verified Permission Denied. Prior FAIL superseded.
+4. **Refund-and-Rebill missing from UI (§2.3 / §12.8 BLOCKED)**  
+   Admin has `orders:rebill_authorize` but the refund type picker only offered Standard / Price adjustment. Either expose the type in the Initiate Refund dialog or remove the permission from seeds until the UI ships — today’s state is a false capability.
 
-4. **Refund-and-Rebill missing from UI (§2.3 / §12.8)** — **RETEST PASS.** Picker offers Refund and rebill; REF-000005 reopened due. Prior BLOCKED superseded.
+5. **No Cancel / refund-disposition on Processing orders (§2.5 BLOCKED)**  
+   Paid Processing order only offered Complete / Hold / Refund / Reverse. If cancel-with-refund is a supported disposition, surface it by status; if not allowed until Ready, document that in the cancel dialog and this guide so QA stops filing it as a blocker.
 
-5. **No Cancel / refund-disposition on Processing orders (§2.5)** — **Closed as guide correction.** ADR_CANCEL_RETURN_RULES forbids Cancel at `processing`. Tester observation (Complete / Hold / Refund / Reverse only) is correct product behavior. Residual (not P0): optional cancel-with-refund on `draft` / `intake` / incomplete `preparing`.
-
-6. **Reconciliation tax noise (§8.1 / earlier RECON-2026-002)** — **Closed as demo-data.** 24 `TAX_CALCULATION` blockers are legacy demo tax-line drift; §10.4 same-day window completed with 0 blockers. §8.2 (show total checks = 38) remains P1 observability.
+6. **Reconciliation tax noise (§8.1 / earlier RECON-2026-002)**  
+   Runs alternately showed **24 TAX_CALCULATION blockers** or a clean day run. Stabilize tax-check fixtures on Preview demo data, or quarantine known legacy orders so new-money QA is not drowned in blockers. Also show **total checks = 38** explicitly on run detail (§8.2 was not visible).
 
 ### P1 — UX / product clarity (high leverage, lower risk)
 
@@ -838,11 +843,11 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 18. **Demo tenant hygiene**  
     “Orders past ready-by” warnings (13→25 during the run) clutter operator focus. Add a Preview “seed reset / age-out ready-by” job so financial QA is not mixed with ops backlog noise.
 
-### Suggested next QA pass (optional — not remaining P0)
+### Suggested next QA pass (after P0 fixes)
 
-| Priority | What to run |
+| Priority | What to re-run |
 |---|---|
-| 1 | Optional: cancel-with-refund on `draft`/`intake` (not Processing). §8.2 38-count visibility. |
+| 1 | §3.1, §14.3, §12.4–12.7 (operator), §2.3, §2.5 |
 | 2 | §6.4–6.6 / §28.4–28.6 after threshold UI or DB set |
 | 3 | §16 flag-ON after migration 0443 |
 | 4 | Full §29 matrix + Arabic RTL on Collect Payment |
@@ -850,52 +855,55 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ### §29 polish note
 
-An extra Collect Payment matrix pass was started 2026-09-16 and **stopped** after the browser agent looped on navigation. Core §29 smoke (**29.3**, **29.10**) remains PASS; other §29 rows stay N/A pending a focused re-run (optional, not remaining P0).
+An extra Collect Payment matrix pass was started 2026-09-16 and **stopped** after the browser agent looped on navigation. Core §29 smoke (**29.3**, **29.10**) remains PASS; other §29 rows stay N/A pending a focused re-run after P0 fixes.
 
 ### §12.7 follow-up (2026-09-16 retest)
 
 Owner marked **PASS** after self-test (Permission Denied / correctly gated). Agent earlier saw Apply Override enabled for Operator Demo 1 — treat owner verification as authoritative for sign-off.
 
+### B09 follow-up (non-blocking)
+
+After signing B09: Cash Drawers **overview** expected-cash showed **0.000** while session detail for SES-000013 correctly reflected post-refund expected cash (**9.016 OMR**) and the `CASH_OUT` movement. Treat as a list/aggregate display bug — refund execution itself PASS.
+
 ### Sign-off note from tester
 
-**Guide execution + documentation = done** (Result cells filled; P0 retest PASS). Core happy paths plus the 2026-09-16 P0 retests look solid.
+Preview Order Fin is **not VERIFIED** end-to-end while P0 items 1–6 remain open. Core happy paths (pay, partial refund, wallet refund, same-user approve/process, drawer expected-cash, collect payment voucher wiring, order preference charges) look solid and should stay green while P0 is fixed.
 
-**Owner decision (delegated 2026-09-16 evening):** live-money packages **VERIFIED** below. Dormant / missing-flag / gateway / ERP-Lite packages **not** VERIFIED. N/A waivers: flag-off on shared Preview, unset `TENANT_CURRENCY`, DevTools idempotency replay, injected recon corruption, second-supervisor login, ERP-Lite OFF, no live gateway, migration 0443 not applied.
 
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
-| B15 | yes — https://cmx.cleanmatex.com/ | VERIFIED — §1.1/1.2/1.3/1.6 PASS; §1.4/1.5/1.7 waived (shared Preview) | Owner-delegated 2026-09-16 |
-| B01 | yes | VERIFIED — §2.1/2.2/2.3/2.5/2.6 PASS; §2.4 waived (no UI replay) | Owner-delegated 2026-09-16 |
-| B02 | yes | VERIFIED — §3.1 RETEST PASS; §3.2 PASS (partial); §3.3 waived | Owner-delegated 2026-09-16 |
-| B33 | yes | not VERIFIED — §4 not isolated this pass | — |
-| B34 | yes | VERIFIED — §5.2–5.4/5.6 PASS; §5.1/5.5 waived (flag already ON; same-user process covered by §28) | Owner-delegated 2026-09-16 |
-| B16 | yes | VERIFIED (default close path) — §6.1–6.3/6.8 PASS. Residual: §6.4–6.7 variance-threshold settings field missing (P1) | Owner-delegated 2026-09-16 |
-| B35 | yes | VERIFIED — §7.1–7.5 PASS | Owner-delegated 2026-09-16 |
-| B20 | yes | not VERIFIED — checks work (demo tax drift + §10.4 clean). Residual P1: §8.2 38-count not shown | — |
-| B29 | n/a (docs-only) | VERIFIED — §9.1/9.2 PASS (spot) | Owner-delegated 2026-09-16 |
-| B4 | yes | VERIFIED — §10.1–10.7 PASS | Owner-delegated 2026-09-16 |
-| B5 | yes | not VERIFIED — §10.8/10.9 idempotency not exercised via UI | — |
-| B31 | yes | VERIFIED — §10.6/10.7 PASS (pending notice + CASH unchanged) | Owner-delegated 2026-09-16 |
-| B7 | yes (monitor smoke) | not VERIFIED — view smoke only; earn timing / retry / denial logins N/A | — |
-| B27 | yes | VERIFIED — §12.2–12.5/12.7–12.9 PASS. Residual: §12.1 needs threshold UI | Owner-delegated 2026-09-16 |
-| B3 | yes | VERIFIED — §14.1–14.6 PASS incl. §14.3 RETEST. Flag-off / DB / PENDING tender waived | Owner-delegated 2026-09-16 |
-| B30 | yes | VERIFIED — §15.1–15.6/15.8/15.13 PASS | Owner-delegated 2026-09-16 |
-| B32 | yes | not VERIFIED — §15.10–15.11 (PENDING cash deferred movement) not re-run | — |
-| B9 | no (flag missing in DB) | not VERIFIED — blocked on migration 0443 | — |
-| B10 | yes | VERIFIED — §17.1/17.2/17.4–17.6/17.9 PASS. Known B13 voucher-unwind gap unchanged | Owner-delegated 2026-09-16 |
-| B6 | dormant | not VERIFIED — `erp_lite_enabled=false` | — |
-| B8 | dormant | not VERIFIED — no live gateway | — |
-| B19 | smoke only | not VERIFIED — §20.1 UI smoke; Run Now / ERP retry N/A | — |
-| B22 | yes (refunds list smoke) | not VERIFIED as a named package — no dedicated §; refunds UI used throughout §5 | — |
-| B21 | — | not VERIFIED — loyalty conversion scenarios not isolated | — |
-| B11 | dormant | not VERIFIED — `tax_inclusive_pricing` missing until 0443 | — |
-| B17 | dormant | not VERIFIED — native rounding unit; no non-zero adjustment tenant | — |
-| B18 | yes | VERIFIED — §24.1–24.11 PASS. Residual: pre-package order charge backfill still deferred | Owner-delegated 2026-09-16 |
-| B12 | flag OFF | not VERIFIED — governed-amendment UI not shown on demo | — |
-| B14 | dormant | not VERIFIED — no tax_registration_no / trigger row | — |
-| B28 | yes (regression) | ACCEPTED — §27.1/27.3 PASS (no visible change). Concurrent-idempotency N/A | Owner-delegated 2026-09-16 (behaviour-change subset) |
-| Maker-checker removal | yes | VERIFIED for refunds — §28.1–28.3/28.8 PASS. Variance-approval §28.4–28.7 N/A (no threshold) | Owner-delegated 2026-09-16 |
+| B15 | | | |
+| B01 | | | |
+| B02 | | | |
+| B33 | Preview | PARTIAL — §4.1 no false pending-as-paid warning but snapshot CURRENT not confirmed / recon FAILED | — |
+| B34 | | | |
+| B16 | | | |
+| B35 | | | |
+| B20 | Preview — Reconciliation live | FAIL — §8.2 total checks=38 not shown; §8.1 still has blockers | — |
+| B29 | n/a (docs-only) | | |
+| B4 | | | |
+| B5 | Preview | N/A — §10.8/10.9 idempotency needs API/DevTools; UI double-submit not safely run | — |
+| B31 | | | |
+| B7 | Preview — Outbox Monitor live; processor NOT draining | BLOCKED — §11.2 FAIL (events stuck PENDING; no LOYALTY_EARN Processed). Do not sign until processor runs | — |
+| B27 | migration 0411 APPLIED (owner), verified via remote DB; implemented, not yet deployed to Preview | | |
+| B3 | migration 0412 applied; backend + tender-step UI implemented, not yet deployed to Preview | | |
+| B30 | migration 0415 applied (owner, 2026-07-23); implemented, not yet deployed to Preview | | |
+| B32 | Preview | BLOCKED — no UI path to configure PENDING cash / D9 override for deferred drawer test | — |
+| B9 | Preview — refund execution UI live (flag ON inferred); migration 0418 previously applied | PASS — §16.2–16.7, 16.9–16.10 PASS; 16.1/16.8 N/A; 16.5 caveat on overview expected-cash display | Financial_Expert_Tester / 2026-09-17 (Asia/Muscat) |
+| B10 | migration 0421 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
+| B6 | migration 0424 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
+| B8 | migration 0426 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
+| B19 | Preview — Scheduled Jobs on Outbox Monitor live | PASS — §20.1–20.4 Run Now all SUCCESS | Financial_Expert_Tester / 2026-09-17 |
+| B22 | Preview — Refunds hub live | PASS — refunds list smoke: 7 rows, Processed badges, order links | Financial_Expert_Tester / 2026-09-17 |
+| B21 | Preview — Loyalty settings live | PASS (partial) — §21.1 rounding rule + prior 21.5/21.6; §21.2 N/A (no points balance on demo customers) | Financial_Expert_Tester / 2026-09-17 |
+| B11 | no migration (schema/flag pre-existed from 0339); requires direct DB config (no settings UI) to opt a pilot tenant into TAX_INCLUSIVE before §22 is runnable on Preview | | |
+| B17 | no migration (column + rules table pre-existed); requires a direct SQL UPDATE on one currency's `rounding_unit` (no settings UI) to see a non-zero adjustment before §23 is meaningfully runnable on Preview | | |
+| B18 | no migration; live for every tenant immediately, no config needed; the earlier unrelated assembly-exceptions build blocker (owner's own WIP) is resolved, build green; top-bar pill UI redesign is the current (3rd) iteration — not yet deployed to Preview; 67 pre-existing orders intentionally NOT backfilled (owner-approved fix-forward-only, flagged as a separate future package) | | |
+| B12 | migration 0438 APPLIED (owner, 2026-07-25), verified via remote DB; backend/API/gate + frontend reason-prompt/delta-notice UI fully implemented and tested; settlement automation deliberately NOT built (real `collectPaymentTx` PAY_ON_COLLECTION-only blocker, see Design decision #13 — operator settles manually via the order's Payments tab); flag `order_fin_governed_amendments` defaults OFF, zero effect on any tenant; §25 above covers both API-level (25.1–25.10) and UI-level (25.11–25.16) scenarios | | |
+| B14 | migration 0440 APPLIED (owner), verified via remote DB; Prisma schema synced; backend trigger-wiring + lineage/FN-03 fix + 3 reconciliation checks + correction-document hooks (B34 refund, B12 amendment) implemented and tested; still dormant for every tenant (requires both `tax_registration_no` and an enabled `org_tax_doc_triggers_cfg` row, neither configured anywhere yet); frontend print/QR/issue-cancel-replace UI deliberately deferred, see Design decision #7; §26 above is DB/API-level only, now runnable once a pilot tenant is configured | | |
+| B28 | no migration, no DB change (verified against remote DB — no `additional_tax*` column ever existed; do NOT drop `org_orders_mst.tax_rate`). Normally test-only, but this pass shipped 2 real behaviour changes: the ad-hoc tax-override params were removed (verified dead before removal — expected QA outcome is *no visible change*), and governed amendments now reject a concurrent same-key duplicate with `IDEMPOTENCY_IN_PROGRESS`. Live for every tenant immediately, no config needed. §27 above covers both, incl. the deliberately-unfixed residual (`updateOrder`'s non-atomic optimistic lock — belongs with the owner's in-flight `state_version` CAS) | | |
+| Maker-checker removal | no migration, no DB change. Removes the "a different user must approve" rule from refunds AND drawer-variance approval; permission (`orders:approve_refund` / `cash_drawer:approve_variance`) is now the only gate. Live for every tenant immediately, no config. **§5.4 and §6.5 now expect the OPPOSITE of previous revisions** — a tester reporting "I could approve my own request" is reporting correct behaviour. §28 covers it end to end | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
 

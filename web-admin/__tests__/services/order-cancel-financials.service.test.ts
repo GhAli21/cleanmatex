@@ -179,7 +179,7 @@ describe('unwindOrderFinancialsOnCancel (FN-02)', () => {
     expect(initiateRefund).not.toHaveBeenCalled();
   });
 
-  it('REFUND initiates one keyed refund per payment via the maker-checker flow', async () => {
+  it('REFUND initiates one keyed refund per payment via the three-stage approval flow', async () => {
     tx.org_order_payments_dtl.findMany.mockResolvedValue([
       payment({ id: 'pay-1', amount: '10.0000' }),
       payment({ id: 'pay-2', amount: '4.0000', payment_method_code: 'CARD' }),

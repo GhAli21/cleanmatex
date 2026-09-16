@@ -237,7 +237,7 @@ describe('order-refund.service — approveRefund', () => {
     );
   });
 
-  it('allows a different user to approve (maker≠checker satisfied)', async () => {
+  it('allows a different user to approve (optional — not required)', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue({
       ...makeRefundRecord('PENDING_APPROVAL'),
       created_by: REQUESTER,

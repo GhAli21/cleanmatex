@@ -79,8 +79,19 @@ Rollback: git revert
 | [Opus_Validation_Report_18_06_2026/22_FOLLOWUP_DEEP_DIVE.md](../Opus_Validation_Report_18_06_2026/22_FOLLOWUP_DEEP_DIVE.md) | Confirmations table "Refund accounting structure ✅ sound ... refund_source_type classification (verified earlier)" | Banner: same over-claim; F-10 idempotency finding in the same file remains accurate and is not corrected |
 | [Order_Fin_Docs/RECONCILIATION_GUIDE.md](../Order_Fin_Docs/RECONCILIATION_GUIDE.md) | "executes 7 checks" / "The 7 Checks" | Banner: `total_checked` is now 38 post-B20; the 7 documented checks remain individually accurate, only the "7 total" framing is stale |
 
-**Folders checked, no correction needed:** `Order_Fin_Remediation_2026-07/` (current, accurate), `Order_Fin_Validation_Report_2026-07-03/` (confirms gaps, doesn't overclaim), `technical_docs/` (structural, no completeness claims), `bvm_wiring_implementation_plans_from_claude/` (correctly documents later-collection as still bypassing BVM — matches the still-open B4 gap), `CleanMateX_Payment_Settlement_Catalogs_Upgrade_Reference_v1_1/`, `CleanMateX_Customer_Receipt_Auto_Allocation_Feature_Pack_v1_0/`, `Payment_Modal_08_07_2026/`, `Payment_Modal_Review/` (all unrelated topics). No GL/ERP-journal completeness claims found anywhere in scope (that gap — B6 — is undocumented outside this planning folder, so nothing to correct).
+**2026-09-17 follow-up (owner: no maker≠checker anywhere):** remaining docs that still treated two-person approval as required were aligned. Permission is the only gate so a one-employee laundry can complete refunds, drawer-variance approval, reversals, and write-offs.
+
+| File | Stale claim | Correction added |
+|---|---|---|
+| [Order_Fin_Docs/STORED_VALUE_GUIDE.md](../Order_Fin_Docs/STORED_VALUE_GUIDE.md) | "REFUND (maker-checker refund per payment)" | Three-stage refund; same user may approve |
+| [ADR/ADR-053-Order-Cancellation-Financial-Disposition.md](../ADR/ADR-053-Order-Cancellation-Financial-Disposition.md) | "existing maker-checker refund flow" | Amended 2026-09-17 + three-stage wording |
+| [Order_Fin_QA_Guide_2026-06-26.md](../Order_Fin_QA_Guide_2026-06-26.md) | "PENDING, maker-checker" | PENDING_APPROVAL; same user may approve |
+| [Order_Fin_Remediation_2026-07/PLAN.md](../Order_Fin_Remediation_2026-07/PLAN.md) | "default: keep maker-checker" | Standing rule + permission-only refund disposition |
+| [Order_Fin_Validation_Report_2026-07-03/10_UI_WORKFLOW_AND_DOCUMENT_OUTPUT_FINDINGS.md](../Order_Fin_Validation_Report_2026-07-03/10_UI_WORKFLOW_AND_DOCUMENT_OUTPUT_FINDINGS.md) | "good maker-checker shape" | Banner + permission-only wording |
+| [Authoritative report 2026-07-15](../../../Audit_Reports/CleanMateX_Enterprise_Financial_Accounting_Audit_15_07_2026/CleanMateX_Order_Payment_Authoritative_Current_Implementation_Report_2026-07-15.md) | §8 / §43 / A1 "maker-checker" as current control | Header banner + Addendum A3; §43 refund row set to no |
+
+**Folders checked, no correction needed (2026-07-19 sweep):** `technical_docs/` (structural, no completeness claims), `bvm_wiring_implementation_plans_from_claude/` (correctly documents later-collection as still bypassing BVM — matches the still-open B4 gap), `CleanMateX_Payment_Settlement_Catalogs_Upgrade_Reference_v1_1/`, `CleanMateX_Customer_Receipt_Auto_Allocation_Feature_Pack_v1_0/`, `Payment_Modal_08_07_2026/`, `Payment_Modal_Review/` (all unrelated topics). `Order_Fin_Remediation_2026-07/` and `Order_Fin_Validation_Report_2026-07-03/` were later corrected in the 2026-09-17 maker≠checker follow-up above.
 
 **Tests:** n/a (doc review checklist per scope).
 
-**Commit:** — (owner) · **Preview QA:** not applicable for a documentation-only package (no runtime surface) · **Reviewer:** — · **Verification:** links validated (all 7 corrected files' relative links to the authoritative report + B01/B20 resolve) · **Authoritative report update:** none required — the frozen report itself was re-checked and found current (A2 already carries its own B35-resolution addendum).
+**Commit:** — (owner) · **Preview QA:** not applicable for a documentation-only package (no runtime surface) · **Reviewer:** — · **Verification:** links validated · **Authoritative report update:** Addendum A3 (2026-09-17) records the owner policy that maker≠checker is not required.

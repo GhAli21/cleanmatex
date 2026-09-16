@@ -3,6 +3,9 @@
 **Status:** Accepted
 **Area:** Order Financial Platform / Cancellation
 **Date:** 2026-07-04
+
+> **Amended 2026-09-17 (owner):** REFUND disposition still uses `initiateRefund` → `approveRefund` → `processRefund`, but **maker≠checker is not required**. Holding `orders:approve_refund` is enough even when the actor is the requester. Many tenant laundries have a single employee. Canonical rule: [Remediation_Work_Packages/CLAUDE.md](../Remediation_Work_Packages/CLAUDE.md).
+
 **Source:** Order-Fin validation 2026-07-03 finding FN-02 + Remediation Phase 4
 (`docs/features/Order_Fin/Order_Fin_Remediation_2026-07/PLAN.md`)
 
@@ -21,9 +24,10 @@ applications — the customer's money silently stranded.
    canonical `total_paid_amount > 0` requires an explicit
    `cancellation_disposition`:
    - `REFUND` — one idempotency-keyed refund per COMPLETED payment row via the
-     existing maker-checker refund flow (`initiateRefund`,
+     existing three-stage refund flow (`initiateRefund` → `approveRefund` →
+     `processRefund`; permission-gated, same user may approve),
      `reason=CANCELLED`, `method=ORIGINAL_METHOD`, lineage on
-     `original_payment_id`).
+     `original_payment_id`.
    - `STORE_CREDIT` — the net collected total (payments minus change already
      returned) becomes one active credit note
      (`issueCreditNoteTx`, key `cancel-<orderId>-store-credit`).

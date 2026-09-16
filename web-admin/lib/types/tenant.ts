@@ -94,6 +94,11 @@ export interface FeatureFlags {
      * / overpayment-resolution step instead of silently reprising the total).
      */
     order_fin_governed_amendments: boolean;
+    /**
+     * B13 — Voucher reverse operational unwind. When ON, reversing a posted
+     * voucher also VOID/REVERSE linked ORDER_PAYMENT legs (B10). Default OFF.
+     */
+    order_fin_voucher_unwind: boolean;
     tenant_new_dashboard_ui: boolean;
     tenant_beta_ai_classification: boolean;
     tenant_beta_voice_orders: boolean;

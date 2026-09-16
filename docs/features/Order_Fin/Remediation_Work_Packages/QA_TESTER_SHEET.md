@@ -374,7 +374,7 @@ NOTES:
 ### Test 31 — Approve your own refund  ⭐
 **Do:** Click **Approve** on the refund **you** created.
 **Should happen:** It approves.
-> ⭐ **Deliberate — don't report as a bug.** One person may request *and* approve, if they have permission.
+> ⭐ **Deliberate — don't report as a bug.** One person may request *and* approve, if they have permission. Many laundries have only one employee; a second-user rule would block them.
 > ❌ A problem: blocked with *"you cannot approve your own refund"* / *"a different user must approve"*.
 ```
 RESULT:  ( ) Worked    ( ) Problem    ( ) Couldn't test
@@ -488,7 +488,7 @@ NOTES:
 ### Test 44 — Approve your own difference  ⭐
 **Do:** On that session, click **Approve** — as yourself, the same person who closed it — and type a reason.
 **Should happen:** Approves normally.
-> ⭐ Same rule as Test 31 — the same person is allowed.
+> ⭐ Same rule as Test 31 — the same person is allowed. One-employee shops must be able to close and approve.
 ```
 RESULT:  ( ) Worked    ( ) Problem    ( ) Couldn't test
 NOTES:

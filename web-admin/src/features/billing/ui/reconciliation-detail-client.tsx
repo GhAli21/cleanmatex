@@ -150,6 +150,25 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-4 rounded-lg border border-gray-200 bg-white p-6 text-sm md:grid-cols-4">
+        <div>
+          <p className="text-gray-500">{t('totalChecked')}</p>
+          <p className="font-medium tabular-nums">{run.total_checked ?? EM_DASH}</p>
+        </div>
+        <div>
+          <p className="text-gray-500">{t('passedChecks')}</p>
+          <p className="font-medium tabular-nums text-green-700">{run.passed_checks ?? EM_DASH}</p>
+        </div>
+        <div>
+          <p className="text-gray-500">{t('failedChecks')}</p>
+          <p className="font-medium tabular-nums text-red-700">{run.failed_checks ?? EM_DASH}</p>
+        </div>
+        <div>
+          <p className="text-gray-500">{t('warningChecks')}</p>
+          <p className="font-medium tabular-nums text-yellow-700">{run.warning_checks ?? EM_DASH}</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
           <p className="text-3xl font-bold text-red-700">{blockers}</p>

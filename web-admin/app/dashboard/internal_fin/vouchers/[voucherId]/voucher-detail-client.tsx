@@ -37,6 +37,25 @@ function formatDate(value?: string | Date | null) {
   return new Date(value).toLocaleString();
 }
 
+const VOUCHER_UNWIND_ERROR_CODES = [
+  'VOUCHER_UNWIND_PAYMENT_NOT_FOUND',
+  'VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED',
+  'VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS',
+] as const;
+
+function mapReverseError(
+  raw: string | undefined,
+  t: (key: 'reverseErrors.VOUCHER_UNWIND_PAYMENT_NOT_FOUND' | 'reverseErrors.VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED' | 'reverseErrors.VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS') => string,
+  fallback: string,
+): string {
+  if (!raw) return fallback;
+  const code = VOUCHER_UNWIND_ERROR_CODES.find((c) => raw === c || raw.startsWith(`${c}:`));
+  if (code === 'VOUCHER_UNWIND_PAYMENT_NOT_FOUND') return t('reverseErrors.VOUCHER_UNWIND_PAYMENT_NOT_FOUND');
+  if (code === 'VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED') return t('reverseErrors.VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED');
+  if (code === 'VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS') return t('reverseErrors.VOUCHER_UNWIND_UNSUPPORTED_PAYMENT_STATUS');
+  return raw;
+}
+
 function VoucherDetailField({
   label,
   value,
@@ -136,7 +155,7 @@ export function VoucherDetailClient({
       showSuccess(t('reverseSuccess'));
       router.refresh();
     } else {
-      showError(result.error ?? tCommon('error'));
+      showError(mapReverseError(result.error, t, tCommon('error')));
     }
   };
 

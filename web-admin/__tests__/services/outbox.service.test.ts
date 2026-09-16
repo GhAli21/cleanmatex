@@ -45,7 +45,7 @@ jest.mock('@/lib/supabase/server', () => ({
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import { emitEventTx, claimBatch, markFailed, scheduleRetry, manualRetry } from '@/lib/services/outbox.service';
+import { emitEventTx, claimBatch, markFailed, scheduleRetry, manualRetry, manualRetryMany } from '@/lib/services/outbox.service';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -212,5 +212,32 @@ describe('outbox.service — manualRetry (B7 ops action)', () => {
     mockOutboxUpdateMany.mockResolvedValue({ count: 0 });
 
     await expect(manualRetry('evt-x', 'tenant-1')).rejects.toThrow('EVENT_NOT_FOUND_OR_NOT_RETRYABLE');
+  });
+});
+
+describe('outbox.service — manualRetryMany', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('re-queues matching FAILED/DEAD_LETTERED ids for the tenant and returns the updated count', async () => {
+    mockOutboxUpdateMany.mockResolvedValue({ count: 2 });
+
+    const retried = await manualRetryMany(['evt-1', 'evt-2', 'evt-1'], 'tenant-1');
+
+    expect(retried).toBe(2);
+    expect(mockOutboxUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { in: ['evt-1', 'evt-2'] },
+          tenant_org_id: 'tenant-1',
+        }),
+        data: expect.objectContaining({ status: 'PENDING', attempts: 0, error_message: null }),
+      }),
+    );
+  });
+
+  it('returns 0 without writing when the id list is empty', async () => {
+    const retried = await manualRetryMany([], 'tenant-1');
+    expect(retried).toBe(0);
+    expect(mockOutboxUpdateMany).not.toHaveBeenCalled();
   });
 });

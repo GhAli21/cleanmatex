@@ -1,7 +1,7 @@
 # B20 — Missing Reconciliation Checks
 
 ## Metadata
-Backlog ID: B20 · Severity: MEDIUM · Classification: CONTROL_GAP · Status: **IMPLEMENTED 2026-07-18** (see Completion evidence) — awaiting owner commit → Preview QA
+Backlog ID: B20 · Severity: MEDIUM · Classification: CONTROL_GAP · Status: **IMPLEMENTED 2026-07-18** — **§8.2 UI closed 2026-09-17** (run list + detail now show persisted `total_checked` / passed / failed / warnings). §8.1 demo-data closed 2026-09-16. Not VERIFIED until Preview retest of the count.
 Authoritative report sections: §13, §50-B20
 Required decisions: [D005](00_Phase_0_Financial_Semantics/D005_Canonical_Outstanding_Formula.md)
 Dependencies: [B02](B02_Shared_Financial_Aggregation.md) (hard) · Blocks: —
@@ -89,4 +89,4 @@ Rollback: remove check names from executed list
 
 **Gates (2026-07-18, all green):** `npx eslint … --quiet` 0 · `npx tsc --noEmit` clean · targeted jest 64/64 · `npm run build` — see status. i18n not applicable (no UI/strings — B20 is `Frontend page/screen/dialog/action: NOT_APPLICABLE`, new check names render through the existing reconciliation results screens with zero new UI elements).
 
-**Commit:** — (owner) · **Preview QA (deploy/result/approval):** Preview pass 2026-09-12→2026-09-16. §8.1 **closed 2026-09-16 as demo-data** (owner-authorized triage): RECON-2026-002's 24 `TAX_CALCULATION` blockers are legacy demo tax-line drift, not a B20 regression; §10.4 same-day window completed with 0 blockers. §8.2 remains P1 (total-checks=38 not shown). Injected-drift scenarios (§8.3) still unrun. Not VERIFIED. · **Reviewer:** — · **Verification:** — · **Authoritative report update:** — (after Preview QA; §13's "Other issues: TAX_CALCULATION / DISCOUNT_VALIDATION constants unimplemented" line becomes stale once VERIFIED — candidate for a B29 correction annotation).
+**Commit:** owner reports prior work committed+deployed 2026-09-17; §8.2 UI follow-up pending next commit · **Preview QA (deploy/result/approval):** Preview pass 2026-09-12→2026-09-16. §8.1 **closed 2026-09-16 as demo-data**. §8.2 UI shipped 2026-09-17 (awaiting retest that the detail shows the persisted check totals). Injected-drift scenarios (§8.3) still unrun. Not VERIFIED.

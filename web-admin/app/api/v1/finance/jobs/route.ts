@@ -1,13 +1,12 @@
 /**
  * GET /api/v1/finance/jobs
  *
- * B19 ops read endpoint: the last run of each of the 3 registered finance
- * jobs (gift-card expiry, idempotency cleanup, ERP posting-retry).
+ * Catalog + last run + cron health for the finance jobs hub.
  * Requires finance_jobs:view.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
-import { listFinanceJobsLastRun } from '@/lib/services/finance-jobs.service';
+import { listFinanceJobs } from '@/lib/services/finance-jobs.service';
 import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
@@ -15,7 +14,7 @@ export async function GET(request: NextRequest) {
   if (authCheck instanceof NextResponse) return authCheck;
 
   try {
-    const jobs = await listFinanceJobsLastRun();
+    const jobs = await listFinanceJobs();
     return NextResponse.json({ success: true, data: { jobs } });
   } catch (error) {
     logger.error('GET /api/v1/finance/jobs failed', error instanceof Error ? error : undefined);

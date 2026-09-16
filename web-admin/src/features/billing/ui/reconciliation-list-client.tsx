@@ -170,6 +170,7 @@ export default function ReconciliationListClient({ runs, pagination }: Reconcili
                   <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('currency')}</th>
                   <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('ranAt')}</th>
                   <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('ranBy')}</th>
+                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('totalChecked')}</th>
                   <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('blockers')}</th>
                   <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('warnings')}</th>
                   <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500" />
@@ -190,6 +191,9 @@ export default function ReconciliationListClient({ runs, pagination }: Reconcili
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">{run.currency_code}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">{fmtDate(locale, run.completed_at ?? run.started_at)}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">{run.triggered_by ?? EM_DASH}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left tabular-nums text-gray-700">
+                      {run.total_checked ?? EM_DASH}
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left">
                       {(run.failed_checks ?? 0) > 0 ? (
                         <span className="font-semibold text-red-700">{run.failed_checks}</span>

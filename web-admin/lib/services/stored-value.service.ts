@@ -9,6 +9,7 @@ import {
 } from '@/lib/constants/order-financial';
 import { Decimal } from '@prisma/client/runtime/library';
 import { assertCurrencyMatch, requireCurrencyCode } from '@/lib/money/currency-resolution';
+import { logger } from '@/lib/utils/logger';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -576,4 +577,145 @@ export async function getStoredValueSummary(tenantId: string, customerId: string
   const creditNoteTotal = creditNotes.reduce((sum, cn) => sum + toNumber(cn.remaining_balance), 0);
 
   return { wallet, advance, creditNoteTotal, creditNotes };
+}
+
+function utcTodayDate(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+function creditNoteExpiryKey(creditNoteId: string): string {
+  return `cn-expiry-${creditNoteId}`;
+}
+
+/**
+ * Expire one ACTIVE credit note past its `expires_at` date.
+ *
+ * Writes an EXPIRY ledger row and zeros `remaining_balance`. Replaces the
+ * retired `fn_expire_credit_notes()` bare status UPDATE (zero lineage).
+ * Idempotent on `cn-expiry-${id}`. Does not invent a GL dispatch — no
+ * credit-note-expired auto-post exists (gift-card expiry owns D008/D012).
+ */
+export async function expireCreditNote(
+  id: string,
+  tenantOrgId: string,
+): Promise<{ success: boolean; error?: string }> {
+  return withTenantContext(tenantOrgId, async () => {
+    try {
+      await prisma.$transaction(async (tx) => {
+        const idempotencyKey = creditNoteExpiryKey(id);
+        const existing = await tx.org_credit_note_txn_dtl.findFirst({
+          where: { tenant_org_id: tenantOrgId, idempotency_key: idempotencyKey },
+        });
+
+        const rows = await tx.$queryRaw<{
+          id: string;
+          remaining_balance: number;
+          currency_code: string;
+          status: string;
+          customer_id: string;
+        }[]>`
+          SELECT id, remaining_balance::float8, currency_code, status, customer_id
+          FROM org_credit_notes_mst
+          WHERE tenant_org_id = ${tenantOrgId}::uuid
+            AND id = ${id}::uuid
+          FOR UPDATE`;
+
+        const note = rows[0];
+        if (!note) throw new Error('CREDIT_NOTE_NOT_FOUND');
+
+        if (note.status === CREDIT_NOTE_STATUSES.EXPIRED || existing) {
+          if (note.status !== CREDIT_NOTE_STATUSES.EXPIRED) {
+            await tx.org_credit_notes_mst.update({
+              where: { id },
+              data: {
+                status: CREDIT_NOTE_STATUSES.EXPIRED,
+                remaining_balance: 0,
+                updated_at: new Date(),
+                updated_by: 'system/credit-note-expiry',
+              },
+            });
+          }
+          return;
+        }
+
+        if (note.status !== CREDIT_NOTE_STATUSES.ACTIVE) {
+          throw new Error('CREDIT_NOTE_NOT_ACTIVE');
+        }
+
+        const balanceBefore = note.remaining_balance;
+
+        await tx.org_credit_notes_mst.update({
+          where: { id },
+          data: {
+            status: CREDIT_NOTE_STATUSES.EXPIRED,
+            remaining_balance: 0,
+            updated_at: new Date(),
+            updated_by: 'system/credit-note-expiry',
+          },
+        });
+
+        if (balanceBefore > 0) {
+          await tx.org_credit_note_txn_dtl.create({
+            data: {
+              tenant_org_id: tenantOrgId,
+              credit_note_id: id,
+              customer_id: note.customer_id,
+              txn_type: STORED_VALUE_TXN_TYPES.EXPIRY,
+              amount: -balanceBefore,
+              currency_code: note.currency_code,
+              balance_before: balanceBefore,
+              balance_after: 0,
+              idempotency_key: idempotencyKey,
+              notes: 'Credit note expired',
+              rec_status: 1,
+              created_by: 'system/credit-note-expiry',
+            },
+          });
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      logger.error('Error expiring credit note', error as Error, {
+        feature: 'stored-value',
+        action: 'expire-credit-note',
+        tenantOrgId,
+        creditNoteId: id,
+      });
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
+    }
+  });
+}
+
+/**
+ * Batch-expire ACTIVE credit notes whose `expires_at` is before today (UTC
+ * date), matching the retired `fn_expire_credit_notes()` predicate
+ * `expires_at < NOW()::date`. One note's failure never blocks the rest.
+ */
+export async function expireCreditNotes(
+  tenantOrgId: string,
+): Promise<{ expiredCount: number; failedCount: number }> {
+  return withTenantContext(tenantOrgId, async () => {
+    const eligible = await prisma.org_credit_notes_mst.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        status: CREDIT_NOTE_STATUSES.ACTIVE,
+        expires_at: { lt: utcTodayDate() },
+      },
+      select: { id: true },
+    });
+
+    let expiredCount = 0;
+    let failedCount = 0;
+    for (const note of eligible) {
+      const result = await expireCreditNote(note.id, tenantOrgId);
+      if (result.success) {
+        expiredCount++;
+      } else {
+        failedCount++;
+      }
+    }
+    return { expiredCount, failedCount };
+  });
 }

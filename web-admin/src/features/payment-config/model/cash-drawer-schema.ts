@@ -16,6 +16,7 @@ export const createCashDrawerSchema = z.object({
   requires_session: z.boolean().optional(),
   opening_float_required: z.boolean().optional(),
   max_cash_limit: z.number().nonnegative().optional(),
+  variance_approval_threshold: z.number().nonnegative().optional(),
   assigned_terminal_id: z.string().uuid().optional(),
 });
 

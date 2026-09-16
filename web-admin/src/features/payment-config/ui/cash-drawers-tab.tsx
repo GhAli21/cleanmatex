@@ -175,6 +175,15 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
       ),
     },
     {
+      key: 'varianceThreshold',
+      header: t('cashDrawers.varianceApprovalThreshold'),
+      render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => (
+        <span className="text-sm font-medium">
+          {d.variance_approval_threshold != null ? d.variance_approval_threshold.toLocaleString() : '—'}
+        </span>
+      ),
+    },
+    {
       key: 'session',
       header: t('cashDrawers.sessionStatus'),
       render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => {

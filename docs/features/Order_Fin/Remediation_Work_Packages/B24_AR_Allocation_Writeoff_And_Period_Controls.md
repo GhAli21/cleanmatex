@@ -22,7 +22,7 @@ Unallocation/reallocation with lineage and caps; write-off posts the approved GL
 
 ## Scope
 Allocation reversal service, write-off GL wiring (AR_WRITE_OFF event via B6), period gate middleware for AR writes.
-**Frontend surface (rule 7):** unallocate/reallocate actions on the AR invoice detail (allocations tab) with reason + maker-checker where thresholds apply; write-off flow completed end-to-end on screen (request → approve → posted state visible); period-blocked actions show the period status instead of a raw error.
+**Frontend surface (rule 7):** unallocate/reallocate actions on the AR invoice detail (allocations tab) with reason + permission-gated approval where thresholds apply (same user may approve — no maker≠checker); write-off flow completed end-to-end on screen (request → approve → posted state visible); period-blocked actions show the period status instead of a raw error.
 
 ## Out of scope
 ECL and bad-debt recovery (B26); dunning/statements (implemented); tax documents (B14).
@@ -60,7 +60,7 @@ API/endpoints: POST invoice allocations/[id]/unallocate + reallocate; write-off 
 Frontend page/screen/dialog/action: AR invoice detail allocations tab — Unallocate/Reallocate actions with reason (+ approval above threshold); write-off flow shows request → approve → posted states; period-blocked writes show period status inline
 Reusable components/helpers: approval dialog pattern; allocation table reuse
 Permissions: existing `invoices:write_off` + approve-sensitive; unallocation code via B27
-Validation: reallocation caps; period OPEN check; maker≠checker
+Validation: reallocation caps; period OPEN check; permission is the only approval gate (same user may approve — no maker≠checker)
 i18n/RTL: EN/AR for actions/states/period messages
 Accessibility: action confirmation semantics
 Audit trail: reversal lineage + actors; write-off posting log
@@ -73,7 +73,7 @@ Rollback: flag off (actions hidden); posted journals reversed via engine policy
 ## End-to-end operational flow
 
 1. Finance user finds a misallocated receipt → Unallocate with reason → allocation reversed with lineage → Reallocate to the correct invoice.
-2. Write-off request → approver confirms → balanced journal posts → invoice state + GL agree; screen shows the posted state.
+2. Write-off request → a holder of the write-off/approve permission confirms (may be the same user) → balanced journal posts → invoice state + GL agree; screen shows the posted state.
 3. Any AR write into a closed period is rejected with the period shown; recon ties invoice, allocations, and journals.
 
 UI states: standard Cmx state contract — loading, empty, validation errors, permission-denied (actions disabled with reason), duplicate-click protection (in-flight disable + idempotent replay), processing, success, retry on failure; allocation/write-off history visible on the invoice detail.

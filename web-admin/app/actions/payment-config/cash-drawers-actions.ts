@@ -87,6 +87,7 @@ export async function createCashDrawer(
           requires_session: input.requires_session ?? true,
           opening_float_required: input.opening_float_required ?? true,
           max_cash_limit: input.max_cash_limit ?? null,
+          variance_approval_threshold: input.variance_approval_threshold ?? null,
           assigned_terminal_id: input.assigned_terminal_id ?? null,
           created_by: userId,
           created_at: new Date(),
@@ -133,6 +134,9 @@ export async function updateCashDrawer(
           ...(input.requires_session !== undefined && { requires_session: input.requires_session }),
           ...(input.opening_float_required !== undefined && { opening_float_required: input.opening_float_required }),
           ...(input.max_cash_limit !== undefined && { max_cash_limit: input.max_cash_limit }),
+          ...(input.variance_approval_threshold !== undefined && {
+            variance_approval_threshold: input.variance_approval_threshold,
+          }),
           ...(input.assigned_terminal_id !== undefined && { assigned_terminal_id: input.assigned_terminal_id }),
           updated_by: userId,
           updated_at: new Date(),
