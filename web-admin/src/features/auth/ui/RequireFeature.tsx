@@ -1,6 +1,6 @@
 'use client'
 /* eslint-disable react-hooks/set-state-in-effect */
-
+// Before refactoring the feature flags.
 /**
  * RequireFeature Component
  *
