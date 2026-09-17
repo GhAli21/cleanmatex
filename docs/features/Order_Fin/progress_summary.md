@@ -83,9 +83,16 @@ Session-by-session progress for Order Fin stopped being logged here on 2026-07-1
 ## Session: 2026-09-17
 
 **Completed (B18 + B14 addenda — the last two genuinely-pending code gaps found in a full program re-audit):**
-- B18: charge void action (reason-gated, reconciliation-safe) + backfill migration `0510_b18_charge_backfill.sql` (STOP-AND-WAIT, not yet applied) for the 67 pre-B18 orders' missing charge-ledger rows.
+- B18: charge void action (reason-gated, reconciliation-safe) + backfill migration `0510_b18_charge_backfill.sql` for pre-B18 orders' missing charge-ledger rows.
 - B14: bilingual tax-document print/view screen + generic verification QR, and a manual "Issue tax document" action. Cancel/Supersede UI deliberately not built (no backing cancel function; supersede needs a real replacement-input form).
-- Deliberately skipped (owner decision): B12 automated settlement-collection dialog, B19 loyalty points FIFO expiry ledger.
+- Deliberately skipped (owner decision, later reversed for B19 same session — see below): B12 automated settlement-collection dialog, B19 loyalty points FIFO expiry ledger.
 - Gates: tsc 0 / eslint 0 / check:i18n ✓ / check:access-contracts 10/10 / full jest 314/314 suites, 2762/2762 tests / build ✓.
 
-**Next:** owner reviews + applies migration 0510 → commit → Preview deploy → QA (see `Remediation_Work_Packages/QA_TEST_GUIDE.md` §24 addendum + §26.11–26.13).
+**Same-session follow-up — owner reversed the B19 skip decision:** "implement B19 loyalty FIFO ledger following best practices, production-ready, no gaps, no bugs, UI/UX best practices."
+- New `org_loyalty_txn_dtl.remaining_points` + `org_loyalty_txn_allocs_dtl` allocation table (mirrors the existing `org_ar_credit_allocs_dtl` pattern) — every redemption/negative-adjustment now draws from the oldest open earn lot(s) first; every earn/positive-adjustment opens a new lot.
+- New `loyalty_points_expiry` scheduled job (registry-driven, picked up automatically by the existing Scheduled Jobs ops screen) — dormant until an owner configures `points_expiry_days`.
+- Replaced two byte-identical hardcoded Loyalty-tab stubs (static balance, static "No transactions yet") with one real, Cmx-based `CustomerLoyaltyTab` — stat cards, an upcoming-expiry warning banner, real transaction history.
+- Incidental bug fixed: the customer loyalty API route gated on an unseeded permission code (`loyalty:view`) and 403'd for everyone since it was written — corrected to `loyalty:view_customer_points` and wired into both customer-detail pages' access contracts for the first time.
+- Migrations `0510` and `0511` both **APPLIED (owner, 2026-09-17)** local + remote, verified. Gates: tsc 0 / eslint 0 / check:i18n ✓ / check:access-contracts 10/10 / full jest 314/314 suites, 2779/2779 tests / build ✓ (one transient Windows Prisma file-lock flake, self-resolved on retry).
+
+**Next:** commit → Preview deploy → QA (see `Remediation_Work_Packages/QA_TEST_GUIDE.md` §24, §26.11–26.13, §20.21–20.25).

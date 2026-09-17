@@ -7543,14 +7543,42 @@ model org_loyalty_txn_dtl {
   created_at              DateTime @default(now()) @db.Timestamptz(6)
   created_by              String?  @db.Uuid
   created_info            String?
+  /// B19 (migration 0511) — FIFO lot-remaining balance. Only meaningful on a
+  /// credit row (EARN/BONUS/positive ADJUST, points > 0); NULL on debit rows.
+  remaining_points        Int?
 
-  org_loyalty_accounts_mst org_loyalty_accounts_mst @relation(fields: [account_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  org_loyalty_accounts_mst    org_loyalty_accounts_mst      @relation(fields: [account_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  allocs_as_consuming         org_loyalty_txn_allocs_dtl[]  @relation("loyalty_alloc_consuming")
+  allocs_as_source            org_loyalty_txn_allocs_dtl[]  @relation("loyalty_alloc_source")
 
   @@unique([tenant_org_id, idempotency_key], map: "uq_loyalty_txn_idempotency")
   @@index([tenant_org_id, account_id], map: "idx_loyalty_txn_account")
   @@index([tenant_org_id, order_id], map: "idx_loyalty_txn_order")
   @@index([tenant_org_id, fin_voucher_id], map: "idx_loyalty_txn_fin_voucher")
   @@index([tenant_org_id, fin_voucher_trx_line_id], map: "idx_loyalty_txn_voucher_line")
+  @@schema("public")
+}
+
+/// B19 (migration 0511) — one row per (debit txn, credit lot) draw. Mirrors
+/// org_ar_credit_allocs_dtl (0321). Gives full audit traceability for which
+/// specific earn(s)/bonus(es)/adjustment(s) funded a given redemption or
+/// expiry.
+model org_loyalty_txn_allocs_dtl {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id    String   @db.Uuid
+  account_id       String   @db.Uuid
+  consuming_txn_id String   @db.Uuid
+  source_txn_id    String   @db.Uuid
+  applied_points   Int
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  created_info     String?
+
+  consuming_txn org_loyalty_txn_dtl @relation("loyalty_alloc_consuming", fields: [consuming_txn_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  source_txn    org_loyalty_txn_dtl @relation("loyalty_alloc_source", fields: [source_txn_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([tenant_org_id, consuming_txn_id], map: "idx_olta_consuming")
+  @@index([tenant_org_id, source_txn_id], map: "idx_olta_source")
+  @@index([tenant_org_id, account_id], map: "idx_olta_account")
   @@schema("public")
 }
 

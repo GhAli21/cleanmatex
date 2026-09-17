@@ -79,7 +79,7 @@ export interface OutboxEventRow {
  * @param limit
  */
 export async function claimBatch(limit = 50): Promise<OutboxEventRow[]> {
-  return prisma.$queryRaw<OutboxEventRow[]>`SELECT * FROM claim_outbox_batch(${limit}, NOW())`;
+  return prisma.$queryRaw<OutboxEventRow[]>`SELECT * FROM claim_outbox_batch(${limit}::integer, NOW())`;
 }
 
 /**

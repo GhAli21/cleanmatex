@@ -164,6 +164,16 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'Customer loyalty account, transactions, and expiry summary (Loyalty tab)',
+        method: 'GET',
+        path: '/api/v1/customers/[id]/loyalty',
+        requirement: {
+          permissions: ['loyalty:view_customer_points'],
+          requireAllPermissions: true,
+        },
+        notes: ['B19 follow-up (2026-09-17) — corrected from the previously-unseeded loyalty:view code; wires this route into the Loyalty tab for the first time.'],
+      },
     ],
     notes: CUSTOMERS_NOTES,
   },

@@ -249,6 +249,34 @@
       "noMethodsAvailable": "لا توجد طرق دفع متاحة لهذا الفرع."
     }
   },
+  "loyaltyPanel": {
+    "title": "نقاط الولاء والمكافآت",
+    "pointsBalance": "رصيد النقاط",
+    "lifetimeEarned": "إجمالي النقاط المكتسبة",
+    "currentTier": "المستوى الحالي",
+    "noTier": "لا يوجد مستوى",
+    "noAccount": "لا يوجد لهذا العميل حساب ولاء بعد — يُنشأ تلقائياً عند أول اكتساب للنقاط.",
+    "expiryWarning": "{points} نقطة تنتهي صلاحيتها في {date}",
+    "expiryWarningMultiple": "{points} نقطة تنتهي صلاحيتها خلال 30 يوماً القادمة",
+    "historyTitle": "سجل المعاملات",
+    "noTransactions": "لا توجد معاملات بعد",
+    "noTransactionsHint": "سيظهر سجل النقاط هنا بمجرد اكتساب العميل أو استبدال نقاط.",
+    "columns": {
+      "date": "التاريخ",
+      "type": "النوع",
+      "points": "النقاط",
+      "balanceAfter": "الرصيد بعد",
+      "reference": "المرجع"
+    },
+    "txnType": {
+      "EARN": "مكتسبة",
+      "REDEEM": "مستبدلة",
+      "EXPIRE": "منتهية الصلاحية",
+      "ADJUST": "معدّلة",
+      "BONUS": "مكافأة"
+    },
+    "loadFailed": "فشل تحميل حساب الولاء"
+  },
   "accountReceipt": {
     "title": "قبض حساب العميل",
     "description": "تسجيل دفعة حساب عميل وتوزيعها على الأرصدة المفتوحة",

@@ -13461,6 +13461,61 @@ export type Database = {
           },
         ]
       }
+      org_loyalty_txn_allocs_dtl: {
+        Row: {
+          account_id: string
+          applied_points: number
+          consuming_txn_id: string
+          created_at: string
+          created_info: string | null
+          id: string
+          source_txn_id: string
+          tenant_org_id: string
+        }
+        Insert: {
+          account_id: string
+          applied_points: number
+          consuming_txn_id: string
+          created_at?: string
+          created_info?: string | null
+          id?: string
+          source_txn_id: string
+          tenant_org_id: string
+        }
+        Update: {
+          account_id?: string
+          applied_points?: number
+          consuming_txn_id?: string
+          created_at?: string
+          created_info?: string | null
+          id?: string
+          source_txn_id?: string
+          tenant_org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_olta_account"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "org_loyalty_accounts_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_olta_consuming"
+            columns: ["consuming_txn_id"]
+            isOneToOne: false
+            referencedRelation: "org_loyalty_txn_dtl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_olta_source"
+            columns: ["source_txn_id"]
+            isOneToOne: false
+            referencedRelation: "org_loyalty_txn_dtl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_loyalty_txn_dtl: {
         Row: {
           account_id: string
@@ -13479,6 +13534,7 @@ export type Database = {
           points: number
           points_after: number
           points_before: number
+          remaining_points: number | null
           tenant_org_id: string
           txn_type: string
         }
@@ -13499,6 +13555,7 @@ export type Database = {
           points: number
           points_after: number
           points_before: number
+          remaining_points?: number | null
           tenant_org_id: string
           txn_type: string
         }
@@ -13519,6 +13576,7 @@ export type Database = {
           points?: number
           points_after?: number
           points_before?: number
+          remaining_points?: number | null
           tenant_org_id?: string
           txn_type?: string
         }

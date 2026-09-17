@@ -18,6 +18,7 @@ const mockQueryRaw = jest.fn();
 const mockExecuteRaw = jest.fn();
 const mockExpireGiftCards = jest.fn();
 const mockExpireCreditNotes = jest.fn();
+const mockExpireLoyaltyPoints = jest.fn();
 const mockProcessOutboxBatch = jest.fn();
 const mockRetry = jest.fn();
 const mockLoggerError = jest.fn();
@@ -43,6 +44,10 @@ jest.mock('@/lib/services/gift-card-service', () => ({
 
 jest.mock('@/lib/services/stored-value.service', () => ({
   expireCreditNotes: (...a: unknown[]) => mockExpireCreditNotes(...a),
+}));
+
+jest.mock('@/lib/services/loyalty.service', () => ({
+  expireLoyaltyPoints: (...a: unknown[]) => mockExpireLoyaltyPoints(...a),
 }));
 
 jest.mock('@/lib/services/outbox-processor.service', () => ({
@@ -201,7 +206,7 @@ describe('listFinanceJobsLastRun', () => {
 
     const result = await listFinanceJobsLastRun();
 
-    expect(result).toHaveLength(5);
+    expect(result).toHaveLength(6);
     expect(result[0].jobCode).toBe(FINANCE_JOB_CODES.OUTBOX_PROCESSOR);
     expect(result[0].lastRun?.status).toBe('SUCCESS');
     expect(result[1].jobCode).toBe(FINANCE_JOB_CODES.GIFT_CARD_EXPIRY);
@@ -249,6 +254,42 @@ describe('runFinanceJob — credit_note_expiry', () => {
     expect(result.failedCount).toBe(1);
     expect(mockExpireCreditNotes).toHaveBeenCalledWith('tenant-a');
     expect(mockExpireCreditNotes).toHaveBeenCalledWith('tenant-b');
+  });
+});
+
+describe('runFinanceJob — loyalty_points_expiry (B19 follow-up)', () => {
+  it('loops every active tenant and aggregates expired/failed counts', async () => {
+    mockTenantsFindMany.mockResolvedValue([{ id: 'tenant-a' }, { id: 'tenant-b' }]);
+    mockExpireLoyaltyPoints
+      .mockResolvedValueOnce({ expiredCount: 5, failedCount: 0 })
+      .mockResolvedValueOnce({ expiredCount: 0, failedCount: 0 });
+
+    const result = await runFinanceJob({
+      jobCode: FINANCE_JOB_CODES.LOYALTY_POINTS_EXPIRY,
+      triggerSource: 'SCHEDULE',
+    });
+
+    expect(result.status).toBe('SUCCESS');
+    expect(result.processedCount).toBe(5);
+    expect(result.failedCount).toBe(0);
+    expect(mockExpireLoyaltyPoints).toHaveBeenCalledWith('tenant-a');
+    expect(mockExpireLoyaltyPoints).toHaveBeenCalledWith('tenant-b');
+  });
+
+  it('one tenant throwing never blocks the rest', async () => {
+    mockTenantsFindMany.mockResolvedValue([{ id: 'tenant-a' }, { id: 'tenant-b' }]);
+    mockExpireLoyaltyPoints
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce({ expiredCount: 2, failedCount: 0 });
+
+    const result = await runFinanceJob({
+      jobCode: FINANCE_JOB_CODES.LOYALTY_POINTS_EXPIRY,
+      triggerSource: 'SCHEDULE',
+    });
+
+    expect(result.status).toBe('SUCCESS');
+    expect(result.processedCount).toBe(2);
+    expect(result.failedCount).toBe(1);
   });
 });
 

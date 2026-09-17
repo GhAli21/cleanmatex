@@ -14,6 +14,7 @@ import type { CustomerWithTenantData } from '@/lib/types/customer';
 import { CustomerOrdersSection } from '@features/customers/ui/customer-orders-section';
 import { CustomerAddressesSection } from '@features/customers/ui/customer-addresses-section';
 import { CustomerPreferencesTab } from '@features/customers/ui/customer-preferences-tab';
+import { CustomerLoyaltyTab } from '@features/customers/ui/customer-loyalty-tab';
 import {
   CustomerB2BContactsTab,
   CustomerB2BContractsTab,
@@ -316,10 +317,7 @@ export default function B2BCustomerViewPage() {
             />
           )}
           {activeTab === 'loyalty' && (
-            <LoyaltyTab
-              customerId={customer.id}
-              loyaltyPoints={customer.tenantData?.loyaltyPoints || 0}
-            />
+            <CustomerLoyaltyTab customerId={customer.id} />
           )}
           {activeTab === 'b2b_contacts' && (
             <CustomerB2BContactsTab customerId={customer.id} />
@@ -406,26 +404,3 @@ function B2BProfileTab({ customer }: { customer: CustomerWithTenantData }) {
   );
 }
 
-function LoyaltyTab({ customerId, loyaltyPoints }: { customerId: string; loyaltyPoints: number }) {
-  return (
-    <div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-6">Loyalty Points & Rewards</h3>
-      <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg p-6 text-white mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-purple-100 text-sm mb-1">Current Balance</p>
-            <p className="text-4xl font-bold">{loyaltyPoints}</p>
-            <p className="text-purple-100 text-sm mt-1">points</p>
-          </div>
-          <div className="text-6xl">⭐</div>
-        </div>
-      </div>
-      <div className="text-center py-12 bg-gray-50 rounded-lg">
-        <p className="text-gray-500 mb-2">No transactions yet</p>
-        <p className="text-sm text-gray-400">
-          Points history will appear here once the customer earns or redeems points
-        </p>
-      </div>
-    </div>
-  );
-}

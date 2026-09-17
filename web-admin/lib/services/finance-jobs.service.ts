@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/utils/logger';
 import { expireGiftCards } from './gift-card-service';
 import { expireCreditNotes } from './stored-value.service';
+import { expireLoyaltyPoints } from './loyalty.service';
 import { processOutboxBatch } from './outbox-processor.service';
 import { ErpLitePostingEngineService } from './erp-lite-posting-engine.service';
 
@@ -15,14 +16,17 @@ import { ErpLitePostingEngineService } from './erp-lite-posting-engine.service';
  * ways: pg_cron -> dispatcher route (`triggerSource: 'SCHEDULE'`), and
  * `POST /api/v1/finance/jobs/[jobCode]/run` (`MANUAL`).
  *
- * Deliberately excluded (see migration 0429): wallet expiry, loyalty
- * points expiry, pending-payment aging.
+ * Deliberately excluded (see migration 0429): wallet expiry (no policy
+ * surface anywhere), pending-payment aging. Loyalty points expiry shipped
+ * 2026-09-17 (migration 0511) once the FIFO lot-consumption ledger existed
+ * to compute it safely — see `expireLoyaltyPoints` in `loyalty.service.ts`.
  */
 
 export const FINANCE_JOB_CODES = {
   OUTBOX_PROCESSOR: 'outbox_processor',
   GIFT_CARD_EXPIRY: 'gift_card_expiry',
   CREDIT_NOTE_EXPIRY: 'credit_note_expiry',
+  LOYALTY_POINTS_EXPIRY: 'loyalty_points_expiry',
   IDEMPOTENCY_CLEANUP: 'idempotency_cleanup',
   ERP_POSTING_RETRY: 'erp_posting_retry',
 } as const;
@@ -60,6 +64,12 @@ export const FINANCE_JOB_CATALOG: readonly FinanceJobCatalogEntry[] = [
     cronName: 'fin-credit-note-expiry',
     cronExpr: '5 2 * * *',
     relatedHref: '/dashboard/customers/stored-value',
+  },
+  {
+    jobCode: FINANCE_JOB_CODES.LOYALTY_POINTS_EXPIRY,
+    cronName: 'fin-loyalty-points-expiry',
+    cronExpr: '10 2 * * *',
+    relatedHref: '/dashboard/marketing/loyalty',
   },
   {
     jobCode: FINANCE_JOB_CODES.IDEMPOTENCY_CLEANUP,
@@ -182,6 +192,33 @@ async function runCreditNoteExpiry(): Promise<FinanceJobOutcome> {
 }
 
 /**
+ * Loyalty points expiry sweep. Loops every active tenant through
+ * `expireLoyaltyPoints()`, which itself no-ops for a tenant with no active
+ * program or no `points_expiry_days` configured — dormant until an owner
+ * deliberately sets a policy, same posture as gift-card/credit-note expiry.
+ */
+async function runLoyaltyPointsExpiry(): Promise<FinanceJobOutcome> {
+  const tenants = await prisma.org_tenants_mst.findMany({
+    where: { is_active: true },
+    select: { id: true },
+  });
+
+  let processedCount = 0;
+  let failedCount = 0;
+  for (const tenant of tenants) {
+    try {
+      const result = await expireLoyaltyPoints(tenant.id);
+      processedCount += result.expiredCount;
+      failedCount += result.failedCount;
+    } catch (err) {
+      failedCount++;
+      logger.error('Loyalty points expiry sweep failed for tenant', err as Error, { tenantId: tenant.id });
+    }
+  }
+  return { processedCount, failedCount };
+}
+
+/**
  * Idempotency-key cleanup. Single cross-tenant SQL DELETE via
  * `cleanup_expired_idempotency_keys()` — the sanctioned deletion path
  * for `org_idempotency_keys` (D010 invariant 8).
@@ -236,6 +273,7 @@ const JOB_RUNNERS: Record<FinanceJobCode, () => Promise<FinanceJobOutcome>> = {
   [FINANCE_JOB_CODES.OUTBOX_PROCESSOR]: runOutboxProcessor,
   [FINANCE_JOB_CODES.GIFT_CARD_EXPIRY]: runGiftCardExpiry,
   [FINANCE_JOB_CODES.CREDIT_NOTE_EXPIRY]: runCreditNoteExpiry,
+  [FINANCE_JOB_CODES.LOYALTY_POINTS_EXPIRY]: runLoyaltyPointsExpiry,
   [FINANCE_JOB_CODES.IDEMPOTENCY_CLEANUP]: runIdempotencyCleanup,
   [FINANCE_JOB_CODES.ERP_POSTING_RETRY]: runErpPostingRetry,
 };

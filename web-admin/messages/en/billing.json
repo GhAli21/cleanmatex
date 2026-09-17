@@ -623,6 +623,7 @@
       "outbox_processor": "Outbox Processor",
       "gift_card_expiry": "Gift-Card Expiry",
       "credit_note_expiry": "Credit-Note Expiry",
+      "loyalty_points_expiry": "Loyalty Points Expiry",
       "idempotency_cleanup": "Idempotency-Key Cleanup",
       "erp_posting_retry": "ERP Posting Retry"
     },
@@ -630,6 +631,7 @@
       "outbox_processor": "Every minute",
       "gift_card_expiry": "02:00 daily",
       "credit_note_expiry": "02:05 daily",
+      "loyalty_points_expiry": "02:10 daily",
       "idempotency_cleanup": "03:00 daily",
       "erp_posting_retry": "Hourly at :15"
     },
@@ -637,6 +639,7 @@
       "outbox_processor": "Event table",
       "gift_card_expiry": "Gift cards",
       "credit_note_expiry": "Stored value",
+      "loyalty_points_expiry": "Loyalty program",
       "erp_posting_retry": "ERP exceptions"
     },
     "statusLabels": {

@@ -1,5 +1,32 @@
 # Changelog — Order Financial Platform
 
+## 2026-09-17 — B19 loyalty points FIFO ledger, expiry job, and real Loyalty tab
+
+**Scope:** Owner reversed course, same session, on the earlier "skip B19 — new-feature scope" call: "implement B19 loyalty FIFO ledger following best practices to build production-ready, with no gaps, no bugs, UI/UX best practices." Closes the one item B19's original 2026-07-24 pass had deliberately left open.
+
+### Shipped
+
+- `org_loyalty_txn_dtl.remaining_points` (nullable, lot-remaining balance) + new `org_loyalty_txn_allocs_dtl` table (one row per debit-txn/credit-lot draw, mirrors the existing `org_ar_credit_allocs_dtl` pattern) — migration `0511_b19_loyalty_points_fifo_expiry.sql`, **APPLIED (owner) local + remote, verified**.
+- Every debit path (`redeemPointsTx`, negative `adjustPointsTx`) now draws from the oldest open earn lot(s) first via a new `consumeLoyaltyLotsTx` helper; every credit path (`processEarnPoints`, positive `adjustPointsTx`) opens a new lot.
+- New `loyalty_points_expiry` scheduled job (daily `02:10`) on the existing B19/0505 finance-jobs-hub infrastructure — registry-driven, the Scheduled Jobs ops screen picks it up automatically. Dormant until an owner configures `points_expiry_days`; aggregates all qualifying lots for one account into one `EXPIRE` ledger row per sweep (full per-lot lineage stays in the allocation table); idempotent per calendar day.
+- A real customer-facing Loyalty tab (`/dashboard/customers/[id]` and the B2B equivalent) — replaces two byte-identical hardcoded stubs (static balance number, static "No transactions yet," zero i18n) with one shared `CustomerLoyaltyTab`: real stat cards, an upcoming-expiry warning banner, and a transaction history table.
+- Incidental bug fixed: `GET /api/v1/customers/[id]/loyalty` (previously zero callers anywhere) gated on `loyalty:view`, a permission code that was never seeded — 403'd for every role since it was written. Corrected to `loyalty:view_customer_points`.
+
+### Deliberately not built
+
+- Wallet points expiry — no policy surface exists anywhere for it (unchanged from B19's original deferral).
+- GL/breakage posting for expired points — deferred to B25, matching credit-note expiry's own precedent.
+
+### Docs
+
+- B19 (new "Follow-up — loyalty points FIFO ledger" section), README, QA_TEST_GUIDE (§20.21–20.25), RESUME_CONTINUATION.md, this file, `IMPLEMENTATION_STATUS.md`, `progress_summary.md`.
+
+### Gates
+
+tsc 0 · eslint 0 · check:i18n ✓ · check:access-contracts 10/10 (nav↔contract drift 0) · full jest 314/314 suites, 2779/2779 tests, zero regressions · `npm run build` ✓ (exit 0, full route manifest; one transient Windows Prisma file-lock EPERM on the first attempt, self-resolved on retry).
+
+---
+
 ## 2026-09-17 — B18 charge void + backfill; B14 tax-document print/view + manual issue
 
 **Scope:** Full re-audit of the Order Fin Remediation Program (B01–B35) found five genuinely-pending code gaps (as opposed to items only awaiting Preview QA or a migration apply). Owner scoped in B18 and B14's remaining pieces; scoped out B12's settlement-automation dialog and B19's loyalty FIFO ledger (see `Remediation_Work_Packages/RESUME_CONTINUATION.md` for the full audit and reasoning).
@@ -8,7 +35,7 @@
 
 - `voidOrderCharge()` (`lib/services/order-charge.service.ts`) — reason-gated void of an `org_order_charges_dtl` line, permission `orders:manual_charge` (already seeded, no new migration). Voiding a `PREFERENCE`-type charge also soft-deletes its source `org_order_preferences_dtl` row and decrements the linked piece's `service_pref_charge`, keeping `order-snapshot-checks.ts`'s reconciliation checks correct instead of permanently failing.
 - Financial tab charges table (`/dashboard/orders/[id]` and `/dashboard/orders/[id]/full`) gained a Status column + permission-gated Void button + reason dialog.
-- Migration `0510_b18_charge_backfill.sql` — **STOP-AND-WAIT, not yet applied.** Backfills missing charge-ledger rows for the 67 pre-B18 orders from their existing preference rows. Never touches `total_amount`/`outstanding_amount`/`total_paid_amount` — pure retroactive bookkeeping, not re-billing.
+- Migration `0510_b18_charge_backfill.sql` — **APPLIED (owner) local + remote, verified: 0 rows backfilled** (no orphan preferences existed). Backfills missing charge-ledger rows for pre-B18 orders from their existing preference rows. Never touches `total_amount`/`outstanding_amount`/`total_paid_amount` — pure retroactive bookkeeping, not re-billing.
 
 ### Shipped — B14 (Tax Document Runtime Integration)
 

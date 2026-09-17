@@ -623,6 +623,7 @@
       "outbox_processor": "معالج صندوق الأحداث",
       "gift_card_expiry": "انتهاء صلاحية بطاقات الهدايا",
       "credit_note_expiry": "انتهاء صلاحية إشعارات الائتمان",
+      "loyalty_points_expiry": "انتهاء صلاحية نقاط الولاء",
       "idempotency_cleanup": "تنظيف مفاتيح عدم التكرار",
       "erp_posting_retry": "إعادة محاولة ترحيل ERP"
     },
@@ -630,6 +631,7 @@
       "outbox_processor": "كل دقيقة",
       "gift_card_expiry": "يومياً 02:00",
       "credit_note_expiry": "يومياً 02:05",
+      "loyalty_points_expiry": "يومياً 02:10",
       "idempotency_cleanup": "يومياً 03:00",
       "erp_posting_retry": "كل ساعة عند :15"
     },
@@ -637,6 +639,7 @@
       "outbox_processor": "جدول الأحداث",
       "gift_card_expiry": "بطاقات الهدايا",
       "credit_note_expiry": "القيمة المخزّنة",
+      "loyalty_points_expiry": "برنامج الولاء",
       "erp_posting_retry": "استثناءات ERP"
     },
     "statusLabels": {

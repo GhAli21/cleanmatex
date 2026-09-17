@@ -3,6 +3,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
+import { logger } from '@/lib/utils/logger';
 import {
   LOYALTY_ERROR_CODES,
   LOYALTY_ROUNDING_RULES,
@@ -14,6 +15,73 @@ import { emitEventTx } from './outbox.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/**
+ * B19 FIFO ledger — draw `pointsToConsume` from this account's oldest open
+ * lots first (rows with `remaining_points > 0`, ordered by `created_at`),
+ * writing one `org_loyalty_txn_allocs_dtl` row per lot drawn on. Called by
+ * every debit path (redeem, negative adjust, expiry) after the consuming
+ * `org_loyalty_txn_dtl` row already exists, so allocations can reference it.
+ *
+ * Throws `LOYALTY_LOT_ALLOCATION_SHORTFALL` if the open lots don't cover the
+ * requested amount — this should never happen when every credit path sets
+ * `remaining_points` and every debit path routes through here (the
+ * invariant `SUM(remaining_points) per account === points_balance` always
+ * holds), so a shortfall means real ledger drift and must surface loudly,
+ * never silently under-allocate.
+ * @param tx
+ * @param tenantId
+ * @param accountId
+ * @param consumingTxnId
+ * @param pointsToConsume
+ */
+async function consumeLoyaltyLotsTx(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  accountId: string,
+  consumingTxnId: string,
+  pointsToConsume: number,
+): Promise<void> {
+  if (pointsToConsume <= 0) return;
+
+  const lots = await tx.$queryRaw<{ id: string; remaining_points: number }[]>`
+    SELECT id, remaining_points FROM org_loyalty_txn_dtl
+    WHERE tenant_org_id = ${tenantId}::uuid
+      AND account_id   = ${accountId}::uuid
+      AND remaining_points > 0
+    ORDER BY created_at ASC, id ASC
+    FOR UPDATE`;
+
+  let remaining = pointsToConsume;
+  for (const lot of lots) {
+    if (remaining <= 0) break;
+    const draw = Math.min(lot.remaining_points, remaining);
+
+    await tx.org_loyalty_txn_dtl.update({
+      where: { id: lot.id },
+      data: { remaining_points: { decrement: draw } },
+    });
+    await tx.org_loyalty_txn_allocs_dtl.create({
+      data: {
+        tenant_org_id: tenantId,
+        account_id: accountId,
+        consuming_txn_id: consumingTxnId,
+        source_txn_id: lot.id,
+        applied_points: draw,
+      },
+    });
+
+    remaining -= draw;
+  }
+
+  if (remaining > 0) {
+    throw new Error('LOYALTY_LOT_ALLOCATION_SHORTFALL');
+  }
+}
+
+function loyaltyExpiryKey(accountId: string, asOfUtcDate: string): string {
+  return `loyalty-expiry-${accountId}-${asOfUtcDate}`;
+}
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -177,7 +245,7 @@ export async function redeemPointsTx(
     data:  { points_balance: pointsAfter, lifetime_earned: { increment: 0 } },
   });
 
-  return tx.org_loyalty_txn_dtl.create({
+  const redeemTxn = await tx.org_loyalty_txn_dtl.create({
     data: {
       tenant_org_id:           tenantId,
       account_id:              rows[0].id,
@@ -192,6 +260,12 @@ export async function redeemPointsTx(
       fin_voucher_trx_line_id: voucherLineId ?? null,
     },
   });
+
+  // B19 FIFO ledger — draw the redeemed points from the oldest open earn
+  // lot(s) so a later expiry sweep only ever touches genuinely unconsumed points.
+  await consumeLoyaltyLotsTx(tx, tenantId, rows[0].id, redeemTxn.id, pointsToRedeem);
+
+  return redeemTxn;
 }
 
 /**
@@ -283,6 +357,9 @@ export async function processEarnPoints(
       points_after:    pointsAfter,
       order_id:        orderId,
       idempotency_key: idempotencyKey,
+      // B19 FIFO ledger — this EARN row is a new lot, fully unconsumed until
+      // a later redemption or the expiry sweep draws it down.
+      remaining_points: earnPoints,
     },
   });
 }
@@ -333,7 +410,7 @@ export async function adjustPointsTx(
     data:  { points_balance: newBalance },
   });
 
-  return tx.org_loyalty_txn_dtl.create({
+  const adjustTxn = await tx.org_loyalty_txn_dtl.create({
     data: {
       tenant_org_id:   tenantId,
       account_id:      rows[0].id,
@@ -345,6 +422,274 @@ export async function adjustPointsTx(
       notes:           notes ?? null,
       idempotency_key: idempotencyKey ?? `adj-${rows[0].id}-${randomUUID()}`,
       performed_by:    adjustedBy,
+      // B19 FIFO ledger — a positive adjustment is itself a new lot; a
+      // negative one draws from existing open lots like any other debit.
+      remaining_points: delta > 0 ? delta : null,
     },
+  });
+
+  if (delta < 0) {
+    await consumeLoyaltyLotsTx(tx, tenantId, rows[0].id, adjustTxn.id, -delta);
+  }
+
+  return adjustTxn;
+}
+
+/**
+ * B19 — expire every open lot (remaining_points > 0) older than `cutoff` for
+ * one account, in a single atomic sweep. Aggregates all qualifying lots into
+ * ONE EXPIRE ledger row (full per-lot traceability still lives in
+ * `org_loyalty_txn_allocs_dtl`) rather than one row per lot, mirroring how a
+ * multi-lot redemption already produces one REDEEM row with N allocations.
+ *
+ * Idempotent per calendar day (`loyalty-expiry-${accountId}-${YYYY-MM-DD}`)
+ * — a same-day retry after a failure is a safe no-op; a genuinely new day's
+ * sweep gets its own key.
+ * @param tenantId
+ * @param accountId
+ * @param cutoff lots with `created_at` before this instant are expired
+ */
+export async function expireLoyaltyPointsForAccount(
+  tenantId: string,
+  accountId: string,
+  cutoff: Date,
+): Promise<{ success: boolean; expiredPoints: number; error?: string }> {
+  return withTenantContext(tenantId, async () => {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const asOfUtcDate = new Date().toISOString().slice(0, 10);
+        const idempotencyKey = loyaltyExpiryKey(accountId, asOfUtcDate);
+
+        const existing = await tx.org_loyalty_txn_dtl.findFirst({
+          where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+        });
+        if (existing) return { success: true, expiredPoints: 0 };
+
+        const accountRows = await tx.$queryRaw<
+          { id: string; points_balance: number; customer_id: string }[]
+        >`
+          SELECT id, points_balance, customer_id FROM org_loyalty_accounts_mst
+          WHERE tenant_org_id = ${tenantId}::uuid AND id = ${accountId}::uuid
+          FOR UPDATE`;
+        const account = accountRows[0];
+        if (!account) return { success: false, expiredPoints: 0, error: 'LOYALTY_ACCOUNT_NOT_FOUND' };
+
+        const lots = await tx.$queryRaw<{ id: string; remaining_points: number }[]>`
+          SELECT id, remaining_points FROM org_loyalty_txn_dtl
+          WHERE tenant_org_id = ${tenantId}::uuid
+            AND account_id   = ${accountId}::uuid
+            AND remaining_points > 0
+            AND created_at < ${cutoff}
+          ORDER BY created_at ASC, id ASC
+          FOR UPDATE`;
+
+        const totalExpiring = lots.reduce((sum, lot) => sum + lot.remaining_points, 0);
+        if (totalExpiring <= 0) return { success: true, expiredPoints: 0 };
+
+        const pointsBefore = account.points_balance;
+        const pointsAfter = Math.max(0, pointsBefore - totalExpiring);
+
+        await tx.org_loyalty_accounts_mst.update({
+          where: { id: account.id },
+          data: { points_balance: pointsAfter },
+        });
+
+        const expireTxn = await tx.org_loyalty_txn_dtl.create({
+          data: {
+            tenant_org_id:   tenantId,
+            account_id:      account.id,
+            customer_id:     account.customer_id,
+            txn_type:        LOYALTY_TXN_TYPES.EXPIRE,
+            points:          -totalExpiring,
+            points_before:   pointsBefore,
+            points_after:    pointsAfter,
+            idempotency_key: idempotencyKey,
+            notes:           `Expired ${lots.length} lot(s) earned before ${cutoff.toISOString().slice(0, 10)}`,
+            created_info:    'system/loyalty-points-expiry',
+          },
+        });
+
+        for (const lot of lots) {
+          await tx.org_loyalty_txn_dtl.update({
+            where: { id: lot.id },
+            data: { remaining_points: { decrement: lot.remaining_points } },
+          });
+          await tx.org_loyalty_txn_allocs_dtl.create({
+            data: {
+              tenant_org_id:    tenantId,
+              account_id:       account.id,
+              consuming_txn_id: expireTxn.id,
+              source_txn_id:    lot.id,
+              applied_points:   lot.remaining_points,
+            },
+          });
+        }
+
+        return { success: true, expiredPoints: totalExpiring };
+      });
+    } catch (error) {
+      logger.error('Error expiring loyalty points', error as Error, { tenantId, accountId });
+      return {
+        success: false,
+        expiredPoints: 0,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+    }
+  });
+}
+
+/**
+ * B19 — scheduled sweep entry point (called per tenant by
+ * `finance-jobs.service.ts`'s `loyalty_points_expiry` job). No-ops
+ * immediately for a tenant with no active program or no
+ * `points_expiry_days` configured — expiry stays dormant until an owner
+ * deliberately sets a policy, same posture as gift-card/credit-note expiry's
+ * own natural off-switches.
+ * @param tenantId
+ */
+export async function expireLoyaltyPoints(
+  tenantId: string,
+): Promise<{ expiredCount: number; failedCount: number }> {
+  return withTenantContext(tenantId, async () => {
+    const program = await prisma.org_loyalty_programs_cf.findFirst({
+      where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
+      select: { points_expiry_days: true },
+    });
+    if (!program || program.points_expiry_days == null || program.points_expiry_days <= 0) {
+      return { expiredCount: 0, failedCount: 0 };
+    }
+
+    const cutoff = new Date(Date.now() - program.points_expiry_days * 24 * 60 * 60 * 1000);
+
+    const eligibleAccounts = await prisma.$queryRaw<{ account_id: string }[]>`
+      SELECT DISTINCT account_id FROM org_loyalty_txn_dtl
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND remaining_points > 0
+        AND created_at < ${cutoff}`;
+
+    let expiredCount = 0;
+    let failedCount = 0;
+    for (const row of eligibleAccounts) {
+      const result = await expireLoyaltyPointsForAccount(tenantId, row.account_id, cutoff);
+      if (result.success) {
+        expiredCount++;
+      } else {
+        failedCount++;
+      }
+    }
+    return { expiredCount, failedCount };
+  });
+}
+
+/** One row of a customer's loyalty ledger, shaped for the UI history list. */
+export interface LoyaltyTransactionView {
+  id: string;
+  txnType: string;
+  points: number;
+  pointsBefore: number;
+  pointsAfter: number;
+  orderId: string | null;
+  notes: string | null;
+  createdAt: Date;
+}
+
+/**
+ * Recent ledger rows for a customer's loyalty account, newest first —
+ * powers the Loyalty tab's transaction history.
+ * @param tenantId
+ * @param accountId
+ * @param limit
+ */
+export async function getLoyaltyTransactions(
+  tenantId: string,
+  accountId: string,
+  limit = 50,
+): Promise<LoyaltyTransactionView[]> {
+  return withTenantContext(tenantId, async () => {
+    const rows = await prisma.org_loyalty_txn_dtl.findMany({
+      where: { tenant_org_id: tenantId, account_id: accountId },
+      orderBy: { created_at: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        txn_type: true,
+        points: true,
+        points_before: true,
+        points_after: true,
+        order_id: true,
+        notes: true,
+        created_at: true,
+      },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      txnType: row.txn_type,
+      points: row.points,
+      pointsBefore: row.points_before,
+      pointsAfter: row.points_after,
+      orderId: row.order_id,
+      notes: row.notes,
+      createdAt: row.created_at,
+    }));
+  });
+}
+
+/** Points due to expire soon, for the Loyalty tab's expiry banner. */
+export interface LoyaltyExpirySummary {
+  pointsExpiryDays: number | null;
+  /** Points from the single soonest-expiring open lot, and the date they expire. */
+  nextExpiry: { points: number; expiresAt: Date } | null;
+  /** Total points expiring within the next 30 days across all open lots. */
+  expiringWithin30Days: number;
+}
+
+/**
+ * Resolves upcoming expiry exposure for one loyalty account from its open
+ * lots (`remaining_points > 0`) and the tenant's `points_expiry_days`.
+ * Returns an all-null/zero summary when the tenant has no expiry policy —
+ * the UI renders nothing in that case rather than a misleading "0 expiring".
+ * @param tenantId
+ * @param accountId
+ */
+export async function getLoyaltyExpirySummary(
+  tenantId: string,
+  accountId: string,
+): Promise<LoyaltyExpirySummary> {
+  return withTenantContext(tenantId, async () => {
+    const program = await prisma.org_loyalty_programs_cf.findFirst({
+      where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
+      select: { points_expiry_days: true },
+    });
+    const pointsExpiryDays = program?.points_expiry_days ?? null;
+    if (!pointsExpiryDays || pointsExpiryDays <= 0) {
+      return { pointsExpiryDays: null, nextExpiry: null, expiringWithin30Days: 0 };
+    }
+
+    const lots = await prisma.org_loyalty_txn_dtl.findMany({
+      where: { tenant_org_id: tenantId, account_id: accountId, remaining_points: { gt: 0 } },
+      orderBy: { created_at: 'asc' },
+      select: { remaining_points: true, created_at: true },
+    });
+
+    if (lots.length === 0) {
+      return { pointsExpiryDays, nextExpiry: null, expiringWithin30Days: 0 };
+    }
+
+    const expiryMs = pointsExpiryDays * 24 * 60 * 60 * 1000;
+    const thirtyDaysFromNow = Date.now() + 30 * 24 * 60 * 60 * 1000;
+
+    const soonest = lots[0];
+    const nextExpiresAt = new Date(soonest.created_at.getTime() + expiryMs);
+
+    const expiringWithin30Days = lots.reduce((sum, lot) => {
+      const expiresAt = lot.created_at.getTime() + expiryMs;
+      return expiresAt <= thirtyDaysFromNow ? sum + (lot.remaining_points ?? 0) : sum;
+    }, 0);
+
+    return {
+      pointsExpiryDays,
+      nextExpiry: { points: soonest.remaining_points ?? 0, expiresAt: nextExpiresAt },
+      expiringWithin30Days,
+    };
   });
 }

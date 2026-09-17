@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
-import { getLoyaltyAccount, getCustomerTier } from '@/lib/services/loyalty.service';
+import {
+  getLoyaltyAccount,
+  getCustomerTier,
+  getLoyaltyTransactions,
+  getLoyaltyExpirySummary,
+} from '@/lib/services/loyalty.service';
 
 /**
  *
@@ -12,7 +17,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requirePermission('loyalty:view')(request);
+  // Corrected 2026-09-17 (B19 follow-up): 'loyalty:view' is not a seeded
+  // permission code — this route 403'd for every role since it was written.
+  // 'loyalty:view_customer_points' is the real code (seeded, broadly granted).
+  const auth = await requirePermission('loyalty:view_customer_points')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 
@@ -20,15 +28,19 @@ export async function GET(
 
   try {
     const account = await getLoyaltyAccount(tenantId, customerId);
-    const tier = account
-      ? await getCustomerTier(tenantId, Number(account.points_balance))
-      : null;
+    const [tier, transactions, expirySummary] = await Promise.all([
+      account ? getCustomerTier(tenantId, Number(account.points_balance)) : Promise.resolve(null),
+      account ? getLoyaltyTransactions(tenantId, account.id) : Promise.resolve([]),
+      account ? getLoyaltyExpirySummary(tenantId, account.id) : Promise.resolve(null),
+    ]);
 
     return NextResponse.json({
       success: true,
       data: {
         account,
         tier,
+        transactions,
+        expirySummary,
       },
     });
   } catch (err) {

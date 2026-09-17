@@ -104,6 +104,15 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'Customer loyalty account, transactions, and expiry summary (Loyalty tab)',
+        method: 'GET',
+        path: '/api/v1/customers/[id]/loyalty',
+        requirement: {
+          permissions: ['loyalty:view_customer_points'],
+          requireAllPermissions: true,
+        },
+      },
     ],
     notes: B2B_NOTES,
   },

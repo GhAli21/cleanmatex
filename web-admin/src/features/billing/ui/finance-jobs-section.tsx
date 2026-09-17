@@ -25,6 +25,7 @@ type JobCode =
   | 'outbox_processor'
   | 'gift_card_expiry'
   | 'credit_note_expiry'
+  | 'loyalty_points_expiry'
   | 'idempotency_cleanup'
   | 'erp_posting_retry';
 
