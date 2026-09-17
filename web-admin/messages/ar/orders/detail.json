@@ -163,7 +163,7 @@
     "taxDocumentNo": "رقم المستند الضريبي",
     "authorityStatus": "حالة الجهة",
     "taxDocumentNotAvailable": "المستند الضريبي: غير متاح بعد",
-    "taxDocumentHint": "قد يتوفر إيصال مؤقت ضمن سندات القبض حتى تفعيل وحدة المستندات الضريبية.",
+    "taxDocumentHint": "قد يتوفر إيصال مؤقت ضمن <vouchers>سندات القبض</vouchers> حتى تفعيل وحدة المستندات الضريبية.",
     "realPaymentsTable": "المدفوعات النقدية",
     "creditApplicationsTable": "تطبيقات الاعتماد",
     "arInvoiceSection": "فاتورة الذمم",

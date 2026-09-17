@@ -163,7 +163,7 @@
     "taxDocumentNo": "Tax document no",
     "authorityStatus": "Authority status",
     "taxDocumentNotAvailable": "Tax document: Not available yet",
-    "taxDocumentHint": "Temporary receipt may be available under Receipt Vouchers until the Tax Document module is enabled.",
+    "taxDocumentHint": "Temporary receipt may be available under <vouchers>Receipt Vouchers</vouchers> until the Tax Document module is enabled.",
     "realPaymentsTable": "Real payments",
     "creditApplicationsTable": "Credit applications",
     "arInvoiceSection": "AR Invoice",

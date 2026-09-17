@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useHasPermission } from '@/lib/hooks/usePermissions';
@@ -10,14 +11,21 @@ import type { OrderFinancialSummaryViewModel } from '@features/orders/model/orde
 import { TaxDocumentLifecycleTimeline } from './tax-document-lifecycle-timeline';
 import { IssueTaxDocumentDialog } from './issue-tax-document-dialog';
 
+/**
+ * Supplies the order-scoped financial facts required to guide an operator to
+ * the temporary receipt while fiscal documentation is unavailable.
+ */
 interface OrderTaxDocumentPanelProps {
   viewModel: OrderFinancialSummaryViewModel;
 }
 
 /**
+ * Keeps the tax-document status and its temporary receipt fallback together,
+ * so operators can continue from the unavailable fiscal document to the
+ * correct order voucher without losing context.
  *
- * @param root0
- * @param root0.viewModel
+ * @param root0 - The financial view model for the current order.
+ * @param root0.viewModel - Provides the canonical order ID and tax-document state.
  */
 export function OrderTaxDocumentPanel({ viewModel }: OrderTaxDocumentPanelProps) {
   const t = useTranslations('orders.detail.financial');
@@ -51,7 +59,16 @@ export function OrderTaxDocumentPanel({ viewModel }: OrderTaxDocumentPanelProps)
           />
         )}
         <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-          {t('taxDocumentHint')}
+          {t.rich('taxDocumentHint', {
+            vouchers: (chunks) => (
+              <Link
+                href={`/dashboard/orders/${orderId}?tab=vouchers`}
+                className="font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                {chunks}
+              </Link>
+            ),
+          })}
         </p>
       </CmxCardContent>
       <IssueTaxDocumentDialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen} orderId={orderId} />
