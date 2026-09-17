@@ -101,16 +101,22 @@ docs/features/Order_Fin/
 │   ├── tech_data_model.md               ← ER diagram, table descriptions, migration list
 │   ├── tech_settlement_catalogs.md      ← overpayment + allocation catalogs
 │   └── tech_customer_receipt_allocation.md
-└── Order_Fin_Docs/
-    ├── ORDER_FINANCIAL_PLATFORM.md
-    ├── STORED_VALUE_GUIDE.md
-    ├── LOYALTY_GUIDE.md
-    ├── PROMOTIONS_GUIDE.md
-    ├── TAX_ENGINE_GUIDE.md
-    ├── RECONCILIATION_GUIDE.md
-    ├── CASH_DRAWER_GUIDE.md
-    ├── OUTBOX_PATTERN_GUIDE.md
-    └── FINANCE_JOBS_HUB.md              ← outbox + scheduled jobs ops hub (B07/B19, 0505)
+├── Order_Fin_Docs/
+│   ├── ORDER_FINANCIAL_PLATFORM.md
+│   ├── STORED_VALUE_GUIDE.md
+│   ├── LOYALTY_GUIDE.md
+│   ├── PROMOTIONS_GUIDE.md
+│   ├── TAX_ENGINE_GUIDE.md
+│   ├── RECONCILIATION_GUIDE.md
+│   ├── CASH_DRAWER_GUIDE.md
+│   ├── OUTBOX_PATTERN_GUIDE.md
+│   └── FINANCE_JOBS_HUB.md              ← outbox + scheduled jobs ops hub (B07/B19, 0505)
+└── Remediation_Work_Packages/           ← **active program (B01–B35, started 2026-07-16) — canonical current tracking**
+    ├── README.md                        ← master package index, statuses, dependency graph
+    ├── RESUME_CONTINUATION.md           ← authoritative session-by-session log (wins on any conflict)
+    ├── QA_TEST_GUIDE.md                 ← owner-runnable manual QA scenarios per package
+    ├── 00_Phase_0_Financial_Semantics/  ← decision records D001–D012
+    └── B01…B35_*.md                     ← one file per work package
 ```
 
 Related ADRs in sibling features:
@@ -118,6 +124,7 @@ Related ADRs in sibling features:
 
 ## Quick Links
 
+- [Order Fin Remediation Program (B01–B35) — active, canonical tracking](Remediation_Work_Packages/README.md)
 - [POS Session Management v1](POS_Session_Management_V1.md)
 - [ADR-054 — User-Owned POS Sessions](ADR/ADR-054-User-Owned-POS-Sessions.md)
 - [Payment Settlement Plan](Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md) (complete)

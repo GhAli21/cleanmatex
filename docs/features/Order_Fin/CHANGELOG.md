@@ -1,5 +1,31 @@
 # Changelog — Order Financial Platform
 
+## 2026-09-17 — B18 charge void + backfill; B14 tax-document print/view + manual issue
+
+**Scope:** Full re-audit of the Order Fin Remediation Program (B01–B35) found five genuinely-pending code gaps (as opposed to items only awaiting Preview QA or a migration apply). Owner scoped in B18 and B14's remaining pieces; scoped out B12's settlement-automation dialog and B19's loyalty FIFO ledger (see `Remediation_Work_Packages/RESUME_CONTINUATION.md` for the full audit and reasoning).
+
+### Shipped — B18 (Order Charge Write Path)
+
+- `voidOrderCharge()` (`lib/services/order-charge.service.ts`) — reason-gated void of an `org_order_charges_dtl` line, permission `orders:manual_charge` (already seeded, no new migration). Voiding a `PREFERENCE`-type charge also soft-deletes its source `org_order_preferences_dtl` row and decrements the linked piece's `service_pref_charge`, keeping `order-snapshot-checks.ts`'s reconciliation checks correct instead of permanently failing.
+- Financial tab charges table (`/dashboard/orders/[id]` and `/dashboard/orders/[id]/full`) gained a Status column + permission-gated Void button + reason dialog.
+- Migration `0510_b18_charge_backfill.sql` — **STOP-AND-WAIT, not yet applied.** Backfills missing charge-ledger rows for the 67 pre-B18 orders from their existing preference rows. Never touches `total_amount`/`outstanding_amount`/`total_paid_amount` — pure retroactive bookkeeping, not re-billing.
+
+### Shipped — B14 (Tax Document Runtime Integration)
+
+- Bilingual print/view screen (`/dashboard/orders/[id]/tax-documents/[documentId]/print`), replicating the `ar-invoice-print-rprt.tsx` 3-file pattern, with a verification QR code — **documented as a generic payload, not a jurisdiction-specific compliance encoding** (e.g. ZATCA TLV — no verified spec for one in this repo).
+- Manual "Issue tax document" action (`issueTaxDocumentManually`) for an order the automatic `ON_ORDER_SUBMIT` trigger never reached; bypasses only the `org_tax_doc_triggers_cfg` opt-in gate, never the `tax_registration_no` compliance prerequisite. Operator explicitly picks INVOICE vs SIMPLIFIED_INVOICE.
+- Cancel and Supersede UI deliberately **not** built: no backing service function exists for cancel (and migration 0341's DB immutability trigger rejects a direct ISSUED→CANCELLED update); supersede needs a full replacement-totals input form — real, separate follow-up.
+
+### Docs
+
+- B18, B14 (Design decisions, Delivery surfaces, Safety, Completion evidence), README, QA_TEST_GUIDE (§24 note, §26.11–26.13), RESUME_CONTINUATION.md, this file, `IMPLEMENTATION_STATUS.md`, `progress_summary.md`, this folder's `README.md`.
+
+### Gates
+
+tsc 0 · eslint 0 · check:i18n ✓ · check:access-contracts 10/10 (nav↔contract drift 0) · full jest 314/314 suites, 2762/2762 tests, zero regressions · `npm run build` ✓ (exit 0, full route manifest).
+
+---
+
 ## 2026-09-17 — Reverse voucher completeness + `ref_voucher_id`
 
 **Scope:** Reversal documents were missing date/party/amounts/line facts, and had no parent pointer on the new row (`reversed_by_voucher_id` only lives on the original). Migration **0508 APPLIED** (owner, 2026-09-17) local + remote. Types regenerated.

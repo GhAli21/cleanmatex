@@ -1,6 +1,6 @@
 # Order Financial Platform — Implementation Status
 
-Last updated: 2026-07-09 (POS Session Hub order-entry enhancement wired)
+Last updated: 2026-09-17 (Order Fin Remediation Program B01–B35 — see new section at the end of this file; canonical session-by-session tracking has moved to `Remediation_Work_Packages/RESUME_CONTINUATION.md`)
 Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLEMENTATION_STATUS.md`.
 
 ## Phase Completion
@@ -31,6 +31,7 @@ Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLE
 | POS-3 | POS Session Management v1 — operations UI, order banner, navigation, access contract | ✅ Done (2026-07-04) — migration 0399 applied locally/remotely by user |
 | POS-4 | POS Session Management v1 — tests, docs, access inventories, i18n closeout | ✅ Done (2026-07-04) |
 | POS-5 | POS Session Hub — compact order-entry control, context panel, warning-only banner | ✅ Done (2026-07-09) |
+| REM | Order Fin Remediation Program (B01–B35) — refund lineage, payment reversal/void, stored-value funding capture, BVM voucher wiring for collect-payment, financial outbox consumer, financial permissions/approvals, tax-inclusive calc, drawer variance approval, rounding engine, order-level charges, tax-document runtime, order amendment/delta, reconciliation expansion, cash/gateway hardening, and more | 🔄 Nearly all packages IMPLEMENTED, several VERIFIED via Preview QA; most of the remainder is pending Preview QA / migration apply, not missing code — see new section below |
 
 ---
 
@@ -1412,3 +1413,24 @@ The RESUME doc rule is unambiguous: *"Audit shows ANY external reader of `status
 ## 2026-07-04 — Order-Fin Remediation Program COMPLETE
 
 All 8 phases of `Order_Fin_Remediation_2026-07/PLAN.md` executed (validation findings FN-01…FN-13 + full `org_payments_dtl_tr` retirement). Gates: tsc 0 · eslint 0 · jest 1602/1602 · build ✓ · i18n ✓ · inventories drift 0. Migrations `0393`/`0394`/`0395` created — **awaiting user review + apply (local → remote)**. Resolution map: `Order_Fin_Validation_Report_2026-07-03/16_RESOLUTION_ADDENDUM.md`. Next free migration seq after apply: **0396**.
+
+---
+
+## 2026-07-16 → present — Order Fin Remediation Program (B01–B35) — canonical tracking moved
+
+**Not a continuation of the 2026-07-04 entry above** — that was the earlier, smaller `Order_Fin_Remediation_2026-07/PLAN.md` (FN-01…FN-13 findings). This is a separate, much larger, 35-package remediation program (B01–B35) covering refund lineage, payment reversal/void, stored-value funding capture, BVM voucher wiring for collect-payment, financial outbox consumer, financial permissions/approvals, tax-inclusive pricing, drawer variance approval, rounding engine, order-level charges, tax-document runtime integration, order amendment/financial delta, expanded reconciliation, cash-drawer/gateway hardening, notification-adjacent finance jobs, and more. It started 2026-07-16 and is still active.
+
+**This file (`IMPLEMENTATION_STATUS.md`) is no longer updated package-by-package for this program.** The canonical, currently-maintained tracking lives in:
+
+- [`Remediation_Work_Packages/README.md`](Remediation_Work_Packages/README.md) — master package index (B01–B35), status per package, dependency graph, decision records (D001–D012)
+- [`Remediation_Work_Packages/RESUME_CONTINUATION.md`](Remediation_Work_Packages/RESUME_CONTINUATION.md) — authoritative, session-by-session implementation log (the single source of truth when anything here disagrees with it)
+- [`Remediation_Work_Packages/QA_TEST_GUIDE.md`](Remediation_Work_Packages/QA_TEST_GUIDE.md) — owner-runnable manual QA scenarios per package
+
+**State as of 2026-09-17:** nearly every package is IMPLEMENTED; a meaningful subset (B01, B02, B03, B04, B05, B10, B15, B16, B18 base scope, B20, B27, B29, B30–B35, others) has been Preview-QA'd and VERIFIED by the owner. The remaining gap for most non-VERIFIED packages is Preview QA + owner approval and/or a pending migration apply, not missing code. This session (2026-09-17) closed the last two genuinely-pending code gaps found in a full re-audit:
+
+- **B18 addendum** — charge void action + a backfill migration (`0510_b18_charge_backfill.sql`, STOP-AND-WAIT, not yet applied) for the 67 pre-B18 orders missing their charge-ledger facts.
+- **B14 addendum** — a bilingual tax-document print/view screen (with a generic, non-jurisdiction-specific verification QR) and a manual "Issue tax document" action, closing the frontend half of B14's backend-only 2026-07-25 pass.
+
+Deliberately **not** built this session (owner-scoped out): B12's automated settlement-collection dialog (real architecture blocker — `collectPaymentTx` is PAY_ON_COLLECTION-scoped only), and B19's loyalty points per-lot FIFO expiry ledger (a new-feature-sized undertaking, not a remediation fix).
+
+B23 (legacy path retirement), B24/B25 (AR periods / revenue recognition), and B26 (enterprise FX/gateway-settlement umbrella) remain explicitly out of scope until their stated prerequisite packages reach VERIFIED and, for B26, its scope is split into separate implementable packages.

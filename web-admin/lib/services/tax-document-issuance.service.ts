@@ -4,10 +4,12 @@ import { prisma } from '@/lib/db/prisma';
 import {
   TAX_DOCUMENT_STATUSES,
   TAX_DOCUMENT_TYPES,
+  TAX_DOCUMENT_TRIGGER_EVENTS,
 } from '@/lib/constants/order-financial';
 import type {
   TaxDocumentCreateInput,
   TaxDocumentTriggerEvent,
+  TaxDocumentType,
 } from '@/lib/types/order-financial';
 import {
   createTaxDocumentTx,
@@ -18,6 +20,15 @@ import {
   decideTaxDocumentIssuance,
   decideCorrectionDocumentType,
 } from '@/lib/services/tax-document-decision.service';
+
+export class TaxDocumentIssuanceError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = 'TaxDocumentIssuanceError';
+    this.code = code;
+  }
+}
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -231,4 +242,85 @@ export async function issueCorrectionTaxDocumentTx(
   });
   const { documentNo } = await issueTaxDocumentTx(tx, documentId, params.tenantId, params.issuedBy);
   return { documentId, documentNo };
+}
+
+/**
+ * Manual issuance — an explicit admin action for an order the automatic
+ * `maybeIssueTaxDocumentTx` trigger never reached (e.g. the tenant's
+ * `org_tax_doc_triggers_cfg` opt-in wasn't configured yet at submit time, or
+ * the order predates this feature). Deliberately bypasses the trigger-config
+ * opt-in gate — a manual action IS the opt-in — but never bypasses the
+ * `tax_registration_no` compliance prerequisite, and the caller (not this
+ * function) chooses INVOICE vs SIMPLIFIED_INVOICE explicitly rather than
+ * this service guessing a jurisdiction-specific default.
+ * @param params
+ */
+export async function issueTaxDocumentManually(params: {
+  tenantId: string;
+  orderId: string;
+  documentType: Extract<TaxDocumentType, 'INVOICE' | 'SIMPLIFIED_INVOICE'>;
+  issuedBy: string;
+}): Promise<{ documentId: string; documentNo: string }> {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.org_orders_mst.findUnique({
+      where: { id: params.orderId, tenant_org_id: params.tenantId },
+      select: {
+        branch_id: true,
+        total_amount: true,
+        total_tax_amount: true,
+        currency_code: true,
+        currency_ex_rate: true,
+        base_cur_currency_code: true,
+      },
+    });
+    if (!order) {
+      throw new TaxDocumentIssuanceError('ORDER_NOT_FOUND', 'Order not found');
+    }
+
+    const registrationNo = await resolveTaxRegistrationNo(tx, params.tenantId, order.branch_id);
+    if (!registrationNo) {
+      throw new TaxDocumentIssuanceError(
+        'TAX_REGISTRATION_NOT_CONFIGURED',
+        'Tenant/branch has no tax registration number configured',
+      );
+    }
+
+    const existing = await tx.org_tax_documents_mst.findFirst({
+      where: {
+        tenant_org_id: params.tenantId,
+        order_id: params.orderId,
+        document_type: { in: [TAX_DOCUMENT_TYPES.INVOICE, TAX_DOCUMENT_TYPES.SIMPLIFIED_INVOICE] },
+        status: { in: [TAX_DOCUMENT_STATUSES.DRAFT, TAX_DOCUMENT_STATUSES.ISSUED] },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new TaxDocumentIssuanceError(
+        'TAX_DOCUMENT_ALREADY_EXISTS',
+        'This order already has a tax document',
+      );
+    }
+
+    const totalAmount = toNumber(order.total_amount);
+    const taxAmount = toNumber(order.total_tax_amount);
+    if (taxAmount <= 0) {
+      throw new TaxDocumentIssuanceError('NO_TAX_LINES', 'Order has no tax lines to document');
+    }
+
+    const input: TaxDocumentCreateInput = {
+      orderId: params.orderId,
+      tenantId: params.tenantId,
+      documentType: params.documentType,
+      triggerEvent: TAX_DOCUMENT_TRIGGER_EVENTS.ON_ORDER_SUBMIT,
+      totalAmount,
+      taxAmount,
+      currencyCode: order.currency_code ?? '',
+      currencyExRate: toNumber(order.currency_ex_rate) || 1,
+      baseCurrencyCode: order.base_cur_currency_code ?? null,
+    };
+
+    const documentId = await createTaxDocumentTx(tx, input);
+    const { documentNo } = await issueTaxDocumentTx(tx, documentId, params.tenantId, params.issuedBy);
+    return { documentId, documentNo };
+  });
 }

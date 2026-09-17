@@ -650,6 +650,10 @@
       "cronInactive": "{job} cron is inactive or missing. Apply migration 0505 and confirm pg_cron.",
       "lastFailed": "{job} last run failed.",
       "processorStale": "Outbox processor has not ticked in more than 5 minutes."
-    }
+    },
+    "viewError": "View full error",
+    "copyError": "Copy error",
+    "copyErrorFailed": "Could not copy the error message",
+    "errorDetailTitle": "Error details"
   }
 }

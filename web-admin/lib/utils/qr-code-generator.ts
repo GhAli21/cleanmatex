@@ -84,3 +84,48 @@ export async function generatePackingListQRCode(
   }
 }
 
+/**
+ * Generate a verification QR code for a printed fiscal tax document
+ * (B14 follow-up). Encodes the document's essential facts as a compact
+ * pipe-delimited string — seller name, seller tax-registration number,
+ * document number, issued timestamp, total, and tax amount.
+ *
+ * NOT a jurisdiction-specific compliance encoding (e.g. ZATCA's Base64 TLV
+ * scheme) — this repo has no verified spec for one. It is an honest,
+ * generic verification payload a scanner/back-office tool can parse to
+ * confirm the printed document's essentials match the system record;
+ * documented as a known simplification, not a compliance claim.
+ * @param params
+ */
+export async function generateTaxDocumentVerificationQRCode(params: {
+  sellerName: string;
+  sellerTaxRegistrationNo: string | null;
+  documentNo: string | null;
+  issuedAt: string | null;
+  totalAmount: number;
+  taxAmount: number;
+  currencyCode: string | null;
+}): Promise<string> {
+  const payload = [
+    `SELLER:${params.sellerName}`,
+    `VATNO:${params.sellerTaxRegistrationNo ?? ''}`,
+    `DOC:${params.documentNo ?? ''}`,
+    `DATE:${params.issuedAt ?? ''}`,
+    `TOTAL:${params.totalAmount.toFixed(4)} ${params.currencyCode ?? ''}`,
+    `TAX:${params.taxAmount.toFixed(4)} ${params.currencyCode ?? ''}`,
+  ].join('|');
+
+  try {
+    return await QRCode.toDataURL(payload, {
+      width: 220,
+      margin: 1,
+      color: { dark: '#000000', light: '#FFFFFF' },
+    });
+  } catch (error) {
+    logger.error('Failed to generate tax document verification QR code', error as Error, {
+      documentNo: params.documentNo,
+    });
+    return '';
+  }
+}
+

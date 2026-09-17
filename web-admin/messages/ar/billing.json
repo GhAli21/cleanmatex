@@ -650,6 +650,10 @@
       "cronInactive": "جدولة {job} غير نشطة أو مفقودة. طبّق الترحيل 0505 وتأكد من pg_cron.",
       "lastFailed": "فشل آخر تشغيل لـ {job}.",
       "processorStale": "لم ينبض معالج صندوق الأحداث منذ أكثر من 5 دقائق."
-    }
+    },
+    "viewError": "عرض الخطأ كاملاً",
+    "copyError": "نسخ الخطأ",
+    "copyErrorFailed": "تعذّر نسخ رسالة الخطأ",
+    "errorDetailTitle": "تفاصيل الخطأ"
   }
 }

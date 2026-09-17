@@ -84,3 +84,9 @@ When no tax profile applies, `additionalTaxAmount` is `0`.
 ## Fiscal-total check live (Remediation 2026-07 Phase 6 — FN-03)
 
 The snapshot recalc now reads the linked `org_tax_documents_mst.total_amount` and fires `TAX_DOCUMENT_TOTAL_MISMATCH` when it differs from the recomputed order total by more than 0.001 (spec §16.1). No linked document → no check, no false positives. Per-category tax-base decomposition remains a separate, still-open e-invoicing work item (ADR-052).
+
+---
+
+## Tax document issuance, print/view, and manual issue (B14)
+
+This guide covers tax *calculation* only. The actual fiscal document lifecycle — automatic issuance on order submit, refund/amendment correction documents (credit/debit notes), the bilingual print/view screen, and the manual "Issue tax document" action — is B14's own scope. See [`Remediation_Work_Packages/B14_Tax_Document_Runtime_Integration.md`](../Remediation_Work_Packages/B14_Tax_Document_Runtime_Integration.md). Still dormant for every tenant today: issuance requires a tenant/branch `tax_registration_no`, and the automatic trigger additionally needs an enabled `org_tax_doc_triggers_cfg` row.

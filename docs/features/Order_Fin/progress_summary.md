@@ -73,3 +73,19 @@
 
 **Remaining follow-ups:**
 - Add explicit drawer force-close UX/API later if the product wants it; current POS force-close does not silently force-close drawers.
+
+---
+
+## 2026-07-16 → present — tracking moved to the Remediation Work Packages program
+
+Session-by-session progress for Order Fin stopped being logged here on 2026-07-16, when the 35-package Order Fin Remediation Program (B01–B35) began. That program's own [`RESUME_CONTINUATION.md`](Remediation_Work_Packages/RESUME_CONTINUATION.md) is now the canonical, actively-maintained session log — see `IMPLEMENTATION_STATUS.md`'s "2026-07-16 → present" section for a summary and pointers.
+
+## Session: 2026-09-17
+
+**Completed (B18 + B14 addenda — the last two genuinely-pending code gaps found in a full program re-audit):**
+- B18: charge void action (reason-gated, reconciliation-safe) + backfill migration `0510_b18_charge_backfill.sql` (STOP-AND-WAIT, not yet applied) for the 67 pre-B18 orders' missing charge-ledger rows.
+- B14: bilingual tax-document print/view screen + generic verification QR, and a manual "Issue tax document" action. Cancel/Supersede UI deliberately not built (no backing cancel function; supersede needs a real replacement-input form).
+- Deliberately skipped (owner decision): B12 automated settlement-collection dialog, B19 loyalty points FIFO expiry ledger.
+- Gates: tsc 0 / eslint 0 / check:i18n ✓ / check:access-contracts 10/10 / full jest 314/314 suites, 2762/2762 tests / build ✓.
+
+**Next:** owner reviews + applies migration 0510 → commit → Preview deploy → QA (see `Remediation_Work_Packages/QA_TEST_GUIDE.md` §24 addendum + §26.11–26.13).

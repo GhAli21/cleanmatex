@@ -99,6 +99,10 @@ export interface OrderChargeRow {
   label2: string | null;
   amount: number;
   currency_code: string | null;
+  is_voided: boolean;
+  voided_at: string | null;
+  voided_by: string | null;
+  void_reason: string | null;
 }
 
 /**
@@ -779,6 +783,10 @@ export async function getOrderFinancialSummary(
       label2: row.label2 ?? null,
       amount: toNumber(row.amount),
       currency_code: row.currency_code ?? null,
+      is_voided: row.is_voided,
+      voided_at: row.voided_at ? toIso(row.voided_at) : null,
+      voided_by: row.voided_by ?? null,
+      void_reason: row.void_reason ?? null,
     })),
     discounts: discountLines.map((row) => ({
       id: row.id,

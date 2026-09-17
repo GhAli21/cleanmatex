@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ColumnDef } from '@tanstack/react-table';
+import { Copy, Eye } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { Tooltip } from '@ui/primitives';
@@ -71,6 +72,42 @@ function truncateError(message: string, max = 48): string {
   return `${message.slice(0, max - 1)}…`;
 }
 
+interface ErrorCellActionsProps {
+  errorMessage: string;
+  onExpand: (message: string) => void;
+  onCopy: (message: string) => void;
+  viewLabel: string;
+  copyLabel: string;
+}
+
+function ErrorCellActions({ errorMessage, onExpand, onCopy, viewLabel, copyLabel }: ErrorCellActionsProps) {
+  return (
+    <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
+      <Tooltip content={errorMessage}>
+        <span className="max-w-[220px] truncate text-xs text-destructive">{truncateError(errorMessage)}</span>
+      </Tooltip>
+      <button
+        type="button"
+        aria-label={viewLabel}
+        title={viewLabel}
+        onClick={() => onExpand(errorMessage)}
+        className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        <Eye className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        aria-label={copyLabel}
+        title={copyLabel}
+        onClick={() => { void onCopy(errorMessage); }}
+        className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        <Copy className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 /**
  * Scheduled finance jobs hub (outbox processor, gift-card expiry,
  * credit-note expiry, idempotency cleanup, ERP posting-retry).
@@ -91,6 +128,16 @@ export function FinanceJobsSection() {
   const [historyJob, setHistoryJob] = useState<JobCode | null>(null);
   const [historyRuns, setHistoryRuns] = useState<JobLastRun[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
+
+  const copyError = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      message.showSuccess(tCommon('copied'));
+    } catch {
+      message.showError(t('copyErrorFailed'));
+    }
+  }, [message, t, tCommon]);
 
   const fetchJobs = useCallback(async (opts?: { silent?: boolean }) => {
     if (!canView) return;
@@ -282,9 +329,13 @@ export function FinanceJobsSection() {
           const errorMessage = row.original.lastRun?.errorMessage;
           if (!errorMessage) return <span className="text-xs text-muted-foreground">—</span>;
           return (
-            <Tooltip content={errorMessage}>
-              <span className="text-xs text-destructive">{truncateError(errorMessage)}</span>
-            </Tooltip>
+            <ErrorCellActions
+              errorMessage={errorMessage}
+              onExpand={setErrorDetail}
+              onCopy={copyError}
+              viewLabel={t('viewError')}
+              copyLabel={t('copyError')}
+            />
           );
         },
       },
@@ -320,7 +371,7 @@ export function FinanceJobsSection() {
         },
       },
     ],
-    [canRun, locale, openHistory, runningJob, t],
+    [canRun, copyError, locale, openHistory, runningJob, t],
   );
 
   const historyColumns: ColumnDef<JobLastRun>[] = useMemo(
@@ -378,14 +429,18 @@ export function FinanceJobsSection() {
           const errorMessage = row.original.errorMessage;
           if (!errorMessage) return <span className="text-xs text-muted-foreground">—</span>;
           return (
-            <Tooltip content={errorMessage}>
-              <span className="text-xs text-destructive">{truncateError(errorMessage)}</span>
-            </Tooltip>
+            <ErrorCellActions
+              errorMessage={errorMessage}
+              onExpand={setErrorDetail}
+              onCopy={copyError}
+              viewLabel={t('viewError')}
+              copyLabel={t('copyError')}
+            />
           );
         },
       },
     ],
-    [locale, t],
+    [copyError, locale, t],
   );
 
   if (!canView) return null;
@@ -447,6 +502,30 @@ export function FinanceJobsSection() {
           />
           <CmxDialogFooter>
             <CmxButton type="button" variant="outline" onClick={() => setHistoryJob(null)}>
+              {tCommon('close')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
+
+      <CmxDialog open={errorDetail !== null} onOpenChange={(open) => { if (!open) setErrorDetail(null); }}>
+        <CmxDialogContent className="max-w-2xl" scrollBody>
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('errorDetailTitle')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-3 text-xs">
+            {errorDetail}
+          </pre>
+          <CmxDialogFooter>
+            <CmxButton
+              type="button"
+              variant="ghost"
+              onClick={() => { if (errorDetail) void copyError(errorDetail); }}
+            >
+              <Copy className="me-1.5 h-3.5 w-3.5" />
+              {t('copyError')}
+            </CmxButton>
+            <CmxButton type="button" variant="outline" onClick={() => setErrorDetail(null)}>
               {tCommon('close')}
             </CmxButton>
           </CmxDialogFooter>

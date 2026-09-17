@@ -1,6 +1,7 @@
 {
   "vouchers": {
     "title": "Business Vouchers",
+    "audit": "Audit",
     "newVoucher": "New Voucher",
     "voucherNo": "Voucher No.",
     "voucherType": "Voucher Type",
@@ -187,6 +188,7 @@
     "cashDrawerSessionId": "Cash Drawer Session ID",
     "gatewayCode": "Gateway Code",
     "gatewayTransactionId": "Gateway Transaction ID",
+    "gatewayReference": "Gateway Reference",
     "invoiceId": "Invoice ID",
     "supplierId": "Supplier ID",
     "sourceModule": "Source Module",

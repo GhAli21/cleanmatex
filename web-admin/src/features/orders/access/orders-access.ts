@@ -773,9 +773,26 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
         notes: ['B30/B10: shared back-office transition endpoint also used by the Financial tab payments table Cancel/Fail-Bounce/Void/Reverse buttons.'],
       },
+      {
+        label: 'B18 — Void an order charge line',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/charges/[chargeId]/void',
+        requirement: {
+          permissions: ['orders:manual_charge'],
+          requireAllPermissions: true,
+        },
+        notes: ['Financial tab charges table Void button (reason-gated); recalculates the order snapshot in the same transaction.'],
+      },
     ],
     notes: ORDER_NOTES,
     actions: {
+      voidCharge: {
+        label: 'B18 — Void an order charge line',
+        requirement: {
+          permissions: ['orders:manual_charge'],
+          requireAllPermissions: true,
+        },
+      },
       verify_payment: {
         label: 'Verify Payment',
         requirement: {
@@ -1263,8 +1280,25 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/app/actions/payments/invoice-actions',
         notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
       },
+      {
+        label: 'B18 — Void an order charge line',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/charges/[chargeId]/void',
+        requirement: {
+          permissions: ['orders:manual_charge'],
+          requireAllPermissions: true,
+        },
+        notes: ['Financial tab charges table Void button (reason-gated); recalculates the order snapshot in the same transaction.'],
+      },
     ],
     actions: {
+      voidCharge: {
+        label: 'B18 — Void an order charge line',
+        requirement: {
+          permissions: ['orders:manual_charge'],
+          requireAllPermissions: true,
+        },
+      },
       newOrderActions: {
         label: 'New order actions (screen new_order)',
         requirement: {
@@ -2372,6 +2406,27 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     ],
     notes: ORDER_NOTES,
+  },
+
+  {
+    routePattern: '/dashboard/orders/[id]/tax-documents/[documentId]/print',
+    label: 'Print Tax Document',
+    page: {
+      permissions: ['orders:view_financial_breakdown'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Print tax document',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/tax-documents/[documentId]/print',
+        requirement: {
+          permissions: ['orders:view_financial_breakdown'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: ['B14 follow-up — printable bilingual fiscal tax document report route.'],
   },
 
   {

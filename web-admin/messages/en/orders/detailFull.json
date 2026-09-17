@@ -260,11 +260,33 @@
       "originalPayment": "Original Payment",
       "createdBy": "Created By",
       "approvedBy": "Approved By",
-      "createdAt": "Created At"
+      "createdAt": "Created At",
+      "voidStatus": "Void Status"
     },
     "actions": {
       "openVoucher": "Open voucher",
-      "openPayment": "Open payment"
+      "openPayment": "Open payment",
+      "voidCharge": "Void"
+    },
+    "chargeStatus": {
+      "active": "Active",
+      "voided": "Voided"
+    },
+    "voidChargeDialog": {
+      "title": "Void charge",
+      "description": "This voids the charge and recalculates the order total. This cannot be undone.",
+      "reasonPlaceholder": "Reason for voiding this charge",
+      "confirm": "Void charge",
+      "success": "Charge voided.",
+      "voidedBy": "Voided by",
+      "voidedAt": "Voided at",
+      "reasonLabel": "Reason",
+      "errors": {
+        "reasonRequired": "A reason is required.",
+        "alreadyVoided": "This charge has already been voided.",
+        "notFound": "Charge not found.",
+        "failed": "Failed to void the charge."
+      }
     },
     "empty": {
       "charges": "No charges recorded.",

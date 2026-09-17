@@ -1,6 +1,7 @@
 {
   "vouchers": {
     "title": "السندات التجارية",
+    "audit": "التدقيق",
     "newVoucher": "سند جديد",
     "voucherNo": "رقم السند",
     "voucherType": "نوع السند",
@@ -187,6 +188,7 @@
     "cashDrawerSessionId": "معرّف جلسة الصندوق",
     "gatewayCode": "رمز البوابة",
     "gatewayTransactionId": "معرّف معاملة البوابة",
+    "gatewayReference": "مرجع البوابة",
     "invoiceId": "معرف الفاتورة",
     "supplierId": "معرف المورد",
     "sourceModule": "وحدة المصدر",

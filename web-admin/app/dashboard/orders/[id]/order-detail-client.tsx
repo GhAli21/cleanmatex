@@ -381,7 +381,7 @@ export function OrderDetailClient({
       id: 'financial_details',
       label: tFin('tabs.financialDetails'),
       content: financialData ? (
-        <OrdersFinancialTabRprt {...financialData} />
+        <OrdersFinancialTabRprt orderId={String(order.id)} {...financialData} />
       ) : (
         <p className="text-sm text-muted-foreground">{tFin('financialDataUnavailable')}</p>
       ),

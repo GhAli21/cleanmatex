@@ -29,5 +29,59 @@
   "taxAmount": "Tax amount",
   "notAvailable": "No tax document issued",
   "configureTitle": "Tax Document Triggers",
-  "configureHint": "Configure which events automatically issue tax documents for your tenant."
+  "configureHint": "Configure which events automatically issue tax documents for your tenant.",
+  "actions": {
+    "viewPrint": "View / Print",
+    "issue": "Issue tax document",
+    "print": "Print"
+  },
+  "print": {
+    "documentLabel": "Tax Document",
+    "seller": "Seller",
+    "customer": "Customer",
+    "orderRef": "Order",
+    "taxRegistrationNo": "Tax Registration No.",
+    "noCustomer": "Walk-in customer",
+    "fields": {
+      "documentNo": "Document No.",
+      "status": "Status",
+      "type": "Type",
+      "issuedAt": "Issued At",
+      "createdAt": "Created At"
+    },
+    "columns": {
+      "taxType": "Tax Type",
+      "label": "Description",
+      "rate": "Rate",
+      "baseAmount": "Base Amount",
+      "taxAmount": "Tax Amount"
+    },
+    "totals": {
+      "subtotal": "Subtotal (excl. tax)",
+      "tax": "Tax",
+      "total": "Total (incl. tax)"
+    },
+    "supersedesNote": "This document corrects a prior document",
+    "noLines": "No tax lines recorded on this document.",
+    "qrHint": "Scan to verify document essentials (document no., date, total, tax, seller registration no.)",
+    "errors": {
+      "loadFailed": "Failed to load the tax document"
+    }
+  },
+  "issueDialog": {
+    "title": "Issue tax document",
+    "description": "Manually issue a fiscal tax document for this order. Once issued, a document is immutable and permanently numbered.",
+    "documentTypeLabel": "Document type",
+    "documentTypeInvoice": "Invoice",
+    "documentTypeSimplified": "Simplified invoice",
+    "confirm": "Issue",
+    "success": "Tax document issued.",
+    "errors": {
+      "TAX_REGISTRATION_NOT_CONFIGURED": "Tenant/branch has no tax registration number configured.",
+      "TAX_DOCUMENT_ALREADY_EXISTS": "This order already has a tax document.",
+      "NO_TAX_LINES": "This order has no tax lines to document.",
+      "ORDER_NOT_FOUND": "Order not found.",
+      "failed": "Failed to issue the tax document."
+    }
+  }
 }

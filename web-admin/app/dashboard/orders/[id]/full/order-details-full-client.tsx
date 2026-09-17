@@ -1155,6 +1155,7 @@ export function OrderDetailsFullClient({
       label: t.tabsFinancial ?? 'Financial',
       content: (
         <OrdersFinancialTabRprt
+          orderId={order.id as string}
           snapshot={financialData?.snapshot ?? null}
           charges={financialData?.charges ?? []}
           discounts={financialData?.discounts ?? []}

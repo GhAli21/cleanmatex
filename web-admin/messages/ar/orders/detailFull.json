@@ -260,11 +260,33 @@
       "originalPayment": "الدفعة الأصلية",
       "createdBy": "أنشئت بواسطة",
       "approvedBy": "اعتمدت بواسطة",
-      "createdAt": "تاريخ الإنشاء"
+      "createdAt": "تاريخ الإنشاء",
+      "voidStatus": "حالة الإلغاء"
     },
     "actions": {
       "openVoucher": "فتح السند",
-      "openPayment": "فتح الدفعة"
+      "openPayment": "فتح الدفعة",
+      "voidCharge": "إلغاء"
+    },
+    "chargeStatus": {
+      "active": "نشط",
+      "voided": "ملغى"
+    },
+    "voidChargeDialog": {
+      "title": "إلغاء الرسم",
+      "description": "سيؤدي هذا إلى إلغاء الرسم وإعادة احتساب إجمالي الطلب. لا يمكن التراجع عن هذا الإجراء.",
+      "reasonPlaceholder": "سبب إلغاء هذا الرسم",
+      "confirm": "إلغاء الرسم",
+      "success": "تم إلغاء الرسم.",
+      "voidedBy": "ألغي بواسطة",
+      "voidedAt": "تاريخ الإلغاء",
+      "reasonLabel": "السبب",
+      "errors": {
+        "reasonRequired": "السبب مطلوب.",
+        "alreadyVoided": "تم إلغاء هذا الرسم مسبقًا.",
+        "notFound": "الرسم غير موجود.",
+        "failed": "فشل إلغاء الرسم."
+      }
     },
     "empty": {
       "charges": "لا توجد رسوم مسجلة.",

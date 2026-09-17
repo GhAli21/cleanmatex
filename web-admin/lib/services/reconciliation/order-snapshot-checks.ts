@@ -89,8 +89,11 @@ export async function runOrderSnapshotChecks(
         }),
       ),
       withTenantContext(tenantOrgId, () =>
+        // rec_status: 1 excludes preference rows soft-deleted by a charge
+        // void (order-charge.service.ts) — mirrors recalculateOrderFinancialSnapshotTx's
+        // own preference/piece aggregates so both consumers agree.
         prisma.org_order_preferences_dtl.findMany({
-          where: { tenant_org_id: tenantOrgId, order_id: order.id },
+          where: { tenant_org_id: tenantOrgId, order_id: order.id, rec_status: 1 },
           select: { id: true, extra_price: true },
         }),
       ),

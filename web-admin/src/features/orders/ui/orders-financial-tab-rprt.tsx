@@ -1,11 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
+import { CmxButton } from '@ui/primitives/cmx-button';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { useHasPermission } from '@/lib/hooks/usePermissions';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { VoidOrderChargeDialog } from './void-order-charge-dialog';
 import type {
   OrderAdjustmentRow,
   OrderChargeRow,
@@ -19,6 +23,7 @@ import type {
 } from '@/app/actions/orders/get-order-financial';
 
 interface OrdersFinancialTabRprtProps {
+  orderId: string;
   snapshot: OrderFinancialSnapshot | null;
   charges: OrderChargeRow[];
   discounts: OrderDiscountRow[];
@@ -76,6 +81,7 @@ function formatDateTime(value: string | null | undefined) {
  */
 export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
   const {
+    orderId,
     snapshot,
     charges,
     discounts,
@@ -90,6 +96,8 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
   const isRTL = useRTL();
   const t = useTranslations('orders.detailFull.financialTab');
   const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const canVoidCharge = useHasPermission('orders', 'manual_charge');
+  const [voidTarget, setVoidTarget] = useState<{ id: string; label: string } | null>(null);
   const emptyValue = '—';
   const tableHead = `text-xs font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`;
   const tableCell = `px-4 py-3 align-top text-sm text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`;
@@ -184,15 +192,44 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
                   <th className={`px-4 py-3 ${tableHead}`}>{t('columns.label')}</th>
                   <th className={`px-4 py-3 ${tableHead}`}>{t('columns.currency')}</th>
                   <th className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.amount')}</th>
+                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.status')}</th>
+                  {canVoidCharge && <th className={`px-4 py-3 ${tableHead}`} />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {charges.map((row) => (
-                  <tr key={row.id}>
+                  <tr key={row.id} className={row.is_voided ? 'opacity-60' : undefined}>
                     <TextCell value={row.charge_type} />
                     <TextCell value={row.label ?? emptyValue} />
                     <TextCell value={row.currency_code ?? snapshot?.currencyCode ?? emptyValue} />
                     <MoneyCell amount={row.amount} currency={row.currency_code} />
+                    <td className={tableCell}>
+                      {row.is_voided ? (
+                        <span
+                          className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800"
+                          title={row.void_reason ?? undefined}
+                        >
+                          {t('chargeStatus.voided')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                          {t('chargeStatus.active')}
+                        </span>
+                      )}
+                    </td>
+                    {canVoidCharge && (
+                      <td className={tableCell}>
+                        {!row.is_voided && (
+                          <CmxButton
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setVoidTarget({ id: row.id, label: row.label ?? row.charge_type })}
+                          >
+                            {t('actions.voidCharge')}
+                          </CmxButton>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -482,6 +519,15 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
           )}
         </div>
       </div>
+      {voidTarget && (
+        <VoidOrderChargeDialog
+          open
+          onOpenChange={(open) => { if (!open) setVoidTarget(null); }}
+          orderId={orderId}
+          chargeId={voidTarget.id}
+          chargeLabel={voidTarget.label}
+        />
+      )}
     </div>
   );
 }

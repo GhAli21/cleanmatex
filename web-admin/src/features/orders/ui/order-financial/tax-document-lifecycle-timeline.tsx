@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { Badge } from '@ui/primitives/badge';
@@ -8,6 +9,8 @@ import type { OrderTaxDocumentView } from '@features/orders/model/order-financia
 interface TaxDocumentLifecycleTimelineProps {
   taxDocument: OrderTaxDocumentView;
   currencyCode?: string;
+  /** B14 follow-up — required to build the View/Print link for an ISSUED document. */
+  orderId?: string;
 }
 
 type StatusVariant = 'success' | 'warning' | 'destructive' | 'secondary' | 'info' | 'outline';
@@ -48,6 +51,7 @@ function Field({ label, value, isRTL }: { label: string; value: string | number 
 export function TaxDocumentLifecycleTimeline({
   taxDocument,
   currencyCode,
+  orderId,
 }: TaxDocumentLifecycleTimelineProps) {
   const t = useTranslations('taxDocuments');
   const isRTL = useRTL();
@@ -75,6 +79,14 @@ export function TaxDocumentLifecycleTimeline({
       <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <Badge variant={taxDocStatusVariant(doc.status)}>{statusLabel}</Badge>
         <span className="text-sm font-medium">{typeLabel}</span>
+        {doc.status === 'ISSUED' && doc.id && orderId && (
+          <Link
+            href={`/dashboard/orders/${orderId}/tax-documents/${doc.id}/print`}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            {t('actions.viewPrint')}
+          </Link>
+        )}
       </div>
 
       <div className="space-y-1.5 rounded-md border border-border bg-muted/30 p-3">
