@@ -308,6 +308,44 @@ export function buildWarningCodes(input: {
   return [...warnings];
 }
 
+/**
+ * Header money the snapshot is about to persist.
+ *
+ * Why: `buildWarningCodes` compared the pre-write header to the values being
+ * written. After a correction (notes-only save, slice 5) that always stamped
+ * MISMATCH even though the stored header matches the compute. Paid stays on
+ * the real pre-write header so pending/authorized leak checks still fire.
+ *
+ * @param computed - Totals this write will persist
+ */
+export function comparandsForSnapshotWrite(computed: {
+  totalAmount: number;
+  totalDiscountAmount: number;
+  totalTaxAmount: number;
+  outstandingAmount: number;
+}): Pick<
+  Parameters<typeof buildWarningCodes>[0],
+  | 'orderTotalAmount'
+  | 'recomputedTotalAmount'
+  | 'orderDiscountAmount'
+  | 'recomputedDiscountAmount'
+  | 'orderTaxAmount'
+  | 'recomputedTaxAmount'
+  | 'orderOutstandingAmount'
+  | 'recomputedOutstandingAmount'
+> {
+  return {
+    orderTotalAmount: computed.totalAmount,
+    recomputedTotalAmount: computed.totalAmount,
+    orderDiscountAmount: computed.totalDiscountAmount,
+    recomputedDiscountAmount: computed.totalDiscountAmount,
+    orderTaxAmount: computed.totalTaxAmount,
+    recomputedTaxAmount: computed.totalTaxAmount,
+    orderOutstandingAmount: computed.outstandingAmount,
+    recomputedOutstandingAmount: computed.outstandingAmount,
+  };
+}
+
 function resolveFinancialSnapshotStatus(
   warningCodes: OrderFinancialWarningCode[],
   usedHeaderTotalFallback: boolean,
@@ -720,14 +758,12 @@ export async function recalculateOrderFinancialSnapshotTx(
   const arInvoice = invoiceLink?.org_invoice_mst ?? null;
   const warningCodes = buildWarningCodes({
     usedHeaderTotalFallback,
-    orderTotalAmount: toNumber(order.total_amount),
-    recomputedTotalAmount: totalAmount,
-    orderDiscountAmount: toNumber(order.total_discount_amount),
-    recomputedDiscountAmount: totalDiscountAmount,
-    orderTaxAmount: toNumber(order.total_tax_amount),
-    recomputedTaxAmount: totalTaxAmount,
-    orderOutstandingAmount: toNumber(order.outstanding_amount),
-    recomputedOutstandingAmount: outstandingAmount,
+    ...comparandsForSnapshotWrite({
+      totalAmount,
+      totalDiscountAmount,
+      totalTaxAmount,
+      outstandingAmount,
+    }),
     orderPaidAmount: toNumber(order.total_paid_amount),
     recomputedPaidAmount: totalPaidAmount,
     pendingPaymentAmount,

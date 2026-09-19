@@ -14,6 +14,8 @@
 - **Preference edits missing from history (2026-09-19):** snapshots compared items only (qty/price/notes). Pref add/remove/price on existing pieces never appeared. New edits snapshot `org_order_preferences_dtl` and show Preference Changes on the Edit History tab. Each change stores **kind**, **preference_content**, and **preference_code** before and after, and shows **prefs_level** (`ORDER` / `ITEM` / `PIECE`) so the attachment level is explicit. Prior entries (e.g. `0004` edit 1–2) stay as recorded.
 - **Piece edits missing from history (2026-09-19):** item qty change hid piece add/remove and color/brand/notes/stain/packing edits. New edits snapshot `org_order_item_pieces_dtl` and show Piece Changes. Old history rows are not rewritten.
 - **Save disabled except item qty (2026-09-19):** `useOrderEditDirty` compared `state.notes` vs GET `notes` (internal/customer combo) and ignored `customerNotes`, `customerSnapshotOverride`, payment notes, and prefs/packing. Customer-tab and preference-only edits left Save disabled. Dirty now uses `isOrderEditFormDirty`.
+- **Notes save left MISMATCH (2026-09-19):** snapshot compared pre-write header tax (VAT-only `0.607`) to sum of tax lines (`0.850` VAT+municipal) and stamped MISMATCH while writing `0.850`. Status now uses the values being persisted. Totals on `ORD-20260919-0002` were already 13.000 / paid 5.000 / due 8.000. Save once more after deploy to clear the badge.
+- **Cancel Edit stacked two confirms then opened create-order UI (2026-09-19):** Cmx discard dialog, then `window.confirm` from `router.push`, then `EXIT_EDIT_MODE` left `/edit` looking like New Order if the second confirm was dismissed. Cancel now uses one dialog, skips the intercept, and stays in edit mode until the detail page loads.
 
 ---
 

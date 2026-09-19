@@ -139,7 +139,6 @@ export function NewOrderContent() {
         closeAmendmentDeltaNotice,
     } = useOrderSubmission();
     const { isDirty } = useOrderEditDirty();
-    const { cancelEditOrder, isCancelling } = useOrderEditCancel(state.state.editingOrderId);
     const {
         paymentModalVersion,
         setPaymentModalVersion,
@@ -167,11 +166,15 @@ export function NewOrderContent() {
         );
     }, [state.state.isEditMode, isDirty, state.state.items.length, state.state.notes, state.state.customer]);
 
-    useUnsavedChanges(
+    const { allowNextNavigation } = useUnsavedChanges(
         hasUnsavedChanges,
         state.state.isEditMode
             ? (tEdit('confirmLeave') || 'Leave without saving?')
             : (t('warnings.unsavedChanges') || 'You have unsaved changes. Are you sure you want to leave?')
+    );
+    const { cancelEditOrder, isCancelling } = useOrderEditCancel(
+        state.state.editingOrderId,
+        allowNextNavigation
     );
 
     const activeTab = useMemo(() => {

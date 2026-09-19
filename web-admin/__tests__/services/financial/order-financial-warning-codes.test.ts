@@ -1,4 +1,4 @@
-import { buildWarningCodes } from '../../../lib/services/order-financial-write.service';
+import { buildWarningCodes, comparandsForSnapshotWrite } from '../../../lib/services/order-financial-write.service';
 import { ORDER_FINANCIAL_WARNING_CODES } from '../../../lib/constants/order-financial';
 
 type BuildWarningCodesInput = Parameters<typeof buildWarningCodes>[0];
@@ -245,6 +245,24 @@ describe('buildWarningCodes', () => {
     it('returns empty array when all inputs represent a consistent financial state', () => {
       const result = buildWarningCodes(makeInput());
       expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('comparandsForSnapshotWrite', () => {
+    it('does not stamp TAX_TOTAL_MISMATCH when the snapshot is about to persist the computed tax', () => {
+      const computed = comparandsForSnapshotWrite({
+        totalAmount: 13,
+        totalDiscountAmount: 0,
+        totalTaxAmount: 0.85,
+        outstandingAmount: 8,
+      });
+      expect(
+        buildWarningCodes(makeInput({
+          ...computed,
+          orderPaidAmount: 5,
+          recomputedPaidAmount: 5,
+        }))
+      ).not.toContain(C.TAX_TOTAL_MISMATCH);
     });
   });
 });

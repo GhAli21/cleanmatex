@@ -3178,11 +3178,7 @@ export class OrderService {
           });
         }
 
-        // 8. Recalculate totals if items changed or recalculate flag set
-        let subtotal = snapshotBeforeFinancial.subtotalAmount;
-        let discount = snapshotBeforeFinancial.totalDiscountAmount;
-        let tax = snapshotBeforeFinancial.totalTaxAmount;
-        let total = snapshotBeforeFinancial.totalAmount;
+        // 8. Recalculate tax lines if items changed or recalculate flag set
         let vatRate = (existingOrder as any).vat_rate;
         // B17: preserve the already-persisted adjustment unless a recalc runs —
         // a non-recalculating edit (e.g. notes-only) must never zero it out.
@@ -3233,14 +3229,6 @@ export class OrderService {
             userId,
           });
 
-          // Catalog/engine values are used for tax lines + rounding only.
-          // Snapshot after persist is the only header-total writer.
-          subtotal = items && items.length > 0
-            ? items.reduce((sum, item) => sum + Number(item.totalPrice ?? 0), 0)
-            : calculationResult.subtotal;
-          discount = calculationResult.manualDiscount + calculationResult.promoDiscount;
-          tax = calculationResult.taxAmount;
-          total = calculationResult.saleTotal;
           vatRate = calculationResult.taxRate;
           roundingAdjustment = calculationResult.roundingAdjustmentAmount;
 
@@ -3438,20 +3426,11 @@ export class OrderService {
         if (isQuickDrop !== undefined) updateData.is_order_quick_drop = isQuickDrop;
         if (quickDropQuantity !== undefined) updateData.quick_drop_quantity = quickDropQuantity;
 
-        // Intermediate header stamps only — snapshot overwrites money fields.
+        // Do not stamp tax/subtotal/discount here. calculateOrderTotals.taxAmount
+        // is VAT-only; municipal lines are extra. Snapshot is the header writer.
         if (items && items.length >= 0) {
-          updateData.subtotal_amount = subtotal;
-          updateData.items_base_amount = subtotal;
-          updateData.total_discount_amount = discount;
-          updateData.total_tax_amount = tax;
           updateData.vat_rate = vatRate;
           updateData.rounding_adjustment_amount = roundingAdjustment;
-          // B12 Design decision #5: outstanding_amount is no longer set here.
-          // Setting it to `total` ignored total_paid_amount entirely (a paid
-          // order's outstanding would read as the full new total for one
-          // write) — recalculateOrderFinancialSnapshotTx below is the single
-          // canonical writer of outstanding_amount, matching every other
-          // financially-governed path in the codebase.
           updateData.total_items = items.length;
         }
 

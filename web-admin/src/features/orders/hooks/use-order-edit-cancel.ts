@@ -7,17 +7,19 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useNewOrderDispatch } from '../ui/context/new-order-context';
 import { cmxMessage } from '@ui/feedback';
 import { useTranslations } from 'next-intl';
 
 /**
  * Hook to cancel order editing: release lock and navigate to order detail
  * @param orderId
+ * @param allowNextNavigation - Skip the unsaved-changes intercept; Cancel Edit already confirmed
  */
-export function useOrderEditCancel(orderId: string | null) {
+export function useOrderEditCancel(
+  orderId: string | null,
+  allowNextNavigation?: () => void
+) {
   const router = useRouter();
-  const dispatch = useNewOrderDispatch();
   const t = useTranslations('orders.edit');
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -40,7 +42,10 @@ export function useOrderEditCancel(orderId: string | null) {
         return;
       }
 
-      dispatch({ type: 'EXIT_EDIT_MODE' });
+      // Stay in edit mode until this page unmounts. EXIT_EDIT_MODE here keeps
+      // the cart loaded and flips the /edit route into a create-order screen
+      // if navigation is cancelled or delayed.
+      allowNextNavigation?.();
       router.push(`/dashboard/orders/${orderId}`);
     } catch (err) {
       const error = err as Error;
@@ -48,7 +53,7 @@ export function useOrderEditCancel(orderId: string | null) {
     } finally {
       setIsCancelling(false);
     }
-  }, [orderId, router, dispatch, t]);
+  }, [orderId, router, t, allowNextNavigation]);
 
   return { cancelEditOrder, isCancelling };
 }
