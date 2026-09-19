@@ -508,6 +508,9 @@ export function useOrderSubmission() {
                             : (state.state.customerNameSnapshot ? sanitizeInput(state.state.customerNameSnapshot) : undefined),
                         expectedUpdatedAt: state.state.expectedUpdatedAt?.toISOString(),
                         recalculate: true,
+                        ...(state.state.orderServicePrefs && state.state.orderServicePrefs.length > 0 && {
+                            orderServicePrefs: state.state.orderServicePrefs,
+                        }),
                     };
 
                     res = await fetch(`/api/v1/orders/${state.state.editingOrderId}/update`, {
@@ -934,6 +937,9 @@ export function useOrderSubmission() {
                     : (state.state.customerNameSnapshot ? sanitizeInput(state.state.customerNameSnapshot) : undefined),
                 expectedUpdatedAt: state.state.expectedUpdatedAt?.toISOString(),
                 recalculate: true,
+                ...(state.state.orderServicePrefs && state.state.orderServicePrefs.length > 0 && {
+                    orderServicePrefs: state.state.orderServicePrefs,
+                }),
                 // B12 — always sent (D010 baseline hygiene); the server only
                 // enforces its presence/requires a reason when this edit turns
                 // out to be financially governed (item change on an order with

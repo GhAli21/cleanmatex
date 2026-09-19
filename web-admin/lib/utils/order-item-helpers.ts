@@ -12,6 +12,33 @@ import type { OrderItem } from '@features/orders/model/new-order-types';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
 /**
+ * Line extras that must survive a qty change (item/piece prefs + packing).
+ * Prefer explicit charge fields, then prefs, then extras already in totalPrice.
+ */
+export function resolveLineExtras(item: OrderItem): number {
+  const fromCharges = (item.servicePrefCharge ?? 0) + (item.packingPrefCharge ?? 0);
+  if (fromCharges > 0) return fromCharges;
+
+  const itemPrefExtras = (item.servicePrefs ?? []).reduce(
+    (sum, pref) => sum + (pref.extra_price ?? 0),
+    0
+  );
+  const piecePrefExtras = (item.pieces ?? []).reduce(
+    (sum, piece) =>
+      sum + (piece.servicePrefs ?? []).reduce((prefSum, pref) => prefSum + (pref.extra_price ?? 0), 0),
+    0
+  );
+  const fromPrefs = itemPrefExtras + piecePrefExtras;
+  if (fromPrefs > 0) return fromPrefs;
+
+  if (item.totalPrice != null) {
+    const implied = item.totalPrice - item.quantity * item.pricePerUnit;
+    return implied > 0 ? implied : 0;
+  }
+  return 0;
+}
+
+/**
  * Adds an item to the order
  * @param items - Current order items
  * @param newItem - Item to add
@@ -32,7 +59,7 @@ export function addItemToOrder(
         ? {
           ...item,
           quantity: item.quantity + 1,
-          totalPrice: (item.quantity + 1) * item.pricePerUnit,
+          totalPrice: (item.quantity + 1) * item.pricePerUnit + resolveLineExtras(item),
         }
         : item
     );
@@ -84,7 +111,7 @@ export function updateItemQuantity(
       ? {
         ...item,
         quantity,
-        totalPrice: quantity * item.pricePerUnit,
+        totalPrice: quantity * item.pricePerUnit + resolveLineExtras(item),
       }
       : item
   );

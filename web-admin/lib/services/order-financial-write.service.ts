@@ -8,6 +8,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { hqApiClient } from '@/lib/api/hq-api-client';
 import { prisma } from '@/lib/db/prisma';
 import {
+  CHARGE_TYPES,
   CREDIT_APPLICATION_STATUSES,
   CREDIT_APPLICATION_TYPES,
   ORDER_FINANCIAL_SNAPSHOT_STATUS,
@@ -17,8 +18,13 @@ import {
   SETTLEMENT_TYPE_CODES,
   TAX_DOCUMENT_STATUSES,
   TAX_PRICING_MODES,
+  TAX_TYPES,
   isArReceivablePaymentTypeCode,
 } from '@/lib/constants/order-financial';
+import {
+  mapPreferenceLevels,
+  sumMoneyAddendCharges,
+} from '@/lib/utils/order-charge-money';
 // B02 (D005): all outstanding-formula components come from the single shared
 // aggregation authority — this writer must not re-derive status sets/filters.
 import {
@@ -445,7 +451,7 @@ export async function recalculateOrderFinancialSnapshotTx(
     preferenceAgg,
     charges,
     discountsAgg,
-    taxesAgg,
+    taxLines,
     payments,
     creditRows,
     discountRows,
@@ -466,15 +472,16 @@ export async function recalculateOrderFinancialSnapshotTx(
     }),
     tx.org_order_charges_dtl.findMany({
       where: { tenant_org_id: tenantId, order_id: orderId, is_voided: false },
-      select: { amount: true, charge_type: true },
+      select: { amount: true, charge_type: true, charge_source_id: true },
     }),
     tx.org_order_discounts_dtl.aggregate({
       where: { tenant_org_id: tenantId, order_id: orderId, is_voided: false },
       _sum: { discount_amount: true },
     }),
-    tx.org_order_taxes_dtl.aggregate({
+    tx.org_order_taxes_dtl.findMany({
       where: { tenant_org_id: tenantId, order_id: orderId, rec_status: 1 },
-      _sum: { tax_amount: true, taxable_amount: true },
+      select: { tax_type: true, tax_amount: true, taxable_amount: true, applied_seq: true },
+      orderBy: { applied_seq: 'asc' },
     }),
     tx.org_order_payments_dtl.findMany({
       where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
@@ -544,7 +551,17 @@ export async function recalculateOrderFinancialSnapshotTx(
   const subtotalAmount = itemsBaseAmount;
   const pieceExtraPriceAmount = toNumber(pieceAgg._sum.service_pref_charge);
   const preferenceExtraPriceAmount = toNumber(preferenceAgg._sum.extra_price);
-  const totalChargesAmount = charges.reduce((sum, row) => sum + toNumber(row.amount), 0);
+  const preferenceSourceIds = charges
+    .filter((row) => normalizeUpper(row.charge_type) === CHARGE_TYPES.PREFERENCE && row.charge_source_id)
+    .map((row) => row.charge_source_id as string);
+  const preferenceLevels = preferenceSourceIds.length > 0
+    ? await tx.org_order_preferences_dtl.findMany({
+        where: { tenant_org_id: tenantId, id: { in: preferenceSourceIds } },
+        select: { id: true, prefs_level: true },
+      })
+    : [];
+  const preferenceLevelById = mapPreferenceLevels(preferenceLevels);
+  const totalChargesAmount = sumMoneyAddendCharges(charges, preferenceLevelById);
   const serviceChargeAmount = charges
     .filter((row) => ['SERVICE', 'SERVICE_CHARGE'].includes(normalizeUpper(row.charge_type)))
     .reduce((sum, row) => sum + toNumber(row.amount), 0);
@@ -559,9 +576,14 @@ export async function recalculateOrderFinancialSnapshotTx(
     totalChargesAmount - serviceChargeAmount - deliveryChargeAmount - expressChargeAmount,
   );
   const totalDiscountAmount = toNumber(discountsAgg._sum.discount_amount);
-  const totalTaxAmount = toNumber(taxesAgg._sum.tax_amount);
-  const taxableAmount = toNumber(taxesAgg._sum.taxable_amount)
-    || Math.max(0, subtotalAmount + totalChargesAmount - totalDiscountAmount);
+  const totalTaxAmount = taxLines.reduce((sum, row) => sum + toNumber(row.tax_amount), 0);
+  const uniqueTaxableLine = taxLines.find((row) => {
+    const taxType = normalizeUpper(row.tax_type);
+    return taxType === TAX_TYPES.VAT || taxType === TAX_TYPES.GST;
+  }) ?? taxLines[0];
+  const taxableAmount = uniqueTaxableLine
+    ? toNumber(uniqueTaxableLine.taxable_amount)
+    : Math.max(0, subtotalAmount + totalChargesAmount - totalDiscountAmount);
   // Tax-base decomposition (v1.1 §8.11). The current tax engine emits only
   // `taxable_amount`; classification into non-taxable / exempt / zero-rated /
   // out-of-scope buckets lands in Phase 5 alongside TAX_INCLUSIVE pricing. The

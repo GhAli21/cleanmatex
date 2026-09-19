@@ -84,6 +84,7 @@ export interface EffectiveOrderFinancialSnapshotInput {
     discount_amount: number;
   }>;
   taxes: Array<{
+    tax_type?: string;
     tax_amount: number;
     taxable_amount?: number;
   }>;
@@ -167,7 +168,9 @@ export function buildEffectiveOrderFinancialSnapshot(
   const expressChargeFromRows = input.charges
     .filter((row) => ['EXPRESS', 'EXPRESS_CHARGE'].includes(normalizeUpper(row.charge_type)))
     .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
-  const totalChargesFromRows = input.charges.reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+  const totalChargesFromRows = input.charges
+    .filter((row) => normalizeUpper(row.charge_type) !== 'PREFERENCE')
+    .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
   const otherChargesFromRows = Math.max(
     0,
     totalChargesFromRows - serviceChargeFromRows - deliveryChargeFromRows - expressChargeFromRows,
@@ -177,10 +180,11 @@ export function buildEffectiveOrderFinancialSnapshot(
     0,
   );
   const totalTaxFromRows = input.taxes.reduce((sum, row) => sum + Number(row.tax_amount ?? 0), 0);
-  const taxableFromRows = input.taxes.reduce(
-    (sum, row) => sum + Number(row.taxable_amount ?? 0),
-    0,
-  );
+  const uniqueTaxableLine = input.taxes.find((row) => {
+    const taxType = normalizeUpper(row.tax_type);
+    return taxType === 'VAT' || taxType === 'GST';
+  }) ?? input.taxes[0];
+  const taxableFromRows = Number(uniqueTaxableLine?.taxable_amount ?? 0);
 
   const serviceChargeAmount = preferStored(input.snapshot.serviceChargeAmount, serviceChargeFromRows);
   const deliveryChargeAmount = preferStored(input.snapshot.deliveryChargeAmount, deliveryChargeFromRows);

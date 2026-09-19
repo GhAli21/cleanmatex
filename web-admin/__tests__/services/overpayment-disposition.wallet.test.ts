@@ -182,7 +182,7 @@ function makeRecalcTx(disposedAmount: number) {
       aggregate: jest.fn().mockResolvedValue({ _sum: { discount_amount: 0 } }),
       findMany: jest.fn().mockResolvedValue([]),
     },
-    org_order_taxes_dtl: { aggregate: jest.fn().mockResolvedValue({ _sum: { tax_amount: 0, taxable_amount: 0 } }) },
+    org_order_taxes_dtl: { findMany: jest.fn().mockResolvedValue([]) },
     org_order_payments_dtl: {
       findMany: jest.fn().mockResolvedValue([
         {

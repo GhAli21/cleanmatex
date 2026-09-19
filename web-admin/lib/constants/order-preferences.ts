@@ -21,6 +21,15 @@ export const PREFS_NOTE_SOURCE = PREFS_SOURCE_STAGE;
 
 export type PrefsNoteSource = PrefsSourceStage;
 
+/** Preference attachment level persisted on `org_order_preferences_dtl.prefs_level`. */
+export const PREFS_LEVEL = {
+  ORDER: 'ORDER',
+  ITEM: 'ITEM',
+  PIECE: 'PIECE',
+} as const;
+
+export type PrefsLevel = (typeof PREFS_LEVEL)[keyof typeof PREFS_LEVEL];
+
 /** Who owns the preference line conceptually. */
 export const PREFS_OWNER_TYPE = {
   CUSTOMER: 'CUSTOMER',

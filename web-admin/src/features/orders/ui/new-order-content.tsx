@@ -536,7 +536,8 @@ export function NewOrderContent() {
         onKey: (key, event) => {
             if (key === 's' && (event.ctrlKey || event.metaKey) && !isSubmitting && state.state.items.length > 0) {
                 event.preventDefault();
-                handleSubmitOrderClick();
+                if (state.state.isEditMode) handleSaveEditOrder();
+                else handleSubmitOrderClick();
                 return;
             }
             if (event.altKey && !event.ctrlKey && !event.metaKey) {
@@ -884,7 +885,7 @@ export function NewOrderContent() {
                         isOpen={bottomSheetOpen}
                         onOpen={() => setBottomSheetOpen(true)}
                         onClose={() => setBottomSheetOpen(false)}
-                        onPrimaryAction={handleSubmitOrderClick}
+                        onPrimaryAction={state.state.isEditMode ? handleSaveEditOrder : handleSubmitOrderClick}
                         primaryDisabled={isSubmitDisabled}
                         primaryLabel={state.state.isEditMode ? (tEdit('saveChanges') || 'Save changes') : (t('submitOrder') || 'Add Order')}
                         loading={state.state.loading || isSubmitting}

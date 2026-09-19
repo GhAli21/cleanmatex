@@ -50,7 +50,14 @@ function piecePrefsToSelectorFormat(piece: OrderItemPiece): OrderItemServicePref
   }));
 }
 
-function extraPriceForCode(code: string, catalog: ServicePreference[]): number {
+function extraPriceForCode(
+  code: string,
+  catalog: ServicePreference[],
+  selectedPrice?: number
+): number {
+  if (typeof selectedPrice === 'number' && Number.isFinite(selectedPrice)) {
+    return selectedPrice;
+  }
   const row = catalog.find((c) => c.code === code);
   return Number(row?.default_extra_price ?? 0);
 }
@@ -176,7 +183,7 @@ export function PiecePreferencesEditorDialog({
       const body = {
         preference_code: prefCode,
         source: PREFERENCE_SOURCES.MANUAL,
-        extra_price: extraPriceForCode(prefCode, catalogService),
+        extra_price: extraPriceForCode(prefCode, catalogService, sel.extra_price),
         branch_id: branchId ?? null,
       };
       const res = await fetch(

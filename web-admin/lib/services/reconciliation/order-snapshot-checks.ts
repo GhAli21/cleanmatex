@@ -94,7 +94,7 @@ export async function runOrderSnapshotChecks(
         // own preference/piece aggregates so both consumers agree.
         prisma.org_order_preferences_dtl.findMany({
           where: { tenant_org_id: tenantOrgId, order_id: order.id, rec_status: 1 },
-          select: { id: true, extra_price: true },
+          select: { id: true, extra_price: true, prefs_level: true },
         }),
       ),
     ]);
@@ -112,7 +112,19 @@ export async function runOrderSnapshotChecks(
       }),
     );
     const expectedCharges = toNumber(header?.total_charges_amount);
-    const actualCharges = toNumber(chargesAgg._sum.amount);
+    const orderLevelPrefIds = new Set(
+      preferences
+        .filter((pref) => String(pref.prefs_level ?? '').toUpperCase() === 'ORDER')
+        .map((pref) => pref.id),
+    );
+    const moneyPreferenceChargeSum = preferenceChargeRows
+      .filter((row) => row.charge_source_id && orderLevelPrefIds.has(row.charge_source_id))
+      .reduce((sum, row) => sum + toNumber(row.amount), 0);
+    const nonPreferenceChargeSum = Math.max(
+      0,
+      toNumber(chargesAgg._sum.amount) - preferenceChargeRows.reduce((sum, row) => sum + toNumber(row.amount), 0),
+    );
+    const actualCharges = moneyPreferenceChargeSum + nonPreferenceChargeSum;
     const chargesDelta = actualCharges - expectedCharges;
     if (Math.abs(chargesDelta) >= RECONCILIATION_TOLERANCE) {
       results.push({
@@ -130,64 +142,58 @@ export async function runOrderSnapshotChecks(
 
     // ── Roll-ups for the next four checks ─────────────────────────────────
     const piecesSum = pieces.reduce((s, p) => s + toNumber(p.service_pref_charge), 0);
-    const itemsSum = items.reduce((s, i) => s + toNumber(i.service_pref_charge), 0);
-    const preferencesSum = preferences.reduce((s, p) => s + toNumber(p.extra_price), 0);
-    const preferenceChargesSum = preferenceChargeRows.reduce((s, c) => s + toNumber(c.amount), 0);
-
-    // The PREFERENCE charge bucket on the order should fully account for
-    // every piece + preference + item extra. If it is short, piece/preference
-    // extras have not been rolled into the snapshot.
-    const expectedPreferenceCharges = piecesSum + preferencesSum + itemsSum;
-    const preferenceChargesDelta = preferenceChargesSum - expectedPreferenceCharges;
+    const orderLevelPreferences = preferences.filter(
+      (pref) => String(pref.prefs_level ?? '').toUpperCase() === 'ORDER',
+    );
+    const orderLevelPreferencesSum = orderLevelPreferences.reduce((s, p) => s + toNumber(p.extra_price), 0);
+    const itemPiecePreferenceChargeSum = preferenceChargeRows
+      .filter((row) => !row.charge_source_id || !orderLevelPrefIds.has(row.charge_source_id))
+      .reduce((s, c) => s + toNumber(c.amount), 0);
+    const preferenceChargesSum = moneyPreferenceChargeSum;
 
     // ── ORDER_PIECES_MATCH_CHARGES ───────────────────────────────────────
-    // Pieces under-represented in the preference charge bucket. Threshold uses
-    // direction: a shortfall < piecesSum signals missing roll-up.
-    if (piecesSum > 0 && preferenceChargesSum + RECONCILIATION_TOLERANCE < piecesSum) {
+    // Piece extras belong in line totals. Active ITEM/PIECE PREFERENCE charges
+    // mean those extras are still being added as money.
+    if (itemPiecePreferenceChargeSum > RECONCILIATION_TOLERANCE) {
       results.push({
         checkName: RECONCILIATION_CHECK_NAMES.ORDER_PIECES_MATCH_CHARGES,
         severity: RECONCILIATION_SEVERITIES.BLOCKER,
         passed: false,
-        expectedValue: piecesSum,
-        actualValue: preferenceChargesSum,
-        delta: preferenceChargesSum - piecesSum,
-        message: `Order ${order.order_no}: PREFERENCE charges sum (${preferenceChargesSum}) is less than piece-level service_pref_charge sum (${piecesSum}) — piece extras not fully rolled into the snapshot`,
+        expectedValue: 0,
+        actualValue: itemPiecePreferenceChargeSum,
+        delta: itemPiecePreferenceChargeSum,
+        message: `Order ${order.order_no}: ITEM/PIECE PREFERENCE charges (${itemPiecePreferenceChargeSum}) are still active — piece extras must live in items_base_amount only`,
         affectedEntityType: 'order',
         affectedEntityId: order.id,
       });
     }
 
     // ── ORDER_PREFERENCES_MATCH_CHARGES ──────────────────────────────────
-    if (preferencesSum > 0 && preferenceChargesSum + RECONCILIATION_TOLERANCE < preferencesSum) {
+    if (Math.abs(preferenceChargesSum - orderLevelPreferencesSum) >= RECONCILIATION_TOLERANCE) {
       results.push({
         checkName: RECONCILIATION_CHECK_NAMES.ORDER_PREFERENCES_MATCH_CHARGES,
         severity: RECONCILIATION_SEVERITIES.BLOCKER,
         passed: false,
-        expectedValue: preferencesSum,
+        expectedValue: orderLevelPreferencesSum,
         actualValue: preferenceChargesSum,
-        delta: preferenceChargesSum - preferencesSum,
-        message: `Order ${order.order_no}: PREFERENCE charges sum (${preferenceChargesSum}) is less than preference extra_price sum (${preferencesSum}) — preference extras not fully rolled into the snapshot`,
+        delta: preferenceChargesSum - orderLevelPreferencesSum,
+        message: `Order ${order.order_no}: ORDER-level PREFERENCE charges (${preferenceChargesSum}) do not match ORDER-level extra_price sum (${orderLevelPreferencesSum})`,
         affectedEntityType: 'order',
         affectedEntityId: order.id,
       });
     }
 
     // ── PIECE_EXTRA_PRICE_INCLUDED_ONCE ──────────────────────────────────
-    // Inverse direction: if the PREFERENCE bucket exceeds the expected sum by
-    // ≥ smallest piece extra, the same source was likely counted twice.
-    if (
-      piecesSum > 0
-      && preferenceChargesDelta >= RECONCILIATION_TOLERANCE
-      && preferenceChargesSum > expectedPreferenceCharges
-    ) {
+    // Piece extras already in items_base must not also appear as money charges.
+    if (piecesSum > 0 && itemPiecePreferenceChargeSum >= RECONCILIATION_TOLERANCE) {
       results.push({
         checkName: RECONCILIATION_CHECK_NAMES.PIECE_EXTRA_PRICE_INCLUDED_ONCE,
         severity: RECONCILIATION_SEVERITIES.BLOCKER,
         passed: false,
-        expectedValue: expectedPreferenceCharges,
-        actualValue: preferenceChargesSum,
-        delta: preferenceChargesDelta,
-        message: `Order ${order.order_no}: PREFERENCE charges sum (${preferenceChargesSum}) exceeds piece + preference + item extras (${expectedPreferenceCharges}) — a piece extra was likely included twice`,
+        expectedValue: 0,
+        actualValue: itemPiecePreferenceChargeSum,
+        delta: itemPiecePreferenceChargeSum,
+        message: `Order ${order.order_no}: piece extras (${piecesSum}) are also present as PREFERENCE charges (${itemPiecePreferenceChargeSum})`,
         affectedEntityType: 'order',
         affectedEntityId: order.id,
       });

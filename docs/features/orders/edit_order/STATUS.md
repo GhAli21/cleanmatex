@@ -1,7 +1,14 @@
 # Edit Order Feature - Implementation Status
 
-**Last Updated:** 2026-03-07
-**Overall Progress:** 85% Complete (Phases 1-2 Done, Phase 3 Deferred)
+**Last Updated:** 2026-09-19
+**Overall Progress:** Commercial totals unification in progress (slices 1–4 coded; historical recalc deferred)
+
+### 2026-09-19 — Unify order commercial totals
+
+- Item/piece preference extras stay in line totals. Only ORDER-level PREFERENCE extras add to `total_amount`.
+- Edit posts `orderServicePrefs`, voids leftover ITEM/PIECE PREFERENCE charges, rewrites tax lines, and sets notice/history from the persisted snapshot.
+- Qty change keeps extras. Edit Ctrl+S / mobile Save no longer open the create payment modal.
+- Residual: contaminated historical orders (e.g. `ORD-20260919-0002`) keep old totals until opt-in recalc (slice 5). Preparation item PATCH remains ungoverned.
 
 ---
 

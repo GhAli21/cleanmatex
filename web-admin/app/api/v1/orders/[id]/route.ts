@@ -65,6 +65,22 @@ export async function GET(
       conditions?: string[];
     }>> = {};
 
+    const orderLevelPrefs = await prisma.org_order_preferences_dtl.findMany({
+      where: {
+        tenant_org_id: tenantId,
+        order_id: id,
+        prefs_level: 'ORDER',
+        rec_status: 1,
+      },
+      orderBy: { prefs_no: 'asc' },
+      select: {
+        preference_code: true,
+        prefs_source: true,
+        extra_price: true,
+        preference_id: true,
+      },
+    });
+
     if (itemIds.length > 0) {
       const piecesResult = await OrderPieceService.getPiecesByOrder(tenantId, id);
       const piecesList = piecesResult.success && piecesResult.pieces ? piecesResult.pieces : [];
@@ -136,6 +152,12 @@ export async function GET(
       paid_amount: financialSnapshot.totalPaidAmount,
       bag_count: toNumber(order.bag_count) ?? null,
       priority_multiplier: toNumber(order.priority_multiplier) ?? null,
+      order_service_prefs: orderLevelPrefs.map((pref) => ({
+        preference_code: pref.preference_code,
+        source: pref.prefs_source ?? 'ORDER_CREATE',
+        extra_price: toNumber(pref.extra_price) ?? 0,
+        preferenceCfId: pref.preference_id,
+      })),
       items: (order.items ?? []).map((item: OrderItem) => {
         const itemPieces = (item.id && piecesByItemId[item.id]) || [];
         const catalog = (!item.product_name && item.product_id)

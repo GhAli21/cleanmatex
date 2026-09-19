@@ -319,14 +319,14 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |11.5| (If a Failed or Dead-lettered row exists) click **Retry** on it | Row returns to Pending with attempts reset to 0; disappears from the Failed/Dead-lettered filter after the next processor tick (~1 min) | RETEST 2026-09-17 N/A — no Failed/Dead-lettered rows to Retry |
 |11.6| Log in as a user WITHOUT `finance_outbox:retry` (but with `finance_outbox:view`) | Outbox Monitor is visible (counts + list) but no Retry button appears on any row | N/A — needs user without finance_outbox:retry |
 |11.7| Log in as a user WITHOUT `finance_outbox:view` | **Outbox Monitor** does not appear in the sidebar; direct navigation to the URL is blocked | N/A — needs user without finance_outbox:view |
-|11.8| Open Outbox Monitor → click a **Failed** / **Stuck** KPI tile | Table filters to that slice; clicking the same tile again clears the filter | |
-|11.9| Use search (event type / error text / UUID) and the event-type + date filters | List narrows; **Clear filters** restores the full list | |
-|11.10| Click a row (or **View**) | Detail dialog shows payload JSON, full error, handlers, timestamps, and related-record links | |
-|11.11| From a `LOYALTY_EARN` / `ORDER_COMPLETED` event, follow the **Order** link | Lands on `/dashboard/orders/{id}` for that aggregate (or payload `orderId`) | |
-|11.12| From an `AR_INVOICE_ISSUED` / `VOUCHER_POSTED_AND_WIRED` event, follow Invoice or Voucher | Lands on the invoice or voucher detail page with the business number in the link label when known | |
-|11.13| (If failed/dead-lettered events exist) **Retry matching failed** | Confirm dialog; up to 50 matching events return to Pending; success toast shows the count | |
-|11.14| Toggle **Auto-refresh** | Counts/table refresh about every 15s without a full loading flash | |
-|11.15| Related finance pages card | Links open Pending payments, Refunds, Vouchers, Invoices, Reconciliation, ERP-Lite exceptions, Stored value | |
+|11.8| Open Outbox Monitor → click a **Failed** / **Stuck** KPI tile | Table filters to that slice; clicking the same tile again clears the filter | **PASS 2026-09-18** — Failed KPI tile filters to Failed; clicking again clears filter. |
+|11.9| Use search (event type / error text / UUID) and the event-type + date filters | List narrows; **Clear filters** restores the full list | **PASS 2026-09-18** — Search `ORDER_COMPLETED` + event-type + 2026-09-17 dates narrowed to 4 rows; Clear Filters restored full list. |
+|11.10| Click a row (or **View**) | Detail dialog shows payload JSON, full error, handlers, timestamps, and related-record links | **PASS 2026-09-18** — View dialog shows status, payload JSON, error, handler, attempts, timestamps, related Order link (Failed sample showed Prisma FK error + payload). |
+|11.11| From a `LOYALTY_EARN` / `ORDER_COMPLETED` event, follow the **Order** link | Lands on `/dashboard/orders/{id}` for that aggregate (or payload `orderId`) | **PASS 2026-09-18** — LOYALTY_EARN Order link → `/dashboard/orders/37dc12bf-1b69-4afc-a308-87be447c0b83` Order Details. |
+|11.12| From an `AR_INVOICE_ISSUED` / `VOUCHER_POSTED_AND_WIRED` event, follow Invoice or Voucher | Lands on the invoice or voucher detail page with the business number in the link label when known | **PASS 2026-09-18** — VOUCHER_POSTED_AND_WIRED → Voucher Detail `RV-2026-000097` Posted. |
+|11.13| (If failed/dead-lettered events exist) **Retry matching failed** | Confirm dialog; up to 50 matching events return to Pending; success toast shows the count | **PASS 2026-09-18** — Retry matching failed confirmed; toast “22 events re-queued”; KPI → Pending 29 / Failed 0. |
+|11.14| Toggle **Auto-refresh** | Counts/table refresh about every 15s without a full loading flash | **PASS 2026-09-18** — Auto-refresh on; ~16s in-place refresh without full loading flash. |
+|11.15| Related finance pages card | Links open Pending payments, Refunds, Vouchers, Invoices, Reconciliation, ERP-Lite exceptions, Stored value | **PASS 2026-09-18** — Pending payments, Refunds, Business Vouchers, Invoices, Reconciliation, Stored Value opened OK. ERP-Lite Exceptions opens but reports module not enabled. |
 |11.16| Header **Scheduled jobs** jump link | Scrolls to the jobs hub card (`#finance-jobs`) | **PASS 2026-09-17** — Header Scheduled jobs jump scrolls to `#finance-jobs`. |
 |11.17| Jobs hub rows | Five jobs: Outbox Processor (every minute), Gift-Card Expiry (02:00), Credit-Note Expiry (02:05), Idempotency-Key Cleanup (03:00), ERP Posting Retry (hourly :15) — each shows next run, cron badge, last run, trigger, status, outcome | **PASS 2026-09-17** — Five jobs: Outbox Processor, Gift-Card Expiry, Credit-Note Expiry, Idempotency-Key Cleanup, ERP Posting Retry. |
 |11.18| Outbox Processor **Event table** link | Lands on `#outbox-events` on the same page | **PASS 2026-09-17** — Outbox Processor Event table link lands on `#outbox-events`. |
@@ -785,9 +785,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |29.6| Enter a third decimal on a 2-decimal tenant | Not accepted | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
 |29.7| **Stale balance:** open Delivery, note a row's balance, collect part of it in a second browser/tab, then open the dialog from the **first** tab's stale row | Outstanding shows the **new** balance, and a warning states it changed and that the amount was updated | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
 |29.8| Repeat 29.7 but **type an amount first**, then let the balance change and reopen | Your typed amount is **kept**, and the warning tells you the balance moved. Money is never rewritten silently | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
-|29.9| Enter a **partial** amount (less than outstanding) | A **Remaining after this payment** line shows what the order will still owe | N/A — partial remaining line not explicitly verified this smoke |
-|29.10| Cash method: tap a **quick-tender chip** (round-up / note values) | Only **Cash Tendered** changes — the **Amount** must not move. **Change due** appears in large type | PASS — cash tender preset populated (e.g. 2.000 vs amount 1.926) |
-|29.11| Cash method: set tendered **below** the amount | Inline red message; **Collect** is disabled | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
+|29.9| Enter a **partial** amount (less than outstanding) | A **Remaining after this payment** line shows what the order will still owe | **PASS 2026-09-18** — ORD-20260917-0007 outstanding 4.700; entered 2.000 without submit; showed “Remaining after this payment: 2.700 OMR” |
+|29.10| Cash method: tap a **quick-tender chip** (round-up / note values) | Only **Cash Tendered** changes — the **Amount** must not move. **Change due** appears in large type | **PASS 2026-09-18** — ORD-20260917-0007; cash tender chip set Cash Tendered 5.000; Amount stayed 4.700; large Change due 0.300 OMR |
+|29.11| Cash method: set tendered **below** the amount | Inline red message; **Collect** is disabled | **PASS 2026-09-18** — tendered 1.000 vs amount 2.000; red “Cash tendered must be at least 2.000 OMR”; Collect disabled |
 |29.12| Select **Check** | Check number / issuing bank / check date fields appear. With `requires_reference`, Collect stays disabled until the number is filled | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
 |29.13| Select a non-cash, non-check method with `requires_reference` | A single **Reference** field appears and gates Collect | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
 |29.14| Collect a CHECK with a reference, then open **Internal Finance And Operations → Business Vouchers** → the RECEIPT voucher, and the order's payment row | Check number/bank/date are stored. **Previously these could not be sent at all — non-cash collections had no reference** | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
@@ -799,8 +799,8 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |29.20| While a collection is submitting, try to close the dialog (Esc / backdrop) | It refuses to close mid-request | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
 |29.21| Select a method whose status resolves to **PENDING** through configuration inheritance (e.g. bank transfer with no explicit override) | The "will be recorded as pending until verified" notice appears. **Previously only an explicit override showed it, so inherited-PENDING wrongly looked fully paid** | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
 |29.22| **Ready only:** collect from the **Customer pickup** card | Button reads **Collect & release order**, a hint explains why, and a **receipt preview opens automatically** after success | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
-|29.23| **Delivery / Financial tab:** collect | No print control appears, no handover wording — those are Ready-only capabilities | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
-|29.24| ⭐ **Most important.** On **Delivery**, collect on one row, close the dialog, then open a **different** row | Everything is fresh: amount, reference, check fields, notes. Nothing leaks between orders. *(This screen remounts the dialog instead of reopening it, so it exercises a different reset path from the other two.)* | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
+|29.23| **Delivery / Financial tab:** collect | No print control appears, no handover wording — those are Ready-only capabilities | **PASS 2026-09-18** — Order Financial Summary Collect Payment: no print control and no handover / “Collect & release” wording |
+|29.24| ⭐ **Most important.** On **Delivery**, collect on one row, close the dialog, then open a **different** row | Everything is fresh: amount, reference, check fields, notes. Nothing leaks between orders. *(This screen remounts the dialog instead of reopening it, so it exercises a different reset path from the other two.)* | **N/A 2026-09-18** — Delivery listed 7 out-for-delivery but visible rows Delivered; row actions “No actions on this screen”; delivery confirmation not configured — Collect dialog unavailable to test remount freshness |
 |29.25| Repeat the whole set in **Arabic (RTL)** | All new labels/messages translated; layout mirrors correctly | N/A — not exercised in this Preview pass (Collect Payment smoke covered 29.3/29.10 only) |
 
 **Automated gates (2026-08-15):** tsc exit 0 · eslint 0 · `check:i18n` ✓ · **full jest 259/259 suites, 2423/2423 tests** · `npm run build` ✓ · `check:platform-info-inventories` drift 0 (access-contract suites 10/10).
@@ -829,6 +829,19 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |30.8| Flag ON. Open **Reconciliation** for the reverse date | No missed compensating cash movement for 30.2; `LOYALTY_RESTORE_PENDING` (if any) shows in pending credit | **PASS 2026-09-17** — Retest after cash-fix reverse: no missed compensating cash movement for §30.2; unrelated outbox stuck-events warning still present. |
 |30.9| Toggle **Arabic** on Reverse preview + errors | Translated + RTL | **PASS 2026-09-17** — Arabic (`العربية`) on Reverse preview: UI RTL + Arabic labels; preview opened without submit. |
 |30.10| Open reversal voucher `RV-2026-000087` (or any reversal) at `/dashboard/internal_fin/vouchers/[id]` | Header has date, party, customer/order, paid/outstanding (not empty dashes). **Ref voucher** = original (`RV-2026-000086`). Related-records chips open original voucher, order, customer, branch, and cash-drawer session. Linked effects list the original payment/movement with Order and Session links | **PASS 2026-09-17** — Reversal `RV-2026-000089` header populated; **Ref / Original voucher** = `RV-2026-000088`; related links to order/customer/session present. |
+
+---
+
+## 31. Unify order commercial totals (create → edit replay)
+
+**What changed (2026-09-19):** piece extras stay in line totals. Only ORDER-level preference extras add as money charges. Edit save uses the persisted snapshot for notice/history. Do **not** replay on `ORD-20260919-0002` (contaminated until slice 5). Use a **new** order.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|31.1| New Order. Add items + **piece** extras (e.g. Anti-bacterial / starch). Pay partial + pay-later | Payment-modal total = stored Financial Summary total. `paid + outstanding = total`. Piece extras appear once (in items base), not also as Other charges | **FAIL 2026-09-19** — ORD-20260919-0003: payment/cart total **2.200** vs Financial Summary **2.900** (paid 1.000 + outstanding 1.900). Items showed Cotton Pants + Anti-Bacterial (+0.400) + Heavy Starch (+0.300) = 2.200, but Financial also listed **Other charges 0.700** (piece extras double-counted) |
+|31.2| Edit that order. Add an item + a piece extra. Save | Cart total = notice new total = history = Financial Summary. Taxes rewrite (not frozen at create). Ctrl+S / mobile Save do **not** open the create payment modal | **FAIL 2026-09-19** — ORD-20260919-0003 edit: cart reached 3.600 after Fitness Leggings + Anti-Bacterial; Save failed client circular-JSON; nothing persisted. Ctrl+S opened create-payment modal. Tax rewrite not verified |
+|31.3| On edit, change qty on a line that has extras | Line extras stay; total is not silently reduced to `qty × unit` | **PASS 2026-09-19** — ORD-20260919-0003 edit (unsaved): Cotton Pants qty 1→2 kept extras; total **3.700** (not silent 2×1.500=3.000). Qty change discarded after |
+|31.4| Known residual | Preparation item PATCH can still stale headers. Historical `0002` keeps inflated totals until opt-in recalc | N/A — documented residual |
 
 ---
 
@@ -868,6 +881,11 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 6. **Reconciliation tax noise (§8.1 / earlier RECON-2026-002)**  
    Runs alternately showed **24 TAX_CALCULATION blockers** or a clean day run. Stabilize tax-check fixtures on Preview demo data, or quarantine known legacy orders so new-money QA is not drowned in blockers. Also show **total checks = 38** explicitly on run detail (§8.2 was not visible).
 
+
+**Financial_Expert_Tester / FET-S3 (2026-09-19) — P0:** Piece extras double-counted into Other charges (§31.1). `ORD-20260919-0003`: cart/payment **2.200** vs Financial **2.900** with Other charges **0.700** (Anti-Bacterial + Heavy Starch). Piece extras must appear once in line totals only; payment-modal total must equal stored Financial Summary.
+
+**Financial_Expert_Tester / FET-S4 (2026-09-19) — P0:** Edit Save circular-JSON + Ctrl+S opens create payment modal (§31.2). `ORD-20260919-0003` edit Save failed (circular structure to JSON); changes not persisted; Ctrl+S opened create-payment modal. Fix edit serialization; Ctrl+S/mobile Save must not open create payment on edit.
+
 ### P1 — UX / product clarity (high leverage, lower risk)
 
 7. **Collect Payment empty-drawer messaging (§29.3)**  
@@ -886,6 +904,13 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 12. **Stored Value first-customer “Invalid input”**  
     §1.2: existing no-wallet customer failed with generic Invalid input; new customer worked. Return field-level validation (which field, why) and don’t leave operators guessing.
+
+
+19. **Outbox Related → ERP-Lite Exceptions dead-end when module off (§11.15 / FET-S1)**  
+    Outbox Monitor **Related finance pages** → **ERP-Lite Exceptions** opens a “module not enabled” page when ERP Lite is off. Hide or disable that link (or deep-link to enablement) so operators are not sent to a dead end during outbox triage. Observed Preview 2026-09-18; scenario Result remains PASS (link opens).
+
+20. **Delivery list count vs row actions / Collect unavailable (§29.24 / FET-S2)**  
+    Delivery showed **7** out-for-delivery while visible rows were **Delivered**. Opening a row returned “No actions on this screen”; details said delivery confirmation was not configured, so Collect Payment remount (§29.24) could not be exercised. Align KPI/list filters with actionable rows, or surface a clear empty-state when Collect is unavailable. Observed Preview 2026-09-18.
 
 ### P2 — Future-proof SaaS / ERP / maintenance
 
@@ -906,6 +931,7 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 18. **Demo tenant hygiene**  
     “Orders past ready-by” warnings (13→25 during the run) clutter operator focus. Add a Preview “seed reset / age-out ready-by” job so financial QA is not mixed with ops backlog noise.
 
+
 ### Suggested next QA pass (after this Preview deploy)
 
 | Priority | What to re-run |
@@ -919,7 +945,7 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ### §29 polish note
 
-An extra Collect Payment matrix pass was started 2026-09-16 and **stopped** after the browser agent looped on navigation. Core §29 smoke (**29.3**, **29.10**) remains PASS; other §29 rows stay N/A pending a focused re-run after P0 fixes.
+Main-5 Preview pass **2026-09-18** (Financial_Expert_Tester): **29.9 / 29.10 / 29.11 / 29.23 PASS**; **29.24 N/A** (Delivery actions unavailable — see P1 #20 / FET-S2). Prior core smoke **29.3** / **29.10** still PASS. Remaining §29 rows stay N/A pending a later focused pass (Operator denial, dual-tab stale balance, Check/reference, Arabic RTL, etc.).
 
 ### §12.7 follow-up (2026-09-16 retest)
 

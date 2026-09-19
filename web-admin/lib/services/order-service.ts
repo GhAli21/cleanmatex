@@ -34,6 +34,9 @@ import {
   recalculateOrderFinancialSnapshot,
   recalculateOrderFinancialSnapshotTx,
 } from '@/lib/services/order-financial-write.service';
+import { voidPreferenceChargesForOrderRewriteTx } from '@/lib/services/order-charge.service';
+import { CHARGE_TYPES } from '@/lib/constants/order-financial';
+import { PREFS_LEVEL, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
 import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
@@ -1585,18 +1588,9 @@ export class OrderService {
         }
       }
 
-      // ── B18: order-level preferences + PREFERENCE charge facts ──────────────
-      // Order-level preferences have no item/piece to fold into — write them
-      // directly at prefs_level=ORDER. Then, for EVERY preference row on this
-      // order with extra_price > 0 (item, piece, AND order level — including
-      // the pre-existing item/piece writes above, untouched), write a mirror
-      // org_order_charges_dtl fact row (charge_type=PREFERENCE, charge_source_id
-      // = the preference row's id). This closes the live reconciliation gap:
-      // ORDER_PIECES_MATCH_CHARGES / ORDER_PREFERENCES_MATCH_CHARGES /
-      // ORDER_CHARGES_MATCH_SNAPSHOT previously always failed for any order
-      // with a non-zero preference extra_price, since org_order_charges_dtl
-      // never received any rows at all (confirmed via live DB: 0 rows across
-      // all orders despite 171 items/pieces/preferences with extra_price > 0).
+      // ── B18: order-level preferences + money PREFERENCE charges ─────────────
+      // Item/piece extras stay inside line totals. Only prefs_level=ORDER extras
+      // add as PREFERENCE charge facts (money addends for the snapshot).
       if (orderServicePrefs && orderServicePrefs.length > 0) {
         await tx.org_order_preferences_dtl.createMany({
           data: orderServicePrefs.map((pref, idx) => ({
@@ -1621,6 +1615,7 @@ export class OrderService {
           tenant_org_id: tenantId,
           order_id: order.id,
           extra_price: { gt: 0 },
+          prefs_level: 'ORDER',
         },
         select: { id: true, extra_price: true, preference_code: true },
       });
@@ -2826,6 +2821,7 @@ export class OrderService {
       quickDropQuantity,
       editReason,
       idempotencyKey,
+      orderServicePrefs,
     } = params;
 
     try {
@@ -2949,8 +2945,13 @@ export class OrderService {
             items: items.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
-              servicePrefCharge: item.servicePrefCharge ?? 0,
-              packingPrefCharge: item.packingPrefCharge ?? 0,
+              priceOverride: item.quantity > 0 ? item.totalPrice / item.quantity : item.pricePerUnit,
+              servicePrefCharge: 0,
+              packingPrefCharge: 0,
+            })),
+            orderCharges: (orderServicePrefs ?? []).map((pref) => ({
+              label: pref.preference_code,
+              amount: pref.extra_price ?? 0,
             })),
             customerId: customerId ?? existingOrder.customer_id,
             isExpress: express ?? existingOrder.priority_multiplier === 0.5,
@@ -2970,7 +2971,7 @@ export class OrderService {
               tenantId,
               orderId,
               idempotencyKey,
-              { items, express, customerId, branchId },
+              { items, express, customerId, branchId, orderServicePrefs },
             );
             if (staked.editHistoryId) {
               // Replay: a prior call with this exact key+payload already
@@ -3033,6 +3034,22 @@ export class OrderService {
               tenant_org_id: tenantId,
             },
           });
+
+          // ITEM/PIECE prefs cascade with items; leftover PREFERENCE charges have
+          // no FK. Void them in this tx so snapshot money cannot re-add them.
+          await voidPreferenceChargesForOrderRewriteTx(tx, {
+            tenantId,
+            orderId,
+            userId,
+            reason: 'ORDER_EDIT_PREFERENCE_REWRITE',
+          });
+          await tx.org_order_preferences_dtl.deleteMany({
+            where: {
+              order_id: orderId,
+              tenant_org_id: tenantId,
+              prefs_level: PREFS_LEVEL.ORDER,
+            },
+          });
         }
 
         // 8. Recalculate totals if items changed or recalculate flag set
@@ -3052,8 +3069,9 @@ export class OrderService {
             ? items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
-                servicePrefCharge: item.servicePrefCharge ?? 0,
-                packingPrefCharge: item.packingPrefCharge ?? 0,
+                priceOverride: item.quantity > 0 ? item.totalPrice / item.quantity : item.pricePerUnit,
+                servicePrefCharge: 0,
+                packingPrefCharge: 0,
               }))
             : (await tx.org_order_items_dtl.findMany({
                 where: {
@@ -3063,12 +3081,16 @@ export class OrderService {
                 select: {
                   product_id: true,
                   quantity: true,
-                  service_pref_charge: true,
+                  total_price: true,
+                  price_per_unit: true,
                 },
               })).map((item) => ({
                 productId: item.product_id,
                 quantity: item.quantity,
-                servicePrefCharge: Number(item.service_pref_charge ?? 0),
+                priceOverride: item.quantity > 0
+                  ? Number(item.total_price ?? 0) / item.quantity
+                  : Number(item.price_per_unit ?? 0),
+                servicePrefCharge: 0,
                 packingPrefCharge: 0,
               }));
 
@@ -3076,17 +3098,49 @@ export class OrderService {
             tenantId,
             branchId: branchId ?? existingOrder.branch_id,
             items: calculationItems,
+            orderCharges: (orderServicePrefs ?? []).map((pref) => ({
+              label: pref.preference_code,
+              amount: pref.extra_price ?? 0,
+            })),
             customerId: customerId ?? existingOrder.customer_id,
             isExpress: express ?? existingOrder.priority_multiplier === 0.5,
             userId,
           });
 
-          subtotal = calculationResult.subtotal;
+          // Catalog/engine values are used for tax lines + rounding only.
+          // Snapshot after persist is the only header-total writer.
+          subtotal = items && items.length > 0
+            ? items.reduce((sum, item) => sum + Number(item.totalPrice ?? 0), 0)
+            : calculationResult.subtotal;
           discount = calculationResult.manualDiscount + calculationResult.promoDiscount;
           tax = calculationResult.taxAmount;
           total = calculationResult.saleTotal;
           vatRate = calculationResult.taxRate;
           roundingAdjustment = calculationResult.roundingAdjustmentAmount;
+
+          await tx.org_order_taxes_dtl.deleteMany({
+            where: { tenant_org_id: tenantId, order_id: orderId },
+          });
+          for (let taxSeq = 0; taxSeq < calculationResult.taxBreakdown.length; taxSeq++) {
+            const taxLine = calculationResult.taxBreakdown[taxSeq];
+            await tx.org_order_taxes_dtl.create({
+              data: {
+                tenant_org_id: tenantId,
+                order_id: orderId,
+                tax_profile_id: taxLine.profileId ?? null,
+                tax_type: taxLine.taxType,
+                label: taxLine.label,
+                label2: taxLine.label2 ?? null,
+                rate: taxLine.rate,
+                is_compound: taxLine.isCompound,
+                taxable_amount: taxLine.baseAmount,
+                tax_amount: taxLine.taxAmount,
+                currency_code: calculationResult.currencyCode,
+                applied_seq: taxSeq + 1,
+                rec_status: 1,
+              },
+            });
+          }
         }
 
         // 9. Create new items/pieces
@@ -3173,6 +3227,50 @@ export class OrderService {
               'ORDER_EDIT'
             );
           }
+
+          if (orderServicePrefs && orderServicePrefs.length > 0) {
+            await tx.org_order_preferences_dtl.createMany({
+              data: orderServicePrefs.map((pref, idx) => ({
+                tenant_org_id: tenantId,
+                order_id: orderId,
+                prefs_no: idx + 1,
+                prefs_level: PREFS_LEVEL.ORDER,
+                preference_code: pref.preference_code,
+                preference_content: pref.preference_code,
+                preference_sys_kind: 'service_prefs',
+                prefs_source: pref.source ?? PREFS_SOURCE_STAGE.ORDER_EDIT,
+                extra_price: pref.extra_price ?? 0,
+                branch_id: branchId ?? existingOrder.branch_id ?? null,
+                created_by: userId,
+                ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
+              })),
+            });
+          }
+
+          const orderLevelPrefs = await tx.org_order_preferences_dtl.findMany({
+            where: {
+              tenant_org_id: tenantId,
+              order_id: orderId,
+              prefs_level: PREFS_LEVEL.ORDER,
+              extra_price: { gt: 0 },
+            },
+            select: { id: true, extra_price: true, preference_code: true },
+          });
+          if (orderLevelPrefs.length > 0) {
+            await tx.org_order_charges_dtl.createMany({
+              data: orderLevelPrefs.map((pref, idx) => ({
+                tenant_org_id: tenantId,
+                order_id: orderId,
+                charge_type: CHARGE_TYPES.PREFERENCE,
+                charge_source_id: pref.id,
+                label: pref.preference_code,
+                amount: pref.extra_price,
+                currency_code: (orderFromDb as { currency_code?: string | null }).currency_code ?? null,
+                applied_seq: idx + 1,
+                created_by: userId,
+              })),
+            });
+          }
         }
 
         // 10. Update order master fields
@@ -3199,13 +3297,12 @@ export class OrderService {
         if (isQuickDrop !== undefined) updateData.is_order_quick_drop = isQuickDrop;
         if (quickDropQuantity !== undefined) updateData.quick_drop_quantity = quickDropQuantity;
 
-        // Update totals if changed
+        // Intermediate header stamps only — snapshot overwrites money fields.
         if (items && items.length >= 0) {
           updateData.subtotal_amount = subtotal;
           updateData.items_base_amount = subtotal;
           updateData.total_discount_amount = discount;
           updateData.total_tax_amount = tax;
-          updateData.total_amount = total;
           updateData.vat_rate = vatRate;
           updateData.rounding_adjustment_amount = roundingAdjustment;
           // B12 Design decision #5: outstanding_amount is no longer set here.
@@ -3363,7 +3460,12 @@ export class OrderService {
               : updatedOrderWithItems.state_version,
         },
         ...(amendmentGate && {
-          financialDelta: amendmentGate.delta,
+          financialDelta: computeAmendmentDelta({
+            previousTotal: snapshotBeforeFinancial.totalAmount,
+            newTotal: snapshotAfterFinancial.totalAmount,
+            totalPaidAmount: Number((existingOrder as { total_paid_amount?: number }).total_paid_amount ?? 0),
+            governedFlagEnabled: true,
+          }),
           editHistoryId: auditEntry.id,
           requiresSettlement: true,
         }),

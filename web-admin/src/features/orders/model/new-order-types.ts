@@ -353,6 +353,7 @@ export type NewOrderAction =
         readyByAt: string;
         originalData: any;
         expectedUpdatedAt: Date;
+        orderServicePrefs?: OrderItemServicePref[];
       };
     }
   | { type: 'EXIT_EDIT_MODE' }

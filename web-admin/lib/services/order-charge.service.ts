@@ -29,6 +29,41 @@ import { prisma } from '@/lib/db/prisma';
 import { CHARGE_TYPES } from '@/lib/constants/order-financial';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 
+type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/**
+ * System void of leftover PREFERENCE charges during item replace / totals rewrite.
+ * Does not require `orders:manual_charge` and does not snapshot (caller snapshots).
+ */
+export async function voidPreferenceChargesForOrderRewriteTx(
+  tx: PrismaTransactionClient,
+  params: {
+    tenantId: string;
+    orderId: string;
+    userId: string;
+    reason: string;
+  },
+): Promise<number> {
+  const now = new Date();
+  const flipped = await tx.org_order_charges_dtl.updateMany({
+    where: {
+      tenant_org_id: params.tenantId,
+      order_id: params.orderId,
+      is_voided: false,
+      charge_type: CHARGE_TYPES.PREFERENCE,
+    },
+    data: {
+      is_voided: true,
+      voided_at: now,
+      voided_by: params.userId,
+      void_reason: params.reason,
+      updated_at: now,
+      updated_by: params.userId,
+    },
+  });
+  return flipped.count;
+}
+
 export class OrderChargeVoidError extends Error {
   code: string;
   constructor(code: string, message: string) {

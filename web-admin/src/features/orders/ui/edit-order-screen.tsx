@@ -121,6 +121,17 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         readyByAt: order.ready_by_at ? new Date(order.ready_by_at).toISOString() : '',
         originalData: order,
         expectedUpdatedAt: order.updated_at ? new Date(order.updated_at) : new Date(),
+        orderServicePrefs: (order.order_service_prefs ?? []).map((pref: {
+          preference_code: string;
+          source?: string;
+          extra_price?: number;
+          preferenceCfId?: string | null;
+        }) => ({
+          preference_code: pref.preference_code,
+          source: pref.source ?? 'ORDER_CREATE',
+          extra_price: Number(pref.extra_price ?? 0),
+          preferenceCfId: pref.preferenceCfId ?? undefined,
+        })),
       },
     });
   }, [orderId, initialOrderData, dispatch]);

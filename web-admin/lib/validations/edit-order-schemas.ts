@@ -90,6 +90,9 @@ export const updateOrderInputSchema = z.object({
   // Full item replacement
   items: z.array(updateOrderItemSchema).optional(),
 
+  /** Order-level service prefs (`prefs_level=ORDER`). Same shape as create. */
+  orderServicePrefs: z.array(updateOrderPieceServicePrefSchema).optional(),
+
   // Customer snapshot (order-level, not customer master)
   customerName: z.string().max(255).optional(),
   customerMobile: z.string().max(50).optional(),

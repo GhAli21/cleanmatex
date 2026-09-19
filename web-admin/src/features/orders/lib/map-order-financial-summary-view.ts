@@ -45,14 +45,22 @@ export function mapOrderFinancialSummaryView(
   const deliveryChargeAmount = sumChargesByType(charges, ['DELIVERY', 'DELIVERY_CHARGE']);
   const expressChargeAmount =
     sumChargesByType(charges, [CHARGE_TYPES.EXPRESS, 'EXPRESS_CHARGE']) || 0;
-  const otherChargesAmount = charges
+  const otherChargesFromRows = charges
     .filter(
       (c) =>
-        !['SERVICE_CHARGE', 'SERVICE', 'DELIVERY', 'DELIVERY_CHARGE', CHARGE_TYPES.EXPRESS, 'EXPRESS_CHARGE'].includes(
-          c.charge_type
-        )
+        !c.is_voided &&
+        ![
+          'SERVICE_CHARGE',
+          'SERVICE',
+          'DELIVERY',
+          'DELIVERY_CHARGE',
+          CHARGE_TYPES.EXPRESS,
+          'EXPRESS_CHARGE',
+          CHARGE_TYPES.PREFERENCE,
+        ].includes(c.charge_type)
     )
     .reduce((sum, c) => sum + n(c.amount), 0);
+  const otherChargesAmount = n(snapshot.otherChargesAmount) || otherChargesFromRows;
 
   const totalChargesAmount = n(snapshot.totalChargesAmount) || serviceChargeAmount + deliveryChargeAmount + expressChargeAmount + otherChargesAmount;
   const subtotalAmount = itemsBaseAmount;
@@ -60,7 +68,13 @@ export function mapOrderFinancialSummaryView(
   const discountAmount = n(snapshot.totalDiscountAmount);
   const netBeforeTaxAmount = Math.max(0, grossAmount - discountAmount);
   const taxAmount = n(snapshot.totalTaxAmount);
-  const taxableAmount = n(snapshot.taxableAmount) || sumTaxableAmount(input.taxes, netBeforeTaxAmount);
+  const uniqueTaxableLine = input.taxes.find((row) => {
+    const taxType = (row.tax_type ?? '').trim().toUpperCase();
+    return taxType === 'VAT' || taxType === 'GST';
+  }) ?? input.taxes[0];
+  const taxableAmount = snapshot.taxableAmount != null
+    ? n(snapshot.taxableAmount)
+    : (uniqueTaxableLine ? n(uniqueTaxableLine.taxable_amount) : netBeforeTaxAmount);
   // Tax-base decomposition (v1.1 §8.11). Default 0 today — engine wiring lands
   // in Phase 5. Surfaced now so the view model contract is stable for Phase 8 UI.
   const nonTaxableAmount = n(snapshot.nonTaxableAmount);
@@ -205,11 +219,6 @@ export function mapOrderFinancialSummaryView(
           ?.taxPricingModeAtCalculation as string | null ?? null,
     },
   };
-}
-
-function sumTaxableAmount(taxes: MapOrderFinancialSummaryInput['taxes'], fallback: number): number {
-  if (!taxes.length) return fallback;
-  return taxes.reduce((sum, row) => sum + n(row.taxable_amount), 0);
 }
 
 function buildWarnings(ctx: {

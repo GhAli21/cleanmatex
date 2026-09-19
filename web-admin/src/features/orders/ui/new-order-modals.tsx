@@ -386,7 +386,7 @@ export function NewOrderModals() {
           onClose={() => state.closeModal('payment')}
           onSubmit={handlePaymentSubmit}
           total={totals.subtotal}
-          checkoutAmount={totals.subtotal + totals.servicePrefCharge + totals.packingPrefCharge + orderChargesTotal}
+          checkoutAmount={totals.subtotal + orderChargesTotal}
           items={paymentItems}
           orderServicePrefs={state.state.orderServicePrefs}
           isExpress={state.state.express}

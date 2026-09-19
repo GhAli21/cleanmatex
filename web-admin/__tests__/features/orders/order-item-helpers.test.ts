@@ -109,6 +109,17 @@ describe('Order Item Helpers', () => {
 
       expect(result).toEqual(items); // unchanged
     });
+
+    it('keeps piece extras when quantity changes', () => {
+      const itemWithExtras: OrderItem = {
+        ...mockItem,
+        servicePrefCharge: 0.7,
+        totalPrice: 10.7,
+      };
+      const result = updateItemQuantity([itemWithExtras], 'product-1', 2);
+      expect(result[0].quantity).toBe(2);
+      expect(result[0].totalPrice).toBeCloseTo(20.7);
+    });
   });
 
   describe('calculateItemTotal', () => {

@@ -642,6 +642,7 @@ export function newOrderReducer(
         readyByAt,
         originalData,
         expectedUpdatedAt,
+        orderServicePrefs,
       } = action.payload;
 
       return {
@@ -664,6 +665,7 @@ export function newOrderReducer(
         customerNotes: customerNotes ?? '',
         paymentNotes: paymentNotes ?? '',
         readyByAt,
+        orderServicePrefs: orderServicePrefs ?? [],
       };
     }
 
