@@ -644,6 +644,18 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,},
     apiDependencies: [
       {
+        label: 'Historical preference-charge recalc',
+        method: 'POST',
+        path: '/api/v1/orders/recalc-preference-charges',
+        requirement: {
+          permissions: ['orders:post_settlement_edit'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'Owner-run preview/confirm. Flag order_fin_pref_charge_recalc default OFF. No cashier screen.',
+        ],
+      },
+      {
         label: 'Delivery proof and handover audit',
         method: 'GET',
         path: '/api/v1/delivery/orders/[orderId]/proof',
@@ -1165,6 +1177,18 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {},
     notes: ORDER_NOTES,
     apiDependencies: [
+      {
+        label: 'Historical preference-charge recalc',
+        method: 'POST',
+        path: '/api/v1/orders/recalc-preference-charges',
+        requirement: {
+          permissions: ['orders:post_settlement_edit'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'Owner-run preview/confirm. Flag order_fin_pref_charge_recalc default OFF. No cashier screen.',
+        ],
+      },
       {
         label: 'Ar *',
         method: 'GET',

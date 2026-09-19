@@ -41,6 +41,10 @@ import {
 } from '@/lib/utils/idempotency';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
+import {
+  extractThrownErrorDetails,
+  isStableErrorCode,
+} from '@/lib/utils/business-error';
 
 const IDEMPOTENCY_RESOURCE = 'submit_order';
 
@@ -472,9 +476,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Any remaining SCREAMING_SNAKE_CASE throw is a typed business rule
+    // (loyalty min-redeem, gift-card, promo, …) — not an unexpected crash.
+    // Return 422 with the code + attached details so the toast can show them.
+    if (isStableErrorCode(message)) {
+      const details = extractThrownErrorDetails(error);
+      logger.warn('[submit-order] Business rule rejected', {
+        feature: 'orders',
+        action: 'submit-order',
+        errorCode: message,
+        details,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: message,
+          error: message,
+          ...(details ? { details } : {}),
+        },
+        { status: 422 },
+      );
+    }
+
     logger.error('[submit-order] Unexpected error', error instanceof Error ? error : new Error(message), {
       feature: 'orders', action: 'submit-order',
     });
-    return NextResponse.json({ success: false, error: 'Order submission failed.' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, errorCode: 'ORDER_SUBMIT_FAILED', error: 'Order submission failed.' },
+      { status: 500 },
+    );
   }
 }

@@ -5,6 +5,7 @@ import {
   getCustomerTier,
   getLoyaltyTransactions,
   getLoyaltyExpirySummary,
+  syncAvailableLoyaltyPoints,
 } from '@/lib/services/loyalty.service';
 
 /**
@@ -28,8 +29,13 @@ export async function GET(
 
   try {
     const account = await getLoyaltyAccount(tenantId, customerId);
+    const spendable = account
+      ? await syncAvailableLoyaltyPoints(tenantId, account.id, Number(account.points_balance))
+      : null;
     const [tier, transactions, expirySummary] = await Promise.all([
-      account ? getCustomerTier(tenantId, Number(account.points_balance)) : Promise.resolve(null),
+      account
+        ? getCustomerTier(tenantId, spendable?.spendablePoints ?? Number(account.points_balance))
+        : Promise.resolve(null),
       account ? getLoyaltyTransactions(tenantId, account.id) : Promise.resolve([]),
       account ? getLoyaltyExpirySummary(tenantId, account.id) : Promise.resolve(null),
     ]);
@@ -37,7 +43,12 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data: {
-        account,
+        account: account
+          ? {
+              ...account,
+              points_balance: spendable?.spendablePoints ?? account.points_balance,
+            }
+          : account,
         tier,
         transactions,
         expirySummary,

@@ -27,6 +27,8 @@ import {
   legHasRequiredPaymentReference,
   wasPaymentLegAmountCapped,
   getStoredValueCapForLeg,
+  remainingLoyaltyAvailable,
+  sumLoyaltyLegAmounts,
   canReturnChangeFromAllCashLegs,
   shouldFetchPaymentPreview,
   shouldEnableCheckoutOptions,
@@ -233,6 +235,17 @@ describe('payment-modal-v4 utils', () => {
     expect(getStoredValueCapForLeg('CREDIT_NOTE', { creditNoteBalance: 15 })).toBe(15);
     expect(getStoredValueCapForLeg('LOYALTY_POINTS', { loyaltyBalance: 8 })).toBe(8);
     expect(getStoredValueCapForLeg('CASH', { walletBalance: 25 })).toBeUndefined();
+  });
+
+  it('sums loyalty legs and keeps remaining available after use', () => {
+    const first = { method: 'LOYALTY_POINTS', amount: 0.3 };
+    const second = { method: 'LOYALTY_POINTS', amount: 0.2 };
+    const cash = { method: 'CASH', amount: 5 };
+    expect(sumLoyaltyLegAmounts([first, cash, second])).toBeCloseTo(0.5);
+    expect(sumLoyaltyLegAmounts([first, cash, second], first)).toBeCloseTo(0.2);
+    expect(remainingLoyaltyAvailable(0.56, 0.5)).toBeCloseTo(0.06);
+    expect(remainingLoyaltyAvailable(0.56, 0.8)).toBe(0);
+    expect(remainingLoyaltyAvailable(Number.NaN, 0.2)).toBe(0);
   });
 
   it('requires every cash leg to allow change before aggregate change return', () => {

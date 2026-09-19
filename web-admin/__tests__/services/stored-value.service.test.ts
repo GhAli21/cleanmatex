@@ -61,6 +61,16 @@ jest.mock('@/lib/utils/logger', () => ({
   logger: { error: jest.fn(), info: jest.fn(), warn: jest.fn() },
 }));
 
+jest.mock('@/lib/services/loyalty.service', () => ({
+  getLoyaltyAccount: jest.fn().mockResolvedValue(null),
+  getLoyaltyConfig: jest.fn().mockResolvedValue(null),
+  syncAvailableLoyaltyPoints: jest.fn().mockResolvedValue({
+    spendablePoints: 0,
+    expiredUnappliedPoints: 0,
+    expiredNow: 0,
+  }),
+}));
+
 // ---------------------------------------------------------------------------
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------

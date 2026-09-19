@@ -73,6 +73,10 @@ export interface CustomerCreditDialogProps {
   /** Preformatted "CUR 0.000" live wallet balance (engine-derived). */
   liveWalletBalanceDisplay: string;
   walletLegExceedsLiveBalance: boolean;
+  loyaltyBalanceLoaded?: boolean;
+  loyaltyHasAvailableBalance?: boolean;
+  /** Remaining loyalty value after points already applied on this ticket. */
+  remainingLoyaltyDisplay?: string;
   /** Remaining-to-allocate for the active credit leg (engine-derived). */
   activeLegRemainingCap: number;
   moneyEpsilon: number;
@@ -125,6 +129,9 @@ export function CustomerCreditDialog({
   walletHasAvailableBalance,
   liveWalletBalanceDisplay,
   walletLegExceedsLiveBalance,
+  loyaltyBalanceLoaded = false,
+  loyaltyHasAvailableBalance = false,
+  remainingLoyaltyDisplay,
   activeLegRemainingCap,
   moneyEpsilon,
   currencyCode,
@@ -169,6 +176,8 @@ export function CustomerCreditDialog({
             const isWalletOption =
               option.credit_application_type === 'WALLET' ||
               option.payment_method_code === 'WALLET';
+            const isLoyaltyOption = option.payment_method_code === 'LOYALTY_POINTS';
+            const isLiveBalanceOption = isWalletOption || isLoyaltyOption;
             const isCreditNoteOption = option.payment_method_code === 'CREDIT_NOTE';
             const creditNotesAvailable = (storedValueSummary?.creditNotes.length ?? 0) > 0;
             const creditNoteReady =
@@ -182,13 +191,24 @@ export function CustomerCreditDialog({
                 ? storedValueLoading || !creditNotesAvailable
                 : option.requires_credit_reference_selection) ||
               (isWalletOption &&
-                (storedValueLoading || (walletBalanceLoaded && !walletHasAvailableBalance)));
+                (storedValueLoading || (walletBalanceLoaded && !walletHasAvailableBalance))) ||
+              (isLoyaltyOption &&
+                (storedValueLoading || (loyaltyBalanceLoaded && !loyaltyHasAvailableBalance)));
+            const loyaltyDisplay =
+              remainingLoyaltyDisplay
+              || `${currencyCode} ${formatAmount(option.available_balance ?? 0)}`;
             const balanceLabel = isWalletOption
               ? storedValueLoading
                 ? t('customerCredits.loadingBalance')
                 : walletHasAvailableBalance
                   ? t('customerCredits.available', { amount: liveWalletBalanceDisplay })
                   : t('customerCredits.noWalletBalance')
+              : isLoyaltyOption
+                ? storedValueLoading
+                  ? t('customerCredits.loadingBalance')
+                  : loyaltyHasAvailableBalance
+                    ? t('customerCredits.available', { amount: loyaltyDisplay })
+                    : t('customerCredits.noLoyaltyBalance')
               : isCreditNoteOption
                 ? storedValueLoading
                   ? t('customerCredits.loadingBalance')
@@ -203,7 +223,7 @@ export function CustomerCreditDialog({
 
             return (
               <div key={option.id} className="space-y-2">
-                {isWalletOption ? (
+                {isLiveBalanceOption ? (
                   <div
                     className={`flex items-center justify-between gap-2 px-1 ${
                       isRTL ? 'flex-row-reverse' : ''
@@ -263,12 +283,13 @@ export function CustomerCreditDialog({
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="text-sm font-semibold">{optionLabel}</span>
-                      {isWalletOption && storedValueLoading ? (
+                      {isLiveBalanceOption && storedValueLoading ? (
                         <CmxSkeleton className="mt-2 h-4 w-40" />
                       ) : (
                         <span
                           className={`mt-1 text-xs font-medium ${
-                            isWalletOption && !walletHasAvailableBalance && walletBalanceLoaded
+                            (isWalletOption && !walletHasAvailableBalance && walletBalanceLoaded)
+                            || (isLoyaltyOption && !loyaltyHasAvailableBalance && loyaltyBalanceLoaded)
                               ? 'text-amber-700'
                               : 'text-slate-500'
                           }`}
@@ -276,7 +297,7 @@ export function CustomerCreditDialog({
                           {balanceLabel}
                         </span>
                       )}
-                      {isWalletOption && selected && !walletLegExceedsLiveBalance ? (
+                      {(isWalletOption || isLoyaltyOption) && selected && !walletLegExceedsLiveBalance ? (
                         <span className="mt-1 text-xs font-medium text-cyan-700">
                           {t('customerCredits.applied')}
                         </span>

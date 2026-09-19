@@ -79,6 +79,7 @@ export function StoredValueTenderFields({
   onTenderChange,
 }: StoredValueTenderFieldsProps) {
   const tPayment = useTranslations('newOrder.payment');
+  const tCommon = useTranslations('common');
   const tFunding = useTranslations('customers.storedValue.funding');
   const isRTL = useRTL();
   // Tenant precision for every money field below. These were hardcoded to 3
@@ -385,7 +386,7 @@ export function StoredValueTenderFields({
           </div>
           <CmxDialogFooter className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <CmxButton type="button" variant="outline" onClick={() => setCashDrawerDialogOpen(false)}>
-              {tPayment('cancel')}
+              {tCommon('cancel')}
             </CmxButton>
             <CmxButton
               type="button"

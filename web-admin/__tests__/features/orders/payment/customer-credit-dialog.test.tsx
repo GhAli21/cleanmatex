@@ -187,6 +187,26 @@ describe('CustomerCreditDialog', () => {
     );
   });
 
+  it('shows remaining loyalty after points are applied on this ticket', () => {
+    const loyalty = option('LOYALTY_POINTS', { available_balance: 0.56 });
+    render(
+      <CustomerCreditDialog
+        {...baseProps}
+        actions={buildActions()}
+        creditOptions={[loyalty]}
+        loyaltyBalanceLoaded
+        loyaltyHasAvailableBalance
+        remainingLoyaltyDisplay="OMR 0.060"
+      />,
+    );
+    expect(screen.getByTestId('payment-credit-method-loyalty_points')).toHaveTextContent(
+      'newOrder.payment.customerCredits.available',
+    );
+    expect(screen.getByTestId('payment-credit-method-loyalty_points')).toHaveTextContent(
+      'OMR 0.060',
+    );
+  });
+
   it('shows the shared amount field when a wallet leg is already applied', () => {
     const wallet = option('WALLET', { credit_application_type: 'WALLET', available_balance: 30 });
     render(

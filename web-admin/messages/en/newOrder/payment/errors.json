@@ -10,5 +10,8 @@
   "deferredLegNotAlone": "A pay-later method cannot be combined with other payment methods.",
   "paymentReferenceRequired": "A payment reference is required for this method.",
   "paymentTerminalRequired": "Select a payment terminal for this method.",
-  "outstandingPolicyRequired": "Choose how the remaining balance should be handled."
+  "outstandingPolicyRequired": "Choose how the remaining balance should be handled.",
+  "loyaltyBelowMinRedeem": "Loyalty redemption is below the program minimum redeemable points.",
+  "loyaltyNotConfigured": "Loyalty redemption is not configured for this tenant.",
+  "loyaltyLotAllocationShortfall": "Not enough loyalty point lots are available to cover this redemption."
 }

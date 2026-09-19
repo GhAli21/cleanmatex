@@ -81,6 +81,9 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   // B13 — voucher reverse operational unwind (ORDER_PAYMENT → B10 VOID/REVERSE).
   // Independent + default OFF until Preview QA; migration 0506.
   { flag_key: 'order_fin_voucher_unwind', flag_name: 'Voucher Reversal Operational Unwind', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 14 },
+  // Slice 5 — opt-in historical ITEM/PIECE PREFERENCE charge cleanup.
+  // Independent + default OFF. Enable per tenant after migration 0512 + runbook QA.
+  { flag_key: 'order_fin_pref_charge_recalc', flag_name: 'Historical Preference Charge Recalc', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'experimental', ui_display_order: 15 },
   { flag_key: 'ai_damage_detection', flag_name: 'AI Damage Detection', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'barcode_scanning', flag_name: 'Barcode Scanning', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'image_recognition', flag_name: 'Image Recognition', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },

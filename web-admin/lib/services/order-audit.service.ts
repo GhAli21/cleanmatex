@@ -13,6 +13,20 @@ import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { logger } from '@/lib/utils/logger';
+import {
+  comparePreferenceSnapshots,
+  describePreferenceChange,
+  preferenceChangeCount,
+  type PreferenceChangeSet,
+  type PreferenceSnapshot,
+} from '@/lib/utils/order-preference-snapshot';
+import {
+  comparePieceSnapshots,
+  describePieceChange,
+  pieceChangeCount,
+  type PieceChangeSet,
+  type PieceSnapshot,
+} from '@/lib/utils/order-piece-snapshot';
 
 export interface FieldChange {
   field: string;
@@ -59,6 +73,8 @@ export interface ChangeSet {
     removed: ItemChange[];
     modified: ItemChange[];
   };
+  preferences: PreferenceChangeSet;
+  pieces: PieceChangeSet;
   pricing: PricingChange | null;
 }
 
@@ -254,9 +270,12 @@ export function compareOrderSnapshots(before: any, after: any): ChangeSet {
       newVal = newVal ? new Date(newVal).toISOString() : null;
     }
 
-    // Treat null/undefined as equivalent
-    const oldNorm = oldVal ?? null;
-    const newNorm = newVal ?? null;
+    // Treat null/undefined as equivalent; trim text so snapshot vs live-name
+    // whitespace does not look like a customer-field edit.
+    const oldNorm =
+      typeof oldVal === 'string' ? oldVal.trim() || null : (oldVal ?? null);
+    const newNorm =
+      typeof newVal === 'string' ? newVal.trim() || null : (newVal ?? null);
 
     if (oldNorm !== newNorm) {
       fieldChanges.push({
@@ -388,6 +407,15 @@ export function compareOrderSnapshots(before: any, after: any): ChangeSet {
     };
   }
 
+  const preferences = comparePreferenceSnapshots(
+    (before?.preferences ?? []) as PreferenceSnapshot[],
+    (after?.preferences ?? []) as PreferenceSnapshot[],
+  );
+  const pieces = comparePieceSnapshots(
+    (before?.pieces ?? []) as PieceSnapshot[],
+    (after?.pieces ?? []) as PieceSnapshot[],
+  );
+
   return {
     fields: fieldChanges,
     items: {
@@ -395,6 +423,8 @@ export function compareOrderSnapshots(before: any, after: any): ChangeSet {
       removed: itemsRemoved,
       modified: itemsModified,
     },
+    preferences,
+    pieces,
     pricing: pricingChange,
   };
 }
@@ -423,6 +453,26 @@ export function generateChangeSummary(
   }
   if (modified.length > 0) {
     parts.push(`Modified ${modified.length} item(s): ${modified.map((i) => i.productName).join(', ')}`);
+  }
+
+  const prefChanges = changeSet.preferences;
+  if (prefChanges && preferenceChangeCount(prefChanges) > 0) {
+    const labels = [
+      ...prefChanges.added.map((p) => describePreferenceChange(p)),
+      ...prefChanges.removed.map((p) => describePreferenceChange(p)),
+      ...prefChanges.modified.map((p) => describePreferenceChange(p)),
+    ];
+    parts.push(`Updated ${labels.length} preference(s): ${labels.join(', ')}`);
+  }
+
+  const pieceChanges = changeSet.pieces;
+  if (pieceChanges && pieceChangeCount(pieceChanges) > 0) {
+    const labels = [
+      ...pieceChanges.added.map((p) => describePieceChange(p)),
+      ...pieceChanges.removed.map((p) => describePieceChange(p)),
+      ...pieceChanges.modified.map((p) => describePieceChange(p)),
+    ];
+    parts.push(`Updated ${labels.length} piece(s): ${labels.join(', ')}`);
   }
 
   if (changeSet.pricing) {

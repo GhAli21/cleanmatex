@@ -1,7 +1,7 @@
 # Edit Order Feature - Documentation Index
 
-**Last Updated:** 2026-04-30
-**Feature Status:** ✅ Phases 1-2 Complete, Ready for QA
+**Last Updated:** 2026-09-19
+**Feature Status:** Phases 1–2 complete; commercial totals slices 1–5 coded (slice 5 flag default OFF)
 
 ---
 
@@ -21,6 +21,8 @@ This folder contains comprehensive documentation for the Edit Order feature. Cho
 - 🚀 **[README.md](./README.md)** - Start here! Feature overview and quick start
 - 💻 **[DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)** - Practical reference for developers
 - 📋 **[STATUS.md](./STATUS.md)** - Current implementation status and next steps
+- 🧾 **[CHANGELOG.md](./CHANGELOG.md)** — commercial totals + historical recalc
+- 📘 Historical recalc runbook: `../../Order_Fin/Remediation_Work_Packages/HISTORICAL_PREF_CHARGE_RECALC_RUNBOOK.md`
 
 ### For Product/Project Managers
 - 📊 **[STATUS.md](./STATUS.md)** - Implementation progress and metrics

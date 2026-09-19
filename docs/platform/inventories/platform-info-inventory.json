@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-16T21:37:56.206Z",
-  "gitSha": "16bcdd25",
+  "generatedAt": "2026-09-19T05:50:28.190Z",
+  "gitSha": "204eed09",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -36,9 +36,9 @@
     "featureFlagUsages": 86,
     "settingUsages": 40,
     "planLimitUsages": 8,
-    "accessContracts": 151,
+    "accessContracts": 152,
     "navigationEntries": 101,
-    "flagCatalogEntries": 296
+    "flagCatalogEntries": 297
   },
   "permissionUsages": [
     {
@@ -10277,7 +10277,7 @@
         "requireAllPermissions": true
       },
       "actions": [],
-      "apiDependencyCount": 0,
+      "apiDependencyCount": 1,
       "provenance": [
         {
           "sourceType": "access-contract-ts",
@@ -10824,6 +10824,31 @@
         "featureFlags": [],
         "workflowRoles": [],
         "tenantRoles": []
+      },
+      "actions": [],
+      "apiDependencyCount": 0,
+      "provenance": [
+        {
+          "sourceType": "access-contract-ts",
+          "sourcePath": "web-admin/src/features/orders/access/orders-access.ts"
+        }
+      ]
+    },
+    {
+      "id": "access_contract:/dashboard/orders/_id_/tax-documents/_documentId_/print",
+      "kind": "access_contract",
+      "routePattern": "/dashboard/orders/[id]/tax-documents/[documentId]/print",
+      "label": "Print Tax Document",
+      "sourceFile": "web-admin/src/features/orders/access/orders-access.ts",
+      "page": {
+        "permissions": [
+          "orders:view_financial_breakdown"
+        ],
+        "permissionPrefixes": [],
+        "featureFlags": [],
+        "workflowRoles": [],
+        "tenantRoles": [],
+        "requireAllPermissions": true
       },
       "actions": [],
       "apiDependencyCount": 0,
@@ -14115,6 +14140,22 @@
       "planBindingType": "independent",
       "dataType": "boolean",
       "governanceCategory": "beta",
+      "uiGroup": "Billing Features",
+      "provenance": [
+        {
+          "sourceType": "flag-catalog-ts",
+          "sourcePath": "web-admin/lib/constants/feature-flags.ts"
+        }
+      ]
+    },
+    {
+      "id": "flag_catalog:order_fin_pref_charge_recalc",
+      "kind": "flag_catalog_entry",
+      "flagKey": "order_fin_pref_charge_recalc",
+      "flagName": "Historical Preference Charge Recalc",
+      "planBindingType": "independent",
+      "dataType": "boolean",
+      "governanceCategory": "experimental",
       "uiGroup": "Billing Features",
       "provenance": [
         {

@@ -14,6 +14,8 @@ import {
   Pencil,
   FileText,
   Package,
+  Layers,
+  Tags,
   DollarSign,
   AlertTriangle,
   Wrench,
@@ -25,6 +27,10 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { Badge } from '@ui/primitives/badge';
 import type { ChangeSet, FieldChange, ItemChange } from '@/lib/services/order-audit.service';
+import { preferenceChangeCodes, type PreferenceChange } from '@/lib/utils/order-preference-snapshot';
+import { preferenceChangeCount } from '@/lib/utils/order-preference-snapshot';
+import type { PieceChange } from '@/lib/utils/order-piece-snapshot';
+import { pieceChangeCount } from '@/lib/utils/order-piece-snapshot';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +65,23 @@ export interface EditHistoryTranslations {
   changeSummary: string;
   fieldChanges: string;
   itemChanges: string;
+  preferenceChanges: string;
+  preferenceAdded: string;
+  preferenceRemoved: string;
+  preferenceModified: string;
+  extraPrice: string;
+  preferenceCode: string;
+  preferenceKind: string;
+  preferenceContent: string;
+  preferenceLevel: string;
+  pieceChanges: string;
+  pieceAdded: string;
+  pieceRemoved: string;
+  pieceModified: string;
+  pieceColor: string;
+  pieceBrand: string;
+  pieceRack: string;
+  packingPref: string;
   pricingChanges: string;
   paymentAdjustment: string;
   fieldName: string;
@@ -260,6 +283,174 @@ function ItemChangesSection({
   );
 }
 
+function PreferenceChangesSection({
+  preferences, fmtMoney, t, isRTL,
+}: {
+  preferences: ChangeSet['preferences'] | undefined;
+  fmtMoney: (n: number) => string;
+  t: EditHistoryTranslations;
+  isRTL: boolean;
+}) {
+  const all: PreferenceChange[] = [
+    ...(preferences?.added ?? []),
+    ...(preferences?.removed ?? []),
+    ...(preferences?.modified ?? []),
+  ];
+  if (!all.length) return null;
+
+  return (
+    <div>
+      <SectionHeader icon={<Tags className="w-3.5 h-3.5" />} label={t.preferenceChanges} count={all.length} color="purple" />
+      <div className="mt-2 space-y-2">
+        {all.map((pref, idx) => {
+          const { oldCode, newCode } = preferenceChangeCodes(pref);
+          return (
+          <div
+            key={`${pref.changeType}-${newCode ?? oldCode}-${idx}`}
+            className={`rounded-lg border ${
+              pref.changeType === 'added'    ? 'bg-green-50/60 border-green-200'
+              : pref.changeType === 'removed' ? 'bg-red-50/60 border-red-200'
+              : 'bg-amber-50/60 border-amber-200'
+            } px-3 py-2`}
+          >
+            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              {pref.changeType === 'added'    ? <Plus className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+              : pref.changeType === 'removed' ? <Minus className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+              : <Pencil className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
+              <span className={`text-xs font-bold uppercase tracking-wide flex-shrink-0 ${
+                pref.changeType === 'added' ? 'text-green-700' : pref.changeType === 'removed' ? 'text-red-600' : 'text-amber-700'
+              }`}>
+                {pref.changeType === 'added' ? t.preferenceAdded : pref.changeType === 'removed' ? t.preferenceRemoved : t.preferenceModified}
+              </span>
+              <span className="font-semibold text-gray-800 text-sm uppercase tracking-wide">
+                {pref.prefsLevel}
+              </span>
+              {pref.productName ? (
+                <span className="text-xs text-gray-500">
+                  {pref.pieceSeq != null ? `${pref.productName} #${pref.pieceSeq}` : pref.productName}
+                </span>
+              ) : null}
+            </div>
+            <div className={`mt-1.5 ml-8 space-y-0.5 text-xs text-gray-500 ${isRTL ? 'mr-8 ml-0' : ''}`}>
+              {([
+                { label: t.preferenceLevel, old: pref.prefsLevel, next: pref.prefsLevel },
+                { label: t.preferenceKind, old: pref.oldPreferenceSysKind, next: pref.newPreferenceSysKind },
+                { label: t.preferenceCode, old: oldCode, next: newCode },
+                { label: t.preferenceContent, old: pref.oldPreferenceContent, next: pref.newPreferenceContent },
+                {
+                  label: t.extraPrice,
+                  old: pref.oldExtraPrice != null ? fmtMoney(Number(pref.oldExtraPrice)) : null,
+                  next: pref.newExtraPrice != null ? fmtMoney(Number(pref.newExtraPrice)) : null,
+                },
+              ] as Array<{ label: string; old: unknown; next: unknown }>).map((row, rowIdx) => (
+                <div key={rowIdx} className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="font-medium text-gray-400 w-28 flex-shrink-0">{row.label}</span>
+                  {pref.changeType === 'modified' ? (
+                    <>
+                      <span className="text-red-400 line-through font-mono">{formatVal(row.old)}</span>
+                      <ArrowRight className="w-2.5 h-2.5 text-gray-300 flex-shrink-0" />
+                      <span className="text-green-600 font-semibold font-mono">{formatVal(row.next)}</span>
+                    </>
+                  ) : pref.changeType === 'added' ? (
+                    <span className="text-green-600 font-semibold font-mono">{formatVal(row.next)}</span>
+                  ) : (
+                    <span className="text-red-400 line-through font-mono">{formatVal(row.old)}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PieceChangesSection({
+  pieces, t, isRTL,
+}: {
+  pieces: ChangeSet['pieces'] | undefined;
+  t: EditHistoryTranslations;
+  isRTL: boolean;
+}) {
+  const all: PieceChange[] = [
+    ...(pieces?.added ?? []),
+    ...(pieces?.removed ?? []),
+    ...(pieces?.modified ?? []),
+  ];
+  if (!all.length) return null;
+
+  const rowsFor = (piece: PieceChange): Array<{ label: string; old: unknown; next: unknown }> => {
+    const rows: Array<{ label: string; old: unknown; next: unknown }> = [];
+    if (piece.oldColorCodes !== undefined || piece.newColorCodes !== undefined)
+      rows.push({ label: t.pieceColor, old: piece.oldColorCodes, next: piece.newColorCodes });
+    if (piece.oldBrand !== undefined || piece.newBrand !== undefined)
+      rows.push({ label: t.pieceBrand, old: piece.oldBrand, next: piece.newBrand });
+    if (piece.oldHasStain !== undefined || piece.newHasStain !== undefined)
+      rows.push({ label: t.stain, old: piece.oldHasStain, next: piece.newHasStain });
+    if (piece.oldHasDamage !== undefined || piece.newHasDamage !== undefined)
+      rows.push({ label: t.damage, old: piece.oldHasDamage, next: piece.newHasDamage });
+    if (piece.oldNotes !== undefined || piece.newNotes !== undefined)
+      rows.push({ label: t.notes, old: piece.oldNotes, next: piece.newNotes });
+    if (piece.oldRackLocation !== undefined || piece.newRackLocation !== undefined)
+      rows.push({ label: t.pieceRack, old: piece.oldRackLocation, next: piece.newRackLocation });
+    if (piece.oldPackingPrefCode !== undefined || piece.newPackingPrefCode !== undefined)
+      rows.push({ label: t.packingPref, old: piece.oldPackingPrefCode, next: piece.newPackingPrefCode });
+    return rows;
+  };
+
+  return (
+    <div>
+      <SectionHeader icon={<Layers className="w-3.5 h-3.5" />} label={t.pieceChanges} count={all.length} color="blue" />
+      <div className="mt-2 space-y-2">
+        {all.map((piece, idx) => (
+          <div
+            key={`${piece.changeType}-${piece.productName}-${piece.pieceSeq}-${idx}`}
+            className={`rounded-lg border ${
+              piece.changeType === 'added'    ? 'bg-green-50/60 border-green-200'
+              : piece.changeType === 'removed' ? 'bg-red-50/60 border-red-200'
+              : 'bg-amber-50/60 border-amber-200'
+            } px-3 py-2`}
+          >
+            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              {piece.changeType === 'added'    ? <Plus className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+              : piece.changeType === 'removed' ? <Minus className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+              : <Pencil className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
+              <span className={`text-xs font-bold uppercase tracking-wide flex-shrink-0 ${
+                piece.changeType === 'added' ? 'text-green-700' : piece.changeType === 'removed' ? 'text-red-600' : 'text-amber-700'
+              }`}>
+                {piece.changeType === 'added' ? t.pieceAdded : piece.changeType === 'removed' ? t.pieceRemoved : t.pieceModified}
+              </span>
+              <span className="font-semibold text-gray-800 text-sm">
+                {piece.productName ?? t.itemChanges} #{piece.pieceSeq}
+              </span>
+            </div>
+            <div className={`mt-1.5 ml-8 space-y-0.5 ${isRTL ? 'mr-8 ml-0' : ''}`}>
+              {rowsFor(piece).map((row, rowIdx) => (
+                <div key={rowIdx} className={`flex items-center gap-2 text-xs text-gray-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="font-medium text-gray-400 w-20 flex-shrink-0">{row.label}</span>
+                  {piece.changeType === 'modified' ? (
+                    <>
+                      <span className="text-red-400 line-through font-mono">{formatVal(row.old)}</span>
+                      <ArrowRight className="w-2.5 h-2.5 text-gray-300 flex-shrink-0" />
+                      <span className="text-green-600 font-semibold font-mono">{formatVal(row.next)}</span>
+                    </>
+                  ) : piece.changeType === 'added' ? (
+                    <span className="text-green-600 font-semibold font-mono">{formatVal(row.next)}</span>
+                  ) : (
+                    <span className="text-red-400 line-through font-mono">{formatVal(row.old)}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Pricing Changes Section ───────────────────────────────────────────────────
 
 function PricingChangesSection({
@@ -332,6 +523,8 @@ function ChangePills({ entry, t }: { entry: OrderEditHistoryEntry; t: EditHistor
   const addedCount = entry.changes?.items?.added?.length ?? 0;
   const removedCount = entry.changes?.items?.removed?.length ?? 0;
   const modifiedCount = entry.changes?.items?.modified?.length ?? 0;
+  const prefCount = preferenceChangeCount(entry.changes?.preferences);
+  const pieceCount = pieceChangeCount(entry.changes?.pieces);
   const hasPricing = !!entry.changes?.pricing;
 
   return (
@@ -354,6 +547,16 @@ function ChangePills({ entry, t }: { entry: OrderEditHistoryEntry; t: EditHistor
       {modifiedCount > 0 && (
         <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5">
           <Wrench className="w-2.5 h-2.5" />{modifiedCount}
+        </span>
+      )}
+      {pieceCount > 0 && (
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-sky-100 text-sky-700 text-[10px] font-semibold px-2 py-0.5">
+          <Layers className="w-2.5 h-2.5" />{pieceCount}
+        </span>
+      )}
+      {prefCount > 0 && (
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-semibold px-2 py-0.5">
+          <Tags className="w-2.5 h-2.5" />{prefCount}
         </span>
       )}
       {hasPricing && (
@@ -383,7 +586,9 @@ function EditEntryRow({
                           + (entry.changes?.items?.removed?.length ?? 0)
                           + (entry.changes?.items?.modified?.length ?? 0) > 0;
   const hasPricingChanges = !!entry.changes?.pricing;
-  const hasAnyChanges     = hasFieldChanges || hasItemChanges || hasPricingChanges;
+  const hasPrefChanges    = preferenceChangeCount(entry.changes?.preferences) > 0;
+  const hasPieceChanges   = pieceChangeCount(entry.changes?.pieces) > 0;
+  const hasAnyChanges     = hasFieldChanges || hasItemChanges || hasPricingChanges || hasPrefChanges || hasPieceChanges;
 
   return (
     <div className={`relative flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -466,6 +671,8 @@ function EditEntryRow({
             <div className="border-t border-gray-100 bg-gray-50/40 px-4 py-4 space-y-4">
               {hasFieldChanges   && <FieldChangesSection   fields={entry.changes.fields}         t={t} isRTL={isRTL} />}
               {hasItemChanges    && <ItemChangesSection    items={entry.changes.items}  fmtMoney={fmtMoney} t={t} isRTL={isRTL} />}
+              {hasPieceChanges   && <PieceChangesSection   pieces={entry.changes.pieces} t={t} isRTL={isRTL} />}
+              {hasPrefChanges    && <PreferenceChangesSection preferences={entry.changes.preferences} fmtMoney={fmtMoney} t={t} isRTL={isRTL} />}
               {hasPricingChanges && <PricingChangesSection pricing={entry.changes.pricing} fmtMoney={fmtMoney} t={t} isRTL={isRTL} />}
             </div>
           )}

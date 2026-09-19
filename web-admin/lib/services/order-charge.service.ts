@@ -64,6 +64,42 @@ export async function voidPreferenceChargesForOrderRewriteTx(
   return flipped.count;
 }
 
+/**
+ * Slice 5 — void only leftover ITEM/PIECE (or orphan) PREFERENCE charges.
+ * Leaves ORDER-level PREFERENCE charges alone. Does not snapshot.
+ */
+export async function voidContaminatingPreferenceChargesTx(
+  tx: PrismaTransactionClient,
+  params: {
+    tenantId: string;
+    orderId: string;
+    userId: string;
+    reason: string;
+    chargeIds: string[];
+  },
+): Promise<number> {
+  if (params.chargeIds.length === 0) return 0;
+  const now = new Date();
+  const flipped = await tx.org_order_charges_dtl.updateMany({
+    where: {
+      tenant_org_id: params.tenantId,
+      order_id: params.orderId,
+      id: { in: params.chargeIds },
+      is_voided: false,
+      charge_type: CHARGE_TYPES.PREFERENCE,
+    },
+    data: {
+      is_voided: true,
+      voided_at: now,
+      voided_by: params.userId,
+      void_reason: params.reason,
+      updated_at: now,
+      updated_by: params.userId,
+    },
+  });
+  return flipped.count;
+}
+
 export class OrderChargeVoidError extends Error {
   code: string;
   constructor(code: string, message: string) {

@@ -7,7 +7,7 @@ import {
   PAYMENT_NATURE,
 } from '@/lib/constants/order-financial';
 import { redeemGiftCardTx } from '@/lib/services/gift-card-service';
-import { getLoyaltyAccount, getLoyaltyConfig, redeemPointsTx, resolveLoyaltyRedemptionPoints } from '@/lib/services/loyalty.service';
+import { getLoyaltyAccount, getLoyaltyConfig, syncAvailableLoyaltyPoints, redeemPointsTx, resolveLoyaltyRedemptionPoints } from '@/lib/services/loyalty.service';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import {
   getAdvanceBalance,
@@ -402,12 +402,16 @@ export async function getAvailableStoredValueSummary(
     0
   );
 
-  // B21 — this previously stopped at the rate; it never fetched the
-  // customer's points_balance, so checkout-options/route.ts had no
-  // available_balance to key a LOYALTY_CREDIT option on and silently
-  // dropped loyalty from the customer-credits list every time.
+  // Live available: expire due lots now, then return spendable points.
   const loyaltyRedeemRatePerPoint = toNumber(loyaltyConfig?.redeem_rate_per_point);
-  const loyaltyPointsBalance = loyaltyAccount?.points_balance ?? 0;
+  const spendable = loyaltyAccount
+    ? await syncAvailableLoyaltyPoints(
+        tenantId,
+        loyaltyAccount.id,
+        Number(loyaltyAccount.points_balance),
+      )
+    : { spendablePoints: 0, expiredUnappliedPoints: 0, expiredNow: 0 };
+  const loyaltyPointsBalance = spendable.spendablePoints;
 
   return {
     wallet,
@@ -416,6 +420,7 @@ export async function getAvailableStoredValueSummary(
     creditNoteTotal,
     loyaltyRedeemRatePerPoint,
     loyaltyPointsBalance,
+    loyaltyExpiredUnappliedPoints: spendable.expiredUnappliedPoints,
     loyaltyAvailableValue: loyaltyPointsBalance * loyaltyRedeemRatePerPoint,
     loyaltyMinRedeemPoints: loyaltyConfig?.min_redeem_points ?? 0,
   };

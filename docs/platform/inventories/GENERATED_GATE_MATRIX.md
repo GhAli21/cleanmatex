@@ -1,18 +1,18 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-09-16T21:37:56.206Z
-Git SHA: 16bcdd25
+Generated: 2026-09-19T05:50:28.190Z
+Git SHA: 204eed09
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 151 |
+| Access contracts | 152 |
 | Permission usages | 321 |
 | Feature flag usages | 86 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
 | Navigation entries | 101 |
-| Flag catalog entries | 296 |
+| Flag catalog entries | 297 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
 | --- | --- | --- | --- | --- |
@@ -119,6 +119,7 @@ Git SHA: 16bcdd25
 | /dashboard/orders/[id]/edit | Edit Order | — | — | 0 |
 | /dashboard/orders/[id]/full | Full Order Details | — | — | 0 |
 | /dashboard/orders/[id]/prepare | Prepare Order | — | — | 0 |
+| /dashboard/orders/[id]/tax-documents/[documentId]/print | Print Tax Document | orders:view_financial_breakdown | — | 0 |
 | /dashboard/orders/[id]/workspace | Workspace | orders:view_financial_breakdown | — | 0 |
 | /dashboard/orders/new | New Order | — | — | 0 |
 | /dashboard/packing | Packing | — | — | 0 |

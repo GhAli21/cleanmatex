@@ -8,6 +8,7 @@
   "refreshBalance": "Refresh wallet balance",
   "loadingBalance": "Loading wallet balance...",
   "noWalletBalance": "No wallet balance is available for this customer.",
+  "noLoyaltyBalance": "No loyalty points are available for this customer.",
   "available": "Available: {amount}",
   "walletBalanceExceeded": "Wallet amount exceeds the available balance of {amount}.",
   "applied": "Adjust the amount below with Exact, Fill remaining, or the keypad.",

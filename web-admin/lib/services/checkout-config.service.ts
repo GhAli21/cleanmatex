@@ -3,7 +3,7 @@ import 'server-only';
 import { PAYMENT_NATURE, CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
 import type { SettlementOption, CheckoutSettlementOptions } from '@/lib/types/order-financial';
 import { getWalletBalance, getAdvanceBalance, getCreditNotes } from './stored-value.service';
-import { getLoyaltyAccount, getLoyaltyConfig } from './loyalty.service';
+import { getLoyaltyAccount, getLoyaltyConfig, syncAvailableLoyaltyPoints } from './loyalty.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
   listCheckoutEligiblePaymentMethodConfigs,
@@ -116,7 +116,12 @@ export async function getCheckoutOptions(
 
     if (loyaltyAccount && loyaltyConfig) {
       const redeemRate = toNumber(loyaltyConfig.redeem_rate_per_point);
-      loyaltyPointsValue = loyaltyAccount.points_balance * redeemRate;
+      const spendable = await syncAvailableLoyaltyPoints(
+        tenantId,
+        loyaltyAccount.id,
+        Number(loyaltyAccount.points_balance),
+      );
+      loyaltyPointsValue = spendable.spendablePoints * redeemRate;
     }
   }
 

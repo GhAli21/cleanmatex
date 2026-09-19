@@ -35,6 +35,7 @@ import {
   recalculateOrderFinancialSnapshotTx,
 } from '@/lib/services/order-financial-write.service';
 import { voidPreferenceChargesForOrderRewriteTx } from '@/lib/services/order-charge.service';
+import { customerSnapshotFieldChanged } from '@/lib/utils/order-customer-snapshot';
 import { CHARGE_TYPES } from '@/lib/constants/order-financial';
 import { PREFS_LEVEL, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
 import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
@@ -47,6 +48,11 @@ import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-pe
 import { fetchOrgPackingExtraPriceByCodesSupabase, fetchOrgPackingExtraPriceByCodesPrismaTx } from '@/lib/utils/org-packing-extra-price';
 import { fetchOrgServicePreferenceCfIdsByCodesPrismaTx } from '@/lib/utils/org-service-preference-cf-lookup';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
+import type { PreferenceSnapshot } from '@/lib/utils/order-preference-snapshot';
+import {
+  normalizePieceColorCodes,
+  type PieceSnapshot,
+} from '@/lib/utils/order-piece-snapshot';
 import {
   DEFAULT_PRIORITY,
   ORDER_ISSUE_ERROR,
@@ -359,6 +365,122 @@ export interface UpdateOrderResult {
   requiresSettlement?: boolean;
   /** B12 — true when this call replayed a prior successful edit with the same idempotency key (no new writes). */
   idempotentReplay?: boolean;
+}
+
+async function loadOrderPreferenceSnapshots(
+  tenantId: string,
+  orderId: string,
+  productNameByProductId?: Map<string, string>
+): Promise<PreferenceSnapshot[]> {
+  const rows = await prisma.org_order_preferences_dtl.findMany({
+    where: { tenant_org_id: tenantId, order_id: orderId },
+    select: {
+      preference_code: true,
+      preference_sys_kind: true,
+      preference_content: true,
+      preference_id: true,
+      extra_price: true,
+      prefs_level: true,
+      order_item_id: true,
+      order_item_piece_id: true,
+    },
+  });
+
+  const itemIds = [...new Set(rows.map((row) => row.order_item_id).filter((id): id is string => Boolean(id)))];
+  const pieceIds = [
+    ...new Set(rows.map((row) => row.order_item_piece_id).filter((id): id is string => Boolean(id))),
+  ];
+
+  const [items, pieces] = await Promise.all([
+    itemIds.length > 0
+      ? prisma.org_order_items_dtl.findMany({
+          where: { tenant_org_id: tenantId, id: { in: itemIds } },
+          select: { id: true, product_id: true, product_name: true },
+        })
+      : Promise.resolve([]),
+    pieceIds.length > 0
+      ? prisma.org_order_item_pieces_dtl.findMany({
+          where: { tenant_org_id: tenantId, id: { in: pieceIds } },
+          select: { id: true, piece_seq: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  const pieceById = new Map(pieces.map((piece) => [piece.id, piece]));
+
+  return rows.map((row) => {
+    const item = row.order_item_id ? itemById.get(row.order_item_id) : undefined;
+    const piece = row.order_item_piece_id ? pieceById.get(row.order_item_piece_id) : undefined;
+    const productId = item?.product_id ?? null;
+    return {
+      preferenceCode: row.preference_code,
+      preferenceSysKind: row.preference_sys_kind ?? null,
+      preferenceContent: row.preference_content ?? null,
+      preferenceId: row.preference_id ?? null,
+      extraPrice: Number(row.extra_price ?? 0),
+      prefsLevel: row.prefs_level,
+      productId,
+      productName:
+        (productId ? productNameByProductId?.get(productId) : undefined) ??
+        item?.product_name ??
+        null,
+      pieceSeq: piece?.piece_seq ?? null,
+    };
+  });
+}
+
+async function loadOrderPieceSnapshots(
+  tenantId: string,
+  orderId: string,
+  productNameByProductId?: Map<string, string>
+): Promise<PieceSnapshot[]> {
+  const rows = await prisma.org_order_item_pieces_dtl.findMany({
+    where: { tenant_org_id: tenantId, order_id: orderId },
+    select: {
+      piece_seq: true,
+      product_id: true,
+      order_item_id: true,
+      color: true,
+      brand: true,
+      has_stain: true,
+      has_damage: true,
+      notes: true,
+      rack_location: true,
+      packing_pref_code: true,
+    },
+    orderBy: [{ order_item_id: 'asc' }, { piece_seq: 'asc' }],
+  });
+
+  const itemIds = [...new Set(rows.map((row) => row.order_item_id).filter((id): id is string => Boolean(id)))];
+  const items =
+    itemIds.length > 0
+      ? await prisma.org_order_items_dtl.findMany({
+          where: { tenant_org_id: tenantId, id: { in: itemIds } },
+          select: { id: true, product_id: true, product_name: true },
+        })
+      : [];
+  const itemById = new Map(items.map((item) => [item.id, item]));
+
+  return rows.map((row) => {
+    const item = row.order_item_id ? itemById.get(row.order_item_id) : undefined;
+    const productId = row.product_id ?? item?.product_id ?? null;
+    return {
+      productId,
+      productName:
+        (productId ? productNameByProductId?.get(productId) : undefined) ??
+        item?.product_name ??
+        null,
+      pieceSeq: row.piece_seq,
+      colorCodes: normalizePieceColorCodes(row.color),
+      brand: row.brand ?? null,
+      hasStain: Boolean(row.has_stain),
+      hasDamage: Boolean(row.has_damage),
+      notes: row.notes ?? null,
+      rackLocation: row.rack_location ?? null,
+      packingPrefCode: row.packing_pref_code ?? null,
+    };
+  });
 }
 
 export class OrderService {
@@ -2885,6 +3007,8 @@ export class OrderService {
       );
 
       // 5. Create snapshot_before
+      const preferencesBefore = await loadOrderPreferenceSnapshots(tenantId, orderId);
+      const piecesBefore = await loadOrderPieceSnapshots(tenantId, orderId);
       const snapshotBefore = {
         order: {
           id: existingOrder.id,
@@ -2919,6 +3043,8 @@ export class OrderService {
           stainNotes: item.stain_notes ?? null,
           damageNotes: item.damage_notes ?? null,
         })) || [],
+        preferences: preferencesBefore,
+        pieces: piecesBefore,
       };
 
       // 5b. B12 — governed-amendment gate. Only item-list replacements are in
@@ -3289,9 +3415,24 @@ export class OrderService {
           updateData.ready_by_at_new = readyByAt;
         }
         if (express !== undefined) updateData.priority_multiplier = express ? 0.5 : 1.0;
-        if (customerName !== undefined) updateData.customer_name = customerName;
-        if (customerMobile !== undefined) updateData.customer_mobile_number = customerMobile;
-        if (customerEmail !== undefined) updateData.customer_email = customerEmail;
+        if (
+          customerName !== undefined &&
+          customerSnapshotFieldChanged(customerName, existingOrder.customer_name)
+        ) {
+          updateData.customer_name = customerName;
+        }
+        if (
+          customerMobile !== undefined &&
+          customerSnapshotFieldChanged(customerMobile, existingOrder.customer_mobile_number)
+        ) {
+          updateData.customer_mobile_number = customerMobile;
+        }
+        if (
+          customerEmail !== undefined &&
+          customerSnapshotFieldChanged(customerEmail, existingOrder.customer_email)
+        ) {
+          updateData.customer_email = customerEmail;
+        }
         if (isDefaultCustomer !== undefined) updateData.is_default_customer = isDefaultCustomer;
         if (customerDetails !== undefined) updateData.customer_details = customerDetails;
         if (isQuickDrop !== undefined) updateData.is_order_quick_drop = isQuickDrop;
@@ -3359,6 +3500,16 @@ export class OrderService {
         updatedOrderWithItems as unknown as Record<string, unknown>,
       );
 
+      const preferencesAfter = await loadOrderPreferenceSnapshots(
+        tenantId,
+        orderId,
+        inputItemNameMap,
+      );
+      const piecesAfter = await loadOrderPieceSnapshots(
+        tenantId,
+        orderId,
+        inputItemNameMap,
+      );
       const snapshotAfter = {
         order: {
           id: updatedOrderWithItems.id,
@@ -3396,6 +3547,8 @@ export class OrderService {
             damageNotes: inputItem?.damageNotes ?? (item as any).damage_notes ?? null,
           };
         }),
+        preferences: preferencesAfter,
+        pieces: piecesAfter,
       };
 
       // 13. Create audit entry. payment_adjusted stays false at this point even

@@ -99,6 +99,12 @@ export interface FeatureFlags {
      * voucher also VOID/REVERSE linked ORDER_PAYMENT legs (B10). Default OFF.
      */
     order_fin_voucher_unwind: boolean;
+    /**
+     * Slice 5 — opt-in historical preference-charge recalc. When ON, owners
+     * may preview/confirm voiding leftover ITEM/PIECE PREFERENCE charges and
+     * rewriting snapshots. Default OFF. Never changes total_paid_amount.
+     */
+    order_fin_pref_charge_recalc: boolean;
     tenant_new_dashboard_ui: boolean;
     tenant_beta_ai_classification: boolean;
     tenant_beta_voice_orders: boolean;

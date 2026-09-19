@@ -10,6 +10,7 @@ import { getOrderById } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
+import { serializeOrderCustomerSnapshot } from '@/lib/utils/order-customer-snapshot';
 import type { OrderItem } from '@/types/order';
 
 function toNumber(value: unknown): number | null {
@@ -123,9 +124,7 @@ export async function GET(
     }
 
     const customer = order.customer as { name?: string; phone?: string; email?: string; type?: string } | undefined;
-    const customerName = customer?.name ?? null;
-    const customerMobile = customer?.phone ?? null;
-    const customerEmail = customer?.email ?? null;
+    const customerSnapshot = serializeOrderCustomerSnapshot(order);
     const customerType =
       (order.customer as { type?: string } | undefined)?.type ?? (customer as { type?: string } | undefined)?.type ?? null;
 
@@ -135,9 +134,9 @@ export async function GET(
 
     const serializedOrder = {
       ...order,
-      customer_name: customerName,
-      customer_mobile: customerMobile,
-      customer_email: customerEmail,
+      customer_name: customerSnapshot.customer_name,
+      customer_mobile: customerSnapshot.customer_mobile,
+      customer_email: customerSnapshot.customer_email,
       customer_type: customerType,
       customer_notes: order.customer_notes ?? null,
       internal_notes: order.internal_notes ?? null,

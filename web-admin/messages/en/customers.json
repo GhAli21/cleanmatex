@@ -258,6 +258,7 @@
     "noAccount": "This customer has no loyalty account yet — one is created automatically the first time they earn points.",
     "expiryWarning": "{points} points expire on {date}",
     "expiryWarningMultiple": "{points} points expire within the next 30 days",
+    "expiredUnapplied": "{points} points have already expired and are no longer available to redeem.",
     "historyTitle": "Transaction History",
     "noTransactions": "No transactions yet",
     "noTransactionsHint": "Points history will appear here once the customer earns or redeems points.",

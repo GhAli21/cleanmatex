@@ -10,5 +10,8 @@
   "deferredLegNotAlone": "لا يمكن دمج طريقة الدفع الآجل مع طرق دفع أخرى.",
   "paymentReferenceRequired": "مرجع الدفع مطلوب لهذه الطريقة.",
   "paymentTerminalRequired": "اختر جهاز نقاط البيع لهذه الطريقة.",
-  "outstandingPolicyRequired": "اختر كيفية معالجة الرصيد المتبقي."
+  "outstandingPolicyRequired": "اختر كيفية معالجة الرصيد المتبقي.",
+  "loyaltyBelowMinRedeem": "استبدال نقاط الولاء أقل من الحد الأدنى المسموح به في البرنامج.",
+  "loyaltyNotConfigured": "استبدال نقاط الولاء غير مُعدّ لهذا المستأجر.",
+  "loyaltyLotAllocationShortfall": "لا توجد دفعات نقاط ولاء كافية لتغطية هذا الاستبدال."
 }

@@ -838,10 +838,23 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 | # | Where + how | Expected | Result |
 |---|---|---|---|
-|31.1| New Order. Add items + **piece** extras (e.g. Anti-bacterial / starch). Pay partial + pay-later | Payment-modal total = stored Financial Summary total. `paid + outstanding = total`. Piece extras appear once (in items base), not also as Other charges | **FAIL 2026-09-19** — ORD-20260919-0003: payment/cart total **2.200** vs Financial Summary **2.900** (paid 1.000 + outstanding 1.900). Items showed Cotton Pants + Anti-Bacterial (+0.400) + Heavy Starch (+0.300) = 2.200, but Financial also listed **Other charges 0.700** (piece extras double-counted) |
-|31.2| Edit that order. Add an item + a piece extra. Save | Cart total = notice new total = history = Financial Summary. Taxes rewrite (not frozen at create). Ctrl+S / mobile Save do **not** open the create payment modal | **FAIL 2026-09-19** — ORD-20260919-0003 edit: cart reached 3.600 after Fitness Leggings + Anti-Bacterial; Save failed client circular-JSON; nothing persisted. Ctrl+S opened create-payment modal. Tax rewrite not verified |
-|31.3| On edit, change qty on a line that has extras | Line extras stay; total is not silently reduced to `qty × unit` | **PASS 2026-09-19** — ORD-20260919-0003 edit (unsaved): Cotton Pants qty 1→2 kept extras; total **3.700** (not silent 2×1.500=3.000). Qty change discarded after |
+|31.1| New Order. Add items + **piece** extras (e.g. Anti-bacterial / starch). Pay partial + pay-later | Payment-modal total = stored Financial Summary total. `paid + outstanding = total`. Piece extras appear once (in items base), not also as Other charges | **PASS 2026-09-19 retest** — ORD-20260919-0004: payment/cart total **2.500**; paid **1.000** card; outstanding **1.500**; Heavy Starch +0.300 on Padded Vest; **no Other charges** double-count (prior FAIL on ORD-20260919-0003 cleared after deploy) |
+|31.2| Edit that order. Add an item + a piece extra. Save | Cart total = notice new total = history = Financial Summary. Taxes rewrite (not frozen at create). Ctrl+S / mobile Save do **not** open the create payment modal | **PASS 2026-09-19 retest** — ORD-20260919-0004 edit: added Cotton Pants qty2 + piece extra; cart/notice/history/Financial all **5.900**; paid 1.000 + outstanding 4.900; tax **0.164→0.386**; Save OK after reason; Ctrl+S saved (no create-payment modal); no circular-JSON (prior FAIL cleared) |
+|31.3| On edit, change qty on a line that has extras | Line extras stay; total is not silently reduced to `qty × unit` | **PASS 2026-09-19 retest** — ORD-20260919-0004: qty-2 Cotton Pants line **3.400** (2×1.500 + Anti-bacterial +0.400); extras retained; overall total **5.900** |
 |31.4| Known residual | Preparation item PATCH can still stale headers. Historical `0002` keeps inflated totals until opt-in recalc | N/A — documented residual |
+
+---
+
+## 32. Historical preference-charge recalc (slice 5, owner-only)
+
+**What changed (2026-09-19):** opt-in preview/confirm API voids leftover ITEM/PIECE `PREFERENCE` charges and rewrites the snapshot. Flag `order_fin_pref_charge_recalc` default **OFF**. No floor screen. Runbook: `HISTORICAL_PREF_CHARGE_RECALC_RUNBOOK.md`.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|32.1| Flag OFF. `POST /api/v1/orders/recalc-preference-charges` `{ "mode": "preview" }` | 403 `FLAG_DISABLED`. No charge or header writes | |
+|32.2| Apply migration 0512. Enable flag for **one** pilot tenant. Actor has `orders:post_settlement_edit`. Preview `ORD-20260919-0002` | Eligible (or blocked if ISSUED tax doc). Proposed total uses money-addend charges only. `totalPaidAmount` unchanged | |
+|32.3| Confirm same order with `idempotencyKey`. Replay same key | First call voids ITEM/PIECE PREFERENCE charges, snapshots, edit history reason `preference double-count correction`. Replay returns cached batch. Paid amount unchanged. No refund created | |
+|32.4| Confirm an order with an ISSUED tax document | Row stays in `blocked` (`ISSUED_TAX_DOCUMENT`). Totals not rewritten | |
 
 ---
 
@@ -882,9 +895,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
    Runs alternately showed **24 TAX_CALCULATION blockers** or a clean day run. Stabilize tax-check fixtures on Preview demo data, or quarantine known legacy orders so new-money QA is not drowned in blockers. Also show **total checks = 38** explicitly on run detail (§8.2 was not visible).
 
 
-**Financial_Expert_Tester / FET-S3 (2026-09-19) — P0:** Piece extras double-counted into Other charges (§31.1). `ORD-20260919-0003`: cart/payment **2.200** vs Financial **2.900** with Other charges **0.700** (Anti-Bacterial + Heavy Starch). Piece extras must appear once in line totals only; payment-modal total must equal stored Financial Summary.
+**Financial_Expert_Tester / FET-S3 (2026-09-19) — P0 CLOSED on retest:** Piece extras double-count (§31.1). Originally FAIL on `ORD-20260919-0003` (cart 2.200 vs Financial 2.900 / Other charges 0.700). **PASS** after deploy on `ORD-20260919-0004` (2.500 total; no Other charges duplicate).
 
-**Financial_Expert_Tester / FET-S4 (2026-09-19) — P0:** Edit Save circular-JSON + Ctrl+S opens create payment modal (§31.2). `ORD-20260919-0003` edit Save failed (circular structure to JSON); changes not persisted; Ctrl+S opened create-payment modal. Fix edit serialization; Ctrl+S/mobile Save must not open create payment on edit.
+**Financial_Expert_Tester / FET-S4 (2026-09-19) — P0 CLOSED on retest:** Edit Save circular-JSON + Ctrl+S create-payment (§31.2). Originally FAIL on `ORD-20260919-0003`. **PASS** after deploy on `ORD-20260919-0004`: Save OK; Ctrl+S saved without opening create payment; no circular-JSON; totals aligned at 5.900.
 
 ### P1 — UX / product clarity (high leverage, lower risk)
 
@@ -911,6 +924,11 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 20. **Delivery list count vs row actions / Collect unavailable (§29.24 / FET-S2)**  
     Delivery showed **7** out-for-delivery while visible rows were **Delivered**. Opening a row returned “No actions on this screen”; details said delivery confirmation was not configured, so Collect Payment remount (§29.24) could not be exercised. Align KPI/list filters with actionable rows, or surface a clear empty-state when Collect is unavailable. Observed Preview 2026-09-18.
+
+
+**Financial_Expert_Tester / FET-S5 (2026-09-19) — P1:** New Order “Invalid Product ID” on some Wash & Iron products (§31 create). Workaround used Laundry/Padded Vest. Prefer clear catalog/SKU validation messaging and hide or disable invalid products in picker.
+
+**Financial_Expert_Tester / FET-S6 (2026-09-19) — P1:** Payments view tax vs Financial Summary mismatch on `ORD-20260919-0004` (§31.2). Payments showed tax **0.110** while Financial VAT **0.276** + Custom **0.110** = **0.386**. Align tax display across Payments and Financial Summary.
 
 ### P2 — Future-proof SaaS / ERP / maintenance
 

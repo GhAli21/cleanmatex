@@ -10,6 +10,11 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import { assertCurrencyMatch, requireCurrencyCode } from '@/lib/money/currency-resolution';
 import { logger } from '@/lib/utils/logger';
+import {
+  getLoyaltyAccount,
+  getLoyaltyConfig,
+  syncAvailableLoyaltyPoints,
+} from '@/lib/services/loyalty.service';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -568,15 +573,36 @@ export async function getCreditNotes(tenantId: string, customerId: string) {
 }
 
 export async function getStoredValueSummary(tenantId: string, customerId: string) {
-  const [wallet, advance, creditNotes] = await Promise.all([
+  const [wallet, advance, creditNotes, loyaltyAccount, loyaltyConfig] = await Promise.all([
     getWalletBalance(tenantId, customerId),
     getAdvanceBalance(tenantId, customerId),
     getCreditNotes(tenantId, customerId),
+    getLoyaltyAccount(tenantId, customerId),
+    getLoyaltyConfig(tenantId),
   ]);
 
   const creditNoteTotal = creditNotes.reduce((sum, cn) => sum + toNumber(cn.remaining_balance), 0);
+  const redeemRate = toNumber(loyaltyConfig?.redeem_rate_per_point);
+  const spendable = loyaltyAccount
+    ? await syncAvailableLoyaltyPoints(
+        tenantId,
+        loyaltyAccount.id,
+        Number(loyaltyAccount.points_balance),
+      )
+    : { spendablePoints: 0, expiredUnappliedPoints: 0, expiredNow: 0 };
 
-  return { wallet, advance, creditNoteTotal, creditNotes };
+  return {
+    wallet,
+    advance,
+    creditNoteTotal,
+    creditNotes,
+    loyalty: {
+      pointsBalance: spendable.spendablePoints,
+      availableValue: spendable.spendablePoints * redeemRate,
+      expiredUnappliedPoints: spendable.expiredUnappliedPoints,
+      redeemRatePerPoint: redeemRate,
+    },
+  };
 }
 
 function utcTodayDate(): Date {

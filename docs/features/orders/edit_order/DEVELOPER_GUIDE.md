@@ -1,7 +1,9 @@
 # Edit Order Feature - Developer Guide
 
 **Quick Reference for Developers**
-**Last Updated:** 2026-03-07
+**Last Updated:** 2026-09-19
+
+Historical contaminated totals (`ORD-20260919-0002`) are **not** rewritten on edit. Owner-only API: `POST /api/v1/orders/recalc-preference-charges` behind `order_fin_pref_charge_recalc` (default OFF) and `orders:post_settlement_edit`. See the slice 5 runbook.
 
 ---
 

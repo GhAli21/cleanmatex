@@ -15,6 +15,7 @@ import {
   getCustomerTier,
   getLoyaltyTransactions,
   getLoyaltyExpirySummary,
+  syncAvailableLoyaltyPoints,
   type LoyaltyTransactionView,
   type LoyaltyExpirySummary,
 } from '@/lib/services/loyalty.service';
@@ -46,8 +47,11 @@ export async function getCustomerLoyaltyDetail(
     const { tenantId } = await getAuthContext();
 
     const account = await getLoyaltyAccount(tenantId, customerId);
+    const spendable = account
+      ? await syncAvailableLoyaltyPoints(tenantId, account.id, Number(account.points_balance))
+      : null;
     const [tier, transactions, expirySummary] = await Promise.all([
-      account ? getCustomerTier(tenantId, Number(account.points_balance)) : Promise.resolve(null),
+      account ? getCustomerTier(tenantId, spendable?.spendablePoints ?? Number(account.points_balance)) : Promise.resolve(null),
       account ? getLoyaltyTransactions(tenantId, account.id) : Promise.resolve([]),
       account ? getLoyaltyExpirySummary(tenantId, account.id) : Promise.resolve(null),
     ]);
@@ -58,7 +62,7 @@ export async function getCustomerLoyaltyDetail(
         account: account
           ? {
               id: account.id,
-              pointsBalance: Number(account.points_balance),
+              pointsBalance: spendable?.spendablePoints ?? Number(account.points_balance),
               lifetimeEarned: Number(account.lifetime_earned),
             }
           : null,

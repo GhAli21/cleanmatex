@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import type { AmountMismatchDifferences } from '@/lib/types/payment';
 import { useTranslations } from 'next-intl';
@@ -16,6 +17,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { cmxMessage } from '@ui/feedback';
 import { validateProductIds } from '@/lib/utils/validation-helpers';
 import { sanitizeOrderNotes, sanitizeInput } from '@/lib/utils/security-helpers';
+import { pickChangedCustomerSnapshot } from '@/lib/utils/order-customer-snapshot';
 import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { newOrderPaymentPayloadSchema } from '@/lib/validations/new-order-payment-schemas';
@@ -25,6 +27,7 @@ import {
     routeServerErrorToGuard,
     type ServerErrorGuardRoute,
 } from '../payment/domain/server-error-routing';
+import { resolveSubmitToastMessage } from '../payment/domain/submit-error-message';
 import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 
 /**
@@ -42,6 +45,35 @@ const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]
 
 function isValidBranchId(value: string | null | undefined): value is string {
   return true; //typeof value === 'string' && value.trim().length > 0 && UUID_REGEX_V2.test(value.trim());
+}
+
+function resolveEditCustomerSnapshotFields(state: {
+  originalOrderData?: unknown;
+  customerSnapshotOverride?: { name?: string | null; phone?: string | null; email?: string | null } | null;
+  customerNameSnapshot?: string;
+  customerMobile?: string;
+  customerEmail?: string;
+}): {
+  customerName?: string;
+  customerMobile?: string;
+  customerEmail?: string;
+} {
+  const orig = (state.originalOrderData ?? {}) as Record<string, unknown>;
+  const override = state.customerSnapshotOverride;
+  return pickChangedCustomerSnapshot({
+    nextName: override?.name != null
+      ? sanitizeInput(override.name)
+      : (state.customerNameSnapshot ? sanitizeInput(state.customerNameSnapshot) : undefined),
+    nextMobile: override?.phone != null
+      ? sanitizeInput(override.phone)
+      : (state.customerMobile ? sanitizeInput(state.customerMobile) : undefined),
+    nextEmail: override?.email != null
+      ? sanitizeInput(override.email)
+      : (state.customerEmail ? sanitizeInput(state.customerEmail) : undefined),
+    originalName: orig.customer_name,
+    originalMobile: orig.customer_mobile ?? orig.customer_mobile_number,
+    originalEmail: orig.customer_email,
+  });
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -150,6 +182,7 @@ export function useOrderSubmission() {
         currentTenant?.tenant_id || ''
     );
     const { token: csrfToken } = useCSRFToken();
+    const queryClient = useQueryClient();
     const state = useNewOrderStateWithDispatch();
     const [isSubmitting, setIsSubmitting] = useState(false);
     // One key per submit session — stable across retries, reset after success.
@@ -497,15 +530,7 @@ export function useOrderSubmission() {
                         paymentNotes: sanitizedPaymentNotes,
                         readyByAt: state.state.readyByAt,
                         ...(state.state.branchId && { branchId: state.state.branchId }),
-                        customerMobile: state.state.customerSnapshotOverride?.phone != null
-                            ? sanitizeInput(state.state.customerSnapshotOverride.phone)
-                            : (state.state.customerMobile ? sanitizeInput(state.state.customerMobile) : undefined),
-                        customerEmail: state.state.customerSnapshotOverride?.email != null
-                            ? sanitizeInput(state.state.customerSnapshotOverride.email)
-                            : (state.state.customerEmail ? sanitizeInput(state.state.customerEmail) : undefined),
-                        customerName: state.state.customerSnapshotOverride?.name != null
-                            ? sanitizeInput(state.state.customerSnapshotOverride.name)
-                            : (state.state.customerNameSnapshot ? sanitizeInput(state.state.customerNameSnapshot) : undefined),
+                        ...resolveEditCustomerSnapshotFields(state.state),
                         expectedUpdatedAt: state.state.expectedUpdatedAt?.toISOString(),
                         recalculate: true,
                         ...(state.state.orderServicePrefs && state.state.orderServicePrefs.length > 0 && {
@@ -586,70 +611,9 @@ export function useOrderSubmission() {
                         errorMessage = profileCopy;
                     }
 
-                    // Determine error type
                     const isPermissionError = res.status === 403;
                     const isValidationError = res.status === 400;
-                    const isInfrastructureError = res.status === 422;
-                    const isServerError = res.status >= 500;
-
-                    // Format error messages
-                    if (isPermissionError) {
-                        const permissionMatch = errorMessage.match(
-                            /Permission denied:\s*([^\s]+)/i
-                        );
-                        const permission = permissionMatch
-                            ? permissionMatch[1]
-                            : 'orders:create';
-                        errorMessage = t('errors.permissionDenied', {
-                            permission,
-                            default: `You don't have permission to create orders. Please contact your administrator to grant you the "${permission}" permission.`,
-                        });
-                    } else if (isValidationError) {
-                        if (
-                            json.details &&
-                            Array.isArray(json.details) &&
-                            json.details.length > 0
-                        ) {
-                            const details = json.details as Array<{
-                                path?: string | string[];
-                                message: string;
-                            }>;
-                            const checkDateDetail = details.find((detail) => {
-                                const path = Array.isArray(detail.path)
-                                    ? detail.path.join('.')
-                                    : detail.path ?? '';
-                                return path.includes('checkDate');
-                            });
-                            if (checkDateDetail) {
-                                const reason = checkDateDetail.message;
-                                if (reason === 'checkDateInvalid' || reason === 'checkDateInPast') {
-                                    errorMessage = t(`payment.splitPayment.${reason}`);
-                                } else {
-                                    errorMessage = checkDateDetail.message;
-                                }
-                            } else {
-                                const detailMessages = details
-                                    .map(
-                                        (d) => {
-                                            const path = Array.isArray(d.path)
-                                                ? d.path.join('.')
-                                                : d.path;
-                                            return `${path ? `${path}: ` : ''}${d.message}`;
-                                        }
-                                    )
-                                    .join('; ');
-                                errorMessage = errorMessage
-                                    ? `${errorMessage} - ${detailMessages}`
-                                    : detailMessages;
-                            }
-                        }
-                        if (!errorMessage) {
-                            errorMessage =
-                                t('errors.orderCreationFailed') + ' - Validation failed';
-                        }
-                    } else if (isInfrastructureError) {
-                        const errorCode = typeof json.errorCode === 'string' ? json.errorCode : '';
-                        const infrastructureMessages: Record<string, string> = {
+                    const translatedByCode: Record<string, string> = {
                             CASH_DRAWER_SESSION_REQUIRED: t('payment.cashDrawer.messages.sessionRequired'),
                             CASH_DRAWER_SESSION_SELECTION_REQUIRED: t('payment.cashDrawer.messages.selectionRequired'),
                             CASH_DRAWER_SESSION_CLOSED: t('payment.cashDrawer.messages.sessionClosed'),
@@ -684,31 +648,86 @@ export function useOrderSubmission() {
                             DEFERRED_LEG_NOT_ALONE: t('payment.errors.deferredLegNotAlone'),
                             CHECK_NUMBER_REQUIRED: t('payment.splitPayment.validation.checkNumberRequired'),
                             CREDIT_REFERENCE_REQUIRED: t('payment.customerCredits.creditNoteRequired'),
-                        };
+                            LOYALTY_BELOW_MIN_REDEEM: t('payment.errors.loyaltyBelowMinRedeem'),
+                            LOYALTY_NOT_CONFIGURED: t('payment.errors.loyaltyNotConfigured'),
+                            LOYALTY_LOT_ALLOCATION_SHORTFALL: t('payment.errors.loyaltyLotAllocationShortfall'),
+                    };
 
-                        errorMessage =
-                            infrastructureMessages[errorCode] ||
-                            errorMessage ||
-                            t('errors.orderCreationFailed');
+                    if (isPermissionError) {
+                        const permissionMatch = errorMessage.match(
+                            /Permission denied:\s*([^\s]+)/i
+                        );
+                        const permission = permissionMatch
+                            ? permissionMatch[1]
+                            : 'orders:create';
+                        errorMessage = t('errors.permissionDenied', {
+                            permission,
+                            default: `You don't have permission to create orders. Please contact your administrator to grant you the "${permission}" permission.`,
+                        });
+                    } else if (
+                        isValidationError &&
+                        json.details &&
+                        Array.isArray(json.details) &&
+                        json.details.length > 0
+                    ) {
+                        const details = json.details as Array<{
+                            path?: string | string[];
+                            message: string;
+                        }>;
+                        const checkDateDetail = details.find((detail) => {
+                            const path = Array.isArray(detail.path)
+                                ? detail.path.join('.')
+                                : detail.path ?? '';
+                            return path.includes('checkDate');
+                        });
+                        if (checkDateDetail) {
+                            const reason = checkDateDetail.message;
+                            if (reason === 'checkDateInvalid' || reason === 'checkDateInPast') {
+                                errorMessage = t(`payment.splitPayment.${reason}`);
+                            } else {
+                                errorMessage = checkDateDetail.message;
+                            }
+                        } else {
+                            const detailMessages = details
+                                .map(
+                                    (d) => {
+                                        const path = Array.isArray(d.path)
+                                            ? d.path.join('.')
+                                            : d.path;
+                                        return `${path ? `${path}: ` : ''}${d.message}`;
+                                    }
+                                )
+                                .join('; ');
+                            errorMessage = errorMessage
+                                ? `${errorMessage} - ${detailMessages}`
+                                : detailMessages;
+                        }
+                        if (!errorMessage) {
+                            errorMessage =
+                                t('errors.orderCreationFailed') + ' - Validation failed';
+                        }
+                    } else {
+                        const resolved = resolveSubmitToastMessage({
+                            status: res.status,
+                            json,
+                            extractedText: errorMessage,
+                            translatedByCode,
+                            genericServerError: t('errors.serverError', {
+                                default:
+                                    'A server error occurred. Please try again later or contact support if the problem persists.',
+                            }),
+                            orderCreationFailed: t('errors.orderCreationFailed'),
+                        });
+                        errorMessage = resolved.message;
 
                         // Phase 5 (hardening #2): route the typed server code to its
                         // owning capability so the payment modal renders an in-view
                         // guard naming the same cause as this toast. Unknown codes
                         // return null → generic toast path only, never a view switch.
-                        const guardRoute = routeServerErrorToGuard(errorCode);
+                        const guardRoute = routeServerErrorToGuard(resolved.errorCode);
                         if (guardRoute) {
                             setServerGuard({ ...guardRoute, message: errorMessage });
                         }
-                    } else if (isServerError) {
-                        errorMessage = t('errors.serverError', {
-                            default:
-                                'A server error occurred. Please try again later or contact support if the problem persists.',
-                        });
-                    } else {
-                        errorMessage =
-                            errorMessage ||
-                            t('errors.orderCreationFailed') ||
-                            `Request failed with status ${res.status}`;
                     }
 
                     cmxMessage.error(errorMessage);
@@ -733,11 +752,15 @@ export function useOrderSubmission() {
 
                 // Check if response indicates failure
                 if (!json.success) {
-                    const errorMessage =
-                        (json.error as string) ||
-                        t('errors.orderCreationFailed') ||
-                        'Order creation failed';
-                    cmxMessage.error(errorMessage);
+                    const resolved = resolveSubmitToastMessage({
+                        status: res.status,
+                        json,
+                        extractedText: typeof json.error === 'string' ? json.error : '',
+                        translatedByCode: {},
+                        genericServerError: t('errors.serverError'),
+                        orderCreationFailed: t('errors.orderCreationFailed'),
+                    });
+                    cmxMessage.error(resolved.message);
                     setIsSubmitting(false);
                     state.setLoading(false);
                     return;
@@ -761,6 +784,8 @@ export function useOrderSubmission() {
                 const orderStatus = data?.order?.currentStatus || data?.currentStatus || data?.status;
 
                 // Success - close payment modal, show success, reset
+                void queryClient.invalidateQueries({ queryKey: ['checkout-options'] });
+                void queryClient.invalidateQueries({ queryKey: ['customer-stored-value-summary'] });
                 state.closeModal('payment');
                 if (orderId) {
                     state.setCreatedOrder(orderId, orderStatus || null);
@@ -842,6 +867,7 @@ export function useOrderSubmission() {
             csrfToken,
             currentTenant,
             user,
+            queryClient,
         ]
     );
 
@@ -926,15 +952,7 @@ export function useOrderSubmission() {
                 paymentNotes: sanitizedPaymentNotes,
                 ...(state.state.readyByAt && { readyByAt: state.state.readyByAt }),
                 ...(state.state.branchId && isValidBranchId(state.state.branchId) && { branchId: state.state.branchId }),
-                customerMobile: state.state.customerSnapshotOverride?.phone != null
-                    ? sanitizeInput(state.state.customerSnapshotOverride.phone)
-                    : (state.state.customerMobile ? sanitizeInput(state.state.customerMobile) : undefined),
-                customerEmail: state.state.customerSnapshotOverride?.email != null
-                    ? sanitizeInput(state.state.customerSnapshotOverride.email)
-                    : (state.state.customerEmail ? sanitizeInput(state.state.customerEmail) : undefined),
-                customerName: state.state.customerSnapshotOverride?.name != null
-                    ? sanitizeInput(state.state.customerSnapshotOverride.name)
-                    : (state.state.customerNameSnapshot ? sanitizeInput(state.state.customerNameSnapshot) : undefined),
+                ...resolveEditCustomerSnapshotFields(state.state),
                 expectedUpdatedAt: state.state.expectedUpdatedAt?.toISOString(),
                 recalculate: true,
                 ...(state.state.orderServicePrefs && state.state.orderServicePrefs.length > 0 && {
@@ -981,6 +999,8 @@ export function useOrderSubmission() {
             }
 
             const orderNo = (json.data?.order?.order_no ?? json.data?.order_no ?? state.state.editingOrderNo) || '';
+            void queryClient.invalidateQueries({ queryKey: ['checkout-options'] });
+            void queryClient.invalidateQueries({ queryKey: ['customer-stored-value-summary'] });
             cmxMessage.success(tEdit('success') || t('success.orderUpdated', { orderNo }) || `Order ${orderNo} updated successfully`);
 
             // Update expectedUpdatedAt with the new updated_at from the server response
@@ -1010,7 +1030,7 @@ export function useOrderSubmission() {
             setIsSubmitting(false);
             state.setLoading(false);
         }
-    }, [state, trackByPiece, packingPerPieceEnabled, csrfToken, t, tEdit, router]);
+    }, [state, trackByPiece, packingPerPieceEnabled, csrfToken, t, tEdit, router, queryClient]);
 
     // B12 — reason-prompt confirm/cancel retries or abandons the same save
     // attempt; the delta notice's close navigates back (the step the

@@ -143,6 +143,14 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
             </CmxCard>
           </div>
 
+          {(expirySummary?.expiredUnappliedPoints ?? 0) > 0 && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                {t('expiredUnapplied', { points: expirySummary?.expiredUnappliedPoints ?? 0 })}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {expirySummary?.nextExpiry && (
             <Alert variant="warning">
               <AlertDescription>

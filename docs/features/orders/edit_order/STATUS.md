@@ -1,14 +1,18 @@
 # Edit Order Feature - Implementation Status
 
 **Last Updated:** 2026-09-19
-**Overall Progress:** Commercial totals unification in progress (slices 1–4 coded; historical recalc deferred)
+**Overall Progress:** Commercial totals slices 1–4 QA green on `ORD-20260919-0004`; slice 5 opt-in historical recalc shipped (flag default OFF, migration 0512 not applied by agent)
 
 ### 2026-09-19 — Unify order commercial totals
 
 - Item/piece preference extras stay in line totals. Only ORDER-level PREFERENCE extras add to `total_amount`.
 - Edit posts `orderServicePrefs`, voids leftover ITEM/PIECE PREFERENCE charges, rewrites tax lines, and sets notice/history from the persisted snapshot.
 - Qty change keeps extras. Edit Ctrl+S / mobile Save no longer open the create payment modal.
-- Residual: contaminated historical orders (e.g. `ORD-20260919-0002`) keep old totals until opt-in recalc (slice 5). Preparation item PATCH remains ungoverned.
+- **§31 PASS (2026-09-19 retest):** `ORD-20260919-0004` — create 2.500 / paid 1.000 / due 1.500; after edit all surfaces 5.900; tax 0.164→0.386; qty-2 line 3.400 kept +0.400 extra; no Other-charges double-count; no circular-JSON. Remote DB: lines 2.500+3.400, piece extras only, **zero** charge rows, unique taxable 5.514, tax 0.386, paid 1.000.
+- Residual: contaminated historical orders (e.g. `ORD-20260919-0002`) keep old totals until an owner runs slice 5 with `order_fin_pref_charge_recalc` ON. Preparation item PATCH remains ungoverned. Issued tax documents stay blocked.
+- **Customer Name false edit (2026-09-19):** GET `/api/v1/orders/[id]` was replacing the order snapshot with the live customer-master name, so every edit save rewrote `customer_name` and history showed **Customer Name** even when the user never touched it (`ORD-20260919-0004`: `Jh Test dev21` → `Test Customer2 Mohammed Ahmed`). Edit now keeps the order snapshot and only writes customer fields when they actually change.
+- **Preference edits missing from history (2026-09-19):** snapshots compared items only (qty/price/notes). Pref add/remove/price on existing pieces never appeared. New edits snapshot `org_order_preferences_dtl` and show Preference Changes on the Edit History tab. Each change stores **kind**, **preference_content**, and **preference_code** before and after, and shows **prefs_level** (`ORDER` / `ITEM` / `PIECE`) so the attachment level is explicit. Prior entries (e.g. `0004` edit 1–2) stay as recorded.
+- **Piece edits missing from history (2026-09-19):** item qty change hid piece add/remove and color/brand/notes/stain/packing edits. New edits snapshot `org_order_item_pieces_dtl` and show Piece Changes. Old history rows are not rewritten.
 
 ---
 

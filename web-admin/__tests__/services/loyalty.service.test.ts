@@ -42,9 +42,13 @@ const mockTxAccountCreate           = jest.fn();
 // run in one transaction.
 let queuedAccountRows: unknown[] = [];
 let queuedLotRows: unknown[] = [];
+let queuedExpiredLotRows: unknown[] = [];
 const mockTxQueryRaw = jest.fn((strings: TemplateStringsArray) => {
   const sql = Array.isArray(strings) ? strings.join('') : String(strings);
   if (sql.includes('remaining_points') && sql.includes('FOR UPDATE')) {
+    if (sql.includes('created_at <')) {
+      return Promise.resolve(queuedExpiredLotRows);
+    }
     return Promise.resolve(queuedLotRows);
   }
   return Promise.resolve(queuedAccountRows);
@@ -109,6 +113,8 @@ import {
   expireLoyaltyPoints,
   getLoyaltyTransactions,
   getLoyaltyExpirySummary,
+  getSpendableLoyaltyPoints,
+  syncAvailableLoyaltyPoints,
   resolveLoyaltyRedemptionPoints,
   roundLoyaltyPoints,
 } from '@/lib/services/loyalty.service';
@@ -182,6 +188,7 @@ describe('loyalty.service — redeemPointsTx', () => {
     jest.clearAllMocks();
     queuedAccountRows = [];
     queuedLotRows = [];
+    queuedExpiredLotRows = [];
   });
 
   const baseParams = {
@@ -273,6 +280,36 @@ describe('loyalty.service — redeemPointsTx', () => {
     await expect(
       redeemPointsTx(mockTx as Parameters<typeof redeemPointsTx>[0], { ...baseParams, pointsToRedeem: 100 })
     ).rejects.toThrow('Insufficient loyalty points');
+  });
+
+  it('expires stale lots before debiting so expired points cannot be spent', async () => {
+    mockTxProgramFindFirst.mockResolvedValue({ points_expiry_days: 30 });
+    queuedAccountRows = [{ id: 'acct-1', points_balance: 56, customer_id: CUST }];
+    queuedExpiredLotRows = [{ id: 'lot-stale', remaining_points: 2 }];
+    queuedLotRows = [{ id: 'lot-fresh', remaining_points: 54 }];
+    mockLoyaltyAccountUpdate.mockResolvedValue({});
+    mockLoyaltyTxnCreate
+      .mockResolvedValueOnce({ id: 'expire-1' })
+      .mockResolvedValueOnce({ id: 'redeem-1' });
+    mockAllocCreate.mockResolvedValue({});
+
+    await redeemPointsTx(mockTx as Parameters<typeof redeemPointsTx>[0], {
+      ...baseParams,
+      pointsToRedeem: 10,
+    });
+
+    expect(mockLoyaltyTxnCreate).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({ txn_type: 'EXPIRE', points: -2 }),
+      }),
+    );
+    expect(mockLoyaltyTxnCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({ points: -10, points_before: 54, points_after: 44 }),
+      }),
+    );
   });
 
   // Phase 2 BVM Wiring — standardised contract
@@ -431,13 +468,14 @@ describe('loyalty.service — expireLoyaltyPointsForAccount (B19)', () => {
     jest.clearAllMocks();
     queuedAccountRows = [];
     queuedLotRows = [];
+    queuedExpiredLotRows = [];
   });
 
   const cutoff = new Date('2026-01-01T00:00:00.000Z');
 
   it('expires every open lot older than cutoff into one aggregated EXPIRE row', async () => {
     queuedAccountRows = [{ id: 'acct-1', points_balance: 300, customer_id: CUST }];
-    queuedLotRows = [
+    queuedExpiredLotRows = [
       { id: 'lot-a', remaining_points: 100 },
       { id: 'lot-b', remaining_points: 50 },
     ];
@@ -462,7 +500,7 @@ describe('loyalty.service — expireLoyaltyPointsForAccount (B19)', () => {
 
   it('is a no-op (success, 0 expired) when no lots are old enough', async () => {
     queuedAccountRows = [{ id: 'acct-1', points_balance: 300, customer_id: CUST }];
-    queuedLotRows = [];
+    queuedExpiredLotRows = [];
 
     const result = await expireLoyaltyPointsForAccount(TENANT, 'acct-1', cutoff);
 
@@ -471,13 +509,15 @@ describe('loyalty.service — expireLoyaltyPointsForAccount (B19)', () => {
     expect(mockLoyaltyTxnCreate).not.toHaveBeenCalled();
   });
 
-  it('is idempotent per calendar day — a second call the same day is a safe no-op replay', async () => {
-    mockLoyaltyTxnFindFirst.mockResolvedValueOnce({ id: 'already-expired-today' });
+  it('is a no-op replay when remaining expired lots were already zeroed', async () => {
+    queuedAccountRows = [{ id: 'acct-1', points_balance: 54, customer_id: CUST }];
+    queuedExpiredLotRows = [];
 
     const result = await expireLoyaltyPointsForAccount(TENANT, 'acct-1', cutoff);
 
     expect(result).toEqual({ success: true, expiredPoints: 0 });
-    expect(mockTxQueryRaw).not.toHaveBeenCalled();
+    expect(mockLoyaltyAccountUpdate).not.toHaveBeenCalled();
+    expect(mockLoyaltyTxnCreate).not.toHaveBeenCalled();
   });
 
   it('returns a failure result (not a throw) when the account is not found', async () => {
@@ -494,6 +534,7 @@ describe('loyalty.service — expireLoyaltyPoints (B19 tenant sweep entry point)
     jest.clearAllMocks();
     queuedAccountRows = [];
     queuedLotRows = [];
+    queuedExpiredLotRows = [];
   });
 
   it('no-ops immediately when the tenant has no active program', async () => {
@@ -519,7 +560,7 @@ describe('loyalty.service — expireLoyaltyPoints (B19 tenant sweep entry point)
       Promise.resolve([{ account_id: 'acct-1' }, { account_id: 'acct-2' }]),
     );
     queuedAccountRows = [{ id: 'acct-1', points_balance: 100, customer_id: CUST }];
-    queuedLotRows = [{ id: 'lot-1', remaining_points: 100 }];
+    queuedExpiredLotRows = [{ id: 'lot-1', remaining_points: 100 }];
     mockLoyaltyAccountUpdate.mockResolvedValue({});
     mockLoyaltyTxnCreate.mockResolvedValue({ id: 'expire-x' });
     mockAllocCreate.mockResolvedValue({});
@@ -564,7 +605,12 @@ describe('loyalty.service — getLoyaltyExpirySummary (B19)', () => {
 
     const summary = await getLoyaltyExpirySummary(TENANT, 'acct-1');
 
-    expect(summary).toEqual({ pointsExpiryDays: null, nextExpiry: null, expiringWithin30Days: 0 });
+    expect(summary).toEqual({
+      pointsExpiryDays: null,
+      nextExpiry: null,
+      expiringWithin30Days: 0,
+      expiredUnappliedPoints: 0,
+    });
     expect(mockLoyaltyTxnFindMany).not.toHaveBeenCalled();
   });
 
@@ -580,6 +626,110 @@ describe('loyalty.service — getLoyaltyExpirySummary (B19)', () => {
     expect(summary.pointsExpiryDays).toBe(30);
     expect(summary.nextExpiry?.points).toBe(40);
     expect(summary.expiringWithin30Days).toBe(40);
+    expect(summary.expiredUnappliedPoints).toBe(0);
+  });
+
+  it('does not treat already-expired lots as upcoming expiry', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({ points_expiry_days: 30 });
+    mockLoyaltyTxnFindMany.mockResolvedValue([
+      { remaining_points: 2, created_at: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000) },
+      { remaining_points: 54, created_at: new Date() },
+    ]);
+
+    const summary = await getLoyaltyExpirySummary(TENANT, 'acct-1');
+
+    expect(summary.expiredUnappliedPoints).toBe(2);
+    expect(summary.nextExpiry?.points).toBe(54);
+    expect(summary.expiringWithin30Days).toBe(54);
+  });
+});
+
+describe('loyalty.service — getSpendableLoyaltyPoints', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns the full open-lot sum when the tenant has no expiry policy', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({ points_expiry_days: null });
+    mockLoyaltyTxnFindMany.mockResolvedValue([
+      { remaining_points: 20, created_at: new Date('2020-01-01T00:00:00Z') },
+      { remaining_points: 36, created_at: new Date() },
+    ]);
+
+    await expect(getSpendableLoyaltyPoints(TENANT, 'acct-1')).resolves.toEqual({
+      spendablePoints: 56,
+      expiredUnappliedPoints: 0,
+    });
+  });
+
+  it('excludes lots older than points_expiry_days from spendable (stale ledger case)', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({ points_expiry_days: 30 });
+    mockLoyaltyTxnFindMany.mockResolvedValue([
+      { remaining_points: 2, created_at: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000) },
+      { remaining_points: 54, created_at: new Date() },
+    ]);
+
+    await expect(getSpendableLoyaltyPoints(TENANT, 'acct-1')).resolves.toEqual({
+      spendablePoints: 54,
+      expiredUnappliedPoints: 2,
+    });
+  });
+
+  it('falls back to the ledger balance when the account has no open lots', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({ points_expiry_days: 30 });
+    mockLoyaltyTxnFindMany.mockResolvedValue([]);
+
+    await expect(getSpendableLoyaltyPoints(TENANT, 'acct-1', 56)).resolves.toEqual({
+      spendablePoints: 56,
+      expiredUnappliedPoints: 0,
+    });
+  });
+});
+
+describe('loyalty.service — syncAvailableLoyaltyPoints', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    queuedAccountRows = [];
+    queuedExpiredLotRows = [];
+  });
+
+  it('expires due lots then returns live spendable points', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({ points_expiry_days: 30 });
+    queuedAccountRows = [{ id: 'acct-1', points_balance: 56, customer_id: CUST }];
+    queuedExpiredLotRows = [{ id: 'lot-stale', remaining_points: 2 }];
+    mockLoyaltyAccountUpdate.mockResolvedValue({});
+    mockLoyaltyTxnCreate.mockResolvedValue({ id: 'expire-live' });
+    mockAllocCreate.mockResolvedValue({});
+    mockLoyaltyTxnFindMany.mockResolvedValue([
+      { remaining_points: 54, created_at: new Date() },
+    ]);
+
+    const result = await syncAvailableLoyaltyPoints(TENANT, 'acct-1', 56);
+
+    expect(result).toEqual({
+      spendablePoints: 54,
+      expiredUnappliedPoints: 0,
+      expiredNow: 2,
+    });
+    expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ txn_type: 'EXPIRE', points: -2 }),
+      }),
+    );
+  });
+
+  it('skips the write when the tenant has no expiry policy', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({ points_expiry_days: null });
+    mockLoyaltyTxnFindMany.mockResolvedValue([
+      { remaining_points: 56, created_at: new Date('2020-01-01T00:00:00Z') },
+    ]);
+
+    const result = await syncAvailableLoyaltyPoints(TENANT, 'acct-1', 56);
+
+    expect(result).toEqual({
+      spendablePoints: 56,
+      expiredUnappliedPoints: 0,
+      expiredNow: 0,
+    });
+    expect(mockLoyaltyAccountUpdate).not.toHaveBeenCalled();
   });
 });
 
@@ -664,6 +814,14 @@ describe('loyalty.service — resolveLoyaltyRedemptionPoints (B21)', () => {
 
     // 0.50 / 0.01 = 50 points, below the 100-point floor
     await expect(resolveLoyaltyRedemptionPoints(TENANT, 0.5)).rejects.toThrow('LOYALTY_BELOW_MIN_REDEEM');
+    await expect(resolveLoyaltyRedemptionPoints(TENANT, 0.5)).rejects.toMatchObject({
+      details: {
+        minRedeemPoints: 100,
+        pointsToRedeem: 50,
+        monetaryAmount: 0.5,
+        redeemRatePerPoint: 0.01,
+      },
+    });
   });
 
   it('defaults to CEIL when rounding_rule is missing on an older row', async () => {

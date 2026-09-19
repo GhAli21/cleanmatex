@@ -589,6 +589,9 @@ export function PaymentFullView({
     walletHasAvailableBalance,
     liveWalletBalanceDisplay,
     liveAdvanceBalance,
+    remainingLoyaltyDisplay,
+    loyaltyBalanceLoaded,
+    loyaltyHasAvailableBalance,
     getLegStoredValueCap,
     notifyIfLegAmountCapped,
     amountCapNotice,
@@ -2434,6 +2437,9 @@ export function PaymentFullView({
               walletHasAvailableBalance={walletHasAvailableBalance}
               liveWalletBalanceDisplay={liveWalletBalanceDisplay}
               walletLegExceedsLiveBalance={walletLegExceedsLiveBalance}
+              loyaltyBalanceLoaded={loyaltyBalanceLoaded}
+              loyaltyHasAvailableBalance={loyaltyHasAvailableBalance}
+              remainingLoyaltyDisplay={remainingLoyaltyDisplay}
               activeLegRemainingCap={activeLegRemainingCap}
               moneyEpsilon={moneyEpsilon}
               currencyCode={currencyCode}
@@ -2851,13 +2857,16 @@ export function PaymentFullView({
                           const isWalletOption =
                             option.credit_application_type === 'WALLET' ||
                             option.payment_method_code === 'WALLET';
+                          const isLoyaltyOption = option.payment_method_code === 'LOYALTY_POINTS';
+                          const isLiveBalanceOption = isWalletOption || isLoyaltyOption;
                           const isCreditNoteOption = option.payment_method_code === 'CREDIT_NOTE';
                           const creditNotesAvailable = (storedValueSummary?.creditNotes.length ?? 0) > 0;
                           const disabled =
                             (isCreditNoteOption
                               ? storedValueLoading || !creditNotesAvailable
                               : option.requires_credit_reference_selection) ||
-                            (isWalletOption && (storedValueLoading || (walletBalanceLoaded && !walletHasAvailableBalance)));
+                            (isWalletOption && (storedValueLoading || (walletBalanceLoaded && !walletHasAvailableBalance))) ||
+                            (isLoyaltyOption && (storedValueLoading || (loyaltyBalanceLoaded && !loyaltyHasAvailableBalance)));
                           const balanceLabel = isWalletOption
                             ? storedValueLoading
                               ? t('customerCredits.loadingBalance')
@@ -2866,20 +2875,28 @@ export function PaymentFullView({
                                     amount: liveWalletBalanceDisplay,
                                   })
                                 : t('customerCredits.noWalletBalance')
+                            : isLoyaltyOption
+                              ? storedValueLoading
+                                ? t('customerCredits.loadingBalance')
+                                : loyaltyHasAvailableBalance
+                                  ? t('customerCredits.available', {
+                                      amount: remainingLoyaltyDisplay,
+                                    })
+                                  : t('customerCredits.noLoyaltyBalance')
                             : isCreditNoteOption
                               ? storedValueLoading
                                 ? t('customerCredits.loadingBalance')
                                 : creditNotesAvailable
                                   ? t('customerCredits.creditNoteSelectHint')
                                   : t('customerCredits.creditNotePickerEmpty')
-                            : disabled
-                              ? t('customerCredits.referenceSelectionHint')
-                              : t('customerCredits.available', {
-                                  amount: `${currencyCode} ${formatAmount(option.available_balance ?? 0)}`,
-                                });
+                              : disabled
+                                ? t('customerCredits.referenceSelectionHint')
+                                : t('customerCredits.available', {
+                                    amount: `${currencyCode} ${formatAmount(option.available_balance ?? 0)}`,
+                                  });
                           return (
                             <div key={option.id} className="space-y-2">
-                              {isWalletOption && (
+                              {isLiveBalanceOption && (
                                 <div className={`flex items-center justify-between gap-2 px-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                   <Badge variant="secondary" className="rounded-full bg-cyan-50 text-cyan-700">
                                     {t('customerCredits.liveBadge')}
@@ -2923,12 +2940,13 @@ export function PaymentFullView({
                                   </span>
                                   <span className="flex min-w-0 flex-1 flex-col">
                                     <span className="text-sm font-semibold">{optionLabel}</span>
-                                    {isWalletOption && storedValueLoading ? (
+                                    {isLiveBalanceOption && storedValueLoading ? (
                                       <CmxSkeleton className="mt-2 h-4 w-40" />
                                     ) : (
                                       <span
                                         className={`mt-1 text-xs font-medium ${
-                                          isWalletOption && !walletHasAvailableBalance && walletBalanceLoaded
+                                          (isWalletOption && !walletHasAvailableBalance && walletBalanceLoaded)
+                                          || (isLoyaltyOption && !loyaltyHasAvailableBalance && loyaltyBalanceLoaded)
                                             ? 'text-amber-700'
                                             : 'text-slate-500'
                                         }`}
@@ -2936,7 +2954,7 @@ export function PaymentFullView({
                                         {balanceLabel}
                                       </span>
                                     )}
-                                    {isWalletOption && hasLeg && !walletLegExceedsLiveBalance && (
+                                    {isLiveBalanceOption && hasLeg && !walletLegExceedsLiveBalance && (
                                       <span className="mt-1 text-xs font-medium text-cyan-700">
                                         {t('customerCredits.applied')}
                                       </span>
@@ -3333,6 +3351,13 @@ export function PaymentFullView({
                                   : t('customerCredits.available', {
                                       amount: liveWalletBalanceDisplay,
                                     })}
+                              </div>
+                            )}
+                            {activeLeg?.method === 'LOYALTY_POINTS' && (
+                              <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">
+                                {t('customerCredits.available', {
+                                  amount: remainingLoyaltyDisplay,
+                                })}
                               </div>
                             )}
                             {activeLeg?.method === PAYMENT_METHODS.CASH ? (

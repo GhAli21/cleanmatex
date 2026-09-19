@@ -192,10 +192,8 @@ async function runCreditNoteExpiry(): Promise<FinanceJobOutcome> {
 }
 
 /**
- * Loyalty points expiry sweep. Loops every active tenant through
- * `expireLoyaltyPoints()`, which itself no-ops for a tenant with no active
- * program or no `points_expiry_days` configured — dormant until an owner
- * deliberately sets a policy, same posture as gift-card/credit-note expiry.
+ * Catch-up expiry for unused loyalty accounts. Live available points are
+ * applied by `syncAvailableLoyaltyPoints` on checkout / customer read.
  */
 async function runLoyaltyPointsExpiry(): Promise<FinanceJobOutcome> {
   const tenants = await prisma.org_tenants_mst.findMany({

@@ -598,6 +598,35 @@ export function getStoredValueCapForLeg(
 }
 
 /**
+ * Sum loyalty legs so Available can drop as soon as points are allocated.
+ * @param legs payment legs on the current ticket
+ * @param exceptLeg omit this leg when computing the cap for an existing loyalty row
+ */
+export function sumLoyaltyLegAmounts(
+  legs: Array<{ method?: string; amount?: number }>,
+  exceptLeg?: { method?: string; amount?: number },
+): number {
+  return legs.reduce((sum, leg) => {
+    if (exceptLeg && leg === exceptLeg) return sum;
+    if (leg.method !== 'LOYALTY_POINTS') return sum;
+    const amount = Number(leg.amount);
+    return sum + (Number.isFinite(amount) ? amount : 0);
+  }, 0);
+}
+
+/**
+ * Live remaining loyalty value after points already applied on this ticket.
+ */
+export function remainingLoyaltyAvailable(
+  liveAvailable: number,
+  applied: number,
+): number {
+  const live = Number.isFinite(liveAvailable) ? liveAvailable : 0;
+  const used = Number.isFinite(applied) ? Math.max(0, applied) : 0;
+  return Math.max(0, live - used);
+}
+
+/**
  * All cash legs must allow change for aggregate change-return UX to match server rules.
  * @param cashLegs
  */

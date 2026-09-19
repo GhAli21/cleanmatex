@@ -79,6 +79,8 @@ import {
   legHasRequiredPaymentReference,
   wasPaymentLegAmountCapped,
   getStoredValueCapForLeg,
+  remainingLoyaltyAvailable,
+  sumLoyaltyLegAmounts,
   type PaymentKeypadKey,
 } from '../ui/payment-modal-v4.utils';
 import { usePayExtraCheckout } from '@features/orders/hooks/use-pay-extra-checkout';
@@ -140,8 +142,8 @@ export interface PaymentEngineItem {
 }
 
 /**
- * Customer stored-value summary (wallet, advance, credit notes) consumed by the
- * leg suggestion + live-balance derivations.
+ * Customer stored-value summary (wallet, advance, credit notes, loyalty)
+ * consumed by the leg suggestion + live-balance derivations.
  */
 export type StoredValueSummaryResponse = {
   wallet: {
@@ -160,6 +162,12 @@ export type StoredValueSummaryResponse = {
     remaining_balance: number;
     currency_code: string;
   }>;
+  loyalty?: {
+    pointsBalance: number;
+    availableValue: number;
+    expiredUnappliedPoints: number;
+    redeemRatePerPoint: number;
+  };
 };
 
 /**
@@ -426,10 +434,17 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
   const walletHasAvailableBalance = liveWalletBalance > 0.001;
   const liveWalletBalanceDisplay = `${liveWalletCurrencyCode} ${formatAmount(liveWalletBalance)}`;
   const liveAdvanceBalance = storedValueSummary?.advance.balance ?? 0;
+  const loyaltyCreditOption = customerCreditOptions.find(
+    (option) => option.payment_method_code === 'LOYALTY_POINTS'
+  );
+  const liveLoyaltyAvailable = storedValueSummary?.loyalty
+    ? storedValueSummary.loyalty.availableValue
+    : loyaltyCreditOption?.available_balance ?? 0;
+  const loyaltyBalanceLoaded = !!loyaltyCreditOption && !storedValueLoading;
+  const loyaltyHasAvailableBalance = liveLoyaltyAvailable > 0.001;
 
   const getLegStoredValueCap = useCallback(
     (leg: PaymentLeg) => {
-      const option = getMethodOption(leg.method, leg.gateway_code);
       const creditNoteBalance = leg.creditReferenceId
         ? storedValueSummary?.creditNotes.find((note) => note.id === leg.creditReferenceId)?.remaining_balance
         : undefined;
@@ -437,11 +452,10 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         walletBalance: leg.method === 'WALLET' ? liveWalletBalance : undefined,
         advanceBalance: leg.method === 'ADVANCE' ? liveAdvanceBalance : undefined,
         creditNoteBalance: leg.method === 'CREDIT_NOTE' ? creditNoteBalance : undefined,
-        loyaltyBalance:
-          leg.method === 'LOYALTY_POINTS' ? option?.available_balance ?? undefined : undefined,
+        loyaltyBalance: leg.method === 'LOYALTY_POINTS' ? liveLoyaltyAvailable : undefined,
       });
     },
-    [getMethodOption, liveAdvanceBalance, liveWalletBalance, storedValueSummary?.creditNotes]
+    [liveAdvanceBalance, liveLoyaltyAvailable, liveWalletBalance, storedValueSummary?.creditNotes]
   );
 
   // Payment-leg state, mutators, reconciliation + draft-sync effects, and the
@@ -470,6 +484,12 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     payExtraIntentRef,
     addLeg,
   } = legs;
+
+  const remainingLoyaltyAvailableAmount = remainingLoyaltyAvailable(
+    liveLoyaltyAvailable,
+    sumLoyaltyLegAmounts(paymentLegs)
+  );
+  const remainingLoyaltyDisplay = `${currencyCode} ${formatAmount(remainingLoyaltyAvailableAmount)}`;
 
   /**
    * Prevent-at-add: do not create a new zero-capacity leg. Methods stay enabled;
@@ -725,7 +745,12 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
           ? liveWalletBalance
           : option.payment_method_code === 'ADVANCE'
             ? liveAdvanceBalance
-            : option.available_balance ?? 0;
+            : option.payment_method_code === 'LOYALTY_POINTS'
+              ? remainingLoyaltyAvailable(
+                  liveLoyaltyAvailable,
+                  sumLoyaltyLegAmounts(paymentLegs)
+                )
+              : option.available_balance ?? 0;
       const existingIndex = paymentLegs.findIndex(
         (leg) =>
           leg.method === option.payment_method_code &&
@@ -753,6 +778,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       giftCardSettlementAmount,
       items.length,
       liveAdvanceBalance,
+      liveLoyaltyAvailable,
       liveWalletBalance,
       paymentLegs,
       saleTotal,
@@ -1600,6 +1626,11 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     walletHasAvailableBalance,
     liveWalletBalanceDisplay,
     liveAdvanceBalance,
+    liveLoyaltyAvailable,
+    remainingLoyaltyAvailableAmount,
+    remainingLoyaltyDisplay,
+    loyaltyBalanceLoaded,
+    loyaltyHasAvailableBalance,
     getLegStoredValueCap,
     notifyIfLegAmountCapped,
     amountCapNotice,

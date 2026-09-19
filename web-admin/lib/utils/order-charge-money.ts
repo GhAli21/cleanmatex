@@ -68,3 +68,26 @@ export function mapPreferenceLevels(
 ): Map<string, string> {
   return new Map(preferences.map((row) => [row.id, normalizeUpper(row.prefs_level)]));
 }
+
+/**
+ * Active PREFERENCE charge that inflated historical totals: ITEM/PIECE
+ * extras already inside line totals, or an orphan with no ORDER-level source.
+ */
+export function isContaminatingPreferenceCharge(
+  charge: ChargeMoneyRow,
+  preferenceLevelById: ReadonlyMap<string, string>,
+): boolean {
+  if (normalizeUpper(charge.charge_type) !== CHARGE_TYPES.PREFERENCE) return false;
+  if (!charge.charge_source_id) return true;
+  return preferenceLevelById.get(charge.charge_source_id) !== PREFS_LEVEL.ORDER;
+}
+
+export function sumContaminatingPreferenceCharges(
+  charges: ChargeMoneyRow[],
+  preferenceLevelById: ReadonlyMap<string, string>,
+): number {
+  return charges.reduce((sum, row) => {
+    if (!isContaminatingPreferenceCharge(row, preferenceLevelById)) return sum;
+    return sum + toNumber(row.amount);
+  }, 0);
+}
