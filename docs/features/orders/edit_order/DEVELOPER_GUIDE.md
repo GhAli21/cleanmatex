@@ -5,6 +5,8 @@
 
 Historical contaminated totals (`ORD-20260919-0002`) are **not** rewritten on edit. Owner-only API: `POST /api/v1/orders/recalc-preference-charges` behind `order_fin_pref_charge_recalc` (default OFF) and `orders:post_settlement_edit`. See the slice 5 runbook.
 
+Save Changes is gated by `isOrderEditFormDirty` (`src/features/orders/lib/order-edit-dirty.ts`): customer snapshot override, `customerNotes` / `internal_notes` / `paymentNotes`, express, ready-by, items, order/item/piece prefs, and packing. Do not compare GET `notes` (combo field) as the customer-notes source.
+
 ---
 
 ## Quick Start

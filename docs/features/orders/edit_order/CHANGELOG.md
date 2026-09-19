@@ -6,6 +6,8 @@
 - Edit History now records preference kind / content / code (before and after) and `prefs_level` (`ORDER` / `ITEM` / `PIECE`), plus piece changes. Customer name is no longer rewritten from live customer master.
 - Slice 5: opt-in historical recalc. Flag `order_fin_pref_charge_recalc` default OFF (migration `0512` — owner applies). `POST /api/v1/orders/recalc-preference-charges` preview/confirm. Permission `orders:post_settlement_edit`. ISSUED tax documents blocked. Never changes `total_paid_amount`. Runbook: `docs/features/Order_Fin/Remediation_Work_Packages/HISTORICAL_PREF_CHARGE_RECALC_RUNBOOK.md`. QA: §32.
 
+- Save Changes stayed disabled for customer-tab edits (notes, name, phone, email) and for preferences/packing. Dirty check compared `notes` / `customerNameSnapshot` only; the tab writes `customerNotes` and `customerSnapshotOverride`. Comparator now covers customer snapshot, all three note fields, order/item/piece prefs, and packing.
+
 ## Residual
 
 - Preparation item PATCH can still stale headers (B12 out of scope).

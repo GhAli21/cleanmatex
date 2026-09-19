@@ -13,6 +13,7 @@
 - **Customer Name false edit (2026-09-19):** GET `/api/v1/orders/[id]` was replacing the order snapshot with the live customer-master name, so every edit save rewrote `customer_name` and history showed **Customer Name** even when the user never touched it (`ORD-20260919-0004`: `Jh Test dev21` → `Test Customer2 Mohammed Ahmed`). Edit now keeps the order snapshot and only writes customer fields when they actually change.
 - **Preference edits missing from history (2026-09-19):** snapshots compared items only (qty/price/notes). Pref add/remove/price on existing pieces never appeared. New edits snapshot `org_order_preferences_dtl` and show Preference Changes on the Edit History tab. Each change stores **kind**, **preference_content**, and **preference_code** before and after, and shows **prefs_level** (`ORDER` / `ITEM` / `PIECE`) so the attachment level is explicit. Prior entries (e.g. `0004` edit 1–2) stay as recorded.
 - **Piece edits missing from history (2026-09-19):** item qty change hid piece add/remove and color/brand/notes/stain/packing edits. New edits snapshot `org_order_item_pieces_dtl` and show Piece Changes. Old history rows are not rewritten.
+- **Save disabled except item qty (2026-09-19):** `useOrderEditDirty` compared `state.notes` vs GET `notes` (internal/customer combo) and ignored `customerNotes`, `customerSnapshotOverride`, payment notes, and prefs/packing. Customer-tab and preference-only edits left Save disabled. Dirty now uses `isOrderEditFormDirty`.
 
 ---
 
