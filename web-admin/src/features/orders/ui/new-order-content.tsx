@@ -27,7 +27,7 @@ import { useKeyboardNavigation } from '@/lib/hooks/use-keyboard-navigation';
 import { useOrderPerformance } from '../hooks/use-order-performance';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useEffect, useState } from 'react';
+import { useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { Check, GitBranch } from 'lucide-react';
 import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
@@ -479,6 +479,16 @@ export function NewOrderContent() {
         saveOrderUpdate();
     }, [hasErrors, warnings, saveOrderUpdate]);
 
+    // Bottom summary panel's primary Save button — the edit-mode top bar's
+    // Save Changes button moves focus here instead of saving directly.
+    const saveButtonRef = useRef<HTMLButtonElement>(null);
+    const focusSaveButton = useCallback(() => {
+        const btn = saveButtonRef.current;
+        if (!btn) return;
+        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        btn.focus({ preventScroll: true });
+    }, []);
+
     const memoizedOrderItems = useMemo(
         () =>
             state.state.items.map((item) => {
@@ -577,6 +587,7 @@ export function NewOrderContent() {
         isEditMode: state.state.isEditMode,
         isDirty,
         onSave: handleSaveEditOrder,
+        saveButtonRef,
         isSaving: isSubmitting,
         hasErrors,
         validationErrors: warnings.filter((w) => w.severity === 'error').map((w) => w.message),
@@ -676,7 +687,7 @@ export function NewOrderContent() {
                 <EditOrderBar
                     orderNo={state.state.editingOrderNo}
                     onCancelEdit={handleCancelEdit}
-                    onSave={saveOrderUpdate}
+                    onSave={focusSaveButton}
                     isDirty={isDirty}
                     isCancelling={isCancelling}
                     isSaving={isSubmitting}

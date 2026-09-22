@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, memo, useCallback, useMemo } from 'react';
+import { useState, memo, useCallback, useMemo, type Ref } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -78,6 +78,7 @@ interface OrderSummaryPanelProps {
   isEditMode?: boolean;
   isDirty?: boolean;
   onSave?: () => void;
+  saveButtonRef?: Ref<HTMLButtonElement>;
   isSaving?: boolean;
   hasErrors?: boolean;
   validationErrors?: string[];
@@ -130,6 +131,7 @@ function OrderSummaryPanelComponent({
   isEditMode = false,
   isDirty = false,
   onSave,
+  saveButtonRef,
   isSaving = false,
   hasErrors = false,
   validationErrors = [],
@@ -515,6 +517,7 @@ function OrderSummaryPanelComponent({
         {/* Submit Button */}
         <div className="p-3 bg-white border-t border-gray-200">
           <button
+            ref={saveButtonRef}
             onClick={isEditMode ? (onSave ?? (() => {})) : (onOpenPaymentModal || onSubmit)}
             disabled={isEditMode ? !isDirty || isSaving || loading || hasErrors : loading || !canSubmit}
             className={`w-full min-h-11 py-2.5 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all shadow-md flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}

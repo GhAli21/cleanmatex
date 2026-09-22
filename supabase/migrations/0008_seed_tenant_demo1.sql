@@ -182,11 +182,11 @@ INSERT INTO sys_customers_mst (
 )
 VALUES (
   '33333333-3333-3333-3333-333333333333', -- Customer ID
-  'Gehad',
-  'Ali',
-  'Gehad Ali',
-  'جهاد علي',
-  'Jehad Al-Mekhlafi',
+  'Test',
+  'Customer101',
+  'Test Customer101',
+  'عميل تجريبي',
+  'Test Customer101',
   '+96877182624',
   'customer@demo-laundry.example',
   'walk_in',
@@ -226,7 +226,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ==================================================================
 
 INSERT INTO org_product_data_mst (
-  id,
+  --id,
   tenant_org_id,
   service_category_code,
   product_code,
@@ -240,7 +240,7 @@ INSERT INTO org_product_data_mst (
 )
 VALUES
   (
-    '44444444-4444-4444-4444-444444444441',
+    --'44444444-4444-4444-4444-444444444441',
     '11111111-1111-4111-8111-111111111111',
     'WASH_AND_IRON',
     'PROD-SHIRT-WI',
@@ -253,7 +253,7 @@ VALUES
     NOW()
   ),
   (
-    '44444444-4444-4444-4444-444444444442',
+    --'44444444-4444-4444-4444-444444444442',
     '11111111-1111-4111-8111-111111111111',
     'WASH_AND_IRON',
     'PROD-PANTS-WI',
@@ -266,7 +266,7 @@ VALUES
     NOW()
   ),
   (
-    '44444444-4444-4444-4444-444444444443',
+    --'44444444-4444-4444-4444-444444444443',
     '11111111-1111-4111-8111-111111111111',
     'DRY_CLEAN',
     'PROD-SUIT-DC',
@@ -279,7 +279,7 @@ VALUES
     NOW()
   ),
   (
-    '44444444-4444-4444-4444-444444444444',
+    --'44444444-4444-4444-4444-444444444444',
     '11111111-1111-4111-8111-111111111111',
     'IRON_ONLY',
     'PROD-SHIRT-IO',
