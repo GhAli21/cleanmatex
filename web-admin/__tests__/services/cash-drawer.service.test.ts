@@ -13,6 +13,39 @@
 // Mocks
 // ---------------------------------------------------------------------------
 
+// A1/A2 — the service imports `Prisma` for `Prisma.sql`,
+// `Prisma.TransactionIsolationLevel`, and the two error classes used to
+// detect a double-open unique violation / a SERIALIZABLE conflict. The real
+// @prisma/client resolves to its browser stub under Jest, so all of these
+// must be mocked here (matches pos-session.service.test.ts for `sql`).
+// Classes are defined inline in the factory — jest.mock() factories may not
+// reference out-of-scope variables unless they are `mock`-prefixed.
+jest.mock('@prisma/client', () => {
+  class PrismaClientKnownRequestError extends Error {
+    code: string;
+    meta?: Record<string, unknown>;
+    constructor(message: string, opts: { code: string; meta?: Record<string, unknown> }) {
+      super(message);
+      this.code = opts.code;
+      this.meta = opts.meta;
+    }
+  }
+  class PrismaClientUnknownRequestError extends Error {}
+
+  return {
+    Prisma: {
+      sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+        kind: 'sql',
+        strings: Array.from(strings),
+        values,
+      }),
+      TransactionIsolationLevel: { Serializable: 'Serializable' },
+      PrismaClientKnownRequestError,
+      PrismaClientUnknownRequestError,
+    },
+  };
+});
+
 const mockDrawerFindMany          = jest.fn();
 const mockDrawerFindFirstOrThrow  = jest.fn();
 const mockSessionFindFirst        = jest.fn();
@@ -25,21 +58,25 @@ const mockMovementCreate          = jest.fn();
 const mockMovementFindMany        = jest.fn();
 const mockPaymentAggregate        = jest.fn();
 const mockDrawerFindFirst         = jest.fn();
+// A2 — openSession, closeSession, recordMovement and approveSessionVariance
+// all now run inside prisma.$transaction and take an advisory lock via
+// tx.$executeRaw (lockDrawerScope) and/or call generate_cash_drawer_sess_no()
+// via tx.$queryRaw. The tx client below reuses the SAME mock functions as
+// the top-level prisma client, so existing assertions against e.g.
+// mockSessionUpdate still see calls made through `tx`.
+const mockQueryRaw                = jest.fn();
+const mockExecuteRaw              = jest.fn().mockResolvedValue(undefined);
 
-jest.mock('@/lib/db/prisma', () => ({
-  prisma: {
+jest.mock('@/lib/db/prisma', () => {
+  const txClient = {
     org_cash_drawers_mst: {
-      findMany:         (...a: unknown[]) => mockDrawerFindMany(...a),
-      findFirst:        (...a: unknown[]) => mockDrawerFindFirst(...a),
-      findFirstOrThrow: (...a: unknown[]) => mockDrawerFindFirstOrThrow(...a),
+      findFirst: (...a: unknown[]) => mockDrawerFindFirst(...a),
     },
     org_cash_drawer_sessions_mst: {
-      findFirst:         (...a: unknown[]) => mockSessionFindFirst(...a),
-      findMany:          (...a: unknown[]) => mockSessionFindMany(...a),
-      findFirstOrThrow:  (...a: unknown[]) => mockSessionFindFirstOrThrow(...a),
-      create:            (...a: unknown[]) => mockSessionCreate(...a),
-      update:            (...a: unknown[]) => mockSessionUpdate(...a),
-      count:             (...a: unknown[]) => mockSessionCount(...a),
+      findFirst:        (...a: unknown[]) => mockSessionFindFirst(...a),
+      findFirstOrThrow: (...a: unknown[]) => mockSessionFindFirstOrThrow(...a),
+      create:           (...a: unknown[]) => mockSessionCreate(...a),
+      update:           (...a: unknown[]) => mockSessionUpdate(...a),
     },
     org_cash_drawer_movements_dtl: {
       create:   (...a: unknown[]) => mockMovementCreate(...a),
@@ -48,8 +85,36 @@ jest.mock('@/lib/db/prisma', () => ({
     org_order_payments_dtl: {
       aggregate: (...a: unknown[]) => mockPaymentAggregate(...a),
     },
-  },
-}));
+    $queryRaw:   (...a: unknown[]) => mockQueryRaw(...a),
+    $executeRaw: (...a: unknown[]) => mockExecuteRaw(...a),
+  };
+
+  return {
+    prisma: {
+      org_cash_drawers_mst: {
+        findMany:         (...a: unknown[]) => mockDrawerFindMany(...a),
+        findFirst:        (...a: unknown[]) => mockDrawerFindFirst(...a),
+        findFirstOrThrow: (...a: unknown[]) => mockDrawerFindFirstOrThrow(...a),
+      },
+      org_cash_drawer_sessions_mst: {
+        findFirst:         (...a: unknown[]) => mockSessionFindFirst(...a),
+        findMany:          (...a: unknown[]) => mockSessionFindMany(...a),
+        findFirstOrThrow:  (...a: unknown[]) => mockSessionFindFirstOrThrow(...a),
+        create:            (...a: unknown[]) => mockSessionCreate(...a),
+        update:            (...a: unknown[]) => mockSessionUpdate(...a),
+        count:             (...a: unknown[]) => mockSessionCount(...a),
+      },
+      org_cash_drawer_movements_dtl: {
+        create:   (...a: unknown[]) => mockMovementCreate(...a),
+        findMany: (...a: unknown[]) => mockMovementFindMany(...a),
+      },
+      org_order_payments_dtl: {
+        aggregate: (...a: unknown[]) => mockPaymentAggregate(...a),
+      },
+      $transaction: (fn: (tx: typeof txClient) => unknown) => fn(txClient),
+    },
+  };
+});
 
 jest.mock('@/lib/db/tenant-context', () => ({
   withTenantContext: jest.fn(async (_id: string, fn: () => Promise<unknown>) => fn()),
@@ -157,17 +222,19 @@ describe('cash-drawer.service — openSession', () => {
   it('creates a new OPEN session', async () => {
     mockDrawerFindFirstOrThrow.mockResolvedValue(makeDrawer());
     mockSessionFindFirst.mockResolvedValue(null);
-    mockSessionCount.mockResolvedValue(0);
+    mockQueryRaw.mockResolvedValue([{ session_no: 'SES-20260529-0001' }]);
     mockSessionCreate.mockResolvedValue(makeSession());
 
     const result = await openSession(TENANT, DRAWER, { openingBalance: 100, openedBy: USER });
     expect(result).toMatchObject({ status: 'OPEN' });
+    expect(mockQueryRaw).toHaveBeenCalled();
     expect(mockSessionCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           status: 'OPEN',
           opening_float_amount: 100,
           opened_by: USER,
+          session_no: 'SES-20260529-0001',
         }),
       })
     );

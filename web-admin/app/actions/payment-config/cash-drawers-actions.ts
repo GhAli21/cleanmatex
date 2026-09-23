@@ -6,6 +6,7 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
+import { lockDrawerScope } from '@/lib/services/cash-drawer.service';
 import type {
   OrgCashDrawer,
   OrgCashDrawerSession,
@@ -218,21 +219,35 @@ export async function openDrawerSession(
       });
       if (!drawer) return { success: false, error: 'Cash drawer not found or inactive' };
 
-      const existingOpen = await prisma.org_cash_drawer_sessions_mst.findFirst({
-        where: { cash_drawer_id: input.cash_drawer_id, tenant_org_id: tenantId, status: 'OPEN', is_active: true },
-      });
-      if (existingOpen) return { success: false, error: 'Drawer already has an open session' };
-
       if (input.opening_float_amount < 0) {
         return { success: false, error: 'Opening float cannot be negative' };
       }
 
-      const [sessionResult] = await prisma.$queryRaw<Array<{ session_no: string }>>`
-        SELECT public.generate_session_no(${tenantId}::uuid) AS session_no
-      `;
-      const sessionNo = sessionResult.session_no;
-
+      // A1 (POS Session & Cash Drawer Hardening, migration 0519): the
+      // existing-session check and generate_cash_drawer_sess_no() call both
+      // move inside the transaction that does the insert. The function's
+      // advisory lock is transaction-scoped — calling it before
+      // prisma.$transaction() opened (as this used to) releases the lock
+      // before the insert commits and protects nothing, which is the exact
+      // defect A1 fixes in lib/services/cash-drawer.service.ts openSession().
+      // A2: also take the shared per-drawer advisory lock so a concurrent
+      // opener blocks here and observes `existingOpen` cleanly, instead of
+      // racing to insert and relying solely on the DB unique constraint.
       const session = await prisma.$transaction(async (tx) => {
+        await lockDrawerScope(tx, tenantId, input.cash_drawer_id);
+
+        const existingOpen = await tx.org_cash_drawer_sessions_mst.findFirst({
+          where: { cash_drawer_id: input.cash_drawer_id, tenant_org_id: tenantId, status: 'OPEN', is_active: true },
+        });
+        if (existingOpen) {
+          throw new Error('Drawer already has an open session');
+        }
+
+        const [sessionResult] = await tx.$queryRaw<Array<{ session_no: string }>>`
+          SELECT public.generate_cash_drawer_sess_no(${tenantId}::uuid) AS session_no
+        `;
+        const sessionNo = sessionResult.session_no;
+
         const newSession = await tx.org_cash_drawer_sessions_mst.create({
           data: {
             tenant_org_id: tenantId,

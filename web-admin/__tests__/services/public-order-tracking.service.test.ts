@@ -385,10 +385,17 @@ describe('public-order-tracking service', () => {
       );
     });
 
-    it('confirms delivery, resolves any open stop for the customer, and includes their note', async () => {
+    it('confirms delivery before resolving any open stop for the customer and includes their note', async () => {
       mockOrderLookup('out_for_delivery');
       (listAvailableActions as jest.Mock).mockResolvedValueOnce({ stateVersion: 7 });
-      (executeAction as jest.Mock).mockResolvedValueOnce({ currentStatus: 'delivered', stateVersion: 8 });
+      const operationOrder: string[] = [];
+      (executeAction as jest.Mock).mockImplementationOnce(async () => {
+        operationOrder.push('confirm_delivery');
+        return { currentStatus: 'delivered', stateVersion: 8 };
+      });
+      (resolveActiveStopForCustomerConfirm as jest.Mock).mockImplementationOnce(async () => {
+        operationOrder.push('resolve_stop');
+      });
 
       const notedRequest = new Request('https://cmx.cleanmatex.com/api/v1/public/track/token', {
         method: 'POST',
@@ -416,6 +423,7 @@ describe('public-order-tracking service', () => {
         }),
         expect.anything(),
       );
+      expect(operationOrder).toEqual(['confirm_delivery', 'resolve_stop']);
     });
 
     it('maps an unbound live-policy confirm to HTTP 409', async () => {
@@ -437,7 +445,7 @@ describe('public-order-tracking service', () => {
         status: 409,
         body: { success: false, code: 'PROFILE_SNAPSHOT_INCOMPLETE' },
       });
-      expect(resolveActiveStopForCustomerConfirm).toHaveBeenCalled();
+      expect(resolveActiveStopForCustomerConfirm).not.toHaveBeenCalled();
     });
 
     it('maps a public channel mismatch to HTTP 403', async () => {

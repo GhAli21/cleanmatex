@@ -14,7 +14,7 @@
     "processingStep": "Processing Step",
     "issueCreated": "Issue Created",
     "issueResolved": "Issue Resolved",
-    "orderCompleted": "Order Completed",
+    "orderCompleted": "Payment Settled",
     "voucherPostedAndWired": "Voucher Posted",
     "arInvoiceIssued": "AR Invoice Issued"
   }

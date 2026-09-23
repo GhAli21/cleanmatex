@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { Prisma } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 
 import { lookupAuditActors, type AuditActorLookupResult } from '@lib/services/audit-actor.service'
@@ -29,6 +30,54 @@ import type {
   CashDrawerSessionSummarySnapshot,
   CashDrawerVarianceApproval,
 } from '@lib/types/cash-drawer'
+
+export type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
+/**
+ * A2 (POS Session & Cash Drawer Hardening) — transaction-scoped advisory
+ * lock serializing every mutation against one drawer (open, close, record
+ * movement, approve variance), mirroring `lockUserSessionScope` in
+ * `pos-session.service.ts`. Must be called with `tx` from an already-open
+ * `prisma.$transaction` — an advisory *xact* lock releases at transaction
+ * end, so acquiring it outside the transaction that does the write protects
+ * nothing. Exported so other "open a cash drawer session" call sites (e.g.
+ * `app/actions/payment-config/cash-drawers-actions.ts`) reuse this instead
+ * of duplicating the lock SQL.
+ */
+export async function lockDrawerScope(tx: PrismaTx, tenantId: string, drawerId: string): Promise<void> {
+  await tx.$executeRaw(Prisma.sql`
+    SELECT pg_advisory_xact_lock(hashtext(${`${tenantId}:${drawerId}:cash_drawer`}))
+  `)
+}
+
+/** Stable error codes for cash-drawer session mutations (A2). */
+export const CASH_DRAWER_SESSION_ERRORS = {
+  /** Another session is already open for this drawer (uq_open_cash_drawer_session). */
+  ALREADY_OPEN: 'DRAWER_SESSION_ALREADY_OPEN',
+} as const
+
+export type CashDrawerSessionErrorCode =
+  (typeof CASH_DRAWER_SESSION_ERRORS)[keyof typeof CASH_DRAWER_SESSION_ERRORS]
+
+/** Typed error so the API/action can map a session-mutation failure to a 4xx + code. */
+export class CashDrawerSessionError extends Error {
+  readonly code: CashDrawerSessionErrorCode
+  constructor(code: CashDrawerSessionErrorCode, message?: string) {
+    super(message ?? code)
+    this.name = 'CashDrawerSessionError'
+    this.code = code
+  }
+}
+
+/** Unique-constraint violation on uq_open_cash_drawer_session (double-open race). */
+function isDrawerAlreadyOpenViolation(err: unknown): boolean {
+  if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== 'P2002') {
+    return false
+  }
+  const target = err.meta?.target
+  const targetStr = Array.isArray(target) ? target.join(',') : String(target ?? '')
+  return targetStr.includes('uq_open_cash_drawer_session') || /uq_open_cash_drawer_session/i.test(err.message)
+}
 
 function toNumber(value: Decimal | number | string | null | undefined): number {
   if (value == null) return 0
@@ -1449,7 +1498,7 @@ export async function resolveCashDrawerSessionId(
  * @param drawerId drawer identifier already checked against tenant scope
  * @param params mutation payload including opening balance and actor id
  * @returns newly created session row
- * @throws Error when a drawer session is already open
+ * @throws CashDrawerSessionError with code ALREADY_OPEN when a session is already open
  * @example
  * await openSession('tenant-001', 'drawer-001', { openingBalance: 10, openedBy: 'user-001' })
  */
@@ -1464,37 +1513,59 @@ export async function openSession(
     }),
   )
 
-  const existing = await withTenantContext(tenantId, () =>
-    prisma.org_cash_drawer_sessions_mst.findFirst({
-      where: { tenant_org_id: tenantId, cash_drawer_id: drawerId, status: 'OPEN' },
-    }),
-  )
-
-  if (existing) {
-    throw new Error('A session is already open for this drawer')
-  }
-
-  const count = await withTenantContext(tenantId, () =>
-    prisma.org_cash_drawer_sessions_mst.count({ where: { tenant_org_id: tenantId } }),
-  )
-
-  const sessionNo = `SES-${String(count + 1).padStart(6, '0')}`
-
+  // A1 (POS Session & Cash Drawer Hardening, migration 0519): session_no now
+  // comes from the DB's generate_cash_drawer_sess_no() (renamed from
+  // generate_session_no so it doesn't read as a generic session generator
+  // next to the unrelated POS-session numbering scheme), called inside this
+  // same transaction so its advisory lock actually protects the insert. The
+  // old `count(*) + 1` path raced under concurrent opens and produced a
+  // format (`SES-000007`) the DB function's own parser couldn't read. Do
+  // not reintroduce a client-computed sequence.
   return withTenantContext(tenantId, () =>
-    prisma.org_cash_drawer_sessions_mst.create({
-      data: {
-        tenant_org_id: tenantId,
-        branch_id: drawer.branch_id,
-        cash_drawer_id: drawerId,
-        session_no: sessionNo,
-        status: 'OPEN',
-        currency_code: drawer.currency_code,
-        opening_float_amount: params.openingBalance,
-        opened_by: params.openedBy,
-        opened_at: new Date(),
-        is_active: true,
-        rec_status: 1,
-      },
+    prisma.$transaction(async (tx) => {
+      // A2 — serialize every mutation against this drawer. A concurrent
+      // opener now blocks here until this transaction commits or rolls
+      // back, then observes `existing` and gets the friendly error below
+      // instead of racing to insert and hitting the raw unique violation.
+      await lockDrawerScope(tx, tenantId, drawerId)
+
+      const existing = await tx.org_cash_drawer_sessions_mst.findFirst({
+        where: { tenant_org_id: tenantId, cash_drawer_id: drawerId, status: 'OPEN' },
+      })
+
+      if (existing) {
+        throw new CashDrawerSessionError(CASH_DRAWER_SESSION_ERRORS.ALREADY_OPEN, 'A session is already open for this drawer')
+      }
+
+      const [{ session_no: sessionNo }] = await tx.$queryRaw<{ session_no: string }[]>(
+        Prisma.sql`SELECT generate_cash_drawer_sess_no(${tenantId}::uuid) AS session_no`,
+      )
+
+      try {
+        return await tx.org_cash_drawer_sessions_mst.create({
+          data: {
+            tenant_org_id: tenantId,
+            branch_id: drawer.branch_id,
+            cash_drawer_id: drawerId,
+            session_no: sessionNo,
+            status: 'OPEN',
+            currency_code: drawer.currency_code,
+            opening_float_amount: params.openingBalance,
+            opened_by: params.openedBy,
+            opened_at: new Date(),
+            is_active: true,
+            rec_status: 1,
+          },
+        })
+      } catch (err) {
+        // Backstop, not the primary defense — lockDrawerScope above already
+        // prevents this in the normal path. Kept in case a row is ever
+        // attached to this drawer without going through the lock.
+        if (isDrawerAlreadyOpenViolation(err)) {
+          throw new CashDrawerSessionError(CASH_DRAWER_SESSION_ERRORS.ALREADY_OPEN, 'A session is already open for this drawer')
+        }
+        throw err
+      }
     }),
   )
 }
@@ -1515,93 +1586,131 @@ export async function closeSession(
   sessionId: string,
   params: SessionCloseParams,
 ): Promise<SessionCloseResult> {
-  const session = await withTenantContext(tenantId, () =>
-    prisma.org_cash_drawer_sessions_mst.findFirstOrThrow({
-      where: { id: sessionId, tenant_org_id: tenantId, status: 'OPEN' },
-    }),
-  )
+  return withTenantContext(tenantId, () =>
+    prisma.$transaction(
+      async (tx) => {
+          // A2 — the lock must be acquired BEFORE the status-determining
+          // read below, not after: two concurrent closers that both read
+          // status='OPEN' before either commits would otherwise both
+          // proceed, and the second would re-close an already-closed
+          // session using its stale read — the lock would exist but not
+          // actually guard the check it looks like it guards. (Found via a
+          // real DB-integration test failure during development, not
+          // theoretical — see STATUS.md D22.) So: minimal lookup just for
+          // the lock key, then lock, then the real status='OPEN' read.
+          const sessionForLock = await tx.org_cash_drawer_sessions_mst.findFirstOrThrow({
+            where: { id: sessionId, tenant_org_id: tenantId },
+            select: { cash_drawer_id: true },
+          })
 
-  // Expected cash counts each cash fact once (B16 M2 + Addendum A2 + QA §30.2):
-  // sale cash from the payment ledger, plus MANUAL drawer movements only.
-  // Sale-mirror CASH_SALE/change and B10 PAYMENT_REVERSAL compensating OUTs are
-  // excluded — the payment already counts (or, after REVERSE, no longer counts)
-  // that cash.
-  const [cashPayments, movements, drawer] = await Promise.all([
-    withTenantContext(tenantId, () =>
-      prisma.org_order_payments_dtl.aggregate({
-        where: {
-          tenant_org_id: tenantId,
-          cash_drawer_session_id: sessionId,
-          ...effectiveCashPaymentWhere(),
-        },
-        _sum: { amount: true },
-      }),
-    ),
-    withTenantContext(tenantId, () =>
-      prisma.org_cash_drawer_movements_dtl.findMany({
-        where: {
-          tenant_org_id: tenantId,
-          cash_drawer_session_id: sessionId,
-          ...expectedCashManualMovementWhere(),
-        },
-        select: {
-          direction: true,
-          amount: true,
-        },
-      }),
-    ),
-    // B16: per-drawer variance-approval threshold (NULL = no gate — the default).
-    withTenantContext(tenantId, () =>
-      prisma.org_cash_drawers_mst.findFirst({
-        where: { id: session.cash_drawer_id, tenant_org_id: tenantId },
-        select: { variance_approval_threshold: true },
-      }),
-    ),
-  ])
+          // Serializes this close against every OTHER cash-drawer.service
+          // mutation on the same drawer (open/close/movement/approve), all
+          // of which take this same lock. Concurrent close x2, movement-
+          // during-close, and double-open are fully closed by this alone —
+          // confirmed by DB-integration tests (see A2-6, STATUS.md).
+          //
+          // NOT closed by this lock: a cash payment landing mid-close.
+          // Payment recording is a separate, wide set of code paths (order
+          // settlement, refunds, stored value, vouchers — 15+ files) that
+          // do not take this lock, and bringing them all under it is a
+          // much larger change than this pass. A SERIALIZABLE-isolation +
+          // retry approach was tried and measured live: on a small/empty
+          // org_order_payments_dtl (true on a fresh DB, and possible in
+          // production for a tenant with few cash sales), Postgres's
+          // planner prefers a sequential scan over the existing
+          // idx_org_ord_pay_dtl_session index, and a seq scan under
+          // SERIALIZABLE takes a relation-wide predicate lock — so
+          // unrelated concurrent closes on *different* sessions conflicted
+          // with each other too. 5 concurrent closes on 5 different
+          // drawers still hadn't converged after 8 retries. Reverted
+          // rather than ship a retry loop that doesn't reliably terminate;
+          // see STATUS.md D22 for the full writeup and the two real
+          // options for closing this gap properly (extend the lock to the
+          // payment-wiring handlers, or revisit SERIALIZABLE with a
+          // load-tested backoff strategy).
+          await lockDrawerScope(tx, tenantId, sessionForLock.cash_drawer_id)
 
-  const cashIn = toNumber(cashPayments._sum.amount)
-  const movementCashIn = movements
-    .filter((movement) => movement.direction === 'IN')
-    .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
-  const movementCashOut = movements
-    .filter((movement) => movement.direction === 'OUT')
-    .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
-  const expectedCash = toNumber(session.opening_float_amount) + cashIn + movementCashIn - movementCashOut
-  const variance = params.physicalCount - expectedCash
-  const isBalanced = Math.abs(variance) < CASH_VARIANCE_TOLERANCE
+          const session = await tx.org_cash_drawer_sessions_mst.findFirstOrThrow({
+            where: { id: sessionId, tenant_org_id: tenantId, status: 'OPEN' },
+          })
 
-  // B16 variance approval (OPTIONAL, deferred, opt-in per drawer): when the
-  // drawer has a configured threshold and a not-balanced close exceeds it, the
-  // session is flagged eligible for optional supervisor approval. The close
-  // always completes; a supervisor MAY approve it separately via
-  // `approveSessionVariance`. Snapshotting the threshold marks the eligible
-  // state and preserves the value in effect at close time. NULL threshold (the
-  // default) = no approval concept at all.
-  const varianceThreshold =
-    drawer?.variance_approval_threshold != null
-      ? toNumber(drawer.variance_approval_threshold)
-      : null
-  const varianceApprovalPending =
-    varianceThreshold != null && !isBalanced && Math.abs(variance) > varianceThreshold
+          // Expected cash counts each cash fact once (B16 M2 + Addendum A2 +
+          // QA §30.2): sale cash from the payment ledger, plus MANUAL drawer
+          // movements only. Sale-mirror CASH_SALE/change and B10
+          // PAYMENT_REVERSAL compensating OUTs are excluded — the payment
+          // already counts (or, after REVERSE, no longer counts) that cash.
+          const [cashPayments, movements, drawer] = await Promise.all([
+            tx.org_order_payments_dtl.aggregate({
+              where: {
+                tenant_org_id: tenantId,
+                cash_drawer_session_id: sessionId,
+                ...effectiveCashPaymentWhere(),
+              },
+              _sum: { amount: true },
+            }),
+            tx.org_cash_drawer_movements_dtl.findMany({
+              where: {
+                tenant_org_id: tenantId,
+                cash_drawer_session_id: sessionId,
+                ...expectedCashManualMovementWhere(),
+              },
+              select: {
+                direction: true,
+                amount: true,
+              },
+            }),
+            // B16: per-drawer variance-approval threshold (NULL = no gate — the default).
+            tx.org_cash_drawers_mst.findFirst({
+              where: { id: session.cash_drawer_id, tenant_org_id: tenantId },
+              select: { variance_approval_threshold: true },
+            }),
+          ])
 
-  const updated = await withTenantContext(tenantId, () =>
-    prisma.org_cash_drawer_sessions_mst.update({
-      where: { id: sessionId },
-      data: {
-        status: 'CLOSED',
-        counted_cash_amount: params.physicalCount,
-        expected_cash_amount: expectedCash,
-        difference_amount: variance,
-        closed_by: params.closedBy,
-        closed_at: new Date(),
-        close_notes: params.notes ?? null,
-        variance_threshold_snapshot: varianceApprovalPending ? varianceThreshold : null,
-        updated_at: new Date(),
+          const cashIn = toNumber(cashPayments._sum.amount)
+          const movementCashIn = movements
+            .filter((movement) => movement.direction === 'IN')
+            .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
+          const movementCashOut = movements
+            .filter((movement) => movement.direction === 'OUT')
+            .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
+          const expectedCash = toNumber(session.opening_float_amount) + cashIn + movementCashIn - movementCashOut
+          const variance = params.physicalCount - expectedCash
+          const isBalanced = Math.abs(variance) < CASH_VARIANCE_TOLERANCE
+
+          // B16 variance approval (OPTIONAL, deferred, opt-in per drawer): when
+          // the drawer has a configured threshold and a not-balanced close
+          // exceeds it, the session is flagged eligible for optional
+          // supervisor approval. The close always completes; a supervisor MAY
+          // approve it separately via `approveSessionVariance`. Snapshotting
+          // the threshold marks the eligible state and preserves the value in
+          // effect at close time. NULL threshold (the default) = no approval
+          // concept at all.
+          const varianceThreshold =
+            drawer?.variance_approval_threshold != null
+              ? toNumber(drawer.variance_approval_threshold)
+              : null
+          const varianceApprovalPending =
+            varianceThreshold != null && !isBalanced && Math.abs(variance) > varianceThreshold
+
+          const updated = await tx.org_cash_drawer_sessions_mst.update({
+            where: { id: sessionId },
+            data: {
+              status: 'CLOSED',
+              counted_cash_amount: params.physicalCount,
+              expected_cash_amount: expectedCash,
+              difference_amount: variance,
+              closed_by: params.closedBy,
+              closed_at: new Date(),
+              close_notes: params.notes ?? null,
+              variance_threshold_snapshot: varianceApprovalPending ? varianceThreshold : null,
+              updated_at: new Date(),
+            },
+          })
+
+          return { session: updated, variance, isBalanced, varianceApprovalPending, varianceThreshold }
       },
-    }),
+    ),
   )
-
-  return { session: updated, variance, isBalanced, varianceApprovalPending, varianceThreshold }
 }
 
 /**
@@ -1626,32 +1735,51 @@ export async function approveSessionVariance(
     throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.REASON_REQUIRED)
   }
 
-  const session = await withTenantContext(tenantId, () =>
-    prisma.org_cash_drawer_sessions_mst.findFirstOrThrow({
-      where: { id: sessionId, tenant_org_id: tenantId },
-    }),
-  )
-
-  const state = deriveVarianceApprovalState(session)
-  if (!state.required) {
-    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.NOT_PENDING_APPROVAL)
-  }
-  if (state.approved) {
-    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED)
-  }
-  // No maker-checker: holding `cash_drawer:approve_variance` is sufficient,
-  // even when the approver is the same user who closed the session (owner rule —
-  // see Remediation_Work_Packages/CLAUDE.md). Permission is the control here.
-
+  // A2 — the read-check-write below is now one transaction, locked per
+  // drawer, so two concurrent approval attempts on the same session can no
+  // longer both pass the "not yet approved" check before either commits.
+  // The lock must be acquired BEFORE the state-determining read, not after:
+  // acquiring it after would let two concurrent callers both read
+  // "not yet approved" before either commits, then both proceed to update
+  // using their now-stale read — the lock would exist but not actually
+  // guard the check it looks like it guards (found and fixed the same
+  // ordering bug in closeSession via a real DB-integration test — see
+  // STATUS.md D22 — so the minimal lookup-then-lock-then-real-read shape
+  // here is deliberate, not an oversight).
   return withTenantContext(tenantId, () =>
-    prisma.org_cash_drawer_sessions_mst.update({
-      where: { id: sessionId },
-      data: {
-        variance_approved_by: params.approvedBy,
-        variance_approved_at: new Date(),
-        variance_approval_reason: reason,
-        updated_at: new Date(),
-      },
+    prisma.$transaction(async (tx) => {
+      const sessionForLock = await tx.org_cash_drawer_sessions_mst.findFirstOrThrow({
+        where: { id: sessionId, tenant_org_id: tenantId },
+        select: { cash_drawer_id: true },
+      })
+
+      await lockDrawerScope(tx, tenantId, sessionForLock.cash_drawer_id)
+
+      const session = await tx.org_cash_drawer_sessions_mst.findFirstOrThrow({
+        where: { id: sessionId, tenant_org_id: tenantId },
+      })
+
+      const state = deriveVarianceApprovalState(session)
+      if (!state.required) {
+        throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.NOT_PENDING_APPROVAL)
+      }
+      if (state.approved) {
+        throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED)
+      }
+      // No maker-checker: holding `cash_drawer:approve_variance` is
+      // sufficient, even when the approver is the same user who closed the
+      // session (owner rule — see Remediation_Work_Packages/CLAUDE.md).
+      // Permission is the control here.
+
+      return tx.org_cash_drawer_sessions_mst.update({
+        where: { id: sessionId },
+        data: {
+          variance_approved_by: params.approvedBy,
+          variance_approved_at: new Date(),
+          variance_approval_reason: reason,
+          updated_at: new Date(),
+        },
+      })
     }),
   )
 }
@@ -1677,35 +1805,41 @@ export async function recordMovement(
     performedBy: string
   },
 ) {
-  const session = await withTenantContext(tenantId, () =>
-    prisma.org_cash_drawer_sessions_mst.findFirst({
-      where: { tenant_org_id: tenantId, cash_drawer_id: drawerId, status: 'OPEN' },
-    }),
-  )
-
-  if (!session) {
-    throw new Error('No open session found for this drawer')
-  }
-
-  const direction = params.movementType === 'CASH_IN' ? 'IN' : 'OUT'
-
+  // A2 — same per-drawer lock as open/close/approve. Without it, a movement
+  // could be created concurrently with a close: the movement's own OPEN
+  // check would pass, then attach itself to a session that closed (and
+  // computed expected_cash_amount) in the gap before this insert commits.
   return withTenantContext(tenantId, () =>
-    prisma.org_cash_drawer_movements_dtl.create({
-      data: {
-        tenant_org_id: tenantId,
-        branch_id: session.branch_id,
-        cash_drawer_id: drawerId,
-        cash_drawer_session_id: session.id,
-        movement_type: params.movementType,
-        direction,
-        amount: params.amount,
-        currency_code: session.currency_code,
-        reason: params.reason,
-        performed_by: params.performedBy,
-        performed_at: new Date(),
-        is_active: true,
-        rec_status: 1,
-      },
+    prisma.$transaction(async (tx) => {
+      await lockDrawerScope(tx, tenantId, drawerId)
+
+      const session = await tx.org_cash_drawer_sessions_mst.findFirst({
+        where: { tenant_org_id: tenantId, cash_drawer_id: drawerId, status: 'OPEN' },
+      })
+
+      if (!session) {
+        throw new Error('No open session found for this drawer')
+      }
+
+      const direction = params.movementType === 'CASH_IN' ? 'IN' : 'OUT'
+
+      return tx.org_cash_drawer_movements_dtl.create({
+        data: {
+          tenant_org_id: tenantId,
+          branch_id: session.branch_id,
+          cash_drawer_id: drawerId,
+          cash_drawer_session_id: session.id,
+          movement_type: params.movementType,
+          direction,
+          amount: params.amount,
+          currency_code: session.currency_code,
+          reason: params.reason,
+          performed_by: params.performedBy,
+          performed_at: new Date(),
+          is_active: true,
+          rec_status: 1,
+        },
+      })
     }),
   )
 }

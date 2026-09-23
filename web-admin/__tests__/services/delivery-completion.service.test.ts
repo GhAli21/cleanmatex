@@ -145,6 +145,11 @@ describe('completeDelivery', () => {
         object_key: `${COMMAND.tenantId}/delivery/${COMMAND.stopId}/${EVIDENCE_ID}.jpeg`,
       }])
       .mockResolvedValueOnce([{ id: EVIDENCE_ID }]);
+    mockExecuteAction.mockImplementationOnce(async () => {
+      // CONFIRM_DELIVERY must see the stop as active while its staged gate runs.
+      expect(mockStopUpdateMany).not.toHaveBeenCalled();
+      return { ok: true, currentStatus: 'delivered', stateVersion: 6 };
+    });
 
     const result = await completeDelivery({
       ...COMMAND,

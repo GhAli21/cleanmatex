@@ -684,12 +684,7 @@ export async function confirmPublicOrderReceivedResponse(
         channel: 'public_web',
       });
       const result = await prisma.$transaction(async (tx) => {
-        // A route stop can still be pending/in_transit at this moment; the
-        // customer's own confirmation is a valid delivery confirmation for it
-        // too, so it must resolve atomically with the order-level transition
-        // below rather than being left orphaned behind an already-delivered order.
-        await resolveActiveStopForCustomerConfirm(tx, tenantId, order.id, confirmNotes);
-        return executeAction({
+        const workflowResult = await executeAction({
           tenantId,
           orderId: order.id,
           screen: PUBLIC_TRACKING_SCREEN,
@@ -707,6 +702,12 @@ export async function confirmPublicOrderReceivedResponse(
             request.headers.get('Idempotency-Key')?.trim() ||
             `public-confirm-received:${tenantId}:${order.id}`,
         }, tx);
+
+        // The delivery-stop gate must observe the active stop until the order
+        // transition has succeeded; resolving it first makes a valid command
+        // fail its own prerequisite check.
+        await resolveActiveStopForCustomerConfirm(tx, tenantId, order.id, confirmNotes);
+        return workflowResult;
       });
 
       logger.info('Public confirm-received success (engine)', {

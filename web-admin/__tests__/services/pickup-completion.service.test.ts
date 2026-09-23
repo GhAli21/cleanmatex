@@ -178,6 +178,11 @@ describe('completePickup', () => {
           has_release_lines: false,
         },
       ]);
+    mockExecuteAction.mockImplementationOnce(async () => {
+      // CONFIRM_PICKUP must see the release as open while its staged gate runs.
+      expect(mockExecuteRaw).not.toHaveBeenCalled();
+      return { ok: true, currentStatus: 'delivered', stateVersion: 8 };
+    });
 
     const result = await completePickup({
       ...COMMAND,

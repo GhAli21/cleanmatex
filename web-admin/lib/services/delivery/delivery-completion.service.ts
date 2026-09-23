@@ -622,24 +622,7 @@ export async function completeDelivery(
       const podId = await writePod(tx, params, stop, existingPod, evidence, now);
       await consumeEvidenceUploads(tx, params.tenantId, evidence.uploadIds, params.actorUserId, now);
 
-      const stopUpdate = await tx.org_dlv_stops_dtl.updateMany({
-        where: {
-          id: stop.stop_id,
-          tenant_org_id: params.tenantId,
-          stop_status_code: { in: ['pending', 'in_transit'] },
-        },
-        data: {
-          stop_status_code: 'delivered',
-          confirm_level: 'sys_user',
-          actual_time: now,
-          updated_at: now,
-          updated_by: params.actorUserId,
-        },
-      });
-      if (stopUpdate.count !== 1) {
-        throw new DeliveryCompletionError('STOP_ALREADY_DELIVERED', 'Delivery stop changed concurrently.', 409);
-      }
-
+      // The semantic gate must observe the active stop before this transaction resolves it.
       const workflow = await executeAction({
         tenantId: params.tenantId,
         orderId: stop.order_id,
@@ -658,6 +641,24 @@ export async function completeDelivery(
         idempotencyKey: `delivery:${params.idempotencyKey}`,
         channel: params.channel ?? 'staff_web',
       }, tx);
+
+      const stopUpdate = await tx.org_dlv_stops_dtl.updateMany({
+        where: {
+          id: stop.stop_id,
+          tenant_org_id: params.tenantId,
+          stop_status_code: { in: ['pending', 'in_transit'] },
+        },
+        data: {
+          stop_status_code: 'delivered',
+          confirm_level: 'sys_user',
+          actual_time: now,
+          updated_at: now,
+          updated_by: params.actorUserId,
+        },
+      });
+      if (stopUpdate.count !== 1) {
+        throw new DeliveryCompletionError('STOP_ALREADY_DELIVERED', 'Delivery stop changed concurrently.', 409);
+      }
 
       await refreshRouteProgress(tx, params.tenantId, stop.route_id, params.actorUserId, now);
 

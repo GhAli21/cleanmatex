@@ -36773,15 +36773,15 @@ export type Database = {
         Args: { p_branch_id?: string; p_tenant_id: string; p_user_id?: string }
         Returns: boolean
       }
+      generate_cash_drawer_sess_no: {
+        Args: { p_tenant_org_id: string }
+        Returns: string
+      }
       generate_customer_number: {
         Args: { p_tenant_org_id: string }
         Returns: string
       }
       generate_order_number: {
-        Args: { p_tenant_org_id: string }
-        Returns: string
-      }
-      generate_session_no: {
         Args: { p_tenant_org_id: string }
         Returns: string
       }

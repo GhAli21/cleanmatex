@@ -201,13 +201,10 @@ async function lockReleasedPickupRecords(
   `;
 }
 
-async function fulfilPickupReleases(
-  tx: PrismaTransactionClient,
-  params: CompletePickupCommand,
+function getValidatedPickupReleaseIds(
   records: LockedRelease[],
   handoverMode: PickupHandoverMode,
-  now: Date,
-): Promise<string[]> {
+): string[] {
   if (records.some((record) => record.release_type === 'partial' || record.has_release_lines)) {
     throw new PickupCompletionError(
       'PICKUP_PARTIAL_RELEASE_UNSUPPORTED',
@@ -216,7 +213,6 @@ async function fulfilPickupReleases(
     );
   }
 
-  const notes = params.handoverNotes?.trim() || null;
   const pickupIds = records
     .filter((record) => record.release_type === 'pickup')
     .map((record) => record.id);
@@ -228,6 +224,19 @@ async function fulfilPickupReleases(
       422,
     );
   }
+
+  return pickupIds;
+}
+
+async function fulfilPickupReleases(
+  tx: PrismaTransactionClient,
+  params: CompletePickupCommand,
+  records: LockedRelease[],
+  handoverMode: PickupHandoverMode,
+  now: Date,
+): Promise<string[]> {
+  const pickupIds = getValidatedPickupReleaseIds(records, handoverMode);
+  const notes = params.handoverNotes?.trim() || null;
 
   if (pickupIds.length === 0) {
     const created = await tx.$queryRaw<Array<{ id: string }>>`
@@ -436,13 +445,9 @@ export async function completePickup(
       const openReleases = await lockReleasedPickupRecords(tx, params.tenantId, params.orderId);
       const now = new Date();
       const handoverMode: PickupHandoverMode = isDirectCounterPickup ? 'direct' : 'released';
-      const releaseIds = await fulfilPickupReleases(
-        tx,
-        params,
-        openReleases,
-        handoverMode,
-        now,
-      );
+      const releaseIds = getValidatedPickupReleaseIds(openReleases, handoverMode);
+
+      // The semantic gate must observe the open release before this transaction closes it.
       const workflow = await executeAction({
         tenantId: params.tenantId,
         orderId: params.orderId,
@@ -461,9 +466,17 @@ export async function completePickup(
         channel: params.channel ?? 'staff_web',
       }, tx);
 
+      const fulfilledReleaseIds = await fulfilPickupReleases(
+        tx,
+        params,
+        openReleases,
+        handoverMode,
+        now,
+      );
+
       const commandResult: CompletePickupResult = {
         orderId: params.orderId,
-        releaseIds,
+        releaseIds: fulfilledReleaseIds,
         workflow,
       };
       await tx.org_idempotency_keys.updateMany({
