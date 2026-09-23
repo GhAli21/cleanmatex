@@ -199,12 +199,145 @@ export async function getCashControlSettings(scope: CashControlScope): Promise<C
 }
 
 // -----------------------------------------------------------------------------
-// Write side — updateCashControlSettings
-//
-// Deferred (POS_Session_Cash_Drawer_Hardening STATUS.md W0-4/W0-4b, D17): the
-// write path is audited on every call (§3.1.3), and its audit table
-// (org_fin_cash_ctrl_audit_dtl, migration 0516) has been written but not yet
-// applied. Adding an unaudited write function here would violate "a control
-// that can be silently turned off is not a control" — so this lands together
-// with the audit table once 0516 is applied and its Prisma model exists.
+// Write side — updateCashControlSettings (W0-4b, migration 0516 applied)
 // -----------------------------------------------------------------------------
+
+/**
+ * Only the fields being changed are present as keys. A present key with
+ * value `null` explicitly CLEARS that override (reverts to inherit); a key
+ * absent from the patch is left untouched. This is why the type is not
+ * `Partial<CashControlSettings>` — that shape cannot distinguish "absent"
+ * from "clear" once the value type itself allows `null` (§3.1.3 write-side
+ * note: getting this wrong silently makes overrides unclearable).
+ */
+export type CashControlSettingsPatch = {
+  [K in keyof CashControlSettings]?: CashControlSettings[K] | null;
+};
+
+export interface CashControlSettingsActor {
+  userId: string;
+  reason?: string;
+}
+
+function resolveWriteTargetScope(scope: CashControlScope): {
+  scopeLevel: CashControlScopeLevel;
+  scopeId: string | null;
+} {
+  if (scope.drawerId) {
+    return { scopeLevel: CASH_CONTROL_SCOPE_LEVEL.DRAWER, scopeId: scope.drawerId };
+  }
+  if (scope.userId) {
+    return { scopeLevel: CASH_CONTROL_SCOPE_LEVEL.USER, scopeId: scope.userId };
+  }
+  if (scope.branchId) {
+    return { scopeLevel: CASH_CONTROL_SCOPE_LEVEL.BRANCH, scopeId: scope.branchId };
+  }
+  return { scopeLevel: CASH_CONTROL_SCOPE_LEVEL.TENANT, scopeId: null };
+}
+
+function toAuditJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.DbNull {
+  return value === null || value === undefined ? Prisma.DbNull : (value as Prisma.InputJsonValue);
+}
+
+function invalidateCacheForTenant(tenantId: string): void {
+  const cache = requestCacheStorage.getStore();
+  if (!cache) {
+    return;
+  }
+  for (const key of cache.keys()) {
+    if (key.startsWith(`${tenantId}|`)) {
+      cache.delete(key);
+    }
+  }
+}
+
+/**
+ * Upserts one row per scope; transactional and audited (§3.1.3). Every
+ * changed column gets its own before/after row in
+ * org_fin_cash_ctrl_audit_dtl — "a control that can be silently turned off
+ * is not a control" (§3.1.6 W0-4b).
+ *
+ * Permission gating (`cash_control:manage`) is the caller's responsibility
+ * (route/server-action layer, §10.3) — this service assumes the actor is
+ * already authorized.
+ *
+ * Concurrency note: the target row is located with a plain `findFirst`
+ * inside the transaction rather than a DB-level upsert, because the
+ * uniqueness constraint on org_fin_cash_ctrl_stng_cf is an expression index
+ * (`COALESCE(scope_id, sentinel)`), which Prisma cannot target as an
+ * `ON CONFLICT` clause. Two concurrent first-writes to the same brand-new
+ * scope would race; the loser fails on the DB's unique index rather than
+ * silently duplicating a row. Acceptable for a low-traffic settings admin
+ * screen — this is not a POS-transaction-frequency path.
+ */
+export async function updateCashControlSettings(
+  scope: CashControlScope,
+  patch: CashControlSettingsPatch,
+  actor: CashControlSettingsActor
+): Promise<CashControlSettings> {
+  const changedFields = Object.keys(patch) as (keyof CashControlSettings)[];
+  if (changedFields.length === 0) {
+    return getCashControlSettings(scope);
+  }
+
+  const { scopeLevel, scopeId } = resolveWriteTargetScope(scope);
+
+  await withTenantContext(scope.tenantId, (tenantId) =>
+    prisma.$transaction(async (tx) => {
+      const existing = await tx.org_fin_cash_ctrl_stng_cf.findFirst({
+        where: { tenant_org_id: tenantId, scope_level: scopeLevel, scope_id: scopeId },
+      });
+
+      const dbPatch: Record<string, unknown> = {};
+      const auditRows: Prisma.org_fin_cash_ctrl_audit_dtlUncheckedCreateInput[] = [];
+
+      for (const field of changedFields) {
+        const def = CASH_CONTROL_SETTING_DEFS.find((d) => d.tsField === field);
+        if (!def) {
+          continue;
+        }
+
+        const patchValue = patch[field];
+        const beforeValue = existing ? ((existing as Record<string, unknown>)[def.dbColumn] ?? null) : null;
+        const isClear = patchValue === null;
+        const afterValue = isClear ? null : patchValue;
+
+        dbPatch[def.dbColumn] = afterValue;
+
+        auditRows.push({
+          tenant_org_id: tenantId,
+          scope_level: scopeLevel,
+          scope_id: scopeId,
+          setting_column: def.dbColumn,
+          audit_action: isClear ? 'CLEAR' : beforeValue === null ? 'CREATE' : 'UPDATE',
+          before_value_jsonb: toAuditJson(beforeValue),
+          after_value_jsonb: toAuditJson(afterValue),
+          change_reason: actor.reason ?? null,
+          changed_by: actor.userId,
+        });
+      }
+
+      if (existing) {
+        await tx.org_fin_cash_ctrl_stng_cf.update({
+          where: { id: existing.id },
+          data: { ...dbPatch, updated_at: new Date(), updated_by: actor.userId } as Prisma.org_fin_cash_ctrl_stng_cfUncheckedUpdateInput,
+        });
+      } else {
+        await tx.org_fin_cash_ctrl_stng_cf.create({
+          data: {
+            tenant_org_id: tenantId,
+            scope_level: scopeLevel,
+            scope_id: scopeId,
+            ...dbPatch,
+            created_by: actor.userId,
+          } as Prisma.org_fin_cash_ctrl_stng_cfUncheckedCreateInput,
+        });
+      }
+
+      await tx.org_fin_cash_ctrl_audit_dtl.createMany({ data: auditRows });
+    })
+  );
+
+  invalidateCacheForTenant(scope.tenantId);
+  return getCashControlSettings(scope);
+}

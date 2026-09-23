@@ -951,6 +951,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'super_admin', 'tenant_admin'],
       },
       {
+        key: 'settings_cash_control',
+        label: 'Cash Control Settings',
+        label2: 'إعدادات ضبط النقد',
+        path: '/dashboard/settings/payments/cash-control-settings',
+        roles: ['admin', 'super_admin', 'tenant_admin', 'branch_manager', 'finance_manager', 'operator'],
+        permissions: ['cash_control:view'],
+      },
+      {
         key: 'settings_workflows',
         label: 'Workflows',
         path: '/dashboard/settings/workflows',

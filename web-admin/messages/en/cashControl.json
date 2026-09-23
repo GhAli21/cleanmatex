@@ -1,0 +1,143 @@
+{
+  "title": "Cash Control Settings",
+  "description": "Tenant-wide policy for drawer closes, variance handling, cash-change rounding, drawer custody, and POS session lifecycle.",
+  "sections": {
+    "drawerClose": "Drawer Close Controls",
+    "cashChangeRounding": "Cash-Change Rounding",
+    "drawerCustody": "Drawer Custody",
+    "posSession": "POS Session Controls"
+  },
+  "varianceOrderHint": "Tolerance must be at or below the reason threshold, which must be at or below the approval threshold.",
+  "viewOnlyTitle": "View only",
+  "viewOnlyDescription": "You can view these settings but don't have permission to change them.",
+  "customerWarningTitle": "This takes money from the customer",
+  "customerWarning": "Rounding change down on every cash sale reduces what the customer receives. Some jurisdictions restrict this — make sure it fits your local rules before saving.",
+  "settings": {
+    "blindCloseEnabled": {
+      "label": "Blind close",
+      "description": "Hide the expected-cash figure from the cashier until the physical count is submitted."
+    },
+    "varianceGateMode": {
+      "label": "Variance gate",
+      "description": "What happens when a drawer close doesn't match the expected cash amount."
+    },
+    "varianceToleranceAmount": {
+      "label": "Auto-accept below",
+      "description": "Variance below this amount is accepted silently."
+    },
+    "varianceReasonAmount": {
+      "label": "Reason required above",
+      "description": "At or above this amount, the cashier must give a reason."
+    },
+    "varianceThresholdAmount": {
+      "label": "Approval required above",
+      "description": "At or above this amount, a supervisor must approve the close."
+    },
+    "cashTrackingMode": {
+      "label": "Checkout cash tracking",
+      "description": "Whether cash tenders at checkout capture denomination detail."
+    },
+    "openingCountMode": {
+      "label": "Opening count",
+      "description": "Denomination detail required when opening a drawer."
+    },
+    "closingCountMode": {
+      "label": "Closing count",
+      "description": "Denomination detail required when closing a drawer."
+    },
+    "cashChangeBearer": {
+      "label": "Who absorbs change rounding",
+      "description": "When change can't be given to the exact fils/cent, who keeps or loses the difference."
+    },
+    "cashChangeRoundToMinor": {
+      "label": "Round change to nearest (minor units)",
+      "description": "Leave blank to use the currency's own rounding rule."
+    },
+    "drawerAssignmentMode": {
+      "label": "Drawer assignment",
+      "description": "Whether any cashier can use a drawer, or only the assigned one."
+    },
+    "sharedSessionMode": {
+      "label": "Shared sessions",
+      "description": "Whether more than one POS session can run against the same open drawer."
+    },
+    "maxCashEnforceMode": {
+      "label": "Max cash enforcement",
+      "description": "What happens when a drawer's cash balance exceeds its configured limit."
+    },
+    "cashDropRequiresDest": {
+      "label": "Cash drops require a destination",
+      "description": "Forbid a cash transfer out of a drawer with no safe, bank, or drawer named as the destination."
+    },
+    "posSessionReqForCash": {
+      "label": "POS session required for cash",
+      "description": "Refuse a cash tender unless the cashier has an open POS session."
+    },
+    "posSessionReqAllTenders": {
+      "label": "POS session required for all tenders",
+      "description": "Extend the requirement above to card, wallet, and other tender types."
+    },
+    "posSessionRolloverMode": {
+      "label": "Business-date rollover",
+      "description": "What happens to a still-open POS session when the business day rolls over."
+    },
+    "posSessionStaleHours": {
+      "label": "Stale session alert (hours)",
+      "description": "Flag a POS session as stale after it has been open this many hours."
+    },
+    "shiftZReportRequired": {
+      "label": "Z-report required at close",
+      "description": "Require a Z-report to be generated as part of closing the POS session."
+    }
+  },
+  "enums": {
+    "varianceGateMode": {
+      "OFF": "Off — never gate on variance",
+      "WARN_ONLY": "Warn only — flag it, allow the close",
+      "APPROVAL_REQUIRED": "Approval required over the threshold"
+    },
+    "cashTrackingMode": {
+      "TOTAL_ONLY": "Total only",
+      "COUNT_BY_DENOMINATION": "By denomination",
+      "FULL_DENOMINATION_TRACKING": "Full denomination tracking"
+    },
+    "countMode": {
+      "TOTAL_ONLY": "Total only",
+      "OPTIONAL_DENOMINATION": "Denomination optional",
+      "DENOMINATION": "Denomination required"
+    },
+    "cashChangeBearer": {
+      "BUSINESS": "Business absorbs it",
+      "CUSTOMER": "Customer absorbs it",
+      "NEAREST": "Round to nearest"
+    },
+    "drawerAssignmentMode": {
+      "OPEN": "Open — any cashier",
+      "ASSIGNED_ONLY": "Assigned cashier only"
+    },
+    "sharedSessionMode": {
+      "SHARED": "Shared",
+      "EXCLUSIVE": "Exclusive"
+    },
+    "maxCashEnforceMode": {
+      "OFF": "Off",
+      "WARN": "Warn",
+      "BLOCK": "Block"
+    },
+    "posSessionRolloverMode": {
+      "OFF": "Off",
+      "PAUSE_AT_ROLLOVER": "Pause at rollover",
+      "FORCE_CLOSE_AT_ROLLOVER": "Force-close at rollover"
+    }
+  },
+  "changeBearerExample": {
+    "BUSINESS": "Example: change owed is 9.997 {currency}, rounded up to 10.000 {currency} — the business absorbs the extra 0.003.",
+    "CUSTOMER": "Example: change owed is 9.997 {currency}, rounded down to 9.990 {currency} — the customer loses 0.007.",
+    "NEAREST": "Example: change owed is 9.997 {currency}, rounded to the nearest step — usually 10.000 {currency}."
+  },
+  "messages": {
+    "saved": "Cash control settings saved.",
+    "loadFailed": "Failed to load cash control settings.",
+    "saveFailed": "Failed to save cash control settings."
+  }
+}

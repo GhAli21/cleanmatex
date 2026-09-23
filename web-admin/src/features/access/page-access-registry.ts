@@ -1,6 +1,7 @@
 import { matchesRoutePattern, type PageAccessContract } from '@/lib/auth/access-contracts'
 import { B2B_ACCESS_CONTRACTS } from '@features/b2b/access/b2b-access'
 import { BILLING_ACCESS_CONTRACTS } from '@features/billing/access/billing-access'
+import { CASH_DRAWERS_ACCESS_CONTRACTS } from '@features/cash-drawers/access/cash-drawers-access'
 import { CATALOG_ACCESS_CONTRACTS } from '@features/catalog/access/catalog-access'
 import { CORE_ACCESS_CONTRACTS } from '@features/core/access/core-access'
 import { CUSTOMERS_ACCESS_CONTRACTS } from '@features/customers/access/customers-access'
@@ -41,6 +42,7 @@ export const PAGE_ACCESS_CONTRACTS: PageAccessContract[] = [
   ...CORE_ACCESS_CONTRACTS,
   ...B2B_ACCESS_CONTRACTS,
   ...BILLING_ACCESS_CONTRACTS,
+  ...CASH_DRAWERS_ACCESS_CONTRACTS,
   ...CATALOG_ACCESS_CONTRACTS,
   ...CUSTOMERS_ACCESS_CONTRACTS,
   ...DASHBOARD_ACCESS_CONTRACTS,

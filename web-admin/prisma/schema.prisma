@@ -1546,6 +1546,7 @@ model org_tenants_mst {
   org_tax_doc_seq_counters         org_tax_doc_seq_counters[]
   org_tax_doc_triggers_cfg         org_tax_doc_triggers_cfg[]
   org_fin_cash_ctrl_stng_cf        org_fin_cash_ctrl_stng_cf[]
+  org_fin_cash_ctrl_audit_dtl      org_fin_cash_ctrl_audit_dtl[]
 
   @@index([business_type_code], map: "idx_tenant_business_type")
   @@index([stng_profile_code], map: "idx_org_tenants_profile")
@@ -1619,6 +1620,7 @@ model org_users_mst {
   floor                       String?
   is_user                     Boolean                       @default(true)
   org_drivers_mst             org_drivers_mst[]
+  org_fin_cash_ctrl_audit_dtl org_fin_cash_ctrl_audit_dtl[]
   org_invoice_mst_handed_to   org_invoice_mst[]             @relation("invoice_handed_to_user")
   org_order_items_dtl         org_order_items_dtl[]
   org_stng_audit_log_tr       org_stng_audit_log_tr[]
@@ -6832,6 +6834,35 @@ model org_fin_cash_ctrl_stng_cf {
   is_active                    Boolean         @default(true)
   org_tenants_mst               org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@schema("public")
+}
+
+model org_fin_cash_ctrl_audit_dtl {
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id      String          @db.Uuid
+  scope_level        String
+  scope_id           String?         @db.Uuid
+  setting_column     String
+  audit_action       String
+  before_value_jsonb Json?
+  after_value_jsonb  Json?
+  change_reason      String?
+  changed_by         String?         @db.Uuid
+  changed_at         DateTime        @default(now()) @db.Timestamptz(6)
+  created_at         DateTime        @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  rec_status         Int             @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  is_active          Boolean         @default(true)
+  org_tenants_mst    org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_users_mst      org_users_mst?  @relation(fields: [changed_by], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([tenant_org_id], map: "idx_ofcad_tenant")
+  @@index([tenant_org_id, scope_level, scope_id], map: "idx_ofcad_scope")
+  @@index([tenant_org_id, setting_column], map: "idx_ofcad_column")
+  @@index([tenant_org_id, changed_at(sort: Desc)], map: "idx_ofcad_changed_at")
   @@schema("public")
 }
 

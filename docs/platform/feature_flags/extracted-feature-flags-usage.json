@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-08-20T23:15:14.844Z",
+  "extractedAt": "2026-09-23T07:48:36.442Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -26,7 +26,7 @@
       },
       {
         "path": "src/features/customers/ui/customer-stored-value-tab.tsx",
-        "line": 77,
+        "line": 78,
         "context": "const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture');",
         "surface": "screen",
         "pattern": "useFeature"
@@ -112,21 +112,21 @@
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 299,
+        "line": 301,
         "context": "return getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 337,
+        "line": 339,
         "context": "return getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 360,
+        "line": 362,
         "context": "return getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
@@ -140,14 +140,14 @@
       },
       {
         "path": "lib/services/workflow-service-enhanced.ts",
-        "line": 267,
+        "line": 220,
         "context": "const featureFlags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/workflow-service-enhanced.ts",
-        "line": 497,
+        "line": 425,
         "context": "const flags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
@@ -170,7 +170,7 @@
       },
       {
         "path": "src/features/orders/ui/order-financial/refund-initiate-dialog.tsx",
-        "line": 182,
+        "line": 194,
         "context": "const refundExecutionEnabled = useFeature('order_fin_refund_execution');",
         "surface": "screen",
         "pattern": "useFeature"
@@ -179,14 +179,14 @@
     "online_booking": [
       {
         "path": "app/api/v1/public/customer/booking/route.ts",
-        "line": 360,
+        "line": 372,
         "context": "const bookingEnabled = await canAccess(tenantId, 'online_booking');",
         "surface": "api",
         "pattern": "canAccess"
       },
       {
         "path": "app/api/v1/public/customer/booking/route.ts",
-        "line": 683,
+        "line": 695,
         "context": "const bookingEnabled = await canAccess(body.tenantId, 'online_booking');",
         "surface": "api",
         "pattern": "canAccess"
@@ -208,6 +208,22 @@
         "pattern": "useFeature"
       }
     ],
+    "order_fin_voucher_unwind": [
+      {
+        "path": "app/dashboard/internal_fin/vouchers/[voucherId]/page.tsx",
+        "line": 86,
+        "context": "const unwindEnabled = await canAccess(auth.tenantId, 'order_fin_voucher_unwind');",
+        "surface": "screen",
+        "pattern": "canAccess"
+      },
+      {
+        "path": "lib/services/voucher-reversal.service.ts",
+        "line": 89,
+        "context": "const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind');",
+        "surface": "service",
+        "pattern": "canAccess"
+      }
+    ],
     "erp_lite_enabled": [
       {
         "path": "lib/services/erp-lite-feature-guard.ts",
@@ -218,133 +234,133 @@
       },
       {
         "path": "config/navigation.ts",
-        "line": 612,
+        "line": 615,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 620,
+        "line": 623,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 629,
+        "line": 632,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 637,
+        "line": 640,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 645,
+        "line": 648,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 653,
+        "line": 656,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 661,
+        "line": 664,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 669,
+        "line": 672,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 677,
+        "line": 680,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 685,
+        "line": 688,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 693,
+        "line": 696,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 701,
+        "line": 704,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 709,
+        "line": 712,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 717,
+        "line": 720,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 725,
+        "line": 728,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 733,
+        "line": 736,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 741,
+        "line": 744,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 749,
+        "line": 752,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 757,
+        "line": 760,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -353,35 +369,21 @@
     "pdf_invoices": [
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 406,
+        "line": 408,
         "context": "*   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES);",
         "surface": "service",
         "pattern": "requireFeature"
       },
       {
-        "path": "src/features/auth/ui/RequireFeature.tsx",
-        "line": 231,
-        "context": "* const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)",
-        "surface": "screen",
-        "pattern": "useFeature"
-      },
-      {
-        "path": "src/features/auth/ui/RequireFeature.tsx",
-        "line": 271,
-        "context": "* const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)",
-        "surface": "screen",
-        "pattern": "useFeature"
-      },
-      {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 528,
+        "line": 535,
         "context": "{plan.feature_flags.pdf_invoices && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 665,
+        "line": 672,
         "context": "{selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
@@ -390,7 +392,7 @@
     "order_fin_governed_amendments": [
       {
         "path": "lib/services/order-service.ts",
-        "line": 2932,
+        "line": 3065,
         "context": "const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments');",
         "surface": "service",
         "pattern": "canAccess"
@@ -413,28 +415,28 @@
       },
       {
         "path": "config/navigation.ts",
-        "line": 296,
+        "line": 299,
         "context": "//featureFlag: 'b2b_contracts',",
         "surface": "navigation",
         "pattern": "featureFlag"
       },
       {
         "path": "config/navigation.ts",
-        "line": 304,
+        "line": 307,
         "context": "//featureFlag: 'b2b_contracts',",
         "surface": "navigation",
         "pattern": "featureFlag"
       },
       {
         "path": "config/navigation.ts",
-        "line": 312,
+        "line": 315,
         "context": "//featureFlag: 'b2b_contracts',",
         "surface": "navigation",
         "pattern": "featureFlag"
       },
       {
         "path": "config/navigation.ts",
-        "line": 320,
+        "line": 323,
         "context": "//featureFlag: 'b2b_contracts',",
         "surface": "navigation",
         "pattern": "featureFlag"
@@ -475,14 +477,14 @@
     "whatsapp_receipts": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 531,
+        "line": 538,
         "context": "{plan.feature_flags.whatsapp_receipts && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 666,
+        "line": 673,
         "context": "{selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
@@ -491,51 +493,30 @@
     "driver_app": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 534,
+        "line": 541,
         "context": "{plan.feature_flags.driver_app && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 667,
+        "line": 674,
         "context": "{selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
-      },
-      {
-        "path": "config/navigation.ts",
-        "line": 215,
-        "context": "featureFlag: FLAG_KEYS.DRIVER_APP,",
-        "surface": "navigation",
-        "pattern": "FLAG_KEYS"
-      },
-      {
-        "path": "config/navigation.ts",
-        "line": 223,
-        "context": "featureFlag: FLAG_KEYS.DRIVER_APP,",
-        "surface": "navigation",
-        "pattern": "FLAG_KEYS"
-      },
-      {
-        "path": "config/navigation.ts",
-        "line": 231,
-        "context": "featureFlag: FLAG_KEYS.DRIVER_APP,",
-        "surface": "navigation",
-        "pattern": "FLAG_KEYS"
       }
     ],
     "multi_branch": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 537,
+        "line": 544,
         "context": "{plan.feature_flags.multi_branch && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 668,
+        "line": 675,
         "context": "{selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
@@ -544,14 +525,14 @@
     "api_access": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 540,
+        "line": 547,
         "context": "{plan.feature_flags.api_access && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 670,
+        "line": 677,
         "context": "{selectedPlan.feature_flags.api_access && <li>✓ API Access</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
@@ -560,14 +541,14 @@
     "advanced_analytics": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 669,
+        "line": 676,
         "context": "{selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "config/navigation.ts",
-        "line": 555,
+        "line": 558,
         "context": "//featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -576,14 +557,14 @@
     "erp_lite_gl_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 685,
+        "line": 688,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 693,
+        "line": 696,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -592,7 +573,7 @@
     "erp_lite_ar_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 709,
+        "line": 712,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -601,7 +582,7 @@
     "erp_lite_ap_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 717,
+        "line": 720,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -610,7 +591,7 @@
     "erp_lite_po_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 725,
+        "line": 728,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -619,7 +600,7 @@
     "erp_lite_expenses_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 733,
+        "line": 736,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -628,7 +609,7 @@
     "erp_lite_bank_recon_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 741,
+        "line": 744,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -637,7 +618,7 @@
     "erp_lite_branch_pl_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 749,
+        "line": 752,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -646,7 +627,7 @@
     "campaigns_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 805,
+        "line": 808,
         "context": "featureFlag: FLAG_KEYS.CAMPAIGNS_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"

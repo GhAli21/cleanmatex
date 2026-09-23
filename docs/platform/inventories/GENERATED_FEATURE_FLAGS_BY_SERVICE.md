@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-19T05:50:28.190Z
+Generated: 2026-09-23T08:15:20.861Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -13,11 +13,12 @@ Generated: 2026-09-19T05:50:28.190Z
 | getFeatureFlags | lib/services/feature-flags.service.ts | 197 | return getFeatureFlags(user.user_metadata.tenant_org_id); |
 | getFeatureFlags | lib/services/feature-flags.service.ts | 214 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/feature-flags.service.ts | 247 | const flags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/feature-flags.service.ts | 299 | return getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/feature-flags.service.ts | 337 | return getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/feature-flags.service.ts | 360 | return getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/feature-flags.service.ts | 301 | return getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/feature-flags.service.ts | 339 | return getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/feature-flags.service.ts | 362 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 267 | const featureFlags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 497 | const flags = await getFeatureFlags(tenantId); |
-| order_fin_governed_amendments | lib/services/order-service.ts | 2932 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
-| pdf_invoices | lib/services/feature-flags.service.ts | 406 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |
+| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 220 | const featureFlags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 425 | const flags = await getFeatureFlags(tenantId); |
+| order_fin_governed_amendments | lib/services/order-service.ts | 3065 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
+| order_fin_voucher_unwind | lib/services/voucher-reversal.service.ts | 89 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
+| pdf_invoices | lib/services/feature-flags.service.ts | 408 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |

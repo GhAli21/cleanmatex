@@ -28,21 +28,40 @@
 -- Every migration number in the plan text from this point on is nominal;
 -- STATUS.md's wave table is authoritative.
 --
--- This migration seeds sys_auth_permissions ONLY. Role -> permission default
--- grants (W0-12, mapping to Cashier / Branch Supervisor / Finance Manager /
--- Tenant Admin — real role codes confirmed via remote MCP: cashier,
--- supervisor, branch_manager, finance_manager, tenant_admin, super_admin,
--- admin) are deliberately a SEPARATE step through the /update-rbac-role
--- skill, which generates its own migration — see STATUS.md.
+-- This migration ALSO seeds sys_auth_role_default_permissions (W0-12),
+-- following the canonical `/update-rbac-role` INSERT...SELECT...NOT EXISTS
+-- pattern (never ON CONFLICT for this table). Role sets are not guessed —
+-- each one extends the *existing* tiering found by a remote MCP read-only
+-- audit of how the related, already-seeded permissions are granted today:
+--   - open_session / close_session / record_movement (the operational
+--     "runs a drawer day to day" tier) -> admin, branch_manager, cashier,
+--     finance_manager, operator, super_admin, tenant_admin.
+--   - view_reports / approve_variance (the "management/finance oversight"
+--     tier) -> accountant, admin, branch_manager, finance_manager,
+--     super_admin, tenant_admin.
+--   - pos_session:view/open/close/pause_resume/force_close are granted to
+--     EVERY role in the system (a session over one's own work is a
+--     baseline capability) — that pattern is deliberately NOT extended to
+--     the two new pos_session codes below, since both act on OTHER users'
+--     sessions or on financial reporting, not on the actor's own session.
+-- Every group below additionally includes super_admin, tenant_admin and
+-- operator per explicit instruction. One exception: cash_control:manage
+-- (changes financial-control POLICY — blind-close, variance gates,
+-- thresholds — tenant/branch-wide) deliberately excludes operator despite
+-- that instruction; flagged to the owner in this session's summary rather
+-- than silently granted, consistent with CLAUDE.md's "flag business-rule
+-- gaps, hidden risks" guidance and the no-silent-money-mutation spirit for
+-- financial-control settings. Add it in a follow-up if the owner confirms.
 --
 -- Format check: every code below matches ^[a-z0-9_]+:([a-z0-9_]+|\*)$
 -- (CRITICAL RULE #13).
 --
 -- Reversal (forward-only; this repo forbids editing applied migrations): a
--- future migration would DELETE FROM sys_auth_permissions WHERE code IN
--- (the nine codes below). Lossy only if a role has since been granted one of
--- them (that grant row would need deleting first) — check
--- sys_auth_role_default_permissions before reversing.
+-- future migration would first DELETE FROM sys_auth_role_default_permissions
+-- WHERE permission_code IN (the nine codes below), then DELETE FROM
+-- sys_auth_permissions WHERE code IN (the same nine). Lossy: yes, for any
+-- tenant that has since granted/revoked these at the user level via
+-- org_auth_user_permissions — those overrides would also need clearing.
 -- =============================================================================
 
 BEGIN;
@@ -114,6 +133,152 @@ BEGIN
   ASSERT EXISTS (
     SELECT 1 FROM public.sys_auth_permissions WHERE code = 'cash_drawer:close_session'
   ), 'cash_drawer:close_session unexpectedly missing — W0-9 audit assumption invalid, investigate before mirroring into TS';
+END $$;
+
+-- -----------------------------------------------------------------------------
+-- Role -> permission default grants (W0-12)
+-- -----------------------------------------------------------------------------
+
+-- Group 1 — operational drawer actions (matches the open_session/close_session/
+-- record_movement tier): count, transfer, receive_transfer.
+INSERT INTO public.sys_auth_role_default_permissions (
+  role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by
+)
+SELECT r.code, p.code, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM public.sys_auth_roles r
+CROSS JOIN public.sys_auth_permissions p
+WHERE r.code IN ('cashier', 'operator', 'branch_manager', 'finance_manager', 'admin', 'super_admin', 'tenant_admin')
+  AND p.code IN ('cash_drawer:count', 'cash_drawer:transfer', 'cash_drawer:receive_transfer')
+  AND NOT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
+
+-- Group 2 — safe-to-bank deposit. One tier more restricted than Group 1
+-- (excludes cashier): a bank deposit is a step above routine till operation.
+INSERT INTO public.sys_auth_role_default_permissions (
+  role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by
+)
+SELECT r.code, p.code, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM public.sys_auth_roles r
+CROSS JOIN public.sys_auth_permissions p
+WHERE r.code IN ('operator', 'branch_manager', 'finance_manager', 'admin', 'super_admin', 'tenant_admin')
+  AND p.code = 'cash_drawer:deposit'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
+
+-- Group 3 — cross-branch visibility. Matches the view_reports/
+-- approve_variance "management/finance oversight" tier, plus operator per
+-- explicit instruction.
+INSERT INTO public.sys_auth_role_default_permissions (
+  role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by
+)
+SELECT r.code, p.code, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM public.sys_auth_roles r
+CROSS JOIN public.sys_auth_permissions p
+WHERE r.code IN ('accountant', 'operator', 'branch_manager', 'finance_manager', 'admin', 'super_admin', 'tenant_admin')
+  AND p.code = 'cash_drawer:view_all_branches'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
+
+-- Group 4 — closing ANOTHER user's POS session. Deliberately NOT extended to
+-- every role like the base pos_session:* codes are — this acts on someone
+-- else's session, not the actor's own. supervisor added (floor-supervision
+-- archetype) alongside operator per explicit instruction.
+INSERT INTO public.sys_auth_role_default_permissions (
+  role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by
+)
+SELECT r.code, p.code, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM public.sys_auth_roles r
+CROSS JOIN public.sys_auth_permissions p
+WHERE r.code IN ('supervisor', 'operator', 'branch_manager', 'finance_manager', 'admin', 'super_admin', 'tenant_admin')
+  AND p.code = 'pos_session:close_others'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
+
+-- Group 5 — Z-report generation. Broader than Group 4: a cashier or operator
+-- generating their own end-of-shift Z-report is routine, matching how the
+-- base pos_session:* codes are granted broadly.
+INSERT INTO public.sys_auth_role_default_permissions (
+  role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by
+)
+SELECT r.code, p.code, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM public.sys_auth_roles r
+CROSS JOIN public.sys_auth_permissions p
+WHERE r.code IN ('cashier', 'operator', 'supervisor', 'branch_manager', 'finance_manager', 'accountant', 'admin', 'super_admin', 'tenant_admin')
+  AND p.code = 'pos_session:report_z'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
+
+-- Group 6 — viewing cash-control settings (read-only).
+INSERT INTO public.sys_auth_role_default_permissions (
+  role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by
+)
+SELECT r.code, p.code, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM public.sys_auth_roles r
+CROSS JOIN public.sys_auth_permissions p
+WHERE r.code IN ('operator', 'branch_manager', 'finance_manager', 'admin', 'super_admin', 'tenant_admin')
+  AND p.code = 'cash_control:view'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
+
+-- Group 7 — managing cash-control settings (financial-control POLICY:
+-- blind-close, variance gates, thresholds). Deliberately EXCLUDES operator
+-- despite the general instruction to include it everywhere — see the header
+-- note. super_admin and tenant_admin are included per explicit instruction.
+INSERT INTO public.sys_auth_role_default_permissions (
+  role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by
+)
+SELECT r.code, p.code, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM public.sys_auth_roles r
+CROSS JOIN public.sys_auth_permissions p
+WHERE r.code IN ('branch_manager', 'finance_manager', 'admin', 'super_admin', 'tenant_admin')
+  AND p.code = 'cash_control:manage'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
+
+-- Role-grant verification.
+DO $$
+DECLARE
+  v_grant_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO v_grant_count
+  FROM public.sys_auth_role_default_permissions
+  WHERE permission_code IN (
+    'cash_drawer:count', 'cash_drawer:transfer', 'cash_drawer:receive_transfer',
+    'cash_drawer:deposit', 'cash_drawer:view_all_branches',
+    'pos_session:close_others', 'pos_session:report_z',
+    'cash_control:view', 'cash_control:manage'
+  ) AND is_active = true;
+
+  RAISE NOTICE '✅ % role/permission grant rows now active for the 9 new codes', v_grant_count;
+
+  ASSERT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions
+    WHERE role_code = 'super_admin' AND permission_code = 'cash_control:manage'
+  ), 'super_admin missing cash_control:manage grant';
+
+  ASSERT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions
+    WHERE role_code = 'tenant_admin' AND permission_code = 'cash_control:manage'
+  ), 'tenant_admin missing cash_control:manage grant';
+
+  ASSERT EXISTS (
+    SELECT 1 FROM public.sys_auth_role_default_permissions
+    WHERE role_code = 'operator' AND permission_code = 'cash_drawer:count'
+  ), 'operator missing cash_drawer:count grant';
 END $$;
 
 COMMIT;

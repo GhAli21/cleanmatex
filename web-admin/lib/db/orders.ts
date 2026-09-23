@@ -787,12 +787,17 @@ export async function listOrders(
   );
 
   const orderList: OrderListItem[] = orders.map((order) => {
-    // Get customer data from org_customers_mst, fallback to sys_customers_mst if available
+    // The order snapshot preserves who the counter served at the time of sale;
+    // master records only fill legacy orders whose snapshot was never written.
     const customerData = order.org_customers_mst?.sys_customers_mst || order.org_customers_mst;
 
     // Ensure customer data is properly formatted (defensive check)
     const customerId = customerData?.id || order.org_customers_mst?.id || '';
-    const customerName = customerData?.name || order.org_customers_mst?.name || '';
+    const customerName =
+      order.customer_name?.trim()
+      || order.org_customers_mst?.name?.trim()
+      || order.org_customers_mst?.sys_customers_mst?.name?.trim()
+      || '';
     const customerPhone = customerData?.phone || order.org_customers_mst?.phone || '';
 
     // Ensure all values are strings, not objects

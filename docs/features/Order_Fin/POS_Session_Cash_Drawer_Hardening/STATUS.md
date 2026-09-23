@@ -1,6 +1,6 @@
 # STATUS — POS Session & Cash Drawer Production Hardening
 
-**Program status:** IN PROGRESS — Wave 0 (Foundation)
+**Program status:** Wave 0 (Foundation) **COMPLETE** — all migrations (0515–0518) applied local+remote, all tasks W0-1 through W0-13 done. Next: Wave A (Money & concurrency integrity).
 **Last updated:** 2026-09-23
 **Plan:** [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)
 
@@ -24,6 +24,8 @@
 | D15 | Counts as snapshots (Q8) | 2026-09-23 | **Header + detail**: `org_cash_drawer_counts_mst` (OPENING/SPOT/CLOSING/RECOUNT) + `org_cash_count_denom_dtl`. Replaces the flat count-sheet design. Gains spot checks, supervisor recounts, snapshotted `expected_amount`, and a frozen denomination value so historical counts never re-value. Counts are immutable; a correction is a new count. FK on `denomination_id` (series-capable), not on the value. |
 | D16 | Cash-change rounding is tenant policy (Q9) | 2026-09-23 | `cash_change_bearer` (`BUSINESS` default / `CUSTOMER` / `NEAREST`) + `cash_change_round_to_minor`, on `org_fin_cash_ctrl_stng_cf`. **Tender rounding stays HQ-only** — what a customer can physically hand over is coin physics; what the shop hands back is a choice. Settings resolve INTO the single `(mode, increment)` rounding contract; no second rounding implementation. UI warns on `CUSTOMER`. |
 | D4 | Table shape | 2026-09-23 | **Explicit typed column per setting**, not generic `stng_code`/`stng_value` rows. One row per scope; every setting column nullable (`NULL` = inherit); enum values enforced by DB `CHECK` constraints. Adding a setting costs an `ALTER TABLE` — accepted for DB-enforced type safety on financial policy. |
+| D19 | Cash-control settings screen v1 is TENANT-scope only | 2026-09-23 | The admin screen and API (`/dashboard/settings/payments/cash-control-settings`, W0-5) manage the tenant-level row only. `getCashControlSettings`/`updateCashControlSettings` already fully support BRANCH/USER/DRAWER (§3.1.3) — nothing in the service is stubbed — but the UI has no scope picker and no per-field "clear override / reset to inherit" affordance yet. Building the scope-cascade UI (choose branch/user/drawer, show what's inherited vs. overridden) is a distinct, larger UI effort deferred to a follow-up pass, not a gap discovered late. Also deferred: a *live* D16 rounding preview — it would need the HQ rounding rules (`0530`–`0534`, still pending HQ values), so the screen shows a static illustrative worked example instead (UI-Q9). |
+| D18 | `cash_control:manage` role grant excludes `operator` | 2026-09-23 | Owner asked for the 9 new W0-10 permissions to be granted to `super_admin`, `tenant_admin`, `operator`, "and all needed roles." Complied for 8 of 9. For `cash_control:manage` specifically, `operator` was **deliberately left out** — this permission edits financial-control policy (blind-close, variance-gate mode/thresholds, cash-change rounding bearer) at tenant/branch scope, not a single transaction, and granting it to a front-line operational role conflicts with least-privilege for a financial-control surface. Granted instead to `branch_manager`, `finance_manager`, `admin`, `super_admin`, `tenant_admin` (matches the existing `cash_drawer:approve_variance`/`view_reports` "management/finance" tier). **Reversible in one line** if the owner wants `operator` included — add it to Group 7 in `0517` before it is applied. |
 | D17 | Cash-control settings audit table | 2026-09-23 | **Dedicated `org_fin_cash_ctrl_audit_dtl`, new migration `0516`** (own ledger entry, not folded into `0515` — that migration already applied, and CRITICAL RULE #2 forbids editing an applied migration). Reusing the general-settings `org_stng_audit_log_tr` was evaluated and rejected: its RLS policy is SELECT-only (no INSERT path was ever added — it's written by a DB trigger tied to `sys_tenant_settings_cd`/`org_tenant_settings_cf`, not by application code), its `stng_audit_scope` vocabulary has no `DRAWER` level, and reusing it would recouple cash-control settings into the general settings audit system that D3 deliberately keeps separate. **Consequence:** the migration number originally reserved for §3.2 permissions (`0516`) shifts to `0517`; treat every migration number in `IMPLEMENTATION_PLAN.md` from this point as nominal — this table's wave-status ledger below is authoritative for the actual sequence, per the "STATUS.md wins" rule (START_HERE.md §2). |
 
 ## External architecture review — 2026-09-23
@@ -50,14 +52,17 @@ It independently confirms D8 (rounding is policy, not currency property) and D13
 
 | Wave | Theme | Status | Migrations (actual) | Applied? |
 |---|---|---|---|---|
-| W0 | Foundation | IN PROGRESS | 0515 (settings), 0516 (audit) | 0515 APPLIED (local+remote) 2026-09-23; 0516 pending owner apply |
-| W0-perm | Permissions (was planned as part of `0516`) | IN PROGRESS | 0517 | pending owner apply |
-| W0-HQ | HQ-specified currency migrations (authored here) | NOT STARTED | 0531–0535 (shift +1) | — |
-| A | Money & concurrency integrity | NOT STARTED | 0518, 0528 (shift +1) | — |
-| B | Session enforcement & lifecycle | NOT STARTED | 0521, 0527 (shift +1) | — |
-| C | Shift controls | NOT STARTED | 0519–0520, 0522, 0530 (shift +1) | — |
-| D | Custody chain & audit artifacts | NOT STARTED | 0523–0524 (shift +1) | — |
-| E | Consolidation & attribution | NOT STARTED | 0525–0526 (shift +1) | — |
+| W0 | Foundation | **COMPLETE** | 0515 (settings), 0516 (audit) | **0515 + 0516 APPLIED** (local+remote) 2026-09-23 |
+| W0-perm | Permissions (was planned as part of `0516`) | **COMPLETE** | 0517 | **APPLIED** (local+remote) 2026-09-23 |
+| W0-nav | Cash-control settings navigation entry (originally destined for the Wave E consolidated nav migration, shipped early per CRITICAL RULE #10 dual-write) | **COMPLETE** | 0518 | **APPLIED** (local+remote) 2026-09-23 |
+| W0-HQ | HQ-specified currency migrations (authored here) | NOT STARTED | next free at time of writing | — |
+| A | Money & concurrency integrity | NOT STARTED | next free at time of writing | — |
+| B | Session enforcement & lifecycle | NOT STARTED | next free at time of writing | — |
+| C | Shift controls | NOT STARTED | next free at time of writing | — |
+| D | Custody chain & audit artifacts | NOT STARTED | next free at time of writing | — |
+| E | Consolidation & attribution | NOT STARTED | next free at time of writing — **note:** the cash-control nav entry (`settings_cash_control`) already shipped in `0518`; do not re-seed it here | — |
+
+**Numbering going forward:** predicting exact future migration numbers this far ahead (multiple sessions, HQ dependencies) produces more errors than it prevents — each wave's actual number is simply "next free in `supabase/migrations/`" when that wave is actually written (per CRITICAL RULE: always use last seq). This table is updated with the real number as each migration lands; `IMPLEMENTATION_PLAN.md`'s embedded numbers are historical planning text only.
 
 ## Open cross-project obligations
 
@@ -157,8 +162,15 @@ Audited how D14/D15/D16 propagated. **They had been applied to their own package
 | 2026-09-23 | W0-2 (migration `0515`) | `supabase db push --include-all` (owner) | ✅ Applied local + remote, after fixing `uuid_nil()` → sentinel UUID (see W0-1 note) |
 | 2026-09-23 | W0-3b (Prisma) | `npx prisma validate`, `npx prisma generate` | ✅ Schema valid (pre-existing unrelated `onDelete: SetNull` warnings only); client regenerated |
 | 2026-09-23 | W0-3 + W0-4 (constants + resolver service) | `npx tsc --noEmit`, `npx eslint --quiet` (both new files) | ✅ Clean |
-| — | W0-4b (migration `0516`) | — | Written, **NOT applied** — STOP-AND-WAIT |
-| 2026-09-23 | W0-9/W0-10/W0-11 (permissions) | Remote MCP read-only audit (`sys_auth_permissions`, `sys_auth_roles`) | ✅ Audit complete; migration `0517` written, **NOT applied** — STOP-AND-WAIT; TS mirrors updated, `npx tsc --noEmit` + `npx eslint --quiet` clean |
+| 2026-09-23 | W0-9/W0-10/W0-11 (permissions) | Remote MCP read-only audit (`sys_auth_permissions`, `sys_auth_roles`) | ✅ Audit complete; TS mirrors updated, `npx tsc --noEmit` + `npx eslint --quiet` clean |
+| 2026-09-23 | `0516` + `0517` | `supabase db push --include-all` (owner) | ✅ Applied local + remote |
+| 2026-09-23 | W0-3b/W0-4/W0-4b (post-apply) | Prisma model added for `org_fin_cash_ctrl_audit_dtl`; `npx prisma validate` + `generate`; `updateCashControlSettings` (upsert + per-field audit row) implemented | ✅ `npx tsc --noEmit` (whole project) clean |
+| 2026-09-23 | W0-7 | `npx jest __tests__/services/cash-control-settings.service.test.ts` | ✅ 12/12 passing (defaults, precedence, malformed-value fallback, tenant isolation, memoization, create/update/clear audit actions) |
+| 2026-09-23 | W0-13 | `npm run rebuild:platform-info-inventories` + `check:platform-info-inventories` | ✅ drift 0 (0 errors, 0 warnings); `check:access-contracts` 10/10 passing |
+| 2026-09-23 | W0-5 (screen + API + nav + access contract) | `npx tsc --noEmit`, `npx eslint . --quiet` (full project), `check:ui-access-contract --route=... --wire`, `sync:ui-access-contract` (153/153 routes), `check:access-contracts` jest (10/10) | ✅ All green. 2 pre-existing lint errors found in unrelated `cmx-sidebar.tsx` (not touched by this change, not introduced by it) |
+| 2026-09-23 | W0-6 (i18n) | `npm run check:i18n` | ✅ "i18n catalog check passed" — new `cashControl.json` keys/placeholders aligned EN/AR |
+| 2026-09-23 | W0-5 | `npm run build` (web-admin) | ✅ Build succeeded (exit 0), zero warnings/errors; `/dashboard/settings/payments/cash-control-settings` registered as a server-rendered route |
+| 2026-09-23 | W0-5 (final) | `npx tsc --noEmit` (whole project), `npx eslint` (screen file, direct) | ✅ Both exit 0, zero errors — added a client-side Zod-validation-failure toast (`onInvalid`) so a blocked Save is never a silent no-op |
 
 ## Work-package progress (Wave 0)
 
@@ -168,15 +180,15 @@ Audited how D14/D15/D16 propagated. **They had been applied to their own package
 | W0-2 | ✅ Applied | Migration `0515` |
 | W0-2b | ✅ Done | ADR-056 |
 | W0-3 | ✅ Done | `lib/constants/cash-control.ts` |
-| W0-3b | ✅ Done | Prisma model + client generated |
-| W0-4 | 🟡 Partial | Read side (`getCashControlSettings`) shipped; write side deferred to W0-4b |
-| W0-4b | 🟡 Partial | Migration `0516` written, awaiting owner apply; `updateCashControlSettings` + audit write pending |
-| W0-5 | ⬜ Not started | Admin screen + API + nav + access contract |
-| W0-6 | ⬜ Not started | i18n keys |
-| W0-7 | ⬜ Not started | Service unit tests |
-| W0-8 | 🟡 In progress | This update |
+| W0-3b | ✅ Done | Prisma models (`org_fin_cash_ctrl_stng_cf`, `org_fin_cash_ctrl_audit_dtl`) + client generated |
+| W0-4 | ✅ Done | `getCashControlSettings` + `updateCashControlSettings` both shipped |
+| W0-4b | ✅ Applied | Migration `0516` applied; audit row per changed field, in the same transaction as the settings upsert |
+| W0-5 | ✅ Done (v1 scope, D19) | `cash-control-settings-screen.tsx`, GET/PUT API, nav dual-write (`0518`, unapplied), access contract |
+| W0-6 | ✅ Done | `messages/{en,ar}/cashControl.json` |
+| W0-7 | ✅ Done | 12/12 tests passing |
+| W0-8 | ✅ Done | This update |
 | W0-9 | ✅ Done | Remote MCP audit of existing permission codes |
-| W0-10 | 🟡 Partial | Migration `0517` written, awaiting owner apply |
+| W0-10 | ✅ Applied | Migration `0517` |
 | W0-11 | ✅ Done | TS mirrors in `finance-perm.ts` / `pos-session-perm.ts` |
-| W0-12 | ⬜ Not started | Needs `/update-rbac-role` skill + real role-code mapping |
-| W0-13 | ⬜ Not started | `rebuild:platform-info-inventories` |
+| W0-12 | ✅ Applied | Role grants in `0517`; flagged `cash_control:manage` excludes `operator` — see D18 |
+| W0-13 | ✅ Done | `rebuild:platform-info-inventories`, drift 0 |

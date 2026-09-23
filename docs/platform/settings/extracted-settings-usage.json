@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-08-20T23:15:15.848Z",
+  "extractedAt": "2026-09-23T07:48:37.370Z",
   "usages": {
     "B2B_DUNNING_LEVELS": [
       {
@@ -16,12 +16,12 @@
     "B2B_CREDIT_LIMIT_MODE": [
       {
         "path": "app\\api\\v1\\orders\\preview-financials\\route.ts",
-        "line": 73,
+        "line": 74,
         "context": "SETTING_CODES.B2B_CREDIT_LIMIT_MODE,"
       },
       {
         "path": "app\\api\\v1\\orders\\preview-payment\\route.ts",
-        "line": 83,
+        "line": 84,
         "context": "SETTING_CODES.B2B_CREDIT_LIMIT_MODE,"
       }
     ],
@@ -33,12 +33,12 @@
       },
       {
         "path": "app\\api\\v1\\public\\customer\\booking\\route.ts",
-        "line": 403,
+        "line": 415,
         "context": "tenantSettings.getSettingValue(tenantId, 'TENANT_VAT_RATE', branchId),"
       },
       {
         "path": "app\\api\\v1\\public\\customer\\booking\\route.ts",
-        "line": 853,
+        "line": 865,
         "context": "tenantSettings.getSettingValue(body.tenantId, 'TENANT_VAT_RATE', branch.id, sess"
       },
       {
@@ -72,7 +72,7 @@
     "TENANT_CURRENCY": [
       {
         "path": "lib\\services\\order-financial-write.service.ts",
-        "line": 906,
+        "line": 964,
         "context": "const tenantCurrency = settings.find((setting) => setting.stngCode === 'TENANT_C"
       },
       {

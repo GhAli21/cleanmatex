@@ -7836,6 +7836,98 @@ export type Database = {
           },
         ]
       }
+      org_fin_cash_ctrl_audit_dtl: {
+        Row: {
+          after_value_jsonb: Json | null
+          audit_action: string
+          before_value_jsonb: Json | null
+          change_reason: string | null
+          changed_at: string
+          changed_by: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          scope_id: string | null
+          scope_level: string
+          setting_column: string
+          tenant_org_id: string
+        }
+        Insert: {
+          after_value_jsonb?: Json | null
+          audit_action: string
+          before_value_jsonb?: Json | null
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          scope_id?: string | null
+          scope_level: string
+          setting_column: string
+          tenant_org_id: string
+        }
+        Update: {
+          after_value_jsonb?: Json | null
+          audit_action?: string
+          before_value_jsonb?: Json | null
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          scope_id?: string | null
+          scope_level?: string
+          setting_column?: string
+          tenant_org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_fin_cash_ctrl_audit_dtl_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "org_users_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_fin_cash_ctrl_audit_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_fin_cash_ctrl_audit_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_fin_cash_ctrl_audit_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_fin_cash_ctrl_stng_cf: {
         Row: {
           blind_close_enabled: boolean | null
