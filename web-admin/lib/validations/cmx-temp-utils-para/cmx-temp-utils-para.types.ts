@@ -10,4 +10,6 @@ export interface CmxTempUtilsPara {
   is_active: boolean
   rec_status: number | null
   rec_notes: string | null
+  /** Bare RFC 4122 UUID pattern, no delimiters/flags. Null falls back to the app default. */
+  uuid_regex: string | null
 }

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const auth = await requirePermission('invoices:read')(request);
   if (auth instanceof NextResponse) return auth;
 
-  const parsed = arInvoiceListQuerySchema.safeParse(parseSearchParams(request.nextUrl.searchParams));
+  const parsed = await arInvoiceListQuerySchema.safeParseAsync(parseSearchParams(request.nextUrl.searchParams));
   if (!parsed.success) {
     return jsonValidationError(parsed.error);
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const parsed = createArInvoiceSchema.safeParse(body);
+    const parsed = await createArInvoiceSchema.safeParseAsync(body);
     if (!parsed.success) {
       return jsonValidationError(parsed.error);
     }

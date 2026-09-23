@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   const searchParams = Object.fromEntries(request.nextUrl.searchParams.entries());
-  const parsed = posSessionBranchQuerySchema.safeParse(searchParams);
+  const parsed = await posSessionBranchQuerySchema.safeParseAsync(searchParams);
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
   }

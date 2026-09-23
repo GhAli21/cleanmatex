@@ -106,12 +106,14 @@ export type Database = {
           created_info: string | null
           id: string
           is_active: boolean
+          is_hq_or_cmx_or_both: string
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
+          uuid_regex: string | null
         }
         Insert: {
           chk_isuuid?: boolean
@@ -120,12 +122,14 @@ export type Database = {
           created_info?: string | null
           id?: string
           is_active?: boolean
+          is_hq_or_cmx_or_both?: string
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+          uuid_regex?: string | null
         }
         Update: {
           chk_isuuid?: boolean
@@ -134,12 +138,14 @@ export type Database = {
           created_info?: string | null
           id?: string
           is_active?: boolean
+          is_hq_or_cmx_or_both?: string
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+          uuid_regex?: string | null
         }
         Relationships: []
       }

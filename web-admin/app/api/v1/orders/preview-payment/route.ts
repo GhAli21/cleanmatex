@@ -11,6 +11,7 @@ import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { previewPaymentRequestSchema } from '@/lib/validations/new-order-payment-schemas';
+import { isInvalidDbInputError } from '@/lib/utils/db-input-error';
 
 /**
  * POST /api/v1/orders/preview-payment
@@ -130,6 +131,17 @@ export async function POST(request: NextRequest) {
           success: false,
           errorCode: 'INVALID_TAX_PROFILE_SELECTION',
           error: 'One or more selected tax profiles are invalid or no longer active.',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (isInvalidDbInputError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'INVALID_ID_FORMAT',
+          error: 'One or more ids in the request are not valid. Please reselect and try again.',
         },
         { status: 400 }
       );

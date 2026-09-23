@@ -10,6 +10,7 @@ import {
   AR_STATEMENT_CUSTOMER_SCOPES,
   AR_SENSITIVE_APPROVAL_ACTIONS,
 } from '@/lib/constants/ar-invoice';
+import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 const uuidSchema = z.string().uuid();
 const moneySchema = z.number().nonnegative();
@@ -60,7 +61,7 @@ export const arInvoiceLineInputSchema = z.object({
 
 export const createArInvoiceSchema = z.object({
   customer_id: uuidSchema,
-  branch_id: uuidSchema.optional(),
+  branch_id: zUuidIfEnabled().optional(),
   order_ids: z.array(uuidSchema).min(1).optional(),
   invoice_type_cd: arInvoiceTypeSchema.default(AR_INVOICE_TYPES.MANUAL_AR),
   invoice_date: dateStringSchema,
@@ -191,7 +192,7 @@ export const arInvoiceListQuerySchema = z.object({
   invoice_type_cd: z.string().optional(),
   customer_id: uuidSchema.optional(),
   order_id: uuidSchema.optional(),
-  branch_id: uuidSchema.optional(),
+  branch_id: zUuidIfEnabled().optional(),
   search: z.string().optional(),
   date_from: z.string().date().optional(),
   date_to: z.string().date().optional(),
@@ -216,7 +217,7 @@ export const arAgingQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(200).default(50),
   as_of_date: z.string().date().optional(),
-  branch_id: uuidSchema.optional(),
+  branch_id: zUuidIfEnabled().optional(),
   customer_id: uuidSchema.optional(),
   search: z.string().optional(),
 });

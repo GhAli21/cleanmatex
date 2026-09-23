@@ -1,3 +1,12 @@
+// branch_id now uses the async `zUuidIfEnabled` refinement; flag mocked ON so
+// createArInvoiceSchema keeps enforcing strict UUIDs as it did before.
+jest.mock('@/lib/validations/cmx-temp-utils-para/cmx-temp-utils-para.service', () => ({
+  cmxTempUtilsParaService: {
+    isUuidCheckEnabled: jest.fn().mockResolvedValue(true),
+    getUuidRegex: jest.fn().mockResolvedValue(null),
+  },
+}))
+
 import {
   applyArCreditSchema,
   allocateArPaymentSchema,
@@ -47,8 +56,8 @@ describe('ar-invoice-schemas', () => {
     expect(result.success).toBe(false);
   });
 
-  it('accepts manual AR invoices with at least one line item', () => {
-    const result = createArInvoiceSchema.safeParse({
+  it('accepts manual AR invoices with at least one line item', async () => {
+    const result = await createArInvoiceSchema.safeParseAsync({
       customer_id: '550e8400-e29b-41d4-a716-446655440000',
       invoice_type_cd: 'MANUAL_AR',
       currency_code: 'OMR',

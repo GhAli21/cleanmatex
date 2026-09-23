@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const auth = await requirePermission('invoices:export')(request);
   if (auth instanceof NextResponse) return auth;
 
-  const parsed = arInvoiceListQuerySchema.safeParse(parseSearchParams(request.nextUrl.searchParams));
+  const parsed = await arInvoiceListQuerySchema.safeParseAsync(parseSearchParams(request.nextUrl.searchParams));
   if (!parsed.success) {
     return jsonValidationError(parsed.error);
   }

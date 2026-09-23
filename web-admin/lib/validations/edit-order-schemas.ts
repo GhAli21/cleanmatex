@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 const updateOrderPieceServicePrefSchema = z.object({
   preference_code: z.string(),
@@ -75,7 +76,7 @@ export const updateOrderInputSchema = z.object({
 
   // Optional fields (only update what's provided)
   customerId: z.string().optional(), // Can be UUID or empty string for default customer
-  branchId: z.string().uuid().nullable().optional(),
+  branchId: zUuidIfEnabled().nullable().optional(),
   /** Internal staff notes */
   notes: z.string().max(1000).optional(),
   /** Customer-provided notes */

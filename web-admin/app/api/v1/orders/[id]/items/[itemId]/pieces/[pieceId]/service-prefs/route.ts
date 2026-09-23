@@ -101,7 +101,7 @@ export async function POST(
     const { id: orderId, itemId, pieceId } = await params;
     const body = await request.json();
 
-    const parsed = addPieceServicePrefSchema.safeParse(body);
+    const parsed = await addPieceServicePrefSchema.safeParseAsync(body);
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: parsed.error.flatten().fieldErrors },

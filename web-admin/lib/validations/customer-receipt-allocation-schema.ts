@@ -9,6 +9,7 @@ import {
   CUSTOMER_RECEIPT_ALLOCATION_LINE_ROLES,
   CUSTOMER_RECEIPT_ALLOCATION_TARGET_TYPES,
 } from '@/lib/types/customer-receipt-allocation';
+import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 const allocationLineSchema = z.object({
   lineRole: z.enum([
@@ -33,7 +34,7 @@ const allocationLineSchema = z.object({
 });
 
 export const previewAutoAllocationRequestSchema = z.object({
-  branchId: z.string().uuid().optional(),
+  branchId: zUuidIfEnabled().optional(),
   customerId: z.string().uuid(),
   sourceType: z
     .enum([VOUCHER_SOURCE_TYPES.ORDER_PAYMENT_MODAL, VOUCHER_SOURCE_TYPES.CUSTOMER_RECEIPT])
@@ -50,7 +51,7 @@ export const previewAutoAllocationRequestSchema = z.object({
 
 export const previewManualAllocationRequestSchema = z
   .object({
-    branchId: z.string().uuid().optional(),
+    branchId: zUuidIfEnabled().optional(),
     customerId: z.string().uuid(),
     sourceOrderId: z.string().uuid().optional(),
     receiptAmount: z.number().min(0),
@@ -87,7 +88,7 @@ export const postAllocationRequestSchema = z.object({
 
 export const postCustomerReceiptRequestSchema = z.object({
   customerId: z.string().uuid(),
-  branchId: z.string().uuid().optional(),
+  branchId: zUuidIfEnabled().optional(),
   previewId: z.string().uuid(),
   paymentMethodId: z.string().uuid(),
   receiptAmount: z.number().positive(),

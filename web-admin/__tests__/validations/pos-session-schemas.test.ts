@@ -1,3 +1,15 @@
+/**
+ * Schemas with a branchId field now use the async `zUuidIfEnabled` refinement,
+ * so they must be parsed with parseAsync. The cmx_p_tmp flag is mocked ON so
+ * these assertions keep testing strict UUID enforcement as they always have.
+ */
+jest.mock('@/lib/validations/cmx-temp-utils-para/cmx-temp-utils-para.service', () => ({
+  cmxTempUtilsParaService: {
+    isUuidCheckEnabled: jest.fn().mockResolvedValue(true),
+    getUuidRegex: jest.fn().mockResolvedValue(null),
+  },
+}))
+
 import {
   posSessionBranchQuerySchema,
   posSessionAutoLinkDrawerSchema,
@@ -13,8 +25,8 @@ const posSessionId = '33333333-3333-4333-8333-333333333333';
 const cashDrawerSessionId = '44444444-4444-4444-8444-444444444444';
 
 describe('pos session validation schemas', () => {
-  it('accepts manual open input with optional terminal and idempotency metadata', () => {
-    const parsed = posSessionOpenSchema.parse({
+  it('accepts manual open input with optional terminal and idempotency metadata', async () => {
+    const parsed = await posSessionOpenSchema.parseAsync({
       branchId,
       terminalId,
       idempotencyKey: 'open-key',
@@ -31,12 +43,16 @@ describe('pos session validation schemas', () => {
     });
   });
 
-  it('keeps terminal optional for user-owned sessions', () => {
-    expect(posSessionOpenSchema.parse({ branchId })).toEqual({ branchId });
+  it('keeps terminal optional for user-owned sessions', async () => {
+    expect(await posSessionOpenSchema.parseAsync({ branchId })).toEqual({ branchId });
   });
 
-  it('validates auto-link drawer input', () => {
-    expect(posSessionAutoLinkDrawerSchema.parse({
+  it('rejects a malformed branchId when the UUID check is enabled', async () => {
+    await expect(posSessionOpenSchema.parseAsync({ branchId: 'not-a-uuid' })).rejects.toThrow();
+  });
+
+  it('validates auto-link drawer input', async () => {
+    expect(await posSessionAutoLinkDrawerSchema.parseAsync({
       posSessionId,
       branchId,
       cashDrawerSessionId,
@@ -50,13 +66,14 @@ describe('pos session validation schemas', () => {
       sourceChannel: 'session_hub',
     });
 
-    expect(() => posSessionAutoLinkDrawerSchema.parse({
+    await expect(posSessionAutoLinkDrawerSchema.parseAsync({
       posSessionId,
       cashDrawerSessionId: 'not-a-uuid',
-    })).toThrow();
+    })).rejects.toThrow();
   });
 
   it('requires a non-empty reason for force-close but not normal lifecycle actions', () => {
+    // posSessionReasonSchema / posSessionForceCloseSchema have no branchId — still sync.
     expect(posSessionReasonSchema.parse({ reason: '  lunch break  ' })).toEqual({
       reason: 'lunch break',
     });
@@ -67,14 +84,14 @@ describe('pos session validation schemas', () => {
     });
   });
 
-  it('normalizes list pagination defaults and restricts status/scope values', () => {
-    expect(posSessionListQuerySchema.parse({})).toEqual({
+  it('normalizes list pagination defaults and restricts status/scope values', async () => {
+    expect(await posSessionListQuerySchema.parseAsync({})).toEqual({
       page: 1,
       pageSize: 20,
       scope: 'own',
     });
 
-    expect(posSessionListQuerySchema.parse({
+    expect(await posSessionListQuerySchema.parseAsync({
       page: '2',
       pageSize: '50',
       status: 'FORCE_CLOSED',
@@ -86,21 +103,21 @@ describe('pos session validation schemas', () => {
       scope: 'all',
     });
 
-    expect(() => posSessionListQuerySchema.parse({ status: 'FORCE_CLOSE' })).toThrow();
-    expect(() => posSessionListQuerySchema.parse({ scope: 'manager' })).toThrow();
+    await expect(posSessionListQuerySchema.parseAsync({ status: 'FORCE_CLOSE' })).rejects.toThrow();
+    await expect(posSessionListQuerySchema.parseAsync({ scope: 'manager' })).rejects.toThrow();
   });
 
-  it('validates branch conflict query shape', () => {
-    expect(posSessionBranchQuerySchema.parse({ branchId })).toEqual({ branchId, includeContext: false });
-    expect(posSessionBranchQuerySchema.parse({ branchId, includeContext: 'true' })).toEqual({
+  it('validates branch conflict query shape', async () => {
+    expect(await posSessionBranchQuerySchema.parseAsync({ branchId })).toEqual({ branchId, includeContext: false });
+    expect(await posSessionBranchQuerySchema.parseAsync({ branchId, includeContext: 'true' })).toEqual({
       branchId,
       includeContext: true,
     });
-    expect(posSessionBranchQuerySchema.parse({ branchId, includeContext: 'false' })).toEqual({
+    expect(await posSessionBranchQuerySchema.parseAsync({ branchId, includeContext: 'false' })).toEqual({
       branchId,
       includeContext: false,
     });
-    expect(() => posSessionBranchQuerySchema.parse({ branchId: 'not-a-uuid' })).toThrow();
-    expect(() => posSessionBranchQuerySchema.parse({ branchId, includeContext: 'yes' })).toThrow();
+    await expect(posSessionBranchQuerySchema.parseAsync({ branchId: 'not-a-uuid' })).rejects.toThrow();
+    await expect(posSessionBranchQuerySchema.parseAsync({ branchId, includeContext: 'yes' })).rejects.toThrow();
   });
 });

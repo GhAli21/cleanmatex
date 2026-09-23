@@ -52,7 +52,7 @@ export async function updateOrderAction(input: unknown): Promise<UpdateOrderResu
     }
 
     // 3. Validate input
-    const parsed = updateOrderInputSchema.safeParse(input);
+    const parsed = await updateOrderInputSchema.safeParseAsync(input);
     if (!parsed.success) {
       logger.warn('[updateOrderAction] Validation failed', {
         feature: 'orders',

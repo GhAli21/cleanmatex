@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const auth = await requirePermission('ar_aging:view')(request);
   if (auth instanceof NextResponse) return auth;
 
-  const parsed = arAgingQuerySchema.safeParse(parseSearchParams(request.nextUrl.searchParams));
+  const parsed = await arAgingQuerySchema.safeParseAsync(parseSearchParams(request.nextUrl.searchParams));
   if (!parsed.success) {
     return jsonValidationError(parsed.error);
   }

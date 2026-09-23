@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, SB_REMEMBER_ME_COOKIE } from '@/lib/supabase/server'
-import { invalidatePermissionCache } from '@/lib/services/permission-cache'
+import { onLogoutInvalidate } from '@/lib/auth/on-logout-invalidate'
 import { logger } from '@/lib/utils/logger'
 
 type LogoutReason = 'user' | 'session_expired' | 'security' | 'timeout' | 'unknown'
@@ -48,30 +48,17 @@ export async function POST(request: NextRequest) {
       // Default to 'user' if body parsing fails
     }
 
-    // Invalidate server-side caches
-    if (tenantId) {
-      try {
-        await invalidatePermissionCache(userId, tenantId)
-        
-        // Log logout event
-        logger.info('User logged out', {
-          feature: 'auth',
-          action: 'logout',
-          userId,
-          tenantId,
-          reason,
-        })
-      } catch (cacheError) {
-        // Log error but don't fail the request
-        logger.warn('Failed to invalidate cache on logout', {
-          feature: 'auth',
-          action: 'logout',
-          userId,
-          tenantId,
-          error: cacheError instanceof Error ? cacheError.message : String(cacheError),
-        })
-      }
-    }
+    // Invalidate server-side caches (permission cache when tenant-scoped,
+    // plus any global caches listed in onLogoutInvalidate).
+    await onLogoutInvalidate(userId, tenantId)
+
+    logger.info('User logged out', {
+      feature: 'auth',
+      action: 'logout',
+      userId,
+      tenantId,
+      reason,
+    })
 
     // Note: Supabase session is cleared client-side
     // This API only handles server-side cleanup

@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 // ==================================================================
 // ENUM SCHEMAS
@@ -47,7 +48,7 @@ export const paymentStatusSchema = z.enum(['pending', 'partial', 'paid', 'refund
  */
 export const createOrderSchema = z.object({
   customerId: z.string().uuid('Invalid customer ID format'),
-  branchId: z.string().uuid('Invalid branch ID format').optional(),
+  branchId: zUuidIfEnabled('Invalid branch ID format').optional(),
   orderType: orderTypeSchema.default('quick_drop'),
   serviceCategory: z.string().min(1, 'Service category is required'),
   bagCount: z.number().int().min(1, 'Bag count must be at least 1').max(100, 'Bag count cannot exceed 100'),
@@ -159,7 +160,7 @@ export const orderFiltersSchema = z.object({
   priority: z.union([prioritySchema, z.array(prioritySchema)]).optional(),
   isRetail: z.enum(['true', 'false']).optional(),
   customerId: z.string().uuid().optional(),
-  branchId: z.string().uuid().optional(),
+  branchId: zUuidIfEnabled().optional(),
   fromDate: z.coerce.date().optional(),
   toDate: z.coerce.date().optional(),
   search: z.string().max(100).optional(),

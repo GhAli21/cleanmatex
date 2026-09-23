@@ -57,7 +57,7 @@ export async function PATCH(
     );
   }
 
-  const parsed = updateOrderInputSchema.safeParse({
+  const parsed = await updateOrderInputSchema.safeParseAsync({
     ...body,
     orderId,
   });

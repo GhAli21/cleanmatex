@@ -37,7 +37,7 @@ export async function listOrders(
 ): Promise<ListOrdersResult> {
   try {
     // Validate filters
-    const validation = orderFiltersSchema.safeParse(filters);
+    const validation = await orderFiltersSchema.safeParseAsync(filters);
 
     if (!validation.success) {
       return {

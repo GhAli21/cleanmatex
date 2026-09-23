@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   const query = Object.fromEntries(request.nextUrl.searchParams.entries());
-  const parsed = posSessionListQuerySchema.safeParse(query);
+  const parsed = await posSessionListQuerySchema.safeParseAsync(query);
   if (!parsed.success) {
     return NextResponse.json(
       { success: false, error: 'Invalid request', details: parsed.error.issues },

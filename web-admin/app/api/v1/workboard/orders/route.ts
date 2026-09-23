@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const auth = await requirePermission(WORKBOARD_PERMISSIONS.READ)(request)
   if (auth instanceof NextResponse) return auth
 
-  const parsed = workboardQuerySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams))
+  const parsed = await workboardQuerySchema.safeParseAsync(Object.fromEntries(request.nextUrl.searchParams))
   if (!parsed.success) return NextResponse.json({ success: false, error: 'Invalid Workboard query.' }, { status: 400 })
 
   try {

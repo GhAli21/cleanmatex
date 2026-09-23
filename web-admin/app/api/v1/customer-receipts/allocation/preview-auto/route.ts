@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const input = previewAutoAllocationRequestSchema.parse(body);
+    const input = await previewAutoAllocationRequestSchema.parseAsync(body);
     const preview = await createAutoAllocationPreview(auth.tenantId, auth.userId ?? null, input);
     return NextResponse.json({ success: true, data: preview });
   } catch (error) {

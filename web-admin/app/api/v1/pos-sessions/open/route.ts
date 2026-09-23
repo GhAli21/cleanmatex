@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   const body = await request.json().catch(() => null);
-  const parsed = posSessionOpenSchema.safeParse(body);
+  const parsed = await posSessionOpenSchema.safeParseAsync(body);
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
   }

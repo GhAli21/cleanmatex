@@ -6,6 +6,7 @@ import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { previewPaymentRequestSchema } from '@/lib/validations/new-order-payment-schemas';
+import { isInvalidDbInputError } from '@/lib/utils/db-input-error';
 
 /**
  * Canonical Batch 0 preview endpoint.
@@ -99,6 +100,18 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Calculation failed';
+
+    if (isInvalidDbInputError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'INVALID_ID_FORMAT',
+          error: 'One or more ids in the request are not valid. Please reselect and try again.',
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

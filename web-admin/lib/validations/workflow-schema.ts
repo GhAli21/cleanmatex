@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 export const OrderStatusEnum = z.enum([
   'draft',
@@ -198,7 +199,7 @@ const CreateOrderTotalsSchema = z.object({
 
 export const CreateOrderRequestSchema = z.object({
   customerId: z.string(),//.uuid(),
-  branchId: z.string().uuid().optional(),
+  branchId: zUuidIfEnabled().optional(),
   orderTypeId: z.string(),
   items: z.array(z.object({
     productId: z.string().uuid(),

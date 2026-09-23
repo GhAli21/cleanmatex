@@ -1,7 +1,18 @@
 /**
  * Unit Tests: Service Preferences Schemas
  * Tests for Zod validation of preference-related API inputs
+ *
+ * branch_id now uses the async `zUuidIfEnabled` refinement, so the two schemas
+ * carrying it must be parsed with safeParseAsync. The flag is mocked ON to keep
+ * these assertions testing the same strict behaviour as before.
  */
+
+jest.mock('@/lib/validations/cmx-temp-utils-para/cmx-temp-utils-para.service', () => ({
+  cmxTempUtilsParaService: {
+    isUuidCheckEnabled: jest.fn().mockResolvedValue(true),
+    getUuidRegex: jest.fn().mockResolvedValue(null),
+  },
+}))
 
 import {
   addServicePrefSchema,
@@ -14,8 +25,8 @@ import {
 
 describe('Service Preferences Schemas', () => {
   describe('addServicePrefSchema', () => {
-    it('should accept valid input', () => {
-      const result = addServicePrefSchema.safeParse({
+    it('should accept valid input', async () => {
+      const result = await addServicePrefSchema.safeParseAsync({
         preference_code: 'STARCH_LIGHT',
         source: 'manual',
         extra_price: 2.5,
@@ -23,8 +34,8 @@ describe('Service Preferences Schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should default source to manual', () => {
-      const result = addServicePrefSchema.safeParse({
+    it('should default source to manual', async () => {
+      const result = await addServicePrefSchema.safeParseAsync({
         preference_code: 'PERFUME',
         extra_price: 1,
       });
@@ -32,16 +43,16 @@ describe('Service Preferences Schemas', () => {
       if (result.success) expect(result.data.source).toBe('manual');
     });
 
-    it('should reject invalid preference_code', () => {
-      const result = addServicePrefSchema.safeParse({
+    it('should reject invalid preference_code', async () => {
+      const result = await addServicePrefSchema.safeParseAsync({
         preference_code: 'INVALID_CODE',
         extra_price: 1,
       });
       expect(result.success).toBe(false);
     });
 
-    it('should reject negative extra_price', () => {
-      const result = addServicePrefSchema.safeParse({
+    it('should reject negative extra_price', async () => {
+      const result = await addServicePrefSchema.safeParseAsync({
         preference_code: 'STARCH_LIGHT',
         extra_price: -1,
       });
@@ -50,8 +61,8 @@ describe('Service Preferences Schemas', () => {
   });
 
   describe('addPieceServicePrefSchema', () => {
-    it('should accept valid input', () => {
-      const result = addPieceServicePrefSchema.safeParse({
+    it('should accept valid input', async () => {
+      const result = await addPieceServicePrefSchema.safeParseAsync({
         preference_code: 'DELICATE',
         source: 'manual',
         extra_price: 3,

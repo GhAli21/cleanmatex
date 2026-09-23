@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const input = postCustomerReceiptRequestSchema.parse(body);
+    const input = await postCustomerReceiptRequestSchema.parseAsync(body);
     const result = await postCustomerAccountReceipt(
       auth.tenantId,
       auth.userId ?? 'system',

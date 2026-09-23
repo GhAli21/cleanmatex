@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const input = previewManualAllocationRequestSchema.parse(body);
+    const input = await previewManualAllocationRequestSchema.parseAsync(body);
     const preview = await createManualAllocationPreview(auth.tenantId, auth.userId ?? null, input);
     return NextResponse.json({ success: true, data: preview });
   } catch (error) {

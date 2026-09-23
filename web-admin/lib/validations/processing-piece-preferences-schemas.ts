@@ -3,6 +3,7 @@
  */
 
 import { z } from 'zod';
+import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 export const addProcessingPiecePrefSchema = z.object({
   preference_sys_kind: z.enum([
@@ -18,7 +19,7 @@ export const addProcessingPiecePrefSchema = z.object({
   extra_price: z.number().min(0).optional(),
   preference_id: z.string().uuid().nullable().optional(),
   preference_content: z.string().max(2000).nullable().optional(),
-  branch_id: z.string().uuid().nullable().optional(),
+  branch_id: zUuidIfEnabled().nullable().optional(),
 });
 
 export type AddProcessingPiecePrefBody = z.infer<

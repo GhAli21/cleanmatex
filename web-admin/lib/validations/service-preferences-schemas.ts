@@ -10,6 +10,7 @@ import {
   PREFERENCE_SOURCES,
 } from '@/lib/constants/service-preferences';
 import { zOptionalNormalizedHexIngress } from '@/lib/validations/css-color-schema';
+import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 const servicePreferenceCodeSchema = z.enum(
   Object.values(SERVICE_PREFERENCE_CODES) as [string, ...string[]]
@@ -30,7 +31,7 @@ export const addServicePrefSchema = z.object({
   preference_code: servicePreferenceCodeSchema,
   source: preferenceSourceSchema.default('manual'),
   extra_price: z.number().nonnegative(),
-  branch_id: uuidSchema.optional().nullable(),
+  branch_id: zUuidIfEnabled().optional().nullable(),
 });
 
 /** Add service preference to order piece */
@@ -38,7 +39,7 @@ export const addPieceServicePrefSchema = z.object({
   preference_code: servicePreferenceCodeSchema,
   source: preferenceSourceSchema.default('manual'),
   extra_price: z.number().nonnegative(),
-  branch_id: uuidSchema.optional().nullable(),
+  branch_id: zUuidIfEnabled().optional().nullable(),
 });
 
 /** Update packing preference */

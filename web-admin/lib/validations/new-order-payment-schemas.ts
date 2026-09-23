@@ -431,11 +431,11 @@ export const previewPaymentRequestSchema = z.object({
   })).optional(),
   branchId: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
-    z.string().uuid().optional()
+    z.string().optional()
   ).optional(),
   customerId: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
-    z.string().uuid().optional()
+    z.string().optional()
   ).optional(),
   isExpress: z.boolean().optional(),
   percentDiscount: z.number().min(0).max(100).optional(),
@@ -725,7 +725,7 @@ export const processPaymentActionInputSchema = z
     saleTotal: z.number().min(0).optional(),
     currencyCode: z.string().length(3).optional(),
     currencyExRate: z.number().min(0).optional(),
-    branchId: z.string().uuid().optional(),
+    branchId: z.string().optional(),
     paymentTypeCode: z.string().optional(),
     /** When true and no invoiceId: apply payment across all order invoices with balance (FIFO) */
     distributeAcrossInvoices: z.boolean().optional(),

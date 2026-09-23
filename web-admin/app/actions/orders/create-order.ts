@@ -58,8 +58,8 @@ export async function createOrder(
           }
         : formData;
 
-    // Validate input
-    const validation = createOrderSchema.safeParse(rawData);
+    // Validate input (async: branchId's UUID check is conditional on cmx_p_tmp.chk_isuuid)
+    const validation = await createOrderSchema.safeParseAsync(rawData);
 
     if (!validation.success) {
       const errors: Record<string, string[]> = {};
