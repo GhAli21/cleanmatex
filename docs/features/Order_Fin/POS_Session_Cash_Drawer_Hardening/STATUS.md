@@ -9,8 +9,15 @@
 | # | Decision | Date | Resolution |
 |---|---|---|---|
 | D1 | Blind close | 2026-09-23 | Tenant-configurable (`CASH_DRAWER_BLIND_CLOSE`), branch-overridable |
-| D2 | Variance gating | 2026-09-23 | Tenant-configurable (`CASH_DRAWER_VARIANCE_GATE_MODE`: `OFF` / `FLAG` / `APPROVAL_REQUIRED`), branch-overridable. B16's current behaviour is preserved as the `FLAG` mode. |
+| D2 | Variance gating | 2026-09-23 | Tenant-configurable (`CASH_DRAWER_VARIANCE_GATE_MODE`: `OFF` / `WARN_ONLY` / `APPROVAL_REQUIRED`), branch-overridable. B16's current behaviour is preserved, renamed `WARN_ONLY` (D5). |
 | D3 | Where cash-control settings live | 2026-09-23 | Dedicated table `org_fin_cash_ctrl_stng_cf` + one standalone resolver service, **not** the general `sys_tenant_settings_cd` catalog. Storage swappable later via a single private function. Requires ADR-055 and a tenant-side admin screen. |
+| D5 | Variance gate mode name | 2026-09-23 | `FLAG` renamed **`WARN_ONLY`**; the close now also surfaces an explicit over-threshold warning and a supervisor queue entry, so the name is accurate. |
+| D6 | Cash-control settings route | 2026-09-23 | **`/dashboard/settings/payments/cash-control-settings`** (not `internal_fin`); API `/api/v1/settings/payments/cash-control`. |
+| D8 | Rounding authority | 2026-09-23 | **`sys_currency_rounding_rules_cd` expanded** to carry all rounding contexts (`rounding_type`: CASH_TENDER / CASH_CHANGE / TAX / ACCOUNTING / FX_CONVERSION / …) + `rounding_increment_minor`, seeded for all 181 currencies. `sys_currency_cd.cash_rounding_*` superseded and retired. HQ-owned. |
+| D9 | Denomination catalog | 2026-09-23 | **HQ owns** `sys_currency_denominations_cd` — definition, seed, admin UI. Tenant app consumes read-only and owns only `org_currency_denom_cf` overrides. |
+| D10 | Decimal-place authority | 2026-09-23 | **`sys_currency_cd`** is authoritative. `TENANT_DECIMAL_PLACES` deprecated to display-only (deprecate → migrate call sites → retire). |
+| D11 | `VARCHAR` → `TEXT` on `sys_currency_cd` | 2026-09-23 | Approved; folded into the next currency migration rather than raised separately. |
+| D7 | Cash-tender rounding (tenant side) | 2026-09-23 | Package **A6** adds **no migration** — it consumes HQ's rounding rules (D8). An earlier draft proposed a duplicate `cash_rounding_unit`; corrected after inspecting the HQ repo. Until HQ seeds, cash rounding no-ops and 3-decimal drawers keep accumulating sub-unit residue. |
 | D4 | Table shape | 2026-09-23 | **Explicit typed column per setting**, not generic `stng_code`/`stng_value` rows. One row per scope; every setting column nullable (`NULL` = inherit); enum values enforced by DB `CHECK` constraints. Adding a setting costs an `ALTER TABLE` — accepted for DB-enforced type safety on financial policy. |
 
 ## Wave status
@@ -20,7 +27,7 @@
 | W0 | Foundation | NOT STARTED | 0515–0516 | — |
 | A | Money & concurrency integrity | NOT STARTED | 0517, 0527 | — |
 | B | Session enforcement & lifecycle | NOT STARTED | 0520, 0526 | — |
-| C | Shift controls | NOT STARTED | 0518–0519, 0521 | — |
+| C | Shift controls | NOT STARTED | 0518–0519, 0521, 0529 | — |
 | D | Custody chain & audit artifacts | NOT STARTED | 0522–0523 | — |
 | E | Consolidation & attribution | NOT STARTED | 0524–0525 | — |
 
@@ -28,6 +35,9 @@
 
 | ID | Repo | Obligation | Status |
 |---|---|---|---|
+| HQ-CUR-1 | `cleanmatexsaas` | **Expand + seed `sys_currency_rounding_rules_cd`** per handoff §3 (rounding_type, minor-unit increments, unified `sys_rounding_mode_cd`, PK change, 181-currency seed). **Blocks A6.** | DECIDED — HQ TO IMPLEMENT |
+| HQ-CUR-2 | `cleanmatexsaas` | **Define + seed `sys_currency_denominations_cd`** per handoff §4. **Blocks C1 counting sheets.** | DECIDED — HQ TO IMPLEMENT |
+| HQ-CUR-3 | `cleanmatexsaas` | State decimal-place authority (§5) and fold `VARCHAR`→`TEXT` into the next currency migration (§6). | DECIDED — HQ TO IMPLEMENT |
 | — | `cleanmatexsaas` | **Deferred by D3.** HQ-console editing of cash-control settings is out of scope until/unless they fold into `sys_tenant_settings_cd`. ADR-055 records the deviation from `integration-contracts.md`. | DEFERRED |
 
 ## Open questions carried into implementation
@@ -38,10 +48,10 @@
 | Q2 | Z-report shape for a multi-currency session: one row per currency, or one row with per-currency snapshot detail? | D2-4 | One row per currency |
 | Q3 | Are `cash_drawer:open_session` / `cash_drawer:close_session` already seeded in the DB permissions table? | W0-9 | Remote-MCP audit settles it |
 | Q4 | Settings-change audit: reuse an existing audit table or add `org_fin_cash_ctrl_audit_dtl` in `0515`? | W0-4b | Dedicated table — cleanest before-/after-diff shape |
-| Q5 | `FLAG` mode name — keep, or rename to `WARN_ONLY` / `RECORD_ONLY`? | W0-3 (constant), `0515` CHECK | Keep `FLAG` |
-| Q6 | Is `/dashboard/internal_fin/cash-control-settings` the edit surface you want? | W0-5 | Yes, tenant-side screen |
 
-**Owner decisions still needed on Q5 and Q6 before W0 starts** — both are cheap now and expensive after `0515` is applied (Q5 lands in a `CHECK` constraint; Q6 lands in navigation + access contracts).
+
+
+Q5 and Q6 are **answered** — see D5 and D6 below. Q1–Q4 have safe defaults and do not block.
 
 ## Completeness pass — 2026-09-23
 

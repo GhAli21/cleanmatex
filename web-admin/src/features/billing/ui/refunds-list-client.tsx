@@ -14,11 +14,13 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import type { ColumnDef } from '@tanstack/react-table';
 
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
+import { CmxDataGrid } from '@ui/data-display';
 import {
   CmxSelectDropdown,
   CmxSelectDropdownContent,
@@ -34,11 +36,16 @@ import {
   CmxDialogDescription,
   CmxDialogFooter,
 } from '@ui/overlays/cmx-dialog';
-import { useMessage } from '@ui/feedback';
+import { CmxStatusBadge, useMessage } from '@ui/feedback';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useHasPermission } from '@/lib/hooks/usePermissions';
 import { REFUND_METHODS, REFUND_STATUSES } from '@/lib/constants/order-financial';
+import { VOUCHER_RELATED_HREFS } from '@/lib/constants/voucher-related-hrefs';
 
+/**
+ * Refund data safe for the tenant billing grid. Sensitive replay and raw metadata
+ * fields remain server-only while execution and audit evidence stay reviewable.
+ */
 interface RefundItem {
   id: string;
   refund_no: string;
@@ -47,19 +54,43 @@ interface RefundItem {
   refund_amount: number;
   currency_code: string;
   reason_code: string | null;
+  refund_reason: string | null;
   refund_method_code: string | null;
   refund_status: string;
+  refund_source_type: string;
+  refund_context: string;
+  reopens_due_amount: number;
+  original_payment_id: string | null;
+  original_credit_app_id: string | null;
+  gateway_refund_id: string | null;
+  cash_drawer_session_id: string | null;
+  cash_drawer_id: string | null;
+  cash_drawer_session_no: string | null;
+  pos_session_id: string | null;
+  fin_voucher_id: string | null;
+  fin_voucher_trx_line_id: string | null;
+  cash_drawer_movement_id: string | null;
   created_by: string | null;
   created_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
   processed_at: string | null;
+  updated_by: string | null;
+  updated_at: string | null;
+  rec_notes: string | null;
 }
 
+/** Server-owned pagination for the tenant-scoped refund list. */
 interface PaginationInfo {
   page: number;
   pageSize: number;
   total: number;
 }
 
+/**
+ * Props supplied by the server page after its tenant-safe refund lookup.
+ * @property refunds current server page, never a cross-tenant client cache
+ */
 interface RefundsListClientProps {
   refunds: RefundItem[];
   pagination: PaginationInfo;
@@ -71,41 +102,47 @@ interface RefundsListClientProps {
   executionEnabled?: boolean;
 }
 
+/** A live drawer session eligible to execute a cash refund. */
 interface OpenDrawerSession {
   id: string;
   session_no: string;
   drawer_name: string;
 }
 
+/** Governed refund lifecycle actions exposed by this screen. */
 type StageAction = 'approve' | 'process';
 
-function fmtDate(iso: string | null | undefined): string {
+/**
+ * Formats an audit timestamp for the active UI locale.
+ * @param iso persisted timestamp from the server action
+ * @param locale active Next Intl locale
+ * @returns a localized timestamp or an em dash when unavailable
+ */
+function fmtDate(iso: string | null | undefined, locale: string): string {
   if (!iso) return '—';
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale, {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   }).format(new Date(iso));
 }
 
-function statusBadgeClass(status: string): string {
-  const map: Record<string, string> = {
-    [REFUND_STATUSES.PENDING_APPROVAL]: 'bg-yellow-100 text-yellow-800',
-    [REFUND_STATUSES.APPROVED]:         'bg-blue-100 text-blue-800',
-    [REFUND_STATUSES.PROCESSED]:        'bg-green-100 text-green-800',
-    // REJECTED is not a governed refund_status value (chk_org_order_refunds_status,
-    // migration 0404) — no writer ever produces it; kept only as a defensive
-    // display fallback, same as the unmapped default below.
-    REJECTED: 'bg-red-100 text-red-800',
-  };
-  return map[status] ?? 'bg-gray-100 text-gray-800';
+/**
+ * Maps lifecycle stages to the design-system status semantics.
+ * @param status governed refund status from the financial lifecycle
+ * @returns Cmx status badge variant
+ */
+function refundStatusVariant(status: string): 'warning' | 'info' | 'success' | 'default' {
+  if (status === REFUND_STATUSES.PENDING_APPROVAL) return 'warning';
+  if (status === REFUND_STATUSES.APPROVED) return 'info';
+  if (status === REFUND_STATUSES.PROCESSED) return 'success';
+  return 'default';
 }
 
 /**
  *
- * @param root0
- * @param root0.refunds
- * @param root0.pagination
- * @param root0.actionsEnabled
+ * Keeps governed actions beside the full financial evidence without exposing
+ * idempotency keys or raw metadata to browser clients.
+ * @param props server-provided refund page and feature gates
  */
 export default function RefundsListClient({
   refunds,
@@ -115,6 +152,8 @@ export default function RefundsListClient({
 }: RefundsListClientProps) {
   const t = useTranslations('billing.refunds');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const dir = locale === 'ar' ? 'rtl' : 'ltr';
   const router = useRouter();
   const { showSuccess, showError } = useMessage();
   const { token: csrfToken } = useCSRFToken();
@@ -139,11 +178,7 @@ export default function RefundsListClient({
     pendingAction.refund.refund_method_code === REFUND_METHODS.ORIGINAL_METHOD;
 
   useEffect(() => {
-    if (!requiresCashDrawer) {
-      setDrawerSessions([]);
-      setCashDrawerSessionId('');
-      return;
-    }
+    if (!requiresCashDrawer) return;
     setDrawerSessionsLoading(true);
     fetch('/api/v1/cash-drawers')
       .then(async (res) => {
@@ -182,6 +217,145 @@ export default function RefundsListClient({
     !executionEnabled ||
     (requiresCashDrawer ? !!cashDrawerSessionId : true) &&
     (requiresManualReference ? manualSettlementReference.trim().length > 0 : true);
+
+  const columns: ColumnDef<RefundItem, unknown>[] = [
+    {
+      accessorKey: 'refund_no',
+      header: t('refundNo'),
+      cell: ({ getValue }) => <span className="font-mono text-xs font-medium">{getValue() as string}</span>,
+      meta: { isCopyable: true },
+    },
+    {
+      accessorKey: 'order_no',
+      header: t('order'),
+      cell: ({ row }) => (
+        <Link
+          href={`${VOUCHER_RELATED_HREFS.order(row.original.order_id)}?tab=financial`}
+          className="font-medium text-primary hover:underline"
+        >
+          {row.original.order_no ?? row.original.order_id}
+        </Link>
+      ),
+      meta: { isCopyable: true },
+    },
+    {
+      accessorKey: 'refund_amount',
+      header: t('amount'),
+      cell: ({ row }) => (
+        <span className="font-mono font-medium tabular-nums">
+          {row.original.refund_amount.toFixed(3)} <span className="text-xs text-muted-foreground">{row.original.currency_code}</span>
+        </span>
+      ),
+      meta: { disableFilter: true },
+    },
+    {
+      accessorKey: 'refund_status',
+      header: t('status'),
+      cell: ({ getValue }) => {
+        const status = getValue() as string;
+        return <CmxStatusBadge label={t(`statusLabels.${status}` as never)} variant={refundStatusVariant(status)} size="sm" />;
+      },
+    },
+    {
+      accessorKey: 'refund_method_code',
+      header: t('method'),
+      cell: ({ getValue }) => {
+        const value = getValue() as string | null;
+        return value ? t(`methodLabels.${value}` as never) : '—';
+      },
+    },
+    {
+      accessorKey: 'refund_source_type',
+      header: t('sourceType'),
+      cell: ({ getValue }) => t(`sourceTypeLabels.${getValue() as string}` as never),
+      meta: { hideBelow: 'lg' },
+    },
+    {
+      accessorKey: 'refund_context',
+      header: t('context'),
+      cell: ({ getValue }) => t(`contextLabels.${getValue() as string}` as never),
+      meta: { hideBelow: 'lg' },
+    },
+    {
+      accessorKey: 'reopens_due_amount',
+      header: t('reopensDueAmount'),
+      cell: ({ row }) => `${row.original.reopens_due_amount.toFixed(3)} ${row.original.currency_code}`,
+      meta: { hideBelow: 'lg', disableFilter: true },
+    },
+    {
+      accessorKey: 'reason_code',
+      header: t('reason'),
+      cell: ({ getValue }) => {
+        const value = getValue() as string | null;
+        return value ? t(`reasonLabels.${value}` as never) : '—';
+      },
+    },
+    { accessorKey: 'refund_reason', header: t('reasonNote'), meta: { hideBelow: 'lg', isCopyable: true } },
+    { accessorKey: 'original_payment_id', header: t('originalPaymentId'), meta: { hideBelow: 'lg', isCopyable: true } },
+    { accessorKey: 'original_credit_app_id', header: t('originalCreditAppId'), meta: { hideBelow: 'lg', isCopyable: true } },
+    {
+      accessorKey: 'fin_voucher_id',
+      header: t('financeVoucher'),
+      cell: ({ row }) => row.original.fin_voucher_id ? (
+        <Link href={VOUCHER_RELATED_HREFS.voucher(row.original.fin_voucher_id)} className="font-mono text-xs text-primary hover:underline">
+          {row.original.fin_voucher_id}
+        </Link>
+      ) : '—',
+      meta: { hideBelow: 'lg', isCopyable: true },
+    },
+    { accessorKey: 'fin_voucher_trx_line_id', header: t('voucherLineId'), meta: { hideBelow: 'lg', isCopyable: true } },
+    {
+      accessorKey: 'cash_drawer_session_id',
+      header: t('cashDrawerSession'),
+      cell: ({ row }) => row.original.cash_drawer_session_id && row.original.cash_drawer_id ? (
+        <Link
+          href={VOUCHER_RELATED_HREFS.cashDrawerSession(row.original.cash_drawer_id, row.original.cash_drawer_session_id)}
+          className="font-mono text-xs text-primary hover:underline"
+        >
+          {row.original.cash_drawer_session_no ?? row.original.cash_drawer_session_id}
+        </Link>
+      ) : row.original.cash_drawer_session_id ?? '—',
+      meta: { hideBelow: 'lg', isCopyable: true },
+    },
+    { accessorKey: 'cash_drawer_movement_id', header: t('cashDrawerMovementId'), meta: { hideBelow: 'lg', isCopyable: true } },
+    { accessorKey: 'pos_session_id', header: t('posSessionId'), meta: { hideBelow: 'lg', isCopyable: true } },
+    { accessorKey: 'gateway_refund_id', header: t('settlementReference'), meta: { hideBelow: 'lg', isCopyable: true } },
+    { accessorKey: 'created_by', header: t('requestedBy'), meta: { hideBelow: 'lg', isCopyable: true } },
+    { accessorKey: 'created_at', header: t('requestedAt'), cell: ({ getValue }) => fmtDate(getValue() as string | null, locale), meta: { hideBelow: 'md' } },
+    { accessorKey: 'approved_by', header: t('approvedBy'), meta: { hideBelow: 'lg', isCopyable: true } },
+    { accessorKey: 'approved_at', header: t('approvedAt'), cell: ({ getValue }) => fmtDate(getValue() as string | null, locale), meta: { hideBelow: 'lg' } },
+    { accessorKey: 'processed_at', header: t('processedAt'), cell: ({ getValue }) => fmtDate(getValue() as string | null, locale), meta: { hideBelow: 'md' } },
+    { accessorKey: 'updated_by', header: t('updatedBy'), meta: { hideBelow: 'lg', isCopyable: true } },
+    { accessorKey: 'updated_at', header: t('updatedAt'), cell: ({ getValue }) => fmtDate(getValue() as string | null, locale), meta: { hideBelow: 'lg' } },
+    { accessorKey: 'rec_notes', header: t('recordNotes'), meta: { hideBelow: 'lg', isCopyable: true } },
+  ];
+
+  if (showActionsColumn) {
+    columns.push({
+      id: 'actions',
+      header: t('actions.column'),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Link href={`${VOUCHER_RELATED_HREFS.order(row.original.order_id)}?tab=financial`}>
+            <CmxButton size="sm" variant="ghost">{t('viewDetails')}</CmxButton>
+          </Link>
+          {row.original.refund_status === REFUND_STATUSES.PENDING_APPROVAL && canApprove ? (
+            <CmxButton size="sm" variant="outline" onClick={() => setPendingAction({ refund: row.original, action: 'approve' })}>
+              {t('actions.approve')}
+            </CmxButton>
+          ) : null}
+          {row.original.refund_status === REFUND_STATUSES.APPROVED && canProcess ? (
+            <CmxButton size="sm" onClick={() => setPendingAction({ refund: row.original, action: 'process' })}>
+              {t('actions.process')}
+            </CmxButton>
+          ) : null}
+        </div>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+      meta: { disableFilter: true },
+    });
+  }
 
   async function executeStageAction() {
     if (!pendingAction || submitting || !canSubmitProcess) return;
@@ -229,128 +403,41 @@ export default function RefundsListClient({
     }
   }
 
-  if (refunds.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 py-16 text-center">
-        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-        </svg>
-        <p className="mt-4 text-sm text-gray-500">{t('noRefunds')}</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
-      <div className="overflow-x-auto">
-        <table className="w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('refundNo')}</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('order')}</th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('amount')}</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('method')}</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('status')}</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('reason')}</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('requestedAt')}</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('processedAt')}</th>
-              {showActionsColumn && (
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('actions.column')}</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
-            {refunds.map((r) => {
-              return (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{r.refund_no}</td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    {r.order_no ? (
-                      <Link
-                        href={`/dashboard/orders/${r.order_id}`}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        {r.order_no}
-                      </Link>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-medium">
-                    {r.currency_code} {r.refund_amount.toFixed(3)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                    {r.refund_method_code
-                      ? t(`methodLabels.${r.refund_method_code}` as Parameters<typeof t>[0])
-                      : '—'}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(r.refund_status)}`}>
-                      {t(`statusLabels.${r.refund_status}` as Parameters<typeof t>[0])}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                    {r.reason_code
-                      ? t(`reasonLabels.${r.reason_code}` as Parameters<typeof t>[0])
-                      : '—'}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-gray-700">{fmtDate(r.created_at)}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-gray-700">{fmtDate(r.processed_at)}</td>
-                  {showActionsColumn && (
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {r.refund_status === REFUND_STATUSES.PENDING_APPROVAL && canApprove && (
-                        <CmxButton
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setPendingAction({ refund: r, action: 'approve' })}
-                        >
-                          {t('actions.approve')}
-                        </CmxButton>
-                      )}
-                      {r.refund_status === REFUND_STATUSES.APPROVED && canProcess && (
-                        <CmxButton
-                          size="sm"
-                          onClick={() => setPendingAction({ refund: r, action: 'process' })}
-                        >
-                          {t('actions.process')}
-                        </CmxButton>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-3">
+      <CmxDataGrid
+        data={refunds}
+        columns={columns}
+        getRowId={(refund) => refund.id}
+        dir={dir}
+        initialPageSize={pagination.pageSize}
+        pageSizeOptions={[pagination.pageSize]}
+        enableGlobalSearch
+        enableColumnVisibility
+        enableDensityToggle
+        enableStickyFirstColumn
+        enableColumnBorders
+        enableScrollEdgeHints
+        tableWrapperClassName="max-h-[calc(100vh-22rem)]"
+        columnVisibilityStorageKey="billing-refunds-grid-columns"
+        labels={{ globalSearchPlaceholder: tCommon('search'), empty: t('noRefunds') }}
+      />
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
-        <div>
-          {pagination.total} total
-        </div>
-        <div className="flex items-center gap-2">
-          {pagination.page > 1 && (
-            <button
-              onClick={() => handlePage(pagination.page - 1)}
-              className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50"
-            >
-              {tCommon('previous')}
-            </button>
-          )}
-          <span className="px-2 text-gray-600">
-            {pagination.page} / {totalPages}
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+          <span className="text-sm text-muted-foreground">
+            {tCommon('pagination', { page: pagination.page, totalPages })}
           </span>
-          {pagination.page < totalPages && (
-            <button
-              onClick={() => handlePage(pagination.page + 1)}
-              className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50"
-            >
+          <div className="flex gap-2 rtl:flex-row-reverse">
+            <CmxButton variant="outline" size="sm" onClick={() => handlePage(pagination.page - 1)} disabled={pagination.page <= 1}>
+              {tCommon('previous')}
+            </CmxButton>
+            <CmxButton variant="outline" size="sm" onClick={() => handlePage(pagination.page + 1)} disabled={pagination.page >= totalPages}>
               {tCommon('next')}
-            </button>
-          )}
+            </CmxButton>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {/* B34 stage-action confirmation (double-click safe via `submitting`) */}
       <CmxDialog

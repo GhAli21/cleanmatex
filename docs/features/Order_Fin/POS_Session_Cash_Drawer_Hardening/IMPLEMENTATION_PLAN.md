@@ -13,10 +13,12 @@
 | # | Decision | Resolution |
 |---|---|---|
 | D1 | Blind close | **Tenant-configurable** setting, branch-overridable. Not hardcoded. |
-| D2 | Over-threshold variance gating | **Tenant-configurable** setting with three modes (`OFF` / `FLAG` / `APPROVAL_REQUIRED`), branch-overridable. B16's current always-complete behaviour becomes the `FLAG` mode, so the existing decision is preserved as a selectable option rather than reversed. |
+| D2 | Over-threshold variance gating | **Tenant-configurable** setting with three modes (`OFF` / `WARN_ONLY` / `APPROVAL_REQUIRED`), branch-overridable. B16's current always-complete behaviour becomes the `WARN_ONLY` mode, so the existing decision is preserved as a selectable option rather than reversed. |
+| D5 | `FLAG` mode rename | **`WARN_ONLY`** (owner, Q5). The close still completes, but it now surfaces an explicit over-threshold warning at close time and creates a supervisor queue entry — so the name is honest rather than describing a silent record. `RECORD_ONLY` was the alternative and would have implied no user-visible signal. |
+| D6 | Cash-control settings route | **`/dashboard/settings/payments/cash-control-settings`** (owner, Q6), under the existing `settings/payments` family rather than `internal_fin`. API moves to `/api/v1/settings/payments/cash-control`. |
 | D3 | Where the settings live | **Dedicated finance-owned table `org_fin_cash_ctrl_stng_cf`**, read through one standalone resolver service — *not* the general `sys_tenant_settings_cd` catalog. Chosen so the storage can be swapped later by changing a single private function. See §3.1. |
 
-`FLAG` is the name given to today's B16 behaviour (`cash-drawer.service.ts:1574-1586`): the close always completes, and exceeding the threshold only snapshots it and marks the session eligible for optional supervisor approval. It is a record-and-move-on mode, not a blocking control.
+`WARN_ONLY` is the renamed form of today's B16 behaviour (`cash-drawer.service.ts:1574-1586`): the close always completes, and exceeding the threshold only snapshots it and marks the session eligible for optional supervisor approval. It is a record-and-move-on mode, not a blocking control.
 
 Per **D3**, both settings are stored in `org_fin_cash_ctrl_stng_cf` and edited from a tenant-side admin screen in this repo. HQ-console editing is deferred; §3.1.5 records the deviation from `integration-contracts.md` and ADR-055 captures it formally.
 
@@ -35,9 +37,9 @@ Per **D3**, both settings are stored in `org_fin_cash_ctrl_stng_cf` and edited f
 | Wave | Theme | Priority | Migrations |
 |---|---|---|---|
 | **W0** | Foundation: cash-control config table + resolver service, admin screen, permissions, decimal utils | Prerequisite for all | 0515–0516 |
-| **A** | Money & concurrency integrity | **Non-negotiable before real tenants** | 0517, 0527 |
+| **A** | Money & concurrency integrity (incl. cash-tender rounding) | **Non-negotiable before real tenants** | 0517, 0527 |
 | **B** | Session enforcement & lifecycle | High | 0520, 0526 |
-| **C** | Shift controls: blind close, denominations, variance gate | High (revenue-protecting) | 0518–0519, 0521 |
+| **C** | Shift controls: blind close, denominations, variance gate | High (revenue-protecting) | 0518–0519, 0521, 0529 |
 | **D** | Custody chain & audit artifacts | High | 0522–0523 |
 | **E** | Consolidation, attribution, permissions cleanup | Medium | 0524–0525 |
 
@@ -50,6 +52,7 @@ W0 (settings service + decimal utils)
  ├─► A2 ──► A3 ──► A4          A3 needs the locked transaction from A2
  │                             A4's currency guard needs A3's Decimal path
  ├─► A1                        independent
+ ├─► A6 ──► C1                 cash rounding increment must be populated (HQ) before denominations validate against it
  ├─► B2 ──► B3                 B3 uses the assignment_mode column added in 0520
  ├─► B1                        needs W0 settings only
  ├─► C1 ──► C2 ──► C3          count sheet → blind close → gate
@@ -121,7 +124,7 @@ org_fin_cash_ctrl_stng_cf
 
   -- drawer close controls
   blind_close_enabled          BOOLEAN         -- D1
-  variance_gate_mode           TEXT            -- OFF | FLAG | APPROVAL_REQUIRED  (D2)
+  variance_gate_mode           TEXT            -- OFF | WARN_ONLY | APPROVAL_REQUIRED  (D2)
   variance_threshold_amount    DECIMAL(19,4)
   count_sheet_mode             TEXT            -- OFF | OPTIONAL | REQUIRED
 
@@ -154,7 +157,7 @@ All column names are ≤ 30 chars; longest is `pos_session_req_all_tenders` (27)
 | Tenant FK | `fk_ofccs_tenant` | → `org_tenants_mst(id)` |
 | Scope shape | `chk_ofccs_scope` | `scope_id IS NULL` **iff** `scope_level = 'TENANT'` |
 | Scope level | `chk_ofccs_scope_level` | `IN ('TENANT','BRANCH','USER','DRAWER')` |
-| Variance gate | `chk_ofccs_variance_gate` | `IN ('OFF','FLAG','APPROVAL_REQUIRED')` |
+| Variance gate | `chk_ofccs_variance_gate` | `IN ('OFF','WARN_ONLY','APPROVAL_REQUIRED')` |
 | Count sheet | `chk_ofccs_count_sheet` | `IN ('OFF','OPTIONAL','REQUIRED')` |
 | Assignment | `chk_ofccs_assignment` | `IN ('OPEN','ASSIGNED_ONLY')` |
 | Shared session | `chk_ofccs_shared_session` | `IN ('SHARED','EXCLUSIVE')` |
@@ -231,7 +234,7 @@ The logical setting codes below are the `CashControlSettings` field names and th
 | DB column | TS field | Type | Default | Purpose |
 |---|---|---|---|---|
 | `blind_close_enabled` | `blindCloseEnabled` | `BOOLEAN` | `false` | Hide expected cash until the count is submitted. **(D1)** |
-| `variance_gate_mode` | `varianceGateMode` | `TEXT` | `FLAG` | `OFF` / `FLAG` / `APPROVAL_REQUIRED`. **(D2)** |
+| `variance_gate_mode` | `varianceGateMode` | `TEXT` | `WARN_ONLY` | `OFF` / `WARN_ONLY` / `APPROVAL_REQUIRED`. **(D2)** |
 | `variance_threshold_amount` | `varianceThresholdAmount` | `DECIMAL(19,4)` | `null` | Tenant default absolute threshold. Per-drawer `variance_approval_threshold` wins when set. |
 | `count_sheet_mode` | `countSheetMode` | `TEXT` | `OPTIONAL` | `OFF` / `OPTIONAL` / `REQUIRED` denomination counting. |
 | `drawer_assignment_mode` | `drawerAssignmentMode` | `TEXT` | `OPEN` | `OPEN` / `ASSIGNED_ONLY`. Per-drawer `assignment_mode` column wins when set. |
@@ -250,7 +253,7 @@ Every column is **nullable** (`NULL` = inherit); the Default column is the TypeS
 
 Leaving the general catalog means they are **not** visible to the HQ settings console and **not** returned by `fn_stng_resolve_all_settings`. Someone still has to edit them, so the program must build that surface.
 
-**Planned approach:** a tenant-side admin screen in this repo — `/dashboard/internal_fin/cash-control-settings` — gated by `cash_control:manage`, showing tenant defaults with per-branch / per-drawer overrides. HQ-side editing is deferred until the settings either move into the general catalog or an HQ API is added.
+**Planned approach:** a tenant-side admin screen in this repo — `/dashboard/settings/payments/cash-control-settings` — gated by `cash_control:manage`, showing tenant defaults with per-branch / per-drawer overrides. HQ-side editing is deferred until the settings either move into the general catalog or an HQ API is added.
 
 This is a deliberate, recorded deviation from `integration-contracts.md` (which assigns settings ownership to `cleanmatexsaas`). It is scoped to cash-control settings only and is revisited at the migration decision point. **An ADR is required** — see W0-2b.
 
@@ -263,7 +266,7 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [ ] W0-3b **Prisma + generated types.** Add the model to `web-admin/prisma/schema.prisma`, run `npx prisma generate`, and refresh `types/database.generated.ts` / `types/database.ts`. *Standing requirement for every migration in this program — see §10.1.*
 - [ ] W0-4 `lib/services/cash-control-settings.service.ts` per §3.1.3. Enforce the six design rules in review.
 - [ ] W0-4b **Settings-change audit.** Persist before/after on every `updateCashControlSettings` call, following the `org_payment_audit_log` precedent. Decide in review: reuse an existing audit table or add `org_fin_cash_ctrl_audit_dtl` in `0515`. A control that can be silently turned off is not a control.
-- [ ] W0-5 Admin screen + API: `src/features/cash-drawers/ui/cash-control-settings-screen.tsx`, `GET|PUT /api/v1/settings/cash-control`, `/navigation` dual-write (nav migration folded into `0524`), access contract.
+- [ ] W0-5 Admin screen + API: `src/features/cash-drawers/ui/cash-control-settings-screen.tsx`, `GET|PUT /api/v1/settings/payments/cash-control`, `/navigation` dual-write (nav migration folded into `0524`), access contract.
 - [ ] W0-6 i18n keys for all 13 settings (label + description, EN/AR).
 - [ ] W0-7 `__tests__/services/cash-control-settings.test.ts` — default fallback with zero rows, full precedence chain drawer→user→branch→tenant, malformed-value fallback, tenant isolation, memoization.
 - [ ] W0-8 STATUS.md + doc refresh.
@@ -350,6 +353,35 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [ ] A4-3 Migration `0527`: `CHECK` / trigger asserting a cash payment's `currency_code` matches its drawer session's `currency_code`; service guard returning `CASH_CURRENCY_MISMATCH` (422) before the write.
 - [ ] A4-4 Tests for mixed-currency sessions and the rejection path.
 
+### A6 — Cash tender rounding: **consume what HQ already built** (no new migration)
+
+> **Corrected 2026-09-23 after inspecting the HQ currency work.** An earlier draft of this package proposed adding `cash_rounding_unit` to `sys_currency_rounding_rules_cd` under a new migration `0528`. **That would have created a duplicate, conflicting definition.** The infrastructure already exists.
+
+**What already exists and is applied:**
+
+- `sys_currency_cd.cash_rounding_increment_minor BIGINT` and `cash_rounding_mode` — added by migration `0264`, FK'd to `sys_currency_cash_rounding_mode_cd` in `0266`, owned by the HQ Currency Setup feature.
+- `sys_currency_cd.minor_unit`, `decimal_places`, `is_cash_supported`, bilingual minor-unit names (`Baisa` / `بيسة`) — seeded in `0265`.
+
+**The three real defects:**
+
+1. **`cash_rounding_increment_minor` is `NULL` for every GCC currency.** Verified in the `0265` seed: OMR, KWD, BHD and AED all seed `null`. The column exists; the values were never supplied. **This is HQ's to populate** — see the handoff note.
+2. **The tenant app never reads it.** `lib/money/currency-rounding.ts` resolves from `sys_currency_rounding_rules_cd` (migration `0290`, B17) — the *accounting* table — and ignores `sys_currency_cd.cash_rounding_increment_minor` entirely. So even once HQ populates it, nothing changes until this wave wires it up.
+3. **Two competing rounding sources** — `sys_currency_rounding_rules_cd` (B17, in use) and `sys_currency_cd` (HQ, unused). Cross-project decision required; see handoff item 2.
+
+**Tasks (tenant side):**
+
+- [ ] A6-1 **Blocked on HQ** — see [HQ_CURRENCY_HANDOFF.md](./HQ_CURRENCY_HANDOFF.md). HQ must expand and seed `sys_currency_rounding_rules_cd` (`rounding_type`, `rounding_increment_minor`, unified mode catalog) before cash rounding does anything. Until then the resolver no-ops safely, so this wave ships and lights up when HQ lands. **The DDL and seed migrations are still written in this repo on HQ's request.**
+- [ ] A6-2 Rewire `lib/money/currency-rounding.ts` to the **expanded `sys_currency_rounding_rules_cd`** (owner decision, see handoff §3): resolve `(currency, rounding_type)`, fall back to `(currency, 'ACCOUNTING')`, then no-op. Arithmetic in **minor units**. **Resolve or no-op, never assume** — keep the existing B15/B17 policy.
+- [ ] A6-2b Mirror `sys_rounding_type_cd` and the unified `sys_rounding_mode_cd` codes into TS constants (DB-mirror rule). The current `CURRENCY_ROUNDING_MODES` uses `FLOOR`/`CEIL`; the unified catalog uses `DOWN`/`UP` — migrate the constant and every switch in `currency-rounding.ts`.
+- [ ] A6-3 **`currency-rounding.ts` is float math** (`Math.round`, `Number.EPSILON`, `round4`) sitting directly in the path that decides tendered cash. Convert to `Prisma.Decimal` alongside A3. Minor-unit integers make this straightforward — do the arithmetic in minor units and convert once at the edge.
+- [ ] A6-4 Apply cash rounding **only to cash-family tender**, at tender time, as a visible rounding line on receipt and Z-report. Never a silent total adjustment (`no-silent-money-mutation.md`). Card / wallet / transfer stay exact.
+- [ ] A6-5 Post the residue via the existing ERP-lite posting engine (cash-rounding gain/loss). Unposted residue is how drawers drift.
+- [ ] A6-6 **Decimal-place authority (owner-decided).** `sys_currency_cd.decimal_places` / `minor_unit` is the single source; `varianceToleranceFor()` (W0-15) resolves from it. **Deprecate `TENANT_DECIMAL_PLACES` to display-only** — audit its call sites in `tenant-settings.service.ts` (`CurrencyConfig`) and migrate each to the currency master. Do not remove the setting in the same step; deprecate, migrate, then retire.
+- [ ] A6-7 Honour `is_cash_supported`: a currency with it false must not be selectable as a drawer currency.
+- [ ] A6-8 Tests: with OMR `cash_rounding_increment_minor = 5`, a `2.003` cash tender rounds to `2.005` with a rounding line emitted; the same amount on card stays `2.003`; a drawer closes balanced across 200 mixed-tender orders. Plus an explicit test that `NULL` increment is a clean no-op.
+
+**No migration in this package.** The DDL exists; only HQ seed values and tenant-side consumption are missing.
+
 ### A5 — Wave A exit
 
 - [ ] A5-1 `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest.
@@ -406,7 +438,10 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 
 ### C1 — Denomination catalog & count sheets (migrations `0518`, `0519`)
 
-- [ ] C1-1 Migration `0518`: `sys_currency_denominations_cd` (`currency_code`, `denomination_value DECIMAL(19,4)`, `denom_kind` `NOTE|COIN`, `name`/`name2`, `display_order`, `is_active`; PK on `(currency_code, denomination_value)`). Seed AED, SAR, OMR, KWD, BHD, QAR — **notes and coins**, with correct 3-decimal subunits for OMR / KWD / BHD. Plus `sys_cash_count_context_cd` (`OPENING` / `MID_SHIFT` / `CLOSING`).
+- [ ] C1-1 **`sys_currency_denominations_cd` is HQ-owned** (owner decision — handoff §4). HQ defines, seeds and provides the admin UI; this program consumes it **read-only**, keyed on `denomination_minor` (minor units). The DDL migration is still authored in this repo on HQ's request. Migration `0518` here therefore carries only `sys_cash_count_context_cd` (`OPENING` / `MID_SHIFT` / `CLOSING`).
+- [ ] C1-1a **Blocked on HQ** for the denomination seed. Until it lands, `count_sheet_mode` must behave as `OFF` for that currency rather than rendering an empty counting grid — fail visibly in the admin screen, never silently in the cashier's face.
+- [ ] C1-1b **Tenant-level denomination control (ours, not HQ's)** — `org_currency_denom_cf` (tenant-scoped, RLS): enable/disable a denomination and override `display_order` per tenant/branch. Needed for withdrawn notes still in the global catalog, and for a branch that refuses large notes. `NULL`/absent row = inherit the `sys_` catalog, so zero rows works correctly.
+- [ ] C1-1c **Opening-float composition (optional per `count_sheet_mode`)** — the same `CmxDenominationCounter` records the opening float by denomination, not just a total. This is what makes a mid-shift discrepancy traceable to when it appeared, and it feeds A6-7's consistency check.
 - [ ] C1-2 Migration `0519`: `org_cash_count_sheets_dtl` — `tenant_org_id`, `branch_id`, `cash_drawer_session_id`, `count_context`, `denomination_value`, `quantity INTEGER`, `line_total DECIMAL(19,4)`, `currency_code`, `counted_by`, `counted_at`, full audit block, RLS `tenant_isolation_*`, composite FK `(cash_drawer_session_id, tenant_org_id)`.
 - [ ] C1-3 Service `recordCountSheet` (transactional; recomputes `count_sheet_total` in SQL). The count-sheet total must equal the submitted `physicalCount` or the close is rejected with an explicit reconciliation message.
 - [ ] C1-4 APIs: `POST|GET /api/v1/cash-drawers/[drawerId]/session/[sessionId]/count-sheet`, `GET /api/v1/currencies/[code]/denominations`.
@@ -431,7 +466,7 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [ ] C3-1 Migration `0521`: add `CLOSED_PENDING_APPROVAL` to `sys_cash_drawer_session_status_cd` (bilingual).
 - [ ] C3-2 `closeSession` honours `CASH_DRAWER_VARIANCE_GATE_MODE`:
   - `OFF` — no threshold concept.
-  - `FLAG` — today's B16 behaviour, unchanged (close completes, approval optional).
+  - `WARN_ONLY` — today's B16 behaviour plus an explicit close-time warning and a supervisor queue entry (close still completes, approval optional).
   - `APPROVAL_REQUIRED` — an over-threshold close lands in `CLOSED_PENDING_APPROVAL`; the drawer is not reusable and the POS session cannot close until approved.
 - [ ] C3-3 Threshold resolution order: drawer `variance_approval_threshold` → setting `CASH_DRAWER_VARIANCE_THRESHOLD` → none. Always snapshot the value actually applied.
 - [ ] C3-4 Enforce maker ≠ checker **in code** (B16 documents it only in a column comment).
@@ -558,6 +593,7 @@ Many POS sessions → one drawer session is intentional (plain index `idx_ops_cd
 | `0525` | E | Effective-permissions rebuild |
 | `0526` | B | Branch timezone resolution |
 | `0527` | A | Currency-match constraint + index hardening |
+| `0529` | C | `org_currency_denom_cf` — tenant denomination enable/override |
 
 All migrations: `TEXT` not `VARCHAR`; money `DECIMAL(19,4)`; object names ≤ 30 chars; full audit block; RLS on every `org_*` table; composite FKs on `(id, tenant_org_id)`; `DROP … RESTRICT` only; `COMMENT ON` for every new column.
 

@@ -37,6 +37,11 @@ export async function getAllRefunds(page = 1, pageSize = 20) {
           orderBy: { created_at: 'desc' },
           skip,
           take: pageSize,
+          include: {
+            org_cash_drawer_sessions_mst: {
+              select: { cash_drawer_id: true, session_no: true },
+            },
+          },
         }),
         prisma.org_order_refunds_dtl.count({
           where: { tenant_org_id: auth.tenantId },
@@ -72,9 +77,24 @@ export async function getAllRefunds(page = 1, pageSize = 20) {
       refund_source_type: r.refund_source_type,
       refund_context:     r.refund_context,
       reopens_due_amount: toNumber(r.reopens_due_amount),
+      original_payment_id: r.original_payment_id,
+      original_credit_app_id: r.original_credit_app_id,
+      gateway_refund_id: r.gateway_refund_id,
+      cash_drawer_session_id: r.cash_drawer_session_id,
+      cash_drawer_id: r.org_cash_drawer_sessions_mst?.cash_drawer_id ?? null,
+      cash_drawer_session_no: r.org_cash_drawer_sessions_mst?.session_no ?? null,
+      pos_session_id: r.pos_session_id,
+      fin_voucher_id: r.fin_voucher_id,
+      fin_voucher_trx_line_id: r.fin_voucher_trx_line_id,
+      cash_drawer_movement_id: r.cash_drawer_movement_id,
       created_by:         r.created_by,
       created_at:         r.created_at?.toISOString() ?? null,
+      approved_by:        r.approved_by,
+      approved_at:        r.approved_at?.toISOString() ?? null,
       processed_at:       r.processed_at?.toISOString() ?? null,
+      updated_by:         r.updated_by,
+      updated_at:         r.updated_at?.toISOString() ?? null,
+      rec_notes:          r.rec_notes,
     }));
 
     return {
