@@ -28,6 +28,29 @@ Use this skill only when the task explicitly matches **database**. Keep the acti
 - Preserve CleanMateX Tenant App rules from `CLAUDE.md`.
 - Keep output concise.
 
+## Multi-Currency Transaction Standard (base == functional)
+
+Normal monetary transaction:
+- `currency_code TEXT NOT NULL` (FK → `sys_currency_cd(code)`, no default)
+- `amount DECIMAL(19,4) NOT NULL`
+
+If base-currency valuation is required, also add:
+- `base_currency_code TEXT NOT NULL` (FK → `sys_currency_cd(code)`, no default)
+- `base_amount DECIMAL(19,4) NOT NULL`
+- `fx_rate DECIMAL(22,10) NULL`
+- `fx_rate_date DATE NULL`
+- `fx_rate_source TEXT NULL`
+- `fx_rate_id UUID NULL`
+
+Rules:
+- FX direction always: `base_amount = amount × fx_rate`.
+- If `currency_code = base_currency_code` → `base_amount = amount`; `fx_rate`, `fx_rate_date`, `fx_rate_source`, `fx_rate_id` = `NULL`.
+- Never `FLOAT`/`REAL`/`DOUBLE` for money or FX.
+- Currency codes are `TEXT` and must FK to `sys_currency_cd(code)`.
+
+Full detail + CHECK constraint template: `reference-original.md` → "Multi-Currency Transaction Standard".
+
+
 ## Workflow
 
 ```text

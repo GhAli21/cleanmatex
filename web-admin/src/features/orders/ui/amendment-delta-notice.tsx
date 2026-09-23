@@ -33,6 +33,8 @@ export interface AmendmentDeltaNoticeInfo {
   deltaAmount: number;
   previousTotal: number;
   newTotal: number;
+  /** Server-authoritative unresolved overpayment after the edit commits. */
+  unresolvedOverpaymentAmount: number;
   editHistoryId: string;
 }
 
@@ -54,6 +56,7 @@ export function AmendmentDeltaNotice({ info, onClose }: AmendmentDeltaNoticeProp
 
   if (!info) return null;
   const isIncrease = info.deltaAmount > 0;
+  const hasRefundDue = !isIncrease && info.unresolvedOverpaymentAmount > 0;
 
   return (
     <CmxDialog open={!!info} onOpenChange={(next) => !next && onClose()}>
@@ -74,7 +77,11 @@ export function AmendmentDeltaNotice({ info, onClose }: AmendmentDeltaNoticeProp
           <AlertDescription>
             {isIncrease
               ? t('deltaNotice.increaseGuidance', { amount: formatMoneyWithCode(Math.abs(info.deltaAmount)) })
-              : t('deltaNotice.decreaseGuidance', { amount: formatMoneyWithCode(Math.abs(info.deltaAmount)) })}
+              : hasRefundDue
+                ? t('deltaNotice.decreaseGuidance', {
+                    amount: formatMoneyWithCode(info.unresolvedOverpaymentAmount),
+                  })
+                : t('deltaNotice.decreaseNoRefundGuidance')}
           </AlertDescription>
         </Alert>
 

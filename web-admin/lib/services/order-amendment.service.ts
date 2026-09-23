@@ -38,6 +38,8 @@ export interface AmendmentDeltaResult {
   newTotal: number;
   /** Signed: positive = total increased (charge), negative = total decreased (refund-shaped). */
   deltaAmount: number;
+  /** Canonical post-save excess still owed to the customer, never the item-total delta. */
+  unresolvedOverpaymentAmount: number;
   /** True when this edit must go through the reason + idempotency + settlement gate. */
   isGoverned: boolean;
 }
@@ -58,6 +60,8 @@ export function computeAmendmentDelta(params: {
   previousTotal: number;
   newTotal: number;
   totalPaidAmount: number;
+  /** Snapshot-derived so refunded payment facts never inflate the customer refund notice. */
+  unresolvedOverpaymentAmount?: number;
   governedFlagEnabled: boolean;
 }): AmendmentDeltaResult {
   const deltaAmount = round4(params.newTotal - params.previousTotal);
@@ -67,6 +71,10 @@ export function computeAmendmentDelta(params: {
     previousTotal: params.previousTotal,
     newTotal: params.newTotal,
     deltaAmount,
+    unresolvedOverpaymentAmount: Math.max(
+      0,
+      params.unresolvedOverpaymentAmount ?? params.totalPaidAmount - params.newTotal,
+    ),
     isGoverned: params.governedFlagEnabled && hasPriorPayments && beyondTolerance,
   };
 }

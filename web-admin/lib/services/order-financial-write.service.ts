@@ -370,11 +370,14 @@ function resolveHeaderPaymentStatus(input: {
   totalAmount: number;
   totalPaidAmount: number;
   totalCreditAppliedAmount: number;
+  unresolvedOverpaidAmount: number;
   payOnCollectionAmount: number;
 }): string {
   const settledAmount = input.totalPaidAmount + input.totalCreditAppliedAmount;
 
-  if (input.outstandingAmount <= 0 && settledAmount > input.totalAmount) {
+  // Gross payments remain an audit fact. Only unresolved excess represents an
+  // amount still owed to the customer after processed real-payment refunds.
+  if (input.outstandingAmount <= 0 && input.unresolvedOverpaidAmount > 0) {
     return ORDER_PAYMENT_STATUS.OVERPAID;
   }
   if (input.outstandingAmount <= 0 && settledAmount > 0) {
@@ -728,13 +731,9 @@ export async function recalculateOrderFinancialSnapshotTx(
     refundReopens: refundReopensDueAmount,
     creditReversalReopens: creditReversalReopensDueAmount,
   });
-  const grossOverpaidAmount = Math.max(
-    0,
-    totalPaidAmount + totalCreditAppliedAmount - totalAmount,
-  );
   const overpaidAmount = Math.max(
     0,
-    grossOverpaidAmount - changeReturnedAmount - disposedOverpaymentAmount,
+    netCollectedAmount + totalCreditAppliedAmount - totalAmount - changeReturnedAmount - disposedOverpaymentAmount,
   );
   const payOnCollectionAmount =
     order.payment_type_code === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION
@@ -794,6 +793,7 @@ export async function recalculateOrderFinancialSnapshotTx(
     totalAmount,
     totalPaidAmount,
     totalCreditAppliedAmount,
+    unresolvedOverpaidAmount: overpaidAmount,
     payOnCollectionAmount,
   });
 

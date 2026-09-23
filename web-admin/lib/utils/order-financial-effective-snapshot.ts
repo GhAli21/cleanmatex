@@ -290,7 +290,7 @@ export function buildEffectiveOrderFinancialSnapshot(
   );
   const overpaidAmount = preferStored(
     input.snapshot.overpaidAmount,
-    Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount),
+    Math.max(0, netCollectedAmount + totalCreditAppliedAmount - totalAmount),
   );
   const payOnCollectionAmount = preferStored(
     input.snapshot.payOnCollectionAmount,

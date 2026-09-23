@@ -150,6 +150,26 @@ describe('mapOrderFinancialSummaryView', () => {
     expect(view.amounts.netCollectedAmount).toBeCloseTo(0.75);
   });
 
+  it('keeps a processed overcharge refund settled instead of recreating overpayment from gross paid', () => {
+    const view = mapOrderFinancialSummaryView(
+      buildInput({
+        snapshot: {
+          ...buildInput().snapshot,
+          totalAmount: 0.7,
+          totalPaidAmount: 1.4,
+          realPaymentRefundedAmount: 0.7,
+          netCollectedAmount: 0.7,
+          outstandingAmount: 0,
+          overpaidAmount: 0,
+          paymentStatus: 'PAID',
+        },
+      }),
+    );
+
+    expect(view.amounts.overpaidAmount).toBe(0);
+    expect(view.payment.paymentStatus).toBe('PAID');
+  });
+
   it('flags mixed-case pending payments with the canonical warning code', () => {
     const view = mapOrderFinancialSummaryView(
       buildInput({

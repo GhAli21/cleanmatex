@@ -5,6 +5,9 @@ export const POS_SESSION_PERMISSIONS = {
   PAUSE_RESUME: 'pos_session:pause_resume',
   CLOSE: 'pos_session:close',
   FORCE_CLOSE: 'pos_session:force_close',
+  /** POS Session & Cash Drawer Hardening W0-10 (migration 0517) — new. */
+  CLOSE_OTHERS: 'pos_session:close_others',
+  REPORT_Z: 'pos_session:report_z',
 } as const;
 
 export type PosSessionPermission =

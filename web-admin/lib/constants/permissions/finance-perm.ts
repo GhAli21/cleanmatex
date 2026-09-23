@@ -49,6 +49,19 @@ export const FINANCE_PERMISSIONS = {
   RECONCILIATION_VIEW: 'reconciliation:view',
   /** B27 — new; was checked in code (B16 approveSessionVariance) but never seeded until this package. */
   CASH_DRAWER_APPROVE_VARIANCE: 'cash_drawer:approve_variance',
+  /** POS Session & Cash Drawer Hardening W0-11 — pre-existed in the DB (seeded 2026-05-17) and enforced in route code, but was missing from this registry until now. */
+  CASH_DRAWER_OPEN_SESSION: 'cash_drawer:open_session',
+  /** POS Session & Cash Drawer Hardening W0-11 — see CASH_DRAWER_OPEN_SESSION note. */
+  CASH_DRAWER_CLOSE_SESSION: 'cash_drawer:close_session',
+  /** POS Session & Cash Drawer Hardening W0-10 (migration 0517) — new. */
+  CASH_DRAWER_COUNT: 'cash_drawer:count',
+  CASH_DRAWER_TRANSFER: 'cash_drawer:transfer',
+  CASH_DRAWER_RECEIVE_TRANSFER: 'cash_drawer:receive_transfer',
+  CASH_DRAWER_DEPOSIT: 'cash_drawer:deposit',
+  CASH_DRAWER_VIEW_ALL_BRANCHES: 'cash_drawer:view_all_branches',
+  /** POS Session & Cash Drawer Hardening W0-10 (migration 0517) — new; gates /dashboard/settings/payments/cash-control-settings. */
+  CASH_CONTROL_VIEW: 'cash_control:view',
+  CASH_CONTROL_MANAGE: 'cash_control:manage',
   // Payment configuration
   PAYMENT_CONFIG_VIEW: 'payment_config:view',
   PAYMENT_CONFIG_MANAGE: 'payment_config:manage',

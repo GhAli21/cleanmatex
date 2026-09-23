@@ -93,7 +93,9 @@ export function mapOrderFinancialSummaryView(
     n(snapshot.netCollectedAmount) || Math.max(0, totalPaidAmount - realPaymentRefundedAmount);
   const expectedOutstandingAmount = Math.max(0, totalAmount - totalPaidAmount - totalCreditAppliedAmount);
   const outstandingAmount = n(snapshot.outstandingAmount);
-  const overpaidAmount = Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount);
+  // Snapshot overpayment already accounts for cash change and dispositions;
+  // recomputing from gross payments would resurrect a refunded overpayment.
+  const overpaidAmount = n(snapshot.overpaidAmount);
 
   const paymentTypeCode = snapshot.paymentTypeCode;
   const payOnCollectionAmount =

@@ -207,6 +207,7 @@ export function useOrderSubmission() {
         deltaAmount: number;
         previousTotal: number;
         newTotal: number;
+        unresolvedOverpaymentAmount: number;
         editHistoryId: string;
     } | null>(null);
 
@@ -1018,6 +1019,7 @@ export function useOrderSubmission() {
                     deltaAmount: json.data.financialDelta.deltaAmount,
                     previousTotal: json.data.financialDelta.previousTotal,
                     newTotal: json.data.financialDelta.newTotal,
+                    unresolvedOverpaymentAmount: json.data.financialDelta.unresolvedOverpaymentAmount,
                     editHistoryId: json.data.editHistoryId,
                 });
             } else {

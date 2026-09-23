@@ -7836,6 +7836,139 @@ export type Database = {
           },
         ]
       }
+      org_fin_cash_ctrl_stng_cf: {
+        Row: {
+          blind_close_enabled: boolean | null
+          cash_change_bearer: string | null
+          cash_change_round_to_minor: number | null
+          cash_drop_requires_dest: boolean | null
+          cash_tracking_mode: string | null
+          closing_count_mode: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          drawer_assignment_mode: string | null
+          id: string
+          is_active: boolean
+          max_cash_enforce_mode: string | null
+          metadata: Json
+          opening_count_mode: string | null
+          pos_session_req_all_tenders: boolean | null
+          pos_session_req_for_cash: boolean | null
+          pos_session_rollover_mode: string | null
+          pos_session_stale_hours: number | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          scope_id: string | null
+          scope_level: string
+          shared_session_mode: string | null
+          shift_z_report_required: boolean | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          variance_gate_mode: string | null
+          variance_reason_amount: number | null
+          variance_threshold_amount: number | null
+          variance_tolerance_amount: number | null
+        }
+        Insert: {
+          blind_close_enabled?: boolean | null
+          cash_change_bearer?: string | null
+          cash_change_round_to_minor?: number | null
+          cash_drop_requires_dest?: boolean | null
+          cash_tracking_mode?: string | null
+          closing_count_mode?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          drawer_assignment_mode?: string | null
+          id?: string
+          is_active?: boolean
+          max_cash_enforce_mode?: string | null
+          metadata?: Json
+          opening_count_mode?: string | null
+          pos_session_req_all_tenders?: boolean | null
+          pos_session_req_for_cash?: boolean | null
+          pos_session_rollover_mode?: string | null
+          pos_session_stale_hours?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          scope_id?: string | null
+          scope_level: string
+          shared_session_mode?: string | null
+          shift_z_report_required?: boolean | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          variance_gate_mode?: string | null
+          variance_reason_amount?: number | null
+          variance_threshold_amount?: number | null
+          variance_tolerance_amount?: number | null
+        }
+        Update: {
+          blind_close_enabled?: boolean | null
+          cash_change_bearer?: string | null
+          cash_change_round_to_minor?: number | null
+          cash_drop_requires_dest?: boolean | null
+          cash_tracking_mode?: string | null
+          closing_count_mode?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          drawer_assignment_mode?: string | null
+          id?: string
+          is_active?: boolean
+          max_cash_enforce_mode?: string | null
+          metadata?: Json
+          opening_count_mode?: string | null
+          pos_session_req_all_tenders?: boolean | null
+          pos_session_req_for_cash?: boolean | null
+          pos_session_rollover_mode?: string | null
+          pos_session_stale_hours?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          scope_id?: string | null
+          scope_level?: string
+          shared_session_mode?: string | null
+          shift_z_report_required?: boolean | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          variance_gate_mode?: string | null
+          variance_reason_amount?: number | null
+          variance_threshold_amount?: number | null
+          variance_tolerance_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_fin_cash_ctrl_stng_cf_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_fin_cash_ctrl_stng_cf_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_fin_cash_ctrl_stng_cf_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_fin_cash_exc_tr: {
         Row: {
           amount: number

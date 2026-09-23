@@ -44,6 +44,7 @@
       "description": "The order total changed from {previous} to {next}.",
       "increaseGuidance": "An additional {amount} is now due. Collect it from the order's Payments tab.",
       "decreaseGuidance": "{amount} is now owed back to the customer. Process it as a refund or credit from the order's Payments tab.",
+      "decreaseNoRefundGuidance": "No refund or customer credit is due from this change. The remaining balance is shown in the order's Payments tab.",
       "recordedNote": "This change and its reason have been recorded in the order's edit history.",
       "gotIt": "Got it"
     }

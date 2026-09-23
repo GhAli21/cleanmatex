@@ -1,4 +1,12 @@
-DROP INDEX IF EXISTS public.idx_org_ord_pay_dtl_target RESTRICT;
-ALTER TABLE public.org_order_payments_dtl
-     DROP CONSTRAINT IF EXISTS chk_org_order_payments_dtl_target_type RESTRICT,
-     DROP COLUMN IF EXISTS payment_target_type RESTRICT;
+SELECT table_schema,
+       table_name,
+       column_name,
+       data_type,
+       character_maximum_length,
+       numeric_precision,
+       numeric_scale
+FROM information_schema.columns
+WHERE column_name LIKE '%currency_%code%'
+And data_type !='text'
+ORDER BY table_schema, table_name, column_name
+;

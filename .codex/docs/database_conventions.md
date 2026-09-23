@@ -42,6 +42,46 @@ description, description2
 DECIMAL(19, 4)
 ```
 
+## Multi-Currency Transaction Standard (base == functional)
+
+**Normal monetary transaction** — every money column set carries its currency:
+
+```sql
+currency_code TEXT NOT NULL,          -- FK → sys_currency_cd(code)
+amount        DECIMAL(19, 4) NOT NULL
+```
+
+**If the transaction requires base-currency valuation**, also add:
+
+```sql
+base_currency_code TEXT NOT NULL,     -- FK → sys_currency_cd(code)
+base_amount        DECIMAL(19, 4) NOT NULL,
+fx_rate            DECIMAL(22, 10) NULL,
+fx_rate_date       DATE NULL,
+fx_rate_source     TEXT NULL,
+fx_rate_id         UUID NULL
+```
+
+Rules:
+
+- **FX direction is fixed:** `base_amount = amount × fx_rate` — never the inverse.
+- **Same currency:** when `currency_code = base_currency_code` → `base_amount = amount` and `fx_rate`, `fx_rate_date`, `fx_rate_source`, `fx_rate_id` are all `NULL`.
+- **Never** use `FLOAT` / `REAL` / `DOUBLE PRECISION` for money or FX rates.
+- **Currency codes are `TEXT`** (not `VARCHAR`/`CHAR`) and **must FK to `sys_currency_cd(code)`**.
+- No default value on `currency_code` / `base_currency_code` (locale-related field rule).
+
+Recommended CHECK to enforce the same-currency invariant:
+
+```sql
+CONSTRAINT chk_<tbl>_fx_same_ccy CHECK (
+  currency_code <> base_currency_code
+  OR (base_amount = amount
+      AND fx_rate IS NULL AND fx_rate_date IS NULL
+      AND fx_rate_source IS NULL AND fx_rate_id IS NULL)
+)
+```
+
+
 ## Branding/UI
 
 ```

@@ -85,6 +85,19 @@ describe('order-amendment.service (B12)', () => {
       expect(result.isGoverned).toBe(true);
     });
 
+    it('uses the snapshot-derived unresolved overpayment rather than the total decrease for refund guidance', () => {
+      const result = computeAmendmentDelta({
+        previousTotal: 4.9,
+        newTotal: 0.7,
+        totalPaidAmount: 1.4,
+        unresolvedOverpaymentAmount: 0.7,
+        governedFlagEnabled: true,
+      });
+
+      expect(result.deltaAmount).toBe(-4.2);
+      expect(result.unresolvedOverpaymentAmount).toBe(0.7);
+    });
+
     it('is NOT governed when the order has no prior payments — nothing to collect or resolve yet', () => {
       const result = computeAmendmentDelta({
         previousTotal: 10,
