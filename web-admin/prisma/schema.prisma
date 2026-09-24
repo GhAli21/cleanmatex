@@ -3895,7 +3895,13 @@ model sys_currency_cd {
   color               String?   @db.VarChar(60)
   symbol              String    @db.VarChar(10)
   symbol_position     String?   @default("after") @db.VarChar(10)
-  decimal_places      Int?      @default(2)
+  // `decimal_places` was a stale Prisma-model-only field with no backing DB
+  // column (confirmed local + remote, 2026-09-24 — POS Session & Cash
+  // Drawer Hardening A3-7 finding). The real, live, seeded column is
+  // `minor_unit` (same decimal-places semantics: AED=2, OMR/BHD/KWD=3,
+  // JPY=0). A pre-migration snapshot of the old shape survives only in the
+  // unrelated backup table `sys_currency_cd_b4`.
+  minor_unit          Int       @default(2)
   thousands_separator String?   @default(",") @db.VarChar(5)
   decimal_separator   String?   @default(".") @db.VarChar(5)
   iso_code            String    @unique @db.VarChar(3)

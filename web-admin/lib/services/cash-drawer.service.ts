@@ -7,12 +7,12 @@ import { lookupAuditActors, type AuditActorLookupResult } from '@lib/services/au
 import { prisma } from '@lib/db/prisma'
 import { withTenantContext } from '@lib/db/tenant-context'
 import { varianceToleranceFor } from '@/lib/constants/financial-tolerances'
-import { addMoney, subMoney, sumMoney, compareMoney, toDecimal, decimalToNumber } from '@/lib/utils/money'
+import { addMoney, subMoney, sumMoney, compareMoney, toDecimal, decimalToNumber, type MoneyInput } from '@/lib/utils/money'
 import {
   effectiveCashPaymentWhere,
   expectedCashManualMovementWhere,
   isExpectedCashManualMovement,
-  sumEffectiveCashPayments,
+  sumEffectiveCashPaymentsDecimal,
 } from '@/lib/services/cash-drawer-cash-facts'
 import type {
   CashDrawerActorSummary,
@@ -335,33 +335,90 @@ function buildSessionReconciliation(
   // (`order_payment_id` and `reversed_payment_id` both null). Sale-mirror
   // CASH_SALE/change and B10 PAYMENT_REVERSAL compensating OUTs are excluded —
   // the payment already counts (or, after REVERSE, no longer counts) that cash.
+  //
+  // A3-7 (POS Session & Cash Drawer Hardening): this is the session-detail /
+  // close-preview / print *read* path, sibling to closeSession's write path
+  // fixed in A3-1. It had the identical float-drift defect — summing
+  // Number(amount) with JS `+`/`-`/`reduce` drifts on 3-decimal-currency
+  // (OMR/BHD/KWD) sequences the same way `0.1 + 0.2 !== 0.3` does — so the
+  // preview shown before a close could silently disagree with the actual
+  // (already-Decimal-exact) close result. Kept in Decimal space end to end;
+  // only the returned summary values are `number` (existing consumer
+  // contract — the broader money-as-strings API contract is A3-4, not this).
   const manualMovements = movements.filter((movement) => isExpectedCashManualMovement(movement))
-  const totalCashIn = manualMovements
-    .filter((movement) => movement.direction === 'IN')
-    .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
-  const totalCashOut = manualMovements
-    .filter((movement) => movement.direction === 'OUT')
-    .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
-  const totalPayments = sumEffectiveCashPayments(payments)
-  const openingFloat = toNumber(session.opening_float_amount)
-  const movementNet = totalCashIn - totalCashOut
-  const countedCash = session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount)
-  const expectedCash = openingFloat + totalPayments + movementNet
-  const variance = countedCash == null ? null : countedCash - expectedCash
+  const totalCashInDecimal = sumMoney(
+    manualMovements.filter((movement) => movement.direction === 'IN').map((movement) => movement.amount),
+  )
+  const totalCashOutDecimal = sumMoney(
+    manualMovements.filter((movement) => movement.direction === 'OUT').map((movement) => movement.amount),
+  )
+  const totalPaymentsDecimal = sumEffectiveCashPaymentsDecimal(payments)
+  const openingFloatDecimal = toDecimal(session.opening_float_amount)
+  const movementNetDecimal = subMoney(totalCashInDecimal, totalCashOutDecimal)
+  const countedCashDecimal =
+    session.counted_cash_amount == null ? null : toDecimal(session.counted_cash_amount)
+  const expectedCashDecimal = addMoney(
+    addMoney(openingFloatDecimal, totalPaymentsDecimal),
+    movementNetDecimal,
+  )
+  const varianceDecimal =
+    countedCashDecimal == null ? null : subMoney(countedCashDecimal, expectedCashDecimal)
 
   return {
-    openingFloat,
-    cashCollected: totalPayments,
-    movementCashIn: totalCashIn,
-    movementCashOut: totalCashOut,
-    movementNet,
-    expectedCash,
-    countedCash,
-    variance,
+    openingFloat: decimalToNumber(openingFloatDecimal),
+    cashCollected: decimalToNumber(totalPaymentsDecimal),
+    movementCashIn: decimalToNumber(totalCashInDecimal),
+    movementCashOut: decimalToNumber(totalCashOutDecimal),
+    movementNet: decimalToNumber(movementNetDecimal),
+    expectedCash: decimalToNumber(expectedCashDecimal),
+    countedCash: countedCashDecimal == null ? null : decimalToNumber(countedCashDecimal),
+    variance: varianceDecimal == null ? null : decimalToNumber(varianceDecimal),
     paymentCount: payments.length,
     movementCount: movements.length,
     currencyCode: session.currency_code ?? null,
   }
+}
+
+/**
+ * A3-7 (POS Session & Cash Drawer Hardening): shared Decimal-space
+ * derivation of expected cash + variance from a session row plus its
+ * pre-aggregated (DB-side `groupBy`/`_sum`, already exact) payment/movement
+ * totals. Every list/detail/snapshot view that derives these figures for an
+ * OPEN session (persisted `expected_cash_amount`/`difference_amount` still
+ * null) previously ran the identical formula independently, each combining
+ * the terms with plain JS `+`/`-` — the same drift class A3-1 fixed in
+ * `closeSession`'s write path, just re-introduced three times over on read
+ * paths. One Decimal-space implementation now backs all three.
+ */
+function deriveExpectedCashAndVariance(
+  session: {
+    opening_float_amount: Decimal | null
+    expected_cash_amount: Decimal | null
+    counted_cash_amount: Decimal | null
+    difference_amount: Decimal | null
+  },
+  paymentTotal: MoneyInput,
+  movementCashIn: MoneyInput,
+  movementCashOut: MoneyInput,
+): { expectedCashAmount: number; differenceAmount: number | null } {
+  const expectedCashAmount =
+    session.expected_cash_amount == null
+      ? decimalToNumber(
+          subMoney(
+            addMoney(addMoney(session.opening_float_amount, paymentTotal), movementCashIn),
+            movementCashOut,
+          ),
+        )
+      : toNumber(session.expected_cash_amount)
+
+  const differenceAmount =
+    session.difference_amount == null
+      ? session.counted_cash_amount == null
+        ? null
+        : decimalToNumber(subMoney(session.counted_cash_amount, expectedCashAmount))
+      : toNumber(session.difference_amount)
+
+  return { expectedCashAmount, differenceAmount }
 }
 
 function buildSessionSnapshot(
@@ -382,18 +439,14 @@ function buildSessionSnapshot(
   movementCashIn: number,
   movementCashOut: number,
 ): CashDrawerSessionSummarySnapshot {
-  const derivedExpectedCash =
-    toNumber(session.opening_float_amount) + paymentTotal + movementCashIn - movementCashOut
-  const expectedCashAmount =
-    session.expected_cash_amount == null ? derivedExpectedCash : toNumber(session.expected_cash_amount)
+  const { expectedCashAmount, differenceAmount } = deriveExpectedCashAndVariance(
+    session,
+    paymentTotal,
+    movementCashIn,
+    movementCashOut,
+  )
   const countedCashAmount =
     session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount)
-  const differenceAmount =
-    session.difference_amount == null && countedCashAmount != null
-      ? countedCashAmount - expectedCashAmount
-      : session.difference_amount == null
-        ? null
-        : toNumber(session.difference_amount)
 
   return {
     id: session.id,
@@ -1083,36 +1136,29 @@ export async function getCashDrawerSessionsPage(
     ),
   ])
 
-  const items = sessions.map<CashDrawerSessionListRow>((session) => ({
-    id: session.id,
-    sessionNo: session.session_no,
-    status: session.status,
-    openedAt: toIsoString(session.opened_at),
-    closedAt: toIsoString(session.closed_at),
-    openingFloatAmount: toNumber(session.opening_float_amount),
-    expectedCashAmount:
-      session.expected_cash_amount == null
-        ? toNumber(session.opening_float_amount) +
-          (paymentTotalsBySession.get(session.id) ?? 0) +
-          (movementTotalsBySession.get(session.id)?.cashIn ?? 0) -
-          (movementTotalsBySession.get(session.id)?.cashOut ?? 0)
-        : toNumber(session.expected_cash_amount),
-    countedCashAmount: session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount),
-    differenceAmount:
-      session.difference_amount == null
-        ? session.counted_cash_amount == null
-          ? null
-          : toNumber(session.counted_cash_amount) -
-            (toNumber(session.opening_float_amount) +
-              (paymentTotalsBySession.get(session.id) ?? 0) +
-              (movementTotalsBySession.get(session.id)?.cashIn ?? 0) -
-              (movementTotalsBySession.get(session.id)?.cashOut ?? 0))
-        : toNumber(session.difference_amount),
-    paymentCount: paymentCountsBySession.get(session.id) ?? 0,
-    movementCount: movementCountsBySession.get(session.id) ?? 0,
-    openedBy: getActorSummary(actorMap, session.opened_by),
-    closedBy: getActorSummary(actorMap, session.closed_by),
-  }))
+  const items = sessions.map<CashDrawerSessionListRow>((session) => {
+    const { expectedCashAmount, differenceAmount } = deriveExpectedCashAndVariance(
+      session,
+      paymentTotalsBySession.get(session.id) ?? 0,
+      movementTotalsBySession.get(session.id)?.cashIn ?? 0,
+      movementTotalsBySession.get(session.id)?.cashOut ?? 0,
+    )
+    return {
+      id: session.id,
+      sessionNo: session.session_no,
+      status: session.status,
+      openedAt: toIsoString(session.opened_at),
+      closedAt: toIsoString(session.closed_at),
+      openingFloatAmount: toNumber(session.opening_float_amount),
+      expectedCashAmount,
+      countedCashAmount: session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount),
+      differenceAmount,
+      paymentCount: paymentCountsBySession.get(session.id) ?? 0,
+      movementCount: movementCountsBySession.get(session.id) ?? 0,
+      openedBy: getActorSummary(actorMap, session.opened_by),
+      closedBy: getActorSummary(actorMap, session.closed_by),
+    }
+  })
 
   return {
     items,
@@ -1202,36 +1248,29 @@ export async function getCashDrawerOverviewDetail(
     ),
   ])
 
-  const mappedSessions = sessions.map<CashDrawerSessionListRow>((session) => ({
-    id: session.id,
-    sessionNo: session.session_no,
-    status: session.status,
-    openedAt: toIsoString(session.opened_at),
-    closedAt: toIsoString(session.closed_at),
-    openingFloatAmount: toNumber(session.opening_float_amount),
-    expectedCashAmount:
-      session.expected_cash_amount == null
-        ? toNumber(session.opening_float_amount) +
-          (paymentTotalsBySession.get(session.id) ?? 0) +
-          (movementTotalsBySession.get(session.id)?.cashIn ?? 0) -
-          (movementTotalsBySession.get(session.id)?.cashOut ?? 0)
-        : toNumber(session.expected_cash_amount),
-    countedCashAmount: session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount),
-    differenceAmount:
-      session.difference_amount == null
-        ? session.counted_cash_amount == null
-          ? null
-          : toNumber(session.counted_cash_amount) -
-            (toNumber(session.opening_float_amount) +
-              (paymentTotalsBySession.get(session.id) ?? 0) +
-              (movementTotalsBySession.get(session.id)?.cashIn ?? 0) -
-              (movementTotalsBySession.get(session.id)?.cashOut ?? 0))
-        : toNumber(session.difference_amount),
-    paymentCount: paymentCountsBySession.get(session.id) ?? 0,
-    movementCount: movementCountsBySession.get(session.id) ?? 0,
-    openedBy: getActorSummary(actorMap, session.opened_by),
-    closedBy: getActorSummary(actorMap, session.closed_by),
-  }))
+  const mappedSessions = sessions.map<CashDrawerSessionListRow>((session) => {
+    const { expectedCashAmount, differenceAmount } = deriveExpectedCashAndVariance(
+      session,
+      paymentTotalsBySession.get(session.id) ?? 0,
+      movementTotalsBySession.get(session.id)?.cashIn ?? 0,
+      movementTotalsBySession.get(session.id)?.cashOut ?? 0,
+    )
+    return {
+      id: session.id,
+      sessionNo: session.session_no,
+      status: session.status,
+      openedAt: toIsoString(session.opened_at),
+      closedAt: toIsoString(session.closed_at),
+      openingFloatAmount: toNumber(session.opening_float_amount),
+      expectedCashAmount,
+      countedCashAmount: session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount),
+      differenceAmount,
+      paymentCount: paymentCountsBySession.get(session.id) ?? 0,
+      movementCount: movementCountsBySession.get(session.id) ?? 0,
+      openedBy: getActorSummary(actorMap, session.opened_by),
+      closedBy: getActorSummary(actorMap, session.closed_by),
+    }
+  })
 
   return {
     drawer: buildDrawerContext(
@@ -1666,11 +1705,20 @@ export async function closeSession(
               select: { variance_approval_threshold: true },
             }),
             // A3-3 (D10): sys_currency_cd is the authoritative decimal-places
-            // source. This session's own currency, not the tenant default —
-            // D14 multi-currency readiness means these can differ.
+            // source, via `minor_unit` — NOT a `decimal_places` column, which
+            // does not exist on the live table (confirmed local + remote,
+            // 2026-09-24: a stale field survives only on the Prisma model
+            // and the pre-migration backup table `sys_currency_cd_b4`). The
+            // original A3-3 pass selected the nonexistent column, which
+            // meant `closeSession` — the write path this entire wave exists
+            // to protect — threw on every real call once deployed; only
+            // mocked unit tests ever ran it, so nothing caught this until a
+            // real-DB integration test did. This session's own currency,
+            // not the tenant default — D14 multi-currency readiness means
+            // these can differ.
             tx.sys_currency_cd.findUnique({
               where: { code: session.currency_code },
-              select: { decimal_places: true },
+              select: { minor_unit: true },
             }),
           ])
 
@@ -1700,7 +1748,7 @@ export async function closeSession(
           // unit, not a flat 0.01 — the flat value silently accepted real
           // variance up to 0.0099 on 3-decimal-currency (OMR/BHD/KWD)
           // drawers, which is 20x too wide for a 0.001 minor unit.
-          const decimalPlaces = currency?.decimal_places ?? 2
+          const decimalPlaces = currency?.minor_unit ?? 2
           const tolerance = varianceToleranceFor(decimalPlaces)
           const isBalanced = compareMoney(varianceDecimal.abs(), tolerance) < 0
 
@@ -1905,7 +1953,7 @@ export async function getSessionSummary(tenantId: string, sessionId: string) {
       movementCashOut: reconciliation.movementCashOut,
       movementNet: reconciliation.movementNet,
       expectedCash: reconciliation.expectedCash,
-      movementExpectedCash: reconciliation.openingFloat + reconciliation.movementNet,
+      movementExpectedCash: decimalToNumber(addMoney(reconciliation.openingFloat, reconciliation.movementNet)),
       paymentCount: reconciliation.paymentCount,
       movementCount: reconciliation.movementCount,
       currencyCode: reconciliation.currencyCode,

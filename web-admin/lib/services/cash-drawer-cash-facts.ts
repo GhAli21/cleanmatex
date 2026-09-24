@@ -22,13 +22,17 @@
  * Applied unconditionally across the drawer-close, session-summary, and
  * list/detail expected-cash paths (B16 M2 fix — no feature flag).
  *
- * Pure and server-safe (no prisma import): callers build their own query or
- * pass their own rows.
+ * Pure and server-safe (no `PrismaClient`/query import): callers build their
+ * own query or pass their own rows. It does use Prisma's standalone
+ * `Decimal` runtime type (via `lib/utils/money`) for drift-free summation —
+ * that carries no DB connection and is safe in the same pure/testable sense.
  */
 
+import type { Decimal } from '@prisma/client/runtime/library';
 import { CASH_DRAWER_MOVEMENT_TYPES, PAYMENT_METHODS } from '@/lib/constants/payment';
 import { ORDER_PAYMENT_LIFECYCLE_STATUSES } from '@/lib/constants/order-financial';
 import { isCompletedPaymentStatus } from '@/lib/services/order-financial-aggregation';
+import { sumMoney, type MoneyInput } from '@/lib/utils/money';
 
 /**
  * Cash-family payment method codes — the only methods whose settled amount is
@@ -93,11 +97,25 @@ export function isEffectiveCashPaymentRow(row: CashPaymentClassifiable): boolean
   return isCashFamilyMethod(row.payment_method_code);
 }
 
-/** Convert a DB money value to a plain number (null-safe). */
-function toNumber(value: unknown): number {
-  if (value == null) return 0;
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(n) ? n : 0;
+/**
+ * Sum `amount` over the effective-cash subset of `rows`, in Decimal space
+ * (POS Session & Cash Drawer Hardening, A3-7). The same drift class A3-1
+ * fixed in the drawer-close write path also existed here on the
+ * session-summary/close-preview *read* path: summing `Number(amount)`
+ * values with JS `+` drifts for 3-decimal-currency (OMR/BHD/KWD) sequences
+ * the same way `0.1 + 0.2 !== 0.3` does. Callers that feed the result into
+ * further money math should use this Decimal-returning form; use
+ * {@link sumEffectiveCashPayments} only at a display/API boundary.
+ * @param rows payment rows (already tenant/session scoped by the caller)
+ */
+export function sumEffectiveCashPaymentsDecimal(
+  rows: Array<CashPaymentClassifiable & { amount?: unknown }>,
+): Decimal {
+  return sumMoney(
+    rows
+      .filter((row) => isEffectiveCashPaymentRow(row))
+      .map((row) => row.amount as MoneyInput),
+  );
 }
 
 /**
@@ -107,7 +125,7 @@ function toNumber(value: unknown): number {
 export function sumEffectiveCashPayments(
   rows: Array<CashPaymentClassifiable & { amount?: unknown }>,
 ): number {
-  return rows.reduce((sum, row) => (isEffectiveCashPaymentRow(row) ? sum + toNumber(row.amount) : sum), 0);
+  return sumEffectiveCashPaymentsDecimal(rows).toNumber();
 }
 
 /**
