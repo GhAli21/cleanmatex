@@ -20,6 +20,7 @@ import {
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
@@ -73,10 +74,6 @@ function formatDateTime(value: string | null): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
-}
-
-function formatMoney(amount: number, currencyCode: string | null): string {
-  return `${amount.toFixed(3)} ${currencyCode ?? ''}`.trim();
 }
 
 function sessionDisplayBranch(session: PosSessionListRow | PosSessionRow): string {
@@ -623,9 +620,10 @@ function SummaryTile({
   rowsLabel,
 }: {
   title: string;
-  totals: Array<{ amount: number; currencyCode: string | null; count: number }>;
+  totals: Array<{ amount: string; currencyCode: string | null; count: number }>;
   rowsLabel: string;
 }) {
+  const { formatMoneyWithCode: formatMoney } = useTenantCurrency();
   const rows = totals.length > 0 ? totals : [{ amount: 0, currencyCode: null, count: 0 }];
   return (
     <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">

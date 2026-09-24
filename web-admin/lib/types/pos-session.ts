@@ -92,7 +92,15 @@ export interface PosSessionListResult {
 
 export interface PosSessionSummaryAmountRow {
   currencyCode: string | null;
-  amount: number;
+  /**
+   * A3-4: exact fixed-point string (e.g. `'25.5000'`), never a JS number —
+   * the raw SQL aggregate is already computed as exact `NUMERIC` and cast to
+   * `::text` server-side; converting it to a JS `number` at the API boundary
+   * would reintroduce the same double-precision rounding that cast exists to
+   * avoid. Consumers format for display via `formatMoneyAmount`/
+   * `useCashDrawerMoneyFormatter`, which accept this string form directly.
+   */
+  amount: string;
   count: number;
 }
 

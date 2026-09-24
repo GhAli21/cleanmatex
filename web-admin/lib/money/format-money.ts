@@ -21,6 +21,20 @@ export interface FormatMoneyOptions {
 }
 
 /**
+ * A3-4 (POS Session & Cash Drawer Hardening): the cash-drawer/POS-session
+ * APIs now serialize money as an exact fixed-point string, never a JS
+ * number, so every formatter here accepts either — a display-only boundary
+ * is the one place converting a money string to a JS number is acceptable
+ * (nothing downstream computes on the result further).
+ */
+export type MoneyAmountInput = number | string;
+
+function coerceAmount(amount: MoneyAmountInput): number {
+  const num = typeof amount === 'string' ? Number(amount) : amount;
+  return Number.isFinite(num) ? num : 0;
+}
+
+/**
  * BCP 47 locale for Intl when UI is EN vs AR (GCC-style).
  * @param locale
  */
@@ -40,9 +54,9 @@ function clampDecimalPlaces(decimalPlaces: number): number {
  * @param amount
  * @param decimalPlaces
  */
-export function roundMoneyAmount(amount: number, decimalPlaces: number): number {
+export function roundMoneyAmount(amount: MoneyAmountInput, decimalPlaces: number): number {
   const dp = clampDecimalPlaces(decimalPlaces);
-  return Number(Number(amount).toFixed(dp));
+  return Number(coerceAmount(amount).toFixed(dp));
 }
 
 /**
@@ -52,15 +66,16 @@ export function roundMoneyAmount(amount: number, decimalPlaces: number): number 
  * @param amount
  * @param options
  */
-export function formatMoneyAmount(amount: number, options: FormatMoneyOptions): string {
+export function formatMoneyAmount(amount: MoneyAmountInput, options: FormatMoneyOptions): string {
   const cc = options.currencyCode?.trim() ?? '';
   const dp = clampDecimalPlaces(options.decimalPlaces);
   const intlLocale = resolveMoneyIntlLocale(options.locale);
+  const num = coerceAmount(amount);
   if (!cc) {
     return new Intl.NumberFormat(intlLocale, {
       minimumFractionDigits: dp,
       maximumFractionDigits: dp,
-    }).format(amount);
+    }).format(num);
   }
   try {
     return new Intl.NumberFormat(intlLocale, {
@@ -68,9 +83,9 @@ export function formatMoneyAmount(amount: number, options: FormatMoneyOptions): 
       currency: cc,
       minimumFractionDigits: dp,
       maximumFractionDigits: dp,
-    }).format(amount);
+    }).format(num);
   } catch {
-    return `${cc} ${Number(amount).toFixed(dp)}`;
+    return `${cc} ${num.toFixed(dp)}`;
   }
 }
 
@@ -81,7 +96,7 @@ export function formatMoneyAmount(amount: number, options: FormatMoneyOptions): 
  * @param options
  */
 export function formatMoneyAmountWithCode(
-  amount: number,
+  amount: MoneyAmountInput,
   options: FormatMoneyOptions
 ): string {
   const cc = options.currencyCode?.trim() ?? '';
@@ -90,7 +105,7 @@ export function formatMoneyAmountWithCode(
   const num = new Intl.NumberFormat(intlLocale, {
     minimumFractionDigits: dp,
     maximumFractionDigits: dp,
-  }).format(amount);
+  }).format(coerceAmount(amount));
   // B15: no invented currency — a blank code renders the bare number.
   return cc ? `${num} ${cc}` : num;
 }

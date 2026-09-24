@@ -36,13 +36,22 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
     notFound();
   }
 
-  const { session, movements, payments, totalCashIn, totalCashOut, totalPayments } = summary;
+  const { session, movements, payments, reconciliation } = summary;
 
-  const openingBalance = toNumber(session.opening_float_amount);
-  const closingBalance = toNumber(session.counted_cash_amount);
-  const physicalCount  = toNumber(session.counted_cash_amount);
-  const expectedBalance = openingBalance + totalCashIn - totalCashOut + totalPayments;
-  const variance = physicalCount > 0 ? physicalCount - expectedBalance : null;
+  // A3-4: `reconciliation.expectedCash`/`.variance` are already computed in
+  // Decimal space by the service (A3-7's `buildSessionReconciliation`) and
+  // serialized as exact strings. Previously this page recomputed
+  // `expectedBalance`/`variance` itself with plain JS `+`/`-` over
+  // already-lossy `Number()` conversions — the same float-drift class A3-1/
+  // A3-7 fixed in the write/read paths, just reintroduced a third time here.
+  // `Number()` of an already-exact decimal string is safe at this point
+  // because it is the terminal print-formatting boundary — nothing
+  // downstream computes on these values further.
+  const openingBalance = Number(reconciliation.openingFloat);
+  const closingBalance = reconciliation.countedCash != null ? Number(reconciliation.countedCash) : 0;
+  const physicalCount = closingBalance;
+  const expectedBalance = Number(reconciliation.expectedCash);
+  const variance = reconciliation.variance != null ? Number(reconciliation.variance) : null;
 
   const serializedSession = {
     id:              session.id,
@@ -84,9 +93,9 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
       movements={serializedMovements}
       payments={serializedPayments}
       totals={{
-        totalCashIn,
-        totalCashOut,
-        totalPayments,
+        totalCashIn: Number(reconciliation.movementCashIn),
+        totalCashOut: Number(reconciliation.movementCashOut),
+        totalPayments: Number(reconciliation.cashCollected),
         expectedBalance,
         variance,
       }}

@@ -30,6 +30,7 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays';
 import { cn } from '@/lib/utils';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
@@ -628,6 +629,7 @@ function hasMultipleCurrencies(summary: PosSessionSummary): boolean {
  * query did.
  */
 function CategoryTotals({ label, totals }: { label: string; totals: PosSessionCurrencyTotal[] }) {
+  const { formatMoneyWithCode: formatMoney } = useTenantCurrency();
   if (totals.length === 0) {
     return <InfoTile label={label} value={formatMoney(0, null)} />;
   }
@@ -733,8 +735,4 @@ function formatDateTime(value: string | null): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
-}
-
-function formatMoney(amount: number, currencyCode: string | null): string {
-  return `${amount.toFixed(3)} ${currencyCode ?? ''}`.trim();
 }

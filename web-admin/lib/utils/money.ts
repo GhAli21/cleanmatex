@@ -132,3 +132,19 @@ export function compareMoney(a: MoneyInput, b: MoneyInput, scale: number = MONEY
 export function decimalToNumber(value: MoneyInput): number {
   return toDecimal(value).toNumber();
 }
+
+/**
+ * Convert a money input to an exact fixed-point string (A3-4: money crosses
+ * the API/wire boundary as a string, never a JS number, so nothing between
+ * the DB and the browser can silently round it into IEEE-754 double
+ * precision). `null`/`undefined` become `'0.0000'` at the given scale — same
+ * "no value = zero" convention as the rest of this module (`toDecimal`,
+ * `sumMoney`). Callers with a genuinely optional/nullable money field (e.g.
+ * "no threshold configured") must check for `null` themselves before calling
+ * this, the same way they already do for `decimalToNumber`.
+ * @param value
+ * @param scale
+ */
+export function toMoneyString(value: MoneyInput, scale: number = MONEY_SCALE): string {
+  return toDecimal(value).toDecimalPlaces(scale).toFixed(scale);
+}

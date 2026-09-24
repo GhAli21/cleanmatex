@@ -7,7 +7,7 @@ import { lookupAuditActors, type AuditActorLookupResult } from '@lib/services/au
 import { prisma } from '@lib/db/prisma'
 import { withTenantContext } from '@lib/db/tenant-context'
 import { varianceToleranceFor } from '@/lib/constants/financial-tolerances'
-import { addMoney, subMoney, sumMoney, compareMoney, toDecimal, decimalToNumber, type MoneyInput } from '@/lib/utils/money'
+import { addMoney, subMoney, sumMoney, compareMoney, toDecimal, toMoneyString, type MoneyInput } from '@/lib/utils/money'
 import {
   effectiveCashPaymentWhere,
   expectedCashManualMovementWhere,
@@ -117,7 +117,8 @@ export interface SessionCloseParams {
  */
 export interface SessionCloseResult {
   session: Awaited<ReturnType<typeof prisma.org_cash_drawer_sessions_mst.findFirstOrThrow>>
-  variance: number
+  /** A3-4: exact fixed-point string, never a JS number — see `toMoneyString`. */
+  variance: string
   isBalanced: boolean
   /**
    * B16: true when drawer-close v2 is on, a variance threshold is configured on
@@ -125,8 +126,11 @@ export interface SessionCloseResult {
    * model) but is flagged pending a supervisor's variance approval.
    */
   varianceApprovalPending: boolean
-  /** The absolute variance threshold in effect at close (null = no gate configured). */
-  varianceThreshold: number | null
+  /**
+   * The absolute variance threshold in effect at close (null = no gate
+   * configured). A3-4: exact fixed-point string, never a JS number.
+   */
+  varianceThreshold: string | null
 }
 
 /** Stable error codes for the variance-approval action. */
@@ -365,14 +369,14 @@ function buildSessionReconciliation(
     countedCashDecimal == null ? null : subMoney(countedCashDecimal, expectedCashDecimal)
 
   return {
-    openingFloat: decimalToNumber(openingFloatDecimal),
-    cashCollected: decimalToNumber(totalPaymentsDecimal),
-    movementCashIn: decimalToNumber(totalCashInDecimal),
-    movementCashOut: decimalToNumber(totalCashOutDecimal),
-    movementNet: decimalToNumber(movementNetDecimal),
-    expectedCash: decimalToNumber(expectedCashDecimal),
-    countedCash: countedCashDecimal == null ? null : decimalToNumber(countedCashDecimal),
-    variance: varianceDecimal == null ? null : decimalToNumber(varianceDecimal),
+    openingFloat: toMoneyString(openingFloatDecimal),
+    cashCollected: toMoneyString(totalPaymentsDecimal),
+    movementCashIn: toMoneyString(totalCashInDecimal),
+    movementCashOut: toMoneyString(totalCashOutDecimal),
+    movementNet: toMoneyString(movementNetDecimal),
+    expectedCash: toMoneyString(expectedCashDecimal),
+    countedCash: countedCashDecimal == null ? null : toMoneyString(countedCashDecimal),
+    variance: varianceDecimal == null ? null : toMoneyString(varianceDecimal),
     paymentCount: payments.length,
     movementCount: movements.length,
     currencyCode: session.currency_code ?? null,
@@ -400,25 +404,26 @@ function deriveExpectedCashAndVariance(
   paymentTotal: MoneyInput,
   movementCashIn: MoneyInput,
   movementCashOut: MoneyInput,
-): { expectedCashAmount: number; differenceAmount: number | null } {
-  const expectedCashAmount =
+): { expectedCashAmount: string; differenceAmount: string | null } {
+  const expectedCashDecimal =
     session.expected_cash_amount == null
-      ? decimalToNumber(
-          subMoney(
-            addMoney(addMoney(session.opening_float_amount, paymentTotal), movementCashIn),
-            movementCashOut,
-          ),
+      ? subMoney(
+          addMoney(addMoney(session.opening_float_amount, paymentTotal), movementCashIn),
+          movementCashOut,
         )
-      : toNumber(session.expected_cash_amount)
+      : toDecimal(session.expected_cash_amount)
 
-  const differenceAmount =
+  const differenceDecimal =
     session.difference_amount == null
       ? session.counted_cash_amount == null
         ? null
-        : decimalToNumber(subMoney(session.counted_cash_amount, expectedCashAmount))
-      : toNumber(session.difference_amount)
+        : subMoney(session.counted_cash_amount, expectedCashDecimal)
+      : toDecimal(session.difference_amount)
 
-  return { expectedCashAmount, differenceAmount }
+  return {
+    expectedCashAmount: toMoneyString(expectedCashDecimal),
+    differenceAmount: differenceDecimal == null ? null : toMoneyString(differenceDecimal),
+  }
 }
 
 function buildSessionSnapshot(
@@ -446,7 +451,7 @@ function buildSessionSnapshot(
     movementCashOut,
   )
   const countedCashAmount =
-    session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount)
+    session.counted_cash_amount == null ? null : toMoneyString(session.counted_cash_amount)
 
   return {
     id: session.id,
@@ -454,7 +459,7 @@ function buildSessionSnapshot(
     status: session.status,
     openedAt: toIsoString(session.opened_at),
     closedAt: toIsoString(session.closed_at),
-    openingFloatAmount: toNumber(session.opening_float_amount),
+    openingFloatAmount: toMoneyString(session.opening_float_amount),
     expectedCashAmount,
     countedCashAmount,
     differenceAmount,
@@ -487,7 +492,7 @@ function buildVarianceApprovalDetail(
     pending: required && !approved,
     approved,
     thresholdSnapshot:
-      session.variance_threshold_snapshot == null ? null : toNumber(session.variance_threshold_snapshot),
+      session.variance_threshold_snapshot == null ? null : toMoneyString(session.variance_threshold_snapshot),
     approvedBy: getActorSummary(actorMap, session.variance_approved_by),
     approvedAt: toIsoString(session.variance_approved_at),
     reason: session.variance_approval_reason,
@@ -523,7 +528,7 @@ function buildDrawerContext(
     currencyCode: drawer.currency_code,
     requiresSession: drawer.requires_session,
     openingFloatRequired: drawer.opening_float_required,
-    maxCashLimit: drawer.max_cash_limit == null ? null : toNumber(drawer.max_cash_limit),
+    maxCashLimit: drawer.max_cash_limit == null ? null : toMoneyString(drawer.max_cash_limit),
     assignedTerminalId: drawer.assigned_terminal_id,
     assignedTerminalName: terminal?.terminal_name ?? terminal?.terminal_name2 ?? null,
     assignedTerminalCode: terminal?.terminal_code ?? null,
@@ -538,7 +543,7 @@ function mapMovementRow(
     id: movement.id,
     movementType: movement.movement_type,
     direction: movement.direction,
-    amount: toNumber(movement.amount),
+    amount: toMoneyString(movement.amount),
     currencyCode: movement.currency_code,
     orderId: movement.order_id,
     orderPaymentId: movement.order_payment_id,
@@ -560,11 +565,11 @@ function mapPaymentRow(
     paymentMethodCode: payment.payment_method_code,
     paymentMethodNameSnapshot: payment.payment_method_name_snapshot,
     paymentStatus: payment.payment_status,
-    amount: toNumber(payment.amount),
+    amount: toMoneyString(payment.amount),
     currencyCode: payment.currency_code,
-    tenderedAmount: payment.tendered_amount == null ? null : toNumber(payment.tendered_amount),
+    tenderedAmount: payment.tendered_amount == null ? null : toMoneyString(payment.tendered_amount),
     changeReturnedAmount:
-      payment.change_returned_amount == null ? null : toNumber(payment.change_returned_amount),
+      payment.change_returned_amount == null ? null : toMoneyString(payment.change_returned_amount),
     paidAt: toIsoString(payment.paid_at ?? payment.created_at),
     terminalId: payment.payment_terminal_id,
     terminalName: payment.org_payment_terminals_cf?.terminal_name ?? null,
@@ -1025,7 +1030,7 @@ export async function getCashDrawerOverviewPage(
         currencyCode: drawer.currency_code,
         requiresSession: drawer.requires_session,
         openingFloatRequired: drawer.opening_float_required,
-        maxCashLimit: drawer.max_cash_limit == null ? null : toNumber(drawer.max_cash_limit),
+        maxCashLimit: drawer.max_cash_limit == null ? null : toMoneyString(drawer.max_cash_limit),
         assignedTerminalId: drawer.assigned_terminal_id,
         assignedTerminalName: terminal?.terminal_name ?? terminal?.terminal_name2 ?? null,
         assignedTerminalCode: terminal?.terminal_code ?? null,
@@ -1149,9 +1154,9 @@ export async function getCashDrawerSessionsPage(
       status: session.status,
       openedAt: toIsoString(session.opened_at),
       closedAt: toIsoString(session.closed_at),
-      openingFloatAmount: toNumber(session.opening_float_amount),
+      openingFloatAmount: toMoneyString(session.opening_float_amount),
       expectedCashAmount,
-      countedCashAmount: session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount),
+      countedCashAmount: session.counted_cash_amount == null ? null : toMoneyString(session.counted_cash_amount),
       differenceAmount,
       paymentCount: paymentCountsBySession.get(session.id) ?? 0,
       movementCount: movementCountsBySession.get(session.id) ?? 0,
@@ -1261,9 +1266,9 @@ export async function getCashDrawerOverviewDetail(
       status: session.status,
       openedAt: toIsoString(session.opened_at),
       closedAt: toIsoString(session.closed_at),
-      openingFloatAmount: toNumber(session.opening_float_amount),
+      openingFloatAmount: toMoneyString(session.opening_float_amount),
       expectedCashAmount,
-      countedCashAmount: session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount),
+      countedCashAmount: session.counted_cash_amount == null ? null : toMoneyString(session.counted_cash_amount),
       differenceAmount,
       paymentCount: paymentCountsBySession.get(session.id) ?? 0,
       movementCount: movementCountsBySession.get(session.id) ?? 0,
@@ -1445,17 +1450,17 @@ export async function getCashDrawerSessionDetail(
     status: summaryData.session.status,
     openedAt: toIsoString(summaryData.session.opened_at),
     openedBy: getActorSummary(actorMap, summaryData.session.opened_by),
-    openingFloatAmount: toNumber(summaryData.session.opening_float_amount),
+    openingFloatAmount: toMoneyString(summaryData.session.opening_float_amount),
     currencyCode: summaryData.session.currency_code,
-    expectedCashAmount: toNumber(summaryData.session.expected_cash_amount),
+    expectedCashAmount: toMoneyString(summaryData.session.expected_cash_amount),
     countedCashAmount:
       summaryData.session.counted_cash_amount == null
         ? null
-        : toNumber(summaryData.session.counted_cash_amount),
+        : toMoneyString(summaryData.session.counted_cash_amount),
     differenceAmount:
       summaryData.session.difference_amount == null
         ? null
-        : toNumber(summaryData.session.difference_amount),
+        : toMoneyString(summaryData.session.difference_amount),
     closedAt: toIsoString(summaryData.session.closed_at),
     closedBy: getActorSummary(actorMap, summaryData.session.closed_by),
     closeNotes: summaryData.session.close_notes,
@@ -1752,8 +1757,6 @@ export async function closeSession(
           const tolerance = varianceToleranceFor(decimalPlaces)
           const isBalanced = compareMoney(varianceDecimal.abs(), tolerance) < 0
 
-          const variance = decimalToNumber(varianceDecimal)
-
           // B16 variance approval (OPTIONAL, deferred, opt-in per drawer): when
           // the drawer has a configured threshold and a not-balanced close
           // exceeds it, the session is flagged eligible for optional
@@ -1762,12 +1765,18 @@ export async function closeSession(
           // the threshold marks the eligible state and preserves the value in
           // effect at close time. NULL threshold (the default) = no approval
           // concept at all.
-          const varianceThreshold =
+          //
+          // Kept as Decimal/number internally for the comparison below — only
+          // the public return value (A3-4) is serialized to a string, at the
+          // very end, so this decision logic is untouched by the wire format.
+          const varianceThresholdDecimal =
             drawer?.variance_approval_threshold != null
-              ? toNumber(drawer.variance_approval_threshold)
+              ? toDecimal(drawer.variance_approval_threshold)
               : null
           const varianceApprovalPending =
-            varianceThreshold != null && !isBalanced && Math.abs(variance) > varianceThreshold
+            varianceThresholdDecimal != null &&
+            !isBalanced &&
+            varianceDecimal.abs().greaterThan(varianceThresholdDecimal)
 
           const updated = await tx.org_cash_drawer_sessions_mst.update({
             where: { id: sessionId },
@@ -1779,12 +1788,18 @@ export async function closeSession(
               closed_by: params.closedBy,
               closed_at: new Date(),
               close_notes: params.notes ?? null,
-              variance_threshold_snapshot: varianceApprovalPending ? varianceThreshold : null,
+              variance_threshold_snapshot: varianceApprovalPending ? varianceThresholdDecimal : null,
               updated_at: new Date(),
             },
           })
 
-          return { session: updated, variance, isBalanced, varianceApprovalPending, varianceThreshold }
+          return {
+            session: updated,
+            variance: toMoneyString(varianceDecimal),
+            isBalanced,
+            varianceApprovalPending,
+            varianceThreshold: varianceThresholdDecimal != null ? toMoneyString(varianceThresholdDecimal) : null,
+          }
       },
     ),
   )
@@ -1953,7 +1968,9 @@ export async function getSessionSummary(tenantId: string, sessionId: string) {
       movementCashOut: reconciliation.movementCashOut,
       movementNet: reconciliation.movementNet,
       expectedCash: reconciliation.expectedCash,
-      movementExpectedCash: decimalToNumber(addMoney(reconciliation.openingFloat, reconciliation.movementNet)),
+      movementExpectedCash: toMoneyString(addMoney(reconciliation.openingFloat, reconciliation.movementNet)),
+      countedCash: reconciliation.countedCash,
+      variance: reconciliation.variance,
       paymentCount: reconciliation.paymentCount,
       movementCount: reconciliation.movementCount,
       currencyCode: reconciliation.currencyCode,

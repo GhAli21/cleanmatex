@@ -305,19 +305,21 @@ describe('pos-session.service', () => {
     // deliberately: the old GROUP BY ... LIMIT 1 query this replaces would
     // have silently dropped every currency but one on a mixed-currency
     // session).
-    expect(summary.payments.totals).toEqual([{ currencyCode: 'OMR', amount: 25, count: 2 }]);
+    // A3-4 — money crosses the API as an exact fixed-point string, never a
+    // JS number.
+    expect(summary.payments.totals).toEqual([{ currencyCode: 'OMR', amount: '25.0000', count: 2 }]);
     expect(summary.payments.byMethod).toEqual([
-      { groupCode: 'CASH', status: 'COMPLETED', currencyCode: 'OMR', amount: 15, count: 1 },
-      { groupCode: 'CARD', status: 'COMPLETED', currencyCode: 'OMR', amount: 10, count: 1 },
+      { groupCode: 'CASH', status: 'COMPLETED', currencyCode: 'OMR', amount: '15.0000', count: 1 },
+      { groupCode: 'CARD', status: 'COMPLETED', currencyCode: 'OMR', amount: '10.0000', count: 1 },
     ]);
-    expect(summary.refunds.totals).toEqual([{ currencyCode: 'OMR', amount: 3, count: 1 }]);
+    expect(summary.refunds.totals).toEqual([{ currencyCode: 'OMR', amount: '3.0000', count: 1 }]);
     expect(summary.voucherLines.byRole).toEqual([
       {
         lineRole: 'ORDER_PAYMENT',
         paymentMethodCode: 'CASH',
         direction: 'DEBIT',
         currencyCode: 'OMR',
-        amount: 15,
+        amount: '15.0000',
         count: 1,
       },
     ]);
@@ -342,8 +344,8 @@ describe('pos-session.service', () => {
     const summary = await getPosSessionSummary({ tenantId, userId, posSessionId: sessionId });
 
     expect(summary.payments.totals).toEqual([
-      { currencyCode: 'OMR', amount: 25.5, count: 2 },
-      { currencyCode: 'USD', amount: 10, count: 1 },
+      { currencyCode: 'OMR', amount: '25.5000', count: 2 },
+      { currencyCode: 'USD', amount: '10.0000', count: 1 },
     ]);
     expect(summary.refunds.totals).toEqual([]);
     expect(summary.voucherLines.totals).toEqual([]);

@@ -22,6 +22,7 @@ import {
   formatMoneyAmount,
   formatMoneyAmountWithCode,
   roundMoneyAmount,
+  type MoneyAmountInput,
   type MoneyLocale,
 } from '@/lib/money/format-money'
 
@@ -34,10 +35,19 @@ export interface TenantCurrencyContextValue {
   currencyExRate: number
   /** False only while first fetch runs for an authenticated tenant */
   isReady: boolean
-  formatMoney: (amount: number) => string
+  /** Resolved UI locale ('en' | 'ar') already used for `formatMoney`/`formatMoneyWithCode`. */
+  moneyLocale: MoneyLocale
+  /**
+   * A3-4 (POS Session & Cash Drawer Hardening): `amount` accepts the exact
+   * fixed-point string form the drawer/POS-session APIs now return, not just
+   * a JS number. `currencyCode` optionally overrides the tenant's own
+   * currency — needed for a row whose currency differs from the tenant
+   * default (a multi-currency session, D14).
+   */
+  formatMoney: (amount: MoneyAmountInput, currencyCode?: string | null) => string
   /** Same digits as formatMoney but `12.500 OMR` style */
-  formatMoneyWithCode: (amount: number) => string
-  roundMoney: (amount: number) => number
+  formatMoneyWithCode: (amount: MoneyAmountInput, currencyCode?: string | null) => string
+  roundMoney: (amount: MoneyAmountInput) => number
   refresh: () => Promise<void>
 }
 
@@ -104,9 +114,9 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
   }, [isLoading, load])
 
   const formatMoney = useCallback(
-    (amount: number) =>
+    (amount: MoneyAmountInput, overrideCurrencyCode?: string | null) =>
       formatMoneyAmount(amount, {
-        currencyCode,
+        currencyCode: overrideCurrencyCode || currencyCode,
         decimalPlaces,
         locale: moneyLocale,
       }),
@@ -114,9 +124,9 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
   )
 
   const formatMoneyWithCodeCb = useCallback(
-    (amount: number) =>
+    (amount: MoneyAmountInput, overrideCurrencyCode?: string | null) =>
       formatMoneyAmountWithCode(amount, {
-        currencyCode,
+        currencyCode: overrideCurrencyCode || currencyCode,
         decimalPlaces,
         locale: moneyLocale,
       }),
@@ -124,7 +134,7 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
   )
 
   const roundMoney = useCallback(
-    (amount: number) => roundMoneyAmount(amount, decimalPlaces),
+    (amount: MoneyAmountInput) => roundMoneyAmount(amount, decimalPlaces),
     [decimalPlaces]
   )
 
@@ -134,6 +144,7 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
       decimalPlaces,
       currencyExRate,
       isReady,
+      moneyLocale,
       formatMoney,
       formatMoneyWithCode: formatMoneyWithCodeCb,
       roundMoney,
@@ -147,6 +158,7 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
       formatMoneyWithCodeCb,
       isReady,
       load,
+      moneyLocale,
       roundMoney,
     ]
   )
@@ -171,11 +183,12 @@ export function useTenantCurrency(): TenantCurrencyContextValue {
       decimalPlaces,
       currencyExRate: 1,
       isReady: true,
-      formatMoney: (amount: number) =>
-        formatMoneyAmount(amount, { currencyCode, decimalPlaces, locale: moneyLocale }),
-      formatMoneyWithCode: (amount: number) =>
-        formatMoneyAmountWithCode(amount, { currencyCode, decimalPlaces, locale: moneyLocale }),
-      roundMoney: (amount: number) => roundMoneyAmount(amount, decimalPlaces),
+      moneyLocale,
+      formatMoney: (amount: MoneyAmountInput, overrideCurrencyCode?: string | null) =>
+        formatMoneyAmount(amount, { currencyCode: overrideCurrencyCode || currencyCode, decimalPlaces, locale: moneyLocale }),
+      formatMoneyWithCode: (amount: MoneyAmountInput, overrideCurrencyCode?: string | null) =>
+        formatMoneyAmountWithCode(amount, { currencyCode: overrideCurrencyCode || currencyCode, decimalPlaces, locale: moneyLocale }),
+      roundMoney: (amount: MoneyAmountInput) => roundMoneyAmount(amount, decimalPlaces),
       refresh: async () => {},
     }
   }

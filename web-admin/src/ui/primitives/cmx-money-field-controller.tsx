@@ -10,6 +10,7 @@
 
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
 import { CmxMoneyField, type CmxMoneyFieldProps } from './cmx-money-field'
 
 /**
@@ -41,8 +42,21 @@ export function CmxMoneyFieldController<
   decimalPlaces: decimalPlacesProp,
   ...fieldProps
 }: CmxMoneyFieldControllerProps<TFieldValues, TName>) {
-  const { decimalPlaces: tenantDp, formatMoneyWithCode } = useTenantCurrency()
+  const { decimalPlaces: tenantDp, currencyCode, moneyLocale } = useTenantCurrency()
   const dp = decimalPlacesProp ?? tenantDp
+
+  // A3-4: `formatDisplayValue` must resolve against the *field's* effective
+  // decimalPlaces (`dp`, which may be the `decimalPlacesProp` override), not
+  // silently fall back to the tenant default the way calling
+  // `useTenantCurrency().formatMoneyWithCode` directly would. Locale comes
+  // from the same context (not a direct `next-intl` import here) so this
+  // component stays fully mockable via `useTenantCurrency` in tests.
+  const formatDisplayValue = (value: number, decimalPlacesForDisplay: number) =>
+    formatMoneyAmountWithCode(value, {
+      currencyCode,
+      decimalPlaces: decimalPlacesForDisplay,
+      locale: moneyLocale,
+    })
 
   return (
     <Controller
@@ -55,7 +69,7 @@ export function CmxMoneyFieldController<
           value={typeof field.value === 'number' ? field.value : null}
           decimalPlaces={dp}
           showZero
-          formatDisplayValue={formatMoneyWithCode}
+          formatDisplayValue={formatDisplayValue}
           onValueChange={(v, _draft, isComplete) => {
             field.onChange(v)
             if (isComplete) field.onBlur()

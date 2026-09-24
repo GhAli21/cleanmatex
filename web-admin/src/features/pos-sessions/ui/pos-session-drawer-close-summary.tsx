@@ -7,6 +7,7 @@ import { CmxInput } from '@ui/primitives/cmx-input';
 import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { Badge } from '@ui/primitives/badge';
 import { CmxStatusBadge } from '@ui/feedback';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import {
   buildCashDrawerClosePreview,
   fetchCashDrawerSessionCloseSummary,
@@ -40,6 +41,7 @@ export function PosSessionDrawerCloseSummary({
   onNotesChange,
 }: PosSessionDrawerCloseSummaryProps) {
   const t = useTranslations('posSessions');
+  const { formatMoneyWithCode: formatMoney } = useTenantCurrency();
 
   const summaryQuery = useQuery({
     queryKey: ['cash-drawers', drawerId ?? 'none', 'sessions', drawerSessionId ?? 'none', 'close-summary'],
@@ -51,6 +53,10 @@ export function PosSessionDrawerCloseSummary({
   const currencyCode = preview?.currencyCode ?? summaryQuery.data?.session.currency_code ?? '';
   const countedValue = preview?.countedCash == null ? t('drawerClose.notCountedYet') : formatMoney(preview.countedCash, currencyCode);
   const variance = preview?.variance ?? null;
+  const formatSignedMoney = (amount: number, currency: string | null | undefined) => {
+    const sign = amount > 0 ? '+' : '';
+    return `${sign}${formatMoney(amount, currency)}`;
+  };
 
   return (
     <div className="space-y-4">
@@ -176,15 +182,6 @@ function varianceNoticeClass(variance: number): string {
     return 'rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950';
   }
   return 'rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950';
-}
-
-function formatMoney(amount: number, currencyCode: string | null | undefined): string {
-  return `${amount.toFixed(3)} ${currencyCode ?? ''}`.trim();
-}
-
-function formatSignedMoney(amount: number, currencyCode: string | null | undefined): string {
-  const sign = amount > 0 ? '+' : '';
-  return `${sign}${formatMoney(amount, currencyCode)}`;
 }
 
 function formatDateTime(value: string | null): string {

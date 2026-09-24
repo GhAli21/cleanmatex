@@ -163,7 +163,8 @@ describe('closeSession Decimal-space precision under a long payment sequence (A3
         });
 
         expect(result.isBalanced).toBe(true);
-        expect(result.variance).toBe(0);
+        // A3-4 — money crosses the API as an exact fixed-point string.
+        expect(result.variance).toBe('0.0000');
         expect(Number(result.session.expected_cash_amount)).toBe(EXPECTED_TOTAL);
         expect(Number(result.session.difference_amount)).toBe(0);
 

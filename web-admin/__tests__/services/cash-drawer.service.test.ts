@@ -275,7 +275,8 @@ describe('cash-drawer.service — closeSession', () => {
 
     const result = await closeSession(TENANT, SESSION, { physicalCount: 145, closedBy: USER });
     // expectedCash = 100 + 50 = 150; variance = 145 - 150 = -5
-    expect(result.variance).toBeCloseTo(-5);
+    // A3-4 — money crosses the API as an exact fixed-point string.
+    expect(result.variance).toBe('-5.0000');
     expect(result.isBalanced).toBe(false);
   });
 
@@ -358,8 +359,10 @@ describe('cash-drawer.service — closeSession', () => {
     const result = await closeSession(TENANT, SESSION, { physicalCount: 200, closedBy: USER });
 
     expect(result.varianceApprovalPending).toBe(true);
-    expect(result.varianceThreshold).toBe(1);
-    expect(mockSessionUpdate.mock.calls[0][0].data.variance_threshold_snapshot).toBe(1);
+    // A3-4 — money crosses the API as an exact fixed-point string; the
+    // persisted snapshot stays a Decimal (compared by value, not identity).
+    expect(result.varianceThreshold).toBe('1.0000');
+    expect(mockSessionUpdate.mock.calls[0][0].data.variance_threshold_snapshot).toEqual(new Decimal('1'));
   });
 
   it('does not flag pending approval when |variance| is within the configured threshold', async () => {

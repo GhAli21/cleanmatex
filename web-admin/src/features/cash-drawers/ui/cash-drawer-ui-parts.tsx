@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl'
 
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
-import { formatMoneyAmountWithCode } from '@lib/money/format-money'
+import type { MoneyAmountInput } from '@lib/money/format-money'
 import type {
   CashDrawerMovementRow,
   CashDrawerSessionListRow,
@@ -83,18 +83,12 @@ export function CashDrawerTypeBadge({ drawerType }: { drawerType: string }) {
  * @returns money string including currency code
  */
 export function useCashDrawerMoneyFormatter() {
-  const locale = useLocale()
-  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency()
-  const moneyLocale = locale === 'ar' ? 'ar' : 'en'
+  const { formatMoneyWithCode } = useTenantCurrency()
 
-  return (value: number | null | undefined, currencyCode?: string | null) => {
+  return (value: MoneyAmountInput | null | undefined, currencyCode?: string | null) => {
     if (value == null) return '—'
 
-    return formatMoneyAmountWithCode(value, {
-      currencyCode: currencyCode || tenantCurrency,
-      decimalPlaces,
-      locale: moneyLocale,
-    })
+    return formatMoneyWithCode(value, currencyCode)
   }
 }
 

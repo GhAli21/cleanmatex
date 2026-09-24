@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { toMoneyString } from '@/lib/utils/money';
 import {
   POS_SESSION_EVENT_TYPE,
   POS_SESSION_IDEMPOTENCY_RESOURCE,
@@ -633,16 +634,16 @@ export async function setRefundPosSessionTx(
  * database*, before the value ever reaches JS — a running SUM over many
  * transactions can accumulate binary-rounding error server-side that no
  * amount of careful JS-side math can undo. `::text` makes Postgres do the
- * SUM in exact NUMERIC space and hand over an exact decimal string; parsing
- * that once with `Number()` here is lossless for any realistic money total
- * (JS's safe integer range covers amounts far beyond real-world business
- * volumes). This keeps `PosSessionSummary`'s public shape as `number`
- * unchanged — propagating money-as-strings through this type and its two UI
- * consumers is A3-4's separate, larger scope, not bundled in here.
+ * SUM in exact NUMERIC space and hand over an exact decimal string.
+ *
+ * A3-4: that exact string is now passed through to the API as-is (normalized
+ * to a fixed MONEY_SCALE via `toMoneyString`) instead of being parsed into a
+ * JS `number` here — a `Number()` parse was already lossless for any
+ * realistic money total, but keeping the wire type as `string` end to end
+ * means nothing downstream can ever reintroduce float rounding by accident.
  */
-function parseNumericSum(value: string): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+function parseNumericSum(value: string): string {
+  return toMoneyString(value);
 }
 
 export async function getPosSessionSummary(input: {

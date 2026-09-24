@@ -5,6 +5,13 @@
  * cash-drawer operational pages need a stable UI contract that is decoupled
  * from raw Prisma rows so the screens can evolve without leaking database
  * shapes into feature components.
+ *
+ * A3-4 (POS Session & Cash Drawer Hardening): every money field below is a
+ * `string` (exact fixed-point, e.g. `'25.5000'`), never a JS `number` — the
+ * service layer converts with `toMoneyString` at the return boundary so
+ * nothing between the DB and the browser can round money into IEEE-754
+ * double precision. Format for display via `formatMoneyAmount` /
+ * `useCashDrawerMoneyFormatter`, which accept this string form directly.
  */
 
 /**
@@ -39,10 +46,10 @@ export interface CashDrawerSessionSummarySnapshot {
   status: string
   openedAt: string | null
   closedAt: string | null
-  openingFloatAmount: number
-  expectedCashAmount: number | null
-  countedCashAmount: number | null
-  differenceAmount: number | null
+  openingFloatAmount: string
+  expectedCashAmount: string | null
+  countedCashAmount: string | null
+  differenceAmount: string | null
   paymentCount: number
   movementCount: number
 }
@@ -62,7 +69,7 @@ export interface CashDrawerOverviewRow {
   currencyCode: string
   requiresSession: boolean
   openingFloatRequired: boolean
-  maxCashLimit: number | null
+  maxCashLimit: string | null
   assignedTerminalId: string | null
   assignedTerminalName: string | null
   assignedTerminalCode: string | null
@@ -80,10 +87,10 @@ export interface CashDrawerSessionListRow {
   status: string
   openedAt: string | null
   closedAt: string | null
-  openingFloatAmount: number
-  expectedCashAmount: number | null
-  countedCashAmount: number | null
-  differenceAmount: number | null
+  openingFloatAmount: string
+  expectedCashAmount: string | null
+  countedCashAmount: string | null
+  differenceAmount: string | null
   paymentCount: number
   movementCount: number
   openedBy: CashDrawerActorSummary | null
@@ -105,7 +112,7 @@ export interface CashDrawerDetailContext {
   currencyCode: string
   requiresSession: boolean
   openingFloatRequired: boolean
-  maxCashLimit: number | null
+  maxCashLimit: string | null
   assignedTerminalId: string | null
   assignedTerminalName: string | null
   assignedTerminalCode: string | null
@@ -129,7 +136,7 @@ export interface CashDrawerMovementRow {
   id: string
   movementType: string
   direction: string
-  amount: number
+  amount: string
   currencyCode: string
   orderId: string | null
   orderPaymentId: string | null
@@ -149,10 +156,10 @@ export interface CashDrawerLinkedPaymentRow {
   paymentMethodCode: string
   paymentMethodNameSnapshot: string | null
   paymentStatus: string | null
-  amount: number
+  amount: string
   currencyCode: string
-  tenderedAmount: number | null
-  changeReturnedAmount: number | null
+  tenderedAmount: string | null
+  changeReturnedAmount: string | null
   paidAt: string | null
   terminalId: string | null
   terminalName: string | null
@@ -164,14 +171,14 @@ export interface CashDrawerLinkedPaymentRow {
  * Reconciliation totals rendered as summary cards on the session detail page.
  */
 export interface CashDrawerReconciliationSummary {
-  openingFloat: number
-  cashCollected: number
-  movementCashIn: number
-  movementCashOut: number
-  movementNet: number
-  expectedCash: number
-  countedCash: number | null
-  variance: number | null
+  openingFloat: string
+  cashCollected: string
+  movementCashIn: string
+  movementCashOut: string
+  movementNet: string
+  expectedCash: string
+  countedCash: string | null
+  variance: string | null
   paymentCount: number
   movementCount: number
   currencyCode: string | null
@@ -187,11 +194,11 @@ export interface CashDrawerSessionLifecycleDetail {
   status: string
   openedAt: string | null
   openedBy: CashDrawerActorSummary | null
-  openingFloatAmount: number
+  openingFloatAmount: string
   currencyCode: string
-  expectedCashAmount: number
-  countedCashAmount: number | null
-  differenceAmount: number | null
+  expectedCashAmount: string
+  countedCashAmount: string | null
+  differenceAmount: string | null
   closedAt: string | null
   closedBy: CashDrawerActorSummary | null
   closeNotes: string | null
@@ -211,7 +218,7 @@ export interface CashDrawerVarianceApproval {
   pending: boolean
   /** True when required and approved. */
   approved: boolean
-  thresholdSnapshot: number | null
+  thresholdSnapshot: string | null
   approvedBy: CashDrawerActorSummary | null
   approvedAt: string | null
   reason: string | null
