@@ -301,12 +301,16 @@ describe('pos-session.service', () => {
       posSessionId: sessionId,
     });
 
-    expect(summary.payments.total).toEqual({ currencyCode: 'OMR', amount: 25, count: 2 });
+    // A4-1 — one row per currency, not a single ambiguous total (updated
+    // deliberately: the old GROUP BY ... LIMIT 1 query this replaces would
+    // have silently dropped every currency but one on a mixed-currency
+    // session).
+    expect(summary.payments.totals).toEqual([{ currencyCode: 'OMR', amount: 25, count: 2 }]);
     expect(summary.payments.byMethod).toEqual([
       { groupCode: 'CASH', status: 'COMPLETED', currencyCode: 'OMR', amount: 15, count: 1 },
       { groupCode: 'CARD', status: 'COMPLETED', currencyCode: 'OMR', amount: 10, count: 1 },
     ]);
-    expect(summary.refunds.total).toEqual({ currencyCode: 'OMR', amount: 3, count: 1 });
+    expect(summary.refunds.totals).toEqual([{ currencyCode: 'OMR', amount: 3, count: 1 }]);
     expect(summary.voucherLines.byRole).toEqual([
       {
         lineRole: 'ORDER_PAYMENT',
@@ -317,6 +321,32 @@ describe('pos-session.service', () => {
         count: 1,
       },
     ]);
+  });
+
+  it('A4-1: a mixed-currency session returns one total row per currency, not just the first', async () => {
+    db.$queryRaw
+      .mockResolvedValueOnce([posSession()])
+      // Two currencies collected in the same POS session — the old
+      // `GROUP BY currency_code ... LIMIT 1` query would have silently kept
+      // only OMR (alphabetically first) and dropped the USD row entirely.
+      .mockResolvedValueOnce([
+        { currency_code: 'OMR', amount: '25.5000', count: 2 },
+        { currency_code: 'USD', amount: '10.0000', count: 1 },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    const summary = await getPosSessionSummary({ tenantId, userId, posSessionId: sessionId });
+
+    expect(summary.payments.totals).toEqual([
+      { currencyCode: 'OMR', amount: 25.5, count: 2 },
+      { currencyCode: 'USD', amount: 10, count: 1 },
+    ]);
+    expect(summary.refunds.totals).toEqual([]);
+    expect(summary.voucherLines.totals).toEqual([]);
   });
 
   it('throws a typed not-found error when a session summary is outside the user scope', async () => {

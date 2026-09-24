@@ -96,12 +96,20 @@ describe('B15 source guard — money paths have no currency literals', () => {
     expect(code).not.toMatch(/0\.06|0\.05/);
   });
 
-  it('drawer close comparison uses the central cash tolerance', () => {
+  it('drawer close comparison uses the currency-aware cash tolerance (POS Session & Cash Drawer Hardening A3-3)', () => {
+    // Updated deliberately, not weakened: the flat CASH_VARIANCE_TOLERANCE
+    // (0.01) silently accepted real variance up to 0.0099 on 3-decimal-
+    // currency (OMR/BHD/KWD) drawers — 20x too wide for their 0.001 minor
+    // unit. A3-3 replaced the comparison with `varianceToleranceFor`,
+    // resolved from the session's own sys_currency_cd.decimal_places. The
+    // flat constant is kept (deprecated) only for other, not-yet-migrated
+    // consumers — see financial-tolerances.ts.
     const code = fs.readFileSync(
       path.join(process.cwd(), 'lib/services/cash-drawer.service.ts'),
       'utf8'
     );
-    expect(code).toContain('Math.abs(variance) < CASH_VARIANCE_TOLERANCE');
+    expect(code).toContain('varianceToleranceFor(');
+    expect(code).not.toContain('Math.abs(variance) < CASH_VARIANCE_TOLERANCE');
   });
 });
 

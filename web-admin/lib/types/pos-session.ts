@@ -96,6 +96,16 @@ export interface PosSessionSummaryAmountRow {
   count: number;
 }
 
+/**
+ * A4-1 (POS Session & Cash Drawer Hardening) — one currency's total within a
+ * summary category. Previously `getPosSessionSummary` computed this with
+ * `GROUP BY currency_code ... LIMIT 1`, which silently dropped every
+ * currency but one for a mixed-currency session. Now always an array: one
+ * entry for a single-currency session (D14 — no UI change for the common
+ * case), more than one when the session genuinely mixed currencies.
+ */
+export type PosSessionCurrencyTotal = PosSessionSummaryAmountRow;
+
 export interface PosSessionSummaryGroupedAmountRow extends PosSessionSummaryAmountRow {
   groupCode: string | null;
   status: string | null;
@@ -110,15 +120,15 @@ export interface PosSessionVoucherLineSummaryRow extends PosSessionSummaryAmount
 export interface PosSessionSummary {
   session: PosSessionRow;
   payments: {
-    total: PosSessionSummaryAmountRow;
+    totals: PosSessionCurrencyTotal[];
     byMethod: PosSessionSummaryGroupedAmountRow[];
   };
   refunds: {
-    total: PosSessionSummaryAmountRow;
+    totals: PosSessionCurrencyTotal[];
     byMethod: PosSessionSummaryGroupedAmountRow[];
   };
   voucherLines: {
-    total: PosSessionSummaryAmountRow;
+    totals: PosSessionCurrencyTotal[];
     byRole: PosSessionVoucherLineSummaryRow[];
   };
 }

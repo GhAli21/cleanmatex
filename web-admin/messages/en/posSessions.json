@@ -44,7 +44,9 @@
     "voucherLines": "Voucher lines",
     "total": "Total",
     "count": "Count",
-    "rows": "rows"
+    "rows": "rows",
+    "multipleCurrenciesTitle": "This session mixed currencies",
+    "multipleCurrencies": "Totals below are shown separately per currency and are never added together."
   },
   "banner": {
     "loading": "Checking POS session...",

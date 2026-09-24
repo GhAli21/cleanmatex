@@ -579,9 +579,9 @@ export function PosSessionsScreen() {
             <div className="py-8 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('banner.loading')}</div>
           ) : summaryQuery.data ? (
             <div className="grid gap-3 md:grid-cols-3">
-              <SummaryTile title={t('summary.payments')} total={summaryQuery.data.payments.total} rowsLabel={t('summary.rows')} />
-              <SummaryTile title={t('summary.refunds')} total={summaryQuery.data.refunds.total} rowsLabel={t('summary.rows')} />
-              <SummaryTile title={t('summary.voucherLines')} total={summaryQuery.data.voucherLines.total} rowsLabel={t('summary.rows')} />
+              <SummaryTile title={t('summary.payments')} totals={summaryQuery.data.payments.totals} rowsLabel={t('summary.rows')} />
+              <SummaryTile title={t('summary.refunds')} totals={summaryQuery.data.refunds.totals} rowsLabel={t('summary.rows')} />
+              <SummaryTile title={t('summary.voucherLines')} totals={summaryQuery.data.voucherLines.totals} rowsLabel={t('summary.rows')} />
             </div>
           ) : (
             <div className="py-8 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
@@ -608,20 +608,34 @@ function InfoTile({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * A4-1 (POS Session & Cash Drawer Hardening) — `totals` is one row per
+ * currency, not a single ambiguous figure (the previous `GROUP BY
+ * currency_code ... LIMIT 1` query silently dropped every currency but
+ * one). A single-currency session (the common case, D14) renders exactly
+ * as before: one amount, one count. A genuinely mixed-currency session
+ * lists each currency's amount and count as its own line within the same
+ * tile, so the categories stay aligned in the surrounding 3-column grid.
+ */
 function SummaryTile({
   title,
-  total,
+  totals,
   rowsLabel,
 }: {
   title: string;
-  total: { amount: number; currencyCode: string | null; count: number };
+  totals: Array<{ amount: number; currencyCode: string | null; count: number }>;
   rowsLabel: string;
 }) {
+  const rows = totals.length > 0 ? totals : [{ amount: 0, currencyCode: null, count: 0 }];
   return (
     <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
       <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{title}</div>
-      <div className="mt-2 text-2xl font-bold">{formatMoney(total.amount, total.currencyCode)}</div>
-      <div className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{total.count} {rowsLabel}</div>
+      {rows.map((row, i) => (
+        <div key={row.currencyCode ?? `unknown-${i}`} className={i > 0 ? 'mt-3 border-t pt-3' : undefined}>
+          <div className="mt-2 text-2xl font-bold">{formatMoney(row.amount, row.currencyCode)}</div>
+          <div className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{row.count} {rowsLabel}</div>
+        </div>
+      ))}
     </div>
   );
 }

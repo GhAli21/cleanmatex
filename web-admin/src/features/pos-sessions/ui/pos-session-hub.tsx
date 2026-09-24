@@ -20,7 +20,7 @@ import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { Badge } from '@ui/primitives/badge';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
-import { CmxStatusBadge } from '@ui/feedback';
+import { CmxStatusBadge, CmxSummaryMessage } from '@ui/feedback';
 import { cmxMessage } from '@ui/feedback';
 import {
   CmxDialog,
@@ -45,6 +45,7 @@ import { PosSessionDrawerCloseSummary } from '@features/pos-sessions/ui/pos-sess
 import { PosSessionDrawerLinker } from '@features/pos-sessions/ui/pos-session-drawer-linker';
 import type {
   GetMyActivePosSessionResult,
+  PosSessionCurrencyTotal,
   PosSessionSummary,
   PosSessionWithContext,
 } from '@/lib/types/pos-session';
@@ -537,11 +538,21 @@ function HubBody({
           ) : summaryError ? (
             <div className="text-sm text-red-700">{t('hub.summaryError')}</div>
           ) : summary ? (
-            <InfoGrid>
-              <InfoTile label={t('summary.payments')} value={formatMoney(summary.payments.total.amount, summary.payments.total.currencyCode)} />
-              <InfoTile label={t('summary.refunds')} value={formatMoney(summary.refunds.total.amount, summary.refunds.total.currencyCode)} />
-              <InfoTile label={t('summary.voucherLines')} value={formatMoney(summary.voucherLines.total.amount, summary.voucherLines.total.currencyCode)} />
-            </InfoGrid>
+            <>
+              {hasMultipleCurrencies(summary) && (
+                <CmxSummaryMessage
+                  type="info"
+                  title={t('summary.multipleCurrenciesTitle')}
+                  items={[t('summary.multipleCurrencies')]}
+                  className="mb-3"
+                />
+              )}
+              <InfoGrid>
+                <CategoryTotals label={t('summary.payments')} totals={summary.payments.totals} />
+                <CategoryTotals label={t('summary.refunds')} totals={summary.refunds.totals} />
+                <CategoryTotals label={t('summary.voucherLines')} totals={summary.voucherLines.totals} />
+              </InfoGrid>
+            </>
           ) : (
             <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('hub.openToLoadSummary')}</div>
           )}
@@ -597,6 +608,43 @@ function HubPanelStatus({
 
 function InfoGrid({ children }: { children: ReactNode }) {
   return <div className="grid gap-3 sm:grid-cols-2">{children}</div>;
+}
+
+/** A4-1/A4-2 — true once any finance-summary category actually mixed currencies. */
+function hasMultipleCurrencies(summary: PosSessionSummary): boolean {
+  return (
+    summary.payments.totals.length > 1 ||
+    summary.refunds.totals.length > 1 ||
+    summary.voucherLines.totals.length > 1
+  );
+}
+
+/**
+ * A4-1/A4-2 — renders one tile per currency for a category. A single-
+ * currency session (the common case, D14) renders exactly like before: one
+ * tile, no currency suffix on the label. A genuinely mixed-currency session
+ * renders one tile per currency instead of silently keeping only the
+ * alphabetically-first one, which is what the previous `GROUP BY ... LIMIT 1`
+ * query did.
+ */
+function CategoryTotals({ label, totals }: { label: string; totals: PosSessionCurrencyTotal[] }) {
+  if (totals.length === 0) {
+    return <InfoTile label={label} value={formatMoney(0, null)} />;
+  }
+  if (totals.length === 1) {
+    return <InfoTile label={label} value={formatMoney(totals[0].amount, totals[0].currencyCode)} />;
+  }
+  return (
+    <>
+      {totals.map((row) => (
+        <InfoTile
+          key={row.currencyCode ?? 'unknown'}
+          label={`${label} (${row.currencyCode ?? '—'})`}
+          value={formatMoney(row.amount, row.currencyCode)}
+        />
+      ))}
+    </>
+  );
 }
 
 function InfoTile({ label, value }: { label: string; value: string }) {

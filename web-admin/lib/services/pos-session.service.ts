@@ -626,8 +626,23 @@ export async function setRefundPosSessionTx(
   `);
 }
 
-function emptySummaryAmount(): { currencyCode: null; amount: number; count: number } {
-  return { currencyCode: null, amount: 0, count: 0 };
+/**
+ * A3-2 (POS Session & Cash Drawer Hardening) — the raw SQL below casts every
+ * SUM(...) to `::text`, not `::float8`. `::float8` forced Postgres to
+ * compute (and round) the aggregate in IEEE-754 double precision *inside the
+ * database*, before the value ever reaches JS — a running SUM over many
+ * transactions can accumulate binary-rounding error server-side that no
+ * amount of careful JS-side math can undo. `::text` makes Postgres do the
+ * SUM in exact NUMERIC space and hand over an exact decimal string; parsing
+ * that once with `Number()` here is lossless for any realistic money total
+ * (JS's safe integer range covers amounts far beyond real-world business
+ * volumes). This keeps `PosSessionSummary`'s public shape as `number`
+ * unchanged — propagating money-as-strings through this type and its two UI
+ * consumers is A3-4's separate, larger scope, not bundled in here.
+ */
+function parseNumericSum(value: string): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export async function getPosSessionSummary(input: {
@@ -656,19 +671,20 @@ export async function getPosSessionSummary(input: {
 
     const [paymentTotals, paymentGroups, refundTotals, refundGroups, voucherTotals, voucherGroups] =
       await Promise.all([
-        prisma.$queryRaw<Array<{ currency_code: string | null; amount: number; count: number }>>(Prisma.sql`
-          SELECT currency_code, COALESCE(SUM(amount), 0)::float8 AS amount, COUNT(*)::int AS count
+        // A4-1 — no LIMIT: a mixed-currency session must return one row per
+        // currency, not silently drop every currency but one.
+        prisma.$queryRaw<Array<{ currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
+          SELECT currency_code, COALESCE(SUM(amount), 0)::text AS amount, COUNT(*)::int AS count
           FROM public.org_order_payments_dtl
           WHERE tenant_org_id = ${input.tenantId}::uuid
             AND pos_session_id = ${input.posSessionId}::uuid
             AND is_active = TRUE
           GROUP BY currency_code
           ORDER BY currency_code NULLS LAST
-          LIMIT 1
         `),
-        prisma.$queryRaw<Array<{ payment_method_code: string | null; payment_status: string | null; currency_code: string | null; amount: number; count: number }>>(Prisma.sql`
+        prisma.$queryRaw<Array<{ payment_method_code: string | null; payment_status: string | null; currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
           SELECT payment_method_code, payment_status, currency_code,
-                 COALESCE(SUM(amount), 0)::float8 AS amount,
+                 COALESCE(SUM(amount), 0)::text AS amount,
                  COUNT(*)::int AS count
           FROM public.org_order_payments_dtl
           WHERE tenant_org_id = ${input.tenantId}::uuid
@@ -677,19 +693,18 @@ export async function getPosSessionSummary(input: {
           GROUP BY payment_method_code, payment_status, currency_code
           ORDER BY payment_method_code NULLS LAST, payment_status NULLS LAST
         `),
-        prisma.$queryRaw<Array<{ currency_code: string | null; amount: number; count: number }>>(Prisma.sql`
-          SELECT currency_code, COALESCE(SUM(refund_amount), 0)::float8 AS amount, COUNT(*)::int AS count
+        prisma.$queryRaw<Array<{ currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
+          SELECT currency_code, COALESCE(SUM(refund_amount), 0)::text AS amount, COUNT(*)::int AS count
           FROM public.org_order_refunds_dtl
           WHERE tenant_org_id = ${input.tenantId}::uuid
             AND pos_session_id = ${input.posSessionId}::uuid
             AND is_active = TRUE
           GROUP BY currency_code
           ORDER BY currency_code NULLS LAST
-          LIMIT 1
         `),
-        prisma.$queryRaw<Array<{ refund_method_code: string | null; refund_status: string | null; currency_code: string | null; amount: number; count: number }>>(Prisma.sql`
+        prisma.$queryRaw<Array<{ refund_method_code: string | null; refund_status: string | null; currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
           SELECT refund_method_code, refund_status, currency_code,
-                 COALESCE(SUM(refund_amount), 0)::float8 AS amount,
+                 COALESCE(SUM(refund_amount), 0)::text AS amount,
                  COUNT(*)::int AS count
           FROM public.org_order_refunds_dtl
           WHERE tenant_org_id = ${input.tenantId}::uuid
@@ -698,19 +713,18 @@ export async function getPosSessionSummary(input: {
           GROUP BY refund_method_code, refund_status, currency_code
           ORDER BY refund_method_code NULLS LAST, refund_status NULLS LAST
         `),
-        prisma.$queryRaw<Array<{ currency_code: string | null; amount: number; count: number }>>(Prisma.sql`
-          SELECT currency_code, COALESCE(SUM(amount), 0)::float8 AS amount, COUNT(*)::int AS count
+        prisma.$queryRaw<Array<{ currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
+          SELECT currency_code, COALESCE(SUM(amount), 0)::text AS amount, COUNT(*)::int AS count
           FROM public.org_fin_voucher_trx_lines_dtl
           WHERE tenant_org_id = ${input.tenantId}::uuid
             AND pos_session_id = ${input.posSessionId}::uuid
             AND is_active = TRUE
           GROUP BY currency_code
           ORDER BY currency_code NULLS LAST
-          LIMIT 1
         `),
-        prisma.$queryRaw<Array<{ line_role: string | null; payment_method_code: string | null; direction: string | null; currency_code: string | null; amount: number; count: number }>>(Prisma.sql`
+        prisma.$queryRaw<Array<{ line_role: string | null; payment_method_code: string | null; direction: string | null; currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
           SELECT line_role, payment_method_code, direction, currency_code,
-                 COALESCE(SUM(amount), 0)::float8 AS amount,
+                 COALESCE(SUM(amount), 0)::text AS amount,
                  COUNT(*)::int AS count
           FROM public.org_fin_voucher_trx_lines_dtl
           WHERE tenant_org_id = ${input.tenantId}::uuid
@@ -724,39 +738,47 @@ export async function getPosSessionSummary(input: {
     return {
       session,
       payments: {
-        total: paymentTotals[0]
-          ? { currencyCode: paymentTotals[0].currency_code, amount: paymentTotals[0].amount, count: paymentTotals[0].count }
-          : emptySummaryAmount(),
+        // A4-1 — every currency the session actually collected, not just
+        // the alphabetically-first one.
+        totals: paymentTotals.map((row) => ({
+          currencyCode: row.currency_code,
+          amount: parseNumericSum(row.amount),
+          count: row.count,
+        })),
         byMethod: paymentGroups.map((row) => ({
           groupCode: row.payment_method_code,
           status: row.payment_status,
           currencyCode: row.currency_code,
-          amount: row.amount,
+          amount: parseNumericSum(row.amount),
           count: row.count,
         })),
       },
       refunds: {
-        total: refundTotals[0]
-          ? { currencyCode: refundTotals[0].currency_code, amount: refundTotals[0].amount, count: refundTotals[0].count }
-          : emptySummaryAmount(),
+        totals: refundTotals.map((row) => ({
+          currencyCode: row.currency_code,
+          amount: parseNumericSum(row.amount),
+          count: row.count,
+        })),
         byMethod: refundGroups.map((row) => ({
           groupCode: row.refund_method_code,
           status: row.refund_status,
           currencyCode: row.currency_code,
-          amount: row.amount,
+          amount: parseNumericSum(row.amount),
           count: row.count,
         })),
       },
       voucherLines: {
-        total: voucherTotals[0]
-          ? { currencyCode: voucherTotals[0].currency_code, amount: voucherTotals[0].amount, count: voucherTotals[0].count }
-          : emptySummaryAmount(),
+        totals: voucherTotals.map((row) => ({
+          currencyCode: row.currency_code,
+          amount: parseNumericSum(row.amount),
+          count: row.count,
+        })),
         byRole: voucherGroups.map((row) => ({
           lineRole: row.line_role,
           paymentMethodCode: row.payment_method_code,
           direction: row.direction,
           currencyCode: row.currency_code,
-          amount: row.amount,
+          amount: parseNumericSum(row.amount),
           count: row.count,
         })),
       },

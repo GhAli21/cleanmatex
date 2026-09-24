@@ -66,6 +66,11 @@ const mockDrawerFindFirst         = jest.fn();
 // mockSessionUpdate still see calls made through `tx`.
 const mockQueryRaw                = jest.fn();
 const mockExecuteRaw              = jest.fn().mockResolvedValue(undefined);
+// A3-3 — closeSession looks up sys_currency_cd.decimal_places for the
+// session's own currency to compute a currency-aware variance tolerance.
+// Defaults to OMR's real 3 decimal places, matching makeDrawer()/
+// makeSession()'s currency_code below.
+const mockCurrencyFindUnique       = jest.fn().mockResolvedValue({ decimal_places: 3 });
 
 jest.mock('@/lib/db/prisma', () => {
   const txClient = {
@@ -84,6 +89,9 @@ jest.mock('@/lib/db/prisma', () => {
     },
     org_order_payments_dtl: {
       aggregate: (...a: unknown[]) => mockPaymentAggregate(...a),
+    },
+    sys_currency_cd: {
+      findUnique: (...a: unknown[]) => mockCurrencyFindUnique(...a),
     },
     $queryRaw:   (...a: unknown[]) => mockQueryRaw(...a),
     $executeRaw: (...a: unknown[]) => mockExecuteRaw(...a),

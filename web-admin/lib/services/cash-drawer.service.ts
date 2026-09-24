@@ -6,7 +6,8 @@ import { Decimal } from '@prisma/client/runtime/library'
 import { lookupAuditActors, type AuditActorLookupResult } from '@lib/services/audit-actor.service'
 import { prisma } from '@lib/db/prisma'
 import { withTenantContext } from '@lib/db/tenant-context'
-import { CASH_VARIANCE_TOLERANCE } from '@/lib/constants/financial-tolerances'
+import { varianceToleranceFor } from '@/lib/constants/financial-tolerances'
+import { addMoney, subMoney, sumMoney, compareMoney, toDecimal, decimalToNumber } from '@/lib/utils/money'
 import {
   effectiveCashPaymentWhere,
   expectedCashManualMovementWhere,
@@ -1639,7 +1640,7 @@ export async function closeSession(
           // movements only. Sale-mirror CASH_SALE/change and B10
           // PAYMENT_REVERSAL compensating OUTs are excluded — the payment
           // already counts (or, after REVERSE, no longer counts) that cash.
-          const [cashPayments, movements, drawer] = await Promise.all([
+          const [cashPayments, movements, drawer, currency] = await Promise.all([
             tx.org_order_payments_dtl.aggregate({
               where: {
                 tenant_org_id: tenantId,
@@ -1664,18 +1665,46 @@ export async function closeSession(
               where: { id: session.cash_drawer_id, tenant_org_id: tenantId },
               select: { variance_approval_threshold: true },
             }),
+            // A3-3 (D10): sys_currency_cd is the authoritative decimal-places
+            // source. This session's own currency, not the tenant default —
+            // D14 multi-currency readiness means these can differ.
+            tx.sys_currency_cd.findUnique({
+              where: { code: session.currency_code },
+              select: { decimal_places: true },
+            }),
           ])
 
-          const cashIn = toNumber(cashPayments._sum.amount)
-          const movementCashIn = movements
-            .filter((movement) => movement.direction === 'IN')
-            .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
-          const movementCashOut = movements
-            .filter((movement) => movement.direction === 'OUT')
-            .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
-          const expectedCash = toNumber(session.opening_float_amount) + cashIn + movementCashIn - movementCashOut
-          const variance = params.physicalCount - expectedCash
-          const isBalanced = Math.abs(variance) < CASH_VARIANCE_TOLERANCE
+          // A3-1 — expected-cash arithmetic stays in Decimal space end to
+          // end (opening float -> sum -> variance), never a JS `number`
+          // intermediate. The previous version converted every Decimal to
+          // a float via toNumber() and summed with `+`/`-`, which drifts on
+          // sequences of 3-decimal-currency amounts (OMR/BHD/KWD) the same
+          // way 0.1 + 0.2 !== 0.3 does in any language. Only the final
+          // return value (kept as `number` for existing callers — the
+          // broader money-as-strings API contract is A3-4, not this
+          // package) is derived from the correctly-summed Decimal.
+          const movementCashIn = sumMoney(
+            movements.filter((m) => m.direction === 'IN').map((m) => m.amount)
+          )
+          const movementCashOut = sumMoney(
+            movements.filter((m) => m.direction === 'OUT').map((m) => m.amount)
+          )
+          const expectedCashDecimal = subMoney(
+            addMoney(addMoney(session.opening_float_amount, cashPayments._sum.amount ?? 0), movementCashIn),
+            movementCashOut,
+          )
+          const physicalCountDecimal = toDecimal(params.physicalCount)
+          const varianceDecimal = subMoney(physicalCountDecimal, expectedCashDecimal)
+
+          // A3-3 (W0-15): tolerance is half the currency's own smallest
+          // unit, not a flat 0.01 — the flat value silently accepted real
+          // variance up to 0.0099 on 3-decimal-currency (OMR/BHD/KWD)
+          // drawers, which is 20x too wide for a 0.001 minor unit.
+          const decimalPlaces = currency?.decimal_places ?? 2
+          const tolerance = varianceToleranceFor(decimalPlaces)
+          const isBalanced = compareMoney(varianceDecimal.abs(), tolerance) < 0
+
+          const variance = decimalToNumber(varianceDecimal)
 
           // B16 variance approval (OPTIONAL, deferred, opt-in per drawer): when
           // the drawer has a configured threshold and a not-balanced close
@@ -1696,9 +1725,9 @@ export async function closeSession(
             where: { id: sessionId },
             data: {
               status: 'CLOSED',
-              counted_cash_amount: params.physicalCount,
-              expected_cash_amount: expectedCash,
-              difference_amount: variance,
+              counted_cash_amount: physicalCountDecimal,
+              expected_cash_amount: expectedCashDecimal,
+              difference_amount: varianceDecimal,
               closed_by: params.closedBy,
               closed_at: new Date(),
               close_notes: params.notes ?? null,
