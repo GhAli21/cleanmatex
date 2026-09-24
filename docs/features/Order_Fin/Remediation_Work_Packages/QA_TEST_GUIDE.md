@@ -858,9 +858,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
-## 33. POS Session & Cash Drawer Hardening — Wave 0 + Wave A (partial, added 2026-09-24)
+## 33. POS Session & Cash Drawer Hardening — Wave 0 + Wave A (partial, added 2026-09-24, updated 2026-09-25)
 
-**What this is:** a separate hardening program, tracked in `docs/features/Order_Fin/POS_Session_Cash_Drawer_Hardening/` (`STATUS.md` is authoritative for what's shipped). Only the pieces with an owner-runnable UI surface are listed here; A1 (session-number collision fix) and A2 (concurrent-mutation locking) have **no UI surface** — they are proven by DB-integration tests against concurrent requests, not something a manual tester can exercise meaningfully by clicking. Wave A is **not** fully closed (A3-4/5/6b/7, A4-3/3b/3c/3d/4, A6 remain) — this section covers only what a tester can verify today.
+**What this is:** a separate hardening program, tracked in `docs/features/Order_Fin/POS_Session_Cash_Drawer_Hardening/` (`STATUS.md` is authoritative for what's shipped). Only the pieces with an owner-runnable UI surface are listed here; A1 (session-number collision fix) and A2 (concurrent-mutation locking) have **no UI surface** — they are proven by DB-integration tests against concurrent requests, not something a manual tester can exercise meaningfully by clicking. Wave A is **not** fully closed (A4-3/3b/3c/3d/4, A6 remain; A3-6b needs an owner call) — this section covers only what a tester can verify today. **A3-4 (2026-09-25, D28)** is an internal money-serialization change with no new screens — its only owner-visible effect is 33.12/33.13 below.
 
 | # | Where + how | Expected | Result |
 |---|---|---|---|
@@ -875,6 +875,8 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |33.9| Single-currency session (the normal case — every existing demo tenant) → hub card and summary dialog | Renders **exactly as before** this program — one row, no `CmxSummaryMessage`, no visible change | |
 |33.10| Close an **OMR** (3-decimal) drawer session with a physical count **0.002 OMR** off from expected | Now correctly flagged (new tolerance is half the smallest unit = **0.0005 OMR**) — over-tolerance banner / optional-approval path appears, where the old flat `0.01` tolerance would have silently accepted it as balanced. Compare against §6.3/§6.7 above, which used the old tolerance | |
 |33.11| Close an **AED** (2-decimal) drawer session with a physical count **0.003 AED** off from expected | Still within the new tolerance (half the smallest unit = **0.005 AED**) — closes clean, same as before | |
+|33.12| **A3-4 (D28):** open the POS Sessions hub / summary dialog and the Cash Drawer overview/session-detail screens for an **AED or SAR** (2-decimal) tenant | Every money amount shows **2 decimal places** (e.g. `12.50 AED`), not `12.500` — previously 3 of these screens hardcoded 3 decimals regardless of the tenant's real currency precision | |
+|33.13| **A3-4 (D28):** close a cash-drawer session, then open its **print report** (`/dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print`) | Expected Balance and Variance on the printed report match the **same figures shown on the session-detail screen** for that session (both now come from the same server-computed reconciliation, not a separate recompute on the print page) | |
 
 **Not manually testable — verified by DB-integration tests instead (`__tests__/db-integration/cash-drawer-session-numbering-concurrency.db.test.ts`, `cash-drawer-mutation-locking.db.test.ts`):** concurrent drawer opens producing distinct/gapless session numbers (A1); concurrent close × 2, double-open × 4, and movement-during-close all correctly serialized (A2). A cash **payment** landing mid-close (a *different* race, spanning 15+ payment-recording files) remains an open, documented gap — see STATUS.md D22 — not something this section can mark PASS.
 

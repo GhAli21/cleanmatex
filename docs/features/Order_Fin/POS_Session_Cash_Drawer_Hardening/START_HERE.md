@@ -4,10 +4,10 @@
 
 ---
 
-## 1. State as of 2026-09-24 — **STATUS.md is authoritative; this section is a summary only**
+## 1. State as of 2026-09-25 — **STATUS.md is authoritative; this section is a summary only**
 
-- **Planning is complete.** 188 tasks, decisions D1–D27, three completeness audits.
-- **Wave 0 is COMPLETE** (migrations `0515`–`0518`, applied local+remote). **Wave A is IN PROGRESS**: A1, A2 (except the documented payment-during-close gap), A3 is effectively complete (A3-1/A3-2/A3-3/A3-5/A3-6/A3-7 done — only A3-4 and A3-6b remain, both deliberately deferred), and A4-1/A4-2 are done; A5-1/A5-2/A5-3 were run 2026-09-24 as an **interim checkpoint** (whole-project gates green, QA guide + docs refreshed) at the owner's request — this is **not** a Wave A close. **D26 (2026-09-24, CRITICAL, fixed): `closeSession` was failing on every real call since A3-3 shipped** — a Prisma-modeled column (`sys_currency_cd.decimal_places`) never existed on the live table, local or remote; fixed to the real `minor_unit` column, DB-integration-verified. Remaining in Wave A: A3-4, A4-3/A4-3b/A4-3c/A4-3d/A4-4, A6, and A3-6b pending an owner call (see D27). Waves B–E not started.
+- **Planning is complete.** 188 tasks, decisions D1–D28, three completeness audits.
+- **Wave 0 is COMPLETE** (migrations `0515`–`0518`, applied local+remote). **Wave A is IN PROGRESS**: A1, A2 (except the documented payment-during-close gap), **A3 is fully COMPLETE** (A3-1/A3-2/A3-3/A3-4/A3-5/A3-6/A3-7 all done — only A3-6b remains, deliberately deferred pending an owner call), and A4-1/A4-2 are done; A5-1/A5-2/A5-3 were run 2026-09-24 as an **interim checkpoint** (whole-project gates green, QA guide + docs refreshed) at the owner's request — this is **not** a Wave A close. **D26 (2026-09-24, CRITICAL, fixed): `closeSession` was failing on every real call since A3-3 shipped** — a Prisma-modeled column (`sys_currency_cd.decimal_places`) never existed on the live table, local or remote; fixed to the real `minor_unit` column, DB-integration-verified. **D28 (2026-09-25): A3-4 shipped** — money now crosses the drawer/POS-session APIs as exact fixed-point strings end to end, plus 2 real bugs found and fixed on the session print page along the way. Remaining in Wave A: A4-3/A4-3b/A4-3c/A4-3d/A4-4, A6 (now confirmed blocked at the DDL-authoring level too, not just value-supply — see D28/RESUME), and A3-6b pending an owner call (see D27). Waves B–E not started.
 - **Next action:** see [`RESUME_CONTINUATION.md`](./RESUME_CONTINUATION.md) for the current pointer and options.
 - All open questions are answered or carry a recorded safe default.
 - The only external dependency is HQ's curated currency values — and both affected packages degrade safely without them, so nothing is blocked.
@@ -48,7 +48,7 @@ For W0 specifically: **`/database` + `/multitenancy`**.
 
 ## 5. Where to start — Wave A remainder (Wave 0 is done)
 
-Wave 0 is fully shipped and applied. Wave A is partially shipped (A1, A2, A3-1/2/3, A4-1/2, A5-1/2/3-as-checkpoint). See `RESUME_CONTINUATION.md`'s latest entry for the owner's next pick among: A3-4 (money-as-strings API contract), A3-5 (500-payment stress test), A3-6b (demo-data recompute), A3-7 (reconciliation-report consistency), or A4-3 (per-currency session balances table + `allow_multi_currency_drawer` setting). Load `/database` + `/multitenancy` for any of these that touch a table or `org_*` query; `/backend`/`/frontend`/`/i18n` per CLAUDE.md's table for the rest.
+Wave 0 is fully shipped and applied. Wave A is partially shipped (A1, A2, **A3 fully done**, A4-1/2, A5-1/2/3-as-checkpoint). See `RESUME_CONTINUATION.md`'s latest entry for the owner's next pick among: A4-3/A4-3b/A4-3c/A4-3d/A4-4 (per-currency session balances table + `allow_multi_currency_drawer` setting — Wave-0-sized, its own pass) or A6 (cash tender rounding — blocked pending HQ's rounding-vocabulary sign-off, `HQ-CUR-3`; not a viable pick until that lands). A3-6b (demo-data recompute) needs an owner call on which historical sessions are safe to touch before it can be picked up (see D27). Load `/database` + `/multitenancy` for any of these that touch a table or `org_*` query; `/backend`/`/frontend`/`/i18n` per CLAUDE.md's table for the rest.
 
 ## 6. The rules that get broken most often
 
