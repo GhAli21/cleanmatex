@@ -20,3 +20,7 @@
 - Audit script: new BYPASS status; a `where` from a variable or helper → REVIEW.
 - Tests: stricter tenant-filter assertions (loyalty, cash-drawer, order-amendment, tax-document-issuance, outbox), plus 2 new webhook scoping tests.
 - Phase 3 (enforce default) prepared but not applied. See STATUS "Phase 3 apply".
+
+## 2026-09-25 — Handoff to local
+
+- STATUS: handoff state + ordered laptop checklist. IMPLEMENTATION_PLAN: progress column, new Step 4 (rollout), smoke-run deviation noted. README status line. RESUME rewritten for the local pick-up (PowerShell commands).

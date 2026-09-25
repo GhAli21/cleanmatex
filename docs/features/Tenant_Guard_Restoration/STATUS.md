@@ -1,6 +1,6 @@
 # Tenant Guard Restoration — STATUS
 
-**Authoritative progress file.** Last updated: 2026-09-25.
+**Authoritative progress file.** Last updated: 2026-09-25 (handoff to local).
 
 | Step | Status |
 |---|---|
@@ -61,7 +61,21 @@ The one-line default flip was **not** applied in the cloud session: the environm
 3. Locally: `npm run test:db-integration` (now enforce by default; expect only the 2 known unrelated failures), `npx tsc --noEmit`, `npm run build`.
 4. **Rollout:** first production deploy with `TENANT_GUARD_MODE=log` + `TENANT_GUARD_REPORT_FILE` (or log sink on `[TenantGuard]`) for a watch window (suggest 7 days of normal traffic). Fix anything reported, then remove the env var → `enforce`. Rollback = set `TENANT_GUARD_MODE=log` (no deploy needed).
 
-## Next
+## Handoff to local (2026-09-25)
 
-1. Owner: Phase 3 apply (above).
-2. Optional hardening: gate CI on `audit:tenant-guard` model MISSING == 0 (script already exits 0 today).
+Work moved from the cloud session to the owner's laptop. State at handoff:
+
+- Branch `claude/stoic-cray-0ojv6c` (both Phase 2 commit `bfa5917` and this docs update pushed). **No PR opened yet.**
+- Nothing uncommitted. No migrations and no DB changes in this package.
+- Cloud-only caveat: the container generated the Prisma client with CLI 6.19.2 against `@prisma/client` 6.18.0, which produced the 2 `prisma.ts:59` tsc errors. On the laptop run `npm run prisma:generate` with the repo's pinned versions first.
+
+## Next (in order, on the laptop)
+
+1. `git fetch && git checkout claude/stoic-cray-0ojv6c && git pull`
+2. From `web-admin/`: `npm run prisma:generate`, then `npx tsc --noEmit -p .` (use `$env:NODE_OPTIONS="--max-old-space-size=12288"` in PowerShell if the heap runs out).
+3. `npm run test:db-integration` in `log` mode (the current default). Expect only the 2 failures known since Step 0, both unrelated to the guard: `order-amendment-governed-flow` (the test's `calculateOrderTotals` mock lacks `taxBreakdown`) and the `wf-policy-issue-catalog-seed-invariants` 0472 case (local seed data). The 3 cash-drawer fixture files must now be clean.
+4. `npm run build`.
+5. Phase 3 apply (above), then re-run step 3; it now runs in `enforce`.
+6. Open PR `claude/stoic-cray-0ojv6c` → `main`.
+7. Step 4 rollout (IMPLEMENTATION_PLAN): production in `log` for the watch window, then `enforce`.
+8. Optional hardening: make `audit:tenant-guard` exit non-zero when model MISSING > 0 and add it to CI.
