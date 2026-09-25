@@ -21,6 +21,14 @@
 - `npx eslint . --quiet`: **clean**. `npm run build`: **success**.
 - Scoped typecheck (`NODE_OPTIONS=--max-old-space-size=13312 npx tsc --noEmit -p tsconfig.clf-check.json`): **only the 2 pre-existing `lib/db/prisma.ts` errors**.
 
+### 💻 Moving to the local laptop (owner, 2026-09-25) — read first
+- **All work is on branch `claude/peaceful-babbage-eifpj0`** (commits `38a973c` W4/W5/W6/W12/W14/W15, `1faf134` W2/W3/W10, plus this docs commit). It is **not merged to `main`** and no PR was opened. Locally: `git fetch origin claude/peaceful-babbage-eifpj0` then check it out (or merge it into your working branch) before continuing.
+- **No new migrations** in either pass — nothing to apply. DB state unchanged: `0523`, `0526`–`0530` applied (local + remote).
+- After pulling: `npm ci` (root, workspaces) → `cd web-admin && npx prisma generate`.
+- **Typecheck on the laptop:** plain `npm run typecheck` may still hit the `.next/dev/types/routes.d.ts` issue / OOM; use `NODE_OPTIONS=--max-old-space-size=13312 npx tsc --noEmit -p tsconfig.clf-check.json` (tracked file; ~15 min, ~12 GB RAM). Expected result: only the 2 pre-existing `lib/db/prisma.ts` errors.
+- Known-good baseline at hand-off: jest 332/332 suites (2963 tests), `npx eslint . --quiet` clean, `npm run build` success, `check:i18n` passed.
+- **Manual QA worth doing locally** (not possible in the cloud container — no running DB/UI): (1) cash customer-account receipt with change → drawer expected cash = receipt amount; (2) order-screen **Verify** of a PENDING cash leg → drawer expected cash increases; (3) submit / collect with a closed drawer session → drawer guard shows "no open session" (translated); (4) cash refund with the execution flag OFF → voucher + drawer OUT; (5) gift-card sale always asks for a tender; (6) POS sessions list without `pos_session:view_all` shows only own sessions and `?userId=` cannot widen it.
+
 ### ▶ Pick up exactly here
 1. **W11 + §4B.2a-A together** — Cash in / Cash out dialog + API (allow-list `DRAWER_CASH_IN_OUT_ROLES` in `lib/constants/cash-drawer.ts`, permission `cash_drawer:record_movement`, INTERACTIVE voucher, errors via `cashControl.ledgerErrors`), then delete `recordMovement`, the `cash-movement` route, `addDrawerMovement` and the old movement dialog.
 2. §4B.2a-B pending-deposit button on the remaining screens (confirm which are done).
