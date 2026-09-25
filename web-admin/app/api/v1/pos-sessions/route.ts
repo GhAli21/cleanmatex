@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       page: parsed.data.page,
       pageSize: parsed.data.pageSize,
       branchId: parsed.data.branchId,
-      userId: parsed.data.userId,
+      filterUserId: parsed.data.userId,
       operatorQuery: parsed.data.operatorQuery,
       terminalQuery: parsed.data.terminalQuery,
       cashDrawerQuery: parsed.data.cashDrawerQuery,
