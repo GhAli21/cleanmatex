@@ -66,11 +66,18 @@ jobs:
           cache: 'npm'
       - name: Install
         run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace=web-admin
       - name: Lint web-admin
         run: npm run lint --workspace=web-admin
       - name: Test web-admin
         run: npm run test --workspace=web-admin -- --ci
       - name: Build web-admin
+        # Placeholders only: next build loads route modules that construct a
+        # Supabase client, which throws without a URL/key. No network calls at build.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
         run: npm run build --workspace=web-admin
 
   platform-inventories:

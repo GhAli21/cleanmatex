@@ -637,9 +637,9 @@ export function PosSessionsScreen() {
               getTitle: (row) => `${t('sessionAudit')} · ${row.session_no}`,
               actionLabel: t('audit'),
               getExtras: (row) => [
-                { label: t('sessionId'), value: row.id },
-                { label: t('active'), value: String(row.is_active) },
-                { label: t('metadata'), value: <JsonPreview value={row.metadata} /> },
+                { key: 'sessionId', label: t('sessionId'), value: row.id },
+                { key: 'active', label: t('active'), value: String(row.is_active) },
+                { key: 'metadata', label: t('metadata'), value: <JsonPreview value={row.metadata} /> },
               ],
             }}
           />
@@ -770,9 +770,9 @@ export function PosSessionsScreen() {
               getTitle: () => t('eventAudit'),
               actionLabel: t('audit'),
               getExtras: (row) => [
-                { label: t('idempotencyKey'), value: row.idempotency_key ?? t('none') },
-                { label: t('metadata'), value: <JsonPreview value={row.metadata} /> },
-                { label: t('active'), value: String(row.is_active) },
+                { key: 'idempotencyKey', label: t('idempotencyKey'), value: row.idempotency_key ?? t('none') },
+                { key: 'metadata', label: t('metadata'), value: <JsonPreview value={row.metadata} /> },
+                { key: 'active', label: t('active'), value: String(row.is_active) },
               ],
             }}
           />

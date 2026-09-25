@@ -5,6 +5,7 @@ import {
   autoLinkDrawerTx,
   getMyActivePosSession,
   getPosSessionSummary,
+  listPosSessions,
   PosSessionError,
   resumePosSession,
 } from '@/lib/services/pos-session.service';
@@ -361,5 +362,55 @@ describe('pos-session.service', () => {
       expect(error).toBeInstanceOf(PosSessionError);
       expect(error).toMatchObject({ code: 'POS_SESSION_NOT_FOUND', httpStatus: 404 });
     }
+  });
+
+  describe('listPosSessions actor vs filter user', () => {
+    const otherUserId = '99999999-9999-4999-8999-999999999999';
+
+    /** Flattens every bound value from the mocked Prisma.sql tree of one $queryRaw call. */
+    const boundValues = (node: unknown): unknown[] => {
+      if (!node || typeof node !== 'object') return [node];
+      const sqlNode = node as { kind?: string; values?: unknown[] };
+      if (sqlNode.kind === 'sql' || sqlNode.kind === 'join') {
+        return (sqlNode.values ?? []).flatMap(boundValues);
+      }
+      return [];
+    };
+
+    const listBaseInput = { tenantId, userId, page: 1, pageSize: 20 };
+
+    beforeEach(() => {
+      db.$queryRaw.mockResolvedValueOnce([{ total: 0 }]).mockResolvedValueOnce([]);
+    });
+
+    it('own scope always binds the actor userId, even when no filter user is given', async () => {
+      await listPosSessions({ ...listBaseInput, canViewAll: false, scope: 'own' });
+
+      for (const call of db.$queryRaw.mock.calls) {
+        const values = boundValues(call[0]);
+        expect(values).toContain(userId);
+        expect(values).not.toContain(undefined);
+      }
+    });
+
+    it('own scope keeps the actor restriction when a different filter user is requested', async () => {
+      await listPosSessions({ ...listBaseInput, canViewAll: false, scope: 'own', filterUserId: otherUserId });
+
+      for (const call of db.$queryRaw.mock.calls) {
+        const values = boundValues(call[0]);
+        expect(values).toContain(userId);
+        expect(values).toContain(otherUserId);
+      }
+    });
+
+    it('all scope with view_all binds only the filter user, not the actor', async () => {
+      await listPosSessions({ ...listBaseInput, canViewAll: true, scope: 'all', filterUserId: otherUserId });
+
+      for (const call of db.$queryRaw.mock.calls) {
+        const values = boundValues(call[0]);
+        expect(values).toContain(otherUserId);
+        expect(values).not.toContain(userId);
+      }
+    });
   });
 });
