@@ -1,5 +1,28 @@
 # Changelog — Order Financial Platform
 
+## 2026-09-25 — Two-domain cash ledger design approved (ADR-057); package CLF planned, not implemented
+
+**Scope:** design and documentation only. **No code and no migrations.** Current behaviour is unchanged until package CLF ships.
+
+### Decided
+
+- [ADR-057 — Two-Domain Cash Ledger](ADR/ADR-057-Two-Domain-Cash-Ledger.md) accepted (design). Finance = vouchers (every financial cash event, incl. cash in / cash out, petty cash and over/short); custody = new drawer transactions `org_cash_drawer_trx_mst/_dtl` (operational, lines net to zero). One physical event = one record — no mirror movements.
+- Per-drawer ledger sequence under a drawer row lock; central gate `stampCashLinesTx` / `recognizeCashLineTx` (`lib/services/cash-drawer-ledger/`) is the only writer of the drawer stamp on voucher lines.
+- Two-step close (count → finalize, new `CLOSING` status); optional counts + denominations; per-currency snapshot `org_cash_drawer_ses_bal_dtl`; mandatory close disposition; optional after-close status with change log; no recovery or continuous sessions.
+- Drawer types become `sys_cash_drawer_type_cd` (`COUNTER`, `TEMPORARY`, `DRIVER_BAG`, `SAFE`, `PENDING_DEPOSIT`); exactly one pending-deposit drawer per branch via `ensure_branch_pd_drawer()`; drawer policy flags move to `org_fin_cash_ctrl_stng_cf` at DRAWER scope.
+- Petty cash and all vouchers work without ERP-Lite (optional). No maker ≠ checker anywhere — permission is the only approval gate.
+- ADR-032 marked superseded (effective when CLF ships); ADR-054 and ADR-056 amended.
+
+### Planned
+
+- Package CLF in [POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md §4B](POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md) (STATUS D29–D31), three releases: R1 Ledger → R2 Sessions → R3 Retirement. Runs before Waves B–E. R3 retires `org_cash_drawer_movements_dtl`, `sys_cash_drawer_movement_type_cd`, `cash-drawer-cash-facts.ts`, `cash_drawer_mvt_id`, the three mirror wiring handlers, the session header money columns and `cash_drop_requires_dest`.
+
+### Docs
+
+- Target-architecture sections added (current behaviour kept and labelled): CASH_DRAWER_GUIDE, RECONCILIATION_GUIDE, tech_data_model, tech_api, developer_guide, README, POS_Session_Management_V1, BVM developer_guide, Payment_Config_Setup client-level guide, D007, D008, START_HERE, RESUME_CONTINUATION; supersession banners on B03, B09, B10, B16, B32, B35; notice in QA_TEST_GUIDE cash-drawer sections.
+
+---
+
 ## 2026-09-17 — B19 loyalty points FIFO ledger, expiry job, and real Loyalty tab
 
 **Scope:** Owner reversed course, same session, on the earlier "skip B19 — new-feature scope" call: "implement B19 loyalty FIFO ledger following best practices to build production-ready, with no gaps, no bugs, UI/UX best practices." Closes the one item B19's original 2026-07-24 pass had deliberately left open.

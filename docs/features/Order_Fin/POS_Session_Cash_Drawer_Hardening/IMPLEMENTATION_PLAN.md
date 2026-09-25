@@ -38,6 +38,7 @@ Per **D3**, both settings are stored in `org_fin_cash_ctrl_stng_cf` and edited f
 |---|---|---|---|
 | **W0** | Foundation: cash-control config table + resolver service, admin screen, permissions, decimal utils | Prerequisite for all | 0515–0516 |
 | **A** | Money & concurrency integrity (incl. cash-tender rounding) | **Non-negotiable before real tenants** | 0517, 0527 |
+| **CLF** | **Cash Ledger Foundation (D29, §4B)** — two-domain cash ledger, central gate, drawer transactions, counts, two-step close, movements-table retirement | **Prerequisite for B–E** | next free (`0523`…`0532` nominal) |
 | **B** | Session enforcement & lifecycle | High | 0520, 0526 |
 | **C** | Shift controls: blind close, denominations, variance gate | High (revenue-protecting) | 0518–0519, 0521, 0529 |
 | **D** | Custody chain & audit artifacts | High | 0522–0523 |
@@ -429,6 +430,8 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 
 ### A4 — Multi-currency correctness (migration `0527`)
 
+> **2026-09-25 — A4-3/3b/3c/3d superseded by CLF (§4B.13).** Do not build `org_cash_sess_curr_dtl` or `allow_multi_currency_drawer`.
+
 *Defect:* `GROUP BY currency_code … LIMIT 1` silently drops every currency but one (`pos-session.service.ts:659-668`, again at `680-689`).
 
 - [x] A4-1 Remove `LIMIT 1`; return `PosSessionCurrencyTotal[]`. — **2026-09-24**: done for all 3 "total" queries (payments/refunds/voucherLines) in `getPosSessionSummary`. `PosSessionSummary.{payments,refunds,voucherLines}.total` → `.totals: PosSessionCurrencyTotal[]` (breaking type change, both real consumers updated — see A4-2). New test proves the actual fix: a 2-currency session now returns both rows instead of silently keeping only the alphabetically-first one.
@@ -476,6 +479,580 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [ ] A5-1 `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest.
 - [ ] A5-2 Refresh `Remediation_Work_Packages/QA_TEST_GUIDE.md` with owner-runnable scenarios (sidebar path + URL + what to click).
 - [ ] A5-3 Invoke `/documentation`; update `STATUS.md` (wave row, migrations applied, gate results, new decisions); refresh `RESUME_CONTINUATION.md`.
+
+---
+
+## 4B. Cash Ledger Foundation — package CLF (D29)
+
+- **Status:** PLAN — awaiting owner approval. No code, no migrations.
+- **Written:** 2026-09-25, from the owner design discussion (STATUS.md D29) and four read-only pre-plan checks (§4B.1).
+- **Position:** runs **after** Wave A's remaining items that it does not supersede, and **before** Waves B–E. Waves B–E build on it.
+- **Next free migration at writing:** `0523`. Numbers below are nominal; each migration takes "next free" when written (STATUS.md rule).
+- **Supersedes:** A2's payment-during-close gap, A4-3/3b/3c/3d, C1-2 (count tables, renamed and redesigned), C1-5/C1-7 (denomination counter, count modes — absorbed), C2-1 (close preview blind shape — absorbed), C3-1 `CLOSING` status and C3-7/C3-8 (absorbed because CLF introduces `CLOSING`), most of D1 (two-legged transfers), D2-4's data source, E1 (orphan UI deletion). See §4B.13.
+
+### 4B.0 The model in one page
+
+**Principles (owner, D29).**
+1. **Period cutoff.** Every event is recorded when it happens, with the facts at that moment. A closed session is never changed afterwards; a correction is a new entry now.
+2. **A drawer session is a reconciliation window** over one drawer — nothing more. It never changes finance outside its own boundary.
+3. **Every financial transaction is a voucher.** Custody events are operational and live in their own drawer transaction tables.
+4. **One physical event = one record.** No mirrors.
+
+**Two domains.**
+
+| | Finance (vouchers) | Custody (drawer transactions) |
+|---|---|---|
+| Records | money changing ownership or obligation | physical cash changing place or state |
+| Events | customer cash receipts, cash refunds, reversals, stored-value funding, customer-account receipts, over/short | session open/close, counts, float issue, drops, drawer↔drawer, driver handover, close disposition, after-close deposit marking |
+| Table | `org_fin_voucher_trx_lines_dtl` (existing) | `org_cash_drawer_trx_mst` / `_dtl` (new) |
+| Invariant | posted lines are immutable; corrections are reversal lines | lines sum to zero per currency — custody only moves cash, never creates or destroys it |
+
+**The drawer ledger** of a drawer is the union of (a) its recognized cash voucher lines and (b) its drawer transaction lines, ordered by a **per-drawer ledger sequence** (`ledger_seq`) assigned under the drawer row lock.
+
+```
+opening_expected(S)   = closing_basis(prev) + Σ ledger (prev.close_seq, S.open_seq]
+session_base(S)       = opening_counted(S) ?? opening_expected(S)
+closing_expected(S)   = session_base(S)     + Σ ledger (S.open_seq, S.close_seq]
+closing_basis(S)      = closing_counted(S)  ?? closing_expected(S)
+```
+
+All per currency. First session of a drawer: `closing_basis(prev) = 0`, `prev.close_seq = 0`. The close disposition is a drawer transaction posted **after** the cut, so it lands in the next window automatically — no separate "removed" arithmetic. Cash arriving between sessions has no session and lands in the next window the same way. Count-only drawers (`requires_session = false`) use the identical chain with counts as checkpoints.
+
+**Accountability rule.** When an opening count is entered, the session is measured from what the cashier counted (standard cashier accountability); the opening variance is recognised separately (§4B.9).
+
+### 4B.1 Pre-plan check findings that shape this package
+
+Verified by four read-only sweeps on 2026-09-25. File references are in the check reports; the essential facts:
+
+**Voucher model**
+- `org_fin_voucher_trx_lines_dtl` has `cash_drawer_session_id` (no FK) but **no `cash_drawer_id`**, and **no posted timestamp** on the line (only `created_at`). `amount >= 0`; sign comes from `direction` (`IN`/`OUT`/`NEUTRAL`).
+- Posting + wiring run in one transaction in `postAndWireBizVoucherInTx` (`voucher-wiring.service.ts:116-340`) — the single choke point every voucher path already passes through.
+- **Reversal** (`voucher-reversal.service.ts`) creates a new reversal voucher + lines (good) but **copies the original line's session** (`:278`) and mutates the original line to `REVERSED` (`:334`). Only full reversal exists; `PARTIALLY_REVERSED` is never produced.
+- The reversal's unwind calls `transitionPaymentTx`, which opens a **separate global transaction** (`payment-transition.service.ts:191`) — not a savepoint as its comment claims.
+- After a B30 VERIFY, the voucher line's `payment_status` stays `PENDING` forever — it is not a reliable drawer signal.
+- `LINE_STATUS` constant has `VOIDED`; the DB CHECK has `CANCELLED` — CRITICAL RULE #12 drift.
+- No over/short GL event code exists; the outbox processor has no GL handler.
+
+**Cash writers (16 paths)** — six write cash without a voucher line: customer-account receipt (header-only voucher + direct `CASH_SALE`/`CASH_OUT`), B30 VERIFY deferred movement, B10 REVERSE compensating movement, manual movements, the legacy open/close actions, record-only cash refunds (flag off), no-tender gift-card sale (flag off). Several cash-capable line roles have no handler, so their cash never reaches a drawer. **No payment/refund/stored-value path takes any drawer lock.** Session ids are trusted from the client (existence + OPEN checked, drawer/branch ownership not). Five transactional services run without `withTenantContext`: `collectPaymentTx`, `processRefund`, `fundStoredValue`, `transitionPaymentTx`, `verifyPaymentTx` (plus dead `settleOrder`).
+
+**Readers** — four kinds of real cash are counted today *only* through movement rows (customer receipts, stored-value tenders, cash refunds, change); the legacy open path double-counts its float; `isCashFamilyMethod` must be relocated before `cash-drawer-cash-facts.ts` is deleted; the finance reconciliation report uses a different formula than the close and float math; the plpgsql function `hq_mntnc_cleanup_tenant_orders` references the movements table and would fail at runtime after a `DROP … RESTRICT` (plpgsql bodies are not dependency-tracked).
+
+**Current implementation** — no cash-control setting is enforced anywhere; `closeSession` has no blind close, no count modes, and ignores the route's `drawerId`; no count, denomination-line or transfer tables exist; `sys_currency_denominations_cd` exists and is seeded for AED/BHD/KWD/OMR/QAR/SAR/USD (migration `0522`), `org_currency_denom_cf` does not; both drawer actions files lack permission checks; POS hub/screen close the drawer with raw `fetch`.
+
+### 4B.2 Decisions made during planning (for owner review)
+
+These refine the approved design where the checks showed a gap. Each is the production-correct choice; the owner may override at plan review.
+
+| # | Decision | Why |
+|---|---|---|
+| P1 | **Per-drawer ledger sequence under a drawer row lock** (`SELECT … FOR UPDATE` on `org_cash_drawers_mst`, then `ledger_seq = ledger_seq + 1`) replaces the shared/exclusive advisory lock idea. `lockDrawerScope` is reimplemented as this row lock; its callers are unchanged. | The close needs an **exact cut**. A time cut is unsafe: `now()` is transaction-start time, so a payment waiting on the lock would carry a timestamp *before* the cut and be lost from both windows. A monotonic sequence assigned under the lock is exact. Serialising postings on one drawer is harmless — one drawer is one physical till. |
+| P2 | **Two-step close with a `CLOSING` status**: *count* (freezes the cut, records the optional count, reveals the result) → *finalize* (disposition). | Blind close and the variance-reason band need the result revealed before the cashier supplies a reason, and the cut must not move while they read it. During `CLOSING`, interactive cash on that drawer is refused; deferred cash goes to the next window. No "cancel back to OPEN" (it would split physically present cash across windows); a supervisor `RECOUNT` replaces the count instead. |
+| P3 | **Reversal lines always mirror in the drawer ledger**, stamped in the window current at reversal time. No "no physical cash" option. | If the original cash was real, it leaves now. If the original was an error, the book held phantom cash; the mirror removes it. Either way the ledger self-heals — any interim close variance is offset later and nets to zero in over/short. A "no physical" option would double-count the loss. |
+| P4 | **Cashier accountability starts from the opening count** when one is entered; opening variance is recognised as its own over/short. | Standard cashier accountability — the cashier answers for what they counted in, not for a predecessor's error. |
+| P5 | **Session money moves to a per-currency snapshot table** `org_cash_drawer_ses_bal_dtl`; the header money columns are retired. | D14 multi-currency readiness with one source of truth; no dual-write between header and detail. |
+| P6 | **Cash-family lines whose payment method has `requires_cash_drawer = false` are `UNTRACKED`** (explicit column value, reported as "cash outside drawers"), not silently dropped. | Makes the tenant's choice visible instead of a hidden hole. |
+| P7 | **Over/short is posted at finalize**, or **at approval** when the session is flagged for variance approval. Opening variance posts at open. | Financial recognition waits for the control that governs it. |
+| P8 | **Every non-voucher cash branch is removed** — record-only cash refunds, no-tender gift-card sale, legacy `verifyPaymentTx`, legacy open/close actions, customer-receipt direct movements, `PAYMENT_REVERSAL` movements. The flags `order_fin_refund_execution` / `order_fin_voucher_unwind` no longer decide whether cash is recorded. | Owner principle: every financial transaction is a voucher. Pre-launch, so removal is safe. |
+| P9 | **New drawer type `PENDING_DEPOSIT`**; close dispositions that move cash must name a real destination drawer. | Cash that leaves a drawer must arrive somewhere the system can name (program goal 3). |
+| P10 | **Drawer transactions are single-phase (completed on posting)** in CLF. Two-phase in-transit receive/cancel stays in D1's remainder. | Keeps CLF shippable; the `PENDING_DEPOSIT` drawer already models "not yet deposited". |
+| P11 | **`cash_drop_requires_dest` is retired** — every drawer transaction is two-legged by construction. | A setting that can no longer be false is noise. |
+| P12 | **A cash line's currency must equal the drawer's currency** (all modes). Storage is already per currency, so multi-currency drawers later are a policy change, not a migration. | §12 keeps multi-currency drawers out of scope; D14 readiness is preserved. |
+
+### 4B.2a Owner-approved changes to this package (2026-09-25)
+
+Approved together with the plan. These override anything below that conflicts.
+
+**A — Cash in / cash out stays, as finance vouchers (closes the W11 gap).**
+The gate (W1) stamps **every** cash-method voucher line onto the drawer, whatever its role. So a finance voucher paid in cash automatically adds cash to, or removes it from, the drawer's expected cash — no special handler per role.
+- New dialog **"Cash in / Cash out"** on the drawer screen (*Session* tab, next to *Transfer*), permission `cash_drawer:record_movement` (existing code, re-purposed). It creates and posts a voucher through the existing voucher services with mode `INTERACTIVE`, cash method, the drawer's currency, a reason, and one line:
+
+| Direction | Voucher type | Line role | Use |
+|---|---|---|---|
+| Cash out | `PAYMENT_VOUCHER` | `EXPENSE_PAYMENT` | paying a small expense from the till |
+| Cash out | `PAYMENT_VOUCHER` | `SUPPLIER_PAYMENT` | paying a supplier in cash |
+| Cash in | `RECEIPT_VOUCHER` | **`CASH_PAY_IN`** (new line role, M7) | owner/manager brings outside cash into the business (e.g. extra change) |
+| Cash out | `PAYMENT_VOUCHER` | `PETTY_CASH_ISSUE` (existing role) | cash handed from the drawer to a petty-cash holder |
+| Cash in | `RECEIPT_VOUCHER` | `PETTY_CASH_RETURN` (existing role) | unspent petty cash returned to the drawer |
+
+- The resulting vouchers appear in the drawer's *Ledger* tab and under Finance → Vouchers like any other voucher.
+- **Petty cash works without ERP-Lite (owner, 2026-09-25).** ERP-Lite is optional; a tenant may run its own external ERP. The petty-cash vouchers above are ordinary finance vouchers and need nothing from ERP-Lite: the drawer side is handled by the gate like any cash line, and the GL side flows through whatever posting the tenant uses (ERP-Lite auto-post when enabled, export to the external ERP otherwise). When ERP-Lite is enabled, linking the voucher to an ERP-Lite petty cashbox (`org_fin_cashbox_mst`) is an **optional** reference, never a requirement — decide the link in a later package; CLF must not depend on it.
+- The dialog's allow-list lives in `lib/constants/cash-drawer.ts` (`DRAWER_CASH_IN_OUT_ROLES`) and mirrors the DB line-role codes exactly.
+- The cashier voucher-type restriction (`lib/constants/voucher.ts:277`, RECEIPT only) is lifted **only** for this dialog's allow-list, not for the general voucher screen.
+- Replaces CLF-8-6's removal of the movement dialog: the old dialog is replaced by *Transfer* (custody) + *Cash in / Cash out* (finance).
+
+**B — `PENDING_DEPOSIT` drawer: exactly one per branch, always present.**
+- Identified by `drawer_type = 'PENDING_DEPOSIT'` (no separate boolean flag — a flag would duplicate the type and can disagree with it). One per branch enforced by a partial unique index on `org_cash_drawers_mst (tenant_org_id, branch_id) WHERE drawer_type = 'PENDING_DEPOSIT' AND is_active`.
+- One idempotent DB function **`ensure_branch_pd_drawer(p_tenant_org_id, p_branch_id)`** (22 chars) creates it only if missing (`INSERT … ON CONFLICT DO NOTHING` against the unique index — safe under concurrency). Code `PD-<branch_code>`, bilingual name "Pending deposit" / "قيد الإيداع", currency = the tenant's configured currency; if the tenant has no currency configured it raises a clear error and creates nothing (no default currency — DB rule).
+- Called from **every** entry point, each one relying on the function's "already exists" check:
+  1. `AFTER INSERT` trigger on `org_branches_mst` — covers branch creation from HQ and from the tenant app.
+  2. HQ tenant maintenance action (in `cleanmatexsaas`, calling the function; no migration in HQ — `integration-contracts.md`).
+  3. Button **"Create pending-deposit drawer"**, shown only when the branch has none, in **three** tenant screens (owner, 2026-09-25):
+     - `/dashboard/tenant-admin/branches` — per branch row; permission = the branch-management permission that page already uses.
+     - `/dashboard/settings/payments` → *Cash drawers* tab (`src/features/payment-config/ui/cash-drawers-tab.tsx`) — a per-branch "missing pending-deposit drawer" notice with the button; permission = the drawer-config permission that tab already uses.
+     - `/dashboard/settings/payments/cash-control-settings` (`src/features/cash-drawers/ui/cash-control-settings-screen.tsx`) — a "Branch pending-deposit drawers" status card listing each branch (present / missing) with the button on missing rows; permission `cash_control:manage`.
+     All three call **one** API, `POST /api/v1/cash-drawers/pending-deposit/ensure` `{ branchId }` → `ensure_branch_pd_drawer`, and one shared UI piece (`src/features/cash-drawers/ui/pending-deposit-drawer-ensure-button.tsx`) so the check and the wording live in one place. The API returns `{ created: boolean, drawerId }` — a second click is a no-op, never a duplicate.
+  4. M9 backfill for every existing branch.
+- The drawer is protected: cannot be deactivated while it holds a non-zero balance, and its type cannot be changed.
+- Migration M1 carries the function, index and trigger; the HQ action is a cross-project task recorded in `integration-contracts.md`.
+
+**C — `DRIVER_BAG.requires_session_default = false`** until a driver app exists (cmx-api phase 2). Driver bags are reconciled by counts and handovers.
+
+**D — Delivered in three releases**, each ending with green gates, QA guide update and STATUS row:
+
+| Release | Contents |
+|---|---|
+| **CLF-R1 Ledger** | CLF-0, M1–M3, M5–M7, lock/policy/gate/repository, writer rewiring W1–W15, reversal fixes, cash in / cash out (A), `PENDING_DEPOSIT` provisioning (B) |
+| **CLF-R2 Sessions** | M4, M8, M9, counts, two-step close, dispositions, follow-up screen, policy tab, readers (CLF-6), remaining UI |
+| **CLF-R3 Retirement** | M10, deletion of legacy code and tests |
+
+CLF-0-1 (tenant middleware) and CLF-0-4 (outbox scheduling) are **stop-and-report** checks: if either fails, R1 pauses until the owner decides.
+
+**E — No maker ≠ checker, anywhere (owner rule).** Every approval in this program (variance approval, recount, force-close, post-close update) is gated only by its permission; the same user may perform both steps. No same-user check, error code or test that rejects self-approval is to be added. Tests assert that same-user approval **is allowed** with the permission.
+
+### 4B.3 Schema
+
+All migrations follow §10.5: `TEXT` not `VARCHAR`, money `DECIMAL(19,4)`, names ≤ 30 chars, full audit block, RLS + `tenant_isolation_*` policy on every `org_*` table, composite tenant FKs, `COMMENT ON` everything, `DROP … RESTRICT` only, re-runnable seeds (`ON CONFLICT … DO UPDATE`), reversal note in the header. **Before each table is created, re-check the live schema via the remote MCP (read-only)** per `/database` "before creating any table".
+
+#### 4B.3.1 Lookups (`sys_*`, global, no RLS)
+
+**`sys_cash_drawer_type_cd`** (23) — replaces the CHECK `chk_org_cash_drawers_type`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `code` | TEXT PK | |
+| `name`, `name2`, `description`, `description2` | TEXT | bilingual |
+| `accepts_customer_cash` | BOOLEAN NOT NULL | **hard capability** — finance cash lines may land here |
+| `allows_customer_cash_out` | BOOLEAN NOT NULL | hard — refunds/reversals may pay out from here |
+| `can_be_trx_source`, `can_be_trx_dest` | BOOLEAN NOT NULL | hard — drawer transactions |
+| `can_receive_disposition` | BOOLEAN NOT NULL | hard — valid close-disposition destination |
+| `is_mobile` | BOOLEAN NOT NULL | driver bag |
+| `requires_session_default` | BOOLEAN NOT NULL | **overridable default** — settings chain wins |
+| `opening_count_required_default`, `closing_count_required_default` | BOOLEAN NOT NULL | overridable defaults (all `false` — owner: all optional) |
+| `display_order` | INTEGER | |
+| audit block | | |
+
+Seed (complete):
+
+| code | customer cash in | customer cash out | trx src | trx dest | disposition dest | mobile | requires session |
+|---|---|---|---|---|---|---|---|
+| `COUNTER` | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ |
+| `TEMPORARY` | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ |
+| `DRIVER_BAG` | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ | ✗ *(change C)* |
+| `SAFE` | ✗ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ |
+| `PENDING_DEPOSIT` | ✗ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ |
+
+**`sys_cash_drawer_trx_type_cd`** (27): `code`, bilingual names/descriptions, `allowed_src_types TEXT[]`, `allowed_dest_types TEXT[]`, `requires_notes BOOLEAN`, `is_system BOOLEAN` (not user-selectable), `display_order`, audit.
+
+| code | from → to | user-selectable |
+|---|---|---|
+| `FLOAT_ISSUE` | SAFE → COUNTER / TEMPORARY / DRIVER_BAG | ✓ |
+| `CASH_DROP` | COUNTER / TEMPORARY → SAFE / PENDING_DEPOSIT | ✓ |
+| `DRAWER_TO_DRAWER` | COUNTER / TEMPORARY → COUNTER / TEMPORARY | ✓ |
+| `DRIVER_HANDOVER` | DRIVER_BAG → COUNTER / SAFE / PENDING_DEPOSIT | ✓ |
+| `DEPOSIT_PREP` | SAFE / COUNTER → PENDING_DEPOSIT | ✓ |
+| `CLOSE_DISPOSITION` | any session drawer → disposition destination | system (close) |
+| `REVERSAL` | mirror of the reversed transaction | system (correction) |
+
+**`sys_cash_drawer_cnt_type_cd`** (27): `OPENING`, `SPOT`, `CLOSING`, `RECOUNT`.
+
+**`sys_cash_drawer_ses_disp_cd`** (27): `code`, bilingual, `moves_cash BOOLEAN`, `dest_drawer_type_code TEXT NULL` (FK → type), `requires_notes BOOLEAN`, `requires_kept_amount BOOLEAN`, `is_selectable BOOLEAN`, `display_order`, audit.
+
+| code | moves cash | destination type | notes required | kept amount required |
+|---|---|---|---|---|
+| `LEFT_IN_DRAWER` | ✗ | — | ✗ | ✗ |
+| `MOVED_TO_SAFE` | all | SAFE | ✗ | ✗ |
+| `HANDED_TO_MANAGER` | all | PENDING_DEPOSIT | ✗ | ✗ |
+| `PREPARED_FOR_DEPOSIT` | all | PENDING_DEPOSIT | ✗ | ✗ |
+| `PARTIAL_REMOVED` | part | any `can_receive_disposition` | ✓ | ✓ |
+| `OTHER` | ✗ | — | ✓ | ✗ |
+| `LEGACY` | ✗ | — | ✗ | ✗ | *(not selectable — backfill of pre-CLF closed sessions only)* |
+
+**`sys_cash_drawer_ses_post_cd`** (27): `IN_TRANSIT`, `DEPOSITED_TO_BANK`, `HANDED_TO_HQ`, `OTHER` — bilingual, `requires_notes` (`OTHER` = true).
+
+**`sys_cash_drawer_session_status_cd`** (existing): add **`CLOSING`** (bilingual). Existing `OPEN`, `CLOSED`, `FORCE_CLOSED`, `CANCELLED` unchanged.
+
+Constants mirror every code exactly (CRITICAL RULE #12) in `lib/constants/cash-drawer.ts` (new; the drawer-type list moves here from `lib/constants/payment.ts:151 DRAWER_TYPES`).
+
+#### 4B.3.2 `org_cash_drawers_mst` (existing — altered)
+
+- Add `ledger_seq BIGINT NOT NULL DEFAULT 0` — the per-drawer counter (P1). Only the gate and the drawer-transaction service increment it.
+- Replace `chk_org_cash_drawers_type` with FK `drawer_type → sys_cash_drawer_type_cd(code)`.
+- Add `UNIQUE (id, tenant_org_id)` if not present (needed for composite FKs from lines) — verify first.
+- **Retire** `requires_session`, `opening_float_required` (moved to settings at DRAWER scope, §4B.3.7). `max_cash_limit`, `assigned_user_id`, `assigned_terminal_id`, `variance_approval_threshold`, `currency_code`, `drawer_type` stay — they are drawer attributes, not policy.
+
+#### 4B.3.3 Finance side — `org_fin_voucher_trx_lines_dtl` (existing — altered)
+
+New columns:
+
+| Column | Type | Meaning |
+|---|---|---|
+| `cash_drawer_id` | UUID NULL | drawer this cash line belongs to. Composite FK `(cash_drawer_id, tenant_org_id)` → drawers. |
+| `cash_ledger_seq` | BIGINT NULL | drawer ledger sequence (P1) |
+| `cash_recognized_at` | TIMESTAMPTZ NULL | when the cash was recognised in the drawer (`clock_timestamp()` under the lock) |
+| `cash_recognized_by` | TEXT NULL | actor |
+| `cash_effect_code` | TEXT NULL | `NULL` = not a cash-family line · `PENDING` = cash leg not yet completed (not in ledger) · `DRAWER` = in the drawer ledger · `UNTRACKED` = cash-family, method not drawer-tracked (P6) · `NONE` = pending leg that never completed |
+
+- Add composite FK on the existing `cash_drawer_session_id` → sessions.
+- CHECK `chk_vtl_cash_effect`: `cash_effect_code = 'DRAWER'` ⇔ (`cash_drawer_id`, `cash_ledger_seq`, `cash_recognized_at` all NOT NULL); `cash_effect_code IS NULL` ⇒ all four cash columns NULL.
+- Partial unique index `(tenant_org_id, cash_drawer_id, cash_ledger_seq) WHERE cash_ledger_seq IS NOT NULL`.
+- Index `(tenant_org_id, cash_drawer_id, cash_ledger_seq)` covering `direction, amount, currency_code` for window sums.
+- **Immutability trigger** `trg_vtl_posted_immutable` (function ≤ 30 chars): once `line_status = 'POSTED'`, reject changes to `amount`, `direction`, `currency_code`, `payment_method_code`, `tendered_amount`, `change_returned_amount`, `cash_drawer_id`, `cash_ledger_seq`, `cash_recognized_at`, `cash_drawer_session_id` — **except** the one-time recognition transition `cash_effect_code: PENDING → DRAWER` (NULL → value on the four columns) and `PENDING → NONE`. Allowed `line_status` change after POSTED: only `POSTED → REVERSED`. Wiring back-links (`order_payment_id`, `sv_funding_tender_id`), `wiring_status`, `payment_status` stay updatable. Error message carries the code `CASH_LINE_IMMUTABLE`.
+- **Retire** `cash_drawer_mvt_id` (M10).
+
+**What counts.** A line is in a drawer window when `cash_effect_code = 'DRAWER'` and its `cash_ledger_seq` is in range. **`line_status` is never filtered** — an original that was later reversed stays in its own window; its reversal line sits in the window current at reversal (principle 1).
+
+#### 4B.3.4 Custody side — drawer transactions (new)
+
+**`org_cash_drawer_trx_mst`** (23) — one row per physical custody event:
+`id`, `tenant_org_id`, `branch_id`, `trx_no` (unique per tenant), `trx_type_code` → `sys_cash_drawer_trx_type_cd`, `occurred_at TIMESTAMPTZ` (`clock_timestamp()`), `business_date DATE NULL` (Wave B fills it), `source_session_id UUID NULL` (e.g. the session whose close produced a disposition), `reverses_trx_id UUID NULL` (self-FK; corrections are reversal transactions), `reason_code TEXT NULL`, `notes TEXT NULL`, `performed_by TEXT NOT NULL`, `approved_by TEXT NULL`, `idempotency_key TEXT NULL` (unique per tenant when set), audit block. No UPDATE after insert except `is_active`/audit (trigger).
+
+**`org_cash_drawer_trx_dtl`** (23) — one row per drawer side:
+`id`, `tenant_org_id`, `trx_id` (composite FK), `line_no`, `cash_drawer_id` (composite FK), `cash_drawer_session_id UUID NULL` (session open on that drawer at posting, or NULL), `ledger_seq BIGINT NOT NULL` (that drawer's sequence), `direction TEXT CHECK IN ('IN','OUT')`, `amount DECIMAL(19,4) CHECK > 0`, `currency_code TEXT NOT NULL` FK → `sys_currency_cd`, audit block. Unique `(tenant_org_id, cash_drawer_id, ledger_seq)`; unique `(trx_id, line_no)`.
+
+- **Balance trigger** — `CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED` on `_dtl`: for the affected `trx_id`, Σ IN = Σ OUT per currency, ≥ 2 lines, lines on ≥ 2 distinct drawers, all drawers in the header's branch. Error code `CASH_TRX_UNBALANCED`.
+- **Immutability trigger** on both tables (no UPDATE of business columns, no DELETE).
+- **Numbering** `generate_cash_drawer_trx_no(tenant)` (27) → `CDT-YYYYMMDD-NNNN`, tenant+day advisory lock, **digits parsed from the correct offset** (D20's off-by-one lesson — `'CDT-YYYYMMDD-'` is 13 chars, digits start at 14; add a unit test on the parser).
+
+#### 4B.3.5 Counts (new — replaces C1-2's design)
+
+**`org_cash_drawer_cnt_mst`** (23): `id`, `tenant_org_id`, `branch_id`, `cash_drawer_id`, `cash_drawer_session_id NULL`, `count_type` → `sys_cash_drawer_cnt_type_cd`, `count_method TEXT CHECK IN ('TOTAL_ONLY','DENOMINATION')`, `currency_code`, `ledger_seq BIGINT NOT NULL` (the cut the count was taken against), `expected_amount DECIMAL(19,4) NOT NULL` (snapshotted), `counted_amount DECIMAL(19,4) NOT NULL CHECK >= 0`, `variance_amount DECIMAL(19,4) NOT NULL`, `supersedes_count_id NULL` (self-FK, RECOUNT), `counted_by`, `counted_at`, `notes`, audit. **Immutable** (trigger). A count row exists only when something was counted — an uncounted close has no count row.
+
+**`org_cash_drawer_cnt_denom_dtl`** (29): `id`, `tenant_org_id`, `count_id` (composite FK), `denomination_id` FK → `sys_currency_denominations_cd(id)`, `denom_value_minor_snap INTEGER NOT NULL`, `quantity INTEGER NOT NULL CHECK >= 0`, `line_amount DECIMAL(19,4) NOT NULL`, audit. Immutable. Server derives `line_amount = quantity × denom_value_minor_snap / 10^minor_unit` in SQL; the sum must equal the header's `counted_amount` or the count is rejected (`CASH_COUNT_TOTAL_MISMATCH`).
+
+#### 4B.3.6 Sessions
+
+**`org_cash_drawer_sessions_mst`** (existing — altered). Add:
+
+| Column | Type | Notes |
+|---|---|---|
+| `open_ledger_seq` | BIGINT NULL | drawer `ledger_seq` at open |
+| `close_ledger_seq` | BIGINT NULL | exact cut, set at close/count step |
+| `opening_count_id`, `closing_count_id` | UUID NULL | FK → counts |
+| `closing_started_at`, `closing_started_by` | TIMESTAMPTZ / TEXT NULL | `CLOSING` step |
+| `cash_disposition_code` | TEXT NULL | FK → `sys_cash_drawer_ses_disp_cd` |
+| `cash_disposition_notes` | TEXT NULL | |
+| `disposition_dest_drawer_id` | UUID NULL | composite FK → drawers |
+| `disposition_kept_amount` | DECIMAL(19,4) NULL | `PARTIAL_REMOVED` only; user-typed, never prefilled (rule #15) |
+| `disposition_trx_id` | UUID NULL | FK → drawer trx |
+| `post_close_status_code` | TEXT NULL | FK → `sys_cash_drawer_ses_post_cd` |
+| `post_close_notes` | TEXT NULL | |
+| `post_close_by`, `post_close_at` | TEXT / TIMESTAMPTZ NULL | |
+
+CHECKs: `status IN ('CLOSED','FORCE_CLOSED')` ⇒ `cash_disposition_code IS NOT NULL AND close_ledger_seq IS NOT NULL` (added in M9 **after** the backfill); `disposition_kept_amount IS NULL OR >= 0`.
+**Retire** (M10): `opening_float_amount`, `expected_cash_amount`, `counted_cash_amount`, `difference_amount`, `variance_threshold_snapshot`, constraint `chk_org_cds_amounts`. `variance_approved_by/_at/_reason` stay (approval is per session).
+`uq_open_cash_drawer_session` stays; its predicate `status = 'OPEN'` is extended to `status IN ('OPEN','CLOSING')` (drop + recreate the partial index in the same migration) so a drawer cannot open a new session while one is closing.
+
+**`org_cash_drawer_ses_bal_dtl`** (26, new) — the session's money, one row per currency:
+`tenant_org_id`, `cash_drawer_session_id` (composite FK), `currency_code`, `opening_expected`, `opening_counted NULL`, `opening_variance NULL`, `fin_in`, `fin_out`, `trx_in`, `trx_out`, `closing_expected NULL`, `closing_counted NULL`, `closing_variance NULL`, `closing_basis NULL`, `variance_threshold_snap NULL`, `variance_tolerance_snap NULL`, audit. `UNIQUE (cash_drawer_session_id, currency_code)`. Written at open (opening fields) and at the count step (closing fields); **immutable once the session is `CLOSED`/`FORCE_CLOSED`** (trigger).
+
+**`org_cash_drawer_ses_post_tr`** (27, new) — after-close change log: `tenant_org_id`, `cash_drawer_session_id`, `post_close_status_code`, `post_close_notes`, `changed_by`, `changed_at`, audit. Insert-only. The session header holds the current value; every change appends a row (owner decision: current values + change log).
+
+#### 4B.3.7 Settings — `org_fin_cash_ctrl_stng_cf` (existing — altered)
+
+Add nullable columns (NULL = inherit): `requires_session BOOLEAN`, `opening_count_required BOOLEAN`, `closing_count_required BOOLEAN`. **Retire** `cash_drop_requires_dest` (P11).
+Migrate the retired drawer columns: for each drawer whose `requires_session` / `opening_float_required` differs from its type default, insert a DRAWER-scope settings row carrying the override (so no tenant loses a configured value), then drop the drawer columns.
+
+**Resolution order** (resolver change): DRAWER → USER → BRANCH → TENANT row → **drawer-type default** (`sys_cash_drawer_type_cd.*_default`) → constant default. **Hard capabilities never come from settings.** The resolver gains `getCashControlSettingsWithSource(scope)` returning each value with its source (`DRAWER` / `USER` / `BRANCH` / `TENANT` / `TYPE_DEFAULT` / `DEFAULT`) for the drawer policy screen.
+
+#### 4B.3.8 Finance catalog additions
+
+- Voucher `line_role` CHECK: add `CASH_OVER_SHORT` (new migration extends the list from `0357`).
+- ERP-Lite: event codes `CASH_OVER`, `CASH_SHORT` + `sys_fin_auto_post_mst` policy rows + GL mapping to the cash over/short account. **Read the ERP-Lite posting schema before writing this migration** (§4B.10 CLF-6-9); if the account mapping is per tenant, seed the catalog only and document the tenant setup step in the QA guide.
+
+### 4B.4 Domain services — separation of concerns
+
+New folder `lib/services/cash-drawer-ledger/`. Each file has one job; only the files marked **public** are imported outside the folder.
+
+| File | Job | Public |
+|---|---|---|
+| `cash-drawer-lock.ts` | `lockDrawersTx(tx, tenantId, drawerIds)` — `SELECT … FOR UPDATE` on drawer rows in **sorted id order**; `allocateLedgerSeqTx(tx, tenantId, drawerId)` — increment + return. Re-exports `lockDrawerScope` as a thin alias so A2 callers keep working. | ✓ |
+| `cash-drawer-ledger-policy.ts` | **Pure** `decideCashLine(input) → { effect, sessionId, error? }`. No DB, no I/O. Inputs: drawer profile (type capabilities, active, branch, currency), resolved settings, current session state, line (direction, currency, method `requires_cash_drawer`, payment status), mode. | internal |
+| `cash-drawer-ledger-gate.ts` | `stampCashLinesTx(tx, ctx, lines, mode)` and `recognizeCashLineTx(tx, ctx, lineId, drawerId?)` — the **only** writers of the five cash columns on voucher lines. Loads profile + settings + open session, calls the policy, locks drawers, allocates sequences, writes columns, emits `cash_fact.redirected` when the requested session ≠ the current one. | ✓ |
+| `cash-drawer-ledger.repository.ts` | The **single** SQL definition of the drawer ledger (voucher lines ∪ trx lines) and window sums per currency by sequence range. Every balance anywhere calls this. | internal |
+| `cash-drawer-balance.service.ts` | `computeWindowTx`, `computeOpeningExpectedTx`, `computeClosingExpectedTx`, `getDrawerLedgerPage` (paginated, for the ledger tab). | ✓ |
+| `cash-drawer-errors.ts` | `CashDrawerLedgerError` + codes (§4B.11). Flat error shape. | ✓ |
+
+Other domain services:
+
+| Service | Job |
+|---|---|
+| `lib/services/cash-drawer-session.service.ts` (new; lifecycle moves out of the 2007-line `cash-drawer.service.ts`) | `openSessionTx`, `startCloseTx` (count step), `finalizeCloseTx`, `forceCloseTx`, `approveVarianceTx` (moved), `updatePostCloseTx`. Both forms per §10.3 rule 3 (`fn` + `fnTx`). |
+| `lib/services/cash-drawer-count.service.ts` | `recordCountTx` (OPENING / SPOT / CLOSING / RECOUNT), denomination lines, total reconciliation, count-only drawer checkpoints. |
+| `lib/services/cash-drawer-trx.service.ts` | `postDrawerTrxTx` (float issue, drop, drawer↔drawer, handover, deposit prep, close disposition), `reverseDrawerTrxTx`. Locks both drawers (sorted), allocates each drawer's sequence, validates type rules. |
+| `lib/services/cash-drawer.service.ts` (existing — slimmed) | drawer master reads/writes + list/overview/detail queries, rewired to the balance service. |
+| `lib/services/cash-control-settings.service.ts` (existing) | add type-default layer + `getCashControlSettingsWithSource`. |
+| `lib/services/cash-over-short.service.ts` (new, finance domain) | `postOverShortFromEventTx` — creates the `ADJUSTMENT_VOUCHER` with `CASH_OVER_SHORT` line(s) (no drawer — not cash-family), idempotent per `(session, currency, OPENING|CLOSING)`, dispatches the ERP-Lite post via `safeDispatchAutoPost`. |
+| outbox handler `lib/services/outbox-handlers/cash-over-short.handler.ts` | consumes `CASH_DRAWER_OVER_SHORT` events → calls the service. Registered in `processOutboxBatch`. |
+
+**Lock ordering (deadlock rule).** Inside any transaction: voucher-number lock → voucher header `FOR UPDATE` → drawer rows (sorted) → drawer-trx number lock → session-number lock. Custody services never take the voucher-number lock; the close never takes it (over/short is posted asynchronously). Document this in `cash-drawer-lock.ts`.
+
+**Gate policy table** (`decideCashLine`), evaluated in order:
+
+| # | Condition | Result |
+|---|---|---|
+| 1 | not a cash-family line (`isCashFamilyMethod`) or `direction = NEUTRAL` | effect `NULL`, no stamp |
+| 2 | method `requires_cash_drawer = false` | `UNTRACKED` |
+| 3 | payment status not in the COMPLETED lifecycle set | `PENDING` (drawer hint stored, no sequence) |
+| 4 | no drawer resolvable (no drawer id, no session hint) | **reject** `CASH_DRAWER_REQUIRED` |
+| 5 | drawer inactive / different tenant | **reject** `CASH_DRAWER_INACTIVE` |
+| 6 | drawer branch ≠ voucher branch | **reject** `CASH_DRAWER_BRANCH_MISMATCH` |
+| 7 | `IN` and type `accepts_customer_cash = false` · `OUT` and `allows_customer_cash_out = false` | **reject** `CASH_DRAWER_TYPE_NOT_ALLOWED` |
+| 8 | line currency (line ?? header) missing | **reject** `CASH_CURRENCY_REQUIRED` |
+| 9 | currency ≠ drawer currency | **reject** `CASH_CURRENCY_MISMATCH` (P12) |
+| 10 | session state `OPEN` | `DRAWER`, session = the open session (redirect event if the hint differed) |
+| 11 | `CLOSING`, mode `INTERACTIVE` | **reject** `DRAWER_SESSION_CLOSING` |
+| 12 | none open, mode `INTERACTIVE`, resolved `requires_session = true` | **reject** `CASH_DRAWER_SESSION_NOT_OPEN` |
+| 13 | otherwise (`DEFERRED`, or `requires_session = false`) | `DRAWER`, session `NULL` → lands in the next window |
+
+**Modes.** `INTERACTIVE`: order submit, later collection, refund execution, stored-value funding, customer-account receipt, manual voucher post. `DEFERRED`: B30 VERIFY recognition, voucher reversal. Deferred paths never fail on session state (principle 2); they still fail on integrity (rules 4–9), and the UI lets the actor pick another active drawer in the same branch.
+
+### 4B.5 Writer rewiring — every cash path (from the writers check)
+
+| # | Path | Change |
+|---|---|---|
+| W1 | Voucher posting `postAndWireBizVoucherInTx` | After the header lock and **before** lines flip `DRAFT → POSTED` (the immutability trigger forbids stamping a POSTED line except `PENDING → DRAWER`): `stampCashLinesTx(tx, ctx, cashLines, mode)`; then flip to `POSTED`; then handlers. `mode` comes from the caller (new required parameter; default is a type error, not a silent default). This single call covers submit, collect, refund, stored-value funding, manual vouchers and every role that previously had no handler. |
+| W2 | Order submit (`order-submit-orchestrator.service.ts:533,829-866`) | Pass `cashDrawerId` (+ session hint) instead of trusting the session id; mode `INTERACTIVE`. Remove the planner's pre-transaction OPEN check (`order-settlement-planner.service.ts:318-324`) — the gate decides inside the transaction. |
+| W3 | Later collection `collectPaymentTx` | Wrap entry in `withTenantContext → prisma.$transaction`; pass drawer + mode. |
+| W4 | Refund execution `processRefund` | Wrap in `withTenantContext`; remove the record-only cash branch (P8) — a cash refund always posts a voucher; remove the read-back of the movement (`:975-985`). |
+| W5 | Stored-value funding `fundStoredValue` | Wrap in `withTenantContext`; drawer + mode. Remove the no-tender gift-card path's cash-free activation for cash sales (`gift-card-service.ts:316` path stays only for genuinely non-cash promotional issuance, if that exists — confirm at implementation; otherwise delete). |
+| W6 | Customer-account receipt `postCustomerAccountReceipt` | Rewrite: create real voucher lines (`CUSTOMER_CREDIT_RECEIPT` / `CUSTOMER_ADVANCE_RECEIPT`), post through `postAndWireBizVoucherInTx` with mode `INTERACTIVE`. Delete the direct `CASH_SALE` / `CASH_OUT` writes and the header-only `POSTED` shortcut. |
+| W7 | B30 VERIFY (`transitionPaymentTx`) | Take the caller's `tx` (new `transitionPaymentTx(tx, …)`; the global-transaction wrapper becomes `transitionPayment()` = `withTenantContext → $transaction → transitionPaymentTx`). On VERIFY of a cash leg: `recognizeCashLineTx(tx, ctx, voucherLineId, drawerId?)` (mode `DEFERRED`) and set the line's `payment_status` to `COMPLETED`. Delete `maybeCreateDeferredCashMovementTx`. CANCEL / FAIL_BOUNCE / VOID of a `PENDING` cash leg set the line's effect to `NONE`. VOID/CANCEL of a **recognised** cash leg is refused — it must be reversed. |
+| W8 | Payment REVERSE (pending-payments worklist) | Route through voucher reversal (W9) at line level. Delete `maybeCreateReversalCompensatingMovementTx`. |
+| W9 | Voucher reversal `reverseBizVoucher` | (a) Add line-level reversal `reverseVoucherLinesTx(tx, ctx, { voucherId, lineIds, reason, drawerId? })`; full reversal = all lines. Original header → `PARTIALLY_REVERSED` when not all lines are reversed, `REVERSED` when all are. (b) Reversal lines are created `DRAFT` then posted through the same path as W1 with mode `DEFERRED`, so the gate stamps them in the **current** window (P3) — delete the session copy at `:278`. A reversal of a `PENDING` line gets effect `NONE` and the original goes `PENDING → NONE`; of an `UNTRACKED` line stays `UNTRACKED`. (c) Replace the separate-transaction unwind call with `transitionPaymentTx(tx, …)`. |
+| W10 | Legacy verify `verifyPaymentTx` + route `orders/[id]/payments/[paymentId]/verify` | Delegate to `transitionPayment` VERIFY; delete `verifyPaymentTx`. |
+| W11 | Manual movements `recordMovement` + route `cash-movement` | Delete. Replaced by drawer transactions (custody) — cash that enters or leaves the business without a customer is a **finance voucher** (pay-in / pay-out), which is out of CLF scope; until that voucher type exists, the UI offers only drawer transactions. Record this gap in STATUS. |
+| W12 | Legacy actions `openDrawerSession` / `closeDrawerSession` / `getDrawerMovements` / `getActiveDrawerSession` / `getCashDrawers` in `app/actions/payment-config/cash-drawers-actions.ts` | Delete (no callers). Drawer CRUD actions stay, gain `requirePermission` (`cash_drawer:view` / drawer-config permission currently used by the settings page — verify). |
+| W13 | Wiring handlers `cash-drawer-wiring.handler.ts`, `stored-value-cash-drawer-wiring.handler.ts`, `order-refund-cash-drawer-wiring.handler.ts` | Delete; remove from the registry (`voucher-wiring.service.ts:51-65`). |
+| W14 | `settleOrder` non-wiring branch | Delete (dead). |
+| W15 | `app/actions/billing/cash-drawer-actions.ts` | Add `requirePermission` per action; rewire to the new session/count/trx services. |
+
+### 4B.6 Migrations (nominal numbers, each **STOP-AND-WAIT**)
+
+| # | Nominal | Name | Contents |
+|---|---|---|---|
+| M1 | `0523` | `clf_drawer_catalogs` | the five `sys_cash_drawer_*` lookups + seeds; `CLOSING` status; drawer-type FK replaces CHECK; `PENDING_DEPOSIT` one-per-branch index + `ensure_branch_pd_drawer()` + branch insert trigger (§4B.2a-B) |
+| M2 | `0524` | `clf_ledger_columns` | drawer `ledger_seq`; voucher-line cash columns, FKs, CHECK, indexes; immutability trigger |
+| M3 | `0525` | `clf_drawer_trx_tables` | trx mst/dtl, RLS, balance + immutability triggers, numbering function |
+| M4 | `0526` | `clf_counts_sessions` | count mst/denom dtl, `ses_bal_dtl`, `ses_post_tr`, session columns, `uq_open_cash_drawer_session` predicate |
+| M5 | `0527` | `clf_drawer_policy_settings` | settings columns, drawer-value carry-over to DRAWER rows, drop drawer policy columns + `cash_drop_requires_dest` |
+| M6 | `0528` | `clf_permissions` | new permission codes + role grants (§4B.8) |
+| M7 | `0529` | `clf_over_short_posting` | `CASH_OVER_SHORT` and `CASH_PAY_IN` line roles, ERP-Lite event codes + policy |
+| M8 | `0530` | `clf_navigation` | `sys_components_cd` for the follow-up screen (dual-write with `config/navigation.ts`) |
+| M9 | `0531` | `clf_backfill` | demo-data backfill (§4B.12), then the closed-session disposition CHECK |
+| M10 | `0532` | `clf_retire_legacy` | **only after the app no longer reads legacy objects** — redefine `hq_mntnc_cleanup_tenant_orders` without the movements table (full function body in the same migration); drop `org_order_refunds_dtl.cash_drawer_movement_id` + `uq_ord_refund_cash_mvt`; drop voucher-line `cash_drawer_mvt_id`; `DROP TABLE org_cash_drawer_movements_dtl RESTRICT`; `DROP TABLE sys_cash_drawer_movement_type_cd RESTRICT`; drop retired session money columns + `chk_org_cds_amounts`. Fix the three `supabase/snippets/cleanup_*.sql` files in the same change. |
+
+After each applied migration: Prisma models + `npx prisma generate` + `types/database*.ts` refreshed (§10.5-7).
+
+### 4B.7 API
+
+Every route: thin (`requirePermission` → Zod → one service call → map errors), `{ success, data, error }` envelope, money as **strings**, error **codes** passed through (today they are swallowed as message-only 422s — fix in the shared route error mapper), `Idempotency-Key` header honoured via `org_idempotency_keys` on every POST (A2-5 absorbed). Zod schemas in `lib/validations/cash-drawer/*`, enums derived from constants, shared with the client.
+
+| Method + path | Permission | Service | Notes |
+|---|---|---|---|
+| `POST /api/v1/cash-drawers/[drawerId]/open-session` | `cash_drawer:open_session` | `openSession` | body: optional `openingCount { method, total, denominations[] }`, `notes`. Response: opening expected, counted, variance per currency. |
+| `GET …/[drawerId]/session/[sessionId]/close-preview` | `cash_drawer:close_session` | balance service | **omits expected/variance when `blind_close_enabled`** (C2-1 absorbed); flat shape `{ revealed, expected?, … }`. |
+| `POST …/session/[sessionId]/close/count` | `cash_drawer:close_session` | `startCloseTx` | optional count; sets `CLOSING`, freezes the cut; returns the revealed reconciliation and whether a variance reason is required. **Validates the session belongs to `drawerId`.** |
+| `POST …/session/[sessionId]/close/recount` | `cash_drawer:approve_variance` | `recordCountTx` RECOUNT | only in `CLOSING`; supersedes the prior closing count. |
+| `POST …/session/[sessionId]/close/finalize` | `cash_drawer:close_session` | `finalizeCloseTx` | disposition code, notes (conditional), destination drawer (conditional), kept amount (conditional), variance reason (when required). Posts the disposition transaction, sets `CLOSED`, emits events. |
+| `POST …/session/[sessionId]/force-close` | `pos_session:force_close` | `forceCloseTx` | supervisor; reason mandatory; same disposition rules. |
+| `POST …/session/[sessionId]/approve-variance` | `cash_drawer:approve_variance` | existing, moved | unchanged behaviour; emits the deferred over/short event (P7). |
+| `PUT …/session/[sessionId]/post-close` | `cash_drawer:post_close_update` | `updatePostCloseTx` | only when `CLOSED`/`FORCE_CLOSED`; appends the change log. |
+| `GET …/session/[sessionId]/post-close/history` | `cash_drawer:view` | | |
+| `POST|GET /api/v1/cash-drawers/[drawerId]/counts` | `cash_drawer:count` | `recordCountTx` | SPOT counts; checkpoint counts for count-only drawers. List paginated. |
+| `POST|GET /api/v1/cash-drawers/trx` | `cash_drawer:transfer` | `postDrawerTrxTx` | user-selectable trx types only; list paginated + filterable by drawer/type/date. |
+| `POST /api/v1/cash-drawers/trx/[trxId]/reverse` | `cash_drawer:transfer` | `reverseDrawerTrxTx` | reason mandatory. |
+| `GET /api/v1/cash-drawers/[drawerId]/ledger` | `cash_drawer:view` | balance service | paginated unified ledger (finance + custody) ordered by sequence, with running balance per currency. |
+| `GET|PUT /api/v1/cash-drawers/[drawerId]/policy` | `cash_control:view` / `cash_control:manage` | settings service | values **with source**; PUT writes DRAWER scope; `null` = reset to inherit. |
+| `GET /api/v1/cash-drawers/catalogs` | `cash_drawer:view` | | drawer types, trx types, dispositions, post-close statuses, count types — one call, bilingual. |
+| `GET /api/v1/currencies/[code]/denominations` | authenticated | | reads `sys_currency_denominations_cd` (active, in circulation, ordered). `org_currency_denom_cf` overrides stay in C1. |
+| `GET /api/v1/cash-drawers/follow-up` | `cash_drawer:view_reports` | | closed sessions whose disposition moved cash to `PENDING_DEPOSIT`, filterable by post-close status; paginated. |
+| `POST /api/v1/cash-drawers/pending-deposit/ensure` | `cash_control:manage` **or** the drawer-config / branch-management permission of the calling screen (checked with `requireAnyPermission`) | `ensure_branch_pd_drawer` | idempotent; `{ created, drawerId }` (§4B.2a-B) |
+| `GET /api/v1/cash-drawers/pending-deposit/status` | `cash_drawer:view` | | per branch: present / missing — feeds the three screens |
+| `POST /api/v1/cash-drawers/[drawerId]/cash-in-out` | `cash_drawer:record_movement` | voucher services (mode `INTERACTIVE`) | §4B.2a-A: role from `DRAWER_CASH_IN_OUT_ROLES`, amount, reason; creates + posts the voucher |
+| **Deleted** | | | `POST …/[drawerId]/close-session`, `POST …/[drawerId]/cash-movement` |
+| **Rewired** | | | `…/session/[sessionId]` detail, `…/summary`, `cash-drawers/overview`, `…/sessions`, `finance/reports/reconciliation/cash-drawer`, `finance/pending-payments/[paymentId]/transition`, `finance/vouchers/[voucherId]/reverse` (line selection + drawer choice), `orders/refunds/[refundId]/process`, `customer-receipts/post`, `orders/[id]/payments/[paymentId]/verify` |
+
+### 4B.8 Permissions (M6)
+
+| Code | Grant to |
+|---|---|
+| `cash_drawer:post_close_update` (**new**) | accountant, finance_manager, branch_manager, admin, super_admin, tenant_admin |
+| existing `cash_drawer:transfer`, `cash_drawer:count`, `cash_drawer:approve_variance`, `cash_drawer:view_reports`, `cash_control:*` | reused as mapped in §4B.7 |
+
+Add the missing `record_movement` removal and `post_close_update` addition to `lib/constants/permissions/finance-perm.ts`. Use `/create-update-rbac-permission` and `/update-rbac-role`; then `/rebuild-platform-info-inventories` (`surface=permission`).
+
+### 4B.9 Events and over/short
+
+Written with `emitEventTx` into `org_domain_events_outbox` inside the same transaction:
+
+| Event | When | Consumers |
+|---|---|---|
+| `CASH_DRAWER_SESSION_OPENED` | open | Notification Hub (opening variance ≠ 0) |
+| `CASH_DRAWER_SESSION_CLOSING` | count step | — (audit) |
+| `CASH_DRAWER_SESSION_CLOSED` | finalize / force-close | Notification Hub (uncounted close, variance, disposition), follow-up list |
+| `CASH_DRAWER_OVER_SHORT` | opening variance at open; closing variance at finalize, or at approval when pending (P7) | `cash-over-short.handler` → `cash-over-short.service` |
+| `CASH_FACT_REDIRECTED` | gate redirected a line from a stale session hint | audit |
+| `CASH_DRAWER_TRX_POSTED` | drawer transaction | Notification Hub (large drop, handover) |
+
+Over/short voucher: `ADJUSTMENT_VOUCHER`, one line per currency with non-zero variance outside tolerance, `line_role = CASH_OVER_SHORT`, `payment_method_code = NULL` (so the gate ignores it — it never enters the drawer ledger), `idempotency_key = cash-over-short:{sessionId}:{currency}:{OPENING|CLOSING}`. ERP-Lite dispatch is non-blocking (existing `safeDispatchAutoPost` policy).
+
+**Pre-condition to verify (CLF-0-4):** how `processOutboxBatch` runs in production (scheduled job / route). If nothing schedules it today, record it as a blocking finding before CLF-6-9 ships.
+
+### 4B.10 Work items
+
+Every item: load the domain skill first (§10.1), tick it here, record outcome in STATUS.md.
+
+**CLF-0 — Preconditions (no migration)**
+- [ ] CLF-0-1 Verify whether the Prisma tenant middleware actually runs (`lib/prisma-middleware.ts` `$use` on Prisma ^6.17, `lib/db/prisma.ts:63`). Write a DB-integration probe. If it is silently inactive, **stop and report** — that is a platform finding outside CLF, but CLF still filters `tenant_org_id` explicitly on every query (CRITICAL RULE #4) and does not rely on it.
+- [ ] CLF-0-2 Wrap `collectPaymentTx`, `processRefund`, `fundStoredValue`, `transitionPayment` entry points in `withTenantContext → prisma.$transaction` (never the reverse). Add `…Tx(tx, …)` forms where missing.
+- [ ] CLF-0-3 Fix `LINE_STATUS` (`VOIDED` → `CANCELLED`) to mirror the DB CHECK; grep all usages.
+- [ ] CLF-0-4 Confirm how the outbox processor is scheduled (§4B.9).
+- [ ] CLF-0-5 Move `isCashFamilyMethod` + `CASH_PAYMENT_METHOD_CODES` to `lib/constants/payment.ts` / `lib/utils/cash-method.ts`; update the two importers.
+
+**CLF-1 — Schema** (load `/database`, `/multitenancy`, `/code-documentation`)
+- [ ] CLF-1-1 M1 … CLF-1-10 M10 — one item per migration in §4B.6, each STOP-AND-WAIT, each followed by Prisma + generated-type refresh.
+
+**CLF-2 — Constants, types, validation**
+- [ ] CLF-2-1 `lib/constants/cash-drawer.ts`: drawer types, trx types, count types, dispositions, post-close statuses, session statuses (incl. `CLOSING`), cash effects, gate modes, error codes — exact DB strings.
+- [ ] CLF-2-2 `lib/types/cash-drawer-ledger.ts`: `CashLineIntent`, `CashLineDecision`, `DrawerProfile`, `WindowTotals`, `SessionBalanceRow` (money as `string` at the API boundary, `Decimal` inside services), flat result types (`feedback_action_result_flat_type_not_discriminated_union`).
+- [ ] CLF-2-3 Zod schemas in `lib/validations/cash-drawer/` shared by routes and forms.
+
+**CLF-3 — Core ledger** (load `/backend`, `/multitenancy`)
+- [ ] CLF-3-1 `cash-drawer-lock.ts` (sorted row locks, sequence allocation, `lockDrawerScope` alias, lock-order doc comment).
+- [ ] CLF-3-2 `cash-drawer-ledger-policy.ts` — pure; exhaustive unit tests over the §4B.4 table.
+- [ ] CLF-3-3 `cash-drawer-ledger-gate.ts` — `stampCashLinesTx`, `recognizeCashLineTx`.
+- [ ] CLF-3-4 `cash-drawer-ledger.repository.ts` — one ledger query definition; `EXPLAIN` it on a seeded dataset (index use on `(tenant, drawer, seq)`).
+- [ ] CLF-3-5 `cash-drawer-balance.service.ts`.
+
+**CLF-4 — Custody services**
+- [ ] CLF-4-1 `cash-drawer-count.service.ts` (denomination derivation in SQL; `CASH_COUNT_TOTAL_MISMATCH`).
+- [ ] CLF-4-2 `cash-drawer-trx.service.ts` (type/capability validation, same-branch, same-currency, distinct drawers, balance, reversal).
+- [ ] CLF-4-3 `cash-drawer-session.service.ts`:
+  - **open**: lock drawer → refuse if `OPEN`/`CLOSING` exists → session number → `open_ledger_seq = drawer.ledger_seq` → compute `opening_expected` per currency from the chain → optional opening count → write `ses_bal_dtl` → opening over/short event if variance outside tolerance → `CASH_DRAWER_SESSION_OPENED`. Enforce resolved `opening_count_required`.
+  - **count step**: lock drawer → session must be `OPEN` and belong to `drawerId` → `close_ledger_seq = drawer.ledger_seq` → compute closing expected per currency → optional count (enforce `closing_count_required`) → write closing fields in `ses_bal_dtl` → `CLOSING`.
+  - **finalize**: lock drawer + destination → session must be `CLOSING` → validate disposition (§4B.3.1 rules; destination type, same branch, same currency, active) → compute removed amount = `closing_basis` (all) or `closing_basis − kept` (partial; `0 ≤ kept ≤ basis`, else `CASH_DISPOSITION_AMOUNT_INVALID`) → post `CLOSE_DISPOSITION` trx (after the cut) when cash moves → set `CLOSED` → variance approval flag (existing B16 rule, per currency against `variance_approval_threshold`) → over/short event unless pending approval → `CASH_DRAWER_SESSION_CLOSED`.
+  - **post-close update**, **force-close**, **approve variance** (moved).
+- [ ] CLF-4-4 `cash-control-settings.service.ts`: type-default layer + `…WithSource`.
+- [ ] CLF-4-5 C3-7/C3-8 absorbed: `assertLinkedDrawerIsClosed` becomes an allow-list of terminal statuses (`CLOSED`, `FORCE_CLOSED`); sweep `=== 'OPEN'` / `status = 'OPEN'` in drawer and POS code and convert each to an explicit allow-list.
+
+**CLF-5 — Writer rewiring**: W1–W15 in §4B.5, one checkbox each.
+
+**CLF-6 — Readers** (from the readers check)
+- [ ] CLF-6-1 `cash-drawer.service.ts` overview/list/detail/summary/print data → balance service; delete `buildSessionReconciliation`, `deriveExpectedCashAndVariance`, `loadMovementTotalsBySession`, `loadPaymentTotalsBySession`, `loadMovementCountsBySession`, `mapMovementRow`; replace "movement count" with "ledger entry count".
+- [ ] CLF-6-2 `finance-reconciliation-report.service.ts` `getCashDrawerReconReport` → ledger repository; Decimal only; include OPEN sessions correctly (no false exceptions).
+- [ ] CLF-6-3 Reconciliation checks (`voucher-checks.ts`, `ar-checks.ts`) replaced by: *recognised cash-family line without drawer stamp*; *drawer sequence gaps/duplicates across both tables*; *closed session `ses_bal_dtl` ≠ recompute*; *unbalanced drawer transaction*; *cash refund without a `DRAWER` voucher line*. Update check names in `lib/constants/order-financial.ts` and the `billing.json` i18n.
+- [ ] CLF-6-4 `voucher-wiring.service.ts` linked effects: drop `CASH_DRAWER_MOVEMENT`; expose the line's drawer stamp instead. Types in `lib/types/voucher-wiring.ts`, `voucher.ts`, `payment.ts`, `cash-drawer.ts`.
+- [ ] CLF-6-5 `finance-money-position.service.ts`: add `is_active`, use the balance service.
+- [ ] CLF-6-6 Delete `cash-drawer-cash-facts.ts` and its test; delete `CASH_DRAWER_MOVEMENT_TYPES`.
+- [ ] CLF-6-7 Flag, don't fix: `getPosSessionSummary` does not filter payment status/direction (belongs to D2 X/Z work) — record in STATUS.
+
+**CLF-7 — API**: every row of §4B.7, plus the error-code pass-through fix in the shared route mapper.
+
+**CLF-8 — UI** (load `/frontend`, `/i18n`; Cmx only; `cmxMessage`; loading/empty/error/success states; tablet + RTL; keyboard-first counting)
+- [ ] CLF-8-1 **Reusable** `src/ui/patterns/cmx-denomination-counter.tsx` (`CmxDenominationCounter`) — quantity grid from the denominations API, running total, minor-unit math, falls back to total-only when a currency has no denominations. Storybook (RTL, a11y, empty catalog).
+- [ ] CLF-8-2 **Reusable** `src/ui/patterns/cmx-scoped-setting-field.tsx` — value + source badge (Inherited from Tenant / Branch / Type default / Overridden here) + override + reset. Storybook.
+- [ ] CLF-8-3 **Reusable** `src/ui/data-display/cmx-money-variance.tsx` — signed variance with over/short colouring and tolerance hint (used by close, session detail, print, follow-up). Storybook.
+- [ ] CLF-8-4 **Open-session dialog** — optional opening count (total or denominations), shows system opening expected (unless blind), notes.
+- [ ] CLF-8-5 **Close wizard** `src/features/cash-drawers/ui/cash-drawer-close-wizard.tsx` — step 1 *Count* (optional, denominations optional, blind-aware) → step 2 *Result* (reconciliation per currency, variance reason when required, recount entry for supervisors) → step 3 *Disposition* (code list from the catalog; destination drawer picker filtered by type, branch, currency and active; kept amount input only for `PARTIAL_REMOVED`, never prefilled; notes required only when the code says so; options whose destination type has no drawer in the branch are disabled with an explanation and a link to drawer config). Used by the drawer overview screen **and** the POS hub **and** the POS sessions screen (replace their raw `fetch` + `pos-session-drawer-close-summary.tsx` close path).
+- [ ] CLF-8-6 **Drawer transaction dialog** replaces the movement dialog — type (user-selectable only), from/to drawers filtered by the type's rules, amount, currency (drawer's), notes when required.
+- [ ] CLF-8-6a **Cash in / Cash out dialog** (§4B.2a-A) — role picker from `DRAWER_CASH_IN_OUT_ROLES` (expense, supplier, petty-cash issue/return, pay-in), amount (drawer currency), mandatory reason; calls `POST …/cash-in-out`; shows the created voucher number with a link to Finance → Vouchers.
+- [ ] CLF-8-6b **Pending-deposit drawer ensure button** (§4B.2a-B) — shared component, placed on `/dashboard/tenant-admin/branches`, the *Cash drawers* tab under `/dashboard/settings/payments`, and a status card on `/dashboard/settings/payments/cash-control-settings`.
+- [ ] CLF-8-7 **Drawer overview screen** tabs: *Session* (current), *Ledger* (paginated unified ledger with running balance), *Transactions*, *Counts* (spot count entry), *Policy* (`CmxScopedSettingField` rows for `requires_session`, count requirements, blind close, variance gate), *Sessions* (history).
+- [ ] CLF-8-8 **Session detail**: per-currency balances, count history with denominations, disposition block, post-close panel (status + notes editor for `cash_drawer:post_close_update`, change-log list), variance approval (existing dialog).
+- [ ] CLF-8-9 **Follow-up screen** `/dashboard/internal_fin/cash-drawers/follow-up` — sessions with cash sent to `PENDING_DEPOSIT`, filter by post-close status, inline update. Navigation dual-write (M8 + `config/navigation.ts`) via `/navigation`; access contract via `/rebuild-ui-access-contract`.
+- [ ] CLF-8-10 **Drawer config form**: type from the catalogs API (shows each type's capabilities read-only); policy fields removed from the form (they live on the Policy tab).
+- [ ] CLF-8-11 **Pending-payments VERIFY** and **voucher reversal** dialogs: drawer picker shown only when the gate returns an integrity error (inactive drawer etc.), same branch only; reversal dialog lets the user choose lines.
+- [ ] CLF-8-12 **Print report** `cash-drawer-session-print-rprt.tsx`: per-currency snapshot from `ses_bal_dtl`, counts, disposition; thermal width; both locales.
+- [ ] CLF-8-13 Remove movement-era UI: refunds list `cash_drawer_movement_id` column, voucher line table `cash_drawer_mvt_id` column, "1 Order Payment + 1 Cash Movement" preview text, linked-effects `movement_type`; delete orphan `src/features/billing/ui/cash-drawer-detail-client.tsx` (E1 absorbed). Show the line's drawer / session / sequence in voucher line detail instead.
+- [ ] CLF-8-14 i18n: `billing.cashDrawers.*`, `posSessions.drawerClose.*`, `paymentConfig.cashDrawers.*`, `cashControl.*`, `finance.*` — new keys EN + AR for every label, catalog name fallback, and every §4B.11 error code; delete orphaned keys; `npm run check:i18n`.
+- [ ] CLF-8-15 Access contracts: add actions (`openSession`, `closeCount`, `closeFinalize`, `recount`, `transfer`, `count`, `postCloseUpdate`, `policyEdit`) and `apiDependencies` to the cash-drawer contracts in `billing-access.ts`; golden path `scaffold → derive --apply → wire --fix → check --wire → sync`; `/rebuild-platform-info-inventories` (`surface=page`, `api`, `navigation`).
+
+**CLF-9 — Tests** (§4B.14) · **CLF-10 — Exit** (§4B.15)
+
+### 4B.11 Error codes (add to §10.6; defined once in `cash-drawer-errors.ts`, i18n EN+AR)
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `CASH_DRAWER_REQUIRED` | 422 | cash line with no resolvable drawer |
+| `CASH_DRAWER_INACTIVE` | 422 | drawer inactive or not in tenant |
+| `CASH_DRAWER_BRANCH_MISMATCH` | 422 | drawer branch ≠ voucher branch |
+| `CASH_DRAWER_TYPE_NOT_ALLOWED` | 422 | drawer type cannot take this cash direction / trx side / disposition |
+| `CASH_CURRENCY_REQUIRED` | 422 | cash line without currency |
+| `CASH_CURRENCY_MISMATCH` | 422 | line currency ≠ drawer currency (existing code, now raised by the gate) |
+| `CASH_DRAWER_SESSION_NOT_OPEN` | 409 | interactive cash, session required, none open |
+| `DRAWER_SESSION_CLOSING` | 409 | interactive cash while the session is counting (existing code) |
+| `DRAWER_SESSION_NOT_CLOSING` | 409 | finalize/recount without the count step |
+| `DRAWER_SESSION_WRONG_DRAWER` | 422 | session does not belong to the route's drawer |
+| `CASH_DISPOSITION_DEST_REQUIRED` | 422 | moving disposition without a valid destination |
+| `CASH_DISPOSITION_AMOUNT_INVALID` | 422 | kept amount < 0 or > basis |
+| `CASH_DISPOSITION_NOTES_REQUIRED` | 422 | code requires notes |
+| `CASH_COUNT_REQUIRED` | 422 | resolved setting requires a count (existing code) |
+| `CASH_COUNT_TOTAL_MISMATCH` | 422 | denomination lines ≠ total (existing code) |
+| `CASH_TRX_UNBALANCED` | 422 | drawer transaction lines don't net to zero |
+| `CASH_TRX_SAME_DRAWER` | 422 | source = destination |
+| `CASH_TRX_CROSS_BRANCH` | 422 | drawers in different branches |
+| `CASH_LINE_IMMUTABLE` | 409 | attempt to change a posted/recognised cash line (DB trigger) |
+| `CASH_LEG_MUST_REVERSE` | 409 | VOID/CANCEL of a recognised cash leg — reverse it instead |
+| `POST_CLOSE_SESSION_NOT_CLOSED` | 409 | after-close update on a non-closed session |
+
+### 4B.12 Backfill (M9 — demo data only; pre-launch)
+
+1. Every existing cash-family voucher line that is `POSTED` with a `cash_drawer_session_id` and a COMPLETED-lifecycle payment: set `cash_drawer_id` from its session, `cash_effect_code = 'DRAWER'`, `cash_recognized_at = created_at`; cash-family without session → `UNTRACKED`; pending legs → `PENDING`.
+2. Existing drawer-affecting manual movements that have no voucher line (customer receipts, manual CASH_IN/OUT, float) — **not migrated** into finance (they were not vouchers). Pre-launch demo data: record their per-session net in the session's `ses_bal_dtl` via step 4 so historic closes stay readable; they are dropped with the table in M10.
+3. Assign `ledger_seq` per drawer in `(created_at, id)` order across stamped lines; set `org_cash_drawers_mst.ledger_seq` to the max; set each session's `open_ledger_seq` / `close_ledger_seq` from the lines inside it.
+4. `ses_bal_dtl` for every existing session from its old header values (`opening_float_amount` → `opening_expected` and `opening_counted`, `expected_cash_amount` → `closing_expected`, `counted_cash_amount`, `difference_amount`), currency = session currency.
+5. Closed sessions: `cash_disposition_code = 'LEGACY'`.
+6. Then add the closed-session CHECK.
+7. Verification query in the migration's comment block + a post-apply read-only check: every closed session has a `ses_bal_dtl` row; no cash-family recognised line lacks a drawer; sequences unique per drawer.
+
+### 4B.13 Supersession map (existing plan items)
+
+| Item | Now |
+|---|---|
+| A2 payment-during-close gap | closed by the gate + sequence cut (CLF-3, CLF-5) |
+| A2-5 idempotency keys | absorbed (§4B.7) |
+| A4-3 / 3b / 3c / 3d | replaced by `ses_bal_dtl` + gate rule 9; `org_cash_sess_curr_dtl` and `allow_multi_currency_drawer` are **not** built (P12) |
+| C1-2 / C1-3 / C1-5 / C1-7 | replaced by §4B.3.5, CLF-4-1, CLF-8-1, count settings. **C1-1b** (`org_currency_denom_cf`), C1-4b/c UI polish beyond CLF-8-7/8-5 stay in C1 |
+| C2-1 | absorbed (close-preview); C2-3 wizard reveal is CLF-8-5 |
+| C3-1 `CLOSING` | absorbed; C3 keeps `CLOSED_PENDING_APPROVAL` + gate modes |
+| C3-7 / C3-8 | absorbed (CLF-4-5) — required because CLF introduces `CLOSING` |
+| D1-1 … D1-8 | replaced by drawer transactions; `SAFE_TO_BANK`, `PETTY_CASH_*` become **finance vouchers** (future); two-phase receive/cancel stays in D1 remainder (P10) |
+| D2-4 | Z-report per currency reads `ses_bal_dtl` |
+| E1 | absorbed (CLF-8-13) |
+| §9.1 / §9.2 / §9.3 / §9.4 / §10.3 / §10.6 | extended by §4B.6 / §4B.7 / CLF-8 / CLF-3-4 / §4B.4 / §4B.11 |
+
+### 4B.14 Tests
+
+**Unit**
+- Policy table: every row of §4B.4 × direction × mode, including redirect and all reject codes.
+- Window math: chain formulas incl. first session, uncounted close, opening count override, partial disposition, between-session cash, multi-currency rows never cross-netted, reversal in a later window.
+- Disposition validation, kept-amount bounds, destination rules; drawer-trx type rules; denomination line math (2dp and 3dp currencies); trx-number parser.
+
+**DB-integration** (local harness — §10.8)
+- **Payment-during-close (the D22 test):** N concurrent cash postings racing a count step on the same drawer; assert every line is in exactly one window (`seq ≤ cut` → S, else next), and `ses_bal_dtl.closing_expected` = recompute.
+- Sequence monotonic and unique per drawer across voucher lines + trx lines under concurrency; no gaps within committed rows.
+- VERIFY after close → next window; reversal after close → next window, closed session unchanged.
+- Interactive posting during `CLOSING` rejected; deferred accepted with NULL session.
+- Drawer trx atomicity (partial failure rolls back both sides); balance trigger rejects unbalanced; immutability triggers on lines, trx, counts, closed `ses_bal_dtl`.
+- Two drawers locked in both orders concurrently → no deadlock (sorted locking).
+- Count-only drawer chain.
+- Backfill verification queries.
+
+**API** — money as strings; blind close genuinely omits expected pre-count; error codes in the envelope; idempotent replays.
+
+**Tenant isolation** — every new table and endpoint: cross-tenant read and write fail.
+
+**UI** — close wizard RTL + keyboard-only completion; denomination counter at tablet width; disabled disposition options with explanation.
+
+**Standing rule** — no existing assertion weakened; each test deleted with a retired module is listed in STATUS.
+
+### 4B.15 Exit
+
+- [ ] Gates: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest, DB-integration suite, `npm run check:i18n`, `check:ui-access-contract`, `check:platform-info-inventories`.
+- [ ] `/security-review` over the CLF diff (money, locks, permissions, tenant isolation).
+- [ ] `QA_TEST_GUIDE.md`: owner-runnable scenarios — open with/without count, sale during CLOSING (rejected), refund, verify after close, reversal after close, uncounted close, each disposition, partial disposition, drop, handover, count-only safe count, post-close update next day, follow-up screen, policy override/reset.
+- [ ] STATUS.md: CLF row COMPLETE, migrations Applied (local/remote), gate results, new `D<n>` rows for anything decided during implementation; RESUME_CONTINUATION refreshed.
+- [ ] `/documentation`: ADR for the two-domain cash ledger (custody vs finance, sequence cut, period principle); amend ADR-054; feature docs, API, permissions, settings, i18n, migrations, constants.
 
 ---
 
@@ -534,6 +1111,8 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 
 ### C1 — Denomination consumption & cash counts (migrations `0518`, `0519`)
 
+> **2026-09-25 — C1-2/C1-3/C1-5/C1-7 superseded by CLF (§4B.3.5, §4B.13).** Count tables are `org_cash_drawer_cnt_mst` / `org_cash_drawer_cnt_denom_dtl`. C1-1b and remaining UI polish stay here.
+
 - [ ] C1-1 **`sys_currency_denominations_cd` is HQ-owned** (owner decision — handoff §4). HQ defines, seeds and provides the admin UI; this program consumes it **read-only**, keyed on `denomination_minor` (minor units). The DDL migration is still authored in this repo on HQ's request. Migration `0518` here therefore carries only `sys_cash_count_context_cd` (`OPENING` / `MID_SHIFT` / `CLOSING`).
 - [ ] C1-1a **Blocked on HQ** for the denomination seed. Until it lands, counting falls back to `TOTAL_ONLY` for that currency rather than rendering an empty grid — fail visibly in the admin screen, never silently in the cashier's face.
 - [ ] C1-1b **Tenant-level denomination control (ours, not HQ's)** — `org_currency_denom_cf` (tenant-scoped, RLS): enable/disable a denomination and override `display_order` per tenant/branch. Needed for withdrawn notes still in the global catalog, and for a branch that refuses large notes. `NULL`/absent row = inherit the `sys_` catalog, so zero rows works correctly.
@@ -581,19 +1160,19 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 
 ### C3 — Variance gating (D2) (migration `0521`)
 
-- [ ] C3-1 Migration `0521`: add **`CLOSED_PENDING_APPROVAL`** and **`CLOSING`** to `sys_cash_drawer_session_status_cd` (bilingual).
+- [ ] C3-1 Migration `0521`: add **`CLOSED_PENDING_APPROVAL`** and **`CLOSING`** to `sys_cash_drawer_session_status_cd` (bilingual). **2026-09-25: `CLOSING` and C3-7/C3-8 are delivered by CLF (§4B.13); C3 adds only `CLOSED_PENDING_APPROVAL` + gate modes.**
   > **`CLOSING` closes a hole locking alone cannot.** Wave A narrows the payment-during-close race with `SELECT … FOR UPDATE`; `CLOSING` removes it at the domain level — once counting starts, new cash movements are **refused**, not merely serialized. The lock becomes the backstop rather than the fix. Both new statuses go through the C3-8 allow-list sweep.
 - [ ] C3-2 `closeSession` honours `CASH_DRAWER_VARIANCE_GATE_MODE`:
   - `OFF` — no threshold concept.
   - `WARN_ONLY` — today's B16 behaviour plus an explicit close-time warning and a supervisor queue entry (close still completes, approval optional).
   - `APPROVAL_REQUIRED` — an over-threshold close lands in `CLOSED_PENDING_APPROVAL`; the drawer is not reusable and the POS session cannot close until approved.
 - [ ] C3-3 Threshold resolution order: drawer `variance_approval_threshold` → setting `CASH_DRAWER_VARIANCE_THRESHOLD` → none. Always snapshot the value actually applied.
-- [ ] C3-4 Enforce maker ≠ checker **in code** (B16 documents it only in a column comment).
+- [ ] C3-4 **Owner rule (2026-09-25): no maker ≠ checker.** Holding `cash_drawer:approve_variance` is the only gate — the same user who closed the session may approve it. Do not add a same-user check anywhere.
 - [ ] C3-5 Extend `approve-variance` to release `CLOSED_PENDING_APPROVAL` → `CLOSED`, plus a reject path returning the session to the cashier with a reason.
 - [ ] C3-6 UI: extend `cash-drawer-variance-approval-dialog.tsx`; add a pending-approval queue to the drawer hub with a supervisor badge.
 - [ ] C3-7 **Hole this status would otherwise open — must ship with C3-1.** `assertLinkedDrawerIsClosed` (`pos-session.service.ts:374-390`) blocks the POS close only when the drawer status is **exactly `'OPEN'`**. Introducing `CLOSED_PENDING_APPROVAL` without touching that guard would let a cashier close their POS session while an unapproved variance is still outstanding — defeating the whole gate. Change the check to an **allow-list of terminal statuses** (`CLOSED`, `FORCE_CLOSED`) rather than a deny-list of `OPEN`, so any future status fails safe.
 - [ ] C3-8 Audit the same deny-list pattern elsewhere: grep for `=== 'OPEN'` / `status = 'OPEN'` across drawer and POS session code and convert each to an allow-list where a new status could slip through.
-- [ ] C3-9 Tests for all three modes × over/under threshold × maker-is-checker rejection, plus an explicit test that a POS session **cannot** close while its drawer is `CLOSED_PENDING_APPROVAL`.
+- [ ] C3-9 Tests for all three modes × over/under threshold × same-user approval **allowed** when the permission is held, plus an explicit test that a POS session **cannot** close while its drawer is `CLOSED_PENDING_APPROVAL`.
 
 **STOP-AND-WAIT** after `0521`.
 
@@ -621,6 +1200,8 @@ The highest-value control in this program, and currently absent entirely: a sing
 ## 7. Wave D — Custody chain & audit artifacts
 
 ### D1 — Two-legged cash transfers (migration `0522`)
+
+> **2026-09-25 — superseded by CLF drawer transactions (§4B.3.4, §4B.13).** Only two-phase in-transit receive/cancel remains here; `SAFE_TO_BANK` and petty cash become finance vouchers.
 
 *Defect:* `CASH_DROP` and `PETTY_CASH` are `OUT` movements with no counterpart `IN` (`0267_v1_payment_config_hq.sql:167`, `0297`). Cash leaving a counter drawer disappears from the system and branch cash-on-hand is unanswerable.
 
@@ -703,7 +1284,7 @@ Many POS sessions → one drawer session is intentional (plain index `idx_ops_cd
 
 - [ ] E5-1 Full gates: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest, `npm run check:i18n`, `check:ui-access-contract`, `check:platform-info-inventories`.
 - [ ] E5-2 Final QA guide and `/documentation` pass; amend ADR-054 with the settings-driven controls; new ADR for the custody chain if the two-legged transfer model warrants one.
-- [ ] E5-3 **Security review.** Run `/security-review` over the full program diff. This program touches money, permissions, branch scoping and a service-token endpoint — it is exactly the change set that warrants one. Specific things to confirm: no cross-tenant or cross-branch read path, the rollover job token cannot be guessed or replayed, maker≠checker cannot be bypassed, blind close cannot be defeated from the client, and no money value is accepted from the client without server re-derivation.
+- [ ] E5-3 **Security review.** Run `/security-review` over the full program diff. This program touches money, permissions, branch scoping and a service-token endpoint — it is exactly the change set that warrants one. Specific things to confirm: no cross-tenant or cross-branch read path, the rollover job token cannot be guessed or replayed, every approval is gated by its permission (no same-user restriction — owner rule), blind close cannot be defeated from the client, and no money value is accepted from the client without server re-derivation.
 - [ ] E5-4 **Tenant-isolation sweep** — every new table and endpoint from §9.2/§9.3 has an explicit cross-tenant negative test (§10.8 test matrix).
 - [ ] E5-5 STATUS.md → COMPLETE.
 
@@ -917,7 +1498,6 @@ Every code below is introduced by this program. They must be defined in one plac
 | `CASH_CURRENCY_NOT_IN_SESSION` | 422 | A4-3b | Payment currency has no active balance row and multi-currency is off |
 | `DRAWER_SESSION_CLOSING` | 409 | C3-1 | Movement attempted while the session is counting |
 | `VARIANCE_APPROVAL_REQUIRED` | 409 | C3-2 | Close exceeded threshold under `APPROVAL_REQUIRED` |
-| `VARIANCE_APPROVER_IS_MAKER` | 403 | C3-4 | Maker ≠ checker violated |
 | `POS_SESSION_DRAWER_PENDING_APPROVAL` | 409 | C3-7 | POS close blocked by unapproved drawer variance |
 | `CASH_TRANSFER_DESTINATION_REQUIRED` | 422 | D1-3 | One-legged drop under `cash_drop_requires_dest` |
 | `CASH_TRANSFER_NOT_PENDING` | 409 | D1-4 | Receive/cancel on a non-`PENDING` transfer |
@@ -943,7 +1523,7 @@ Each wave must land its row before exit. Tenant-isolation coverage is mandatory 
 | Layer | Wave A | Wave B | Wave C | Wave D | Wave E |
 |---|---|---|---|---|---|
 | **Unit** | decimal math, currency tolerance (2dp/3dp), expected-cash SQL, **per-currency balance derivation (D14)**, **change-bearer → mode mapping (D16)** | timezone/business-date resolution, rollover modes | count totals from denomination lines, count immutability, blind-close shapes, three-band threshold resolution | transfer leg symmetry, Z snapshot builder | variance aggregation |
-| **DB-integration** (local harness) | concurrent close ×2, payment-during-close, double-open, numbering race, **multi-currency session never cross-nets** | rollover idempotency, branch scoping | gate modes × threshold, maker≠checker | partial-failure rollback, immutability trigger | exclusive-mode enforcement |
+| **DB-integration** (local harness) | concurrent close ×2, payment-during-close, double-open, numbering race, **multi-currency session never cross-nets** | rollover idempotency, branch scoping | gate modes × threshold, same-user approval allowed with permission | partial-failure rollback, immutability trigger | exclusive-mode enforcement |
 | **API** | money serialized as strings, **balances endpoint returns one row per currency** | `POS_SESSION_REQUIRED` payload shape | expected cash genuinely absent pre-count | receive/cancel state machine | report endpoints |
 | **Tenant isolation** | every new/changed endpoint — cross-tenant read and write must fail | ✓ | ✓ | ✓ | ✓ |
 | **UI** | — | session-required interception | count wizard RTL + keyboard | transfer dialog, Z print RTL | screen removal regressions |

@@ -19,7 +19,7 @@
 
 -- ── org_cash_drawer_sessions_mst: variance-approval audit columns ────────────
 -- Populated only when a close exceeds the configured variance threshold and a
--- second actor (approver) authorises it with a mandatory reason. The threshold
+-- (approver) authorises it with a mandatory reason. The threshold
 -- snapshot records the value in effect at close time so historical closes stay
 -- explainable if the drawer's threshold later changes.
 ALTER TABLE org_cash_drawer_sessions_mst
@@ -29,7 +29,7 @@ ALTER TABLE org_cash_drawer_sessions_mst
   ADD COLUMN IF NOT EXISTS variance_threshold_snapshot numeric(19,4);
 
 COMMENT ON COLUMN org_cash_drawer_sessions_mst.variance_approved_by IS
-  'B16: actor (user id) who approved an over-threshold close variance; must differ from closed_by (maker != checker). NULL when no approval was required.';
+  'B16: actor (user id) who approved an over-threshold close variance. NULL when no approval was required.';
 COMMENT ON COLUMN org_cash_drawer_sessions_mst.variance_approved_at IS
   'B16: timestamp the variance approval was recorded. NULL when no approval was required.';
 COMMENT ON COLUMN org_cash_drawer_sessions_mst.variance_approval_reason IS

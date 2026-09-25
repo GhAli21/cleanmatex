@@ -286,6 +286,7 @@ npm run build                      # Build (run after changes)
 - `/storybook` — Story generation for Cmx components (RTL, a11y, variants)
 - `/update-rbac-role` — Create or refresh RBAC roles with intelligent permission mapping + migration generation
 - `/create-feature-flag` — Register a new feature flag via migration (`hq_ff_feature_flags_mst` + plan mappings) and sync the web-admin `FLAG_CATALOG`
+- `/manage-currency-setup-hq` — Create a currency and/or complete its seed data across `sys_currency_cd`, `sys_currency_rounding_rules_cf`, `sys_currency_denominations_cd` via migration; researches missing rounding/denomination facts (WebSearch, cited) rather than guessing
 - `/manage-wf-policy-issues-catalog` — **HQ repo only** (`cleanmatexsaas`). Add/update/retire Check-policy issue catalog rows. Do not hand-edit tenant `docs/features/Workflow_Order_Advance/generated/`
 
 ---

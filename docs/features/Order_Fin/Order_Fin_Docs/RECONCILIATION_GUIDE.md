@@ -56,6 +56,24 @@
 
 **Severity if failed:** WARNING
 
+*Current behaviour (until CLF ships)* — see "Target cash-drawer reconciliation checks" below.
+
+---
+
+### Target cash-drawer reconciliation checks (ADR-057)
+
+**Target architecture — approved 2026-09-25 ([ADR-057](../ADR/ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement), work item CLF-6-3.** The current movement-based cash checks in `voucher-checks.ts` / `ar-checks.ts` are replaced by checks over the drawer ledger (recognised cash voucher lines + drawer transaction lines):
+
+| Target check | What it verifies |
+|---|---|
+| Recognised cash line without drawer stamp | every completed cash-family voucher line on a drawer-tracked method has `cash_effect_code = 'DRAWER'` with `cash_drawer_id`, `cash_ledger_seq`, `cash_recognized_at` |
+| Drawer sequence gaps / duplicates | per drawer, `ledger_seq` values across voucher lines and drawer transaction lines are unique and contiguous up to `org_cash_drawers_mst.ledger_seq` |
+| Closed session snapshot ≠ recompute | for each closed session, `org_cash_drawer_ses_bal_dtl` equals the window recomputed from the ledger |
+| Unbalanced drawer transaction | every `org_cash_drawer_trx_mst` nets to zero per currency across its lines |
+| Cash refund without drawer line | every processed cash refund has a `DRAWER`-stamped voucher line |
+
+Check names are updated in `lib/constants/order-financial.ts` and the `billing.json` i18n when CLF ships. The finance cash-drawer reconciliation report (`getCashDrawerReconReport`) moves onto the same ledger repository, so it uses the same formula as the close (CLF-6-2). Variance checks keep working from the per-currency session snapshot.
+
 ---
 
 ### 7. LOYALTY_LEDGER

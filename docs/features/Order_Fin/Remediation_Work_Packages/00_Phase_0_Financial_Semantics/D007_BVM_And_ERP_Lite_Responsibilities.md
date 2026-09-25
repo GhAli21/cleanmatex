@@ -96,6 +96,15 @@ Five layers with distinct custody make every money movement explainable exactly 
 - B24/B25 own the ERP-only families (AR invoice/write-off, contract-liability recognition).
 - No `posting_status`/GL fields ever migrate onto operational fact tables or BVM vouchers beyond ERP-Lite's own custody; reconciliation owns BVM↔GL agreement checks (B20).
 
+## Note 2026-09-25 — effect of ADR-057 on cash drawer effects
+
+**Target architecture — approved 2026-09-25 ([ADR-057](../../ADR/ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** The five-layer boundary above stands; ADR-057 sharpens the Cash Drawer layer:
+
+- **Every financial cash event is a BVM voucher.** Customer cash receipts, refunds, reversals, stored-value funding, customer-account receipts, cash in / cash out (`EXPENSE_PAYMENT`, `SUPPLIER_PAYMENT`, `PETTY_CASH_ISSUE`, `PETTY_CASH_RETURN`, new `CASH_PAY_IN`) and over/short (`CASH_OVER_SHORT`, from the close event) all become voucher lines. The "Cash movements (float, in/out, petty) → none (drawer facts)" row of the historical draft no longer applies to in/out and petty cash.
+- **Custody stays operational**, not financial: float issue, drops, drawer-to-drawer, driver handover and close disposition are drawer transactions (`org_cash_drawer_trx_mst/_dtl`, lines net to zero) with no BVM voucher and no journal. This matches the approved matrix's "Cash drawer float and count" row.
+- **No mirrors.** The drawer reads the voucher line directly (stamped by the central gate inside voucher posting); `org_cash_drawer_movements_dtl` and the cash-drawer wiring handlers are retired.
+- **ERP-Lite is optional.** All of these vouchers — including petty cash — work without ERP-Lite; the GL side follows the tenant's posting setup (ERP-Lite auto-post when enabled, export to an external ERP otherwise). Failure coupling above is unchanged.
+
 ## Affected work packages
 [B03](../B03_Stored_Value_Funding_Capture.md), [B04](../B04_Later_Collection_BVM_Parity.md), [B06](../B06_ERP_Order_To_Cash_Event_Wiring.md), [B09](../B09_Refund_Execution_Parity.md), [B13](../B13_Voucher_Reversal_Operational_Unwind.md), [B14](../B14_Tax_Document_Runtime_Integration.md), [B20](../B20_Missing_Reconciliation_Checks.md), [B24](../B24_AR_Allocation_Writeoff_And_Period_Controls.md), [B25](../B25_Revenue_Recognition_And_Contract_Liability.md).
 

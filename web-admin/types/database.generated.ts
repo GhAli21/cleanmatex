@@ -25283,39 +25283,6 @@ export type Database = {
         }
         Relationships: []
       }
-      sys_currency_cash_rounding_mode_cd: {
-        Row: {
-          code: string
-          description: string | null
-          description2: string | null
-          display_order: number
-          is_active: boolean
-          name: string
-          name2: string | null
-          rec_status: number
-        }
-        Insert: {
-          code: string
-          description?: string | null
-          description2?: string | null
-          display_order?: number
-          is_active?: boolean
-          name: string
-          name2?: string | null
-          rec_status?: number
-        }
-        Update: {
-          code?: string
-          description?: string | null
-          description2?: string | null
-          display_order?: number
-          is_active?: boolean
-          name?: string
-          name2?: string | null
-          rec_status?: number
-        }
-        Relationships: []
-      }
       sys_currency_cd: {
         Row: {
           cash_rounding_increment_minor: number | null
@@ -25541,7 +25508,7 @@ export type Database = {
             foreignKeyName: "fk_sys_currency_cash_rounding_mode"
             columns: ["cash_rounding_mode"]
             isOneToOne: false
-            referencedRelation: "sys_currency_cash_rounding_mode_cd"
+            referencedRelation: "sys_rounding_mode_cd"
             referencedColumns: ["code"]
           },
           {
@@ -25669,35 +25636,242 @@ export type Database = {
         }
         Relationships: []
       }
-      sys_currency_rounding_rules_cd: {
+      sys_currency_denominations_cd: {
         Row: {
+          back_asset_key: string | null
           created_at: string
+          created_by: string | null
+          created_info: string | null
           currency_code: string
+          default_accept_cash: boolean
+          default_give_as_change: boolean
+          denom_kind: string
+          denomination_code: string
+          denomination_minor: number
+          display_order: number | null
+          front_asset_key: string | null
+          id: string
           is_active: boolean
-          notes: string | null
+          is_in_circulation: boolean
+          is_legal_tender: boolean
+          issue_date: string | null
+          legal_tender_from: string | null
+          legal_tender_to: string | null
+          metadata: Json
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
           rec_status: number
-          rounding_method: string
-          rounding_unit: number
+          series_code: string | null
+          series_name: string | null
+          series_name2: string | null
+          short_name: string | null
+          short_name2: string | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          withdrawal_date: string | null
         }
         Insert: {
+          back_asset_key?: string | null
           created_at?: string
+          created_by?: string | null
+          created_info?: string | null
           currency_code: string
+          default_accept_cash?: boolean
+          default_give_as_change?: boolean
+          denom_kind: string
+          denomination_code: string
+          denomination_minor: number
+          display_order?: number | null
+          front_asset_key?: string | null
+          id?: string
           is_active?: boolean
-          notes?: string | null
+          is_in_circulation?: boolean
+          is_legal_tender?: boolean
+          issue_date?: string | null
+          legal_tender_from?: string | null
+          legal_tender_to?: string | null
+          metadata?: Json
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
           rec_status?: number
-          rounding_method?: string
-          rounding_unit?: number
+          series_code?: string | null
+          series_name?: string | null
+          series_name2?: string | null
+          short_name?: string | null
+          short_name2?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          withdrawal_date?: string | null
         }
         Update: {
+          back_asset_key?: string | null
           created_at?: string
+          created_by?: string | null
+          created_info?: string | null
           currency_code?: string
+          default_accept_cash?: boolean
+          default_give_as_change?: boolean
+          denom_kind?: string
+          denomination_code?: string
+          denomination_minor?: number
+          display_order?: number | null
+          front_asset_key?: string | null
+          id?: string
           is_active?: boolean
-          notes?: string | null
+          is_in_circulation?: boolean
+          is_legal_tender?: boolean
+          issue_date?: string | null
+          legal_tender_from?: string | null
+          legal_tender_to?: string | null
+          metadata?: Json
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
           rec_status?: number
-          rounding_method?: string
-          rounding_unit?: number
+          series_code?: string | null
+          series_name?: string | null
+          series_name2?: string | null
+          short_name?: string | null
+          short_name2?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          withdrawal_date?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sys_currency_denominations_cd_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_currency_rounding_rules_cf: {
+        Row: {
+          calculation_decimal_places: number | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          is_mandatory: boolean
+          is_tenant_overridable: boolean
+          metadata: Json
+          name: string | null
+          name2: string | null
+          output_decimal_places: number | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          rounding_context: string
+          rounding_increment_minor: number | null
+          rounding_method: string
+          rounding_mode: string
+          rounding_unit: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          calculation_decimal_places?: number | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_mandatory?: boolean
+          is_tenant_overridable?: boolean
+          metadata?: Json
+          name?: string | null
+          name2?: string | null
+          output_decimal_places?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          rounding_context: string
+          rounding_increment_minor?: number | null
+          rounding_method?: string
+          rounding_mode: string
+          rounding_unit?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          calculation_decimal_places?: number | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_mandatory?: boolean
+          is_tenant_overridable?: boolean
+          metadata?: Json
+          name?: string | null
+          name2?: string | null
+          output_decimal_places?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          rounding_context?: string
+          rounding_increment_minor?: number | null
+          rounding_method?: string
+          rounding_mode?: string
+          rounding_unit?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_scrr_context"
+            columns: ["rounding_context"]
+            isOneToOne: false
+            referencedRelation: "sys_rounding_context_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_scrr_currency"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_scrr_mode"
+            columns: ["rounding_mode"]
+            isOneToOne: false
+            referencedRelation: "sys_rounding_mode_cd"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       sys_currency_symbol_direction_cd: {
         Row: {
@@ -32696,6 +32870,120 @@ export type Database = {
           rec_status?: number | null
           report_type?: string | null
           requires_admin_access?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_rounding_context_cd: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_rounding_mode_cd: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null

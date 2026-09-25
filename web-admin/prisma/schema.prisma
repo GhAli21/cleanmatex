@@ -3909,6 +3909,9 @@ model sys_currency_cd {
   is_default          Boolean?  @default(false)
   is_system           Boolean?  @default(true)
   is_active           Boolean?  @default(true)
+  /// Currency Setup Phase 3 (migration 0524). Whether this currency is
+  /// offered to tenants — independent of is_system/is_active.
+  is_platform_enabled Boolean   @default(false)
   metadata            Json?
   created_at          DateTime? @default(now()) @db.Timestamp(6)
   created_by          String?   @db.Uuid
@@ -7672,15 +7675,133 @@ model org_loyalty_txn_allocs_dtl {
 // Phase 6 — Financial Governance (migrations 0290–0293)
 // =============================================================================
 
-model sys_currency_rounding_rules_cd {
-  currency_code   String   @id
-  rounding_method String   @default("HALF_UP")
-  rounding_unit   Decimal  @db.Decimal(10, 6)
-  notes           String?
-  is_active       Boolean  @default(true)
-  rec_status      Int      @default(1) @db.SmallInt
-  created_at      DateTime @default(now()) @db.Timestamptz(6)
+/// HQ Currency Setup handoff §3.2 (migrations 0520-0522). Renamed from
+/// sys_currency_rounding_rules_cd (single row per currency, ACCOUNTING-only)
+/// to _cf (policy/configuration, not code values) and expanded to one row
+/// per (currency_code, rounding_context). See lib/money/currency-rounding.ts.
+model sys_currency_rounding_rules_cf {
+  id                          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  currency_code               String
+  /// Legacy 0290-era columns, still live pending the deferred "step 4" migration
+  /// (drops these once nothing reads them — see 0521's header). Not read by any
+  /// current code path; rounding_mode/rounding_increment_minor are authoritative.
+  rounding_method             String    @default("HALF_UP")
+  rounding_unit               Decimal   @default(0.01) @db.Decimal
+  rounding_context            String
+  calculation_decimal_places  Int?
+  output_decimal_places       Int?
+  rounding_mode               String
+  rounding_increment_minor    Int?
+  is_tenant_overridable       Boolean   @default(false)
+  is_mandatory                Boolean   @default(false)
+  effective_from              DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  effective_to                DateTime? @db.Date
+  name                        String?
+  name2                       String?
+  description                 String?
+  description2                String?
+  display_order               Int?
+  rec_notes                   String?
+  metadata                    Json      @default("{}")
+  is_active                   Boolean   @default(true)
+  rec_status                  Int       @default(1) @db.SmallInt
+  rec_order                   Int?
+  created_at                  DateTime  @default(now()) @db.Timestamptz(6)
+  created_by                  String?
+  created_info                String?
+  updated_at                  DateTime?
+  updated_by                  String?
+  updated_info                String?
 
+  @@schema("public")
+}
+
+/// HQ-owned catalog of rounding contexts (handoff §3.2.3), migration 0520.
+model sys_rounding_context_cd {
+  code          String    @id
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  display_order Int?
+  is_active     Boolean   @default(true)
+  rec_status    Int       @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime?
+  updated_by    String?
+  updated_info  String?
+
+  @@schema("public")
+}
+
+/// Unified 7-mode rounding vocabulary (handoff §3.2/§3.5), migration 0520.
+/// Replaces sys_currency_cash_rounding_mode_cd (dropped — 34 chars, over
+/// this repo's 30-char limit; its one live referrer, sys_currency_cd's FK,
+/// was repointed here in the same migration).
+model sys_rounding_mode_cd {
+  code          String    @id
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  display_order Int?
+  is_active     Boolean   @default(true)
+  rec_status    Int       @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime?
+  updated_by    String?
+  updated_info  String?
+
+  @@schema("public")
+}
+
+/// HQ-owned note/coin catalog (handoff §4), migration 0522. Tenant app
+/// consumes read-only; org_currency_denom_cf (tenant overrides) is separate.
+model sys_currency_denominations_cd {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  currency_code          String
+  denomination_code      String
+  denomination_minor     Int
+  denom_kind             String
+  name                   String
+  name2                  String?
+  short_name             String?
+  short_name2            String?
+  series_code            String?
+  series_name            String?
+  series_name2           String?
+  issue_date             DateTime? @db.Date
+  withdrawal_date        DateTime? @db.Date
+  legal_tender_from      DateTime? @db.Date
+  legal_tender_to        DateTime? @db.Date
+  is_legal_tender        Boolean   @default(true)
+  is_in_circulation      Boolean   @default(true)
+  is_active              Boolean   @default(true)
+  default_accept_cash    Boolean   @default(true)
+  default_give_as_change Boolean   @default(true)
+  display_order          Int?
+  front_asset_key        String?
+  back_asset_key         String?
+  metadata                Json     @default("{}")
+  rec_status             Int       @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  created_at             DateTime  @default(now()) @db.Timestamptz(6)
+  created_by              String?
+  created_info           String?
+  updated_at              DateTime?
+  updated_by              String?
+  updated_info            String?
+
+  @@unique([currency_code, denomination_code])
   @@schema("public")
 }
 

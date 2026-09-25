@@ -1,5 +1,7 @@
 # CleanMateX Order Edit E2E Test Report
 
+> **Owner rule 2026-09-25:** no maker ≠ checker — holding the permission is the only approval gate, the same user may approve. Statements below recommending a different-user approval are superseded.
+
 - **Tester:** Test_app_and_report (Grok Bot)
 - **Dates:** 22–23 Sep 2026 (Asia/Muscat)
 - **Environment:** https://cmx.cleanmatex.com

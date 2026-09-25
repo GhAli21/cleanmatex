@@ -1,3 +1,5 @@
+> **2026-09-25:** The cash-drawer mechanics in this package are superseded by ADR-057 (two-domain cash ledger), approved and pending implementation in package CLF — see POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md §4B.
+
 # B16 — Cash Drawer Filtering and Variance Approval
 
 ## Metadata

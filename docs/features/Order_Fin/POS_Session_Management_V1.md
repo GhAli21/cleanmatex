@@ -8,6 +8,12 @@ Phase 1 is schema and documentation only. Migrations `0396`–`0398` were applie
 
 Runtime lifecycle, finance lineage, order-entry auto-ensure, the POS Sessions workbench, and dashboard navigation were implemented later on 2026-07-04. Navigation migration `0399_pos_sessions_navigation.sql` was applied by the user to local and remote DBs on 2026-07-04.
 
+> **Target changes (ADR-057) — approved 2026-09-25, implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** This document describes current behaviour until CLF ships. Planned changes affecting POS sessions ([ADR-057](./ADR/ADR-057-Two-Domain-Cash-Ledger.md), [ADR-054 amendment](./ADR/ADR-054-User-Owned-POS-Sessions.md#amendment-2026-09-25-adr-057)):
+> - The cash drawer session becomes a **reconciliation window** over the drawer ledger (cash voucher lines + drawer transactions), not a live recomputation from payment status.
+> - Drawer close becomes two steps (*count* → *finalize*) with a new `CLOSING` status; the POS close guard accepts only terminal drawer statuses (`CLOSED`, `FORCE_CLOSED`).
+> - Cash postings pass the drawer; the central gate resolves the open drawer session inside the transaction — the client-supplied `cash_drawer_session_id` is no longer trusted.
+> - The POS hub and POS sessions screen use the shared close wizard instead of raw `fetch`. No maker ≠ checker on any approval.
+
 ## Domain Ownership Split
 
 | Domain | What it owns | What it does not own |

@@ -8,6 +8,7 @@
 
 - **Planning is complete.** 188 tasks, decisions D1–D28, three completeness audits.
 - **Wave 0 is COMPLETE** (migrations `0515`–`0518`, applied local+remote). **Wave A is IN PROGRESS**: A1, A2 (except the documented payment-during-close gap), **A3 is fully COMPLETE** (A3-1/A3-2/A3-3/A3-4/A3-5/A3-6/A3-7 all done — only A3-6b remains, deliberately deferred pending an owner call), and A4-1/A4-2 are done; A5-1/A5-2/A5-3 were run 2026-09-24 as an **interim checkpoint** (whole-project gates green, QA guide + docs refreshed) at the owner's request — this is **not** a Wave A close. **D26 (2026-09-24, CRITICAL, fixed): `closeSession` was failing on every real call since A3-3 shipped** — a Prisma-modeled column (`sys_currency_cd.decimal_places`) never existed on the live table, local or remote; fixed to the real `minor_unit` column, DB-integration-verified. **D28 (2026-09-25): A3-4 shipped** — money now crosses the drawer/POS-session APIs as exact fixed-point strings end to end, plus 2 real bugs found and fixed on the session print page along the way. Remaining in Wave A: A4-3/A4-3b/A4-3c/A4-3d/A4-4, A6 (now confirmed blocked at the DDL-authoring level too, not just value-supply — see D28/RESUME), and A3-6b pending an owner call (see D27). Waves B–E not started.
+- **New package CLF — Cash Ledger Foundation (approved 2026-09-25, not started).** The owner approved a two-domain cash ledger ([ADR-057](../ADR/ADR-057-Two-Domain-Cash-Ledger.md); STATUS **D29** design, **D30** plan approved with changes A–E, **D31** petty cash + pending-deposit buttons). Plan: [`IMPLEMENTATION_PLAN.md` §4B](./IMPLEMENTATION_PLAN.md). Delivered in three releases — **R1 Ledger** → **R2 Sessions** → **R3 Retirement**. CLF runs after the Wave A items it does not supersede and **before Waves B–E**, which build on it. It supersedes A4-3/3b/3c/3d, parts of C1/C2/C3, most of D1, and E1 (§4B.13). No code or migrations exist for it yet.
 - **Next action:** see [`RESUME_CONTINUATION.md`](./RESUME_CONTINUATION.md) for the current pointer and options.
 - All open questions are answered or carry a recorded safe default.
 - The only external dependency is HQ's curated currency values — and both affected packages degrade safely without them, so nothing is blocked.
@@ -26,7 +27,7 @@ Related, in the **HQ repo**: `cleanmatexsaas/docs/features/Currency_Setup/HQ_CUR
 
 ## 3. Read order before writing anything
 
-1. `STATUS.md` — decisions D1–D25 and any newly answered questions.
+1. `STATUS.md` — decisions D1–D31 and any newly answered questions (D29–D31 = CLF).
 2. `RESUME_CONTINUATION.md` — the current pointer (what just shipped, what's next).
 3. `IMPLEMENTATION_PLAN.md` **§10** — the standing rules. All of them apply to every task.
 4. The specific wave section you are starting.
@@ -46,7 +47,9 @@ Load the skills for the domain. This is CLAUDE.md's hard stop, and it has been s
 
 For W0 specifically: **`/database` + `/multitenancy`**.
 
-## 5. Where to start — Wave A remainder (Wave 0 is done)
+## 5. Where to start — Wave A remainder (Wave 0 is done), then CLF
+
+> **CLF changes the order.** After the remaining Wave A items that CLF does **not** supersede (e.g. A6, A3-6b), start package CLF at release **R1 Ledger** (§4B.2a-D; CLF-0-1 and CLF-0-4 are stop-and-report checks). **Do not start A4-3/3b/3c/3d** — replaced by `org_cash_drawer_ses_bal_dtl` in CLF. Waves B–E start only after CLF. Owner rule: no maker ≠ checker anywhere (§4B.2a-E).
 
 Wave 0 is fully shipped and applied. Wave A is partially shipped (A1, A2, **A3 fully done**, A4-1/2, A5-1/2/3-as-checkpoint). See `RESUME_CONTINUATION.md`'s latest entry for the owner's next pick among: A4-3/A4-3b/A4-3c/A4-3d/A4-4 (per-currency session balances table + `allow_multi_currency_drawer` setting — Wave-0-sized, its own pass) or A6 (cash tender rounding — blocked pending HQ's rounding-vocabulary sign-off, `HQ-CUR-3`; not a viable pick until that lands). A3-6b (demo-data recompute) needs an owner call on which historical sessions are safe to touch before it can be picked up (see D27). Load `/database` + `/multitenancy` for any of these that touch a table or `org_*` query; `/backend`/`/frontend`/`/i18n` per CLAUDE.md's table for the rest.
 
@@ -68,8 +71,9 @@ These are settled. Reopening them wastes a session:
 - Settings live in `org_fin_cash_ctrl_stng_cf` with one column per setting and a single resolver service (D3, D4).
 - Rounding policy lives in `sys_currency_rounding_rules_cf`, HQ-owned (D8, D12).
 - Denomination catalog is HQ-owned; we consume it read-only (D9).
-- Per-currency session balances, **not** a single-currency `CHECK` (D14).
-- Counts are header + detail snapshots, immutable (D15).
+- Per-currency session balances, **not** a single-currency `CHECK` (D14) — realised by CLF as `org_cash_drawer_ses_bal_dtl` (not `org_cash_sess_curr_dtl`).
+- Counts are header + detail snapshots, immutable (D15) — CLF tables `org_cash_drawer_cnt_mst` / `org_cash_drawer_cnt_denom_dtl`.
+- Two-domain cash ledger: finance = vouchers, custody = drawer transactions, one central gate, no mirrors, no recovery sessions (D29–D31, ADR-057).
 - Cash-change rounding is a tenant setting; tender rounding is not (D16).
 
 ## 8. Suggested first prompt for a cold session

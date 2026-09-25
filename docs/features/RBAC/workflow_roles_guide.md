@@ -20,7 +20,7 @@ Workflow roles provide **process-level access control**:
 
 - Control which workflow screens users can access
 - Restrict order status transitions by role
-- Ensure proper segregation of duties
+- Scope each user to the process steps their roles grant (permission is the only gate; one user may hold several workflow roles and perform consecutive steps — no maker ≠ checker, owner rule 2026-09-25)
 - Track who performed which workflow step
 
 **Different from User Roles:** User roles control app features, workflow roles control process steps.

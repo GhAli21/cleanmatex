@@ -65,6 +65,7 @@ Two historic series collided on numbers 001–030. Resolution:
 - [ADR-054-User-Owned-POS-Sessions.md — ADR-054: User-Owned POS Sessions](./ADR-054-User-Owned-POS-Sessions.md)
 - [ADR-055-Single-Payment-Read-Model.md — ADR-055 — Single Payment Read Model](./ADR-055-Single-Payment-Read-Model.md)
 - [ADR-056-Cash-Control-Settings-Finance-Owned-Table.md — ADR-056: Cash-Control Settings Live in a Finance-Owned Table](./ADR-056-Cash-Control-Settings-Finance-Owned-Table.md)
+- [ADR-057-Two-Domain-Cash-Ledger.md — ADR-057: Two-Domain Cash Ledger (Finance Vouchers + Drawer Transactions) — supersedes ADR-032](./ADR-057-Two-Domain-Cash-Ledger.md)
 
 ## Special
 

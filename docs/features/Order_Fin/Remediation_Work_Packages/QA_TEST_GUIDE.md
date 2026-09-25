@@ -231,6 +231,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 ---
 
 ## 6. B16 — Drawer close filtering + OPTIONAL variance approval
+
+> **2026-09-25 — these cash-drawer scenarios change when CLF ships.** ADR-057 (two-domain cash ledger) is approved but not yet implemented (package CLF, `POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md` §4B). Until then, test the scenarios below as written. After CLF: manual movements become drawer transactions or cash in / cash out vouchers, close becomes count → finalize with a mandatory disposition, and expected cash comes from the drawer ledger. Scenarios will be rewritten per CLF release.
+
 **What changed:** expected cash counts only real completed cash; variance approval is **optional, non-blocking, opt-in per drawer** (off by default).
 
 > Where: **Internal Finance And Operations → Cash Drawers** (`/dashboard/internal_fin/cash-drawers`). Open a drawer to see/open its session, add movements, and **Close** it. Session detail (with the variance banner) is reachable by drilling into a closed session.
@@ -249,6 +252,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 ---
 
 ## 7. B35 — Unified drawer expected-cash (double-count fix)
+
+> **2026-09-25 — these cash-drawer scenarios change when CLF ships.** ADR-057 (two-domain cash ledger) is approved but not yet implemented (package CLF, `POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md` §4B). Until then, test the scenarios below as written. After CLF: manual movements become drawer transactions or cash in / cash out vouchers, close becomes count → finalize with a mandatory disposition, and expected cash comes from the drawer ledger. Scenarios will be rewritten per CLF release.
+
 **What changed:** each cash fact counted exactly once — sale cash from payments + manual float/petty movements; the close **preview** matches the actual close.
 
 > Where: **Internal Finance And Operations → Cash Drawers** for close + session detail; **POS Sessions** (`/dashboard/internal_fin/pos-sessions`) for the close **preview** screen.
@@ -394,6 +400,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 ---
 
 ## 15. B30 + B32 — Pending-payment back-office lifecycle & drawer status gating
+
+> **2026-09-25 — these cash-drawer scenarios change when CLF ships.** ADR-057 (two-domain cash ledger) is approved but not yet implemented (package CLF, `POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md` §4B). Until then, test the scenarios below as written. After CLF: manual movements become drawer transactions or cash in / cash out vouchers, close becomes count → finalize with a mandatory disposition, and expected cash comes from the drawer ledger. Scenarios will be rewritten per CLF release.
+
 **What changed:** a new cross-order **Pending Payments** worklist lets an accountant VERIFY / CANCEL / mark FAILED-BOUNCED any PENDING or PROCESSING payment leg without hunting through individual orders; CANCEL and FAIL-BOUNCE require a mandatory reason plus a governed classification of what happens to the outstanding balance (D009). The same three actions were also added to the existing per-order **Payments & Credits** tab next to the pre-existing Verify button. Separately (B32), a drawer-required payment method configured to create legs as PENDING no longer records a premature cash-in movement — the movement is now created only when the leg actually completes (either immediately, or later via the new VERIFY action). Ships **unconditionally, no feature flag**. Migration **0415 is APPLIED (owner), verified via remote DB** (adds the audit columns + the 3 new permission codes + nav entry).
 
 > Where: **Internal Finance And Operations → Pending Payments** (`/dashboard/internal_fin/pending-payments`) for the cross-order worklist; any order's **Financial → Payments & Credits** tab for the per-order actions.
@@ -860,6 +869,8 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ## 33. POS Session & Cash Drawer Hardening — Wave 0 + Wave A (partial, added 2026-09-24, updated 2026-09-25)
 
+> **2026-09-25 — these cash-drawer scenarios change when CLF ships.** ADR-057 (two-domain cash ledger) is approved but not yet implemented (package CLF, `POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md` §4B). Until then, test the scenarios below as written. After CLF: manual movements become drawer transactions or cash in / cash out vouchers, close becomes count → finalize with a mandatory disposition, and expected cash comes from the drawer ledger. Scenarios will be rewritten per CLF release.
+
 **What this is:** a separate hardening program, tracked in `docs/features/Order_Fin/POS_Session_Cash_Drawer_Hardening/` (`STATUS.md` is authoritative for what's shipped). Only the pieces with an owner-runnable UI surface are listed here; A1 (session-number collision fix) and A2 (concurrent-mutation locking) have **no UI surface** — they are proven by DB-integration tests against concurrent requests, not something a manual tester can exercise meaningfully by clicking. Wave A is **not** fully closed (A4-3/3b/3c/3d/4, A6 remain; A3-6b needs an owner call) — this section covers only what a tester can verify today. **A3-4 (2026-09-25, D28)** is an internal money-serialization change with no new screens — its only owner-visible effect is 33.12/33.13 below.
 
 | # | Where + how | Expected | Result |
@@ -962,7 +973,7 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
     Several scenarios require replaying the same idempotency key. Ship a Preview-only “QA: replay last mutation” affordance or document a safe API recipe in the owner setup sheet so manual QA can verify idempotency without browser DevTools.
 
 15. **Maker-checker removal communication**  
-    Same-user approve for refunds works (§5.4 / §28.1–28.2) — correct per owner rule. Add an audit banner on Approve (“You are approving your own request”) for SOX-ish tenants who may later re-enable dual control via a tenant setting rather than hard-coding either extreme.
+    Same-user approve for refunds works (§5.4 / §28.1–28.2) — correct per owner rule. An informational audit banner on Approve (“You are approving your own request”) is optional UX only. **No dual control will be re-introduced — not hard-coded, not as a tenant setting (owner rule 2026-09-25: holding the permission is the only approval gate).**
 
 16. **Mobile / responsive spot-check gap**  
     This run was desktop Chrome only. Prioritise Collect Payment, Refunds approve/process, and Cash Drawer close on a narrow viewport next pass — cash tender chips and sticky New Order Preferences pill are likely overflow risks.
