@@ -66,6 +66,8 @@ jobs:
           cache: 'npm'
       - name: Install
         run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace=web-admin
       - name: Lint web-admin
         run: npm run lint --workspace=web-admin
       - name: Test web-admin
