@@ -253,23 +253,30 @@ export default function CmxSidebar() {
     })
   }
 
-  useEffect(() => {
-    const keysToExpand = new Set<string>()
-    filteredNavigation.forEach((section) => {
-      if (section.children) {
-        const hasActiveChild = section.children.some((child) =>
-          isPathActive(pathname, child.path)
-        )
-        if (hasActiveChild) keysToExpand.add(section.key)
-      }
-    })
-    const isDifferent =
-      keysToExpand.size !== expandedSections.size ||
-      [...keysToExpand].some((k) => !expandedSections.has(k))
-    if (isDifferent) setExpandedSections(keysToExpand)
+  // Sections holding the active route, serialized with the pathname so the
+  // comparison below is by value (filteredNavigation is not referentially stable).
+  const activeSectionsSignature = useMemo(() => {
+    const activeKeys = filteredNavigation
+      .filter((section) =>
+        section.children?.some((child) => isPathActive(pathname, child.path))
+      )
+      .map((section) => section.key)
+    return JSON.stringify([pathname, activeKeys])
   }, [pathname, filteredNavigation])
 
-  useEffect(() => setIsMobileOpen(false), [pathname])
+  // Adjust state during render on route change instead of in an effect
+  // (react-hooks/set-state-in-effect): expand active sections, close mobile drawer.
+  const [syncedSignature, setSyncedSignature] = useState<string | null>(null)
+  const [syncedPathname, setSyncedPathname] = useState(pathname)
+  if (activeSectionsSignature !== syncedSignature) {
+    setSyncedSignature(activeSectionsSignature)
+    const [, activeKeys] = JSON.parse(activeSectionsSignature) as [string, string[]]
+    setExpandedSections(new Set(activeKeys))
+  }
+  if (pathname !== syncedPathname) {
+    setSyncedPathname(pathname)
+    setIsMobileOpen(false)
+  }
 
   useEffect(() => {
     if (isMobileOpen) document.body.style.overflow = 'hidden'
