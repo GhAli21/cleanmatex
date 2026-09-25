@@ -32,8 +32,11 @@
 BEGIN;
 SET TRANSACTION READ ONLY;
 
--- ── Shared working set ───────────────────────────────────────────────────────
-CREATE TEMP VIEW l0_tenant_currency AS
+-- The shared definition (resolved settings, document currencies) is repeated
+-- as a WITH clause in Q1 and Q2: a READ ONLY transaction forbids every CREATE,
+-- including CREATE TEMP VIEW.
+
+-- ── Q1: per-tenant summary ───────────────────────────────────────────────────
 WITH resolved AS (
   SELECT
     t.id                                   AS tenant_org_id,
@@ -59,7 +62,8 @@ doc_ccy AS (
   UNION SELECT tenant_org_id, currency_code FROM public.org_cash_drawer_sessions_mst WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_customer_wallets_mst WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_gift_cards_mst  WHERE currency_code IS NOT NULL
-)
+),
+l0_tenant_currency AS (
 SELECT
   r.tenant_org_id,
   r.tenant_name,
@@ -75,14 +79,57 @@ SELECT
      FROM doc_ccy d WHERE d.tenant_org_id = r.tenant_org_id)                             AS doc_currencies
 FROM resolved r
 LEFT JOIN public.sys_currency_cd c
-       ON c.code = UPPER(TRIM(r.resolved_tenant_currency));
-
--- ── Q1: per-tenant summary ───────────────────────────────────────────────────
+       ON c.code = UPPER(TRIM(r.resolved_tenant_currency))
+)
 SELECT *
   FROM l0_tenant_currency
  ORDER BY tenant_name;
 
 -- ── Q2: tenants that need an owner decision before 0532 ──────────────────────
+WITH resolved AS (
+  SELECT
+    t.id                                   AS tenant_org_id,
+    t.name                                 AS tenant_name,
+    NULLIF(TRIM(t.currency), '')           AS profile_currency,
+    (SELECT r.stng_value_jsonb #>> '{}'
+       FROM fn_stng_resolve_all_settings(t.id) r
+      WHERE r.stng_code = 'TENANT_CURRENCY')                  AS resolved_tenant_currency,
+    (SELECT r.stng_source_layer
+       FROM fn_stng_resolve_all_settings(t.id) r
+      WHERE r.stng_code = 'TENANT_CURRENCY')                  AS resolved_layer,
+    (SELECT r.stng_value_jsonb #>> '{}'
+       FROM fn_stng_resolve_all_settings(t.id) r
+      WHERE r.stng_code = 'TENANT_DECIMAL_PLACES')            AS resolved_decimal_places
+  FROM public.org_tenants_mst t
+),
+doc_ccy AS (
+  SELECT tenant_org_id, currency_code FROM public.org_orders_mst            WHERE currency_code IS NOT NULL
+  UNION SELECT tenant_org_id, currency_code FROM public.org_invoice_mst     WHERE currency_code IS NOT NULL
+  UNION SELECT tenant_org_id, currency_code FROM public.org_payments_dtl_tr WHERE currency_code IS NOT NULL
+  UNION SELECT tenant_org_id, currency_code FROM public.org_fin_vouchers_mst WHERE currency_code IS NOT NULL
+  UNION SELECT tenant_org_id, currency_code FROM public.org_cash_drawers_mst WHERE currency_code IS NOT NULL
+  UNION SELECT tenant_org_id, currency_code FROM public.org_cash_drawer_sessions_mst WHERE currency_code IS NOT NULL
+  UNION SELECT tenant_org_id, currency_code FROM public.org_customer_wallets_mst WHERE currency_code IS NOT NULL
+  UNION SELECT tenant_org_id, currency_code FROM public.org_gift_cards_mst  WHERE currency_code IS NOT NULL
+),
+l0_tenant_currency AS (
+SELECT
+  r.tenant_org_id,
+  r.tenant_name,
+  UPPER(TRIM(r.resolved_tenant_currency))             AS resolved_tenant_currency,
+  r.resolved_layer,
+  UPPER(r.profile_currency)                           AS profile_currency,
+  r.resolved_decimal_places,
+  c.minor_unit,
+  c.is_active                                         AS currency_is_active,
+  c.is_platform_enabled                               AS currency_is_platform_enabled,
+  EXISTS (SELECT 1 FROM public.org_orders_mst o WHERE o.tenant_org_id = r.tenant_org_id) AS has_orders,
+  (SELECT string_agg(DISTINCT UPPER(TRIM(d.currency_code)), ', ' ORDER BY UPPER(TRIM(d.currency_code)))
+     FROM doc_ccy d WHERE d.tenant_org_id = r.tenant_org_id)                             AS doc_currencies
+FROM resolved r
+LEFT JOIN public.sys_currency_cd c
+       ON c.code = UPPER(TRIM(r.resolved_tenant_currency))
+)
 SELECT
   tenant_org_id,
   tenant_name,
@@ -104,9 +151,8 @@ SELECT
          THEN 'CURRENCY_NOT_PLATFORM_ENABLED: enable it in HQ Currency Setup or pick another' END,
     CASE WHEN profile_currency IS DISTINCT FROM resolved_tenant_currency
          THEN 'PROFILE_MISMATCH: org_tenants_mst.currency differs; the mirror will be overwritten with the base' END,
-    CASE WHEN resolved_decimal_places IS NOT NULL AND minor_unit IS NOT NULL
-              AND resolved_decimal_places ~ '^\d+$'
-              AND resolved_decimal_places::INT <> minor_unit
+    CASE WHEN (CASE WHEN resolved_decimal_places ~ '^\d+$'
+                    THEN resolved_decimal_places::INT END) <> minor_unit
          THEN 'DECIMALS_CHANGE: TENANT_DECIMAL_PLACES ' || resolved_decimal_places
               || ' will become minor_unit ' || minor_unit || ' (rounding changes, C8)' END,
     CASE WHEN resolved_layer IS NOT NULL AND resolved_layer NOT ILIKE '%TENANT%'
@@ -122,8 +168,8 @@ WHERE resolved_tenant_currency IS NULL
    OR currency_is_active = FALSE
    OR currency_is_platform_enabled = FALSE
    OR profile_currency IS DISTINCT FROM resolved_tenant_currency
-   OR (resolved_decimal_places ~ '^\d+$' AND minor_unit IS NOT NULL
-       AND resolved_decimal_places::INT <> minor_unit)
+   OR (CASE WHEN resolved_decimal_places ~ '^\d+$'
+            THEN resolved_decimal_places::INT END) <> minor_unit
    OR (resolved_layer IS NOT NULL AND resolved_layer NOT ILIKE '%TENANT%')
    OR (doc_currencies IS NOT NULL AND resolved_tenant_currency IS NOT NULL
        AND doc_currencies <> resolved_tenant_currency)
