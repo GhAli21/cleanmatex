@@ -461,7 +461,7 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 
 **Tasks (tenant side):**
 
-- [ ] A6-1 **Blocked on HQ** — see the HQ currency handoff (`cleanmatexsaas/docs/features/Currency_Setup/HQ_CURRENCY_HANDOFF.md`). HQ must expand and seed `sys_currency_rounding_rules_cf` (`rounding_context`, `calculation_decimal_places` / `output_decimal_places`, `rounding_increment_minor`, unified mode catalog) before cash rounding does anything. Until then the resolver no-ops safely, so this wave ships and lights up when HQ lands. **The DDL and seed migrations are still written in this repo on HQ's request.**
+- [x] A6-1 **Unblocked 2026-09-25** — HQ data seeded and applied (`0520`-`0522`, STATUS HQ-CUR-1/2/3). Original note: see the HQ currency handoff (`cleanmatexsaas/docs/features/Currency_Setup/HQ_CURRENCY_HANDOFF.md`). HQ must expand and seed `sys_currency_rounding_rules_cf` (`rounding_context`, `calculation_decimal_places` / `output_decimal_places`, `rounding_increment_minor`, unified mode catalog) before cash rounding does anything. Until then the resolver no-ops safely, so this wave ships and lights up when HQ lands. **The DDL and seed migrations are still written in this repo on HQ's request.**
 - [ ] A6-1b **Fallback ladder (owner decision D13).** The resolver must degrade cleanly with no rule row present: rule `(currency, context)` → rule `(currency, 'ACCOUNTING')` → **`sys_currency_cd.minor_unit`** for both calculation and output precision, and no increment snapping when `rounding_increment_minor` is `NULL`. A currency HQ never curated still rounds correctly to its own minor unit.
 - [ ] A6-2 Rewire `lib/money/currency-rounding.ts` to the **expanded `sys_currency_rounding_rules_cf`** (owner decision, see handoff §3): resolve `(currency, rounding_context)`, fall back to `(currency, 'ACCOUNTING')`, then no-op. Arithmetic in **minor units**. **Resolve or no-op, never assume** — keep the existing B15/B17 policy.
 - [ ] A6-2b Mirror `sys_rounding_context_cd` and the unified `sys_rounding_mode_cd` codes into TS constants (DB-mirror rule). The current `CURRENCY_ROUNDING_MODES` uses `FLOOR`/`CEIL`; the unified catalog uses `DOWN`/`UP` — migrate the constant and every switch in `currency-rounding.ts`.
@@ -471,6 +471,19 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [ ] A6-6 **Decimal-place authority (owner-decided).** `sys_currency_cd.decimal_places` / `minor_unit` is the single source; `varianceToleranceFor()` (W0-15) resolves from it. **Deprecate `TENANT_DECIMAL_PLACES` to display-only** — audit its call sites in `tenant-settings.service.ts` (`CurrencyConfig`) and migrate each to the currency master. Do not remove the setting in the same step; deprecate, migrate, then retire.
 - [ ] A6-7 Honour `is_cash_supported`: a currency with it false must not be selectable as a drawer currency.
 - [ ] A6-8 Tests: with OMR `cash_rounding_increment_minor = 5`, a `2.003` cash tender rounds to `2.005` with a rounding line emitted; the same amount on card stays `2.003`; a drawer closes balanced across 200 mixed-tender orders. Plus an explicit test that `NULL` increment is a clean no-op.
+
+**A6-1b execution plan (2026-09-25, awaiting owner approval — STATUS D36).** HQ data `0520`-`0522` is applied, so A6-1 is no longer blocked. No code written yet.
+
+- **Owner decision required first:** (a) *preview-only* — UI shows rounded cash due / rounded change inline, persisted amounts stay exact, A6-4/A6-5 residue persistence after CLF lands (**recommended**); or (b) persist a `LINE_TYPE.ROUNDING` voucher line + ERP-Lite posting now (touches `order-submit-orchestrator`, `voucher-line.service`, wiring handlers — the same writers CLF W1-W15 is rewiring).
+- **Placement:** new `lib/services/cash-rounding.service.ts`; `cash-drawer.service.ts` gets a one-line re-export only (CLF-6-1 rewrites that file; another session owns CLF).
+- Steps (assuming (a)):
+  1. `lib/money/cash-rounding.ts` — pure, client-safe minor-unit/Decimal `roundMinor(amountMinor, incrementMinor, mode)`, all 7 modes, sign-symmetric.
+  2. `lib/money/currency-rounding.ts` — add `resolveRoundingPolicy(currency, context)` implementing the full D13 ladder (context → ACCOUNTING → `sys_currency_cd.minor_unit`; NULL increment = no snapping). `resolveCurrencyRoundingRule` signature unchanged (order totals unaffected).
+  3. `cash-rounding.service.ts` — `getCashRoundingPolicy(tenantId, currency, scope)` → `{ tender, change }`; tender = HQ only; change = bearer→mode (`BUSINESS`→`CEILING`, `CUSTOMER`→`FLOOR`, `NEAREST`→`HALF_UP`) and `cashChangeRoundToMinor` over HQ increment, via `getCashControlSettings` (tenant-filtered). `computeCashTender({ due, tendered, policy })` → `{ roundedDue, tenderAdj, rawChange, roundedChange, changeAdj }`, change derived from the *rounded* due.
+  4. `GET /api/v1/cash-drawers/rounding-policy?currency=&branchId=` gated by an existing read permission (no new permission migration).
+  5. UI: `use-cash-rounding-policy.ts` hook; rounding-aware helpers in `payment-modal-v4.utils.ts`; inline `CmxSummaryMessage` on the cash leg ("Cash due 2.005 (rounded from 2.003, +0.002)" / "Change 3.000 (rounded from 2.995)"); typed tender never rewritten (`no-silent-money-mutation.md`); hidden when no rounding applies; EN/AR keys + RTL.
+  6. Tests per A6-8 + bearer mapping + D13 fallback + negative amounts + route test. Gates: tsc, eslint, targeted jest, build, `check:i18n`.
+- No migration, no new permission, no billing/plan/RBAC/flag change.
 
 **No migration in this package.** The DDL exists; only HQ seed values and tenant-side consumption are missing.
 
