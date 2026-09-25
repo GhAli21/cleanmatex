@@ -1,10 +1,32 @@
 # RESUME — POS Session & Cash Drawer Hardening (session continuation)
 
-**Updated:** 2026-09-25 (even later same day) — session ending for a `/clear` (context size), not because the work is paused for any other reason. **This entry is the resume point — read it before doing anything else.** All 7 R1 migrations (M1-M7: `0523`, `0526`-`0530`) are applied and verified on both local and remote. Work is now in the **code** part of R1 (writer rewiring), mid-way through W7/W8/W9 (late-verify, payment-reverse, voucher-reversal). See the entry immediately below for exact state.
+**Updated:** 2026-09-25 (even later same day, second `/clear` this day) — session ending for a `/clear` (context size), not because the work is paused for any other reason. **This entry is the resume point — read it before doing anything else.** All 7 R1 migrations (M1-M7: `0523`, `0526`-`0530`) are applied and verified on both local and remote. W1/W7/W8/W9's test-fix pass (from the entry below) is now CLOSED — both test files are green. Next up: a scoped typecheck retry, then the remaining R1 writer items (W6, W4/W5, W11/W12/W14/W15). See the entry immediately below for exact state; the ⏬ entry after it is now superseded except for its still-relevant code description.
 
 ---
 
-## 🟡 2026-09-25 (latest) — R1 code: W1/W7/W8/W9 done, mid test-fix — EXACT resume point
+## 🟢 2026-09-25 (latest) — W1/W7/W8/W9 test-fix pass CLOSED; found+fixed a real gate-leak bug; typecheck OOM'd (not a real error) — EXACT resume point
+
+**Picks up from:** the entry below ("R1 code: W1/W7/W8/W9 done, mid test-fix"), items 1-2 of its "NOT done yet" list. Item 3 (lint + typecheck) is half-done — see below.
+
+### Done and verified this pass
+
+1. **Ran `npx jest voucher-line-reversal.service.test` — found a real bug, not just a test gap.** In `voucher-line-reversal.service.ts`'s per-line loop (around the `gateLines.push(...)` call), the `cashFamily` guard only ever fired *inside* two `if (cashFamily && ...)` conditions (PENDING/NONE abandon, pre-CLF null-effect skip) — there was no branch that excluded a **non**-cash-family line (e.g. `CARD`, `CHECK`) from reaching the gate at all. Every reversal with a mixed cash+non-cash line set was sending the non-cash mirror line into `stampCashLinesTx` alongside the real cash one. **Fixed:** added `if (!cashFamily) continue;` right after computing `cashFamily`, before the PENDING/NONE and null-effect checks (which now only need to run for cash-family lines, so their own `cashFamily &&` prefix was simplified away too). `voucher-line-reversal.service.test.ts` now **13/13 passing** (was 12/13 — this is the test that caught it, "sends only the cash-family line to the gate...").
+2. **Rewrote `voucher-reversal.service.test.ts`** exactly as directed — mocks `@/lib/services/voucher-line-reversal.service` → `reverseVoucherLinesInTx` at the module boundary (same pattern as `payment-transition.service.test.ts`), and now tests only what the thin wrapper (`reverseBizVoucher`) does on top of the mocked core: dispatch to `unwindOrderPaymentLine`/`unwindOrderCreditApplicationLine`/`unwindStoredValueFundingLine` by `pair.originalLineRole`, the `voucher_unwind:{reversalVoucherId}:{originalLineId}` idempotency-key format (payment) and `voucher_unwind:{reversalVoucherId}` prefix (credit app), `pair.reversalSessionId` passed straight through as `cashDrawerSessionId` (untouched — not re-derived), the `VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED` throw when a cash REVERSE gets a null session, REVERSE-vs-VOID action selection by source payment_status, the already-unwound short-circuit, `recalculateOrderFinancialSnapshotTx` running exactly once per **distinct** order even across two pairs on the same order, and the `unwindEnabled=false` short-circuit (core called, zero unwind/recalc calls). The old "not found" / "no POSTED lines" / "party_name" tests were **not** duplicated here — they already live in `voucher-line-reversal.service.test.ts` (the core's own test file), per the plan. **14/14 passing**, new file entirely (old file had stale pre-CLF test bodies asserting inline mirror-creation logic that moved into the core module).
+3. **`npx eslint` on all 3 touched files** (`lib/services/voucher-line-reversal.service.ts`, `__tests__/services/voucher-line-reversal.service.test.ts`, `__tests__/services/voucher-reversal.service.test.ts`) — **clean**, zero errors.
+
+### NOT done yet — pick up exactly here
+
+1. **`npm run typecheck` (plain, whole-project `tsc --noEmit`) crashed with a JS heap OOM** (`FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory`, ~4GB heap) before producing any real type-error output — **this is not a signal about the code**, it never got far enough to check anything meaningful. Per the "Environment note" in the entry below, the documented next step is the scoped config: from `web-admin/`, run `npx tsc --noEmit -p tsconfig.clf-check.json` (recreate the file from `tsconfig.json` + a trimmed `include` list if it's missing — it's an untracked scratch file). **This was not yet attempted this pass** — the session was asked to stop before it. If the scoped run *also* OOMs, retry with a raised heap budget, e.g. `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit -p tsconfig.clf-check.json` (or higher — this machine's `tsc` run got to ~4GB before dying, so the default `--max-old-space-size` is being hit; whether that's newly worse or was always this close to the edge is unconfirmed, first time whole-project `tsc` was run standalone rather than via `npm run typecheck`'s wrapper in this program).
+2. Once a clean typecheck signal is in hand: **continue the remaining R1 writer items** (`IMPLEMENTATION_PLAN.md` §4B.5) exactly as the entry below already specified — **W6** (customer-account receipts — rewrite `postCustomerAccountReceipt` to create real voucher lines instead of a header-only voucher + direct movement writes), **W4/W5** (delete the record-only cash-refund branch and the no-tender gift-card activation path — every cash event becomes a voucher, no flag-gated skip), **W11/W12/W14/W15** (delete `recordMovement`+its route, the 5 dead legacy actions in `cash-drawers-actions.ts`, the dead `settleOrder` branch, add `requirePermission` to `billing/cash-drawer-actions.ts`). **W13 stays deferred to R3** — do not touch the 3 mirror wiring handlers yet.
+3. After the writer items: §4B.2a-A (Cash in/Cash out dialog + API), §4B.2a-B (pending-deposit ensure button on the 2 remaining screens — done only on the drawer tab per earlier session, confirm), then R1 exit gates (full eslint/typecheck/build/jest, QA guide, STATUS.md R1-complete row).
+
+### Environment note update — same underlying issue, now hit a second way
+
+The plain `npm run typecheck` OOM above is very likely the **same** underlying `.next/dev/types/routes.d.ts` corruption/size issue already flagged in the entry below (that entry found `tsc` failing outright on that file; this pass instead saw it exhaust heap trying) — not confirmed identical, but treat as the same root cause until proven otherwise. Don't spend time diagnosing Node's V8 heap behavior itself; go straight to the scoped `tsconfig.clf-check.json` path documented below.
+
+---
+
+## 🟡 2026-09-25 (earlier) — R1 code: W1/W7/W8/W9 done, mid test-fix
 
 **Plan reference:** `IMPLEMENTATION_PLAN.md` §4B.5 (writer table), items W1, W7, W8, W9. §4B.2a for the 5 owner-approved additions (A-E), all already folded into the plan text — nothing new to decide, this entry is pure implementation status.
 
@@ -55,7 +77,7 @@
 
 **Verified clean, both sides, read-only:** local and remote ledgers agree exactly through `0526`; all 5 CLF M1 catalog tables exist locally; all 5 currency FKs exist on both sides (`NOT VALID`, no duplicates); `is_platform_enabled` exists on both. Local has since moved ahead with `0527_clf_drawer_trx_tables` (CLF's own next step).
 
-**▶ NOW:** the migration-apply detour is fully closed. Next up is whatever the CLF entry below or Wave A remaining items point to — check CLF's own latest STATUS.md entry for M2/M3 progress before picking.
+**(superseded)** the migration-apply detour is fully closed — this was accurate when written; the entry above (🟡 R1 code: W1/W7/W8/W9) is now the authoritative "▶ NOW".
 
 **Lesson recorded in STATUS.md and IMPLEMENTATION_PLAN.md §4B:** a plan document's "nominal" migration number is a prediction from when the plan was written, never a reservation — always `ls supabase/migrations/` immediately before writing a new migration file, regardless of what a plan says the number should be.
 

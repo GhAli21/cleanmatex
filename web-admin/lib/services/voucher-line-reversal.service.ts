@@ -250,14 +250,16 @@ export async function reverseVoucherLinesInTx(
     });
 
     const cashFamily = isCashFamilyMethod(line.payment_method_code);
-    if (cashFamily && (line.cash_effect_code === CASH_EFFECTS.PENDING || line.cash_effect_code === CASH_EFFECTS.NONE)) {
+    if (!cashFamily) continue; // only cash-family lines ever reach the gate
+
+    if (line.cash_effect_code === CASH_EFFECTS.PENDING || line.cash_effect_code === CASH_EFFECTS.NONE) {
       // Never received → nothing physical to reverse.
       pendingOriginalIds.push(line.id);
       continue;
     }
     // Pre-CLF originals carry no drawer stamp; their mirror must not create a
     // one-sided OUT either (the M9 backfill stamps history before R2 readers switch).
-    if (cashFamily && line.cash_effect_code == null) continue;
+    if (line.cash_effect_code == null) continue;
 
     gateLines.push({
       id: mirror.id,

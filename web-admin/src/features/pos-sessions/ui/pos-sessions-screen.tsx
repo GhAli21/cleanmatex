@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { CreditCard, RefreshCw, ShieldAlert } from 'lucide-react';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxInput } from '@ui/primitives';
 import { CmxSelect } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
@@ -35,6 +35,8 @@ import type {
   GetMyActivePosSessionResult,
   PosSessionListResult,
   PosSessionListRow,
+  PosSessionEventListResult,
+  PosSessionEventListRow,
   PosSessionRow,
   PosSessionWithContext,
 } from '@/lib/types/pos-session';
@@ -47,6 +49,7 @@ interface BranchOption {
 
 type ApiEnvelope<T> = { success?: boolean; data?: T; error?: string; errorCode?: string };
 
+// Limits the wide operational grid to a scan-friendly page while the server remains authoritative for paging.
 const PAGE_SIZE = 20;
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -86,6 +89,12 @@ interface SessionActionDialogState {
   reason: string;
 }
 
+/**
+ * Operates the authenticated user's POS session and exposes authorized session history.
+ *
+ * The API derives tenant and own/all visibility server-side; this screen only sends
+ * user-selected, bounded filters and lifecycle intent.
+ */
 export function PosSessionsScreen() {
   const t = useTranslations('posSessions');
   const queryClient = useQueryClient();
@@ -102,12 +111,21 @@ export function PosSessionsScreen() {
   const [branchId, setBranchId] = useState('');
   const [status, setStatus] = useState('');
   const [scope, setScope] = useState<'own' | 'all'>('own');
+  const [sessionNo, setSessionNo] = useState('');
+  const [operatorQuery, setOperatorQuery] = useState('');
+  const [terminalQuery, setTerminalQuery] = useState('');
+  const [cashDrawerQuery, setCashDrawerQuery] = useState('');
+  const [businessDateFrom, setBusinessDateFrom] = useState('');
+  const [businessDateTo, setBusinessDateTo] = useState('');
+  const [openedAtFrom, setOpenedAtFrom] = useState('');
+  const [openedAtTo, setOpenedAtTo] = useState('');
   const [openBranchId, setOpenBranchId] = useState('');
   const [actionDialog, setActionDialog] = useState<SessionActionDialogState>({ action: null, reason: '' });
   const [drawerDialogOpen, setDrawerDialogOpen] = useState(false);
   const [countedCash, setCountedCash] = useState('');
   const [drawerNotes, setDrawerNotes] = useState('');
   const [summarySessionId, setSummarySessionId] = useState<string | null>(null);
+  const [eventsSession, setEventsSession] = useState<PosSessionListRow | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   const branchesQuery = useQuery({
@@ -121,7 +139,7 @@ export function PosSessionsScreen() {
   });
 
   const sessionsQuery = useQuery({
-    queryKey: ['pos-sessions', 'list', page, branchId, status, scope],
+    queryKey: ['pos-sessions', 'list', page, branchId, status, scope, sessionNo, operatorQuery, terminalQuery, cashDrawerQuery, businessDateFrom, businessDateTo, openedAtFrom, openedAtTo],
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -130,14 +148,30 @@ export function PosSessionsScreen() {
       });
       if (branchId) params.set('branchId', branchId);
       if (status) params.set('status', status);
+      if (sessionNo.trim()) params.set('sessionNo', sessionNo.trim());
+      if (operatorQuery.trim()) params.set('operatorQuery', operatorQuery.trim());
+      if (terminalQuery.trim()) params.set('terminalQuery', terminalQuery.trim());
+      if (cashDrawerQuery.trim()) params.set('cashDrawerQuery', cashDrawerQuery.trim());
+      if (businessDateFrom) params.set('businessDateFrom', businessDateFrom);
+      if (businessDateTo) params.set('businessDateTo', businessDateTo);
+      if (openedAtFrom) params.set('openedAtFrom', openedAtFrom);
+      if (openedAtTo) params.set('openedAtTo', openedAtTo);
       return fetchJson<PosSessionListResult>(`/api/v1/pos-sessions?${params.toString()}`);
     },
   });
 
   const summaryQuery = useQuery({
     queryKey: ['pos-sessions', 'summary', summarySessionId],
+    // Prevent query before a session is selected — avoids an invalid detail request.
     enabled: !!summarySessionId,
     queryFn: () => fetchPosSessionSummary(summarySessionId!),
+  });
+
+  const eventsQuery = useQuery({
+    queryKey: ['pos-sessions', 'events', eventsSession?.id],
+    // Prevent query before a session is selected — avoids an invalid audit request.
+    enabled: !!eventsSession,
+    queryFn: () => fetchJson<PosSessionEventListResult>(`/api/v1/pos-sessions/${eventsSession!.id}/events`),
   });
 
   const activeSession =
@@ -268,6 +302,11 @@ export function PosSessionsScreen() {
       render: (row) => <CmxStatusBadge label={row.status} variant={statusVariant(row.status)} size="sm" />,
     },
     {
+      key: 'operator',
+      header: t('operator'),
+      render: (row) => <IdentityCell name={row.user_display_name} id={row.user_id} />,
+    },
+    {
       key: 'branch',
       header: t('branch'),
       render: (row) => sessionDisplayBranch(row),
@@ -283,14 +322,29 @@ export function PosSessionsScreen() {
       ),
     },
     {
+      key: 'terminal',
+      header: t('terminal'),
+      render: (row) => <IdentityCell name={row.terminal_name ?? row.terminal_code} id={row.terminal_id} secondary={row.terminal_code} />,
+    },
+    {
       key: 'opened_at',
       header: t('openedAt'),
-      render: (row) => formatDateTime(row.opened_at),
+      render: (row) => <AuditValue value={formatDateTime(row.opened_at)} actor={row.opened_by_display_name} />,
+    },
+    {
+      key: 'paused_at',
+      header: t('pausedAt'),
+      render: (row) => <AuditValue value={formatDateTime(row.paused_at)} actor={row.paused_by_display_name} reason={row.pause_reason} />,
     },
     {
       key: 'closed_at',
       header: t('closedAt'),
-      render: (row) => formatDateTime(row.closed_at ?? row.force_closed_at),
+      render: (row) => <AuditValue value={formatDateTime(row.closed_at)} actor={row.closed_by_display_name} reason={row.close_reason} />,
+    },
+    {
+      key: 'force_closed_at',
+      header: t('forceClosedAt'),
+      render: (row) => <AuditValue value={formatDateTime(row.force_closed_at)} actor={row.force_closed_by_display_name} reason={row.force_close_reason} />,
     },
     {
       key: 'drawer',
@@ -307,21 +361,56 @@ export function PosSessionsScreen() {
       ),
     },
     {
+      key: 'metadata',
+      header: t('metadata'),
+      render: (row) => <JsonPreview value={row.metadata} />,
+    },
+    {
       key: 'actions',
       header: '',
       sortable: false,
       align: 'right',
       render: (row) => (
-        <CmxButton size="sm" variant="outline" onClick={() => setSummarySessionId(row.id)}>
-          {t('viewSummary')}
-        </CmxButton>
+        <div className="flex gap-2">
+          <CmxButton size="sm" variant="outline" onClick={() => setSummarySessionId(row.id)}>
+            {t('viewSummary')}
+          </CmxButton>
+          <CmxButton size="sm" variant="outline" onClick={() => setEventsSession(row)}>
+            {t('viewEvents')}
+          </CmxButton>
+        </div>
       ),
     },
+  ];
+
+  const eventColumns: CmxDataTableSimpleColumn<PosSessionEventListRow>[] = [
+    { key: 'event_type', header: t('eventType'), render: (row) => row.event_type },
+    { key: 'previous_status', header: t('previousStatus'), render: (row) => row.previous_status ?? t('none') },
+    { key: 'new_status', header: t('newStatus'), render: (row) => row.new_status ?? t('none') },
+    { key: 'event_at', header: t('eventAt'), render: (row) => formatDateTime(row.event_at) },
+    { key: 'performed_by', header: t('performedBy'), render: (row) => <IdentityCell name={row.performed_by_display_name} id={row.performed_by} /> },
+    { key: 'reason', header: t('reason'), render: (row) => row.reason ?? t('none') },
+    { key: 'source_channel', header: t('sourceChannel'), render: (row) => row.source_channel ?? t('none') },
+    { key: 'metadata', header: t('metadata'), render: (row) => <JsonPreview value={row.metadata} /> },
   ];
 
   const sessions = sessionsQuery.data?.items ?? [];
   const total = sessionsQuery.data?.total ?? 0;
   const activeTitle = activeSession ? activeSession.session_no : t('noActiveTitle');
+  const resetFilters = () => {
+    setPage(1);
+    setBranchId('');
+    setStatus('');
+    setScope('own');
+    setSessionNo('');
+    setOperatorQuery('');
+    setTerminalQuery('');
+    setCashDrawerQuery('');
+    setBusinessDateFrom('');
+    setBusinessDateTo('');
+    setOpenedAtFrom('');
+    setOpenedAtTo('');
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -442,7 +531,31 @@ export function PosSessionsScreen() {
           <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('historyDescription')}</p>
         </CmxCardHeader>
         <CmxCardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <CmxInput
+              label={t('sessionNo')}
+              placeholder={t('searchSession')}
+              value={sessionNo}
+              onChange={(event) => { setPage(1); setSessionNo(event.target.value); }}
+            />
+            <CmxInput
+              label={t('operator')}
+              placeholder={t('allOperators')}
+              value={operatorQuery}
+              onChange={(event) => { setPage(1); setOperatorQuery(event.target.value); }}
+            />
+            <CmxInput
+              label={t('terminal')}
+              placeholder={t('allTerminals')}
+              value={terminalQuery}
+              onChange={(event) => { setPage(1); setTerminalQuery(event.target.value); }}
+            />
+            <CmxInput
+              label={t('cashDrawer')}
+              placeholder={t('allCashDrawers')}
+              value={cashDrawerQuery}
+              onChange={(event) => { setPage(1); setCashDrawerQuery(event.target.value); }}
+            />
             <CmxSelect
               label={t('branch')}
               value={branchId}
@@ -475,6 +588,35 @@ export function PosSessionsScreen() {
                 setScope(event.target.value === 'all' ? 'all' : 'own');
               }}
             />
+            <CmxInput
+              label={t('fromBusinessDate')}
+              type="date"
+              value={businessDateFrom}
+              onChange={(event) => { setPage(1); setBusinessDateFrom(event.target.value); }}
+            />
+            <CmxInput
+              label={t('toBusinessDate')}
+              type="date"
+              value={businessDateTo}
+              onChange={(event) => { setPage(1); setBusinessDateTo(event.target.value); }}
+            />
+            <CmxInput
+              label={t('fromOpenedDate')}
+              type="date"
+              value={openedAtFrom}
+              onChange={(event) => { setPage(1); setOpenedAtFrom(event.target.value); }}
+            />
+            <CmxInput
+              label={t('toOpenedDate')}
+              type="date"
+              value={openedAtTo}
+              onChange={(event) => { setPage(1); setOpenedAtTo(event.target.value); }}
+            />
+            <div className="flex items-end">
+              <CmxButton className="w-full" variant="outline" onClick={resetFilters}>
+                {t('resetFilters')}
+              </CmxButton>
+            </div>
           </div>
           <CmxDataTable
             columns={columns}
@@ -487,6 +629,19 @@ export function PosSessionsScreen() {
             emptyStateTitle={t('historyTitle')}
             emptyStateDescription={t('noActiveDescription')}
             paginationFooter="auto"
+            scrollable={false}
+            tableClassName="min-w-[1800px]"
+            stickyEndColumnIds={['actions']}
+            auditConfig={{
+              enabled: true,
+              getTitle: (row) => `${t('sessionAudit')} · ${row.session_no}`,
+              actionLabel: t('audit'),
+              getExtras: (row) => [
+                { label: t('sessionId'), value: row.id },
+                { label: t('active'), value: String(row.is_active) },
+                { label: t('metadata'), value: <JsonPreview value={row.metadata} /> },
+              ],
+            }}
           />
         </CmxCardContent>
       </CmxCard>
@@ -592,8 +747,69 @@ export function PosSessionsScreen() {
           </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>
+
+      <CmxDialog open={!!eventsSession} onOpenChange={(open) => !open && setEventsSession(null)}>
+        <CmxDialogContent className="max-w-6xl">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('events')}</CmxDialogTitle>
+            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('eventsDescription')}</p>
+          </CmxDialogHeader>
+          <CmxDataTable
+            columns={eventColumns}
+            data={eventsQuery.data?.items ?? []}
+            loading={eventsQuery.isLoading}
+            currentPage={eventsQuery.data?.page ?? 1}
+            pageSize={eventsQuery.data?.pageSize ?? 50}
+            total={eventsQuery.data?.total ?? 0}
+            emptyStateTitle={t('events')}
+            emptyStateDescription={t('eventsDescription')}
+            tableClassName="min-w-[1300px]"
+            scrollable={false}
+            auditConfig={{
+              enabled: true,
+              getTitle: () => t('eventAudit'),
+              actionLabel: t('audit'),
+              getExtras: (row) => [
+                { label: t('idempotencyKey'), value: row.idempotency_key ?? t('none') },
+                { label: t('metadata'), value: <JsonPreview value={row.metadata} /> },
+                { label: t('active'), value: String(row.is_active) },
+              ],
+            }}
+          />
+          <CmxDialogFooter>
+            <CmxButton variant="outline" onClick={() => setEventsSession(null)}>
+              {t('cancel')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
     </div>
   );
+}
+
+function IdentityCell({ name, id, secondary }: { name: string | null | undefined; id: string | null | undefined; secondary?: string | null }) {
+  return (
+    <div className="min-w-36 space-y-1">
+      <div className="font-medium">{name ?? id ?? '-'}</div>
+      {secondary && secondary !== name ? <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{secondary}</div> : null}
+      {id ? <div className="font-mono text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{id.slice(0, 8)}</div> : null}
+    </div>
+  );
+}
+
+function AuditValue({ value, actor, reason }: { value: string; actor?: string | null; reason?: string | null }) {
+  return (
+    <div className="min-w-40 space-y-1">
+      <div>{value}</div>
+      {actor ? <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{actor}</div> : null}
+      {reason ? <div className="max-w-48 truncate text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" title={reason}>{reason}</div> : null}
+    </div>
+  );
+}
+
+function JsonPreview({ value }: { value: unknown }) {
+  const json = JSON.stringify(value ?? {});
+  return <div className="max-w-52 truncate font-mono text-xs" title={json}>{json}</div>;
 }
 
 function InfoTile({ label, value }: { label: string; value: string }) {

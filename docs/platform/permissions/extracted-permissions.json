@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-09-25T08:41:06.967Z",
+  "extractedAt": "2026-09-25T17:24:14.918Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -439,7 +439,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:view_all",
       "component": "useHasPermissionCode",
-      "line": 93,
+      "line": 102,
       "surface": "screen"
     },
     {
@@ -447,7 +447,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:open",
       "component": "useHasPermissionCode",
-      "line": 94,
+      "line": 103,
       "surface": "screen"
     },
     {
@@ -455,7 +455,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:pause_resume",
       "component": "useHasPermissionCode",
-      "line": 95,
+      "line": 104,
       "surface": "screen"
     },
     {
@@ -463,7 +463,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:close",
       "component": "useHasPermissionCode",
-      "line": 96,
+      "line": 105,
       "surface": "screen"
     },
     {
@@ -471,7 +471,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:force_close",
       "component": "useHasPermissionCode",
-      "line": 97,
+      "line": 106,
       "surface": "screen"
     },
     {
@@ -479,7 +479,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "cash_drawer:view",
       "component": "useHasPermissionCode",
-      "line": 98,
+      "line": 107,
       "surface": "screen"
     },
     {
@@ -487,7 +487,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "cash_drawer:close_session",
       "component": "useHasPermissionCode",
-      "line": 99,
+      "line": 108,
       "surface": "screen"
     },
     {
@@ -551,7 +551,7 @@
       "route": "lib/services/order-settlement.service.ts",
       "permission": "orders:verify_payment",
       "component": "requirePermission",
-      "line": 461,
+      "line": 462,
       "surface": "service"
     }
   ],
@@ -1753,7 +1753,7 @@
       "method": "POST",
       "route": "/api/v1/finance/vouchers/[voucherId]/post",
       "permission": "fin_vouchers:post",
-      "line": 18,
+      "line": 19,
       "surface": "api"
     },
     {
@@ -1769,7 +1769,7 @@
       "method": "POST",
       "route": "/api/v1/finance/vouchers/[voucherId]/reverse",
       "permission": "fin_vouchers:reverse",
-      "line": 15,
+      "line": 16,
       "surface": "api"
     },
     {
@@ -2545,7 +2545,15 @@
       "method": "GET",
       "route": "/api/v1/pos-sessions",
       "permission": "pos_session:view",
-      "line": 9,
+      "line": 19,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/[sessionId]/events/route.ts",
+      "method": "GET",
+      "route": "/api/v1/pos-sessions/[sessionId]/events",
+      "permission": "pos_session:view",
+      "line": 21,
       "surface": "api"
     },
     {
