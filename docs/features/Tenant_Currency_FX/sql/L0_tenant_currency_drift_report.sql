@@ -19,8 +19,9 @@
 --   resolved_tenant_currency  what money code uses TODAY
 --                             (fn_stng_resolve_all_settings → TENANT_CURRENCY)
 --   resolved_layer            which settings layer supplied it: TENANT_OVERRIDE
---                             = chosen for this tenant; SYSTEM_PROFILE / SYSTEM_DEFAULT
---                             (catalog default 'OMR') = never chosen, flagged in Q2
+--                             or SYSTEM_PROFILE (the tenant's assigned settings profile)
+--                             = chosen; SYSTEM_DEFAULT (catalog default 'OMR') = never
+--                             chosen, flagged in Q2
 --   profile_currency          org_tenants_mst.currency (kept as a mirror)
 --   resolved_decimal_places   TENANT_DECIMAL_PLACES as resolved today
 --   minor_unit                sys_currency_cd.minor_unit of the resolved
@@ -56,7 +57,6 @@ WITH resolved AS (
 doc_ccy AS (
   SELECT tenant_org_id, currency_code FROM public.org_orders_mst            WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_invoice_mst     WHERE currency_code IS NOT NULL
-  UNION SELECT tenant_org_id, currency_code FROM public.org_payments_dtl_tr WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_fin_vouchers_mst WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_cash_drawers_mst WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_cash_drawer_sessions_mst WHERE currency_code IS NOT NULL
@@ -105,7 +105,6 @@ WITH resolved AS (
 doc_ccy AS (
   SELECT tenant_org_id, currency_code FROM public.org_orders_mst            WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_invoice_mst     WHERE currency_code IS NOT NULL
-  UNION SELECT tenant_org_id, currency_code FROM public.org_payments_dtl_tr WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_fin_vouchers_mst WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_cash_drawers_mst WHERE currency_code IS NOT NULL
   UNION SELECT tenant_org_id, currency_code FROM public.org_cash_drawer_sessions_mst WHERE currency_code IS NOT NULL
@@ -155,7 +154,7 @@ SELECT
                     THEN resolved_decimal_places::INT END) <> minor_unit
          THEN 'DECIMALS_CHANGE: TENANT_DECIMAL_PLACES ' || resolved_decimal_places
               || ' will become minor_unit ' || minor_unit || ' (rounding changes, C8)' END,
-    CASE WHEN resolved_layer IS NOT NULL AND resolved_layer NOT ILIKE '%TENANT%'
+    CASE WHEN resolved_layer IS NOT NULL AND resolved_layer = 'SYSTEM_DEFAULT'
          THEN 'DEFAULTED: value came from layer ' || resolved_layer || ', not chosen for this tenant' END,
     CASE WHEN doc_currencies IS NOT NULL
               AND resolved_tenant_currency IS NOT NULL
@@ -170,7 +169,7 @@ WHERE resolved_tenant_currency IS NULL
    OR profile_currency IS DISTINCT FROM resolved_tenant_currency
    OR (CASE WHEN resolved_decimal_places ~ '^\d+$'
             THEN resolved_decimal_places::INT END) <> minor_unit
-   OR (resolved_layer IS NOT NULL AND resolved_layer NOT ILIKE '%TENANT%')
+   OR (resolved_layer IS NOT NULL AND resolved_layer = 'SYSTEM_DEFAULT')
    OR (doc_currencies IS NOT NULL AND resolved_tenant_currency IS NOT NULL
        AND doc_currencies <> resolved_tenant_currency)
 ORDER BY has_orders DESC, tenant_name;
@@ -180,7 +179,6 @@ SELECT tenant_org_id, source_table, UPPER(TRIM(currency_code)) AS currency_code,
 FROM (
   SELECT tenant_org_id, currency_code, 'org_orders_mst'               AS source_table FROM public.org_orders_mst
   UNION ALL SELECT tenant_org_id, currency_code, 'org_invoice_mst'               FROM public.org_invoice_mst
-  UNION ALL SELECT tenant_org_id, currency_code, 'org_payments_dtl_tr'           FROM public.org_payments_dtl_tr
   UNION ALL SELECT tenant_org_id, currency_code, 'org_fin_vouchers_mst'          FROM public.org_fin_vouchers_mst
   UNION ALL SELECT tenant_org_id, currency_code, 'org_cash_drawers_mst'          FROM public.org_cash_drawers_mst
   UNION ALL SELECT tenant_org_id, currency_code, 'org_cash_drawer_sessions_mst'  FROM public.org_cash_drawer_sessions_mst
