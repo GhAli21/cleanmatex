@@ -250,7 +250,7 @@ Append-only. Workers claim rows atomically via CTE.
 | idempotency_key | Optional — prevents duplicate events |
 
 **`org_cash_drawer_sessions_mst`** / **`org_cash_drawer_movements_dtl`**
-Session lifecycle table + movement ledger. Only one OPEN session per drawer allowed.
+Session lifecycle table + movement ledger. Only one OPEN session per drawer allowed. *Current behaviour (until CLF ships)* — see "Target data model — cash ledger (ADR-057)" below.
 
 **`org_reconciliation_runs_mst`** / **`org_reconciliation_issues_dtl`**
 Audit trail of reconciliation check results. Issues have severity: BLOCKER, WARNING, INFO.
@@ -264,7 +264,7 @@ Audit trail of reconciliation check results. Issues have severity: BLOCKER, WARN
 | org_order_refunds_dtl | refund_status | IN ('PENDING_APPROVAL', 'APPROVED', 'PROCESSED', 'REJECTED') |
 | org_credit_notes_mst | status | IN ('ACTIVE', 'EXHAUSTED', 'EXPIRED', 'CANCELLED') |
 | org_domain_events_outbox | status | IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED') |
-| org_cash_drawer_sessions_mst | status | IN ('OPEN', 'CLOSED', 'FORCE_CLOSED') |
+| org_cash_drawer_sessions_mst | status | IN ('OPEN', 'CLOSED', 'FORCE_CLOSED') — target adds `CLOSING` (ADR-057) |
 | org_reconciliation_runs_mst | overall_status | IN ('PASSED', 'FAILED', 'PARTIAL') |
 | org_reconciliation_issues_dtl | severity | IN ('BLOCKER', 'WARNING', 'INFO') |
 
@@ -279,3 +279,42 @@ All monetary columns use `DECIMAL(19, 4)`. No `FLOAT` or `NUMERIC` without preci
 ## Legacy ledger DROPPED (Remediation 2026-07 Phase 5)
 
 Migration `0395_drop_org_payments_dtl_tr.sql` (guarded, RESTRICT-only) removed `org_payments_dtl_tr`, `org_payment_audit_log`, and `org_invoice_payments_dtl.payment_id` (AR allocations are voucher-referenced only). Canonical payment truth: `org_order_payments_dtl` + `org_fin_voucher_trx_lines_dtl` + AR/receipt/stored-value ledgers. See ADR-002 (completed) + ADR-055.
+
+## Target data model — cash ledger (ADR-057)
+
+**Target architecture — approved 2026-09-25 ([ADR-057](../ADR/ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** None of these objects exist yet. Full column lists: [IMPLEMENTATION_PLAN.md §4B.3](../POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md). Migration numbers are assigned "next free" when written; each is stop-and-wait.
+
+### New lookups (`sys_*`, global)
+
+| Table | Purpose / key columns |
+|---|---|
+| `sys_cash_drawer_type_cd` | `COUNTER`, `TEMPORARY`, `DRIVER_BAG`, `SAFE`, `PENDING_DEPOSIT`. Hard capabilities `accepts_customer_cash`, `allows_customer_cash_out`, `can_be_trx_source`, `can_be_trx_dest`, `can_receive_disposition`, `is_mobile`; overridable defaults `requires_session_default`, `opening_count_required_default`, `closing_count_required_default`. Replaces CHECK `chk_org_cash_drawers_type`. |
+| `sys_cash_drawer_trx_type_cd` | `FLOAT_ISSUE`, `CASH_DROP`, `DRAWER_TO_DRAWER`, `DRIVER_HANDOVER`, `DEPOSIT_PREP`, `CLOSE_DISPOSITION` (system), `REVERSAL` (system); `allowed_src_types[]`, `allowed_dest_types[]`, `requires_notes`, `is_system` |
+| `sys_cash_drawer_cnt_type_cd` | `OPENING`, `SPOT`, `CLOSING`, `RECOUNT` |
+| `sys_cash_drawer_ses_disp_cd` | `LEFT_IN_DRAWER`, `MOVED_TO_SAFE`, `HANDED_TO_MANAGER`, `PREPARED_FOR_DEPOSIT`, `PARTIAL_REMOVED`, `OTHER`, `LEGACY` (not selectable); `moves_cash`, `dest_drawer_type_code`, `requires_notes`, `requires_kept_amount` |
+| `sys_cash_drawer_ses_post_cd` | `IN_TRANSIT`, `DEPOSITED_TO_BANK`, `HANDED_TO_HQ`, `OTHER` |
+| `sys_cash_drawer_session_status_cd` (existing) | adds `CLOSING` |
+
+### New tenant tables (`org_*`, RLS)
+
+| Table | Key columns | Rules |
+|---|---|---|
+| `org_cash_drawer_trx_mst` | `trx_no` (`CDT-YYYYMMDD-NNNN`), `trx_type_code`, `occurred_at`, `source_session_id`, `reverses_trx_id`, `performed_by`, `approved_by`, `idempotency_key` | immutable; corrections = reversal transactions |
+| `org_cash_drawer_trx_dtl` | `trx_id`, `cash_drawer_id`, `cash_drawer_session_id` (nullable), `ledger_seq`, `direction` (`IN`/`OUT`), `amount > 0`, `currency_code` | deferred trigger: ≥ 2 lines on ≥ 2 drawers in one branch, Σ IN = Σ OUT per currency; unique `(tenant, drawer, ledger_seq)` |
+| `org_cash_drawer_cnt_mst` | `cash_drawer_id`, `cash_drawer_session_id`, `count_type`, `count_method` (`TOTAL_ONLY`/`DENOMINATION`), `ledger_seq`, `expected_amount`, `counted_amount`, `variance_amount`, `supersedes_count_id` | immutable; exists only when something was counted |
+| `org_cash_drawer_cnt_denom_dtl` | `count_id`, `denomination_id` → `sys_currency_denominations_cd`, `denom_value_minor_snap`, `quantity`, `line_amount` | Σ lines must equal the count total |
+| `org_cash_drawer_ses_bal_dtl` | per session + currency: `opening_expected/_counted/_variance`, `fin_in`, `fin_out`, `trx_in`, `trx_out`, `closing_expected/_counted/_variance`, `closing_basis`, threshold/tolerance snapshots | unique `(session, currency)`; immutable once session is closed |
+| `org_cash_drawer_ses_post_tr` | `cash_drawer_session_id`, `post_close_status_code`, `post_close_notes`, `changed_by`, `changed_at` | insert-only after-close change log |
+
+### Altered tables
+
+| Table | Change |
+|---|---|
+| `org_cash_drawers_mst` | add `ledger_seq BIGINT` (per-drawer sequence, allocated under row lock); `drawer_type` FK → `sys_cash_drawer_type_cd`; one `PENDING_DEPOSIT` per branch (partial unique index) + `ensure_branch_pd_drawer()` + branch-insert trigger; retire `requires_session`, `opening_float_required` (moved to settings) |
+| `org_fin_voucher_trx_lines_dtl` | add `cash_drawer_id`, `cash_ledger_seq`, `cash_recognized_at`, `cash_recognized_by`, `cash_effect_code` (`PENDING` / `DRAWER` / `UNTRACKED` / `NONE`); composite FKs; CHECK `chk_vtl_cash_effect`; unique `(tenant, drawer, cash_ledger_seq)`; immutability trigger (`CASH_LINE_IMMUTABLE`) on posted lines; retire `cash_drawer_mvt_id`. New line roles `CASH_OVER_SHORT`, `CASH_PAY_IN` |
+| `org_cash_drawer_sessions_mst` | add `open_ledger_seq`, `close_ledger_seq`, `opening_count_id`, `closing_count_id`, `closing_started_at/_by`, `cash_disposition_code`, `cash_disposition_notes`, `disposition_dest_drawer_id`, `disposition_kept_amount`, `disposition_trx_id`, `post_close_status_code`, `post_close_notes`, `post_close_by/_at`; `uq_open_cash_drawer_session` covers `OPEN` and `CLOSING`; closed sessions require disposition + cut; retire `opening_float_amount`, `expected_cash_amount`, `counted_cash_amount`, `difference_amount`, `variance_threshold_snapshot`, `chk_org_cds_amounts` |
+| `org_fin_cash_ctrl_stng_cf` | add `requires_session`, `opening_count_required`, `closing_count_required`; retire `cash_drop_requires_dest` |
+
+### Retired (release R3, after readers are rewired)
+
+`org_cash_drawer_movements_dtl`, `sys_cash_drawer_movement_type_cd`, `org_order_refunds_dtl.cash_drawer_movement_id` (+ `uq_ord_refund_cash_mvt`), voucher-line `cash_drawer_mvt_id`, the session money columns above. `hq_mntnc_cleanup_tenant_orders` is redefined without the movements table in the same migration. The planned `org_cash_sess_curr_dtl` is not built.

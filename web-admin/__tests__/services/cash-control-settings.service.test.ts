@@ -19,6 +19,8 @@ const mockSettingsFindFirst = jest.fn();
 const mockSettingsUpdate = jest.fn();
 const mockSettingsCreate = jest.fn();
 const mockAuditCreateMany = jest.fn();
+const mockDrawerFindFirst = jest.fn();
+const mockDrawerTypeFindUnique = jest.fn();
 
 const mockTxClient = {
   org_fin_cash_ctrl_stng_cf: {
@@ -36,6 +38,12 @@ jest.mock('@/lib/db/prisma', () => ({
     org_fin_cash_ctrl_stng_cf: {
       findMany: (...a: unknown[]) => mockSettingsFindMany(...a),
     },
+    org_cash_drawers_mst: {
+      findFirst: (...a: unknown[]) => mockDrawerFindFirst(...a),
+    },
+    sys_cash_drawer_type_cd: {
+      findUnique: (...a: unknown[]) => mockDrawerTypeFindUnique(...a),
+    },
     $transaction: (fn: (tx: unknown) => unknown) => fn(mockTxClient),
   },
 }));
@@ -50,6 +58,7 @@ jest.mock('@/lib/utils/logger', () => ({
 
 import {
   getCashControlSettings,
+  getCashControlSettingsWithSource,
   updateCashControlSettings,
   withCashControlSettingsCache,
 } from '@/lib/services/cash-control-settings.service';
@@ -126,6 +135,86 @@ describe('cash-control-settings.service — getCashControlSettings', () => {
 
     expect(result).toEqual(CASH_CONTROL_SETTINGS_DEFAULT);
     expect(log.error).toHaveBeenCalled();
+  });
+});
+
+describe('cash-control-settings.service — non-UUID actor ids', () => {
+  it("keeps tenant overrides when the acting user id is not a UUID (e.g. 'system')", async () => {
+    mockSettingsFindMany.mockResolvedValue([
+      row({ scope_level: 'TENANT', scope_id: null, blind_close_enabled: true }),
+    ]);
+
+    const result = await getCashControlSettings({ tenantId: TENANT_ID, userId: 'system' });
+
+    expect(result.blindCloseEnabled).toBe(true);
+    const scopes = mockSettingsFindMany.mock.calls[0][0].where.OR.map((f: { scope_level: string }) => f.scope_level);
+    expect(scopes).toEqual(['TENANT']);
+  });
+});
+
+describe('cash-control-settings.service — drawer-type default layer (CLF)', () => {
+  const TYPE_DEFAULTS_DRIVER_BAG = {
+    requires_session_default: false,
+    opening_count_required_default: false,
+    closing_count_required_default: false,
+  };
+
+  it('uses the drawer type default when no scope sets the value, and reports TYPE_DEFAULT as the source', async () => {
+    mockSettingsFindMany.mockResolvedValue([]);
+    mockDrawerFindFirst.mockResolvedValue({ drawer_type: 'DRIVER_BAG' });
+    mockDrawerTypeFindUnique.mockResolvedValue(TYPE_DEFAULTS_DRIVER_BAG);
+
+    const { settings, sources } = await getCashControlSettingsWithSource({ tenantId: TENANT_ID, drawerId: DRAWER_ID });
+
+    expect(settings.requiresSession).toBe(false);
+    expect(sources.requiresSession).toBe('TYPE_DEFAULT');
+    // Fields without a type layer keep the constant default.
+    expect(sources.blindCloseEnabled).toBe('DEFAULT');
+  });
+
+  it('lets a DRAWER-scope override beat the type default', async () => {
+    mockSettingsFindMany.mockResolvedValue([
+      row({ scope_level: 'DRAWER', scope_id: DRAWER_ID, requires_session: true }),
+    ]);
+    mockDrawerFindFirst.mockResolvedValue({ drawer_type: 'DRIVER_BAG' });
+    mockDrawerTypeFindUnique.mockResolvedValue(TYPE_DEFAULTS_DRIVER_BAG);
+
+    const { settings, sources } = await getCashControlSettingsWithSource({ tenantId: TENANT_ID, drawerId: DRAWER_ID });
+
+    expect(settings.requiresSession).toBe(true);
+    expect(sources.requiresSession).toBe('DRAWER');
+  });
+
+  it('does not consult the drawer tables when no drawer is in scope', async () => {
+    mockSettingsFindMany.mockResolvedValue([]);
+
+    const result = await getCashControlSettings({ tenantId: TENANT_ID });
+
+    expect(result.requiresSession).toBe(CASH_CONTROL_SETTINGS_DEFAULT.requiresSession);
+    expect(mockDrawerFindFirst).not.toHaveBeenCalled();
+  });
+
+  it('scopes the drawer lookup by tenant', async () => {
+    mockSettingsFindMany.mockResolvedValue([]);
+    mockDrawerFindFirst.mockResolvedValue(null);
+
+    await getCashControlSettings({ tenantId: TENANT_ID, drawerId: DRAWER_ID });
+
+    expect(mockDrawerFindFirst.mock.calls[0][0].where).toEqual({ id: DRAWER_ID, tenant_org_id: TENANT_ID });
+  });
+
+  it('keeps every scope override when the type lookup fails (isolated failure, WARN only)', async () => {
+    mockSettingsFindMany.mockResolvedValue([
+      row({ scope_level: 'TENANT', scope_id: null, blind_close_enabled: true }),
+    ]);
+    mockDrawerFindFirst.mockRejectedValue(new Error('drawer read failed'));
+
+    const result = await getCashControlSettings({ tenantId: TENANT_ID, drawerId: DRAWER_ID });
+
+    expect(result.blindCloseEnabled).toBe(true);
+    expect(result.requiresSession).toBe(CASH_CONTROL_SETTINGS_DEFAULT.requiresSession);
+    expect(log.warn).toHaveBeenCalled();
+    expect(log.error).not.toHaveBeenCalled();
   });
 });
 

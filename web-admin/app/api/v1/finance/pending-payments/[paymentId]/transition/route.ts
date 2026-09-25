@@ -30,6 +30,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { getAuthContext } from '@/lib/middleware/require-permission';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { transitionPaymentTx } from '@/lib/services/payment-transition.service';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import { FALLBACK_CLASSIFICATIONS, PAYMENT_TRANSITION_ACTIONS } from '@/lib/constants/order-financial';
 
 const TRANSITION_PERMISSION_BY_ACTION: Record<string, string> = {
@@ -78,8 +79,12 @@ const ERROR_STATUS: Record<string, number> = {
   ILLEGAL_TRANSITION: 409,
   PAYMENT_TRANSITION_RACE_DETECTED: 409,
   IDEMPOTENCY_CONFLICT: 409,
+  // CLF: REVERSE no longer requires a client-supplied session — the gate
+  // decides the window itself. Kept mapped for old idempotency-cache replays.
   CASH_DRAWER_SESSION_REQUIRED: 400,
   CASH_DRAWER_SESSION_NOT_OPEN: 409,
+  CASH_LEG_HAS_NO_VOUCHER_LINE: 422,
+  CASH_LEG_MUST_REVERSE: 409,
 };
 
 export async function POST(
@@ -138,6 +143,12 @@ export async function POST(
     });
     return NextResponse.json({ success: true, data: result }, { status: 200 });
   } catch (err) {
+    // CLF: the cash-drawer ledger gate raises a typed error with a stable
+    // `code` (see lib/constants/cash-drawer.ts CASH_LEDGER_ERRORS) instead of
+    // encoding the code as err.message.
+    if (err instanceof CashDrawerLedgerError) {
+      return NextResponse.json({ success: false, error: err.code }, { status: 422 });
+    }
     const message = err instanceof Error ? err.message : 'PAYMENT_TRANSITION_FAILED';
     const status = ERROR_STATUS[message] ?? 422;
     return NextResponse.json({ success: false, error: message }, { status });

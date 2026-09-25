@@ -2,8 +2,9 @@
  * Tenant Context Management
  *
  * Uses AsyncLocalStorage to store tenant ID in async context.
- * This allows Prisma middleware to access tenant ID synchronously
- * while tenant ID is retrieved asynchronously from session.
+ * The Tenant Guard (lib/db/tenant-guard.ts) reads it to detect queries that name a
+ * different tenant. It does NOT add tenant filters — every query must filter
+ * tenant_org_id explicitly.
  *
  * @see https://nodejs.org/api/async_context.html
  */
@@ -35,7 +36,7 @@ export function getTenantId(): string | null {
  * ```typescript
  * export async function listOrders(filters: unknown) {
  *   return withTenantContext(async (tenantId) => {
- *     // All Prisma queries here will automatically filter by tenantId
+ *     // Queries must still filter tenant_org_id explicitly; the guard checks them.
  *     return await listOrdersDb(tenantId, filters);
  *   });
  * }
@@ -45,7 +46,10 @@ export async function withTenantContext<T>(
   tenantId: string,
   fn: (tenantId: string) => Promise<T>
 ): Promise<T> {
-  return tenantContextStorage.run(tenantId, () => fn(tenantId));
+  // Await INSIDE the scope: a Prisma query returned unawaited (`() => prisma.x.find(...)`)
+  // is a lazy thenable that executes on .then(), i.e. after run() has exited, so the
+  // tenant guard would see no context. Found by tenant-guard-cross-tenant.db.test.ts.
+  return tenantContextStorage.run(tenantId, async () => await fn(tenantId));
 }
 
 /**

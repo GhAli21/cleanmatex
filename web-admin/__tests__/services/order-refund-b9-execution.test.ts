@@ -235,7 +235,8 @@ describe('processRefund — B9 execution flag on, CASH destination', () => {
       expect.anything(),
     );
     expect(mockPostAndWireBizVoucher).toHaveBeenCalledWith(
-      TENANT, 'vch-b9', PROCESSOR, `refund-${REFUND}-vch-post`, expect.anything(),
+      // CLF: a cash refund is paid out at the drawer now → INTERACTIVE gate mode.
+      TENANT, 'vch-b9', PROCESSOR, 'INTERACTIVE', `refund-${REFUND}-vch-post`, expect.anything(),
     );
     // Two updates: the lineage backfill, then the PROCESSED status update.
     expect(mockRefundUpdate).toHaveBeenCalledWith(

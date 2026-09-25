@@ -161,3 +161,17 @@ Phase 1 does not create:
 - sidebar navigation exposure
 - runtime auto-open logic
 
+## Amendment 2026-09-25 (ADR-057)
+
+**Target architecture — approved 2026-09-25 ([ADR-057](./ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** Until CLF ships, §5 and §8 above describe the current behaviour.
+
+| Area | Amendment |
+|---|---|
+| §5 Drawer session meaning | A cash drawer session is a **reconciliation window** over one drawer's ledger (recognised cash voucher lines + drawer transactions, ordered by a per-drawer ledger sequence). It never changes finance outside its boundary. `pos_session_id` stays operational lineage only. |
+| Drawer session statuses | New status `CLOSING` between `OPEN` and `CLOSED`: the close is two steps — *count* (freezes the sequence cut, optional count, sets `CLOSING`) → *finalize* (mandatory disposition, sets `CLOSED`). Interactive cash on the drawer is refused while `CLOSING`. |
+| §8 Combined close guard | The POS close guard (`assertLinkedDrawerIsClosed`) becomes an **allow-list of terminal drawer statuses** — `CLOSED`, `FORCE_CLOSED`. Checks written as `status === 'OPEN'` / `status = 'OPEN'` in drawer and POS code are converted to explicit allow-lists, so a `CLOSING` drawer blocks the POS close. |
+| §10 Drawer auto-link | The drawer session is no longer trusted from the client: callers pass the drawer and the central gate (`stampCashLinesTx`) resolves the open session inside the posting transaction under the drawer row lock. |
+| Approvals | No maker ≠ checker: drawer force-close, variance approval and recount are gated only by permission; the same user may approve. |
+
+See [POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md §4B](../POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md) (CLF-4-5).
+

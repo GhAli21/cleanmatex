@@ -16,6 +16,8 @@ import type {
   GetMyActivePosSessionResult,
   OpenPosSessionResult,
   PosSessionIdempotentResult,
+  PosSessionEventListResult,
+  PosSessionEventListRow,
   PosSessionLifecycleResult,
   PosSessionListResult,
   PosSessionListRow,
@@ -61,9 +63,12 @@ interface AutoLinkDrawerInput extends PosSessionFinanceContextInput {
   metadata?: PosSessionMetadata;
 }
 
+/** States that still reserve an operator's one active-session slot. */
 const ACTIVE_STATUSES = [POS_SESSION_STATUS.OPEN, POS_SESSION_STATUS.PAUSED] as const;
+// Seven days retains retries across transient client failures without indefinitely retaining response payloads.
 const IDEMPOTENCY_TTL_DAYS = 7;
 
+/** Domain error that maps expected POS lifecycle failures to safe HTTP responses. */
 export class PosSessionError extends Error {
   constructor(
     public readonly code: string,
@@ -187,7 +192,14 @@ async function getActiveSessionForUserWithContext(
       pt.terminal_code,
       ${drawerNameSql},
       ${drawerSessionNoSql},
-      ${drawerSessionStatusSql}
+      ${drawerSessionStatusSql},
+      NULL::text AS user_display_name,
+      NULL::text AS opened_by_display_name,
+      NULL::text AS paused_by_display_name,
+      NULL::text AS closed_by_display_name,
+      NULL::text AS force_closed_by_display_name,
+      NULL::text AS created_by_display_name,
+      NULL::text AS updated_by_display_name
     FROM public.org_pos_sessions_mst ps
     LEFT JOIN public.org_branches_mst b
       ON b.tenant_org_id = ps.tenant_org_id
@@ -420,6 +432,17 @@ async function getPosSessionForUpdateById(
   return session;
 }
 
+/**
+ * Locks and validates a POS session before a financial write can reference it.
+ *
+ * @param tx - Existing tenant-scoped transaction that owns the financial write.
+ * @param input - Tenant, actor, session, and optional branch context.
+ * @returns The locked open session, or null when the write is not POS-linked.
+ * @throws PosSessionError when ownership, state, or branch lineage is invalid.
+ *
+ * @example
+ * const session = await assertOpenPosSessionForFinanceTx(tx, { tenantId: 'tenant-uuid', userId: 'user-uuid', posSessionId: 'session-uuid' });
+ */
 export async function assertOpenPosSessionForFinanceTx(
   tx: PrismaTx,
   input: PosSessionFinanceContextInput
@@ -443,6 +466,17 @@ export async function assertOpenPosSessionForFinanceTx(
   return session;
 }
 
+/**
+ * Links a selected open drawer session within the caller's existing transaction.
+ *
+ * @param tx - Existing tenant-scoped transaction shared with the drawer flow.
+ * @param input - Tenant, actor, POS session, and drawer-session context.
+ * @returns Lifecycle result, or null when no POS/drawer link is required.
+ * @throws PosSessionError when the selected drawer is unavailable or incompatible.
+ *
+ * @example
+ * await autoLinkDrawerTx(tx, { tenantId: 'tenant-uuid', userId: 'user-uuid', posSessionId: 'session-uuid', cashDrawerSessionId: 'drawer-session-uuid' });
+ */
 export async function autoLinkDrawerTx(
   tx: PrismaTx,
   input: AutoLinkDrawerInput
@@ -579,6 +613,17 @@ export async function autoLinkDrawer(input: AutoLinkDrawerInput): Promise<PosSes
   );
 }
 
+/**
+ * Attaches an authorized open POS session to an order payment in the same transaction.
+ *
+ * @param tx - Existing tenant-scoped financial transaction.
+ * @param input - Tenant, actor, POS session, and order-payment ID.
+ * @returns Resolves when the payment lineage is recorded.
+ * @throws PosSessionError when the POS session cannot authorize the write.
+ *
+ * @example
+ * await setOrderPaymentPosSessionTx(tx, { tenantId: 'tenant-uuid', userId: 'user-uuid', posSessionId: 'session-uuid', orderPaymentId: 'payment-uuid' });
+ */
 export async function setOrderPaymentPosSessionTx(
   tx: PrismaTx,
   input: PosSessionFinanceContextInput & { orderPaymentId: string }
@@ -595,6 +640,17 @@ export async function setOrderPaymentPosSessionTx(
   `);
 }
 
+/**
+ * Attaches an authorized open POS session to a voucher line in the same transaction.
+ *
+ * @param tx - Existing tenant-scoped financial transaction.
+ * @param input - Tenant, actor, POS session, and voucher-line ID.
+ * @returns Resolves when the voucher lineage is recorded.
+ * @throws PosSessionError when the POS session cannot authorize the write.
+ *
+ * @example
+ * await setVoucherLinePosSessionTx(tx, { tenantId: 'tenant-uuid', userId: 'user-uuid', posSessionId: 'session-uuid', voucherLineId: 'line-uuid' });
+ */
 export async function setVoucherLinePosSessionTx(
   tx: PrismaTx,
   input: PosSessionFinanceContextInput & { voucherLineId: string }
@@ -611,6 +667,17 @@ export async function setVoucherLinePosSessionTx(
   `);
 }
 
+/**
+ * Attaches an authorized open POS session to a refund in the same transaction.
+ *
+ * @param tx - Existing tenant-scoped financial transaction.
+ * @param input - Tenant, actor, POS session, and refund ID.
+ * @returns Resolves when the refund lineage is recorded.
+ * @throws PosSessionError when the POS session cannot authorize the write.
+ *
+ * @example
+ * await setRefundPosSessionTx(tx, { tenantId: 'tenant-uuid', userId: 'user-uuid', posSessionId: 'session-uuid', refundId: 'refund-uuid' });
+ */
 export async function setRefundPosSessionTx(
   tx: PrismaTx,
   input: PosSessionFinanceContextInput & { refundId: string }
@@ -646,6 +713,17 @@ function parseNumericSum(value: string): string {
   return toMoneyString(value);
 }
 
+/**
+ * Builds exact, currency-separated financial totals for one authorized POS session.
+ * All Prisma queries are scoped to the tenant through withTenantContext.
+ *
+ * @param input - Tenant, actor, session, and all-session visibility context.
+ * @returns Payment, refund, and voucher-line totals without float conversion.
+ * @throws PosSessionError when the session is unavailable to the caller.
+ *
+ * @example
+ * const summary = await getPosSessionSummary({ tenantId: 'tenant-uuid', userId: 'user-uuid', posSessionId: 'session-uuid' });
+ */
 export async function getPosSessionSummary(input: {
   tenantId: string;
   userId: string;
@@ -881,6 +959,16 @@ async function openPosSessionInternal(
   );
 }
 
+/**
+ * Resolves the caller's active session, optionally enriched for the POS workspace.
+ * All Prisma queries are scoped to the tenant through withTenantContext.
+ *
+ * @param input - Authenticated tenant, user, optional branch, and context flags.
+ * @returns Active session, no-session result, or branch-conflict result.
+ *
+ * @example
+ * const active = await getMyActivePosSession({ tenantId: 'tenant-uuid', userId: 'user-uuid', includeContext: true });
+ */
 export async function getMyActivePosSession(input: {
   tenantId: string;
   userId: string;
@@ -910,6 +998,16 @@ export async function getMyActivePosSession(input: {
   return { type: 'ACTIVE', session: active };
 }
 
+/**
+ * Lists POS sessions using bounded filters and permission-derived own/all scope.
+ * All Prisma queries are scoped to the tenant through withTenantContext.
+ *
+ * @param input - Tenant, actor, visibility permission, paging, and filter context.
+ * @returns Server-paged operational rows with tenant-scoped display names.
+ *
+ * @example
+ * const page = await listPosSessions({ tenantId: 'tenant-uuid', userId: 'user-uuid', canViewAll: false, page: 1, pageSize: 20, scope: 'own' });
+ */
 export async function listPosSessions(input: {
   tenantId: string;
   userId: string;
@@ -917,6 +1015,18 @@ export async function listPosSessions(input: {
   page: number;
   pageSize: number;
   branchId?: string | null;
+  userId?: string | null;
+  operatorQuery?: string | null;
+  terminalQuery?: string | null;
+  cashDrawerQuery?: string | null;
+  terminalId?: string | null;
+  cashDrawerId?: string | null;
+  cashDrawerSessionId?: string | null;
+  sessionNo?: string | null;
+  businessDateFrom?: Date | null;
+  businessDateTo?: Date | null;
+  openedAtFrom?: Date | null;
+  openedAtTo?: Date | null;
   status?: PosSessionStatus | null;
   scope?: 'own' | 'all';
 }): Promise<PosSessionListResult> {
@@ -931,6 +1041,58 @@ export async function listPosSessions(input: {
   const branchSql = input.branchId
     ? Prisma.sql`AND ps.branch_id = ${input.branchId}::uuid`
     : Prisma.empty;
+  const userSql = input.userId ? Prisma.sql`AND ps.user_id = ${input.userId}::uuid` : Prisma.empty;
+  const operatorQuerySql = input.operatorQuery
+    ? Prisma.sql`AND EXISTS (
+        SELECT 1
+        FROM public.org_users_mst operator_user
+        WHERE operator_user.tenant_org_id = ps.tenant_org_id
+          AND operator_user.user_id = ps.user_id
+          AND (
+            operator_user.display_name ILIKE ${`%${input.operatorQuery}%`}
+            OR operator_user.name ILIKE ${`%${input.operatorQuery}%`}
+            OR operator_user.email ILIKE ${`%${input.operatorQuery}%`}
+          )
+      )`
+    : Prisma.empty;
+  const terminalQuerySql = input.terminalQuery
+    ? Prisma.sql`AND EXISTS (
+        SELECT 1
+        FROM public.org_payment_terminals_cf filter_terminal
+        WHERE filter_terminal.tenant_org_id = ps.tenant_org_id
+          AND filter_terminal.id = ps.terminal_id
+          AND (
+            filter_terminal.terminal_name ILIKE ${`%${input.terminalQuery}%`}
+            OR filter_terminal.terminal_code ILIKE ${`%${input.terminalQuery}%`}
+          )
+      )`
+    : Prisma.empty;
+  const cashDrawerQuerySql = input.cashDrawerQuery
+    ? Prisma.sql`AND (
+        EXISTS (
+          SELECT 1
+          FROM public.org_cash_drawers_mst filter_drawer
+          WHERE filter_drawer.tenant_org_id = ps.tenant_org_id
+            AND filter_drawer.id = ps.cash_drawer_id
+            AND filter_drawer.drawer_name ILIKE ${`%${input.cashDrawerQuery}%`}
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM public.org_cash_drawer_sessions_mst filter_drawer_session
+          WHERE filter_drawer_session.tenant_org_id = ps.tenant_org_id
+            AND filter_drawer_session.id = ps.cash_drawer_session_id
+            AND filter_drawer_session.session_no ILIKE ${`%${input.cashDrawerQuery}%`}
+        )
+      )`
+    : Prisma.empty;
+  const terminalSql = input.terminalId ? Prisma.sql`AND ps.terminal_id = ${input.terminalId}::uuid` : Prisma.empty;
+  const cashDrawerSql = input.cashDrawerId ? Prisma.sql`AND ps.cash_drawer_id = ${input.cashDrawerId}::uuid` : Prisma.empty;
+  const cashDrawerSessionSql = input.cashDrawerSessionId ? Prisma.sql`AND ps.cash_drawer_session_id = ${input.cashDrawerSessionId}::uuid` : Prisma.empty;
+  const sessionNoSql = input.sessionNo ? Prisma.sql`AND ps.session_no ILIKE ${`%${input.sessionNo}%`}` : Prisma.empty;
+  const businessDateFromSql = input.businessDateFrom ? Prisma.sql`AND ps.business_date >= ${input.businessDateFrom.toISOString().slice(0, 10)}::date` : Prisma.empty;
+  const businessDateToSql = input.businessDateTo ? Prisma.sql`AND ps.business_date <= ${input.businessDateTo.toISOString().slice(0, 10)}::date` : Prisma.empty;
+  const openedAtFromSql = input.openedAtFrom ? Prisma.sql`AND ps.opened_at >= ${input.openedAtFrom}` : Prisma.empty;
+  const openedAtToSql = input.openedAtTo ? Prisma.sql`AND ps.opened_at <= ${input.openedAtTo}` : Prisma.empty;
   const statusSql = input.status
     ? Prisma.sql`AND ps.status = ${input.status}`
     : Prisma.empty;
@@ -944,6 +1106,18 @@ export async function listPosSessions(input: {
           AND ps.is_active = TRUE
           ${userScopeSql}
           ${branchSql}
+          ${userSql}
+          ${operatorQuerySql}
+          ${terminalQuerySql}
+          ${cashDrawerQuerySql}
+          ${terminalSql}
+          ${cashDrawerSql}
+          ${cashDrawerSessionSql}
+          ${sessionNoSql}
+          ${businessDateFromSql}
+          ${businessDateToSql}
+          ${openedAtFromSql}
+          ${openedAtToSql}
           ${statusSql}
       `),
       prisma.$queryRaw<PosSessionListRow[]>(Prisma.sql`
@@ -956,6 +1130,13 @@ export async function listPosSessions(input: {
           cd.drawer_name AS cash_drawer_name,
           cds.session_no AS cash_drawer_session_no,
           cds.status AS cash_drawer_session_status
+          , COALESCE(u.display_name, u.name, u.email) AS user_display_name
+          , COALESCE(opened_by_user.display_name, opened_by_user.name, opened_by_user.email) AS opened_by_display_name
+          , COALESCE(paused_by_user.display_name, paused_by_user.name, paused_by_user.email) AS paused_by_display_name
+          , COALESCE(closed_by_user.display_name, closed_by_user.name, closed_by_user.email) AS closed_by_display_name
+          , COALESCE(force_closed_by_user.display_name, force_closed_by_user.name, force_closed_by_user.email) AS force_closed_by_display_name
+          , COALESCE(created_by_user.display_name, created_by_user.name, created_by_user.email) AS created_by_display_name
+          , COALESCE(updated_by_user.display_name, updated_by_user.name, updated_by_user.email) AS updated_by_display_name
         FROM public.org_pos_sessions_mst ps
         LEFT JOIN public.org_branches_mst b
           ON b.tenant_org_id = ps.tenant_org_id
@@ -969,10 +1150,29 @@ export async function listPosSessions(input: {
         LEFT JOIN public.org_cash_drawer_sessions_mst cds
           ON cds.tenant_org_id = ps.tenant_org_id
          AND cds.id = ps.cash_drawer_session_id
+        LEFT JOIN public.org_users_mst u ON u.tenant_org_id = ps.tenant_org_id AND u.user_id = ps.user_id
+        LEFT JOIN public.org_users_mst opened_by_user ON opened_by_user.tenant_org_id = ps.tenant_org_id AND opened_by_user.user_id = ps.opened_by
+        LEFT JOIN public.org_users_mst paused_by_user ON paused_by_user.tenant_org_id = ps.tenant_org_id AND paused_by_user.user_id = ps.paused_by
+        LEFT JOIN public.org_users_mst closed_by_user ON closed_by_user.tenant_org_id = ps.tenant_org_id AND closed_by_user.user_id = ps.closed_by
+        LEFT JOIN public.org_users_mst force_closed_by_user ON force_closed_by_user.tenant_org_id = ps.tenant_org_id AND force_closed_by_user.user_id = ps.force_closed_by
+        LEFT JOIN public.org_users_mst created_by_user ON created_by_user.tenant_org_id = ps.tenant_org_id AND created_by_user.user_id = ps.created_by
+        LEFT JOIN public.org_users_mst updated_by_user ON updated_by_user.tenant_org_id = ps.tenant_org_id AND updated_by_user.user_id = ps.updated_by
         WHERE ps.tenant_org_id = ${input.tenantId}::uuid
           AND ps.is_active = TRUE
           ${userScopeSql}
           ${branchSql}
+          ${userSql}
+          ${operatorQuerySql}
+          ${terminalQuerySql}
+          ${cashDrawerQuerySql}
+          ${terminalSql}
+          ${cashDrawerSql}
+          ${cashDrawerSessionSql}
+          ${sessionNoSql}
+          ${businessDateFromSql}
+          ${businessDateToSql}
+          ${openedAtFromSql}
+          ${openedAtToSql}
           ${statusSql}
         ORDER BY ps.opened_at DESC, ps.created_at DESC
         LIMIT ${pageSize}
@@ -989,6 +1189,78 @@ export async function listPosSessions(input: {
   });
 }
 
+/**
+ * Lists immutable lifecycle events for a POS session the caller may view.
+ * All Prisma queries are scoped to the tenant through withTenantContext.
+ *
+ * @param input - Tenant, actor, visibility permission, target session, and paging.
+ * @returns Server-paged event rows with tenant-scoped actor display names.
+ * @throws PosSessionError when the target session is outside the caller's scope.
+ *
+ * @example
+ * const page = await listPosSessionEvents({ tenantId: 'tenant-uuid', userId: 'user-uuid', canViewAll: false, posSessionId: 'session-uuid', page: 1, pageSize: 50 });
+ */
+export async function listPosSessionEvents(input: {
+  tenantId: string;
+  userId: string;
+  canViewAll: boolean;
+  posSessionId: string;
+  page: number;
+  pageSize: number;
+}): Promise<PosSessionEventListResult> {
+  const page = Math.max(1, input.page);
+  const pageSize = Math.min(Math.max(1, input.pageSize), 100);
+  const offset = (page - 1) * pageSize;
+  const userScopeSql = input.canViewAll ? Prisma.empty : Prisma.sql`AND ps.user_id = ${input.userId}::uuid`;
+
+  return withTenantContext(input.tenantId, async () => {
+    const sessionRows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT ps.id
+      FROM public.org_pos_sessions_mst ps
+      WHERE ps.tenant_org_id = ${input.tenantId}::uuid
+        AND ps.id = ${input.posSessionId}::uuid
+        ${userScopeSql}
+      LIMIT 1
+    `);
+    if (!sessionRows[0]) {
+      throw new PosSessionError('POS_SESSION_NOT_FOUND', 'POS session was not found.', 404);
+    }
+    const [countRows, rows] = await Promise.all([
+      prisma.$queryRaw<Array<{ total: number }>>(Prisma.sql`
+        SELECT COUNT(*)::int AS total
+        FROM public.org_pos_session_events_dtl e
+        WHERE e.tenant_org_id = ${input.tenantId}::uuid
+          AND e.pos_session_id = ${input.posSessionId}::uuid
+      `),
+      prisma.$queryRaw<PosSessionEventListRow[]>(Prisma.sql`
+        SELECT e.*,
+          COALESCE(performed_by_user.display_name, performed_by_user.name, performed_by_user.email) AS performed_by_display_name,
+          COALESCE(created_by_user.display_name, created_by_user.name, created_by_user.email) AS created_by_display_name,
+          COALESCE(updated_by_user.display_name, updated_by_user.name, updated_by_user.email) AS updated_by_display_name
+        FROM public.org_pos_session_events_dtl e
+        LEFT JOIN public.org_users_mst performed_by_user ON performed_by_user.tenant_org_id = e.tenant_org_id AND performed_by_user.user_id = e.performed_by
+        LEFT JOIN public.org_users_mst created_by_user ON created_by_user.tenant_org_id = e.tenant_org_id AND created_by_user.user_id = e.created_by
+        LEFT JOIN public.org_users_mst updated_by_user ON updated_by_user.tenant_org_id = e.tenant_org_id AND updated_by_user.user_id = e.updated_by
+        WHERE e.tenant_org_id = ${input.tenantId}::uuid
+          AND e.pos_session_id = ${input.posSessionId}::uuid
+        ORDER BY e.event_at DESC, e.created_at DESC
+        LIMIT ${pageSize}
+        OFFSET ${offset}
+      `),
+    ]);
+    return { items: rows, total: countRows[0]?.total ?? 0, page, pageSize };
+  });
+}
+
+/**
+ * Opens the authenticated operator's POS session with idempotent retry support.
+ *
+ * @param input - Tenant, operator, branch, and optional terminal/request context.
+ * @returns Created, current, or branch-conflict session result.
+ *
+ * @example
+ * const result = await openPosSession({ tenantId: 'tenant-uuid', userId: 'user-uuid', branchId: 'branch-uuid' });
+ */
 export async function openPosSession(input: OpenPosSessionInput): Promise<OpenPosSessionResult> {
   return openPosSessionInternal(
     input,
@@ -997,6 +1269,15 @@ export async function openPosSession(input: OpenPosSessionInput): Promise<OpenPo
   );
 }
 
+/**
+ * Ensures order entry has a POS session while preserving the standard open rules.
+ *
+ * @param input - Tenant, operator, branch, and optional terminal/request context.
+ * @returns Created, current, or branch-conflict session result.
+ *
+ * @example
+ * const result = await ensurePosSessionForOrderEntry({ tenantId: 'tenant-uuid', userId: 'user-uuid', branchId: 'branch-uuid' });
+ */
 export async function ensurePosSessionForOrderEntry(
   input: OpenPosSessionInput
 ): Promise<OpenPosSessionResult> {
@@ -1100,6 +1381,15 @@ async function transitionActiveSession(
   );
 }
 
+/**
+ * Pauses the caller's open session while retaining its accountability trail.
+ *
+ * @param input - Tenant, actor, optional reason, and idempotency context.
+ * @returns Updated or idempotent lifecycle result.
+ *
+ * @example
+ * await pausePosSession({ tenantId: 'tenant-uuid', userId: 'user-uuid', reason: 'Break' });
+ */
 export function pausePosSession(input: LifecycleInput): Promise<PosSessionLifecycleResult> {
   return transitionActiveSession(input, {
     resourceType: POS_SESSION_IDEMPOTENCY_RESOURCE.PAUSE,
@@ -1113,6 +1403,15 @@ export function pausePosSession(input: LifecycleInput): Promise<PosSessionLifecy
   });
 }
 
+/**
+ * Resumes the caller's paused session without creating a second active session.
+ *
+ * @param input - Tenant, actor, optional reason, and idempotency context.
+ * @returns Updated or idempotent lifecycle result.
+ *
+ * @example
+ * await resumePosSession({ tenantId: 'tenant-uuid', userId: 'user-uuid' });
+ */
 export function resumePosSession(input: LifecycleInput): Promise<PosSessionLifecycleResult> {
   return transitionActiveSession(input, {
     resourceType: POS_SESSION_IDEMPOTENCY_RESOURCE.RESUME,
@@ -1125,6 +1424,15 @@ export function resumePosSession(input: LifecycleInput): Promise<PosSessionLifec
   });
 }
 
+/**
+ * Closes the caller's active session after linked drawer controls are satisfied.
+ *
+ * @param input - Tenant, actor, optional reason, and idempotency context.
+ * @returns Updated or idempotent lifecycle result.
+ *
+ * @example
+ * await closePosSession({ tenantId: 'tenant-uuid', userId: 'user-uuid', reason: 'Shift complete' });
+ */
 export function closePosSession(input: LifecycleInput): Promise<PosSessionLifecycleResult> {
   return transitionActiveSession(input, {
     resourceType: POS_SESSION_IDEMPOTENCY_RESOURCE.CLOSE,
@@ -1138,6 +1446,15 @@ export function closePosSession(input: LifecycleInput): Promise<PosSessionLifecy
   });
 }
 
+/**
+ * Force-closes an active session with a mandatory reason for exceptional operations.
+ *
+ * @param input - Tenant, actor, required reason, and idempotency context.
+ * @returns Updated or idempotent lifecycle result.
+ *
+ * @example
+ * await forceClosePosSession({ tenantId: 'tenant-uuid', userId: 'user-uuid', reason: 'Terminal outage' });
+ */
 export function forceClosePosSession(input: LifecycleInput): Promise<PosSessionLifecycleResult> {
   return transitionActiveSession(input, {
     resourceType: POS_SESSION_IDEMPOTENCY_RESOURCE.FORCE_CLOSE,

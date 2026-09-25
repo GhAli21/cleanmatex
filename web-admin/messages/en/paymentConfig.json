@@ -222,8 +222,10 @@
       "COUNTER": "Counter",
       "SAFE": "Safe",
       "DRIVER_BAG": "Driver bag",
-      "TEMPORARY": "Temporary"
+      "TEMPORARY": "Temporary",
+      "PENDING_DEPOSIT": "Pending deposit"
     },
+    "systemDrawer": "Managed by the system",
     "currency": "Currency",
     "selectCurrency": "Select currency",
     "currencyLockedHint": "This currency comes from the tenant profile and is locked for drawers.",

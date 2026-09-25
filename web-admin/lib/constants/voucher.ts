@@ -148,6 +148,10 @@ export const LINE_ROLE = {
   GIFT_CARD_REFUND:             'GIFT_CARD_REFUND',
   INTERNAL_TRANSFER:            'INTERNAL_TRANSFER',
   ORDER_CREDIT_APPLICATION:     'ORDER_CREDIT_APPLICATION',
+  /** CLF (migration 0530): owner brings outside cash into a drawer (drawer Cash in / Cash out dialog). */
+  CASH_PAY_IN:                  'CASH_PAY_IN',
+  /** CLF (migration 0530): over/short adjustment from a drawer count variance; never carries a payment method. */
+  CASH_OVER_SHORT:              'CASH_OVER_SHORT',
 } as const;
 
 /**
@@ -193,8 +197,8 @@ export type TargetType = (typeof TARGET_TYPE)[keyof typeof TARGET_TYPE];
 export const LINE_STATUS = {
   DRAFT:    'DRAFT',
   POSTED:   'POSTED',
-  REVERSED: 'REVERSED',
-  VOIDED:   'VOIDED',
+  REVERSED:  'REVERSED',
+  CANCELLED: 'CANCELLED',
 } as const;
 
 /**
@@ -314,4 +318,6 @@ export const LINE_ROLE_REQUIREMENTS: Record<string, { targetTypes: string[]; req
   [LINE_ROLE.GIFT_CARD_REFUND]:         { targetTypes: [TARGET_TYPE.GIFT_CARD],   requiredFields: [] },
   [LINE_ROLE.INTERNAL_TRANSFER]:        { targetTypes: [TARGET_TYPE.CASH_DRAWER], requiredFields: [] },
   [LINE_ROLE.ORDER_CREDIT_APPLICATION]: { targetTypes: [TARGET_TYPE.ORDER],       requiredFields: ['order_id'] },
+  [LINE_ROLE.CASH_PAY_IN]:              { targetTypes: [TARGET_TYPE.CASH_DRAWER], requiredFields: [] },
+  [LINE_ROLE.CASH_OVER_SHORT]:          { targetTypes: [TARGET_TYPE.CASH_DRAWER], requiredFields: [] },
 };

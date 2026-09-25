@@ -80,6 +80,14 @@ Money accepted without a tender fact, voucher, drawer movement, or liability is 
 - B15 removes literal currency defaults (the `'OMR'` fallback in stored-value paths) in favor of tenant/branch/document resolution.
 - B19 expiry/breakage jobs and B25 classification consume the funded/promotional separation.
 
+## Note 2026-09-25 — effect of ADR-057 on artifact 4 (cash drawer)
+
+**Target architecture — approved 2026-09-25 ([ADR-057](../../ADR/ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** Artifact 4 changes form, not intent:
+
+- *Current behaviour (until CLF ships):* a cash-funded operation writes a mirror row in `org_cash_drawer_movements_dtl` via `stored-value-cash-drawer-wiring.handler.ts`.
+- *Target:* no separate movement row. The cash tender line on the BVM voucher (artifact 2) **is** the drawer effect — the central gate (`stampCashLinesTx`, inside voucher posting) stamps it onto the drawer and its open session. "One physical event = one record." `fundStoredValue` passes the drawer and runs with mode `INTERACTIVE`; interactive cash needs an open session when the drawer requires one.
+- The funding voucher, the liability treatment and the other artifacts are unchanged. None of them depend on ERP-Lite, which is optional (artifact 5 flows through the tenant's posting setup).
+
 ## Affected work packages
 [B03](../B03_Stored_Value_Funding_Capture.md), [B06](../B06_ERP_Order_To_Cash_Event_Wiring.md), [B15](../B15_Currency_Defaults_And_Tolerances.md), [B19](../B19_Expiry_And_Idempotency_Jobs.md), [B25](../B25_Revenue_Recognition_And_Contract_Liability.md).
 

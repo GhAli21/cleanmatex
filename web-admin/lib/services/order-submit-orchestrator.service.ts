@@ -26,6 +26,7 @@ import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { resolveVoucherCashChangeReturned } from '@/lib/payments/resolve-voucher-cash-change';
 import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/voucher-wiring.service';
+import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import { buildSettlementPlan, validateSettlementPlan } from '@/lib/services/order-settlement-planner.service';
 import { validateOverpaymentResolution } from '@/lib/services/overpayment-resolution-validator.service';
 import { executeOverpaymentDispositionTx } from '@/lib/services/overpayment-disposition.service';
@@ -932,6 +933,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           tenantId,
           voucher.id,
           userId,
+          CASH_GATE_MODES.INTERACTIVE,
           `${orderId}_vch_post`,
           tx,
         );

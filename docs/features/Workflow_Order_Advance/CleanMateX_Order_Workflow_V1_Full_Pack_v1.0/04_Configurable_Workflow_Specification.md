@@ -61,9 +61,9 @@ draft → in_review → approved → published → retired
 - Retired versions remain valid for historical snapshots.
 - New assignments cannot target retired versions.
 
-## 6. Maker/checker
+## 6. Review and publication
 
-Production publication requires author, reviewer, and publisher permissions. Author and publisher should be different users. Emergency publication requires elevated permission and reason.
+Production publication requires author, reviewer, and publisher permissions. No maker ≠ checker (owner rule 2026-09-25): holding each permission is the only gate; the same user may author, review, and publish. Emergency publication requires elevated permission and reason.
 
 ## 7. Supported stage types
 

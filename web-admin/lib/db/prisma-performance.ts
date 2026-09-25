@@ -5,7 +5,11 @@
  * Tracks query performance, connection pool usage, and tenant context overhead
  */
 
-import { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { getTenantId } from './tenant-context';
+
+/** Extension argument shape accepted by $extends (type-only; nothing runs at import). */
+type PrismaExtensionArg = Extract<Parameters<typeof Prisma.defineExtension>[0], { query?: unknown }>;
 
 export interface QueryMetrics {
   model: string;
@@ -192,42 +196,28 @@ class PerformanceMonitor {
 export const performanceMonitor = new PerformanceMonitor();
 
 /**
- * Apply performance monitoring middleware to Prisma client
+ * Performance monitoring as a Prisma client extension ($extends).
+ * Replaces the former `$use` middleware, which never registered on Prisma 6.
  */
-export function applyPerformanceMiddleware(prisma: PrismaClient): void {
-  (prisma as any).$use(async (params: any, next: any) => {
-    const startTime = Date.now();
-    const { getTenantId } = await import('./tenant-context');
-    const tenantId = getTenantId();
-
-    try {
-      const result = await next(params);
-      const duration = Date.now() - startTime;
-
-      // Record metrics
-      performanceMonitor.recordQuery(
-        params.model || 'unknown',
-        params.action || 'unknown',
-        duration,
-        tenantId
-      );
-
-      return result;
-    } catch (error) {
-      const duration = Date.now() - startTime;
-
-      // Record metrics even for errors
-      performanceMonitor.recordQuery(
-        params.model || 'unknown',
-        params.action || 'unknown',
-        duration,
-        tenantId
-      );
-
-      throw error;
-    }
-  });
-}
+// Plain object (not Prisma.defineExtension): the jsdom unit suite resolves
+// @prisma/client to its browser build, where defineExtension throws at import time.
+export const performanceExtension = {
+  name: 'performance-monitor',
+  query: {
+    $allModels: {
+      async $allOperations({ model, operation, args, query }) {
+        const startTime = Date.now();
+        const tenantId = getTenantId();
+        try {
+          return await query(args);
+        } finally {
+          // Recorded for failed queries too, so error spikes show up in latency stats.
+          performanceMonitor.recordQuery(model ?? 'unknown', operation, Date.now() - startTime, tenantId);
+        }
+      },
+    },
+  },
+} satisfies PrismaExtensionArg;
 
 /**
  * Get performance report

@@ -27,7 +27,8 @@ order-submit-orchestrator.service.ts
   │     ├── addVoucherLine() × N  (REAL_PAYMENT + CREDIT_APPLICATION legs)
   │     └── postAndWireBizVoucher()
   │           └── wiring handlers → org_order_payments_dtl, org_order_credit_apps_dtl,
-  │                                  org_cash_drawer_movements_dtl
+  │                                  org_cash_drawer_movements_dtl  (current; ADR-057 target:
+  │                                  cash gate stamps the voucher line, no movement row)
   ├── settleOrder(wiringMode: true)
   │     ├── Writes: org_order_charges_dtl, org_order_taxes_dtl, org_order_discounts_dtl
   │     ├── Debits: wallet, advance, credit-note, loyalty (stored value)
@@ -77,6 +78,7 @@ Order Settlement Service (prisma.$transaction)
 | POS session ownership (Phase 1) | User-owned, one active per tenant+user | Keeps user session, terminal context, and drawer reconciliation cleanly separated |
 | POS session navigation (Phase 3) | `/dashboard/internal_fin/pos-sessions` with DB seed migration `0399` | Keeps sidebar and `sys_components_cd` in sync |
 | POS Session Hub (2026-07-09) | Compact order-entry control plus right-side context panel | Healthy POS state stays quiet; warning banners remain for paused/conflict/error states |
+| Two-domain cash ledger ([ADR-057](ADR/ADR-057-Two-Domain-Cash-Ledger.md), approved 2026-09-25, **implementation pending** in package CLF) | Finance = vouchers; custody = drawer transactions; per-drawer ledger sequence; one central gate stamps cash voucher lines; no mirror movements | Closes payment-during-close and post-close mutation; one physical event = one record. Supersedes ADR-032 when CLF ships |
 
 ## Directory Structure
 
@@ -127,6 +129,9 @@ Related ADRs in sibling features:
 - [Order Fin Remediation Program (B01–B35) — active, canonical tracking](Remediation_Work_Packages/README.md)
 - [POS Session Management v1](POS_Session_Management_V1.md)
 - [ADR-054 — User-Owned POS Sessions](ADR/ADR-054-User-Owned-POS-Sessions.md)
+- [ADR-057 — Two-Domain Cash Ledger](ADR/ADR-057-Two-Domain-Cash-Ledger.md) (approved 2026-09-25, implementation pending)
+- [POS Session & Cash Drawer Hardening — package CLF (§4B)](POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md) · [Status](POS_Session_Cash_Drawer_Hardening/STATUS.md) (D29–D31)
+- [Cash Drawer Guide](Order_Fin_Docs/CASH_DRAWER_GUIDE.md)
 - [Payment Settlement Plan](Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md) (complete)
 - [Pending Follow-Ups](Pending_Payment_Settlement_Follow_Ups.md)
 - [HQ sys_ Catalogs Guide](HQ_Fin_Settlement_Sys_Catalogs_Implementation_Guide.md) (implement in cleanmatexsaas)

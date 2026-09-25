@@ -13,10 +13,12 @@
  */
 
 const mockFindFirst = jest.fn();
+const mockCurrencyFindUnique = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
-    sys_currency_rounding_rules_cd: { findFirst: (...a: unknown[]) => mockFindFirst(...a) },
+    sys_currency_rounding_rules_cf: { findFirst: (...a: unknown[]) => mockFindFirst(...a) },
+    sys_currency_cd: { findUnique: (...a: unknown[]) => mockCurrencyFindUnique(...a) },
   },
 }));
 
@@ -30,11 +32,14 @@ describe('B17 — preview/submit/snapshot currency-rounding consistency', () => 
   it('a non-native rounding rule persists a delta that reconstructs the exact rounded grand total', async () => {
     mockFindFirst.mockResolvedValue({
       currency_code: 'OMR',
-      rounding_method: 'HALF_UP',
-      rounding_unit: 0.005,
+      rounding_context: 'ACCOUNTING',
+      rounding_mode: 'HALF_UP',
+      rounding_increment_minor: 5,
+      output_decimal_places: null,
       is_active: true,
       rec_status: 1,
     });
+    mockCurrencyFindUnique.mockResolvedValue({ minor_unit: 3 });
 
     // What calculateOrderTotals computes pre-rounding (items + tax, no charges/discounts).
     const preRoundingGrandTotal = 12.343;
@@ -86,11 +91,14 @@ describe('B17 — preview/submit/snapshot currency-rounding consistency', () => 
   it('a TAX_INCLUSIVE order with a rounding adjustment combines both terms correctly (B11+B17)', async () => {
     mockFindFirst.mockResolvedValue({
       currency_code: 'SAR',
-      rounding_method: 'HALF_UP',
-      rounding_unit: 0.05,
+      rounding_context: 'ACCOUNTING',
+      rounding_mode: 'HALF_UP',
+      rounding_increment_minor: 5,
+      output_decimal_places: null,
       is_active: true,
       rec_status: 1,
     });
+    mockCurrencyFindUnique.mockResolvedValue({ minor_unit: 2 });
 
     // Inclusive order: net=100, tax=15 extracted -> gross=115; rounding rule
     // nudges the gross to the nearest 0.05 (already exact here, so 0 delta) —

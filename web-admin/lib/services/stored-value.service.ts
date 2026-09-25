@@ -278,7 +278,7 @@ export async function issueAdvanceTx(
 
   const balanceBefore = toNumber(advance.balance);
   const updated = await tx.org_customer_advances_mst.update({
-    where: { id: advance.id },
+    where: { tenant_org_id: tenantId, id: advance.id },
     data:  { balance: { increment: amount }, updated_at: new Date() },
   });
   const balanceAfter = toNumber(updated.balance);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { reverseBizVoucher } from '@/lib/services/voucher-reversal.service';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 
 /**
  *
@@ -25,6 +26,12 @@ export async function POST(
     const result = await reverseBizVoucher(tenantId, voucherId, body.reason.trim(), userId);
     return NextResponse.json({ success: true, data: result });
   } catch (err) {
+    // CLF: the cash-drawer ledger gate raises a typed refusal with a stable
+    // `code` (lib/constants/cash-drawer.ts CASH_LEDGER_ERRORS) — a client
+    // error, not a server failure.
+    if (err instanceof CashDrawerLedgerError) {
+      return NextResponse.json({ success: false, error: err.code }, { status: 422 });
+    }
     const message = err instanceof Error ? err.message : 'Failed to reverse voucher';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }

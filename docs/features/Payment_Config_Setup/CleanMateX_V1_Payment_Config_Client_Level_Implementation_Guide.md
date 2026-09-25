@@ -322,6 +322,16 @@ create table if not exists public.org_payment_terminals_cf (
 
 ## 7. Cash Drawer Table: org_cash_drawers_mst
 
+> **Target changes — approved 2026-09-25 ([ADR-057](../Order_Fin/ADR/ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** Sections 7–9, 11, 15 and the cash drawer items in the service/API/UI/reconciliation/test lists describe the **current behaviour (until CLF ships)**. Full design: [POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md §4B](../Order_Fin/POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md).
+>
+> | Area | Target |
+> |---|---|
+> | Drawer types | `drawer_type` becomes an FK to the lookup `sys_cash_drawer_type_cd` (`COUNTER`, `TEMPORARY`, `DRIVER_BAG`, `SAFE`, `PENDING_DEPOSIT`), replacing the CHECK below. Each type carries hard capabilities (customer cash in/out, transaction source/destination, disposition destination) and overridable defaults. The drawer config form loads types from `GET /api/v1/cash-drawers/catalogs` and shows capabilities read-only. |
+> | Policy flags | `requires_session` and `opening_float_required` are removed from the drawer. Policy lives in `org_fin_cash_ctrl_stng_cf` at **DRAWER** scope (`requires_session`, `opening_count_required`, `closing_count_required`), edited on the drawer screen's *Policy* tab (`/api/v1/cash-drawers/[drawerId]/policy`), resolved DRAWER → USER → BRANCH → TENANT → type default → constant default. Existing non-default values are carried over to DRAWER-scope rows. `max_cash_limit`, assignment, `variance_approval_threshold` and `currency_code` stay on the drawer. |
+> | Ledger sequence | New `ledger_seq BIGINT` (per-drawer sequence, allocated under the drawer row lock). |
+> | Pending-deposit drawer | Exactly one `PENDING_DEPOSIT` drawer per branch (partial unique index), created by the idempotent `ensure_branch_pd_drawer(p_tenant_org_id, p_branch_id)` — from a branch-insert trigger, the HQ tenant-maintenance action, the backfill, and a **"Create pending-deposit drawer"** button (shown only when missing) on `/dashboard/tenant-admin/branches`, the *Cash drawers* tab of `/dashboard/settings/payments`, and `/dashboard/settings/payments/cash-control-settings`. All buttons call `POST /api/v1/cash-drawers/pending-deposit/ensure` → `{ created, drawerId }`. It cannot be deactivated with a non-zero balance and its type cannot be changed. |
+> | Sessions and movements | Session money moves to `org_cash_drawer_ses_bal_dtl`; close becomes count → finalize with a `CLOSING` status and mandatory disposition; `org_cash_drawer_movements_dtl` (section 9) is retired — financial cash is voucher lines, custody is `org_cash_drawer_trx_mst/_dtl`. |
+
 ### SQL
 
 ```sql
@@ -427,6 +437,8 @@ where status = 'OPEN' and rec_status = 1;
 ---
 
 ## 9. Cash Drawer Movement Table: org_cash_drawer_movements_dtl
+
+> *Current behaviour (until CLF ships).* Retired by ADR-057 in CLF release R3 — replaced by drawer-stamped voucher lines (finance) and `org_cash_drawer_trx_mst/_dtl` (custody). Manual cash in / cash out becomes finance vouchers (`EXPENSE_PAYMENT`, `SUPPLIER_PAYMENT`, `PETTY_CASH_ISSUE`, `PETTY_CASH_RETURN`, `CASH_PAY_IN`); petty cash does not depend on ERP-Lite.
 
 ### SQL
 

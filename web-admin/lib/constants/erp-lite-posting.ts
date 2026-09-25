@@ -88,6 +88,10 @@ export const ERP_LITE_TXN_EVENT_CODES = {
   // B6 (migration 0424) — stored-value funding liability events (D008).
   WALLET_TOPPED_UP:          'WALLET_TOPPED_UP',
   CUSTOMER_ADVANCE_RECEIVED: 'CUSTOMER_ADVANCE_RECEIVED',
+  // CLF (migration 0530) — drawer over/short and owner pay-in.
+  CASH_OVER:    'CASH_OVER',
+  CASH_SHORT:   'CASH_SHORT',
+  CASH_PAID_IN: 'CASH_PAID_IN',
 } as const;
 
 export const ERP_LITE_BLOCKING_MODES = {

@@ -7,6 +7,7 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import { lockDrawerScope } from '@/lib/services/cash-drawer.service';
+import { CASH_DRAWER_SESSION_STATUSES, DRAWER_TYPES } from '@/lib/constants/payment';
 import type {
   OrgCashDrawer,
   OrgCashDrawerSession,
@@ -74,6 +75,9 @@ export async function createCashDrawer(
 ): Promise<{ success: boolean; data?: OrgCashDrawer; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
+    if (input.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT) {
+      return { success: false, error: 'Pending-deposit drawers are created by the system, one per branch.' };
+    }
     const tenantCurrencyCode = await resolveTenantCurrencyCode(tenantId, userId);
     return withTenantContext(tenantId, async () => {
       const row = await prisma.org_cash_drawers_mst.create({
@@ -117,6 +121,13 @@ export async function updateCashDrawer(
         where: { id, tenant_org_id: tenantId, is_active: true },
       });
       if (!existing) return { success: false, error: 'Cash drawer not found' };
+      // The branch pending-deposit drawer is system-provisioned (ensure_branch_pd_drawer); its identity is fixed.
+      if (existing.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT) {
+        return { success: false, error: 'The pending-deposit drawer is managed by the system and cannot be edited.' };
+      }
+      if (input.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT) {
+        return { success: false, error: 'A drawer cannot be changed into a pending-deposit drawer.' };
+      }
 
       const sessionCount = await prisma.org_cash_drawer_sessions_mst.count({
         where: { cash_drawer_id: id, tenant_org_id: tenantId },
@@ -163,10 +174,18 @@ export async function toggleCashDrawerActive(
         where: { id, tenant_org_id: tenantId },
       });
       if (!existing) return { success: false, error: 'Cash drawer not found' };
+      if (existing.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT) {
+        return { success: false, error: 'The pending-deposit drawer is managed by the system and cannot be deactivated.' };
+      }
 
       if (!isActive) {
         const openSession = await prisma.org_cash_drawer_sessions_mst.findFirst({
-          where: { cash_drawer_id: id, tenant_org_id: tenantId, status: 'OPEN', is_active: true },
+          where: {
+            cash_drawer_id: id,
+            tenant_org_id: tenantId,
+            status: { in: [CASH_DRAWER_SESSION_STATUSES.OPEN, CASH_DRAWER_SESSION_STATUSES.CLOSING] },
+            is_active: true,
+          },
         });
         if (openSession) {
           return { success: false, error: 'Cannot deactivate: drawer has an open session. Close it first.' };

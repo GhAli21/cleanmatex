@@ -68,7 +68,7 @@ Key columns:
 
 **Operational back-link columns** (added by 0303, all nullable):
 - `org_order_payments_dtl.fin_voucher_id` + `fin_voucher_trx_line_id`
-- `org_cash_drawer_movements_dtl.fin_voucher_id` + `fin_voucher_trx_line_id`
+- `org_cash_drawer_movements_dtl.fin_voucher_id` + `fin_voucher_trx_line_id` (current; table retired by ADR-057 in CLF R3 — see §5 "Cash drawer effects — target")
 - `org_wallet_txn_dtl.fin_voucher_id` + `fin_voucher_trx_line_id`
 - `org_advance_txn_dtl.fin_voucher_id` + `fin_voucher_trx_line_id`
 - `org_gift_card_txn_dtl.fin_voucher_id` + `fin_voucher_trx_line_id`
@@ -196,6 +196,23 @@ All in `web-admin/lib/services/`. Pure functions, no class instances.
 10. Write `org_fin_voucher_audit_log` row: `action='POSTED'`
 11. Upsert `org_idempotency_keys` as resolved
 12. COMMIT — full rollback on any failure
+
+### Cash drawer effects — target (ADR-057)
+
+**Target architecture — approved 2026-09-25 ([ADR-057](../Order_Fin/ADR/ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).**
+
+*Current behaviour (until CLF ships):* three wiring handlers registered in `voucher-wiring.service.ts` — `cash-drawer-wiring.handler.ts`, `stored-value-cash-drawer-wiring.handler.ts`, `order-refund-cash-drawer-wiring.handler.ts` — write a **mirror** row in `org_cash_drawer_movements_dtl` for cash voucher lines and back-link it via `cash_drawer_mvt_id`. Line roles without such a handler never reach a drawer.
+
+*Target:*
+
+| Change | Detail |
+|---|---|
+| Gate inside posting | `postAndWireBizVoucherInTx` calls `stampCashLinesTx(tx, ctx, cashLines, mode)` (`lib/services/cash-drawer-ledger/`) after the header lock and **before** lines flip `DRAFT → POSTED`; then flips to `POSTED`; then runs the remaining handlers. `mode` (`INTERACTIVE` / `DEFERRED`) becomes a required parameter. |
+| Every cash line of any role | The gate stamps `cash_drawer_id`, `cash_ledger_seq`, `cash_recognized_at/_by`, `cash_effect_code` on every cash-method line — including expense, supplier, petty-cash and the new `CASH_PAY_IN` roles. No per-role drawer handler. |
+| Handlers retired | The three cash-drawer wiring handlers are deleted and removed from the registry; `cash_drawer_mvt_id` and `org_cash_drawer_movements_dtl` are dropped in R3. Linked effects show the line's drawer stamp instead of `CASH_DRAWER_MOVEMENT`. |
+| Immutability | Posted lines cannot change amount, direction, currency, method or drawer stamp (DB trigger, `CASH_LINE_IMMUTABLE`); the only allowed transitions are `PENDING → DRAWER` / `PENDING → NONE` recognition and `POSTED → REVERSED`. |
+| Reversal | Line-level reversal (`reverseVoucherLinesTx`); reversal lines are posted through the same path with mode `DEFERRED` and land in the drawer window current at reversal time (the session is no longer copied from the original). Header becomes `PARTIALLY_REVERSED` when not all lines are reversed. |
+| ERP-Lite | Not required. Cash vouchers (including petty cash) work without ERP-Lite; GL posting follows the tenant's setup. |
 
 ---
 

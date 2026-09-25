@@ -31,6 +31,7 @@ import { resolveDefaultStatus } from '@/lib/services/order-settlement-planner.se
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
+import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import { emitEventTx } from '@/lib/services/outbox.service';
 import { topUpWalletTx, issueAdvanceTx } from '@/lib/services/stored-value.service';
 import { generateGiftCardCode, finalizeGiftCardSaleTx } from '@/lib/services/gift-card-service';
@@ -407,7 +408,7 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
     //    stored-value-cash-drawer-wiring.handler.ts, which create the tender
     //    rows, credit the ledger exactly once via finalizeStoredValueFundingIfReady,
     //    and create drawer movements for cash legs.
-    await postAndWireBizVoucher(tenantId, voucher.id, performedBy, `${idempotencyKey}_vch_post`, tx);
+    await postAndWireBizVoucher(tenantId, voucher.id, performedBy, CASH_GATE_MODES.INTERACTIVE, `${idempotencyKey}_vch_post`, tx);
 
     const result: FundStoredValueResult = {
       fundingType,

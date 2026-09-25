@@ -11,6 +11,7 @@ import { CmxSkeletonTable } from '@ui/primitives';
 import { cmxMessage } from '@ui/feedback';
 import { CmxConfirmDialog } from '@ui/feedback';
 import type { OrgCashDrawer, OrgCashDrawerSession } from '@/lib/types/payment';
+import { DRAWER_TYPES } from '@/lib/constants/payment';
 import { toggleCashDrawerActive } from '@/app/actions/payment-config/cash-drawers-actions';
 import { CashDrawerFormDialog } from './cash-drawer-form-dialog';
 import { CashDrawerSessionCard } from './cash-drawer-session-card';
@@ -205,8 +206,15 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
               {t('cashDrawers.viewSession')}
             </CmxButton>
           )}
-          <CmxButton variant="outline" size="sm" onClick={() => setEditTarget(d)}>{t('common.edit')}</CmxButton>
-          <CmxButton variant="ghost" size="sm" className="text-destructive" onClick={() => setDeactivateTarget(d)}>{t('common.deactivate')}</CmxButton>
+          {/* The branch pending-deposit drawer is system-provisioned; the server rejects edit/deactivate too. */}
+          {d.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT ? (
+            <Badge variant="secondary">{t('cashDrawers.systemDrawer')}</Badge>
+          ) : (
+            <>
+              <CmxButton variant="outline" size="sm" onClick={() => setEditTarget(d)}>{t('common.edit')}</CmxButton>
+              <CmxButton variant="ghost" size="sm" className="text-destructive" onClick={() => setDeactivateTarget(d)}>{t('common.deactivate')}</CmxButton>
+            </>
+          )}
         </div>
       ),
     },

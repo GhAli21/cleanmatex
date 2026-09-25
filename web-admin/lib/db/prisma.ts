@@ -1,44 +1,38 @@
 /**
  * Prisma Client Instance (Consolidated)
  *
- * Single source of truth for Prisma client with:
- * - Singleton pattern to prevent multiple instances in development
- * - Multi-tenant middleware automatically applied
- * - Logging configuration
- * - Connection pooling
- * - Graceful shutdown handling
+ * Single source of truth for the Prisma client:
+ * - Singleton base client (one connection pool, survives dev hot reload)
+ * - Tenant Guard extension — checks every tenant-scoped query carries an explicit
+ *   tenant_org_id; it NEVER injects one (see lib/db/tenant-guard.ts)
+ * - Performance monitoring extension
+ *
+ * Tenant isolation is the caller's job: every query on a tenant-scoped model must
+ * filter tenant_org_id explicitly. withTenantContext() does NOT add filters — it only
+ * lets the guard detect queries that name a different tenant.
  *
  * Usage:
  * ```typescript
  * import { prisma } from '@/lib/db/prisma'
- * 
- * // In server actions/components, wrap with tenant context:
- * import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context'
- * 
- * export async function listOrders(filters: unknown) {
- *   const tenantId = await getTenantIdFromSession()
- *   if (!tenantId) throw new Error('Unauthorized')
- *   
- *   return withTenantContext(tenantId, async () => {
- *     // All Prisma queries here automatically filter by tenant_org_id
- *     return await prisma.org_orders_mst.findMany()
- *   })
- * }
+ *
+ * const orders = await prisma.org_orders_mst.findMany({
+ *   where: { tenant_org_id: tenantId, status: 'READY' },
+ * })
  * ```
  */
 
 import { PrismaClient } from '@prisma/client';
-import { applyTenantMiddleware } from '../prisma-middleware';
-import { applyPerformanceMiddleware } from './prisma-performance';
+import { tenantGuardExtension, withTenantGuardCallsites } from './tenant-guard';
+import { performanceExtension } from './prisma-performance';
 
-// Prevent multiple instances of Prisma Client in development
+// Cache the BASE client globally: it owns the connection pool. Extensions are cheap
+// wrappers and are re-applied on each module evaluation.
 const globalForPrisma = global as unknown as {
-  prisma: PrismaClient | undefined;
+  prismaBase: PrismaClient | undefined;
 };
 
-// Create or reuse Prisma client instance
-const prismaClient =
-  globalForPrisma.prisma ??
+const prismaBase =
+  globalForPrisma.prismaBase ??
   new PrismaClient({
     log:
       process.env.NODE_ENV === 'development'
@@ -46,56 +40,37 @@ const prismaClient =
         : ['error'],
   });
 
-function readPrismaClientProperty<T = unknown>(propertyName: string): T | undefined {
-  try {
-    return (prismaClient as unknown as Record<string, T>)[propertyName];
-  } catch {
-    return undefined;
-  }
-}
+// Order: performance wraps the guard, so rejected queries are not timed as DB work.
+//
+// Typed as the plain PrismaClient on purpose. Both extensions are query-only
+// (no result/model/client members), so the runtime surface matches PrismaClient
+// except $use/$on, which are unused here ($use no longer exists on Prisma 6).
+// Exposing the inferred extended type instead costs ~5x tsc time (68s -> 5.5min
+// measured) and breaks every injected `PrismaClient` / `TransactionClient`
+// parameter. Revisit if an extension ever adds result or model members.
+//
+// withTenantGuardCallsites binds each lazy query to the line that created it, so the
+// guard reports real call sites and sees the caller's tenant context.
+export const prisma = buildGuardedClient(prismaBase);
 
-// Apply multi-tenant middleware (only if not already applied)
-// Check if middleware is already applied by checking for a custom property
-// Wrap in try-catch to handle webpack bundling edge cases
-if (!readPrismaClientProperty<boolean>('__tenantMiddlewareApplied')) {
+function buildGuardedClient(base: PrismaClient): PrismaClient {
+  let extended: object;
   try {
-    // Check if $use method exists before applying middleware
-    if (typeof readPrismaClientProperty('$use') === 'function') {
-  applyTenantMiddleware(prismaClient);
-  (prismaClient as any).__tenantMiddlewareApplied = true;
-    }
+    extended = base.$extends(tenantGuardExtension).$extends(performanceExtension);
   } catch (error) {
-    // Silently fail during build - middleware will be applied at runtime
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[Prisma] Middleware application deferred:', error);
-    }
+    // Only reachable when @prisma/client resolved to its browser build (jsdom unit
+    // tests importing a service module). That stub throws on EVERY property access,
+    // so returning it cannot yield an unguarded client that runs queries.
+    if (typeof window !== 'undefined') return base;
+    throw error;
   }
+  return withTenantGuardCallsites(extended) as unknown as PrismaClient;
 }
 
-// Apply performance monitoring middleware (only if not already applied)
-if (!readPrismaClientProperty<boolean>('__performanceMiddlewareApplied')) {
-  try {
-    // Check if $use method exists before applying middleware
-    if (typeof readPrismaClientProperty('$use') === 'function') {
-  applyPerformanceMiddleware(prismaClient);
-  (prismaClient as any).__performanceMiddlewareApplied = true;
-    }
-  } catch (error) {
-    // Silently fail during build - middleware will be applied at runtime
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[Prisma] Performance middleware application deferred:', error);
-    }
-  }
-}
-
-// Export singleton instance
-export const prisma = prismaClient;
-
-// Save to global in development to prevent hot reload issues.
-// This is the canonical pattern from the Prisma docs for Next.js:
+// Canonical Next.js dev pattern: reuse the pool across hot reloads.
 // https://www.prisma.io/docs/orm/more/help-and-troubleshooting/help-articles/nextjs-prisma-client-dev-practices
 if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.prismaBase = prismaBase;
 }
 
 // NOTE: Do NOT register process.on('beforeExit') here.

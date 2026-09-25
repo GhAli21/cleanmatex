@@ -118,3 +118,19 @@ This design is explicitly swappable, not permanent:
 - Until then, `org_fin_cash_ctrl_stng_cf` and `org_fin_cash_ctrl_audit_dtl` are the
   system of record and this ADR is the reference for why they exist outside the
   general catalog.
+
+## Amendment 2026-09-25 (ADR-057)
+
+**Target architecture — approved 2026-09-25 ([ADR-057](./ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** Points 1–5 above stay valid; the changes below take effect when CLF migration M5 ships.
+
+| Area | Amendment |
+|---|---|
+| New columns | Nullable (`NULL` = inherit): `requires_session BOOLEAN`, `opening_count_required BOOLEAN`, `closing_count_required BOOLEAN`. |
+| Moved from drawers | `org_cash_drawers_mst.requires_session` and `.opening_float_required` are retired. For each drawer whose value differs from its type default, a DRAWER-scope settings row carries the override so no configured value is lost. |
+| Retired column | `cash_drop_requires_dest` — every drawer transaction is two-legged by construction, so the setting can no longer be false. |
+| Resolution order (point 2) | `DRAWER → USER → BRANCH → TENANT → drawer-type default (sys_cash_drawer_type_cd.*_default) → TypeScript default`. Hard drawer-type capabilities (e.g. a safe never takes customer cash) never come from settings. |
+| New read function | `getCashControlSettingsWithSource(scope)` returns each value with its source (`DRAWER` / `USER` / `BRANCH` / `TENANT` / `TYPE_DEFAULT` / `DEFAULT`). `getCashControlSettings` remains the single resolver; the new function shares its private loading. |
+| Editing surface | The drawer screen's *Policy* tab edits the **DRAWER** scope (`GET/PUT /api/v1/cash-drawers/[drawerId]/policy`, `cash_control:view` / `cash_control:manage`; `null` resets to inherit). Writes still go through `updateCashControlSettings` and are audited in `org_fin_cash_ctrl_audit_dtl`. |
+| Enforcement | The central cash gate and session services enforce `requires_session` and the count requirements; counts and denominations are optional by default. |
+
+See [IMPLEMENTATION_PLAN.md §4B.3.7](../POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md).

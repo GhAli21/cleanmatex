@@ -186,6 +186,7 @@ export async function checkOrderLock(
   return withTenantContext(tenantId, async () => {
     const lock = await prisma.org_order_edit_locks.findUnique({
       where: {
+        tenant_org_id: tenantId,
         order_id: orderId,
       },
     });

@@ -139,7 +139,33 @@ export interface CashControlSettings {
   posSessionRolloverMode: CashControlRolloverMode;
   posSessionStaleHours: number;
   shiftZReportRequired: boolean;
+  /** CLF (0528): interactive cash needs an open session. Falls back to the drawer type default. */
+  requiresSession: boolean;
+  /** CLF (0528): a count is required when a session opens. Falls back to the drawer type default. */
+  openingCountRequired: boolean;
+  /** CLF (0528): a count is required at the close count step. Falls back to the drawer type default. */
+  closingCountRequired: boolean;
 }
+
+/**
+ * Where a resolved value came from — shown on the drawer Policy tab so the user
+ * sees what is inherited and what is overridden.
+ */
+export const CASH_CONTROL_VALUE_SOURCE = {
+  DRAWER: 'DRAWER',
+  USER: 'USER',
+  BRANCH: 'BRANCH',
+  TENANT: 'TENANT',
+  TYPE_DEFAULT: 'TYPE_DEFAULT',
+  DEFAULT: 'DEFAULT',
+} as const;
+export type CashControlValueSource = (typeof CASH_CONTROL_VALUE_SOURCE)[keyof typeof CASH_CONTROL_VALUE_SOURCE];
+
+/** sys_cash_drawer_type_cd default columns usable as a resolution layer. */
+export type DrawerTypeDefaultColumn =
+  | 'requires_session_default'
+  | 'opening_count_required_default'
+  | 'closing_count_required_default';
 
 // ========================
 // Setting definitions registry
@@ -159,6 +185,8 @@ interface CashControlSettingDefBase {
 interface CashControlBooleanSettingDef extends CashControlSettingDefBase {
   type: 'boolean';
   default: boolean;
+  /** CLF: when no scope sets a value and a drawer is known, use this drawer-type default before `default`. */
+  typeDefaultColumn?: DrawerTypeDefaultColumn;
 }
 
 interface CashControlEnumSettingDef extends CashControlSettingDefBase {
@@ -334,6 +362,30 @@ export const CASH_CONTROL_SETTING_DEFS: readonly CashControlSettingDef[] = [
     type: 'boolean',
     default: true,
     i18nKey: 'shiftZReportRequired',
+  },
+  {
+    dbColumn: 'requires_session',
+    tsField: 'requiresSession',
+    type: 'boolean',
+    default: true,
+    typeDefaultColumn: 'requires_session_default',
+    i18nKey: 'requiresSession',
+  },
+  {
+    dbColumn: 'opening_count_required',
+    tsField: 'openingCountRequired',
+    type: 'boolean',
+    default: false,
+    typeDefaultColumn: 'opening_count_required_default',
+    i18nKey: 'openingCountRequired',
+  },
+  {
+    dbColumn: 'closing_count_required',
+    tsField: 'closingCountRequired',
+    type: 'boolean',
+    default: false,
+    typeDefaultColumn: 'closing_count_required_default',
+    i18nKey: 'closingCountRequired',
   },
 ] as const;
 

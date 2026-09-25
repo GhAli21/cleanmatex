@@ -30,7 +30,7 @@ reconciliation.service
   └── org_reconciliation_runs_mst, org_reconciliation_issues_dtl
 
 cash-drawer.service
-  └── org_cash_drawer_sessions_mst, org_cash_drawer_movements_dtl
+  └── org_cash_drawer_sessions_mst, org_cash_drawer_movements_dtl   (current; target: cash-drawer-ledger/*, ADR-057)
 ```
 
 ## POS Session Management v1
@@ -213,6 +213,26 @@ processRefund(tenantId, refundId)  ← runs inside prisma.$transaction
 ```
 
 ## Cash Drawer Session Lifecycle
+
+### Target architecture — cash ledger (ADR-057)
+
+**Target architecture — approved 2026-09-25 ([ADR-057](./ADR/ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** Full design: [POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md §4B](./POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md); overview: [Order_Fin_Docs/CASH_DRAWER_GUIDE.md](./Order_Fin_Docs/CASH_DRAWER_GUIDE.md).
+
+Developer rules once CLF ships (apply them to any new cash work designed now):
+
+| Rule | Detail |
+|---|---|
+| All financial cash goes through vouchers | Customer receipts, refunds, reversals, stored-value funding, customer-account receipts, cash in / cash out (`EXPENSE_PAYMENT`, `SUPPLIER_PAYMENT`, `PETTY_CASH_ISSUE`, `PETTY_CASH_RETURN`, `CASH_PAY_IN`) and over/short are voucher lines. No cash path may skip the voucher. Vouchers do not depend on ERP-Lite. |
+| Custody is drawer transactions | Float, drops, drawer-to-drawer, handover, close disposition → `cash-drawer-trx.service.ts` (`org_cash_drawer_trx_mst/_dtl`, lines net to zero). Custody never writes finance. |
+| Never write the drawer stamp outside the gate | Only `stampCashLinesTx` / `recognizeCashLineTx` (`lib/services/cash-drawer-ledger/cash-drawer-ledger-gate.ts`) write `cash_drawer_id`, `cash_ledger_seq`, `cash_recognized_at/_by`, `cash_effect_code`. The gate runs inside `postAndWireBizVoucherInTx`; callers pass the drawer and a mode (`INTERACTIVE` / `DEFERRED`) — never a trusted session id. |
+| No mirrors | One physical event = one record. Do not add wiring handlers that write drawer rows; do not read `org_cash_drawer_movements_dtl` or `cash-drawer-cash-facts.ts` in new code (both retired in R3). |
+| One ledger query | Every balance comes from `cash-drawer-balance.service.ts` over `cash-drawer-ledger.repository.ts`; never recompute expected cash from payment status. |
+| Lock order | voucher-number lock → voucher header `FOR UPDATE` → drawer rows (`lockDrawersTx`, sorted by id) → drawer-trx number lock → session-number lock. Custody services and the close never take the voucher-number lock (over/short is posted asynchronously from `CASH_DRAWER_OVER_SHORT`). |
+| Posted lines are immutable | Corrections are reversal lines stamped in the current window; VOID/CANCEL of a recognised cash leg is refused (`CASH_LEG_MUST_REVERSE`). |
+| Status checks are allow-lists | Treat `CLOSED` / `FORCE_CLOSED` as terminal; `CLOSING` is neither open nor closed. |
+| Approvals | Permission is the only gate; the same user may approve (no maker ≠ checker). |
+
+### Current behaviour (until CLF ships)
 
 ```
 openSession(tenantId, { drawerId, openedBy, openingBalance })

@@ -6,6 +6,7 @@ import { Decimal } from '@prisma/client/runtime/library'
 import { lookupAuditActors, type AuditActorLookupResult } from '@lib/services/audit-actor.service'
 import { prisma } from '@lib/db/prisma'
 import { withTenantContext } from '@lib/db/tenant-context'
+import { lockDrawersTx } from '@/lib/services/cash-drawer-ledger/cash-drawer-lock'
 import { varianceToleranceFor } from '@/lib/constants/financial-tolerances'
 import { addMoney, subMoney, sumMoney, compareMoney, toDecimal, toMoneyString, type MoneyInput } from '@/lib/utils/money'
 import {
@@ -35,20 +36,18 @@ import type {
 export type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
 
 /**
- * A2 (POS Session & Cash Drawer Hardening) — transaction-scoped advisory
- * lock serializing every mutation against one drawer (open, close, record
- * movement, approve variance), mirroring `lockUserSessionScope` in
- * `pos-session.service.ts`. Must be called with `tx` from an already-open
- * `prisma.$transaction` — an advisory *xact* lock releases at transaction
- * end, so acquiring it outside the transaction that does the write protects
- * nothing. Exported so other "open a cash drawer session" call sites (e.g.
- * `app/actions/payment-config/cash-drawers-actions.ts`) reuse this instead
- * of duplicating the lock SQL.
+ * Serializes every mutation against one drawer (open, close, movement,
+ * variance approval). Since CLF (P1) this is the drawer ROW lock shared with
+ * the cash-ledger gate, so cash postings and session mutations on the same
+ * drawer are ordered against each other (the D22 fix). Must be called with
+ * `tx` from an already-open `prisma.$transaction`; the lock is released when
+ * that transaction ends.
+ * @param tx open Prisma transaction
+ * @param tenantId tenant of the drawer
+ * @param drawerId drawer to lock
  */
 export async function lockDrawerScope(tx: PrismaTx, tenantId: string, drawerId: string): Promise<void> {
-  await tx.$executeRaw(Prisma.sql`
-    SELECT pg_advisory_xact_lock(hashtext(${`${tenantId}:${drawerId}:cash_drawer`}))
-  `)
+  await lockDrawersTx(tx, tenantId, [drawerId])
 }
 
 /** Stable error codes for cash-drawer session mutations (A2). */
@@ -1779,7 +1778,7 @@ export async function closeSession(
             varianceDecimal.abs().greaterThan(varianceThresholdDecimal)
 
           const updated = await tx.org_cash_drawer_sessions_mst.update({
-            where: { id: sessionId },
+            where: { tenant_org_id: tenantId, id: sessionId },
             data: {
               status: 'CLOSED',
               counted_cash_amount: physicalCountDecimal,

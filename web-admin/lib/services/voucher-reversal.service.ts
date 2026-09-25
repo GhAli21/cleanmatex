@@ -11,46 +11,26 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
-import { LINE_ROLE, VOUCHER_STATUS, WIRING_STATUS, normalizeVoucherLineRole } from '../constants/voucher';
+import { LINE_ROLE, WIRING_STATUS, normalizeVoucherLineRole } from '../constants/voucher';
 import {
   CREDIT_APPLICATION_STATUSES,
   PAYMENT_TRANSITION_ACTIONS,
   PAYMENT_TRANSITION_SOURCE_STATUSES,
   type PaymentTransitionAction,
 } from '../constants/order-financial';
-import { validateStatusTransition } from './voucher-validation.service';
-import { generateBizVoucherNo } from './voucher-number.service';
 import { canAccess } from './feature-flags.service';
-import { isCashFamilyMethod } from './cash-drawer-cash-facts';
+import { isCashFamilyMethod } from '@/lib/utils/cash-method';
 import { transitionPaymentTx } from './payment-transition.service';
 import { reverseCreditApplicationTx } from './credit-application-reversal.service';
+import { reverseVoucherLinesInTx } from './voucher-line-reversal.service';
 import {
   isStoredValueFundingRole,
   unwindStoredValueFundingLine,
 } from './voucher-funding-unwind.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
-import type { VoucherType } from '../types/voucher';
 
 /** Prisma transaction client shared with nested B10 payment transitions. */
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-
-type CustomerPartyRow = {
-  display_name: string | null;
-  name: string | null;
-  name2: string | null;
-  first_name: string | null;
-  last_name: string | null;
-};
-
-/**
- * Header party_name for a reverse when the source voucher never stored one.
- */
-function customerPartyName(row: CustomerPartyRow | null): string | null {
-  if (!row) return null;
-  const fromParts = [row.first_name, row.last_name].filter(Boolean).join(' ').trim();
-  const value = (row.display_name ?? row.name ?? row.name2 ?? fromParts).trim();
-  return value.length > 0 ? value : null;
-}
 
 const ALREADY_UNWOUND_PAYMENT_STATUSES = new Set<string>([
   'REVERSED',
@@ -62,27 +42,34 @@ const COMPLETED_PAYMENT_STATUSES = new Set<string>(PAYMENT_TRANSITION_SOURCE_STA
 const VOIDABLE_PAYMENT_STATUSES = new Set<string>(PAYMENT_TRANSITION_SOURCE_STATUSES.VOID);
 
 /**
- *
+ * Result of a voucher reversal.
  */
 export interface ReversalResult {
   reversalVoucherId: string;
   reversalVoucherNo: string;
+  /** REVERSED, or PARTIALLY_REVERSED when only some lines were reversed. */
+  originalStatus?: string;
 }
 
 /**
- * Reverse a fully POSTED voucher.
- * Creates a mirror reversal voucher with opposite-direction lines.
- * Sets original voucher_status = REVERSED.
- * @param tenantOrgId tenant that owns the voucher — all Prisma work stays in this tenant via RLS context
+ * Reverse a POSTED (or partially reversed) voucher — every remaining line, or
+ * only `opts.lineIds`. The reversal voucher and its mirror lines are built by
+ * {@link reverseVoucherLinesInTx} (cash mirrors land in the drawer window that
+ * is current NOW, never in a closed session). When `order_fin_voucher_unwind`
+ * is ON, the operational effects are unwound per line role inside the same
+ * transaction (B13).
+ * @param tenantOrgId tenant that owns the voucher
  * @param voucherId posted voucher to reverse
  * @param reason mandatory operator reason persisted on the reversal voucher
  * @param userId actor who confirmed the reverse
+ * @param opts optional line selection and a replacement drawer for cash mirrors
  */
 export async function reverseBizVoucher(
   tenantOrgId: string,
   voucherId: string,
   reason: string,
-  userId: string
+  userId: string,
+  opts: { lineIds?: string[]; cashDrawerId?: string | null } = {},
 ): Promise<ReversalResult> {
   // Flag resolution uses HQ RPC (separate connection). Resolve before the
   // voucher row lock so we never hold FOR UPDATE across a network round-trip.
@@ -90,316 +77,75 @@ export async function reverseBizVoucher(
 
   return withTenantContext(tenantOrgId, async () => {
     return prisma.$transaction(async (tx) => {
-      const db = tx as typeof prisma;
-
-      // Lock original voucher
-      const originals = await db.$queryRaw<Array<{
-        id: string;
-        voucher_no: string;
-        voucher_type: string;
-        voucher_category: string;
-        voucher_subtype: string | null;
-        voucher_status: string;
-        total_amount: string;
-        subtotal_amount: string | null;
-        discount_amount: string | null;
-        tax_amount: string | null;
-        fee_amount: string | null;
-        paid_amount: string | null;
-        refunded_amount: string | null;
-        outstanding_amount: string | null;
-        currency_code: string | null;
-        currency_ex_rate: string | null;
-        branch_id: string | null;
-        direction: string | null;
-        party_type: string | null;
-        party_name: string | null;
-        supplier_id: string | null;
-        employee_id: string | null;
-        customer_id: string | null;
-        order_id: string | null;
-        invoice_id: string | null;
-        source_module: string | null;
-        source_ref_type: string | null;
-        source_ref_id: string | null;
-        reason_code: string | null;
-        notes: string | null;
-        description: string | null;
-      }>>`
-        SELECT id, voucher_no, voucher_type, voucher_category, voucher_subtype, voucher_status,
-               total_amount, subtotal_amount, discount_amount, tax_amount,
-               fee_amount, paid_amount, refunded_amount, outstanding_amount, currency_code,
-               currency_ex_rate, branch_id, direction, party_type, party_name, supplier_id,
-               employee_id, customer_id, order_id, invoice_id, source_module, source_ref_type,
-               source_ref_id, reason_code, notes, description
-        FROM org_fin_vouchers_mst
-        WHERE id = ${voucherId}::uuid
-          AND tenant_org_id = ${tenantOrgId}::uuid
-        FOR UPDATE
-      `;
-
-      const original = originals[0];
-      if (!original) throw new Error(`Voucher ${voucherId} not found`);
-
-      validateStatusTransition(original.voucher_status as never, VOUCHER_STATUS.REVERSED);
-
-      // Load original posted lines
-      const originalLines = await db.org_fin_voucher_trx_lines_dtl.findMany({
-        where: { tenant_org_id: tenantOrgId, voucher_id: voucherId, line_status: 'POSTED', is_active: true },
-      });
-
-      if (originalLines.length === 0) {
-        throw new Error('No POSTED lines found to reverse');
-      }
-
-      const now = new Date();
-      const reversalVoucherNo = await generateBizVoucherNo(
+      const result = await reverseVoucherLinesInTx(tx, {
         tenantOrgId,
-        original.voucher_type as VoucherType,
-        tx
-      );
-
-      const reversalCategory = original.voucher_category ?? 'NON_CASH';
-      const originalNotes = original.notes?.trim() || null;
-      let partyName = original.party_name?.trim() || null;
-      if (!partyName && original.customer_id) {
-        const customer = await db.org_customers_mst.findFirst({
-          where: { id: original.customer_id, tenant_org_id: tenantOrgId },
-          select: {
-            display_name: true,
-            name: true,
-            name2: true,
-            first_name: true,
-            last_name: true,
-          },
-        });
-        partyName = customerPartyName(customer);
-      }
-
-      // Create reversal voucher header — copy operational facts from the source
-      // so list/detail are not blank. Date/datetime are the reverse moment.
-      // ref_voucher_id points at the voucher this row was created because of.
-      const reversalVoucher = await db.org_fin_vouchers_mst.create({
-        data: {
-          tenant_org_id:    tenantOrgId,
-          branch_id:        original.branch_id,
-          voucher_no:       reversalVoucherNo,
-          voucher_category: reversalCategory,
-          voucher_subtype:  original.voucher_subtype,
-          voucher_type:     original.voucher_type,
-          voucher_status:   VOUCHER_STATUS.POSTED,
-          posting_status:   'POSTED',
-          direction:        original.direction,
-          party_type:       original.party_type,
-          party_name:       partyName,
-          supplier_id:      original.supplier_id,
-          employee_id:      original.employee_id,
-          customer_id:      original.customer_id,
-          order_id:         original.order_id,
-          invoice_id:       original.invoice_id,
-          source_module:    original.source_module,
-          source_ref_type:  original.source_ref_type,
-          source_ref_id:    original.source_ref_id,
-          reason_code:      original.reason_code,
-          total_amount:     Number(original.total_amount),
-          subtotal_amount:  original.subtotal_amount != null ? Number(original.subtotal_amount) : null,
-          discount_amount:  original.discount_amount != null ? Number(original.discount_amount) : null,
-          tax_amount:       original.tax_amount != null ? Number(original.tax_amount) : null,
-          fee_amount:       original.fee_amount != null ? Number(original.fee_amount) : null,
-          paid_amount:      original.paid_amount != null ? Number(original.paid_amount) : Number(original.total_amount),
-          refunded_amount:  original.refunded_amount != null ? Number(original.refunded_amount) : null,
-          outstanding_amount: 0,
-          currency_code:    original.currency_code,
-          currency_ex_rate: original.currency_ex_rate != null ? Number(original.currency_ex_rate) : null,
-          voucher_date:     now,
-          voucher_datetime: now,
-          issued_at:        now,
-          ref_voucher_id:   original.id,
-          reversal_reason:  reason,
-          posted_at:        now,
-          posted_by:        userId,
-          description:      `Reversal of ${original.voucher_no}: ${reason}`,
-          notes:            originalNotes,
-          created_by:       userId,
-        },
-        select: { id: true, voucher_no: true },
+        voucherId,
+        reason,
+        userId,
+        lineIds: opts.lineIds,
+        cashDrawerId: opts.cashDrawerId,
       });
 
-      // Create mirror lines with opposite direction + link back to original lines
-      let lineNo = 1;
       const ordersToRecalc = new Set<string>();
-      for (const line of originalLines) {
-        const oppositeDirection = line.direction === 'IN' ? 'OUT'
-          : line.direction === 'OUT' ? 'IN'
-          : 'NEUTRAL';
-
-        const originalLineDesc = line.description?.trim() || null;
-        const reversalLine = await db.org_fin_voucher_trx_lines_dtl.create({
-          data: {
-            tenant_org_id:   tenantOrgId,
-            voucher_id:      reversalVoucher.id,
-            line_no:         lineNo++,
-            line_type:       line.line_type,
-            line_role:       line.line_role,
-            target_type:     line.target_type,
-            target_id:       line.target_id,
-            order_id:        line.order_id,
-            customer_id:     line.customer_id,
-            supplier_id:     line.supplier_id,
-            employee_id:     line.employee_id,
-            branch_id:       line.branch_id,
-            payment_method_code: line.payment_method_code,
-            amount:          Number(line.amount),
-            currency_code:   line.currency_code,
-            currency_ex_rate: line.currency_ex_rate != null ? Number(line.currency_ex_rate) : null,
-            direction:       oppositeDirection,
-            tendered_amount: line.tendered_amount != null ? Number(line.tendered_amount) : null,
-            change_returned_amount: line.change_returned_amount != null ? Number(line.change_returned_amount) : null,
-            card_brand_code: line.card_brand_code,
-            card_last4:      line.card_last4,
-            auth_code:       line.auth_code,
-            gateway_code:    line.gateway_code,
-            gateway_transaction_id: line.gateway_transaction_id,
-            gateway_reference: line.gateway_reference,
-            bank_reference:  line.bank_reference,
-            check_number:    line.check_number,
-            check_bank:      line.check_bank,
-            check_date:      line.check_date,
-            expense_category_code: line.expense_category_code,
-            party_name:      line.party_name ?? partyName,
-            description:     originalLineDesc
-              ? `Reversal of line ${line.line_no}: ${originalLineDesc}`
-              : `Reversal of line ${line.line_no}`,
-            notes:           line.notes,
-            line_status:     'POSTED',
-            payment_status:  line.payment_status,
-            wiring_status:   WIRING_STATUS.NOT_WIRED,
-            reversed_line_id: line.id,
-            cash_drawer_session_id: line.cash_drawer_session_id,
-            pos_session_id:  line.pos_session_id,
-            credit_application_type: line.credit_application_type,
-            org_payment_method_id: line.org_payment_method_id,
-            payment_terminal_id: line.payment_terminal_id,
-            created_by:      userId,
-          },
-          select: { id: true },
-        });
-
-        if (unwindEnabled) {
-          const role = normalizeVoucherLineRole(String(line.line_role ?? ''));
+      if (unwindEnabled) {
+        const now = new Date();
+        for (const pair of result.pairs) {
+          const role = normalizeVoucherLineRole(pair.originalLineRole);
           let unwound = false;
           if (role === LINE_ROLE.ORDER_PAYMENT) {
             await unwindOrderPaymentLine(tx, {
               tenantOrgId,
-              originalLineId: line.id,
-              reversalVoucherId: reversalVoucher.id,
+              originalLineId: pair.originalLineId,
+              reversalVoucherId: result.reversalVoucherId,
               reason,
               userId,
+              // Same session the mirror voucher line landed in (computed once
+              // by the gate) — never re-resolved independently.
+              reversalSessionId: pair.reversalSessionId,
             });
             unwound = true;
-            if (line.order_id) ordersToRecalc.add(line.order_id);
+            if (pair.originalOrderId) ordersToRecalc.add(pair.originalOrderId);
           } else if (role === LINE_ROLE.ORDER_CREDIT_APPLICATION) {
             await unwindOrderCreditApplicationLine(tx, {
               tenantOrgId,
-              originalLineId: line.id,
-              reversalVoucherId: reversalVoucher.id,
+              originalLineId: pair.originalLineId,
+              reversalVoucherId: result.reversalVoucherId,
               reason,
               userId,
-              lineOrderId: line.order_id,
-              lineCustomerId: line.customer_id,
+              lineOrderId: pair.originalOrderId,
+              lineCustomerId: pair.originalCustomerId,
             });
             unwound = true;
-            if (line.order_id) ordersToRecalc.add(line.order_id);
-          } else if (isStoredValueFundingRole(String(line.line_role ?? ''))) {
+            if (pair.originalOrderId) ordersToRecalc.add(pair.originalOrderId);
+          } else if (isStoredValueFundingRole(pair.originalLineRole)) {
             await unwindStoredValueFundingLine(tx, {
               tenantOrgId,
-              originalLineId: line.id,
-              originalLineRole: String(line.line_role ?? ''),
-              reversalVoucherId: reversalVoucher.id,
-              reversalLineId: reversalLine.id,
+              originalLineId: pair.originalLineId,
+              originalLineRole: pair.originalLineRole,
+              reversalVoucherId: result.reversalVoucherId,
+              reversalLineId: pair.reversalLineId,
               reason,
               userId,
             });
             unwound = true;
           }
           if (unwound) {
-            await db.org_fin_voucher_trx_lines_dtl.updateMany({
-              where: { id: reversalLine.id, tenant_org_id: tenantOrgId },
+            await tx.org_fin_voucher_trx_lines_dtl.updateMany({
+              where: { id: pair.reversalLineId, tenant_org_id: tenantOrgId },
               data: { wiring_status: WIRING_STATUS.WIRED, updated_at: now, updated_by: userId },
             });
           }
         }
-
-        // Mark original line as REVERSED
-        await db.org_fin_voucher_trx_lines_dtl.updateMany({
-          where: { id: line.id, tenant_org_id: tenantOrgId },
-          data: { line_status: 'REVERSED', updated_at: now, updated_by: userId },
-        });
       }
 
       for (const orderId of ordersToRecalc) {
         await recalculateOrderFinancialSnapshotTx(tx, tenantOrgId, orderId, {});
       }
 
-      // Mark original voucher as REVERSED
-      // B8 fix (RESUME doc 2026-05-28): sync legacy `status` to 'voided' on the
-      // REVERSED transition. posting_status stays at its previous value
-      // ('POSTED') because the wiring effect WAS posted to downstream — what
-      // changed is the business state, not the posting/wiring history. The
-      // CHECK constraint chk_fin_posting_status has no 'REVERSED' value.
-      await db.org_fin_vouchers_mst.updateMany({
-        where: { id: voucherId, tenant_org_id: tenantOrgId },
-        data: {
-          voucher_status:  VOUCHER_STATUS.REVERSED,
-          reversed_at:     now,
-          reversed_by:     userId,
-          reversed_by_voucher_id: reversalVoucher.id,
-          reversal_reason: reason,
-          updated_at:      now,
-          updated_by:      userId,
-        },
-      });
-
-      // Write audit log for original
-      await db.org_fin_voucher_audit_log.create({
-        data: {
-          voucher_id:         voucherId,
-          tenant_org_id:      tenantOrgId,
-          action:             'REVERSED',
-          changed_by:         userId,
-          changed_at:         now,
-          snapshot_or_reason: JSON.stringify({
-            voucher_status:       VOUCHER_STATUS.REVERSED,
-            reversal_voucher_id:  reversalVoucher.id,
-            reversal_voucher_no:  reversalVoucherNo,
-            unwind_enabled:       unwindEnabled,
-            reason,
-          }),
-        },
-      });
-
-      // Write domain event
-      await db.org_domain_events_outbox.create({
-        data: {
-          tenant_org_id:  tenantOrgId,
-          event_type:     'VOUCHER_REVERSED',
-          aggregate_type: 'fin_voucher',
-          aggregate_id:   voucherId,
-          payload: {
-            original_voucher_id: voucherId,
-            reversal_voucher_id: reversalVoucher.id,
-            reversal_voucher_no: reversalVoucherNo,
-            unwind_enabled: unwindEnabled,
-            reason,
-            reversed_by: userId,
-            reversed_at: now.toISOString(),
-          },
-        },
-      });
-
       return {
-        reversalVoucherId: reversalVoucher.id,
-        reversalVoucherNo,
+        reversalVoucherId: result.reversalVoucherId,
+        reversalVoucherNo: result.reversalVoucherNo,
+        originalStatus: result.originalStatus,
       };
     });
   });
@@ -469,8 +215,16 @@ async function unwindOrderCreditApplicationLine(
 /**
  * B13 v1 — drive B10 VOID/REVERSE from an ORDER_PAYMENT original line.
  * Payment rows are found via `fin_voucher_trx_line_id` (target_id on the line
- * is the order, not the payment). Nested `transitionPaymentTx` uses a Prisma
- * savepoint so voucher + payment stay one atomic unit.
+ * is the order, not the payment).
+ *
+ * CLF: the compensating cash movement's session is `reversalSessionId` — the
+ * SAME session the gate already chose for the mirror voucher line, computed
+ * once in {@link reverseVoucherLinesInTx}. This function never re-resolves a
+ * session on its own, so the voucher line and the old movement row (kept
+ * until the R2 reader switch, W13) can never disagree about where the cash
+ * landed. `null` means the gate placed the cash in the next window (no
+ * session open) — the old movement path still requires an open session, so
+ * REVERSE is refused in that case exactly as it was before CLF.
  */
 async function unwindOrderPaymentLine(
   tx: PrismaTransactionClient,
@@ -480,9 +234,10 @@ async function unwindOrderPaymentLine(
     reversalVoucherId: string;
     reason: string;
     userId: string;
+    reversalSessionId: string | null;
   },
 ): Promise<void> {
-  const { tenantOrgId, originalLineId, reversalVoucherId, reason, userId } = params;
+  const { tenantOrgId, originalLineId, reversalVoucherId, reason, userId, reversalSessionId } = params;
 
   const payment = await tx.org_order_payments_dtl.findFirst({
     where: { tenant_org_id: tenantOrgId, fin_voucher_trx_line_id: originalLineId },
@@ -491,7 +246,6 @@ async function unwindOrderPaymentLine(
       order_id: true,
       payment_status: true,
       payment_method_code: true,
-      cash_drawer_session_id: true,
     },
   });
 
@@ -515,51 +269,26 @@ async function unwindOrderPaymentLine(
 
   let cashDrawerSessionId: string | undefined;
   if (action === PAYMENT_TRANSITION_ACTIONS.REVERSE && isCashFamilyMethod(payment.payment_method_code)) {
-    const openSessionId = await resolveOpenDrawerSessionId(tx, tenantOrgId, payment.cash_drawer_session_id);
-    if (!openSessionId) {
+    if (!reversalSessionId) {
       throw new Error('VOUCHER_UNWIND_DRAWER_SESSION_REQUIRED');
     }
-    cashDrawerSessionId = openSessionId;
+    cashDrawerSessionId = reversalSessionId;
   }
 
-  await transitionPaymentTx({
-    tenantId: tenantOrgId,
-    orderId: payment.order_id,
-    paymentId: payment.id,
-    actorId: userId,
-    action,
-    reason: `Voucher reverse: ${reason}`,
-    idempotencyKey: `voucher_unwind:${reversalVoucherId}:${originalLineId}`,
-    cashDrawerSessionId,
-  });
-}
-
-/**
- * Prefer the original session when it is still OPEN; otherwise the current
- * OPEN session on the same drawer. Never pick a different drawer.
- */
-async function resolveOpenDrawerSessionId(
-  tx: PrismaTransactionClient,
-  tenantOrgId: string,
-  originalSessionId: string | null,
-): Promise<string | null> {
-  if (!originalSessionId) return null;
-
-  const original = await tx.org_cash_drawer_sessions_mst.findFirst({
-    where: { id: originalSessionId, tenant_org_id: tenantOrgId },
-    select: { id: true, status: true, cash_drawer_id: true },
-  });
-  if (!original) return null;
-  if (original.status === 'OPEN') return original.id;
-
-  const open = await tx.org_cash_drawer_sessions_mst.findFirst({
-    where: {
-      tenant_org_id: tenantOrgId,
-      cash_drawer_id: original.cash_drawer_id,
-      status: 'OPEN',
-      is_active: true,
+  // Joins the caller's transaction — see transitionPaymentCoreTx: the voucher
+  // reversal and its payment unwind must commit or roll back together, not
+  // as two independent transactions.
+  await transitionPaymentTx(
+    {
+      tenantId: tenantOrgId,
+      orderId: payment.order_id,
+      paymentId: payment.id,
+      actorId: userId,
+      action,
+      reason: `Voucher reverse: ${reason}`,
+      idempotencyKey: `voucher_unwind:${reversalVoucherId}:${originalLineId}`,
+      cashDrawerSessionId,
     },
-    select: { id: true },
-  });
-  return open?.id ?? null;
+    tx,
+  );
 }

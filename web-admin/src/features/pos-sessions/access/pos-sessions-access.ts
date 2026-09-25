@@ -98,6 +98,13 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['pos_session:view'], requireAllPermissions: true },
       },
       {
+        label: 'List POS session events',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/[sessionId]/events',
+        requirement: { permissions: ['pos_session:view'], requireAllPermissions: true },
+        notes: ['The API applies authenticated tenant and own-versus-all session scope server-side.'],
+      },
+      {
         label: 'Close linked cash drawer session',
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/close-session',

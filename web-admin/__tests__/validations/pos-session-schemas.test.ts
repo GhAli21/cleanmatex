@@ -96,11 +96,17 @@ describe('pos session validation schemas', () => {
       pageSize: '50',
       status: 'FORCE_CLOSED',
       scope: 'all',
+      operatorQuery: 'Rana',
+      terminalQuery: 'Front',
+      cashDrawerQuery: 'Main',
     })).toMatchObject({
       page: 2,
       pageSize: 50,
       status: 'FORCE_CLOSED',
       scope: 'all',
+      operatorQuery: 'Rana',
+      terminalQuery: 'Front',
+      cashDrawerQuery: 'Main',
     });
 
     await expect(posSessionListQuerySchema.parseAsync({ status: 'FORCE_CLOSE' })).rejects.toThrow();

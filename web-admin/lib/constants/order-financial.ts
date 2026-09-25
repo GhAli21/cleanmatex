@@ -263,16 +263,23 @@ export const LOYALTY_ROUNDING_RULES = {
 export type LoyaltyRoundingRule = (typeof LOYALTY_ROUNDING_RULES)[keyof typeof LOYALTY_ROUNDING_RULES];
 
 /**
- * B17 — mirrors `sys_currency_rounding_rules_cd.rounding_method` (migration
- * 0290) exactly — DB-mirror rule. Kept as its own constant rather than reusing
- * `LOYALTY_ROUNDING_RULES` even though the values are identical today: each
+ * B17, extended by the HQ Currency Setup handoff §3.2/§3.5 — mirrors
+ * `sys_rounding_mode_cd` (migration 0520) exactly — DB-mirror rule. The
+ * unified 7-mode vocabulary replaces the old 4-mode set (`FLOOR`/`CEIL` ->
+ * `DOWN`/`UP` on the ACCOUNTING rows migrated from `sys_currency_rounding_rules_cd`;
+ * `CEILING` and `HALF_EVEN` are new, used by CASH_CHANGE and reserved for
+ * future contexts respectively). Kept as its own constant rather than reusing
+ * `LOYALTY_ROUNDING_RULES` even though some values overlap today: each
  * mirrors a different DB column/domain and must not be coupled to the other.
  */
 export const CURRENCY_ROUNDING_MODES = {
   HALF_UP: 'HALF_UP',
   HALF_DOWN: 'HALF_DOWN',
+  HALF_EVEN: 'HALF_EVEN',
+  UP: 'UP',
+  DOWN: 'DOWN',
+  CEILING: 'CEILING',
   FLOOR: 'FLOOR',
-  CEIL: 'CEIL',
 } as const;
 /** Derived union for currency rounding modes. */
 export type CurrencyRoundingMode = (typeof CURRENCY_ROUNDING_MODES)[keyof typeof CURRENCY_ROUNDING_MODES];
@@ -602,6 +609,12 @@ export const OUTBOX_EVENT_TYPES = {
    * status row); the history consumer intentionally ignores this type.
    */
   ORDER_CANCEL_FINANCIAL_UNWIND: 'ORDER_CANCEL_FINANCIAL_UNWIND',
+  /**
+   * CLF (ADR-057): the cash-drawer ledger gate attached a cash line to a
+   * different session than the caller's hint (stale client id, or the hinted
+   * session had closed). Audit only — no handler consumes it.
+   */
+  CASH_FACT_REDIRECTED: 'CASH_FACT_REDIRECTED',
 } as const;
 /** Derived union for emitted Order Fin outbox events. */
 export type OutboxEventType =

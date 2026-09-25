@@ -404,7 +404,7 @@ Source pack: [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0`](docs/features/Workf
 - Work-groups / parallel mixed-service stage instances
 - Full outsourcing job lifecycle module
 - Customer milestone projection catalog
-- HQ maker/checker, simulation, impact preview (cross-project when contracted)
+- HQ review-then-publish workflow (permission-gated only; no maker ≠ checker per owner rule 2026-09-25 — the same user may approve), simulation, impact preview (cross-project when contracted)
 - Rich signed webhooks / analytics beyond outbox basics
 
 ### Order sources (POS, web-admin, mobile, partners)

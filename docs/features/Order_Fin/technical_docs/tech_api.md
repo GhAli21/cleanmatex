@@ -105,6 +105,8 @@ When POS close returns `409 POS_SESSION_DRAWER_STILL_OPEN`, the POS Sessions UI 
 
 POS force-close does not silently force-close a drawer. Drawer force-close remains an explicit future UX/API decision.
 
+*Current behaviour (until CLF ships).* Target: the UI uses the two-step close (`…/close/count` → `…/close/finalize`) and drawer force-close gets its own route — see "Target API — cash ledger (ADR-057)" below.
+
 ---
 
 ## Order Submission (Phase 1B — Canonical Path)
@@ -278,6 +280,45 @@ Record a cash movement (cash-in/cash-out).
 
 ### `GET /api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary`
 Get session summary including payments and movements.
+
+> The Cash Drawers routes above are the **current behaviour (until CLF ships)**. `close-session` and `cash-movement` are deleted by CLF.
+
+### Target API — cash ledger (ADR-057)
+
+**Target architecture — approved 2026-09-25 ([ADR-057](../ADR/ADR-057-Two-Domain-Cash-Ledger.md)), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** None of these routes exist yet. Source: [IMPLEMENTATION_PLAN.md §4B.7](../POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md).
+
+Conventions: thin routes (`requirePermission` → Zod → one service call → error mapping), `{ success, data, error }` envelope, money as strings, stable error codes passed through, `Idempotency-Key` honoured on every POST. `…` = `/api/v1/cash-drawers/[drawerId]`.
+
+**New**
+
+| Method + path | Permission | Purpose |
+|---|---|---|
+| `POST …/open-session` (reworked) | `cash_drawer:open_session` | optional opening count (total or denominations), notes; returns opening expected / counted / variance per currency |
+| `GET …/session/[sessionId]/close-preview` | `cash_drawer:close_session` | omits expected and variance when blind close is enabled |
+| `POST …/session/[sessionId]/close/count` | `cash_drawer:close_session` | step 1: optional count, sets `CLOSING`, freezes the cut, reveals result; validates session belongs to drawer |
+| `POST …/session/[sessionId]/close/recount` | `cash_drawer:approve_variance` | only in `CLOSING`; supersedes the prior closing count |
+| `POST …/session/[sessionId]/close/finalize` | `cash_drawer:close_session` | step 2: disposition, conditional notes / destination / kept amount, variance reason when required; sets `CLOSED` |
+| `POST …/session/[sessionId]/force-close` | `pos_session:force_close` | supervisor, reason mandatory, same disposition rules |
+| `POST …/session/[sessionId]/approve-variance` | `cash_drawer:approve_variance` | moved; emits deferred over/short event. Same user may approve |
+| `PUT …/session/[sessionId]/post-close` | `cash_drawer:post_close_update` (new) | after-close status + notes; appends change log |
+| `GET …/session/[sessionId]/post-close/history` | `cash_drawer:view` | change log |
+| `POST` / `GET …/counts` | `cash_drawer:count` | spot counts; checkpoints for count-only drawers |
+| `POST` / `GET /api/v1/cash-drawers/trx` | `cash_drawer:transfer` | drawer transactions (user-selectable types only) |
+| `POST /api/v1/cash-drawers/trx/[trxId]/reverse` | `cash_drawer:transfer` | reason mandatory |
+| `GET …/ledger` | `cash_drawer:view` | paginated unified ledger (finance + custody) with running balance per currency |
+| `GET` / `PUT …/policy` | `cash_control:view` / `cash_control:manage` | settings with source; PUT writes DRAWER scope; `null` = inherit |
+| `GET /api/v1/cash-drawers/catalogs` | `cash_drawer:view` | drawer types, trx types, dispositions, post-close statuses, count types |
+| `GET /api/v1/currencies/[code]/denominations` | authenticated | reads `sys_currency_denominations_cd` |
+| `GET /api/v1/cash-drawers/follow-up` | `cash_drawer:view_reports` | closed sessions whose cash went to `PENDING_DEPOSIT` |
+| `POST /api/v1/cash-drawers/pending-deposit/ensure` | `cash_control:manage` or the calling screen's drawer-config / branch-management permission | `{ branchId }` → `ensure_branch_pd_drawer`; returns `{ created, drawerId }`; idempotent |
+| `GET /api/v1/cash-drawers/pending-deposit/status` | `cash_drawer:view` | per branch: present / missing |
+| `POST …/cash-in-out` | `cash_drawer:record_movement` | creates + posts a finance voucher: `EXPENSE_PAYMENT`, `SUPPLIER_PAYMENT`, `PETTY_CASH_ISSUE`, `PETTY_CASH_RETURN`, `CASH_PAY_IN` |
+
+**Deleted:** `POST …/close-session`, `POST …/cash-movement`.
+
+**Rewired** (same paths, new ledger-based services): `…/session/[sessionId]` detail, `…/summary`, `/api/v1/cash-drawers/overview`, `…/sessions`, `/api/v1/finance/reports/reconciliation/cash-drawer`, `/api/v1/finance/pending-payments/[paymentId]/transition`, `/api/v1/finance/vouchers/[voucherId]/reverse` (line selection + drawer choice), `/api/v1/orders/refunds/[refundId]/process`, `/api/v1/customer-receipts/post`, `/api/v1/orders/[id]/payments/[paymentId]/verify`.
+
+**New error codes** (HTTP 409/422): `CASH_DRAWER_REQUIRED`, `CASH_DRAWER_INACTIVE`, `CASH_DRAWER_BRANCH_MISMATCH`, `CASH_DRAWER_TYPE_NOT_ALLOWED`, `CASH_CURRENCY_REQUIRED`, `CASH_DRAWER_SESSION_NOT_OPEN`, `DRAWER_SESSION_NOT_CLOSING`, `DRAWER_SESSION_WRONG_DRAWER`, `CASH_DISPOSITION_DEST_REQUIRED`, `CASH_DISPOSITION_AMOUNT_INVALID`, `CASH_DISPOSITION_NOTES_REQUIRED`, `CASH_TRX_UNBALANCED`, `CASH_TRX_SAME_DRAWER`, `CASH_TRX_CROSS_BRANCH`, `CASH_LINE_IMMUTABLE`, `CASH_LEG_MUST_REVERSE`, `POST_CLOSE_SESSION_NOT_CLOSED` (plus existing `CASH_CURRENCY_MISMATCH`, `DRAWER_SESSION_CLOSING`, `CASH_COUNT_REQUIRED`, `CASH_COUNT_TOTAL_MISMATCH`). Full table: plan §4B.11.
 
 ---
 
