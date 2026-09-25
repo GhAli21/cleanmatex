@@ -48,6 +48,7 @@ export async function PATCH(
     const updated = await withTenantContext(tenantId, async () => {
       return await prisma.org_order_items_dtl.update({
       where: {
+        tenant_org_id: tenantId,
         id: itemId,
         order_id: orderId,
       },
@@ -112,6 +113,7 @@ export async function DELETE(
     await withTenantContext(tenantId, async () => {
       await prisma.org_order_items_dtl.delete({
       where: {
+        tenant_org_id: tenantId,
         id: itemId,
         order_id: orderId,
       },

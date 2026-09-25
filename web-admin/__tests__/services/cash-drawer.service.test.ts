@@ -406,7 +406,7 @@ describe('cash-drawer.service — approveSessionVariance (B16)', () => {
     expect(result.variance_approved_by).toBe('supervisor-001');
     expect(mockSessionUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: SESSION },
+        where: { id: SESSION, tenant_org_id: TENANT },
         data: expect.objectContaining({
           variance_approved_by: 'supervisor-001',
           variance_approval_reason: 'Verified physical count with cashier',

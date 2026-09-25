@@ -338,6 +338,7 @@ export class ErpLitePostingEngineService {
         };
 
         await this.updatePostingLog(
+          envelope.request.tenant_org_id,
           postingLogId,
           ERP_LITE_ATTEMPT_STATUSES.POSTED,
           ERP_LITE_LOG_STATUSES.POSTED,
@@ -1252,6 +1253,7 @@ export class ErpLitePostingEngineService {
   }
 
   private static async updatePostingLog(
+    tenantOrgId: string,
     postingLogId: string,
     attemptStatus: ErpLiteAttemptStatus,
     logStatus: ErpLiteLogStatus,
@@ -1278,6 +1280,7 @@ export class ErpLitePostingEngineService {
           updated_by = 'erp_lite_engine',
           updated_info = 'posting lifecycle update'
         WHERE id = ${postingLogId}::uuid
+          AND tenant_org_id = ${tenantOrgId}::uuid
       `
     );
   }
@@ -1386,6 +1389,7 @@ export class ErpLitePostingEngineService {
       }, db));
 
     await this.updatePostingLog(
+      envelope.request.tenant_org_id,
       effectiveLogId,
       resolved.attemptStatus,
       ERP_LITE_LOG_STATUSES.FAILED,

@@ -407,7 +407,7 @@ export async function updateCashControlSettings(
 
       if (existing) {
         await tx.org_fin_cash_ctrl_stng_cf.update({
-          where: { id: existing.id },
+          where: { id: existing.id, tenant_org_id: tenantId },
           data: { ...dbPatch, updated_at: new Date(), updated_by: actor.userId } as Prisma.org_fin_cash_ctrl_stng_cfUncheckedUpdateInput,
         });
       } else {

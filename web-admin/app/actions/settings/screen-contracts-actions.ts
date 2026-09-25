@@ -221,7 +221,7 @@ export async function updateScreenContractAction(
       }
 
       const updated = await prisma.org_ord_screen_contracts_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           screen_key: normalized.screenKey,
           pre_conditions: {
@@ -274,7 +274,7 @@ export async function deleteScreenContractAction(
         return { success: false, error: 'NOT_FOUND_OR_SYSTEM' }
       }
 
-      await prisma.org_ord_screen_contracts_cf.delete({ where: { id } })
+      await prisma.org_ord_screen_contracts_cf.delete({ where: { id, tenant_org_id: tenantId } })
       revalidatePath(REVALIDATE_PATH)
       return { success: true, data: { id } }
     })

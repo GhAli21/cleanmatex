@@ -104,7 +104,7 @@ export async function topUpWalletTx(
   const balanceBefore = toNumber(wallet.balance);
 
   const updated = await tx.org_customer_wallets_mst.update({
-    where: { id: wallet.id },
+    where: { id: wallet.id, tenant_org_id: tenantId },
     data:  { balance: { increment: amount }, updated_at: new Date() },
   });
 
@@ -182,7 +182,7 @@ export async function redeemWalletTx(
   const balanceAfter  = balanceBefore - amount;
 
   await tx.org_customer_wallets_mst.update({
-    where: { id: wallet[0].id },
+    where: { id: wallet[0].id, tenant_org_id: tenantId },
     data:  { balance: { decrement: amount }, updated_at: new Date() },
   });
 
@@ -347,7 +347,7 @@ export async function redeemAdvanceTx(
   const balanceAfter  = balanceBefore - amount;
 
   await tx.org_customer_advances_mst.update({
-    where: { id: rows[0].id },
+    where: { id: rows[0].id, tenant_org_id: tenantId },
     data:  { balance: { decrement: amount }, updated_at: new Date() },
   });
 
@@ -536,7 +536,7 @@ export async function redeemCreditNoteTx(
   const newBalance    = balanceBefore - amount;
 
   await tx.org_credit_notes_mst.update({
-    where: { id: creditNoteId },
+    where: { id: creditNoteId, tenant_org_id: tenantId },
     data: {
       remaining_balance: newBalance,
       status:            newBalance <= 0 ? CREDIT_NOTE_STATUSES.EXHAUSTED : CREDIT_NOTE_STATUSES.ACTIVE,
@@ -653,7 +653,7 @@ export async function expireCreditNote(
         if (note.status === CREDIT_NOTE_STATUSES.EXPIRED || existing) {
           if (note.status !== CREDIT_NOTE_STATUSES.EXPIRED) {
             await tx.org_credit_notes_mst.update({
-              where: { id },
+              where: { id, tenant_org_id: tenantOrgId },
               data: {
                 status: CREDIT_NOTE_STATUSES.EXPIRED,
                 remaining_balance: 0,
@@ -672,7 +672,7 @@ export async function expireCreditNote(
         const balanceBefore = note.remaining_balance;
 
         await tx.org_credit_notes_mst.update({
-          where: { id },
+          where: { id, tenant_org_id: tenantOrgId },
           data: {
             status: CREDIT_NOTE_STATUSES.EXPIRED,
             remaining_balance: 0,

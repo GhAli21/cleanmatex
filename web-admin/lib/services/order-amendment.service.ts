@@ -274,7 +274,7 @@ export async function recordAmendmentSettlement(params: {
 
   await prisma.$transaction(async (tx) => {
     await tx.org_order_edit_history.update({
-      where: { id: params.editHistoryId },
+      where: { id: params.editHistoryId, tenant_org_id: params.tenantId },
       data: {
         payment_adjusted: true,
         payment_adjustment_amount: Math.abs(params.paymentAdjustmentAmount),

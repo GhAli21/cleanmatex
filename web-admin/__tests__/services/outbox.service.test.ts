@@ -158,7 +158,9 @@ describe('outbox.service — dead-letter escalation (B7)', () => {
     mockOutboxFindUniqueOrThrow.mockResolvedValue({ id: 'evt-1', attempts: 0 });
     mockOutboxUpdate.mockResolvedValue({});
 
-    await markFailed('evt-1', 'boom');
+    await markFailed('evt-1', 'tenant-1', 'boom');
+
+    expect(mockOutboxFindUniqueOrThrow).toHaveBeenCalledWith({ where: { id: 'evt-1', tenant_org_id: 'tenant-1' } });
 
     expect(mockOutboxUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -172,7 +174,7 @@ describe('outbox.service — dead-letter escalation (B7)', () => {
     mockOutboxFindUniqueOrThrow.mockResolvedValue({ id: 'evt-1', attempts: 5 });
     mockOutboxUpdate.mockResolvedValue({});
 
-    await markFailed('evt-1', 'still broken');
+    await markFailed('evt-1', 'tenant-1', 'still broken');
 
     expect(mockOutboxUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -184,10 +186,10 @@ describe('outbox.service — dead-letter escalation (B7)', () => {
   it('scheduleRetry mirrors the same DEAD_LETTERED escalation', async () => {
     mockOutboxUpdate.mockResolvedValue({});
 
-    await scheduleRetry('evt-2', 5);
+    await scheduleRetry('evt-2', 'tenant-1', 5);
 
     expect(mockOutboxUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'DEAD_LETTERED', next_retry_at: null }) })
+      expect.objectContaining({ where: { id: 'evt-2', tenant_org_id: 'tenant-1' }, data: expect.objectContaining({ status: 'DEAD_LETTERED', next_retry_at: null }) })
     );
   });
 });

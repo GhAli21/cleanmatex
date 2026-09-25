@@ -1,6 +1,6 @@
 # Tenant Guard Restoration — Resume
 
-Read in order: [STATUS.md](STATUS.md) (authoritative) → [VIOLATIONS.md](VIOLATIONS.md) → [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+Resume point: Phase 3 apply (STATUS.md). Read in order: [STATUS.md](STATUS.md) (authoritative) → [VIOLATIONS.md](VIOLATIONS.md) → [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Key files
 

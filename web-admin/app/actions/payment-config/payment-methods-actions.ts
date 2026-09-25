@@ -168,7 +168,7 @@ export async function updatePaymentMethodConfig(
       });
       if (!existing) return { success: false, error: 'Payment method config not found' };
       const row = await prisma.org_payment_methods_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           ...(input.display_name !== undefined && { display_name: input.display_name }),
           ...(input.display_name2 !== undefined && { display_name2: input.display_name2 }),
@@ -230,7 +230,7 @@ export async function updateGatewayConfig(
       });
       if (!existing) return { success: false, error: 'Payment method config not found' };
       await prisma.org_payment_methods_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           gateway_config: input.gateway_config as object,
           updated_by: userId,
@@ -258,7 +258,7 @@ export async function togglePaymentMethodEnabled(
       });
       if (!existing) return { success: false, error: 'Payment method config not found' };
       const row = await prisma.org_payment_methods_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_enabled: isEnabled, updated_by: userId, updated_at: new Date() },
         select: { is_enabled: true },
       });
@@ -283,14 +283,14 @@ export async function softDeletePaymentMethodConfig(
       if (!existing) return { success: false, error: 'Payment method config not found' };
 
       const branchOverrides = await prisma.org_branch_payment_methods_cf.count({
-        where: { org_payment_method_id: id, is_active: true, rec_status: 1 },
+        where: { org_payment_method_id: id, is_active: true, rec_status: 1, tenant_org_id: tenantId },
       });
       if (branchOverrides > 0) {
         return { success: false, error: 'Cannot deactivate: active branch overrides exist. Remove them first.' };
       }
 
       await prisma.org_payment_methods_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_active: false, rec_status: 0, updated_by: userId, updated_at: new Date() },
       });
       revalidatePath(REVALIDATE_PATH);

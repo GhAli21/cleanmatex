@@ -1,10 +1,18 @@
 import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
+import { withTenantGuardBypass } from '@/lib/db/tenant-guard';
 import { logger } from '@/lib/utils/logger';
 import { transitionPaymentTx } from './payment-transition.service';
 import { FALLBACK_CLASSIFICATIONS, PAYMENT_TRANSITION_ACTIONS, type PaymentTransitionAction } from '@/lib/constants/order-financial';
 import { getGatewayAdapter, type GatewayWebhookOutcome, type ParsedGatewayEvent } from './gateway/gateway-webhook-adapter';
+
+/**
+ * Tenant-guard bypass reason for the pre-resolution intake steps (event insert,
+ * leg resolution, UNMATCHED mark, tenant stamp). Registered in
+ * docs/features/Tenant_Guard_Restoration/STATUS.md — every later write is scoped.
+ */
+const WEBHOOK_INTAKE_BYPASS = 'gateway-webhook-intake';
 
 export type GatewayWebhookProcessStatus =
   | 'TRANSITIONED'
@@ -107,17 +115,20 @@ export async function processGatewayWebhookEvent(params: {
   // ── Dedup (D010: keyed by provider event id) — insert first, race-safe ──
   let eventRow;
   try {
-    eventRow = await prisma.sys_gw_webhook_events_tr.create({
-      data: {
-        gateway_code: gatewayCode,
-        provider_event_id: parsed.providerEventId,
-        event_type: parsed.outcome,
-        raw_payload: JSON.parse(rawBody),
-        signature_valid: false,
-        processing_status: 'RECEIVED',
-      },
-      select: { id: true },
-    });
+    // Tenant not yet known: the row is inserted with tenant_org_id = NULL.
+    eventRow = await withTenantGuardBypass(WEBHOOK_INTAKE_BYPASS, () =>
+      prisma.sys_gw_webhook_events_tr.create({
+        data: {
+          gateway_code: gatewayCode,
+          provider_event_id: parsed.providerEventId,
+          event_type: parsed.outcome,
+          raw_payload: JSON.parse(rawBody),
+          signature_valid: false,
+          processing_status: 'RECEIVED',
+        },
+        select: { id: true },
+      })
+    );
   } catch (err) {
     // Unique-violation on (gateway_code, provider_event_id) = a genuine replay.
     const isDuplicate = (err as { code?: string })?.code === 'P2002';
@@ -128,22 +139,28 @@ export async function processGatewayWebhookEvent(params: {
   }
 
   // ── Resolve the leg (deliberate cross-tenant lookup — see doc above) ────
-  const leg = await prisma.org_order_payments_dtl.findFirst({
-    where: {
-      gateway_code: gatewayCode,
-      OR: [
-        parsed.gatewayTransactionId ? { gateway_transaction_id: parsed.gatewayTransactionId } : undefined,
-        parsed.gatewayReference ? { gateway_reference: parsed.gatewayReference } : undefined,
-      ].filter((clause): clause is NonNullable<typeof clause> => clause != null),
-    },
-    select: { id: true, order_id: true, tenant_org_id: true, payment_status: true, payment_method_code: true },
-  });
+  const legMatchClauses = [
+    parsed.gatewayTransactionId ? { gateway_transaction_id: parsed.gatewayTransactionId } : undefined,
+    parsed.gatewayReference ? { gateway_reference: parsed.gatewayReference } : undefined,
+  ].filter((clause): clause is NonNullable<typeof clause> => clause != null);
+  // No provider identifiers -> no leg can match. Never run `OR: []` (matches nothing
+  // in Prisma, but an empty cross-tenant probe has no reason to reach the DB).
+  const leg = legMatchClauses.length === 0
+    ? null
+    : await withTenantGuardBypass(WEBHOOK_INTAKE_BYPASS, () =>
+        prisma.org_order_payments_dtl.findFirst({
+          where: { gateway_code: gatewayCode, OR: legMatchClauses },
+          select: { id: true, order_id: true, tenant_org_id: true, payment_status: true, payment_method_code: true },
+        })
+      );
 
   if (!leg) {
-    await prisma.sys_gw_webhook_events_tr.update({
-      where: { id: eventRow.id },
-      data: { processing_status: 'UNMATCHED', processed_at: new Date() },
-    });
+    await withTenantGuardBypass(WEBHOOK_INTAKE_BYPASS, () =>
+      prisma.sys_gw_webhook_events_tr.update({
+        where: { id: eventRow.id, tenant_org_id: null },
+        data: { processing_status: 'UNMATCHED', processed_at: new Date() },
+      })
+    );
     logger.warn('B08 gateway webhook — no matching payment leg found', {
       gatewayCode,
       providerEventId: parsed.providerEventId,
@@ -153,10 +170,15 @@ export async function processGatewayWebhookEvent(params: {
     return { status: 'UNMATCHED', eventId: eventRow.id };
   }
 
-  await prisma.sys_gw_webhook_events_tr.update({
-    where: { id: eventRow.id },
-    data: { tenant_org_id: leg.tenant_org_id, order_id: leg.order_id, payment_id: leg.id },
-  });
+  // Stamp the tenant exactly once: `tenant_org_id: null` makes a re-stamp to a
+  // different tenant impossible (P2025 instead of a silent overwrite).
+  await withTenantGuardBypass(WEBHOOK_INTAKE_BYPASS, () =>
+    prisma.sys_gw_webhook_events_tr.update({
+      where: { id: eventRow.id, tenant_org_id: null },
+      data: { tenant_org_id: leg.tenant_org_id, order_id: leg.order_id, payment_id: leg.id },
+    })
+  );
+  const eventWhere = { id: eventRow.id, tenant_org_id: leg.tenant_org_id };
 
   // ── Resolve the per-tenant webhook secret + verify signature ────────────
   const methodConfig = await prisma.org_payment_methods_cf.findFirst({
@@ -175,7 +197,7 @@ export async function processGatewayWebhookEvent(params: {
 
   if (!signatureValid) {
     await prisma.sys_gw_webhook_events_tr.update({
-      where: { id: eventRow.id },
+      where: eventWhere,
       data: { processing_status: 'REJECTED_SIGNATURE', processed_at: new Date() },
     });
     logger.warn('B08 gateway webhook — signature verification failed', {
@@ -188,7 +210,7 @@ export async function processGatewayWebhookEvent(params: {
   }
 
   await prisma.sys_gw_webhook_events_tr.update({
-    where: { id: eventRow.id },
+    where: eventWhere,
     data: { signature_valid: true, processing_status: 'MATCHED' },
   });
 
@@ -196,7 +218,7 @@ export async function processGatewayWebhookEvent(params: {
   const action = resolveTransitionAction(parsed.outcome, leg.payment_status);
   if (!action) {
     await prisma.sys_gw_webhook_events_tr.update({
-      where: { id: eventRow.id },
+      where: eventWhere,
       data: {
         processing_status: 'ERROR',
         error_message: `No legal D001 transition for outcome=${parsed.outcome} from status=${leg.payment_status}`,
@@ -234,7 +256,7 @@ export async function processGatewayWebhookEvent(params: {
     });
 
     await prisma.sys_gw_webhook_events_tr.update({
-      where: { id: eventRow.id },
+      where: eventWhere,
       data: { processing_status: 'TRANSITIONED', transition_action: action, processed_at: new Date() },
     });
 
@@ -242,7 +264,7 @@ export async function processGatewayWebhookEvent(params: {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'PAYMENT_TRANSITION_FAILED';
     await prisma.sys_gw_webhook_events_tr.update({
-      where: { id: eventRow.id },
+      where: eventWhere,
       data: { processing_status: 'ERROR', error_message: message, processed_at: new Date() },
     });
     logger.error('B08 gateway webhook — transition failed', err as Error, {

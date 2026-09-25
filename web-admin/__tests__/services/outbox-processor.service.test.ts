@@ -79,7 +79,7 @@ describe('outbox-processor.service — processOutboxBatch', () => {
 
     expect(mockConsumeOrderHistoryEvent).toHaveBeenCalledTimes(1);
     expect(mockProcessLoyaltyEarnEvent).not.toHaveBeenCalled();
-    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-1');
+    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-1', TENANT);
     expect(result).toEqual({ claimed: 1, processed: 1, skipped: 0, failed: 0, deadLettered: 0 });
   });
 
@@ -91,7 +91,7 @@ describe('outbox-processor.service — processOutboxBatch', () => {
 
     expect(mockProcessLoyaltyEarnEvent).toHaveBeenCalledTimes(1);
     expect(mockConsumeOrderHistoryEvent).not.toHaveBeenCalled();
-    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-2');
+    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-2', TENANT);
   });
 
   it('marks an event with no matching handler as processed (not an error) — nothing was ever supposed to consume it', async () => {
@@ -101,7 +101,7 @@ describe('outbox-processor.service — processOutboxBatch', () => {
 
     expect(mockConsumeOrderHistoryEvent).not.toHaveBeenCalled();
     expect(mockProcessLoyaltyEarnEvent).not.toHaveBeenCalled();
-    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-3');
+    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-3', TENANT);
     expect(result.skipped).toBe(1);
   });
 
@@ -116,10 +116,10 @@ describe('outbox-processor.service — processOutboxBatch', () => {
 
     const result = await processOutboxBatch();
 
-    expect(mockMarkFailed).toHaveBeenCalledWith('evt-poison', 'boom');
+    expect(mockMarkFailed).toHaveBeenCalledWith('evt-poison', TENANT, 'boom');
     // The second event in the same batch still gets processed — the poison
     // event does not abort the loop.
-    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-good');
+    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-good', TENANT);
     expect(result).toEqual({ claimed: 2, processed: 1, skipped: 0, failed: 1, deadLettered: 0 });
   });
 
@@ -156,7 +156,7 @@ describe('outbox-processor.service — processOutboxBatch', () => {
     expect(r1.processed).toBe(1);
     expect(r2.processed).toBe(1);
     // Distinct event ids claimed by each call — no overlap possible at this layer.
-    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-a');
-    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-b');
+    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-a', TENANT);
+    expect(mockMarkProcessed).toHaveBeenCalledWith('evt-b', TENANT);
   });
 });

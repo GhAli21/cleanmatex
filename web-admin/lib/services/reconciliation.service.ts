@@ -351,7 +351,7 @@ export async function runReconciliation(
 
   return withTenantContext(tenantId, () =>
     prisma.org_fin_recon_runs_mst.update({
-      where: { id: run.id },
+      where: { id: run.id, tenant_org_id: tenantId },
       data: {
         status: summary.finalStatus,
         total_checked: RECONCILIATION_TOTAL_CHECKS,

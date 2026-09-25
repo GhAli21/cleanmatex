@@ -51,7 +51,7 @@ export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
       where: tenantInvoiceWhere(tenantId, invoiceId),
@@ -76,7 +76,7 @@ export async function getInvoiceByNumber(
   tenantOrgId: string,
   invoiceNo: string
 ): Promise<Invoice | null> {
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantOrgId, async () => {
     const invoice = await prisma.org_invoice_mst.findFirst({
       where: {
@@ -105,10 +105,11 @@ export async function getInvoicesForOrder(
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const invoices = await prisma.org_invoice_mst.findMany({
       where: {
+        tenant_org_id: tenantId,
         order_id: orderId,
       },
       orderBy: {
@@ -127,7 +128,7 @@ export async function getInvoicesByStatus(
   tenantOrgId: string,
   status: InvoiceStatus
 ): Promise<Invoice[]> {
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantOrgId, async () => {
     const invoices = await prisma.org_invoice_mst.findMany({
       where: {
@@ -257,7 +258,7 @@ export async function updateInvoice(
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const currentInvoice = await prisma.org_invoice_mst.findUnique({
       where: tenantInvoiceWhere(tenantId, invoiceId),
@@ -341,7 +342,7 @@ export async function updateInvoiceStatus(
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.update({
       where: tenantInvoiceWhere(tenantId, invoiceId),
@@ -370,7 +371,7 @@ export async function markInvoiceAsPaid(
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
       where: tenantInvoiceWhere(tenantId, invoiceId),
@@ -454,7 +455,7 @@ export async function applyDiscountToInvoice(
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
       where: tenantInvoiceWhere(tenantId, invoiceId),
@@ -531,7 +532,7 @@ export async function isInvoicePaid(invoiceId: string): Promise<boolean> {
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
       where: tenantInvoiceWhere(tenantId, invoiceId),
@@ -555,7 +556,7 @@ export async function isInvoiceOverdue(invoiceId: string): Promise<boolean> {
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
       where: tenantInvoiceWhere(tenantId, invoiceId),
@@ -588,7 +589,7 @@ export async function getInvoiceBalance(invoiceId: string): Promise<number> {
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
       where: tenantInvoiceWhere(tenantId, invoiceId),
@@ -620,7 +621,7 @@ export async function getInvoiceStats(tenantOrgId: string): Promise<{
   total_revenue: number;
   outstanding_amount: number;
 }> {
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantOrgId, async () => {
     const invoices = await prisma.org_invoice_mst.findMany({
       where: {
@@ -773,11 +774,12 @@ import type { FinancialBreakdownSnapshot } from '@/lib/types/order-financial';
  */
 export async function updateInvoiceWithFinancialSnapshot(
   tx: PrismaTx,
+  tenantId: string,
   invoiceId: string,
   breakdown: FinancialBreakdownSnapshot
 ): Promise<void> {
   await tx.org_invoice_mst.updateMany({
-    where:  { id: invoiceId },
+    where: { id: invoiceId, tenant_org_id: tenantId },
     data: {
       subtotal:    breakdown.subtotal,
       discount:    breakdown.discountTotal,

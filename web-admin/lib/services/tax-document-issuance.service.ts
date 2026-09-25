@@ -237,7 +237,7 @@ export async function issueCorrectionTaxDocumentTx(
 
   const documentId = await createTaxDocumentTx(tx, input);
   await tx.org_tax_documents_mst.update({
-    where: { id: documentId },
+    where: { id: documentId, tenant_org_id: params.tenantId },
     data: { supersedes_id: original.id },
   });
   const { documentNo } = await issueTaxDocumentTx(tx, documentId, params.tenantId, params.issuedBy);

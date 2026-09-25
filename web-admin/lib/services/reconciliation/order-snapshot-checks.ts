@@ -107,7 +107,7 @@ export async function runOrderSnapshotChecks(
     // that only run balance checks to pay for the wider header read.
     const header = await withTenantContext(tenantOrgId, () =>
       prisma.org_orders_mst.findUnique({
-        where: { id: order.id },
+        where: { id: order.id, tenant_org_id: tenantOrgId },
         select: { total_charges_amount: true },
       }),
     );
