@@ -338,6 +338,7 @@ function PaymentRow({
   isRTL,
 }: PaymentRowProps) {
   const t = useTranslations('orders.detail.financial');
+  const tLedger = useTranslations('cashControl.ledgerErrors');
   const router = useRouter();
   const { token: csrfToken } = useCSRFToken();
   const { showSuccess, showError } = useMessage();
@@ -375,7 +376,11 @@ function PaymentRow({
       );
       const json = await response.json().catch(() => null);
       if (!response.ok || !json?.success) {
+        // CLF W10: VERIFY recognises a cash leg in the drawer ledger, so the
+        // gate can refuse it — show its translated reason, not the raw code.
+        const code = json && typeof json.code === 'string' ? json.code : undefined;
         const message =
+          (code && tLedger.has(code) && tLedger(code as Parameters<typeof tLedger>[0])) ||
           (json && typeof json.error === 'string' && json.error) ||
           response.statusText ||
           'Unknown error';

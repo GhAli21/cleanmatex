@@ -311,17 +311,14 @@ export async function validateSettlementPlan(
         }
       }
 
+      // Early input check only: a drawer-tracked leg must name the session the
+      // cashier picked (the gate resolves the drawer from it). Whether that
+      // session is OPEN is decided by the cash-drawer ledger gate INSIDE the
+      // posting transaction under the drawer lock (CLF W2) — a pre-transaction
+      // status read here could race a concurrent close and used different
+      // error codes than the gate.
       if (leg.requiresCashDrawer && !leg.cashDrawerSessionId) {
         throw new Error('CASH_DRAWER_SESSION_REQUIRED');
-      }
-
-      if (leg.cashDrawerSessionId) {
-        const session = await prisma.org_cash_drawer_sessions_mst.findFirst({
-          where:  { id: leg.cashDrawerSessionId, tenant_org_id: tenantOrgId },
-          select: { status: true },
-        });
-        if (!session) throw new Error('CASH_DRAWER_SESSION_REQUIRED');
-        if (session.status !== 'OPEN') throw new Error('CASH_DRAWER_SESSION_CLOSED');
       }
 
       if (leg.gatewayCode) {

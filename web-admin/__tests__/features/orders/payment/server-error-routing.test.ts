@@ -28,6 +28,15 @@ describe('routeServerErrorToGuard', () => {
     );
   });
 
+  it('CLF: routes the cash-drawer ledger gate codes to the drawer guard (server-mirror reason)', () => {
+    for (const code of ['CASH_DRAWER_REQUIRED', 'CASH_DRAWER_SESSION_NOT_OPEN', 'DRAWER_SESSION_CLOSING']) {
+      expect(routeServerErrorToGuard(code)).toEqual({
+        capability: PAYMENT_CAPABILITY.CASH_DRAWER,
+        reason: code,
+      });
+    }
+  });
+
   it('routes ownerless (per-leg tender-detail) codes to the aggregate SUBMIT_GUARDS surface', () => {
     for (const code of [
       'PAYMENT_REFERENCE_REQUIRED',

@@ -1,10 +1,34 @@
 # RESUME — POS Session & Cash Drawer Hardening (session continuation)
 
-**Updated:** 2026-09-25 (latest — cloud session on branch `claude/peaceful-babbage-eifpj0`). **The ▶ NOW entry directly below is the resume point — read it before doing anything else.** All 7 R1 migrations (`0523`, `0526`-`0530`) are applied. This pass finished writer items **W4, W5, W6, W12, W14, W15** (decisions: STATUS D36). Next: **W2, W3, W10** (found still open), then **W11 + Cash in / Cash out** (§4B.2a-A), pending-deposit buttons (§4B.2a-B), R1 exit gates.
+**Updated:** 2026-09-25 (latest — cloud session on branch `claude/peaceful-babbage-eifpj0`). **The ▶ NOW entry directly below is the resume point.** All 7 R1 migrations applied. Writer items **W1–W10, W12, W14, W15 are done** (STATUS D36, D37). Next: **W11 + Cash in / Cash out** (§4B.2a-A), pending-deposit buttons (§4B.2a-B), R1 exit gates.
 
 ---
 
-## ▶ NOW — 2026-09-25 (latest) — W4/W5/W6/W12/W14/W15 done; next W2/W3/W10, then W11 + Cash in/out
+## ▶ NOW — 2026-09-25 (latest) — W2/W3/W10 done; next W11 + Cash in / Cash out
+
+**Owner direction:** "why were W2/W3/W10 missed — go ahead". Answer + decisions in **STATUS.md D37** (short version: the earlier hand-off list dropped them; W1 had only covered their posting half).
+
+### Done this pass
+
+| Item | What changed | Files |
+|---|---|---|
+| **W10** (money bug) | Order-screen Verify → canonical VERIFY transition, so a verified cash leg is recognised in the drawer ledger. Response fields kept (+ `cashRecognized`); key `order_payment_verify:{paymentId}`; errors carry `code`. `verifyPaymentTx`, its types and test deleted. Verify button translates ledger codes. | `app/api/v1/orders/[id]/payments/[paymentId]/verify/route.ts`, `lib/services/order-settlement.service.ts`, `lib/constants/order-financial.ts` (comment), `src/features/orders/ui/order-financial/order-payments-credits-tables.tsx`, new `__tests__/api/v1/orders/payment-verify.route.test.ts`, deleted `__tests__/services/verify-payment.service.test.ts` |
+| **W2** | Planner pre-transaction session lookup removed (gate decides in-tx); hint-required check kept. Submit route maps `CashDrawerLedgerError` → 422 code (was falling to `ORDER_SUBMIT_FAILED` since W1). Payment modal: every ledger code translated; `CASH_DRAWER_REQUIRED` / `CASH_DRAWER_SESSION_NOT_OPEN` / `DRAWER_SESSION_CLOSING` are new server-mirror `PAYMENT_REASON`s routed to the drawer guard. | `lib/services/order-settlement-planner.service.ts`, `app/api/v1/orders/submit-order/route.ts`, `src/features/orders/hooks/use-order-submission.ts`, `src/features/orders/payment/domain/{payment-reasons,server-error-routing}.ts`, tests: planner (no session read; hint still required), server-error-routing |
+| **W3** | `collectPaymentTx` + standalone `transitionPaymentTx` in `withTenantContext`; both collect routes map ledger refusals to 422 codes; collect modal translates them. | `lib/services/order-settlement.service.ts`, `lib/services/payment-transition.service.ts`, `app/api/v1/orders/[id]/{collect-payment,payments}/route.ts`, `src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx` |
+
+### Validation this pass
+- jest (full web-admin): **332/332 suites, 2963/2963 tests**.
+- `npx eslint . --quiet`: **clean**. `npm run build`: **success**.
+- Scoped typecheck (`NODE_OPTIONS=--max-old-space-size=13312 npx tsc --noEmit -p tsconfig.clf-check.json`): **only the 2 pre-existing `lib/db/prisma.ts` errors**.
+
+### ▶ Pick up exactly here
+1. **W11 + §4B.2a-A together** — Cash in / Cash out dialog + API (allow-list `DRAWER_CASH_IN_OUT_ROLES` in `lib/constants/cash-drawer.ts`, permission `cash_drawer:record_movement`, INTERACTIVE voucher, errors via `cashControl.ledgerErrors`), then delete `recordMovement`, the `cash-movement` route, `addDrawerMovement` and the old movement dialog.
+2. §4B.2a-B pending-deposit button on the remaining screens (confirm which are done).
+3. R1 exit gates (full eslint / typecheck / build / jest, QA guide, STATUS R1-complete row).
+
+---
+
+## ✅ 2026-09-25 (earlier, superseded by ▶ NOW above) — W4/W5/W6/W12/W14/W15 done
 
 **Owner direction this pass:** "continue W6, then W4/W5, W11/W12/W14/W15" and then "you decide — production-ready, no gaps". Every design call made is recorded in **STATUS.md D36** (read it; it explains *why*, including the rejected options).
 

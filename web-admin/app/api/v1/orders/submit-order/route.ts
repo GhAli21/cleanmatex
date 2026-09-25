@@ -24,6 +24,7 @@ import {
 } from '@/lib/services/workflow/workflow-profile-error-catalog';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import { submitOrderRequestSchema } from '@/lib/validations/new-order-payment-schemas';
 import {
   submitOrder,
@@ -448,6 +449,17 @@ export async function POST(request: NextRequest) {
           error: 'One or more selected tax profiles are invalid or no longer active.',
         },
         { status: 400 }
+      );
+    }
+
+    // CLF: the cash-drawer ledger gate decides the drawer/session inside the
+    // posting transaction (W2 removed the planner's pre-check) and throws a
+    // typed error whose stable `code` the payment modal translates and routes
+    // to the drawer guard (CASH_LEDGER_ERRORS in lib/constants/cash-drawer.ts).
+    if (error instanceof CashDrawerLedgerError) {
+      return NextResponse.json(
+        { success: false, errorCode: error.code, error: error.code },
+        { status: 422 }
       );
     }
 

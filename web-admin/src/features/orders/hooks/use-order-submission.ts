@@ -22,6 +22,7 @@ import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { newOrderPaymentPayloadSchema } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
+import { CASH_LEDGER_ERRORS } from '@/lib/constants/cash-drawer';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 import {
     routeServerErrorToGuard,
@@ -176,6 +177,7 @@ export function useOrderSubmission() {
     const tWorkflow = useTranslations('workflow');
     const profileStaffMessage = useWorkflowProfileStaffMessage();
     const tEdit = useTranslations('orders.edit');
+    const tLedger = useTranslations('cashControl.ledgerErrors');
     const router = useRouter();
     const { currentTenant, user } = useAuth();
     const { trackByPiece, packingPerPieceEnabled } = useTenantSettingsWithDefaults(
@@ -615,6 +617,12 @@ export function useOrderSubmission() {
                     const isPermissionError = res.status === 403;
                     const isValidationError = res.status === 400;
                     const translatedByCode: Record<string, string> = {
+                            // CLF cash-drawer ledger gate refusals (stable codes from the
+                            // submit route); specific entries below override where the
+                            // modal already has richer copy.
+                            ...Object.fromEntries(
+                                Object.values(CASH_LEDGER_ERRORS).map((code) => [code, tLedger(code)]),
+                            ),
                             CASH_DRAWER_SESSION_REQUIRED: t('payment.cashDrawer.messages.sessionRequired'),
                             CASH_DRAWER_SESSION_SELECTION_REQUIRED: t('payment.cashDrawer.messages.selectionRequired'),
                             CASH_DRAWER_SESSION_CLOSED: t('payment.cashDrawer.messages.sessionClosed'),

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { collectPaymentTx } from '@/lib/services/order-settlement.service';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import {
   collectionNotesSchema,
   collectionPaymentLegSchema,
@@ -67,6 +68,14 @@ export async function POST(
     });
     return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (err) {
+    // CLF W3: cash-drawer ledger gate refusal — stable code for the UI
+    // (translated via cashControl.ledgerErrors / the payment modal guard).
+    if (err instanceof CashDrawerLedgerError) {
+      return NextResponse.json(
+        { success: false, errorCode: err.code, error: err.code },
+        { status: 422 }
+      );
+    }
     const message = err instanceof Error ? err.message : 'Payment collection failed';
     // B5/D010: same key + different payload is a conflict, not a generic
     // processing failure — the client must issue a new key to retry.

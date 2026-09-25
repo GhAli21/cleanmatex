@@ -1,44 +1,54 @@
 /**
- * BVM Wiring — Phase 6 Sub-item 1
- *
  * POST /api/v1/orders/[id]/payments/[paymentId]/verify
  *
- * Flips a single PENDING `REAL_PAYMENT` leg on `org_order_payments_dtl`
- * to COMPLETED after a gateway / bank confirms funds. Emits a
- * `PAYMENT_VERIFIED` outbox event so the Phase 5 order-history consumer
- * persists an audit row asynchronously.
+ * Verify button on the order payments tab. Flips a PENDING/PROCESSING
+ * `REAL_PAYMENT` leg to COMPLETED.
  *
- * Why a dedicated permission:
- * Verifying a deferred payment is a financial control distinct from
- * collecting cash at the counter. The route enforces
- * `orders:verify_payment` (seeded by migration 0332) which defaults to
- * super_admin, tenant_admin, admin, and branch_manager only.
+ * CLF W10: delegates to the canonical VERIFY transition
+ * (`transitionPaymentTx`, the same service the pending-payments worklist
+ * uses). The former `verifyPaymentTx` flipped the status but never recognised
+ * a cash leg in the drawer ledger — a cash payment verified here stayed
+ * PENDING in the drawer and the close showed a false shortage. VERIFY
+ * recognises the cash line (gate, DEFERRED mode), recalculates the order
+ * header and emits `PAYMENT_VERIFIED`.
  *
- * CSRF: enforced via `validateCSRF` because this is a state-changing
- * POST executed from the order-detail UI.
+ * Contract kept for the existing UI: no body required; response `data` keeps
+ * the legacy fields (`paymentId`, `previousStatus`, `newStatus`, `verifiedAt`,
+ * `orderPaymentStatus`, `outstanding`, `flipped`). The idempotency key is
+ * derived from the payment id — VERIFY is idempotent by nature (a replay after
+ * COMPLETED is a no-op), so one key per payment is correct.
+ *
+ * Permission: `orders:verify_payment` (migration 0332). CSRF enforced.
+ * Errors: `{ success: false, error, code }`; cash-drawer ledger refusals and
+ * transition errors carry a stable `code`.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
-import { verifyPaymentTx } from '@/lib/services/order-settlement.service';
+import { transitionPaymentTx } from '@/lib/services/payment-transition.service';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
+import { PAYMENT_TRANSITION_ACTIONS } from '@/lib/constants/order-financial';
+
+const ERROR_STATUS: Record<string, number> = {
+  PAYMENT_NOT_FOUND: 404,
+  NOT_REAL_PAYMENT_LEG: 422,
+  ILLEGAL_TRANSITION: 409,
+  PAYMENT_TRANSITION_RACE_DETECTED: 409,
+  IDEMPOTENCY_CONFLICT: 409,
+};
 
 /**
- *
- * @param request
- * @param root0
- * @param root0.params
+ * @param request CSRF-protected POST from the order payments tab
+ * @param root0 route context
+ * @param root0.params `{ id: orderId, paymentId }`
  */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; paymentId: string }> },
 ) {
-  // CSRF first: cheap, no DB hit. Mirrors collect-payment route.
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;
 
-  // Permission middleware resolves tenantId from JWT and userId from
-  // the verified session. Both feed verifyPaymentTx directly so the
-  // service never depends on session-resolved tenant context.
   const auth = await requirePermission('orders:verify_payment')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId, userId } = auth;
@@ -46,15 +56,39 @@ export async function POST(
   const { id: orderId, paymentId } = await params;
 
   try {
-    const result = await verifyPaymentTx({
+    const result = await transitionPaymentTx({
       orderId,
       paymentId,
       tenantId,
-      verifiedBy: userId,
+      actorId: userId,
+      action: PAYMENT_TRANSITION_ACTIONS.VERIFY,
+      idempotencyKey: `order_payment_verify:${paymentId}`,
     });
-    return NextResponse.json({ success: true, data: result }, { status: 200 });
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          paymentId: result.paymentId,
+          previousStatus: result.previousStatus,
+          newStatus: result.newStatus,
+          verifiedAt: result.transitionedAt,
+          orderPaymentStatus: result.orderPaymentStatus,
+          outstanding: result.outstanding,
+          flipped: result.flipped,
+          cashRecognized: result.deferredCashMovementCreated,
+        },
+      },
+      { status: 200 },
+    );
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Payment verification failed';
-    return NextResponse.json({ success: false, error: message }, { status: 422 });
+    if (err instanceof CashDrawerLedgerError) {
+      return NextResponse.json({ success: false, code: err.code, error: err.code }, { status: 422 });
+    }
+    const message = err instanceof Error ? err.message : 'PAYMENT_TRANSITION_FAILED';
+    const status = ERROR_STATUS[message];
+    return NextResponse.json(
+      { success: false, code: status ? message : undefined, error: message },
+      { status: status ?? 422 },
+    );
   }
 }
