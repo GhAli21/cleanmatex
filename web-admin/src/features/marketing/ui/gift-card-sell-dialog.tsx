@@ -3,9 +3,11 @@
 /**
  * Gift Card Sell Dialog
  *
- * Sells a gift card at POS (issue_type=SOLD). The card is created and
- * immediately activated by sellGiftCardAction. On success the generated
- * gift_card_code is shown with a Copy button.
+ * Sells a gift card at POS (issue_type=SOLD) through the governed
+ * DIRECT_TENDER funding path (sellGiftCardWithTenderAction): the tender step
+ * is always required, so every sale is backed by a voucher and — for cash —
+ * by the drawer ledger (CLF W5). On success the generated gift_card_code is
+ * shown with a Copy button.
  *
  * Requires: gift_cards:sell permission (enforced server-side).
  */
@@ -29,9 +31,8 @@ import { CmxButton, CmxMoneyFieldController } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
 import { Alert, AlertDescription } from '@ui/primitives';
-import { sellGiftCardAction, sellGiftCardWithTenderAction } from '@/app/actions/marketing/gift-card-actions';
+import { sellGiftCardWithTenderAction } from '@/app/actions/marketing/gift-card-actions';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { useFeature } from '@features/auth/ui/RequireFeature';
 import { useAuth } from '@/lib/auth/auth-context';
 import {
   StoredValueTenderFields,
@@ -94,11 +95,9 @@ interface GiftCardSellDialogProps {
 export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSellDialogProps) {
   const t = useTranslations('marketing.giftCards');
   const tCommon = useTranslations('common');
+  const tLedger = useTranslations('cashControl.ledgerErrors');
 
   const { currencyCode: tenantCurrency } = useTenantCurrency();
-  // B3 — governed DIRECT_TENDER sale (tender step) once enabled; falls back
-  // to the existing no-tender sellGiftCardAction while the flag is off.
-  const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture');
   const { currentTenant, user } = useAuth();
   const tenantOrgId = currentTenant?.tenant_id ?? '';
   const userId = user?.id;
@@ -199,43 +198,11 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       return;
     }
 
-    if (fundingCaptureEnabled) {
-      if (!tender) {
-        setServerError(t('fields.tenderRequired'));
-        return;
-      }
-      const result = await sellGiftCardWithTenderAction({
-        card_name:                values.card_name,
-        card_name2:               values.card_name2 || undefined,
-        amount:                   faceValue,
-        expiry_date:              values.expiry_date
-          ? new Date(values.expiry_date).toISOString()
-          : undefined,
-        purchased_by_customer_id: values.purchased_by_cust_id || undefined,
-        issued_to_customer_id:    issuedTo,
-        card_pin:                 values.card_pin || undefined,
-        currency_code:            values.currency_code,
-        payment_method_id:        tender.paymentMethodId,
-        cash_tendered:            tender.cashTendered,
-        cash_drawer_session_id:   tender.cashDrawerSessionId,
-        idempotency_key:          idempotencyKey,
-      });
-
-      if (result.success === false) {
-        setServerError(
-          result.error === 'GIFT_CARD_AMOUNT_MUST_BE_POSITIVE' ||
-            result.error === 'FUNDED_AMOUNT_MUST_BE_POSITIVE'
-            ? t('fields.amountMustBePositive')
-            : result.error,
-        );
-      } else {
-        setGeneratedCode(result.data.giftCardCode);
-        onSuccess?.();
-      }
+    if (!tender) {
+      setServerError(t('fields.tenderRequired'));
       return;
     }
-
-    const result = await sellGiftCardAction({
+    const result = await sellGiftCardWithTenderAction({
       card_name:                values.card_name,
       card_name2:               values.card_name2 || undefined,
       amount:                   faceValue,
@@ -246,12 +213,23 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       issued_to_customer_id:    issuedTo,
       card_pin:                 values.card_pin || undefined,
       currency_code:            values.currency_code,
+      payment_method_id:        tender.paymentMethodId,
+      cash_tendered:            tender.cashTendered,
+      cash_drawer_session_id:   tender.cashDrawerSessionId,
+      idempotency_key:          idempotencyKey,
     });
 
     if (result.success === false) {
-      setServerError(result.error);
+      setServerError(
+        result.error === 'GIFT_CARD_AMOUNT_MUST_BE_POSITIVE' ||
+          result.error === 'FUNDED_AMOUNT_MUST_BE_POSITIVE'
+          ? t('fields.amountMustBePositive')
+          : tLedger.has(result.error)
+            ? tLedger(result.error as Parameters<typeof tLedger>[0])
+            : result.error,
+      );
     } else {
-      setGeneratedCode(result.data.gift_card_code);
+      setGeneratedCode(result.data.giftCardCode);
       onSuccess?.();
     }
   };
@@ -385,23 +363,21 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                 </div>
               </div>
 
-              {/* B3 — tender step, governed DIRECT_TENDER funding only */}
-              {fundingCaptureEnabled && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
-                  <p className="mb-2 text-sm font-medium">{t('fields.tenderSectionTitle')}</p>
-                  {faceAmount == null ? (
-                    <p className="text-sm text-muted-foreground">{t('fields.amountRequiredBeforeTender')}</p>
-                  ) : (
-                    <StoredValueTenderFields
-                      amount={faceAmount}
-                      currencyCode={currencyCode}
-                      tenantOrgId={tenantOrgId}
-                      userId={userId}
-                      onTenderChange={setTender}
-                    />
-                  )}
-                </div>
-              )}
+              {/* Tender step — always required: every sale is a voucher (CLF W5) */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                <p className="mb-2 text-sm font-medium">{t('fields.tenderSectionTitle')}</p>
+                {faceAmount == null ? (
+                  <p className="text-sm text-muted-foreground">{t('fields.amountRequiredBeforeTender')}</p>
+                ) : (
+                  <StoredValueTenderFields
+                    amount={faceAmount}
+                    currencyCode={currencyCode}
+                    tenantOrgId={tenantOrgId}
+                    userId={userId}
+                    onTenderChange={setTender}
+                  />
+                )}
+              </div>
 
               {/* Expiry Date */}
               <div>
@@ -541,7 +517,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                 <CmxButton type="button" variant="outline" onClick={handleClose}>
                   {tCommon('cancel')}
                 </CmxButton>
-                <CmxButton type="submit" disabled={isSubmitting || (fundingCaptureEnabled && (faceAmount == null || !tender))}>
+                <CmxButton type="submit" disabled={isSubmitting || faceAmount == null || !tender}>
                   {isSubmitting ? tCommon('loading') : t('actions.sellCard')}
                 </CmxButton>
               </CmxDialogFooter>

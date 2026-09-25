@@ -156,7 +156,7 @@ describe('storedValueCashDrawerWiringHandler', () => {
     ).toBe(false);
   });
 
-  it('creates a SV_FUNDING_TENDER movement linked to funding_tender_id, plus CASH_OUT on change', async () => {
+  it('creates one net SV_FUNDING_TENDER movement linked to funding_tender_id and no CASH_OUT for change', async () => {
     const sessionFindFirst = jest.fn().mockResolvedValue({
       id: 'session-1',
       cash_drawer_id: 'drawer-1',
@@ -193,17 +193,8 @@ describe('storedValueCashDrawerWiringHandler', () => {
         }),
       }),
     );
-    expect(movementCreate).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        data: expect.objectContaining({
-          movement_type: 'CASH_OUT',
-          direction: 'OUT',
-          amount: 5,
-          funding_tender_id: 'tender-001',
-        }),
-      }),
-    );
+    // Change is already netted out of `amount`; a CASH_OUT row would subtract it twice.
+    expect(movementCreate).toHaveBeenCalledTimes(1);
   });
 
   it('throws when the cash drawer session is not found or not OPEN', async () => {

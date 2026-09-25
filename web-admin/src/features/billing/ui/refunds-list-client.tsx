@@ -96,9 +96,9 @@ interface RefundsListClientProps {
   pagination: PaginationInfo;
   /** B34: stage actions render only when the order_fin_refund_ui flag is on. */
   actionsEnabled?: boolean;
-  /** B9: when on, processing a CASH/ORIGINAL_METHOD refund executes for real
-   *  (REFUND_VOUCHER + cash-drawer CASH_OUT, or a manual-settlement reference)
-   *  instead of the record-only pre-B9 behavior. */
+  /** B9: when on, processing an ORIGINAL_METHOD refund executes for real (a
+   *  REFUND_VOUCHER carrying a manual-settlement reference). CASH refunds
+   *  always execute through a voucher and a drawer session (CLF W4). */
   executionEnabled?: boolean;
 }
 
@@ -152,6 +152,7 @@ export default function RefundsListClient({
 }: RefundsListClientProps) {
   const t = useTranslations('billing.refunds');
   const tCommon = useTranslations('common');
+  const tLedger = useTranslations('cashControl.ledgerErrors');
   const locale = useLocale();
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
   const router = useRouter();
@@ -168,8 +169,8 @@ export default function RefundsListClient({
   const [drawerSessions, setDrawerSessions] = useState<OpenDrawerSession[]>([]);
   const [drawerSessionsLoading, setDrawerSessionsLoading] = useState(false);
 
+  // CLF W4: cash leaving a drawer is always a voucher — never flag-gated.
   const requiresCashDrawer =
-    executionEnabled &&
     pendingAction?.action === 'process' &&
     pendingAction.refund.refund_method_code === REFUND_METHODS.CASH;
   const requiresManualReference =
@@ -214,9 +215,8 @@ export default function RefundsListClient({
 
   const canSubmitProcess =
     pendingAction?.action !== 'process' ||
-    !executionEnabled ||
-    (requiresCashDrawer ? !!cashDrawerSessionId : true) &&
-    (requiresManualReference ? manualSettlementReference.trim().length > 0 : true);
+    ((requiresCashDrawer ? !!cashDrawerSessionId : true) &&
+      (requiresManualReference ? manualSettlementReference.trim().length > 0 : true));
 
   const columns: ColumnDef<RefundItem, unknown>[] = [
     {
@@ -362,7 +362,7 @@ export default function RefundsListClient({
     setSubmitting(true);
     try {
       const body =
-        pendingAction.action === 'process' && executionEnabled
+        pendingAction.action === 'process' && (requiresCashDrawer || requiresManualReference)
           ? JSON.stringify({
               cashDrawerSessionId: requiresCashDrawer ? cashDrawerSessionId : undefined,
               manualSettlementReference: requiresManualReference
@@ -382,10 +382,13 @@ export default function RefundsListClient({
         | { success?: boolean; error?: string; code?: string }
         | null;
       if (!response.ok || !payload?.success) {
+        const code = payload?.code;
         showError(
-          payload?.code
-            ? t(`errors.${payload.code}` as Parameters<typeof t>[0])
-            : payload?.error ?? t('actions.failed'),
+          code && t.has(`errors.${code}`)
+            ? t(`errors.${code}` as Parameters<typeof t>[0])
+            : code && tLedger.has(code)
+              ? tLedger(code as Parameters<typeof tLedger>[0])
+              : payload?.error ?? t('actions.failed'),
         );
         return;
       }

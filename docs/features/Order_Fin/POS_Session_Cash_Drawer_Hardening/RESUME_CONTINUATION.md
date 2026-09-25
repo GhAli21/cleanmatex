@@ -1,10 +1,49 @@
 # RESUME — POS Session & Cash Drawer Hardening (session continuation)
 
-**Updated:** 2026-09-25 (even later same day, second `/clear` this day) — session ending for a `/clear` (context size), not because the work is paused for any other reason. **This entry is the resume point — read it before doing anything else.** All 7 R1 migrations (M1-M7: `0523`, `0526`-`0530`) are applied and verified on both local and remote. W1/W7/W8/W9's test-fix pass (from the entry below) is now CLOSED — both test files are green. Next up: a scoped typecheck retry, then the remaining R1 writer items (W6, W4/W5, W11/W12/W14/W15). See the entry immediately below for exact state; the ⏬ entry after it is now superseded except for its still-relevant code description.
+**Updated:** 2026-09-25 (latest — cloud session on branch `claude/peaceful-babbage-eifpj0`). **The ▶ NOW entry directly below is the resume point — read it before doing anything else.** All 7 R1 migrations (`0523`, `0526`-`0530`) are applied. This pass finished writer items **W4, W5, W6, W12, W14, W15** (decisions: STATUS D36). Next: **W2, W3, W10** (found still open), then **W11 + Cash in / Cash out** (§4B.2a-A), pending-deposit buttons (§4B.2a-B), R1 exit gates.
 
 ---
 
-## 🟢 2026-09-25 (latest) — W1/W7/W8/W9 test-fix pass CLOSED; found+fixed a real gate-leak bug; typecheck OOM'd (not a real error) — EXACT resume point
+## ▶ NOW — 2026-09-25 (latest) — W4/W5/W6/W12/W14/W15 done; next W2/W3/W10, then W11 + Cash in/out
+
+**Owner direction this pass:** "continue W6, then W4/W5, W11/W12/W14/W15" and then "you decide — production-ready, no gaps". Every design call made is recorded in **STATUS.md D36** (read it; it explains *why*, including the rejected options).
+
+### Done this pass (code + tests; see D36 for rationale)
+
+| Item | What changed | Files |
+|---|---|---|
+| **W6** customer-account receipt | One `RECEIPT_VOUCHER` + **one `CUSTOMER_CREDIT_RECEIPT` line**, posted via `postAndWireBizVoucher` INTERACTIVE (gate decides drawer). Allocation executor unchanged and still the only effect writer. Stable error codes (`CUSTOMER_RECEIPT_POST_ERRORS`), route CSRF + 422 codes. Reversal core refuses receipt vouchers. Temporary legacy mirror handler (retire in R3 with W13). Screen reuses `StoredValueTenderFields` (drawer picker, change due, **new opt-in bank/cheque reference fields**), `cmxMessage`, no `'OMR'` fallback, idempotency key = `car_{previewId}`. Access contract for `/dashboard/customers/account-receipt` gained its real `apiDependencies` (derive + hand-corrected methods/guards). | `lib/services/customer-receipt-posting.service.ts`, `app/api/v1/customer-receipts/post/route.ts`, `lib/services/wiring/customer-receipt-cash-drawer-wiring.handler.ts` (new), `lib/services/voucher-wiring.service.ts`, `lib/services/voucher-line-reversal.service.ts`, `app/api/v1/finance/vouchers/[voucherId]/reverse/route.ts`, `lib/types/customer-receipt-allocation.ts`, `lib/validations/customer-receipt-allocation-schema.ts`, `src/features/customers/ui/customer-account-receipt-client.tsx`, `src/features/customers/ui/stored-value-tender-fields.tsx`, `src/features/customers/access/customers-access.ts` |
+| Bug fix (found during W6) | Stored-value cash mirror wrote a `CASH_OUT` for change on top of a net IN → old close screens short by the change. Change row removed. | `lib/services/wiring/stored-value-cash-drawer-wiring.handler.ts` |
+| **W4** refund | CASH refund always executes (drawer-session hint required; gate decides OPEN) whatever `order_fin_refund_execution` says; flag now gates ORIGINAL_METHOD only. `processRefund` in `withTenantContext`. Route maps `CashDrawerLedgerError` → 422 code. Refund dialog always asks for a drawer on CASH, shows translated ledger errors. **Movement read-back kept until R3** (AR reconciliation needs it). | `lib/services/order-refund.service.ts`, `app/api/v1/orders/refunds/[refundId]/process/route.ts`, `src/features/billing/ui/refunds-list-client.tsx` |
+| **W5** gift card | No-tender sale (`sellGiftCard`, `sellGiftCardAction`) deleted; dialog always tendered; `sellGiftCardWithTenderAction` not flag-gated; returns ledger error code. `fundStoredValue` in `withTenantContext`. | `lib/services/gift-card-service.ts`, `app/actions/marketing/gift-card-actions.ts`, `src/features/marketing/ui/gift-card-sell-dialog.tsx`, `lib/services/stored-value-funding.service.ts`, `docs/features/Gift_Cards/README.md` |
+| **W12** | 4 dead legacy actions deleted; drawer CRUD actions gained `payment_config:view` / `payment_config:manage` checks (had none). Contract action `manageCashDrawers` added. | `app/actions/payment-config/cash-drawers-actions.ts`, `src/features/payment-config/access/payment-config-access.ts` |
+| **W14** | `settleOrderTx` non-wiring branch + `settleOrder` wrapper deleted; submit fails closed (`SETTLEMENT_LEGS_REQUIRE_RECEIPT_VOUCHER`). | `lib/services/order-settlement.service.ts`, `lib/services/order-submit-orchestrator.service.ts` |
+| **W15** | Every action in `billing/cash-drawer-actions.ts` checks the same permission as its API route (returns are inline literals on purpose — with `strict: false` a shared const breaks callers' `result.error` narrowing). Rewire half → R2. | `app/actions/billing/cash-drawer-actions.ts` |
+| Bug fix (found by typecheck, pre-existing) | `GET /api/v1/pos-sessions` let the `?userId=` filter overwrite the actor id used by the own-scope restriction (visibility bypass + empty default list). Filter renamed `filterUserId`. Six `AuditExtraRow` entries got their required `key`. | `lib/services/pos-session.service.ts`, `app/api/v1/pos-sessions/route.ts`, `src/features/pos-sessions/ui/pos-sessions-screen.tsx` |
+| i18n | `customers.accountReceipt.*` (tender, errors), `customers.storedValue.funding.*` (references), **new shared `cashControl.ledgerErrors.<CODE>`** (all 22 `CASH_LEDGER_ERRORS`, EN+AR) — use it for every future ledger-error display. | `messages/{en,ar}/{customers,cashControl}.json` |
+
+Tests: new `customer-receipt-posting.service.test.ts`, `customer-receipt-cash-drawer-wiring.handler.test.ts`; updated reversal-core (receipt refusal), stored-value mirror (no change row), refund B9 (CASH always executes), B01 matrix / refund service / refund-flow (voucher mocks + session hint), settlement (settleOrderTx no longer writes facts), gift-card service (sellGiftCard block removed).
+
+### Validation this pass
+- **jest (full web-admin suite): 332/332 suites, 2959/2959 tests passing.**
+- **`npx eslint . --quiet` (whole web-admin): clean.**
+- **`npm run build`: success.**
+- **`npm run check:i18n`: passed** (EN/AR trees, keys, placeholders aligned; only pre-existing warnings).
+- **`check:ui-access-contract --route=/dashboard/customers/account-receipt --wire`: PASS**; `sync:ui-access-contract` run (inventories refreshed).
+- **Typecheck:** plain `tsc` OOMs on this codebase even with a large heap; the scoped `tsconfig.clf-check.json` completes with `NODE_OPTIONS=--max-old-space-size=13312` (~15 min, ~12 GB — needs a 16 GB machine). Result: **only 2 errors, both in `lib/db/prisma.ts`** (Prisma `$extends` type complexity — pre-existing platform item tied to D32, not CLF). Everything this pass touched is type-clean; the pre-existing POS-session errors it surfaced were fixed (see table).
+
+### ▶ Pick up exactly here
+1. **W2** — `order-settlement-planner.service.ts:~318-326`: delete the pre-transaction `CASH_DRAWER_SESSION_REQUIRED` / `CASH_DRAWER_SESSION_CLOSED` check (the gate decides inside the tx); make sure order submit passes the drawer/session hint and maps `CashDrawerLedgerError` in its route.
+2. **W3** — `collectPaymentTx` (`order-settlement.service.ts`): wrap in `withTenantContext`; map `CashDrawerLedgerError` in both collect routes (`orders/[id]/collect-payment`, `orders/[id]/payments`).
+3. **W10** — `verifyPaymentTx` + route `orders/[id]/payments/[paymentId]/verify`: delegate to `transitionPayment` VERIFY, delete `verifyPaymentTx`.
+4. **W11 + §4B.2a-A together** — Cash in / Cash out dialog + API (allow-list `DRAWER_CASH_IN_OUT_ROLES` in `lib/constants/cash-drawer.ts`, permission `cash_drawer:record_movement`, INTERACTIVE voucher), then delete `recordMovement`, the `cash-movement` route and `addDrawerMovement` (now permission-gated, W15) and the old movement dialog. Use `cashControl.ledgerErrors` for errors.
+5. §4B.2a-B pending-deposit button on the remaining screens (confirm which are done), then R1 exit gates (full eslint / typecheck / build / jest, QA guide, STATUS R1-complete row).
+
+**Follow-ups recorded, not done:** `/dashboard/marketing/gift-cards` contract is missing pre-existing `apiDependencies` (checkout-options, cash-drawers) and `actions` — run `derive --route=/dashboard/marketing/gift-cards --apply` and hand-correct methods; wallet top-up / advance "no-tender admin adjustment" path (stored-value tab, flag off) is an adjustment, not a sale — left as is, flag for owner review; the order cash mirror (`cash-drawer-wiring.handler.ts`) also writes a change `CASH_OUT` but its rows carry `order_payment_id`, so the legacy formula excludes them — correct, no change.
+
+---
+
+## 🟢 2026-09-25 (earlier, superseded by ▶ NOW above) — W1/W7/W8/W9 test-fix pass CLOSED; found+fixed a real gate-leak bug; typecheck OOM'd (not a real error) — EXACT resume point
 
 **Picks up from:** the entry below ("R1 code: W1/W7/W8/W9 done, mid test-fix"), items 1-2 of its "NOT done yet" list. Item 3 (lint + typecheck) is half-done — see below.
 

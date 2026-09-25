@@ -380,6 +380,20 @@ describe('reverseVoucherLinesInTx — rejections', () => {
     ).rejects.toThrow('NO_POSTED_LINES_TO_REVERSE');
   });
 
+  it('refuses a customer account receipt (W6) — its allocations are not unwound by a reversal', async () => {
+    mockTx.$queryRaw.mockResolvedValue([
+      { ...makeOriginalVoucher(), source_ref_type: 'CUSTOMER_ACCOUNT_PAYMENT' },
+    ]);
+
+    await expect(
+      reverseVoucherLinesInTx(mockTx as never, {
+        tenantOrgId: TENANT, voucherId: VOUCHER_ID, reason: 'test', userId: USER_ID,
+      }),
+    ).rejects.toThrow('CUSTOMER_RECEIPT_REVERSAL_NOT_SUPPORTED');
+    expect(mockTx.org_fin_vouchers_mst.create).not.toHaveBeenCalled();
+    expect(mockStampCashLinesTx).not.toHaveBeenCalled();
+  });
+
   it('requires a non-empty reason', async () => {
     await expect(
       reverseVoucherLinesInTx(mockTx as never, {

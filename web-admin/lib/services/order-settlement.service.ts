@@ -3,8 +3,6 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import {
-  CREDIT_APPLICATION_STATUSES,
-  CREDIT_APPLICATION_TYPES,
   OUTBOX_EVENT_TYPES,
   PAYMENT_NATURE,
 } from '@/lib/constants/order-financial';
@@ -17,9 +15,8 @@ import type {
 } from '@/lib/types/order-financial';
 import { createClient } from '@/lib/supabase/server';
 import { emitEventTx } from './outbox.service';
-import { queueEarnPoints, redeemPointsTx, resolveLoyaltyRedemptionPoints } from './loyalty.service';
+import { queueEarnPoints } from './loyalty.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
-import { redeemAdvanceTx, redeemCreditNoteTx, redeemWalletTx } from './stored-value.service';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { addMoney, subMoney, sumMoney } from '@/lib/utils/money';
 import {
@@ -88,15 +85,13 @@ export interface SettlementParams {
   taxLines: TaxLineItem[];
   discountLines: DiscountLineInput[];
   settlementLegs: ResolvedSettlementLeg[];
+  /**
+   * @deprecated Ignored since CLF W14 — cash legs reach the drawer only through
+   * the voucher line and the cash-drawer ledger gate. Kept so callers compile.
+   */
   cashDrawerSessionId?: string;
   posSessionId?: string;
   settledBy?: string;
-  /**
-   * When true the BVM wiring service is responsible for writing
-   * org_order_payments_dtl and org_order_credit_apps_dtl rows.
-   * Skip the direct writes here to avoid double-write. Default: false.
-   */
-  wiringMode?: boolean;
 }
 
 /**
@@ -111,25 +106,17 @@ export interface SettlementResult {
 }
 
 /**
- * Settle an order in one transaction.
- *
- * Why:
- * This path writes all order-level financial facts, preserves gateway safety,
- * and recalculates the header snapshot from persisted rows instead of trusting
- * one-off request math.
- *
- * @param params settlement payload resolved by checkout
- * @returns normalized snapshot result after persistence
- */
-export async function settleOrder(params: SettlementParams): Promise<SettlementResult> {
-  return prisma.$transaction((tx) => settleOrderTx(tx, params));
-}
-
-/**
  * Settle an order using the caller's transaction.
  *
  * This is used by submit-order so the order header, voucher wiring, stored-value
  * debits, payment fact rows, and financial snapshot commit or roll back together.
+ *
+ * CLF W14: payment facts (`org_order_payments_dtl`), credit applications and
+ * stored-value redemptions are written ONLY by BVM voucher wiring (and cash
+ * only through the drawer ledger gate). The former non-wiring branch — direct
+ * payment rows / redemptions when `wiringMode` was false — was unreachable
+ * from submit-order and is deleted, together with the `settleOrder` wrapper.
+ * Settlement legs are read here only to validate them and total the change.
  *
  * @param tx active Prisma transaction owned by the caller
  * @param params settlement payload resolved by checkout
@@ -152,10 +139,8 @@ export async function settleOrderTx(
     taxLines,
     discountLines,
     settlementLegs,
-    cashDrawerSessionId,
     posSessionId,
     settledBy,
-    wiringMode = false,
   } = params;
   const currencyCode = breakdown.currencyCode;
 
@@ -234,48 +219,13 @@ export async function settleOrderTx(
     let changeReturned = 0;
 
     for (const leg of settlementLegs) {
-      const { settlementOption: option, amount, terminalId, cashTendered, creditReferenceId } = leg;
+      const { settlementOption: option, amount, cashTendered } = leg;
 
       if (option.paymentNature === PAYMENT_NATURE.REAL_PAYMENT) {
         // Use subMoney to avoid float drift on 3-decimal currencies (OMR/BHD/KWD).
         const change = cashTendered && cashTendered > amount ? subMoney(cashTendered, amount).toNumber() : 0;
-        // BVM Phase 6 Sub-item 6 (B7 closer): honor explicit per-leg status
-        // first; fall back to the gateway-driven PENDING rule for callers
-        // that omit the field (Zod defaults to `'COMPLETED'`).
-        const paymentStatus =
-          leg.paymentStatus === 'PENDING'
-            ? 'PENDING'
-            : option.gatewayCode
-              ? 'PENDING'
-              : 'COMPLETED';
         changeReturned += change;
-
-        // In wiringMode the BVM wiring handler creates this row — skip to avoid double-write
-        if (!wiringMode) {
-          await tx.org_order_payments_dtl.create({
-            data: {
-              tenant_org_id: tenantId,
-              order_id: orderId,
-              org_payment_method_id: option.id,
-              payment_method_code: option.paymentMethodCode,
-              currency_code: currencyCode,
-              payment_nature_snapshot: 'REAL_PAYMENT',
-              amount,
-              payment_terminal_id: terminalId ?? null,
-              tendered_amount: cashTendered ?? null,
-              change_returned_amount: change > 0 ? change : null,
-              cash_drawer_session_id: option.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
-              pos_session_id: posSessionId ?? null,
-              gateway_code: option.gatewayCode ?? null,
-              gateway_reference: leg.reference ?? null,
-              payment_status: paymentStatus,
-              paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,
-              is_active: true,
-              rec_status: 1,
-              received_by: settledBy ?? null,
-            },
-          });
-        }
+        // The payment fact row is written by the voucher wiring handler.
         continue;
       }
 
@@ -285,80 +235,8 @@ export async function settleOrderTx(
         if (!option.creditApplicationType) {
           throw new Error('CREDIT_APPLICATION_TYPE_REQUIRED');
         }
-        const creditType = option.creditApplicationType;
-
-        // Phase 2 (BVM Wiring) consolidation: when the caller already ran the
-        // BVM voucher tx (wiringMode=true), the stored-value ledger debits
-        // and the credit-application fact row were both written there. The
-        // entire CREDIT_APPLICATION branch in settleOrder must be a no-op or
-        // we double-debit the customer's balance. The orchestrator's TX2 owns
-        // the redemption now; settleOrder only writes the order snapshot.
-        if (wiringMode) {
-          continue;
-        }
-
-        const order = await tx.org_orders_mst.findFirstOrThrow({
-          where: { id: orderId, tenant_org_id: tenantId },
-          select: { customer_id: true },
-        });
-        const customerId = order.customer_id!;
-
-        if (creditType === CREDIT_APPLICATION_TYPES.WALLET) {
-          await redeemWalletTx(tx, { tenantId, customerId, amount, orderId });
-        } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE) {
-          await redeemAdvanceTx(tx, { tenantId, customerId, amount, orderId });
-        } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT && creditReferenceId) {
-          await redeemCreditNoteTx(tx, {
-            tenantId,
-            customerId,
-            creditNoteId: creditReferenceId,
-            amount,
-            orderId,
-          });
-        } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT) {
-          // F21 — Deterministic idempotency key. Previously included Date.now()
-          // which produced a fresh key on every retry, defeating the unique
-          // constraint on org_loyalty_txn_dtl(tenant_org_id, idempotency_key)
-          // and silently double-debiting loyalty points if the orchestrator
-          // retried mid-flight. Stable key = single ledger row per order.
-          const idempotencyKey = `loyalty-redeem-${orderId}`;
-          // B21 — this used to reuse `option.minAmount` (the payment method's
-          // MINIMUM PAYMENT AMOUNT field, unrelated to loyalty) as if it were
-          // a points-per-currency conversion rate — a semantic overload with
-          // no relationship to the tenant's actual configured loyalty rate.
-          // Now resolves through the same shared helper as
-          // applyStoredValueDebitTx (order-credit-application.service.ts),
-          // so this legacy branch can never silently drift from the live
-          // BVM-wiring path's math again.
-          const pointsToRedeem = await resolveLoyaltyRedemptionPoints(tenantId, amount);
-          await redeemPointsTx(tx, {
-            tenantId,
-            customerId,
-            pointsToRedeem,
-            monetaryAmount: amount,
-            orderId,
-            idempotencyKey,
-          });
-        }
-
-        // Gift card debit happens earlier in create-with-payment to preserve
-        // the legacy two-transaction order create flow. The settlement step
-        // records only the order-level credit application fact.
-        await tx.org_order_credit_apps_dtl.create({
-          data: {
-            tenant_org_id:    tenantId,
-            order_id:         orderId,
-            currency_code:    currencyCode,
-            credit_type:      creditType,
-            application_status: CREDIT_APPLICATION_STATUSES.APPLIED,
-            credit_source_id: creditReferenceId ?? null,
-            applied_amount:   amount,
-            reference_no:     leg.reference ?? null,
-            applied_by:       settledBy ?? null,
-            is_active:        true,
-            rec_status:       1,
-          },
-        });
+        // The redemption and the credit-application fact row are written by
+        // the voucher wiring (order-credit-application handler).
       }
     }
 

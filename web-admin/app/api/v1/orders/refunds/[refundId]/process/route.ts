@@ -4,6 +4,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { processRefund, RefundValidationError } from '@/lib/services/order-refund.service';
 import { canAccess } from '@/lib/services/feature-flags.service';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 
 const processBodySchema = z
   .object({
@@ -14,10 +15,10 @@ const processBodySchema = z
   .optional();
 
 /**
- * B9: body is optional (record-only path when order_fin_refund_execution is
- * OFF, or when the request omits execution fields on a non-CASH/ORIGINAL_METHOD
- * refund) — `cashDrawerSessionId` for CASH, `manualSettlementReference` for
- * ORIGINAL_METHOD.
+ * B9 / CLF W4: `cashDrawerSessionId` is always required for a CASH refund (it
+ * always executes through a voucher and the cash-drawer ledger gate);
+ * `manualSettlementReference` is required for ORIGINAL_METHOD only while
+ * order_fin_refund_execution is ON. Other destinations need no body.
  * @param request
  * @param root0
  * @param root0.params
@@ -59,6 +60,13 @@ export async function PATCH(
     });
     return NextResponse.json({ success: true, data: refund });
   } catch (err) {
+    // CLF: the drawer ledger gate refused the cash line (no open session, …).
+    if (err instanceof CashDrawerLedgerError) {
+      return NextResponse.json(
+        { success: false, code: err.code, error: err.code },
+        { status: 422 }
+      );
+    }
     // B34: typed refund validation failures surface their stable code + status.
     if (err instanceof RefundValidationError) {
       return NextResponse.json(

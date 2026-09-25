@@ -64,6 +64,28 @@ export const RECEIPT_ALLOCATION_WARNING_CODES = {
 } as const;
 
 /**
+ * Stable error codes thrown while posting a customer account receipt (CLF W6).
+ * The route returns them as `code`; the receipt screen maps each to an i18n key
+ * under `customers.accountReceipt.errors`.
+ */
+export const CUSTOMER_RECEIPT_POST_ERRORS = {
+  METHOD_UNAVAILABLE: 'CUSTOMER_RECEIPT_METHOD_UNAVAILABLE',
+  CASH_TENDERED_TOO_LOW: 'CUSTOMER_RECEIPT_CASH_TENDERED_TOO_LOW',
+  BANK_REFERENCE_REQUIRED: 'CUSTOMER_RECEIPT_BANK_REFERENCE_REQUIRED',
+  CHECK_DETAILS_REQUIRED: 'CUSTOMER_RECEIPT_CHECK_DETAILS_REQUIRED',
+  /**
+   * Thrown by the voucher reversal core: reversing the receipt voucher would
+   * return the cash but leave the order/invoice/stored-value allocations in
+   * place. Correct a wrong receipt by reversing each allocation instead.
+   */
+  REVERSAL_NOT_SUPPORTED: 'CUSTOMER_RECEIPT_REVERSAL_NOT_SUPPORTED',
+} as const;
+
+/** One of {@link CUSTOMER_RECEIPT_POST_ERRORS}. */
+export type CustomerReceiptPostErrorCode =
+  (typeof CUSTOMER_RECEIPT_POST_ERRORS)[keyof typeof CUSTOMER_RECEIPT_POST_ERRORS];
+
+/**
  *
  */
 export type ReceiptAllocationWarningCode =

@@ -242,7 +242,7 @@ export async function resolveOrderBranch(
  *  4. Resolve org_payment_methods_cf with D9 COALESCE config
  *  5. Build + validate settlement plan (fail-fast before any voucher creation)
  *  6. Create receipt voucher + lines + post+wire (when plan.shouldCreateReceiptVoucher)
- *  7. settleOrderTx(wiringMode) — skips payment fact rows when wiring ran
+ *  7. settleOrderTx — charges/taxes/discounts + snapshot (payment facts come from wiring)
  *  8. Return SubmitOrderResult (order snapshot + voucher + effects + warnings)
  *
  * @param params Submission context containing tenant scope, actor identity, input payload, and request audit data.
@@ -979,8 +979,12 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       }
 
       // ── 6. settleOrderTx — same transaction as order + voucher wiring ───────
-      // wiringMode tells settlement to skip payment fact-row direct writes
-      // because BVM wiring already wrote those rows earlier in this transaction.
+      // Payment / credit fact rows were written by BVM wiring above; settlement
+      // only writes charges / taxes / discounts and recalculates the snapshot.
+      // Fail closed: legs without a posted receipt voucher would record nothing.
+      if (settlementLegs.length > 0 && !plan.shouldCreateReceiptVoucher) {
+        throw new Error('SETTLEMENT_LEGS_REQUIRE_RECEIPT_VOUCHER');
+      }
       await settleOrderTx(tx, {
         orderId,
         tenantId,
@@ -992,7 +996,6 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         cashDrawerSessionId,
         settledBy:           userId,
         posSessionId:        input.posSessionId,
-        wiringMode:          plan.shouldCreateReceiptVoucher,
       });
 
       // B14 — tax-document issuance trigger. Non-blocking by design: a new

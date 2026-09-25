@@ -7,6 +7,10 @@
  * closeDrawerSession: close an open session with a physical count.
  * addDrawerMovement: record a cash-in / cash-out / petty-cash movement.
  * getDrawerSessionSummary: return session + movements + payments for a session.
+ *
+ * CLF W15: every action checks the same permission its /api/v1/cash-drawers
+ * route counterpart enforces (server actions are callable directly, so a UI
+ * gate alone is not enough).
  */
 
 'use server';
@@ -21,10 +25,22 @@ import {
   getSessionSummary,
 } from '@/lib/services/cash-drawer.service';
 import type { SessionCloseParams } from '@/lib/services/cash-drawer.service';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import { FINANCE_PERMISSIONS } from '@/lib/constants/permissions/finance-perm';
+
+/**
+ * Fresh literal on every call (not a shared const): with `strict: false` the
+ * inferred union only normalises `error?` onto the success variant for object
+ * literals, which the calling screens rely on to read `result.error`.
+ */
+const INSUFFICIENT_PERMISSIONS = 'Insufficient permissions';
 
 /** List all active cash drawers for the current tenant. */
 export async function getDrawersAction() {
   try {
+    if (!(await hasPermissionServer(FINANCE_PERMISSIONS.CASH_DRAWER_VIEW))) {
+      return { success: false as const, error: INSUFFICIENT_PERMISSIONS };
+    }
     const auth = await getAuthContext();
     const drawers = await getDrawers(auth.tenantId);
     return { success: true as const, data: drawers };
@@ -43,6 +59,9 @@ export async function openDrawerSession(
   params: { openingBalance: number; notes?: string }
 ) {
   try {
+    if (!(await hasPermissionServer(FINANCE_PERMISSIONS.CASH_DRAWER_OPEN_SESSION))) {
+      return { success: false as const, error: INSUFFICIENT_PERMISSIONS };
+    }
     const auth = await getAuthContext();
     const session = await openSession(auth.tenantId, drawerId, {
       openingBalance: params.openingBalance,
@@ -66,6 +85,9 @@ export async function closeDrawerSession(
   params: { physicalCount: number; notes?: string }
 ) {
   try {
+    if (!(await hasPermissionServer(FINANCE_PERMISSIONS.CASH_DRAWER_CLOSE_SESSION))) {
+      return { success: false as const, error: INSUFFICIENT_PERMISSIONS };
+    }
     const auth = await getAuthContext();
     const closeParams: SessionCloseParams = {
       physicalCount: params.physicalCount,
@@ -94,6 +116,9 @@ export async function addDrawerMovement(
   }
 ) {
   try {
+    if (!(await hasPermissionServer(FINANCE_PERMISSIONS.CASH_DRAWER_RECORD_MOVEMENT))) {
+      return { success: false as const, error: INSUFFICIENT_PERMISSIONS };
+    }
     const auth = await getAuthContext();
     const movement = await recordMovement(auth.tenantId, drawerId, {
       ...params,
@@ -113,6 +138,9 @@ export async function addDrawerMovement(
 /** Get full session summary (session + movements + payments). */
 export async function getDrawerSessionSummaryAction(sessionId: string) {
   try {
+    if (!(await hasPermissionServer(FINANCE_PERMISSIONS.CASH_DRAWER_VIEW))) {
+      return { success: false as const, error: INSUFFICIENT_PERMISSIONS };
+    }
     const auth = await getAuthContext();
     const summary = await getSessionSummary(auth.tenantId, sessionId);
     return { success: true as const, data: summary };

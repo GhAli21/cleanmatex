@@ -246,7 +246,12 @@
       "paymentMethod": "طريقة الدفع",
       "cashTendered": "المبلغ المدفوع نقداً",
       "changeDue": "الباقي المستحق",
-      "noMethodsAvailable": "لا توجد طرق دفع متاحة لهذا الفرع."
+      "noMethodsAvailable": "لا توجد طرق دفع متاحة لهذا الفرع.",
+      "bankReference": "المرجع البنكي",
+      "checkNumber": "رقم الشيك",
+      "checkBank": "البنك المُصدِر",
+      "checkDate": "تاريخ الشيك",
+      "referencesRequired": "أدخل بيانات مرجع الدفع للمتابعة."
     }
   },
   "loyaltyPanel": {
@@ -296,6 +301,24 @@
     "postReceipt": "ترحيل القبض",
     "postSuccess": "تم ترحيل قبض العميل بنجاح",
     "postError": "فشل ترحيل قبض العميل",
-    "loadingMethods": "جاري تحميل طرق الدفع…"
+    "loadingMethods": "جاري تحميل طرق الدفع…",
+    "tenderTitle": "الدفع",
+    "tenderRequired": "أكمل بيانات الدفع قبل الترحيل.",
+    "currencyMissing": "لم يتم إعداد عملة لهذا النشاط. اطلب من المسؤول تحديد عملة المستأجر قبل تسجيل المقبوضات.",
+    "postSuccessWithNo": "تم ترحيل سند قبض العميل {voucherNo} بنجاح",
+    "errors": {
+      "CUSTOMER_RECEIPT_METHOD_UNAVAILABLE": "طريقة الدفع المختارة لم تعد متاحة. اختر طريقة أخرى.",
+      "CUSTOMER_RECEIPT_CASH_TENDERED_TOO_LOW": "المبلغ النقدي المستلم أقل من مبلغ القبض.",
+      "CUSTOMER_RECEIPT_BANK_REFERENCE_REQUIRED": "أدخل المرجع البنكي لهذا التحويل.",
+      "CUSTOMER_RECEIPT_CHECK_DETAILS_REQUIRED": "أدخل رقم الشيك والبنك المُصدِر وتاريخ الشيك.",
+      "RECEIPT_ALLOCATION_IDEMPOTENCY_CONFLICT": "تم ترحيل هذا التوزيع مسبقاً. ابدأ سند قبض جديداً.",
+      "RECEIPT_ALLOCATION_BLOCKED": "التوزيع غير مؤكد. أكّد التوزيع ثم حاول مرة أخرى.",
+      "RECEIPT_ALLOCATION_UNBALANCED": "تغيّر مبلغ القبض بعد تأكيد التوزيع. أعد التوزيع.",
+      "RECEIPT_ALLOCATION_EXCESS_UNRESOLVED": "جزء من المبلغ غير موزّع. وزّع المبلغ بالكامل.",
+      "RECEIPT_ALLOCATION_POLICY_MISSING": "لم يتم العثور على التوزيع أو انتهت صلاحيته. أعد التوزيع.",
+      "RECEIPT_ALLOCATION_TARGET_PAID": "أحد الأرصدة المختارة تم سداده مسبقاً. أعد التوزيع.",
+      "RECEIPT_ALLOCATION_TARGET_CURRENCY_MISMATCH": "أحد الأرصدة المختارة بعملة مختلفة.",
+      "VALIDATION_ERROR": "بعض بيانات السند غير صحيحة. راجع النموذج وحاول مرة أخرى."
+    }
   }
 }

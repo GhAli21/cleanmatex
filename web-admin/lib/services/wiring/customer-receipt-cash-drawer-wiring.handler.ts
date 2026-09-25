@@ -2,47 +2,32 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 import { LINE_ROLE } from '@/lib/constants/voucher';
+import { CASH_DRAWER_SESSION_STATUSES } from '@/lib/constants/cash-drawer';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import type { WiringHandler, VoucherLineForWiring, LinkedEffect } from '@/lib/types/voucher-wiring';
 
-const FUNDING_LINE_ROLES = new Set<string>([
-  LINE_ROLE.GIFT_CARD_SALE,
-  LINE_ROLE.WALLET_TOPUP,
-  LINE_ROLE.CUSTOMER_ADVANCE_RECEIPT,
-]);
-
 /**
- * Handles cash drawer movement creation for CASH stored-value funding legs
- * (B3). Mirrors cash-drawer-wiring.handler.ts's movement-creation body but is
- * kept as a **separate** handler rather than broadening the order-scoped one
- * — that handler's comments/shape are order-specific, and linking
- * funding_tender_id (not order_id/order_payment_id) is cleaner as its own
- * focused handler (see B03 "Architecture decision" §3).
+ * TEMPORARY legacy mirror for customer account receipts (CLF W6) — delete in
+ * CLF R3 together with the other three mirror handlers (plan §4B.5 W13).
  *
- * Runs AFTER storedValueFundingWiringHandler — reads line.sv_funding_tender_id
- * which is set in-memory by that handler within the same transaction loop.
- * Handler registry order (voucher-wiring.service.ts) enforces this.
+ * Before W6 the receipt service wrote `org_cash_drawer_movements_dtl` directly.
+ * W6 moved the cash into the drawer ledger through the gate; until the R2
+ * reader switch, the old drawer-close screens still read the movements table,
+ * so this handler keeps them showing receipt cash.
  *
- * Uses line.amount (the net funded amount), not tendered_amount (which
- * includes change). Unlike cashDrawerWiringHandler it writes no CASH_OUT for
- * change: its rows carry no order_payment_id, so the legacy expected-cash
- * formula counts them directly and the net IN alone is the drawer effect.
+ * Fires only for a CASH `CUSTOMER_CREDIT_RECEIPT` IN line the gate attached to
+ * a session (the gate clears `cash_drawer_session_id` for any line it did not
+ * put in a drawer). Writes ONE net IN row for `line.amount` and no change row:
+ * receipt rows carry no order_payment_id, so the legacy expected-cash formula
+ * counts them directly and a change OUT would subtract the change twice.
  *
- * movement_type SV_FUNDING_TENDER (migration 0412) was verified against
- * B16/B35's unified expected-cash formula: the movement term only excludes
- * rows where order_payment_id IS NOT NULL (sale-mirror movements already
- * counted via the order-payment-ledger term). A row created here always has
- * order_payment_id = NULL, so it is picked up correctly with no change
- * needed to the drawer-close code.
- *
- * Idempotency: the existing sparse unique index uq_cd_mov_vch_line on
- * fin_voucher_trx_line_id (migration 0303) already covers rows created here
- * — it is keyed on the voucher line, not the order-payment role.
+ * Idempotency: sparse unique index uq_cd_mov_vch_line on
+ * fin_voucher_trx_line_id (migration 0303).
  */
-export const storedValueCashDrawerWiringHandler: WiringHandler = {
+export const customerReceiptCashDrawerWiringHandler: WiringHandler = {
   canHandle(line: VoucherLineForWiring): boolean {
     return (
-      FUNDING_LINE_ROLES.has(line.line_role) &&
+      line.line_role === LINE_ROLE.CUSTOMER_CREDIT_RECEIPT &&
       line.direction === 'IN' &&
       line.payment_method_code?.toUpperCase() === PAYMENT_METHODS.CASH &&
       line.cash_drawer_session_id != null
@@ -66,11 +51,10 @@ export const storedValueCashDrawerWiringHandler: WiringHandler = {
       where: {
         id: line.cash_drawer_session_id!,
         tenant_org_id: tenantOrgId,
-        status: 'OPEN',
+        status: CASH_DRAWER_SESSION_STATUSES.OPEN,
       },
       select: { id: true, cash_drawer_id: true, branch_id: true, currency_code: true },
     });
-
     if (!session) {
       throw new Error(
         `Cash drawer session ${line.cash_drawer_session_id} not found or not OPEN for tenant ${tenantOrgId}`
@@ -78,20 +62,18 @@ export const storedValueCashDrawerWiringHandler: WiringHandler = {
     }
 
     const now = new Date();
-
     const created = await tx.org_cash_drawer_movements_dtl.create({
       data: {
         tenant_org_id: tenantOrgId,
-        branch_id: session.branch_id,
+        branch_id: session.branch_id ?? line.branch_id ?? null,
         cash_drawer_id: session.cash_drawer_id,
-        cash_drawer_session_id: line.cash_drawer_session_id!,
-        movement_type: 'SV_FUNDING_TENDER',
+        cash_drawer_session_id: session.id,
+        movement_type: 'CASH_SALE',
         direction: 'IN',
         amount: line.amount,
         currency_code: line.currency_code ?? session.currency_code,
         fin_voucher_id: voucherId,
         fin_voucher_trx_line_id: line.id,
-        funding_tender_id: line.sv_funding_tender_id ?? null,
         performed_by: userId,
         performed_at: now,
         is_active: true,
@@ -101,12 +83,11 @@ export const storedValueCashDrawerWiringHandler: WiringHandler = {
       select: { id: true },
     });
 
-    // No change-out row. `amount` is already the net funded amount (tendered
-    // minus change), and the legacy expected-cash formula counts every
-    // movement without order_payment_id — a CASH_OUT for the change would
-    // subtract it a second time (drawer short by the change on every cash
-    // funding with change). The CLF drawer ledger (gate) records the net line
-    // amount only; this handler is retired with the other mirrors in CLF R3.
+    await tx.org_fin_voucher_trx_lines_dtl.updateMany({
+      where: { id: line.id, tenant_org_id: tenantOrgId },
+      data: { cash_drawer_mvt_id: created.id, updated_at: now, updated_by: userId },
+    });
+    line.cash_drawer_mvt_id = created.id;
 
     return created.id;
   },

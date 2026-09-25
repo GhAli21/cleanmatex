@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-25T17:26:40.142Z",
-  "gitSha": "85f841a4",
+  "generatedAt": "2026-09-25T21:18:07.471Z",
+  "gitSha": "ff16be8",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -9281,7 +9281,7 @@
         "requireAllPermissions": true
       },
       "actions": [],
-      "apiDependencyCount": 0,
+      "apiDependencyCount": 1,
       "provenance": [
         {
           "sourceType": "access-contract-ts",

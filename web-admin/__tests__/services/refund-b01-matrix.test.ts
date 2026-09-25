@@ -60,6 +60,25 @@ jest.mock('@/lib/services/order-financial-write.service', () => ({
   recalculateOrderFinancialSnapshotTx: (...args: unknown[]) => mockRecalculateSnapshot(...args),
 }));
 
+// CLF W4: a CASH refund always executes through a voucher, so the voucher
+// services are mocked here; this suite asserts reopen / classification logic,
+// order-refund-b9-execution.test.ts covers the execution branch itself.
+jest.mock('@/lib/services/voucher-biz.service', () => ({
+  createBizVoucher: jest.fn().mockResolvedValue({ id: 'vch-test', voucher_no: 'RFV-TEST' }),
+}));
+jest.mock('@/lib/services/voucher-line.service', () => ({
+  addVoucherLine: jest.fn().mockResolvedValue({ id: 'vch-line-test', line_no: 1 }),
+}));
+jest.mock('@/lib/services/voucher-wiring.service', () => ({
+  postAndWireBizVoucher: jest.fn().mockResolvedValue({ voucherId: 'vch-test', fromCache: false }),
+}));
+jest.mock('@/lib/services/pos-session.service', () => ({
+  assertOpenPosSessionForFinanceTx: jest.fn().mockResolvedValue(null),
+}));
+
+/** Drawer-session hint every CASH refund now needs (CLF W4). */
+const CASH_EXECUTION = { enabled: false, cashDrawerSessionId: 'drawer-session-test' };
+
 import {
   initiateRefund,
   processRefund,
@@ -151,6 +170,7 @@ function installTxMock() {
   mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
     const txMock = {
       org_orders_mst: { findFirstOrThrow: mockOrderFindFirstOrThrow },
+      org_cash_drawer_movements_dtl: { findFirst: jest.fn().mockResolvedValue({ id: 'mvt-test' }) },
       org_order_refunds_dtl: {
         aggregate: mockRefundAggregate,
         create: mockRefundCreate,
@@ -221,7 +241,7 @@ describe('B01 §14 — real-payment refunds (scenarios 1–4)', () => {
     mockRefundFindFirstOrThrow.mockResolvedValue(
       makeApprovedRefund({ refund_amount: new Decimal('100') })
     );
-    await processRefund(TENANT, REFUND, PROCESSOR);
+    await processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION);
 
     expect(mockRefundUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -237,7 +257,7 @@ describe('B01 §14 — real-payment refunds (scenarios 1–4)', () => {
 
     mockQueryRaw.mockResolvedValue([{ id: REFUND }]);
     mockRefundFindFirstOrThrow.mockResolvedValue(makeApprovedRefund());
-    await processRefund(TENANT, REFUND, PROCESSOR);
+    await processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION);
     expect(mockRefundUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ reopens_due_amount: 0 }) })
     );
@@ -274,7 +294,7 @@ describe('B01 §14 — real-payment refunds (scenarios 1–4)', () => {
     mockRefundFindFirstOrThrow.mockResolvedValue(
       makeApprovedRefund({ refund_method_code: 'ORIGINAL_METHOD' })
     );
-    await processRefund(TENANT, REFUND, PROCESSOR);
+    await processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION);
 
     expect(mockTopUpWalletTx).not.toHaveBeenCalled();
     expect(mockIssueCreditNoteTx).not.toHaveBeenCalled();
@@ -331,7 +351,7 @@ describe('B01 §14 — stored-value restorations (scenarios 5–8)', () => {
       })
     );
 
-    await processRefund(TENANT, REFUND, PROCESSOR);
+    await processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION);
 
     expect(mockTopUpWalletTx).toHaveBeenCalledTimes(1);
     expect(mockTopUpWalletTx).toHaveBeenCalledWith(
@@ -383,7 +403,7 @@ describe('B01 §14 — goodwill concession (scenario 9)', () => {
       })
     );
 
-    await processRefund(TENANT, REFUND, PROCESSOR);
+    await processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION);
 
     expect(mockIssueCreditNoteTx).toHaveBeenCalledTimes(1);
     expect(mockIssueCreditNoteTx).toHaveBeenCalledWith(
@@ -432,7 +452,7 @@ describe('B01 §14 — refund-and-rebill (scenario 10)', () => {
     mockRefundFindFirstOrThrow.mockResolvedValue(
       makeApprovedRefund({ refund_context: REFUND_CONTEXTS.REFUND_AND_REBILL })
     );
-    await processRefund(TENANT, REFUND, PROCESSOR);
+    await processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION);
 
     // D003 v2: the explicit rebill is the ONLY commercial path that reopens due.
     expect(mockRefundUpdate).toHaveBeenCalledWith(
@@ -510,7 +530,7 @@ describe('B01 §14 — manual exception (scenario 11)', () => {
         metadata: { requested_reopen_amount: 10 },
       })
     );
-    await processRefund(TENANT, REFUND, PROCESSOR);
+    await processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION);
 
     expect(mockRefundUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ reopens_due_amount: 10 }) })
@@ -524,7 +544,7 @@ describe('B01 §14 — concurrency and idempotency (scenarios 12–14)', () => {
   it('#12 concurrent processors: the loser fails cleanly with no double ledger credit', async () => {
     mockQueryRaw.mockResolvedValue([]); // lock lost — row already PROCESSED
 
-    await expect(processRefund(TENANT, REFUND, PROCESSOR)).rejects.toThrow(
+    await expect(processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION)).rejects.toThrow(
       /not awaiting processing/i
     );
     expect(mockTopUpWalletTx).not.toHaveBeenCalled();
@@ -597,7 +617,7 @@ describe('B01 §14 — over-refund caps (scenario 15)', () => {
       makeApprovedRefund({ refund_amount: new Decimal('30') })
     );
 
-    await expect(processRefund(TENANT, REFUND, PROCESSOR)).rejects.toThrow(
+    await expect(processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION)).rejects.toThrow(
       /exceeds remaining refundable source amount/i
     );
     expect(mockRefundUpdate).not.toHaveBeenCalled();
@@ -631,7 +651,7 @@ describe('B01 §14 — cancellation unwind (scenario 16)', () => {
         refund_method_code: 'ORIGINAL_METHOD',
       })
     );
-    await processRefund(TENANT, REFUND, PROCESSOR);
+    await processRefund(TENANT, REFUND, PROCESSOR, CASH_EXECUTION);
 
     expect(mockRefundUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ reopens_due_amount: 0 }) })

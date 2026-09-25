@@ -710,12 +710,12 @@ export async function approveRefund(
 
 /**
  * B9 — execution inputs for CASH/ORIGINAL_METHOD refund destinations.
- * Omitted or `enabled: false` preserves the exact pre-B9 record-only
- * behavior (flag-off rollback path).
+ * `enabled` (the order_fin_refund_execution flag) now gates ORIGINAL_METHOD
+ * only: a CASH refund always executes through a voucher (CLF W4).
  */
 export interface RefundExecutionInput {
   enabled: boolean;
-  /** Required when refund_method_code = CASH. */
+  /** Required when refund_method_code = CASH (a hint — the drawer ledger gate decides). */
   cashDrawerSessionId?: string;
   /** Optional register-session gate, mirrors initiateRefund's own opt-in check. */
   posSessionId?: string;
@@ -731,13 +731,13 @@ export interface RefundExecutionInput {
  * per the approved D003 v2 rules, recalculates the financial snapshot, and
  * emits the final outbox event.
  *
- * B9: when `execution.enabled` is true, CASH destinations create a
- * REFUND_VOUCHER wired to a real cash-drawer CASH_OUT movement (D007: BVM
- * refund voucher + operational fact commit transactionally with the refund
- * row); ORIGINAL_METHOD destinations create a REFUND_VOUCHER carrying the
- * operator's manual-settlement reference (no gateway API exists yet — B8).
- * When omitted/false, both destinations remain record-only exactly as they
- * were before this package (the flag-off rollback path).
+ * CASH destinations always create a REFUND_VOUCHER whose cash line goes
+ * through the cash-drawer ledger gate (INTERACTIVE) — CLF W4 removed the
+ * record-only cash branch; `execution.cashDrawerSessionId` is required.
+ * ORIGINAL_METHOD destinations create a REFUND_VOUCHER carrying the operator's
+ * manual-settlement reference (no gateway API exists yet — B8) only when
+ * `execution.enabled` is true; otherwise they stay record-only.
+ * @throws CashDrawerLedgerError when the gate refuses the cash line
  * @param tenantId
  * @param refundId
  * @param processedBy
@@ -749,7 +749,7 @@ export async function processRefund(
   processedBy?: string,
   execution?: RefundExecutionInput
 ) {
-  return prisma.$transaction(async (tx) => {
+  return withTenantContext(tenantId, () => prisma.$transaction(async (tx) => {
     // F-R2 (D-12 §4): lock the refund row FOR UPDATE before issuing any stored value.
     // Without this, two concurrent processRefund calls could both read status APPROVED
     // and both issue a wallet top-up / credit note (double-issue). The lock serializes
@@ -887,42 +887,36 @@ export async function processRefund(
         idempotencyKey: `refund-${refundId}-cn`,
       });
     } else if (
-      (method === REFUND_METHODS.CASH || method === REFUND_METHODS.ORIGINAL_METHOD) &&
-      execution?.enabled
+      method === REFUND_METHODS.CASH ||
+      (method === REFUND_METHODS.ORIGINAL_METHOD && execution?.enabled)
     ) {
-      // B9: real execution behind the flag. Flag-off (or execution omitted)
-      // falls through with no branch at all — the exact pre-B9 record-only
-      // behavior (no voucher, no drawer movement, no gateway call).
+      // CLF W4: a CASH refund ALWAYS executes — cash leaving a drawer is always
+      // a voucher line through the cash-drawer ledger gate, whatever the
+      // order_fin_refund_execution flag says (the record-only cash branch is
+      // gone). ORIGINAL_METHOD execution stays behind the flag; flag-off
+      // ORIGINAL_METHOD remains record-only (no cash moves, no gateway call).
       const refundCurrencyCode = requireCurrencyCode(
         refund.currency_code ?? order.currency_code,
         `refund ${refundId} execution`
       );
 
       if (method === REFUND_METHODS.CASH) {
-        if (!execution.cashDrawerSessionId) {
+        if (!execution?.cashDrawerSessionId) {
           throw new RefundValidationError(
             REFUND_ERROR_CODES.REFUND_CASH_DRAWER_SESSION_REQUIRED,
             'A cash-drawer session is required to execute a CASH refund',
             422
           );
         }
-        const session = await tx.org_cash_drawer_sessions_mst.findFirst({
-          where: { id: execution.cashDrawerSessionId, tenant_org_id: tenantId, status: 'OPEN' },
-          select: { id: true },
-        });
-        if (!session) {
-          throw new RefundValidationError(
-            REFUND_ERROR_CODES.REFUND_CASH_DRAWER_SESSION_NOT_OPEN,
-            'The selected cash-drawer session is not open',
-            422
-          );
-        }
+        // The session is a hint: the cash-drawer ledger gate (INTERACTIVE, in
+        // postAndWireBizVoucher below) resolves the drawer from it and refuses
+        // with a CashDrawerLedgerError when that drawer has no OPEN session.
         // Opportunistic register-session gate — mirrors initiateRefund's own
         // opt-in check (item 5 of the B9 research); a no-op if not supplied.
         await assertOpenPosSessionForFinanceTx(tx, {
           tenantId,
           userId: processedBy ?? '',
-          posSessionId: execution.posSessionId,
+          posSessionId: execution?.posSessionId,
           branchId: order.branch_id ?? undefined,
         });
 
@@ -963,7 +957,7 @@ export async function processRefund(
             amount,
             currency_code:          refundCurrencyCode,
             cash_drawer_session_id: execution.cashDrawerSessionId,
-            pos_session_id:         execution.posSessionId,
+            pos_session_id:         execution?.posSessionId,
             idempotency_key:        `refund-${refundId}-vch-line`,
           },
           processedBy ?? 'system',
@@ -973,6 +967,9 @@ export async function processRefund(
 
         await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', CASH_GATE_MODES.INTERACTIVE, `refund-${refundId}-vch-post`, tx);
 
+        // Legacy link kept until CLF R3: the refund mirror handler (W13, retired
+        // in R3) still writes the drawer movement, and the AR reconciliation
+        // check (ar-checks.ts) expects CASH refunds to carry this id.
         const movement = await tx.org_cash_drawer_movements_dtl.findFirst({
           where: { fin_voucher_trx_line_id: line.id, tenant_org_id: tenantId },
           select: { id: true },
@@ -989,7 +986,7 @@ export async function processRefund(
       } else {
         // ORIGINAL_METHOD — no gateway API exists yet (B8); require an explicit
         // manual-settlement reference so this is never a silent claim (D004/D007).
-        const manualRef = execution.manualSettlementReference?.trim();
+        const manualRef = execution?.manualSettlementReference?.trim();
         if (!manualRef) {
           throw new RefundValidationError(
             REFUND_ERROR_CODES.REFUND_MANUAL_SETTLEMENT_REFERENCE_REQUIRED,
@@ -1054,8 +1051,8 @@ export async function processRefund(
         });
       }
     }
-    // CASH / ORIGINAL_METHOD with execution disabled (or omitted) remain
-    // record-only — the exact pre-B9 behavior (no drawer OUT, no gateway call).
+    // ORIGINAL_METHOD with execution disabled (or omitted) remains record-only
+    // — no gateway call. CASH never reaches here without a voucher (CLF W4).
 
     const updated = await tx.org_order_refunds_dtl.update({
       where: { tenant_org_id: tenantId, id: refundId },
@@ -1127,7 +1124,7 @@ export async function processRefund(
     });
 
     return updated;
-  });
+  }));
 }
 
 /**

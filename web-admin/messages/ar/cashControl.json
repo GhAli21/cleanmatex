@@ -139,5 +139,29 @@
     "saved": "تم حفظ إعدادات ضبط النقد.",
     "loadFailed": "فشل تحميل إعدادات ضبط النقد.",
     "saveFailed": "فشل حفظ إعدادات ضبط النقد."
+  },
+  "ledgerErrors": {
+    "CASH_DRAWER_REQUIRED": "اختر جلسة صندوق نقدي لهذه الدفعة النقدية.",
+    "CASH_DRAWER_INACTIVE": "صندوق النقد المختار غير نشط.",
+    "CASH_DRAWER_BRANCH_MISMATCH": "صندوق النقد يتبع فرعاً آخر.",
+    "CASH_DRAWER_TYPE_NOT_ALLOWED": "نوع صندوق النقد هذا لا يقبل هذه العملية.",
+    "CASH_CURRENCY_REQUIRED": "العملة مطلوبة للعمليات النقدية.",
+    "CASH_CURRENCY_MISMATCH": "عملة الدفع لا تطابق عملة صندوق النقد.",
+    "CASH_DRAWER_SESSION_NOT_OPEN": "لا توجد جلسة مفتوحة على صندوق النقد. افتح جلسة وحاول مرة أخرى.",
+    "DRAWER_SESSION_CLOSING": "جلسة صندوق النقد قيد الإغلاق ولا تقبل نقداً جديداً.",
+    "DRAWER_SESSION_NOT_CLOSING": "جلسة صندوق النقد ليست قيد الإغلاق.",
+    "DRAWER_SESSION_WRONG_DRAWER": "الجلسة لا تتبع صندوق النقد المختار.",
+    "CASH_DISPOSITION_DEST_REQUIRED": "اختر وجهة النقد المعدود.",
+    "CASH_DISPOSITION_AMOUNT_INVALID": "مبلغ تصريف النقد غير صحيح.",
+    "CASH_DISPOSITION_NOTES_REQUIRED": "أضف ملاحظة لتصريف النقد هذا.",
+    "CASH_COUNT_REQUIRED": "قم بعدّ النقد قبل المتابعة.",
+    "CASH_COUNT_TOTAL_MISMATCH": "إجمالي العدّ لا يطابق الفئات المُدخلة.",
+    "CASH_TRX_UNBALANCED": "عملية تحويل النقد غير متوازنة.",
+    "CASH_TRX_SAME_DRAWER": "اختر صندوقين مختلفين للتحويل.",
+    "CASH_TRX_CROSS_BRANCH": "لا يمكن تحويل النقد بين الفروع.",
+    "CASH_LINE_IMMUTABLE": "هذا القيد النقدي مسجّل ولا يمكن تعديله.",
+    "CASH_LEG_MUST_REVERSE": "هذه الدفعة النقدية موجودة في الصندوق. قم بعكسها بدلاً من ذلك.",
+    "POST_CLOSE_SESSION_NOT_CLOSED": "يجب إغلاق الجلسة أولاً.",
+    "CASH_DRAWER_CURRENCY_NOT_CONFIGURED": "لم يتم إعداد عملة لصندوق النقد هذا."
   }
 }

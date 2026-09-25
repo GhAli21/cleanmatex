@@ -8,7 +8,6 @@
  * - refundGiftCardTx  — actualRefundAmount surfaced; cap at original_amount, idempotency skip,
  *                       status revert after refund
  * - applyGiftCardTx   — deprecated shim delegates to redeemGiftCardTx
- * - sellGiftCard      — auto-activation, SALE ledger row, purchased_by_cust_id
  * - adminActivateGiftCard — GENERATED → ACTIVE, ACTIVATE ledger row, status guard
  * - adminAdjustGiftCard   — credit cap at original_amount
  */
@@ -65,7 +64,6 @@ import {
   refundGiftCardTx,
   validateGiftCard,
   applyGiftCardTx,
-  sellGiftCard,
   adminActivateGiftCard,
   adminAdjustGiftCard,
   expireGiftCard,
@@ -813,138 +811,6 @@ describe('gift-card-service', () => {
         tenantOrgId: 'tenant-xyz',
       });
       expect(result.newBalance).toBeCloseTo(40, 3);
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // 8.7 sellGiftCard — auto-activation, SALE ledger row, purchased_by_cust_id
-  // -------------------------------------------------------------------------
-
-  describe('sellGiftCard', () => {
-    const makeCreatedCard = (overrides: object = {}) => ({
-      id: 'gc-sold-1',
-      tenant_org_id: 'tenant-xyz',
-      gift_card_code: 'CMX-AAAA-BBBB-CCCC',
-      card_name: 'Sold Card',
-      card_name2: null,
-      original_amount: { toNumber: () => 100 },
-      current_balance: { toNumber: () => 100 },
-      available_amount: { toNumber: () => 100 },
-      redeemed_amount: { toNumber: () => 0 },
-      bonus_amount: { toNumber: () => 0 },
-      bonus_remaining: { toNumber: () => 0 },
-      status: 'ACTIVE',
-      is_active: true,
-      is_reloadable: false,
-      is_transferable: false,
-      max_redemptions: null,
-      redemption_count: 0,
-      issue_type: 'SOLD',
-      gift_card_type: 'FIXED_VALUE',
-      currency_code: 'OMR',
-      metadata: null,
-      rec_notes: null,
-      issued_date: new Date(),
-      expiry_date: null,
-      activation_date: new Date(),
-      issued_to_customer_id: null,
-      purchased_by_cust_id: 'cust-42',
-      batch_id: null,
-      created_at: new Date(),
-      created_by: 'staff-1',
-      updated_at: null,
-      updated_by: null,
-      issued_to_customer: null,
-      ...overrides,
-    });
-
-    beforeEach(() => {
-      // generateGiftCardCode calls findFirst to check uniqueness — return null so code is accepted
-      mockGcFindFirst.mockResolvedValue(null);
-
-      // sellGiftCard uses prisma.$transaction internally
-      mockPrismaTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-        const fakeTx = {
-          org_gift_cards_mst: {
-            create: jest.fn().mockResolvedValue(makeCreatedCard()),
-          },
-          org_gift_card_txn_dtl: {
-            create: jest.fn().mockResolvedValue({}),
-          },
-        };
-        return fn(fakeTx);
-      });
-    });
-
-    it('creates card with status ACTIVE and activation_date set', async () => {
-      const result = await sellGiftCard({
-        tenantOrgId: 'tenant-xyz',
-        cardName: 'Sold Card',
-        amount: 100,
-        currencyCode: 'OMR',
-        purchasedByCustomerId: 'cust-42',
-        createdBy: 'staff-1',
-      });
-      expect(result.status).toBe('ACTIVE');
-      expect(result.activation_date).toBeDefined();
-    });
-
-    it('inserts a SALE ledger row', async () => {
-      let capturedTxnCreate: jest.Mock | null = null;
-      mockPrismaTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-        const fakeTx = {
-          org_gift_cards_mst: {
-            create: jest.fn().mockResolvedValue(makeCreatedCard()),
-          },
-          org_gift_card_txn_dtl: {
-            create: jest.fn().mockResolvedValue({}),
-          },
-        };
-        capturedTxnCreate = fakeTx.org_gift_card_txn_dtl.create as jest.Mock;
-        return fn(fakeTx);
-      });
-
-      await sellGiftCard({
-        tenantOrgId: 'tenant-xyz',
-        cardName: 'Sold Card',
-        amount: 100,
-        currencyCode: 'OMR',
-      });
-
-      expect(capturedTxnCreate).not.toBeNull();
-      expect(capturedTxnCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ transaction_type: 'SALE' }),
-        })
-      );
-    });
-
-    it('sets purchased_by_cust_id from params', async () => {
-      let capturedCardCreate: jest.Mock | null = null;
-      mockPrismaTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-        const fakeTx = {
-          org_gift_cards_mst: {
-            create: jest.fn().mockResolvedValue(makeCreatedCard()),
-          },
-          org_gift_card_txn_dtl: { create: jest.fn().mockResolvedValue({}) },
-        };
-        capturedCardCreate = fakeTx.org_gift_cards_mst.create as jest.Mock;
-        return fn(fakeTx);
-      });
-
-      await sellGiftCard({
-        tenantOrgId: 'tenant-xyz',
-        cardName: 'Sold Card',
-        amount: 100,
-        currencyCode: 'OMR',
-        purchasedByCustomerId: 'cust-42',
-      });
-
-      expect(capturedCardCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ purchased_by_cust_id: 'cust-42' }),
-        })
-      );
     });
   });
 

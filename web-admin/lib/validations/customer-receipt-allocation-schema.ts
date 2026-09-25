@@ -94,7 +94,14 @@ export const postCustomerReceiptRequestSchema = z.object({
   receiptAmount: z.number().positive(),
   currencyCode: z.string().length(3),
   cashTendered: z.number().optional(),
+  /** Hint only — the cash-drawer ledger gate decides the drawer/session (CLF W6). */
   cashDrawerSessionId: z.string().uuid().optional(),
+  /** Required by the service when the method is BANK_TRANSFER. */
+  bankReference: z.string().trim().max(120).optional(),
+  /** Required together by the service when the method is CHECK. */
+  checkNumber: z.string().trim().max(60).optional(),
+  checkBank: z.string().trim().max(120).optional(),
+  checkDate: z.string().date().optional(),
   idempotencyKey: z.string().min(1).max(200),
 });
 

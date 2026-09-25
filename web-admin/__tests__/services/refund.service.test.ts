@@ -49,6 +49,25 @@ jest.mock('@/lib/services/order-financial-write.service', () => ({
     .mockResolvedValue({ paymentStatus: 'REFUNDED', outstandingAmount: 0 }),
 }));
 
+// CLF W4: a CASH refund always executes through a voucher, so the voucher
+// services are mocked here; this suite asserts reopen / classification logic,
+// order-refund-b9-execution.test.ts covers the execution branch itself.
+jest.mock('@/lib/services/voucher-biz.service', () => ({
+  createBizVoucher: jest.fn().mockResolvedValue({ id: 'vch-test', voucher_no: 'RFV-TEST' }),
+}));
+jest.mock('@/lib/services/voucher-line.service', () => ({
+  addVoucherLine: jest.fn().mockResolvedValue({ id: 'vch-line-test', line_no: 1 }),
+}));
+jest.mock('@/lib/services/voucher-wiring.service', () => ({
+  postAndWireBizVoucher: jest.fn().mockResolvedValue({ voucherId: 'vch-test', fromCache: false }),
+}));
+jest.mock('@/lib/services/pos-session.service', () => ({
+  assertOpenPosSessionForFinanceTx: jest.fn().mockResolvedValue(null),
+}));
+
+/** Drawer-session hint every CASH refund now needs (CLF W4). */
+const CASH_EXECUTION = { enabled: false, cashDrawerSessionId: 'drawer-session-test' };
+
 import { approveRefund, initiateRefund, processRefund } from '@/lib/services/order-refund.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -104,6 +123,7 @@ function installTxMock() {
       org_orders_mst: {
         findFirstOrThrow: mockOrderFindFirstOrThrow,
       },
+      org_cash_drawer_movements_dtl: { findFirst: jest.fn().mockResolvedValue({ id: 'mvt-test' }) },
       org_order_refunds_dtl: {
         aggregate: mockRefundAggregate,
         count: mockRefundCount,
@@ -301,7 +321,7 @@ describe('order-refund.service — processRefund concurrency + idempotency (F-R2
   it('acquires a FOR UPDATE lock before issuing and aborts when the row is no longer APPROVED', async () => {
     mockQueryRaw.mockResolvedValue([]); // lock returns no APPROVED row (already processed)
 
-    await expect(processRefund(TENANT, REFUND, APPROVER)).rejects.toThrow(/not awaiting processing/i);
+    await expect(processRefund(TENANT, REFUND, APPROVER, CASH_EXECUTION)).rejects.toThrow(/not awaiting processing/i);
     expect(mockQueryRaw).toHaveBeenCalledTimes(1);
     expect(mockRefundFindFirstOrThrow).not.toHaveBeenCalled();
     expect(mockTopUpWalletTx).not.toHaveBeenCalled();
@@ -311,7 +331,7 @@ describe('order-refund.service — processRefund concurrency + idempotency (F-R2
   it('issues a CREDIT_NOTE via the tx-composed, idempotent writer with a per-refund key', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue({ ...makeRefundRecord('APPROVED'), refund_method_code: 'CREDIT_NOTE' });
 
-    await processRefund(TENANT, REFUND, APPROVER);
+    await processRefund(TENANT, REFUND, APPROVER, CASH_EXECUTION);
 
     expect(mockIssueCreditNoteTx).toHaveBeenCalledWith(
       expect.anything(),
@@ -322,7 +342,7 @@ describe('order-refund.service — processRefund concurrency + idempotency (F-R2
   it('tops up the WALLET only after acquiring the FOR UPDATE lock (the wallet-path guard)', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue({ ...makeRefundRecord('APPROVED'), refund_method_code: 'WALLET' });
 
-    await processRefund(TENANT, REFUND, APPROVER);
+    await processRefund(TENANT, REFUND, APPROVER, CASH_EXECUTION);
 
     expect(mockQueryRaw).toHaveBeenCalledTimes(1); // lock acquired before issuing
     // B01 §12: the wallet destination now carries its own idempotency key
@@ -340,7 +360,7 @@ describe('order-refund.service — processRefund concurrency + idempotency (F-R2
   it('writes reopens_due_amount = 0 for a STANDARD commercial refund (D003 v2)', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue(makeRefundRecord('APPROVED'));
 
-    await processRefund(TENANT, REFUND, APPROVER);
+    await processRefund(TENANT, REFUND, APPROVER, CASH_EXECUTION);
 
     expect(mockRefundUpdate).toHaveBeenCalledWith(
       expect.objectContaining({

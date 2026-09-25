@@ -139,5 +139,29 @@
     "saved": "Cash control settings saved.",
     "loadFailed": "Failed to load cash control settings.",
     "saveFailed": "Failed to save cash control settings."
+  },
+  "ledgerErrors": {
+    "CASH_DRAWER_REQUIRED": "Select a cash drawer session for this cash payment.",
+    "CASH_DRAWER_INACTIVE": "The selected cash drawer is inactive.",
+    "CASH_DRAWER_BRANCH_MISMATCH": "The cash drawer belongs to a different branch.",
+    "CASH_DRAWER_TYPE_NOT_ALLOWED": "This type of cash drawer cannot take this transaction.",
+    "CASH_CURRENCY_REQUIRED": "A currency is required for cash transactions.",
+    "CASH_CURRENCY_MISMATCH": "The payment currency does not match the cash drawer currency.",
+    "CASH_DRAWER_SESSION_NOT_OPEN": "No open session on this cash drawer. Open a session and try again.",
+    "DRAWER_SESSION_CLOSING": "This cash drawer session is being closed and cannot take new cash.",
+    "DRAWER_SESSION_NOT_CLOSING": "This cash drawer session is not in closing.",
+    "DRAWER_SESSION_WRONG_DRAWER": "The session does not belong to the selected cash drawer.",
+    "CASH_DISPOSITION_DEST_REQUIRED": "Choose where the counted cash goes.",
+    "CASH_DISPOSITION_AMOUNT_INVALID": "The cash disposition amount is invalid.",
+    "CASH_DISPOSITION_NOTES_REQUIRED": "Add a note for this cash disposition.",
+    "CASH_COUNT_REQUIRED": "Count the cash before continuing.",
+    "CASH_COUNT_TOTAL_MISMATCH": "The count total does not match the denominations entered.",
+    "CASH_TRX_UNBALANCED": "The cash transfer is not balanced.",
+    "CASH_TRX_SAME_DRAWER": "Choose two different cash drawers for a transfer.",
+    "CASH_TRX_CROSS_BRANCH": "Cash cannot be transferred between branches.",
+    "CASH_LINE_IMMUTABLE": "This cash entry is already recorded and cannot be changed.",
+    "CASH_LEG_MUST_REVERSE": "This cash payment is already in the drawer. Reverse it instead.",
+    "POST_CLOSE_SESSION_NOT_CLOSED": "The session must be closed first.",
+    "CASH_DRAWER_CURRENCY_NOT_CONFIGURED": "No currency is configured for this cash drawer."
   }
 }

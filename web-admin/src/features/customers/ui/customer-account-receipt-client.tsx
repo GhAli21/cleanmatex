@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -13,17 +13,14 @@ import { CmxButton } from '@ui/primitives';
 import { CmxInput, Label } from '@ui/primitives';
 import { LoadingButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
-import {
-  CmxSelectDropdown,
-  CmxSelectDropdownContent,
-  CmxSelectDropdownItem,
-  CmxSelectDropdownTrigger,
-  CmxSelectDropdownValue,
-} from '@ui/forms';
-import { showErrorToast, showSuccessToast } from '@ui/components/cmx-toast';
+import { cmxMessage } from '@ui/feedback';
 import { useOverpaymentAllocation } from '@features/orders/hooks/use-overpayment-allocation';
 import { AutoAllocationPreviewDrawer } from '@features/orders/ui/payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from '@features/orders/ui/payment-modal/allocation/manual-allocation-drawer';
+import {
+  StoredValueTenderFields,
+  type StoredValueTenderResult,
+} from './stored-value-tender-fields';
 
 interface SelectedCustomer {
   id: string;
@@ -39,21 +36,20 @@ const CustomerPickerModal = dynamic(
   { ssr: false }
 );
 
-interface CheckoutMethodOption {
-  id: string;
-  payment_method_code: string;
-  display_name: string;
-  display_name2?: string | null;
-  requires_cash_drawer: boolean;
-}
+/** Account receipts settle an existing balance now — never "pay on collection". */
+const RECEIPT_EXCLUDED_METHOD_CODES = [PAYMENT_METHODS.PAY_ON_COLLECTION] as const;
 
 /**
- *
+ * Customer account receipt screen (CLF W6). The tender step reuses
+ * StoredValueTenderFields, so a drawer-tracked cash method shows the same
+ * cash-drawer session picker as the order payment modals, and bank transfer /
+ * cheque receipts collect the references the voucher line requires.
  */
 export function CustomerAccountReceiptClient() {
   const t = useTranslations('customers.accountReceipt');
+  const tLedger = useTranslations('cashControl.ledgerErrors');
   const isRTL = useRTL();
-  const { currentTenant } = useAuth();
+  const { currentTenant, user } = useAuth();
   const { formatMoneyWithCode, currencyCode: tenantCurrency } = useTenantCurrency();
   const { token: csrfToken } = useCSRFToken();
   const canPost = useHasPermissionCode('customers:receipt_allocate');
@@ -61,15 +57,13 @@ export function CustomerAccountReceiptClient() {
   const [customer, setCustomer] = useState<SelectedCustomer | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [receiptAmount, setReceiptAmount] = useState(0);
-  const [methods, setMethods] = useState<CheckoutMethodOption[]>([]);
-  const [methodsLoading, setMethodsLoading] = useState(false);
-  const [selectedMethodId, setSelectedMethodId] = useState('');
-  const [cashTendered, setCashTendered] = useState<number | undefined>(undefined);
+  const [tender, setTender] = useState<StoredValueTenderResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Remounts the tender step after a successful post so references clear.
+  const [tenderKey, setTenderKey] = useState(0);
 
-  const currencyCode = tenantCurrency ?? 'OMR';
-  const selectedMethod = methods.find((m) => m.id === selectedMethodId);
-  const isCash = selectedMethod?.payment_method_code === PAYMENT_METHODS.CASH;
+  // No currency fallback: a receipt must never be booked in a guessed currency.
+  const currencyCode = tenantCurrency ?? '';
 
   const formatAmount = useCallback(
     // formatMoneyWithCode takes only the amount; the 2nd currencyCode arg was a
@@ -85,48 +79,50 @@ export function CustomerAccountReceiptClient() {
     receiptAmount,
     currentOrderAllocationAmount: 0,
     sourceType: 'CUSTOMER_RECEIPT',
-    paymentMethodCode: selectedMethod?.payment_method_code ?? PAYMENT_METHODS.CASH,
+    paymentMethodCode: tender?.paymentMethodCode ?? PAYMENT_METHODS.CASH,
     confirmedToastMessage: t('allocationConfirmed'),
   });
 
-  useEffect(() => {
-    if (!customer?.id || receiptAmount <= 0 || !canPost) {
-      setMethods([]);
-      return;
-    }
-    setMethodsLoading(true);
-    const params = new URLSearchParams();
-    params.set('amount', String(receiptAmount));
-    params.set('customerId', customer.id);
-    fetch(`/api/v1/orders/checkout-options?${params.toString()}`, {
-      headers: { ...getCSRFHeader(csrfToken) },
-    })
-      .then(async (res) => {
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error ?? 'Failed');
-        const list = (json.data?.paymentMethods ?? []) as CheckoutMethodOption[];
-        const eligible = list.filter(
-          (m) => m.payment_method_code !== PAYMENT_METHODS.PAY_ON_COLLECTION
-        );
-        setMethods(eligible);
-        if (eligible[0]) setSelectedMethodId(eligible[0].id);
-      })
-      .catch(() => setMethods([]))
-      .finally(() => setMethodsLoading(false));
-  }, [canPost, csrfToken, customer?.id, receiptAmount]);
+  // The allocation preview is priced for one payment method, so it must be made
+  // after the tender is complete and is discarded when the method changes.
+  const { resetAllocationState } = allocation;
+  const lastMethodCodeRef = useRef<string | undefined>(undefined);
+  const handleTenderChange = useCallback(
+    (next: StoredValueTenderResult | null) => {
+      const code = next?.paymentMethodCode;
+      if (code && lastMethodCodeRef.current && code !== lastMethodCodeRef.current) {
+        resetAllocationState();
+      }
+      if (code) lastMethodCodeRef.current = code;
+      setTender(next);
+    },
+    [resetAllocationState]
+  );
 
   const canSubmit = useMemo(
     () =>
       !!customer?.id &&
+      !!currencyCode &&
       receiptAmount > 0 &&
-      !!selectedMethod &&
+      !!tender &&
       !!allocation.allocationPreviewId,
-    [allocation.allocationPreviewId, customer?.id, receiptAmount, selectedMethod]
+    [allocation.allocationPreviewId, currencyCode, customer?.id, receiptAmount, tender]
   );
 
+  /** Maps a stable server error code to translated text; falls back to the generic error. */
+  const resolveErrorMessage = (code: string | undefined): string => {
+    if (code && t.has(`errors.${code}`)) return t(`errors.${code}`);
+    if (code && tLedger.has(code)) return tLedger(code);
+    return t('postError');
+  };
+
   const handlePost = async () => {
-    if (!customer?.id || !selectedMethod || !allocation.allocationPreviewId) {
-      showErrorToast(t('allocationRequired'));
+    if (!customer?.id || !allocation.allocationPreviewId) {
+      cmxMessage.error(t('allocationRequired'));
+      return;
+    }
+    if (!tender) {
+      cmxMessage.error(t('tenderRequired'));
       return;
     }
     setSubmitting(true);
@@ -137,23 +133,39 @@ export function CustomerAccountReceiptClient() {
         body: JSON.stringify({
           customerId: customer.id,
           previewId: allocation.allocationPreviewId,
-          paymentMethodId: selectedMethod.id,
+          paymentMethodId: tender.paymentMethodId,
           receiptAmount,
           currencyCode,
-          ...(isCash && cashTendered != null ? { cashTendered } : {}),
-          idempotencyKey: `car_${customer.id}_${Date.now()}`,
+          cashTendered: tender.cashTendered,
+          cashDrawerSessionId: tender.cashDrawerSessionId,
+          bankReference: tender.bankReference,
+          checkNumber: tender.checkNumber,
+          checkBank: tender.checkBank,
+          checkDate: tender.checkDate,
+          // One key per confirmed allocation: a retry of the same receipt is
+          // answered from the existing voucher instead of posting twice.
+          idempotencyKey: `car_${allocation.allocationPreviewId}`,
         }),
       });
-      const json = await res.json();
+      const json = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        code?: string;
+        data?: { voucherNo?: string };
+      };
       if (!res.ok || !json.success) {
-        throw new Error(json.error ?? t('postError'));
+        cmxMessage.error(resolveErrorMessage(json.code));
+        return;
       }
-      showSuccessToast(t('postSuccess'));
+      cmxMessage.success(
+        json.data?.voucherNo ? t('postSuccessWithNo', { voucherNo: json.data.voucherNo }) : t('postSuccess')
+      );
       setReceiptAmount(0);
-      setCashTendered(undefined);
+      setTender(null);
+      lastMethodCodeRef.current = undefined;
+      setTenderKey((k) => k + 1);
       allocation.resetAllocationState();
-    } catch (error) {
-      showErrorToast(error instanceof Error ? error.message : t('postError'));
+    } catch {
+      cmxMessage.error(t('postError'));
     } finally {
       setSubmitting(false);
     }
@@ -171,6 +183,12 @@ export function CustomerAccountReceiptClient() {
         <h1 className="text-2xl font-semibold">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
       </div>
+
+      {!currencyCode ? (
+        <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {t('currencyMissing')}
+        </p>
+      ) : null}
 
       <CmxCard>
         <CmxCardHeader>
@@ -205,54 +223,36 @@ export function CustomerAccountReceiptClient() {
                 setReceiptAmount(Number(e.target.value));
                 allocation.resetAllocationState();
               }}
-              disabled={!customer}
+              disabled={!customer || !currencyCode}
             />
           </div>
 
-          {customer && receiptAmount > 0 ? (
+          {customer && currencyCode && receiptAmount > 0 ? (
             <>
-              {methodsLoading ? (
-                <p className="text-sm text-muted-foreground">{t('loadingMethods')}</p>
-              ) : (
-                <div className="space-y-2">
-                  <Label>{t('paymentMethod')}</Label>
-                  <CmxSelectDropdown value={selectedMethodId} onValueChange={setSelectedMethodId}>
-                    <CmxSelectDropdownTrigger className="w-full">
-                      <CmxSelectDropdownValue placeholder={t('paymentMethod')} />
-                    </CmxSelectDropdownTrigger>
-                    <CmxSelectDropdownContent>
-                      {methods.map((method) => (
-                        <CmxSelectDropdownItem key={method.id} value={method.id}>
-                          {isRTL && method.display_name2 ? method.display_name2 : method.display_name}
-                        </CmxSelectDropdownItem>
-                      ))}
-                    </CmxSelectDropdownContent>
-                  </CmxSelectDropdown>
-                </div>
-              )}
-
-              {isCash ? (
-                <div className="space-y-2">
-                  <Label htmlFor="receipt-tendered">{t('cashTendered')}</Label>
-                  <CmxInput
-                    id="receipt-tendered"
-                    type="number"
-                    min={receiptAmount}
-                    step="0.001"
-                    value={cashTendered ?? receiptAmount}
-                    onChange={(e) => setCashTendered(Number(e.target.value))}
-                  />
-                </div>
-              ) : null}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                <p className="mb-2 text-sm font-medium">{t('tenderTitle')}</p>
+                <StoredValueTenderFields
+                  key={tenderKey}
+                  amount={receiptAmount}
+                  currencyCode={currencyCode}
+                  tenantOrgId={currentTenant?.tenant_id ?? ''}
+                  userId={user?.id}
+                  onTenderChange={handleTenderChange}
+                  collectReferences
+                  excludeMethodCodes={RECEIPT_EXCLUDED_METHOD_CODES}
+                />
+              </div>
 
               <div className="rounded-lg border p-4 space-y-3">
                 <p className="text-sm font-medium">{t('allocateTitle')}</p>
-                <p className="text-xs text-muted-foreground">{t('allocateHint')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {tender ? t('allocateHint') : t('tenderRequired')}
+                </p>
                 <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <CmxButton variant="outline" onClick={allocation.handleOpenAutoAllocate}>
+                  <CmxButton variant="outline" disabled={!tender} onClick={allocation.handleOpenAutoAllocate}>
                     {t('autoAllocate')}
                   </CmxButton>
-                  <CmxButton variant="outline" onClick={allocation.handleOpenManualAllocate}>
+                  <CmxButton variant="outline" disabled={!tender} onClick={allocation.handleOpenManualAllocate}>
                     {t('manualAllocate')}
                   </CmxButton>
                 </div>

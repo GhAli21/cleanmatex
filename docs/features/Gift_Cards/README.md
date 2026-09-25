@@ -120,7 +120,7 @@ File: `web-admin/app/actions/marketing/gift-card-actions.ts`
 | Action | Permission | Purpose |
 |---|---|---|
 | `listGiftCards` | `gift_cards:read` | Paginated list with filters |
-| `sellGiftCardAction` | `gift_cards:sell` | Sell + auto-activate; returns generated code |
+| `sellGiftCardWithTenderAction` | `gift_cards:sell` | Sell with a required tender (voucher + drawer ledger for cash); card activates once the tender is confirmed; returns generated code. The no-tender `sellGiftCardAction` was removed in CLF W5 (2026-09-25). |
 | `issueGiftCardAdmin` | `gift_cards:issue` | Create in GENERATED status |
 | `activateGiftCardAction` | `gift_cards:activate` | GENERATED → ACTIVE |
 | `suspendGiftCardAction` | — | Toggle SUSPENDED |

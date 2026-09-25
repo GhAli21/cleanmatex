@@ -9,6 +9,8 @@ import { validateStatusTransition } from './voucher-validation.service';
 import { generateBizVoucherNo } from './voucher-number.service';
 import type { VoucherType } from '../types/voucher';
 import { isCashFamilyMethod } from '@/lib/utils/cash-method';
+import { VOUCHER_SOURCE_TYPES } from '@/lib/constants/settlement-catalog';
+import { CUSTOMER_RECEIPT_POST_ERRORS } from '@/lib/types/customer-receipt-allocation';
 
 /**
  * Voucher reversal core — all lines or selected lines (CLF W9, ADR-057).
@@ -62,7 +64,8 @@ export interface ReverseVoucherLinesResult {
  * @param tx open Prisma transaction
  * @param input tenant, voucher, reason, actor, optional line selection / drawer
  * @returns reversal voucher id/no, the original's new status, and the line pairs
- * @throws Error('VOUCHER_NOT_FOUND' | 'VOUCHER_LINE_NOT_REVERSIBLE' | 'NO_POSTED_LINES_TO_REVERSE')
+ * @throws Error('VOUCHER_NOT_FOUND' | 'VOUCHER_LINE_NOT_REVERSIBLE' | 'NO_POSTED_LINES_TO_REVERSE'
+ *   | 'CUSTOMER_RECEIPT_REVERSAL_NOT_SUPPORTED')
  * @throws CashDrawerLedgerError when a cash mirror cannot be placed in a drawer
  * @example const r = await reverseVoucherLinesInTx(tx, { tenantOrgId, voucherId, reason, userId, lineIds: [lineId] });
  */
@@ -111,6 +114,13 @@ export async function reverseVoucherLinesInTx(
   `;
   const original = originals[0];
   if (!original) throw new Error('VOUCHER_NOT_FOUND');
+  // A customer account receipt (W6) is one tender line whose business effects
+  // (order payments, AR/B2B allocations, stored-value fallback) were applied by
+  // the allocation executor, not by wiring handlers — so a reversal here would
+  // return the cash but leave every allocation standing. Refuse it outright.
+  if (original.source_ref_type === VOUCHER_SOURCE_TYPES.CUSTOMER_ACCOUNT_PAYMENT) {
+    throw new Error(CUSTOMER_RECEIPT_POST_ERRORS.REVERSAL_NOT_SUPPORTED);
+  }
   if (
     original.voucher_status !== VOUCHER_STATUS.POSTED
     && original.voucher_status !== VOUCHER_STATUS.PARTIALLY_REVERSED

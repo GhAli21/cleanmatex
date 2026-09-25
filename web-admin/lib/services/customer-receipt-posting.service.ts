@@ -3,11 +3,14 @@ import 'server-only';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
+import { addVoucherLine } from '@/lib/services/voucher-line.service';
+import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
 import { executeAllocationPreviewTx } from '@/lib/services/customer-receipt-excess-executor.service';
 import { getAllocationPreview } from '@/lib/services/customer-receipt-allocation-preview.service';
 import { validateAllocationPreview } from '@/lib/services/customer-receipt-allocation-validator.service';
 import { resolveReceiptAllocationPolicy } from '@/lib/services/customer-receipt-allocation-policy.service';
 import {
+  CUSTOMER_RECEIPT_POST_ERRORS,
   CUSTOMER_RECEIPT_PREVIEW_STATUSES,
   RECEIPT_ALLOCATION_WARNING_CODES,
 } from '@/lib/types/customer-receipt-allocation';
@@ -15,8 +18,16 @@ import {
   SETTLEMENT_MONEY_EPSILON,
   VOUCHER_SOURCE_TYPES,
 } from '@/lib/constants/settlement-catalog';
-import { VOUCHER_TYPE, VOUCHER_STATUS } from '@/lib/constants/voucher';
+import {
+  LINE_ROLE,
+  LINE_TYPE,
+  PARTY_TYPE,
+  TARGET_TYPE,
+  VOUCHER_DIRECTION,
+  VOUCHER_TYPE,
+} from '@/lib/constants/voucher';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import type { PostCustomerReceiptRequest } from '@/lib/validations/customer-receipt-allocation-schema';
 
 /**
@@ -30,11 +41,24 @@ export interface PostCustomerReceiptResult {
 }
 
 /**
- * Posts a standalone customer account receipt: creates audit voucher, applies
- * confirmed allocation preview, and records cash drawer ingress when applicable.
- * @param tenantId
- * @param userId
- * @param input
+ * Posts a standalone customer account receipt (CLF W6, ADR-057).
+ *
+ * One RECEIPT_VOUCHER with one `CUSTOMER_CREDIT_RECEIPT` line carrying the
+ * whole tender, posted through `postAndWireBizVoucher` in INTERACTIVE mode —
+ * the cash-drawer ledger gate decides the drawer/session for a cash line and
+ * refuses when policy requires an open session and none is open. The confirmed
+ * allocation preview stays the single writer of the business effects (order
+ * payments, AR/B2B allocations, advance/wallet/credit fallback); no wiring
+ * handler applies money for this line role, so nothing is applied twice.
+ *
+ * Everything runs in one transaction: a gate refusal or an allocation failure
+ * rolls back the voucher, the line and every allocation.
+ * @param tenantId tenant from the authenticated session
+ * @param userId acting user
+ * @param input validated request
+ * @returns the posted voucher id/no
+ * @throws Error with a CUSTOMER_RECEIPT_POST_ERRORS / RECEIPT_ALLOCATION_WARNING_CODES code
+ * @throws CashDrawerLedgerError when the gate refuses the cash line
  */
 export async function postCustomerAccountReceipt(
   tenantId: string,
@@ -101,20 +125,32 @@ export async function postCustomerAccountReceipt(
         },
       });
       if (!method) {
-        throw new Error('Selected payment method is not available');
+        throw new Error(CUSTOMER_RECEIPT_POST_ERRORS.METHOD_UNAVAILABLE);
       }
 
-      const isCash = method.payment_method_code === PAYMENT_METHODS.CASH;
+      // Reject incomplete tender details up front with stable codes (the
+      // voucher-line validator would otherwise throw untranslatable text).
+      const methodCode = method.payment_method_code;
+      const isCash = methodCode === PAYMENT_METHODS.CASH;
       if (isCash && input.cashTendered != null && input.cashTendered < input.receiptAmount) {
-        throw new Error('CASH_TENDERED_LESS_THAN_AMOUNT');
+        throw new Error(CUSTOMER_RECEIPT_POST_ERRORS.CASH_TENDERED_TOO_LOW);
+      }
+      const bankReference = input.bankReference?.trim() || undefined;
+      if (methodCode === PAYMENT_METHODS.BANK_TRANSFER && !bankReference) {
+        throw new Error(CUSTOMER_RECEIPT_POST_ERRORS.BANK_REFERENCE_REQUIRED);
+      }
+      const checkNumber = input.checkNumber?.trim() || undefined;
+      const checkBank = input.checkBank?.trim() || undefined;
+      if (methodCode === PAYMENT_METHODS.CHECK && (!checkNumber || !checkBank || !input.checkDate)) {
+        throw new Error(CUSTOMER_RECEIPT_POST_ERRORS.CHECK_DETAILS_REQUIRED);
       }
 
       const voucher = await createBizVoucher(
         tenantId,
         {
           voucher_type: VOUCHER_TYPE.RECEIPT,
-          direction: 'IN',
-          party_type: 'CUSTOMER',
+          direction: VOUCHER_DIRECTION.IN,
+          party_type: PARTY_TYPE.CUSTOMER,
           customer_id: input.customerId,
           branch_id: input.branchId ?? undefined,
           source_module: 'CUSTOMERS',
@@ -129,6 +165,43 @@ export async function postCustomerAccountReceipt(
         tx
       );
 
+      // One line for the whole tender. The session id is only a hint — the
+      // gate resolves the drawer from it and stamps the session it decides.
+      await addVoucherLine(
+        tenantId,
+        voucher.id,
+        {
+          line_type: LINE_TYPE.RECEIPT,
+          line_role: LINE_ROLE.CUSTOMER_CREDIT_RECEIPT,
+          direction: VOUCHER_DIRECTION.IN,
+          target_type: TARGET_TYPE.CUSTOMER,
+          target_id: input.customerId,
+          customer_id: input.customerId,
+          branch_id: input.branchId ?? undefined,
+          payment_method_code: methodCode,
+          org_payment_method_id: method.id,
+          // The receipt is taken now: the allocation below books every order
+          // payment / stored-value credit as COMPLETED, so the tender line is too.
+          payment_status: 'COMPLETED',
+          amount: input.receiptAmount,
+          currency_code: input.currencyCode,
+          cash_drawer_session_id: method.requires_cash_drawer
+            ? (input.cashDrawerSessionId ?? undefined)
+            : undefined,
+          tendered_amount: isCash ? (input.cashTendered ?? input.receiptAmount) : undefined,
+          gateway_code: method.gateway_code ?? undefined,
+          bank_reference: bankReference,
+          check_number: checkNumber,
+          check_bank: checkBank,
+          check_date: input.checkDate,
+          description: 'Customer account receipt',
+          idempotency_key: `${input.idempotencyKey}_line`,
+        },
+        userId,
+        undefined,
+        tx
+      );
+
       await executeAllocationPreviewTx({
         tx,
         tenantId,
@@ -139,82 +212,17 @@ export async function postCustomerAccountReceipt(
         voucherId: voucher.id,
         previewId: input.previewId,
         idempotencyKey: input.idempotencyKey,
-        paymentMethodCode: method.payment_method_code,
+        paymentMethodCode: methodCode,
       });
 
-      if (isCash && method.requires_cash_drawer) {
-        if (!input.cashDrawerSessionId) {
-          throw new Error('CASH_DRAWER_SESSION_REQUIRED');
-        }
-        const session = await tx.org_cash_drawer_sessions_mst.findFirst({
-          where: {
-            id: input.cashDrawerSessionId,
-            tenant_org_id: tenantId,
-            status: 'OPEN',
-          },
-          select: { id: true, cash_drawer_id: true, branch_id: true, currency_code: true },
-        });
-        if (!session) {
-          throw new Error('CASH_DRAWER_SESSION_REQUIRED');
-        }
-        await tx.org_cash_drawer_movements_dtl.create({
-          data: {
-            tenant_org_id: tenantId,
-            branch_id: session.branch_id ?? input.branchId ?? null,
-            cash_drawer_id: session.cash_drawer_id,
-            cash_drawer_session_id: session.id,
-            movement_type: 'CASH_SALE',
-            direction: 'IN',
-            amount: input.receiptAmount,
-            currency_code: input.currencyCode ?? session.currency_code,
-            fin_voucher_id: voucher.id,
-            performed_by: userId,
-            performed_at: new Date(),
-            is_active: true,
-            rec_status: 1,
-            created_by: userId,
-          },
-        });
-
-        const change =
-          input.cashTendered != null && input.cashTendered > input.receiptAmount
-            ? input.cashTendered - input.receiptAmount
-            : 0;
-        if (change > SETTLEMENT_MONEY_EPSILON) {
-          await tx.org_cash_drawer_movements_dtl.create({
-            data: {
-              tenant_org_id: tenantId,
-              branch_id: session.branch_id ?? input.branchId ?? null,
-              cash_drawer_id: session.cash_drawer_id,
-              cash_drawer_session_id: session.id,
-              movement_type: 'CASH_OUT',
-              direction: 'OUT',
-              amount: change,
-              currency_code: input.currencyCode ?? session.currency_code,
-              fin_voucher_id: voucher.id,
-              performed_by: userId,
-              performed_at: new Date(),
-              is_active: true,
-              rec_status: 1,
-              created_by: userId,
-            },
-          });
-        }
-      }
-
-      await tx.org_fin_vouchers_mst.updateMany({
-        where: { id: voucher.id, tenant_org_id: tenantId },
-        data: {
-          voucher_status: VOUCHER_STATUS.POSTED,
-          posting_status: 'POSTED',
-          paid_amount: input.receiptAmount,
-          outstanding_amount: 0,
-          posted_at: new Date(),
-          posted_by: userId,
-          updated_at: new Date(),
-          updated_by: userId,
-        },
-      });
+      await postAndWireBizVoucher(
+        tenantId,
+        voucher.id,
+        userId,
+        CASH_GATE_MODES.INTERACTIVE,
+        `${input.idempotencyKey}_vch_post`,
+        tx
+      );
 
       return {
         voucherId: voucher.id,

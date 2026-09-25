@@ -246,7 +246,12 @@
       "paymentMethod": "Payment Method",
       "cashTendered": "Cash Tendered",
       "changeDue": "Change Due",
-      "noMethodsAvailable": "No payment methods are available for this branch."
+      "noMethodsAvailable": "No payment methods are available for this branch.",
+      "bankReference": "Bank Reference",
+      "checkNumber": "Cheque Number",
+      "checkBank": "Issuing Bank",
+      "checkDate": "Cheque Date",
+      "referencesRequired": "Enter the payment reference details to continue."
     }
   },
   "loyaltyPanel": {
@@ -296,6 +301,24 @@
     "postReceipt": "Post Receipt",
     "postSuccess": "Customer receipt posted successfully",
     "postError": "Failed to post customer receipt",
-    "loadingMethods": "Loading payment methods…"
+    "loadingMethods": "Loading payment methods…",
+    "tenderTitle": "Tender",
+    "tenderRequired": "Complete the payment details before posting.",
+    "currencyMissing": "No currency is configured for this business. Ask an administrator to set the tenant currency before recording receipts.",
+    "postSuccessWithNo": "Customer receipt {voucherNo} posted successfully",
+    "errors": {
+      "CUSTOMER_RECEIPT_METHOD_UNAVAILABLE": "The selected payment method is no longer available. Choose another method.",
+      "CUSTOMER_RECEIPT_CASH_TENDERED_TOO_LOW": "Cash tendered is less than the receipt amount.",
+      "CUSTOMER_RECEIPT_BANK_REFERENCE_REQUIRED": "Enter the bank reference for this bank transfer.",
+      "CUSTOMER_RECEIPT_CHECK_DETAILS_REQUIRED": "Enter the cheque number, issuing bank and cheque date.",
+      "RECEIPT_ALLOCATION_IDEMPOTENCY_CONFLICT": "This allocation has already been posted. Start a new receipt.",
+      "RECEIPT_ALLOCATION_BLOCKED": "The allocation is not confirmed. Confirm the allocation and try again.",
+      "RECEIPT_ALLOCATION_UNBALANCED": "The receipt amount changed after the allocation was confirmed. Allocate again.",
+      "RECEIPT_ALLOCATION_EXCESS_UNRESOLVED": "Part of the receipt is not allocated. Allocate the full amount.",
+      "RECEIPT_ALLOCATION_POLICY_MISSING": "The allocation could not be found or has expired. Allocate again.",
+      "RECEIPT_ALLOCATION_TARGET_PAID": "One of the selected balances has already been paid. Allocate again.",
+      "RECEIPT_ALLOCATION_TARGET_CURRENCY_MISMATCH": "One of the selected balances is in a different currency.",
+      "VALIDATION_ERROR": "Some receipt details are invalid. Check the form and try again."
+    }
   }
 }

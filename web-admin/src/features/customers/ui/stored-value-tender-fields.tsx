@@ -48,6 +48,13 @@ export interface StoredValueTenderResult {
   paymentMethodCode: string;
   cashTendered?: number;
   cashDrawerSessionId?: string;
+  /** Set only when `collectReferences` is on and the method is BANK_TRANSFER. */
+  bankReference?: string;
+  /** Set only when `collectReferences` is on and the method is CHECK. */
+  checkNumber?: string;
+  checkBank?: string;
+  /** ISO date (YYYY-MM-DD). */
+  checkDate?: string;
 }
 
 export interface StoredValueTenderFieldsProps {
@@ -58,6 +65,14 @@ export interface StoredValueTenderFieldsProps {
   userId?: string;
   /** Called with the resolved tender, or null while the tender is not yet valid/complete. */
   onTenderChange: (tender: StoredValueTenderResult | null) => void;
+  /**
+   * Collect the bank reference (BANK_TRANSFER) and cheque details (CHECK) the
+   * voucher line requires. The tender stays incomplete (null) until they are
+   * filled. Off by default so existing funding screens are unchanged.
+   */
+  collectReferences?: boolean;
+  /** Payment method codes to hide from the picker (e.g. PAY_ON_COLLECTION). */
+  excludeMethodCodes?: readonly string[];
 }
 
 /**
@@ -69,6 +84,8 @@ export interface StoredValueTenderFieldsProps {
  * @param root0.tenantOrgId
  * @param root0.userId
  * @param root0.onTenderChange
+ * @param root0.collectReferences
+ * @param root0.excludeMethodCodes
  */
 export function StoredValueTenderFields({
   amount,
@@ -77,6 +94,8 @@ export function StoredValueTenderFields({
   tenantOrgId,
   userId,
   onTenderChange,
+  collectReferences = false,
+  excludeMethodCodes,
 }: StoredValueTenderFieldsProps) {
   const tPayment = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
@@ -91,9 +110,17 @@ export function StoredValueTenderFields({
   const [methodsLoading, setMethodsLoading] = useState(false);
   const [selectedMethodId, setSelectedMethodId] = useState('');
   const [cashTendered, setCashTendered] = useState<number | undefined>(undefined);
+  const [bankReference, setBankReference] = useState('');
+  const [checkNumber, setCheckNumber] = useState('');
+  const [checkBank, setCheckBank] = useState('');
+  const [checkDate, setCheckDate] = useState('');
 
   const selectedMethod = methods.find((m) => m.id === selectedMethodId);
   const isCash = selectedMethod?.payment_method_code === PAYMENT_METHODS.CASH;
+  const needsBankReference =
+    collectReferences && selectedMethod?.payment_method_code === PAYMENT_METHODS.BANK_TRANSFER;
+  const needsCheckDetails =
+    collectReferences && selectedMethod?.payment_method_code === PAYMENT_METHODS.CHECK;
   const cashDrawerRequired = !!selectedMethod?.requires_cash_drawer;
 
   const cashDrawer = useCashDrawer({
@@ -146,7 +173,10 @@ export function StoredValueTenderFields({
       .then(async (res) => {
         const json = await res.json();
         if (!json.success) throw new Error(json.error ?? 'Failed to load methods');
-        const list = (json.data?.paymentMethods ?? []) as FundingMethodOption[];
+        const excluded = new Set(excludeMethodCodes ?? []);
+        const list = ((json.data?.paymentMethods ?? []) as FundingMethodOption[]).filter(
+          (m) => !excluded.has(m.payment_method_code)
+        );
         setMethods(list);
         if (list[0]) setSelectedMethodId(list[0].id);
       })
@@ -158,7 +188,12 @@ export function StoredValueTenderFields({
   }, [branchId, csrfToken]);
 
   const reportTender = useCallback(
-    (methodId: string, tendered: number | undefined, drawerSessionId: string) => {
+    (
+      methodId: string,
+      tendered: number | undefined,
+      drawerSessionId: string,
+      refs: { bankReference: string; checkNumber: string; checkBank: string; checkDate: string },
+    ) => {
       const method = methods.find((m) => m.id === methodId);
       if (!method || amount <= 0) {
         onTenderChange(null);
@@ -173,19 +208,46 @@ export function StoredValueTenderFields({
         onTenderChange(null);
         return;
       }
+      const bank = collectReferences && method.payment_method_code === PAYMENT_METHODS.BANK_TRANSFER;
+      const check = collectReferences && method.payment_method_code === PAYMENT_METHODS.CHECK;
+      const bankRef = refs.bankReference.trim();
+      const checkNo = refs.checkNumber.trim();
+      const checkBankName = refs.checkBank.trim();
+      if ((bank && !bankRef) || (check && (!checkNo || !checkBankName || !refs.checkDate))) {
+        onTenderChange(null);
+        return;
+      }
       onTenderChange({
         paymentMethodId: method.id,
         paymentMethodCode: method.payment_method_code,
         cashTendered: cash ? (tendered ?? amount) : undefined,
         cashDrawerSessionId: method.requires_cash_drawer ? drawerSessionId : undefined,
+        bankReference: bank ? bankRef : undefined,
+        checkNumber: check ? checkNo : undefined,
+        checkBank: check ? checkBankName : undefined,
+        checkDate: check ? refs.checkDate : undefined,
       });
     },
-    [amount, methods, onTenderChange]
+    [amount, collectReferences, methods, onTenderChange]
   );
 
   useEffect(() => {
-    reportTender(selectedMethodId, cashTendered, selectedCashDrawerSessionId);
-  }, [selectedMethodId, cashTendered, selectedCashDrawerSessionId, reportTender]);
+    reportTender(selectedMethodId, cashTendered, selectedCashDrawerSessionId, {
+      bankReference,
+      checkNumber,
+      checkBank,
+      checkDate,
+    });
+  }, [
+    selectedMethodId,
+    cashTendered,
+    selectedCashDrawerSessionId,
+    bankReference,
+    checkNumber,
+    checkBank,
+    checkDate,
+    reportTender,
+  ]);
 
   const changeDue = isCash ? Math.max(0, (cashTendered ?? amount) - amount) : 0;
 
@@ -252,6 +314,59 @@ export function StoredValueTenderFields({
               isRTL={isRTL}
             />
           </div>
+        ) : null}
+
+        {needsBankReference ? (
+          <div className="space-y-2">
+            <Label htmlFor="sv-tender-bank-ref">{tFunding('bankReference')} *</Label>
+            <CmxInput
+              id="sv-tender-bank-ref"
+              value={bankReference}
+              maxLength={120}
+              aria-required="true"
+              onChange={(e) => setBankReference(e.target.value)}
+            />
+          </div>
+        ) : null}
+
+        {needsCheckDetails ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="sv-tender-check-no">{tFunding('checkNumber')} *</Label>
+              <CmxInput
+                id="sv-tender-check-no"
+                value={checkNumber}
+                maxLength={60}
+                aria-required="true"
+                onChange={(e) => setCheckNumber(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sv-tender-check-bank">{tFunding('checkBank')} *</Label>
+              <CmxInput
+                id="sv-tender-check-bank"
+                value={checkBank}
+                maxLength={120}
+                aria-required="true"
+                onChange={(e) => setCheckBank(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sv-tender-check-date">{tFunding('checkDate')} *</Label>
+              <CmxInput
+                id="sv-tender-check-date"
+                type="date"
+                value={checkDate}
+                aria-required="true"
+                onChange={(e) => setCheckDate(e.target.value)}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {(needsBankReference && !bankReference.trim()) ||
+        (needsCheckDetails && (!checkNumber.trim() || !checkBank.trim() || !checkDate)) ? (
+          <p className="text-xs text-muted-foreground">{tFunding('referencesRequired')}</p>
         ) : null}
 
         {cashDrawerRequired ? (
