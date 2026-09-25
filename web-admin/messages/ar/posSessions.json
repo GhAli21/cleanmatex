@@ -78,6 +78,7 @@
   "terminal": "جهاز الدفع",
   "cashDrawer": "درج النقد",
   "drawerSession": "جلسة الدرج",
+  "copyValue": "نسخ {field}",
   "scope": "النطاق",
   "ownSessions": "جلساتي",
   "allSessions": "كل الجلسات",
@@ -159,6 +160,7 @@
     "notesVariancePlaceholder": "أضف ملاحظات تشرح الفرق"
   },
   "messages": {
+    "copyFailed": "تعذّر النسخ إلى الحافظة.",
     "opened": "تم فتح جلسة نقطة البيع.",
     "paused": "تم إيقاف جلسة نقطة البيع مؤقتاً.",
     "resumed": "تم استئناف جلسة نقطة البيع.",
