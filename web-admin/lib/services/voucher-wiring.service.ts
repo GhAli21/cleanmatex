@@ -27,6 +27,8 @@ import {
   LINE_STATUS,
 } from '@/lib/constants/voucher';
 import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
+import type { CashGateMode } from '@/lib/constants/cash-drawer';
+import { stampCashLinesTx } from './cash-drawer-ledger/cash-drawer-ledger-gate';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { validateStatusTransition, validateVoucherForPosting } from './voucher-validation.service';
@@ -102,6 +104,8 @@ const LINE_SELECT = {
   payment_terminal_id:     true,
   branch_id:               true,
   notes:                   true,
+  cash_drawer_id:          true,
+  cash_effect_code:        true,
 } as const;
 
 /**
@@ -118,6 +122,7 @@ async function postAndWireBizVoucherInTx(
   tenantOrgId: string,
   voucherId: string,
   userId: string,
+  mode: CashGateMode,
   idempotencyKey?: string,
 ): Promise<PostAndWireResult> {
   const db = tx as typeof prisma;
@@ -145,8 +150,10 @@ async function postAndWireBizVoucherInTx(
         voucher_no: string;
         voucher_status: string;
         total_amount: string;
+        branch_id: string | null;
+        currency_code: string | null;
       }>>`
-        SELECT id, voucher_no, voucher_status, total_amount
+        SELECT id, voucher_no, voucher_status, total_amount, branch_id, currency_code
         FROM org_fin_vouchers_mst
         WHERE id = ${voucherId}::uuid
           AND tenant_org_id = ${tenantOrgId}::uuid
@@ -196,7 +203,21 @@ async function postAndWireBizVoucherInTx(
         },
       });
 
-      // 8. Mark all active DRAFT lines POSTED; wiring_status stays NOT_WIRED until handler runs
+      // 8a. CLF gate — stamp every cash line with its drawer, ledger sequence and
+      // session while the lines are still DRAFT (the posted-line immutability
+      // trigger forbids stamping afterwards). Takes the drawer row locks, so a
+      // concurrent session close on the same drawer is strictly ordered with this
+      // posting. A refusal throws and rolls the whole posting back. The gate
+      // mutates the in-memory lines, so the handlers below see the decided session.
+      const lines = rawLines as unknown as VoucherLineForWiring[];
+      await stampCashLinesTx(
+        tx,
+        { tenantOrgId, userId, mode },
+        { id: voucherId, branchId: voucher.branch_id, currencyCode: voucher.currency_code },
+        lines.filter((l) => l.line_status === 'DRAFT'),
+      );
+
+      // 8b. Mark all active DRAFT lines POSTED; wiring_status stays NOT_WIRED until handler runs
       await db.org_fin_voucher_trx_lines_dtl.updateMany({
         where: {
           tenant_org_id: tenantOrgId,
@@ -208,7 +229,6 @@ async function postAndWireBizVoucherInTx(
       });
 
       // 9. Wire each line via matching handlers
-      const lines = rawLines as unknown as VoucherLineForWiring[];
       const effects: WireLineResult[] = [];
       let linesWired = 0;
       let linesSkipped = 0;
@@ -346,6 +366,11 @@ async function postAndWireBizVoucherInTx(
  * @param tenantOrgId
  * @param voucherId
  * @param userId
+ * @param mode CLF cash gate mode — INTERACTIVE when a person is handling the
+ *        cash at the drawer now (refused without an open session when policy
+ *        requires one); DEFERRED for back-office / after-the-fact recording
+ *        (never refused on session state, lands in the next window). Required:
+ *        there is deliberately no default.
  * @param idempotencyKey
  * @param tx
  */
@@ -353,15 +378,16 @@ export async function postAndWireBizVoucher(
   tenantOrgId: string,
   voucherId: string,
   userId: string,
+  mode: CashGateMode,
   idempotencyKey?: string,
   tx?: PrismaTransactionClient,
 ): Promise<PostAndWireResult> {
   if (tx) {
-    return postAndWireBizVoucherInTx(tx, tenantOrgId, voucherId, userId, idempotencyKey);
+    return postAndWireBizVoucherInTx(tx, tenantOrgId, voucherId, userId, mode, idempotencyKey);
   }
   return withTenantContext(tenantOrgId, async () =>
     prisma.$transaction((innerTx) =>
-      postAndWireBizVoucherInTx(innerTx, tenantOrgId, voucherId, userId, idempotencyKey),
+      postAndWireBizVoucherInTx(innerTx, tenantOrgId, voucherId, userId, mode, idempotencyKey),
     ),
   );
 }

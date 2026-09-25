@@ -59,6 +59,10 @@ export const FINANCE_PERMISSIONS = {
   CASH_DRAWER_RECEIVE_TRANSFER: 'cash_drawer:receive_transfer',
   CASH_DRAWER_DEPOSIT: 'cash_drawer:deposit',
   CASH_DRAWER_VIEW_ALL_BRANCHES: 'cash_drawer:view_all_branches',
+  /** CLF (migration 0529): gates the drawer "Cash in / Cash out" dialog, which posts finance vouchers. */
+  CASH_DRAWER_RECORD_MOVEMENT: 'cash_drawer:record_movement',
+  /** CLF (migration 0529): after-close follow-up status + notes on a closed session. */
+  CASH_DRAWER_POST_CLOSE_UPDATE: 'cash_drawer:post_close_update',
   /** POS Session & Cash Drawer Hardening W0-10 (migration 0517) — new; gates /dashboard/settings/payments/cash-control-settings. */
   CASH_CONTROL_VIEW: 'cash_control:view',
   CASH_CONTROL_MANAGE: 'cash_control:manage',

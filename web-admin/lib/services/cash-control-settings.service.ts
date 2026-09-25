@@ -10,10 +10,21 @@ import {
   CASH_CONTROL_SCOPE_RESOLUTION_ORDER,
   CASH_CONTROL_SETTINGS_DEFAULT,
   CASH_CONTROL_SETTING_DEFS,
+  CASH_CONTROL_VALUE_SOURCE,
   type CashControlScopeLevel,
   type CashControlSettingDef,
   type CashControlSettings,
+  type CashControlValueSource,
+  type DrawerTypeDefaultColumn,
 } from '@/lib/constants/cash-control';
+
+/** Resolved settings plus the source of every value (drawer Policy tab). */
+export interface CashControlSettingsWithSource {
+  settings: CashControlSettings;
+  sources: Record<keyof CashControlSettings, CashControlValueSource>;
+}
+
+type DrawerTypeDefaults = Partial<Record<DrawerTypeDefaultColumn, boolean>>;
 
 /**
  * Future-ready scope. Add fields here; never add a second read function
@@ -46,7 +57,7 @@ type CashControlOverrideRow = {
 // correctness never depends on the wrapper being used.
 // -----------------------------------------------------------------------------
 
-const requestCacheStorage = new AsyncLocalStorage<Map<string, CashControlSettings>>();
+const requestCacheStorage = new AsyncLocalStorage<Map<string, CashControlSettingsWithSource>>();
 
 export function withCashControlSettingsCache<T>(fn: () => Promise<T>): Promise<T> {
   return requestCacheStorage.run(new Map(), fn);
@@ -64,6 +75,11 @@ function buildCacheKey(scope: CashControlScope): string {
  * The only code that touches org_fin_cash_ctrl_stng_cf (§3.1.3 rule 4).
  * Migrating storage later means rewriting this function alone.
  */
+// scope_id is a UUID column. Actor ids like 'system' are not UUIDs; filtering
+// on one would make the whole read fail and silently drop every override.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: string | null | undefined): v is string => !!v && UUID_RE.test(v);
+
 async function loadOverrides(
   scope: CashControlScope
 ): Promise<Partial<Record<CashControlScopeLevel, CashControlOverrideRow>>> {
@@ -71,13 +87,13 @@ async function loadOverrides(
     const scopeFilters: { scope_level: CashControlScopeLevel; scope_id: string | null }[] = [
       { scope_level: CASH_CONTROL_SCOPE_LEVEL.TENANT, scope_id: null },
     ];
-    if (scope.branchId) {
+    if (isUuid(scope.branchId)) {
       scopeFilters.push({ scope_level: CASH_CONTROL_SCOPE_LEVEL.BRANCH, scope_id: scope.branchId });
     }
-    if (scope.userId) {
+    if (isUuid(scope.userId)) {
       scopeFilters.push({ scope_level: CASH_CONTROL_SCOPE_LEVEL.USER, scope_id: scope.userId });
     }
-    if (scope.drawerId) {
+    if (isUuid(scope.drawerId)) {
       scopeFilters.push({ scope_level: CASH_CONTROL_SCOPE_LEVEL.DRAWER, scope_id: scope.drawerId });
     }
 
@@ -137,13 +153,54 @@ function coerceOverrideValue(
   return undefined;
 }
 
+/**
+ * CLF: the drawer-type default layer (sys_cash_drawer_type_cd.*_default).
+ * Only consulted when the scope names a drawer; a lookup failure degrades to
+ * the constant default like every other resolution failure.
+ */
+async function loadDrawerTypeDefaults(scope: CashControlScope): Promise<DrawerTypeDefaults> {
+  if (!isUuid(scope.drawerId)) {
+    return {};
+  }
+  // Isolated failure: a broken type lookup must not discard the scope overrides.
+  try {
+    const drawer = await prisma.org_cash_drawers_mst.findFirst({
+      where: { id: scope.drawerId, tenant_org_id: scope.tenantId },
+      select: { drawer_type: true },
+    });
+    if (!drawer) {
+      return {};
+    }
+    const type = await prisma.sys_cash_drawer_type_cd.findUnique({
+      where: { code: drawer.drawer_type },
+      select: {
+        requires_session_default: true,
+        opening_count_required_default: true,
+        closing_count_required_default: true,
+      },
+    });
+    return type ?? {};
+  } catch (error) {
+    log.warn('cash-control: drawer-type defaults unavailable, using constant defaults for those fields', {
+      tenantId: scope.tenantId,
+      drawerId: scope.drawerId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {};
+  }
+}
+
 function resolveSettings(
   byScope: Partial<Record<CashControlScopeLevel, CashControlOverrideRow>>,
+  typeDefaults: DrawerTypeDefaults,
   logContext: Record<string, unknown>
-): CashControlSettings {
+): CashControlSettingsWithSource {
   const resolved: CashControlSettings = { ...CASH_CONTROL_SETTINGS_DEFAULT };
+  const sources = {} as Record<keyof CashControlSettings, CashControlValueSource>;
 
   for (const def of CASH_CONTROL_SETTING_DEFS) {
+    sources[def.tsField] = CASH_CONTROL_VALUE_SOURCE.DEFAULT;
+    let found = false;
     for (const level of CASH_CONTROL_SCOPE_RESOLUTION_ORDER) {
       const row = byScope[level];
       if (!row) {
@@ -152,12 +209,29 @@ function resolveSettings(
       const value = coerceOverrideValue(def, row[def.dbColumn], { ...logContext, scopeLevel: level });
       if (value !== undefined) {
         (resolved as unknown as Record<string, unknown>)[def.tsField] = value;
+        sources[def.tsField] = level;
+        found = true;
         break;
+      }
+    }
+    if (!found && def.type === 'boolean' && def.typeDefaultColumn) {
+      const typeValue = typeDefaults[def.typeDefaultColumn];
+      if (typeof typeValue === 'boolean') {
+        (resolved as unknown as Record<string, unknown>)[def.tsField] = typeValue;
+        sources[def.tsField] = CASH_CONTROL_VALUE_SOURCE.TYPE_DEFAULT;
       }
     }
   }
 
-  return resolved;
+  return { settings: resolved, sources };
+}
+
+function allDefaultSources(): Record<keyof CashControlSettings, CashControlValueSource> {
+  const sources = {} as Record<keyof CashControlSettings, CashControlValueSource>;
+  for (const def of CASH_CONTROL_SETTING_DEFS) {
+    sources[def.tsField] = CASH_CONTROL_VALUE_SOURCE.DEFAULT;
+  }
+  return sources;
 }
 
 /**
@@ -167,6 +241,20 @@ function resolveSettings(
  * caller ever branches on `undefined`.
  */
 export async function getCashControlSettings(scope: CashControlScope): Promise<CashControlSettings> {
+  return (await getCashControlSettingsWithSource(scope)).settings;
+}
+
+/**
+ * Same resolution as {@link getCashControlSettings}, plus where each value came
+ * from (DRAWER / USER / BRANCH / TENANT / TYPE_DEFAULT / DEFAULT). Used by the
+ * drawer Policy tab to show inherited vs overridden values.
+ * @param scope tenant plus optional branch / user / drawer
+ * @returns fully-populated settings and a source per field
+ * @example const { settings, sources } = await getCashControlSettingsWithSource({ tenantId, drawerId });
+ */
+export async function getCashControlSettingsWithSource(
+  scope: CashControlScope
+): Promise<CashControlSettingsWithSource> {
   const cache = requestCacheStorage.getStore();
   const cacheKey = buildCacheKey(scope);
   const cached = cache?.get(cacheKey);
@@ -181,17 +269,17 @@ export async function getCashControlSettings(scope: CashControlScope): Promise<C
     drawerId: scope.drawerId ?? undefined,
   };
 
-  let resolved: CashControlSettings;
+  let resolved: CashControlSettingsWithSource;
   try {
-    const byScope = await loadOverrides(scope);
-    resolved = resolveSettings(byScope, logContext);
+    const [byScope, typeDefaults] = await Promise.all([loadOverrides(scope), loadDrawerTypeDefaults(scope)]);
+    resolved = resolveSettings(byScope, typeDefaults, logContext);
   } catch (error) {
     log.error(
       'cash-control: failed to resolve settings, falling back to defaults',
       error as Error,
       logContext
     );
-    resolved = { ...CASH_CONTROL_SETTINGS_DEFAULT };
+    resolved = { settings: { ...CASH_CONTROL_SETTINGS_DEFAULT }, sources: allDefaultSources() };
   }
 
   cache?.set(cacheKey, resolved);

@@ -15,6 +15,7 @@ import {
   getVoucherLinkedEffects,
   recalcOrderSnapshotIfLinked,
 } from '@/lib/services/voucher-wiring.service';
+import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import type { PostAndWireResult, LinkedEffectsResult } from '@/lib/types/voucher-wiring';
 import { reverseBizVoucher } from '@/lib/services/voucher-reversal.service';
 import {
@@ -93,7 +94,7 @@ export async function postBizVoucherAction(
     const hasPerm = await hasPermissionServer('fin_vouchers:post');
     if (!hasPerm) return { success: false, error: 'Permission denied: fin_vouchers:post' };
 
-    const result = await postAndWireBizVoucher(auth.tenantId, voucherId, auth.userId, idempotencyKey);
+    const result = await postAndWireBizVoucher(auth.tenantId, voucherId, auth.userId, CASH_GATE_MODES.DEFERRED, idempotencyKey);
 
     // X5 fix — refresh the linked order's snapshot after a manual voucher post.
     // recalcOrderSnapshotIfLinked is a no-op for non-order vouchers.

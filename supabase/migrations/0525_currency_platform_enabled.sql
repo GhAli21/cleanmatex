@@ -1,5 +1,9 @@
 -- =============================================================================
--- 0524_currency_platform_enabled.sql
+-- 0525_currency_platform_enabled.sql
+-- (originally authored as 0524; shifted to 0525 when 0523_currency_fk_phase_a
+-- was renumbered to 0524 after a filename collision — see
+-- cleanmatex/docs/features/Order_Fin/POS_Session_Cash_Drawer_Hardening/
+-- STATUS.md. This file never ran — safe to apply normally.
 -- Currency Setup Phase 3, task 3.5 (plan 02 decision 1, open decisions D4/D8).
 --
 -- Adds a third, independent flag to sys_currency_cd: is_platform_enabled.

@@ -317,7 +317,8 @@ describe('order-settlement.service — collectPaymentTx', () => {
       tx,
     );
     expect(mockPostAndWireBizVoucher).toHaveBeenCalledWith(
-      TENANT, 'voucher-1', 'user-1', 'collect-cash-001_vch_post', tx,
+      // CLF: a later collection takes cash at the drawer now → INTERACTIVE gate mode.
+      TENANT, 'voucher-1', 'user-1', 'INTERACTIVE', 'collect-cash-001_vch_post', tx,
     );
     // The old direct-write path must be fully retired — wiring now owns these tables.
     expect(mockPaymentCreate).not.toHaveBeenCalled();

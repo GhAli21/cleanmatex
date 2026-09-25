@@ -3,15 +3,15 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-23T08:15:20.861Z
+Generated: 2026-09-25T08:41:11.495Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 269 |
+| api | 271 |
 | middleware | 4 |
-| screen | 61 |
+| screen | 63 |
 | service | 2 |
 
 ## All permission usages
@@ -71,16 +71,20 @@ Generated: 2026-09-23T08:15:20.861Z
 | b2b_statements:view | api | app/api/v1/b2b-statements/route.ts | 16 | /api/v1/b2b-statements |
 | b2b_statements:view | api | app/api/v1/b2b-statements/[id]/print/route.ts | 22 | /api/v1/b2b-statements/[id]/print |
 | b2b_statements:view | api | app/api/v1/b2b-statements/[id]/route.ts | 30 | /api/v1/b2b-statements/[id] |
+| cash_control:manage | screen | src/features/cash-drawers/ui/cash-control-settings-screen.tsx | 71 | src/features/cash-drawers/ui/cash-control-settings-screen.tsx |
+| cash_control:manage | screen | src/features/cash-drawers/access/cash-drawers-access.ts | 7 | src/features/cash-drawers/access/cash-drawers-access.ts |
+| cash_control:manage | api | app/api/v1/settings/payments/cash-control/route.ts | 73 | /api/v1/settings/payments/cash-control |
+| cash_control:view | api | app/api/v1/settings/payments/cash-control/route.ts | 41 | /api/v1/settings/payments/cash-control |
 | cash_drawer:approve_variance | screen | src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx | 49 | src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx |
 | cash_drawer:approve_variance | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance/route.ts | 46 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance |
-| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 79 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 102 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 81 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 99 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | cash_drawer:close_session | api | app/api/v1/cash-drawers/[drawerId]/close-session/route.ts | 26 | /api/v1/cash-drawers/[drawerId]/close-session |
-| cash_drawer:open_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 78 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| cash_drawer:open_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 80 | src/features/pos-sessions/ui/pos-session-hub.tsx |
 | cash_drawer:open_session | api | app/api/v1/cash-drawers/[drawerId]/open-session/route.ts | 25 | /api/v1/cash-drawers/[drawerId]/open-session |
 | cash_drawer:record_movement | api | app/api/v1/cash-drawers/[drawerId]/cash-movement/route.ts | 26 | /api/v1/cash-drawers/[drawerId]/cash-movement |
-| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 77 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 101 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 79 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 98 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | cash_drawer:view | api | app/api/v1/cash-drawers/overview/route.ts | 20 | /api/v1/cash-drawers/overview |
 | cash_drawer:view | api | app/api/v1/cash-drawers/route.ts | 10 | /api/v1/cash-drawers |
 | cash_drawer:view | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/route.ts | 25 | /api/v1/cash-drawers/[drawerId]/session/[sessionId] |
@@ -317,24 +321,24 @@ Generated: 2026-09-23T08:15:20.861Z
 | payment_config:view | api | app/api/v1/settings/payments/card-brands/route.ts | 16 | /api/v1/settings/payments/card-brands |
 | payment_config:view | api | app/api/v1/settings/payments/methods/route.ts | 12 | /api/v1/settings/payments/methods |
 | payment_config:view | api | app/api/v1/settings/payments/terminals/route.ts | 13 | /api/v1/settings/payments/terminals |
-| pos_session:close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 75 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 99 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 77 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| pos_session:close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 96 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:close | api | app/api/v1/pos-sessions/close/route.ts | 12 | /api/v1/pos-sessions/close |
-| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 76 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 100 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 78 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 97 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:force_close | api | app/api/v1/pos-sessions/force-close/route.ts | 12 | /api/v1/pos-sessions/force-close |
-| pos_session:open | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 73 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:open | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 97 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:open | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 75 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| pos_session:open | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 94 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:open | api | app/api/v1/pos-sessions/ensure-for-order-entry/route.ts | 12 | /api/v1/pos-sessions/ensure-for-order-entry |
 | pos_session:open | api | app/api/v1/pos-sessions/open/route.ts | 12 | /api/v1/pos-sessions/open |
-| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 74 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 98 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 76 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 95 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:pause_resume | api | app/api/v1/pos-sessions/pause/route.ts | 12 | /api/v1/pos-sessions/pause |
 | pos_session:pause_resume | api | app/api/v1/pos-sessions/resume/route.ts | 12 | /api/v1/pos-sessions/resume |
 | pos_session:view | api | app/api/v1/pos-sessions/my-active/route.ts | 16 | /api/v1/pos-sessions/my-active |
 | pos_session:view | api | app/api/v1/pos-sessions/route.ts | 9 | /api/v1/pos-sessions |
 | pos_session:view | api | app/api/v1/pos-sessions/[sessionId]/summary/route.ts | 11 | /api/v1/pos-sessions/[sessionId]/summary |
-| pos_session:view_all | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 96 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:view_all | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 93 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | promotions:manage | api | app/api/v1/marketing/promotions/route.ts | 50 | /api/v1/marketing/promotions |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 61 | /api/v1/marketing/promotions/[promoId] |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 109 | /api/v1/marketing/promotions/[promoId] |

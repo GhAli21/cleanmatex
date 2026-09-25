@@ -1,226 +1,80 @@
-# Prisma Configuration Guide
+# Prisma Configuration Guide (web-admin)
 
-This document explains a documented Prisma pattern inside `web-admin`.
+Module-local guidance. Package docs: `docs/features/Tenant_Guard_Restoration/`.
 
-Authority note:
-
-- this is module-local guidance only
-- it is not the project-wide backend or schema authority
-- verify the current code before relying on older middleware claims in this file
+> **Changed 2026-09-25.** Earlier versions of this file said a Prisma middleware added
+> `tenant_org_id` automatically. It never ran: `$use` does not exist on Prisma 6, so the
+> middleware was silently skipped. It has been removed. **Nothing adds tenant filters for you.**
 
 ## Architecture
 
-### 1. Consolidated Prisma Client
+| Piece | File | What it does |
+|---|---|---|
+| Prisma client | `lib/db/prisma.ts` | Singleton base client + extensions. Import `prisma` from here only. |
+| Tenant Guard | `lib/db/tenant-guard.ts` | `$extends` query extension: checks each query on a tenant-scoped model carries an explicit `tenant_org_id`. **Logs or rejects, never injects.** |
+| Call-site binding | `withTenantGuardCallsites` in `tenant-guard.ts` | Binds each lazy query to the line/async context that created it, so violations name the real file:line. |
+| Performance monitor | `lib/db/prisma-performance.ts` | `$extends` query-timing extension (feeds `/api/admin/prisma-performance`). |
+| Tenant context | `lib/db/tenant-context.ts` | `withTenantContext(tenantId, fn)` stores the tenant in AsyncLocalStorage. Used by the guard to detect queries naming a *different* tenant. It does not filter anything. |
 
-- **Location**: `lib/db/prisma.ts`
-- **Pattern**: Singleton to prevent multiple instances in development
-- **Middleware**: historical/local pattern if used by the current implementation
+`lib/prisma.ts` is a deprecated re-export; import from `@/lib/db/prisma`.
 
-### 2. Tenant Context System
+## The rule
 
-- **Location**: `lib/db/tenant-context.ts`
-- **Technology**: AsyncLocalStorage (Node.js async context)
-- **Purpose**: Stores tenant ID in async context so middleware can access it synchronously
-
-### 3. Multi-Tenant Middleware
-
-- **Location**: `lib/prisma-middleware.ts`
-- **Function**: documented as automatically filtering `org_*` table queries by `tenant_org_id`
-- **Applied**: verify against the current implementation before relying on this as universal behavior
-
-## Usage Patterns
-
-### Pattern 1: Server Actions (Historical Recommended Pattern)
+Every query on a model that has a `tenant_org_id` column (and `org_tenants_mst`, guarded on `id`) must constrain it explicitly:
 
 ```typescript
-"use server";
+// ✅ scoped
+await prisma.org_orders_mst.findFirst({ where: { id: orderId, tenant_org_id: tenantId } });
+await prisma.org_orders_mst.findUnique({ where: { id_tenant_org_id: { id: orderId, tenant_org_id: tenantId } } });
+await prisma.org_orders_mst.update({ where: { id: orderId, tenant_org_id: tenantId }, data: { ... } });
+await prisma.org_orders_mst.create({ data: { tenant_org_id: tenantId, ... } });
 
-import {
-  withTenantContext,
-  getTenantIdFromSession,
-} from "@/lib/db/tenant-context";
-import { prisma } from "@/lib/db/prisma";
-
-export async function listOrders(filters: unknown) {
-  // Get tenant ID from session
-  const tenantId = await getTenantIdFromSession();
-  if (!tenantId) {
-    throw new Error("Unauthorized");
-  }
-
-  // Wrap with tenant context - all Prisma queries auto-filter by tenant_org_id
-  return withTenantContext(tenantId, async () => {
-    // Middleware automatically adds tenant_org_id to all queries
-    return await prisma.org_orders_mst.findMany({
-      where: {
-        status: "active",
-        // tenant_org_id is automatically added by middleware
-      },
-    });
-  });
-}
+// ❌ violation (MISSING_TENANT_FILTER) — a by-id lookup can return another tenant's row
+await prisma.org_orders_mst.findUnique({ where: { id: orderId } });
 ```
 
-### Pattern 2: API Routes
+Accepted forms: top-level `tenant_org_id` (value, `equals`, non-empty `in`), inside `AND`, inside a compound unique key, or in **every** `OR` branch. `NOT`/`notIn`/relation filters do not count. `create`/`createMany` need it on every row; `upsert` needs it in `where` and `create`.
+
+Inside `withTenantContext(A)`, a query naming tenant B is a `TENANT_MISMATCH` violation.
+
+## Modes — `TENANT_GUARD_MODE`
+
+| Value | Behavior |
+|---|---|
+| `log` (current default, Phase 1–2) | `console.warn` once per model+operation+callsite; query runs. |
+| `enforce` (Phase 3 default) | Throws `TenantGuardViolationError` before the query reaches the DB. |
+
+`TENANT_GUARD_REPORT_FILE=<path>` appends each violation as JSONL (used for discovery runs).
+
+## Legitimate cross-tenant work
+
+Platform sweeps / outbox processors / seeding that must span tenants:
 
 ```typescript
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { withTenantContext } from "@/lib/db/tenant-context";
-import { prisma } from "@/lib/db/prisma";
+import { withTenantGuardBypass } from '@/lib/db/tenant-guard';
 
-export async function GET(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const tenantId = user?.user_metadata?.tenant_org_id;
-  if (!tenantId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Wrap with tenant context
-  const orders = await withTenantContext(tenantId, async () => {
-    return await prisma.org_orders_mst.findMany();
-  });
-
-  return NextResponse.json({ orders });
-}
+await withTenantGuardBypass('finance-outbox-sweep', () =>
+  prisma.org_fin_outbox_tr.findMany({ where: { status: 'PENDING' } })
+);
 ```
 
-### Pattern 3: Direct DB Functions
+Every bypass reason must be listed in `docs/features/Tenant_Guard_Restoration/STATUS.md`.
 
-```typescript
-import { prisma } from "@/lib/db/prisma";
+## Not covered by the guard
 
-export async function listOrdersDb(tenantOrgId: string, filters: OrderFilters) {
-  // Manual tenant filter (middleware also adds it as backup)
-  const orders = await prisma.org_orders_mst.findMany({
-    where: {
-      tenant_org_id: tenantOrgId, // Manual filter
-      status: filters.status,
-      // Middleware will merge tenant_org_id if not present
-    },
-  });
+- **Raw SQL** (`$queryRaw` / `$executeRaw`) cannot be inspected — write `WHERE tenant_org_id = ...` yourself. The static audit flags suspects.
+- **Nested writes** (`create: { items: { create: [...] } }`) are only checked at the top level.
+- **Supabase-client routes** rely on RLS, not on this guard. Prisma connects as a superuser, so RLS does **not** protect Prisma queries.
 
-  return orders;
-}
-```
-
-**Note**: Manual tenant filters remain valuable for defense-in-depth. Do not rely on old documentation alone to assume middleware coverage.
-
-### Pattern 4: Tenant-Scoped Client (For Scripts/Jobs)
-
-```typescript
-import { createTenantScopedPrisma } from "@/lib/prisma-middleware";
-
-// Create a Prisma client scoped to a specific tenant
-const prisma = createTenantScopedPrisma("tenant-id");
-
-// All queries automatically filtered by tenant_org_id
-const orders = await prisma.org_orders_mst.findMany();
-```
-
-## How Middleware Works
-
-1. **Intercepts all Prisma queries** before execution
-2. **Checks if model starts with `org_`** (tenant-scoped tables)
-3. **Gets tenant ID from AsyncLocalStorage** context
-4. **Automatically adds `tenant_org_id`** to:
-   - `where` clauses (READ operations)
-   - `data` objects (CREATE operations)
-   - `where` clauses (UPDATE/DELETE operations)
-
-## Safety Features
-
-### Defense in Depth
-
-- **Primary**: Manual tenant filters in code
-- **Backup**: Middleware automatically adds tenant filters
-- **Result**: Even if manual filter is forgotten, middleware ensures tenant isolation
-
-### Development vs Production
-
-- **Development**: Warns if tenant context is missing but allows query (for testing)
-- **Production**: Throws error if tenant context is missing (prevents data leaks)
-
-## Migration Guide
-
-### Old Pattern (Before Middleware)
-
-```typescript
-// Had to manually add tenant_org_id everywhere
-const orders = await prisma.org_orders_mst.findMany({
-  where: {
-    tenant_org_id: tenantOrgId, // Required everywhere
-    status: "active",
-  },
-});
-```
-
-### New Pattern (With Middleware)
-
-```typescript
-// Wrap with tenant context once
-await withTenantContext(tenantId, async () => {
-  // All queries automatically filtered
-  const orders = await prisma.org_orders_mst.findMany({
-    where: {
-      status: "active", // tenant_org_id added automatically
-    },
-  });
-});
-```
-
-## Best Practices
-
-1. **Use the current tenant-context approach implemented by `web-admin`**
-2. **Get tenant ID from session** using `getTenantIdFromSession()`
-3. **Keep manual filters** for defense-in-depth (optional but recommended)
-4. **Never bypass tenant-isolation requirements** for `org_*` tables
-5. **Use `sys_*` tables** for global data (no tenant filtering needed)
-
-## Troubleshooting
-
-### Error: "Tenant ID is required"
-
-- **Cause**: `withTenantContext()` not called or tenant ID not in session
-- **Fix**: Ensure tenant context is set before Prisma queries
-
-### Error: "Cannot read properties of undefined (reading 'groupBy')"
-
-- **Cause**: Prisma client not regenerated after schema changes
-- **Fix**: Run `npm run prisma:generate`
-
-### Queries not filtering by tenant
-
-- **Cause**: Middleware not applied or tenant context not set
-- **Fix**: Ensure middleware is applied in `lib/db/prisma.ts` and `withTenantContext()` is used
-
-## Files Reference
-
-- `lib/db/prisma.ts` - Main Prisma client (use this)
-- `lib/db/tenant-context.ts` - Tenant context management
-- `lib/prisma-middleware.ts` - Multi-tenant middleware
-- `lib/prisma.ts` - Legacy export if still present
-
-## Testing
-
-Test Prisma connection:
+## Commands
 
 ```bash
+npm run audit:tenant-guard                                   # static worklist → docs/.../generated/STATIC_AUDIT.md
+TENANT_GUARD_MODE=enforce npm run test:db-integration        # real-DB proof incl. tenant-guard-cross-tenant.db.test.ts
+npm run prisma:generate
 npx tsx scripts/test-prisma-connection.ts
 ```
 
-Generate Prisma client:
+## Typing note
 
-```bash
-npm run prisma:generate
-```
-
-Open Prisma Studio:
-
-```bash
-npm run prisma:studio
-```
+`prisma` is typed as plain `PrismaClient` on purpose: both extensions are query-only, and exposing the inferred extended type made `tsc` ~5x slower and broke every injected `PrismaClient` parameter.

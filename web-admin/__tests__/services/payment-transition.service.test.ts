@@ -24,7 +24,15 @@ const mockMovementFindFirst = jest.fn();
 const mockMovementCreate = jest.fn();
 const mockSessionFindFirst = jest.fn();
 const mockVoucherLineUpdateMany = jest.fn();
+const mockVoucherLineFindFirst = jest.fn();
 const mockLoggerWarn = jest.fn();
+// CLF — the cash-drawer ledger gate and the line-reversal core are mocked at
+// their module boundary; payment-transition.service.ts is tested for how it
+// CALLS them, not for the gate's own decisions (covered by
+// cash-drawer-ledger-policy.test.ts / cash-drawer-ledger-gate.db.test.ts).
+const mockRecognizeCashLineTx = jest.fn();
+const mockAbandonPendingCashLineTx = jest.fn();
+const mockReverseVoucherLinesInTx = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => {
   const tx = {
@@ -45,7 +53,10 @@ jest.mock('@/lib/db/prisma', () => {
       create: (...a: unknown[]) => mockMovementCreate(...a),
     },
     org_cash_drawer_sessions_mst: { findFirst: (...a: unknown[]) => mockSessionFindFirst(...a) },
-    org_fin_voucher_trx_lines_dtl: { updateMany: (...a: unknown[]) => mockVoucherLineUpdateMany(...a) },
+    org_fin_voucher_trx_lines_dtl: {
+      updateMany: (...a: unknown[]) => mockVoucherLineUpdateMany(...a),
+      findFirst: (...a: unknown[]) => mockVoucherLineFindFirst(...a),
+    },
   };
   return {
     prisma: {
@@ -60,6 +71,15 @@ jest.mock('@/lib/services/order-financial-write.service', () => ({
 
 jest.mock('@/lib/utils/logger', () => ({
   logger: { warn: (...a: unknown[]) => mockLoggerWarn(...a), error: jest.fn(), info: jest.fn() },
+}));
+
+jest.mock('@/lib/services/cash-drawer-ledger/cash-drawer-ledger-gate', () => ({
+  recognizeCashLineTx: (...a: unknown[]) => mockRecognizeCashLineTx(...a),
+  abandonPendingCashLineTx: (...a: unknown[]) => mockAbandonPendingCashLineTx(...a),
+}));
+
+jest.mock('@/lib/services/voucher-line-reversal.service', () => ({
+  reverseVoucherLinesInTx: (...a: unknown[]) => mockReverseVoucherLinesInTx(...a),
 }));
 
 import { transitionPaymentTx } from '@/lib/services/payment-transition.service';
@@ -149,19 +169,12 @@ describe('transitionPaymentTx — VERIFY', () => {
     expect(mockOutboxCreate).not.toHaveBeenCalled();
   });
 
-  it('creates the B32 deferred cash-drawer movement for a CASH + drawer leg with no existing movement', async () => {
-    const sessionId = 'session-1';
+  it('CLF: VERIFY of a CASH leg recognises the cash line in the drawer ledger (DEFERRED mode)', async () => {
+    const lineId = 'line-1';
     mockQueryRaw.mockResolvedValue([
-      pendingRow({ payment_method_code: 'CASH', cash_drawer_session_id: sessionId }),
+      pendingRow({ payment_method_code: 'CASH', fin_voucher_trx_line_id: lineId }),
     ]);
-    mockMovementFindFirst.mockResolvedValue(null);
-    mockSessionFindFirst.mockResolvedValue({
-      id: sessionId,
-      cash_drawer_id: 'drawer-1',
-      branch_id: 'branch-1',
-      currency_code: 'SAR',
-    });
-    mockMovementCreate.mockResolvedValue({ id: 'movement-1' });
+    mockRecognizeCashLineTx.mockResolvedValue({ effect: 'DRAWER', sessionId: 'session-1', error: null });
 
     const result = await transitionPaymentTx({
       orderId: ORDER_ID,
@@ -173,19 +186,23 @@ describe('transitionPaymentTx — VERIFY', () => {
     });
 
     expect(result.deferredCashMovementCreated).toBe(true);
-    expect(mockMovementCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ movement_type: 'CASH_SALE', order_payment_id: PAYMENT_ID }),
-      }),
+    expect(mockRecognizeCashLineTx).toHaveBeenCalledWith(
+      expect.anything(),
+      { tenantOrgId: TENANT_A, userId: USER_ID, mode: 'DEFERRED' },
+      lineId,
     );
+    // Superseded: no more org_cash_drawer_movements_dtl mirror row.
+    expect(mockMovementCreate).not.toHaveBeenCalled();
   });
 
-  it('does not create a deferred movement when the drawer session is no longer OPEN (no silent mutation)', async () => {
+  it('CLF: VERIFY of a CASH leg with no open session on the drawer still recognises it — lands in the next window, never refused', async () => {
+    const lineId = 'line-2';
     mockQueryRaw.mockResolvedValue([
-      pendingRow({ payment_method_code: 'CASH', cash_drawer_session_id: 'session-closed' }),
+      pendingRow({ payment_method_code: 'CASH', fin_voucher_trx_line_id: lineId }),
     ]);
-    mockMovementFindFirst.mockResolvedValue(null);
-    mockSessionFindFirst.mockResolvedValue(null); // not OPEN / not found
+    // DEFERRED mode: the gate never refuses on session state — sessionId null
+    // means the drawer had no open session, so the cash lands in the next window.
+    mockRecognizeCashLineTx.mockResolvedValue({ effect: 'DRAWER', sessionId: null, error: null });
 
     const result = await transitionPaymentTx({
       orderId: ORDER_ID,
@@ -193,12 +210,45 @@ describe('transitionPaymentTx — VERIFY', () => {
       tenantId: TENANT_A,
       actorId: USER_ID,
       action: 'VERIFY',
-      idempotencyKey: 'key-verify-closed',
+      idempotencyKey: 'key-verify-no-session',
+    });
+
+    expect(result.deferredCashMovementCreated).toBe(true);
+    expect(mockRecognizeCashLineTx).toHaveBeenCalled();
+  });
+
+  it('CLF: VERIFY of a CASH leg with no linked voucher line skips the gate entirely (nothing to recognise)', async () => {
+    mockQueryRaw.mockResolvedValue([
+      pendingRow({ payment_method_code: 'CASH', fin_voucher_trx_line_id: null }),
+    ]);
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'VERIFY',
+      idempotencyKey: 'key-verify-no-line',
     });
 
     expect(result.deferredCashMovementCreated).toBe(false);
-    expect(mockMovementCreate).not.toHaveBeenCalled();
-    expect(mockLoggerWarn).toHaveBeenCalled();
+    expect(mockRecognizeCashLineTx).not.toHaveBeenCalled();
+  });
+
+  it('CLF: VERIFY of a non-cash leg never calls the gate', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_method_code: 'CHECK', fin_voucher_trx_line_id: 'line-3' })]);
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'VERIFY',
+      idempotencyKey: 'key-verify-noncash',
+    });
+
+    expect(result.deferredCashMovementCreated).toBe(false);
+    expect(mockRecognizeCashLineTx).not.toHaveBeenCalled();
   });
 });
 
@@ -309,6 +359,50 @@ describe('transitionPaymentTx — CANCEL / FAIL_BOUNCE', () => {
 
     expect(mockLoggerWarn).toHaveBeenCalled();
     expect(mockMovementCreate).not.toHaveBeenCalled();
+  });
+
+  it('CLF: CANCEL of a still-PENDING cash line marks its cash effect NONE (nothing physical moved)', async () => {
+    const lineId = 'line-pending';
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_method_code: 'CASH', fin_voucher_trx_line_id: lineId })]);
+    mockVoucherLineFindFirst.mockResolvedValue({ cash_effect_code: 'PENDING' });
+
+    await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'CANCEL',
+      reason: 'test',
+      fallbackClassification: 'MANUAL_REVIEW',
+      idempotencyKey: 'key-cancel-pending-cash',
+    });
+
+    expect(mockAbandonPendingCashLineTx).toHaveBeenCalledWith(
+      expect.anything(),
+      { tenantOrgId: TENANT_A, userId: USER_ID, mode: 'DEFERRED' },
+      lineId,
+    );
+  });
+
+  it('CLF: CANCEL of a leg already recognised in the drawer ledger is refused — must be reversed instead', async () => {
+    const lineId = 'line-recognised';
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_method_code: 'CASH', fin_voucher_trx_line_id: lineId })]);
+    mockVoucherLineFindFirst.mockResolvedValue({ cash_effect_code: 'DRAWER' });
+
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'CANCEL',
+        reason: 'test',
+        fallbackClassification: 'MANUAL_REVIEW',
+        idempotencyKey: 'key-cancel-recognised-cash',
+      }),
+    ).rejects.toThrow('CASH_LEG_MUST_REVERSE');
+    // Refused before the row is flipped — no half-applied CANCEL on live drawer cash.
+    expect(mockPaymentUpdateMany).not.toHaveBeenCalled();
   });
 });
 
@@ -613,60 +707,44 @@ describe('transitionPaymentTx — REVERSE (B10)', () => {
       }),
     );
     expect(mockMovementCreate).not.toHaveBeenCalled();
+    expect(mockReverseVoucherLinesInTx).not.toHaveBeenCalled();
     expect(mockOutboxCreate.mock.calls[0][0].data).toMatchObject({
       event_type: OUTBOX_EVENT_TYPES.PAYMENT_REVERSED,
     });
   });
 
-  it('a CASH leg with no cashDrawerSessionId throws CASH_DRAWER_SESSION_REQUIRED (no silent mutation)', async () => {
-    mockQueryRaw.mockResolvedValue([completedRow({ payment_method_code: 'CASH' })]);
-
-    await expect(
-      transitionPaymentTx({
-        orderId: ORDER_ID,
-        paymentId: PAYMENT_ID,
-        tenantId: TENANT_A,
-        actorId: USER_ID,
-        action: 'REVERSE',
-        reason: 'wrong amount collected',
-        idempotencyKey: 'key-reverse-cash-nosession',
-      }),
-    ).rejects.toThrow('CASH_DRAWER_SESSION_REQUIRED');
-    expect(mockPaymentUpdateMany).toHaveBeenCalled(); // row already flipped before the compensation step
-    expect(mockMovementCreate).not.toHaveBeenCalled();
-  });
-
-  it('a CASH leg with a supplied session that is not OPEN throws CASH_DRAWER_SESSION_NOT_OPEN', async () => {
-    mockQueryRaw.mockResolvedValue([completedRow({ payment_method_code: 'CASH' })]);
-    mockSessionFindFirst.mockResolvedValue(null);
-
-    await expect(
-      transitionPaymentTx({
-        orderId: ORDER_ID,
-        paymentId: PAYMENT_ID,
-        tenantId: TENANT_A,
-        actorId: USER_ID,
-        action: 'REVERSE',
-        reason: 'wrong amount collected',
-        cashDrawerSessionId: 'closed-session',
-        idempotencyKey: 'key-reverse-cash-closed',
-      }),
-    ).rejects.toThrow('CASH_DRAWER_SESSION_NOT_OPEN');
-    expect(mockMovementCreate).not.toHaveBeenCalled();
-  });
-
-  it('a CASH leg with an OPEN session creates a PAYMENT_REVERSAL OUT movement linked via reversed_payment_id (not order_payment_id)', async () => {
-    const sessionId = 'session-open-1';
+  it('CLF: a CASH leg with no linked voucher throws CASH_LEG_HAS_NO_VOUCHER_LINE (nothing to mirror)', async () => {
     mockQueryRaw.mockResolvedValue([
-      completedRow({ payment_method_code: 'CASH', amount: '75.00' }),
+      completedRow({ payment_method_code: 'CASH', fin_voucher_id: null, fin_voucher_trx_line_id: null }),
     ]);
-    mockSessionFindFirst.mockResolvedValue({
-      id: sessionId,
-      cash_drawer_id: 'drawer-1',
-      branch_id: 'branch-1',
-      currency_code: 'SAR',
+
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'REVERSE',
+        reason: 'wrong amount collected',
+        idempotencyKey: 'key-reverse-cash-novoucher',
+      }),
+    ).rejects.toThrow('CASH_LEG_HAS_NO_VOUCHER_LINE');
+    expect(mockReverseVoucherLinesInTx).not.toHaveBeenCalled();
+  });
+
+  it('CLF: a CASH leg reverses through the voucher-line reversal core (no legacy movement row, no client session required)', async () => {
+    const voucherId = 'voucher-1';
+    const lineId = 'line-completed';
+    mockQueryRaw.mockResolvedValue([
+      completedRow({ payment_method_code: 'CASH', amount: '75.00', fin_voucher_id: voucherId, fin_voucher_trx_line_id: lineId }),
+    ]);
+    mockVoucherLineFindFirst.mockResolvedValue(null); // no existing mirror — standalone REVERSE
+    mockReverseVoucherLinesInTx.mockResolvedValue({
+      reversalVoucherId: 'rev-voucher-1',
+      reversalVoucherNo: 'RV-1',
+      originalStatus: 'REVERSED',
+      pairs: [],
     });
-    mockMovementCreate.mockResolvedValue({ id: 'reversal-movement-1' });
 
     const result = await transitionPaymentTx({
       orderId: ORDER_ID,
@@ -675,22 +753,45 @@ describe('transitionPaymentTx — REVERSE (B10)', () => {
       actorId: USER_ID,
       action: 'REVERSE',
       reason: 'wrong amount collected',
-      cashDrawerSessionId: sessionId,
       idempotencyKey: 'key-reverse-cash-ok',
     });
 
     expect(result.compensatingCashMovementCreated).toBe(true);
-    const createCall = mockMovementCreate.mock.calls[0][0].data;
-    expect(createCall).toMatchObject({
-      movement_type: 'PAYMENT_REVERSAL',
-      direction: 'OUT',
-      amount: '75.00',
-      reversed_payment_id: PAYMENT_ID,
-      cash_drawer_session_id: sessionId,
+    expect(mockReverseVoucherLinesInTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        tenantOrgId: TENANT_A,
+        voucherId,
+        userId: USER_ID,
+        lineIds: [lineId],
+        reason: 'wrong amount collected',
+      }),
+    );
+    expect(mockMovementCreate).not.toHaveBeenCalled();
+  });
+
+  it('CLF: skips reverseVoucherLinesInTx when a mirror line already exists (nested from voucher-reversal — avoids double-reversal)', async () => {
+    const voucherId = 'voucher-2';
+    const lineId = 'line-completed-2';
+    mockQueryRaw.mockResolvedValue([
+      completedRow({ payment_method_code: 'CASH', fin_voucher_id: voucherId, fin_voucher_trx_line_id: lineId }),
+    ]);
+    // The mirror was already created moments earlier in the same transaction
+    // by reverseVoucherLinesInTx (voucher-level reversal calling this as its unwind step).
+    mockVoucherLineFindFirst.mockResolvedValue({ id: 'existing-mirror-line' });
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'REVERSE',
+      reason: 'wrong amount collected',
+      idempotencyKey: 'key-reverse-cash-nested',
     });
-    expect(createCall.order_payment_id).toBeUndefined();
-    // Expected cash drops via the payment leaving COMPLETED; this movement is
-    // recon lineage only (B35 excludes reversed_payment_id / PAYMENT_REVERSAL).
+
+    expect(result.compensatingCashMovementCreated).toBe(true);
+    expect(mockReverseVoucherLinesInTx).not.toHaveBeenCalled();
   });
 });
 

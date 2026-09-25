@@ -169,7 +169,8 @@ describe('stored-value-funding.service — fundStoredValue', () => {
       undefined,
       tx,
     );
-    expect(mockPostAndWireBizVoucher).toHaveBeenCalledWith(TENANT, 'voucher-1', 'user-1', 'fund-001_vch_post', tx);
+    // CLF: funding is taken at the counter now → INTERACTIVE gate mode.
+    expect(mockPostAndWireBizVoucher).toHaveBeenCalledWith(TENANT, 'voucher-1', 'user-1', 'INTERACTIVE', 'fund-001_vch_post', tx);
   });
 
   it('creates the gift card unfunded (GENERATED) before the voucher, for GIFT_CARD_SALE', async () => {

@@ -29,19 +29,13 @@
  */
 
 import type { Decimal } from '@prisma/client/runtime/library';
-import { CASH_DRAWER_MOVEMENT_TYPES, PAYMENT_METHODS } from '@/lib/constants/payment';
+import { CASH_DRAWER_MOVEMENT_TYPES } from '@/lib/constants/payment';
+import { CASH_PAYMENT_METHOD_CODES, isCashFamilyMethod } from '@/lib/utils/cash-method';
 import { ORDER_PAYMENT_LIFECYCLE_STATUSES } from '@/lib/constants/order-financial';
 import { isCompletedPaymentStatus } from '@/lib/services/order-financial-aggregation';
 import { sumMoney, type MoneyInput } from '@/lib/utils/money';
 
-/**
- * Cash-family payment method codes — the only methods whose settled amount is
- * physical cash in a drawer. A single-member family today (`CASH`); kept as a
- * list so a future cash-equivalent code (e.g. a petty-cash tender) can join
- * without touching every call site. Mirrors the DB `payment_method_code`
- * values exactly (DB-mirror rule).
- */
-export const CASH_PAYMENT_METHOD_CODES: readonly string[] = [PAYMENT_METHODS.CASH];
+export { CASH_PAYMENT_METHOD_CODES, isCashFamilyMethod } from '@/lib/utils/cash-method';
 
 /**
  * Frozen COMPLETED lifecycle set (COMPLETED / CAPTURED / SETTLED) reused from
@@ -50,7 +44,6 @@ export const CASH_PAYMENT_METHOD_CODES: readonly string[] = [PAYMENT_METHODS.CAS
 export const EFFECTIVE_CASH_PAYMENT_STATUSES: readonly string[] =
   ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED;
 
-const CASH_METHOD_SET = new Set(CASH_PAYMENT_METHOD_CODES.map((c) => c.toUpperCase()));
 
 /**
  * Prisma `where` fragment selecting effective cash payments. Spread into an
@@ -79,10 +72,6 @@ export interface CashPaymentClassifiable {
   is_active?: boolean | null;
 }
 
-/** True when the method code belongs to the cash family (case-insensitive). */
-export function isCashFamilyMethod(code: string | null | undefined): boolean {
-  return CASH_METHOD_SET.has(String(code ?? '').trim().toUpperCase());
-}
 
 /**
  * In-memory equivalent of {@link effectiveCashPaymentWhere}: active, COMPLETED

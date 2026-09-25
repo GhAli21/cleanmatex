@@ -53,6 +53,7 @@ import { resolveDefaultStatus } from '@/lib/services/order-settlement-planner.se
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
+import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import { VOUCHER_TYPE, LINE_TYPE, LINE_ROLE } from '@/lib/constants/voucher';
 import { hashPayload } from '@/lib/utils/idempotency';
 
@@ -996,7 +997,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       }
     }
 
-    await postAndWireBizVoucher(tenantId, voucher.id, collectedBy, `${idempotencyKey}_vch_post`, tx);
+    await postAndWireBizVoucher(tenantId, voucher.id, collectedBy, CASH_GATE_MODES.INTERACTIVE, `${idempotencyKey}_vch_post`, tx);
 
     if (overpaymentResolution && overpaymentMetrics.excessAmount > SETTLEMENT_MONEY_EPSILON) {
       const dispositionOnly = resolutionIncludesAllocation(overpaymentResolution)

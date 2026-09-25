@@ -6679,6 +6679,8 @@ model org_cash_drawers_mst {
   max_cash_limit                Decimal?                        @db.Decimal(19, 4)
   // B16 (migration 0407): per-drawer variance-approval threshold; NULL = inherit tenant default (no gate).
   variance_approval_threshold   Decimal?                        @db.Decimal(19, 4)
+  // CLF (migration 0526): per-drawer ledger sequence; incremented only under the drawer row lock.
+  ledger_seq                    BigInt                          @default(0)
   assigned_user_id              String?                         @db.Uuid
   assigned_terminal_id          String?                         @db.Uuid
   metadata                      Json                            @default("{}")
@@ -6699,6 +6701,7 @@ model org_cash_drawers_mst {
   org_order_payments_dtl        org_order_payments_dtl[]        @relation("OrdPayCashDrawer")
 
   @@unique([tenant_org_id, drawer_code], map: "uq_org_cash_drawers_mst_code")
+  @@unique([id, tenant_org_id], map: "uq_ocd_id_tenant")
   @@index([tenant_org_id], map: "idx_org_cash_drawers_tenant")
   @@index([tenant_org_id, branch_id, is_active], map: "idx_org_cash_drawers_branch")
   @@schema("public")
@@ -6745,8 +6748,73 @@ model org_cash_drawer_sessions_mst {
   org_order_payments_dtl        org_order_payments_dtl[]        @relation("OrdPayCashDrawerSession")
 
   @@unique([tenant_org_id, session_no], map: "uq_org_cash_drawer_sessions_no")
+  @@unique([id, tenant_org_id], map: "uq_ocds_id_tenant")
   @@index([tenant_org_id], map: "idx_org_cds_tenant")
   @@index([tenant_org_id, cash_drawer_id, status], map: "idx_org_cds_drawer")
+  @@schema("public")
+}
+
+/// CLF (migration 0527): custody transaction header — append-only; corrections are REVERSAL transactions.
+model org_cash_drawer_trx_mst {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String    @db.Uuid
+  branch_id         String    @db.Uuid
+  trx_no            String
+  trx_type_code     String
+  occurred_at       DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  business_date     DateTime? @db.Date
+  source_session_id String?   @db.Uuid
+  reverses_trx_id   String?   @db.Uuid
+  reason_code       String?
+  notes             String?
+  performed_by      String
+  approved_by       String?
+  idempotency_key   String?
+  metadata          Json      @default("{}")
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  created_info      String?
+  updated_at        DateTime? @db.Timestamptz(6)
+  updated_by        String?
+  updated_info      String?
+  rec_status        Int       @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?
+  is_active         Boolean   @default(true)
+
+  @@unique([id, tenant_org_id], map: "uq_ocdt_id_tenant")
+  @@unique([tenant_org_id, trx_no], map: "uq_ocdt_trx_no")
+  @@index([tenant_org_id, occurred_at(sort: Desc)], map: "idx_ocdt_tenant_occurred")
+  @@index([tenant_org_id, branch_id, occurred_at(sort: Desc)], map: "idx_ocdt_branch_occurred")
+  @@schema("public")
+}
+
+/// CLF (migration 0527): custody transaction lines — one per drawer side; nets to zero per currency.
+model org_cash_drawer_trx_dtl {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String    @db.Uuid
+  trx_id                 String    @db.Uuid
+  line_no                Int
+  cash_drawer_id         String    @db.Uuid
+  cash_drawer_session_id String?   @db.Uuid
+  ledger_seq             BigInt
+  direction              String
+  amount                 Decimal   @db.Decimal(19, 4)
+  currency_code          String
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime? @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  rec_status             Int       @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean   @default(true)
+
+  @@unique([trx_id, line_no], map: "uq_ocdtd_line")
+  @@unique([tenant_org_id, cash_drawer_id, ledger_seq], map: "uq_ocdtd_drawer_seq")
+  @@index([tenant_org_id, trx_id], map: "idx_ocdtd_trx")
   @@schema("public")
 }
 
@@ -6830,6 +6898,10 @@ model org_fin_cash_ctrl_stng_cf {
   pos_session_rollover_mode    String?
   pos_session_stale_hours      Int?
   shift_z_report_required      Boolean?
+  // CLF (migration 0528): drawer policy — NULL = inherit, then drawer-type default.
+  requires_session             Boolean?
+  opening_count_required       Boolean?
+  closing_count_required       Boolean?
   metadata                     Json            @default("{}")
   created_at                   DateTime?       @default(now()) @db.Timestamptz(6)
   created_by                   String?
@@ -7499,6 +7571,135 @@ model sys_cash_drawer_session_status_cd {
   @@schema("public")
 }
 
+/// CLF (migration 0523): drawer types — hard capabilities + overridable defaults.
+model sys_cash_drawer_type_cd {
+  code                           String    @id
+  name                           String
+  name2                          String?
+  description                    String?
+  description2                   String?
+  accepts_customer_cash          Boolean
+  allows_customer_cash_out       Boolean
+  can_be_trx_source              Boolean
+  can_be_trx_dest                Boolean
+  can_receive_disposition        Boolean
+  is_mobile                      Boolean
+  requires_session_default       Boolean
+  opening_count_required_default Boolean
+  closing_count_required_default Boolean
+  display_order                  Int       @default(0)
+  created_at                     DateTime? @default(now()) @db.Timestamptz(6)
+  created_by                     String?
+  created_info                   String?
+  updated_at                     DateTime? @db.Timestamptz(6)
+  updated_by                     String?
+  updated_info                   String?
+  rec_status                     Int       @default(1) @db.SmallInt
+  rec_order                      Int?
+  rec_notes                      String?
+  is_active                      Boolean   @default(true)
+
+  @@schema("public")
+}
+
+/// CLF (migration 0523): custody (operational) transaction types between drawers.
+model sys_cash_drawer_trx_type_cd {
+  code               String    @id
+  name               String
+  name2              String?
+  description        String?
+  description2       String?
+  allowed_src_types  String[]
+  allowed_dest_types String[]
+  requires_notes     Boolean   @default(false)
+  is_system          Boolean   @default(false)
+  display_order      Int       @default(0)
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime? @db.Timestamptz(6)
+  updated_by         String?
+  updated_info       String?
+  rec_status         Int       @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  is_active          Boolean   @default(true)
+
+  @@schema("public")
+}
+
+/// CLF (migration 0523): count types (OPENING / SPOT / CLOSING / RECOUNT).
+model sys_cash_drawer_cnt_type_cd {
+  code          String    @id
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  display_order Int       @default(0)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime? @db.Timestamptz(6)
+  updated_by    String?
+  updated_info  String?
+  rec_status    Int       @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  is_active     Boolean   @default(true)
+
+  @@schema("public")
+}
+
+/// CLF (migration 0523): session close disposition codes.
+model sys_cash_drawer_ses_disp_cd {
+  code                  String    @id
+  name                  String
+  name2                 String?
+  description           String?
+  description2          String?
+  cash_move_mode        String
+  dest_drawer_type_code String?
+  requires_notes        Boolean   @default(false)
+  requires_kept_amount  Boolean   @default(false)
+  is_selectable         Boolean   @default(true)
+  display_order         Int       @default(0)
+  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime? @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  rec_status            Int       @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  is_active             Boolean   @default(true)
+
+  @@schema("public")
+}
+
+/// CLF (migration 0523): after-close follow-up statuses.
+model sys_cash_drawer_ses_post_cd {
+  code           String    @id
+  name           String
+  name2          String?
+  description    String?
+  description2   String?
+  requires_notes Boolean   @default(false)
+  display_order  Int       @default(0)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  created_by     String?
+  created_info   String?
+  updated_at     DateTime? @db.Timestamptz(6)
+  updated_by     String?
+  updated_info   String?
+  rec_status     Int       @default(1) @db.SmallInt
+  rec_order      Int?
+  rec_notes      String?
+  is_active      Boolean   @default(true)
+
+  @@schema("public")
+}
+
 model sys_cash_drawer_movement_type_cd {
   code                  String   @id @db.VarChar(50)
   name                  String   @db.VarChar(250)
@@ -7964,6 +8165,13 @@ model org_fin_voucher_trx_lines_dtl {
   // Plain scalar, no modeled relation — matches this table's existing
   // convention for cash_drawer_session_id/org_payment_method_id/pos_session_id.
   sv_funding_tender_id    String?                         @db.Uuid
+  // CLF (migration 0526): drawer ledger stamp — written only by the cash-drawer ledger gate.
+  // cash_effect_code: NULL / PENDING / DRAWER / UNTRACKED / NONE (see lib/constants/cash-drawer.ts).
+  cash_drawer_id          String?                         @db.Uuid
+  cash_ledger_seq         BigInt?
+  cash_recognized_at      DateTime?                       @db.Timestamptz(6)
+  cash_recognized_by      String?
+  cash_effect_code        String?
   rec_status              Int                             @default(1) @db.SmallInt
   rec_order               Int?
   rec_notes               String?

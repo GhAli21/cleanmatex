@@ -609,6 +609,12 @@ export const OUTBOX_EVENT_TYPES = {
    * status row); the history consumer intentionally ignores this type.
    */
   ORDER_CANCEL_FINANCIAL_UNWIND: 'ORDER_CANCEL_FINANCIAL_UNWIND',
+  /**
+   * CLF (ADR-057): the cash-drawer ledger gate attached a cash line to a
+   * different session than the caller's hint (stale client id, or the hinted
+   * session had closed). Audit only — no handler consumes it.
+   */
+  CASH_FACT_REDIRECTED: 'CASH_FACT_REDIRECTED',
 } as const;
 /** Derived union for emitted Order Fin outbox events. */
 export type OutboxEventType =

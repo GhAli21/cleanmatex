@@ -14,8 +14,11 @@ import {
   type FallbackClassification,
   type PaymentTransitionAction,
 } from '@/lib/constants/order-financial';
-import { CASH_DRAWER_MOVEMENT_TYPES, PAYMENT_METHODS, type PaymentMethodCode } from '@/lib/constants/payment';
-import { isCashFamilyMethod } from './cash-drawer-cash-facts';
+import type { PaymentMethodCode } from '@/lib/constants/payment';
+import { CASH_EFFECTS, CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
+import { isCashFamilyMethod } from '@/lib/utils/cash-method';
+import { recognizeCashLineTx, abandonPendingCashLineTx } from './cash-drawer-ledger/cash-drawer-ledger-gate';
+import { reverseVoucherLinesInTx } from './voucher-line-reversal.service';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { hashPayload } from '@/lib/utils/idempotency';
@@ -46,9 +49,9 @@ const FALLBACK_CLASSIFICATION_VALUES = new Set<string>(Object.values(FALLBACK_CL
  *                 no D009 fallback — a never-effective/mistaken entry has no
  *                 balance-routing decision to record; B10/D004)
  *   REVERSE     — COMPLETED/CAPTURED/SETTLED -> REVERSED (mandatory reason;
- *                 cash-family legs additionally require an OPEN
- *                 `cashDrawerSessionId` to receive the compensating OUT
- *                 movement — B10/D004)
+ *                 cash-family legs get a real reversal voucher line, gate-
+ *                 stamped into whichever drawer window is current now — CLF,
+ *                 supersedes B10/D004's compensating-movement design)
  *   CAPTURE     — AUTHORIZED -> CAPTURED (no reason; gateway-confirmed or
  *                 manual re-sync — B08)
  *   SETTLE      — CAPTURED -> SETTLED (no reason; gateway-confirmed or
@@ -78,10 +81,10 @@ export interface TransitionPaymentParams {
    */
   idempotencyKey: string;
   /**
-   * B10/REVERSE only. Required when the leg being reversed is a cash-family
-   * method — the OPEN drawer session that will receive the compensating OUT
-   * movement (may differ from the original session, which could already be
-   * closed). Re-verified server-side. Ignored for every other action.
+   * @deprecated Unused by REVERSE since CLF — the cash-drawer ledger gate
+   * decides the window itself (DEFERRED mode). Kept only so the idempotency
+   * hash stays stable for keys generated before this change; ignored
+   * otherwise. Do not read this for new logic.
    */
   cashDrawerSessionId?: string;
 }
@@ -99,7 +102,7 @@ export interface TransitionPaymentResult {
   fallbackClassification: FallbackClassification | null;
   /** True when this transition reclassified org_orders_mst.payment_type_code (D009). */
   reclassifiedPaymentType: boolean;
-  /** True when this VERIFY created the B32 deferred cash-drawer movement. */
+  /** True when this VERIFY recognised the leg's cash line in the drawer ledger (CLF). */
   deferredCashMovementCreated: boolean;
   /** True when this REVERSE created the B10 compensating cash-drawer OUT movement. */
   compensatingCashMovementCreated: boolean;
@@ -161,10 +164,31 @@ interface LockedPaymentRow {
  * @throws Error('ILLEGAL_TRANSITION')
  * @throws Error('PAYMENT_TRANSITION_RACE_DETECTED')
  * @throws Error('IDEMPOTENCY_CONFLICT')
- * @throws Error('CASH_DRAWER_SESSION_REQUIRED') REVERSE of a cash-family leg with no session supplied
- * @throws Error('CASH_DRAWER_SESSION_NOT_OPEN') REVERSE — supplied session not found/not OPEN
+ * @throws Error('CASH_LEG_HAS_NO_VOUCHER_LINE') REVERSE of a cash-family leg with no linked voucher line
+ * @throws Error('CASH_LEG_MUST_REVERSE') CANCEL/FAIL_BOUNCE/VOID of a leg already
+ *         recognised in the drawer ledger (CLF) — correct it with REVERSE instead
+ * @throws CashDrawerLedgerError VERIFY/REVERSE — the cash-drawer ledger gate refused
+ *         the line (see lib/constants/cash-drawer.ts CASH_LEDGER_ERRORS)
  */
 export async function transitionPaymentTx(
+  params: TransitionPaymentParams,
+  tx?: PrismaTransactionClient,
+): Promise<TransitionPaymentResult> {
+  if (tx) {
+    return transitionPaymentCoreTx(tx, params);
+  }
+  return prisma.$transaction((innerTx) => transitionPaymentCoreTx(innerTx, params));
+}
+
+/**
+ * Core transition logic, run inside `tx`. Extracted so callers that already
+ * hold a transaction (e.g. voucher reversal, CLF W9) can join it instead of
+ * opening a second, independent one — the pre-CLF bug this closes: nesting a
+ * fresh `prisma.$transaction` inside another meant the voucher reversal and
+ * its payment unwind were never actually atomic with each other.
+ */
+async function transitionPaymentCoreTx(
+  tx: PrismaTransactionClient,
   params: TransitionPaymentParams,
 ): Promise<TransitionPaymentResult> {
   const { orderId, paymentId, tenantId, actorId, action, reason, fallbackClassification, idempotencyKey, cashDrawerSessionId } = params;
@@ -188,7 +212,7 @@ export async function transitionPaymentTx(
   const targetStatus = PAYMENT_TRANSITION_TARGET_STATUS[action];
   const legalSourceStatuses = new Set(PAYMENT_TRANSITION_SOURCE_STATUSES[action]);
 
-  return prisma.$transaction(async (tx) => {
+  {
     // ── 0. Idempotency conflict check + replay short-circuit (D010) ─────────
     const requestHash = hashPayload({
       orderId,
@@ -292,6 +316,22 @@ export async function transitionPaymentTx(
       throw new Error('ILLEGAL_TRANSITION');
     }
 
+    // ── 3b. CLF — a cash leg already recognised in the drawer ledger cannot
+    // leave the active/pending state through CANCEL/FAIL_BOUNCE/VOID; the
+    // money already exists in a drawer, so correcting it must go through
+    // REVERSE (a real, auditable mirror), never a silent status flip.
+    let lineCashEffect: string | null = null;
+    if (row.fin_voucher_trx_line_id && (action === 'CANCEL' || action === 'FAIL_BOUNCE' || action === 'VOID')) {
+      const line = await tx.org_fin_voucher_trx_lines_dtl.findFirst({
+        where: { id: row.fin_voucher_trx_line_id, tenant_org_id: tenantId },
+        select: { cash_effect_code: true },
+      });
+      lineCashEffect = line?.cash_effect_code ?? null;
+      if (lineCashEffect === CASH_EFFECTS.DRAWER) {
+        throw new Error('CASH_LEG_MUST_REVERSE');
+      }
+    }
+
     // ── 4. Flip the row + write dedicated actor-audit columns ───────────────
     const now = new Date();
     const auditColumns =
@@ -338,7 +378,18 @@ export async function transitionPaymentTx(
     let compensatingCashMovementCreated = false;
 
     if (action === 'VERIFY') {
-      deferredCashMovementCreated = await maybeCreateDeferredCashMovementTx(tx, tenantId, row, actorId);
+      // CLF (replaces the old B32 deferred movement, org_cash_drawer_movements_dtl):
+      // the cash is only real now that VERIFY confirms it cleared, so recognise
+      // it in the drawer ledger now — DEFERRED mode, never refused on session
+      // state, lands in whatever window is current (or the next one).
+      if (row.fin_voucher_trx_line_id && isCashFamilyMethod(row.payment_method_code)) {
+        const decision = await recognizeCashLineTx(
+          tx,
+          { tenantOrgId: tenantId, userId: actorId, mode: CASH_GATE_MODES.DEFERRED },
+          row.fin_voucher_trx_line_id,
+        );
+        deferredCashMovementCreated = decision.effect === CASH_EFFECTS.DRAWER;
+      }
       // B6 — this leg started PENDING/PROCESSING, so orderPaymentWiringHandler
       // deliberately skipped the ERP-Lite PAYMENT_RECEIVED/ORDER_SETTLED_*
       // dispatch at wiring time (money hadn't cleared yet). Now that VERIFY
@@ -365,23 +416,61 @@ export async function transitionPaymentTx(
         fallbackClassification as FallbackClassification,
       );
       await warnIfOrphanMovementExistsTx(tx, tenantId, paymentId, orderId);
+      // CLF — a PENDING cash leg that never cleared: nothing physical moved.
+      if (lineCashEffect === CASH_EFFECTS.PENDING && row.fin_voucher_trx_line_id) {
+        await abandonPendingCashLineTx(
+          tx,
+          { tenantOrgId: tenantId, userId: actorId, mode: CASH_GATE_MODES.DEFERRED },
+          row.fin_voucher_trx_line_id,
+        );
+      }
     } else if (action === 'VOID') {
       // B10 — a never-effective leg must never carry a live CASH_SALE
       // movement (B32 status gate); trip-wire only, no auto-reversal.
       await warnIfOrphanMovementExistsTx(tx, tenantId, paymentId, orderId);
+      if (lineCashEffect === CASH_EFFECTS.PENDING && row.fin_voucher_trx_line_id) {
+        await abandonPendingCashLineTx(
+          tx,
+          { tenantOrgId: tenantId, userId: actorId, mode: CASH_GATE_MODES.DEFERRED },
+          row.fin_voucher_trx_line_id,
+        );
+      }
     } else if (action === 'REVERSE') {
-      // REVERSE — B10 error-correction negation. Cash-family legs require a
-      // physical compensating OUT movement so the drawer's expected cash
-      // reflects the correction (D004: "Drawer/gateway: compensating
-      // movement"); non-cash legs (card/bank/gateway/check) get no automatic
-      // movement here — gateway-side reversal is B8, out of scope.
-      compensatingCashMovementCreated = await maybeCreateReversalCompensatingMovementTx(
-        tx,
-        tenantId,
-        row,
-        actorId,
-        cashDrawerSessionId,
-      );
+      // REVERSE — B10 error-correction negation. CLF (replaces the old
+      // compensating movement, org_cash_drawer_movements_dtl): a cash-family
+      // leg's correction is a real reversal voucher line (P3 — reversals
+      // always mirror in the drawer ledger, in the window current NOW, never
+      // a closed one). Non-cash legs get nothing here — gateway-side
+      // reversal is B8, out of scope.
+      //
+      // Idempotent by construction, not by a flag: this REVERSE branch runs
+      // in two contexts — (a) standalone, from the pending-payments worklist,
+      // where no mirror line exists yet; (b) nested, from
+      // voucher-reversal.service.ts's unwindOrderPaymentLine, called AFTER
+      // reverseVoucherLinesInTx already created the mirror moments earlier in
+      // this same transaction. Checking for an existing mirror (via
+      // reversed_line_id) rather than threading a "skip" flag through every
+      // call site means a genuine retry is also safe, and it can never
+      // double-reverse the same line.
+      if (isCashFamilyMethod(row.payment_method_code)) {
+        if (!row.fin_voucher_id || !row.fin_voucher_trx_line_id) {
+          throw new Error('CASH_LEG_HAS_NO_VOUCHER_LINE');
+        }
+        const existingMirror = await tx.org_fin_voucher_trx_lines_dtl.findFirst({
+          where: { tenant_org_id: tenantId, reversed_line_id: row.fin_voucher_trx_line_id },
+          select: { id: true },
+        });
+        if (!existingMirror) {
+          await reverseVoucherLinesInTx(tx, {
+            tenantOrgId: tenantId,
+            voucherId: row.fin_voucher_id,
+            reason: reason as string,
+            userId: actorId,
+            lineIds: [row.fin_voucher_trx_line_id],
+          });
+        }
+        compensatingCashMovementCreated = true;
+      }
     } else if (action === 'CAPTURE') {
       // B08 — AUTHORIZED -> CAPTURED is this leg's FIRST entry into the
       // ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED bucket (AUTHORIZED is its
@@ -451,110 +540,7 @@ export async function transitionPaymentTx(
       deferredCashMovementCreated,
       compensatingCashMovementCreated,
     });
-  });
-}
-
-/**
- * B32 — a CASH + drawer-required leg that started PENDING/PROCESSING (D9
- * override) never got its CASH_SALE movement created at wiring time, because
- * `cashDrawerWiringHandler.canHandle` now gates on the effective resolved
- * status being COMPLETED. When such a leg is VERIFIED here, create the
- * deferred movement so the drawer's expected cash reflects the money that
- * has now actually cleared.
- *
- * Mirrors `cashDrawerWiringHandler.wire()`'s row shape exactly (CASH_SALE +
- * conditional CASH_OUT change row). Idempotency: guarded by an existing-row
- * check on `order_payment_id` (this payment can only be verified once — the
- * row lock in the caller already serializes concurrent transitions on it).
- *
- * @returns true when a movement was created, false when there was nothing to do
- */
-async function maybeCreateDeferredCashMovementTx(
-  tx: PrismaTransactionClient,
-  tenantId: string,
-  payment: LockedPaymentRow,
-  actorId: string,
-): Promise<boolean> {
-  if (payment.payment_method_code?.toUpperCase() !== PAYMENT_METHODS.CASH) return false;
-  if (!payment.cash_drawer_session_id) return false;
-
-  const existing = await tx.org_cash_drawer_movements_dtl.findFirst({
-    where: { tenant_org_id: tenantId, order_payment_id: payment.id, movement_type: 'CASH_SALE' },
-    select: { id: true },
-  });
-  if (existing) return false;
-
-  const session = await tx.org_cash_drawer_sessions_mst.findFirst({
-    where: { id: payment.cash_drawer_session_id, tenant_org_id: tenantId, status: 'OPEN' },
-    select: { id: true, cash_drawer_id: true, branch_id: true, currency_code: true },
-  });
-  if (!session) {
-    // No silent money mutation: do not guess which (possibly closed/foreign)
-    // drawer to credit. Surface loudly for manual reconciliation instead.
-    logger.warn('B32 deferred cash-drawer movement skipped — session not OPEN', {
-      paymentId: payment.id,
-      orderId: payment.order_id,
-      cashDrawerSessionId: payment.cash_drawer_session_id,
-    });
-    return false;
   }
-
-  const now = new Date();
-  const created = await tx.org_cash_drawer_movements_dtl.create({
-    data: {
-      tenant_org_id: tenantId,
-      branch_id: session.branch_id,
-      cash_drawer_id: session.cash_drawer_id,
-      cash_drawer_session_id: payment.cash_drawer_session_id,
-      movement_type: 'CASH_SALE',
-      direction: 'IN',
-      amount: payment.amount,
-      currency_code: payment.currency_code ?? session.currency_code,
-      order_id: payment.order_id,
-      order_payment_id: payment.id,
-      fin_voucher_id: payment.fin_voucher_id ?? null,
-      fin_voucher_trx_line_id: payment.fin_voucher_trx_line_id ?? null,
-      performed_by: actorId,
-      performed_at: now,
-      is_active: true,
-      rec_status: 1,
-      created_by: actorId,
-    },
-    select: { id: true },
-  });
-
-  const changeReturned = payment.change_returned_amount != null ? Number(payment.change_returned_amount) : 0;
-  if (changeReturned > 0.001) {
-    await tx.org_cash_drawer_movements_dtl.create({
-      data: {
-        tenant_org_id: tenantId,
-        branch_id: session.branch_id,
-        cash_drawer_id: session.cash_drawer_id,
-        cash_drawer_session_id: payment.cash_drawer_session_id,
-        movement_type: 'CASH_OUT',
-        direction: 'OUT',
-        amount: changeReturned,
-        currency_code: payment.currency_code ?? session.currency_code,
-        order_id: payment.order_id,
-        order_payment_id: payment.id,
-        fin_voucher_id: payment.fin_voucher_id ?? null,
-        performed_by: actorId,
-        performed_at: now,
-        is_active: true,
-        rec_status: 1,
-        created_by: actorId,
-      },
-    });
-  }
-
-  if (payment.fin_voucher_trx_line_id) {
-    await tx.org_fin_voucher_trx_lines_dtl.updateMany({
-      where: { id: payment.fin_voucher_trx_line_id, tenant_org_id: tenantId },
-      data: { cash_drawer_mvt_id: created.id, updated_at: now, updated_by: actorId },
-    });
-  }
-
-  return true;
 }
 
 /**
@@ -625,82 +611,3 @@ async function warnIfOrphanMovementExistsTx(
   }
 }
 
-/**
- * B10 — REVERSE side effect. A cash-family COMPLETED/CAPTURED/SETTLED leg
- * already put physical cash in a drawer (via `cashDrawerWiringHandler` at
- * settlement time). Flipping the payment out of the COMPLETED set is what
- * drops that cash from B16/B35 expected cash. CLAUDE.md CRITICAL RULE #15
- * (no silent money mutation) still requires a real, auditable compensating
- * movement so recon can prove the reverse (`REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT`)
- * and so an OPEN session is operator-chosen, never guessed.
- *
- * Deliberately does NOT set `order_payment_id` — CASH_SALE already owns that
- * unique payment link. Lineage goes through `reversed_payment_id`. That same
- * discriminator excludes this row from the MANUAL expected-cash term: counting
- * the OUT after the payment left COMPLETED would subtract the cash twice
- * (QA §30.2: 1.070 → −1.070). CASH_REFUND is different — the original payment
- * stays COMPLETED, so that OUT must still count.
- *
- * Non-cash legs (card/bank/gateway/check) get no movement here — gateway-side
- * reversal is B8's job (out of scope; Financial effects table marks it
- * POSSIBLE, not mandatory).
- *
- * @returns true when a compensating movement was created, false when the leg
- *          was not cash-family (nothing to compensate here)
- * @throws Error('CASH_DRAWER_SESSION_REQUIRED') cash-family leg, no session supplied
- * @throws Error('CASH_DRAWER_SESSION_NOT_OPEN') supplied session not found/not OPEN for this tenant
- */
-async function maybeCreateReversalCompensatingMovementTx(
-  tx: PrismaTransactionClient,
-  tenantId: string,
-  payment: LockedPaymentRow,
-  actorId: string,
-  cashDrawerSessionId: string | undefined,
-): Promise<boolean> {
-  if (!isCashFamilyMethod(payment.payment_method_code)) return false;
-
-  if (!cashDrawerSessionId) {
-    throw new Error('CASH_DRAWER_SESSION_REQUIRED');
-  }
-
-  const session = await tx.org_cash_drawer_sessions_mst.findFirst({
-    where: { id: cashDrawerSessionId, tenant_org_id: tenantId, status: 'OPEN' },
-    select: { id: true, cash_drawer_id: true, branch_id: true, currency_code: true },
-  });
-  if (!session) {
-    // No silent money mutation: never guess a closed/foreign session.
-    throw new Error('CASH_DRAWER_SESSION_NOT_OPEN');
-  }
-
-  const now = new Date();
-  const created = await tx.org_cash_drawer_movements_dtl.create({
-    data: {
-      tenant_org_id: tenantId,
-      branch_id: session.branch_id,
-      cash_drawer_id: session.cash_drawer_id,
-      cash_drawer_session_id: session.id,
-      movement_type: CASH_DRAWER_MOVEMENT_TYPES.PAYMENT_REVERSAL,
-      direction: 'OUT',
-      amount: payment.amount,
-      currency_code: payment.currency_code ?? session.currency_code,
-      order_id: payment.order_id,
-      reversed_payment_id: payment.id,
-      performed_by: actorId,
-      performed_at: now,
-      is_active: true,
-      rec_status: 1,
-      created_by: actorId,
-    },
-    select: { id: true },
-  });
-
-  logger.info('B10 REVERSE created compensating cash-drawer OUT movement', {
-    paymentId: payment.id,
-    orderId: payment.order_id,
-    movementId: created.id,
-    cashDrawerSessionId: session.id,
-    amount: payment.amount,
-  });
-
-  return true;
-}

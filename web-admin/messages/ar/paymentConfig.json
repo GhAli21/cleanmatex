@@ -222,8 +222,10 @@
       "COUNTER": "الكاونتر",
       "SAFE": "الخزنة",
       "DRIVER_BAG": "حقيبة السائق",
-      "TEMPORARY": "مؤقت"
+      "TEMPORARY": "مؤقت",
+      "PENDING_DEPOSIT": "قيد الإيداع"
     },
+    "systemDrawer": "يديره النظام",
     "currency": "العملة",
     "selectCurrency": "اختر العملة",
     "currencyLockedHint": "هذه العملة تأتي من ملف المستأجر وهي مقفلة لأدراج النقد.",

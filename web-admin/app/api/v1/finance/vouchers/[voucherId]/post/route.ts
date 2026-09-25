@@ -4,6 +4,7 @@ import {
   postAndWireBizVoucher,
   recalcOrderSnapshotIfLinked,
 } from '@/lib/services/voucher-wiring.service';
+import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 
 /**
  *
@@ -22,7 +23,7 @@ export async function POST(
 
   try {
     const body = await request.json().catch(() => ({})) as { idempotency_key?: string };
-    const result = await postAndWireBizVoucher(tenantId, voucherId, userId, body?.idempotency_key);
+    const result = await postAndWireBizVoucher(tenantId, voucherId, userId, CASH_GATE_MODES.DEFERRED, body?.idempotency_key);
 
     // X5 fix — manual voucher post must refresh the linked order's snapshot.
     // Without this, posting a DRAFT receipt voucher from the Finance UI silently

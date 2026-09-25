@@ -153,11 +153,15 @@ export const DRAWER_TYPES = {
   SAFE:       'SAFE',
   DRIVER_BAG: 'DRIVER_BAG',
   TEMPORARY:  'TEMPORARY',
+  /** CLF (migration 0523): one per branch, system-provisioned; never created from the drawer form. */
+  PENDING_DEPOSIT: 'PENDING_DEPOSIT',
 } as const;
 export type DrawerType = (typeof DRAWER_TYPES)[keyof typeof DRAWER_TYPES];
 
 export const CASH_DRAWER_SESSION_STATUSES = {
   OPEN:        'OPEN',
+  /** CLF (migration 0523): count step done, cut frozen, waiting for the close disposition. */
+  CLOSING:     'CLOSING',
   CLOSED:      'CLOSED',
   FORCE_CLOSED:'FORCE_CLOSED',
   CANCELLED:   'CANCELLED',

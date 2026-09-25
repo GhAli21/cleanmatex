@@ -17,6 +17,7 @@ import {
 } from '../model/cash-drawer-schema';
 import { createCashDrawer, updateCashDrawer } from '@/app/actions/payment-config/cash-drawers-actions';
 import { DRAWER_TYPES } from '@/lib/constants/payment';
+import { isUserCreatableDrawerType } from '@/lib/constants/cash-drawer';
 import type { OrgCashDrawer } from '@/lib/types/payment';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
@@ -59,7 +60,8 @@ export function CashDrawerFormDialog({
     defaultValues: drawer ? {
       drawer_name: drawer.drawer_name,
       drawer_name2: drawer.drawer_name2 ?? '',
-      drawer_type: drawer.drawer_type,
+      // PENDING_DEPOSIT drawers never reach this form (the tab hides Edit, the action rejects it).
+      drawer_type: isUserCreatableDrawerType(drawer.drawer_type) ? drawer.drawer_type : DRAWER_TYPES.COUNTER,
       branch_id: drawer.branch_id,
       currency_code: drawer.currency_code,
       requires_session: drawer.requires_session,

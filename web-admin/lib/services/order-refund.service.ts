@@ -29,6 +29,7 @@ import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 import { createBizVoucher } from './voucher-biz.service';
 import { addVoucherLine } from './voucher-line.service';
 import { postAndWireBizVoucher } from './voucher-wiring.service';
+import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import {
   VOUCHER_TYPE,
   LINE_TYPE,
@@ -676,7 +677,7 @@ export async function approveRefund(
     // Remediation_Work_Packages/CLAUDE.md). Permission is the control here.
 
     const updated = await tx.org_order_refunds_dtl.update({
-      where: { id: refund.id },
+      where: { tenant_org_id: tenantId, id: refund.id },
       data: {
         refund_status: REFUND_STATUSES.APPROVED,
         approved_by: approverId,
@@ -970,7 +971,7 @@ export async function processRefund(
           tx,
         );
 
-        await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', `refund-${refundId}-vch-post`, tx);
+        await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', CASH_GATE_MODES.INTERACTIVE, `refund-${refundId}-vch-post`, tx);
 
         const movement = await tx.org_cash_drawer_movements_dtl.findFirst({
           where: { fin_voucher_trx_line_id: line.id, tenant_org_id: tenantId },
@@ -1041,7 +1042,7 @@ export async function processRefund(
           tx,
         );
 
-        await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', `refund-${refundId}-vch-post`, tx);
+        await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', CASH_GATE_MODES.INTERACTIVE, `refund-${refundId}-vch-post`, tx);
 
         await tx.org_order_refunds_dtl.update({
           where: { id: refundId },
@@ -1057,7 +1058,7 @@ export async function processRefund(
     // record-only — the exact pre-B9 behavior (no drawer OUT, no gateway call).
 
     const updated = await tx.org_order_refunds_dtl.update({
-      where: { id: refundId },
+      where: { tenant_org_id: tenantId, id: refundId },
       data: {
         refund_status: REFUND_STATUSES.PROCESSED,
         reopens_due_amount: reopensDueAmount,

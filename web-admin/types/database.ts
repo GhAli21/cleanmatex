@@ -4037,6 +4037,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_org_cds_sessions_currency"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "org_cash_drawer_sessions_mst_cash_drawer_id_fkey"
             columns: ["cash_drawer_id"]
             isOneToOne: false
@@ -4073,6 +4080,259 @@ export type Database = {
           },
         ]
       }
+      org_cash_drawer_trx_dtl: {
+        Row: {
+          amount: number
+          cash_drawer_id: string
+          cash_drawer_session_id: string | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          direction: string
+          id: string
+          is_active: boolean
+          ledger_seq: number
+          line_no: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          trx_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          amount: number
+          cash_drawer_id: string
+          cash_drawer_session_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          direction: string
+          id?: string
+          is_active?: boolean
+          ledger_seq: number
+          line_no: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          trx_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          amount?: number
+          cash_drawer_id?: string
+          cash_drawer_session_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          direction?: string
+          id?: string
+          is_active?: boolean
+          ledger_seq?: number
+          line_no?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          trx_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ocdtd_drawer"
+            columns: ["cash_drawer_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocdtd_session"
+            columns: ["cash_drawer_session_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_sessions_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocdtd_trx"
+            columns: ["trx_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_trx_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_trx_dtl_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_trx_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_trx_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_trx_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_cash_drawer_trx_mst: {
+        Row: {
+          approved_by: string | null
+          branch_id: string
+          business_date: string | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          id: string
+          idempotency_key: string | null
+          is_active: boolean
+          metadata: Json
+          notes: string | null
+          occurred_at: string
+          performed_by: string
+          reason_code: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          reverses_trx_id: string | null
+          source_session_id: string | null
+          tenant_org_id: string
+          trx_no: string
+          trx_type_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          branch_id: string
+          business_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          metadata?: Json
+          notes?: string | null
+          occurred_at?: string
+          performed_by: string
+          reason_code?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          reverses_trx_id?: string | null
+          source_session_id?: string | null
+          tenant_org_id: string
+          trx_no: string
+          trx_type_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          branch_id?: string
+          business_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          metadata?: Json
+          notes?: string | null
+          occurred_at?: string
+          performed_by?: string
+          reason_code?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          reverses_trx_id?: string | null
+          source_session_id?: string | null
+          tenant_org_id?: string
+          trx_no?: string
+          trx_type_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ocdt_branch"
+            columns: ["branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocdt_reverses"
+            columns: ["reverses_trx_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_trx_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocdt_source_ses"
+            columns: ["source_session_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_sessions_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_trx_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_trx_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_trx_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_trx_mst_trx_type_code_fkey"
+            columns: ["trx_type_code"]
+            isOneToOne: false
+            referencedRelation: "sys_cash_drawer_trx_type_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       org_cash_drawers_mst: {
         Row: {
           assigned_terminal_id: string | null
@@ -4088,6 +4348,7 @@ export type Database = {
           drawer_type: string
           id: string
           is_active: boolean
+          ledger_seq: number
           max_cash_limit: number | null
           metadata: Json
           opening_float_required: boolean
@@ -4115,6 +4376,7 @@ export type Database = {
           drawer_type?: string
           id?: string
           is_active?: boolean
+          ledger_seq?: number
           max_cash_limit?: number | null
           metadata?: Json
           opening_float_required?: boolean
@@ -4142,6 +4404,7 @@ export type Database = {
           drawer_type?: string
           id?: string
           is_active?: boolean
+          ledger_seq?: number
           max_cash_limit?: number | null
           metadata?: Json
           opening_float_required?: boolean
@@ -4156,6 +4419,13 @@ export type Database = {
           variance_approval_threshold?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_ocd_drawer_type"
+            columns: ["drawer_type"]
+            isOneToOne: false
+            referencedRelation: "sys_cash_drawer_type_cd"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "org_cash_drawers_mst_assigned_terminal_id_fkey"
             columns: ["assigned_terminal_id"]
@@ -5150,6 +5420,13 @@ export type Database = {
           updated_info?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_org_cust_wallets_currency"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "org_customer_wallets_mst_customer_id_fkey"
             columns: ["customer_id"]
@@ -7936,6 +8213,7 @@ export type Database = {
           cash_drop_requires_dest: boolean | null
           cash_tracking_mode: string | null
           closing_count_mode: string | null
+          closing_count_required: boolean | null
           created_at: string
           created_by: string | null
           created_info: string | null
@@ -7945,6 +8223,7 @@ export type Database = {
           max_cash_enforce_mode: string | null
           metadata: Json
           opening_count_mode: string | null
+          opening_count_required: boolean | null
           pos_session_req_all_tenders: boolean | null
           pos_session_req_for_cash: boolean | null
           pos_session_rollover_mode: string | null
@@ -7952,6 +8231,7 @@ export type Database = {
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
+          requires_session: boolean | null
           scope_id: string | null
           scope_level: string
           shared_session_mode: string | null
@@ -7972,6 +8252,7 @@ export type Database = {
           cash_drop_requires_dest?: boolean | null
           cash_tracking_mode?: string | null
           closing_count_mode?: string | null
+          closing_count_required?: boolean | null
           created_at?: string
           created_by?: string | null
           created_info?: string | null
@@ -7981,6 +8262,7 @@ export type Database = {
           max_cash_enforce_mode?: string | null
           metadata?: Json
           opening_count_mode?: string | null
+          opening_count_required?: boolean | null
           pos_session_req_all_tenders?: boolean | null
           pos_session_req_for_cash?: boolean | null
           pos_session_rollover_mode?: string | null
@@ -7988,6 +8270,7 @@ export type Database = {
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
+          requires_session?: boolean | null
           scope_id?: string | null
           scope_level: string
           shared_session_mode?: string | null
@@ -8008,6 +8291,7 @@ export type Database = {
           cash_drop_requires_dest?: boolean | null
           cash_tracking_mode?: string | null
           closing_count_mode?: string | null
+          closing_count_required?: boolean | null
           created_at?: string
           created_by?: string | null
           created_info?: string | null
@@ -8017,6 +8301,7 @@ export type Database = {
           max_cash_enforce_mode?: string | null
           metadata?: Json
           opening_count_mode?: string | null
+          opening_count_required?: boolean | null
           pos_session_req_all_tenders?: boolean | null
           pos_session_req_for_cash?: boolean | null
           pos_session_rollover_mode?: string | null
@@ -8024,6 +8309,7 @@ export type Database = {
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
+          requires_session?: boolean | null
           scope_id?: string | null
           scope_level?: string
           shared_session_mode?: string | null
@@ -11686,8 +11972,13 @@ export type Database = {
           branch_id: string | null
           card_brand_code: string | null
           card_last4: string | null
+          cash_drawer_id: string | null
           cash_drawer_mvt_id: string | null
           cash_drawer_session_id: string | null
+          cash_effect_code: string | null
+          cash_ledger_seq: number | null
+          cash_recognized_at: string | null
+          cash_recognized_by: string | null
           change_returned_amount: number | null
           check_bank: string | null
           check_date: string | null
@@ -11750,8 +12041,13 @@ export type Database = {
           branch_id?: string | null
           card_brand_code?: string | null
           card_last4?: string | null
+          cash_drawer_id?: string | null
           cash_drawer_mvt_id?: string | null
           cash_drawer_session_id?: string | null
+          cash_effect_code?: string | null
+          cash_ledger_seq?: number | null
+          cash_recognized_at?: string | null
+          cash_recognized_by?: string | null
           change_returned_amount?: number | null
           check_bank?: string | null
           check_date?: string | null
@@ -11814,8 +12110,13 @@ export type Database = {
           branch_id?: string | null
           card_brand_code?: string | null
           card_last4?: string | null
+          cash_drawer_id?: string | null
           cash_drawer_mvt_id?: string | null
           cash_drawer_session_id?: string | null
+          cash_effect_code?: string | null
+          cash_ledger_seq?: number | null
+          cash_recognized_at?: string | null
+          cash_recognized_by?: string | null
           change_returned_amount?: number | null
           check_bank?: string | null
           check_date?: string | null
@@ -11898,6 +12199,20 @@ export type Database = {
             columns: ["voucher_id", "tenant_org_id"]
             isOneToOne: false
             referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_vtl_cash_drawer"
+            columns: ["cash_drawer_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_vtl_cash_drawer_ses"
+            columns: ["cash_drawer_session_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_sessions_mst"
             referencedColumns: ["id", "tenant_org_id"]
           },
           {
@@ -12177,6 +12492,13 @@ export type Database = {
             referencedRelation: "vw_fin_tenant_readiness"
             referencedColumns: ["tenant_org_id"]
           },
+          {
+            foreignKeyName: "fk_org_fin_vouchers_currency"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
         ]
       }
       org_gift_card_txn_dtl: {
@@ -12447,6 +12769,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_customers_mst"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_org_gift_cards_currency"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "org_gift_cards_tenant_fk"
@@ -18016,6 +18345,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_order_type_cd"
             referencedColumns: ["order_type_id"]
+          },
+          {
+            foreignKeyName: "fk_org_orders_mst_currency"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "fk_org_orders_payment_method"
@@ -24706,6 +25042,63 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_cash_drawer_cnt_type_cd: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number
+          is_active: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
       sys_cash_drawer_movement_type_cd: {
         Row: {
           affects_expected_cash: boolean
@@ -24748,6 +25141,146 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_cash_drawer_ses_disp_cd: {
+        Row: {
+          cash_move_mode: string
+          code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          dest_drawer_type_code: string | null
+          display_order: number
+          is_active: boolean
+          is_selectable: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          requires_kept_amount: boolean
+          requires_notes: boolean
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          cash_move_mode: string
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          dest_drawer_type_code?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_selectable?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_kept_amount?: boolean
+          requires_notes?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          cash_move_mode?: string
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          dest_drawer_type_code?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_selectable?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_kept_amount?: boolean
+          requires_notes?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_cash_drawer_ses_disp_cd_dest_drawer_type_code_fkey"
+            columns: ["dest_drawer_type_code"]
+            isOneToOne: false
+            referencedRelation: "sys_cash_drawer_type_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_cash_drawer_ses_post_cd: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number
+          is_active: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          requires_notes: boolean
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_notes?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_notes?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
       sys_cash_drawer_session_status_cd: {
         Row: {
           code: string
@@ -24784,6 +25317,159 @@ export type Database = {
           name?: string
           name2?: string | null
           rec_status?: number
+        }
+        Relationships: []
+      }
+      sys_cash_drawer_trx_type_cd: {
+        Row: {
+          allowed_dest_types: string[]
+          allowed_src_types: string[]
+          code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number
+          is_active: boolean
+          is_system: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          requires_notes: boolean
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          allowed_dest_types: string[]
+          allowed_src_types: string[]
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_notes?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          allowed_dest_types?: string[]
+          allowed_src_types?: string[]
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_notes?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_cash_drawer_type_cd: {
+        Row: {
+          accepts_customer_cash: boolean
+          allows_customer_cash_out: boolean
+          can_be_trx_dest: boolean
+          can_be_trx_source: boolean
+          can_receive_disposition: boolean
+          closing_count_required_default: boolean
+          code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number
+          is_active: boolean
+          is_mobile: boolean
+          name: string
+          name2: string | null
+          opening_count_required_default: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          requires_session_default: boolean
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          accepts_customer_cash: boolean
+          allows_customer_cash_out: boolean
+          can_be_trx_dest: boolean
+          can_be_trx_source: boolean
+          can_receive_disposition: boolean
+          closing_count_required_default: boolean
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_mobile: boolean
+          name: string
+          name2?: string | null
+          opening_count_required_default: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_session_default: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          accepts_customer_cash?: boolean
+          allows_customer_cash_out?: boolean
+          can_be_trx_dest?: boolean
+          can_be_trx_source?: boolean
+          can_receive_disposition?: boolean
+          closing_count_required_default?: boolean
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_mobile?: boolean
+          name?: string
+          name2?: string | null
+          opening_count_required_default?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_session_default?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
         }
         Relationships: []
       }
@@ -25308,6 +25994,7 @@ export type Database = {
           icon: string | null
           is_active: boolean
           is_cash_supported: boolean
+          is_platform_enabled: boolean
           is_system: boolean
           iso_alpha_code: string
           iso_numeric_code: number | null
@@ -25381,6 +26068,7 @@ export type Database = {
           icon?: string | null
           is_active?: boolean
           is_cash_supported?: boolean
+          is_platform_enabled?: boolean
           is_system?: boolean
           iso_alpha_code: string
           iso_numeric_code?: number | null
@@ -25454,6 +26142,7 @@ export type Database = {
           icon?: string | null
           is_active?: boolean
           is_cash_supported?: boolean
+          is_platform_enabled?: boolean
           is_system?: boolean
           iso_alpha_code?: string
           iso_numeric_code?: number | null
@@ -36958,6 +37647,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      ensure_branch_pd_drawer: {
+        Args: {
+          p_actor?: string
+          p_branch_id: string
+          p_currency_code?: string
+          p_tenant_org_id: string
+        }
+        Returns: {
+          created: boolean
+          drawer_id: string
+        }[]
+      }
       extract_order_sequence: { Args: { p_order_no: string }; Returns: number }
       fin_list_job_schedules: {
         Args: never
@@ -37062,6 +37763,10 @@ export type Database = {
         Returns: boolean
       }
       generate_cash_drawer_sess_no: {
+        Args: { p_tenant_org_id: string }
+        Returns: string
+      }
+      generate_cash_drawer_trx_no: {
         Args: { p_tenant_org_id: string }
         Returns: string
       }

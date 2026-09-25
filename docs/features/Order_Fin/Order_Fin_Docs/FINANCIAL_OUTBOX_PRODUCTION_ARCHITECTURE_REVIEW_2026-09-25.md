@@ -61,6 +61,112 @@ flowchart LR
 - The monitor is tenant-scoped for normal operations and exposes event details and retries.
 - The finance-jobs run log prevents overlapping scheduled jobs.
 
+## Current event emission inventory
+
+### Scope and interpretation
+
+This is the repository inventory of every active `emitEventTx(...)` call found under `web-admin/lib/services`. It is the current application write path to `public.org_domain_events_outbox`; it is not a live-production row count. The table expands conditional event selection and duplicate producer paths into 31 write-path rows, representing 25 unique persisted `(event_type, aggregate_type)` combinations.
+
+All calls enter the table through [`emitEventTx`](../../../../web-admin/lib/services/outbox.service.ts), which writes `tenant_org_id`, `event_type`, `aggregate_type`, `aggregate_id`, JSON payload, `PENDING`, `attempts = 0`, `max_attempts = 6`, and `next_retry_at = now` inside the caller's existing Prisma transaction.
+
+**Current consumer labels:**
+
+- **Order history — registered:** current processor invokes `consumeOrderHistoryEvent` for this type.
+- **Loyalty — registered:** current processor invokes `processLoyaltyEarnEvent`.
+- **No worker handler:** current processor marks the event `PROCESSED` as skipped; this does not imply that no future consumer is intended.
+- **History supported, not registered:** the history consumer can map the event, but the current processor does not dispatch it. This is a confirmed contract gap.
+
+### Exact event-type call-site index
+
+The `emitEventTx` line is the exact call that creates the outbox row. Where an event type is selected conditionally, both the selector line and the common `emitEventTx` line are shown.
+
+| Event type | Persisted aggregate type(s) | Exact call site(s) that create the row |
+|---|---|---|
+| `ORDER_COMPLETED` | `order` | [`settleOrderTx` — `order-settlement.service.ts:368`](../../../../web-admin/lib/services/order-settlement.service.ts) |
+| `LOYALTY_EARN` | `order` | [`queueEarnPoints` — `loyalty.service.ts:377`](../../../../web-admin/lib/services/loyalty.service.ts); called by settlement at [`order-settlement.service.ts:376`](../../../../web-admin/lib/services/order-settlement.service.ts) |
+| `PAYMENT_VERIFIED` | `order_payment` | [`verifyPaymentTx` — `order-settlement.service.ts:568`](../../../../web-admin/lib/services/order-settlement.service.ts); transition mapping [`payment-transition.service.ts:415`](../../../../web-admin/lib/services/payment-transition.service.ts) → common emit [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) |
+| `PAYMENT_CANCELLED` | `order_payment` | Transition mapping [`payment-transition.service.ts:417`](../../../../web-admin/lib/services/payment-transition.service.ts) → common emit [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) |
+| `PAYMENT_FAILED` | `order_payment` | Transition mapping [`payment-transition.service.ts:419`](../../../../web-admin/lib/services/payment-transition.service.ts) → common emit [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) |
+| `PAYMENT_VOIDED` | `order_payment` | Transition mapping [`payment-transition.service.ts:421`](../../../../web-admin/lib/services/payment-transition.service.ts) → common emit [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) |
+| `PAYMENT_REVERSED` | `order_payment` | Transition mapping [`payment-transition.service.ts:423`](../../../../web-admin/lib/services/payment-transition.service.ts) → common emit [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) |
+| `PAYMENT_CAPTURED` | `order_payment` | Transition mapping [`payment-transition.service.ts:425`](../../../../web-admin/lib/services/payment-transition.service.ts) → common emit [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) |
+| `PAYMENT_SETTLED` | `order_payment` | Transition mapping [`payment-transition.service.ts:426`](../../../../web-admin/lib/services/payment-transition.service.ts) → common emit [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) |
+| `PAYMENT_RECEIVED` | `order` | [`collectPaymentTx` — `order-settlement.service.ts:1042`](../../../../web-admin/lib/services/order-settlement.service.ts) |
+| `REFUND_PROCESSED` | `order_refund`, `order` | [`initiateRefund` — `order-refund.service.ts:628`](../../../../web-admin/lib/services/order-refund.service.ts); [`approveRefund` — `:692`](../../../../web-admin/lib/services/order-refund.service.ts); [`processRefund` — `:1113`](../../../../web-admin/lib/services/order-refund.service.ts) |
+| `STORED_VALUE_CHANGED` | `order` | [`applyOrderCreditApplication` — `order-credit-application.service.ts:351`](../../../../web-admin/lib/services/order-credit-application.service.ts) |
+| `ORDER_FINANCIAL_ADJUSTMENT_CREATED` | `order` | [`createOrderAdjustment` — `order-adjustment.service.ts:120`](../../../../web-admin/lib/services/order-adjustment.service.ts) |
+| `ORDER_CANCEL_FINANCIAL_UNWIND` | `ORDER` | [`unwindOrderFinancialsOnCancel` — `order-cancel-financials.service.ts:189`](../../../../web-admin/lib/services/order-cancel-financials.service.ts) |
+| `STORED_VALUE_FUNDING_COMPLETED` | `stored_value_funding` | [`finalizeStoredValueFundingIfReady` — `stored-value-funding.service.ts:607`](../../../../web-admin/lib/services/stored-value-funding.service.ts) |
+| `VOUCHER_POSTED_AND_WIRED` | `fin_voucher` | [`postAndWireBizVoucherInTx` — `voucher-wiring.service.ts:257`](../../../../web-admin/lib/services/voucher-wiring.service.ts) |
+| `AR_PAYMENT_ALLOCATED` | `ar_invoice` | [`allocateArPaymentTx` — `ar-invoice.service.ts:694`](../../../../web-admin/lib/services/ar-invoice.service.ts); [`allocateArPayment` — `:2366`](../../../../web-admin/lib/services/ar-invoice.service.ts) |
+| `AR_OVERPAYMENT_CREDIT_CREATED` | `ar_invoice` | [`allocateArPaymentTx` — `ar-invoice.service.ts:703`](../../../../web-admin/lib/services/ar-invoice.service.ts); [`allocateArPayment` — `:2375`](../../../../web-admin/lib/services/ar-invoice.service.ts) |
+| `AR_PAYMENT_ALLOCATION_REVERSED` | `ar_invoice` | [`reverseArPaymentAllocationTx` — `ar-invoice.service.ts:866`](../../../../web-admin/lib/services/ar-invoice.service.ts); [`reverseArPaymentAllocation` — `:2538`](../../../../web-admin/lib/services/ar-invoice.service.ts) |
+| `AR_INVOICE_ISSUED` | `ar_invoice` | [`createArInvoiceFromOrdersInTx` — `ar-invoice.service.ts:1769`](../../../../web-admin/lib/services/ar-invoice.service.ts); [`issueArInvoice` — `:1965`](../../../../web-admin/lib/services/ar-invoice.service.ts) |
+| `AR_WRITE_OFF_POSTED` | `ar_invoice` | Conditional selector in [`approveSensitiveArInvoice` — `ar-invoice.service.ts:2138`](../../../../web-admin/lib/services/ar-invoice.service.ts) → emit [`:2143`](../../../../web-admin/lib/services/ar-invoice.service.ts); conditional selector in [`createArAdjustment` — `:2678`](../../../../web-admin/lib/services/ar-invoice.service.ts) → emit [`:2683`](../../../../web-admin/lib/services/ar-invoice.service.ts) |
+| `AR_CREDIT_MEMO_POSTED` | `ar_invoice` | Conditional selector in [`approveSensitiveArInvoice` — `ar-invoice.service.ts:2139`](../../../../web-admin/lib/services/ar-invoice.service.ts) → emit [`:2143`](../../../../web-admin/lib/services/ar-invoice.service.ts); conditional selector in [`createArAdjustment` — `:2679`](../../../../web-admin/lib/services/ar-invoice.service.ts) → emit [`:2683`](../../../../web-admin/lib/services/ar-invoice.service.ts) |
+| `AR_DEBIT_NOTE_POSTED` | `ar_invoice` | Conditional selector in [`approveSensitiveArInvoice` — `ar-invoice.service.ts:2140`](../../../../web-admin/lib/services/ar-invoice.service.ts) → emit [`:2143`](../../../../web-admin/lib/services/ar-invoice.service.ts); conditional selector in [`createArAdjustment` — `:2680`](../../../../web-admin/lib/services/ar-invoice.service.ts) → emit [`:2683`](../../../../web-admin/lib/services/ar-invoice.service.ts) |
+| `AR_INVOICE_VOIDED` | `ar_invoice` | [`voidArInvoice` — `ar-invoice.service.ts:2229`](../../../../web-admin/lib/services/ar-invoice.service.ts) |
+| `GIFT_CARD_REDEEMED` | N/A | Declared constant only: no active `emitEventTx` call was found in `web-admin/lib/services`. |
+
+### Active application producers
+
+| Event type persisted | Aggregate type persisted | Business trigger and producer function | Exact application write location | Aggregate ID | Payload fields written at emit site | Current processor outcome |
+|---|---|---|---|---|---|---|
+| `ORDER_COMPLETED` | `order` | Full settlement after financial snapshot recalculation — `settleOrderTx` | [`order-settlement.service.ts:368`](../../../../web-admin/lib/services/order-settlement.service.ts) | `orderId` | `paymentStatus`, `grandTotal`, `settled` | Order history — registered |
+| `LOYALTY_EARN` | `order` | Qualifying settled order invokes `queueEarnPoints`; emitted by `queueEarnPoints` | [`order-settlement.service.ts:376`](../../../../web-admin/lib/services/order-settlement.service.ts) calls [`loyalty.service.ts:377`](../../../../web-admin/lib/services/loyalty.service.ts) | `params.orderId` | `customerId`, `orderAmount` | Loyalty — registered |
+| `PAYMENT_VERIFIED` | `order_payment` | Legacy verify payment flow — `verifyPaymentTx` | [`order-settlement.service.ts:568`](../../../../web-admin/lib/services/order-settlement.service.ts) | `paymentId` | `orderId`, `paymentId`, `verifiedBy`, actor aliases, `previousStatus`, `newStatus`, `verifiedAt` | Order history — registered |
+| `PAYMENT_VERIFIED` | `order_payment` | Payment transition action `VERIFY` — `transitionPaymentTx` | [`payment-transition.service.ts:415`](../../../../web-admin/lib/services/payment-transition.service.ts), emitted at [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) | `paymentId` | `orderId`, `paymentId`, actor aliases, prior/new status, `reason`, fallback classification, timestamp | Order history — registered |
+| `PAYMENT_CANCELLED` | `order_payment` | Payment transition action `CANCEL` — `transitionPaymentTx` | [`payment-transition.service.ts:417`](../../../../web-admin/lib/services/payment-transition.service.ts), emitted at [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) | `paymentId` | Common payment-transition payload | History supported, not registered |
+| `PAYMENT_FAILED` | `order_payment` | Payment transition action `FAIL_BOUNCE` — `transitionPaymentTx` | [`payment-transition.service.ts:419`](../../../../web-admin/lib/services/payment-transition.service.ts), emitted at [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) | `paymentId` | Common payment-transition payload | History supported, not registered |
+| `PAYMENT_VOIDED` | `order_payment` | Payment transition action `VOID` — `transitionPaymentTx` | [`payment-transition.service.ts:421`](../../../../web-admin/lib/services/payment-transition.service.ts), emitted at [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) | `paymentId` | Common payment-transition payload | History supported, not registered |
+| `PAYMENT_REVERSED` | `order_payment` | Payment transition action `REVERSE` — `transitionPaymentTx` | [`payment-transition.service.ts:423`](../../../../web-admin/lib/services/payment-transition.service.ts), emitted at [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) | `paymentId` | Common payment-transition payload | History supported, not registered |
+| `PAYMENT_CAPTURED` | `order_payment` | Payment transition action `CAPTURE` — `transitionPaymentTx` | [`payment-transition.service.ts:425`](../../../../web-admin/lib/services/payment-transition.service.ts), emitted at [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) | `paymentId` | Common payment-transition payload | History supported, not registered |
+| `PAYMENT_SETTLED` | `order_payment` | Payment transition action `SETTLE` — `transitionPaymentTx` | [`payment-transition.service.ts:426`](../../../../web-admin/lib/services/payment-transition.service.ts), emitted at [`:428`](../../../../web-admin/lib/services/payment-transition.service.ts) | `paymentId` | Common payment-transition payload | History supported, not registered |
+| `PAYMENT_RECEIVED` | `order` | Payment collection after snapshot recalculation — `collectPaymentTx` | [`order-settlement.service.ts:1042`](../../../../web-admin/lib/services/order-settlement.service.ts) | `orderId` | `collectedBy`, `totalCollected`, `paymentStatus` | No worker handler |
+| `REFUND_PROCESSED` | `order_refund` | Refund initiation — `initiateRefund` | [`order-refund.service.ts:628`](../../../../web-admin/lib/services/order-refund.service.ts) | `refund.id` | `stage=INITIATED`, refund/order IDs, order number, amount, method, reason, context/source/scope | No worker handler |
+| `REFUND_PROCESSED` | `order_refund` | Refund approval — `approveRefund` | [`order-refund.service.ts:692`](../../../../web-admin/lib/services/order-refund.service.ts) | `refundId` | `stage=APPROVED`, refund ID, order ID, approver ID | No worker handler |
+| `REFUND_PROCESSED` | `order` | Refund execution — `processRefund` | [`order-refund.service.ts:1113`](../../../../web-admin/lib/services/order-refund.service.ts) | `order.id` | `stage=PROCESSED`, refund ID, amount, method, customer, source/context, reopened due, source links, payment snapshot | No worker handler |
+| `STORED_VALUE_CHANGED` | `order` | Credit application applied to an order — `applyOrderCreditApplication` | [`order-credit-application.service.ts:351`](../../../../web-admin/lib/services/order-credit-application.service.ts) | `orderId` | `stage=APPLIED`, order ID/no, credit application ID/type, amount, payment status, outstanding amount | No worker handler |
+| `ORDER_FINANCIAL_ADJUSTMENT_CREATED` | `order` | Order financial adjustment created — `createOrderAdjustment` | [`order-adjustment.service.ts:120`](../../../../web-admin/lib/services/order-adjustment.service.ts) | `order.id` | order ID/no, adjustment ID/type, amount, currency, reason, status | No worker handler |
+| `ORDER_CANCEL_FINANCIAL_UNWIND` | `ORDER` | Cancellation financial unwind — `unwindOrderFinancialsOnCancel` | [`order-cancel-financials.service.ts:189`](../../../../web-admin/lib/services/order-cancel-financials.service.ts) | `input.orderId` | disposition, paid amount disposition, reversed credit applications, restored stored value, promotion reversals, credit note, reason, actor, warnings | No worker handler; **aggregate casing differs from all other order rows** |
+| `STORED_VALUE_FUNDING_COMPLETED` | `stored_value_funding` | Gift-card, wallet, or advance funding completes — `finalizeStoredValueFundingIfReady` | [`stored-value-funding.service.ts:607`](../../../../web-admin/lib/services/stored-value-funding.service.ts) | `voucherId` | tenant/branch/voucher, funding/target type and ID, customer, currency, funded amount, tender amounts, completion time | No worker handler |
+| `VOUCHER_POSTED_AND_WIRED` | `fin_voucher` | Business voucher posted and its lines wired — `postAndWireBizVoucherInTx` | [`voucher-wiring.service.ts:257`](../../../../web-admin/lib/services/voucher-wiring.service.ts) | `voucherId` | voucher ID/no/status, total, actor/time, wired/skipped/failed line counts | Order history — registered; no order-history row when voucher has no linked order |
+| `AR_PAYMENT_ALLOCATED` | `ar_invoice` | AR payment allocation — `allocateArPaymentTx` | [`ar-invoice.service.ts:694`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice ID/no, voucher ID, allocated amount, unapplied credit amount | No worker handler |
+| `AR_PAYMENT_ALLOCATED` | `ar_invoice` | AR payment allocation API path — `allocateArPayment` | [`ar-invoice.service.ts:2366`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice ID/no, voucher ID, allocated amount, unapplied credit amount | No worker handler |
+| `AR_OVERPAYMENT_CREDIT_CREATED` | `ar_invoice` | Conditional overpayment credit after allocation — `allocateArPaymentTx` | [`ar-invoice.service.ts:703`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice ID/no, voucher ID, unapplied credit amount | No worker handler |
+| `AR_OVERPAYMENT_CREDIT_CREATED` | `ar_invoice` | Conditional overpayment credit in allocation API path — `allocateArPayment` | [`ar-invoice.service.ts:2375`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice ID/no, voucher ID, unapplied credit amount | No worker handler |
+| `AR_PAYMENT_ALLOCATION_REVERSED` | `ar_invoice` | AR allocation reversal — `reverseArPaymentAllocationTx` | [`ar-invoice.service.ts:866`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice/allocation/voucher IDs, reversed allocated and credit amounts | No worker handler |
+| `AR_PAYMENT_ALLOCATION_REVERSED` | `ar_invoice` | AR allocation reversal API path — `reverseArPaymentAllocation` | [`ar-invoice.service.ts:2538`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice/allocation/voucher IDs, reversed allocated and credit amounts | No worker handler |
+| `AR_INVOICE_ISSUED` | `ar_invoice` | Invoice immediately issued during order flow — `createArInvoiceFromOrdersInTx` | [`ar-invoice.service.ts:1769`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `created.id` | invoice ID/no, issued timestamp, `issued_immediately=true` | Order history — registered; no order-history row when invoice has no linked order |
+| `AR_INVOICE_ISSUED` | `ar_invoice` | Existing invoice issued — `issueArInvoice` | [`ar-invoice.service.ts:1965`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice ID/no, issue timestamp, actor | Order history — registered; no order-history row when invoice has no linked order |
+| `AR_WRITE_OFF_POSTED` | `ar_invoice` | AR write-off adjustment created or approved — `createArAdjustment`; `approveSensitiveArInvoice` | [`ar-invoice.service.ts:2683`](../../../../web-admin/lib/services/ar-invoice.service.ts); [`:2143`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice ID/no, adjustment ID/type/amount; approval payload differs by path | No worker handler |
+| `AR_CREDIT_MEMO_POSTED` | `ar_invoice` | AR credit adjustment created or approved — `createArAdjustment`; `approveSensitiveArInvoice` | [`ar-invoice.service.ts:2683`](../../../../web-admin/lib/services/ar-invoice.service.ts); [`:2143`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice ID/no, adjustment ID/type/amount; approval payload differs by path | No worker handler |
+| `AR_DEBIT_NOTE_POSTED` | `ar_invoice` | AR debit adjustment created or approved — `createArAdjustment`; `approveSensitiveArInvoice` | [`ar-invoice.service.ts:2683`](../../../../web-admin/lib/services/ar-invoice.service.ts); [`:2143`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice ID/no, adjustment ID/type/amount; approval payload differs by path | No worker handler |
+| `AR_INVOICE_VOIDED` | `ar_invoice` | AR invoice voided — `voidArInvoice` | [`ar-invoice.service.ts:2229`](../../../../web-admin/lib/services/ar-invoice.service.ts) | `invoiceId` | invoice ID/no, void reason | No worker handler |
+
+### Declared constants with no active `emitEventTx` producer found
+
+`GIFT_CARD_REDEEMED` is declared in `OUTBOX_EVENT_TYPES` but no active application call to `emitEventTx(..., OUTBOX_EVENT_TYPES.GIFT_CARD_REDEEMED, ...)` was found in `web-admin/lib/services` during this inventory. This is a code-inventory result only; historic rows or another non-application writer must be verified from the database before assuming that the event never exists in production.
+
+### Current consumer and monitor locations
+
+| Concern | Exact location | Current behavior |
+|---|---|---|
+| Event insertion | [`outbox.service.ts:29`](../../../../web-admin/lib/services/outbox.service.ts) | Inserts each outbox row within the existing transaction. |
+| Atomic claim | [`outbox.service.ts:82`](../../../../web-admin/lib/services/outbox.service.ts) and [`0296_pg_cron_jobs.sql:71`](../../../../supabase/migrations/0296_pg_cron_jobs.sql) | Claims a maximum of 50 due `PENDING`/`FAILED` rows with `FOR UPDATE SKIP LOCKED`; changes them to `PROCESSING`. |
+| Current worker registry | [`outbox-processor.service.ts:22`](../../../../web-admin/lib/services/outbox-processor.service.ts) and [`:41`](../../../../web-admin/lib/services/outbox-processor.service.ts) | Registers four history event types and `LOYALTY_EARN`. |
+| History consumer support | [`order-history-consumer.service.ts:82`](../../../../web-admin/lib/services/order-history-consumer.service.ts) | Supports ten types: the four registered types plus six payment-transition types currently not dispatched. |
+| Loyalty consumer | [`outbox-handlers/loyalty-earn.handler.ts:32`](../../../../web-admin/lib/services/outbox-handlers/loyalty-earn.handler.ts) | Resolves active program and writes earn effect using `loyalty-earn-{event.id}` idempotency key. |
+| Monitor and counts | [`outbox-monitor.service.ts:408`](../../../../web-admin/lib/services/outbox-monitor.service.ts) | Tenant-scoped counts, age, filters, related-record links, and retry eligibility. |
+
+### Inventory conclusions
+
+1. There are **31 active write-path rows** representing **25 persisted event-type/aggregate-type combinations** in the application inventory, plus `GIFT_CARD_REDEEMED` declared without an active producer call found.
+2. Only **five event types** are registered with current worker handlers: four history types and `LOYALTY_EARN`.
+3. Six active payment-transition combinations are a confirmed mismatch: the history consumer supports them, but the worker registry skips them as if they had no consumer.
+4. `REFUND_PROCESSED` uses both `order_refund` and `order` aggregate types depending on lifecycle stage. Consumers must not assume one aggregate shape from event type alone.
+5. `ORDER_CANCEL_FINANCIAL_UNWIND` writes `aggregate_type = 'ORDER'`, unlike all other lower-case `order` events. This can prevent aggregate-type-based monitor linking and should be assessed as a data-contract inconsistency before changing historic rows.
+
 ## Findings
 
 ### F-01 — SECURITY DEFINER worker functions need explicit execution restriction

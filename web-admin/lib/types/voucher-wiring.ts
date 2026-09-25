@@ -68,6 +68,12 @@ export interface VoucherLineForWiring {
    * compiling untouched.
    */
   notes?: string | null;
+  /**
+   * CLF drawer stamp — written only by the cash-drawer ledger gate before the
+   * line is posted. Optional so existing handler fixtures keep compiling.
+   */
+  cash_drawer_id?: string | null;
+  cash_effect_code?: string | null;
 }
 
 /**
