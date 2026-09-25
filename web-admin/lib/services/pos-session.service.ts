@@ -1015,7 +1015,7 @@ export async function listPosSessions(input: {
   page: number;
   pageSize: number;
   branchId?: string | null;
-  userId?: string | null;
+  filterUserId?: string | null;
   operatorQuery?: string | null;
   terminalQuery?: string | null;
   cashDrawerQuery?: string | null;
@@ -1041,7 +1041,7 @@ export async function listPosSessions(input: {
   const branchSql = input.branchId
     ? Prisma.sql`AND ps.branch_id = ${input.branchId}::uuid`
     : Prisma.empty;
-  const userSql = input.userId ? Prisma.sql`AND ps.user_id = ${input.userId}::uuid` : Prisma.empty;
+  const userSql = input.filterUserId ? Prisma.sql`AND ps.user_id = ${input.filterUserId}::uuid` : Prisma.empty;
   const operatorQuerySql = input.operatorQuery
     ? Prisma.sql`AND EXISTS (
         SELECT 1
