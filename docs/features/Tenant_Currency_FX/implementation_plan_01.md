@@ -1,11 +1,29 @@
 # Tenant Currency & FX — Implementation Plan 01 (tenant context)
 
-**Status:** 📝 DRAFT v2 — awaiting owner approval. No code, no migration written yet.
+**Status:** 🟡 IN PROGRESS — plan v2 approved 2026-09-25. L0 done; `0532` written (awaiting owner apply). See §0.
+**Resume here (both repos):** `cleanmatexsaas/docs/features/Currency_Setup/RESUME_HERE.md`
 **v2 (2026-09-25):** folds in the review of the external currency pack (`REVIEW_external_currency_pack.md`): `is_base_currency` naming, full unique key, context flags defaulting FALSE, module-readiness registry, foreign cash = a drawer in that currency (CLF-aligned), `sales_pricing_mode`, reason-coded policy resolver, health panel, progressive-disclosure UI, later phases T-B (branch restriction) and T-R (tenant rounding overrides).
 **Context:** **Tenant only** (`cleanmatex`: `web-admin` + `org_*` migrations)
 **Sibling plan (HQ context):** `cleanmatexsaas/docs/features/Currency_Setup/implementation_plan_04_hq_fx.md`
 **Split from:** `cleanmatexsaas/docs/features/Currency_Setup/implementation_plan_03_fx.md` v5 (2026-09-25), which is now an index. Decision IDs carry over unchanged.
 **Created:** 2026-09-25
+
+---
+
+## 0. Progress (updated 2026-09-25, end of cloud session)
+
+| Stage | Status | Evidence / next action |
+|---|---|---|
+| **L0** drift report | ✅ done | `sql/L0_tenant_currency_drift_report.sql` run by owner (local + remote). 3 tenants, all consistent: resolved `TENANT_CURRENCY` = `org_tenants_mst.currency` = document currencies (OMR, OMR, SAR); decimals = `minor_unit`. Layer `SYSTEM_PROFILE` counts as chosen (report fixed, `7b0a944`); legacy `org_payments_dtl_tr` removed from the report |
+| **5A-1** `0532_org_currency_cf.sql` | 🟡 **written, NOT applied** (`b631285`) | `org_currency_cf` + `org_fin_fx_stng_cf`, RLS; triggers: base lock (orders exist ⇒ base immutable, binds HQ too), mirror → `org_tenants_mst.currency`, bridge from legacy `org_tenants_mst.currency` writers (keeps new-tenant onboarding + `ensure_branch_pd_drawer` working until L2/4E); backfill from resolved setting + every currency on documents/drawers; drawer composite FK (C5) validated. **Next: owner applies, regenerates types** |
+| **5A-2** tenant rate book | ⬜ not written | Takes the **next free number at write time** (`0533`/`0534` were used by HQ H-A). Contents per §5: `org_fx_provider_cf`, `org_fx_import_batch_mst`, `org_fx_rate_mst` |
+| **5A-3** perms / nav / flag | ⬜ | via `/create-update-rbac-permission`, `/navigation`, `/create-feature-flag` — next free numbers |
+| **L2** code cut-over | ⬜ after `0532` applied | Re-point the 5 entry points + `resolveTenantBaseCurrencyCode` (`order-financial-write.service.ts:961`) to `tenant-currency-profile.service`; signatures unchanged |
+| 5B–5E, L4, L5 | ⬜ | per §9 |
+
+**HQ side already done (for §8 contract):** HQ `0531` applied (catalogs + HQ rate book, approved-only RLS read), HQ exchange-rate backend + screen shipped, golden vectors at `cleanmatexsaas/platform-api/src/modules/currency-fx/__tests__/fx-golden-vectors.json` (copy byte-identical into web-admin tests in 5B).
+
+**Migration numbers actually used so far:** `0531` HQ FX catalogs/book (applied) · `0532` org_currency_cf (written) · `0533` HQ billing FX · `0534` HQ plan prices (both written). Always `ls supabase/migrations/` before writing the next one.
 
 ---
 
@@ -269,8 +287,8 @@ No FX, rates, import, drawer or advanced controls.
 
 | Stage | Work | Depends on | Exit | Est. |
 |---|---|---|---|---|
-| **L0** | Drift report; owner resolves | — | clean report | 0.5 d |
-| **5A** | `0532` (`org_currency_cf` + policy + triggers + backfill), `0533` (rate book, providers, batches), `0534`–`0536`. **Stop → owner applies** | HQ `0531`, L0 | applied | 1.5 d |
+| **L0** ✅ | Drift report; owner resolves — clean 2026-09-25 | — | clean report | 0.5 d |
+| **5A** 🟡 | `0532` (`org_currency_cf` + policy + triggers + backfill) **written**; rate book + perms/nav/flag at the next free numbers (HQ took 0533/0534). **Stop → owner applies** | HQ `0531` ✅, L0 ✅ | applied | 1.5 d |
 | **L2** | Code cut-over (5 entry points) | 5A | full suite + build | 1.5 d |
 | **5B** | FX services + HQ-copy adapter + golden tests | 5A | tsc/eslint/tests | 2 d |
 | **5C** | Screen: Currencies, Rates, Manual, From HQ, Converter, Settings | 5B | build + eslint + check:i18n | 2.5 d |

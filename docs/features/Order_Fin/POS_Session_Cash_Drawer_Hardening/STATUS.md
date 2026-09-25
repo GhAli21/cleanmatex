@@ -309,3 +309,13 @@ Audited how D14/D15/D16 propagated. **They had been applied to their own package
 | A5-1 | ✅ Done (interim checkpoint) | `tsc`/`eslint`/`build`/`jest` all run — see Validation gate history. 2 pre-existing unrelated `cmx-sidebar.tsx` lint errors flagged, not fixed. Run early, before A3-4/5/6b/7 + A4-3.../A6 close, at the owner's explicit request ("A5 or A3-4, I prefer A5") — **not** a claim that Wave A itself is finished |
 | A5-2 | ✅ Done | `Remediation_Work_Packages/QA_TEST_GUIDE.md` §33 added |
 | A5-3 | ✅ Done | `/documentation` invoked; this STATUS.md update; `RESUME_CONTINUATION.md` created |
+
+## Cross-program note — Tenant Currency & FX (2026-09-25)
+
+Migration **`0532_org_currency_cf.sql`** (written, not yet applied) touches this program's tables:
+
+- Adds composite FK **`fk_ocd_tenant_currency`**: `org_cash_drawers_mst (tenant_org_id, currency_code)` → `org_currency_cf (tenant_org_id, currency_code)`. A drawer can only hold a currency the tenant has; the backfill creates an `org_currency_cf` row for every currency already on drawers, so existing data validates.
+- `org_tenants_mst.currency` stays (read by `ensure_branch_pd_drawer`, `0523`) and is kept in sync with the tenant's base currency by triggers; a bridge trigger creates the base row when a legacy writer sets it, so branch/drawer creation for new tenants keeps working.
+- Foreign cash = a drawer in that currency (CLF P12 unchanged); `org_currency_cf.allow_cash` is the tenant switch the drawer service will check.
+
+Plan: `docs/features/Tenant_Currency_FX/implementation_plan_01.md` (C5, §4.4). Resume note: `cleanmatexsaas/docs/features/Currency_Setup/RESUME_HERE.md`.
