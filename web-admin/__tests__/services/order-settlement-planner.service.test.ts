@@ -281,6 +281,38 @@ describe('buildSettlementPlan', () => {
     await expect(validateSettlementPlan(plan, 'tenant-1')).resolves.toBeUndefined();
   });
 
+  it('CLF W2: never reads the drawer session before the transaction — a CLOSED session is left to the gate', async () => {
+    const option = makeRealOption({ supportsChangeReturn: true });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(option, 100, { cashTendered: 100 })],
+      [makeOriginalLeg('CASH', 100, { cashTendered: 100 })],
+      'PAY_IN_ADVANCE',
+      'session-1'
+    );
+    (prisma.org_cash_drawer_sessions_mst.findFirst as jest.Mock).mockClear();
+    (prisma.org_cash_drawer_sessions_mst.findFirst as jest.Mock).mockResolvedValue({ status: 'CLOSED' });
+
+    await expect(validateSettlementPlan(plan, 'tenant-1')).resolves.toBeUndefined();
+    expect(prisma.org_cash_drawer_sessions_mst.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('still requires a drawer-session hint for a drawer-tracked leg', async () => {
+    const option = makeRealOption({ supportsChangeReturn: true });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(option, 100, { cashTendered: 100 })],
+      [makeOriginalLeg('CASH', 100, { cashTendered: 100 })],
+      'PAY_IN_ADVANCE'
+    );
+
+    await expect(validateSettlementPlan(plan, 'tenant-1')).rejects.toThrow('CASH_DRAWER_SESSION_REQUIRED');
+  });
+
   it('blocks cash change when method policy disables change return', async () => {
     const option = makeRealOption({ supportsChangeReturn: false });
     const plan = buildSettlementPlan(

@@ -25,6 +25,7 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
 import { requireCurrencyCode, assertCurrencyMatch } from '@/lib/money/currency-resolution';
 import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
 import { resolveDefaultStatus } from '@/lib/services/order-settlement-planner.service';
@@ -169,7 +170,7 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
   }
 
   // Resolve the gift-card code/PIN hash BEFORE opening the transaction —
-  // mirrors sellGiftCard's own top-of-function pattern.
+  // bcrypt is slow; keep it outside the row locks.
   let giftCardCode: string | undefined;
   let giftCardPinHash: string | undefined;
   if (fundingType === FUNDING_TYPES.GIFT_CARD_SALE) {
@@ -192,7 +193,8 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
     giftCard,
   });
 
-  return prisma.$transaction(async (tx) => {
+  // CLF W5: tenant context set explicitly (RLS / Prisma tenant middleware)
+  return withTenantContext(tenantId, () => prisma.$transaction(async (tx) => {
     // 0. Idempotency check-first (D010 — mirrors collectPaymentTx exactly).
     const existingIdempotency = await tx.org_idempotency_keys.findFirst({
       where: {
@@ -446,7 +448,7 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
     });
 
     return result;
-  });
+  }));
 }
 
 /**

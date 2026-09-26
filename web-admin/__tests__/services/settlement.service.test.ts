@@ -2,10 +2,11 @@
  * Tests: order-settlement.service
  *
  * Covers:
- * - settleOrder — writes charge, tax, discount fact rows within transaction
- * - settleOrder — processes CASH leg (payment + order update)
- * - settleOrder — processes WALLET leg via redeemWalletTx
- * - settleOrder — emits ORDER_COMPLETED outbox event
+ * - settleOrderTx — writes charge, tax, discount fact rows in the caller's transaction
+ * - settleOrderTx — never writes payment / credit-application facts or redeems
+ *   stored value (CLF W14: voucher wiring owns them); totals change for cash legs
+ * - settleOrderTx — emits ORDER_COMPLETED outbox event
+ * - collectPaymentTx
  */
 
 // ---------------------------------------------------------------------------
@@ -132,7 +133,7 @@ jest.mock('@/lib/services/voucher-wiring.service', () => ({
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import { collectPaymentTx, settleOrder, settleOrderTx } from '@/lib/services/order-settlement.service';
+import { collectPaymentTx, settleOrderTx } from '@/lib/services/order-settlement.service';
 import { hashPayload } from '@/lib/utils/idempotency';
 import type { FinancialBreakdownSnapshot, ResolvedSettlementLeg } from '@/lib/types/order-financial';
 
@@ -600,110 +601,80 @@ describe('order-settlement.service — collectPaymentTx', () => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('order-settlement.service — settleOrder', () => {
+describe('order-settlement.service — settleOrderTx (CLF W14: wiring owns payment facts)', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('writes charge, tax, and discount fact rows within transaction', async () => {
-    const tx = makeTx();
-    mockTransaction.mockImplementation(async (fn: (t: unknown) => Promise<unknown>) => fn(tx));
-    mockOutboxCreate.mockResolvedValue({});
-    mockPaymentCreate.mockResolvedValue({});
-    mockOrderUpdate.mockResolvedValue({});
+  const baseParams = {
+    orderId: ORDER,
+    tenantId: TENANT,
+    breakdown: makeBreakdown(),
+    chargeLines: [] as never[],
+    taxLines: [] as never[],
+    discountLines: [] as never[],
+  };
 
-    await settleOrder({
-      orderId:    ORDER,
-      tenantId:   TENANT,
-      breakdown:  makeBreakdown(),
-      chargeLines: [{ chargeType: 'EXPRESS', label: 'Express', amount: 5, sourceId: null, label2: null }],
-      taxLines:   [{ taxType: 'VAT', label: 'VAT', label2: null, rate: 5, baseAmount: 100, taxAmount: 5 }],
+  it('writes charge, tax, and discount fact rows in the caller transaction', async () => {
+    const tx = makeTx();
+    mockOutboxCreate.mockResolvedValue({});
+
+    await settleOrderTx(tx, {
+      ...baseParams,
+      chargeLines: [{ chargeType: 'EXPRESS', label: 'Express', amount: 5, sourceId: null, label2: null }] as never[],
+      taxLines: [{ taxType: 'VAT', label: 'VAT', label2: null, rate: 5, baseAmount: 100, taxAmount: 5 }] as never[],
       discountLines: [{
         sourceType: 'MANUAL', discountType: 'PERCENTAGE', discountRate: 5,
         discountAmount: 5, sourceName: 'Manual', sourceId: null, sourceName2: null,
-      }],
+      }] as never[],
       settlementLegs: [makeCashLeg()],
     });
 
     expect(mockChargeCreate).toHaveBeenCalled();
     expect(mockTaxCreate).toHaveBeenCalled();
     expect(mockDiscountCreate).toHaveBeenCalled();
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
-  it('creates a payment row for CASH leg', async () => {
+  it('never writes a payment row for a CASH leg — the voucher wiring handler does', async () => {
     const tx = makeTx();
-    mockTransaction.mockImplementation(async (fn: (t: unknown) => Promise<unknown>) => fn(tx));
     mockOutboxCreate.mockResolvedValue({});
-    mockPaymentCreate.mockResolvedValue({ id: 'pay-1' });
-    mockOrderUpdate.mockResolvedValue({});
 
-    const result = await settleOrder({
-      orderId: ORDER, tenantId: TENANT,
-      breakdown: makeBreakdown({ grandTotal: 100, netReceivable: 100 }),
-      chargeLines: [], taxLines: [], discountLines: [],
-      settlementLegs: [makeCashLeg(100)],
+    const result = await settleOrderTx(tx, { ...baseParams, settlementLegs: [makeCashLeg(100)] });
+
+    expect(mockPaymentCreate).not.toHaveBeenCalled();
+    expect(result.orderId).toBe(ORDER);
+    expect(result.paymentStatus).toBeDefined();
+  });
+
+  it('totals change returned from cash legs', async () => {
+    const tx = makeTx();
+    mockOutboxCreate.mockResolvedValue({});
+
+    const result = await settleOrderTx(tx, {
+      ...baseParams,
+      settlementLegs: [{ ...makeCashLeg(95), cashTendered: 100 }],
     });
 
-    expect(mockPaymentCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ tenant_org_id: TENANT, order_id: ORDER }),
-      })
-    );
-    expect(result.paymentStatus).toBeDefined();
+    expect(result.changeReturned).toBeCloseTo(5, 3);
+  });
+
+  it('never redeems stored value for a credit-application leg — wiring does', async () => {
+    const tx = makeTx();
+    mockOutboxCreate.mockResolvedValue({});
+
+    await settleOrderTx(tx, { ...baseParams, settlementLegs: [makeWalletLeg()] });
+
+    expect(mockRedeemWallet).not.toHaveBeenCalled();
   });
 
   it('emits ORDER_COMPLETED outbox event', async () => {
     const tx = makeTx();
-    mockTransaction.mockImplementation(async (fn: (t: unknown) => Promise<unknown>) => fn(tx));
     mockOutboxCreate.mockResolvedValue({});
-    mockPaymentCreate.mockResolvedValue({});
-    mockOrderUpdate.mockResolvedValue({});
 
-    await settleOrder({
-      orderId: ORDER, tenantId: TENANT,
-      breakdown: makeBreakdown(), chargeLines: [], taxLines: [], discountLines: [],
-      settlementLegs: [makeCashLeg()],
-    });
+    await settleOrderTx(tx, { ...baseParams, settlementLegs: [makeCashLeg()] });
 
     expect(mockOutboxCreate).toHaveBeenCalledWith(
       expect.anything(), TENANT, 'ORDER_COMPLETED',
       expect.any(String), ORDER, expect.any(Object)
     );
-  });
-
-  it('routes WALLET leg to redeemWalletTx', async () => {
-    const tx = makeTx();
-    mockTransaction.mockImplementation(async (fn: (t: unknown) => Promise<unknown>) => fn(tx));
-    mockRedeemWallet.mockResolvedValue({});
-    mockOutboxCreate.mockResolvedValue({});
-    mockPaymentCreate.mockResolvedValue({});
-    mockOrderUpdate.mockResolvedValue({});
-
-    await settleOrder({
-      orderId: ORDER, tenantId: TENANT,
-      breakdown: makeBreakdown(),
-      chargeLines: [], taxLines: [], discountLines: [],
-      settlementLegs: [makeWalletLeg()],
-    });
-
-    expect(mockRedeemWallet).toHaveBeenCalled();
-  });
-
-  it('settleOrderTx joins the caller transaction without opening a nested transaction', async () => {
-    const tx = makeTx();
-    mockOutboxCreate.mockResolvedValue({});
-    mockPaymentCreate.mockResolvedValue({ id: 'pay-1' });
-
-    const result = await settleOrderTx(tx, {
-      orderId: ORDER,
-      tenantId: TENANT,
-      breakdown: makeBreakdown(),
-      chargeLines: [],
-      taxLines: [],
-      discountLines: [],
-      settlementLegs: [makeCashLeg()],
-    });
-
-    expect(mockTransaction).not.toHaveBeenCalled();
-    expect(mockPaymentCreate).toHaveBeenCalled();
-    expect(result.orderId).toBe(ORDER);
   });
 });

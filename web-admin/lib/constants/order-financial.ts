@@ -546,7 +546,7 @@ export const OUTBOX_EVENT_TYPES = {
   // header POST + all line-wiring side effects commit atomically.
   VOUCHER_POSTED_AND_WIRED: 'VOUCHER_POSTED_AND_WIRED',
   /**
-   * BVM Wiring — Phase 6 Sub-item 1. Emitted by verifyPaymentTx() after
+   * BVM Wiring — Phase 6 Sub-item 1. Emitted by the VERIFY payment transition (payment-transition.service.ts; verifyPaymentTx was retired in CLF W10) after
    * a PENDING REAL_PAYMENT leg is flipped to COMPLETED. The Phase 5
    * order-history consumer translates this into a PAYMENT_VERIFIED row
    * on org_order_history. Aggregate type = 'order_payment'.

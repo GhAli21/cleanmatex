@@ -3,10 +3,13 @@
  * execution branch.
  *
  * Covers:
- *  - flag-off (execution omitted/false) preserves the exact pre-B9
- *    record-only behavior — no voucher, no drawer movement.
- *  - CASH execution: requires an OPEN drawer session, creates a REFUND_VOUCHER
- *    wired to a CASH_OUT movement, backfills the 3 lineage columns.
+ *  - CLF W4: a CASH refund ALWAYS executes through a voucher — the
+ *    order_fin_refund_execution flag no longer has a record-only cash path.
+ *    A drawer-session hint is required; whether that drawer has an OPEN
+ *    session is decided by the cash-drawer ledger gate inside
+ *    postAndWireBizVoucher (its refusal propagates), not by a pre-check here.
+ *  - CASH execution: creates a REFUND_VOUCHER wired to a CASH_OUT movement,
+ *    backfills the 3 lineage columns.
  *  - ORIGINAL_METHOD execution: requires a manual-settlement reference,
  *    creates a REFUND_VOUCHER (no drawer movement), backfills lineage +
  *    gateway_refund_id.
@@ -153,49 +156,57 @@ beforeEach(() => {
   mockCashDrawerMovementFindFirst.mockResolvedValue({ id: 'mvt-b9' });
 });
 
-describe('processRefund — B9 execution flag off (record-only, backward compatible)', () => {
-  it('CASH refund with no execution param: no voucher, no drawer check, no lineage backfill', async () => {
+describe('processRefund — CLF W4: CASH refunds always execute (no record-only cash path)', () => {
+  it.each([
+    ['no execution param', undefined],
+    ['execution.enabled=false', { enabled: false }],
+    ['execution.enabled=true', { enabled: true }],
+  ])('rejects a CASH refund without a drawer session (%s) before creating anything', async (_label, execution) => {
     mockRefundFindFirstOrThrow.mockResolvedValue(makeApprovedRefund());
 
-    await processRefund(TENANT, REFUND, PROCESSOR);
-
+    await expect(
+      processRefund(TENANT, REFUND, PROCESSOR, execution),
+    ).rejects.toMatchObject({ code: REFUND_ERROR_CODES.REFUND_CASH_DRAWER_SESSION_REQUIRED });
     expect(mockCreateBizVoucher).not.toHaveBeenCalled();
-    expect(mockAddVoucherLine).not.toHaveBeenCalled();
-    expect(mockPostAndWireBizVoucher).not.toHaveBeenCalled();
-    expect(mockRefundUpdate).toHaveBeenCalledTimes(1);
-    expect(mockRefundUpdate.mock.calls[0][0].data).not.toHaveProperty('fin_voucher_id');
+    expect(mockRefundUpdate).not.toHaveBeenCalled();
   });
 
-  it('CASH refund with execution.enabled=false: same record-only behavior', async () => {
+  it('with the execution flag OFF, a CASH refund still posts a voucher through the gate', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue(makeApprovedRefund());
 
-    await processRefund(TENANT, REFUND, PROCESSOR, { enabled: false });
+    await processRefund(TENANT, REFUND, PROCESSOR, {
+      enabled: false,
+      cashDrawerSessionId: DRAWER_SESSION,
+    });
 
-    expect(mockCreateBizVoucher).not.toHaveBeenCalled();
+    expect(mockCreateBizVoucher).toHaveBeenCalledTimes(1);
+    expect(mockPostAndWireBizVoucher).toHaveBeenCalledWith(
+      TENANT, 'vch-b9', PROCESSOR, 'INTERACTIVE', `refund-${REFUND}-vch-post`, expect.anything(),
+    );
   });
 });
 
-describe('processRefund — B9 execution flag on, CASH destination', () => {
-  it('requires a cash-drawer session', async () => {
+describe('processRefund — CASH destination execution', () => {
+  it('does not pre-check the session itself — the gate decides inside postAndWireBizVoucher', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue(makeApprovedRefund());
 
-    await expect(
-      processRefund(TENANT, REFUND, PROCESSOR, { enabled: true }),
-    ).rejects.toMatchObject({ code: REFUND_ERROR_CODES.REFUND_CASH_DRAWER_SESSION_REQUIRED });
-    expect(mockCreateBizVoucher).not.toHaveBeenCalled();
+    await processRefund(TENANT, REFUND, PROCESSOR, {
+      enabled: true,
+      cashDrawerSessionId: DRAWER_SESSION,
+    });
+
+    expect(mockCashDrawerSessionFindFirst).not.toHaveBeenCalled();
   });
 
-  it('rejects a drawer session that is not OPEN', async () => {
+  it('propagates a gate refusal (e.g. no open session) and does not mark the refund PROCESSED', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue(makeApprovedRefund());
-    mockCashDrawerSessionFindFirst.mockResolvedValue(null);
+    const refusal = Object.assign(new Error('refused'), { code: 'CASH_DRAWER_SESSION_NOT_OPEN' });
+    mockPostAndWireBizVoucher.mockRejectedValue(refusal);
 
     await expect(
-      processRefund(TENANT, REFUND, PROCESSOR, {
-        enabled: true,
-        cashDrawerSessionId: DRAWER_SESSION,
-      }),
-    ).rejects.toMatchObject({ code: REFUND_ERROR_CODES.REFUND_CASH_DRAWER_SESSION_NOT_OPEN });
-    expect(mockCreateBizVoucher).not.toHaveBeenCalled();
+      processRefund(TENANT, REFUND, PROCESSOR, { enabled: true, cashDrawerSessionId: DRAWER_SESSION }),
+    ).rejects.toBe(refusal);
+    expect(mockRefundUpdate).not.toHaveBeenCalled();
   });
 
   it('creates a REFUND_VOUCHER wired to a CASH_OUT movement and backfills lineage', async () => {

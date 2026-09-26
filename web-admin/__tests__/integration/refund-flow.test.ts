@@ -47,6 +47,25 @@ jest.mock('@/lib/services/order-financial-write.service', () => ({
   recalculateOrderFinancialSnapshotTx: (...args: unknown[]) => mockRecalculateSnapshot(...args),
 }));
 
+// CLF W4: a CASH refund always executes through a voucher, so the voucher
+// services are mocked here; this suite asserts reopen / classification logic,
+// order-refund-b9-execution.test.ts covers the execution branch itself.
+jest.mock('@/lib/services/voucher-biz.service', () => ({
+  createBizVoucher: jest.fn().mockResolvedValue({ id: 'vch-test', voucher_no: 'RFV-TEST' }),
+}));
+jest.mock('@/lib/services/voucher-line.service', () => ({
+  addVoucherLine: jest.fn().mockResolvedValue({ id: 'vch-line-test', line_no: 1 }),
+}));
+jest.mock('@/lib/services/voucher-wiring.service', () => ({
+  postAndWireBizVoucher: jest.fn().mockResolvedValue({ voucherId: 'vch-test', fromCache: false }),
+}));
+jest.mock('@/lib/services/pos-session.service', () => ({
+  assertOpenPosSessionForFinanceTx: jest.fn().mockResolvedValue(null),
+}));
+
+/** Drawer-session hint every CASH refund now needs (CLF W4). */
+const CASH_EXECUTION = { enabled: false, cashDrawerSessionId: 'drawer-session-test' };
+
 import { approveRefund, initiateRefund, processRefund } from '@/lib/services/order-refund.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -89,6 +108,7 @@ function installTxMock() {
       org_orders_mst: {
         findFirstOrThrow: mockOrderFind,
       },
+      org_cash_drawer_movements_dtl: { findFirst: jest.fn().mockResolvedValue({ id: 'mvt-test' }) },
       org_order_refunds_dtl: {
         aggregate: mockRefundAggregate,
         count: mockRefundCount,
@@ -179,7 +199,7 @@ describe('refund-flow integration — full lifecycle', () => {
     mockOutboxCreate.mockResolvedValue({});
     mockQueryRaw.mockResolvedValue([{ id: REFUND }]); // F-R2: FOR UPDATE lock acquired
 
-    await processRefund(TENANT, REFUND, APPROVER);
+    await processRefund(TENANT, REFUND, APPROVER, CASH_EXECUTION);
 
     expect(mockRefundUpdate).toHaveBeenCalledWith(
       expect.objectContaining({

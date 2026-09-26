@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { reverseBizVoucher } from '@/lib/services/voucher-reversal.service';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
+import { CUSTOMER_RECEIPT_POST_ERRORS } from '@/lib/types/customer-receipt-allocation';
 
 /**
  *
@@ -33,6 +34,9 @@ export async function POST(
       return NextResponse.json({ success: false, error: err.code }, { status: 422 });
     }
     const message = err instanceof Error ? err.message : 'Failed to reverse voucher';
+    if (message === CUSTOMER_RECEIPT_POST_ERRORS.REVERSAL_NOT_SUPPORTED) {
+      return NextResponse.json({ success: false, code: message, error: message }, { status: 422 });
+    }
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

@@ -41,6 +41,13 @@ export const PAYMENT_CONFIG_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      manageCashDrawers: {
+        label: 'Create, edit or deactivate cash drawers (server actions in app/actions/payment-config/cash-drawers-actions.ts)',
+        requirement: {
+          permissions: [PAYMENT_CONFIG_PERMISSIONS.MANAGE],
+          requireAllPermissions: true,
+        },
+      },
       viewCashDrawers: {
         label: 'View cash drawers',
         requirement: {

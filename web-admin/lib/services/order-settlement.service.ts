@@ -2,9 +2,8 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
 import {
-  CREDIT_APPLICATION_STATUSES,
-  CREDIT_APPLICATION_TYPES,
   OUTBOX_EVENT_TYPES,
   PAYMENT_NATURE,
 } from '@/lib/constants/order-financial';
@@ -17,9 +16,8 @@ import type {
 } from '@/lib/types/order-financial';
 import { createClient } from '@/lib/supabase/server';
 import { emitEventTx } from './outbox.service';
-import { queueEarnPoints, redeemPointsTx, resolveLoyaltyRedemptionPoints } from './loyalty.service';
+import { queueEarnPoints } from './loyalty.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
-import { redeemAdvanceTx, redeemCreditNoteTx, redeemWalletTx } from './stored-value.service';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { addMoney, subMoney, sumMoney } from '@/lib/utils/money';
 import {
@@ -88,15 +86,13 @@ export interface SettlementParams {
   taxLines: TaxLineItem[];
   discountLines: DiscountLineInput[];
   settlementLegs: ResolvedSettlementLeg[];
+  /**
+   * @deprecated Ignored since CLF W14 — cash legs reach the drawer only through
+   * the voucher line and the cash-drawer ledger gate. Kept so callers compile.
+   */
   cashDrawerSessionId?: string;
   posSessionId?: string;
   settledBy?: string;
-  /**
-   * When true the BVM wiring service is responsible for writing
-   * org_order_payments_dtl and org_order_credit_apps_dtl rows.
-   * Skip the direct writes here to avoid double-write. Default: false.
-   */
-  wiringMode?: boolean;
 }
 
 /**
@@ -111,25 +107,17 @@ export interface SettlementResult {
 }
 
 /**
- * Settle an order in one transaction.
- *
- * Why:
- * This path writes all order-level financial facts, preserves gateway safety,
- * and recalculates the header snapshot from persisted rows instead of trusting
- * one-off request math.
- *
- * @param params settlement payload resolved by checkout
- * @returns normalized snapshot result after persistence
- */
-export async function settleOrder(params: SettlementParams): Promise<SettlementResult> {
-  return prisma.$transaction((tx) => settleOrderTx(tx, params));
-}
-
-/**
  * Settle an order using the caller's transaction.
  *
  * This is used by submit-order so the order header, voucher wiring, stored-value
  * debits, payment fact rows, and financial snapshot commit or roll back together.
+ *
+ * CLF W14: payment facts (`org_order_payments_dtl`), credit applications and
+ * stored-value redemptions are written ONLY by BVM voucher wiring (and cash
+ * only through the drawer ledger gate). The former non-wiring branch — direct
+ * payment rows / redemptions when `wiringMode` was false — was unreachable
+ * from submit-order and is deleted, together with the `settleOrder` wrapper.
+ * Settlement legs are read here only to validate them and total the change.
  *
  * @param tx active Prisma transaction owned by the caller
  * @param params settlement payload resolved by checkout
@@ -152,10 +140,8 @@ export async function settleOrderTx(
     taxLines,
     discountLines,
     settlementLegs,
-    cashDrawerSessionId,
     posSessionId,
     settledBy,
-    wiringMode = false,
   } = params;
   const currencyCode = breakdown.currencyCode;
 
@@ -234,48 +220,13 @@ export async function settleOrderTx(
     let changeReturned = 0;
 
     for (const leg of settlementLegs) {
-      const { settlementOption: option, amount, terminalId, cashTendered, creditReferenceId } = leg;
+      const { settlementOption: option, amount, cashTendered } = leg;
 
       if (option.paymentNature === PAYMENT_NATURE.REAL_PAYMENT) {
         // Use subMoney to avoid float drift on 3-decimal currencies (OMR/BHD/KWD).
         const change = cashTendered && cashTendered > amount ? subMoney(cashTendered, amount).toNumber() : 0;
-        // BVM Phase 6 Sub-item 6 (B7 closer): honor explicit per-leg status
-        // first; fall back to the gateway-driven PENDING rule for callers
-        // that omit the field (Zod defaults to `'COMPLETED'`).
-        const paymentStatus =
-          leg.paymentStatus === 'PENDING'
-            ? 'PENDING'
-            : option.gatewayCode
-              ? 'PENDING'
-              : 'COMPLETED';
         changeReturned += change;
-
-        // In wiringMode the BVM wiring handler creates this row — skip to avoid double-write
-        if (!wiringMode) {
-          await tx.org_order_payments_dtl.create({
-            data: {
-              tenant_org_id: tenantId,
-              order_id: orderId,
-              org_payment_method_id: option.id,
-              payment_method_code: option.paymentMethodCode,
-              currency_code: currencyCode,
-              payment_nature_snapshot: 'REAL_PAYMENT',
-              amount,
-              payment_terminal_id: terminalId ?? null,
-              tendered_amount: cashTendered ?? null,
-              change_returned_amount: change > 0 ? change : null,
-              cash_drawer_session_id: option.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
-              pos_session_id: posSessionId ?? null,
-              gateway_code: option.gatewayCode ?? null,
-              gateway_reference: leg.reference ?? null,
-              payment_status: paymentStatus,
-              paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,
-              is_active: true,
-              rec_status: 1,
-              received_by: settledBy ?? null,
-            },
-          });
-        }
+        // The payment fact row is written by the voucher wiring handler.
         continue;
       }
 
@@ -285,80 +236,8 @@ export async function settleOrderTx(
         if (!option.creditApplicationType) {
           throw new Error('CREDIT_APPLICATION_TYPE_REQUIRED');
         }
-        const creditType = option.creditApplicationType;
-
-        // Phase 2 (BVM Wiring) consolidation: when the caller already ran the
-        // BVM voucher tx (wiringMode=true), the stored-value ledger debits
-        // and the credit-application fact row were both written there. The
-        // entire CREDIT_APPLICATION branch in settleOrder must be a no-op or
-        // we double-debit the customer's balance. The orchestrator's TX2 owns
-        // the redemption now; settleOrder only writes the order snapshot.
-        if (wiringMode) {
-          continue;
-        }
-
-        const order = await tx.org_orders_mst.findFirstOrThrow({
-          where: { id: orderId, tenant_org_id: tenantId },
-          select: { customer_id: true },
-        });
-        const customerId = order.customer_id!;
-
-        if (creditType === CREDIT_APPLICATION_TYPES.WALLET) {
-          await redeemWalletTx(tx, { tenantId, customerId, amount, orderId });
-        } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE) {
-          await redeemAdvanceTx(tx, { tenantId, customerId, amount, orderId });
-        } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT && creditReferenceId) {
-          await redeemCreditNoteTx(tx, {
-            tenantId,
-            customerId,
-            creditNoteId: creditReferenceId,
-            amount,
-            orderId,
-          });
-        } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT) {
-          // F21 — Deterministic idempotency key. Previously included Date.now()
-          // which produced a fresh key on every retry, defeating the unique
-          // constraint on org_loyalty_txn_dtl(tenant_org_id, idempotency_key)
-          // and silently double-debiting loyalty points if the orchestrator
-          // retried mid-flight. Stable key = single ledger row per order.
-          const idempotencyKey = `loyalty-redeem-${orderId}`;
-          // B21 — this used to reuse `option.minAmount` (the payment method's
-          // MINIMUM PAYMENT AMOUNT field, unrelated to loyalty) as if it were
-          // a points-per-currency conversion rate — a semantic overload with
-          // no relationship to the tenant's actual configured loyalty rate.
-          // Now resolves through the same shared helper as
-          // applyStoredValueDebitTx (order-credit-application.service.ts),
-          // so this legacy branch can never silently drift from the live
-          // BVM-wiring path's math again.
-          const pointsToRedeem = await resolveLoyaltyRedemptionPoints(tenantId, amount);
-          await redeemPointsTx(tx, {
-            tenantId,
-            customerId,
-            pointsToRedeem,
-            monetaryAmount: amount,
-            orderId,
-            idempotencyKey,
-          });
-        }
-
-        // Gift card debit happens earlier in create-with-payment to preserve
-        // the legacy two-transaction order create flow. The settlement step
-        // records only the order-level credit application fact.
-        await tx.org_order_credit_apps_dtl.create({
-          data: {
-            tenant_org_id:    tenantId,
-            order_id:         orderId,
-            currency_code:    currencyCode,
-            credit_type:      creditType,
-            application_status: CREDIT_APPLICATION_STATUSES.APPLIED,
-            credit_source_id: creditReferenceId ?? null,
-            applied_amount:   amount,
-            reference_no:     leg.reference ?? null,
-            applied_by:       settledBy ?? null,
-            is_active:        true,
-            rec_status:       1,
-          },
-        });
+        // The redemption and the credit-application fact row are written by
+        // the voucher wiring (order-credit-application handler).
       }
     }
 
@@ -393,207 +272,6 @@ export async function settleOrderTx(
       outstanding: snapshot.outstandingAmount,
       changeReturned,
     };
-}
-
-// ─── Verify Payment (BVM Wiring Phase 6 Sub-item 1) ─────────────────────────
-
-/**
- * Input for the verify-payment endpoint.
- *
- * @property orderId    UUID of the order the payment belongs to.
- * @property paymentId  UUID of the `org_order_payments_dtl` row to verify.
- * @property tenantId   Tenant id resolved from the auth/permission middleware.
- * @property verifiedBy User id of the actor performing the verification.
- */
-export interface VerifyPaymentParams {
-  orderId: string;
-  paymentId: string;
-  tenantId: string;
-  verifiedBy: string;
-}
-
-/**
- * Result of {@link verifyPaymentTx}. The header snapshot fields (status,
- * outstanding) are read from the freshly recalculated order row so the
- * caller can refresh the financial summary in a single round-trip.
- */
-export interface VerifyPaymentResult {
-  paymentId: string;
-  previousStatus: string;            // 'PENDING' | 'COMPLETED' (idempotent path)
-  newStatus: 'COMPLETED';
-  verifiedAt: string;                // ISO timestamp
-  orderPaymentStatus: string;        // header snapshot.paymentStatus after recalc
-  outstanding: number;
-  /** True when this call performed the PENDING → COMPLETED flip; false on idempotent replays. */
-  flipped: boolean;
-}
-
-/**
- * BVM Wiring — Phase 6 Sub-item 1.
- *
- * Verify a single PENDING `REAL_PAYMENT` leg and flip it to COMPLETED.
- * This is the back-office assurance step after a gateway/bank confirms
- * funds for a leg that was created in PENDING state (typical for online
- * gateway captures and bank-cleared checks).
- *
- * Invariants (PRD §22.2):
- *
- *  1. **Composite tenant filter.** Every WHERE clause carries
- *     `(tenant_org_id, order_id, id)` so a verifier with one tenant's
- *     session can never touch another tenant's payment row.
- *  2. **Row lock.** The payment row is selected `FOR UPDATE` inside the
- *     transaction so two concurrent verifies cannot double-emit the
- *     outbox event or race the snapshot recalc.
- *  3. **Only REAL_PAYMENT.** Credit-application legs (gift card / wallet /
- *     advance / loyalty / credit note) are not "verified" — those flow
- *     through the stored-value ledgers and never enter PENDING here.
- *  4. **Idempotent.** Re-running on a row already in COMPLETED status is
- *     a silent no-op: same result shape, `flipped: false`, no outbox
- *     emission, no second header recalc.
- *  5. **Rejected for terminal states.** CANCELLED / FAILED / REFUNDED
- *     etc. throw — verification is only meaningful for PENDING.
- *  6. **Header recalc + outbox.** After the flip, the order header
- *     snapshot is recalculated from fact rows and a
- *     `PAYMENT_VERIFIED` outbox event is emitted within the same tx.
- *     The Phase 5 history consumer translates the event into an
- *     `org_order_history` row asynchronously.
- *
- * Tenant context: this service is called from a route handler that has
- * already resolved tenant via `requirePermission('orders:verify_payment')`.
- * `tenantId` is passed explicitly and bound into every Prisma query.
- *
- * @param params payment verification payload scoped to one tenant/order/payment row
- * @returns verification result with the refreshed order payment snapshot
- *
- * @throws Error('Payment not found') when no matching row exists for
- *         the composite key.
- * @throws Error('Payment cannot be verified — not a REAL_PAYMENT leg')
- *         when the leg is a credit application.
- * @throws Error('Payment cannot be verified — status is X')
- *         when the row is in a non-PENDING / non-COMPLETED state.
- */
-export async function verifyPaymentTx(
-  params: VerifyPaymentParams,
-): Promise<VerifyPaymentResult> {
-  const { orderId, paymentId, tenantId, verifiedBy } = params;
-
-  return prisma.$transaction(async (tx) => {
-    // ── 1. Lock the payment row with composite tenant filter ────────────
-    // Raw SQL with FOR UPDATE — Prisma's findFirst does not support row
-    // locking inside an interactive transaction. The composite filter is
-    // explicit at the SQL level for defense-in-depth even though RLS
-    // would already block cross-tenant rows.
-    const rows = await tx.$queryRaw<
-      Array<{
-        id: string;
-        order_id: string;
-        payment_status: string;
-        payment_nature_snapshot: string;
-        paid_at: Date | null;
-      }>
-    >`
-      SELECT id, order_id, payment_status, payment_nature_snapshot, paid_at
-      FROM public.org_order_payments_dtl
-      WHERE id = ${paymentId}::uuid
-        AND order_id = ${orderId}::uuid
-        AND tenant_org_id = ${tenantId}::uuid
-      FOR UPDATE
-    `;
-
-    const row = rows[0];
-    if (!row) {
-      throw new Error('Payment not found');
-    }
-
-    if (row.payment_nature_snapshot !== PAYMENT_NATURE.REAL_PAYMENT) {
-      throw new Error('Payment cannot be verified — not a REAL_PAYMENT leg');
-    }
-
-    // ── 2. Idempotent no-op when already COMPLETED ──────────────────────
-    // Re-issuing the verify call must not double-emit the outbox event
-    // or rewrite paid_at. We still refresh the snapshot from the order
-    // header so the caller sees current outstanding/status.
-    if (row.payment_status === 'COMPLETED') {
-      const order = await tx.org_orders_mst.findFirstOrThrow({
-        where: { id: orderId, tenant_org_id: tenantId },
-        select: { payment_status: true, outstanding_amount: true },
-      });
-      return {
-        paymentId,
-        previousStatus: 'COMPLETED',
-        newStatus: 'COMPLETED',
-        verifiedAt: (row.paid_at ?? new Date()).toISOString(),
-        orderPaymentStatus: order.payment_status ?? 'UNKNOWN',
-        outstanding: Number(order.outstanding_amount ?? 0),
-        flipped: false,
-      };
-    }
-
-    if (row.payment_status !== 'PENDING') {
-      throw new Error(`Payment cannot be verified — status is ${row.payment_status}`);
-    }
-
-    // ── 3. Flip PENDING → COMPLETED ─────────────────────────────────────
-    const verifiedAt = new Date();
-    const updated = await tx.org_order_payments_dtl.updateMany({
-      where: {
-        id: paymentId,
-        order_id: orderId,
-        tenant_org_id: tenantId,
-        payment_status: 'PENDING',
-      },
-      data: {
-        payment_status: 'COMPLETED',
-        paid_at: verifiedAt,
-        updated_at: verifiedAt,
-        updated_by: verifiedBy,
-      },
-    });
-    if (updated.count !== 1) {
-      // Concurrent verifier already flipped the row between the SELECT
-      // FOR UPDATE and the UPDATE — treat as a benign idempotent race.
-      throw new Error('Payment verification race detected — please retry');
-    }
-
-    // ── 4. Recalculate the order header snapshot from fact rows ─────────
-    const snapshot = await recalculateOrderFinancialSnapshotTx(
-      tx,
-      tenantId,
-      orderId,
-    );
-
-    // ── 5. Emit outbox PAYMENT_VERIFIED event ───────────────────────────
-    // Aggregate is the payment leg (not the order) so the Phase 5
-    // history consumer can resolve back to the order via the payment
-    // row and persist provenance (which payment was verified).
-    await emitEventTx(
-      tx,
-      tenantId,
-      OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
-      'order_payment',
-      paymentId,
-      {
-        orderId,
-        paymentId,
-        verifiedBy,
-        actor_id: verifiedBy,
-        verified_by: verifiedBy,
-        previousStatus: 'PENDING',
-        newStatus: 'COMPLETED',
-        verifiedAt: verifiedAt.toISOString(),
-      },
-    );
-
-    return {
-      paymentId,
-      previousStatus: 'PENDING',
-      newStatus: 'COMPLETED',
-      verifiedAt: verifiedAt.toISOString(),
-      orderPaymentStatus: snapshot.paymentStatus,
-      outstanding: snapshot.outstandingAmount,
-      flipped: true,
-    };
-  });
 }
 
 /**
@@ -687,7 +365,8 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
   } = params;
   const policy = await getPartialLaterCollectionPolicy(tenantId);
 
-  return prisma.$transaction(async (tx) => {
+  // CLF W3: explicit tenant context, same as every other money writer.
+  return withTenantContext(tenantId, () => prisma.$transaction(async (tx) => {
     // ── 0. Idempotency conflict check + replay short-circuit (B5/D010) ──────
     // Runs before the order lock so a pure replay never re-validates against
     // an outstanding balance the original call has already reduced.
@@ -1082,5 +761,5 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     });
 
     return result;
-  });
+  }));
 }

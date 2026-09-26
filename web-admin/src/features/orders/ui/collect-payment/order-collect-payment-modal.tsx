@@ -189,6 +189,7 @@ export function OrderCollectPaymentModal({
   const t = useTranslations('orders.collectPayment');
   const tPayment = useTranslations('newOrder.payment');
   const tExtra = useTranslations('newOrder.payment.extraReceipt');
+  const tLedger = useTranslations('cashControl.ledgerErrors');
   const isRTL = useRTL();
   const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency();
   const { currentTenant, user } = useAuth();
@@ -863,7 +864,9 @@ export function OrderCollectPaymentModal({
                 ? tPayment('cashDrawer.messages.noOpenSession')
                 : errorCode === 'IDEMPOTENCY_CONFLICT'
                   ? t('idempotencyConflict')
-                  : null;
+                  : errorCode && tLedger.has(errorCode)
+                    ? tLedger(errorCode as Parameters<typeof tLedger>[0])
+                    : null;
         throw new Error(mapped ?? json.error ?? t('submitError'));
       }
       cmxMessage.success(t('success'));

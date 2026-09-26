@@ -1015,7 +1015,11 @@ export async function listPosSessions(input: {
   page: number;
   pageSize: number;
   branchId?: string | null;
-  /** Optional operator filter; distinct from the authenticated actor `userId`. */
+  /**
+   * Optional "sessions of this operator" filter. Distinct from `userId` (the
+   * acting user, which drives the own-scope restriction) — the two used to
+   * share one name, so the filter silently replaced the actor id.
+   */
   filterUserId?: string | null;
   operatorQuery?: string | null;
   terminalQuery?: string | null;
@@ -1042,7 +1046,9 @@ export async function listPosSessions(input: {
   const branchSql = input.branchId
     ? Prisma.sql`AND ps.branch_id = ${input.branchId}::uuid`
     : Prisma.empty;
-  const userSql = input.filterUserId ? Prisma.sql`AND ps.user_id = ${input.filterUserId}::uuid` : Prisma.empty;
+  const userSql = input.filterUserId
+    ? Prisma.sql`AND ps.user_id = ${input.filterUserId}::uuid`
+    : Prisma.empty;
   const operatorQuerySql = input.operatorQuery
     ? Prisma.sql`AND EXISTS (
         SELECT 1

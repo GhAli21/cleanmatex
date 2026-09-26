@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
 import {
   FALLBACK_CLASSIFICATIONS,
   OUTBOX_EVENT_TYPES,
@@ -177,7 +178,10 @@ export async function transitionPaymentTx(
   if (tx) {
     return transitionPaymentCoreTx(tx, params);
   }
-  return prisma.$transaction((innerTx) => transitionPaymentCoreTx(innerTx, params));
+  // Standalone call (routes): open our own transaction under explicit tenant context.
+  return withTenantContext(params.tenantId, () =>
+    prisma.$transaction((innerTx) => transitionPaymentCoreTx(innerTx, params)),
+  );
 }
 
 /**

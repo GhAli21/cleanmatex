@@ -62,7 +62,82 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       permissions: ['customers:receipt_allocate'],
       requireAllPermissions: true,
     },
-    notes: ['Standalone customer account receipt allocation screen.'],
+    notes: [
+      'Standalone customer account receipt allocation screen.',
+      'CLF W6: the tender step reuses StoredValueTenderFields (useCashDrawer), so cash receipts pick / open a drawer session; the cash-drawer ledger gate decides the drawer on post.',
+    ],
+    apiDependencies: [
+      {
+        label: 'List cash drawers and open sessions (tender step)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Open a cash-drawer session (tender step)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/open-session',
+        requirement: {
+          permissions: ['cash_drawer:open_session'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Eligible payment methods',
+        method: 'GET',
+        path: '/api/v1/orders/checkout-options',
+        notes: ['Auth-only route; lists REAL_PAYMENT methods allowed in POS.'],
+      },
+      {
+        label: 'Customer open balances (manual allocation)',
+        method: 'GET',
+        path: '/api/v1/customers/[id]/open-balances',
+        requirement: {
+          permissions: ['orders:overpayment_allocate'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Preview auto allocation',
+        method: 'POST',
+        path: '/api/v1/customer-receipts/allocation/preview-auto',
+        requirement: {
+          permissions: ['customers:receipt_allocate', 'orders:overpayment_allocate'],
+          requireAllPermissions: false,
+        },
+      },
+      {
+        label: 'Preview manual allocation',
+        method: 'POST',
+        path: '/api/v1/customer-receipts/allocation/preview-manual',
+        requirement: {
+          permissions: ['customers:receipt_allocate', 'orders:overpayment_allocate'],
+          requireAllPermissions: false,
+        },
+      },
+      {
+        label: 'Confirm allocation preview',
+        method: 'POST',
+        path: '/api/v1/customer-receipts/allocation/post',
+        requirement: {
+          permissions: ['customers:receipt_allocate', 'orders:overpayment_allocate'],
+          requireAllPermissions: false,
+        },
+      },
+      {
+        label: 'Post customer account receipt',
+        method: 'POST',
+        path: '/api/v1/customer-receipts/post',
+        requirement: {
+          permissions: ['customers:receipt_allocate', 'orders:overpayment_allocate'],
+          requireAllPermissions: false,
+        },
+        notes: ['CSRF-validated. Cash-drawer ledger refusals and receipt business errors return HTTP 422 with a stable `code`.'],
+      },
+    ],
   },
   {
     routePattern: '/dashboard/customers/stored-value',

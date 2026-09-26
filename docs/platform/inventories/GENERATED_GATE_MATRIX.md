@@ -1,8 +1,8 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-09-25T17:26:40.142Z
-Git SHA: 85f841a4
+Generated: 2026-09-25T21:18:07.471Z
+Git SHA: ff16be8
 ## Summary
 | Domain | Count |
 | --- | --- |

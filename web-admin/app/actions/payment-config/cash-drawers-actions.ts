@@ -6,19 +6,28 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
-import { lockDrawerScope } from '@/lib/services/cash-drawer.service';
 import { CASH_DRAWER_SESSION_STATUSES, DRAWER_TYPES } from '@/lib/constants/payment';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import { PAYMENT_CONFIG_PERMISSIONS } from '@features/payment-config/access/payment-config-access';
 import type {
   OrgCashDrawer,
   OrgCashDrawerSession,
-  OrgCashDrawerMovement,
   CreateCashDrawerInput,
   UpdateCashDrawerInput,
-  OpenDrawerSessionInput,
-  CloseDrawerSessionInput,
 } from '@/lib/types/payment';
 
 const REVALIDATE_PATH = '/dashboard/settings/payments';
+
+/*
+ * Drawer configuration actions for Settings → Payments → Cash drawers.
+ * CLF W12: the four legacy session/movement actions that used to live here
+ * (getActiveDrawerSession, openDrawerSession, closeDrawerSession,
+ * getDrawerMovements) had no callers and bypassed the drawer ledger — deleted.
+ * Session lifecycle lives in app/actions/billing/cash-drawer-actions.ts and the
+ * /api/v1/cash-drawers routes. Every action here checks its permission.
+ */
+
+const FORBIDDEN = 'Insufficient permissions';
 
 async function resolveTenantCurrencyCode(tenantId: string, userId?: string | null): Promise<string> {
   const config = await getCurrencyConfigAction(tenantId, undefined, userId ?? undefined);
@@ -34,6 +43,9 @@ export async function getCashDrawers(
   error?: string;
 }> {
   try {
+    if (!(await hasPermissionServer(PAYMENT_CONFIG_PERMISSIONS.VIEW))) {
+      return { success: false, error: FORBIDDEN };
+    }
     const { tenantId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       const drawers = await prisma.org_cash_drawers_mst.findMany({
@@ -74,6 +86,9 @@ export async function createCashDrawer(
   input: CreateCashDrawerInput
 ): Promise<{ success: boolean; data?: OrgCashDrawer; error?: string }> {
   try {
+    if (!(await hasPermissionServer(PAYMENT_CONFIG_PERMISSIONS.MANAGE))) {
+      return { success: false, error: FORBIDDEN };
+    }
     const { tenantId, userId } = await getAuthContext();
     if (input.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT) {
       return { success: false, error: 'Pending-deposit drawers are created by the system, one per branch.' };
@@ -115,6 +130,9 @@ export async function updateCashDrawer(
   input: UpdateCashDrawerInput
 ): Promise<{ success: boolean; data?: OrgCashDrawer; error?: string }> {
   try {
+    if (!(await hasPermissionServer(PAYMENT_CONFIG_PERMISSIONS.MANAGE))) {
+      return { success: false, error: FORBIDDEN };
+    }
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_cash_drawers_mst.findFirst({
@@ -168,6 +186,9 @@ export async function toggleCashDrawerActive(
   isActive: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!(await hasPermissionServer(PAYMENT_CONFIG_PERMISSIONS.MANAGE))) {
+      return { success: false, error: FORBIDDEN };
+    }
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_cash_drawers_mst.findFirst({
@@ -206,224 +227,5 @@ export async function toggleCashDrawerActive(
     });
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to toggle cash drawer' };
-  }
-}
-
-/** Get the active (OPEN) session for a drawer, or null */
-export async function getActiveDrawerSession(
-  drawerId: string
-): Promise<{ success: boolean; data?: OrgCashDrawerSession | null; error?: string }> {
-  try {
-    const { tenantId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      const session = await prisma.org_cash_drawer_sessions_mst.findFirst({
-        where: { cash_drawer_id: drawerId, tenant_org_id: tenantId, status: 'OPEN', is_active: true },
-      });
-      return { success: true, data: (session as unknown as OrgCashDrawerSession) ?? null };
-    });
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch active session' };
-  }
-}
-
-/** Open a cash drawer session — validates no open session exists, then creates atomically */
-export async function openDrawerSession(
-  input: OpenDrawerSessionInput
-): Promise<{ success: boolean; data?: OrgCashDrawerSession; error?: string }> {
-  try {
-    const { tenantId, userId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      const drawer = await prisma.org_cash_drawers_mst.findFirst({
-        where: { id: input.cash_drawer_id, tenant_org_id: tenantId, is_active: true },
-      });
-      if (!drawer) return { success: false, error: 'Cash drawer not found or inactive' };
-
-      if (input.opening_float_amount < 0) {
-        return { success: false, error: 'Opening float cannot be negative' };
-      }
-
-      // A1 (POS Session & Cash Drawer Hardening, migration 0519): the
-      // existing-session check and generate_cash_drawer_sess_no() call both
-      // move inside the transaction that does the insert. The function's
-      // advisory lock is transaction-scoped — calling it before
-      // prisma.$transaction() opened (as this used to) releases the lock
-      // before the insert commits and protects nothing, which is the exact
-      // defect A1 fixes in lib/services/cash-drawer.service.ts openSession().
-      // A2: also take the shared per-drawer advisory lock so a concurrent
-      // opener blocks here and observes `existingOpen` cleanly, instead of
-      // racing to insert and relying solely on the DB unique constraint.
-      const session = await prisma.$transaction(async (tx) => {
-        await lockDrawerScope(tx, tenantId, input.cash_drawer_id);
-
-        const existingOpen = await tx.org_cash_drawer_sessions_mst.findFirst({
-          where: { cash_drawer_id: input.cash_drawer_id, tenant_org_id: tenantId, status: 'OPEN', is_active: true },
-        });
-        if (existingOpen) {
-          throw new Error('Drawer already has an open session');
-        }
-
-        const [sessionResult] = await tx.$queryRaw<Array<{ session_no: string }>>`
-          SELECT public.generate_cash_drawer_sess_no(${tenantId}::uuid) AS session_no
-        `;
-        const sessionNo = sessionResult.session_no;
-
-        const newSession = await tx.org_cash_drawer_sessions_mst.create({
-          data: {
-            tenant_org_id: tenantId,
-            branch_id: input.branch_id,
-            cash_drawer_id: input.cash_drawer_id,
-            session_no: sessionNo,
-            opened_by: userId,
-            opened_at: new Date(),
-            opening_float_amount: input.opening_float_amount,
-            currency_code: input.currency_code,
-            status: 'OPEN',
-            expected_cash_amount: input.opening_float_amount,
-            created_by: userId,
-            created_at: new Date(),
-            rec_status: 1,
-            is_active: true,
-            metadata: {},
-          },
-        });
-
-        await tx.org_cash_drawer_movements_dtl.create({
-          data: {
-            tenant_org_id: tenantId,
-            branch_id: input.branch_id,
-            cash_drawer_id: input.cash_drawer_id,
-            cash_drawer_session_id: newSession.id,
-            movement_type: 'OPENING_FLOAT',
-            direction: 'IN',
-            amount: input.opening_float_amount,
-            currency_code: input.currency_code,
-            performed_by: userId,
-            performed_at: new Date(),
-            created_by: userId,
-            created_at: new Date(),
-            rec_status: 1,
-            is_active: true,
-            metadata: {},
-          },
-        });
-
-        return newSession;
-      });
-
-      revalidatePath(REVALIDATE_PATH);
-      return { success: true, data: session as unknown as OrgCashDrawerSession };
-    });
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to open drawer session' };
-  }
-}
-
-/** Close a cash drawer session — calculates diff, records CLOSING_COUNT + variance movements */
-export async function closeDrawerSession(
-  input: CloseDrawerSessionInput
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { tenantId, userId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      const session = await prisma.org_cash_drawer_sessions_mst.findFirst({
-        where: { id: input.session_id, tenant_org_id: tenantId, status: 'OPEN', is_active: true },
-      });
-      if (!session) return { success: false, error: 'Open session not found' };
-
-      const counted = input.counted_cash_amount;
-      const expected = Number(session.expected_cash_amount);
-      const diff = counted - expected;
-
-      await prisma.$transaction(async (tx) => {
-        await tx.org_cash_drawer_movements_dtl.create({
-          data: {
-            tenant_org_id: tenantId,
-            branch_id: session.branch_id,
-            cash_drawer_id: session.cash_drawer_id,
-            cash_drawer_session_id: session.id,
-            movement_type: 'CLOSING_COUNT',
-            direction: 'NONE',
-            amount: counted,
-            currency_code: session.currency_code,
-            reason: input.close_notes ?? null,
-            performed_by: userId,
-            performed_at: new Date(),
-            created_by: userId,
-            created_at: new Date(),
-            rec_status: 1,
-            is_active: true,
-            metadata: {},
-          },
-        });
-
-        if (diff !== 0) {
-          await tx.org_cash_drawer_movements_dtl.create({
-            data: {
-              tenant_org_id: tenantId,
-              branch_id: session.branch_id,
-              cash_drawer_id: session.cash_drawer_id,
-              cash_drawer_session_id: session.id,
-              movement_type: diff < 0 ? 'SHORTAGE' : 'OVERAGE',
-              direction: diff < 0 ? 'OUT' : 'IN',
-              amount: Math.abs(diff),
-              currency_code: session.currency_code,
-              performed_by: userId,
-              performed_at: new Date(),
-              created_by: userId,
-              created_at: new Date(),
-              rec_status: 1,
-              is_active: true,
-              metadata: {},
-            },
-          });
-        }
-
-        await tx.org_cash_drawer_sessions_mst.update({
-          where: { id: session.id, tenant_org_id: tenantId },
-          data: {
-            status: 'CLOSED',
-            counted_cash_amount: counted,
-            difference_amount: diff,
-            closed_by: userId,
-            closed_at: new Date(),
-            close_notes: input.close_notes ?? null,
-            updated_by: userId,
-            updated_at: new Date(),
-          },
-        });
-      });
-
-      revalidatePath(REVALIDATE_PATH);
-      return { success: true };
-    });
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to close drawer session' };
-  }
-}
-
-/** Get drawer movements for a session, paginated */
-export async function getDrawerMovements(
-  sessionId: string,
-  page = 1,
-  pageSize = 20
-): Promise<{ success: boolean; data?: OrgCashDrawerMovement[]; total?: number; error?: string }> {
-  try {
-    const { tenantId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      const [rows, total] = await prisma.$transaction([
-        prisma.org_cash_drawer_movements_dtl.findMany({
-          where: { cash_drawer_session_id: sessionId, tenant_org_id: tenantId, is_active: true },
-          orderBy: { performed_at: 'desc' },
-          skip: (page - 1) * pageSize,
-          take: pageSize,
-        }),
-        prisma.org_cash_drawer_movements_dtl.count({
-          where: { cash_drawer_session_id: sessionId, tenant_org_id: tenantId, is_active: true },
-        }),
-      ]);
-      return { success: true, data: rows as unknown as OrgCashDrawerMovement[], total };
-    });
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch drawer movements' };
   }
 }

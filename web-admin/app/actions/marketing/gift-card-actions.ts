@@ -15,11 +15,9 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
-import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import {
   createGiftCard,
   generateGiftCardCode,
-  sellGiftCard,
   adminActivateGiftCard,
   voidGiftCard,
   suspendGiftCard,
@@ -28,6 +26,7 @@ import {
 } from '@/lib/services/gift-card-service';
 import { fundStoredValue, FUNDING_TYPES } from '@/lib/services/stored-value-funding.service';
 import { logger } from '@/lib/utils/logger';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import type {
   GiftCard,
   GiftCardTransaction,
@@ -38,17 +37,6 @@ import type { GiftCardStatus, GiftCardTxnType } from '@/lib/constants/gift-card'
 // ---------------------------------------------------------------------------
 // Validation schemas
 // ---------------------------------------------------------------------------
-
-const sellGiftCardSchema = z.object({
-  card_name:                  z.string().min(1).max(200),
-  card_name2:                 z.string().max(200).optional(),
-  amount:                     z.number().positive(),
-  expiry_date:                z.string().datetime().optional(),
-  issued_to_customer_id:      z.string().uuid().optional(),
-  purchased_by_customer_id:   z.string().uuid().optional(),
-  card_pin:                   z.string().min(4).max(20).optional(),
-  currency_code:              z.string().min(1).max(10),
-});
 
 const issueGiftCardAdminSchema = z.object({
   card_name:             z.string().min(1).max(200),
@@ -61,9 +49,9 @@ const issueGiftCardAdminSchema = z.object({
   currency_code:         z.string().min(1).max(10),
 });
 
-// B3 — governed DIRECT_TENDER sale: a real tender leg is required, unlike
-// sellGiftCardSchema above (still used by the no-tender path, if any caller
-// still needs it directly).
+// B3 / CLF W5 — the only gift-card SALE path: a real tender leg is required.
+// (Non-cash issuance — promotional, corporate, goodwill… — goes through the
+// admin issue + activate actions, never through a sale.)
 const sellGiftCardWithTenderSchema = z.object({
   card_name:                  z.string().min(1).max(200),
   card_name2:                 z.string().max(200).optional(),
@@ -193,62 +181,17 @@ export async function listGiftCards(params: {
 }
 
 // ---------------------------------------------------------------------------
-// Sell (POS — creates + immediately activates)
+// Sell (POS) — always tendered (CLF W5)
 // ---------------------------------------------------------------------------
-
-/**
- * Sell a gift card at POS: creates and immediately activates it.
- * Requires gift_cards:sell permission.
- */
-export async function sellGiftCardAction(
-  input: z.infer<typeof sellGiftCardSchema>
-): Promise<{ success: true; data: GiftCard } | { success: false; error: string }> {
-  try {
-    const auth = await getAuthContext();
-    if (!auth.tenantId) {
-      return { success: false, error: 'Not authenticated or no tenant context' };
-    }
-    const { tenantId, userId } = auth;
-
-    const canSell = await hasPermissionServer('gift_cards:sell');
-    if (!canSell) {
-      return { success: false, error: 'Insufficient permissions: gift_cards:sell required' };
-    }
-
-    const parsed = sellGiftCardSchema.safeParse(input);
-    if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
-    }
-
-    return withTenantContext(tenantId, async () => {
-      const card = await sellGiftCard({
-        tenantOrgId: tenantId,
-        cardPin: parsed.data.card_pin,
-        cardName: parsed.data.card_name,
-        cardName2: parsed.data.card_name2,
-        amount: parsed.data.amount,
-        expiryDate: parsed.data.expiry_date,
-        issuedToCustomerId: parsed.data.issued_to_customer_id,
-        purchasedByCustomerId: parsed.data.purchased_by_customer_id,
-        currencyCode: parsed.data.currency_code,
-        createdBy: userId ?? undefined,
-      });
-
-      revalidatePath('/dashboard/marketing/gift-cards');
-      return { success: true, data: card };
-    });
-  } catch (error) {
-    logger.error('sellGiftCardAction failed', error as Error, {});
-    return { success: false, error: 'Failed to sell gift card' };
-  }
-}
 
 /**
  * B3 — Sell a gift card through the governed DIRECT_TENDER funding service:
  * requires a real tender leg (payment method + amount, cash-drawer session
  * when the method requires one). The card is created unfunded and only
  * activated once the tender is confirmed — see stored-value-funding.service.ts.
- * Behind feature flag `order_fin_sv_funding_capture`.
+ * CLF W5: this is the ONLY sale path and is not flag-gated — a sold card is
+ * always backed by a voucher (and, for cash, by the drawer ledger). The former
+ * no-tender `sellGiftCardAction` (card live, no money recorded) was removed.
  */
 export async function sellGiftCardWithTenderAction(
   input: z.infer<typeof sellGiftCardWithTenderSchema>
@@ -262,11 +205,6 @@ export async function sellGiftCardWithTenderAction(
       return { success: false, error: 'Not authenticated or no tenant context' };
     }
     const { tenantId, userId } = auth;
-
-    const flagOn = await currentTenantCan('order_fin_sv_funding_capture');
-    if (!flagOn) {
-      return { success: false, error: 'FUNDING_CAPTURE_NOT_ENABLED' };
-    }
 
     const canSell = await hasPermissionServer('gift_cards:sell');
     if (!canSell) {
@@ -317,6 +255,11 @@ export async function sellGiftCardWithTenderAction(
     };
   } catch (error) {
     logger.error('sellGiftCardWithTenderAction failed', error as Error, {});
+    // Cash-drawer ledger refusal (e.g. no open session): return the stable
+    // code so the dialog can show the translated cashControl.ledgerErrors text.
+    if (error instanceof CashDrawerLedgerError) {
+      return { success: false, error: error.code };
+    }
     const raw = error instanceof Error ? error.message : 'Failed to sell gift card';
     if (
       raw.includes('original_amount_check') ||
@@ -382,7 +325,7 @@ export async function issueGiftCardAdmin(
 }
 
 /**
- * @deprecated Use sellGiftCardAction or issueGiftCardAdmin.
+ * @deprecated Use sellGiftCardWithTenderAction (sale) or issueGiftCardAdmin (non-cash issuance).
  * Retained for backward compatibility — calls issueGiftCardAdmin internally.
  */
 export async function issueGiftCard(
