@@ -78,6 +78,7 @@
   "terminal": "Terminal",
   "cashDrawer": "Cash drawer",
   "drawerSession": "Drawer session",
+  "copyValue": "Copy {field}",
   "scope": "Scope",
   "ownSessions": "Own sessions",
   "allSessions": "All sessions",
@@ -159,6 +160,7 @@
     "notesVariancePlaceholder": "Add notes explaining the variance"
   },
   "messages": {
+    "copyFailed": "Could not copy to clipboard.",
     "opened": "POS session opened.",
     "paused": "POS session paused.",
     "resumed": "POS session resumed.",

@@ -53,10 +53,17 @@ const prismaBase =
 // guard reports real call sites and sees the caller's tenant context.
 export const prisma = buildGuardedClient(prismaBase);
 
+/** Structural view of `$extends` used only to chain query extensions without type inference. */
+type ExtendableClient = { $extends(extension: unknown): ExtendableClient };
+
 function buildGuardedClient(base: PrismaClient): PrismaClient {
   let extended: object;
   try {
-    extended = base.$extends(tenantGuardExtension).$extends(performanceExtension);
+    // Chain through a minimal structural type: the inferred extended type is discarded
+    // anyway (see note above), and resolving it trips TS2859 "excessive complexity".
+    extended = (base as unknown as ExtendableClient)
+      .$extends(tenantGuardExtension)
+      .$extends(performanceExtension);
   } catch (error) {
     // Only reachable when @prisma/client resolved to its browser build (jsdom unit
     // tests importing a service module). That stub throws on EVERY property access,
