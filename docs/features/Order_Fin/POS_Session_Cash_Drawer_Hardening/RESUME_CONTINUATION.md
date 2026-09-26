@@ -4,6 +4,16 @@
 
 ---
 
+## 🟡 2026-09-25 (newest, parallel thread) — A6-1b planned, awaiting owner decision; moving to local laptop
+
+**Scope of this thread:** A6 (cash tender/change rounding) only. The CLF thread (W-items, entry below) is owned by **another session** — do not mix the two.
+
+- Loaded `/database`, `/multitenancy`, `/backend`. Analysed the code; **no code or migrations written.**
+- Findings, risk and options recorded in STATUS **D36**; full step-by-step plan in `IMPLEMENTATION_PLAN.md` §A6 "A6-1b execution plan".
+- **Resume by getting the owner's answer to:** (a) preview-only rounding UI now, residue persistence after CLF (recommended) vs (b) persist a `ROUNDING` voucher line now (collides with CLF writers); and confirm the resolver lives in a new `lib/services/cash-rounding.service.ts`. Then execute the plan steps 1-6 in order.
+
+---
+
 ## 🟢 2026-09-25 (latest) — W1/W7/W8/W9 test-fix pass CLOSED; found+fixed a real gate-leak bug; typecheck OOM'd (not a real error) — EXACT resume point
 
 **Picks up from:** the entry below ("R1 code: W1/W7/W8/W9 done, mid test-fix"), items 1-2 of its "NOT done yet" list. Item 3 (lint + typecheck) is half-done — see below.
