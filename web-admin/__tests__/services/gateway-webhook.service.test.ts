@@ -174,6 +174,33 @@ describe('processGatewayWebhookEvent', () => {
     );
   });
 
+  it('stamps the tenant once (only onto a NULL-tenant row) and scopes every later event write to it', async () => {
+    mockLegFindFirst.mockResolvedValue({
+      id: PAYMENT_ID,
+      order_id: ORDER_ID,
+      tenant_org_id: TENANT_ID,
+      payment_status: 'PROCESSING',
+      payment_method_code: 'CARD',
+    });
+    mockTransitionPaymentTx.mockResolvedValue({ newStatus: 'COMPLETED', flipped: true });
+    const body = envelope();
+    await processGatewayWebhookEvent({ gatewayCode: GATEWAY_CODE, rawBody: body, headers: signedHeaders(body) });
+
+    const wheres = mockEventUpdate.mock.calls.map(([args]) => (args as { where: unknown }).where);
+    expect(wheres[0]).toEqual({ id: 'event-row-1', tenant_org_id: null });
+    expect(wheres.length).toBeGreaterThan(1);
+    for (const where of wheres.slice(1)) {
+      expect(where).toEqual({ id: 'event-row-1', tenant_org_id: TENANT_ID });
+    }
+  });
+
+  it('never probes payment legs when the event carries no provider identifiers', async () => {
+    const body = envelope({ gatewayTransactionId: null, gatewayReference: null });
+    const result = await processGatewayWebhookEvent({ gatewayCode: GATEWAY_CODE, rawBody: body, headers: signedHeaders(body) });
+    expect(mockLegFindFirst).not.toHaveBeenCalled();
+    expect(['UNMATCHED', 'REJECTED_SCHEMA']).toContain(result.status);
+  });
+
   it('dispatches CAPTURE for a verified CAPTURE_SUCCEEDED event on a dormant AUTHORIZED leg', async () => {
     mockLegFindFirst.mockResolvedValue({
       id: PAYMENT_ID,

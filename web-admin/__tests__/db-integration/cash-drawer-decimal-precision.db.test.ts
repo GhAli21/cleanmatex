@@ -81,7 +81,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (dbUp && createdOrder && orderId) {
-    await prisma.org_orders_mst.deleteMany({ where: { id: orderId } }).catch(() => {});
+    await prisma.org_orders_mst.deleteMany({ where: { id: orderId, tenant_org_id: tenantId } }).catch(() => {});
   }
   await prisma.$disconnect();
 });
@@ -107,12 +107,12 @@ async function makeDrawer(): Promise<string> {
 async function cleanupDrawer(drawerId: string, sessionId?: string): Promise<void> {
   if (sessionId) {
     await prisma.org_order_payments_dtl
-      .deleteMany({ where: { cash_drawer_session_id: sessionId } })
+      .deleteMany({ where: { cash_drawer_session_id: sessionId, tenant_org_id: tenantId } })
       .catch(() => {});
   }
-  await prisma.org_cash_drawer_movements_dtl.deleteMany({ where: { cash_drawer_id: drawerId } }).catch(() => {});
-  await prisma.org_cash_drawer_sessions_mst.deleteMany({ where: { cash_drawer_id: drawerId } }).catch(() => {});
-  await prisma.org_cash_drawers_mst.deleteMany({ where: { id: drawerId } }).catch(() => {});
+  await prisma.org_cash_drawer_movements_dtl.deleteMany({ where: { cash_drawer_id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
+  await prisma.org_cash_drawer_sessions_mst.deleteMany({ where: { cash_drawer_id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
+  await prisma.org_cash_drawers_mst.deleteMany({ where: { id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
 }
 
 function dbit(name: string, fn: () => Promise<void>): void {
@@ -172,7 +172,7 @@ describe('closeSession Decimal-space precision under a long payment sequence (A3
         // value is what every downstream reader (reports, session detail,
         // reconciliation) sees.
         const persisted = await prisma.org_cash_drawer_sessions_mst.findFirstOrThrow({
-          where: { id: session.id },
+          where: { id: session.id, tenant_org_id: tenantId },
         });
         expect(Number(persisted.expected_cash_amount)).toBe(EXPECTED_TOTAL);
         expect(Number(persisted.difference_amount)).toBe(0);

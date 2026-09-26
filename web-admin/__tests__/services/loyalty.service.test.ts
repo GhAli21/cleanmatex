@@ -210,7 +210,7 @@ describe('loyalty.service — redeemPointsTx', () => {
     await redeemPointsTx(mockTx as Parameters<typeof redeemPointsTx>[0], baseParams);
 
     expect(mockLoyaltyAccountUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'acct-1' }, data: expect.objectContaining({ points_balance: 400 }) })
+      expect.objectContaining({ where: { id: 'acct-1', tenant_org_id: TENANT }, data: expect.objectContaining({ points_balance: 400 }) })
     );
     expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -219,7 +219,7 @@ describe('loyalty.service — redeemPointsTx', () => {
     );
     // B19 FIFO — drew 100 off the single open lot and recorded the allocation.
     expect(mockLoyaltyTxnUpdate).toHaveBeenCalledWith({
-      where: { id: 'lot-earn-1' },
+      where: { id: 'lot-earn-1', tenant_org_id: TENANT },
       data: { remaining_points: { decrement: 100 } },
     });
     expect(mockAllocCreate).toHaveBeenCalledWith({
@@ -392,7 +392,7 @@ describe('loyalty.service — processEarnPoints (LOY-1 idempotency-skip; B19 FIF
     await processEarnPoints(mockTx as Parameters<typeof processEarnPoints>[0], earnParams);
 
     expect(mockLoyaltyAccountUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'acct-1' }, data: expect.objectContaining({ points_balance: 150 }) })
+      expect.objectContaining({ where: { id: 'acct-1', tenant_org_id: TENANT }, data: expect.objectContaining({ points_balance: 150 }) })
     );
     expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -487,7 +487,7 @@ describe('loyalty.service — expireLoyaltyPointsForAccount (B19)', () => {
 
     expect(result).toEqual({ success: true, expiredPoints: 150 });
     expect(mockLoyaltyAccountUpdate).toHaveBeenCalledWith({
-      where: { id: 'acct-1' },
+      where: { id: 'acct-1', tenant_org_id: TENANT },
       data: { points_balance: 150 },
     });
     expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(

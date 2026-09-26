@@ -479,7 +479,7 @@ export async function updatePromoCode(
       }
 
       const row = await prisma.org_promotions_mst.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           ...(data.promo_code !== undefined && { promo_code: data.promo_code }),
           ...(data.promo_name != null && { promo_name: data.promo_name }),
@@ -574,7 +574,7 @@ export async function setPromoCodeEnabled(
       }
 
       const row = await prisma.org_promotions_mst.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           is_enabled: isEnabled,
           updated_at: new Date(),
@@ -621,7 +621,7 @@ export async function archivePromoCode(
       }
 
       await prisma.org_promotions_mst.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_active: false, updated_at: new Date(), updated_by: userId ?? undefined },
       });
 

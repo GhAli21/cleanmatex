@@ -70,7 +70,7 @@ export async function PATCH(request: NextRequest) {
     // route); fixed while in the file rather than left broken.
     const updated = await withTenantContext(tenantId, () =>
       prisma.org_loyalty_programs_cf.update({
-        where: { id: existing.id },
+        where: { id: existing.id, tenant_org_id: tenantId },
         data: {
           ...(parsed.data.earnRate         != null && { earn_rate_per_unit:      parsed.data.earnRate }),
           ...(parsed.data.redeemRate       != null && { redeem_rate_per_point:   parsed.data.redeemRate }),

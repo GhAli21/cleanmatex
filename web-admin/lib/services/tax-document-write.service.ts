@@ -103,7 +103,7 @@ export async function issueTaxDocumentTx(
   issuedBy:   string,
 ): Promise<{ documentNo: string; sequenceNumber: number }> {
   const doc = await tx.org_tax_documents_mst.findUnique({
-    where:  { id: documentId },
+    where: { id: documentId, tenant_org_id: tenantId },
     select: { document_type: true, fiscal_year: true, status: true, tenant_org_id: true },
   });
 
@@ -133,7 +133,7 @@ export async function issueTaxDocumentTx(
   );
 
   await tx.org_tax_documents_mst.update({
-    where: { id: documentId },
+    where: { id: documentId, tenant_org_id: tenantId },
     data: {
       status:          TAX_DOCUMENT_STATUSES.ISSUED,
       sequence_number: sequenceNumber,
@@ -191,7 +191,7 @@ export async function supersedeTaxDocument(
   return prisma.$transaction(async (tx) => {
     // Verify original document exists and is ISSUED
     const original = await tx.org_tax_documents_mst.findUnique({
-      where:  { id: originalDocumentId },
+      where: { id: originalDocumentId, tenant_org_id: correctionInput.tenantId },
       select: { status: true, tenant_org_id: true },
     });
 
@@ -215,7 +215,7 @@ export async function supersedeTaxDocument(
 
     // Set supersedes_id on the correction document
     await tx.org_tax_documents_mst.update({
-      where: { id: correctionDocumentId },
+      where: { id: correctionDocumentId, tenant_org_id: correctionInput.tenantId },
       data:  { supersedes_id: originalDocumentId },
     });
 
@@ -228,7 +228,7 @@ export async function supersedeTaxDocument(
 
     // Transition original to SUPERSEDED (allowed by immutability trigger)
     await tx.org_tax_documents_mst.update({
-      where: { id: originalDocumentId },
+      where: { id: originalDocumentId, tenant_org_id: correctionInput.tenantId },
       data: {
         status:     TAX_DOCUMENT_STATUSES.SUPERSEDED,
         updated_at: new Date(),

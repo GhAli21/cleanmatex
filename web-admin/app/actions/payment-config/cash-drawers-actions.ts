@@ -137,7 +137,7 @@ export async function updateCashDrawer(
       }
 
       const row = await prisma.org_cash_drawers_mst.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           ...(input.branch_id !== undefined && { branch_id: input.branch_id }),
           ...(input.drawer_name !== undefined && { drawer_name: input.drawer_name }),
@@ -193,7 +193,7 @@ export async function toggleCashDrawerActive(
       }
 
       await prisma.org_cash_drawers_mst.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           is_active: isActive,
           rec_status: isActive ? 1 : 0,
@@ -379,7 +379,7 @@ export async function closeDrawerSession(
         }
 
         await tx.org_cash_drawer_sessions_mst.update({
-          where: { id: session.id },
+          where: { id: session.id, tenant_org_id: tenantId },
           data: {
             status: 'CLOSED',
             counted_cash_amount: counted,

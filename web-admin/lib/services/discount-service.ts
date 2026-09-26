@@ -435,7 +435,7 @@ export async function applyPromoCodeTx(
 
   // Safe to increment here because SELECT FOR UPDATE held the lock.
   await tx.org_promotions_mst.update({
-    where: { id: promoCodeId },
+    where: { id: promoCodeId, tenant_org_id: tenantOrgId },
     data: {
       current_uses: { increment: 1 },
       updated_at: new Date(),
@@ -563,7 +563,7 @@ export async function reversePromoUsageTx(
   // Decrement current_uses per promo by exactly the count we voided.
   for (const [promoCodeId, decBy] of decrementByPromo) {
     await tx.org_promotions_mst.update({
-      where: { id: promoCodeId },
+      where: { id: promoCodeId, tenant_org_id: tenantOrgId },
       data: {
         current_uses: { decrement: decBy },
         updated_at: new Date(),
@@ -587,10 +587,11 @@ export async function getPromoCodeUsage(
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const usages = await prisma.org_promotion_usage_dtl.findMany({
       where: {
+        tenant_org_id: tenantId,
         promo_code_id: promoCodeId,
       },
       orderBy: {
@@ -628,10 +629,11 @@ export async function getCustomerPromoUsageCount(
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     return prisma.org_promotion_usage_dtl.count({
       where: {
+        tenant_org_id: tenantId,
         promo_code_id: promoCodeId,
         customer_id: customerId,
       },
@@ -650,7 +652,7 @@ export async function evaluateDiscountRules(
   tenantOrgId: string,
   input: EvaluateDiscountRulesInput
 ): Promise<EvaluatedDiscount[]> {
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantOrgId, async () => {
     // Get all active discount rules - middleware adds tenant_org_id automatically
     const rules = await prisma.org_discount_rules_cf.findMany({
@@ -797,7 +799,7 @@ export async function getBestDiscount(
 export async function getActivePromoCodes(
   tenantOrgId: string
 ): Promise<PromoCode[]> {
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantOrgId, async () => {
     const promoCodes = await prisma.org_promotions_mst.findMany({
       where: {
@@ -836,10 +838,10 @@ export async function getPromoCodeStats(promoCodeId: string): Promise<{
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
     const promoCode = await prisma.org_promotions_mst.findUnique({
-      where: { id: promoCodeId },
+      where: { id: promoCodeId, tenant_org_id: tenantId },
     });
 
     if (!promoCode) {
@@ -848,6 +850,7 @@ export async function getPromoCodeStats(promoCodeId: string): Promise<{
 
     const usages = await prisma.org_promotion_usage_dtl.findMany({
       where: {
+        tenant_org_id: tenantId,
         promo_code_id: promoCodeId,
       },
     });

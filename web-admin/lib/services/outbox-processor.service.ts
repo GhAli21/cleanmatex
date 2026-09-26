@@ -78,7 +78,7 @@ export async function processOutboxBatch(limit = 50): Promise<ProcessOutboxResul
     const matchingHandlers = OUTBOX_HANDLERS.filter((h) => h.eventTypes.has(event.event_type));
 
     if (matchingHandlers.length === 0) {
-      await markProcessed(event.id);
+      await markProcessed(event.id, event.tenant_org_id);
       result.skipped++;
       continue;
     }
@@ -87,7 +87,7 @@ export async function processOutboxBatch(limit = 50): Promise<ProcessOutboxResul
       for (const handler of matchingHandlers) {
         await handler.handle(event);
       }
-      await markProcessed(event.id);
+      await markProcessed(event.id, event.tenant_org_id);
       result.processed++;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -96,7 +96,7 @@ export async function processOutboxBatch(limit = 50): Promise<ProcessOutboxResul
         eventType: event.event_type,
         message,
       });
-      const status = await markFailed(event.id, message);
+      const status = await markFailed(event.id, event.tenant_org_id, message);
       if (status === 'DEAD_LETTERED') {
         result.deadLettered++;
       } else {

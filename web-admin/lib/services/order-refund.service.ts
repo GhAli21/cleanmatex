@@ -979,7 +979,7 @@ export async function processRefund(
         });
 
         await tx.org_order_refunds_dtl.update({
-          where: { id: refundId },
+          where: { id: refundId, tenant_org_id: tenantId },
           data: {
             fin_voucher_id:          voucher.id,
             fin_voucher_trx_line_id: line.id,
@@ -1045,7 +1045,7 @@ export async function processRefund(
         await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', CASH_GATE_MODES.INTERACTIVE, `refund-${refundId}-vch-post`, tx);
 
         await tx.org_order_refunds_dtl.update({
-          where: { id: refundId },
+          where: { id: refundId, tenant_org_id: tenantId },
           data: {
             fin_voucher_id:          voucher.id,
             fin_voucher_trx_line_id: line.id,

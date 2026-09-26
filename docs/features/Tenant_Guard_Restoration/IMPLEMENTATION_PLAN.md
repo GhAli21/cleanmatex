@@ -13,12 +13,15 @@
 
 ## Steps
 
-| Step | Scope | Exit criteria |
-|---|---|---|
-| **0 — Guard** | `tenant-guard.ts`, `$extends` wiring in `prisma.ts`, performance monitor ported to `$extends`, dead `$use` middleware + its 2 tests deleted, `withTenantContext` awaits inside its scope, unit tests, cross-tenant DB test, static audit script, `PRISMA_SETUP.md` rewritten | tsc/eslint/unit/DB/build green |
-| **1 — Log-only discovery** | Default mode `log`. Runtime list from the DB-integration suite with `TENANT_GUARD_REPORT_FILE`, plus static audit, plus a manual smoke of main screens in `npm run dev` | `VIOLATIONS.md` written, each entry classified fix / bypass / false positive |
-| **2 — Fix** | Add explicit filters service by service (by-id `findUnique` → `findFirst({id, tenant_org_id})` or the compound key). Wrap true cross-tenant jobs in the bypass. Fix test-fixture cleanup the same way. Review raw-SQL MISSING/REVIEW items by hand | A full DB suite + manual smoke in `log` mode reports **0** violations outside the guard's own test; static MISSING = 0 or each one justified |
-| **3 — Fail-closed** | Default `enforce` in every environment. `jest.db.config.js` sets `enforce`. Optional CI gate on `audit:tenant-guard` MISSING = 0 | Suites green in `enforce` mode; STATUS closed |
+| Step | Scope | Exit criteria | Progress |
+|---|---|---|---|
+| **0 — Guard** | `tenant-guard.ts`, `$extends` wiring in `prisma.ts`, performance monitor ported to `$extends`, dead `$use` middleware + its 2 tests deleted, `withTenantContext` awaits inside its scope, unit tests, cross-tenant DB test, static audit script, `PRISMA_SETUP.md` rewritten | tsc/eslint/unit/DB/build green | ✅ 85f841a4 |
+| **1 — Log-only discovery** | Default mode `log`. Runtime list from the DB-integration suite with `TENANT_GUARD_REPORT_FILE`, plus static audit, plus a manual smoke of main screens in `npm run dev` | `VIOLATIONS.md` written, each entry classified fix / bypass / false positive | ✅ Manual smoke replaced (STATUS D11) |
+| **2 — Fix** | Add explicit filters service by service (by-id `findUnique` → `findFirst({id, tenant_org_id})` or the compound key). Wrap true cross-tenant jobs in the bypass. Fix test-fixture cleanup the same way. Review raw-SQL MISSING/REVIEW items by hand | A full DB suite + manual smoke in `log` mode reports **0** violations outside the guard's own test; static MISSING = 0 or each one justified | ✅ bfa5917 (static 0; DB suite re-run pending locally) |
+| **3 — Fail-closed** | Default `enforce` in every environment. `jest.db.config.js` sets `enforce`. Optional CI gate on `audit:tenant-guard` MISSING = 0 | Suites green in `enforce` mode; STATUS closed | 🟡 Ready; owner applies locally (STATUS "Phase 3 apply") |
+| **4 — Rollout** | First production deploy with `TENANT_GUARD_MODE=log` + report sink for a watch window, then unset → `enforce` | 0 `[TenantGuard]` lines over the window | ⏳ After Phase 3 |
+
+**Deviation (2026-09-25):** the Phase 1/2 manual `npm run dev` smoke was dropped (local dev too slow). Its role moves to Step 4, where production traffic in `log` mode is the smoke run. Phase 2 exit was proved statically instead: 0 MISSING, every REVIEW entry hand-verified, and a nested-only-filter scan over 817 call sites.
 
 Every step ends with a STATUS.md update and a doc refresh. Every phase ends with a `/documentation` pass.
 

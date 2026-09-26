@@ -186,7 +186,7 @@ describe('tax-document-issuance.service (B14)', () => {
         expect.objectContaining({ documentType: 'DEBIT_NOTE', totalAmount: 20, taxAmount: 1 }),
       );
       expect(tx.org_tax_documents_mst.update).toHaveBeenCalledWith({
-        where: { id: 'correction-doc' },
+        where: { id: 'correction-doc', tenant_org_id: 't1' },
         data: { supersedes_id: 'orig-doc' },
       });
       expect(result).toEqual({ documentId: 'correction-doc', documentNo: 'DN-2026-000001' });

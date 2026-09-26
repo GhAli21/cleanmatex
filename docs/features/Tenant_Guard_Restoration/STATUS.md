@@ -1,24 +1,25 @@
 # Tenant Guard Restoration — STATUS
 
-**Authoritative progress file.** Last updated: 2026-09-25.
+**Authoritative progress file.** Last updated: 2026-09-25 (handoff to local).
 
 | Step | Status |
 |---|---|
-| 0 — Guard (`$extends`, tests, audit script, docs) | ✅ Done 2026-09-25 (uncommitted) |
-| 1 — Log-only discovery | 🟡 Runtime (DB suite) + static done → [VIOLATIONS.md](VIOLATIONS.md). **Remaining:** manual smoke of main screens in `npm run dev` |
-| 2 — Fix queries | ⏳ Not started |
-| 3 — Fail-closed (`enforce` default) | ⏳ Not started |
+| 0 — Guard (`$extends`, tests, audit script, docs) | ✅ Done 2026-09-25 (85f841a4) |
+| 1 — Log-only discovery | ✅ Done. Runtime (DB suite) + static → [VIOLATIONS.md](VIOLATIONS.md). Manual dev smoke **replaced** by complete static coverage + production watch window (D11) |
+| 2 — Fix queries | ✅ Done 2026-09-25. Static model MISSING 113 → **0**; all REVIEW verified; raw SQL all have a verdict |
+| 3 — Fail-closed (`enforce` default) | 🟡 **Ready, awaiting owner apply** — see "Phase 3 apply" below |
 
-## Gates (Step 0, 2026-09-25)
+## Gates (Phase 2, 2026-09-25, cloud container)
 
 | Gate | Result |
 |---|---|
-| `tsc --noEmit` | ✅ 0 errors (~63s, unchanged from baseline) |
-| `eslint --quiet` (changed files) | ✅ 0 |
-| Unit `npx jest` | ✅ 329/329 suites, 2909 tests (incl. new `tenant-guard.test.ts` 28/28) |
-| DB `tenant-guard-cross-tenant.db.test.ts` (`enforce`) | ✅ 9/9 |
-| Full DB suite (`log`, in-band) | 115/117. The 2 failures are **not related to the guard**: `order-amendment-governed-flow` (the test's `calculateOrderTotals` mock has no `taxBreakdown`, which `order-service.ts:3239` now reads) and `wf-policy-issue-catalog-seed-invariants` 0472 case (raw SQL only, local seed data) |
-| `npm run build` | ✅ |
+| Unit `npx jest` | ✅ 330/330 suites, 2942 tests (was 2909; +webhook scoping tests, stricter tenant assertions) |
+| `eslint --quiet` (48 changed files) | ✅ 0 |
+| `tsc --noEmit` | ✅ no new errors. The container reports 2 errors in `lib/db/prisma.ts:59` (TS2859 excessive complexity) that also occur on the untouched baseline: this container's Prisma CLI is 6.19.2 and `@prisma/client` 6.18.0. Re-check locally with matching versions |
+| Static audit | model MISSING **0**, REVIEW 95 (all hand-verified), BYPASS 2 · raw MISSING 7 / REVIEW 7 (all verdicts in VIOLATIONS §D) |
+| Nested-only tenant filter scan (817 call sites) | ✅ 0. No call site filters tenant only through a relation, which `enforce` would reject |
+| DB suite (`jest.db.config.js`) | ⏳ Not runnable here (no Postgres). **Run locally**, see Phase 3 apply |
+| `npm run build` | ⏳ Not run here (same Prisma type issue + memory). Run locally |
 
 ## Decisions
 
@@ -31,12 +32,50 @@
 | D5 | `withTenantContext` / bypass now `await` inside their ALS scope | Found by the DB test: `() => prisma.x.find()` returned unawaited ran outside the scope |
 | D6 | Deleted `lib/prisma-middleware.ts`, `__tests__/db/prisma-middleware.test.ts`, `__tests__/db/prisma-error-scenarios.test.ts` | They only tested the dead `$use` path |
 | D7 | Default mode `log` until Phase 3 | Phase 1 needs discovery without breaking flows |
+| D8 | Outbox follow-up writes are scoped by the **claimed row's own** `tenant_org_id` (no bypass, no per-tenant loop) | `claimBatch` stays one cross-tenant SKIP LOCKED claim (raw SQL, fair batching); `markProcessed/markFailed/scheduleRetry(eventId, tenantId, …)` then write with a real tenant filter |
+| D9 | Gateway webhook: bypass only for pre-resolution intake; tenant stamped with `where: { id, tenant_org_id: null }`; every later write scoped | One public endpoint serves all tenants; the tenant is only knowable after matching the leg. The NULL guard makes re-stamping to a different tenant impossible |
+| D10 | Order-lock expiry cron = registered bypass | Global TTL sweep, deletes only expired rows, reads no tenant data. A per-tenant loop would need a cross-tenant tenant listing anyway |
+| D11 | Manual dev smoke replaced | Local dev too slow (owner). Covered instead by: complete static coverage (0 MISSING, REVIEW verified, nested scan clean) + first production deploy in `log` with `TENANT_GUARD_REPORT_FILE`, then `enforce` |
+| D12 | Phase 3 mode resolution: unset **or unknown** value → `enforce`; only literal `log` opts out | Fail-closed; a typo (`enfroce`) must not silently downgrade isolation |
 
 ## Bypass register (`withTenantGuardBypass` reasons in app code)
 
-_None yet._ Candidates from Phase 1: gateway webhook intake, outbox sweeps (see VIOLATIONS §C).
+| Reason | Where | Scope of bypass |
+|---|---|---|
+| `gateway-webhook-intake` | `lib/services/gateway-webhook.service.ts` | Event-row insert (tenant NULL), payment-leg resolution by provider ids, UNMATCHED mark, one-time tenant stamp |
+| `order-edit-locks-expiry-sweep` | `lib/services/order-lock.service.ts` `cleanupExpiredLocks()` | `deleteMany` of locks with `expires_at <= now()` |
 
-## Next
+The static audit lists these under **BYPASS**. A new bypass must be added here in the same PR.
 
-1. Manual smoke in `npm run dev` with `TENANT_GUARD_REPORT_FILE` set; append to VIOLATIONS.md.
-2. Phase 2: R1–R5 first, then static MISSING file by file, then fixtures, then the raw-SQL verdicts.
+## Phase 3 apply (owner)
+
+The one-line default flip was **not** applied in the cloud session: the environment's safety policy blocked editing a shared security control without explicit owner sign-off. To apply:
+
+1. `web-admin/lib/db/tenant-guard.ts` → `getTenantGuardMode()`:
+   ```ts
+   const raw = process.env.TENANT_GUARD_MODE?.trim().toLowerCase();
+   return raw === 'log' ? 'log' : 'enforce';
+   ```
+   Update its JSDoc (D12) and the modes table in `lib/db/PRISMA_SETUP.md`.
+2. Add a unit test to `__tests__/db/tenant-guard.test.ts`: unset → `enforce`, `'bogus'` → `enforce`, `'log'` → `log`.
+3. Locally: `npm run test:db-integration` (now enforce by default; expect only the 2 known unrelated failures), `npx tsc --noEmit`, `npm run build`.
+4. **Rollout:** first production deploy with `TENANT_GUARD_MODE=log` + `TENANT_GUARD_REPORT_FILE` (or log sink on `[TenantGuard]`) for a watch window (suggest 7 days of normal traffic). Fix anything reported, then remove the env var → `enforce`. Rollback = set `TENANT_GUARD_MODE=log` (no deploy needed).
+
+## Handoff to local (2026-09-25)
+
+Work moved from the cloud session to the owner's laptop. State at handoff:
+
+- Branch `claude/stoic-cray-0ojv6c` (both Phase 2 commit `bfa5917` and this docs update pushed). **No PR opened yet.**
+- Nothing uncommitted. No migrations and no DB changes in this package.
+- Cloud-only caveat: the container generated the Prisma client with CLI 6.19.2 against `@prisma/client` 6.18.0, which produced the 2 `prisma.ts:59` tsc errors. On the laptop run `npm run prisma:generate` with the repo's pinned versions first.
+
+## Next (in order, on the laptop)
+
+1. `git fetch && git checkout claude/stoic-cray-0ojv6c && git pull`
+2. From `web-admin/`: `npm run prisma:generate`, then `npx tsc --noEmit -p .` (use `$env:NODE_OPTIONS="--max-old-space-size=12288"` in PowerShell if the heap runs out).
+3. `npm run test:db-integration` in `log` mode (the current default). Expect only the 2 failures known since Step 0, both unrelated to the guard: `order-amendment-governed-flow` (the test's `calculateOrderTotals` mock lacks `taxBreakdown`) and the `wf-policy-issue-catalog-seed-invariants` 0472 case (local seed data). The 3 cash-drawer fixture files must now be clean.
+4. `npm run build`.
+5. Phase 3 apply (above), then re-run step 3; it now runs in `enforce`.
+6. Open PR `claude/stoic-cray-0ojv6c` → `main`.
+7. Step 4 rollout (IMPLEMENTATION_PLAN): production in `log` for the watch window, then `enforce`.
+8. Optional hardening: make `audit:tenant-guard` exit non-zero when model MISSING > 0 and add it to CI.

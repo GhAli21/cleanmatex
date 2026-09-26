@@ -170,7 +170,7 @@ export async function setDefaultTaxProfileAction(id: string): Promise<{
       });
       // Set new default
       await prisma.org_tax_profiles_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_default: true, updated_by: userId, updated_at: new Date() },
       });
       revalidatePath(REVALIDATE_PATH);
@@ -193,7 +193,7 @@ export async function deactivateTaxProfileAction(id: string): Promise<{
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       await prisma.org_tax_profiles_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_active: false, updated_by: userId, updated_at: new Date() },
       });
       revalidatePath(REVALIDATE_PATH);
@@ -216,7 +216,7 @@ export async function activateTaxProfileAction(id: string): Promise<{
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       await prisma.org_tax_profiles_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_active: true, rec_status: 1, updated_by: userId, updated_at: new Date() },
       });
       revalidatePath(REVALIDATE_PATH);
@@ -239,7 +239,7 @@ export async function softDeleteTaxProfileAction(id: string): Promise<{
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       await prisma.org_tax_profiles_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_active: false, rec_status: 0, updated_by: userId, updated_at: new Date() },
       });
       revalidatePath(REVALIDATE_PATH);
@@ -295,7 +295,7 @@ export async function updateTaxProfileAction(
           : undefined;
 
       const profile = await prisma.org_tax_profiles_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           ...(input.name !== undefined && { name: input.name }),
           ...(input.name2 !== undefined && { name2: input.name2 || null }),
@@ -331,7 +331,7 @@ export async function updateTaxExemptionAction(
       if (!existing) return { success: false, error: 'Tax exemption not found' };
 
       const exemption = await prisma.org_tax_exemptions_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           ...(input.exemptionType !== undefined && { exemption_type: input.exemptionType }),
           ...(input.certificateNo !== undefined && { certificate_no: input.certificateNo || null }),
@@ -356,7 +356,7 @@ export async function deactivateTaxExemptionAction(id: string): Promise<{ succes
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       await prisma.org_tax_exemptions_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_active: false, rec_status: 0, updated_by: userId, updated_at: new Date() },
       });
       revalidatePath(REVALIDATE_PATH);

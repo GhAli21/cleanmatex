@@ -98,7 +98,7 @@ export async function saveLoyaltyConfigAction(input: SaveLoyaltyConfigInput) {
     if (existing) {
       program = await withTenantContext(tenantId, () =>
         prisma.org_loyalty_programs_cf.update({
-          where: { id: existing.id },
+          where: { id: existing.id, tenant_org_id: tenantId },
           data: {
             program_name:            programName,
             earn_rate_per_unit:      input.earnRatePerUnit,

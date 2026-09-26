@@ -8,6 +8,8 @@
  *   REVIEW  — args built elsewhere (variable / spread), or raw SQL we can't judge
  *   OK      — tenant_org_id appears in the args (not proof of correctness; the
  *             runtime guard is the real check)
+ *   BYPASS  — call sits directly inside withTenantGuardBypass(reason, …); must be in
+ *             the STATUS.md bypass register
  *
  * Heuristic by design (naive paren/backtick matching). It produces a worklist, not a verdict.
  *
@@ -77,8 +79,14 @@ for (const file of files) {
     const key = scoped.get(model);
     if (!key) continue;
     const args = balanced(src, m.index + m[0].length - 1).trim();
+    // Statement text before the call: a registered bypass wraps it directly.
+    const stmtStart = Math.max(src.lastIndexOf(';', m.index), src.lastIndexOf('}\n', m.index));
+    const bypassed = src.slice(stmtStart + 1, m.index).includes('withTenantGuardBypass(');
     let status;
     if (key === 'tenant_org_id' ? args.includes('tenant_org_id') : /\bid\b/.test(args)) status = 'OK';
+    else if (bypassed) status = 'BYPASS';
+    // A where built elsewhere (variable, helper call) can't be judged statically.
+    else if (/\bwhere\s*:\s*[^{\s]/.test(args)) status = 'REVIEW';
     // MISSING only when the scoping key is an inline literal we can see; otherwise the
     // filter/data comes from a variable, shorthand ({ where }) or spread — REVIEW.
     else if (args === '' || /(?:^|[{,]\s*)(where|data|create)\s*:\s*\{/.test(args) && !/\.\.\.\w/.test(args)) status = 'MISSING';
@@ -127,15 +135,17 @@ Heuristic worklist. The runtime guard (\`TENANT_GUARD_MODE\`) is the authoritati
 
 Tenant-scoped models: ${scoped.size} · files scanned: ${files.length}
 
-| Kind | MISSING | REVIEW | OK |
-|---|---|---|---|
-| Prisma model calls | ${count('model', 'MISSING')} | ${count('model', 'REVIEW')} | ${count('model', 'OK')} |
-| Raw SQL touching org_* | ${count('raw', 'MISSING')} | ${count('raw', 'REVIEW')} | ${count('raw', 'OK')} |
+| Kind | MISSING | REVIEW | BYPASS | OK |
+|---|---|---|---|---|
+| Prisma model calls | ${count('model', 'MISSING')} | ${count('model', 'REVIEW')} | ${count('model', 'BYPASS')} | ${count('model', 'OK')} |
+| Raw SQL touching org_* | ${count('raw', 'MISSING')} | ${count('raw', 'REVIEW')} | — | ${count('raw', 'OK')} |
 
 ## Prisma model calls — MISSING
 ${table('model', 'MISSING')}
 ## Prisma model calls — REVIEW (args built elsewhere)
 ${table('model', 'REVIEW')}
+## Prisma model calls — BYPASS (inside withTenantGuardBypass; see STATUS.md register)
+${table('model', 'BYPASS')}
 ## Raw SQL — MISSING (org_* referenced, no tenant_org_id in the template)
 ${table('raw', 'MISSING')}
 ## Raw SQL — REVIEW (Unsafe / non-template)
@@ -148,6 +158,6 @@ if (out) {
   writeFileSync(out, md);
 }
 console.log(
-  `[audit-tenant-guard] model MISSING=${count('model', 'MISSING')} REVIEW=${count('model', 'REVIEW')} OK=${count('model', 'OK')} | ` +
+  `[audit-tenant-guard] model MISSING=${count('model', 'MISSING')} REVIEW=${count('model', 'REVIEW')} BYPASS=${count('model', 'BYPASS')} OK=${count('model', 'OK')} | ` +
     `raw MISSING=${count('raw', 'MISSING')} REVIEW=${count('raw', 'REVIEW')} OK=${count('raw', 'OK')}`
 );

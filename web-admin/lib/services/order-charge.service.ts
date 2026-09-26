@@ -182,7 +182,7 @@ export async function voidOrderCharge(
 
         if (preference && preference.rec_status !== 0) {
           await tx.org_order_preferences_dtl.update({
-            where: { id: preference.id },
+            where: { id: preference.id, tenant_org_id: tenantId },
             data: { rec_status: 0, updated_at: now, updated_by: voidedBy },
           });
 
@@ -199,7 +199,7 @@ export async function voidOrderCharge(
             if (piece) {
               const nextPieceCharge = Math.max(0, Number(piece.service_pref_charge ?? 0) - extraPrice);
               await tx.org_order_item_pieces_dtl.update({
-                where: { id: piece.id },
+                where: { id: piece.id, tenant_org_id: tenantId },
                 data: { service_pref_charge: nextPieceCharge, updated_at: now },
               });
             }

@@ -111,9 +111,9 @@ const HISTORY_EVENT_TYPES = new Set<OutboxEventType>([
  * for (const event of events) {
  *   try {
  *     await consumeOrderHistoryEvent(event);
- *     await markProcessed(event.id);
+ *     await markProcessed(event.id, event.tenant_org_id);
  *   } catch (err) {
- *     await markFailed(event.id, String(err));
+ *     await markFailed(event.id, event.tenant_org_id, String(err));
  *   }
  * }
  * ```
@@ -175,7 +175,7 @@ export async function consumeOrderHistoryEvent(
  * const outcomes = await consumeOrderHistoryBatch(events);
  * await Promise.all(outcomes.map((o, i) =>
  *   o.status === 'WRITTEN' || o.status === 'SKIPPED_DUPLICATE'
- *     ? markProcessed(events[i].id)
+ *     ? markProcessed(events[i].id, events[i].tenant_org_id)
  *     : Promise.resolve(),
  * ));
  * ```

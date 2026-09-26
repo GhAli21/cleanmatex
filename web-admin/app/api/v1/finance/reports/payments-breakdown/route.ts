@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     const methods = methodIds.length > 0
       ? await withTenantContext(tenantId, () =>
           prisma.org_payment_methods_cf.findMany({
-            where:  { id: { in: methodIds } },
+            where:  { id: { in: methodIds }, tenant_org_id: tenantId },
             select: { id: true, display_name: true, display_name2: true, payment_method_code: true },
           })
         )

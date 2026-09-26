@@ -1,6 +1,6 @@
 # Tenant Guard Restoration
 
-**Priority:** Urgent · **Opened:** 2026-09-25 · **Owner:** GhAli21 · **Status:** see [STATUS.md](STATUS.md)
+**Priority:** Urgent · **Opened:** 2026-09-25 · **Owner:** GhAli21 · **Status:** Phase 2 done (bfa5917) · Phase 3 ready for owner apply · see [STATUS.md](STATUS.md)
 
 ## Why this package exists
 
