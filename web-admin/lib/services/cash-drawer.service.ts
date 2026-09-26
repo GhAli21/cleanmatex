@@ -1863,7 +1863,7 @@ export async function approveSessionVariance(
       // Permission is the control here.
 
       return tx.org_cash_drawer_sessions_mst.update({
-        where: { id: sessionId },
+        where: { id: sessionId, tenant_org_id: tenantId },
         data: {
           variance_approved_by: params.approvedBy,
           variance_approved_at: new Date(),

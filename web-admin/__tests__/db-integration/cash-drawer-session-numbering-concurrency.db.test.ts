@@ -73,10 +73,10 @@ beforeAll(async () => {
 afterAll(async () => {
   if (dbUp && drawerIds.length > 0) {
     await prisma.org_cash_drawer_sessions_mst
-      .deleteMany({ where: { cash_drawer_id: { in: drawerIds } } })
+      .deleteMany({ where: { cash_drawer_id: { in: drawerIds }, tenant_org_id: tenantId } })
       .catch(() => { /* best-effort cleanup */ });
     await prisma.org_cash_drawers_mst
-      .deleteMany({ where: { id: { in: drawerIds } } })
+      .deleteMany({ where: { id: { in: drawerIds }, tenant_org_id: tenantId } })
       .catch(() => { /* best-effort cleanup */ });
   }
   await prisma.$disconnect();

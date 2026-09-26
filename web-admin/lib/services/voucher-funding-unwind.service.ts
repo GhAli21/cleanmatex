@@ -129,7 +129,7 @@ async function unwindWalletTopUp(
   const balanceBefore = rows[0].balance;
   const balanceAfter = balanceBefore - amount;
   await tx.org_customer_wallets_mst.update({
-    where: { id: rows[0].id },
+    where: { id: rows[0].id, tenant_org_id: params.tenantOrgId },
     data: { balance: { decrement: amount }, updated_at: new Date() },
   });
   await tx.org_wallet_txn_dtl.create({
@@ -201,7 +201,7 @@ async function unwindGiftCardSale(
   }
 
   await tx.org_gift_cards_mst.update({
-    where: { id: card.id },
+    where: { id: card.id, tenant_org_id: params.tenantOrgId },
     data: {
       status: GIFT_CARD_STATUS.VOIDED,
       is_active: false,
@@ -278,7 +278,7 @@ async function unwindAdvanceReceipt(
   const balanceBefore = rows[0].balance;
   const balanceAfter = balanceBefore - amount;
   await tx.org_customer_advances_mst.update({
-    where: { id: rows[0].id },
+    where: { id: rows[0].id, tenant_org_id: params.tenantOrgId },
     data: { balance: { decrement: amount }, updated_at: new Date() },
   });
   await tx.org_advance_txn_dtl.create({
@@ -346,7 +346,7 @@ async function unwindCustomerCreditIssue(
   }
 
   await tx.org_credit_notes_mst.update({
-    where: { id: note.id },
+    where: { id: note.id, tenant_org_id: params.tenantOrgId },
     data: {
       status: CREDIT_NOTE_STATUSES.CANCELLED,
       remaining_balance: 0,

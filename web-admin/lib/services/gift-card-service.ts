@@ -86,7 +86,7 @@ function migratePin(cardId: string, tenantOrgId: string, plainPin: string): void
     .hash(plainPin, 12)
     .then((hash) =>
       prisma.org_gift_cards_mst.update({
-        where: { id: cardId },
+        where: { id: cardId, tenant_org_id: tenantOrgId },
         data: { pin_hash: hash, card_pin: null },
       })
     )
@@ -342,7 +342,7 @@ export async function finalizeGiftCardSaleTx(
   const now = new Date();
 
   await tx.org_gift_cards_mst.update({
-    where: { id: giftCardId },
+    where: { id: giftCardId, tenant_org_id: tenantOrgId },
     data: {
       status: GIFT_CARD_STATUS.ACTIVE,
       original_amount: amount,
@@ -399,7 +399,7 @@ export async function adminActivateGiftCard(
 
     await prisma.$transaction(async (tx) => {
       await tx.org_gift_cards_mst.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantOrgId },
         data: {
           status: GIFT_CARD_STATUS.ACTIVE,
           activation_date: now,
@@ -424,7 +424,7 @@ export async function adminActivateGiftCard(
     });
 
     const updated = await prisma.org_gift_cards_mst.findFirstOrThrow({
-      where: { id },
+      where: { id, tenant_org_id: tenantOrgId },
       include: { issued_to_customer: { select: { name: true } } },
     });
 
@@ -520,7 +520,7 @@ export async function validateGiftCard(
           // Increment failure counter (fire-and-forget — don't slow down the hot path)
           Promise.resolve(
             prisma.org_gift_cards_mst.update({
-              where: { id: card.id },
+              where: { id: card.id, tenant_org_id: tenantId },
               data: { pin_failed_attempts: { increment: 1 } },
             })
           ).catch((err: unknown) =>
@@ -542,7 +542,7 @@ export async function validateGiftCard(
         if (card.pin_failed_attempts > 0) {
           Promise.resolve(
             prisma.org_gift_cards_mst.update({
-              where: { id: card.id },
+              where: { id: card.id, tenant_org_id: tenantId },
               data: { pin_failed_attempts: 0 },
             })
           ).catch((err: unknown) =>
@@ -730,7 +730,7 @@ export async function redeemGiftCardTx(
   // Inline expiry check with mutation — authoritative enforcement point
   if (row.expiry_date && new Date() > new Date(row.expiry_date)) {
     await tx.org_gift_cards_mst.update({
-      where: { id: row.id },
+      where: { id: row.id, tenant_org_id: tenantOrgId },
       data: { status: GIFT_CARD_STATUS.EXPIRED, updated_at: new Date() },
     });
     throw new Error('GIFT_CARD_EXPIRED');
@@ -770,7 +770,7 @@ export async function redeemGiftCardTx(
   });
 
   await tx.org_gift_cards_mst.update({
-    where: { id: row.id },
+    where: { id: row.id, tenant_org_id: tenantOrgId },
     data: {
       available_amount: availableAfter,
       current_balance: availableAfter,
@@ -925,7 +925,7 @@ export async function refundGiftCardTx(
   });
 
   await tx.org_gift_cards_mst.update({
-    where: { id: row.id },
+    where: { id: row.id, tenant_org_id: tenantOrgId },
     data: {
       available_amount: newBalance,
       current_balance: newBalance,
@@ -1020,7 +1020,7 @@ export async function adminAdjustGiftCard(
         });
 
         await tx.org_gift_cards_mst.update({
-          where: { id },
+          where: { id, tenant_org_id: params.tenantOrgId },
           data: {
             available_amount: newBalance,
             current_balance: newBalance,
@@ -1070,7 +1070,7 @@ export async function voidGiftCard(
         if (!card) throw new Error('GIFT_CARD_NOT_FOUND');
 
         await tx.org_gift_cards_mst.update({
-          where: { id },
+          where: { id, tenant_org_id: tenantOrgId },
           data: {
             status: GIFT_CARD_STATUS.VOIDED,
             is_active: false,
@@ -1153,7 +1153,7 @@ export async function suspendGiftCard(
       if (!card) return { success: false, error: 'Gift card not found' };
 
       await prisma.org_gift_cards_mst.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantOrgId },
         data: {
           status: GIFT_CARD_STATUS.SUSPENDED,
           rec_notes: `Suspended: ${reason}`,
@@ -1192,7 +1192,7 @@ export async function expireGiftCard(
         if (!card) throw new Error('GIFT_CARD_NOT_FOUND');
 
         await tx.org_gift_cards_mst.update({
-          where: { id },
+          where: { id, tenant_org_id: tenantOrgId },
           data: {
             status: GIFT_CARD_STATUS.EXPIRED,
             updated_at: new Date(),

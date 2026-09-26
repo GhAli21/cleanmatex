@@ -89,7 +89,7 @@ export async function updateTerminal(
       });
       if (!existing) return { success: false, error: 'Terminal not found' };
       const row = await prisma.org_payment_terminals_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           ...(input.terminal_name !== undefined && { terminal_name: input.terminal_name }),
           ...(input.terminal_name2 !== undefined && { terminal_name2: input.terminal_name2 }),
@@ -129,7 +129,7 @@ export async function toggleTerminalEnabled(
       });
       if (!existing) return { success: false, error: 'Terminal not found' };
       const row = await prisma.org_payment_terminals_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_enabled: isEnabled, updated_by: userId, updated_at: new Date() },
         select: { is_enabled: true },
       });
@@ -157,14 +157,14 @@ export async function softDeleteTerminal(
       if (!existing) return { success: false, error: 'Terminal not found' };
 
       const drawerCount = await prisma.org_cash_drawers_mst.count({
-        where: { assigned_terminal_id: id, is_active: true, rec_status: 1 },
+        where: { assigned_terminal_id: id, is_active: true, rec_status: 1, tenant_org_id: tenantId },
       });
       if (drawerCount > 0) {
         return { success: false, error: 'Cannot deactivate: terminal is assigned to an active cash drawer.' };
       }
 
       await prisma.org_payment_terminals_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_active: false, rec_status: 0, updated_by: userId, updated_at: new Date() },
       });
       revalidatePath(REVALIDATE_PATH);

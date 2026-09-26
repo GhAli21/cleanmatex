@@ -241,7 +241,7 @@ export async function runArDunningAction(
         }
       } else if (input.action_cd === AR_DUNNING_ACTIONS.HOLD) {
         await tx.org_customers_mst.update({
-          where: { id: customer.id },
+          where: { id: customer.id, tenant_org_id: tenantId },
           data: {
             is_credit_hold: true,
             updated_at: new Date(),

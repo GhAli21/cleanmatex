@@ -256,7 +256,7 @@ export async function updateDiscountRule(
           : undefined;
 
       const row = await prisma.org_discount_rules_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: {
           ...(input.rule_name != null && { rule_name: input.rule_name }),
           ...(input.rule_name2 !== undefined && { rule_name2: input.rule_name2 }),
@@ -314,7 +314,7 @@ export async function archiveDiscountRule(
       }
 
       await prisma.org_discount_rules_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_active: false, updated_at: new Date(), updated_by: userId ?? undefined },
       });
 

@@ -262,7 +262,7 @@ describe('order-amendment.service (B12)', () => {
       });
       expect(result.alreadySettled).toBe(false);
       expect(mockEditHistoryUpdate).toHaveBeenCalledWith({
-        where: { id: 'eh1' },
+        where: { id: 'eh1', tenant_org_id: 't1' },
         data: expect.objectContaining({
           payment_adjusted: true,
           payment_adjustment_amount: 7.5,

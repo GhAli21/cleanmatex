@@ -75,7 +75,7 @@ export async function upsertBranchPaymentMethod(
       let row;
       if (existing) {
         row = await prisma.org_branch_payment_methods_cf.update({
-          where: { id: existing.id },
+          where: { id: existing.id, tenant_org_id: tenantId },
           data: { ...data, updated_by: userId, updated_at: new Date() },
         });
       } else {
@@ -109,7 +109,7 @@ export async function softDeleteBranchPaymentMethod(
       });
       if (!existing) return { success: false, error: 'Branch override not found' };
       await prisma.org_branch_payment_methods_cf.update({
-        where: { id },
+        where: { id, tenant_org_id: tenantId },
         data: { is_active: false, rec_status: 0, updated_by: userId, updated_at: new Date() },
       });
       revalidatePath(REVALIDATE_PATH);

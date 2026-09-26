@@ -71,9 +71,9 @@ async function makeDrawer(): Promise<string> {
 }
 
 async function cleanupDrawer(drawerId: string): Promise<void> {
-  await prisma.org_cash_drawer_movements_dtl.deleteMany({ where: { cash_drawer_id: drawerId } }).catch(() => {});
-  await prisma.org_cash_drawer_sessions_mst.deleteMany({ where: { cash_drawer_id: drawerId } }).catch(() => {});
-  await prisma.org_cash_drawers_mst.deleteMany({ where: { id: drawerId } }).catch(() => {});
+  await prisma.org_cash_drawer_movements_dtl.deleteMany({ where: { cash_drawer_id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
+  await prisma.org_cash_drawer_sessions_mst.deleteMany({ where: { cash_drawer_id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
+  await prisma.org_cash_drawers_mst.deleteMany({ where: { id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
 }
 
 function dbit(name: string, fn: () => Promise<void>): void {
@@ -109,7 +109,7 @@ describe('lockDrawerScope — real concurrency proof (A2-6)', () => {
       expect(rejected).toHaveLength(1);
 
       const finalSession = await prisma.org_cash_drawer_sessions_mst.findFirstOrThrow({
-        where: { id: session.id },
+        where: { id: session.id, tenant_org_id: tenantId },
       });
       expect(finalSession.status).toBe('CLOSED');
     } finally {
@@ -152,10 +152,10 @@ describe('lockDrawerScope — real concurrency proof (A2-6)', () => {
       // are exactly what the final expected_cash_amount accounts for — no
       // movement can exist that the close's own aggregate never saw.
       const finalSession = await prisma.org_cash_drawer_sessions_mst.findFirstOrThrow({
-        where: { id: session.id },
+        where: { id: session.id, tenant_org_id: tenantId },
       });
       const movementSum = await prisma.org_cash_drawer_movements_dtl.aggregate({
-        where: { cash_drawer_session_id: session.id, direction: 'IN' },
+        where: { cash_drawer_session_id: session.id, direction: 'IN', tenant_org_id: tenantId },
         _sum: { amount: true },
       });
       const movementTotal = Number(movementSum._sum.amount ?? 0);

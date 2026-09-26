@@ -85,10 +85,11 @@ export async function claimBatch(limit = 50): Promise<OutboxEventRow[]> {
 /**
  * Mark an outbox event as successfully processed.
  * @param eventId
+ * @param tenantId - the claimed row's own `tenant_org_id` (claimBatch is cross-tenant; follow-up writes are not)
  */
-export async function markProcessed(eventId: string): Promise<void> {
+export async function markProcessed(eventId: string, tenantId: string): Promise<void> {
   await prisma.org_domain_events_outbox.update({
-    where: { id: eventId },
+    where: { id: eventId, tenant_org_id: tenantId },
     data:  { status: OUTBOX_STATUSES.PROCESSED, processed_at: new Date() },
   });
 }
@@ -99,16 +100,23 @@ export async function markProcessed(eventId: string): Promise<void> {
  * stayed FAILED forever with next_retry_at=NULL, indistinguishable from
  * "about to retry" without inspecting that column).
  * @param eventId
+ * @param tenantId - the claimed row's own `tenant_org_id`
  * @param error
  */
-export async function markFailed(eventId: string, error: string): Promise<'FAILED' | 'DEAD_LETTERED'> {
-  const event = await prisma.org_domain_events_outbox.findUniqueOrThrow({ where: { id: eventId } });
+export async function markFailed(
+  eventId: string,
+  tenantId: string,
+  error: string
+): Promise<'FAILED' | 'DEAD_LETTERED'> {
+  const event = await prisma.org_domain_events_outbox.findUniqueOrThrow({
+    where: { id: eventId, tenant_org_id: tenantId },
+  });
   const attempts = (event.attempts ?? 0) + 1;
   const retryAt  = nextRetryAt(attempts);
   const status   = retryAt ? OUTBOX_STATUSES.FAILED : OUTBOX_STATUSES.DEAD_LETTERED;
 
   await prisma.org_domain_events_outbox.update({
-    where: { id: eventId },
+    where: { id: eventId, tenant_org_id: tenantId },
     data: {
       status,
       attempts,
@@ -124,12 +132,13 @@ export async function markFailed(eventId: string, error: string): Promise<'FAILE
  * Re-schedule a retry for an event that is still within its attempt budget,
  * or DEAD_LETTERED once exhausted (see markFailed).
  * @param eventId
+ * @param tenantId - the event row's own `tenant_org_id`
  * @param currentAttempts
  */
-export async function scheduleRetry(eventId: string, currentAttempts: number): Promise<void> {
+export async function scheduleRetry(eventId: string, tenantId: string, currentAttempts: number): Promise<void> {
   const retryAt = nextRetryAt(currentAttempts);
   await prisma.org_domain_events_outbox.update({
-    where: { id: eventId },
+    where: { id: eventId, tenant_org_id: tenantId },
     data: {
       status:        retryAt ? OUTBOX_STATUSES.FAILED : OUTBOX_STATUSES.DEAD_LETTERED,
       attempts:      currentAttempts,

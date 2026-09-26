@@ -1162,8 +1162,8 @@ export async function listPosSessions(input: {
         LEFT JOIN public.org_users_mst paused_by_user ON paused_by_user.tenant_org_id = ps.tenant_org_id AND paused_by_user.user_id = ps.paused_by
         LEFT JOIN public.org_users_mst closed_by_user ON closed_by_user.tenant_org_id = ps.tenant_org_id AND closed_by_user.user_id = ps.closed_by
         LEFT JOIN public.org_users_mst force_closed_by_user ON force_closed_by_user.tenant_org_id = ps.tenant_org_id AND force_closed_by_user.user_id = ps.force_closed_by
-        LEFT JOIN public.org_users_mst created_by_user ON created_by_user.tenant_org_id = ps.tenant_org_id AND created_by_user.user_id = ps.created_by
-        LEFT JOIN public.org_users_mst updated_by_user ON updated_by_user.tenant_org_id = ps.tenant_org_id AND updated_by_user.user_id = ps.updated_by
+        LEFT JOIN public.org_users_mst created_by_user ON created_by_user.tenant_org_id = ps.tenant_org_id AND created_by_user.user_id::text = ps.created_by
+        LEFT JOIN public.org_users_mst updated_by_user ON updated_by_user.tenant_org_id = ps.tenant_org_id AND updated_by_user.user_id::text = ps.updated_by
         WHERE ps.tenant_org_id = ${input.tenantId}::uuid
           AND ps.is_active = TRUE
           ${userScopeSql}
@@ -1246,8 +1246,8 @@ export async function listPosSessionEvents(input: {
           COALESCE(updated_by_user.display_name, updated_by_user.name, updated_by_user.email) AS updated_by_display_name
         FROM public.org_pos_session_events_dtl e
         LEFT JOIN public.org_users_mst performed_by_user ON performed_by_user.tenant_org_id = e.tenant_org_id AND performed_by_user.user_id = e.performed_by
-        LEFT JOIN public.org_users_mst created_by_user ON created_by_user.tenant_org_id = e.tenant_org_id AND created_by_user.user_id = e.created_by
-        LEFT JOIN public.org_users_mst updated_by_user ON updated_by_user.tenant_org_id = e.tenant_org_id AND updated_by_user.user_id = e.updated_by
+        LEFT JOIN public.org_users_mst created_by_user ON created_by_user.tenant_org_id = e.tenant_org_id AND created_by_user.user_id::text = e.created_by
+        LEFT JOIN public.org_users_mst updated_by_user ON updated_by_user.tenant_org_id = e.tenant_org_id AND updated_by_user.user_id::text = e.updated_by
         WHERE e.tenant_org_id = ${input.tenantId}::uuid
           AND e.pos_session_id = ${input.posSessionId}::uuid
         ORDER BY e.event_at DESC, e.created_at DESC

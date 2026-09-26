@@ -581,7 +581,7 @@ async function maybeReclassifyPaymentTypeTx(
   if (!order || order.payment_type_code === newCode) return false;
 
   await tx.org_orders_mst.update({
-    where: { id: orderId },
+    where: { id: orderId, tenant_org_id: tenantId },
     data: { payment_type_code: newCode, updated_at: new Date() },
   });
   return true;

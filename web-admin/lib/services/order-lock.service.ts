@@ -9,6 +9,7 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { withTenantGuardBypass } from '@/lib/db/tenant-guard';
 import { logger } from '@/lib/utils/logger';
 
 const LOCK_TTL_MINUTES = 30;
@@ -60,6 +61,7 @@ export async function lockOrderForEdit(params: LockOrderParams): Promise<OrderLo
     const existingLock = await prisma.org_order_edit_locks.findUnique({
       where: {
         order_id: orderId,
+        tenant_org_id: tenantId,
       },
     });
 
@@ -70,6 +72,7 @@ export async function lockOrderForEdit(params: LockOrderParams): Promise<OrderLo
         const refreshedLock = await prisma.org_order_edit_locks.update({
           where: {
             order_id: orderId,
+            tenant_org_id: tenantId,
           },
           data: {
             locked_at: new Date(),
@@ -99,6 +102,7 @@ export async function lockOrderForEdit(params: LockOrderParams): Promise<OrderLo
     const lock = await prisma.org_order_edit_locks.upsert({
       where: {
         order_id: orderId,
+        tenant_org_id: tenantId,
       },
       create: {
         order_id: orderId,
@@ -145,6 +149,7 @@ export async function unlockOrder(params: UnlockOrderParams): Promise<void> {
     const existingLock = await prisma.org_order_edit_locks.findUnique({
       where: {
         order_id: orderId,
+        tenant_org_id: tenantId,
       },
     });
 
@@ -163,6 +168,7 @@ export async function unlockOrder(params: UnlockOrderParams): Promise<void> {
     await prisma.org_order_edit_locks.delete({
       where: {
         order_id: orderId,
+        tenant_org_id: tenantId,
       },
     });
 
@@ -205,6 +211,7 @@ export async function checkOrderLock(
       await prisma.org_order_edit_locks.delete({
         where: {
           order_id: orderId,
+          tenant_org_id: tenantId,
         },
       });
 
@@ -227,13 +234,17 @@ export async function checkOrderLock(
  * Cleans up expired locks (called by cron job)
  */
 export async function cleanupExpiredLocks(): Promise<number> {
-  const result = await prisma.org_order_edit_locks.deleteMany({
-    where: {
-      expires_at: {
-        lte: new Date(),
+  // Platform-wide expiry sweep: deletes only rows already past their TTL, reads no
+  // tenant data back. Registered bypass (Tenant_Guard_Restoration/STATUS.md).
+  const result = await withTenantGuardBypass('order-edit-locks-expiry-sweep', () =>
+    prisma.org_order_edit_locks.deleteMany({
+      where: {
+        expires_at: {
+          lte: new Date(),
+        },
       },
-    },
-  });
+    })
+  );
 
   if (result.count > 0) {
     logger.info('[cleanupExpiredLocks] Cleaned up expired locks', {
@@ -258,6 +269,7 @@ export async function extendLock(
     const existingLock = await prisma.org_order_edit_locks.findUnique({
       where: {
         order_id: orderId,
+        tenant_org_id: tenantId,
       },
     });
 
@@ -272,6 +284,7 @@ export async function extendLock(
     const refreshedLock = await prisma.org_order_edit_locks.update({
       where: {
         order_id: orderId,
+        tenant_org_id: tenantId,
       },
       data: {
         locked_at: new Date(),

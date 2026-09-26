@@ -126,7 +126,7 @@ async function applyOrderAllocationTx(
   const newPaid = Number(order.total_paid_amount ?? 0) + params.amount;
   const newOutstanding = Math.max(0, outstanding - params.amount);
   await tx.org_orders_mst.update({
-    where: { id: params.targetOrderId },
+    where: { id: params.targetOrderId, tenant_org_id: params.tenantId },
     data: {
       total_paid_amount: newPaid,
       outstanding_amount: newOutstanding,

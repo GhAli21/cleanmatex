@@ -445,7 +445,7 @@ export async function ensureCanonicalArInvoiceArtifactsTx(
       : Promise.resolve(null),
     input.orderId
       ? tx.org_orders_mst.findUnique({
-          where: { id: input.orderId },
+          where: { id: input.orderId, tenant_org_id: input.tenantId },
           select: {
             id: true,
             order_no: true,

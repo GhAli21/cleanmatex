@@ -63,7 +63,7 @@ async function consumeLoyaltyLotsTx(
     const draw = Math.min(lot.remaining_points, remaining);
 
     await tx.org_loyalty_txn_dtl.update({
-      where: { id: lot.id },
+      where: { id: lot.id, tenant_org_id: tenantId },
       data: { remaining_points: { decrement: draw } },
     });
     await tx.org_loyalty_txn_allocs_dtl.create({
@@ -113,7 +113,7 @@ async function expireOpenLotsInTx(
   const pointsAfter = Math.max(0, pointsBefore - totalExpiring);
 
   await tx.org_loyalty_accounts_mst.update({
-    where: { id: account.id },
+    where: { id: account.id, tenant_org_id: tenantId },
     data: { points_balance: pointsAfter },
   });
 
@@ -134,7 +134,7 @@ async function expireOpenLotsInTx(
 
   for (const lot of lots) {
     await tx.org_loyalty_txn_dtl.update({
-      where: { id: lot.id },
+      where: { id: lot.id, tenant_org_id: tenantId },
       data: { remaining_points: { decrement: lot.remaining_points } },
     });
     await tx.org_loyalty_txn_allocs_dtl.create({
@@ -328,7 +328,7 @@ export async function redeemPointsTx(
   const pointsAfter  = pointsBefore - pointsToRedeem;
 
   await tx.org_loyalty_accounts_mst.update({
-    where: { id: rows[0].id },
+    where: { id: rows[0].id, tenant_org_id: tenantId },
     data:  { points_balance: pointsAfter, lifetime_earned: { increment: 0 } },
   });
 
@@ -436,7 +436,7 @@ export async function processEarnPoints(
   const pointsAfter  = pointsBefore + earnPoints;
 
   await tx.org_loyalty_accounts_mst.update({
-    where: { id: account.id },
+    where: { id: account.id, tenant_org_id: tenantId },
     data:  { points_balance: pointsAfter, lifetime_earned: { increment: earnPoints } },
   });
 
@@ -500,7 +500,7 @@ export async function adjustPointsTx(
   if (newBalance < 0) throw new Error('Adjustment would result in negative balance');
 
   await tx.org_loyalty_accounts_mst.update({
-    where: { id: rows[0].id },
+    where: { id: rows[0].id, tenant_org_id: tenantId },
     data:  { points_balance: newBalance },
   });
 

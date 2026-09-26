@@ -158,7 +158,7 @@ export async function updateTenantCardBrandConfig(
     }
 
     const updated = await prisma.org_card_brand_cf.update({
-      where: { id: brandId },
+      where: { id: brandId, tenant_org_id: tenantOrgId },
       data: {
         ...(input.name !== undefined && { name: input.name }),
         ...(input.name2 !== undefined && { name2: input.name2 }),
@@ -207,7 +207,7 @@ export async function toggleTenantCardBrandActive(
     }
 
     const updated = await prisma.org_card_brand_cf.update({
-      where: { id: brandId },
+      where: { id: brandId, tenant_org_id: tenantOrgId },
       data: {
         is_active: isActive,
         updated_at: new Date(),
