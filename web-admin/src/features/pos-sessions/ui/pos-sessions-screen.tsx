@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { CreditCard, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Check, Copy, CreditCard, RefreshCw, ShieldAlert } from 'lucide-react';
 import { CmxButton, CmxInput } from '@ui/primitives';
 import { CmxSelect } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
@@ -396,7 +396,9 @@ export function PosSessionsScreen() {
 
   const sessions = sessionsQuery.data?.items ?? [];
   const total = sessionsQuery.data?.total ?? 0;
-  const activeTitle = activeSession ? activeSession.session_no : t('noActiveTitle');
+  const activeTerminalLabel = activeSessionContext?.terminal_name
+    ? [activeSessionContext.terminal_name, activeSessionContext.terminal_code].filter(Boolean).join(' · ')
+    : activeSession?.terminal_id ?? null;
   const resetFilters = () => {
     setPage(1);
     setBranchId('');
@@ -438,21 +440,42 @@ export function PosSessionsScreen() {
           <CmxCardContent className="space-y-4">
             {activeSession ? (
               <>
-                <div className="flex flex-wrap items-center gap-2">
-                  <CmxStatusBadge
-                    label={activeSession.status}
-                    variant={statusVariant(activeSession.status)}
-                    size="sm"
+                {/* Vertical label/value rows: values wrap instead of truncating, and the list
+                    scrolls within a capped height so new fields never grow the card. */}
+                <dl className="grid max-h-44 overflow-y-auto rounded-lg border sm:grid-cols-2 border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))]">
+                  <InfoRow label={t('status')}>
+                    <CmxStatusBadge
+                      label={activeSession.status}
+                      variant={statusVariant(activeSession.status)}
+                      size="sm"
+                    />
+                  </InfoRow>
+                  <InfoRow label={t('sessionNo')} value={activeSession.session_no} copyValue={activeSession.session_no} />
+                  <InfoRow label={t('businessDate')} value={activeSession.business_date} />
+                  <InfoRow label={t('branch')} value={sessionDisplayBranch(activeSession)} />
+                  <InfoRow label={t('openedAt')} value={formatDateTime(activeSession.opened_at)} />
+                  <InfoRow
+                    label={t('terminal')}
+                    value={activeTerminalLabel ?? t('none')}
+                    copyValue={activeSessionContext?.terminal_code ?? activeSession.terminal_id}
                   />
-                  <Badge variant="outline">{activeTitle}</Badge>
-                  <Badge variant="outline">{activeSession.business_date}</Badge>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <InfoTile label={t('branch')} value={sessionDisplayBranch(activeSession)} />
-                  <InfoTile label={t('openedAt')} value={formatDateTime(activeSession.opened_at)} />
-                  <InfoTile label={t('terminal')} value={activeSession.terminal_id ?? t('none')} />
-                  <InfoTile label={t('cashDrawer')} value={activeSession.cash_drawer_session_id ?? t('none')} />
-                </div>
+                  <InfoRow
+                    label={t('cashDrawer')}
+                    value={activeSessionContext?.cash_drawer_name ?? activeSession.cash_drawer_id ?? t('none')}
+                    copyValue={activeSession.cash_drawer_id}
+                  />
+                  <InfoRow
+                    label={t('drawerSession')}
+                    value={activeSessionContext?.cash_drawer_session_no ?? activeSession.cash_drawer_session_id ?? t('none')}
+                    copyValue={activeSessionContext?.cash_drawer_session_no ?? activeSession.cash_drawer_session_id}
+                  >
+                    {activeSessionContext?.cash_drawer_session_status ? (
+                      <Badge variant={activeSessionContext.cash_drawer_session_status === 'OPEN' ? 'success' : 'secondary'}>
+                        {activeSessionContext.cash_drawer_session_status}
+                      </Badge>
+                    ) : null}
+                  </InfoRow>
+                </dl>
                 <div className="flex flex-wrap gap-2">
                   {canPauseResume && activeSession.status === POS_SESSION_STATUS.OPEN ? (
                     <CmxButton
@@ -812,12 +835,63 @@ function JsonPreview({ value }: { value: unknown }) {
   return <div className="max-w-52 truncate font-mono text-xs" title={json}>{json}</div>;
 }
 
-function InfoTile({ label, value }: { label: string; value: string }) {
+/**
+ * One label/value row of the active-session card. Values wrap (`break-all`)
+ * rather than truncate so long identifiers stay fully readable; when
+ * `copyValue` is set, a copy button places it on the clipboard.
+ */
+function InfoRow({
+  label,
+  value,
+  copyValue,
+  children,
+}: {
+  label: string;
+  value?: string;
+  copyValue?: string | null;
+  children?: ReactNode;
+}) {
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{label}</div>
-      <div className="mt-1 truncate text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{value}</div>
+    <div className="flex items-start gap-3 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))] px-3 py-2">
+      <dt className="w-32 shrink-0 pt-0.5 text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        {label}
+      </dt>
+      <dd className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        {value !== undefined ? <span className="min-w-0 break-all">{value}</span> : null}
+        {children}
+        {copyValue ? <CopyValueButton value={copyValue} label={label} /> : null}
+      </dd>
     </div>
+  );
+}
+
+function CopyValueButton({ value, label }: { value: string; label: string }) {
+  const t = useTranslations('posSessions');
+  const tCommon = useTranslations('common');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      cmxMessage.success(tCommon('copied'));
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      cmxMessage.error(t('messages.copyFailed'));
+    }
+  };
+
+  const Icon = copied ? Check : Copy;
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      aria-label={t('copyValue', { field: label })}
+      title={t('copyValue', { field: label })}
+      className="shrink-0 rounded p-1 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:bg-[rgb(var(--cmx-border-rgb,226_232_240))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] focus-visible:outline focus-visible:outline-2"
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+    </button>
   );
 }
 
