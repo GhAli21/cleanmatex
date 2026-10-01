@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Makes accounting exceptions easy to identify among open work tabs. */
+export const metadata: Metadata = { title: 'ERP Exceptions' }
+
 import { getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'

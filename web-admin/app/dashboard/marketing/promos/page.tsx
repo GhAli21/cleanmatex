@@ -1,8 +1,10 @@
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { MARKETING_MARKETING_PROMOS_ACCESS } from '@features/marketing/access/marketing-access'
 import { PromoListScreen } from '@/src/features/marketing/ui/promo-list-screen';
+import type { Metadata } from 'next'
 
-export const metadata = { title: 'Promo Codes — CleanMateX' };
+/** Keeps browser history identifiable without coupling it to the brand suffix. */
+export const metadata: Metadata = { title: 'Promo Codes' }
 
 /** /dashboard/marketing/promos */
 export default function PromosPage() {

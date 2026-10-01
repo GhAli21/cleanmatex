@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies a specific voucher review page without leaking voucher data into metadata. */
+export const metadata: Metadata = { title: 'Business Voucher Details' };
+
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';

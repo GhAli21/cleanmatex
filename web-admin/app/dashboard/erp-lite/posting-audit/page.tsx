@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Identifies the audit view used to review ERP posting outcomes. */
+export const metadata: Metadata = { title: 'Posting Audit' }
+
 import { getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'

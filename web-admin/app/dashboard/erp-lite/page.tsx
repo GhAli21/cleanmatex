@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Makes the ERP Lite workspace identifiable when opened in a separate tab. */
+export const metadata: Metadata = { title: 'ERP Lite' }
+
 import { getLocale } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'

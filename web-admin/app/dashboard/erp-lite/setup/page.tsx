@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Keeps the browser context clear before the feature-gated setup screen loads. */
+export const metadata: Metadata = { title: 'ERP Setup' }
+
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import { ErpLiteSetupWizardScreen } from '@features/erp-lite/ui/erp-lite-setup-wizard-screen'

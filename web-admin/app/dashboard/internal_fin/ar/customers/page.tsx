@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Names the accounts-receivable customer workspace for tab-level clarity. */
+export const metadata: Metadata = { title: 'AR Customers' };
+
 import { getTranslations } from 'next-intl/server';
 import {
   CmxCard,

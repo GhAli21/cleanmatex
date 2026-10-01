@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Identifies journal management without relying on a generic application title. */
+export const metadata: Metadata = { title: 'Journal Entries' }
+
 import { getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'

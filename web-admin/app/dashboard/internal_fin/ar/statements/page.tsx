@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Names customer-statement management before a print-specific route is opened. */
+export const metadata: Metadata = { title: 'Customer Statements' };
+
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { CmxSummaryMessage } from '@ui/feedback';

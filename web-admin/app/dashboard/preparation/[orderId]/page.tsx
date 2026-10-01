@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Pencil } from 'lucide-react';
@@ -10,6 +11,9 @@ import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return
 import { FastItemizer } from '@features/workflow/ui/FastItemizer';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { Alert, AlertDescription, CmxButton } from '@ui/primitives';
+
+/** Marks the focused preparation task without exposing order or customer data in the tab. */
+export const metadata: Metadata = { title: 'Order Preparation' };
 
 interface PreparationPageProps {
   params: Promise<{ orderId: string }>;

@@ -8,10 +8,12 @@ import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { CashControlSettingsScreen } from '@features/cash-drawers/ui/cash-control-settings-screen';
+import type { Metadata } from 'next';
 
-/**
- *
- */
+/** Keeps browser history identifiable without coupling it to the brand suffix. */
+export const metadata: Metadata = { title: 'Cash Control Settings' };
+
+/** Enforces the route contract before rendering cash-control configuration. */
 export default async function CashControlSettingsRoutePage() {
   const tCommon = await getTranslations('common');
 

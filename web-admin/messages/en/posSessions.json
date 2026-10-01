@@ -83,6 +83,15 @@
   "scope": "Scope",
   "ownSessions": "Own sessions",
   "allSessions": "All sessions",
+  "recordActivity": "Record activity",
+  "activeRecords": "Active records only",
+  "allRecords": "All records",
+  "filterGroups": {
+    "visibility": "Visibility and record set",
+    "visibilityDescription": "Scope controls which sessions and operator values you are authorized to view.",
+    "session": "Find a session",
+    "lifecycle": "Lifecycle and dates"
+  },
   "allStatuses": "All statuses",
   "selectBranch": "Select branch",
   "optionalBranch": "All branches",

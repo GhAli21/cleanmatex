@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Names the accounts-receivable workspace for reliable browser-tab context. */
+export const metadata: Metadata = { title: 'Accounts Receivable' }
+
 import { getLocale, getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'

@@ -7,6 +7,11 @@
  * Route: /dashboard/internal_fin/outbox
  */
 
+import type { Metadata } from 'next';
+
+/** Identifies the finance outbox monitor in browser navigation. */
+export const metadata: Metadata = { title: 'Finance Outbox' };
+
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
 import { BILLING_INTERNAL_FIN_OUTBOX_ACCESS } from '@features/billing/access/billing-access';
 import { OutboxMonitorPage as OutboxMonitorClient } from '@features/billing/ui/outbox-monitor-page';

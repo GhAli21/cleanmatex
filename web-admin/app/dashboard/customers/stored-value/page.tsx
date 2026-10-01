@@ -7,10 +7,12 @@
  */
 
 import { StoredValueHubClient } from '@/src/features/customers/ui/stored-value-hub-client';
+import type { Metadata } from 'next';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { CUSTOMERS_CUSTOMERS_STORED_VALUE_ACCESS } from '@features/customers/access/customers-access'
 
-export const metadata = { title: 'Stored Value — CleanMateX' };
+/** Lets the root title template append the product name consistently across dashboard pages. */
+export const metadata: Metadata = { title: 'Stored Value' };
 
 /**
  *

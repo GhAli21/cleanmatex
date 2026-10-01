@@ -9,6 +9,7 @@
  */
 
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { listOrders, getStats } from '@/app/actions/orders/list-orders';
@@ -17,6 +18,9 @@ import { OrderStatsCards } from '@features/orders/ui/order-stats-cards';
 import { OrderFiltersBar } from '@features/orders/ui/order-filters-bar';
 import { OrdersSimpleTable } from '@features/orders/ui/orders-simple-table';
 import { OrdersRefreshButton } from '@features/orders/ui/orders-refresh-button';
+
+/** Labels the tenant order list independently from individual order workspaces. */
+export const metadata: Metadata = { title: 'Orders' };
 
 type OrdersSearchParams = {
   page?: string;

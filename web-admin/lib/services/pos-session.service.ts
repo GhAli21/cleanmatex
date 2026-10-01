@@ -25,6 +25,7 @@ import type {
   PosSessionListResult,
   PosSessionListRow,
   PosSessionMetadata,
+  PosSessionRecordState,
   PosSessionRow,
   PosSessionSummary,
   PosSessionWithContext,
@@ -1037,11 +1038,17 @@ export async function listPosSessions(input: {
   openedAtTo?: Date | null;
   status?: PosSessionStatus | null;
   scope?: 'own' | 'all';
+  recordState?: PosSessionRecordState;
 }): Promise<PosSessionListResult> {
   const page = Math.max(1, input.page);
   const pageSize = Math.min(Math.max(1, input.pageSize), 100);
   const offset = (page - 1) * pageSize;
   const showAll = input.canViewAll && input.scope === 'all';
+  // Inactive is a soft-record state, not a lifecycle status. Defaulting here
+  // protects direct service callers that do not pass the API schema default.
+  const recordStateSql = input.recordState === 'all'
+    ? Prisma.empty
+    : Prisma.sql`AND ps.is_active = TRUE`;
 
   const userScopeSql = showAll
     ? Prisma.empty
@@ -1113,7 +1120,7 @@ export async function listPosSessions(input: {
         SELECT COUNT(*)::int AS total
         FROM public.org_pos_sessions_mst ps
         WHERE ps.tenant_org_id = ${input.tenantId}::uuid
-          AND ps.is_active = TRUE
+          ${recordStateSql}
           ${userScopeSql}
           ${branchSql}
           ${userSql}
@@ -1168,7 +1175,7 @@ export async function listPosSessions(input: {
         LEFT JOIN public.org_users_mst created_by_user ON created_by_user.tenant_org_id = ps.tenant_org_id AND created_by_user.user_id::text = ps.created_by
         LEFT JOIN public.org_users_mst updated_by_user ON updated_by_user.tenant_org_id = ps.tenant_org_id AND updated_by_user.user_id::text = ps.updated_by
         WHERE ps.tenant_org_id = ${input.tenantId}::uuid
-          AND ps.is_active = TRUE
+          ${recordStateSql}
           ${userScopeSql}
           ${branchSql}
           ${userSql}
@@ -1210,6 +1217,19 @@ interface PosSessionFilterOptionQueryRow extends Omit<PosSessionFilterOption, 's
  * The option set deliberately comes from POS session history instead of each
  * master catalogue. That prevents the picker from offering a value which the
  * caller cannot use to find an authorized session in the current own/all scope.
+ *
+ * @param input Tenant-scoped, authorization-aware lookup criteria.
+ * @returns A page of values represented by sessions visible to the caller.
+ * @example
+ * await listPosSessionFilterOptions({
+ *   tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+ *   userId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+ *   canViewAll: false,
+ *   type: 'operator',
+ *   page: 1,
+ *   pageSize: 25,
+ *   recordState: 'active',
+ * });
  */
 export async function listPosSessionFilterOptions(input: {
   tenantId: string;
@@ -1220,6 +1240,7 @@ export async function listPosSessionFilterOptions(input: {
   page: number;
   pageSize: number;
   scope?: 'own' | 'all';
+  recordState?: PosSessionRecordState;
 }): Promise<PosSessionFilterOptionsResult> {
   const page = Math.max(1, input.page);
   const pageSize = Math.min(Math.max(1, input.pageSize), 100);
@@ -1228,6 +1249,11 @@ export async function listPosSessionFilterOptions(input: {
   const userScopeSql = showAll
     ? Prisma.empty
     : Prisma.sql`AND ps.user_id = ${input.userId}::uuid`;
+  // Keep deactivated records out of lookup values by default, while allowing
+  // an explicit audit view to use the same dimension and visibility boundary.
+  const recordStateSql = input.recordState === 'all'
+    ? Prisma.empty
+    : Prisma.sql`AND ps.is_active = TRUE`;
   const searchSql = input.query
     ? Prisma.sql`WHERE (
         options.label ILIKE ${`%${input.query}%`}
@@ -1248,7 +1274,7 @@ export async function listPosSessionFilterOptions(input: {
         ps.cash_drawer_session_id
       FROM public.org_pos_sessions_mst ps
       WHERE ps.tenant_org_id = ${input.tenantId}::uuid
-        AND ps.is_active = TRUE
+        ${recordStateSql}
         ${userScopeSql}
     )`;
 

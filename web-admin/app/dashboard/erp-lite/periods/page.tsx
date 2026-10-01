@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Keeps accounting-period controls recognizable in browser navigation. */
+export const metadata: Metadata = { title: 'Accounting Periods' }
+
 import { getLocale, getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'

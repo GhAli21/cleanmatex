@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Makes purchase-order operations explicit in the browser title. */
+export const metadata: Metadata = { title: 'Purchase Orders' };
+
 import { getLocale, getTranslations } from 'next-intl/server';
 import {
   Alert,

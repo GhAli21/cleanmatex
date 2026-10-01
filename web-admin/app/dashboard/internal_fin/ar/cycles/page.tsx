@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Differentiates billing-cycle controls from other AR operational pages. */
+export const metadata: Metadata = { title: 'Billing Cycles' };
+
 import { getTranslations } from 'next-intl/server';
 import { CmxKpiStatCard } from '@ui/data-display';
 import { CmxSummaryMessage } from '@ui/feedback';

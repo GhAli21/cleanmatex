@@ -83,6 +83,15 @@
   "scope": "النطاق",
   "ownSessions": "جلساتي",
   "allSessions": "كل الجلسات",
+  "recordActivity": "نشاط السجل",
+  "activeRecords": "السجلات النشطة فقط",
+  "allRecords": "كل السجلات",
+  "filterGroups": {
+    "visibility": "الرؤية ومجموعة السجلات",
+    "visibilityDescription": "يحدد النطاق الجلسات وقيم المشغلين المصرح لك بعرضها.",
+    "session": "البحث عن جلسة",
+    "lifecycle": "دورة الحياة والتواريخ"
+  },
   "allStatuses": "كل الحالات",
   "selectBranch": "اختر الفرع",
   "optionalBranch": "كل الفروع",

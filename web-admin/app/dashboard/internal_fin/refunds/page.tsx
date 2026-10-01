@@ -9,6 +9,11 @@
  * environment; production activation gated per the B34 Safety block.
  */
 
+import type { Metadata } from 'next';
+
+/** Names refund operations clearly when finance workflows use multiple tabs. */
+export const metadata: Metadata = { title: 'Refunds' };
+
 import { getTranslations } from 'next-intl/server';
 import { getAllRefunds } from '@/app/actions/billing/refund-actions';
 import { getAuthContext } from '@/lib/auth/server-auth';

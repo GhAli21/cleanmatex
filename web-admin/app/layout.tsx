@@ -7,7 +7,11 @@ import { getLocaleFromCookies } from '@/lib/utils/locale.server';
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CleanMateX - Laundry Management System",
+  // Keeps browser-history labels consistent while allowing each route to supply its own context.
+  title: {
+    default: 'CleanMateX',
+    template: '%s — CleanMateX',
+  },
   description: "Multi-tenant SaaS platform for laundry and dry cleaning management",
   icons: {
     icon: '/icon.png',

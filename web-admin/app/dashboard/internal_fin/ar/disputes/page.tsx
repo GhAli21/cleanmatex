@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies accounts-receivable dispute operations without generic branding. */
+export const metadata: Metadata = { title: 'AR Disputes' };
+
 import { getTranslations } from 'next-intl/server';
 import { CmxKpiStatCard } from '@ui/data-display';
 import { CmxSummaryMessage } from '@ui/feedback';

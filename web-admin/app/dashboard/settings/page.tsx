@@ -7,6 +7,10 @@
  */
 
 import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
+
+/** Identifies the settings entry point before its canonical redirect. */
+export const metadata: Metadata = { title: 'Settings' };
 
 /**
  *

@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { getLocale } from 'next-intl/server';
 import { getOrderByRef } from '@/app/actions/orders/get-order';
@@ -26,6 +27,9 @@ import {
 } from '@/lib/orders/order-details-navigation';
 import { OrderDetailsFullClient } from './order-details-full-client';
 import { OrderDetailError } from '../order-detail-error';
+
+/** Labels the comprehensive order view without leaking a customer or reference number into browser history. */
+export const metadata: Metadata = { title: 'Order Details' };
 
 interface OrderDetailsFullPageProps {
   params: Promise<{

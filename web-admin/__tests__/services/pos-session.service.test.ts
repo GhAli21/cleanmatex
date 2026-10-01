@@ -413,6 +413,16 @@ describe('pos-session.service', () => {
         expect(values).not.toContain(userId);
       }
     });
+
+    it('uses active records by default but includes soft-deactivated records when requested', async () => {
+      await listPosSessions({ ...listBaseInput, canViewAll: false, scope: 'own' });
+      expect(JSON.stringify(db.$queryRaw.mock.calls)).toContain('AND ps.is_active = TRUE');
+
+      db.$queryRaw.mockReset();
+      db.$queryRaw.mockResolvedValueOnce([{ total: 0 }]).mockResolvedValueOnce([]);
+      await listPosSessions({ ...listBaseInput, canViewAll: false, scope: 'own', recordState: 'all' });
+      expect(JSON.stringify(db.$queryRaw.mock.calls)).not.toContain('AND ps.is_active = TRUE');
+    });
   });
 
   describe('listPosSessionFilterOptions visibility', () => {
@@ -475,6 +485,34 @@ describe('pos-session.service', () => {
       const values = boundValues(db.$queryRaw.mock.calls[0]?.[0]);
       expect(values).toContain(tenantId);
       expect(values).not.toContain(userId);
+    });
+
+    it('uses active records by default but permits audit lookups across all record states', async () => {
+      db.$queryRaw.mockResolvedValueOnce([]);
+      await listPosSessionFilterOptions({
+        tenantId,
+        userId,
+        canViewAll: false,
+        type: 'operator',
+        page: 1,
+        pageSize: 25,
+        scope: 'own',
+      });
+      expect(JSON.stringify(db.$queryRaw.mock.calls[0])).toContain('AND ps.is_active = TRUE');
+
+      db.$queryRaw.mockReset();
+      db.$queryRaw.mockResolvedValueOnce([]);
+      await listPosSessionFilterOptions({
+        tenantId,
+        userId,
+        canViewAll: false,
+        type: 'operator',
+        page: 1,
+        pageSize: 25,
+        scope: 'own',
+        recordState: 'all',
+      });
+      expect(JSON.stringify(db.$queryRaw.mock.calls[0])).not.toContain('AND ps.is_active = TRUE');
     });
   });
 });

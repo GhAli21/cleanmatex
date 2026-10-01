@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies the chart-of-accounts management screen in browser navigation. */
+export const metadata: Metadata = { title: 'Chart of Accounts' };
+
 import { getLocale, getTranslations } from 'next-intl/server';
 import {
   Alert,

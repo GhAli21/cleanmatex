@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies the AR ledger so financial investigation tabs remain distinguishable. */
+export const metadata: Metadata = { title: 'AR Ledger' };
+
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { CmxSummaryMessage } from '@ui/feedback';

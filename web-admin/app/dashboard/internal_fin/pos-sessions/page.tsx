@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies point-of-sale session controls in browser navigation. */
+export const metadata: Metadata = { title: 'POS Sessions' };
+
 import { getTranslations } from 'next-intl/server';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { POS_SESSIONS_DASHBOARD_ACCESS } from '@features/pos-sessions/access/pos-sessions-access';

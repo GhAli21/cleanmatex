@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { getLocale } from 'next-intl/server';
 import { getOrderByRef } from '@/app/actions/orders/get-order';
@@ -22,6 +23,9 @@ import {
 } from '@/lib/orders/order-details-navigation';
 import { OrderDetailClient } from './order-detail-client';
 import { OrderDetailError } from './order-detail-error';
+
+/** Labels the tenant-scoped order detail route without exposing its identifier in browser history. */
+export const metadata: Metadata = { title: 'Order Details' };
 
 interface OrderDetailPageProps {
   params: Promise<{

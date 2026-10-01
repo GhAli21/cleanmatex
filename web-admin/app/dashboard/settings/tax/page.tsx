@@ -5,10 +5,12 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { TaxSetupClient } from '@features/settings/tax/ui/tax-setup-client';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { SETTINGS_SETTINGS_TAX_ACCESS } from '@features/settings/access/settings-access'
+import type { Metadata } from 'next'
 
-/**
- *
- */
+/** Keeps browser history identifiable without coupling it to the brand suffix. */
+export const metadata: Metadata = { title: 'Tax Setup' }
+
+/** Loads the tenant-scoped tax setup surface. */
 export default async function TaxSetupPage() {
   const t = await getTranslations('taxSetup');
   const { tenantId } = await getAuthContext();

@@ -7,6 +7,11 @@
  * Route: /dashboard/internal_fin/pending-payments
  */
 
+import type { Metadata } from 'next';
+
+/** Distinguishes the pending-payment worklist from other finance queues. */
+export const metadata: Metadata = { title: 'Pending Payments' };
+
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
 import { BILLING_INTERNAL_FIN_PENDING_PAYMENTS_ACCESS } from '@features/billing/access/billing-access';
 import { PendingPaymentsWorklistPage as PendingPaymentsWorklistClient } from '@features/billing/ui/pending-payments-worklist-page';

@@ -1,24 +1,16 @@
-'use client'
-
-import { useAuth } from '@/lib/auth/auth-context'
-import DashboardContent from '@features/dashboard/ui/DashboardContent'
+import type { Metadata } from 'next'
+import DashboardHomePage from '@features/dashboard/ui/dashboard-home-page'
 
 /**
- *
+ * Distinguishes the operational home screen in browser history and task switching.
+ */
+export const metadata: Metadata = {
+  title: 'Dashboard',
+}
+
+/**
+ * Keeps route composition server-rendered so route metadata is available before client hydration.
  */
 export default function DashboardPage() {
-  const { isLoading } = useAuth()
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  return <DashboardContent />
+  return <DashboardHomePage />
 }

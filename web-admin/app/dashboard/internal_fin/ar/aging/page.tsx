@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies receivables-aging analysis within finance browser tabs. */
+export const metadata: Metadata = { title: 'AR Aging' };
+
 import { getTranslations } from 'next-intl/server';
 import { CmxSummaryMessage } from '@ui/feedback';
 import { CmxKpiStatCard } from '@ui/data-display';

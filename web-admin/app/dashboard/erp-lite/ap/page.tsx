@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Names the accounts-payable workspace for clear browser navigation. */
+export const metadata: Metadata = { title: 'Accounts Payable' };
+
 import { getLocale, getTranslations } from 'next-intl/server';
 import {
   Alert,

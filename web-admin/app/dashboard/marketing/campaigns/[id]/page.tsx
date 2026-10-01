@@ -2,10 +2,14 @@ import { CampaignDetailPage } from '@features/notifications/ui/campaign-detail-p
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { getTranslations } from 'next-intl/server';
 import { MARKETING_MARKETING_CAMPAIGNS_DETAIL_ACCESS } from '@features/marketing/access/marketing-access';
+import type { Metadata } from 'next';
 
 interface Props {
   params: Promise<{ id: string }>;
 }
+
+/** Identifies a campaign detail view when the campaign name is loaded client-side. */
+export const metadata: Metadata = { title: 'Campaign Details' };
 
 /** /dashboard/marketing/campaigns/[id] */
 export default async function CampaignDetailRoute({ params }: Props) {

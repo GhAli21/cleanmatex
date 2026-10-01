@@ -11,6 +11,11 @@
  *   - Mojibake `â†` characters replaced with the proper `ArrowLeft` icon.
  */
 
+import type { Metadata } from 'next';
+
+/** Distinguishes an individual reconciliation run from the reconciliation list. */
+export const metadata: Metadata = { title: 'Reconciliation Run' };
+
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';

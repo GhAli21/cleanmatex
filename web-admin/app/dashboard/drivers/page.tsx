@@ -1,6 +1,10 @@
+import type { Metadata } from 'next'
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { DRIVERS_DRIVERS_ACCESS } from '@features/drivers/access/drivers-access'
 import { DriversListScreen } from '@features/drivers/ui/drivers-list-screen';
+
+/** Labels the driver master-data area separately from delivery planning. */
+export const metadata: Metadata = { title: 'Drivers' }
 
 /** Drivers master-data screen: list, create, edit, deactivate. */
 export default function DriversPage() {

@@ -10,6 +10,10 @@ import { SETTINGS_WORKFLOWS_ACCESS } from '@features/settings/access/settings-ac
 import { WorkflowProfileSettingsScreen } from '@features/settings/workflows/ui/workflow-profile-settings-screen'
 import { WorkflowsSettingsScreen } from '@features/settings/workflows/ui/workflows-settings-screen'
 import type { SerializedScreenContract } from '@features/settings/workflows/model/screen-contract-types'
+import type { Metadata } from 'next'
+
+/** Keeps browser history identifiable without coupling it to the brand suffix. */
+export const metadata: Metadata = { title: 'Workflow Settings' }
 
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []

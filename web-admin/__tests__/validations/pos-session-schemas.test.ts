@@ -13,6 +13,7 @@ jest.mock('@/lib/validations/cmx-temp-utils-para/cmx-temp-utils-para.service', (
 import {
   posSessionBranchQuerySchema,
   posSessionAutoLinkDrawerSchema,
+  posSessionFilterOptionsQuerySchema,
   posSessionForceCloseSchema,
   posSessionListQuerySchema,
   posSessionOpenSchema,
@@ -89,6 +90,7 @@ describe('pos session validation schemas', () => {
       page: 1,
       pageSize: 20,
       scope: 'own',
+      recordState: 'active',
     });
 
     expect(await posSessionListQuerySchema.parseAsync({
@@ -96,6 +98,7 @@ describe('pos session validation schemas', () => {
       pageSize: '50',
       status: 'FORCE_CLOSED',
       scope: 'all',
+      recordState: 'all',
       operatorQuery: 'Rana',
       terminalQuery: 'Front',
       cashDrawerQuery: 'Main',
@@ -104,6 +107,7 @@ describe('pos session validation schemas', () => {
       pageSize: 50,
       status: 'FORCE_CLOSED',
       scope: 'all',
+      recordState: 'all',
       operatorQuery: 'Rana',
       terminalQuery: 'Front',
       cashDrawerQuery: 'Main',
@@ -111,6 +115,7 @@ describe('pos session validation schemas', () => {
 
     await expect(posSessionListQuerySchema.parseAsync({ status: 'FORCE_CLOSE' })).rejects.toThrow();
     await expect(posSessionListQuerySchema.parseAsync({ scope: 'manager' })).rejects.toThrow();
+    await expect(posSessionListQuerySchema.parseAsync({ recordState: 'deleted' })).rejects.toThrow();
   });
 
   it('validates branch conflict query shape', async () => {
@@ -125,5 +130,17 @@ describe('pos session validation schemas', () => {
     });
     await expect(posSessionBranchQuerySchema.parseAsync({ branchId: 'not-a-uuid' })).rejects.toThrow();
     await expect(posSessionBranchQuerySchema.parseAsync({ branchId, includeContext: 'yes' })).rejects.toThrow();
+  });
+
+  it('defaults LOV reads to active records and permits an explicit audit state', () => {
+    expect(posSessionFilterOptionsQuerySchema.parse({ type: 'operator' })).toMatchObject({
+      type: 'operator',
+      recordState: 'active',
+    });
+    expect(posSessionFilterOptionsQuerySchema.parse({ type: 'operator', recordState: 'all' })).toMatchObject({
+      type: 'operator',
+      recordState: 'all',
+    });
+    expect(() => posSessionFilterOptionsQuerySchema.parse({ type: 'operator', recordState: 'inactive' })).toThrow();
   });
 });

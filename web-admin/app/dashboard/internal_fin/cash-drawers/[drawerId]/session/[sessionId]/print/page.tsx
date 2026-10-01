@@ -3,6 +3,11 @@
  * Route: /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print
  */
 
+import type { Metadata } from 'next';
+
+/** Gives printable cash-drawer sessions a meaningful document-style tab name. */
+export const metadata: Metadata = { title: 'Cash Drawer Session Print' };
+
 import { notFound } from 'next/navigation';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { getSessionSummary } from '@/lib/services/cash-drawer.service';

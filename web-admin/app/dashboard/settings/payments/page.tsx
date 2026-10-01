@@ -8,10 +8,12 @@ import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { PaymentSettingsPage } from '@features/payment-config/ui/payment-settings-page';
+import type { Metadata } from 'next';
 
-/**
- *
- */
+/** Keeps browser history identifiable without coupling it to the brand suffix. */
+export const metadata: Metadata = { title: 'Payment Settings' };
+
+/** Enforces the route contract before rendering the payment administration surface. */
 export default async function PaymentSettingsRoutePage() {
   const tCommon = await getTranslations('common');
 

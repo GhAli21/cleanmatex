@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies an individual AR invoice without placing financial data in tab metadata. */
+export const metadata: Metadata = { title: 'AR Invoice Details' };
+
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';

@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Identifies a cash-drawer detail workspace without exposing drawer data in the tab. */
+export const metadata: Metadata = { title: 'Cash Drawer Details' }
+
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 

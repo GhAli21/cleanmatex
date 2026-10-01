@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Labels the controlled finance-action workspace for tab-level orientation. */
+export const metadata: Metadata = { title: 'Finance Actions' }
+
 import { getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'

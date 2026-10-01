@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Differentiates branch profit-and-loss analysis from the main financial reports. */
+export const metadata: Metadata = { title: 'Branch Profit & Loss' };
+
 import { getLocale, getTranslations } from 'next-intl/server';
 import {
   Alert,

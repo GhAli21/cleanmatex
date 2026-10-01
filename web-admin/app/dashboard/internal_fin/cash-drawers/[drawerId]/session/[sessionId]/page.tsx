@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Names an individual cash-drawer session for reliable multi-tab operations. */
+export const metadata: Metadata = { title: 'Cash Drawer Session' }
+
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 

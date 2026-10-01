@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Clarifies that this screen maps current ERP Lite feature usage. */
+export const metadata: Metadata = { title: 'ERP Usage Maps' }
+
 import { getLocale, getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'

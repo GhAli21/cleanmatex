@@ -4,8 +4,10 @@
  */
 
 import { CustomerAccountReceiptClient } from '@/src/features/customers/ui/customer-account-receipt-client';
+import type { Metadata } from 'next';
 
-export const metadata = { title: 'Customer Account Receipt — CleanMateX' };
+/** Lets the root title template append the product name consistently across dashboard pages. */
+export const metadata: Metadata = { title: 'Customer Account Receipt' };
 
 /**
  *

@@ -8,8 +8,10 @@
 import { LoyaltyConfigClient } from '@/src/features/marketing/ui/loyalty-config-client';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { MARKETING_MARKETING_LOYALTY_ACCESS } from '@features/marketing/access/marketing-access'
+import type { Metadata } from 'next'
 
-export const metadata = { title: 'Loyalty Program — CleanMateX' };
+/** Keeps browser history identifiable without coupling it to the brand suffix. */
+export const metadata: Metadata = { title: 'Loyalty Program' }
 
 /**
  *

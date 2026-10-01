@@ -18,6 +18,7 @@ import { CmxSidebar, CmxTopBar } from '@ui/navigation'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { useAuth } from '@/lib/auth/auth-context'
 import { SidebarProvider, useSidebar } from '@/lib/context/sidebar-context'
+import { DashboardBrowserTitle } from '@features/dashboard/ui/dashboard-browser-title'
 
 /** True when current route is the ready-order print preview (receipt or order-details). */
 function useIsPrintRoute(): boolean {
@@ -103,6 +104,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <SidebarProvider>
+        <DashboardBrowserTitle />
         {!isPrintRoute ? (
           <DashboardContent isPrintRoute={false}>{children}</DashboardContent>
         ) : (

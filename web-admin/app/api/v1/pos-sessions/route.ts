@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
       openedAtTo: parsed.data.openedAtTo,
       status: parsed.data.status,
       scope: parsed.data.scope,
+      recordState: parsed.data.recordState,
     });
     return posSessionResponse(result);
   } catch (error) {

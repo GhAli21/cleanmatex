@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Distinguishes expense operations from the broader finance workspace. */
+export const metadata: Metadata = { title: 'Expenses' };
+
 import { getLocale, getTranslations } from 'next-intl/server';
 import {
   Alert,

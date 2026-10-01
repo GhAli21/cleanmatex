@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies the reconciliation reporting workspace in browser navigation. */
+export const metadata: Metadata = { title: 'Reconciliation Reports' };
+
 import { getTranslations } from 'next-intl/server';
 import { ReconciliationReportsClient } from '@features/reports/ui/reconciliation-reports-client';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'

@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies bank-reconciliation work when several finance tabs are open. */
+export const metadata: Metadata = { title: 'Bank Reconciliation' };
+
 import { getLocale, getTranslations } from 'next-intl/server';
 import {
   Alert,

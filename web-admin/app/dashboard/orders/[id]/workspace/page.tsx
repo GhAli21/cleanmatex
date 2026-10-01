@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { getOrderByRef } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
@@ -12,6 +13,9 @@ import type { OrderWorkspaceSectionId } from '@features/orders/orderdtlworkspace
 import { OrderDetailError } from '../order-detail-error';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { ORDERS_ORDERS_WORKSPACE_ACCESS } from '@features/orders/access/orders-access'
+
+/** Distinguishes the cross-functional order workspace from the order list and detail views. */
+export const metadata: Metadata = { title: 'Order Workspace' };
 
 interface OrderWorkspacePageProps {
   params: Promise<{ id: string }>;

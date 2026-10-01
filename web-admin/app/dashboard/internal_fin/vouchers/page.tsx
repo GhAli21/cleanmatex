@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Identifies voucher management without exposing an ambiguous generic title. */
+export const metadata: Metadata = { title: 'Business Vouchers' };
+
 /**
  * Business Vouchers List Page
  * Route: /dashboard/internal_fin/vouchers

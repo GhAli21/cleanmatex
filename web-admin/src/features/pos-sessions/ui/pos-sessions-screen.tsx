@@ -3,7 +3,7 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { Check, Copy, CreditCard, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Check, Copy, CreditCard, RefreshCw, Search, ShieldAlert } from 'lucide-react';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxSelect } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
@@ -118,6 +118,7 @@ export function PosSessionsScreen() {
   const [branchId, setBranchId] = useState('');
   const [status, setStatus] = useState('');
   const [scope, setScope] = useState<'own' | 'all'>('own');
+  const [recordActivity, setRecordActivity] = useState<'active' | 'all'>('active');
   const [sessionNo, setSessionNo] = useState('');
   const [userId, setUserId] = useState('');
   const [terminalId, setTerminalId] = useState('');
@@ -148,12 +149,13 @@ export function PosSessionsScreen() {
   });
 
   const sessionsQuery = useQuery({
-    queryKey: ['pos-sessions', 'list', page, branchId, status, scope, sessionNo, userId, terminalId, cashDrawerId, businessDateFrom, businessDateTo, openedAtFrom, openedAtTo],
+    queryKey: ['pos-sessions', 'list', page, branchId, status, scope, recordActivity, sessionNo, userId, terminalId, cashDrawerId, businessDateFrom, businessDateTo, openedAtFrom, openedAtTo],
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(page),
         pageSize: String(PAGE_SIZE),
         scope,
+        recordState: recordActivity,
       });
       if (branchId) params.set('branchId', branchId);
       if (status) params.set('status', status);
@@ -184,10 +186,10 @@ export function PosSessionsScreen() {
   });
 
   const lookupOptionsQuery = useQuery({
-    queryKey: ['pos-sessions', 'filter-options', lookupKind, scope],
+    queryKey: ['pos-sessions', 'filter-options', lookupKind, scope, recordActivity],
     enabled: !!lookupKind,
     queryFn: () => {
-      const params = new URLSearchParams({ type: lookupKind!, scope, pageSize: '100' });
+      const params = new URLSearchParams({ type: lookupKind!, scope, recordState: recordActivity, pageSize: '100' });
       return fetchJson<PosSessionFilterOptionsResult>(`/api/v1/pos-sessions/filter-options?${params.toString()}`);
     },
   });
@@ -422,6 +424,7 @@ export function PosSessionsScreen() {
     setBranchId('');
     setStatus('');
     setScope('own');
+    setRecordActivity('active');
     setSessionNo('');
     setUserId('');
     setTerminalId('');
@@ -610,12 +613,58 @@ export function PosSessionsScreen() {
       </div>
 
       <CmxCard>
-        <CmxCardHeader>
-          <CmxCardTitle>{t('historyTitle')}</CmxCardTitle>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('historyDescription')}</p>
+        <CmxCardHeader className="flex-row items-start justify-between gap-4">
+          <div>
+            <CmxCardTitle>{t('historyTitle')}</CmxCardTitle>
+            <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('historyDescription')}</p>
+          </div>
+          <CmxButton variant="outline" onClick={resetFilters}>
+            {t('resetFilters')}
+          </CmxButton>
         </CmxCardHeader>
-        <CmxCardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <CmxCardContent className="space-y-5">
+          <section className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+            <div>
+              <h3 className="text-sm font-semibold">{t('filterGroups.visibility')}</h3>
+              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('filterGroups.visibilityDescription')}</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <CmxSelect
+                label={t('scope')}
+                value={scope}
+                options={[
+                  { value: 'own', label: t('ownSessions') },
+                  { value: 'all', label: t('allSessions'), disabled: !canViewAll },
+                ]}
+                onChange={(event) => {
+                  setPage(1);
+                  setScope(event.target.value === 'all' ? 'all' : 'own');
+                  // An all-scope lookup may be outside the caller's own-session view.
+                  setBranchId('');
+                  setUserId('');
+                  setTerminalId('');
+                  setCashDrawerId('');
+                  setSelectedLookupLabels({});
+                }}
+              />
+              <CmxSelect
+                label={t('recordActivity')}
+                value={recordActivity}
+                options={[
+                  { value: 'active', label: t('activeRecords') },
+                  { value: 'all', label: t('allRecords') },
+                ]}
+                onChange={(event) => {
+                  setPage(1);
+                  setRecordActivity(event.target.value === 'all' ? 'all' : 'active');
+                }}
+              />
+            </div>
+          </section>
+
+          <section className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+            <h3 className="text-sm font-semibold">{t('filterGroups.session')}</h3>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <CmxInput
               label={t('sessionNo')}
               placeholder={t('searchSession')}
@@ -628,6 +677,11 @@ export function PosSessionsScreen() {
               onClick={() => setLookupKind('operator')}
             />
             <LookupFilterButton
+              label={t('branch')}
+              value={selectedLookupLabel('branch', branchId, t('optionalBranch'))}
+              onClick={() => setLookupKind('branch')}
+            />
+            <LookupFilterButton
               label={t('terminal')}
               value={selectedLookupLabel('terminal', terminalId, t('allTerminals'))}
               onClick={() => setLookupKind('terminal')}
@@ -637,11 +691,12 @@ export function PosSessionsScreen() {
               value={selectedLookupLabel('cashDrawer', cashDrawerId, t('allCashDrawers'))}
               onClick={() => setLookupKind('cashDrawer')}
             />
-            <LookupFilterButton
-              label={t('branch')}
-              value={selectedLookupLabel('branch', branchId, t('optionalBranch'))}
-              onClick={() => setLookupKind('branch')}
-            />
+            </div>
+          </section>
+
+          <section className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+            <h3 className="text-sm font-semibold">{t('filterGroups.lifecycle')}</h3>
+            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)]">
             <CmxSelect
               label={t('status')}
               value={status}
@@ -652,54 +707,36 @@ export function PosSessionsScreen() {
                 setStatus(event.target.value);
               }}
             />
-            <CmxSelect
-              label={t('scope')}
-              value={scope}
-              options={[
-                { value: 'own', label: t('ownSessions') },
-                { value: 'all', label: t('allSessions'), disabled: !canViewAll },
-              ]}
-              onChange={(event) => {
-                setPage(1);
-                setScope(event.target.value === 'all' ? 'all' : 'own');
-                // An all-scope lookup may be outside the caller's own-session view.
-                setBranchId('');
-                setUserId('');
-                setTerminalId('');
-                setCashDrawerId('');
-                setSelectedLookupLabels({});
-              }}
-            />
-            <CmxInput
-              label={t('fromBusinessDate')}
-              type="date"
-              value={businessDateFrom}
-              onChange={(event) => { setPage(1); setBusinessDateFrom(event.target.value); }}
-            />
-            <CmxInput
-              label={t('toBusinessDate')}
-              type="date"
-              value={businessDateTo}
-              onChange={(event) => { setPage(1); setBusinessDateTo(event.target.value); }}
-            />
-            <CmxInput
-              label={t('fromOpenedDate')}
-              type="date"
-              value={openedAtFrom}
-              onChange={(event) => { setPage(1); setOpenedAtFrom(event.target.value); }}
-            />
-            <CmxInput
-              label={t('toOpenedDate')}
-              type="date"
-              value={openedAtTo}
-              onChange={(event) => { setPage(1); setOpenedAtTo(event.target.value); }}
-            />
-            <div className="flex items-end">
-              <CmxButton className="w-full" variant="outline" onClick={resetFilters}>
-                {t('resetFilters')}
-              </CmxButton>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <CmxInput
+                label={t('fromBusinessDate')}
+                type="date"
+                value={businessDateFrom}
+                onChange={(event) => { setPage(1); setBusinessDateFrom(event.target.value); }}
+              />
+              <CmxInput
+                label={t('toBusinessDate')}
+                type="date"
+                value={businessDateTo}
+                onChange={(event) => { setPage(1); setBusinessDateTo(event.target.value); }}
+              />
             </div>
-          </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <CmxInput
+                label={t('fromOpenedDate')}
+                type="date"
+                value={openedAtFrom}
+                onChange={(event) => { setPage(1); setOpenedAtFrom(event.target.value); }}
+              />
+              <CmxInput
+                label={t('toOpenedDate')}
+                type="date"
+                value={openedAtTo}
+                onChange={(event) => { setPage(1); setOpenedAtTo(event.target.value); }}
+              />
+            </div>
+            </div>
+          </section>
           <CmxDataTable
             columns={columns}
             data={sessions}
@@ -918,6 +955,7 @@ function LookupFilterButton({ label, value, onClick }: { label: string; value: s
       <Label>{label}</Label>
       <CmxButton className="w-full justify-start text-start font-normal" variant="outline" onClick={onClick}>
         <span className="truncate">{value}</span>
+        <Search className="ms-auto size-4 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-hidden />
       </CmxButton>
     </div>
   );

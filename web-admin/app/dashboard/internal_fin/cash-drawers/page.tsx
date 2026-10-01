@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Names the cash-drawer hub for fast operational tab recognition. */
+export const metadata: Metadata = { title: 'Cash Drawers' }
+
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS } from '@features/billing/access/billing-access'
 import { CashDrawerHubScreen } from '@features/cash-drawers/ui/cash-drawer-hub-screen'

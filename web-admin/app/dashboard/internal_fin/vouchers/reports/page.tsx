@@ -3,6 +3,11 @@
  * Route: /dashboard/internal_fin/vouchers/reports
  */
 
+import type { Metadata } from 'next';
+
+/** Separates voucher reporting from voucher-entry tabs in browser navigation. */
+export const metadata: Metadata = { title: 'Voucher Reports' };
+
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';

@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Labels the AR invoice creation flow for clear browser-tab context. */
+export const metadata: Metadata = { title: 'New AR Invoice' };
+
 import { getTranslations } from 'next-intl/server';
 import {
   CmxCard,

@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Makes general-ledger analysis distinguishable from other ERP reports. */
+export const metadata: Metadata = { title: 'General Ledger' }
+
 import { Suspense } from 'react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'

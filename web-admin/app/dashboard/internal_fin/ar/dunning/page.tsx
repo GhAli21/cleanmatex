@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Names collections follow-up work distinctly from the AR customer list. */
+export const metadata: Metadata = { title: 'Dunning' };
+
 import { getTranslations } from 'next-intl/server';
 import { CmxKpiStatCard } from '@ui/data-display';
 import { CmxSummaryMessage } from '@ui/feedback';

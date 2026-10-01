@@ -10,6 +10,10 @@
  */
 
 import { BranchSettingsScreen } from '@features/settings/ui/branch-settings-screen';
+import type { Metadata } from 'next';
+
+/** Keeps browser history identifiable without coupling it to the brand suffix. */
+export const metadata: Metadata = { title: 'Branch Settings' };
 
 /**
  *

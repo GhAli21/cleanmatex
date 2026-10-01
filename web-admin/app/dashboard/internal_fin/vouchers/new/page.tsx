@@ -3,6 +3,11 @@
  * Route: /dashboard/internal_fin/vouchers/new
  */
 
+import type { Metadata } from 'next';
+
+/** Labels the voucher-creation flow so its browser tab is actionable. */
+export const metadata: Metadata = { title: 'New Business Voucher' };
+
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';

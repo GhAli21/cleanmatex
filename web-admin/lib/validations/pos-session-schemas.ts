@@ -76,6 +76,8 @@ export const posSessionListQuerySchema = z.object({
   openedAtTo: z.coerce.date().optional(),
   status: z.enum(['OPEN', 'PAUSED', 'CLOSED', 'FORCE_CLOSED']).optional(),
   scope: z.enum(['own', 'all']).default('own'),
+  // Soft-record state remains independent from the operational session status.
+  recordState: z.enum(['active', 'all']).default('active'),
 }).refine(
   (value) => !value.businessDateFrom || !value.businessDateTo || value.businessDateFrom <= value.businessDateTo,
   { message: 'businessDateFrom must be before or equal to businessDateTo', path: ['businessDateTo'] }
@@ -94,6 +96,7 @@ export const posSessionFilterOptionsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(10_000).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
   scope: z.enum(['own', 'all']).default('own'),
+  recordState: z.enum(['active', 'all']).default('active'),
 });
 
 /** Limits event history reads to a practical, server-controlled page size. */

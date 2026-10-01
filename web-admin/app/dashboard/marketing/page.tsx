@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { MARKETING_MARKETING_ACCESS } from '@features/marketing/access/marketing-access';
+import type { Metadata } from 'next';
+
+/** Identifies the guarded marketing entry point before its canonical redirect. */
+export const metadata: Metadata = { title: 'Marketing' };
 
 /** Marketing index — gate then redirect to promo codes. */
 export default async function MarketingPage() {

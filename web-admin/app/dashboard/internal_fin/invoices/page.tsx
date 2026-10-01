@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Names accounts-receivable invoices distinctly from other finance documents. */
+export const metadata: Metadata = { title: 'AR Invoices' };
+
 import Link from 'next/link';
 import type { SortingState } from '@tanstack/react-table';
 import { getTranslations } from 'next-intl/server';

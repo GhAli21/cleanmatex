@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Makes AR credit management recognizable in browser navigation. */
+export const metadata: Metadata = { title: 'AR Credits' };
+
 import { getTranslations } from 'next-intl/server';
 import { CmxKpiStatCard } from '@ui/data-display';
 import { CmxSummaryMessage } from '@ui/feedback';

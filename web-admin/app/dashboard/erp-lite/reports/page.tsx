@@ -1,3 +1,8 @@
+import type { Metadata } from 'next'
+
+/** Separates ERP reports from the general reporting workspace in browser tabs. */
+export const metadata: Metadata = { title: 'ERP Reports' }
+
 import { getLocale, getTranslations } from 'next-intl/server'
 import { getAuthContext } from '@/lib/auth/server-auth'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'

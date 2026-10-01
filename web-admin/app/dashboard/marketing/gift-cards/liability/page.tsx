@@ -2,13 +2,12 @@ import { GiftCardsLiabilityRprt } from '@/src/features/marketing/ui/gift-cards-l
 import { getTranslations } from 'next-intl/server';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { MARKETING_MARKETING_GIFT_CARDS_LIABILITY_ACCESS } from '@features/marketing/access/marketing-access'
+import type { Metadata } from 'next'
 
-/**
- *
- */
-export async function generateMetadata() {
+/** Resolves the localized report title while the root layout supplies the brand suffix. */
+export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('marketing.giftCards.reports');
-  return { title: `${t('liabilityTitle')} — CleanMateX` };
+  return { title: t('liabilityTitle') };
 }
 
 /** /dashboard/marketing/gift-cards/liability */

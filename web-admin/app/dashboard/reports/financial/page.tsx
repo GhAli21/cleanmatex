@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+
+/** Distinguishes finance-focused reporting from operational report screens. */
+export const metadata: Metadata = { title: 'Financial Reports' };
+
 import { getTranslations } from 'next-intl/server';
 import { FinancialReportsClient } from '@features/reports/ui/financial-reports-client';
 import { MoneyPositionCardsRprt } from '@features/reports/ui/money-position-cards-rprt';

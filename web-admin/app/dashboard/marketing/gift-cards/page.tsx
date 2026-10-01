@@ -4,8 +4,10 @@ import { GiftCardTransactionLogScreen } from '@/src/features/marketing/ui/gift-c
 import { getTranslations } from 'next-intl/server';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { MARKETING_MARKETING_GIFT_CARDS_ACCESS } from '@features/marketing/access/marketing-access';
+import type { Metadata } from 'next';
 
-export const metadata = { title: 'Gift Cards — CleanMateX' };
+/** Keeps browser history identifiable without coupling it to the brand suffix. */
+export const metadata: Metadata = { title: 'Gift Cards' };
 
 /** /dashboard/marketing/gift-cards */
 export default async function GiftCardsPage() {

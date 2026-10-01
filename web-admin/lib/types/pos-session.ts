@@ -114,6 +114,15 @@ export interface PosSessionListResult {
   pageSize: number;
 }
 
+/**
+ * Controls whether history reads include soft-deactivated records.
+ *
+ * This intentionally remains separate from POS lifecycle `status`: a closed
+ * session can still be an active record, while an inactive record is excluded
+ * from normal operational views regardless of its lifecycle state.
+ */
+export type PosSessionRecordState = 'active' | 'all';
+
 /** Kinds of POS-session dimensions selectable by a list-of-values control. */
 export type PosSessionFilterOptionType =
   | 'branch'

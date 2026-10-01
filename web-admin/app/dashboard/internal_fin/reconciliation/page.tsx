@@ -5,6 +5,11 @@
  * Route: /dashboard/internal_fin/reconciliation
  */
 
+import type { Metadata } from 'next';
+
+/** Identifies the reconciliation-run list in browser navigation. */
+export const metadata: Metadata = { title: 'Reconciliation' };
+
 import { getTranslations } from 'next-intl/server';
 import { listReconRunsAction } from '@/app/actions/billing/reconciliation-actions';
 import ReconciliationListClient from '@features/billing/ui/reconciliation-list-client';

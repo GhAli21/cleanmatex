@@ -8,6 +8,10 @@ import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { CurrencyFxScreen } from '@features/fx/ui/currency-fx-screen';
+import type { Metadata } from 'next';
+
+/** Keeps browser history identifiable without coupling it to the brand suffix. */
+export const metadata: Metadata = { title: 'Currencies & FX' };
 
 export default async function CurrencyFxRoutePage() {
   const tCommon = await getTranslations('common');

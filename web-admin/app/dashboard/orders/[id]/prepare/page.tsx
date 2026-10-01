@@ -1,10 +1,14 @@
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getOrder } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { PreparationForm } from './preparation-form';
 import Link from 'next/link';
 import { ChevronLeft, AlertCircle } from 'lucide-react';
+
+/** Labels the scoped preparation flow independently from the generic order detail view. */
+export const metadata: Metadata = { title: 'Order Preparation' };
 
 interface PreparationPageProps {
   params: Promise<{
