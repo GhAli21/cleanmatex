@@ -70,6 +70,8 @@ jobs:
         run: npm run prisma:generate --workspace=web-admin
       - name: Lint web-admin
         run: npm run lint --workspace=web-admin
+      - name: Tenant isolation static audit
+        run: npm run audit:tenant-guard:strict --workspace=web-admin
       - name: Test web-admin
         run: npm run test --workspace=web-admin -- --ci
       - name: Build web-admin

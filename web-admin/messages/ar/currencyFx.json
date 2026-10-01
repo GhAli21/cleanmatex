@@ -1,0 +1,219 @@
+{
+  "title": "العملات وأسعار الصرف",
+  "subtitle": "إدارة العملة الأساسية والعملات الأجنبية وأسعار الصرف",
+  "tabs": {
+    "currencies": "العملات",
+    "rates": "أسعار الصرف",
+    "import": "استيراد",
+    "converter": "المحوّل",
+    "settings": "الإعدادات"
+  },
+  "common": {
+    "deactivate": "إلغاء التفعيل",
+    "reactivate": "إعادة التفعيل",
+    "approve": "اعتماد",
+    "reject": "رفض",
+    "void": "إلغاء",
+    "reason": "السبب",
+    "reasonRequired": "السبب مطلوب"
+  },
+  "compact": {
+    "baseCurrencyLabel": "العملة الأساسية",
+    "locked": "مقفلة (توجد طلبات)",
+    "notLocked": "غير مقفلة بعد",
+    "multiCurrencyLabel": "تعدد العملات",
+    "off": "إيقاف",
+    "description": "تعمل منشأتك حاليًا بعملة واحدة. أضف عملة أجنبية لتفعيل دعم تعدد العملات.",
+    "enableCta": "إضافة عملة",
+    "flagUnavailable": "تعدد العملات غير متاح ضمن باقتك الحالية."
+  },
+  "currencies": {
+    "add": "إضافة عملة",
+    "edit": "تعديل العملة",
+    "code": "العملة",
+    "role": "الدور",
+    "contexts": "مفعّلة لـ",
+    "status": "الحالة",
+    "baseChip": "أساسية",
+    "reportingChip": "تقارير",
+    "setBase": "تعيين كعملة أساسية",
+    "setBaseConfirm": {
+      "title": "تعيين العملة الأساسية؟",
+      "description": "تصبح هذه العملة الوظيفية لمنشأتك. تُقفل تلقائيًا بمجرد ترحيل أول طلب."
+    },
+    "setReporting": "تعيين كعملة تقارير",
+    "clearReporting": "إلغاء عملة التقارير",
+    "deactivateConfirm": {
+      "title": "إلغاء تفعيل هذه العملة؟",
+      "description": "لن تكون متاحة لأي نشاط جديد. يُمنع هذا الإجراء إذا كان لدى العملة طلبات أو فواتير أو أرصدة أو أدراج نقدية مفتوحة."
+    },
+    "empty": {
+      "title": "لا توجد عملات بعد",
+      "description": "أضف العملة الأساسية لمنشأتك للبدء."
+    },
+    "context": {
+      "allowSales": "المبيعات",
+      "allowPayments": "المدفوعات",
+      "allowCash": "النقد",
+      "allowAr": "الذمم المدينة"
+    },
+    "contextNotReady": "غير متاح بعد",
+    "saved": "تم حفظ العملة",
+    "form": {
+      "currencyCode": "العملة",
+      "selectCurrency": "اختر عملة",
+      "advanced": "خيارات متقدمة",
+      "salesPricingMode": "طريقة تسعير المبيعات",
+      "salesPricingModeConvertFromBase": "التحويل من السعر الأساسي",
+      "defaultRateTypeCode": "نوع سعر الصرف الافتراضي",
+      "defaultRateSourceCode": "مصدر سعر الصرف الافتراضي",
+      "rateMaxAgeDays": "أقصى عمر لسعر الصرف (أيام)",
+      "allowManualFxRate": "السماح بإدخال سعر صرف يدوي",
+      "manualFxRequiresApproval": "الأسعار اليدوية تتطلب اعتمادًا",
+      "manualRateTolerancePct": "هامش تفاوت السعر اليدوي (%)",
+      "taxRateSourceCode": "مصدر سعر الصرف الضريبي",
+      "none": "بلا"
+    }
+  },
+  "rates": {
+    "add": "إضافة سعر صرف",
+    "pair": "الزوج",
+    "type": "النوع",
+    "source": "المصدر",
+    "rateDate": "التاريخ",
+    "rate": "السعر",
+    "origin": "المنشأ",
+    "status": "الحالة",
+    "empty": {
+      "title": "لا توجد أسعار صرف بعد",
+      "description": "أضف سعرًا يدويًا أو استورد الأسعار من المركز الرئيسي لـ CleanMateX."
+    },
+    "statusValue": {
+      "DRAFT": "مسودة",
+      "APPROVED": "معتمد",
+      "REJECTED": "مرفوض",
+      "VOIDED": "ملغى"
+    },
+    "originValue": {
+      "MANUAL": "يدوي",
+      "HQ_COPY": "من المركز الرئيسي",
+      "URL_FETCH": "رابط",
+      "CSV_IMPORT": "CSV",
+      "EXCEL_IMPORT": "Excel",
+      "API": "واجهة برمجية"
+    },
+    "rejectConfirm": {
+      "title": "رفض سعر الصرف هذا؟",
+      "description": "اذكر سبب رفض هذه المسودة."
+    },
+    "voidConfirm": {
+      "title": "إلغاء سعر الصرف المعتمد هذا؟",
+      "description": "يصبح السعر غير فعّال. أدخل سعرًا مصححًا كمسودة جديدة بعد ذلك."
+    },
+    "deleteConfirm": {
+      "title": "حذف مسودة سعر الصرف هذه؟",
+      "description": "يؤدي هذا إلى حذف المسودة نهائيًا. يمكن حذف المسودات فقط."
+    },
+    "saved": "تم حفظ سعر الصرف",
+    "approved": "تم اعتماد سعر الصرف",
+    "rejected": "تم رفض سعر الصرف",
+    "voided": "تم إلغاء سعر الصرف",
+    "deleted": "تم حذف سعر الصرف",
+    "form": {
+      "fromCurrency": "من عملة",
+      "toCurrency": "إلى عملة",
+      "rateType": "نوع السعر",
+      "source": "المصدر",
+      "rateValue": "السعر",
+      "rateHint": "عدد وحدات عملة \"إلى\" مقابل وحدة واحدة من عملة \"من\"",
+      "sourceReference": "المرجع",
+      "notes": "ملاحظات",
+      "approveNow": "اعتماد فوري (تجاوز يدوي)"
+    },
+    "filters": {
+      "status": "الحالة",
+      "allStatuses": "جميع الحالات"
+    }
+  },
+  "import": {
+    "hqCopy": {
+      "title": "من المركز الرئيسي لـ CleanMateX",
+      "description": "استورد أسعار الصرف المرجعية من CleanMateX لأزواج عملاتك. الأسعار المستوردة هي لقطة ثابتة — أي تغيير لاحق في المركز الرئيسي لا يغيّر سجلك التاريخي تلقائيًا.",
+      "preview": "معاينة",
+      "previewing": "جارٍ التحقق من أسعار جديدة…",
+      "commit": "استيراد المحدد",
+      "committing": "جارٍ الاستيراد…",
+      "empty": "لا توجد أسعار صرف جديدة من المركز الرئيسي لعملاتك الحالية.",
+      "duplicateBadge": "موجود بالفعل في سجلك",
+      "committed": "{count, plural, one {تم استيراد سعر واحد} other {تم استيراد # أسعار}}",
+      "skippedDuplicates": "{count, plural, one {تم تخطي سعر واحد (مستورد مسبقًا)} other {تم تخطي # أسعار (مستوردة مسبقًا)}}"
+    },
+    "comingSoon": {
+      "csv": {
+        "title": "من ملف CSV",
+        "description": "استيراد جماعي للأسعار من ملف CSV. قريبًا."
+      },
+      "excel": {
+        "title": "من ملف Excel",
+        "description": "استيراد جماعي للأسعار من ملف Excel. قريبًا."
+      },
+      "url": {
+        "title": "من رابط مزوّد",
+        "description": "جلب أسعار حية من مزوّد معتمد. قريبًا."
+      }
+    }
+  },
+  "converter": {
+    "title": "محوّل العملات",
+    "description": "عاين عملية تحويل باستخدام سعر الصرف المحلول — من سجلك الخاص أولًا، ثم سجل المركز الرئيسي لـ CleanMateX، وفق سياسة الحل لديك.",
+    "from": "من",
+    "to": "إلى",
+    "amount": "المبلغ",
+    "convert": "تحويل",
+    "converting": "جارٍ التحويل…",
+    "rateInfo": "1 {from} = {rate} {to}",
+    "resolvedFrom": {
+      "TENANT": "سجل أسعارك الخاص",
+      "HQ": "سجل أسعار المركز الرئيسي لـ CleanMateX"
+    },
+    "staleWarning": "هذا السعر أقدم من نافذة الحداثة المُعدّة له.",
+    "noRate": "لا يوجد سعر صرف معتمد لهذا الزوج من العملات بعد."
+  },
+  "settings": {
+    "title": "سياسة أسعار الصرف",
+    "resolutionPolicy": "ترتيب حل سعر الصرف",
+    "resolutionPolicyValue": {
+      "TENANT_THEN_HQ": "أسعارك أولًا، ثم أسعار المركز الرئيسي",
+      "TENANT_ONLY": "أسعارك فقط",
+      "HQ_ONLY": "أسعار المركز الرئيسي فقط"
+    },
+    "autoApproveImports": "اعتماد الأسعار المستوردة تلقائيًا",
+    "autoApproveImportsDescription": "عند التفعيل، تصل الأسعار المستوردة معتمدة مباشرة (للمستخدمين القادرين على اعتماد الأسعار فقط). عند الإيقاف، يصل كل استيراد كمسودة بانتظار الاعتماد.",
+    "saved": "تم حفظ إعدادات سعر الصرف"
+  },
+  "errors": {
+    "CURRENCY_ALREADY_EXISTS": "هذه العملة موجودة بالفعل ضمن عملاتك.",
+    "CURRENCY_NOT_FOUND": "العملة غير موجودة.",
+    "CURRENCY_NOT_PLATFORM_ENABLED": "هذه العملة غير متاحة ضمن باقتك.",
+    "BASE_CURRENCY_LOCKED": "العملة الأساسية مقفلة لوجود طلبات بالفعل.",
+    "BASE_ALREADY_SET": "هذه هي العملة الأساسية بالفعل.",
+    "REPORTING_ALREADY_SET": "لا يمكن أن تكون عملة التقارير نفس العملة الأساسية.",
+    "CANNOT_DEACTIVATE_BASE": "لا يمكن إلغاء تفعيل العملة الأساسية.",
+    "CURRENCY_IN_USE": "لا يمكن تعديل هذه العملة أثناء وجود نشاط مفتوح عليها.",
+    "CURRENCY_CONTEXT_NOT_READY": "هذا غير متاح لهذه العملة بعد.",
+    "INVALID_PRICING_MODE": "طريقة التسعير هذه غير مدعومة بعد.",
+    "SAME_CURRENCY_PAIR": "يجب أن تكون العملتان مختلفتين.",
+    "RATE_PAIR_INVALID": "يجب أن يكون أحد طرفي الزوج عملتك الأساسية أو عملة التقارير.",
+    "RATE_NON_POSITIVE": "أدخل سعرًا صحيحًا أكبر من الصفر.",
+    "RATE_PRECISION_EXCEEDED": "يحتوي السعر على عدد أرقام أكبر من المسموح.",
+    "RATE_DUPLICATE": "يوجد سعر صرف بالفعل لهذا الزوج والتاريخ والنوع والمصدر.",
+    "RATE_NOT_FOUND": "سعر الصرف غير موجود.",
+    "RATE_NOT_EDITABLE": "يمكن تعديل أو حذف المسودات فقط.",
+    "RATE_INVALID_TRANSITION": "تغيّرت حالة سعر الصرف — أعد التحميل وحاول مجددًا.",
+    "REASON_REQUIRED": "السبب مطلوب.",
+    "LOOKUP_INVALID": "هذه القيمة غير معروفة.",
+    "IMPORT_BATCH_NOT_FOUND": "دفعة الاستيراد غير موجودة.",
+    "IMPORT_BATCH_NOT_PREVIEWED": "تم استيراد هذه الدفعة بالفعل.",
+    "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+  }
+}

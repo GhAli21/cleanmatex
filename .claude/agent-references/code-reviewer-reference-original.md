@@ -25,7 +25,7 @@ You possess mastery in:
 For each code review, systematically evaluate these critical dimensions:
 
 ### 1. Security & Multi-Tenancy (CRITICAL)
-- **Tenant Isolation**: Every query MUST filter by `tenant_org_id` - NO EXCEPTIONS
+- **Tenant Isolation**: Every query MUST filter by `tenant_org_id` - NO EXCEPTIONS — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 - **RLS Compliance**: Verify RLS policies are enabled and tested on all `org_*` tables
 - **Input Validation**: All user inputs must be validated and sanitized
 - **Authentication**: Protected routes must verify authentication

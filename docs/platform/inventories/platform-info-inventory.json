@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-26T05:11:27.274Z",
-  "gitSha": "c2f6bc25",
+  "generatedAt": "2026-10-01T18:40:06.450Z",
+  "gitSha": "ca948bbc",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -19,6 +19,7 @@
     "web-admin/src/features/drivers/access/drivers-access.ts",
     "web-admin/src/features/erp-lite/access/erp-lite-access.ts",
     "web-admin/src/features/finance/vouchers/access/vouchers-access.ts",
+    "web-admin/src/features/fx/access/fx-access.ts",
     "web-admin/src/features/help/access/help-access.ts",
     "web-admin/src/features/inventory/access/inventory-access.ts",
     "web-admin/src/features/marketing/access/marketing-access.ts",
@@ -37,9 +38,9 @@
     "featureFlagUsages": 81,
     "settingUsages": 31,
     "planLimitUsages": 8,
-    "accessContracts": 153,
-    "navigationEntries": 102,
-    "flagCatalogEntries": 297
+    "accessContracts": 154,
+    "navigationEntries": 103,
+    "flagCatalogEntries": 298
   },
   "permissionUsages": [
     {
@@ -9932,6 +9933,109 @@
       ]
     },
     {
+      "id": "access_contract:/dashboard/settings/finance/currency-fx",
+      "kind": "access_contract",
+      "routePattern": "/dashboard/settings/finance/currency-fx",
+      "label": "Currencies & FX",
+      "sourceFile": "web-admin/src/features/fx/access/fx-access.ts",
+      "page": {
+        "permissions": [
+          "currencies:view"
+        ],
+        "permissionPrefixes": [],
+        "featureFlags": [],
+        "workflowRoles": [],
+        "tenantRoles": [],
+        "requireAllPermissions": true
+      },
+      "actions": [
+        {
+          "actionKey": "manageCurrencies",
+          "label": "Add, edit, deactivate, or reactivate a portfolio currency",
+          "permissions": [
+            "currencies:manage"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "setBaseCurrency",
+          "label": "Change the tenant base (functional) currency (C6, DB-locked once orders exist)",
+          "permissions": [
+            "currencies:set_base"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "viewRates",
+          "label": "View the tenant exchange-rate book",
+          "permissions": [
+            "fx_rates:view"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "manageRates",
+          "label": "Create or edit a draft exchange rate",
+          "permissions": [
+            "fx_rates:manage"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "approveRates",
+          "label": "Approve or reject a draft exchange rate",
+          "permissions": [
+            "fx_rates:approve"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "importRates",
+          "label": "Preview and commit an HQ-copy rate import",
+          "permissions": [
+            "fx_rates:import"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "manualOverrideRates",
+          "label": "Void an approved rate, or self-approve a rate on create (manual override)",
+          "permissions": [
+            "fx_rates:manual_override"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        }
+      ],
+      "apiDependencyCount": 1,
+      "provenance": [
+        {
+          "sourceType": "access-contract-ts",
+          "sourcePath": "web-admin/src/features/fx/access/fx-access.ts"
+        }
+      ]
+    },
+    {
       "id": "access_contract:/dashboard/help",
       "kind": "access_contract",
       "routePattern": "/dashboard/help",
@@ -14071,6 +14175,29 @@
         "admin",
         "super_admin",
         "tenant_admin"
+      ],
+      "provenance": [
+        {
+          "sourceType": "navigation-ts",
+          "sourcePath": "web-admin/config/navigation.ts"
+        }
+      ]
+    },
+    {
+      "id": "nav:section_settings_currency_fx_/dashboard/settings/finance/currency-fx",
+      "kind": "navigation_entry",
+      "key": "settings_currency_fx",
+      "label": "Currencies & FX",
+      "path": "/dashboard/settings/finance/currency-fx",
+      "depth": "section",
+      "permissions": [
+        "currencies:view"
+      ],
+      "roles": [
+        "admin",
+        "super_admin",
+        "tenant_admin",
+        "finance_manager"
       ],
       "provenance": [
         {
@@ -18972,6 +19099,22 @@
       "planBindingType": "independent",
       "dataType": "boolean",
       "governanceCategory": "experimental",
+      "uiGroup": "Finance",
+      "provenance": [
+        {
+          "sourceType": "flag-catalog-ts",
+          "sourcePath": "web-admin/lib/constants/feature-flags.ts"
+        }
+      ]
+    },
+    {
+      "id": "flag_catalog:multi_currency_fx",
+      "kind": "flag_catalog_entry",
+      "flagKey": "multi_currency_fx",
+      "flagName": "Multi-Currency & FX",
+      "planBindingType": "plan_bound",
+      "dataType": "boolean",
+      "governanceCategory": "tenant_feature",
       "uiGroup": "Finance",
       "provenance": [
         {

@@ -224,6 +224,84 @@ export async function openSessionTx(tx: Tx, ctx: Ctx, input: OpenSessionInput): 
 }
 
 // -----------------------------------------------------------------------------
+// Close preview (read-only; OPEN only — before the count step freezes anything)
+// -----------------------------------------------------------------------------
+
+export interface ClosePreviewInput {
+  sessionId: string;
+  drawerId: string;
+}
+
+export interface ClosePreviewResult {
+  sessionId: string;
+  /** False when `blind_close_enabled` — the operator counts without seeing the system figure first. */
+  revealed: boolean;
+  currencyBalances: Array<{ currencyCode: string; expected?: string }>;
+}
+
+/**
+ * Read-only preview of what a close would currently show (§4B.7
+ * `GET .../close-preview`, C2-1 absorbed) — computed against the drawer's
+ * *current* ledger sequence, not a frozen cut (the count step is what
+ * actually freezes `close_ledger_seq`). Never writes anything.
+ */
+export async function getClosePreview(tenantOrgId: string, userId: string, input: ClosePreviewInput): Promise<ClosePreviewResult> {
+  return withTenantContext(tenantOrgId, () =>
+    prisma.$transaction(async (tx) => {
+      const session = await tx.org_cash_drawer_sessions_mst.findFirst({
+        where: { id: input.sessionId, tenant_org_id: tenantOrgId },
+        select: { id: true, cash_drawer_id: true, branch_id: true, status: true, open_ledger_seq: true },
+      });
+      if (!session) {
+        throw new Error(`getClosePreview: session ${input.sessionId} not found`);
+      }
+      if (session.cash_drawer_id !== input.drawerId) {
+        throw new CashDrawerLedgerError(CASH_LEDGER_ERRORS.DRAWER_SESSION_WRONG_DRAWER, 'getClosePreview: session does not belong to this drawer');
+      }
+      if (session.status !== CASH_DRAWER_SESSION_STATUSES.OPEN) {
+        throw new CashDrawerLedgerError(CASH_LEDGER_ERRORS.CASH_DRAWER_SESSION_NOT_OPEN, `getClosePreview: session is ${session.status}, not OPEN`);
+      }
+
+      const drawer = await tx.org_cash_drawers_mst.findFirst({
+        where: { id: input.drawerId, tenant_org_id: tenantOrgId },
+        select: { ledger_seq: true },
+      });
+      if (!drawer) {
+        throw new Error(`getClosePreview: drawer ${input.drawerId} not found`);
+      }
+
+      const settings = await getCashControlSettings({
+        tenantId: tenantOrgId,
+        branchId: session.branch_id,
+        userId,
+        drawerId: input.drawerId,
+      });
+
+      const openingRowsDb = await tx.org_cash_drawer_ses_bal_dtl.findMany({
+        where: { tenant_org_id: tenantOrgId, cash_drawer_session_id: session.id },
+        select: { currency_code: true, opening_expected: true, opening_counted: true },
+      });
+      const openingForClosing: OpeningBalanceForClosing[] = openingRowsDb.map((r) => ({
+        currencyCode: r.currency_code,
+        openingExpected: new Decimal(r.opening_expected.toString()),
+        openingCounted: r.opening_counted ? new Decimal(r.opening_counted.toString()) : null,
+      }));
+
+      const rows = await computeClosingExpectedTx(tx, tenantOrgId, input.drawerId, openingForClosing, session.open_ledger_seq ?? BigInt(0), drawer.ledger_seq);
+
+      return {
+        sessionId: session.id,
+        revealed: !settings.blindCloseEnabled,
+        currencyBalances: rows.map((r) => ({
+          currencyCode: r.currencyCode,
+          expected: settings.blindCloseEnabled ? undefined : r.closingExpected.toFixed(4),
+        })),
+      };
+    }),
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Count step (OPEN -> CLOSING)
 // -----------------------------------------------------------------------------
 
@@ -373,6 +451,114 @@ export async function startCloseTx(tx: Tx, ctx: Ctx, input: StartCloseInput): Pr
   });
 
   return { sessionId: session.id, currencyBalances };
+}
+
+// -----------------------------------------------------------------------------
+// Recount (supervisor correction while CLOSING, before finalize)
+// -----------------------------------------------------------------------------
+
+export interface RecountCloseInput {
+  sessionId: string;
+  drawerId: string;
+  currencyCode: string;
+  count: OpeningCountInput;
+  /** The CLOSING (or prior RECOUNT) count this one supersedes. */
+  supersedesCountId: string;
+  notes?: string;
+}
+
+export interface RecountCloseResult {
+  sessionId: string;
+  currencyCode: string;
+  closingExpected: string;
+  closingCounted: string;
+  closingVariance: string;
+  varianceReasonRequired: boolean;
+}
+
+/**
+ * Supervisor recount during the `CLOSING` window (§4B.7
+ * `.../close/recount`): supersedes the prior closing (or recount) count for
+ * one currency against the *same* cut the count step already froze
+ * (`close_ledger_seq` does not move) — only the physical count changes, never
+ * the window being counted.
+ */
+export async function recountCloseTx(tx: Tx, ctx: Ctx, input: RecountCloseInput): Promise<RecountCloseResult> {
+  const session = await tx.org_cash_drawer_sessions_mst.findFirst({
+    where: { id: input.sessionId, tenant_org_id: ctx.tenantOrgId },
+    select: { id: true, cash_drawer_id: true, branch_id: true, status: true },
+  });
+  if (!session) {
+    throw new Error(`recountCloseTx: session ${input.sessionId} not found`);
+  }
+  if (session.cash_drawer_id !== input.drawerId) {
+    throw new CashDrawerLedgerError(CASH_LEDGER_ERRORS.DRAWER_SESSION_WRONG_DRAWER, 'recountCloseTx: session does not belong to this drawer');
+  }
+  if (session.status !== CASH_DRAWER_SESSION_STATUSES.CLOSING) {
+    throw new CashDrawerLedgerError(CASH_LEDGER_ERRORS.DRAWER_SESSION_NOT_CLOSING, `recountCloseTx: session is ${session.status}, not CLOSING`);
+  }
+
+  await lockDrawersTx(tx, ctx.tenantOrgId, [input.drawerId]);
+
+  const row = (await tx.org_cash_drawer_ses_bal_dtl.findFirst({
+    where: { tenant_org_id: ctx.tenantOrgId, cash_drawer_session_id: session.id, currency_code: input.currencyCode },
+    select: { currency_code: true, closing_expected: true },
+  })) as unknown as { currency_code: string; closing_expected: Prisma.Decimal | null } | null;
+  if (!row || row.closing_expected == null) {
+    throw new Error(`recountCloseTx: currency ${input.currencyCode} has no closing-expected figure yet — run the count step first`);
+  }
+  const closingExpected = new Decimal(row.closing_expected.toString());
+
+  const countResult = await recordCountTx(tx, ctx, {
+    drawerId: input.drawerId,
+    branchId: session.branch_id,
+    cashDrawerSessionId: session.id,
+    countType: CASH_DRAWER_COUNT_TYPES.RECOUNT,
+    currencyCode: input.currencyCode,
+    expectedAmount: closingExpected,
+    countMode: input.count.countMode === 'DENOMINATION' ? CASH_CONTROL_COUNT_MODE.DENOMINATION : CASH_CONTROL_COUNT_MODE.TOTAL_ONLY,
+    totalAmount: input.count.totalAmount,
+    denominations: input.count.denominations,
+    supersedesCountId: input.supersedesCountId,
+    notes: input.notes,
+  });
+
+  const closingCounted = countResult.countedAmount;
+  const closingVariance = closingCounted.minus(closingExpected);
+
+  const settings = await getCashControlSettings({
+    tenantId: ctx.tenantOrgId,
+    branchId: session.branch_id,
+    userId: ctx.userId,
+    drawerId: input.drawerId,
+  });
+  const minorUnit = (await tx.sys_currency_cd.findUnique({ where: { code: input.currencyCode }, select: { minor_unit: true } }))?.minor_unit ?? 2;
+  const tolerance = settings.varianceToleranceAmount != null ? new Decimal(settings.varianceToleranceAmount) : new Decimal(varianceToleranceFor(minorUnit));
+  const reasonBand = settings.varianceReasonAmount != null ? new Decimal(settings.varianceReasonAmount) : null;
+  const varianceReasonRequired = closingVariance.abs().greaterThan(tolerance) && (reasonBand == null || closingVariance.abs().greaterThan(reasonBand));
+
+  await tx.org_cash_drawer_ses_bal_dtl.updateMany({
+    where: { tenant_org_id: ctx.tenantOrgId, cash_drawer_session_id: session.id, currency_code: input.currencyCode },
+    data: {
+      closing_counted: closingCounted,
+      closing_variance: closingVariance,
+      closing_basis: closingCounted,
+      closing_count_id: countResult.countId,
+      variance_threshold_snap: settings.varianceThresholdAmount,
+      variance_tolerance_snap: tolerance,
+      updated_at: new Date(),
+      updated_by: ctx.userId,
+    },
+  });
+
+  return {
+    sessionId: session.id,
+    currencyCode: input.currencyCode,
+    closingExpected: closingExpected.toFixed(4),
+    closingCounted: closingCounted.toFixed(4),
+    closingVariance: closingVariance.toFixed(4),
+    varianceReasonRequired,
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -843,6 +1029,37 @@ export async function updatePostCloseTx(tx: Tx, ctx: Ctx, input: UpdatePostClose
   });
 }
 
+export interface PostCloseHistoryRow {
+  postCloseStatusCode: string;
+  notes: string | null;
+  changedBy: string;
+  changedAt: Date;
+}
+
+/** Full post-close change log for a session, newest first (§4B.7 `.../post-close/history`). */
+export async function listPostCloseHistory(tenantOrgId: string, sessionId: string): Promise<PostCloseHistoryRow[]> {
+  return withTenantContext(tenantOrgId, async () => {
+    const session = await prisma.org_cash_drawer_sessions_mst.findFirst({
+      where: { id: sessionId, tenant_org_id: tenantOrgId },
+      select: { id: true },
+    });
+    if (!session) {
+      throw new Error(`listPostCloseHistory: session ${sessionId} not found`);
+    }
+    const rows = await prisma.org_cash_drawer_ses_post_tr.findMany({
+      where: { tenant_org_id: tenantOrgId, cash_drawer_session_id: sessionId },
+      orderBy: { changed_at: 'desc' },
+      select: { post_close_status_code: true, post_close_notes: true, changed_by: true, changed_at: true },
+    });
+    return rows.map((r) => ({
+      postCloseStatusCode: r.post_close_status_code,
+      notes: r.post_close_notes,
+      changedBy: r.changed_by,
+      changedAt: r.changed_at,
+    }));
+  });
+}
+
 // -----------------------------------------------------------------------------
 // Public (non-Tx) entry points
 // -----------------------------------------------------------------------------
@@ -853,6 +1070,10 @@ export async function openSession(tenantOrgId: string, userId: string, input: Op
 
 export async function startClose(tenantOrgId: string, userId: string, input: StartCloseInput): Promise<StartCloseResult> {
   return withTenantContext(tenantOrgId, () => prisma.$transaction((tx) => startCloseTx(tx, { tenantOrgId, userId }, input)));
+}
+
+export async function recountClose(tenantOrgId: string, userId: string, input: RecountCloseInput): Promise<RecountCloseResult> {
+  return withTenantContext(tenantOrgId, () => prisma.$transaction((tx) => recountCloseTx(tx, { tenantOrgId, userId }, input)));
 }
 
 export async function finalizeClose(tenantOrgId: string, userId: string, input: FinalizeCloseInput): Promise<FinalizeCloseResult> {

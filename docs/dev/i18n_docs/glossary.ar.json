@@ -1,3 +1,8 @@
 {
-  "tenant": "المنشأة"
+  "tenant": "المنشأة",
+  "base_currency": "العملة الأساسية",
+  "reporting_currency": "عملة التقارير",
+  "exchange_rate": "سعر الصرف",
+  "multi_currency": "تعدد العملات",
+  "cash_disposition": "التصرف بالنقدية"
 }

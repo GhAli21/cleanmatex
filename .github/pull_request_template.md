@@ -13,6 +13,10 @@ If this PR touches permissions, navigation, feature flags, access contracts, or 
 
 **Skill:** `.claude/skills/rebuild-platform-info-inventories/` · **Mode used:** refresh | repair | rebuild-all
 
+## Tenant isolation (when applicable)
+
+- [ ] Every `org_*` query I added/changed (Prisma, Supabase, raw SQL, joins, and INSERT/UPDATE/DELETE writes) includes `tenant_org_id` directly in the query
+
 ## Test plan
 
 - [ ] 

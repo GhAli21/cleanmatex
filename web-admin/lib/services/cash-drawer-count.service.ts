@@ -3,10 +3,18 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
+import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
 import { lockDrawersTx } from '@/lib/services/cash-drawer-ledger/cash-drawer-lock';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import {
+  computeOpeningExpectedTx,
+  computeClosingExpectedTx,
+  type OpeningBalanceForClosing,
+} from '@/lib/services/cash-drawer-ledger/cash-drawer-balance.service';
+import {
   CASH_DRAWER_COUNT_TYPES,
+  CASH_DRAWER_SESSION_STATUSES,
   CASH_LEDGER_ERRORS,
   type CashDrawerCountType,
 } from '@/lib/constants/cash-drawer';
@@ -221,6 +229,212 @@ export async function recordCountTx(
     varianceAmount: countedAmount.minus(input.expectedAmount),
     ledgerSeq,
   };
+}
+
+// -----------------------------------------------------------------------------
+// Standalone entry point (SPOT / RECOUNT via the drawer's own counts endpoint)
+// -----------------------------------------------------------------------------
+
+export interface RecordSpotCountInput {
+  drawerId: string;
+  /** Present for a mid-shift SPOT check on an OPEN session; null for a count-only drawer (SAFE/PENDING_DEPOSIT/DRIVER_BAG). */
+  cashDrawerSessionId?: string | null;
+  countType: Extract<CashDrawerCountType, 'SPOT' | 'RECOUNT'>;
+  currencyCode: string;
+  countMode: CashControlCountMode;
+  totalAmount?: number | string | Decimal;
+  denominations?: DenominationCountLine[];
+  /** RECOUNT only. */
+  supersedesCountId?: string;
+  notes?: string;
+}
+
+/**
+ * Standalone count entry point (plan §4B.7 `POST /api/v1/cash-drawers/[drawerId]/counts`).
+ * Unlike the session lifecycle (which already knows its cut and its opening
+ * baseline), a standalone SPOT/RECOUNT has to resolve "what's expected right
+ * now" itself before it can call {@link recordCountTx}:
+ * - a session is open: the same window math the close count-step uses
+ *   (`computeClosingExpectedTx`), cut at the drawer's *current* ledger
+ *   sequence (not the session's close cut — the session hasn't started
+ *   closing).
+ * - no session (count-only drawer): the chain math `computeOpeningExpectedTx`
+ *   already implements generalises cleanly to "what's expected as of now" by
+ *   passing the drawer's current ledger sequence as the cut.
+ * @param tenantOrgId tenant of the drawer
+ * @param userId acting user
+ * @param input count payload — see {@link RecordSpotCountInput}
+ */
+export async function recordSpotCount(
+  tenantOrgId: string,
+  userId: string,
+  input: RecordSpotCountInput,
+): Promise<RecordCountResult> {
+  return withTenantContext(tenantOrgId, () =>
+    prisma.$transaction(async (tx) => {
+      const ctx = { tenantOrgId, userId };
+      const [drawer] = await lockDrawersTx(tx, tenantOrgId, [input.drawerId]);
+      if (!drawer) {
+        throw new CashDrawerLedgerError(
+          CASH_LEDGER_ERRORS.CASH_DRAWER_INACTIVE,
+          `recordSpotCount: drawer ${input.drawerId} not found for tenant ${tenantOrgId}`,
+        );
+      }
+
+      let expectedAmount: Decimal;
+
+      if (input.cashDrawerSessionId) {
+        const session = await tx.org_cash_drawer_sessions_mst.findFirst({
+          where: { id: input.cashDrawerSessionId, tenant_org_id: tenantOrgId },
+          select: { id: true, cash_drawer_id: true, open_ledger_seq: true, status: true },
+        });
+        if (!session || session.cash_drawer_id !== input.drawerId) {
+          throw new CashDrawerLedgerError(
+            CASH_LEDGER_ERRORS.DRAWER_SESSION_WRONG_DRAWER,
+            `recordSpotCount: session ${input.cashDrawerSessionId} does not belong to drawer ${input.drawerId}`,
+          );
+        }
+        if (session.status !== CASH_DRAWER_SESSION_STATUSES.OPEN) {
+          throw new CashDrawerLedgerError(
+            CASH_LEDGER_ERRORS.CASH_DRAWER_SESSION_NOT_OPEN,
+            `recordSpotCount: session ${input.cashDrawerSessionId} is ${session.status}, not OPEN`,
+          );
+        }
+
+        const openingRowsDb = await tx.org_cash_drawer_ses_bal_dtl.findMany({
+          where: { tenant_org_id: tenantOrgId, cash_drawer_session_id: session.id },
+          select: { currency_code: true, opening_expected: true, opening_counted: true },
+        });
+        const openingForClosing: OpeningBalanceForClosing[] = openingRowsDb.map((r) => ({
+          currencyCode: r.currency_code,
+          openingExpected: new Decimal(r.opening_expected.toString()),
+          openingCounted: r.opening_counted ? new Decimal(r.opening_counted.toString()) : null,
+        }));
+
+        const rows = await computeClosingExpectedTx(
+          tx,
+          tenantOrgId,
+          input.drawerId,
+          openingForClosing,
+          session.open_ledger_seq ?? BigInt(0),
+          drawer.ledger_seq,
+        );
+        const row = rows.find((r) => r.currencyCode === input.currencyCode);
+        if (!row) {
+          throw new Error(`recordSpotCount: currency ${input.currencyCode} is not part of session ${session.id}`);
+        }
+        expectedAmount = row.closingExpected;
+      } else {
+        const rows = await computeOpeningExpectedTx(tx, tenantOrgId, input.drawerId, drawer.currency_code, drawer.ledger_seq);
+        const row = rows.find((r) => r.currencyCode === input.currencyCode);
+        if (!row) {
+          throw new Error(`recordSpotCount: currency ${input.currencyCode} has no history on drawer ${input.drawerId}`);
+        }
+        expectedAmount = row.openingExpected;
+      }
+
+      return recordCountTx(tx, ctx, {
+        drawerId: input.drawerId,
+        branchId: drawer.branch_id,
+        cashDrawerSessionId: input.cashDrawerSessionId ?? null,
+        countType: input.countType,
+        currencyCode: input.currencyCode,
+        expectedAmount,
+        countMode: input.countMode,
+        totalAmount: input.totalAmount,
+        denominations: input.denominations,
+        supersedesCountId: input.supersedesCountId,
+        notes: input.notes,
+      });
+    }),
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Reads
+// -----------------------------------------------------------------------------
+
+export interface DrawerCountRow {
+  countId: string;
+  countType: string;
+  countMethod: string;
+  currencyCode: string;
+  cashDrawerSessionId: string | null;
+  expectedAmount: string;
+  countedAmount: string;
+  varianceAmount: string;
+  supersedesCountId: string | null;
+  countedBy: string;
+  notes: string | null;
+  createdAt: Date;
+}
+
+export interface DrawerCountPage {
+  rows: DrawerCountRow[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Paginated count history for one drawer, newest first (CLF-8-7 Counts tab).
+ * @param tenantOrgId tenant of the drawer
+ * @param drawerId drawer whose counts are read
+ * @param page 1-based page number
+ * @param pageSize rows per page
+ */
+export async function listDrawerCounts(
+  tenantOrgId: string,
+  drawerId: string,
+  page: number,
+  pageSize: number,
+): Promise<DrawerCountPage> {
+  return withTenantContext(tenantOrgId, async () => {
+    const where = { tenant_org_id: tenantOrgId, cash_drawer_id: drawerId };
+    const [rows, totalCount] = await Promise.all([
+      prisma.org_cash_drawer_cnt_mst.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip: Math.max(0, (page - 1) * pageSize),
+        take: pageSize,
+        select: {
+          id: true,
+          count_type: true,
+          count_method: true,
+          currency_code: true,
+          cash_drawer_session_id: true,
+          expected_amount: true,
+          counted_amount: true,
+          variance_amount: true,
+          supersedes_count_id: true,
+          counted_by: true,
+          notes: true,
+          created_at: true,
+        },
+      }),
+      prisma.org_cash_drawer_cnt_mst.count({ where }),
+    ]);
+
+    return {
+      rows: rows.map((r) => ({
+        countId: r.id,
+        countType: r.count_type,
+        countMethod: r.count_method,
+        currencyCode: r.currency_code,
+        cashDrawerSessionId: r.cash_drawer_session_id,
+        expectedAmount: new Decimal(r.expected_amount.toString()).toFixed(4),
+        countedAmount: new Decimal(r.counted_amount.toString()).toFixed(4),
+        varianceAmount: new Decimal(r.variance_amount.toString()).toFixed(4),
+        supersedesCountId: r.supersedes_count_id,
+        countedBy: r.counted_by,
+        notes: r.notes,
+        createdAt: r.created_at,
+      })),
+      totalCount,
+      page,
+      pageSize,
+    };
+  });
 }
 
 /** Re-exported for callers that only need the type, not the recording logic. */

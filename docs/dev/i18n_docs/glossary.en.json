@@ -1,3 +1,8 @@
 {
-  "tenant": "Organization"
+  "tenant": "Organization",
+  "base_currency": "Base Currency",
+  "reporting_currency": "Reporting Currency",
+  "exchange_rate": "Exchange Rate",
+  "multi_currency": "Multi-Currency",
+  "cash_disposition": "Disposition"
 }

@@ -9,6 +9,7 @@ import { DASHBOARD_ACCESS_CONTRACTS } from '@features/dashboard/access/dashboard
 import { DRIVERS_ACCESS_CONTRACTS } from '@features/drivers/access/drivers-access'
 import { ERP_LITE_ACCESS_CONTRACTS } from '@features/erp-lite/access/erp-lite-access'
 import { VOUCHER_ACCESS_CONTRACTS } from '@features/finance/vouchers/access/vouchers-access'
+import { CURRENCY_FX_ACCESS_CONTRACTS } from '@features/fx/access/fx-access'
 import { HELP_ACCESS_CONTRACTS } from '@features/help/access/help-access'
 import { INVENTORY_ACCESS_CONTRACTS } from '@features/inventory/access/inventory-access'
 import { MARKETING_ACCESS_CONTRACTS } from '@features/marketing/access/marketing-access'
@@ -49,6 +50,7 @@ export const PAGE_ACCESS_CONTRACTS: PageAccessContract[] = [
   ...DRIVERS_ACCESS_CONTRACTS,
   ...ERP_LITE_ACCESS_CONTRACTS,
   ...VOUCHER_ACCESS_CONTRACTS,
+  ...CURRENCY_FX_ACCESS_CONTRACTS,
   ...HELP_ACCESS_CONTRACTS,
   ...INVENTORY_ACCESS_CONTRACTS,
   ...MARKETING_ACCESS_CONTRACTS,

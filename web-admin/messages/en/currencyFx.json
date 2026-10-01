@@ -1,0 +1,219 @@
+{
+  "title": "Currencies & FX",
+  "subtitle": "Manage your base currency, foreign currencies, and exchange rates",
+  "tabs": {
+    "currencies": "Currencies",
+    "rates": "Rates",
+    "import": "Import",
+    "converter": "Converter",
+    "settings": "Settings"
+  },
+  "common": {
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "approve": "Approve",
+    "reject": "Reject",
+    "void": "Void",
+    "reason": "Reason",
+    "reasonRequired": "A reason is required"
+  },
+  "compact": {
+    "baseCurrencyLabel": "Base Currency",
+    "locked": "Locked (orders exist)",
+    "notLocked": "Not locked yet",
+    "multiCurrencyLabel": "Multi-Currency",
+    "off": "Off",
+    "description": "Your organization currently operates in a single currency. Add a foreign currency to enable multi-currency support.",
+    "enableCta": "Add a currency",
+    "flagUnavailable": "Multi-currency isn't included in your current plan."
+  },
+  "currencies": {
+    "add": "Add Currency",
+    "edit": "Edit Currency",
+    "code": "Currency",
+    "role": "Role",
+    "contexts": "Enabled For",
+    "status": "Status",
+    "baseChip": "Base",
+    "reportingChip": "Reporting",
+    "setBase": "Set as Base",
+    "setBaseConfirm": {
+      "title": "Set base currency?",
+      "description": "This becomes your organization's functional currency. It locks automatically once the first order is posted."
+    },
+    "setReporting": "Set as Reporting",
+    "clearReporting": "Clear Reporting",
+    "deactivateConfirm": {
+      "title": "Deactivate this currency?",
+      "description": "It will no longer be available for new activity. This is blocked while the currency has open orders, invoices, balances, or drawers."
+    },
+    "empty": {
+      "title": "No currencies yet",
+      "description": "Add your organization's base currency to get started."
+    },
+    "context": {
+      "allowSales": "Sales",
+      "allowPayments": "Payments",
+      "allowCash": "Cash",
+      "allowAr": "Receivables"
+    },
+    "contextNotReady": "Not available yet",
+    "saved": "Currency saved",
+    "form": {
+      "currencyCode": "Currency",
+      "selectCurrency": "Select a currency",
+      "advanced": "Advanced",
+      "salesPricingMode": "Sales Pricing Mode",
+      "salesPricingModeConvertFromBase": "Convert from base price",
+      "defaultRateTypeCode": "Default Rate Type",
+      "defaultRateSourceCode": "Default Rate Source",
+      "rateMaxAgeDays": "Max Rate Age (days)",
+      "allowManualFxRate": "Allow manual rate entry",
+      "manualFxRequiresApproval": "Manual rates require approval",
+      "manualRateTolerancePct": "Manual Rate Tolerance (%)",
+      "taxRateSourceCode": "Tax Rate Source",
+      "none": "None"
+    }
+  },
+  "rates": {
+    "add": "Add Rate",
+    "pair": "Pair",
+    "type": "Type",
+    "source": "Source",
+    "rateDate": "Date",
+    "rate": "Rate",
+    "origin": "Origin",
+    "status": "Status",
+    "empty": {
+      "title": "No exchange rates yet",
+      "description": "Add a manual rate or import rates from CleanMateX HQ."
+    },
+    "statusValue": {
+      "DRAFT": "Draft",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "VOIDED": "Voided"
+    },
+    "originValue": {
+      "MANUAL": "Manual",
+      "HQ_COPY": "From HQ",
+      "URL_FETCH": "URL",
+      "CSV_IMPORT": "CSV",
+      "EXCEL_IMPORT": "Excel",
+      "API": "API"
+    },
+    "rejectConfirm": {
+      "title": "Reject this rate?",
+      "description": "Explain why this draft rate is being rejected."
+    },
+    "voidConfirm": {
+      "title": "Void this approved rate?",
+      "description": "The rate becomes inactive. Enter a corrected rate as a new draft afterward."
+    },
+    "deleteConfirm": {
+      "title": "Delete this draft rate?",
+      "description": "This permanently removes the draft. Only draft rates can be deleted."
+    },
+    "saved": "Rate saved",
+    "approved": "Rate approved",
+    "rejected": "Rate rejected",
+    "voided": "Rate voided",
+    "deleted": "Rate deleted",
+    "form": {
+      "fromCurrency": "From Currency",
+      "toCurrency": "To Currency",
+      "rateType": "Rate Type",
+      "source": "Source",
+      "rateValue": "Rate",
+      "rateHint": "Units of \"To\" currency per 1 unit of \"From\" currency",
+      "sourceReference": "Reference",
+      "notes": "Notes",
+      "approveNow": "Approve immediately (manual override)"
+    },
+    "filters": {
+      "status": "Status",
+      "allStatuses": "All statuses"
+    }
+  },
+  "import": {
+    "hqCopy": {
+      "title": "From CleanMateX HQ",
+      "description": "Bring in CleanMateX's reference exchange rates for your currency pairs. Imported rates are a snapshot — a later change at HQ never silently changes your history.",
+      "preview": "Preview",
+      "previewing": "Checking for new rates…",
+      "commit": "Import Selected",
+      "committing": "Importing…",
+      "empty": "No new HQ rates to import for your current currencies.",
+      "duplicateBadge": "Already in your book",
+      "committed": "{count, plural, one {# rate imported} other {# rates imported}}",
+      "skippedDuplicates": "{count, plural, one {# rate was skipped (already imported)} other {# rates were skipped (already imported)}}"
+    },
+    "comingSoon": {
+      "csv": {
+        "title": "From CSV",
+        "description": "Bulk-import rates from a CSV file. Coming soon."
+      },
+      "excel": {
+        "title": "From Excel",
+        "description": "Bulk-import rates from an Excel file. Coming soon."
+      },
+      "url": {
+        "title": "From a provider URL",
+        "description": "Fetch live rates from a curated provider. Coming soon."
+      }
+    }
+  },
+  "converter": {
+    "title": "Currency Converter",
+    "description": "Preview a conversion using your resolved exchange rate — your own rate book first, then CleanMateX HQ's, per your resolution policy.",
+    "from": "From",
+    "to": "To",
+    "amount": "Amount",
+    "convert": "Convert",
+    "converting": "Converting…",
+    "rateInfo": "1 {from} = {rate} {to}",
+    "resolvedFrom": {
+      "TENANT": "your own rate book",
+      "HQ": "CleanMateX HQ's rate book"
+    },
+    "staleWarning": "This rate is older than its configured freshness window.",
+    "noRate": "No approved rate is available for this currency pair yet."
+  },
+  "settings": {
+    "title": "FX Policy",
+    "resolutionPolicy": "Rate Resolution Order",
+    "resolutionPolicyValue": {
+      "TENANT_THEN_HQ": "Your rates first, then CleanMateX HQ's",
+      "TENANT_ONLY": "Your rates only",
+      "HQ_ONLY": "CleanMateX HQ's rates only"
+    },
+    "autoApproveImports": "Auto-approve imported rates",
+    "autoApproveImportsDescription": "When on, rates you import land already approved (only for users who can also approve rates). When off, every import lands as a draft awaiting approval.",
+    "saved": "FX settings saved"
+  },
+  "errors": {
+    "CURRENCY_ALREADY_EXISTS": "This currency is already in your portfolio.",
+    "CURRENCY_NOT_FOUND": "Currency not found.",
+    "CURRENCY_NOT_PLATFORM_ENABLED": "This currency isn't available on your plan.",
+    "BASE_CURRENCY_LOCKED": "The base currency is locked because orders already exist.",
+    "BASE_ALREADY_SET": "This is already the base currency.",
+    "REPORTING_ALREADY_SET": "The reporting currency can't be the same as the base currency.",
+    "CANNOT_DEACTIVATE_BASE": "The base currency can't be deactivated.",
+    "CURRENCY_IN_USE": "This currency can't be changed while it has open activity.",
+    "CURRENCY_CONTEXT_NOT_READY": "This isn't available for this currency yet.",
+    "INVALID_PRICING_MODE": "This pricing mode isn't supported yet.",
+    "SAME_CURRENCY_PAIR": "The two currencies must be different.",
+    "RATE_PAIR_INVALID": "One side of this pair must be your base or reporting currency.",
+    "RATE_NON_POSITIVE": "Enter a valid rate greater than zero.",
+    "RATE_PRECISION_EXCEEDED": "The rate has too many digits.",
+    "RATE_DUPLICATE": "A rate already exists for this pair, date, type, and source.",
+    "RATE_NOT_FOUND": "Rate not found.",
+    "RATE_NOT_EDITABLE": "Only draft rates can be edited or deleted.",
+    "RATE_INVALID_TRANSITION": "This rate's status changed — reload and try again.",
+    "REASON_REQUIRED": "A reason is required.",
+    "LOOKUP_INVALID": "That value isn't recognized.",
+    "IMPORT_BATCH_NOT_FOUND": "Import batch not found.",
+    "IMPORT_BATCH_NOT_PREVIEWED": "This batch was already imported.",
+    "generic": "Something went wrong. Please try again."
+  }
+}

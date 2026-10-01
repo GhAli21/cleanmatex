@@ -3,6 +3,8 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
+import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
 import { lockDrawersTx, allocateLedgerSeqTx } from '@/lib/services/cash-drawer-ledger/cash-drawer-lock';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import { emitEventTx } from '@/lib/services/outbox.service';
@@ -329,4 +331,153 @@ export async function reverseDrawerTrxTx(
   });
 
   return { trxId: header.id, trxNo };
+}
+
+// -----------------------------------------------------------------------------
+// Public (non-Tx) entry points
+// -----------------------------------------------------------------------------
+
+export async function postDrawerTrx(
+  tenantOrgId: string,
+  userId: string,
+  input: PostDrawerTrxInput,
+): Promise<PostDrawerTrxResult> {
+  return withTenantContext(tenantOrgId, () => prisma.$transaction((tx) => postDrawerTrxTx(tx, { tenantOrgId, userId }, input)));
+}
+
+export async function reverseDrawerTrx(
+  tenantOrgId: string,
+  userId: string,
+  trxId: string,
+  reasonCode: string,
+): Promise<PostDrawerTrxResult> {
+  return withTenantContext(tenantOrgId, () => prisma.$transaction((tx) => reverseDrawerTrxTx(tx, { tenantOrgId, userId }, trxId, reasonCode)));
+}
+
+// -----------------------------------------------------------------------------
+// Reads
+// -----------------------------------------------------------------------------
+
+export interface DrawerTrxListFilter {
+  drawerId?: string;
+  trxTypeCode?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page: number;
+  pageSize: number;
+}
+
+export interface DrawerTrxRow {
+  trxId: string;
+  trxNo: string;
+  trxTypeCode: string;
+  branchId: string;
+  reasonCode: string | null;
+  notes: string | null;
+  performedBy: string;
+  approvedBy: string | null;
+  reversesTrxId: string | null;
+  occurredAt: Date;
+  lines: Array<{ drawerId: string; direction: string; amount: string; currencyCode: string }>;
+}
+
+export interface DrawerTrxPage {
+  rows: DrawerTrxRow[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Paginated, filterable custody-transaction history (CLF-8-7 Transactions
+ * tab). Filters by a single drawer (either side of the transaction), type,
+ * and an occurred-date range. The header/line tables carry no Prisma
+ * `@relation` (M3's minimal-footprint convention), so a drawer filter and the
+ * line fan-out are each a separate query joined in application code.
+ * @param tenantOrgId tenant scope
+ * @param filter see {@link DrawerTrxListFilter}
+ */
+export async function listDrawerTrx(tenantOrgId: string, filter: DrawerTrxListFilter): Promise<DrawerTrxPage> {
+  return withTenantContext(tenantOrgId, async () => {
+    let trxIdsForDrawer: string[] | undefined;
+    if (filter.drawerId) {
+      const dtlRows = await prisma.org_cash_drawer_trx_dtl.findMany({
+        where: { tenant_org_id: tenantOrgId, cash_drawer_id: filter.drawerId },
+        select: { trx_id: true },
+        distinct: ['trx_id'],
+      });
+      trxIdsForDrawer = dtlRows.map((r) => r.trx_id);
+      if (trxIdsForDrawer.length === 0) {
+        return { rows: [], totalCount: 0, page: filter.page, pageSize: filter.pageSize };
+      }
+    }
+
+    const where: Prisma.org_cash_drawer_trx_mstWhereInput = {
+      tenant_org_id: tenantOrgId,
+      ...(filter.trxTypeCode ? { trx_type_code: filter.trxTypeCode } : {}),
+      ...(filter.dateFrom || filter.dateTo
+        ? { occurred_at: { ...(filter.dateFrom ? { gte: filter.dateFrom } : {}), ...(filter.dateTo ? { lte: filter.dateTo } : {}) } }
+        : {}),
+      ...(trxIdsForDrawer ? { id: { in: trxIdsForDrawer } } : {}),
+    };
+
+    const [headers, totalCount] = await Promise.all([
+      prisma.org_cash_drawer_trx_mst.findMany({
+        where,
+        orderBy: { occurred_at: 'desc' },
+        skip: Math.max(0, (filter.page - 1) * filter.pageSize),
+        take: filter.pageSize,
+        select: {
+          id: true,
+          trx_no: true,
+          trx_type_code: true,
+          branch_id: true,
+          reason_code: true,
+          notes: true,
+          performed_by: true,
+          approved_by: true,
+          reverses_trx_id: true,
+          occurred_at: true,
+        },
+      }),
+      prisma.org_cash_drawer_trx_mst.count({ where }),
+    ]);
+
+    const headerIds = headers.map((h) => h.id);
+    const lineRows = headerIds.length
+      ? await prisma.org_cash_drawer_trx_dtl.findMany({
+          where: { tenant_org_id: tenantOrgId, trx_id: { in: headerIds } },
+          orderBy: { line_no: 'asc' },
+          select: { trx_id: true, cash_drawer_id: true, direction: true, amount: true, currency_code: true },
+        })
+      : [];
+    const linesByTrx = new Map<string, typeof lineRows>();
+    for (const l of lineRows) {
+      linesByTrx.set(l.trx_id, [...(linesByTrx.get(l.trx_id) ?? []), l]);
+    }
+
+    return {
+      rows: headers.map((r) => ({
+        trxId: r.id,
+        trxNo: r.trx_no,
+        trxTypeCode: r.trx_type_code,
+        branchId: r.branch_id,
+        reasonCode: r.reason_code,
+        notes: r.notes,
+        performedBy: r.performed_by,
+        approvedBy: r.approved_by,
+        reversesTrxId: r.reverses_trx_id,
+        occurredAt: r.occurred_at,
+        lines: (linesByTrx.get(r.id) ?? []).map((l) => ({
+          drawerId: l.cash_drawer_id,
+          direction: l.direction,
+          amount: new Decimal(l.amount.toString()).toFixed(4),
+          currencyCode: l.currency_code,
+        })),
+      })),
+      totalCount,
+      page: filter.page,
+      pageSize: filter.pageSize,
+    };
+  });
 }

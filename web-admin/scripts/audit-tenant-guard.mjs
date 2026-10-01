@@ -13,8 +13,8 @@
  *
  * Heuristic by design (naive paren/backtick matching). It produces a worklist, not a verdict.
  *
- * Usage:  node scripts/audit-tenant-guard.mjs [--out <file.md>]
- * Exit code is always 0 in Phase 1; Phase 3 may gate CI on MISSING == 0.
+ * Usage:  node scripts/audit-tenant-guard.mjs [--out <file.md>] [--strict]
+ * Exit code is 0 unless --strict is passed, which exits 1 when any MISSING remains (CI gate).
  */
 
 import { readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -64,6 +64,17 @@ function balanced(src, start, open = '(', close = ')') {
   return src.slice(start + 1, start + 2000);
 }
 
+/**
+ * WHERE fragments assembled as a Prisma.Sql variable (`WHERE ${whereClause}` or
+ * `${Prisma.join(conds, ' AND ')}`) are accepted when that variable's builder, just above
+ * the call, contains a tenant_org_id predicate. Heuristic: a window lookback, not a proof.
+ */
+function predicateBuiltInVariable(src, idx, body) {
+  const vars = [...body.matchAll(/\$\{\s*(?:Prisma\.join\(\s*)?(\w+)/g)].map((v) => v[1]);
+  const window = src.slice(Math.max(0, idx - 8000), idx);
+  return vars.some((v) => new RegExp(`\\b${v}\\b[\\s\\S]{0,600}?tenant_org_id|tenant_org_id[\\s\\S]{0,1500}?\\b${v}\\b`).test(window));
+}
+
 const lineOf = (src, idx) => src.slice(0, idx).split('\n').length;
 
 const findings = [];
@@ -111,11 +122,12 @@ for (const file of files) {
     const body = tag === '`' ? src.slice(openIdx + 1, src.indexOf('`', openIdx + 1)) : balanced(src, src.indexOf('(', openIdx));
     // $queryRaw(Prisma.sql`...`) is as inspectable as the tagged form.
     const opener2 = tag !== '`' && /^\s*Prisma\.sql\s*`/.test(body) ? '`' : tag;
-    const touchesOrg = /\borg_\w+/.test(body);
+    // org_tenants_mst is the tenant root, keyed by id (it has no tenant_org_id column).
+    const touchesOrg = /\borg_\w+/.test(body.replace(/\borg_tenants_mst\b/g, ''));
     if (!touchesOrg && opener2 === '`') continue; // sys_* / pg_* / SELECT 1
     let status;
     if (unsafe || opener2 !== '`') status = 'REVIEW';
-    else status = body.includes('tenant_org_id') ? 'OK' : 'MISSING';
+    else status = body.includes('tenant_org_id') || predicateBuiltInVariable(src, m.index, body) ? 'OK' : 'MISSING';
     findings.push({ kind: 'raw', status, file: rel, line: lineOf(src, m.index), target: `$${fn}${unsafe ?? ''}` });
   }
 }
@@ -161,3 +173,7 @@ console.log(
   `[audit-tenant-guard] model MISSING=${count('model', 'MISSING')} REVIEW=${count('model', 'REVIEW')} BYPASS=${count('model', 'BYPASS')} OK=${count('model', 'OK')} | ` +
     `raw MISSING=${count('raw', 'MISSING')} REVIEW=${count('raw', 'REVIEW')} OK=${count('raw', 'OK')}`
 );
+if (process.argv.includes('--strict') && (count('model', 'MISSING') > 0 || count('raw', 'MISSING') > 0)) {
+  console.error('[audit-tenant-guard] FAIL: org_* query without tenant_org_id (see MISSING tables above; use --out for details)');
+  process.exit(1);
+}

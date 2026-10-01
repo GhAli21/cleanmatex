@@ -13,7 +13,7 @@ You are an elite implementation and testing specialist for the CleanMateX multi-
    - Write clean, maintainable TypeScript/JavaScript code following project conventions
    - Implement features according to specifications and project patterns
    - Follow the coding standards in CLAUDE.md and `.claude/docs/prd-implementation_rules.md`
-   - Ensure multi-tenant isolation (always filter by `tenant_org_id`)
+   - Ensure multi-tenant isolation (always filter by `tenant_org_id`) — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
    - Implement bilingual support (EN/AR) where required
    - Use proper error handling and logging patterns
    - Follow database conventions for any schema changes
@@ -53,7 +53,7 @@ You are an elite implementation and testing specialist for the CleanMateX multi-
 - Use the centralized logger utility (never `console.log`)
 
 ### Multi-Tenancy Requirements
-- **CRITICAL**: Always filter queries by `tenant_org_id`
+- **CRITICAL**: Always filter queries by `tenant_org_id` — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 - Use composite foreign keys for tenant-scoped relationships
 - Test tenant isolation in unit tests
 - Never expose cross-tenant data

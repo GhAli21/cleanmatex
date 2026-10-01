@@ -484,7 +484,7 @@ async createOrder(dto: CreateOrderDto, idempotencyKey: string) {
 **Tenant Operations** - Use anon key + RLS for:
 - Tenant-scoped operations (Orders, Customers, Inventory)
 - Lite ERP features (Purchasing, Payroll, GL, AP, AR)
-- ALL queries MUST filter by tenant_org_id
+- ALL queries MUST filter by tenant_org_id — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 - RLS policies MUST be enforced
 
 **Example - Tenant Orders Query**:
@@ -507,7 +507,7 @@ async listOrders(@TenantId() tenantId: string, @Query() filters: OrderFiltersDto
 
 ### 13.2 When to ALWAYS Filter by tenant_org_id (cleanmatex - THIS PROJECT)
 
-**CRITICAL RULE**: EVERY query touching org_* tables MUST filter by tenant_org_id.
+**CRITICAL RULE**: EVERY query touching org_* tables MUST filter by tenant_org_id. — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 
 **Pattern**:
 ```ts
@@ -673,7 +673,7 @@ When generating backend code for this Project:
    - Use DTOs + ValidationPipe.
    - Use typed Supabase clients and repositories, not inline queries.
    - Map Supabase rows into domain/DTO models before returning.
-   - Filter ALL org_* queries by tenant_org_id (NO EXCEPTIONS).
+   - Filter ALL org_* queries by tenant_org_id (NO EXCEPTIONS). — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
    - Check [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md) for where features should be implemented.
 2. PREFER:
    - Extending existing repositories/services over creating ad-hoc data access.

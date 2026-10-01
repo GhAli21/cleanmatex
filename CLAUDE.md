@@ -71,7 +71,7 @@ Communication style:
 1. **Never do Supabase db reset** — tell the user, they'll run db migrations
 2. **Never modify existing migration files** — always create a NEW migration for fixes or changes
 3. **NEVER apply/run database migrations** — create migration SQL files only, then STOP and ask to review. Do NOT use Supabase MCP, CLI, or any tool to execute migrations.
-4. **Every query MUST filter by `tenant_org_id`** — NO EXCEPTIONS (unless table has no tenant_org_id)
+4. **Every `org_*` query MUST filter by `tenant_org_id` directly in the query itself** — NO EXCEPTIONS (unless the table has no `tenant_org_id` column). This applies to every data-access form: Prisma (`where`, `updateMany`/`deleteMany`, nested/`include` relations), Supabase client, raw SQL (`$queryRaw`, `$executeRaw`, SQL functions), and joins (add `tenant_org_id` to each joined `org_*` table's `ON`/`WHERE`). Never rely only on RLS, Prisma middleware/`$extends` guard, or a prior parent lookup — the explicit `tenant_org_id` predicate must be visible in the query. Writes too: INSERT must set `tenant_org_id`; UPDATE/DELETE `WHERE` must include it; INSERT…SELECT / UPDATE…FROM / DELETE…USING must filter every `org_*` source table. Fetch-by-id alone is a violation.
 5. **After frontend changes: run `npm run build`** and fix until success
 6. **Bilingual support (EN/AR + RTL) is mandatory**
 7. **Use agents for exploration** — see efficiency guide below

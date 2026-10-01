@@ -483,7 +483,7 @@ import { debounce } from "lodash-es"; // Not import _ from 'lodash'
 
 See also: [Multi-Tenancy Enforcement](./multitenancy.md#tenant-context-management-mandatory)
 
-- **Always filter by `tenant_org_id`** in every query
+- **Always filter by `tenant_org_id`** in every query — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 - **Use composite foreign keys** for tenant-scoped joins
 - **Test tenant isolation** in unit tests
 - **Never expose** tenant data across boundaries

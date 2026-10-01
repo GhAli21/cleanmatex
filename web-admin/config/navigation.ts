@@ -945,6 +945,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'super_admin', 'tenant_admin'],
       },
       {
+        key: 'settings_currency_fx',
+        label: 'Currencies & FX',
+        label2: 'العملات وأسعار الصرف',
+        path: '/dashboard/settings/finance/currency-fx',
+        roles: ['admin', 'super_admin', 'tenant_admin', 'finance_manager'],
+        permissions: ['currencies:view'],
+      },
+      {
         key: 'settings_payments',
         label: 'Payment Setup',
         path: '/dashboard/settings/payments',

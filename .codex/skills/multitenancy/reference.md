@@ -147,10 +147,10 @@ Core entities use composite keys like `(tenant_org_id, entity_id)` to enforce is
 
 ### Multi-Tenancy Enforcement Layers
 
-**Application Layer (Prisma Middleware):**
-- Auto-inject `tenant_org_id` filter on all `org_*` tables
-- Enforced via middleware in `lib/prisma-middleware.ts`
-- Compile-time type checking prevents mistakes
+**Application Layer (explicit predicate — MANDATORY):**
+- Every `org_*` query (Prisma, Supabase client, raw SQL, SQL functions, joins, and INSERT/UPDATE/DELETE writes) MUST include `tenant_org_id` directly in the query when the table has that column; by-`id`-only access is a violation.
+- INSERT sets `tenant_org_id` on the row; UPDATE/DELETE `WHERE` includes `tenant_org_id`; INSERT…SELECT / UPDATE…FROM / DELETE…USING filter every `org_*` source table too.
+- RLS and any Prisma guard are defense in depth only, never a substitute.
 
 **Database Layer (RLS Policies):**
 - Existing RLS policies still active

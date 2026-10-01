@@ -731,7 +731,7 @@ await softDelete(supabase, "org_orders_mst", orderId, tenantId, userId);
 ### ✅ DO
 
 - Always enable RLS on `org_*` tables
-- Always filter by `tenant_org_id` in queries
+- Always filter by `tenant_org_id` in queries — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 - Use composite foreign keys for tenant-scoped joins
 - Test RLS policies with different user roles
 - Use transactions for multi-step operations

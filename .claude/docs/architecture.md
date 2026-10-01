@@ -72,14 +72,14 @@ Core entities use composite keys like `(tenant_org_id, entity_id)` to enforce is
 
 **Example - Automatic Tenant Filtering:**
 ```typescript
-// Middleware auto-adds: WHERE tenant_org_id = {session.tenant_org_id}
 const orders = await prisma.org_orders_mst.findMany({
+  where: { tenant_org_id: tenantId },
   include: {
     customer: true,
     items: true,
   }
 })
-// ✅ tenant_org_id filter added automatically by middleware
+// ✅ tenant_org_id is explicit in the query
 ```
 
 ### Type Safety Benefits
@@ -89,15 +89,15 @@ const orders = await prisma.org_orders_mst.findMany({
 const { data } = await supabase
   .from('org_orders_mst')
   .select('*')
-  .eq('tenant_org_id', tenantId) // Easy to forget!
+  .eq('tenant_org_id', tenantId) // Mandatory — never omit!
 // data is loosely typed
 ```
 
 **After (Prisma):**
 ```typescript
-const orders = await prisma.org_orders_mst.findMany()
+const orders = await prisma.org_orders_mst.findMany({ where: { tenant_org_id: tenantId } })
 // ✅ Fully typed return value
-// ✅ tenant_org_id auto-filtered
+// ✅ tenant_org_id explicit in where
 // ✅ IntelliSense for all fields
 // ✅ Compile-time error checking
 ```

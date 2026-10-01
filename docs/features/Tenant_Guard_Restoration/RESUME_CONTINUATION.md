@@ -1,6 +1,6 @@
 # Tenant Guard Restoration — Resume
 
-**Resume point (2026-09-25):** Phase 2 done (`bfa5917`). Work moved to the owner's laptop. Start with the **"Next (in order, on the laptop)"** list in [STATUS.md](STATUS.md): local verification, then Phase 3 apply, PR, rollout.
+**Resume point (2026-10-01):** Phase 2 done (`bfa5917`, now an ancestor of `main` — no branch checkout needed, work continues on `main`). Local verification (prisma:generate, tsc, DB-integration suite) is done and triaged — see **"Local verification session (2026-10-01)"** in [STATUS.md](STATUS.md). Phase 3's code edit has **not** been made yet: it is blocked on an owner decision about how to get a clean `npm run build` / `eslint` read past an unrelated package's uncommitted WIP in the working tree (see "Open blocker" in STATUS.md). Start there, not with the old "Next (in order, on the laptop)" list below it (steps 1–3 of that list are now marked obsolete/done).
 
 Read in order: [STATUS.md](STATUS.md) (authoritative) → [VIOLATIONS.md](VIOLATIONS.md) (closed worklist + raw-SQL verdicts) → [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 

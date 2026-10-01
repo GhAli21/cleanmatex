@@ -63,6 +63,8 @@ export const FINANCE_PERMISSIONS = {
   CASH_DRAWER_RECORD_MOVEMENT: 'cash_drawer:record_movement',
   /** CLF (migration 0529): after-close follow-up status + notes on a closed session. */
   CASH_DRAWER_POST_CLOSE_UPDATE: 'cash_drawer:post_close_update',
+  /** Pre-existing seeded permission (see plan §4B.8), first code consumer is CLF-7's `GET /cash-drawers/follow-up`. */
+  CASH_DRAWER_VIEW_REPORTS: 'cash_drawer:view_reports',
   /** POS Session & Cash Drawer Hardening W0-10 (migration 0517) — new; gates /dashboard/settings/payments/cash-control-settings. */
   CASH_CONTROL_VIEW: 'cash_control:view',
   CASH_CONTROL_MANAGE: 'cash_control:manage',

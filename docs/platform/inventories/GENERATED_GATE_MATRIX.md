@@ -1,18 +1,18 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-09-26T05:11:27.274Z
-Git SHA: c2f6bc25
+Generated: 2026-10-01T18:40:06.450Z
+Git SHA: ca948bbc
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 153 |
+| Access contracts | 154 |
 | Permission usages | 341 |
 | Feature flag usages | 81 |
 | Setting usages | 31 |
 | Plan limit usages | 8 |
-| Navigation entries | 102 |
-| Flag catalog entries | 297 |
+| Navigation entries | 103 |
+| Flag catalog entries | 298 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
 | --- | --- | --- | --- | --- |
@@ -150,6 +150,7 @@ Git SHA: c2f6bc25
 | /dashboard/settings/branches/[id] | Branch Settings | — | — | 0 |
 | /dashboard/settings/branding | Branding Settings | — | — | 0 |
 | /dashboard/settings/finance | Finance Settings | — | — | 0 |
+| /dashboard/settings/finance/currency-fx | Currencies & FX | currencies:view | — | 7 |
 | /dashboard/settings/general | General Settings | — | — | 0 |
 | /dashboard/settings/navigation | Navigation Settings | — | — | 0 |
 | /dashboard/settings/payments | Payment Setup | payment_config:view | — | 0 |

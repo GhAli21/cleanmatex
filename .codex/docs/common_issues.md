@@ -1,7 +1,7 @@
 # Common Issues & Debugging & Compiling and Build
 
 - **RLS blocking:** check `pg_tables`, `pg_policies`, ensure JWT claims and service role where needed
-- **Cross-tenant leak:** enforce `tenant_org_id` filter; verify queries
+- **Cross-tenant leak:** `tenant_org_id` must be explicit in every `org_*` query (Prisma, Supabase, raw SQL, joins, and INSERT/UPDATE/DELETE writes); RLS alone is not enough; verify queries
 - **Migration fails:** fix SQL order, FKs, types; use `supabase db reset --debug`
 - **N+1 queries:** use relation selects
 - **TS type drift:** regenerate Supabase types

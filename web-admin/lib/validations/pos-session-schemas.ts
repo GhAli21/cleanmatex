@@ -84,6 +84,18 @@ export const posSessionListQuerySchema = z.object({
   { message: 'openedAtFrom must be before or equal to openedAtTo', path: ['openedAtTo'] }
 );
 
+/**
+ * Bounds reusable POS-session list-of-values reads. The option kind is an
+ * allow-list so the service never turns a client value into a SQL identifier.
+ */
+export const posSessionFilterOptionsQuerySchema = z.object({
+  type: z.enum(['branch', 'operator', 'terminal', 'cashDrawer', 'cashDrawerSession']),
+  query: z.string().trim().min(1).max(200).optional(),
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+  scope: z.enum(['own', 'all']).default('own'),
+});
+
 /** Limits event history reads to a practical, server-controlled page size. */
 export const posSessionEventsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(10_000).default(1),

@@ -347,7 +347,7 @@ export default function OrdersPage() {
 
 **Access Pattern**:
 - Anon key + RLS (enforced tenant isolation)
-- ALWAYS filter queries by tenant_org_id
+- ALWAYS filter queries by tenant_org_id — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 - NO cross-tenant queries (forbidden)
 - Single tenant scope only
 
@@ -400,7 +400,7 @@ export function TenantSettingsScreen() {
 
 1. ✅ Use THIS CLAUDE.md and skills
 2. ✅ Use anon key + RLS patterns
-3. ✅ ALWAYS filter by tenant_org_id (NO EXCEPTIONS)
+3. ✅ ALWAYS filter by tenant_org_id (NO EXCEPTIONS) — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 4. ✅ Create migrations HERE (source of truth)
 5. ❌ NO service role key usage
 6. ❌ NO cross-tenant queries

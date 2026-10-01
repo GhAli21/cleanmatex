@@ -5,6 +5,7 @@ import {
   autoLinkDrawerTx,
   getMyActivePosSession,
   getPosSessionSummary,
+  listPosSessionFilterOptions,
   listPosSessions,
   PosSessionError,
   resumePosSession,
@@ -411,6 +412,69 @@ describe('pos-session.service', () => {
         expect(values).toContain(otherUserId);
         expect(values).not.toContain(userId);
       }
+    });
+  });
+
+  describe('listPosSessionFilterOptions visibility', () => {
+    /** Flattens every bound value from the mocked Prisma.sql tree. */
+    const boundValues = (node: unknown): unknown[] => {
+      if (!node || typeof node !== 'object') return [node];
+      const sqlNode = node as { kind?: string; values?: unknown[] };
+      if (sqlNode.kind === 'sql' || sqlNode.kind === 'join') {
+        return (sqlNode.values ?? []).flatMap(boundValues);
+      }
+      return [];
+    };
+
+    it('derives own-scope options from only the authenticated operator sessions', async () => {
+      db.$queryRaw.mockResolvedValueOnce([
+        {
+          id: branchA,
+          label: 'Main Branch',
+          label2: 'الفرع الرئيسي',
+          secondary_label: null,
+          total: 1,
+        },
+      ]);
+
+      const result = await listPosSessionFilterOptions({
+        tenantId,
+        userId,
+        canViewAll: false,
+        type: 'branch',
+        page: 1,
+        pageSize: 25,
+        scope: 'own',
+      });
+
+      const values = boundValues(db.$queryRaw.mock.calls[0]?.[0]);
+      expect(values).toContain(tenantId);
+      expect(values).toContain(userId);
+      expect(result).toEqual({
+        type: 'branch',
+        items: [{ id: branchA, label: 'Main Branch', label2: 'الفرع الرئيسي', secondaryLabel: null }],
+        total: 1,
+        page: 1,
+        pageSize: 25,
+      });
+    });
+
+    it('permits all-scope lookups only after view-all is granted', async () => {
+      db.$queryRaw.mockResolvedValueOnce([]);
+
+      await listPosSessionFilterOptions({
+        tenantId,
+        userId,
+        canViewAll: true,
+        type: 'cashDrawerSession',
+        page: 1,
+        pageSize: 25,
+        scope: 'all',
+      });
+
+      const values = boundValues(db.$queryRaw.mock.calls[0]?.[0]);
+      expect(values).toContain(tenantId);
+      expect(values).not.toContain(userId);
     });
   });
 });

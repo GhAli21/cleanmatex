@@ -4,9 +4,10 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Check, Copy, CreditCard, RefreshCw, ShieldAlert } from 'lucide-react';
-import { CmxButton, CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxSelect } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
+import { CmxListOfValuesDialog, type CmxListOfValuesDialogLabels } from '@ui/forms';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display';
@@ -37,6 +38,9 @@ import type {
   PosSessionListRow,
   PosSessionEventListResult,
   PosSessionEventListRow,
+  PosSessionFilterOption,
+  PosSessionFilterOptionType,
+  PosSessionFilterOptionsResult,
   PosSessionRow,
   PosSessionWithContext,
 } from '@/lib/types/pos-session';
@@ -89,6 +93,8 @@ interface SessionActionDialogState {
   reason: string;
 }
 
+type PosSessionLookupKind = Exclude<PosSessionFilterOptionType, 'cashDrawerSession'>;
+
 /**
  * Operates the authenticated user's POS session and exposes authorized session history.
  *
@@ -97,6 +103,7 @@ interface SessionActionDialogState {
  */
 export function PosSessionsScreen() {
   const t = useTranslations('posSessions');
+  const tCommon = useTranslations('common');
   const queryClient = useQueryClient();
   const { token: csrfToken } = useCSRFToken();
   const canViewAll = useHasPermissionCode('pos_session:view_all');
@@ -112,9 +119,11 @@ export function PosSessionsScreen() {
   const [status, setStatus] = useState('');
   const [scope, setScope] = useState<'own' | 'all'>('own');
   const [sessionNo, setSessionNo] = useState('');
-  const [operatorQuery, setOperatorQuery] = useState('');
-  const [terminalQuery, setTerminalQuery] = useState('');
-  const [cashDrawerQuery, setCashDrawerQuery] = useState('');
+  const [userId, setUserId] = useState('');
+  const [terminalId, setTerminalId] = useState('');
+  const [cashDrawerId, setCashDrawerId] = useState('');
+  const [selectedLookupLabels, setSelectedLookupLabels] = useState<Partial<Record<PosSessionLookupKind, string>>>({});
+  const [lookupKind, setLookupKind] = useState<PosSessionLookupKind | null>(null);
   const [businessDateFrom, setBusinessDateFrom] = useState('');
   const [businessDateTo, setBusinessDateTo] = useState('');
   const [openedAtFrom, setOpenedAtFrom] = useState('');
@@ -139,7 +148,7 @@ export function PosSessionsScreen() {
   });
 
   const sessionsQuery = useQuery({
-    queryKey: ['pos-sessions', 'list', page, branchId, status, scope, sessionNo, operatorQuery, terminalQuery, cashDrawerQuery, businessDateFrom, businessDateTo, openedAtFrom, openedAtTo],
+    queryKey: ['pos-sessions', 'list', page, branchId, status, scope, sessionNo, userId, terminalId, cashDrawerId, businessDateFrom, businessDateTo, openedAtFrom, openedAtTo],
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -149,9 +158,9 @@ export function PosSessionsScreen() {
       if (branchId) params.set('branchId', branchId);
       if (status) params.set('status', status);
       if (sessionNo.trim()) params.set('sessionNo', sessionNo.trim());
-      if (operatorQuery.trim()) params.set('operatorQuery', operatorQuery.trim());
-      if (terminalQuery.trim()) params.set('terminalQuery', terminalQuery.trim());
-      if (cashDrawerQuery.trim()) params.set('cashDrawerQuery', cashDrawerQuery.trim());
+      if (userId) params.set('userId', userId);
+      if (terminalId) params.set('terminalId', terminalId);
+      if (cashDrawerId) params.set('cashDrawerId', cashDrawerId);
       if (businessDateFrom) params.set('businessDateFrom', businessDateFrom);
       if (businessDateTo) params.set('businessDateTo', businessDateTo);
       if (openedAtFrom) params.set('openedAtFrom', openedAtFrom);
@@ -172,6 +181,15 @@ export function PosSessionsScreen() {
     // Prevent query before a session is selected — avoids an invalid audit request.
     enabled: !!eventsSession,
     queryFn: () => fetchJson<PosSessionEventListResult>(`/api/v1/pos-sessions/${eventsSession!.id}/events`),
+  });
+
+  const lookupOptionsQuery = useQuery({
+    queryKey: ['pos-sessions', 'filter-options', lookupKind, scope],
+    enabled: !!lookupKind,
+    queryFn: () => {
+      const params = new URLSearchParams({ type: lookupKind!, scope, pageSize: '100' });
+      return fetchJson<PosSessionFilterOptionsResult>(`/api/v1/pos-sessions/filter-options?${params.toString()}`);
+    },
   });
 
   const activeSession =
@@ -405,13 +423,56 @@ export function PosSessionsScreen() {
     setStatus('');
     setScope('own');
     setSessionNo('');
-    setOperatorQuery('');
-    setTerminalQuery('');
-    setCashDrawerQuery('');
+    setUserId('');
+    setTerminalId('');
+    setCashDrawerId('');
+    setSelectedLookupLabels({});
     setBusinessDateFrom('');
     setBusinessDateTo('');
     setOpenedAtFrom('');
     setOpenedAtTo('');
+  };
+
+  const lookupSelectedId = lookupKind === 'operator'
+    ? userId
+    : lookupKind === 'branch'
+      ? branchId
+    : lookupKind === 'terminal'
+      ? terminalId
+      : lookupKind === 'cashDrawer'
+        ? cashDrawerId
+        : null;
+
+  const lookupLabels: CmxListOfValuesDialogLabels = {
+    title: lookupKind ? t(lookupKind) : '',
+    searchLabel: tCommon('search'),
+    searchPlaceholder: tCommon('search'),
+    loadingLabel: t('banner.loading'),
+    emptyLabel: t('noFilterOptions'),
+    clearLabel: tCommon('clear'),
+    cancelLabel: tCommon('cancel'),
+    applyLabel: tCommon('done'),
+    optionsLabel: lookupKind ? t(lookupKind) : '',
+  };
+
+  const selectedLookupLabel = (kind: PosSessionLookupKind, selectedId: string, fallback: string) => {
+    if (!selectedId) return fallback;
+    return selectedLookupLabels[kind] ?? fallback;
+  };
+
+  const applyLookup = (selectedId: string | null) => {
+    setPage(1);
+    const selectedLabel = lookupOptionsQuery.data?.items.find((option) => option.id === selectedId)?.label;
+    if (lookupKind) {
+      setSelectedLookupLabels((current) => ({
+        ...current,
+        [lookupKind]: selectedLabel ?? '',
+      }));
+    }
+    if (lookupKind === 'operator') setUserId(selectedId ?? '');
+    if (lookupKind === 'branch') setBranchId(selectedId ?? '');
+    if (lookupKind === 'terminal') setTerminalId(selectedId ?? '');
+    if (lookupKind === 'cashDrawer') setCashDrawerId(selectedId ?? '');
   };
 
   return (
@@ -561,33 +622,25 @@ export function PosSessionsScreen() {
               value={sessionNo}
               onChange={(event) => { setPage(1); setSessionNo(event.target.value); }}
             />
-            <CmxInput
+            <LookupFilterButton
               label={t('operator')}
-              placeholder={t('allOperators')}
-              value={operatorQuery}
-              onChange={(event) => { setPage(1); setOperatorQuery(event.target.value); }}
+              value={selectedLookupLabel('operator', userId, t('allOperators'))}
+              onClick={() => setLookupKind('operator')}
             />
-            <CmxInput
+            <LookupFilterButton
               label={t('terminal')}
-              placeholder={t('allTerminals')}
-              value={terminalQuery}
-              onChange={(event) => { setPage(1); setTerminalQuery(event.target.value); }}
+              value={selectedLookupLabel('terminal', terminalId, t('allTerminals'))}
+              onClick={() => setLookupKind('terminal')}
             />
-            <CmxInput
+            <LookupFilterButton
               label={t('cashDrawer')}
-              placeholder={t('allCashDrawers')}
-              value={cashDrawerQuery}
-              onChange={(event) => { setPage(1); setCashDrawerQuery(event.target.value); }}
+              value={selectedLookupLabel('cashDrawer', cashDrawerId, t('allCashDrawers'))}
+              onClick={() => setLookupKind('cashDrawer')}
             />
-            <CmxSelect
+            <LookupFilterButton
               label={t('branch')}
-              value={branchId}
-              placeholder={t('optionalBranch')}
-              options={[{ value: '', label: t('optionalBranch') }, ...branchOptions]}
-              onChange={(event) => {
-                setPage(1);
-                setBranchId(event.target.value);
-              }}
+              value={selectedLookupLabel('branch', branchId, t('optionalBranch'))}
+              onClick={() => setLookupKind('branch')}
             />
             <CmxSelect
               label={t('status')}
@@ -609,6 +662,12 @@ export function PosSessionsScreen() {
               onChange={(event) => {
                 setPage(1);
                 setScope(event.target.value === 'all' ? 'all' : 'own');
+                // An all-scope lookup may be outside the caller's own-session view.
+                setBranchId('');
+                setUserId('');
+                setTerminalId('');
+                setCashDrawerId('');
+                setSelectedLookupLabels({});
               }}
             />
             <CmxInput
@@ -666,6 +725,20 @@ export function PosSessionsScreen() {
               ],
             }}
           />
+          {lookupKind ? (
+            <CmxListOfValuesDialog<PosSessionFilterOption>
+              open
+              onOpenChange={(open) => !open && setLookupKind(null)}
+              options={lookupOptionsQuery.data?.items ?? []}
+              selectedId={lookupSelectedId}
+              onApply={applyLookup}
+              getOptionId={(option) => option.id}
+              getOptionLabel={(option) => option.label}
+              getOptionDescription={(option) => option.secondaryLabel ?? option.label2}
+              isLoading={lookupOptionsQuery.isLoading}
+              labels={lookupLabels}
+            />
+          ) : null}
         </CmxCardContent>
       </CmxCard>
 
@@ -833,6 +906,21 @@ function AuditValue({ value, actor, reason }: { value: string; actor?: string | 
 function JsonPreview({ value }: { value: unknown }) {
   const json = JSON.stringify(value ?? {});
   return <div className="max-w-52 truncate font-mono text-xs" title={json}>{json}</div>;
+}
+
+/**
+ * Keeps lookup selection discoverable while the generic Cmx dialog owns the
+ * searchable, keyboard-safe value list instead of duplicating picker logic per filter.
+ */
+function LookupFilterButton({ label, value, onClick }: { label: string; value: string; onClick: () => void }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <CmxButton className="w-full justify-start text-start font-normal" variant="outline" onClick={onClick}>
+        <span className="truncate">{value}</span>
+      </CmxButton>
+    </div>
+  );
 }
 
 /**

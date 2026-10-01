@@ -15,7 +15,9 @@ export const recordSpotCountRequestSchema = z.object({
   countType: z.enum([CASH_DRAWER_COUNT_TYPES.SPOT, CASH_DRAWER_COUNT_TYPES.RECOUNT]),
   currencyCode: z.string().length(3),
   count: countInputSchema,
-  /** RECOUNT only — the prior CLOSING (or RECOUNT) count this one supersedes. */
+  /** A mid-shift SPOT on an OPEN session's drawer; omitted/null for a count-only drawer. */
+  cashDrawerSessionId: z.string().uuid().optional(),
+  /** RECOUNT only — the prior SPOT (or RECOUNT) count this one supersedes. */
   supersedesCountId: z.string().uuid().optional(),
   notes: z.string().trim().max(1000).optional(),
 });

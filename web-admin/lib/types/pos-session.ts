@@ -114,6 +114,31 @@ export interface PosSessionListResult {
   pageSize: number;
 }
 
+/** Kinds of POS-session dimensions selectable by a list-of-values control. */
+export type PosSessionFilterOptionType =
+  | 'branch'
+  | 'operator'
+  | 'terminal'
+  | 'cashDrawer'
+  | 'cashDrawerSession';
+
+/** Tenant-scoped selectable value returned by the POS-session lookup endpoint. */
+export interface PosSessionFilterOption {
+  id: string;
+  label: string;
+  label2: string | null;
+  secondaryLabel: string | null;
+}
+
+/** Server-paged result for one POS-session filter dimension. */
+export interface PosSessionFilterOptionsResult {
+  type: PosSessionFilterOptionType;
+  items: PosSessionFilterOption[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 /** Session event enriched with tenant-scoped actor display names. */
 export interface PosSessionEventListRow extends PosSessionEventRow {
   performed_by_display_name: string | null;

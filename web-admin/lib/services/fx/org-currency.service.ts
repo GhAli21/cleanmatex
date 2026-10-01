@@ -28,6 +28,8 @@ import { checkCurrencyInUse } from './currency-usage.service';
 export interface CurrencyPortfolioRow {
   currencyCode: string;
   isBaseCurrency: boolean;
+  /** Stamped at the first posted document (C6); null until then. Informational — the DB trigger is authoritative. */
+  baseLockedAt: string | null;
   isReportingCurrency: boolean;
   allowSales: boolean;
   allowPayments: boolean;
@@ -81,6 +83,7 @@ function toPortfolioRow(row: OrgCurrencyRow): CurrencyPortfolioRow {
   return {
     currencyCode: row.currency_code,
     isBaseCurrency: row.is_base_currency,
+    baseLockedAt: row.base_locked_at ? row.base_locked_at.toISOString() : null,
     isReportingCurrency: row.is_reporting_currency,
     allowSales: row.allow_sales,
     allowPayments: row.allow_payments,

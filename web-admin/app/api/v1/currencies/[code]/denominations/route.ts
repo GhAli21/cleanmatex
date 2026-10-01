@@ -1,0 +1,34 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+import { requirePermission } from '@/lib/middleware/require-permission';
+import { getCurrencyDenominations } from '@/lib/services/cash-drawer-catalogs.service';
+import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+
+/**
+ * GET /api/v1/currencies/[code]/denominations
+ *
+ * CLF §4B.7, CLF-8-1 `CmxDenominationCounter` — active, in-circulation
+ * denominations for one currency (global `sys_currency_denominations_cd`, no
+ * tenant scoping). Gated on `cash_drawer:view` rather than left fully
+ * unauthenticated, consistent with the rest of the CLF surface;
+ * `org_currency_denom_cf` tenant overrides are a documented C1 follow-up.
+ * @param request authenticated request
+ * @param root0 route params
+ * @param root0.params ISO currency code
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ code: string }> },
+) {
+  const auth = await requirePermission('cash_drawer:view')(request);
+  if (auth instanceof NextResponse) return auth;
+
+  const { code } = await params;
+
+  try {
+    const rows = await getCurrencyDenominations(code.toUpperCase());
+    return NextResponse.json({ success: true, data: rows });
+  } catch (error) {
+    return mapCashDrawerError(error, 'Failed to load currency denominations');
+  }
+}

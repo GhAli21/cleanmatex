@@ -48,7 +48,7 @@ You validate proposed architectures and designs against established platform con
 ### Critical Constraints (NEVER VIOLATE)
 
 **Multi-Tenancy:**
-- ALL queries MUST filter by tenant_org_id
+- ALL queries MUST filter by tenant_org_id — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 - Use composite foreign keys for tenant-scoped joins
 - RLS policies on all org_* tables
 - Test tenant isolation thoroughly

@@ -93,7 +93,7 @@ CONSTRAINT chk_<tbl>_fx_same_ccy CHECK (
 
 Tenant isolation via composite references on `(tenant_org_id, ...)`.
 
-**cleanmatex note:** ALL queries in this project MUST filter by `tenant_org_id` to enforce RLS and tenant isolation. See multitenancy skill for details.
+**cleanmatex note:** ALL queries in this project MUST filter by `tenant_org_id` to enforce RLS and tenant isolation. See multitenancy skill for details. — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 
 ---
 
@@ -144,7 +144,7 @@ Tenant isolation via composite references on `(tenant_org_id, ...)`.
 - Backend: web-admin/lib/services/preference-catalog.service.ts - Merge sys + org catalogs
 - Frontend: web-admin/app/dashboard/catalog/preferences/ - View + customize tenant catalog
 - Access: Anon key + RLS (tenant-scoped)
-- **CRITICAL**: Always filter by tenant_org_id, RLS enforced
+- **CRITICAL**: Always filter by tenant_org_id, RLS enforced — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 
 **Platform Admin Side** (cleanmatexsaas):
 

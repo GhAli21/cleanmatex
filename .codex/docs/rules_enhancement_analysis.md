@@ -245,7 +245,7 @@ This document analyzes all rules files in `.claude/docs/` and provides specific 
 ```markdown
 ## Multi-Tenant Queries
 
-⚠️ CRITICAL: Always filter by tenant_org_id in every query
+⚠️ CRITICAL: Always filter by tenant_org_id in every query — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 
 // ✅ CORRECT
 const { data } = await supabase

@@ -5,6 +5,12 @@
  * over-threshold drawer-close variance with a mandatory reason. Permission
  * `cash_drawer:approve_variance` is seeded by B27; this route stays fail-closed
  * (permission denied) until that migration lands and the role is granted.
+ *
+ * CLF §4B.7 "existing, moved" — rewired onto the CLF-aware
+ * `cash-drawer-session.service.ts` (emits the withheld closing over/short
+ * event once approved). It still throws the same `VarianceApprovalError`
+ * from `cash-drawer.service.ts` (reused, not duplicated — STATUS D41), so
+ * error handling here is unchanged.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -12,8 +18,8 @@ import { z } from 'zod'
 
 import { requirePermission } from '@lib/middleware/require-permission'
 import { validateCSRF } from '@/lib/middleware/csrf'
+import { approveVariance } from '@/lib/services/cash-drawer-session.service'
 import {
-  approveSessionVariance,
   VarianceApprovalError,
   VARIANCE_APPROVAL_ERRORS,
 } from '@lib/services/cash-drawer.service'
@@ -58,11 +64,8 @@ export async function POST(
   }
 
   try {
-    const session = await approveSessionVariance(tenantId, sessionId, {
-      approvedBy: userId,
-      reason: parsed.data.reason,
-    })
-    return NextResponse.json({ success: true, data: session })
+    await approveVariance(tenantId, userId, sessionId, { reason: parsed.data.reason })
+    return NextResponse.json({ success: true, data: { sessionId } })
   } catch (error) {
     if (error instanceof VarianceApprovalError) {
       return NextResponse.json(

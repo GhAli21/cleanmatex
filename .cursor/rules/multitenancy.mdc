@@ -3,7 +3,7 @@
 # Multi‑Tenancy Enforcement
 
 **Rules**
-1. Always filter by `tenant_org_id`
+1. Every `org_*` query (Prisma, Supabase client, raw SQL, SQL functions, joins, and INSERT/UPDATE/DELETE writes) MUST include `tenant_org_id` directly in the query when the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute. Fetch/update/delete by `id` alone is a violation.
 2. Composite FKs on joins
 3. Enforce RLS on every org_* table
 4. Global sys_* tables link to org_* via junctions
@@ -27,7 +27,7 @@
 
 **🚨 NEVER VIOLATE THESE RULES:**
 
-1. **Always filter by `tenant_org_id`** in every query
+1. **Always filter by `tenant_org_id`** in every query — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 2. **Use composite foreign keys** when joining across tenant tables
 3. **Leverage RLS policies** for additional security
 4. **Global customers** are linked to tenants via junction table

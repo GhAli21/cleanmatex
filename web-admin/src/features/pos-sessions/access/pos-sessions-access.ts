@@ -56,6 +56,13 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['pos_session:view'], requireAllPermissions: true },
       },
       {
+        label: 'List POS-session filter options',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/filter-options',
+        requirement: { permissions: ['pos_session:view'], requireAllPermissions: true },
+        notes: ['Options are restricted to session values visible within the authenticated tenant and selected own/all scope.'],
+      },
+      {
         label: 'Get my active POS session',
         method: 'GET',
         path: '/api/v1/pos-sessions/my-active',

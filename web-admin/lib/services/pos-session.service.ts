@@ -18,6 +18,9 @@ import type {
   PosSessionIdempotentResult,
   PosSessionEventListResult,
   PosSessionEventListRow,
+  PosSessionFilterOption,
+  PosSessionFilterOptionsResult,
+  PosSessionFilterOptionType,
   PosSessionLifecycleResult,
   PosSessionListResult,
   PosSessionListRow,
@@ -1194,6 +1197,190 @@ export async function listPosSessions(input: {
       pageSize,
     };
   });
+}
+
+interface PosSessionFilterOptionQueryRow extends Omit<PosSessionFilterOption, 'secondaryLabel'> {
+  secondary_label: string | null;
+  total: number;
+}
+
+/**
+ * Lists one visible POS-session dimension for a reusable list-of-values picker.
+ *
+ * The option set deliberately comes from POS session history instead of each
+ * master catalogue. That prevents the picker from offering a value which the
+ * caller cannot use to find an authorized session in the current own/all scope.
+ */
+export async function listPosSessionFilterOptions(input: {
+  tenantId: string;
+  userId: string;
+  canViewAll: boolean;
+  type: PosSessionFilterOptionType;
+  query?: string | null;
+  page: number;
+  pageSize: number;
+  scope?: 'own' | 'all';
+}): Promise<PosSessionFilterOptionsResult> {
+  const page = Math.max(1, input.page);
+  const pageSize = Math.min(Math.max(1, input.pageSize), 100);
+  const offset = (page - 1) * pageSize;
+  const showAll = input.canViewAll && input.scope === 'all';
+  const userScopeSql = showAll
+    ? Prisma.empty
+    : Prisma.sql`AND ps.user_id = ${input.userId}::uuid`;
+  const searchSql = input.query
+    ? Prisma.sql`WHERE (
+        options.label ILIKE ${`%${input.query}%`}
+        OR COALESCE(options.label2, '') ILIKE ${`%${input.query}%`}
+        OR COALESCE(options.secondary_label, '') ILIKE ${`%${input.query}%`}
+      )`
+    : Prisma.empty;
+
+  // Keep the primary visibility predicate in the CTE so every option source
+  // inherits the same tenant and own/all authorization boundary.
+  const visibleSessionsSql = Prisma.sql`
+    WITH visible_sessions AS (
+      SELECT
+        ps.branch_id,
+        ps.user_id,
+        ps.terminal_id,
+        ps.cash_drawer_id,
+        ps.cash_drawer_session_id
+      FROM public.org_pos_sessions_mst ps
+      WHERE ps.tenant_org_id = ${input.tenantId}::uuid
+        AND ps.is_active = TRUE
+        ${userScopeSql}
+    )`;
+
+  let rows!: PosSessionFilterOptionQueryRow[];
+  await withTenantContext(input.tenantId, async () => {
+    switch (input.type) {
+      case 'branch':
+        rows = await prisma.$queryRaw<PosSessionFilterOptionQueryRow[]>(Prisma.sql`
+          ${visibleSessionsSql},
+          options AS (
+            SELECT DISTINCT
+              branch.id::text AS id,
+              COALESCE(branch.name, branch.branch_name, branch.id::text) AS label,
+              branch.name2 AS label2,
+              NULL::text AS secondary_label
+            FROM visible_sessions ps
+            INNER JOIN public.org_branches_mst branch
+              ON branch.tenant_org_id = ${input.tenantId}::uuid
+             AND branch.id = ps.branch_id
+          )
+          SELECT options.*, COUNT(*) OVER()::int AS total
+          FROM options
+          ${searchSql}
+          ORDER BY options.label ASC, options.id ASC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `);
+        break;
+      case 'operator':
+        rows = await prisma.$queryRaw<PosSessionFilterOptionQueryRow[]>(Prisma.sql`
+          ${visibleSessionsSql},
+          options AS (
+            SELECT DISTINCT
+              operator_user.user_id::text AS id,
+              COALESCE(
+                operator_user.display_name,
+                operator_user.name,
+                operator_user.email,
+                operator_user.user_id::text
+              ) AS label,
+              operator_user.name2 AS label2,
+              operator_user.email AS secondary_label
+            FROM visible_sessions ps
+            INNER JOIN public.org_users_mst operator_user
+              ON operator_user.tenant_org_id = ${input.tenantId}::uuid
+             AND operator_user.user_id = ps.user_id
+          )
+          SELECT options.*, COUNT(*) OVER()::int AS total
+          FROM options
+          ${searchSql}
+          ORDER BY options.label ASC, options.id ASC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `);
+        break;
+      case 'terminal':
+        rows = await prisma.$queryRaw<PosSessionFilterOptionQueryRow[]>(Prisma.sql`
+          ${visibleSessionsSql},
+          options AS (
+            SELECT DISTINCT
+              terminal.id::text AS id,
+              COALESCE(terminal.terminal_name, terminal.terminal_code, terminal.id::text) AS label,
+              terminal.terminal_name2 AS label2,
+              terminal.terminal_code AS secondary_label
+            FROM visible_sessions ps
+            INNER JOIN public.org_payment_terminals_cf terminal
+              ON terminal.tenant_org_id = ${input.tenantId}::uuid
+             AND terminal.id = ps.terminal_id
+          )
+          SELECT options.*, COUNT(*) OVER()::int AS total
+          FROM options
+          ${searchSql}
+          ORDER BY options.label ASC, options.id ASC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `);
+        break;
+      case 'cashDrawer':
+        rows = await prisma.$queryRaw<PosSessionFilterOptionQueryRow[]>(Prisma.sql`
+          ${visibleSessionsSql},
+          options AS (
+            SELECT DISTINCT
+              drawer.id::text AS id,
+              COALESCE(drawer.drawer_name, drawer.drawer_code, drawer.id::text) AS label,
+              drawer.drawer_name2 AS label2,
+              drawer.drawer_code AS secondary_label
+            FROM visible_sessions ps
+            INNER JOIN public.org_cash_drawers_mst drawer
+              ON drawer.tenant_org_id = ${input.tenantId}::uuid
+             AND drawer.id = ps.cash_drawer_id
+          )
+          SELECT options.*, COUNT(*) OVER()::int AS total
+          FROM options
+          ${searchSql}
+          ORDER BY options.label ASC, options.id ASC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `);
+        break;
+      case 'cashDrawerSession':
+        rows = await prisma.$queryRaw<PosSessionFilterOptionQueryRow[]>(Prisma.sql`
+          ${visibleSessionsSql},
+          options AS (
+            SELECT DISTINCT
+              drawer_session.id::text AS id,
+              COALESCE(drawer_session.session_no, drawer_session.id::text) AS label,
+              NULL::text AS label2,
+              drawer_session.status AS secondary_label
+            FROM visible_sessions ps
+            INNER JOIN public.org_cash_drawer_sessions_mst drawer_session
+              ON drawer_session.tenant_org_id = ${input.tenantId}::uuid
+             AND drawer_session.id = ps.cash_drawer_session_id
+          )
+          SELECT options.*, COUNT(*) OVER()::int AS total
+          FROM options
+          ${searchSql}
+          ORDER BY options.label ASC, options.id ASC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `);
+        break;
+    }
+  });
+
+  const results = rows!;
+  return {
+    type: input.type,
+    items: results.map(({ id, label, label2, secondary_label }) => ({
+      id,
+      label,
+      label2,
+      secondaryLabel: secondary_label,
+    })),
+    total: results[0]?.total ?? 0,
+    page,
+    pageSize,
+  };
 }
 
 /**

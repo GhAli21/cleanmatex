@@ -19,7 +19,7 @@ are higher authority when guidance conflicts.
 
 ## Core Rules
 
-1. Always enforce `tenant_org_id` on tenant-scoped data.
+1. Always enforce `tenant_org_id` on tenant-scoped data. — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 2. Use composite foreign keys for tenant isolation where appropriate.
 3. Enable RLS on new `org_*` tables.
 4. Use bilingual fields such as `name` and `name2` where user-facing data requires EN/AR support.

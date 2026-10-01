@@ -47,6 +47,162 @@ export interface CashDrawerOpenSessionResult {
   opening_float_amount: number | string
 }
 
+// -----------------------------------------------------------------------------
+// CLF two-step lifecycle (CLF-7 routes, CLF-8 slice A)
+// -----------------------------------------------------------------------------
+
+export interface DenominationCountLineInput {
+  denominationId: string
+  quantity: number
+}
+
+export interface OpeningCountInput {
+  countMode: 'TOTAL_ONLY' | 'DENOMINATION'
+  totalAmount?: number
+  denominations?: DenominationCountLineInput[]
+}
+
+export interface CurrencyBalancePreview {
+  currencyCode: string
+  openingExpected?: string
+  openingCounted?: string | null
+  openingVariance?: string | null
+  closingExpected?: string
+  closingCounted?: string | null
+  closingVariance?: string | null
+  varianceReasonRequired?: boolean
+}
+
+export interface OpenCashDrawerSessionV2Result {
+  sessionId: string
+  sessionNo: string
+  currencyBalances: CurrencyBalancePreview[]
+}
+
+/**
+ * Opens a cash drawer session on the CLF two-step lifecycle (CLF-7
+ * `openSessionRequestSchema`). The opening-expected figure is always
+ * computed by the server from drawer history — this only ever carries an
+ * optional physical count taken against it, never a manually declared float.
+ */
+export async function openCashDrawerSessionV2(input: {
+  drawerId: string
+  openingCount?: OpeningCountInput
+  notes?: string
+  csrfToken: string | null
+}): Promise<OpenCashDrawerSessionV2Result> {
+  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/open-session`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+    body: JSON.stringify({ openingCount: input.openingCount, notes: input.notes || undefined }),
+  })
+  return parseCashDrawerResponse<OpenCashDrawerSessionV2Result>(response)
+}
+
+export interface ClosePreviewResult {
+  sessionId: string
+  revealed: boolean
+  currencyBalances: Array<{ currencyCode: string; expected?: string }>
+}
+
+/** Read-only preview of what a close would show right now (CLF-7 `close-preview`). */
+export async function fetchCashDrawerClosePreviewV2(drawerId: string, sessionId: string): Promise<ClosePreviewResult> {
+  return fetchCashDrawerJson<ClosePreviewResult>(`/api/v1/cash-drawers/${drawerId}/session/${sessionId}/close-preview`)
+}
+
+export interface StartCloseResult {
+  sessionId: string
+  currencyBalances: CurrencyBalancePreview[]
+}
+
+/** The close wizard's count step — freezes the cut and moves the session to CLOSING (CLF-7 `close/count`). */
+export async function startCashDrawerClose(input: {
+  drawerId: string
+  sessionId: string
+  closingCount?: OpeningCountInput
+  notes?: string
+  csrfToken: string | null
+}): Promise<StartCloseResult> {
+  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/session/${input.sessionId}/close/count`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+    body: JSON.stringify({ closingCount: input.closingCount, notes: input.notes || undefined }),
+  })
+  return parseCashDrawerResponse<StartCloseResult>(response)
+}
+
+export interface DispositionDecisionInput {
+  currencyCode: string
+  dispositionCode: string
+  dispositionNotes?: string
+  destDrawerId?: string
+  keptAmount?: number
+}
+
+export interface FinalizeCloseResultV2 {
+  sessionId: string
+  status: 'CLOSED' | 'FORCE_CLOSED'
+  varianceApprovalPending: boolean
+  dispositionTrxId: string | null
+}
+
+/** Finalizes a session already in the count step (CLF-7 `close/finalize`). */
+export async function finalizeCashDrawerClose(input: {
+  drawerId: string
+  sessionId: string
+  dispositions: DispositionDecisionInput[]
+  varianceReason?: string
+  csrfToken: string | null
+}): Promise<FinalizeCloseResultV2> {
+  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/session/${input.sessionId}/close/finalize`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+    body: JSON.stringify({ dispositions: input.dispositions, varianceReason: input.varianceReason || undefined }),
+  })
+  return parseCashDrawerResponse<FinalizeCloseResultV2>(response)
+}
+
+export interface CashDrawerCatalogsV2 {
+  drawerTypes: Array<{ code: string; name: string; name2: string | null; isMobile: boolean; canReceiveDisposition: boolean; displayOrder: number }>
+  trxTypes: Array<{ code: string; name: string; name2: string | null; allowedSrcTypes: string[]; allowedDestTypes: string[]; requiresNotes: boolean; isSystem: boolean; displayOrder: number }>
+  dispositions: Array<{
+    code: string
+    name: string
+    name2: string | null
+    cashMoveMode: 'NONE' | 'ALL' | 'PART'
+    destDrawerTypeCode: string | null
+    requiresNotes: boolean
+    requiresKeptAmount: boolean
+    isSelectable: boolean
+    displayOrder: number
+  }>
+  postCloseStatuses: Array<{ code: string; name: string; name2: string | null; requiresNotes: boolean; displayOrder: number }>
+  countTypes: Array<{ code: string; name: string; name2: string | null; displayOrder: number }>
+}
+
+/** Bilingual drawer-type/trx-type/disposition/post-close/count-type catalogs (CLF-7 `catalogs`). */
+export async function fetchCashDrawerCatalogs(): Promise<CashDrawerCatalogsV2> {
+  return fetchCashDrawerJson<CashDrawerCatalogsV2>('/api/v1/cash-drawers/catalogs')
+}
+
+export interface CurrencyDenominationRow {
+  id: string
+  denominationCode: string
+  denominationMinor: number
+  denomKind: string
+  name: string
+  name2: string | null
+  displayOrder: number | null
+}
+
+/** Active, in-circulation denominations for one currency (CLF-7, CLF-8-1). */
+export async function fetchCurrencyDenominations(currencyCode: string): Promise<CurrencyDenominationRow[]> {
+  return fetchCashDrawerJson<CurrencyDenominationRow[]>(`/api/v1/currencies/${currencyCode}/denominations`)
+}
+
 export interface CashDrawerSessionCloseSummary {
   session: {
     id: string

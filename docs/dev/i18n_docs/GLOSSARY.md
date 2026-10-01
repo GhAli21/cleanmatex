@@ -45,6 +45,11 @@ much as possible, even across different namespaces.
 | Key | English | Arabic | Notes |
 |---|---|---|---|
 | `tenant` | Organization | المنشأة | Replaces "Tenant" (EN) / "مستأجر" (AR). Both carried a landlord/lessee connotation unsuited to a laundry-business owner reading admin UI. "Organization" / "المنشأة" are the terms Gulf commercial/ERP software uses for a registered business entity — matches what a CleanMateX tenant actually is. Decided 2026-10-01. Rollout to the 35 files currently using "مستأجر" (and the EN equivalent) is a separate follow-up, not done by adding this entry. |
+| `base_currency` | Base Currency | العملة الأساسية | Tenant_Currency_FX plan 01 (`org_currency_cf.is_base_currency`). Recurs across the currency/FX screen (5C), and later orders/invoices/payments once 5G wires FX into transactions. Decided 2026-10-01. |
+| `reporting_currency` | Reporting Currency | عملة التقارير | Tenant_Currency_FX plan 01 (`org_currency_cf.is_reporting_currency`). Decided 2026-10-01. |
+| `exchange_rate` | Exchange Rate | سعر الصرف | Tenant_Currency_FX plan 01 (`org_fx_rate_mst`/`sys_currency_exchange_rate_mst`). Covers both the tenant's own rate book and the HQ reference book — one term for both. Decided 2026-10-01. |
+| `multi_currency` | Multi-Currency | تعدد العملات | Tenant_Currency_FX plan 01 — the `multi_currency_fx` feature flag and the progressive-disclosure toggle on the Currencies tab. Decided 2026-10-01. |
+| `cash_disposition` | Disposition | التصرف بالنقدية | CLF (ADR-057) — what happens to the counted cash at a drawer close (left in drawer, moved to safe, handed to manager, prepared for deposit, partial removal). Recurs across the close wizard, session detail, print report, and the follow-up screen (`sys_cash_drawer_ses_disp_cd`). Decided 2026-10-01. |
 
 ## Adding a new term
 
