@@ -50,6 +50,30 @@ export const CASH_DRAWERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'List branches (pending-deposit status card, CLF §4B.2a-B)',
+        method: 'GET',
+        path: '/api/v1/branches',
+        notes: ['Auth-only local route; lists all branches for the tenant.'],
+      },
+      {
+        label: 'Pending-deposit drawer status (CLF §4B.2a-B)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/pending-deposit/status',
+        requirement: {
+          permissions: [FINANCE_PERMISSIONS.CASH_DRAWER_VIEW],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create pending-deposit drawer (CLF §4B.2a-B)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/pending-deposit/ensure',
+        requirement: {
+          permissions: [FINANCE_PERMISSIONS.CASH_CONTROL_MANAGE],
+          requireAllPermissions: true,
+        },
+      },
     ],
     notes: [
       'v1 manages TENANT scope only — the resolver service already supports BRANCH/USER/DRAWER overrides; the scope picker UI is a documented follow-up (STATUS.md D19).',

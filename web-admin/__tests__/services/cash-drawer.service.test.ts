@@ -5,7 +5,6 @@
  * - openSession   — creates session, prevents duplicate OPEN sessions
  * - closeSession  — variance calculation, marks session CLOSED
  * - closeSession  — throws via findFirstOrThrow when no OPEN session exists
- * - recordMovement — appends movement row scoped to open session
  * - getDrawers    — returns active drawers filtered by tenant
  */
 
@@ -58,7 +57,7 @@ const mockMovementCreate          = jest.fn();
 const mockMovementFindMany        = jest.fn();
 const mockPaymentAggregate        = jest.fn();
 const mockDrawerFindFirst         = jest.fn();
-// A2 — openSession, closeSession, recordMovement and approveSessionVariance
+// A2 — openSession, closeSession and approveSessionVariance
 // all now run inside prisma.$transaction and take an advisory lock via
 // tx.$executeRaw (lockDrawerScope) and/or call generate_cash_drawer_sess_no()
 // via tx.$queryRaw. The tx client below reuses the SAME mock functions as
@@ -141,7 +140,6 @@ import {
   getDrawersWithCurrentSession,
   openSession,
   closeSession,
-  recordMovement,
   resolveCashDrawerSessionId,
   approveSessionVariance,
   VarianceApprovalError,
@@ -476,41 +474,6 @@ describe('cash-drawer.service — approveSessionVariance (B16)', () => {
   });
 });
 
-describe('cash-drawer.service — recordMovement', () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it('creates a movement record for the active session', async () => {
-    mockSessionFindFirst.mockResolvedValue(makeSession());
-    mockMovementCreate.mockResolvedValue({ id: 'mov-1' });
-
-    await recordMovement(TENANT, DRAWER, {
-      movementType: 'CASH_IN',
-      amount: 50,
-      reason: 'Change fund',
-      performedBy: USER,
-    });
-
-    expect(mockMovementCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          tenant_org_id:  TENANT,
-          cash_drawer_id: DRAWER,
-          movement_type:  'CASH_IN',
-          direction:      'IN',
-          amount:         50,
-        }),
-      })
-    );
-  });
-
-  it('throws when no open session found for the drawer', async () => {
-    mockSessionFindFirst.mockResolvedValue(null);
-
-    await expect(
-      recordMovement(TENANT, DRAWER, { movementType: 'CASH_OUT', amount: 10, reason: 'x', performedBy: USER })
-    ).rejects.toThrow(/No open session/i);
-  });
-});
 
 describe('cash-drawer.service — resolveCashDrawerSessionId', () => {
   beforeEach(() => jest.clearAllMocks());

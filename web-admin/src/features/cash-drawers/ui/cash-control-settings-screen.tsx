@@ -30,6 +30,12 @@ import {
   updateCashControlSettingsApi,
   CashControlSettingsApiError,
 } from '@features/cash-drawers/api/cash-control-settings-api'
+import { fetchBranchPendingDepositStatus } from '@features/cash-drawers/api/cash-drawer-api'
+import {
+  PendingDepositDrawerEnsureButton,
+  PENDING_DEPOSIT_STATUS_QUERY_KEY,
+} from '@features/cash-drawers/ui/pending-deposit-drawer-ensure-button'
+import { Badge } from '@ui/primitives/badge'
 import {
   cashControlSettingsPatchSchema,
   type CashControlSettingsPatchInput,
@@ -65,6 +71,7 @@ type FormValues = CashControlSettings
 export function CashControlSettingsScreen() {
   const t = useTranslations('cashControl')
   const tCommon = useTranslations('common')
+  const tPendingDeposit = useTranslations('billing.cashDrawers.pendingDeposit')
   const { token: csrfToken } = useCSRFToken()
   const { currencyCode } = useTenantCurrency()
   const queryClient = useQueryClient()
@@ -73,6 +80,22 @@ export function CashControlSettingsScreen() {
   const settingsQuery = useQuery({
     queryKey: QUERY_KEY,
     queryFn: fetchCashControlSettings,
+  })
+
+  // CLF §4B.2a-B — "Branch pending-deposit drawers" status card.
+  const branchesQuery = useQuery({
+    queryKey: ['branches', 'list'],
+    queryFn: async () => {
+      const res = await fetch('/api/v1/branches')
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error ?? 'Failed to load branches')
+      return (json.data ?? []) as Array<{ id: string; name: string; name2: string | null }>
+    },
+  })
+  const pendingDepositStatusQuery = useQuery({
+    queryKey: PENDING_DEPOSIT_STATUS_QUERY_KEY,
+    queryFn: fetchBranchPendingDepositStatus,
+    staleTime: 30_000,
   })
 
   const form = useForm<FormValues>({
@@ -354,6 +377,39 @@ export function CashControlSettingsScreen() {
         </CmxButton>
       </div>
       </fieldset>
+
+      {/* CLF §4B.2a-B — outside the fieldset: viewable regardless of canManage,
+          the create button itself is only rendered for managers. */}
+      <CmxCard>
+        <CmxCardHeader>
+          <CmxCardTitle>{tPendingDeposit('statusCardTitle')}</CmxCardTitle>
+          <p className="text-sm text-muted-foreground">{tPendingDeposit('statusCardDescription')}</p>
+        </CmxCardHeader>
+        <CmxCardContent className="space-y-2">
+          {branchesQuery.isLoading || pendingDepositStatusQuery.isLoading ? (
+            <CmxSkeleton className="h-24 w-full" />
+          ) : (
+            branchesQuery.data?.map((branch) => {
+              const present = pendingDepositStatusQuery.data?.find(
+                (row) => row.branchId === branch.id
+              )?.hasPendingDepositDrawer
+              return (
+                <div key={branch.id} className="flex items-center justify-between gap-4 border-b py-2 last:border-b-0">
+                  <span className="text-sm font-medium">{branch.name2 ?? branch.name}</span>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={present ? 'default' : 'secondary'}>
+                      {present ? tPendingDeposit('present') : tPendingDeposit('missing')}
+                    </Badge>
+                    {!present && canManage ? (
+                      <PendingDepositDrawerEnsureButton branchId={branch.id} />
+                    ) : null}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </CmxCardContent>
+      </CmxCard>
     </form>
   )
 }

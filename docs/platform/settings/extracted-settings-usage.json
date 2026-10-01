@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-09-25T08:41:09.116Z",
+  "extractedAt": "2026-09-26T05:11:25.261Z",
   "usages": {
     "B2B_DUNNING_LEVELS": [
       {
@@ -58,7 +58,7 @@
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 33,
+        "line": 32,
         "context": "TENANT_VAT_RATE: 'TENANT_VAT_RATE',"
       }
     ],
@@ -69,38 +69,6 @@
         "context": "SETTING_CODES.TENANT_DEFAULT_GUEST_CUSTOMER_ID"
       }
     ],
-    "TENANT_CURRENCY": [
-      {
-        "path": "lib\\services\\order-financial-write.service.ts",
-        "line": 964,
-        "context": "const tenantCurrency = settings.find((setting) => setting.stngCode === 'TENANT_C"
-      },
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 225,
-        "context": "const v = map[SETTING_CODES.TENANT_CURRENCY];"
-      },
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 274,
-        "context": "const currencyCode = (typeof map[SETTING_CODES.TENANT_CURRENCY] === 'string'"
-      },
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 275,
-        "context": "? (map[SETTING_CODES.TENANT_CURRENCY] as string)"
-      },
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 276,
-        "context": ": String(map[SETTING_CODES.TENANT_CURRENCY] ?? '')"
-      },
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 31,
-        "context": "TENANT_CURRENCY: 'TENANT_CURRENCY',"
-      }
-    ],
     "fn_stng_resolve": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
@@ -109,122 +77,109 @@
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 84,
+        "line": 85,
         "context": "* Uses fn_stng_resolve_all_settings (7-layer resolution)."
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 298,
+        "line": 273,
         "context": "/** Parse JSONB value from fn_stng_resolve_all_settings (string, number, boolean"
       }
     ],
     "USING_SPLIT_ORDER": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 187,
+        "line": 188,
         "context": "splitOrderEnabled: toBoolean(map[SETTING_CODES.USING_SPLIT_ORDER], false),"
       }
     ],
     "USE_REJECT_TO_SOLVE": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 188,
+        "line": 189,
         "context": "rejectEnabled: toBoolean(map[SETTING_CODES.USE_REJECT_TO_SOLVE], false),"
       }
     ],
     "USE_TRACK_BY_PIECE": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 189,
+        "line": 190,
         "context": "trackByPiece: toBoolean(map[SETTING_CODES.USE_TRACK_BY_PIECE], false),"
       }
     ],
     "REJECT_ROW_COLOR": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 190,
+        "line": 191,
         "context": "rejectColor: toString(map[SETTING_CODES.REJECT_ROW_COLOR], '#10B981'),"
       }
     ],
     "SERVICE_PREF_PACKING_PER_PIECE_ENABLED": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 191,
+        "line": 192,
         "context": "packingPerPieceEnabled: toBoolean(map[SETTING_CODES.SERVICE_PREF_PACKING_PER_PIE"
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 42,
+        "line": 41,
         "context": "SERVICE_PREF_PACKING_PER_PIECE_ENABLED: 'SERVICE_PREF_PACKING_PER_PIECE_ENABLED'"
       }
     ],
     "SERVICE_PREF_ENFORCE_COMPATIBILITY": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 192,
+        "line": 193,
         "context": "enforcePrefCompatibility: toBoolean(map[SETTING_CODES.SERVICE_PREF_ENFORCE_COMPA"
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 43,
+        "line": 42,
         "context": "SERVICE_PREF_ENFORCE_COMPATIBILITY: 'SERVICE_PREF_ENFORCE_COMPATIBILITY',"
       }
     ],
     "SERVICE_PREF_PROCESSING_CONFIRMATION": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 193,
+        "line": 194,
         "context": "processingConfirmationEnabled: toBoolean(map[SETTING_CODES.SERVICE_PREF_PROCESSI"
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 44,
+        "line": 43,
         "context": "SERVICE_PREF_PROCESSING_CONFIRMATION: 'SERVICE_PREF_PROCESSING_CONFIRMATION',"
-      }
-    ],
-    "TENANT_DECIMAL_PLACES": [
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 246,
-        "context": "const v = map[SETTING_CODES.TENANT_DECIMAL_PLACES];"
-      },
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 286,
-        "context": "(typeof map[SETTING_CODES.TENANT_DECIMAL_PLACES] === 'number'"
-      },
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 287,
-        "context": "? (map[SETTING_CODES.TENANT_DECIMAL_PLACES] as number)"
-      },
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 288,
-        "context": ": parseInt(String(map[SETTING_CODES.TENANT_DECIMAL_PLACES] ?? ''), 10)"
-      },
-      {
-        "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 32,
-        "context": "TENANT_DECIMAL_PLACES: 'TENANT_DECIMAL_PLACES',"
       }
     ],
     "DEFAULT_PHONE_COUNTRY_CODE": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 260,
+        "line": 255,
         "context": "const v = map[SETTING_CODES.DEFAULT_PHONE_COUNTRY_CODE];"
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 34,
+        "line": 33,
         "context": "DEFAULT_PHONE_COUNTRY_CODE: 'DEFAULT_PHONE_COUNTRY_CODE',"
+      }
+    ],
+    "TENANT_CURRENCY": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 30,
+        "context": "TENANT_CURRENCY: 'TENANT_CURRENCY',"
+      }
+    ],
+    "TENANT_DECIMAL_PLACES": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 31,
+        "context": "TENANT_DECIMAL_PLACES: 'TENANT_DECIMAL_PLACES',"
       }
     ],
     "SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 45,
+        "line": 44,
         "context": "SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS: 'SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS'"
       },
       {

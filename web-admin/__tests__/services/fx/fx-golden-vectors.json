@@ -1,0 +1,28 @@
+{
+  "_comment": "CANONICAL FX golden vectors (HQ plan 04 §7.4, §8). The tenant app keeps a byte-identical copy; both test suites compare its SHA-256. Change here first, then copy. target = amount × rate, one rounding step.",
+  "version": 1,
+  "vectors": [
+    { "name": "spec §6: USD 10.00 → OMR @ 0.3845", "amountMinor": "1000", "rate": "0.3845", "fromMinorUnit": 2, "toMinorUnit": 3, "mode": "HALF_UP", "expectedMinor": "3845" },
+    { "name": "0-dp target: USD 12.34 → JPY @ 149.5 (1844.83)", "amountMinor": "1234", "rate": "149.5", "fromMinorUnit": 2, "toMinorUnit": 0, "mode": "HALF_UP", "expectedMinor": "1845" },
+    { "name": "0-dp → 3-dp: JPY 10000 → KWD @ 0.00205", "amountMinor": "10000", "rate": "0.00205", "fromMinorUnit": 0, "toMinorUnit": 3, "mode": "HALF_UP", "expectedMinor": "20500" },
+    { "name": "exact half, HALF_UP away from zero (+)", "amountMinor": "5", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "HALF_UP", "expectedMinor": "1" },
+    { "name": "exact half, HALF_UP away from zero (−)", "amountMinor": "-5", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "HALF_UP", "expectedMinor": "-1" },
+    { "name": "exact half, HALF_DOWN toward zero", "amountMinor": "5", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "HALF_DOWN", "expectedMinor": "0" },
+    { "name": "exact half, HALF_EVEN to even (0.5 → 0)", "amountMinor": "5", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "HALF_EVEN", "expectedMinor": "0" },
+    { "name": "exact half, HALF_EVEN to even (1.5 → 2)", "amountMinor": "15", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "HALF_EVEN", "expectedMinor": "2" },
+    { "name": "UP (+1.2 → 2)", "amountMinor": "12", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "UP", "expectedMinor": "2" },
+    { "name": "UP (−1.2 → −2)", "amountMinor": "-12", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "UP", "expectedMinor": "-2" },
+    { "name": "DOWN (−1.8 → −1)", "amountMinor": "-18", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "DOWN", "expectedMinor": "-1" },
+    { "name": "CEILING (+1.2 → 2)", "amountMinor": "12", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "CEILING", "expectedMinor": "2" },
+    { "name": "CEILING (−1.2 → −1): differs from UP on refunds", "amountMinor": "-12", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "CEILING", "expectedMinor": "-1" },
+    { "name": "FLOOR (+1.8 → 1)", "amountMinor": "18", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "FLOOR", "expectedMinor": "1" },
+    { "name": "FLOOR (−1.2 → −2): differs from DOWN on refunds", "amountMinor": "-12", "rate": "0.1", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "FLOOR", "expectedMinor": "-2" },
+    { "name": "increment snap: 3.847 OMR to 5 baisa in one step", "amountMinor": "1000", "rate": "0.3847", "fromMinorUnit": 2, "toMinorUnit": 3, "mode": "HALF_UP", "incrementMinor": "5", "expectedMinor": "3845" },
+    { "name": "magnitude: 10^15 minor, exact", "amountMinor": "1000000000000000", "rate": "3.7500000001", "fromMinorUnit": 2, "toMinorUnit": 2, "mode": "HALF_UP", "expectedMinor": "3750000000100000" },
+    { "name": "tiny rate: IRR 1,000,000 → KWD @ 0.0000073", "amountMinor": "1000000", "rate": "0.0000073", "fromMinorUnit": 0, "toMinorUnit": 3, "mode": "HALF_UP", "expectedMinor": "7300" }
+  ],
+  "inverse": [
+    { "name": "KWD→IRR 136986.3013698630 inverts to 0.0000073", "rate": "136986.301369863", "expectedInverse": "0.0000073" },
+    { "name": "USD→OMR 0.3845 inverts to 2.6007802341", "rate": "0.3845", "expectedInverse": "2.6007802341" }
+  ]
+}

@@ -2,7 +2,11 @@
 
 ## Key rules
 
-1. Search existing keys before adding new ones.
+0. Check [GLOSSARY.md](./GLOSSARY.md) for the term — for new keys **and** when editing an existing
+   key's text. Use its approved EN/AR wording for any concept it already covers (e.g. "Organization" /
+   "المنشأة" for a tenant, never "Tenant" / "مستأجر"); an edit must not drift away from it either.
+1. Search existing keys before adding new ones — avoid duplicate keys as much as possible, even across
+   namespaces; reuse or rename rather than add a near-duplicate.
 2. Reuse `common.*` for generic UI copy.
 3. Keep the `en` and `ar` file trees aligned.
 4. Keep placeholder names identical across locales.

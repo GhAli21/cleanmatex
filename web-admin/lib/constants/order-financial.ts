@@ -615,6 +615,20 @@ export const OUTBOX_EVENT_TYPES = {
    * session had closed). Audit only — no handler consumes it.
    */
   CASH_FACT_REDIRECTED: 'CASH_FACT_REDIRECTED',
+  /** CLF §4B.9 — a drawer session opened. Audit only (Notification Hub, future). */
+  CASH_DRAWER_SESSION_OPENED: 'CASH_DRAWER_SESSION_OPENED',
+  /** CLF §4B.9 — a drawer session entered the count step. Audit only. */
+  CASH_DRAWER_SESSION_CLOSING: 'CASH_DRAWER_SESSION_CLOSING',
+  /** CLF §4B.9 — a drawer session finalized (CLOSED) or was force-closed. Audit only (Notification Hub, future). */
+  CASH_DRAWER_SESSION_CLOSED: 'CASH_DRAWER_SESSION_CLOSED',
+  /**
+   * CLF §4B.9 (P7) — an opening or closing cash variance fell outside
+   * tolerance. Consumed by `cash-over-short.handler.ts`, which posts the
+   * `ADJUSTMENT_VOUCHER`/`CASH_OVER_SHORT` recognition voucher.
+   */
+  CASH_DRAWER_OVER_SHORT: 'CASH_DRAWER_OVER_SHORT',
+  /** CLF §4B.9 — a custody (drawer) transaction posted. Audit only (Notification Hub, future). */
+  CASH_DRAWER_TRX_POSTED: 'CASH_DRAWER_TRX_POSTED',
 } as const;
 /** Derived union for emitted Order Fin outbox events. */
 export type OutboxEventType =

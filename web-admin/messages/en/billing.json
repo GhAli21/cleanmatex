@@ -67,7 +67,18 @@
     "viewDrawer": "View Drawer",
     "openSession": "Open Session",
     "closeSession": "Close Session",
-    "addMovement": "Add Movement",
+    "addMovement": "Cash In / Cash Out",
+    "lineRole": "Type",
+    "roles": {
+      "EXPENSE_PAYMENT": "Expense Payment",
+      "SUPPLIER_PAYMENT": "Supplier Payment",
+      "PETTY_CASH_ISSUE": "Petty Cash Issue",
+      "CASH_PAY_IN": "Cash Pay-in",
+      "PETTY_CASH_RETURN": "Petty Cash Return"
+    },
+    "supplierName": "Supplier Name",
+    "expenseCategory": "Expense Category",
+    "employeeIdOptional": "Employee (optional)",
     "sessionHistory": "Session History",
     "movements": "Movements",
     "linkedPaymentsTitle": "Linked Payments",
@@ -157,6 +168,22 @@
       "sessionIndicator": "Current / Latest Session",
       "sessionNo": "Session No"
     },
+    "validation": {
+      "amountMustBePositive": "Enter an amount greater than zero.",
+      "reasonRequired": "A reason is required.",
+      "supplierNameRequired": "Supplier name is required.",
+      "expenseCategoryRequired": "Expense category is required."
+    },
+    "pendingDeposit": {
+      "createButton": "Create pending-deposit drawer",
+      "created": "Pending-deposit drawer created.",
+      "createFailed": "Failed to create the pending-deposit drawer.",
+      "statusCardTitle": "Branch pending-deposit drawers",
+      "statusCardDescription": "Every branch needs one system-managed drawer to receive cash prepared for deposit at close.",
+      "present": "Present",
+      "missing": "Missing",
+      "missingNotice": "This branch has no pending-deposit drawer yet."
+    },
     "hub": {
       "masterTitle": "Drawer Operations Hub",
       "masterDescription": "Select a drawer to inspect its recent operational session history.",
@@ -181,8 +208,7 @@
       "loadFailed": "Failed to load cash drawer data.",
       "openFailed": "Failed to open session.",
       "sessionOpened": "Session opened successfully.",
-      "movementFailed": "Failed to record movement.",
-      "movementRecorded": "Movement recorded successfully.",
+      "movementRecorded": "Cash movement posted as voucher {voucherNo}.",
       "closeFailed": "Failed to close session.",
       "sessionClosed": "Session closed successfully.",
       "summaryLoading": "Loading session reconciliation summary...",

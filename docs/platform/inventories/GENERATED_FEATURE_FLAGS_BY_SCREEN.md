@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-25T21:18:07.471Z
+Generated: 2026-09-26T05:11:27.274Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -21,11 +21,10 @@ Generated: 2026-09-25T21:18:07.471Z
 | order_fin_refund_ui | app/dashboard/internal_fin/refunds/page.tsx | 39 | currentTenantCan('order_fin_refund_ui').catch(() => false), |
 | order_fin_refund_ui | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 89 | const refundUiEnabled = useFeature('order_fin_refund_ui'); |
 | order_fin_sv_funding_capture | src/features/customers/ui/customer-stored-value-tab.tsx | 78 | const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture'); |
-| order_fin_sv_funding_capture | src/features/marketing/ui/gift-card-sell-dialog.tsx | 101 | const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture'); |
 | order_fin_voucher_unwind | app/dashboard/internal_fin/vouchers/[voucherId]/page.tsx | 86 | const unwindEnabled = await canAccess(auth.tenantId, 'order_fin_voucher_unwind'); |
 | pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 535 | {plan.feature_flags.pdf_invoices && ( |
 | pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 672 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
-| tax_inclusive_pricing | src/features/settings/ui/branch-settings-screen.tsx | 38 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
+| tax_inclusive_pricing | src/features/settings/ui/branch-settings-screen.tsx | 39 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
 | tax_inclusive_pricing | src/features/settings/ui/tenant-settings-screen.tsx | 28 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
 | usePlanFlags | src/features/orders/ui/new-order-content.tsx | 75 | const { bundlesEnabled, repeatLastOrderEnabled, smartSuggestionsEnabled } = usePlanFlags(); |
 | whatsapp_receipts | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 538 | {plan.feature_flags.whatsapp_receipts && ( |

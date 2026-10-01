@@ -266,6 +266,50 @@ export async function approveCashDrawerSessionVariance(input: {
   return parseCashDrawerResponse<unknown>(response)
 }
 
+export interface BranchPendingDepositStatusRow {
+  branchId: string
+  branchName: string | null
+  hasPendingDepositDrawer: boolean
+  drawerId: string | null
+}
+
+export interface EnsurePendingDepositDrawerResult {
+  drawerId: string
+  created: boolean
+}
+
+/**
+ * Per-branch present/missing status of the system PENDING_DEPOSIT drawer
+ * (CLF §4B.2a-B) — feeds the "Create pending-deposit drawer" button on the
+ * three tenant screens.
+ */
+export async function fetchBranchPendingDepositStatus(): Promise<BranchPendingDepositStatusRow[]> {
+  return fetchCashDrawerJson<BranchPendingDepositStatusRow[]>('/api/v1/cash-drawers/pending-deposit/status')
+}
+
+/**
+ * Idempotently creates the branch's system PENDING_DEPOSIT drawer if missing.
+ * A second call for the same branch is a no-op, never a duplicate.
+ *
+ * @param input branch to provision plus CSRF token
+ */
+export async function ensureBranchPendingDepositDrawer(input: {
+  branchId: string
+  csrfToken: string | null
+}): Promise<EnsurePendingDepositDrawerResult> {
+  const response = await fetch('/api/v1/cash-drawers/pending-deposit/ensure', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getCSRFHeader(input.csrfToken),
+    },
+    body: JSON.stringify({ branchId: input.branchId }),
+  })
+
+  return parseCashDrawerResponse<EnsurePendingDepositDrawerResult>(response)
+}
+
 async function fetchCashDrawerJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { credentials: 'include' })
   return parseCashDrawerResponse<T>(response)

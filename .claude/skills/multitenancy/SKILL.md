@@ -24,6 +24,7 @@ agents:
 ## Review Checklist
 
 - every `org_*` query has safe tenant enforcement
+- every `org_*` query (prisma or raw SQL ...so on) must have clear direct tenant enforcement by adding `tenant_org_id` to the query if the table has that column
 - no cross-tenant leak path
 - no stale assumption that Prisma middleware alone solves everything
 - no destructive shortcut that bypasses tenant safety

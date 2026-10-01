@@ -15,6 +15,7 @@ import {
 import type { TaxPricingMode, ExtraPricePricingMode } from '@/lib/types/order-financial';
 import { useFeature } from '@/src/features/auth/ui/RequireFeature';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
+import { PendingDepositDrawerEnsureButton } from '@features/cash-drawers/ui/pending-deposit-drawer-ensure-button';
 
 interface BranchOption {
   id: string;
@@ -163,6 +164,11 @@ export function BranchSettingsScreen() {
         </div>
       ) : (
         <>
+          {/* CLF §4B.2a-B — self-hides once the branch's system PENDING_DEPOSIT drawer exists */}
+          <div className="flex justify-end">
+            <PendingDepositDrawerEnsureButton branchId={selectedBranchId} />
+          </div>
+
           {/* Pricing mode overrides */}
           <CmxCard>
             <CmxCardHeader>

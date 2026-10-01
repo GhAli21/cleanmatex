@@ -397,6 +397,7 @@ export interface FeatureFlags {
     tenant_max_branches: number;
     tenant_max_orders_per_month: number;
     tax_inclusive_pricing: boolean;
+    multi_currency_fx: boolean;
 
 }
 

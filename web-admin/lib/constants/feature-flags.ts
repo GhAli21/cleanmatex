@@ -375,6 +375,9 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   { flag_key: 'workflow_automation', flag_name: 'Workflow Automation', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'workflow_engine_v2', flag_name: 'Workflow Engine V2 (Order Advance)', plan_binding_type: 'independent', data_type: 'boolean', default_value: true, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 1 },
   { flag_key: 'tax_inclusive_pricing', flag_name: 'Tax Inclusive Pricing', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Finance', governance_category: 'experimental', ui_display_order: 0 },
+  // Tenant_Currency_FX plan 01, stage 5A-3 (0539) — plan-bound GROWTH/PRO/ENTERPRISE,
+  // off everywhere until the Currencies/Rates screen (5C) ships.
+  { flag_key: 'multi_currency_fx', flag_name: 'Multi-Currency & FX', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Finance', governance_category: 'tenant_feature', ui_display_order: 20 },
 ];
 
 // ========================

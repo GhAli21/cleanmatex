@@ -5,7 +5,6 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
-import { hqApiClient } from '@/lib/api/hq-api-client';
 import { prisma } from '@/lib/db/prisma';
 import {
   CHARGE_TYPES,
@@ -958,17 +957,26 @@ export async function recalculateOrderFinancialSnapshotTx(
   };
 }
 
-async function resolveTenantBaseCurrencyCode(tenantId: string): Promise<string | null> {
+/**
+ * L2 cut-over (Tenant_Currency_FX plan 01): reads the tenant's base currency
+ * from `org_currency_cf` (migration 0532) instead of the retired
+ * `TENANT_CURRENCY` HQ setting. No Prisma model exists for `org_currency_cf`
+ * yet (it's read via Supabase everywhere else in the app), so this uses a
+ * tenant-scoped raw query rather than introducing a model just for one
+ * column — the tenant_org_id filter is required (multitenancy rule) and
+ * explicit here since raw queries bypass the Prisma tenant-context guard.
+ */
+export async function resolveTenantBaseCurrencyCode(tenantId: string): Promise<string | null> {
   try {
-    const settings = await hqApiClient.getEffectiveSettings(tenantId);
-    const tenantCurrency = settings.find((setting) => setting.stngCode === 'TENANT_CURRENCY');
-    return normalizeCurrencyCode(
-      typeof tenantCurrency?.stngValue === 'string'
-        ? tenantCurrency.stngValue
-        : tenantCurrency?.stngValue != null
-          ? String(tenantCurrency.stngValue)
-          : null,
-    );
+    const rows = await prisma.$queryRaw<{ currency_code: string }[]>`
+      SELECT currency_code
+        FROM org_currency_cf
+       WHERE tenant_org_id = ${tenantId}::uuid
+         AND is_base_currency = TRUE
+         AND rec_status = 1
+       LIMIT 1
+    `;
+    return normalizeCurrencyCode(rows[0]?.currency_code ?? null);
   } catch {
     return null;
   }

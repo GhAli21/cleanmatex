@@ -1876,66 +1876,6 @@ export async function approveSessionVariance(
 }
 
 /**
- * Record a manual cash movement against the drawer's open session.
- *
- * @param tenantId tenant resolved server-side from the authenticated session
- * @param drawerId drawer identifier already checked against tenant scope
- * @param params movement payload including actor id
- * @returns newly created cash movement row
- * @throws Error when no open session exists for the drawer
- * @example
- * await recordMovement('tenant-001', 'drawer-001', { movementType: 'CASH_IN', amount: 5, reason: 'Float top-up', performedBy: 'user-001' })
- */
-export async function recordMovement(
-  tenantId: string,
-  drawerId: string,
-  params: {
-    movementType: 'CASH_IN' | 'CASH_OUT' | 'PETTY_CASH'
-    amount: number
-    reason: string
-    performedBy: string
-  },
-) {
-  // A2 — same per-drawer lock as open/close/approve. Without it, a movement
-  // could be created concurrently with a close: the movement's own OPEN
-  // check would pass, then attach itself to a session that closed (and
-  // computed expected_cash_amount) in the gap before this insert commits.
-  return withTenantContext(tenantId, () =>
-    prisma.$transaction(async (tx) => {
-      await lockDrawerScope(tx, tenantId, drawerId)
-
-      const session = await tx.org_cash_drawer_sessions_mst.findFirst({
-        where: { tenant_org_id: tenantId, cash_drawer_id: drawerId, status: 'OPEN' },
-      })
-
-      if (!session) {
-        throw new Error('No open session found for this drawer')
-      }
-
-      const direction = params.movementType === 'CASH_IN' ? 'IN' : 'OUT'
-
-      return tx.org_cash_drawer_movements_dtl.create({
-        data: {
-          tenant_org_id: tenantId,
-          branch_id: session.branch_id,
-          cash_drawer_id: drawerId,
-          cash_drawer_session_id: session.id,
-          movement_type: params.movementType,
-          direction,
-          amount: params.amount,
-          currency_code: session.currency_code,
-          reason: params.reason,
-          performed_by: params.performedBy,
-          performed_at: new Date(),
-          is_active: true,
-          rec_status: 1,
-        },
-      })
-    }),
-  )
-}
-
-/**
  * Raw session summary used by the existing print and POS reconciliation flows.
  *
  * Why:

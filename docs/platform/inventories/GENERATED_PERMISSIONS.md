@@ -3,16 +3,16 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-25T21:18:07.471Z
+Generated: 2026-09-26T05:11:27.274Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 272 |
+| api | 273 |
 | middleware | 4 |
 | screen | 63 |
-| service | 2 |
+| service | 1 |
 
 ## All permission usages
 
@@ -71,7 +71,7 @@ Generated: 2026-09-25T21:18:07.471Z
 | b2b_statements:view | api | app/api/v1/b2b-statements/route.ts | 16 | /api/v1/b2b-statements |
 | b2b_statements:view | api | app/api/v1/b2b-statements/[id]/print/route.ts | 22 | /api/v1/b2b-statements/[id]/print |
 | b2b_statements:view | api | app/api/v1/b2b-statements/[id]/route.ts | 30 | /api/v1/b2b-statements/[id] |
-| cash_control:manage | screen | src/features/cash-drawers/ui/cash-control-settings-screen.tsx | 71 | src/features/cash-drawers/ui/cash-control-settings-screen.tsx |
+| cash_control:manage | screen | src/features/cash-drawers/ui/cash-control-settings-screen.tsx | 78 | src/features/cash-drawers/ui/cash-control-settings-screen.tsx |
 | cash_control:manage | screen | src/features/cash-drawers/access/cash-drawers-access.ts | 7 | src/features/cash-drawers/access/cash-drawers-access.ts |
 | cash_control:manage | api | app/api/v1/settings/payments/cash-control/route.ts | 73 | /api/v1/settings/payments/cash-control |
 | cash_control:view | api | app/api/v1/settings/payments/cash-control/route.ts | 41 | /api/v1/settings/payments/cash-control |
@@ -82,10 +82,11 @@ Generated: 2026-09-25T21:18:07.471Z
 | cash_drawer:close_session | api | app/api/v1/cash-drawers/[drawerId]/close-session/route.ts | 26 | /api/v1/cash-drawers/[drawerId]/close-session |
 | cash_drawer:open_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 80 | src/features/pos-sessions/ui/pos-session-hub.tsx |
 | cash_drawer:open_session | api | app/api/v1/cash-drawers/[drawerId]/open-session/route.ts | 25 | /api/v1/cash-drawers/[drawerId]/open-session |
-| cash_drawer:record_movement | api | app/api/v1/cash-drawers/[drawerId]/cash-movement/route.ts | 26 | /api/v1/cash-drawers/[drawerId]/cash-movement |
+| cash_drawer:record_movement | api | app/api/v1/cash-drawers/[drawerId]/cash-in-out/route.ts | 42 | /api/v1/cash-drawers/[drawerId]/cash-in-out |
 | cash_drawer:view | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 79 | src/features/pos-sessions/ui/pos-session-hub.tsx |
 | cash_drawer:view | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 107 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | cash_drawer:view | api | app/api/v1/cash-drawers/overview/route.ts | 20 | /api/v1/cash-drawers/overview |
+| cash_drawer:view | api | app/api/v1/cash-drawers/pending-deposit/status/route.ts | 12 | /api/v1/cash-drawers/pending-deposit/status |
 | cash_drawer:view | api | app/api/v1/cash-drawers/route.ts | 10 | /api/v1/cash-drawers |
 | cash_drawer:view | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/route.ts | 25 | /api/v1/cash-drawers/[drawerId]/session/[sessionId] |
 | cash_drawer:view | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary/route.ts | 15 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary |
@@ -117,7 +118,7 @@ Generated: 2026-09-25T21:18:07.471Z
 | customers:read | api | app/api/v1/customer-categories/[code]/route.ts | 27 | /api/v1/customer-categories/[code] |
 | customers:read | api | app/api/v1/customers/[id]/route.ts | 43 | /api/v1/customers/[id] |
 | customers:read | api | app/api/v1/customers/[id]/service-prefs/route.ts | 26 | /api/v1/customers/[id]/service-prefs |
-| customers:receipt_allocate | screen | src/features/customers/ui/customer-account-receipt-client.tsx | 59 | src/features/customers/ui/customer-account-receipt-client.tsx |
+| customers:receipt_allocate | screen | src/features/customers/ui/customer-account-receipt-client.tsx | 55 | src/features/customers/ui/customer-account-receipt-client.tsx |
 | customers:update | api | app/api/v1/customers/[id]/route.ts | 126 | /api/v1/customers/[id] |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 74 | /api/v1/customers/[id]/service-prefs |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 140 | /api/v1/customers/[id]/service-prefs |
@@ -135,7 +136,7 @@ Generated: 2026-09-25T21:18:07.471Z
 | fin_vouchers:cancel | api | app/api/v1/finance/vouchers/[voucherId]/cancel/route.ts | 15 | /api/v1/finance/vouchers/[voucherId]/cancel |
 | fin_vouchers:create | api | app/api/v1/finance/vouchers/route.ts | 49 | /api/v1/finance/vouchers |
 | fin_vouchers:post | api | app/api/v1/finance/vouchers/[voucherId]/post/route.ts | 19 | /api/v1/finance/vouchers/[voucherId]/post |
-| fin_vouchers:reverse | api | app/api/v1/finance/vouchers/[voucherId]/reverse/route.ts | 16 | /api/v1/finance/vouchers/[voucherId]/reverse |
+| fin_vouchers:reverse | api | app/api/v1/finance/vouchers/[voucherId]/reverse/route.ts | 17 | /api/v1/finance/vouchers/[voucherId]/reverse |
 | fin_vouchers:update | api | app/api/v1/finance/vouchers/[voucherId]/route.ts | 42 | /api/v1/finance/vouchers/[voucherId] |
 | fin_vouchers:view | api | app/api/v1/finance/vouchers/lookups/expense-categories/route.ts | 11 | /api/v1/finance/vouchers/lookups/expense-categories |
 | fin_vouchers:view | api | app/api/v1/finance/vouchers/lookups/line-roles/route.ts | 11 | /api/v1/finance/vouchers/lookups/line-roles |
@@ -215,20 +216,20 @@ Generated: 2026-09-25T21:18:07.471Z
 | notifications:view_log | api | app/api/v1/notifications/delivery-log/route.ts | 19 | /api/v1/notifications/delivery-log |
 | orders:apply_credit | screen | src/features/orders/ui/payment-full-view.tsx | 1418 | src/features/orders/ui/payment-full-view.tsx |
 | orders:apply_credit | api | app/api/v1/orders/[id]/credit-applications/route.ts | 35 | /api/v1/orders/[id]/credit-applications |
-| orders:approve_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 160 | src/features/billing/ui/refunds-list-client.tsx |
+| orders:approve_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 161 | src/features/billing/ui/refunds-list-client.tsx |
 | orders:approve_refund | api | app/api/v1/orders/refunds/[refundId]/approve/route.ts | 19 | /api/v1/orders/refunds/[refundId]/approve |
 | orders:cancel_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 72 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 76 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 112 | /dashboard/delivery |
 | orders:collect_payment | screen | src/features/delivery/ui/delivery-order-detail-screen.tsx | 40 | src/features/delivery/ui/delivery-order-detail-screen.tsx |
-| orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 198 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
-| orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 39 | /api/v1/orders/[id]/collect-payment |
-| orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 43 | /api/v1/orders/[id]/payments |
+| orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 199 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
+| orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 40 | /api/v1/orders/[id]/collect-payment |
+| orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 44 | /api/v1/orders/[id]/payments |
 | orders:create | screen | src/features/auth/ui/RequirePermission.tsx | 35 | src/features/auth/ui/RequirePermission.tsx |
 | orders:create | api | app/api/v1/orders/preview-financials/route.ts | 23 | /api/v1/orders/preview-financials |
 | orders:create | api | app/api/v1/orders/preview-payment/route.ts | 27 | /api/v1/orders/preview-payment |
 | orders:create | api | app/api/v1/orders/route.ts | 46 | /api/v1/orders |
-| orders:create | api | app/api/v1/orders/submit-order/route.ts | 83 | /api/v1/orders/submit-order |
+| orders:create | api | app/api/v1/orders/submit-order/route.ts | 84 | /api/v1/orders/submit-order |
 | orders:create | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 94 | /api/v1/orders/[id]/items/[itemId]/pieces |
 | orders:create_adjustment | api | app/api/v1/orders/[id]/adjustments/route.ts | 38 | /api/v1/orders/[id]/adjustments |
 | orders:delete | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/route.ts | 193 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId] |
@@ -240,9 +241,9 @@ Generated: 2026-09-25T21:18:07.471Z
 | orders:pending_payments_view | api | app/api/v1/finance/pending-payments/route.ts | 21 | /api/v1/finance/pending-payments |
 | orders:post_settlement_edit | api | app/api/v1/orders/recalc-preference-charges/route.ts | 24 | /api/v1/orders/recalc-preference-charges |
 | orders:post_settlement_edit | api | app/api/v1/orders/[id]/edit-history/[editHistoryId]/settlement/route.ts | 34 | /api/v1/orders/[id]/edit-history/[editHistoryId]/settlement |
-| orders:process_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 161 | src/features/billing/ui/refunds-list-client.tsx |
+| orders:process_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 162 | src/features/billing/ui/refunds-list-client.tsx |
 | orders:process_refund | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 90 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
-| orders:process_refund | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 32 | /api/v1/orders/refunds/[refundId]/process |
+| orders:process_refund | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 33 | /api/v1/orders/refunds/[refundId]/process |
 | orders:process_refund | api | app/api/v1/orders/[id]/refund/route.ts | 65 | /api/v1/orders/[id]/refund |
 | orders:process_refund | api | app/api/v1/orders/[id]/refunds/route.ts | 107 | /api/v1/orders/[id]/refunds |
 | orders:read | service | lib/constants/permissions/orders-perm.ts | 5 | lib/constants/permissions/orders-perm.ts |
@@ -307,8 +308,7 @@ Generated: 2026-09-25T21:18:07.471Z
 | orders:verify_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 79 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:verify_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 74 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:verify_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 84 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
-| orders:verify_payment | service | lib/services/order-settlement.service.ts | 462 | lib/services/order-settlement.service.ts |
-| orders:verify_payment | api | app/api/v1/orders/[id]/payments/[paymentId]/verify/route.ts | 42 | /api/v1/orders/[id]/payments/[paymentId]/verify |
+| orders:verify_payment | api | app/api/v1/orders/[id]/payments/[paymentId]/verify/route.ts | 52 | /api/v1/orders/[id]/payments/[paymentId]/verify |
 | orders:view_financial_breakdown | screen | app/dashboard/orders/[id]/tax-documents/[documentId]/print/page.tsx | 42 | /dashboard/orders/[id]/tax-documents/[documentId]/print |
 | orders:view_financial_breakdown | api | app/api/v1/orders/[id]/financial-summary/route.ts | 15 | /api/v1/orders/[id]/financial-summary |
 | orders:view_financial_breakdown | api | app/api/v1/orders/[id]/refunds/route.ts | 71 | /api/v1/orders/[id]/refunds |

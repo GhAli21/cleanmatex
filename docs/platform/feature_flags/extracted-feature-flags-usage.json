@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-09-25T08:41:08.126Z",
+  "extractedAt": "2026-09-26T05:11:24.410Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -18,22 +18,8 @@
         "pattern": "currentTenantCan"
       },
       {
-        "path": "app/actions/marketing/gift-card-actions.ts",
-        "line": 266,
-        "context": "const flagOn = await currentTenantCan('order_fin_sv_funding_capture');",
-        "surface": "server_action",
-        "pattern": "currentTenantCan"
-      },
-      {
         "path": "src/features/customers/ui/customer-stored-value-tab.tsx",
         "line": 78,
-        "context": "const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture');",
-        "surface": "screen",
-        "pattern": "useFeature"
-      },
-      {
-        "path": "src/features/marketing/ui/gift-card-sell-dialog.tsx",
-        "line": 101,
         "context": "const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture');",
         "surface": "screen",
         "pattern": "useFeature"
@@ -156,7 +142,7 @@
     "order_fin_refund_execution": [
       {
         "path": "app/api/v1/orders/refunds/[refundId]/process/route.ts",
-        "line": 53,
+        "line": 54,
         "context": "const executionEnabled = await canAccess(tenantId, 'order_fin_refund_execution');",
         "surface": "api",
         "pattern": "canAccess"
@@ -218,7 +204,7 @@
       },
       {
         "path": "lib/services/voucher-reversal.service.ts",
-        "line": 89,
+        "line": 76,
         "context": "const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind');",
         "surface": "service",
         "pattern": "canAccess"
@@ -461,7 +447,7 @@
     "tax_inclusive_pricing": [
       {
         "path": "src/features/settings/ui/branch-settings-screen.tsx",
-        "line": 38,
+        "line": 39,
         "context": "const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING);",
         "surface": "screen",
         "pattern": "useFeature"

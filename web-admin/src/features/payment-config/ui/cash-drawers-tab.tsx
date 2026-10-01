@@ -16,6 +16,12 @@ import { toggleCashDrawerActive } from '@/app/actions/payment-config/cash-drawer
 import { CashDrawerFormDialog } from './cash-drawer-form-dialog';
 import { CashDrawerSessionCard } from './cash-drawer-session-card';
 import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
+import { useQuery } from '@tanstack/react-query';
+import {
+  PendingDepositDrawerEnsureButton,
+  PENDING_DEPOSIT_STATUS_QUERY_KEY,
+} from '@features/cash-drawers/ui/pending-deposit-drawer-ensure-button';
+import { fetchBranchPendingDepositStatus } from '@features/cash-drawers/api/cash-drawer-api';
 
 interface CashDrawersTabProps {
   drawers: Array<OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }>;
@@ -36,6 +42,16 @@ interface CashDrawersTabProps {
  */
 export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefresh }: CashDrawersTabProps) {
   const t = useTranslations('paymentConfig');
+  const tPendingDeposit = useTranslations('billing.cashDrawers.pendingDeposit');
+  const pendingDepositStatusQuery = useQuery({
+    queryKey: PENDING_DEPOSIT_STATUS_QUERY_KEY,
+    queryFn: fetchBranchPendingDepositStatus,
+    staleTime: 30_000,
+  });
+  const missingPendingDepositBranches = branches.filter(
+    (branch) =>
+      pendingDepositStatusQuery.data?.find((row) => row.branchId === branch.id)?.hasPendingDepositDrawer === false
+  );
   const [showCreate, setShowCreate] = useState(false);
   const [editTarget, setEditTarget] = useState<OrgCashDrawer | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<OrgCashDrawer | null>(null);
@@ -76,6 +92,19 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
   if (!drawers.length) {
     return (
       <>
+        {missingPendingDepositBranches.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {missingPendingDepositBranches.map((branch) => (
+              <div
+                key={branch.id}
+                className="flex items-center justify-between rounded-md border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm"
+              >
+                <span>{tPendingDeposit('missingNotice')} — {branch.branch_name}</span>
+                <PendingDepositDrawerEnsureButton branchId={branch.id} onCreated={onRefresh} />
+              </div>
+            ))}
+          </div>
+        )}
         <div className="mb-4 flex justify-end">
           <CmxButton onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4 me-2" />
@@ -222,6 +251,20 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
 
   return (
     <>
+      {/* CLF §4B.2a-B — one row per branch missing its system PENDING_DEPOSIT drawer. */}
+      {missingPendingDepositBranches.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {missingPendingDepositBranches.map((branch) => (
+            <div
+              key={branch.id}
+              className="flex items-center justify-between rounded-md border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm"
+            >
+              <span>{tPendingDeposit('missingNotice')} — {branch.branch_name}</span>
+              <PendingDepositDrawerEnsureButton branchId={branch.id} onCreated={onRefresh} />
+            </div>
+          ))}
+        </div>
+      )}
       <div className="mb-4 flex justify-end">
         <CmxButton onClick={() => setShowCreate(true)}>
           <Plus className="h-4 w-4 me-2" />

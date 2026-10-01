@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-09-25T17:24:14.918Z",
+  "extractedAt": "2026-09-26T05:11:23.420Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -183,7 +183,7 @@
       "route": "src/features/billing/ui/refunds-list-client.tsx",
       "permission": "orders:approve_refund",
       "component": "useHasPermission",
-      "line": 160,
+      "line": 161,
       "surface": "screen"
     },
     {
@@ -191,7 +191,7 @@
       "route": "src/features/billing/ui/refunds-list-client.tsx",
       "permission": "orders:process_refund",
       "component": "useHasPermission",
-      "line": 161,
+      "line": 162,
       "surface": "screen"
     },
     {
@@ -199,7 +199,7 @@
       "route": "src/features/cash-drawers/ui/cash-control-settings-screen.tsx",
       "permission": "cash_control:manage",
       "component": "useHasPermissionCode",
-      "line": 71,
+      "line": 78,
       "surface": "screen"
     },
     {
@@ -215,7 +215,7 @@
       "route": "src/features/customers/ui/customer-account-receipt-client.tsx",
       "permission": "customers:receipt_allocate",
       "component": "useHasPermissionCode",
-      "line": 59,
+      "line": 55,
       "surface": "screen"
     },
     {
@@ -271,7 +271,7 @@
       "route": "src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 198,
+      "line": 199,
       "surface": "screen"
     },
     {
@@ -545,14 +545,6 @@
       "component": "hasPermissionServer",
       "line": 144,
       "surface": "middleware"
-    },
-    {
-      "file": "lib/services/order-settlement.service.ts",
-      "route": "lib/services/order-settlement.service.ts",
-      "permission": "orders:verify_payment",
-      "component": "requirePermission",
-      "line": 462,
-      "surface": "service"
     }
   ],
   "apis": [
@@ -1053,6 +1045,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/cash-drawers/pending-deposit/status/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/pending-deposit/status",
+      "permission": "cash_drawer:view",
+      "line": 12,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/cash-drawers/route.ts",
       "method": "GET",
       "route": "/api/v1/cash-drawers",
@@ -1061,11 +1061,11 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/cash-drawers/[drawerId]/cash-movement/route.ts",
+      "file": "app/api/v1/cash-drawers/[drawerId]/cash-in-out/route.ts",
       "method": "POST",
-      "route": "/api/v1/cash-drawers/[drawerId]/cash-movement",
+      "route": "/api/v1/cash-drawers/[drawerId]/cash-in-out",
       "permission": "cash_drawer:record_movement",
-      "line": 26,
+      "line": 42,
       "surface": "api"
     },
     {
@@ -1769,7 +1769,7 @@
       "method": "POST",
       "route": "/api/v1/finance/vouchers/[voucherId]/reverse",
       "permission": "fin_vouchers:reverse",
-      "line": 16,
+      "line": 17,
       "surface": "api"
     },
     {
@@ -2073,7 +2073,7 @@
       "method": "PATCH",
       "route": "/api/v1/orders/refunds/[refundId]/process",
       "permission": "orders:process_refund",
-      "line": 32,
+      "line": 33,
       "surface": "api"
     },
     {
@@ -2097,7 +2097,7 @@
       "method": "POST",
       "route": "/api/v1/orders/submit-order",
       "permission": "orders:create",
-      "line": 83,
+      "line": 84,
       "surface": "api"
     },
     {
@@ -2145,7 +2145,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/collect-payment",
       "permission": "orders:collect_payment",
-      "line": 39,
+      "line": 40,
       "surface": "api"
     },
     {
@@ -2393,7 +2393,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/payments",
       "permission": "orders:collect_payment",
-      "line": 43,
+      "line": 44,
       "surface": "api"
     },
     {
@@ -2401,7 +2401,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/payments/[paymentId]/verify",
       "permission": "orders:verify_payment",
-      "line": 42,
+      "line": 52,
       "surface": "api"
     },
     {

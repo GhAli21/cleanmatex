@@ -8,24 +8,35 @@ user-invocable: true
 
 ## CRITICAL Rules
 
-1. Search existing keys first under `web-admin/messages/en/**` and `web-admin/messages/ar/**`.
-2. Reuse `common.*` for generic UI actions, statuses, labels, and feedback.
-3. Update both locale trees with identical file paths and identical leaf keys.
-4. A namespace may be a file or a folder, never both.
-5. Use `index.json` inside a namespace folder when root keys must stay at that namespace level.
-6. Do not import locale JSON directly in components or feature code.
-7. Load locale messages on the server; consume them through `next-intl`.
-8. Run `npm run check:i18n` after translation changes.
-9. Preserve RTL behavior for Arabic surfaces.
-10. **Mandatory feedback API:** when showing user-facing success/error/warning/info/confirm feedback, resolve the i18n string first, then call `cmxMessage` or `useMessage()` from `@ui/feedback`. See `docs/dev/rules/cmx-message.md`. Do not use legacy toast helpers or `alert()` in new/edited feature code.
+1. **Check the glossary first — for adds AND updates** — `docs/dev/i18n_docs/GLOSSARY.md` (+ `glossary.en.json` / `glossary.ar.json`). Reuse the approved EN/AR term for any concept it already covers, whether you're writing a key for the first time or editing an existing one's text; don't invent new phrasing and don't let an edit drift away from the glossary term. Add a new, recurring concept to the glossary before keying it.
+2. **Avoid duplicate keys as much as possible** — search existing keys first under `web-admin/messages/en/**` and `web-admin/messages/ar/**` for the same concept before adding a new one, even under a different namespace.
+3. Reuse `common.*` for generic UI actions, statuses, labels, and feedback.
+4. Update both locale trees with identical file paths and identical leaf keys.
+5. A namespace may be a file or a folder, never both.
+6. Use `index.json` inside a namespace folder when root keys must stay at that namespace level.
+7. Do not import locale JSON directly in components or feature code.
+8. Load locale messages on the server; consume them through `next-intl`.
+9. Run `npm run check:i18n` after translation changes.
+10. Preserve RTL behavior for Arabic surfaces.
+11. **Mandatory feedback API:** when showing user-facing success/error/warning/info/confirm feedback, resolve the i18n string first, then call `cmxMessage` or `useMessage()` from `@ui/feedback`. See `docs/dev/rules/cmx-message.md`. Do not use legacy toast helpers or `alert()` in new/edited feature code.
 
 ## Workflow Checklist
 
-1. Search the locale tree for an existing key before adding a new one.
-2. Add or update the matching locale files under `web-admin/messages/en/**` and `web-admin/messages/ar/**`.
-3. Keep the namespace path stable unless you are fixing a real collision.
-4. Use `useTranslations('namespace')` or `getTranslations('namespace')`.
-5. Validate with `npm run check:i18n`.
+Applies whether you are adding a brand-new key or updating/editing an existing one:
+
+1. Check `docs/dev/i18n_docs/GLOSSARY.md` for the concept — reuse its approved EN/AR term if present.
+2. Search the locale tree for an existing key covering the same concept before adding a new one — avoid duplicate keys as much as possible, even across namespaces.
+3. Add or update the matching locale files under `web-admin/messages/en/**` and `web-admin/messages/ar/**`, using the glossary term where it applies.
+4. Keep the namespace path stable unless you are fixing a real collision.
+5. Use `useTranslations('namespace')` or `getTranslations('namespace')`.
+6. Validate with `npm run check:i18n`.
+
+## Glossary (check before naming or renaming anything)
+
+- `docs/dev/i18n_docs/GLOSSARY.md` — canonical EN/AR term per platform concept, one key, no duplicates.
+- Applies to new keys **and** edits to existing keys' text.
+- Covers display copy only — never rename DB/code identifiers (`tenant_org_id`, `TenantContext`, etc.).
+- Example: concept `tenant` → EN "Organization", AR "المنشأة" — not "Tenant" / "مستأجر".
 
 ## Locale Catalog Structure
 

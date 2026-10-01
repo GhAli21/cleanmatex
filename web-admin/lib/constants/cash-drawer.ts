@@ -50,6 +50,16 @@ export const CASH_DRAWER_TRX_TYPES = {
 } as const;
 export type CashDrawerTrxType = (typeof CASH_DRAWER_TRX_TYPES)[keyof typeof CASH_DRAWER_TRX_TYPES];
 
+/** Trx types a user may post directly; mirrors `sys_cash_drawer_trx_type_cd.is_system = false`. */
+export const USER_SELECTABLE_TRX_TYPES = [
+  CASH_DRAWER_TRX_TYPES.FLOAT_ISSUE,
+  CASH_DRAWER_TRX_TYPES.CASH_DROP,
+  CASH_DRAWER_TRX_TYPES.DRAWER_TO_DRAWER,
+  CASH_DRAWER_TRX_TYPES.DRIVER_HANDOVER,
+  CASH_DRAWER_TRX_TYPES.DEPOSIT_PREP,
+] as const;
+export type UserSelectableTrxType = (typeof USER_SELECTABLE_TRX_TYPES)[number];
+
 /** Count types — sys_cash_drawer_cnt_type_cd (0523). */
 export const CASH_DRAWER_COUNT_TYPES = {
   OPENING: 'OPENING',
@@ -71,6 +81,17 @@ export const CASH_DRAWER_DISPOSITIONS = {
   LEGACY: 'LEGACY',
 } as const;
 export type CashDrawerDisposition = (typeof CASH_DRAWER_DISPOSITIONS)[keyof typeof CASH_DRAWER_DISPOSITIONS];
+
+/** Disposition codes a user may choose at finalize; mirrors `sys_cash_drawer_ses_disp_cd.is_selectable = true`. LEGACY is system-only (M9 backfill). */
+export const USER_SELECTABLE_DISPOSITIONS = [
+  CASH_DRAWER_DISPOSITIONS.LEFT_IN_DRAWER,
+  CASH_DRAWER_DISPOSITIONS.MOVED_TO_SAFE,
+  CASH_DRAWER_DISPOSITIONS.HANDED_TO_MANAGER,
+  CASH_DRAWER_DISPOSITIONS.PREPARED_FOR_DEPOSIT,
+  CASH_DRAWER_DISPOSITIONS.PARTIAL_REMOVED,
+  CASH_DRAWER_DISPOSITIONS.OTHER,
+] as const;
+export type UserSelectableDisposition = (typeof USER_SELECTABLE_DISPOSITIONS)[number];
 
 /** How much cash a disposition moves — sys_cash_drawer_ses_disp_cd.cash_move_mode. */
 export const CASH_DISPOSITION_MOVE_MODES = {

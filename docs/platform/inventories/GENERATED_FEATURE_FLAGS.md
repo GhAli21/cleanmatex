@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-25T21:18:07.471Z
+Generated: 2026-09-26T05:11:27.274Z
 
 | Flag key | Surface | File | Line | Context |
 | --- | --- | --- | --- | --- |
@@ -69,22 +69,20 @@ Generated: 2026-09-25T21:18:07.471Z
 | online_booking | api | app/api/v1/public/customer/booking/route.ts | 372 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
 | online_booking | api | app/api/v1/public/customer/booking/route.ts | 695 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
 | order_fin_governed_amendments | service | lib/services/order-service.ts | 3065 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
-| order_fin_refund_execution | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 53 | const executionEnabled = await canAccess(tenantId, 'order_fin_refund_execution'); |
+| order_fin_refund_execution | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 54 | const executionEnabled = await canAccess(tenantId, 'order_fin_refund_execution'); |
 | order_fin_refund_execution | screen | app/dashboard/internal_fin/refunds/page.tsx | 41 | currentTenantCan('order_fin_refund_execution').catch(() => false), |
 | order_fin_refund_execution | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 194 | const refundExecutionEnabled = useFeature('order_fin_refund_execution'); |
 | order_fin_refund_ui | screen | app/dashboard/internal_fin/refunds/page.tsx | 39 | currentTenantCan('order_fin_refund_ui').catch(() => false), |
 | order_fin_refund_ui | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 89 | const refundUiEnabled = useFeature('order_fin_refund_ui'); |
 | order_fin_sv_funding_capture | server_action | app/actions/customers/stored-value-actions.ts | 279 | const flagOn = await currentTenantCan('order_fin_sv_funding_capture'); |
 | order_fin_sv_funding_capture | server_action | app/actions/customers/stored-value-actions.ts | 332 | const flagOn = await currentTenantCan('order_fin_sv_funding_capture'); |
-| order_fin_sv_funding_capture | server_action | app/actions/marketing/gift-card-actions.ts | 266 | const flagOn = await currentTenantCan('order_fin_sv_funding_capture'); |
 | order_fin_sv_funding_capture | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 78 | const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture'); |
-| order_fin_sv_funding_capture | screen | src/features/marketing/ui/gift-card-sell-dialog.tsx | 101 | const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture'); |
 | order_fin_voucher_unwind | screen | app/dashboard/internal_fin/vouchers/[voucherId]/page.tsx | 86 | const unwindEnabled = await canAccess(auth.tenantId, 'order_fin_voucher_unwind'); |
-| order_fin_voucher_unwind | service | lib/services/voucher-reversal.service.ts | 89 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
+| order_fin_voucher_unwind | service | lib/services/voucher-reversal.service.ts | 76 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
 | pdf_invoices | service | lib/services/feature-flags.service.ts | 408 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |
 | pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 535 | {plan.feature_flags.pdf_invoices && ( |
 | pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 672 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
-| tax_inclusive_pricing | screen | src/features/settings/ui/branch-settings-screen.tsx | 38 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
+| tax_inclusive_pricing | screen | src/features/settings/ui/branch-settings-screen.tsx | 39 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
 | tax_inclusive_pricing | screen | src/features/settings/ui/tenant-settings-screen.tsx | 28 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
 | usePlanFlags | hook | src/features/orders/hooks/use-plan-flags.ts | 30 | export function usePlanFlags() { |
 | usePlanFlags | screen | src/features/orders/ui/new-order-content.tsx | 75 | const { bundlesEnabled, repeatLastOrderEnabled, smartSuggestionsEnabled } = usePlanFlags(); |

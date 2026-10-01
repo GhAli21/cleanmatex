@@ -4,6 +4,7 @@ import { logger } from '@/lib/utils/logger';
 import { claimBatch, markProcessed, markFailed, type OutboxEventRow } from './outbox.service';
 import { consumeOrderHistoryEvent } from './order-history-consumer.service';
 import { processLoyaltyEarnEvent } from './outbox-handlers/loyalty-earn.handler';
+import { processCashOverShortEvent } from './outbox-handlers/cash-over-short.handler';
 
 /**
  * B7 — Financial outbox handler registry.
@@ -47,8 +48,15 @@ const loyaltyEarnHandler: OutboxHandler = {
   handle: processLoyaltyEarnEvent,
 };
 
+/** CLF §4B.9 — posts the ADJUSTMENT_VOUCHER/CASH_OVER_SHORT recognition for an opening/closing drawer variance. */
+const cashOverShortHandler: OutboxHandler = {
+  name: 'cash-over-short',
+  eventTypes: new Set(['CASH_DRAWER_OVER_SHORT']),
+  handle: processCashOverShortEvent,
+};
+
 /** Registered in dispatch order. Add future handlers (e.g. GL fan-out, B6) here. */
-export const OUTBOX_HANDLERS: OutboxHandler[] = [orderHistoryHandler, loyaltyEarnHandler];
+export const OUTBOX_HANDLERS: OutboxHandler[] = [orderHistoryHandler, loyaltyEarnHandler, cashOverShortHandler];
 
 export interface ProcessOutboxResult {
   claimed: number;

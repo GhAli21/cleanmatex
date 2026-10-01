@@ -1,13 +1,18 @@
 /**
  * A2-6 (POS Session & Cash Drawer Hardening, Wave A) — real concurrency
- * proof that `lockDrawerScope` (the per-drawer transaction-scoped advisory
- * lock added in A2) actually serializes cash-drawer mutations against each
- * other, for the two scenarios not already covered by
+ * proof that `lockDrawerScope` (the per-drawer transaction-scoped row lock
+ * added in A2, later unified with the CLF ledger's own `lockDrawersTx` — see
+ * `cash-drawer-lock.ts`) actually serializes cash-drawer mutations against
+ * each other, for the two scenarios not already covered by
  * `cash-drawer-session-numbering-concurrency.db.test.ts` (which proves
  * concurrent open x N and open+close cycles):
  *
  *   - concurrent close x2 on the SAME session
- *   - movement-during-close on the SAME drawer
+ *   - a drawer "Cash in / Cash out" movement (CLF W11) racing a close on the
+ *     SAME drawer — updated from the deleted `recordMovement` write path to
+ *     `postDrawerCashMovement` (voucher + gate) when W11 replaced it; the gate
+ *     takes the exact same row lock (`lockDrawersTx`), so the same guarantee
+ *     holds for the new path.
  *
  * Local DB only — never remote (standing constraint for this program).
  * Skips gracefully when no DB is reachable.
@@ -19,9 +24,11 @@ import { prisma } from '@/lib/db/prisma';
 import {
   openSession,
   closeSession,
-  recordMovement,
   CashDrawerSessionError,
 } from '@/lib/services/cash-drawer.service';
+import { postDrawerCashMovement } from '@/lib/services/cash-drawer-movement-posting.service';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
+import { LINE_ROLE } from '@/lib/constants/voucher';
 
 const DRAWER_CODE_PREFIX = 'A2-6-TEST';
 
@@ -71,6 +78,14 @@ async function makeDrawer(): Promise<string> {
 }
 
 async function cleanupDrawer(drawerId: string): Promise<void> {
+  const vouchers = await prisma.org_fin_vouchers_mst
+    .findMany({ where: { source_ref_id: drawerId, tenant_org_id: tenantId }, select: { id: true } })
+    .catch(() => []);
+  const voucherIds = vouchers.map((v) => v.id);
+  if (voucherIds.length > 0) {
+    await prisma.org_fin_voucher_trx_lines_dtl.deleteMany({ where: { voucher_id: { in: voucherIds }, tenant_org_id: tenantId } }).catch(() => {});
+    await prisma.org_fin_vouchers_mst.deleteMany({ where: { id: { in: voucherIds }, tenant_org_id: tenantId } }).catch(() => {});
+  }
   await prisma.org_cash_drawer_movements_dtl.deleteMany({ where: { cash_drawer_id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
   await prisma.org_cash_drawer_sessions_mst.deleteMany({ where: { cash_drawer_id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
   await prisma.org_cash_drawers_mst.deleteMany({ where: { id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
@@ -117,7 +132,7 @@ describe('lockDrawerScope — real concurrency proof (A2-6)', () => {
     }
   });
 
-  dbit('a movement racing a close on the same drawer never lands after the drawer has closed', async () => {
+  dbit('a Cash in/Cash out movement (CLF W11) racing a close on the same drawer never lands after the drawer has closed', async () => {
     const actor = randomUUID();
     const drawerId = await makeDrawer();
     try {
@@ -125,11 +140,13 @@ describe('lockDrawerScope — real concurrency proof (A2-6)', () => {
 
       const results = await Promise.allSettled([
         closeSession(tenantId, session.id, { physicalCount: 10, closedBy: actor }),
-        recordMovement(tenantId, drawerId, {
-          movementType: 'CASH_IN',
+        postDrawerCashMovement(tenantId, actor, {
+          drawerId,
+          cashDrawerSessionId: session.id,
+          lineRole: LINE_ROLE.CASH_PAY_IN,
           amount: 5,
           reason: 'race test',
-          performedBy: actor,
+          idempotencyKey: `race-test-${randomUUID()}`,
         }),
       ]);
 
@@ -138,14 +155,15 @@ describe('lockDrawerScope — real concurrency proof (A2-6)', () => {
 
       // Whichever the lock let through first, the outcome must be
       // consistent: a movement that landed AFTER the lock decided the
-      // session was already closed must have failed, never silently
-      // attached itself to a closed session.
+      // session was already closed must have been refused by the gate
+      // (CashDrawerLedgerError), never silently attached to a closed session.
       if (movementResult.status === 'fulfilled') {
-        const movement = movementResult.value;
-        expect(movement.cash_drawer_session_id).toBe(session.id);
+        const created = await prisma.org_cash_drawer_movements_dtl.findFirst({
+          where: { fin_voucher_id: movementResult.value.voucherId, tenant_org_id: tenantId },
+        });
+        expect(created?.cash_drawer_session_id).toBe(session.id);
       } else {
-        expect(movementResult.reason).toBeInstanceOf(Error);
-        expect((movementResult.reason as Error).message).toMatch(/no open session/i);
+        expect(movementResult.reason).toBeInstanceOf(CashDrawerLedgerError);
       }
 
       // Either way, the movements actually recorded against this session

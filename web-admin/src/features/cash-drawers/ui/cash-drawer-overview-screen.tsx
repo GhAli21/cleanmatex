@@ -8,9 +8,9 @@ import { useTranslations } from 'next-intl'
 import { ArrowLeft, CircleDollarSign, WalletCards } from 'lucide-react'
 
 import {
-  addDrawerMovement,
   closeDrawerSession,
   openDrawerSession,
+  postDrawerCashInOut,
 } from '@/app/actions/billing/cash-drawer-actions'
 import {
   buildCashDrawerClosePreview,
@@ -28,6 +28,11 @@ import type {
   CashDrawerOverviewDetail,
   CashDrawerSessionListRow,
 } from '@lib/types/cash-drawer'
+import { DRAWER_CASH_IN_OUT_ROLES } from '@lib/constants/cash-drawer'
+import { LINE_ROLE, LINE_ROLE_REQUIREMENTS } from '@lib/constants/voucher'
+
+type DrawerCashMovementRole =
+  (typeof DRAWER_CASH_IN_OUT_ROLES.OUT)[number] | (typeof DRAWER_CASH_IN_OUT_ROLES.IN)[number]
 import { cmxMessage } from '@ui/feedback'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
@@ -62,6 +67,7 @@ export function CashDrawerOverviewScreen({
 }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
+  const tLedger = useTranslations('cashControl.ledgerErrors')
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -74,9 +80,22 @@ export function CashDrawerOverviewScreen({
 
   const [openingBalance, setOpeningBalance] = useState('0')
   const [openNotes, setOpenNotes] = useState('')
-  const [movementType, setMovementType] = useState<'CASH_IN' | 'CASH_OUT' | 'PETTY_CASH'>('CASH_IN')
+  const [lineRole, setLineRole] = useState<DrawerCashMovementRole>(LINE_ROLE.EXPENSE_PAYMENT)
   const [moveAmount, setMoveAmount] = useState('0')
   const [moveReason, setMoveReason] = useState('')
+  const [movePartyName, setMovePartyName] = useState('')
+  const [moveExpenseCategoryCode, setMoveExpenseCategoryCode] = useState('')
+  const [moveEmployeeId, setMoveEmployeeId] = useState('')
+  // Render-time reset (Pattern A, react-effects-patterns.md §2) — a fresh
+  // idempotency key each time the dialog opens; a retry of the same attempt
+  // (e.g. after a ledger refusal) reuses it, same precedent as the gift-card
+  // sell dialog.
+  const [moveIdempotencyKey, setMoveIdempotencyKey] = useState<string>(() => crypto.randomUUID())
+  const [movePrevOpen, setMovePrevOpen] = useState(moveDialogOpen)
+  if (moveDialogOpen !== movePrevOpen) {
+    setMovePrevOpen(moveDialogOpen)
+    if (moveDialogOpen) setMoveIdempotencyKey(crypto.randomUUID())
+  }
   const [physicalCount, setPhysicalCount] = useState('')
   const [closeNotes, setCloseNotes] = useState('')
 
@@ -111,24 +130,59 @@ export function CashDrawerOverviewScreen({
     })
   }
 
-  const handleRecordMovement = () => {
+  const moveRequirements = LINE_ROLE_REQUIREMENTS[lineRole]
+  const moveNeedsPartyName = moveRequirements?.requiredFields.includes('party_name') ?? false
+  const moveNeedsExpenseCategory = moveRequirements?.requiredFields.includes('expense_category_code') ?? false
+  const moveNeedsEmployeeId =
+    lineRole === LINE_ROLE.PETTY_CASH_ISSUE || lineRole === LINE_ROLE.PETTY_CASH_RETURN
+
+  const handleCashInOut = () => {
+    if (!currentSession) return
+
+    if (!(Number(moveAmount) > 0)) {
+      cmxMessage.error(t('validation.amountMustBePositive'))
+      return
+    }
+    if (!moveReason.trim()) {
+      cmxMessage.error(t('validation.reasonRequired'))
+      return
+    }
+    if (moveNeedsPartyName && !movePartyName.trim()) {
+      cmxMessage.error(t('validation.supplierNameRequired'))
+      return
+    }
+    if (moveNeedsExpenseCategory && !moveExpenseCategoryCode.trim()) {
+      cmxMessage.error(t('validation.expenseCategoryRequired'))
+      return
+    }
+
     startTransition(async () => {
-      const result = await addDrawerMovement(drawerId, {
-        movementType,
+      const result = await postDrawerCashInOut(drawerId, {
+        cashDrawerSessionId: currentSession.id,
+        lineRole,
         amount: Number(moveAmount) || 0,
         reason: moveReason.trim(),
+        partyName: moveNeedsPartyName ? movePartyName.trim() : undefined,
+        expenseCategoryCode: moveNeedsExpenseCategory ? moveExpenseCategoryCode.trim() : undefined,
+        employeeId: moveNeedsEmployeeId ? moveEmployeeId.trim() || undefined : undefined,
+        idempotencyKey: moveIdempotencyKey,
       })
 
       if (!result.success) {
-        cmxMessage.error(result.error ?? t('messages.movementFailed'))
+        cmxMessage.error(
+          tLedger.has(result.error) ? tLedger(result.error as Parameters<typeof tLedger>[0]) : result.error
+        )
         return
       }
 
-      cmxMessage.success(t('messages.movementRecorded'))
+      cmxMessage.success(t('messages.movementRecorded', { voucherNo: result.data.voucherNo }))
       setMoveDialogOpen(false)
       setMoveAmount('0')
       setMoveReason('')
-      setMovementType('CASH_IN')
+      setMovePartyName('')
+      setMoveExpenseCategoryCode('')
+      setMoveEmployeeId('')
+      setLineRole(LINE_ROLE.EXPENSE_PAYMENT)
       router.refresh()
     })
   }
@@ -485,15 +539,12 @@ export function CashDrawerOverviewScreen({
           </CmxDialogHeader>
           <div className="space-y-4">
             <CmxSelect
-              label={t('movementType')}
-              value={movementType}
-              onChange={(event) =>
-                setMovementType(event.target.value as 'CASH_IN' | 'CASH_OUT' | 'PETTY_CASH')
-              }
+              label={t('lineRole')}
+              value={lineRole}
+              onChange={(event) => setLineRole(event.target.value as DrawerCashMovementRole)}
               options={[
-                { value: 'CASH_IN', label: t('cashIn') },
-                { value: 'CASH_OUT', label: t('cashOut') },
-                { value: 'PETTY_CASH', label: t('pettyCash') },
+                ...DRAWER_CASH_IN_OUT_ROLES.OUT.map((role) => ({ value: role, label: t(`roles.${role}`) })),
+                ...DRAWER_CASH_IN_OUT_ROLES.IN.map((role) => ({ value: role, label: t(`roles.${role}`) })),
               ]}
             />
             <CmxInput
@@ -509,12 +560,33 @@ export function CashDrawerOverviewScreen({
               value={moveReason}
               onChange={(event) => setMoveReason(event.target.value)}
             />
+            {moveNeedsPartyName ? (
+              <CmxInput
+                label={t('supplierName')}
+                value={movePartyName}
+                onChange={(event) => setMovePartyName(event.target.value)}
+              />
+            ) : null}
+            {moveNeedsExpenseCategory ? (
+              <CmxInput
+                label={t('expenseCategory')}
+                value={moveExpenseCategoryCode}
+                onChange={(event) => setMoveExpenseCategoryCode(event.target.value)}
+              />
+            ) : null}
+            {moveNeedsEmployeeId ? (
+              <CmxInput
+                label={t('employeeIdOptional')}
+                value={moveEmployeeId}
+                onChange={(event) => setMoveEmployeeId(event.target.value)}
+              />
+            ) : null}
           </div>
           <CmxDialogFooter>
             <CmxButton variant="outline" onClick={() => setMoveDialogOpen(false)}>
               {tCommon('cancel')}
             </CmxButton>
-            <CmxButton loading={isPending} onClick={handleRecordMovement}>
+            <CmxButton loading={isPending} onClick={handleCashInOut}>
               {t('addMovement')}
             </CmxButton>
           </CmxDialogFooter>

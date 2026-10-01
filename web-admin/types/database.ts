@@ -3775,6 +3775,253 @@ export type Database = {
           },
         ]
       }
+      org_cash_drawer_cnt_denom_dtl: {
+        Row: {
+          count_id: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          denom_value_minor_snap: number
+          denomination_id: string
+          id: string
+          is_active: boolean
+          line_amount: number
+          quantity: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          count_id: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          denom_value_minor_snap: number
+          denomination_id: string
+          id?: string
+          is_active?: boolean
+          line_amount: number
+          quantity: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          count_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          denom_value_minor_snap?: number
+          denomination_id?: string
+          id?: string
+          is_active?: boolean
+          line_amount?: number
+          quantity?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_occdd_count"
+            columns: ["count_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_cnt_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_cnt_denom_dtl_denomination_id_fkey"
+            columns: ["denomination_id"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_denominations_cd"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_cnt_denom_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_cnt_denom_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_cnt_denom_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_cash_drawer_cnt_mst: {
+        Row: {
+          branch_id: string
+          cash_drawer_id: string
+          cash_drawer_session_id: string | null
+          count_method: string
+          count_type: string
+          counted_amount: number
+          counted_at: string
+          counted_by: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          expected_amount: number
+          id: string
+          is_active: boolean
+          ledger_seq: number
+          notes: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          supersedes_count_id: string | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          variance_amount: number
+        }
+        Insert: {
+          branch_id: string
+          cash_drawer_id: string
+          cash_drawer_session_id?: string | null
+          count_method: string
+          count_type: string
+          counted_amount: number
+          counted_at?: string
+          counted_by: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          expected_amount: number
+          id?: string
+          is_active?: boolean
+          ledger_seq: number
+          notes?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          supersedes_count_id?: string | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          variance_amount: number
+        }
+        Update: {
+          branch_id?: string
+          cash_drawer_id?: string
+          cash_drawer_session_id?: string | null
+          count_method?: string
+          count_type?: string
+          counted_amount?: number
+          counted_at?: string
+          counted_by?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          expected_amount?: number
+          id?: string
+          is_active?: boolean
+          ledger_seq?: number
+          notes?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          supersedes_count_id?: string | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          variance_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_occm_branch"
+            columns: ["branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_occm_drawer"
+            columns: ["cash_drawer_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_occm_session"
+            columns: ["cash_drawer_session_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_sessions_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_occm_supersedes"
+            columns: ["supersedes_count_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_cnt_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_cnt_mst_count_type_fkey"
+            columns: ["count_type"]
+            isOneToOne: false
+            referencedRelation: "sys_cash_drawer_cnt_type_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_cnt_mst_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_cnt_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_cnt_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_cnt_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_cash_drawer_movements_dtl: {
         Row: {
           amount: number
@@ -3932,13 +4179,294 @@ export type Database = {
           },
         ]
       }
+      org_cash_drawer_ses_bal_dtl: {
+        Row: {
+          cash_drawer_session_id: string
+          closing_basis: number | null
+          closing_count_id: string | null
+          closing_counted: number | null
+          closing_expected: number | null
+          closing_variance: number | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          disposition_code: string | null
+          disposition_dest_drawer_id: string | null
+          disposition_kept_amount: number | null
+          disposition_notes: string | null
+          disposition_trx_id: string | null
+          fin_in: number
+          fin_out: number
+          id: string
+          is_active: boolean
+          opening_count_id: string | null
+          opening_counted: number | null
+          opening_expected: number
+          opening_variance: number | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          trx_in: number
+          trx_out: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          variance_threshold_snap: number | null
+          variance_tolerance_snap: number | null
+        }
+        Insert: {
+          cash_drawer_session_id: string
+          closing_basis?: number | null
+          closing_count_id?: string | null
+          closing_counted?: number | null
+          closing_expected?: number | null
+          closing_variance?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          disposition_code?: string | null
+          disposition_dest_drawer_id?: string | null
+          disposition_kept_amount?: number | null
+          disposition_notes?: string | null
+          disposition_trx_id?: string | null
+          fin_in?: number
+          fin_out?: number
+          id?: string
+          is_active?: boolean
+          opening_count_id?: string | null
+          opening_counted?: number | null
+          opening_expected?: number
+          opening_variance?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          trx_in?: number
+          trx_out?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          variance_threshold_snap?: number | null
+          variance_tolerance_snap?: number | null
+        }
+        Update: {
+          cash_drawer_session_id?: string
+          closing_basis?: number | null
+          closing_count_id?: string | null
+          closing_counted?: number | null
+          closing_expected?: number | null
+          closing_variance?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          disposition_code?: string | null
+          disposition_dest_drawer_id?: string | null
+          disposition_kept_amount?: number | null
+          disposition_notes?: string | null
+          disposition_trx_id?: string | null
+          fin_in?: number
+          fin_out?: number
+          id?: string
+          is_active?: boolean
+          opening_count_id?: string | null
+          opening_counted?: number | null
+          opening_expected?: number
+          opening_variance?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          trx_in?: number
+          trx_out?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          variance_threshold_snap?: number | null
+          variance_tolerance_snap?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ocsbd_closing_count"
+            columns: ["closing_count_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_cnt_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocsbd_disposition_code"
+            columns: ["disposition_code"]
+            isOneToOne: false
+            referencedRelation: "sys_cash_drawer_ses_disp_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ocsbd_disposition_dest"
+            columns: ["disposition_dest_drawer_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocsbd_disposition_trx"
+            columns: ["disposition_trx_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_trx_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocsbd_opening_count"
+            columns: ["opening_count_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_cnt_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocsbd_session"
+            columns: ["cash_drawer_session_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_sessions_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_ses_bal_dtl_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_ses_bal_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_ses_bal_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_ses_bal_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_cash_drawer_ses_post_tr: {
+        Row: {
+          cash_drawer_session_id: string
+          changed_at: string
+          changed_by: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          post_close_notes: string | null
+          post_close_status_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          cash_drawer_session_id: string
+          changed_at?: string
+          changed_by: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          post_close_notes?: string | null
+          post_close_status_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          cash_drawer_session_id?: string
+          changed_at?: string
+          changed_by?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          post_close_notes?: string | null
+          post_close_status_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ocspt_session"
+            columns: ["cash_drawer_session_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_sessions_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_ses_post_tr_post_close_status_code_fkey"
+            columns: ["post_close_status_code"]
+            isOneToOne: false
+            referencedRelation: "sys_cash_drawer_ses_post_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_ses_post_tr_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_ses_post_tr_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_cash_drawer_ses_post_tr_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_cash_drawer_sessions_mst: {
         Row: {
           branch_id: string
           cash_drawer_id: string
+          close_ledger_seq: number | null
           close_notes: string | null
           closed_at: string | null
           closed_by: string | null
+          closing_started_at: string | null
+          closing_started_by: string | null
           counted_cash_amount: number | null
           created_at: string | null
           created_by: string | null
@@ -3950,9 +4478,14 @@ export type Database = {
           id: string
           is_active: boolean
           metadata: Json
+          open_ledger_seq: number | null
           opened_at: string
           opened_by: string
           opening_float_amount: number
+          post_close_at: string | null
+          post_close_by: string | null
+          post_close_notes: string | null
+          post_close_status_code: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
@@ -3970,9 +4503,12 @@ export type Database = {
         Insert: {
           branch_id: string
           cash_drawer_id: string
+          close_ledger_seq?: number | null
           close_notes?: string | null
           closed_at?: string | null
           closed_by?: string | null
+          closing_started_at?: string | null
+          closing_started_by?: string | null
           counted_cash_amount?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -3984,9 +4520,14 @@ export type Database = {
           id?: string
           is_active?: boolean
           metadata?: Json
+          open_ledger_seq?: number | null
           opened_at?: string
           opened_by: string
           opening_float_amount?: number
+          post_close_at?: string | null
+          post_close_by?: string | null
+          post_close_notes?: string | null
+          post_close_status_code?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -4004,9 +4545,12 @@ export type Database = {
         Update: {
           branch_id?: string
           cash_drawer_id?: string
+          close_ledger_seq?: number | null
           close_notes?: string | null
           closed_at?: string | null
           closed_by?: string | null
+          closing_started_at?: string | null
+          closing_started_by?: string | null
           counted_cash_amount?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -4018,9 +4562,14 @@ export type Database = {
           id?: string
           is_active?: boolean
           metadata?: Json
+          open_ledger_seq?: number | null
           opened_at?: string
           opened_by?: string
           opening_float_amount?: number
+          post_close_at?: string | null
+          post_close_by?: string | null
+          post_close_notes?: string | null
+          post_close_status_code?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -4036,6 +4585,13 @@ export type Database = {
           variance_threshold_snapshot?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_ocds_post_close_status"
+            columns: ["post_close_status_code"]
+            isOneToOne: false
+            referencedRelation: "sys_cash_drawer_ses_post_cd"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "fk_org_cds_sessions_currency"
             columns: ["currency_code"]
@@ -4427,6 +4983,13 @@ export type Database = {
             referencedColumns: ["code"]
           },
           {
+            foreignKeyName: "fk_ocd_tenant_currency"
+            columns: ["tenant_org_id", "currency_code"]
+            isOneToOne: false
+            referencedRelation: "org_currency_cf"
+            referencedColumns: ["tenant_org_id", "currency_code"]
+          },
+          {
             foreignKeyName: "org_cash_drawers_mst_assigned_terminal_id_fkey"
             columns: ["assigned_terminal_id"]
             isOneToOne: false
@@ -4689,6 +5252,167 @@ export type Database = {
           },
           {
             foreignKeyName: "org_credit_notes_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_currency_cf: {
+        Row: {
+          allow_ar: boolean
+          allow_cash: boolean
+          allow_customer_advance: boolean
+          allow_gift_card: boolean
+          allow_manual_fx_rate: boolean
+          allow_payments: boolean
+          allow_purchasing: boolean
+          allow_sales: boolean
+          allow_wallet: boolean
+          base_locked_at: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          default_rate_source_code: string | null
+          default_rate_type_code: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          is_base_currency: boolean
+          is_reporting_currency: boolean
+          manual_fx_requires_approval: boolean
+          manual_rate_tolerance_pct: number | null
+          metadata: Json
+          rate_max_age_days: number | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          sales_pricing_mode: string
+          tax_rate_source_code: string | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          allow_ar?: boolean
+          allow_cash?: boolean
+          allow_customer_advance?: boolean
+          allow_gift_card?: boolean
+          allow_manual_fx_rate?: boolean
+          allow_payments?: boolean
+          allow_purchasing?: boolean
+          allow_sales?: boolean
+          allow_wallet?: boolean
+          base_locked_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          default_rate_source_code?: string | null
+          default_rate_type_code?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          is_base_currency?: boolean
+          is_reporting_currency?: boolean
+          manual_fx_requires_approval?: boolean
+          manual_rate_tolerance_pct?: number | null
+          metadata?: Json
+          rate_max_age_days?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sales_pricing_mode?: string
+          tax_rate_source_code?: string | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          allow_ar?: boolean
+          allow_cash?: boolean
+          allow_customer_advance?: boolean
+          allow_gift_card?: boolean
+          allow_manual_fx_rate?: boolean
+          allow_payments?: boolean
+          allow_purchasing?: boolean
+          allow_sales?: boolean
+          allow_wallet?: boolean
+          base_locked_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          default_rate_source_code?: string | null
+          default_rate_type_code?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          is_base_currency?: boolean
+          is_reporting_currency?: boolean
+          manual_fx_requires_approval?: boolean
+          manual_rate_tolerance_pct?: number | null
+          metadata?: Json
+          rate_max_age_days?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sales_pricing_mode?: string
+          tax_rate_source_code?: string | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_orgcur_currency"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_orgcur_rate_src"
+            columns: ["default_rate_source_code"]
+            isOneToOne: false
+            referencedRelation: "sys_exchange_rate_source_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_orgcur_rate_type"
+            columns: ["default_rate_type_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_type_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_orgcur_tax_src"
+            columns: ["tax_rate_source_code"]
+            isOneToOne: false
+            referencedRelation: "sys_exchange_rate_source_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_orgcur_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_orgcur_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_orgcur_tenant"
             columns: ["tenant_org_id"]
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
@@ -9605,6 +10329,86 @@ export type Database = {
           },
         ]
       }
+      org_fin_fx_stng_cf: {
+        Row: {
+          auto_approve_imports: boolean
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          default_rate_type_code: string | null
+          id: string
+          is_active: boolean
+          rec_notes: string | null
+          rec_status: number
+          resolution_policy: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          auto_approve_imports?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          default_rate_type_code?: string | null
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_status?: number
+          resolution_policy?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          auto_approve_imports?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          default_rate_type_code?: string | null
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_status?: number
+          resolution_policy?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_offs_rate_type"
+            columns: ["default_rate_type_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_type_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_offs_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: true
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_offs_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: true
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_offs_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: true
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_fin_gov_assign_mst: {
         Row: {
           approved_at: string | null
@@ -12495,6 +13299,399 @@ export type Database = {
           {
             foreignKeyName: "fk_org_fin_vouchers_currency"
             columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      org_fx_import_batch_mst: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          error_summary: Json
+          file_hash: string | null
+          file_name: string | null
+          id: string
+          invalid_rows: number
+          metadata: Json
+          origin_code: string
+          preview_rows: Json
+          provider_code: string | null
+          rec_notes: string | null
+          rec_status: number
+          status: string
+          tenant_org_id: string
+          total_rows: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          valid_rows: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          error_summary?: Json
+          file_hash?: string | null
+          file_name?: string | null
+          id?: string
+          invalid_rows?: number
+          metadata?: Json
+          origin_code: string
+          preview_rows?: Json
+          provider_code?: string | null
+          rec_notes?: string | null
+          rec_status?: number
+          status?: string
+          tenant_org_id: string
+          total_rows?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          valid_rows?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          error_summary?: Json
+          file_hash?: string | null
+          file_name?: string | null
+          id?: string
+          invalid_rows?: number
+          metadata?: Json
+          origin_code?: string
+          preview_rows?: Json
+          provider_code?: string | null
+          rec_notes?: string | null
+          rec_status?: number
+          status?: string
+          tenant_org_id?: string
+          total_rows?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          valid_rows?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ofib_origin"
+            columns: ["origin_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_origin_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ofib_provider"
+            columns: ["provider_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_provider_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ofib_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ofib_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ofib_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_fx_provider_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_codes: string[]
+          id: string
+          is_active: boolean
+          last_fetch_at: string | null
+          last_fetch_error: string | null
+          last_fetch_status: string | null
+          metadata: Json
+          provider_code: string
+          rate_type_code: string | null
+          rec_notes: string | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_codes?: string[]
+          id?: string
+          is_active?: boolean
+          last_fetch_at?: string | null
+          last_fetch_error?: string | null
+          last_fetch_status?: string | null
+          metadata?: Json
+          provider_code: string
+          rate_type_code?: string | null
+          rec_notes?: string | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_codes?: string[]
+          id?: string
+          is_active?: boolean
+          last_fetch_at?: string | null
+          last_fetch_error?: string | null
+          last_fetch_status?: string | null
+          metadata?: Json
+          provider_code?: string
+          rate_type_code?: string | null
+          rec_notes?: string | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ofpc_provider"
+            columns: ["provider_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_provider_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ofpc_rate_type"
+            columns: ["rate_type_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_type_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ofpc_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ofpc_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ofpc_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_fx_rate_mst: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          from_currency_code: string
+          hq_rate_id: string | null
+          id: string
+          import_batch_id: string | null
+          inverse_rate_value: number | null
+          metadata: Json
+          origin_code: string
+          provider_code: string | null
+          rate_date: string
+          rate_type_code: string
+          rate_value: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          source_code: string
+          source_reference: string | null
+          status: string
+          tenant_org_id: string
+          to_currency_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_currency_code: string
+          hq_rate_id?: string | null
+          id?: string
+          import_batch_id?: string | null
+          inverse_rate_value?: number | null
+          metadata?: Json
+          origin_code: string
+          provider_code?: string | null
+          rate_date: string
+          rate_type_code: string
+          rate_value: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          source_code: string
+          source_reference?: string | null
+          status?: string
+          tenant_org_id: string
+          to_currency_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_currency_code?: string
+          hq_rate_id?: string | null
+          id?: string
+          import_batch_id?: string | null
+          inverse_rate_value?: number | null
+          metadata?: Json
+          origin_code?: string
+          provider_code?: string | null
+          rate_date?: string
+          rate_type_code?: string
+          rate_value?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          source_code?: string
+          source_reference?: string | null
+          status?: string
+          tenant_org_id?: string
+          to_currency_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ofrm_batch"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "org_fx_import_batch_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_from_ccy"
+            columns: ["from_currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_hq_rate"
+            columns: ["hq_rate_id"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_exchange_rate_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_origin"
+            columns: ["origin_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_origin_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_provider"
+            columns: ["provider_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_provider_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_rate_type"
+            columns: ["rate_type_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_type_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_source"
+            columns: ["source_code"]
+            isOneToOne: false
+            referencedRelation: "sys_exchange_rate_source_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ofrm_to_ccy"
+            columns: ["to_currency_code"]
             isOneToOne: false
             referencedRelation: "sys_currency_cd"
             referencedColumns: ["code"]
@@ -19116,7 +20313,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_info: string | null
-          currency: string | null
+          currency: string
           current_period_end: string
           current_period_start: string
           default_payment_method_id: string | null
@@ -19156,7 +20353,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
-          currency?: string | null
+          currency: string
           current_period_end: string
           current_period_start: string
           default_payment_method_id?: string | null
@@ -19196,7 +20393,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
-          currency?: string | null
+          currency?: string
           current_period_end?: string
           current_period_start?: string
           default_payment_method_id?: string | null
@@ -19228,6 +20425,13 @@ export type Database = {
           updated_info?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_ops_currency"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "org_pln_subscriptions_mst_tenant_org_id_fkey"
             columns: ["tenant_org_id"]
@@ -24120,11 +25324,17 @@ export type Database = {
       sys_bill_invoice_payments_tr: {
         Row: {
           amount: number
+          base_amount: number | null
+          base_currency_code: string | null
           created_at: string | null
           created_by: string | null
           created_info: string | null
           currency_code: string
           failure_reason: string | null
+          fx_rate: number | null
+          fx_rate_date: string | null
+          fx_rate_id: string | null
+          fx_rate_source: string | null
           id: string
           invoice_id: string
           notes: string | null
@@ -24147,11 +25357,17 @@ export type Database = {
         }
         Insert: {
           amount: number
+          base_amount?: number | null
+          base_currency_code?: string | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
           currency_code: string
           failure_reason?: string | null
+          fx_rate?: number | null
+          fx_rate_date?: string | null
+          fx_rate_id?: string | null
+          fx_rate_source?: string | null
           id?: string
           invoice_id: string
           notes?: string | null
@@ -24174,11 +25390,17 @@ export type Database = {
         }
         Update: {
           amount?: number
+          base_amount?: number | null
+          base_currency_code?: string | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
           currency_code?: string
           failure_reason?: string | null
+          fx_rate?: number | null
+          fx_rate_date?: string | null
+          fx_rate_id?: string | null
+          fx_rate_source?: string | null
           id?: string
           invoice_id?: string
           notes?: string | null
@@ -24200,6 +25422,27 @@ export type Database = {
           vat?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_sbip_base_ccy"
+            columns: ["base_currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_sbip_currency"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_sbip_fx_rate"
+            columns: ["fx_rate_id"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_exchange_rate_mst"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_sys_bill_pay_method"
             columns: ["payment_method_code"]
@@ -24255,14 +25498,21 @@ export type Database = {
         Row: {
           amount_due: number
           amount_paid: number | null
+          base_amount_paid: number | null
+          base_currency_code: string | null
+          base_total_amount: number | null
           billing_period_end: string
           billing_period_start: string
           created_at: string | null
           created_by: string | null
           created_info: string | null
-          currency: string | null
+          currency: string
           discount_total: number | null
           due_date: string
+          fx_rate: number | null
+          fx_rate_date: string | null
+          fx_rate_id: string | null
+          fx_rate_source: string | null
           id: string
           internal_notes: string | null
           invoice_date: string
@@ -24292,14 +25542,21 @@ export type Database = {
         Insert: {
           amount_due: number
           amount_paid?: number | null
+          base_amount_paid?: number | null
+          base_currency_code?: string | null
+          base_total_amount?: number | null
           billing_period_end: string
           billing_period_start: string
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
-          currency?: string | null
+          currency: string
           discount_total?: number | null
           due_date: string
+          fx_rate?: number | null
+          fx_rate_date?: string | null
+          fx_rate_id?: string | null
+          fx_rate_source?: string | null
           id?: string
           internal_notes?: string | null
           invoice_date: string
@@ -24329,14 +25586,21 @@ export type Database = {
         Update: {
           amount_due?: number
           amount_paid?: number | null
+          base_amount_paid?: number | null
+          base_currency_code?: string | null
+          base_total_amount?: number | null
           billing_period_end?: string
           billing_period_start?: string
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
-          currency?: string | null
+          currency?: string
           discount_total?: number | null
           due_date?: string
+          fx_rate?: number | null
+          fx_rate_date?: string | null
+          fx_rate_id?: string | null
+          fx_rate_source?: string | null
           id?: string
           internal_notes?: string | null
           invoice_date?: string
@@ -24364,6 +25628,27 @@ export type Database = {
           updated_info?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_sbi_base_ccy"
+            columns: ["base_currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_sbi_currency"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_sbi_fx_rate"
+            columns: ["fx_rate_id"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_exchange_rate_mst"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_sys_bill_inv_payment_method"
             columns: ["payment_method_code"]
@@ -24679,6 +25964,7 @@ export type Database = {
           created_by: string | null
           created_info: string | null
           expansion_mrr: number | null
+          fx_rates_used: Json
           id: string
           ltv: number | null
           ltv_cac_ratio: number | null
@@ -24691,6 +25977,7 @@ export type Database = {
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
+          reporting_currency_code: string | null
           total_customers: number | null
           trial_customers: number | null
           updated_at: string | null
@@ -24709,6 +25996,7 @@ export type Database = {
           created_by?: string | null
           created_info?: string | null
           expansion_mrr?: number | null
+          fx_rates_used?: Json
           id?: string
           ltv?: number | null
           ltv_cac_ratio?: number | null
@@ -24721,6 +26009,7 @@ export type Database = {
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          reporting_currency_code?: string | null
           total_customers?: number | null
           trial_customers?: number | null
           updated_at?: string | null
@@ -24739,6 +26028,7 @@ export type Database = {
           created_by?: string | null
           created_info?: string | null
           expansion_mrr?: number | null
+          fx_rates_used?: Json
           id?: string
           ltv?: number | null
           ltv_cac_ratio?: number | null
@@ -24751,13 +26041,22 @@ export type Database = {
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          reporting_currency_code?: string | null
           total_customers?: number | null
           trial_customers?: number | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_sbrm_reporting_ccy"
+            columns: ["reporting_currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       sys_bill_usage_metrics_daily: {
         Row: {
@@ -26438,6 +27737,148 @@ export type Database = {
           {
             foreignKeyName: "sys_currency_denominations_cd_currency_code_fkey"
             columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_currency_exchange_rate_mst: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          from_currency_code: string
+          id: string
+          import_batch_id: string | null
+          inverse_rate_value: number | null
+          metadata: Json
+          origin_code: string
+          rate_date: string
+          rate_type_code: string
+          rate_value: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          source_code: string
+          source_reference: string | null
+          status: string
+          to_currency_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_currency_code: string
+          id?: string
+          import_batch_id?: string | null
+          inverse_rate_value?: number | null
+          metadata?: Json
+          origin_code: string
+          rate_date: string
+          rate_type_code: string
+          rate_value: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          source_code: string
+          source_reference?: string | null
+          status?: string
+          to_currency_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_currency_code?: string
+          id?: string
+          import_batch_id?: string | null
+          inverse_rate_value?: number | null
+          metadata?: Json
+          origin_code?: string
+          rate_date?: string
+          rate_type_code?: string
+          rate_value?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          source_code?: string
+          source_reference?: string | null
+          status?: string
+          to_currency_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_scer_batch"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_import_batch_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_scer_from_ccy"
+            columns: ["from_currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_scer_origin"
+            columns: ["origin_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_origin_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_scer_rate_type"
+            columns: ["rate_type_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_type_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_scer_source"
+            columns: ["source_code"]
+            isOneToOne: false
+            referencedRelation: "sys_exchange_rate_source_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_scer_to_ccy"
+            columns: ["to_currency_code"]
             isOneToOne: false
             referencedRelation: "sys_currency_cd"
             referencedColumns: ["code"]
@@ -29855,6 +31296,316 @@ export type Database = {
           },
         ]
       }
+      sys_fx_provider_cd: {
+        Row: {
+          allowed_hosts: string[]
+          auth_mode: string
+          base_currency_code: string | null
+          base_url: string
+          code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          env_key_name: string | null
+          is_active: boolean
+          metadata: Json
+          name: string
+          name2: string | null
+          parser_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          response_format: string
+          source_code: string
+          supports_historical: boolean
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          allowed_hosts: string[]
+          auth_mode?: string
+          base_currency_code?: string | null
+          base_url: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          env_key_name?: string | null
+          is_active?: boolean
+          metadata?: Json
+          name: string
+          name2?: string | null
+          parser_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          response_format: string
+          source_code: string
+          supports_historical?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          allowed_hosts?: string[]
+          auth_mode?: string
+          base_currency_code?: string | null
+          base_url?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          env_key_name?: string | null
+          is_active?: boolean
+          metadata?: Json
+          name?: string
+          name2?: string | null
+          parser_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          response_format?: string
+          source_code?: string
+          supports_historical?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sfp_base_ccy"
+            columns: ["base_currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_sfp_source"
+            columns: ["source_code"]
+            isOneToOne: false
+            referencedRelation: "sys_exchange_rate_source_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_fx_rate_import_batch_mst: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          error_summary: Json
+          file_hash: string | null
+          file_name: string | null
+          id: string
+          invalid_rows: number
+          metadata: Json
+          origin_code: string
+          provider_code: string | null
+          rec_notes: string | null
+          rec_status: number
+          source_code: string
+          status: string
+          total_rows: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          valid_rows: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          error_summary?: Json
+          file_hash?: string | null
+          file_name?: string | null
+          id?: string
+          invalid_rows?: number
+          metadata?: Json
+          origin_code: string
+          provider_code?: string | null
+          rec_notes?: string | null
+          rec_status?: number
+          source_code: string
+          status?: string
+          total_rows?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          valid_rows?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          error_summary?: Json
+          file_hash?: string | null
+          file_name?: string | null
+          id?: string
+          invalid_rows?: number
+          metadata?: Json
+          origin_code?: string
+          provider_code?: string | null
+          rec_notes?: string | null
+          rec_status?: number
+          source_code?: string
+          status?: string
+          total_rows?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          valid_rows?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sfrib_origin"
+            columns: ["origin_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_rate_origin_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_sfrib_provider"
+            columns: ["provider_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fx_provider_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_sfrib_source"
+            columns: ["source_code"]
+            isOneToOne: false
+            referencedRelation: "sys_exchange_rate_source_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_fx_rate_origin_cd: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_fx_rate_type_cd: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          max_age_days: number | null
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          max_age_days?: number | null
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          max_age_days?: number | null
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
       sys_garment_type_cd: {
         Row: {
           care_instructions: string | null
@@ -32791,6 +34542,128 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_platform_finance_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: number
+          rec_notes: string | null
+          reporting_currency_code: string
+          reporting_locked_at: string | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: number
+          rec_notes?: string | null
+          reporting_currency_code: string
+          reporting_locked_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: number
+          rec_notes?: string | null
+          reporting_currency_code?: string
+          reporting_locked_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_spf_reporting_ccy"
+            columns: ["reporting_currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_pln_price_dtl: {
+        Row: {
+          billing_cycle: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          metadata: Json
+          plan_code: string
+          price: number
+          rec_notes: string | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          billing_cycle: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          plan_code: string
+          price: number
+          rec_notes?: string | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          plan_code?: string
+          price?: number
+          rec_notes?: string | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_spp_currency"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_spp_plan"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "sys_pln_subscription_plans_mst"
+            referencedColumns: ["plan_code"]
+          },
+        ]
+      }
       sys_pln_subscription_plans_mst: {
         Row: {
           annual_price: number | null
@@ -32799,7 +34672,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_info: string | null
-          currency: string | null
+          currency: string
           description: string | null
           description_ar: string | null
           display_order: number | null
@@ -32832,7 +34705,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
-          currency?: string | null
+          currency?: string
           description?: string | null
           description_ar?: string | null
           display_order?: number | null
@@ -32865,7 +34738,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
-          currency?: string | null
+          currency?: string
           description?: string | null
           description_ar?: string | null
           display_order?: number | null
@@ -32891,7 +34764,15 @@ export type Database = {
           updated_by?: string | null
           updated_info?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_spsp_currency"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       sys_pos_session_event_type_cd: {
         Row: {

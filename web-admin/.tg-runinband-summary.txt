@@ -1,0 +1,76 @@
+
+    ❌ [8:31:30 AM] ERROR [updateOrder] Failed to update order
+    ❌ [8:31:30 AM] ERROR [updateOrder] Failed to update order
+FAIL __tests__/db-integration/order-amendment-governed-flow.db.test.ts
+FAIL __tests__/db-integration/refund-concurrent-processing.db.test.ts
+PASS __tests__/db-integration/cash-drawer-session-numbering-concurrency.db.test.ts
+FAIL __tests__/db-integration/wf-policy-issue-catalog-seed-invariants.db.test.ts
+  wf policy issue catalog seed_must_pass invariants
+  ● wf policy issue catalog seed_must_pass invariants › holds for 0472 SIMPLE published live policy when present
+PASS __tests__/db-integration/cash-drawer-decimal-precision.db.test.ts (5.361 s)
+PASS __tests__/db-integration/delivery-completion.db.test.ts
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: confirm_pickup_not_on_pickup_handover
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: execution_not_from_status_owner
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: execution_not_from_status_owner
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: execution_not_from_status_owner
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: execution_not_from_status_owner
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: execution_not_from_status_owner
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: execution_not_from_status_owner, initial_rule_status_without_owner
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: execution_not_from_status_owner
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: initial_rule_preset_missing
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: initial_rule_preset_unknown
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: initial_rule_wildcard_draft
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: initial_rule_missing, profile_no_primary_owner_module
+    Raw query failed. Code: `P0001`. Message: `ERROR: sys_wf_prof_ver_validate_live: initial_rule_missing, profile_no_primary_owner_module
+PASS __tests__/db-integration/wf-prof-ver-validate-live.db.test.ts
+    Raw query failed. Code: `23505`. Message: `Key (tenant_org_id, route_id, order_id)=(11111111-1111-1111-1111-111111111111, ab8da855-a3dd-4d66-b981-d51014ace6e7, b01487a3-a613-429c-a156-3891b9266144) already exists.`
+PASS __tests__/db-integration/delivery-route-command.db.test.ts
+PASS __tests__/db-integration/cash-drawer-ledger-gate.db.test.ts
+      "actionCode": "PASS_QA",
+PASS __tests__/db-integration/wf-v2-full-path-chain-flow.db.test.ts
+    Raw query failed. Code: `23505`. Message: `Key (tenant_org_id, order_id)=(11111111-1111-1111-1111-111111111111, 9612c44b-0d5f-4f17-8fc6-ddb7492f8c71) already exists.`
+PASS __tests__/db-integration/pickup-handover.db.test.ts
+    √ direct counter handover fails closed when the order has no live profile binding (113 ms)
+    √ staged pickup fails closed when the order has no live profile binding (53 ms)
+    √ direct counter handover from ready uses SIMPLE live policy instead of failing unbound (148 ms)
+PASS __tests__/db-integration/order-cancel-chain-flow.db.test.ts
+    An operation failed because it depends on one or more records that were required but not found. No record was found for a query.
+PASS __tests__/db-integration/cash-drawer-mutation-locking.db.test.ts
+    √ two concurrent closeSession calls on the same session: exactly one succeeds, the other fails cleanly (568 ms)
+    Raw query failed. Code: `23514`. Message: `ERROR: new row for relation "org_wf_gate_decision_mst" violates check constraint "chk_wfgd_policy_ref"
+    DETAIL: Failing row contains (1bd6928d-4162-49ff-8308-b0c8bac9926e, 11111111-1111-1111-1111-111111111111, bcfe3bcd-2bb8-4125-8483-8dcafb4d7fe1, null, CONFIRM_PICKUP, pickup_handover, rack_required, 1, 1, soft_warning_acknowledged, staff_web, null, Gate decision DB test, 
+wfgd-09ebac36-45f6-4670-a562-39b989de4bfc, corr-cba24b2c-9a3c-4a5b-adc3-30476bd0656c, aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, null, 0, 2026-09-26 04:32:00.212372+00, null).`
+PASS __tests__/db-integration/wf-gate-decision-profile-version.db.test.ts
+PASS __tests__/db-integration/ar-allocate.idempotency.test.ts
+    Raw query failed. Code: `23514`. Message: `ERROR: new row for relation "org_tax_documents_mst" violates check constraint "chk_tax_doc_einv_status"
+    DETAIL: Failing row contains (1e4b9c4a-d661-4e49-ae62-46337d5d5675, 11111111-1111-1111-1111-111111111111, ec31be36-3604-4782-98b8-f2e044aee78f, INVOICE, ON_ORDER_SUBMIT, DRAFT, 2026, 0, null, 105.0000, 5.0000, OMR, 1.000000, null, null, null, null, null, null, null, 2026-09-26 
+04:32:02.219919+00, null, null, null, null, null, 1, null, null, t, BOGUS).`
+PASS __tests__/db-integration/tax-document-einvoice-status.db.test.ts
+PASS __tests__/db-integration/rls-tenant-isolation.db.test.ts
+    √ RLS still allows the caller to update their own tenant's row — isolation is not just "everything fails closed" (14 ms)
+    [TenantGuard] bypass active: db-test-control
+PASS __tests__/db-integration/tenant-guard-cross-tenant.db.test.ts
+    Raw query failed. Code: `23514`. Message: `ERROR: new row for relation "org_b2b_statement_payments_dtl" violates check constraint "chk_b2b_stmt_pay_amt"
+    DETAIL: Failing row contains (26e49b0c-bddf-4721-ba9d-292eb46ed3ef, 766b2906-7329-4d40-9d80-20e28898b1a7, null, 46bdd0de-e402-4eda-8369-4d8bc33731ce, null, null, null, 0.0000, null, 1.000000, null, null, 2026-09-26 04:32:04.788346+00, null, null, null, null, null, 1, null, null, t).`
+    Raw query failed. Code: `23503`. Message: `insert or update on table "org_b2b_statement_payments_dtl" violates foreign key constraint "fk_b2b_stmt_pay_statement"`
+    Raw query failed. Code: `23505`. Message: `Key (tenant_org_id, idempotency_key)=(11111111-1111-1111-1111-111111111111, ft5-47c69ad7-d79d-49d5-a125-8025d13abce3) already exists.`
+PASS __tests__/db-integration/finance-smoke.test.ts
+PASS __tests__/db-integration/e-invoice-decomposition.db.test.ts
+PASS __tests__/db-integration/collect-payment.idempotency.test.ts
+PASS __tests__/db-integration/reconciliation-reports.db.test.ts
+PASS __tests__/db-integration/wf-live-policy-business-level-seed.db.test.ts
+    √ publishes lean SIMPLE v2 that passes live validation (16 ms)
+PASS __tests__/db-integration/wf-v2-simple-quick-drop-flow.db.test.ts
+PASS __tests__/db-integration/idempotency-claim-concurrency.db.test.ts
+PASS __tests__/db-integration/settlement-catalog.parity.test.ts
+PASS __tests__/db-integration/order-sources-remote-intake-confirm.db.test.ts
+PASS __tests__/db-integration/wf-simple-live-policy-draft-seed.db.test.ts
+Summary of all failing tests
+FAIL __tests__/db-integration/order-amendment-governed-flow.db.test.ts
+FAIL __tests__/db-integration/refund-concurrent-processing.db.test.ts
+FAIL __tests__/db-integration/wf-policy-issue-catalog-seed-invariants.db.test.ts
+  ● wf policy issue catalog seed_must_pass invariants › holds for 0472 SIMPLE published live policy when present
+Test Suites: 3 failed, 25 passed, 28 total
+Tests:       4 failed, 118 passed, 122 total
+
+

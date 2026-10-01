@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-25T21:18:07.471Z
+Generated: 2026-09-26T05:11:27.274Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -20,5 +20,5 @@ Generated: 2026-09-25T21:18:07.471Z
 | getFeatureFlags | lib/services/workflow-service-enhanced.ts | 220 | const featureFlags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/workflow-service-enhanced.ts | 425 | const flags = await getFeatureFlags(tenantId); |
 | order_fin_governed_amendments | lib/services/order-service.ts | 3065 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
-| order_fin_voucher_unwind | lib/services/voucher-reversal.service.ts | 89 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
+| order_fin_voucher_unwind | lib/services/voucher-reversal.service.ts | 76 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
 | pdf_invoices | lib/services/feature-flags.service.ts | 408 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |

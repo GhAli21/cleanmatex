@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-09-25T21:18:07.471Z
+Generated: 2026-09-26T05:11:27.274Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -13,4 +13,4 @@ Generated: 2026-09-25T21:18:07.471Z
 | getFeatureFlags | app/api/settings/tenants/[tenantId]/feature-flags/route.ts | 34 | const flags = await hqApiClient.getFeatureFlags({ |
 | online_booking | app/api/v1/public/customer/booking/route.ts | 372 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
 | online_booking | app/api/v1/public/customer/booking/route.ts | 695 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
-| order_fin_refund_execution | app/api/v1/orders/refunds/[refundId]/process/route.ts | 53 | const executionEnabled = await canAccess(tenantId, 'order_fin_refund_execution'); |
+| order_fin_refund_execution | app/api/v1/orders/refunds/[refundId]/process/route.ts | 54 | const executionEnabled = await canAccess(tenantId, 'order_fin_refund_execution'); |

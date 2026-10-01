@@ -41,6 +41,7 @@ import { storedValueFundingWiringHandler } from './wiring/stored-value-funding-w
 import { storedValueCashDrawerWiringHandler } from './wiring/stored-value-cash-drawer-wiring.handler';
 import { orderRefundCashDrawerWiringHandler } from './wiring/order-refund-cash-drawer-wiring.handler';
 import { customerReceiptCashDrawerWiringHandler } from './wiring/customer-receipt-cash-drawer-wiring.handler';
+import { cashMovementCashDrawerWiringHandler } from './wiring/cash-movement-cash-drawer-wiring.handler';
 import type {
   VoucherLineForWiring,
   WiringHandler,
@@ -68,6 +69,9 @@ const WIRING_HANDLERS: WiringHandler[] = [
   // CLF W6 — temporary legacy mirror for customer account receipts (one net
   // CASH_SALE IN). Retired in CLF R3 with the three mirrors above (W13).
   customerReceiptCashDrawerWiringHandler,
+  // CLF W11 — temporary legacy mirror for the drawer Cash in/Cash out dialog.
+  // Retired in CLF R3 with the mirrors above (W13).
+  cashMovementCashDrawerWiringHandler,
 ];
 
 const LINE_SELECT = {

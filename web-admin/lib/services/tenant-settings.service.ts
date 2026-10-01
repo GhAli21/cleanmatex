@@ -12,20 +12,19 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
-import {
-  CURRENCY_RESOLUTION_ERRORS,
-  CurrencyResolutionError,
-} from '@/lib/money/currency-resolution';
+import { TenantCurrencyProfileService } from '@/lib/services/fx/tenant-currency-profile.service';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Setting codes from sys_tenant_settings_cd (source of truth).
  * Must match catalog entries; see F:/jhapp/cleanmatex/supabase/migrations/
  *
- * Money: the app resolves currency with TENANT_CURRENCY + TENANT_DECIMAL_PLACES only.
- * `BRANCH_CURRENCY` remains in the DB catalog for legacy/ops docs but is intentionally
- * omitted here so app code does not branch on a deprecated money override.
+ * Money (L2 cut-over, Tenant_Currency_FX plan 01): `TENANT_CURRENCY` and
+ * `TENANT_DECIMAL_PLACES` are retired as the currency source of truth —
+ * `getTenantCurrency`/`getTenantDecimalPlaces`/`getCurrencyConfig` below now
+ * read `org_currency_cf` via `TenantCurrencyProfileService`. The two codes
+ * stay listed here only until stage L4 soft-retires them in the settings
+ * catalog itself; no other code path should read them for currency.
  */
 export const SETTING_CODES = {
   TENANT_CURRENCY: 'TENANT_CURRENCY',
@@ -74,9 +73,11 @@ export interface CurrencyConfig {
 
 export class TenantSettingsService {
   private supabase: SupabaseClient;
+  private currencyProfile: TenantCurrencyProfileService;
 
   constructor(supabase?: SupabaseClient) {
     this.supabase = supabase ?? createClient();
+    this.currencyProfile = new TenantCurrencyProfileService(this.supabase);
   }
 
   /**
@@ -214,38 +215,32 @@ export class TenantSettingsService {
   }
 
   /**
-   * Get tenant's configured currency code.
+   * Get tenant's configured (base/functional) currency code.
+   *
+   * L2 cut-over (Tenant_Currency_FX plan 01): reads `org_currency_cf` via
+   * `TenantCurrencyProfileService`, not the retired `TENANT_CURRENCY` setting.
+   * Currency has no branch/user override (`org_currency_cf` is tenant-only),
+   * matching the scope the old setting already had.
    */
   async getTenantCurrency(
     tenantId: string,
-    branchId?: string | null,
+    _branchId?: string | null,
     _userId?: string | null
   ): Promise<string> {
-    const map = await this.getAllResolvedSettings(tenantId, branchId ?? undefined);
-    const v = map[SETTING_CODES.TENANT_CURRENCY];
-    const code = (typeof v === 'string' ? v : String(v ?? '')).trim();
-    // B15: no locale defaults — an unconfigured tenant currency fails loudly.
-    if (!code) {
-      throw new CurrencyResolutionError(
-        CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY,
-        `tenant ${tenantId}`
-      );
-    }
-    return code;
+    const { base } = await this.currencyProfile.getProfile(tenantId);
+    return base.currencyCode;
   }
 
   /**
-   * Get tenant's configured decimal places for currency.
+   * Get tenant's configured decimal places for currency (`sys_currency_cd.minor_unit`, C8).
    */
   async getTenantDecimalPlaces(
     tenantId: string,
-    branchId?: string | null,
+    _branchId?: string | null,
     _userId?: string | null
   ): Promise<number> {
-    const map = await this.getAllResolvedSettings(tenantId, branchId ?? undefined);
-    const v = map[SETTING_CODES.TENANT_DECIMAL_PLACES];
-    const n = typeof v === 'number' ? v : parseInt(String(v ?? ''), 10);
-    return Number.isFinite(n) && n >= 0 ? n : ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
+    const { base } = await this.currencyProfile.getProfile(tenantId);
+    return base.decimalPlaces;
   }
 
   /**
@@ -267,31 +262,11 @@ export class TenantSettingsService {
    */
   async getCurrencyConfig(
     tenantId: string,
-    branchId?: string | null,
-    userId?: string | null
+    _branchId?: string | null,
+    _userId?: string | null
   ): Promise<CurrencyConfig> {
-    const map = await this.getAllResolvedSettings(tenantId, branchId, userId);
-    const currencyCode = (typeof map[SETTING_CODES.TENANT_CURRENCY] === 'string'
-      ? (map[SETTING_CODES.TENANT_CURRENCY] as string)
-      : String(map[SETTING_CODES.TENANT_CURRENCY] ?? '')
-    ).trim();
-    // B15: no locale defaults — an unconfigured tenant currency fails loudly.
-    if (!currencyCode) {
-      throw new CurrencyResolutionError(
-        CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY,
-        `tenant ${tenantId}`
-      );
-    }
-    const decimalPlaces =
-      (typeof map[SETTING_CODES.TENANT_DECIMAL_PLACES] === 'number'
-        ? (map[SETTING_CODES.TENANT_DECIMAL_PLACES] as number)
-        : parseInt(String(map[SETTING_CODES.TENANT_DECIMAL_PLACES] ?? ''), 10)
-      );
-    const decimalPlacesFinal =
-      Number.isFinite(decimalPlaces) && decimalPlaces >= 0
-        ? decimalPlaces
-        : ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
-    return { currencyCode, decimalPlaces: decimalPlacesFinal };
+    const { base } = await this.currencyProfile.getProfile(tenantId);
+    return { currencyCode: base.currencyCode, decimalPlaces: base.decimalPlaces };
   }
 }
 

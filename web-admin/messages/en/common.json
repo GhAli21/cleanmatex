@@ -101,7 +101,7 @@
   "errors": {
     "money": {
       "MISSING_CURRENCY_CODE": "No currency could be resolved for this operation. Configure the tenant currency and try again.",
-      "MISSING_TENANT_CURRENCY": "This tenant has no configured currency. Set it in tenant settings before performing money operations.",
+      "MISSING_TENANT_CURRENCY": "This tenant has no base currency configured. Set it in Currency Settings before performing money operations.",
       "CURRENCY_MISMATCH": "The supplied currency does not match the currency of the customer's balance record."
     }
   }

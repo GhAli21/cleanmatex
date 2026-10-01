@@ -1,12 +1,20 @@
 # Internationalization (i18n) and RTL
 
-**Always search existing locale keys before adding new ones.**
+**Always check `docs/dev/i18n_docs/GLOSSARY.md` for the concept before wording a key — for new keys AND when editing an existing key's text — and reuse its approved EN/AR term.**
+**Always search existing locale keys before adding new ones; avoid duplicate keys as much as possible.**
 **Always update both locale catalogs under `web-admin/messages/en/**` and `web-admin/messages/ar/**`.**
 **When showing user-facing operational feedback, resolve i18n keys first, then pass the string into `cmxMessage` / `useMessage()` (`docs/dev/rules/cmx-message.md`).**
 
-## Before adding keys
+## Before adding OR updating any key
 
-- Search the existing locale tree first; reuse `common.*` when the text is generic.
+- Check `docs/dev/i18n_docs/GLOSSARY.md` (+ `glossary.en.json` / `glossary.ar.json`) for the concept —
+  use its approved wording (e.g. "Organization" / "المنشأة" for a tenant, never "Tenant" / "مستأجر").
+  This applies to editing an existing key's text too, not only when a key is first created — an edit
+  must not drift away from the glossary term. If the concept is new and recurring (not a one-off
+  label), add it to the glossary first.
+- Search the existing locale tree for a key already covering the same concept before adding a new
+  one, even under a different namespace — avoid duplicate keys as much as possible. Reuse `common.*`
+  when the text is generic.
 - Keep the physical locale tree aligned across `en` and `ar`.
 - Preserve existing fully-qualified key paths unless a collision fix is required.
 - Use ICU placeholders and pluralization when the message is dynamic.

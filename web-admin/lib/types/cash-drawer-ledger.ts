@@ -4,7 +4,9 @@
  * `string` at API boundaries; these types carry no money.
  */
 
+import type { Decimal } from '@prisma/client/runtime/library';
 import type {
+  CashDrawerDisposition,
   CashEffect,
   CashGateMode,
   CashLedgerErrorCode,
@@ -65,4 +67,37 @@ export interface CashLineDecision {
   effect: CashEffect | null;
   sessionId: string | null;
   error: CashLedgerErrorCode | null;
+}
+
+/**
+ * One `org_cash_drawer_ses_bal_dtl` row — a session's money in one currency
+ * (CLF M4, §4B.3.6). Money as `Prisma.Decimal` (service-internal shape); the
+ * API/route boundary serializes to strings (A3-4 convention). Per-currency
+ * count refs and disposition live here, not on the session header — see the
+ * table's own migration comment and IMPLEMENTATION_PLAN.md §4B.2 (P12).
+ */
+export interface SessionBalanceRow {
+  id: string;
+  cashDrawerSessionId: string;
+  currencyCode: string;
+  openingExpected: Decimal;
+  openingCounted: Decimal | null;
+  openingVariance: Decimal | null;
+  openingCountId: string | null;
+  finIn: Decimal;
+  finOut: Decimal;
+  trxIn: Decimal;
+  trxOut: Decimal;
+  closingExpected: Decimal | null;
+  closingCounted: Decimal | null;
+  closingVariance: Decimal | null;
+  closingBasis: Decimal | null;
+  closingCountId: string | null;
+  varianceThresholdSnap: Decimal | null;
+  varianceToleranceSnap: Decimal | null;
+  dispositionCode: CashDrawerDisposition | null;
+  dispositionNotes: string | null;
+  dispositionDestDrawerId: string | null;
+  dispositionKeptAmount: Decimal | null;
+  dispositionTrxId: string | null;
 }

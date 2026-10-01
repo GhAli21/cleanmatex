@@ -635,6 +635,16 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
       permissions: ['cash_drawer:view'],
       requireAllPermissions: true,
     },
+    apiDependencies: [
+      {
+        label: 'Cash in / Cash out (CLF W11)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/cash-in-out',
+        requirement: { permissions: ['cash_drawer:record_movement'], requireAllPermissions: true },
+        enforcement: 'permission',
+        notes: ['Replaces the deleted POST .../cash-movement route.'],
+      },
+    ],
     notes: ['Cash drawer detail route inherits the same page gate as the list view.'],
   },
   {

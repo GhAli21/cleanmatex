@@ -1547,6 +1547,11 @@ model org_tenants_mst {
   org_tax_doc_triggers_cfg         org_tax_doc_triggers_cfg[]
   org_fin_cash_ctrl_stng_cf        org_fin_cash_ctrl_stng_cf[]
   org_fin_cash_ctrl_audit_dtl      org_fin_cash_ctrl_audit_dtl[]
+  org_currency_cf                  org_currency_cf[]
+  org_fin_fx_stng_cf               org_fin_fx_stng_cf[]
+  org_fx_provider_cf               org_fx_provider_cf[]
+  org_fx_import_batch_mst          org_fx_import_batch_mst[]
+  org_fx_rate_mst                  org_fx_rate_mst[]
 
   @@index([business_type_code], map: "idx_tenant_business_type")
   @@index([stng_profile_code], map: "idx_org_tenants_profile")
@@ -6731,6 +6736,16 @@ model org_cash_drawer_sessions_mst {
   variance_approval_reason      String?
   variance_threshold_snapshot   Decimal?                        @db.Decimal(19, 4)
   metadata                      Json                            @default("{}")
+  // CLF (migration 0536): two-step close + post-close. Per-currency counting and
+  // disposition live on org_cash_drawer_ses_bal_dtl instead (see its own comment).
+  open_ledger_seq               BigInt?
+  close_ledger_seq              BigInt?
+  closing_started_at            DateTime?                       @db.Timestamptz(6)
+  closing_started_by            String?
+  post_close_status_code        String?
+  post_close_notes              String?
+  post_close_by                 String?
+  post_close_at                 DateTime?                       @db.Timestamptz(6)
   created_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
   created_by                    String?
   created_info                  String?
@@ -6818,6 +6833,131 @@ model org_cash_drawer_trx_dtl {
   @@schema("public")
 }
 
+/// CLF (migration 0536): one row per physical cash count (OPENING/SPOT/CLOSING/RECOUNT); immutable — a correction is a new RECOUNT row referencing supersedes_count_id.
+model org_cash_drawer_cnt_mst {
+  id                     String    @id(map: "pk_org_cash_drawer_cnt_mst") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String    @db.Uuid
+  branch_id              String    @db.Uuid
+  cash_drawer_id         String    @db.Uuid
+  cash_drawer_session_id String?   @db.Uuid
+  count_type             String
+  count_method           String
+  currency_code          String
+  ledger_seq             BigInt
+  expected_amount        Decimal   @db.Decimal(19, 4)
+  counted_amount         Decimal   @db.Decimal(19, 4)
+  variance_amount        Decimal   @db.Decimal(19, 4)
+  supersedes_count_id    String?   @db.Uuid
+  counted_by             String
+  counted_at             DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  notes                  String?
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime? @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  rec_status             Int       @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean   @default(true)
+
+  @@unique([id, tenant_org_id], map: "uq_occm_id_tenant")
+  @@index([tenant_org_id, cash_drawer_id, counted_at(sort: Desc)], map: "idx_occm_drawer_counted")
+  @@index([tenant_org_id, cash_drawer_session_id], map: "idx_occm_session")
+  @@schema("public")
+}
+
+/// CLF (migration 0536): denomination breakdown for a DENOMINATION-method count; immutable — lines must sum to the header's counted_amount (trg_occdd_total_match).
+model org_cash_drawer_cnt_denom_dtl {
+  id                     String    @id(map: "pk_occdd") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String    @db.Uuid
+  count_id               String    @db.Uuid
+  denomination_id        String    @db.Uuid
+  denom_value_minor_snap Int
+  quantity               Int
+  line_amount            Decimal   @db.Decimal(19, 4)
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime? @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  rec_status             Int       @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean   @default(true)
+
+  @@index([tenant_org_id, count_id], map: "idx_occdd_count")
+  @@schema("public")
+}
+
+/// CLF (migration 0536): a session's money, one row per currency it saw activity in — counts and disposition are per-currency here (multi-currency-ready, see IMPLEMENTATION_PLAN.md P12); immutable once the session is CLOSED/FORCE_CLOSED.
+model org_cash_drawer_ses_bal_dtl {
+  id                         String    @id(map: "pk_org_cash_drawer_ses_bal_dtl") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id              String    @db.Uuid
+  cash_drawer_session_id     String    @db.Uuid
+  currency_code              String
+  opening_expected           Decimal   @default(0) @db.Decimal(19, 4)
+  opening_counted            Decimal?  @db.Decimal(19, 4)
+  opening_variance           Decimal?  @db.Decimal(19, 4)
+  opening_count_id           String?   @db.Uuid
+  fin_in                     Decimal   @default(0) @db.Decimal(19, 4)
+  fin_out                    Decimal   @default(0) @db.Decimal(19, 4)
+  trx_in                     Decimal   @default(0) @db.Decimal(19, 4)
+  trx_out                    Decimal   @default(0) @db.Decimal(19, 4)
+  closing_expected           Decimal?  @db.Decimal(19, 4)
+  closing_counted            Decimal?  @db.Decimal(19, 4)
+  closing_variance           Decimal?  @db.Decimal(19, 4)
+  closing_basis              Decimal?  @db.Decimal(19, 4)
+  closing_count_id           String?   @db.Uuid
+  variance_threshold_snap    Decimal?  @db.Decimal(19, 4)
+  variance_tolerance_snap    Decimal?  @db.Decimal(19, 4)
+  disposition_code           String?
+  disposition_notes          String?
+  disposition_dest_drawer_id String?   @db.Uuid
+  disposition_kept_amount    Decimal?  @db.Decimal(19, 4)
+  disposition_trx_id         String?   @db.Uuid
+  created_at                 DateTime? @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime? @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  rec_status                 Int       @default(1) @db.SmallInt
+  rec_order                  Int?
+  rec_notes                  String?
+  is_active                  Boolean   @default(true)
+
+  @@unique([cash_drawer_session_id, currency_code], map: "uq_ocsbd_session_ccy")
+  @@index([tenant_org_id, cash_drawer_session_id], map: "idx_ocsbd_tenant_session")
+  @@schema("public")
+}
+
+/// CLF (migration 0536): after-close post_close_status change log — append-only; the session header always holds the current value.
+model org_cash_drawer_ses_post_tr {
+  id                     String    @id(map: "pk_org_cash_drawer_ses_post_tr") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String    @db.Uuid
+  cash_drawer_session_id String    @db.Uuid
+  post_close_status_code String
+  post_close_notes       String?
+  changed_by             String
+  changed_at             DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime? @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  rec_status             Int       @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean   @default(true)
+
+  @@index([tenant_org_id, cash_drawer_session_id, changed_at(sort: Desc)], map: "idx_ocspt_session")
+  @@schema("public")
+}
+
 model org_cash_drawer_movements_dtl {
   id                           String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id                String                       @db.Uuid
@@ -6875,45 +7015,45 @@ model org_cash_drawer_movements_dtl {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model org_fin_cash_ctrl_stng_cf {
-  id                           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id                String          @db.Uuid
-  scope_level                  String
-  scope_id                     String?         @db.Uuid
-  blind_close_enabled          Boolean?
-  variance_gate_mode           String?
-  variance_threshold_amount    Decimal?        @db.Decimal(19, 4)
-  variance_reason_amount       Decimal?        @db.Decimal(19, 4)
-  variance_tolerance_amount    Decimal?        @db.Decimal(19, 4)
-  cash_tracking_mode           String?
-  opening_count_mode           String?
-  closing_count_mode           String?
-  cash_change_bearer           String?
-  cash_change_round_to_minor   Int?
-  drawer_assignment_mode       String?
-  shared_session_mode          String?
-  max_cash_enforce_mode        String?
-  cash_drop_requires_dest      Boolean?
-  pos_session_req_for_cash     Boolean?
-  pos_session_req_all_tenders  Boolean?
-  pos_session_rollover_mode    String?
-  pos_session_stale_hours      Int?
-  shift_z_report_required      Boolean?
+  id                          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id               String          @db.Uuid
+  scope_level                 String
+  scope_id                    String?         @db.Uuid
+  blind_close_enabled         Boolean?
+  variance_gate_mode          String?
+  variance_threshold_amount   Decimal?        @db.Decimal(19, 4)
+  variance_reason_amount      Decimal?        @db.Decimal(19, 4)
+  variance_tolerance_amount   Decimal?        @db.Decimal(19, 4)
+  cash_tracking_mode          String?
+  opening_count_mode          String?
+  closing_count_mode          String?
+  cash_change_bearer          String?
+  cash_change_round_to_minor  Int?
+  drawer_assignment_mode      String?
+  shared_session_mode         String?
+  max_cash_enforce_mode       String?
+  cash_drop_requires_dest     Boolean?
+  pos_session_req_for_cash    Boolean?
+  pos_session_req_all_tenders Boolean?
+  pos_session_rollover_mode   String?
+  pos_session_stale_hours     Int?
+  shift_z_report_required     Boolean?
   // CLF (migration 0528): drawer policy — NULL = inherit, then drawer-type default.
-  requires_session             Boolean?
-  opening_count_required       Boolean?
-  closing_count_required       Boolean?
-  metadata                     Json            @default("{}")
-  created_at                   DateTime?       @default(now()) @db.Timestamptz(6)
-  created_by                   String?
-  created_info                 String?
-  updated_at                   DateTime?       @db.Timestamptz(6)
-  updated_by                   String?
-  updated_info                 String?
-  rec_status                   Int             @default(1) @db.SmallInt
-  rec_order                    Int?
-  rec_notes                    String?
-  is_active                    Boolean         @default(true)
-  org_tenants_mst               org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  requires_session            Boolean?
+  opening_count_required      Boolean?
+  closing_count_required      Boolean?
+  metadata                    Json            @default("{}")
+  created_at                  DateTime?       @default(now()) @db.Timestamptz(6)
+  created_by                  String?
+  created_info                String?
+  updated_at                  DateTime?       @db.Timestamptz(6)
+  updated_by                  String?
+  updated_info                String?
+  rec_status                  Int             @default(1) @db.SmallInt
+  rec_order                   Int?
+  rec_notes                   String?
+  is_active                   Boolean         @default(true)
+  org_tenants_mst             org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -6944,6 +7084,314 @@ model org_fin_cash_ctrl_audit_dtl {
   @@index([tenant_org_id, scope_level, scope_id], map: "idx_ofcad_scope")
   @@index([tenant_org_id, setting_column], map: "idx_ofcad_column")
   @@index([tenant_org_id, changed_at(sort: Desc)], map: "idx_ofcad_changed_at")
+  @@schema("public")
+}
+
+/// Tenant currency authority (migration 0532, Tenant_Currency_FX plan 01 §4).
+/// One row per tenant × currency: exactly one active base currency, optional
+/// reporting currency, foreign currencies with per-context permissions.
+model org_currency_cf {
+  id                          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id               String          @db.Uuid
+  currency_code               String
+  is_base_currency            Boolean         @default(false)
+  // Informational only — the DB trigger fn_orgcur_base_lock enforces the lock
+  // from order existence directly, not from this column (C6).
+  base_locked_at              DateTime?       @db.Timestamptz(6)
+  is_reporting_currency       Boolean         @default(false)
+  allow_sales                 Boolean         @default(false)
+  allow_payments               Boolean         @default(false)
+  allow_cash                  Boolean         @default(false)
+  allow_ar                    Boolean         @default(false)
+  allow_wallet                Boolean         @default(false)
+  allow_gift_card              Boolean         @default(false)
+  allow_customer_advance       Boolean         @default(false)
+  allow_purchasing              Boolean         @default(false)
+  sales_pricing_mode          String          @default("CONVERT_FROM_BASE")
+  default_rate_type_code      String?
+  default_rate_source_code    String?
+  rate_max_age_days           Int?
+  allow_manual_fx_rate        Boolean         @default(false)
+  manual_fx_requires_approval  Boolean         @default(true)
+  manual_rate_tolerance_pct   Decimal?        @db.Decimal(7, 4)
+  tax_rate_source_code        String?
+  display_order                Int?
+  is_active                   Boolean         @default(true)
+  rec_status                  Int             @default(1) @db.SmallInt
+  rec_order                   Int?
+  rec_notes                   String?
+  metadata                    Json            @default("{}")
+  created_at                  DateTime        @default(now()) @db.Timestamptz(6)
+  created_by                  String?
+  created_info                String?
+  updated_at                  DateTime?       @db.Timestamptz(6)
+  updated_by                  String?
+  updated_info                String?
+  org_tenants_mst             org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_org_id, currency_code], map: "uq_orgcur_ccy")
+  @@unique([tenant_org_id, id], map: "uq_orgcur_tenant_id")
+  @@index([tenant_org_id, is_active], map: "idx_orgcur_tenant_active")
+  @@index([tenant_org_id, rec_status], map: "idx_orgcur_tenant_status")
+  @@schema("public")
+}
+
+/// Tenant-wide FX policy (migration 0532, plan 01 §5). One row per tenant;
+/// no row = defaults (TENANT_THEN_HQ, imports land as drafts).
+model org_fin_fx_stng_cf {
+  id                     String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String          @db.Uuid
+  resolution_policy      String          @default("TENANT_THEN_HQ")
+  default_rate_type_code String?
+  auto_approve_imports   Boolean         @default(false)
+  is_active              Boolean         @default(true)
+  rec_status             Int             @default(1) @db.SmallInt
+  rec_notes              String?
+  created_at             DateTime        @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime?       @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  org_tenants_mst        org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_org_id], map: "uq_offs_tenant")
+  @@schema("public")
+}
+
+/// Which HQ-curated providers (sys_fx_provider_cd) a tenant has activated for
+/// URL rate fetching (migration 0537, plan 01 §5). No URL or secret stored.
+model org_fx_provider_cf {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String          @db.Uuid
+  provider_code     String
+  currency_codes    String[]        @default([])
+  rate_type_code    String?
+  is_active         Boolean         @default(true)
+  last_fetch_at     DateTime?       @db.Timestamptz(6)
+  last_fetch_status String?
+  last_fetch_error  String?
+  rec_status        Int             @default(1) @db.SmallInt
+  rec_notes         String?
+  metadata          Json            @default("{}")
+  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  created_info      String?
+  updated_at        DateTime?       @db.Timestamptz(6)
+  updated_by        String?
+  updated_info      String?
+  org_tenants_mst   org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_org_id, provider_code], map: "uq_ofpc_tenant_provider")
+  @@schema("public")
+}
+
+/// One row per tenant rate-import run: preview → commit (migration 0537,
+/// plan 01 §7.1). HQ-copy adapter ships in 5B; CSV/Excel/URL in 5D/5E.
+model org_fx_import_batch_mst {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id String          @db.Uuid
+  origin_code   String
+  provider_code String?
+  file_name     String?
+  file_hash     String?
+  status        String          @default("PREVIEWED")
+  total_rows    Int             @default(0)
+  valid_rows    Int             @default(0)
+  invalid_rows  Int             @default(0)
+  error_summary Json            @default("{}")
+  preview_rows  Json            @default("[]")
+  metadata      Json            @default("{}")
+  rec_status    Int             @default(1) @db.SmallInt
+  rec_notes     String?
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime?       @db.Timestamptz(6)
+  updated_by    String?
+  updated_info  String?
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_fx_rate_mst org_fx_rate_mst[]
+
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_ofib_tenant_created")
+  @@schema("public")
+}
+
+/// Tenant's own exchange-rate book (migration 0537, plan 01 §5). Same shape
+/// and lifecycle as the HQ book; tenant-scoped and authoritative for that
+/// tenant's transactions. C3 (rate-pair validity) is additionally enforced
+/// by a DB trigger (fn_ofrm_pair_check) — defense in depth with the service.
+model org_fx_rate_mst {
+  id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id      String                   @db.Uuid
+  from_currency_code String
+  to_currency_code   String
+  rate_type_code     String
+  source_code        String
+  origin_code        String
+  provider_code      String?
+  rate_date          DateTime                 @db.Date
+  rate_value         Decimal                  @db.Decimal(22, 10)
+  // GENERATED ALWAYS AS (ROUND(1 / rate_value, 10)) STORED — never write this
+  // field; Postgres computes it. Display only (C11/P11 — conversions invert
+  // the direct rate at full precision at resolve time, never read this back).
+  inverse_rate_value Decimal?                 @db.Decimal(22, 10)
+  status             String                   @default("DRAFT")
+  source_reference   String?
+  import_batch_id    String?                  @db.Uuid
+  hq_rate_id         String?                  @db.Uuid
+  approved_at        DateTime?                @db.Timestamptz(6)
+  approved_by        String?
+  rejected_at        DateTime?                @db.Timestamptz(6)
+  rejected_by        String?
+  rejection_reason   String?
+  voided_at          DateTime?                @db.Timestamptz(6)
+  voided_by          String?
+  void_reason        String?
+  metadata           Json                     @default("{}")
+  rec_status         Int                      @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  created_at         DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime?                @db.Timestamptz(6)
+  updated_by         String?
+  updated_info       String?
+  org_tenants_mst       org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_fx_import_batch_mst org_fx_import_batch_mst? @relation(fields: [import_batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([tenant_org_id, from_currency_code, to_currency_code, rate_type_code, rate_date], map: "idx_ofrm_resolve_hint")
+  @@index([tenant_org_id, rate_date(sort: Desc), status], map: "idx_ofrm_date_hint")
+  @@schema("public")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// HQ-owned FX catalogs and reference rate book (migration 0531). Tenants
+// read these directly (F6 — the direct-read ban covers only sys_stng_* /
+// sys_feature_flags_*); never written from the tenant app.
+// ─────────────────────────────────────────────────────────────────────────
+
+model sys_exchange_rate_source_cd {
+  code          String  @id
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  display_order Int     @default(0)
+  is_active     Boolean @default(true)
+  rec_status    Int     @default(1) @db.SmallInt
+
+  @@schema("public")
+}
+
+model sys_fx_rate_type_cd {
+  code          String    @id
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  max_age_days  Int?
+  display_order Int?
+  is_active     Boolean   @default(true)
+  rec_status    Int       @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime? @db.Timestamptz(6)
+  updated_by    String?
+  updated_info  String?
+
+  @@schema("public")
+}
+
+model sys_fx_rate_origin_cd {
+  code          String    @id
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  display_order Int?
+  is_active     Boolean   @default(true)
+  rec_status    Int       @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime? @db.Timestamptz(6)
+  updated_by    String?
+  updated_info  String?
+
+  @@schema("public")
+}
+
+model sys_fx_provider_cd {
+  code                String    @id
+  name                String
+  name2               String?
+  description         String?
+  description2        String?
+  source_code         String
+  base_url            String
+  allowed_hosts       String[]
+  response_format     String
+  parser_code         String
+  auth_mode           String    @default("NONE")
+  env_key_name        String?
+  base_currency_code  String?
+  supports_historical Boolean   @default(false)
+  display_order       Int?
+  is_active           Boolean   @default(true)
+  rec_status          Int       @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  metadata            Json      @default("{}")
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime? @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+
+  @@schema("public")
+}
+
+model sys_currency_exchange_rate_mst {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  from_currency_code String
+  to_currency_code   String
+  rate_type_code     String
+  source_code        String
+  origin_code        String
+  rate_date          DateTime  @db.Date
+  rate_value         Decimal   @db.Decimal(22, 10)
+  // GENERATED ALWAYS AS (ROUND(1 / rate_value, 10)) STORED — never write this field.
+  inverse_rate_value Decimal?  @db.Decimal(22, 10)
+  status             String    @default("DRAFT")
+  source_reference   String?
+  import_batch_id    String?   @db.Uuid
+  approved_at        DateTime? @db.Timestamptz(6)
+  approved_by        String?
+  rejected_at        DateTime? @db.Timestamptz(6)
+  rejected_by        String?
+  rejection_reason   String?
+  voided_at          DateTime? @db.Timestamptz(6)
+  voided_by          String?
+  void_reason        String?
+  metadata           Json      @default("{}")
+  rec_status         Int       @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime? @db.Timestamptz(6)
+  updated_by         String?
+  updated_info       String?
+
   @@schema("public")
 }
 
@@ -7833,9 +8281,9 @@ model org_loyalty_txn_dtl {
   /// credit row (EARN/BONUS/positive ADJUST, points > 0); NULL on debit rows.
   remaining_points        Int?
 
-  org_loyalty_accounts_mst    org_loyalty_accounts_mst      @relation(fields: [account_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  allocs_as_consuming         org_loyalty_txn_allocs_dtl[]  @relation("loyalty_alloc_consuming")
-  allocs_as_source            org_loyalty_txn_allocs_dtl[]  @relation("loyalty_alloc_source")
+  org_loyalty_accounts_mst org_loyalty_accounts_mst     @relation(fields: [account_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  allocs_as_consuming      org_loyalty_txn_allocs_dtl[] @relation("loyalty_alloc_consuming")
+  allocs_as_source         org_loyalty_txn_allocs_dtl[] @relation("loyalty_alloc_source")
 
   @@unique([tenant_org_id, idempotency_key], map: "uq_loyalty_txn_idempotency")
   @@index([tenant_org_id, account_id], map: "idx_loyalty_txn_account")
@@ -7881,38 +8329,38 @@ model org_loyalty_txn_allocs_dtl {
 /// to _cf (policy/configuration, not code values) and expanded to one row
 /// per (currency_code, rounding_context). See lib/money/currency-rounding.ts.
 model sys_currency_rounding_rules_cf {
-  id                          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  currency_code               String
+  id                         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  currency_code              String
   /// Legacy 0290-era columns, still live pending the deferred "step 4" migration
   /// (drops these once nothing reads them — see 0521's header). Not read by any
   /// current code path; rounding_mode/rounding_increment_minor are authoritative.
-  rounding_method             String    @default("HALF_UP")
-  rounding_unit               Decimal   @default(0.01) @db.Decimal
-  rounding_context            String
-  calculation_decimal_places  Int?
-  output_decimal_places       Int?
-  rounding_mode               String
-  rounding_increment_minor    Int?
-  is_tenant_overridable       Boolean   @default(false)
-  is_mandatory                Boolean   @default(false)
-  effective_from              DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
-  effective_to                DateTime? @db.Date
-  name                        String?
-  name2                       String?
-  description                 String?
-  description2                String?
-  display_order               Int?
-  rec_notes                   String?
-  metadata                    Json      @default("{}")
-  is_active                   Boolean   @default(true)
-  rec_status                  Int       @default(1) @db.SmallInt
-  rec_order                   Int?
-  created_at                  DateTime  @default(now()) @db.Timestamptz(6)
-  created_by                  String?
-  created_info                String?
-  updated_at                  DateTime?
-  updated_by                  String?
-  updated_info                String?
+  rounding_method            String    @default("HALF_UP")
+  rounding_unit              Decimal   @default(0.01) @db.Decimal
+  rounding_context           String
+  calculation_decimal_places Int?
+  output_decimal_places      Int?
+  rounding_mode              String
+  rounding_increment_minor   Int?
+  is_tenant_overridable      Boolean   @default(false)
+  is_mandatory               Boolean   @default(false)
+  effective_from             DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  effective_to               DateTime? @db.Date
+  name                       String?
+  name2                      String?
+  description                String?
+  description2               String?
+  display_order              Int?
+  rec_notes                  String?
+  metadata                   Json      @default("{}")
+  is_active                  Boolean   @default(true)
+  rec_status                 Int       @default(1) @db.SmallInt
+  rec_order                  Int?
+  created_at                 DateTime  @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?
+  updated_by                 String?
+  updated_info               String?
 
   @@schema("public")
 }
@@ -7991,16 +8439,16 @@ model sys_currency_denominations_cd {
   display_order          Int?
   front_asset_key        String?
   back_asset_key         String?
-  metadata                Json     @default("{}")
+  metadata               Json      @default("{}")
   rec_status             Int       @default(1) @db.SmallInt
   rec_order              Int?
   rec_notes              String?
   created_at             DateTime  @default(now()) @db.Timestamptz(6)
-  created_by              String?
+  created_by             String?
   created_info           String?
-  updated_at              DateTime?
-  updated_by              String?
-  updated_info            String?
+  updated_at             DateTime?
+  updated_by             String?
+  updated_info           String?
 
   @@unique([currency_code, denomination_code])
   @@schema("public")

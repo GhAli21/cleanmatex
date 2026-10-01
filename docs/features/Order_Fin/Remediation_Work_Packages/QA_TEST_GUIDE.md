@@ -891,6 +891,22 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 **Not manually testable — verified by DB-integration tests instead (`__tests__/db-integration/cash-drawer-session-numbering-concurrency.db.test.ts`, `cash-drawer-mutation-locking.db.test.ts`):** concurrent drawer opens producing distinct/gapless session numbers (A1); concurrent close × 2, double-open × 4, and movement-during-close all correctly serialized (A2). A cash **payment** landing mid-close (a *different* race, spanning 15+ payment-recording files) remains an open, documented gap — see STATUS.md D22 — not something this section can mark PASS.
 
+**CLF R1 shipped 2026-09-26 — W11 "Cash in / Cash out" replaces the old "Add Movement" dialog everywhere below, and §4B.2a-B provisions the branch pending-deposit drawer.** The old `movementType` (CASH_IN/CASH_OUT/PETTY_CASH, no voucher) path is gone; every cash-in/out is now a real finance voucher.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|33.14| **Cash Drawers → a drawer with an OPEN session** (`/dashboard/internal_fin/cash-drawers/[drawerId]`) → click **Cash In / Cash Out** | Dialog opens with a **Type** dropdown (Expense Payment, Supplier Payment, Petty Cash Issue, Cash Pay-in, Petty Cash Return), Amount, Reason | |
+|33.15| Select **Supplier Payment**, leave Supplier Name blank, Save | Client-side validation blocks submit until Supplier Name is filled (mirrors the general voucher line's required-field rule) | |
+|33.16| Select **Expense Payment**, fill Expense Category + amount + reason, Save | `cmxMessage` success toast names the **posted voucher number**; dialog closes; the drawer's expected cash **decreases** by the amount; the new voucher appears under **Finance → Vouchers** (type PAYMENT_VOUCHER) | |
+|33.17| Select **Cash Pay-in** (money entering from outside the business), fill amount + reason, Save | Voucher posts as a **RECEIPT_VOUCHER**; drawer's expected cash **increases** by the amount | |
+|33.18| Select **Petty Cash Issue** or **Petty Cash Return**, optionally fill the **Employee (optional)** field, Save | Posts correctly with or without the employee field filled — it is attribution only, never required | |
+|33.19| Try **Cash In / Cash Out** on a drawer with **no open session** | The action is not offered (button only shows next to an open session), matching every other session-scoped action on this screen | |
+|33.20| Force a ledger refusal (e.g. close the session in another tab first, then submit the dialog you already had open) | Error message is the **translated `cashControl.ledgerErrors` text** (e.g. "session no longer open"), not a raw error code | |
+|33.21| **Settings → Branches** (`/dashboard/settings/branches`), select a branch that has no pending-deposit drawer yet | A **"Create pending-deposit drawer"** button appears above the pricing card; click it → success toast, button disappears (drawer now exists) | |
+|33.22| **Settings → Payments → Cash Drawers tab** (`/dashboard/settings/payments`), a branch missing its pending-deposit drawer | An amber notice row names the branch with the same create button; creating it removes the row and the drawer appears in the main table tagged **System** | |
+|33.23| **Settings → Payments → Cash Control Settings** (`/dashboard/settings/payments/cash-control-settings`), scroll to **"Branch pending-deposit drawers"** card | Every branch listed with a **Present/Missing** badge; missing rows show the create button (only for users holding `cash_control:manage` — a view-only user sees the badge but no button) | |
+|33.24| Click **Create pending-deposit drawer** a second time for an already-provisioned branch (e.g. refresh and retry) | No-op — no duplicate drawer created (idempotent `ensure_branch_pd_drawer`); button/notice simply does not reappear | |
+
 ---
 
 ## Tester suggestions and recommendations

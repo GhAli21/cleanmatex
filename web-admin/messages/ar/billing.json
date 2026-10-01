@@ -67,7 +67,18 @@
     "viewDrawer": "عرض الصندوق",
     "openSession": "فتح جلسة",
     "closeSession": "إغلاق الجلسة",
-    "addMovement": "إضافة حركة",
+    "addMovement": "إيداع / سحب نقدي",
+    "lineRole": "النوع",
+    "roles": {
+      "EXPENSE_PAYMENT": "دفع مصروف",
+      "SUPPLIER_PAYMENT": "دفعة لمورّد",
+      "PETTY_CASH_ISSUE": "صرف عهدة نقدية",
+      "CASH_PAY_IN": "إيداع نقدي خارجي",
+      "PETTY_CASH_RETURN": "إعادة عهدة نقدية"
+    },
+    "supplierName": "اسم المورّد",
+    "expenseCategory": "فئة المصروف",
+    "employeeIdOptional": "الموظف (اختياري)",
     "sessionHistory": "سجل الجلسات",
     "movements": "الحركات",
     "linkedPaymentsTitle": "المدفوعات المرتبطة",
@@ -157,6 +168,22 @@
       "sessionIndicator": "الجلسة الحالية / الأخيرة",
       "sessionNo": "رقم الجلسة"
     },
+    "validation": {
+      "amountMustBePositive": "أدخل مبلغًا أكبر من صفر.",
+      "reasonRequired": "السبب مطلوب.",
+      "supplierNameRequired": "اسم المورّد مطلوب.",
+      "expenseCategoryRequired": "فئة المصروف مطلوبة."
+    },
+    "pendingDeposit": {
+      "createButton": "إنشاء صندوق قيد الإيداع",
+      "created": "تم إنشاء صندوق قيد الإيداع.",
+      "createFailed": "فشل إنشاء صندوق قيد الإيداع.",
+      "statusCardTitle": "صناديق قيد الإيداع للفروع",
+      "statusCardDescription": "يحتاج كل فرع إلى صندوق واحد يديره النظام لاستقبال النقد المجهّز للإيداع عند الإغلاق.",
+      "present": "متوفر",
+      "missing": "غير متوفر",
+      "missingNotice": "لا يوجد صندوق قيد إيداع لهذا الفرع بعد."
+    },
     "hub": {
       "masterTitle": "مركز عمليات صناديق النقد",
       "masterDescription": "اختر صندوقاً لمراجعة سجل جلساته التشغيلية الأخيرة.",
@@ -181,8 +208,7 @@
       "loadFailed": "فشل تحميل بيانات صندوق النقد.",
       "openFailed": "فشل فتح الجلسة.",
       "sessionOpened": "تم فتح الجلسة بنجاح.",
-      "movementFailed": "فشل تسجيل الحركة.",
-      "movementRecorded": "تم تسجيل الحركة بنجاح.",
+      "movementRecorded": "تم ترحيل الحركة النقدية كسند رقم {voucherNo}.",
       "closeFailed": "فشل إغلاق الجلسة.",
       "sessionClosed": "تم إغلاق الجلسة بنجاح.",
       "summaryLoading": "جارٍ تحميل ملخص تسوية الجلسة...",

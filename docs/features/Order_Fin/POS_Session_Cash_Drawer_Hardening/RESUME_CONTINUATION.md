@@ -1,10 +1,39 @@
 # RESUME — POS Session & Cash Drawer Hardening (session continuation)
 
-**Updated:** 2026-09-25 (latest — cloud session on branch `claude/peaceful-babbage-eifpj0`). **The ▶ NOW entry directly below is the resume point.** All 7 R1 migrations applied. Writer items **W1–W10, W12, W14, W15 are done** (STATUS D36, D37). Next: **W11 + Cash in / Cash out** (§4B.2a-A), pending-deposit buttons (§4B.2a-B), R1 exit gates.
+**Updated:** 2026-10-01 (latest — local session). **CLF-R1 Ledger CLOSED** (STATUS D39). **CLF-R2 Sessions IN PROGRESS: M4 applied, CLF-2/CLF-4 services built** (STATUS D41) — schema live local+remote; the full count/trx/balance/over-short/session service layer is written, typechecked, linted, and proven against the real local DB via a new DB-integration test. **Next: CLF-7 (API routes)** — see ▶ NOW below.
 
 ---
 
-## ▶ NOW — 2026-09-25 (latest) — W2/W3/W10 done; next W11 + Cash in / Cash out
+## ▶ NOW — 2026-10-01 — CLF-2/CLF-4 services done (D41); build CLF-7 (API routes) next
+
+**Done this pass (full detail in STATUS D41):** `lib/services/cash-drawer-count.service.ts`, `cash-drawer-trx.service.ts`, `cash-drawer-ledger/cash-drawer-balance.service.ts`, `cash-over-short.service.ts` + its outbox handler, and the big one, `cash-drawer-session.service.ts` (open → startClose → finalizeClose/forceClose → approveVariance → updatePostClose). Three Zod schema files under `lib/validations/cash-drawer/`. 4 real bugs self-caught before any test run (buggy variance-snapshot expression, wrong outbox-handler import path, `0n` BigInt literals, a missing `withTenantContext` wrap). New DB-integration test `cash-drawer-session-lifecycle.db.test.ts` — first real run caught 2 more real issues (a wrong test assertion, a cleanup FK/immutability-trigger gap) — both tests pass clean now, including a second-session "chain" assertion and zero `TenantGuard` warnings. Gates clean: eslint, scoped tsc (only the 2 pre-existing unrelated errors), i18n, full jest **336/336 suites, 3006/3006 tests**.
+
+**▶ Pick up exactly here — CLF-7 API routes, then CLF-6 readers, then CLF-8 UI:**
+1. **CLF-7** — build the ~12 routes against the now-complete service layer (§4B.7 has the full list): open-session (+opening count), start-close (+closing count), recount, finalize (+dispositions), force-close, approve-variance, post-close PUT/GET history, counts GET/POST (standalone spot/recount), trx GET/POST/reverse (custody), ledger GET (`getDrawerLedgerPage`), policy GET/PUT, catalogs GET, follow-up GET. Every route body validates against the matching schema already written in `lib/validations/cash-drawer/`. Each route needs its own `apiDependencies` entry in the relevant `*-access.ts` (hand-add, don't run `derive --apply` broadly — see the 2026-09-26 entry below for why) and a permission check mirroring the existing drawer/session permission codes.
+2. **CLF-6** — once routes exist, switch readers (drawer screens, reports) off the legacy `org_cash_drawer_movements_dtl` formula onto `getDrawerLedgerPage`/the new balance service directly; retire this session's own no-longer-needed reads along the way.
+3. **CLF-8** — UI: two-step close wizard (count → dispositions → finalize), drawer-transaction (custody) dialog, denomination counter component, cash-control policy tab additions, the follow-up screen (`/dashboard/internal_fin/cash-drawers/follow-up`), session-detail updates to show the new balance-row-per-currency shape.
+4. `ls supabase/migrations/` immediately before writing any new migration (M8 nav, M9 backfill+CHECK, M10 retirement still ahead) — do not trust a nominal number from the plan.
+5. Once CLF-6's readers are live, retire the 4 temporary mirror handlers (`customerReceiptCashDrawerWiringHandler`, `cashMovementCashDrawerWiringHandler`, `storedValueCashDrawerWiringHandler`, `orderRefundCashDrawerWiringHandler`) and the legacy `openSession`/`closeSession` in `cash-drawer.service.ts`, as part of M10/R3 — not before.
+6. **Outstanding, awaiting owner decision (not acted on):** Arabic "Tenant" translation `مستأجر` → recommended `مؤسسة` (90 occurrences, 35 locale files).
+
+---
+
+## ✅ 2026-09-26 (superseded by ▶ NOW above) — CLF-R1 Ledger CLOSED
+
+**Done this pass (full detail in STATUS.md D39):** W11 + Cash in/Cash out dialog (§4B.2a-A) — new service/route/action/UI, plus an owner-requested optional `employeeId` attribution field for the two petty-cash roles, plus a new temporary mirror handler (`cashMovementCashDrawerWiringHandler`) so the drawer's *open-session* live expected-cash figure includes these vouchers before the R2 reader switch (this was not spelled out in §4B.2a-A's text — found by tracing the read path, same gap class as W6/W4/W5). Deleted `recordMovement`, `POST .../cash-movement`, `addDrawerMovement`, and the confirmed-orphaned `cash-drawer-detail-client.tsx`. Pending-deposit provisioning (§4B.2a-B) — two new routes, one shared self-hiding button component, wired into all three named screens (branches page path corrected to the real route, `/dashboard/settings/branches` — `/dashboard/tenant-admin/branches` from the plan text doesn't exist here).
+
+**Gates:** eslint (whole project) clean · scoped tsc clean (only the pre-existing unrelated `tenants.service.ts` error) · build exit 0 · jest **335/335 suites, 2979/2979 tests** · DB-integration cash-drawer suites green (rewrote the W11-affected concurrency proof to use the new write path, confirmed same row lock as A2/A2-6) · i18n check passed · `check:ui-access-contract --wire` passes on all 4 touched routes.
+
+**A real process trap hit this pass, avoid it next time:** `derive --apply` on a single route (`/dashboard/internal_fin/cash-drawers/[drawerId]`) tried to rewrite **1200+ unrelated lines** of `billing-access.ts` — it re-derives the *entire* file's inferred API surface, not just the one route, and this file already carries a lot of pre-existing never-synced drift (AR/invoices/finance-jobs/refunds) unrelated to CLF. Reverted immediately. **For a scoped access-contract change, hand-add the `apiDependencies` entry** (matching the existing `{label, method, path, requirement: {permissions, requireAllPermissions}, enforcement}` shape from `lib/auth/access-contracts.ts`) and verify with `check:ui-access-contract --route=<route> --wire`, not `derive --apply`. `sync:ui-access-contract` and the full `rebuild:platform-info-inventories` are safe to run broadly (they only mirror already-declared source truth / re-extract from the live filesystem — no inference, drift: 0 both times this pass).
+
+**▶ Pick up exactly here — CLF-R2 Sessions:**
+1. Read `IMPLEMENTATION_PLAN.md` §4B in full for R2's scope: M4 (per-currency session balances, `org_cash_drawer_ses_bal_dtl`), M8 (navigation/permissions for the new screens), M9 (backfill), two-step close (count → finalize with mandatory disposition), the follow-up screen (`/dashboard/internal_fin/cash-drawers/follow-up`), the cash-control policy tab, and switching every reader (this session's own new mirror handler included) off the legacy `org_cash_drawer_movements_dtl` formula onto the new ledger directly.
+2. `ls supabase/migrations/` immediately before writing any new migration — do not trust a nominal number from the plan.
+3. Once R2's readers are live, retire the 4 temporary mirror handlers (`customerReceiptCashDrawerWiringHandler`, `cashMovementCashDrawerWiringHandler`, `storedValueCashDrawerWiringHandler`, `orderRefundCashDrawerWiringHandler`) as part of W13/R3 — not before R2's readers exist, or the old screens go blind.
+
+---
+
+## ✅ 2026-09-25 (superseded by ▶ NOW above) — W2/W3/W10 done; next W11 + Cash in / Cash out
 
 **Owner direction:** "why were W2/W3/W10 missed — go ahead". Answer + decisions in **STATUS.md D37** (short version: the earlier hand-off list dropped them; W1 had only covered their posting half).
 

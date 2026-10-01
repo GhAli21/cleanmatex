@@ -5,7 +5,8 @@
  * getDrawers: list all active drawers for the tenant.
  * openDrawerSession: open a new session on a drawer.
  * closeDrawerSession: close an open session with a physical count.
- * addDrawerMovement: record a cash-in / cash-out / petty-cash movement.
+ * postDrawerCashInOut: post a "Cash in / Cash out" movement (CLF W11) as a
+ *   finance voucher, replacing the deleted addDrawerMovement/recordMovement.
  * getDrawerSessionSummary: return session + movements + payments for a session.
  *
  * CLF W15: every action checks the same permission its /api/v1/cash-drawers
@@ -21,10 +22,14 @@ import {
   getDrawers,
   openSession,
   closeSession,
-  recordMovement,
   getSessionSummary,
 } from '@/lib/services/cash-drawer.service';
 import type { SessionCloseParams } from '@/lib/services/cash-drawer.service';
+import {
+  postDrawerCashMovement,
+  type PostDrawerCashMovementInput,
+} from '@/lib/services/cash-drawer-movement-posting.service';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { FINANCE_PERMISSIONS } from '@/lib/constants/permissions/finance-perm';
 
@@ -106,31 +111,36 @@ export async function closeDrawerSession(
   }
 }
 
-/** Record a cash movement (CASH_IN / CASH_OUT / PETTY_CASH) on a drawer. */
-export async function addDrawerMovement(
+/**
+ * Post a drawer "Cash in / Cash out" movement (CLF W11, §4B.2a-A) as a
+ * finance voucher — replaces the deleted addDrawerMovement/recordMovement.
+ * Ledger refusals surface as `error: <CASH_LEDGER_ERRORS code>` so the dialog
+ * can translate via `cashControl.ledgerErrors` (same pattern as
+ * sellGiftCardWithTenderAction).
+ */
+export async function postDrawerCashInOut(
   drawerId: string,
-  params: {
-    movementType: 'CASH_IN' | 'CASH_OUT' | 'PETTY_CASH';
-    amount: number;
-    reason: string;
-  }
+  params: Omit<PostDrawerCashMovementInput, 'drawerId'>
 ) {
   try {
     if (!(await hasPermissionServer(FINANCE_PERMISSIONS.CASH_DRAWER_RECORD_MOVEMENT))) {
       return { success: false as const, error: INSUFFICIENT_PERMISSIONS };
     }
     const auth = await getAuthContext();
-    const movement = await recordMovement(auth.tenantId, drawerId, {
+    const result = await postDrawerCashMovement(auth.tenantId, auth.userId, {
       ...params,
-      performedBy: auth.userId,
+      drawerId,
     });
     revalidatePath(`/dashboard/internal_fin/cash-drawers`);
-    return { success: true as const, data: movement };
+    return { success: true as const, data: result };
   } catch (error) {
-    console.error('[addDrawerMovement] Error:', error);
+    console.error('[postDrawerCashInOut] Error:', error);
+    if (error instanceof CashDrawerLedgerError) {
+      return { success: false as const, error: error.code };
+    }
     return {
       success: false as const,
-      error: error instanceof Error ? error.message : 'Failed to record movement',
+      error: error instanceof Error ? error.message : 'Failed to post cash movement',
     };
   }
 }

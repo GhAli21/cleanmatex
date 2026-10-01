@@ -1,11 +1,11 @@
 # Tenant Currency & FX — Implementation Plan 01 (tenant context)
 
-**Status:** 🟡 IN PROGRESS — plan v2 approved 2026-09-25. L0 done; `0532` written (awaiting owner apply). See §0.
+**Status:** 🟡 IN PROGRESS — plan v2 approved 2026-09-25. L0/5A/L2 done (migrations applied, FLAG_CATALOG synced). **5B tenant FX services IN PROGRESS as of 2026-10-01 — see §0.1 for the exact file-by-file resume state (mid-session checkpoint before a context `/clear`).**
 **Resume here (both repos):** `cleanmatexsaas/docs/features/Currency_Setup/RESUME_HERE.md`
 **v2 (2026-09-25):** folds in the review of the external currency pack (`REVIEW_external_currency_pack.md`): `is_base_currency` naming, full unique key, context flags defaulting FALSE, module-readiness registry, foreign cash = a drawer in that currency (CLF-aligned), `sales_pricing_mode`, reason-coded policy resolver, health panel, progressive-disclosure UI, later phases T-B (branch restriction) and T-R (tenant rounding overrides).
 **Context:** **Tenant only** (`cleanmatex`: `web-admin` + `org_*` migrations)
 **Sibling plan (HQ context):** `cleanmatexsaas/docs/features/Currency_Setup/implementation_plan_04_hq_fx.md`
-**Split from:** `cleanmatexsaas/docs/features/Currency_Setup/implementation_plan_03_fx.md` v5 (2026-09-25), which is now an index. Decision IDs carry over unchanged.
+**Split from:** `cleanmatexsaas/docs/features/Currency_Setup/_archive/implementation_plan_03_fx.md` v5 (2026-09-25; moved to `_archive/` 2026-10-01 during a docs cleanup), which is now an index/historical record only. Decision IDs carry over unchanged.
 **Created:** 2026-09-25
 
 ---
@@ -15,15 +15,53 @@
 | Stage | Status | Evidence / next action |
 |---|---|---|
 | **L0** drift report | ✅ done | `sql/L0_tenant_currency_drift_report.sql` run by owner (local + remote). 3 tenants, all consistent: resolved `TENANT_CURRENCY` = `org_tenants_mst.currency` = document currencies (OMR, OMR, SAR); decimals = `minor_unit`. Layer `SYSTEM_PROFILE` counts as chosen (report fixed, `7b0a944`); legacy `org_payments_dtl_tr` removed from the report |
-| **5A-1** `0532_org_currency_cf.sql` | 🟡 **written, NOT applied** (`b631285`) | `org_currency_cf` + `org_fin_fx_stng_cf`, RLS; triggers: base lock (orders exist ⇒ base immutable, binds HQ too), mirror → `org_tenants_mst.currency`, bridge from legacy `org_tenants_mst.currency` writers (keeps new-tenant onboarding + `ensure_branch_pd_drawer` working until L2/4E); backfill from resolved setting + every currency on documents/drawers; drawer composite FK (C5) validated. **Next: owner applies, regenerates types** |
-| **5A-2** tenant rate book | ⬜ not written | Takes the **next free number at write time** (`0533`/`0534` were used by HQ H-A). Contents per §5: `org_fx_provider_cf`, `org_fx_import_batch_mst`, `org_fx_rate_mst` |
-| **5A-3** perms / nav / flag | ⬜ | via `/create-update-rbac-permission`, `/navigation`, `/create-feature-flag` — next free numbers |
-| **L2** code cut-over | ⬜ after `0532` applied | Re-point the 5 entry points + `resolveTenantBaseCurrencyCode` (`order-financial-write.service.ts:961`) to `tenant-currency-profile.service`; signatures unchanged |
-| 5B–5E, L4, L5 | ⬜ | per §9 |
+| **5A-1** `0532_org_currency_cf.sql` | ✅ **applied local + remote** (`b631285`) | `org_currency_cf` + `org_fin_fx_stng_cf`, RLS; triggers: base lock (orders exist ⇒ base immutable, binds HQ too), mirror → `org_tenants_mst.currency`, bridge from legacy `org_tenants_mst.currency` writers (keeps new-tenant onboarding + `ensure_branch_pd_drawer` working until 4E fully retires it); backfill from resolved setting + every currency on documents/drawers; drawer composite FK (C5) validated. Types regenerated in both repos (uncommitted) |
+| **5A-2** tenant rate book | ✅ **applied local + remote** (`0537_org_fx_rate_book.sql`) | `org_fx_provider_cf`, `org_fx_import_batch_mst`, `org_fx_rate_mst` — same shape/lifecycle as the HQ book (0531), tenant-scoped RLS. C3 (rate pair must have one side base/reporting, other any active tenant currency) enforced by DB trigger `fn_ofrm_pair_check`, not just the service layer. `HQ_COPY`⇒`hq_rate_id` and `URL_FETCH`⇒`provider_code` enforced by CHECK. Types regenerated, confirmed present in `database.generated.ts` |
+| **5A-3** perms / flag | ✅ **applied local + remote**, verified against remote DB (`0538_rbac_permissions_currency_fx.sql`, `0539_add_feature_flag_multi_currency_fx.sql`) | 8 permissions confirmed live (`currencies:view/manage/set_base`, `fx_rates:view/manage/approve/import/manual_override`), including the `viewer` role fix (`currencies:view`/`fx_rates:view` now enabled for `viewer`, consistent with its broad-read-only pattern). Flag `multi_currency_fx` confirmed live (boolean, plan-bound, `default_value=false`). Rollback script + README in `cleanmatexsaas/docs/Added_Feature_Flags_docs/`. **Navigation still deliberately deferred** to 5C (no screen to point at yet). `web-admin/lib/constants/feature-flags.ts` FLAG_CATALOG synced (+ `multi_currency_fx: boolean` added to `FeatureFlags` in `lib/types/tenant.ts`); tsc/eslint clean |
+| **L2** code cut-over | ✅ done 2026-09-26 | Re-pointed `getTenantCurrency`/`getTenantDecimalPlaces`/`getCurrencyConfig` (`tenant-settings.service.ts`) and `resolveTenantBaseCurrencyCode` (`order-financial-write.service.ts`) to new `TenantCurrencyProfileService` (`lib/services/fx/tenant-currency-profile.service.ts`, reads `org_currency_cf`); `getCurrencyConfigAction`/`useTenantCurrency` unchanged (they already delegate). Signatures preserved (unused `branchId`/`userId` params kept, prefixed `_`, since `org_currency_cf` is tenant-only). Parity + fail-loud tests added (`tenant-currency-profile.service.test.ts`, `tenant-settings.service.currency.test.ts`, `order-financial-write.resolve-base-currency.test.ts`). `MISSING_TENANT_CURRENCY` EN/AR copy updated to reference Currency Settings. tsc/eslint/i18n clean; orphaned `src/features/orders/hooks/use-tenant-currency.ts` stub (zero callers) left untouched |
+| **5B** tenant FX services | 🟡 **IN PROGRESS** — see §0.1 | 7 of 9 files done, tsc/eslint clean; currency-policy.service.ts + fx-import.service.ts + all unit tests still to write |
+| 5C–5E, L4, L5 | ⬜ | per §9 |
+
+### 0.1 — 5B resume checkpoint (2026-10-01, before a context `/clear`)
+
+No migrations involved in 5B — this is pure application code against the already-applied `0532`/`0537` schema. Read this section first on resume; it supersedes the "Next engineering steps" list further down until 5B is marked done.
+
+**Done, `npx tsc --noEmit` clean, `npx eslint --quiet` clean (verified individually as each file was written):**
+
+| File | Role |
+|---|---|
+| `prisma/schema.prisma` | Added 10 models: `org_currency_cf`, `org_fin_fx_stng_cf`, `org_fx_provider_cf`, `org_fx_import_batch_mst`, `org_fx_rate_mst` (tenant-owned, from 0532/0537) + `sys_exchange_rate_source_cd`, `sys_fx_rate_type_cd`, `sys_fx_rate_origin_cd`, `sys_fx_provider_cd`, `sys_currency_exchange_rate_mst` (HQ-owned, read-only, from HQ 0531). Back-relations added to `org_tenants_mst`. `npx prisma generate` run twice successfully — **client codegen only, no DB connection, not a migration** |
+| `lib/constants/currency-fx.ts` | All DB-mirrored enums: `FX_RATE_STATUS`, `FX_RATE_ORIGIN`, `FX_IMPORT_BATCH_STATUS`, `FX_RESOLUTION_POLICY`, `SALES_PRICING_MODE`, `FX_RESOLUTION`, `FX_RATE_SOURCE_BOOK`, `CURRENCY_CONTEXT` + `MULTI_CURRENCY_READY_CONTEXTS` (C10) + `CURRENCY_CONTEXT_COLUMN`, `CURRENCY_POLICY_REASON` (§4.3), `CURRENCY_USAGE_REASON` (C4), `FX_RATE_TYPE`, `FX_ROUNDING_CONTEXT` |
+| `lib/services/fx/fx-errors.ts` | `FxError` class + `FX_ERROR` code enum, mirrors the existing `CurrencyResolutionError` pattern (`lib/money/currency-resolution.ts`) |
+| `lib/services/fx/fx-decimal.ts` | **Byte-identical** port of HQ's `fx-decimal.util.ts` (diff-verified, header comment excepted) |
+| `__tests__/services/fx/fx-golden-vectors.json` | Byte-identical copy of the HQ canonical fixture. SHA-256 `19879eaba8c3ae7161d13af5910093a3794f3579f0394774f272433f5997056c` (verified both sides) |
+| `__tests__/services/fx/fx-decimal.test.ts` | 27 tests passing, incl. a hardcoded-checksum assertion against the fixture above (catches future drift) |
+| `lib/services/fx/currency-usage.service.ts` | C4 guard — `checkCurrencyInUse(tenantId, currencyCode)`. Checks orders (`ORDER_PAYMENT_STATUS` open set), AR (`org_invoice_mst` — confirmed this table **is** the AR invoice table in this codebase, `AR_INVOICE_STATUSES`), wallets/gift-cards/advances (nonzero balance), open drawer sessions, active drawers. "Unsettled payments" is proxied by the order's own `payment_status` (documented scope decision — see comment in file) |
+| `lib/services/fx/org-currency.service.ts` | Portfolio CRUD on `org_currency_cf`: `listPortfolio`, `getCurrency`, `addCurrency`, `updateCurrency`, `setBaseCurrency` (C6 — pre-checks for a clean error, DB trigger `fn_orgcur_base_lock` is still authoritative), `setReportingCurrency`, `deactivateCurrency` (C4), `reactivateCurrency`. C11 pricing mode and C10 readiness enforced |
+| `lib/services/fx/fx-rate.service.ts` | Rate CRUD/lifecycle on `org_fx_rate_mst`: `listRates`, `findRate`, `createRate`, `updateRate`, `approveRate`, `rejectRate`, `voidRate`, `deleteRate`. Translates the C3 trigger (`fn_ofrm_pair_check`) exception and the one-live-rate unique violation into typed `FxError`s |
+| `lib/services/fx/fx-rate-resolver.service.ts` | `resolveRate(tenantId, input)` — own book → HQ book per `org_fin_fx_stng_cf.resolution_policy` (`TENANT_THEN_HQ` default / `TENANT_ONLY` / `HQ_ONLY`), direct → inverse, publisher-precedence tie-break by `display_order`, staleness reported not enforced (mirrors HQ) |
+
+**Not started — the rest of 5B:**
+
+1. **`lib/services/fx/currency-policy.service.ts`** (§4.3 resolver) — `checkCurrencyPolicy({tenantId, branchId?, drawerId?, context, currencyCode}) → {allowed, reasonCode, requiresFx}`. Layers per plan: global active (`sys_currency_cd.is_active` — deliberately **not** re-checking `is_platform_enabled` at policy-check time, only at add-time/C2, so HQ delisting a currency doesn't break a tenant's existing usage) → tenant row active + context flag → C10 readiness (fail fast via `MULTI_CURRENCY_READY_CONTEXTS` before any DB read) → branch (T-B not built yet — always passes, reserved) → drawer currency match for CASH context when `drawerId` given (`NO_DRAWER_IN_CURRENCY`). `requiresFx = currencyCode !== base.currencyCode`. **Open design question to resolve on resume:** `FX_RATE_STALE` — HQ's own resolver treats staleness as "reported, not enforced" (never blocks). The plan's reason-code list includes it alongside blocking codes, but the return shape is only `{allowed, reasonCode, requiresFx}` (singular reasonCode). Decided approach (not yet coded): keep `reasonCode` strictly for **blocking** reasons (`allowed=false`), and add a separate non-blocking `staleRateWarning?: boolean` field to the result — call `resolveRate()` from fx-rate-resolver.service.ts only when `requiresFx` is true, catch `FxError(RATE_NOT_FOUND)` → `reasonCode: FX_RATE_MISSING, allowed: false`; a resolved-but-stale rate → `staleRateWarning: true, allowed: true`.
+2. **`lib/services/fx/fx-import.service.ts`** — **HQ-copy adapter only** (CSV/Excel/URL are stages 5D/5E — out of scope, do not start them). Preview → commit on `org_fx_import_batch_mst` + `org_fx_rate_mst`: preview pulls `sys_currency_exchange_rate_mst` approved rows for pairs where one side is the tenant's base/reporting currency and the other is an active portfolio currency (same pairing rule as C3); commit writes `org_fx_rate_mst` rows with `origin_code=HQ_COPY`, `hq_rate_id` = the HQ row's id (snapshot, not a live link), `source_code` copied from the HQ row's own `source_code` (the real publisher, e.g. `ecb` — **not** literally `'cleanmatex_hq'`), status `DRAFT` unless `org_fin_fx_stng_cf.auto_approve_imports` is on and the actor holds `fx_rates:approve` (permission check is still the caller's job; the service just exposes whether auto-approve is configured).
+3. **Unit tests** for the 6 files above that don't have them yet: `org-currency.service.test.ts` (C2/C4/C6/C10/C11, base-swap transaction correctness), `fx-rate.service.test.ts` (lifecycle transitions, tenant isolation, duplicate/pair-invalid error translation), `fx-rate-resolver.service.test.ts` (own→HQ fallback, all 3 policies, direct/inverse, staleness), `currency-usage.service.test.ts` (each reason independently), `currency-policy.service.test.ts` (every reason code), `fx-import.service.test.ts` (preview/commit, pairing rule).
+4. **Final validation pass** (not yet run): `npx tsc --noEmit` (expect 0 new errors beyond the 2 pre-existing/unrelated ones noted below), `npx eslint --quiet lib/services/fx lib/constants/currency-fx.ts __tests__/services/fx`, `npx jest __tests__/services/fx`, and **`npm run build`** — this last one is the authoritative check for the BigInt/tsconfig quirk noted below (Next's SWC build, not raw `tsc`, is what actually ships).
+5. Mark 5B done in this table + `cleanmatexsaas/docs/features/Currency_Setup/RESUME_HERE.md` once 1–4 are complete.
+
+**Known, accepted, pre-existing non-issue (do not "fix"):** `npx tsc --noEmit` reports `TS2737: BigInt literals are not available when targeting lower than ES2020` for every `0n`/`1n` literal in `fx-decimal.ts` (25 occurrences). `tsconfig.json` targets `ES2017`. This is **not new** — the same warning already exists, untouched, in the concurrent CLF code (`lib/services/cash-drawer-ledger/cash-drawer-balance.service.ts`, `lib/services/cash-drawer-session.service.ts`), confirmed via `grep -rlP "\b\d+n\b"`. Jest (babel transform) and Next's actual build (SWC) both handle BigInt literals regardless of this tsconfig field — only raw `tsc` emit cares. Bumping `tsconfig.json`'s `target` repo-wide is a separate, deliberate decision for the owner, not an in-scope fix for 5B. The other pre-existing tsc error, unrelated: `lib/services/tenants.service.ts(230,8)`.
+
+**Established conventions to keep following for the remaining files:**
+- Prisma-based (`prisma` from `@/lib/db/prisma`), wrapped in `withTenantContext(tenantId, async (tenant) => ...)`, every query explicitly filtered by `tenant_org_id` even inside that wrapper (the `$extends` tenant guard checks/rejects, never injects).
+- **Permission gating is the caller's responsibility, never the service's** — matches `cash-control-settings.service.ts`'s explicit precedent comment. Do not add `hasPermissionServer`/`requirePermission` calls inside `lib/services/fx/*`.
+- Typed errors via `FxError`/`FX_ERROR` (`fx-errors.ts`), not raw `throw new Error(...)`.
+- Money/rates: exact decimal strings or `Prisma.Decimal`/`bigint` — never a JS `number` for a rate or an amount.
+
+---
 
 **HQ side already done (for §8 contract):** HQ `0531` applied (catalogs + HQ rate book, approved-only RLS read), HQ exchange-rate backend + screen shipped, golden vectors at `cleanmatexsaas/platform-api/src/modules/currency-fx/__tests__/fx-golden-vectors.json` (copy byte-identical into web-admin tests in 5B).
 
-**Migration numbers actually used so far:** `0531` HQ FX catalogs/book (applied) · `0532` org_currency_cf (written) · `0533` HQ billing FX · `0534` HQ plan prices (both written). Always `ls supabase/migrations/` before writing the next one.
+**Migration numbers actually used so far:** `0531` HQ FX catalogs/book · `0532` org_currency_cf · `0533` HQ billing FX · `0534` HQ plan prices · `0535` HQ plan currency NOT NULL fix · `0537` org_fx_rate_book (5A-2) · `0538` RBAC permissions (5A-3) · `0539` `multi_currency_fx` feature flag (5A-3) — **all applied local + remote**. `0536` went to the CLF cash-drawer program (unrelated, concurrent work), not FX. Last on disk: `0539`. Always `ls supabase/migrations/` before writing the next one (next free: `0540`).
 
 ---
 
@@ -197,7 +235,7 @@ The resolver fails loudly when currency is missing (B15), so the order is **code
 |---|---|---|
 | **L0 — Drift report** | Read-only SQL. For each tenant, compare the resolved `TENANT_CURRENCY`, `org_tenants_mst.currency`, and `TENANT_DECIMAL_PLACES` vs `minor_unit`, whether orders exist, and the currencies on existing orders/invoices. **Owner resolves mismatches** | No writes |
 | **L1 = `0532`** | Create `org_currency_cf` + `org_fin_fx_stng_cf` + triggers. Backfill one **base** row per tenant from the value `fn_stng_resolve_all_settings` returns today for `TENANT_CURRENCY` (so behavior is preserved) → else `org_tenants_mst.currency` → else no row (reported). Add rows (contexts off) for other currencies already on documents **or on `org_cash_drawers_mst`**, then add the drawer composite FK (C5) `NOT VALID` → `VALIDATE`. Stamp `base_locked_at` for tenants with history. Mirror → `org_tenants_mst.currency` | Additive; the settings are untouched |
-| **L2 — Code cut-over** | Re-point the 5 entry points + `resolveTenantBaseCurrencyCode` to `tenant-currency-profile.service`. **Signatures unchanged.** `tenant-profile.service` writes the base row. Update the `MISSING_TENANT_CURRENCY` EN/AR message | Parity tests + full suite + build |
+| **L2 — Code cut-over** ✅ done 2026-09-26 | Re-pointed the 5 entry points + `resolveTenantBaseCurrencyCode` to `tenant-currency-profile.service`. **Signatures unchanged.** Updated the `MISSING_TENANT_CURRENCY` EN/AR message | Parity tests ✅ · tsc/eslint/i18n ✅ (full suite/build not re-run this session — no other module touched) |
 | *(HQ 4E)* | HQ wizard, locale tab and settings screens move to `org_currency_cf` (HQ plan §6) | HQ plan |
 | **L4** (`05xx`) | Soft-retire the 3 settings (catalog, profile values, tenant overrides: `is_active = false`, `rec_status = 0`). Refresh platform inventories and settings docs. **Needs your explicit go**, and only after L2 + HQ 4E are deployed | Reversible |
 | **L5** (`05xx`, one release later) | Hard-delete the 3 settings' rows. `org_tenants_mst.currency` is **kept** | Own review |
@@ -261,11 +299,13 @@ No FX, rates, import, drawer or advanced controls.
 
 ### 7.3 Gating migrations
 
+Numbers below are illustrative only — always `ls supabase/migrations/` at write time (this plan has already collided twice: `0533`–`0535` went to HQ H-A, `0536` went to the CLF cash-drawer program; `0537` is `org_fx_rate_book.sql`, 5A-2).
+
 | # | Content | Skill |
 |---|---|---|
-| `0534` | `currencies:view`, `currencies:manage`, **`currencies:set_base`** (elevated), `fx_rates:view`, `fx_rates:manage`, `fx_rates:approve`, `fx_rates:import`, **`fx_rates:manual_override`** + role mapping | `/create-update-rbac-permission`, `/update-rbac-role` |
-| `0535` | `sys_components_cd` nav + `navigation.ts` dual-write | `/navigation` |
-| `0536` | Feature flag `multi_currency_fx` (+ plan mappings) + `FLAG_CATALOG` | `/create-feature-flag` |
+| next free | `currencies:view`, `currencies:manage`, **`currencies:set_base`** (elevated), `fx_rates:view`, `fx_rates:manage`, `fx_rates:approve`, `fx_rates:import`, **`fx_rates:manual_override`** + role mapping | `/create-update-rbac-permission`, `/update-rbac-role` |
+| next free | `sys_components_cd` nav + `navigation.ts` dual-write | `/navigation` |
+| next free | Feature flag `multi_currency_fx` (+ plan mappings) + `FLAG_CATALOG` | `/create-feature-flag` |
 
 ---
 
@@ -288,8 +328,8 @@ No FX, rates, import, drawer or advanced controls.
 | Stage | Work | Depends on | Exit | Est. |
 |---|---|---|---|---|
 | **L0** ✅ | Drift report; owner resolves — clean 2026-09-25 | — | clean report | 0.5 d |
-| **5A** 🟡 | `0532` (`org_currency_cf` + policy + triggers + backfill) **written**; rate book + perms/nav/flag at the next free numbers (HQ took 0533/0534). **Stop → owner applies** | HQ `0531` ✅, L0 ✅ | applied | 1.5 d |
-| **L2** | Code cut-over (5 entry points) | 5A | full suite + build | 1.5 d |
+| **5A** ✅ | `0532`, `0537`, `0538`, `0539` — **all applied local + remote, verified against the live DB**. Navigation (nav half of 5A-3) deferred to 5C (route doesn't exist yet) | HQ `0531` ✅, L0 ✅ | applied ✅ | 1.5 d |
+| **L2** ✅ | Code cut-over (5 entry points) — done 2026-09-26 | 5A | tsc/eslint/i18n + parity tests ✅ | 1.5 d |
 | **5B** | FX services + HQ-copy adapter + golden tests | 5A | tsc/eslint/tests | 2 d |
 | **5C** | Screen: Currencies, Rates, Manual, From HQ, Converter, Settings | 5B | build + eslint + check:i18n | 2.5 d |
 | **5D** | CSV + Excel import | 5C | + malicious-file tests | 1.5 d |

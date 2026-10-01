@@ -6,6 +6,7 @@ This folder documents the current locale catalog model for `web-admin`.
 
 - [catalog-architecture.md](./catalog-architecture.md)
 - [style-guide.md](./style-guide.md)
+- [GLOSSARY.md](./GLOSSARY.md) — canonical EN/AR term per concept, platform-wide
 - [migration-checklist.md](./migration-checklist.md)
 - [manual-verification-en-ar.md](./manual-verification-en-ar.md)
 

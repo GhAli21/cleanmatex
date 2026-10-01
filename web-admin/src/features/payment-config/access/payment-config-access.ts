@@ -136,6 +136,22 @@ export const PAYMENT_CONFIG_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'Pending-deposit drawer status (CLF §4B.2a-B)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/pending-deposit/status',
+        requirement: {
+          permissions: [PAYMENT_CONFIG_PERMISSIONS.CASH_DRAWER_VIEW],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create pending-deposit drawer (CLF §4B.2a-B)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/pending-deposit/ensure',
+        requirement: { permissions: ['cash_control:manage', PAYMENT_CONFIG_PERMISSIONS.MANAGE] },
+        notes: ['Idempotent; any one of the listed permissions is sufficient (requireAnyPermission).'],
+      },
     ],
     notes: ['Canonical payment configuration route. Tab-level mutations all hang off explicit payment_config or cash_drawer permissions.'],
   },

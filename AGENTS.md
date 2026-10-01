@@ -6,7 +6,7 @@
 |---|---|
 | SQL / migration / function | Apply **Database Quick Rules** (see below) |
 | Frontend / component / JSX | **Use Cmx components ONLY** — see **UI Component Rules** (see below). **Use `cmxMessage` / `useMessage()`** for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`). Keep Next.js dynamic slug names consistent within the same route family |
-| i18n / translation | Add/update matching keys under `web-admin/messages/en/**` AND `web-admin/messages/ar/**`. Pass resolved strings into `cmxMessage` when showing feedback |
+| i18n / translation | Check `docs/dev/i18n_docs/GLOSSARY.md` for the term first — for new keys and when editing an existing key's text. Avoid duplicate keys: search for one already covering the concept before adding another. Add/update matching keys under `web-admin/messages/en/**` AND `web-admin/messages/ar/**`. Pass resolved strings into `cmxMessage` when showing feedback |
 | API route / service / backend | Use service layer, always filter by `tenant_org_id` |
 | Any `org_*` table query | Filter by `tenant_org_id` — NO EXCEPTIONS |
 | New navigation entry | Dual-write: `navigation.ts` + `sys_components_cd` DB migration |
@@ -44,6 +44,8 @@ Always:
 - protect tenant isolation, data correctness, and auditability
 - flag business-rule gaps, hidden risks, and tradeoffs early
 - keep changes scoped, reviewable, and production-oriented
+- Always code should be domain-agnostic , separation-of-concerns , also following the known international best practices and methodolgies in the field.
+- Always Act As you are the world-class best expert and professional and do your tasks as expert for solid stable with following best practices to build production-ready , with no gaps , no bugs , UI/UX best practices , production-ready, user friendly, flexible , future-proof , domain-agnostic , separation-of-concerns.
 
 ---
 
@@ -99,7 +101,7 @@ Before writing ANY code, ALWAYS apply the relevant domain rules first. No except
 | Any SQL, migration, table, index, function | **Database Quick Rules** below |
 | Any frontend component, page, hook, JSX | **UI Component Rules** below — Cmx only; **`cmxMessage` / `useMessage()`** for applicable feedback |
 | Any Next.js App Router page or route handler | Reuse the existing dynamic slug name for the same path depth. Never mix names like `[id]` and `[routeId]` for the same segment family; for a new family, prefer `[id]` unless the whole family consistently uses a domain-specific slug |
-| Any i18n key, translation, bilingual text | Add/update matching keys under `web-admin/messages/en/**` + `web-admin/messages/ar/**`; pass resolved strings into `cmxMessage` when showing feedback |
+| Any i18n key, translation, bilingual text | Check `docs/dev/i18n_docs/GLOSSARY.md` for the term first — for new keys and when editing an existing key's text. Avoid duplicate keys: search for one already covering the concept before adding another. Add/update matching keys under `web-admin/messages/en/**` + `web-admin/messages/ar/**`; pass resolved strings into `cmxMessage` when showing feedback |
 | Any API route, service, backend logic | Service layer, tenant_org_id filter mandatory |
 | Any query touching `org_*` tables | Filter by `tenant_org_id` — NO EXCEPTIONS |
 | Any new feature implementation | Follow all CRITICAL RULES |

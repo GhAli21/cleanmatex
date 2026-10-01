@@ -2,6 +2,10 @@
 
 ## Key placement
 
+- Check `docs/dev/i18n_docs/GLOSSARY.md` first for the concept's approved EN/AR wording — for new keys
+  and when editing an existing key's text, not just at creation time.
+- Before adding any key, search for one that already covers the same concept and reuse it; avoid
+  duplicate keys as much as possible.
 - Shared UI words belong in `common.*`.
 - Feature-specific copy belongs in that feature namespace.
 - Avoid creating new top-level namespaces unless the repo already needs them.
