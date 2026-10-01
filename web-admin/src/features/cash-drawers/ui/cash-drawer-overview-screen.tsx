@@ -2,20 +2,11 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { ArrowLeft, CircleDollarSign, WalletCards } from 'lucide-react'
 
-import {
-  closeDrawerSession,
-  openDrawerSession,
-  postDrawerCashInOut,
-} from '@/app/actions/billing/cash-drawer-actions'
-import {
-  buildCashDrawerClosePreview,
-  fetchCashDrawerSessionCloseSummary,
-} from '@features/cash-drawers/api/cash-drawer-api'
+import { postDrawerCashInOut } from '@/app/actions/billing/cash-drawer-actions'
 import {
   CashDrawerInfoTile,
   CashDrawerMovementBadge,
@@ -24,6 +15,8 @@ import {
   useCashDrawerDateFormatter,
   useCashDrawerMoneyFormatter,
 } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
+import { CashDrawerOpenSessionDialog } from '@features/cash-drawers/ui/cash-drawer-open-session-dialog'
+import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-close-wizard'
 import type {
   CashDrawerOverviewDetail,
   CashDrawerSessionListRow,
@@ -78,8 +71,6 @@ export function CashDrawerOverviewScreen({
   const [moveDialogOpen, setMoveDialogOpen] = useState(false)
   const [closeDialogOpen, setCloseDialogOpen] = useState(false)
 
-  const [openingBalance, setOpeningBalance] = useState('0')
-  const [openNotes, setOpenNotes] = useState('')
   const [lineRole, setLineRole] = useState<DrawerCashMovementRole>(LINE_ROLE.EXPENSE_PAYMENT)
   const [moveAmount, setMoveAmount] = useState('0')
   const [moveReason, setMoveReason] = useState('')
@@ -96,40 +87,6 @@ export function CashDrawerOverviewScreen({
     setMovePrevOpen(moveDialogOpen)
     if (moveDialogOpen) setMoveIdempotencyKey(crypto.randomUUID())
   }
-  const [physicalCount, setPhysicalCount] = useState('')
-  const [closeNotes, setCloseNotes] = useState('')
-
-  const closeSummaryQuery = useQuery({
-    queryKey: ['cash-drawers', drawerId, 'close-summary', overview.currentSession?.id ?? 'none'],
-    enabled: closeDialogOpen && !!overview.currentSession?.id,
-    queryFn: () =>
-      fetchCashDrawerSessionCloseSummary(drawerId, overview.currentSession!.id),
-  })
-
-  const closePreview = closeSummaryQuery.data
-    ? buildCashDrawerClosePreview(closeSummaryQuery.data, physicalCount)
-    : null
-
-  const handleOpenSession = () => {
-    startTransition(async () => {
-      const result = await openDrawerSession(drawerId, {
-        openingBalance: Number(openingBalance) || 0,
-        notes: openNotes.trim() || undefined,
-      })
-
-      if (!result.success) {
-        cmxMessage.error(result.error ?? t('messages.openFailed'))
-        return
-      }
-
-      cmxMessage.success(t('messages.sessionOpened'))
-      setOpenDialogOpen(false)
-      setOpeningBalance('0')
-      setOpenNotes('')
-      router.refresh()
-    })
-  }
-
   const moveRequirements = LINE_ROLE_REQUIREMENTS[lineRole]
   const moveNeedsPartyName = moveRequirements?.requiredFields.includes('party_name') ?? false
   const moveNeedsExpenseCategory = moveRequirements?.requiredFields.includes('expense_category_code') ?? false
@@ -183,28 +140,6 @@ export function CashDrawerOverviewScreen({
       setMoveExpenseCategoryCode('')
       setMoveEmployeeId('')
       setLineRole(LINE_ROLE.EXPENSE_PAYMENT)
-      router.refresh()
-    })
-  }
-
-  const handleCloseSession = () => {
-    if (!overview.currentSession) return
-
-    startTransition(async () => {
-      const result = await closeDrawerSession(overview.currentSession!.id, {
-        physicalCount: Number(physicalCount) || 0,
-        notes: closeNotes.trim() || undefined,
-      })
-
-      if (!result.success) {
-        cmxMessage.error(result.error ?? t('messages.closeFailed'))
-        return
-      }
-
-      cmxMessage.success(t('messages.sessionClosed'))
-      setCloseDialogOpen(false)
-      setPhysicalCount('')
-      setCloseNotes('')
       router.refresh()
     })
   }
@@ -497,40 +432,13 @@ export function CashDrawerOverviewScreen({
         </CmxCardContent>
       </CmxCard>
 
-      <CmxDialog open={openDialogOpen} onOpenChange={setOpenDialogOpen}>
-        <CmxDialogContent className="max-w-md">
-          <CmxDialogHeader>
-            <CmxDialogTitle>{t('openSessionConfirm')}</CmxDialogTitle>
-          </CmxDialogHeader>
-          <div className="space-y-4">
-            <CmxInput
-              label={t('openingBalance')}
-              type="number"
-              min="0"
-              step="0.001"
-              value={openingBalance}
-              onChange={(event) => setOpeningBalance(event.target.value)}
-            />
-            <div className="space-y-2">
-              <Label>
-                {t('notesOptional')}
-              </Label>
-              <CmxTextarea
-                value={openNotes}
-                onChange={(event) => setOpenNotes(event.target.value)}
-              />
-            </div>
-          </div>
-          <CmxDialogFooter>
-            <CmxButton variant="outline" onClick={() => setOpenDialogOpen(false)}>
-              {tCommon('cancel')}
-            </CmxButton>
-            <CmxButton loading={isPending} onClick={handleOpenSession}>
-              {t('openSession')}
-            </CmxButton>
-          </CmxDialogFooter>
-        </CmxDialogContent>
-      </CmxDialog>
+      <CashDrawerOpenSessionDialog
+        drawerId={drawerId}
+        currencyCode={overview.drawer.currencyCode}
+        open={openDialogOpen}
+        onOpenChange={setOpenDialogOpen}
+        onOpened={() => router.refresh()}
+      />
 
       <CmxDialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
         <CmxDialogContent className="max-w-md">
@@ -593,81 +501,16 @@ export function CashDrawerOverviewScreen({
         </CmxDialogContent>
       </CmxDialog>
 
-      <CmxDialog open={closeDialogOpen} onOpenChange={setCloseDialogOpen}>
-        <CmxDialogContent className="max-w-2xl">
-          <CmxDialogHeader>
-            <CmxDialogTitle>{t('closeSessionConfirm')}</CmxDialogTitle>
-          </CmxDialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-              {t('closeSessionDesc')}
-            </p>
-
-            {closePreview ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <CashDrawerInfoTile
-                  label={t('openingBalance')}
-                  value={money(closePreview.openingFloat, closePreview.currencyCode)}
-                />
-                <CashDrawerInfoTile
-                  label={t('cashCollected')}
-                  value={money(closePreview.cashCollected, closePreview.currencyCode)}
-                />
-                <CashDrawerInfoTile
-                  label={t('expectedCash')}
-                  value={money(closePreview.expectedCash, closePreview.currencyCode)}
-                />
-                <CashDrawerInfoTile
-                  label={t('movementCashIn')}
-                  value={money(closePreview.movementCashIn, closePreview.currencyCode)}
-                />
-                <CashDrawerInfoTile
-                  label={t('movementCashOut')}
-                  value={money(closePreview.movementCashOut, closePreview.currencyCode)}
-                />
-                <CashDrawerInfoTile
-                  label={t('movementNet')}
-                  value={money(closePreview.movementNet, closePreview.currencyCode)}
-                />
-              </div>
-            ) : closeSummaryQuery.isLoading ? (
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                {t('messages.summaryLoading')}
-              </p>
-            ) : null}
-
-            <CmxInput
-              label={t('physicalCount')}
-              type="number"
-              min="0"
-              step="0.001"
-              value={physicalCount}
-              onChange={(event) => setPhysicalCount(event.target.value)}
-            />
-            <div className="space-y-2">
-              <Label>
-                {t('notesOptional')}
-              </Label>
-              <CmxTextarea
-                value={closeNotes}
-                onChange={(event) => setCloseNotes(event.target.value)}
-              />
-            </div>
-          </div>
-          <CmxDialogFooter>
-            <CmxButton variant="outline" onClick={() => setCloseDialogOpen(false)}>
-              {tCommon('cancel')}
-            </CmxButton>
-            <CmxButton
-              variant="destructive"
-              loading={isPending}
-              onClick={handleCloseSession}
-            >
-              {t('confirmClose')}
-            </CmxButton>
-          </CmxDialogFooter>
-        </CmxDialogContent>
-      </CmxDialog>
+      {currentSession ? (
+        <CashDrawerCloseWizard
+          drawerId={drawerId}
+          sessionId={currentSession.id}
+          branchId={overview.drawer.branchId}
+          open={closeDialogOpen}
+          onOpenChange={setCloseDialogOpen}
+          onFinalized={() => router.refresh()}
+        />
+      ) : null}
     </div>
   )
 }

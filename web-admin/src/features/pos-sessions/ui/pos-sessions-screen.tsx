@@ -22,7 +22,7 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
+import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
 import {
@@ -31,7 +31,7 @@ import {
   PosSessionApiError,
   postPosSessionLifecycleAction,
 } from '@features/pos-sessions/api/pos-session-api';
-import { PosSessionDrawerCloseSummary } from '@features/pos-sessions/ui/pos-session-drawer-close-summary';
+import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-close-wizard';
 import type {
   GetMyActivePosSessionResult,
   PosSessionListResult,
@@ -132,8 +132,6 @@ export function PosSessionsScreen() {
   const [openBranchId, setOpenBranchId] = useState('');
   const [actionDialog, setActionDialog] = useState<SessionActionDialogState>({ action: null, reason: '' });
   const [drawerDialogOpen, setDrawerDialogOpen] = useState(false);
-  const [countedCash, setCountedCash] = useState('');
-  const [drawerNotes, setDrawerNotes] = useState('');
   const [summarySessionId, setSummarySessionId] = useState<string | null>(null);
   const [eventsSession, setEventsSession] = useState<PosSessionListRow | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -242,56 +240,16 @@ export function PosSessionsScreen() {
     await runLifecycleAction('open', { branchId: openBranchId }, t('messages.opened'));
   }, [openBranchId, runLifecycleAction, t]);
 
-  const closeDrawerThenSession = useCallback(async () => {
-    if (!activeSession?.cash_drawer_id || !activeSession.cash_drawer_session_id) {
-      cmxMessage.error(t('messages.actionFailed'));
-      return;
-    }
-    if (!canCloseCashDrawer) {
-      cmxMessage.error(t('messages.drawerClosePermissionRequired'));
-      return;
-    }
-    const numericCount = Number(countedCash);
-    if (!Number.isFinite(numericCount) || numericCount < 0) {
-      cmxMessage.error(t('messages.countedCashRequired'));
-      return;
-    }
-
-    setBusyAction('drawer-close');
-    try {
-      const response = await fetch(`/api/v1/cash-drawers/${activeSession.cash_drawer_id}/close-session`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCSRFHeader(csrfToken),
-        },
-        body: JSON.stringify({
-          sessionId: activeSession.cash_drawer_session_id,
-          physicalCount: numericCount,
-          notes: drawerNotes || undefined,
-        }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<unknown>;
-      if (!response.ok || payload.success === false) {
-        throw new Error(payload.error || t('messages.actionFailed'));
-      }
-      cmxMessage.success(t('messages.drawerClosed'));
-      setDrawerDialogOpen(false);
-      setCountedCash('');
-      setDrawerNotes('');
-      await runLifecycleAction(
-        actionDialog.action === 'force-close' ? 'force-close' : 'close',
-        { reason: actionDialog.reason || undefined },
-        actionDialog.action === 'force-close' ? t('messages.forceClosed') : t('messages.closed')
-      );
-      setActionDialog({ action: null, reason: '' });
-    } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : t('messages.actionFailed'));
-    } finally {
-      setBusyAction(null);
-    }
-  }, [activeSession, actionDialog, canCloseCashDrawer, countedCash, csrfToken, drawerNotes, runLifecycleAction, t]);
+  const handleDrawerFinalized = useCallback(async () => {
+    cmxMessage.success(t('messages.drawerClosed'));
+    setDrawerDialogOpen(false);
+    await runLifecycleAction(
+      actionDialog.action === 'force-close' ? 'force-close' : 'close',
+      { reason: actionDialog.reason || undefined },
+      actionDialog.action === 'force-close' ? t('messages.forceClosed') : t('messages.closed')
+    );
+    setActionDialog({ action: null, reason: '' });
+  }, [actionDialog, runLifecycleAction, t]);
 
   const branchOptions = (branchesQuery.data ?? []).map((branch) => ({
     value: branch.id,
@@ -826,34 +784,16 @@ export function PosSessionsScreen() {
         </CmxDialogContent>
       </CmxDialog>
 
-      <CmxDialog open={drawerDialogOpen} onOpenChange={setDrawerDialogOpen}>
-        <CmxDialogContent className="max-w-2xl">
-          <CmxDialogHeader>
-            <CmxDialogTitle>{t('drawerCloseStep')}</CmxDialogTitle>
-          </CmxDialogHeader>
-          <PosSessionDrawerCloseSummary
-            open={drawerDialogOpen}
-            drawerId={activeSession?.cash_drawer_id}
-            drawerName={activeSessionContext?.cash_drawer_name}
-            drawerSessionId={activeSession?.cash_drawer_session_id}
-            drawerSessionNo={activeSessionContext?.cash_drawer_session_no}
-            drawerStatus={activeSessionContext?.cash_drawer_session_status}
-            canViewCashDrawer={canViewCashDrawer}
-            countedCash={countedCash}
-            notes={drawerNotes}
-            onCountedCashChange={setCountedCash}
-            onNotesChange={setDrawerNotes}
-          />
-          <CmxDialogFooter>
-            <CmxButton variant="outline" onClick={() => setDrawerDialogOpen(false)}>
-              {t('cancel')}
-            </CmxButton>
-            <CmxButton disabled={!canCloseCashDrawer} loading={busyAction === 'drawer-close'} onClick={closeDrawerThenSession}>
-              {t('drawerCloseStep')}
-            </CmxButton>
-          </CmxDialogFooter>
-        </CmxDialogContent>
-      </CmxDialog>
+      {canViewCashDrawer && activeSession?.cash_drawer_id && activeSession.cash_drawer_session_id ? (
+        <CashDrawerCloseWizard
+          drawerId={activeSession.cash_drawer_id}
+          sessionId={activeSession.cash_drawer_session_id}
+          branchId={activeSession.branch_id ?? null}
+          open={drawerDialogOpen}
+          onOpenChange={setDrawerDialogOpen}
+          onFinalized={handleDrawerFinalized}
+        />
+      ) : null}
 
       <CmxDialog open={!!summarySessionId} onOpenChange={(open) => !open && setSummarySessionId(null)}>
         <CmxDialogContent className="max-w-3xl">

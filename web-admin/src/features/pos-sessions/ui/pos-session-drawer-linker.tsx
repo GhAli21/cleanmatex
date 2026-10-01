@@ -5,17 +5,16 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Link2, RefreshCw, WalletCards } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxInput } from '@ui/primitives/cmx-input';
 import { CmxSelect } from '@ui/primitives/cmx-select';
-import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { Badge } from '@ui/primitives/badge';
 import { cmxMessage } from '@ui/feedback';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import {
   fetchCashDrawersWithCurrentSession,
-  openCashDrawerSession,
   type CashDrawerWithCurrentSession,
+  type OpenCashDrawerSessionV2Result,
 } from '@features/cash-drawers/api/cash-drawer-api';
+import { CashDrawerOpenSessionDialog } from '@features/cash-drawers/ui/cash-drawer-open-session-dialog';
 import { postPosSessionAutoLinkDrawer } from '@features/pos-sessions/api/pos-session-api';
 
 interface PosSessionDrawerLinkerProps {
@@ -42,8 +41,7 @@ export function PosSessionDrawerLinker({
   const t = useTranslations('posSessions');
   const { token: csrfToken } = useCSRFToken();
   const [selectedDrawerId, setSelectedDrawerId] = useState('');
-  const [openingBalance, setOpeningBalance] = useState('0');
-  const [notes, setNotes] = useState('');
+  const [openDialogOpen, setOpenDialogOpen] = useState(false);
   const [busy, setBusy] = useState<'link' | 'open-link' | null>(null);
 
   const drawersQuery = useQuery({
@@ -84,34 +82,21 @@ export function PosSessionDrawerLinker({
     }
   };
 
-  const openAndLinkDrawer = async () => {
-    if (!selectedDrawer) {
-      cmxMessage.error(t('messages.selectCashDrawer'));
+  const handleDrawerOpened = async (result: OpenCashDrawerSessionV2Result) => {
+    if (!branchId) {
+      cmxMessage.error(t('messages.selectBranch'));
       return;
     }
-    const numericOpeningBalance = Number(openingBalance);
-    if (!Number.isFinite(numericOpeningBalance) || numericOpeningBalance < 0) {
-      cmxMessage.error(t('messages.openingBalanceRequired'));
-      return;
-    }
-
     setBusy('open-link');
     try {
-      const session = await openCashDrawerSession({
-        drawerId: selectedDrawer.id,
-        openingBalance: numericOpeningBalance,
-        notes: notes || undefined,
-        csrfToken,
-      });
       await postPosSessionAutoLinkDrawer({
         csrfToken,
         posSessionId,
         branchId,
-        cashDrawerSessionId: session.id,
+        cashDrawerSessionId: result.sessionId,
         sourceChannel: 'new_order_session_hub',
       });
       cmxMessage.success(t('messages.drawerOpenedAndLinked'));
-      setNotes('');
       await onLinked();
     } catch (error) {
       cmxMessage.error(error instanceof Error ? error.message : t('messages.drawerLinkFailed'));
@@ -186,31 +171,25 @@ export function PosSessionDrawerLinker({
         </CmxButton>
       ) : (
         <div className="space-y-3">
-          <CmxInput
-            label={t('hub.openingBalance')}
-            type="number"
-            min="0"
-            step="0.001"
-            value={openingBalance}
-            disabled={!canOpenCashDrawer}
-            onChange={(event) => setOpeningBalance(event.target.value)}
-          />
-          <CmxTextarea
-            value={notes}
-            disabled={!canOpenCashDrawer}
-            placeholder={t('notes')}
-            onChange={(event) => setNotes(event.target.value)}
-          />
           <CmxButton
             type="button"
             size="sm"
             disabled={!canOpenCashDrawer}
             loading={busy === 'open-link'}
-            onClick={openAndLinkDrawer}
+            onClick={() => setOpenDialogOpen(true)}
           >
             <Link2 className="me-2 h-4 w-4" aria-hidden />
             {canOpenCashDrawer ? t('hub.openAndLinkDrawer') : t('hub.drawerOpenPermissionRequired')}
           </CmxButton>
+          {selectedDrawer ? (
+            <CashDrawerOpenSessionDialog
+              drawerId={selectedDrawer.id}
+              currencyCode={selectedDrawer.currency_code}
+              open={openDialogOpen}
+              onOpenChange={setOpenDialogOpen}
+              onOpened={handleDrawerOpened}
+            />
+          ) : null}
         </div>
       )}
     </div>

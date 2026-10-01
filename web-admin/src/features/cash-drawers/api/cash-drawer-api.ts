@@ -36,17 +36,6 @@ export interface CashDrawerWithCurrentSession {
   } | null
 }
 
-export interface CashDrawerOpenSessionResult {
-  id: string
-  tenant_org_id: string
-  branch_id: string
-  cash_drawer_id: string
-  session_no: string
-  status: string
-  currency_code: string
-  opening_float_amount: number | string
-}
-
 // -----------------------------------------------------------------------------
 // CLF two-step lifecycle (CLF-7 routes, CLF-8 slice A)
 // -----------------------------------------------------------------------------
@@ -91,7 +80,7 @@ export async function openCashDrawerSessionV2(input: {
   notes?: string
   csrfToken: string | null
 }): Promise<OpenCashDrawerSessionV2Result> {
-  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/open-session`, {
+  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/open-session-v2`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
@@ -341,34 +330,6 @@ export async function fetchCashDrawerSessionDetail(input: {
   return fetchCashDrawerJson<CashDrawerSessionDetail>(
     `/api/v1/cash-drawers/${input.drawerId}/session/${input.sessionId}?${params.toString()}`,
   )
-}
-
-/**
- * Opens a cash drawer session through the existing mutation API boundary.
- *
- * @param input drawer open payload and CSRF token
- * @returns newly opened session row
- */
-export async function openCashDrawerSession(input: {
-  drawerId: string
-  openingBalance: number
-  notes?: string
-  csrfToken: string | null
-}): Promise<CashDrawerOpenSessionResult> {
-  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/open-session`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getCSRFHeader(input.csrfToken),
-    },
-    body: JSON.stringify({
-      openingBalance: input.openingBalance,
-      notes: input.notes || undefined,
-    }),
-  })
-
-  return parseCashDrawerResponse<CashDrawerOpenSessionResult>(response)
 }
 
 /**

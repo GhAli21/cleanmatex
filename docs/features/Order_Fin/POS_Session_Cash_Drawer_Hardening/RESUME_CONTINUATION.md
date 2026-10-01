@@ -1,10 +1,43 @@
 # RESUME — POS Session & Cash Drawer Hardening (session continuation)
 
-**Updated:** 2026-10-01 (latest — local session). **CLF-R1 Ledger CLOSED** (STATUS D39). **CLF-R2 Sessions IN PROGRESS: M4 applied, CLF-2/CLF-4 services built, CLF-7 API routes DONE** (STATUS D42) — schema live local+remote; the full count/trx/balance/over-short/session service layer plus all ~16 CLF-7 routes are written, gated green (eslint/scoped-tsc/i18n/targeted-jest/access-contract-wire all clean). **Next: CLF-6 (readers), then CLF-8 (UI)** — see ▶ NOW below.
+**Updated:** 2026-10-02 (latest — local session, interrupted mid-flight for a `/clear`). **CLF-R1 Ledger CLOSED** (STATUS D39). **CLF-R2 Sessions IN PROGRESS: M4 applied, CLF-2/CLF-4 services built, CLF-7 API routes DONE, CLF-8 slice A (open/close UI cutover) mid-flight** (STATUS D44). **Read STATUS D44 in full before anything else — then come back here for the exact next steps.**
 
 ---
 
-## ▶ NOW — 2026-10-01 — CLF-7 done (D42); CLF-6 found BLOCKED, re-sequenced (D43) — build the open/close UI cutover next
+## ▶ NOW — 2026-10-02 — CLF-8 slice A built and wired, NOT yet fully gated (D44) — finish gating, then CLF-6
+
+**This session was interrupted by the owner mid-flight (context-window `/clear`), not by a blocker.** Everything below is real, saved-to-disk state — pick up exactly here, in order.
+
+### What's done (code written, partially gated — see STATUS D44 for full file list)
+- New reusable UI: `CmxMoneyVariance`, `CmxDenominationCounter`.
+- New CLF-7-backed API client functions in `cash-drawer-api.ts`.
+- New `CashDrawerOpenSessionDialog` + `CashDrawerCloseWizard` (both `src/features/cash-drawers/ui/`), wired into all 4 real screens: `cash-drawer-overview-screen.tsx`, `pos-session-drawer-linker.tsx`, `pos-sessions-screen.tsx`, `pos-session-hub.tsx`.
+- New route `app/api/v1/cash-drawers/[drawerId]/open-session-v2/route.ts` (the CLF two-step lifecycle's open step). **The legacy `.../open-session` route and `cash-drawer.service.ts`'s `openSession`/`closeSession` are deliberately untouched** — Payment Modal V4's checkout (`src/features/orders/hooks/use-cash-drawer.ts`, explicitly "behavior frozen") still calls the legacy route directly. Do not touch that hook or the legacy route without a separate, careful pass — it's one of the most sensitive surfaces in the app.
+- Deleted (confirmed zero remaining callers): the old `close-session` route, `PosSessionDrawerCloseSummary` component, `openDrawerSession`/`closeDrawerSession` server actions, the dead `openCashDrawerSession` client function + `CashDrawerOpenSessionResult` type.
+- Access contracts fixed in `pos-sessions-access.ts` and `orders-access.ts` (both had a Session Hub widget entry pointing at the now-deleted `close-session`/old `open-session` — repointed at the new routes).
+- i18n: new glossary term `cash_disposition`; full `billing.cashDrawers.wizard.*` block, EN+AR.
+
+### Gates already run clean this pass
+`npx eslint . --quiet` (whole project) · scoped `tsc -p tsconfig.clf-check.json` (only the same pre-existing unrelated fx-decimal/converter-actions/tenants.service errors) · `npm run check:i18n` · `sync:ui-access-contract` (154 routes, drift 0) · `audit-wire` whole app (only the same pre-existing unrelated marketing/promotions finding).
+
+### ▶ Pick up exactly here — finish CLF-8 slice A, then continue the program
+1. **Run the gates this pass did not get to:**
+   - `cd web-admin && npx jest` (full suite — nothing in this pass should have broken existing tests, but it has not been run; pay special attention to any Payment Modal V4 / `use-cash-drawer` / `use-payment-engine` test files and anything under `__tests__/services/cash-drawer*`, `__tests__/features/pos-sessions/**`).
+   - `npm run build` (CRITICAL RULE #5 — mandatory after any frontend change, not yet run this pass).
+2. **Manual smoke test locally** (needs the dev server + a real DB, not available in this environment):
+   - Open a session from the drawer overview screen (`/dashboard/internal_fin/cash-drawers/[drawerId]`) via the new dialog, with and without a count. Confirm a row actually appears in `org_cash_drawer_ses_bal_dtl` and `open_ledger_seq` is set (this is the whole point of CLF-8 slice A — proving CLF-6 will have real data to read).
+   - Run the close wizard end to end on that session: count step (skip, then try again with a count), disposition step (try `LEFT_IN_DRAWER` and one moving disposition like `MOVED_TO_SAFE` with a destination drawer), finalize. Confirm `close_ledger_seq`/disposition columns populate and a `CLOSE_DISPOSITION` custody transaction posts when cash moves.
+   - Open the POS Session Hub widget (embedded on the new-order screen) and confirm it still opens/links a drawer correctly through `open-session-v2`.
+   - **Open Payment Modal V4 and confirm checkout's own drawer-open flow still works unmodified** (it should — the route/hook were not touched — but this is the one regression that would matter most if something was missed).
+3. Once gates + smoke test are clean, close out CLF-8 slice A with a STATUS row (next: D45) and update this file's header.
+4. **Then CLF-6 (readers)** — now genuinely unblocked, since new sessions produce ledger data. See the CLF-6 entry in `IMPLEMENTATION_PLAN.md` (§4B.10) for the 5 functions in `cash-drawer.service.ts` to migrate (`getCashDrawerOverviewPage`, `getCashDrawerSessionsPage`, `getCashDrawerOverviewDetail`, `getCashDrawerSessionDetail`, `getSessionSummary`) plus the 4 sibling files (`finance-reconciliation-report.service.ts`, `voucher-checks.ts`/`ar-checks.ts`, `voucher-wiring.service.ts`, `finance-money-position.service.ts`, `cash-drawer-cash-facts.ts` deletion). **Also flagged, not fixed:** `approveSessionVariance` in `cash-drawer.service.ts` is now dead code (CLF-7's approve-variance route rewire was its only caller) — leave for R3, same bucket as `openSession`/`closeSession`.
+5. **Then the rest of CLF-8** (CLF-8-6 drawer-transaction dialog, CLF-8-7 overview screen tabs, CLF-8-8 session detail updates, CLF-8-9 follow-up screen — new page, needs its own access-contract entry, CLF-8-10 drawer config form, CLF-8-11 VERIFY/reversal drawer pickers, CLF-8-12 print report, CLF-8-13 movement-era UI removal, CLF-8-14/15 remaining i18n/access-contract actions).
+6. `ls supabase/migrations/` immediately before writing any new migration (M8 nav, M9 backfill+CHECK, M10 retirement still ahead) — do not trust a nominal number from the plan.
+7. **Outstanding, awaiting owner decision (not acted on):** Arabic "Tenant" translation `مستأجر` → recommended `مؤسسة` (90 occurrences, 35 locale files).
+
+---
+
+## ✅ 2026-10-01 (superseded by ▶ NOW above) — CLF-7 done (D42); CLF-6 found BLOCKED, re-sequenced (D43)
 
 **Done this pass (full detail in STATUS D42):** all ~16 CLF-7 routes built against the CLF-2/CLF-4 service layer, plus 3 real service-layer gaps closed along the way that D41's "complete service layer" framing had missed (no non-Tx wrapper for count/trx posting, no "expected amount" resolver for a standalone SPOT count, no `recountCloseTx` for the CLOSING-window supervisor recount). New shared `lib/api/cash-drawer-route-errors.ts` (`mapCashDrawerError`) closes the "shared route mapper still open" item from 2026-09-25. **Deliberate scope decision:** `open-session`/`close-session` were NOT touched — both are live (order checkout, POS session close screens) and rewiring/deleting them before CLF-8's UI exists would break working flows; that flip is now bundled into CLF-8. 13 new `apiDependencies` hand-added to `billing-access.ts`; `audit-wire` (whole app) and `sync:ui-access-contract` both clean (only pre-existing unrelated findings). Gates: eslint (whole project) clean, scoped tsc clean (only pre-existing unrelated errors), `check:i18n` passed, targeted jest 64/64.
 

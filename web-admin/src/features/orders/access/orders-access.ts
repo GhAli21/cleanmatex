@@ -102,18 +102,36 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
-        label: 'Close linked cash drawer session from Session Hub',
+        label: 'Close wizard — count step for the linked cash drawer from Session Hub (CLF-7, CLF-8 slice A)',
         method: 'POST',
-        path: '/api/v1/cash-drawers/[drawerId]/close-session',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count',
         requirement: {
           permissions: ['cash_drawer:close_session'],
           requireAllPermissions: true,
         },
       },
       {
-        label: 'Load linked cash drawer close totals from Session Hub',
+        label: 'Close wizard — finalize the linked cash drawer from Session Hub (CLF-7, CLF-8 slice A)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize',
+        requirement: {
+          permissions: ['cash_drawer:close_session'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Close wizard catalogs from Session Hub (CLF-7)',
         method: 'GET',
-        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary',
+        path: '/api/v1/cash-drawers/catalogs',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Close wizard denomination catalog from Session Hub (CLF-7, CLF-8-1)',
+        method: 'GET',
+        path: '/api/v1/currencies/[code]/denominations',
         requirement: {
           permissions: ['cash_drawer:view'],
           requireAllPermissions: true,
@@ -129,9 +147,9 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
-        label: 'Open cash drawer session from Session Hub',
+        label: 'Open cash drawer session (CLF two-step lifecycle) from Session Hub (CLF-7, CLF-8 slice A)',
         method: 'POST',
-        path: '/api/v1/cash-drawers/[drawerId]/open-session',
+        path: '/api/v1/cash-drawers/[drawerId]/open-session-v2',
         requirement: {
           permissions: ['cash_drawer:open_session'],
           requireAllPermissions: true,

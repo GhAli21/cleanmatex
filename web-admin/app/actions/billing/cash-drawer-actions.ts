@@ -3,11 +3,18 @@
  * Server Actions: Cash Drawers
  *
  * getDrawers: list all active drawers for the tenant.
- * openDrawerSession: open a new session on a drawer.
- * closeDrawerSession: close an open session with a physical count.
  * postDrawerCashInOut: post a "Cash in / Cash out" movement (CLF W11) as a
  *   finance voucher, replacing the deleted addDrawerMovement/recordMovement.
  * getDrawerSessionSummary: return session + movements + payments for a session.
+ *
+ * CLF-8 slice A (2026-10-02): `openDrawerSession`/`closeDrawerSession` retired
+ * — the drawer overview screen now opens/closes through the CLF two-step
+ * lifecycle routes directly (`CashDrawerOpenSessionDialog` /
+ * `CashDrawerCloseWizard`, calling `/api/v1/cash-drawers/.../open-session-v2`
+ * and `.../close/count` + `.../close/finalize`), not these actions. The
+ * underlying legacy `openSession`/`closeSession` in `cash-drawer.service.ts`
+ * are unmodified and still serve Payment Modal V4's own `open-session` call
+ * directly — retiring them is a separate M10/R3 item.
  *
  * CLF W15: every action checks the same permission its /api/v1/cash-drawers
  * route counterpart enforces (server actions are callable directly, so a UI
@@ -18,13 +25,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
-import {
-  getDrawers,
-  openSession,
-  closeSession,
-  getSessionSummary,
-} from '@/lib/services/cash-drawer.service';
-import type { SessionCloseParams } from '@/lib/services/cash-drawer.service';
+import { getDrawers, getSessionSummary } from '@/lib/services/cash-drawer.service';
 import {
   postDrawerCashMovement,
   type PostDrawerCashMovementInput,
@@ -54,59 +55,6 @@ export async function getDrawersAction() {
     return {
       success: false as const,
       error: error instanceof Error ? error.message : 'Failed to load drawers',
-    };
-  }
-}
-
-/** Open a new session for a drawer. */
-export async function openDrawerSession(
-  drawerId: string,
-  params: { openingBalance: number; notes?: string }
-) {
-  try {
-    if (!(await hasPermissionServer(FINANCE_PERMISSIONS.CASH_DRAWER_OPEN_SESSION))) {
-      return { success: false as const, error: INSUFFICIENT_PERMISSIONS };
-    }
-    const auth = await getAuthContext();
-    const session = await openSession(auth.tenantId, drawerId, {
-      openingBalance: params.openingBalance,
-      openedBy: auth.userId,
-      notes: params.notes,
-    });
-    revalidatePath('/dashboard/internal_fin/cash-drawers');
-    return { success: true as const, data: session };
-  } catch (error) {
-    console.error('[openDrawerSession] Error:', error);
-    return {
-      success: false as const,
-      error: error instanceof Error ? error.message : 'Failed to open session',
-    };
-  }
-}
-
-/** Close an open session with physical cash count. */
-export async function closeDrawerSession(
-  sessionId: string,
-  params: { physicalCount: number; notes?: string }
-) {
-  try {
-    if (!(await hasPermissionServer(FINANCE_PERMISSIONS.CASH_DRAWER_CLOSE_SESSION))) {
-      return { success: false as const, error: INSUFFICIENT_PERMISSIONS };
-    }
-    const auth = await getAuthContext();
-    const closeParams: SessionCloseParams = {
-      physicalCount: params.physicalCount,
-      closedBy: auth.userId,
-      notes: params.notes,
-    };
-    const result = await closeSession(auth.tenantId, sessionId, closeParams);
-    revalidatePath('/dashboard/internal_fin/cash-drawers');
-    return { success: true as const, data: result };
-  } catch (error) {
-    console.error('[closeDrawerSession] Error:', error);
-    return {
-      success: false as const,
-      error: error instanceof Error ? error.message : 'Failed to close session',
     };
   }
 }

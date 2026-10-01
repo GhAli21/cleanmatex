@@ -146,3 +146,21 @@ export type FxRateType = (typeof FX_RATE_TYPE)[keyof typeof FX_RATE_TYPE];
 
 /** Rounding context used for sales-price conversion (C11), resolved via sys_currency_rounding_rules_cf. */
 export const FX_ROUNDING_CONTEXT = 'FX_CONVERSION';
+
+/**
+ * Per-row validation outcomes for file-based rate imports (5D CSV, later
+ * Excel). Not DB-stored — purely a UI/preview vocabulary, one 1:1 i18n key
+ * each (`currencyFx.import.csv.rowErrors.<CODE>`).
+ */
+export const FX_IMPORT_ROW_ERROR = {
+  MISSING_FIELD: 'MISSING_FIELD',
+  SAME_CURRENCY: 'SAME_CURRENCY',
+  UNKNOWN_CURRENCY: 'UNKNOWN_CURRENCY',
+  INVALID_PAIR: 'INVALID_PAIR',
+  UNKNOWN_RATE_TYPE: 'UNKNOWN_RATE_TYPE',
+  INVALID_DATE: 'INVALID_DATE',
+  INVALID_RATE: 'INVALID_RATE',
+  DUPLICATE_IN_FILE: 'DUPLICATE_IN_FILE',
+  DUPLICATE_EXISTING: 'DUPLICATE_EXISTING',
+} as const;
+export type FxImportRowError = (typeof FX_IMPORT_ROW_ERROR)[keyof typeof FX_IMPORT_ROW_ERROR];

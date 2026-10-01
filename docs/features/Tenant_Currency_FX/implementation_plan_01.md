@@ -1,6 +1,6 @@
 # Tenant Currency & FX — Implementation Plan 01 (tenant context)
 
-**Status:** 🟡 IN PROGRESS — plan v2 approved 2026-09-25. L0/5A/L2/5B/5C all done. **5C (Currencies & FX screen) completed 2026-10-01 — see §0.2. Pending: migration `0540` (nav) needs owner review/apply. Next up: 5D (CSV/Excel) or 5E (URL fetch), or stop here pending owner go.**
+**Status:** 🟡 IN PROGRESS — plan v2 approved 2026-09-25. L0/5A/L2/5B/5C all done, migration `0540` applied local+remote (confirmed via `list_migrations` 2026-10-02). **5D/5E (CSV import + ECB URL fetch) IN PROGRESS as of 2026-10-02 — see §0.3 for the exact mid-session resume state (backend done, server actions + UI wiring + final validation still to go).**
 **Resume here (both repos):** `cleanmatexsaas/docs/features/Currency_Setup/RESUME_HERE.md`
 **v2 (2026-09-25):** folds in the review of the external currency pack (`REVIEW_external_currency_pack.md`): `is_base_currency` naming, full unique key, context flags defaulting FALSE, module-readiness registry, foreign cash = a drawer in that currency (CLF-aligned), `sales_pricing_mode`, reason-coded policy resolver, health panel, progressive-disclosure UI, later phases T-B (branch restriction) and T-R (tenant rounding overrides).
 **Context:** **Tenant only** (`cleanmatex`: `web-admin` + `org_*` migrations)
@@ -20,8 +20,10 @@
 | **5A-3** perms / flag | ✅ **applied local + remote**, verified against remote DB (`0538_rbac_permissions_currency_fx.sql`, `0539_add_feature_flag_multi_currency_fx.sql`) | 8 permissions confirmed live (`currencies:view/manage/set_base`, `fx_rates:view/manage/approve/import/manual_override`), including the `viewer` role fix (`currencies:view`/`fx_rates:view` now enabled for `viewer`, consistent with its broad-read-only pattern). Flag `multi_currency_fx` confirmed live (boolean, plan-bound, `default_value=false`). Rollback script + README in `cleanmatexsaas/docs/Added_Feature_Flags_docs/`. **Navigation still deliberately deferred** to 5C (no screen to point at yet). `web-admin/lib/constants/feature-flags.ts` FLAG_CATALOG synced (+ `multi_currency_fx: boolean` added to `FeatureFlags` in `lib/types/tenant.ts`); tsc/eslint clean |
 | **L2** code cut-over | ✅ done 2026-09-26 | Re-pointed `getTenantCurrency`/`getTenantDecimalPlaces`/`getCurrencyConfig` (`tenant-settings.service.ts`) and `resolveTenantBaseCurrencyCode` (`order-financial-write.service.ts`) to new `TenantCurrencyProfileService` (`lib/services/fx/tenant-currency-profile.service.ts`, reads `org_currency_cf`); `getCurrencyConfigAction`/`useTenantCurrency` unchanged (they already delegate). Signatures preserved (unused `branchId`/`userId` params kept, prefixed `_`, since `org_currency_cf` is tenant-only). Parity + fail-loud tests added (`tenant-currency-profile.service.test.ts`, `tenant-settings.service.currency.test.ts`, `order-financial-write.resolve-base-currency.test.ts`). `MISSING_TENANT_CURRENCY` EN/AR copy updated to reference Currency Settings. tsc/eslint/i18n clean; orphaned `src/features/orders/hooks/use-tenant-currency.ts` stub (zero callers) left untouched |
 | **5B** tenant FX services | ✅ **done 2026-10-01** — see §0.1 | 9 service/constant files + 6 new test files (111 tests total across 7 suites), tsc/eslint/jest/build all green |
-| **5C** Currencies & FX screen | ✅ **done 2026-10-01** — see §0.2 | Full tab set (Currencies/Rates/Import/Converter/Settings) + progressive-disclosure compact view, server actions, access contract, nav dual-write. tsc/eslint/jest/i18n/access-contract/build all green. **Migration `0540` created but NOT applied — owner must review and apply** |
-| 5D–5E, L4, L5 | ⬜ | per §9 |
+| **5C** Currencies & FX screen | ✅ **done 2026-10-01**, `0540` applied 2026-10-02 — see §0.2 | Full tab set (Currencies/Rates/Import/Converter/Settings) + progressive-disclosure compact view, server actions, access contract, nav dual-write. tsc/eslint/jest/i18n/access-contract/build all green. Nav live in prod/remote DB |
+| **5D** CSV import | 🟡 **IN PROGRESS** — see §0.3 | Backend done (parser, validator, service, 35 tests green). Excel **deferred** (owner decision: xlsx@0.18.5 has 2 published HIGH CVEs with no npm-registry fix — see §0.3). Server action + UI wiring not started |
+| **5E** URL fetch (ECB) | 🟡 **IN PROGRESS** — see §0.3 | Secure fetch + ECB parser done (12 tests green, SSRF defenses verified). Preview/commit service + lookups + server action + UI wiring not started |
+| L4, L5 | ⬜ | per §9 |
 
 ### 0.1 — 5B resume checkpoint (2026-10-01, before a context `/clear`)
 
@@ -81,7 +83,7 @@ No migrations were touched in 5B — pure application code against the already-a
 **Access & navigation (dual-write, CRITICAL RULE 10):**
 - `src/features/fx/access/fx-access.ts` — route `/dashboard/settings/finance/currency-fx`, page gate `currencies:view`, 7 action gates, 6 `apiDependencies` entries marked `enforcement: 'external'` (server actions, not `/api/*` routes). Registered in `page-access-registry.ts`.
 - `web-admin/config/navigation.ts` — `settings_currency_fx` leaf under `config_settings`, sibling to `settings_finance`/`settings_payments`/`settings_tax`, gated on `permissions: ['currencies:view']`.
-- `supabase/migrations/0540_nav_currency_fx.sql` — the `sys_components_cd` half of the dual-write. **Created only — NOT applied.** Per CRITICAL RULES 1–3, stop and get owner review before this is run (local + remote).
+- `supabase/migrations/0540_nav_currency_fx.sql` — the `sys_components_cd` half of the dual-write. **Applied local + remote** (confirmed 2026-10-02 via `list_migrations`); the `settings_currency_fx` nav entry is live.
 - `npm run check:ui-access-contract -- --route=/dashboard/settings/finance/currency-fx --wire` → PASS (contract OK, page gate OK, API gate OK). `npm run sync:ui-access-contract` → 154 routes, 0 drift errors/warnings, inventories regenerated.
 
 **UI** `src/features/fx/ui/*.tsx` (feature folder, Cmx components only):
@@ -109,11 +111,45 @@ No migrations were touched in 5B — pure application code against the already-a
 
 **Deliberately out of scope for 5C (unchanged from the plan):** CSV import, Excel import, URL/provider fetch (5D/5E — need their own security review: malicious-file tests, SSRF tests); batch import history view; branch-level currency restriction (T-B); tenant rounding overrides (T-R); wiring FX into orders/invoices/payments (5G).
 
+### 0.3 — 5D/5E resume checkpoint (2026-10-02, mid-session before a context `/clear`)
+
+**Owner decision already made (do not re-ask):** `xlsx@0.18.5` (the only version npm's registry ever published) carries 2 published HIGH-severity advisories — prototype pollution (`GHSA-4r6h-8v6p-xvw6`) and ReDoS (`GHSA-5pgg-2g8v-p4x9`). SheetJS never published the fixed `0.19.3+` versions to npm; they're only on SheetJS's own CDN (`cdn.sheetjs.com`) as a tarball URL, not a normal registry semver range. **Owner chose: defer Excel import entirely for now, ship CSV only.** The "From Excel" card in the Import tab stays a "coming soon" placeholder — do not build the Excel adapter without a fresh explicit decision (the three options were: switch to `exceljs`, pin the SheetJS CDN tarball, or defer — "defer" was chosen).
+
+**Backend done, `npx tsc --noEmit` clean, `npx eslint --quiet` clean, all new tests green (confirmed together: 11 fx suites / 158 tests, up from 111 after 5B/5C):**
+
+| File | Role |
+|---|---|
+| `lib/constants/currency-fx.ts` | Added `FX_IMPORT_ROW_ERROR` — per-row validation outcome codes for file-based imports (`MISSING_FIELD`, `SAME_CURRENCY`, `UNKNOWN_CURRENCY`, `INVALID_PAIR`, `UNKNOWN_RATE_TYPE`, `INVALID_DATE`, `INVALID_RATE`, `DUPLICATE_IN_FILE`, `DUPLICATE_EXISTING`) |
+| `lib/services/fx/fx-csv-parser.ts` | Pure RFC4180 CSV text parser (quoted fields, `""` escaping, CRLF/LF) — deliberately hand-written, not a dependency (9 tests) |
+| `lib/services/fx/fx-import-validation.ts` | `validateImportRows(tenantId, sourceCode, rawRows)` — shared row validator for CSV (and any future file adapter): C3 pairing against the live portfolio, rate-type/date/rate format checks, duplicate detection against both the live tenant book AND within the same uploaded file (13 tests) |
+| `lib/services/fx/fx-csv-import.service.ts` | `previewCsvImport`/`commitCsvImport` — 2 MB / 5,000-row caps, exact-header-whitelist check (`from_currency,to_currency,rate_date,rate_type,rate,source_reference`, case/order-insensitive), `sourceCode` supplied once per upload (not a template column) and stored in `org_fx_import_batch_mst.metadata`, commit reuses `fx-rate.service.ts`'s `createRate` (`origin_code=CSV_IMPORT`) exactly like the HQ-copy adapter (13 tests) |
+| `lib/services/fx/fx-provider-fetch.ts` | Secure fetch + parser registry for 5E. SSRF defenses: HTTPS-only, exact host-allowlist check, `redirect: 'error'` (never follows a redirect), `AbortController` timeout (10s), streamed response with a 1 MiB hard cap (never buffers unbounded). `PARSER_REGISTRY` (keyed by `sys_fx_provider_cd.parser_code`) is the real gate on which providers are fetchable — today only `ECB_DAILY_XML`, a narrow bounded-regex extractor (not a general XML parser, so no DOCTYPE/ENTITY-expansion attack surface exists to begin with; a `<!DOCTYPE`/`<!ENTITY` in the response is still rejected outright as a sanity gate). `auth_mode` other than `NONE` (`PLATFORM_KEY`, for the still-inactive `OPEN_EXCHANGE`/`FIXER` rows) is explicitly unimplemented, not silently accepted (12 tests, incl. a mocked-redirect test and a size-cap-exceeded test) |
+
+**Not started — the rest of 5D/5E:**
+
+1. **`lib/services/fx/fx-url-import.service.ts`** (5E, not yet written) — `previewUrlImport`/`commitUrlImport`, same preview→commit shape as CSV/HQ-copy. Design already decided this session (not yet coded):
+   - Load the `sys_fx_provider_cd` row by code (must be `is_active = true`); call `fetchProviderRates()` (`fx-provider-fetch.ts`) to get `{ rateDate, baseCurrencyCode, rates: Record<code,string> }`.
+   - `sourceCode` for every row = the **provider's own** `source_code` (e.g. `ecb`) — never user-selected, same principle as HQ-copy.
+   - Map `rates` into `RawImportRow[]` as pairs `(baseCurrencyCode, code)` for every key in `rates`, then run through the **same** `validateImportRows()` used by CSV — C3 will naturally reject every pair unless the tenant has the provider's base currency (EUR for ECB) as an active base/reporting/foreign currency. **Known, expected, correct behavior, not a bug:** ECB's daily feed does not publish GCC currencies (OMR/SAR/AED/QAR/KWD/BHD) at all, so for a typical GCC tenant whose base currency isn't EUR, a live ECB preview will legitimately show zero valid candidate rows. Covering this in tests requires a synthetic portfolio that includes EUR (as done conceptually in `fx-provider-fetch.test.ts`'s fixtures) — don't mistake an empty result for a bug when manually QA'ing with a real GCC tenant.
+   - `rateType` for URL-fetch rows: ECB's feed has no rate-type concept — use `FX_RATE_TYPE.SPOT` as the fixed type for every row from this adapter (document that choice in the file header comment when written).
+   - Persist to `org_fx_import_batch_mst` with `origin_code = URL_FETCH`, `provider_code` set (the column exists on both the batch and the rate table; `org_fx_rate_mst.provider_code` CHECK requires it when `origin_code = 'URL_FETCH'` — see migration `0537`). Commit reuses `createRate` with `originCode: FX_RATE_ORIGIN.URL_FETCH, providerCode: provider.code`.
+2. **`lib/services/fx/fx-lookups.service.ts`** — add `listActiveFxProviders(): Promise<{code, name, name2, sourceCode, baseCurrencyCode}[]>` (reads `sys_fx_provider_cd` where `is_active = true`, further filtered to rows whose `parser_code` is in `fx-provider-fetch.ts`'s `PARSER_REGISTRY` — today that's `ECB_DAILY` only) for the Import tab's provider dropdown.
+3. **Server actions** `app/actions/fx/import-actions.ts` — extend with `previewCsvImportAction`/`commitCsvImportAction` (read the uploaded file as text server-side, enforce `fx_rates:import`, same `ActionResult` flat-type pattern as the rest of `app/actions/fx/*`) and `previewUrlImportAction`/`commitUrlImportAction` (same permission, wraps the not-yet-written `fx-url-import.service.ts`). A file upload from a Cmx form needs a `FormData` body — check how an existing feature already does a server-action file upload (e.g. delivery POD evidence or product image upload under `app/actions/`) for the established pattern before inventing one.
+4. **UI wiring** `src/features/fx/ui/import-tab.tsx` — replace the two remaining placeholder cards:
+   - "From CSV": a file picker + `sourceCode` select (reuse `getFxSourcesAction`) → preview table (reuse the same column shape as the HQ-copy preview table, plus a new "errors" column rendering `FX_IMPORT_ROW_ERROR` codes via new i18n keys) → commit button.
+   - "From a provider URL": a provider select (`listActiveFxProviders`, likely just "ECB — European Central Bank" in the dropdown for now) → preview → commit. No date/history picker (`ECB_DAILY.supports_historical = false`).
+   - Excel card stays exactly as-is (coming soon, no server action).
+5. **i18n** — add `currencyFx.import.csv.*` and `currencyFx.import.url.*` keys (EN/AR) for the new dialogs, plus `currencyFx.import.rowErrors.<CODE>` for every `FX_IMPORT_ROW_ERROR` code. Check the glossary (`docs/dev/i18n_docs/GLOSSARY.md`) before naming anything new — `exchange_rate`/`base_currency` already exist from 5C.
+6. **Final validation pass** (not yet run for the UI layer): `npx tsc --noEmit`, `npx eslint --quiet`, `npx jest __tests__/services/fx`, `npm run check:i18n`, `npm run build`. The backend-only checks above are already green; this step is for after steps 1–5 land.
+7. Mark 5D/5E done in this table + `cleanmatexsaas/docs/features/Currency_Setup/RESUME_HERE.md` once 1–6 are complete.
+
+**Established conventions to keep following (same as 5B/5C):** Prisma + `withTenantContext`, every query filtered by `tenant_org_id` even inside that wrapper; permission checks happen in `app/actions/fx/*`, never inside `lib/services/fx/*`; typed errors via `FxError`/`FX_ERROR` (service layer) — `FxProviderFetchError` is a **separate** error class for the fetch layer specifically (network/parse failures, not business-rule violations) and should be caught and re-wrapped as an `FxError` (likely `FX_ERROR.LOOKUP_INVALID` or a new dedicated code) at the `fx-url-import.service.ts` boundary so `app/actions/fx/*` only ever has to handle one error type; money/rates stay exact decimal strings, never JS `number`; reuse `createRate` for every adapter's commit step rather than writing `org_fx_rate_mst` directly.
+
 ---
 
 **HQ side already done (for §8 contract):** HQ `0531` applied (catalogs + HQ rate book, approved-only RLS read), HQ exchange-rate backend + screen shipped, golden vectors at `cleanmatexsaas/platform-api/src/modules/currency-fx/__tests__/fx-golden-vectors.json` (copy byte-identical into web-admin tests in 5B).
 
-**Migration numbers actually used so far:** `0531` HQ FX catalogs/book · `0532` org_currency_cf · `0533` HQ billing FX · `0534` HQ plan prices · `0535` HQ plan currency NOT NULL fix · `0537` org_fx_rate_book (5A-2) · `0538` RBAC permissions (5A-3) · `0539` `multi_currency_fx` feature flag (5A-3) — **all applied local + remote**. `0536` went to the CLF cash-drawer program (unrelated, concurrent work), not FX. `0540` (`nav_currency_fx.sql`, 5C) **created 2026-10-01, NOT yet applied — awaiting owner review**. Last on disk: `0540`. Always `ls supabase/migrations/` before writing the next one (next free: `0541`).
+**Migration numbers actually used so far:** `0531` HQ FX catalogs/book · `0532` org_currency_cf · `0533` HQ billing FX · `0534` HQ plan prices · `0535` HQ plan currency NOT NULL fix · `0537` org_fx_rate_book (5A-2) · `0538` RBAC permissions (5A-3) · `0539` `multi_currency_fx` feature flag (5A-3) — **all applied local + remote**. `0536` went to the CLF cash-drawer program (unrelated, concurrent work), not FX. `0540` (`nav_currency_fx.sql`, 5C) **applied local + remote 2026-10-02**. Last on disk: `0540`. Always `ls supabase/migrations/` before writing the next one (next free: `0541`).
 
 ---
 
@@ -356,7 +392,7 @@ Numbers below are illustrative only — always `ls supabase/migrations/` at writ
 | # | Content | Skill | Status |
 |---|---|---|---|
 | `0538` ✅ | `currencies:view`, `currencies:manage`, **`currencies:set_base`** (elevated), `fx_rates:view`, `fx_rates:manage`, `fx_rates:approve`, `fx_rates:import`, **`fx_rates:manual_override`** + role mapping | `/create-update-rbac-permission`, `/update-rbac-role` | applied local + remote |
-| `0540` ⬜ | `sys_components_cd` nav + `navigation.ts` dual-write | `/navigation` | **created, awaiting owner review/apply** |
+| `0540` ✅ | `sys_components_cd` nav + `navigation.ts` dual-write | `/navigation` | applied local + remote |
 | `0539` ✅ | Feature flag `multi_currency_fx` (+ plan mappings) + `FLAG_CATALOG` | `/create-feature-flag` | applied local + remote |
 
 ---
@@ -383,7 +419,7 @@ Numbers below are illustrative only — always `ls supabase/migrations/` at writ
 | **5A** ✅ | `0532`, `0537`, `0538`, `0539` — **all applied local + remote, verified against the live DB**. Navigation (nav half of 5A-3) deferred to 5C (route doesn't exist yet) | HQ `0531` ✅, L0 ✅ | applied ✅ | 1.5 d |
 | **L2** ✅ | Code cut-over (5 entry points) — done 2026-09-26 | 5A | tsc/eslint/i18n + parity tests ✅ | 1.5 d |
 | **5B** ✅ | FX services + HQ-copy adapter + golden tests — done 2026-10-01 | 5A | tsc/eslint/tests/build ✅ (111 tests) | 2 d |
-| **5C** ✅ | Screen: Currencies, Rates, Manual, From HQ, Converter, Settings — done 2026-10-01 | 5B | build + eslint + check:i18n + access-contract ✅; migration `0540` pending owner apply | 2.5 d |
+| **5C** ✅ | Screen: Currencies, Rates, Manual, From HQ, Converter, Settings — done 2026-10-01 | 5B | build + eslint + check:i18n + access-contract ✅; migration `0540` applied | 2.5 d |
 | **5D** | CSV + Excel import | 5C | + malicious-file tests | 1.5 d |
 | **5E** | URL fetch (ECB first) | 5C | + SSRF tests | 1.5 d |
 | **L4** | Soft-retire the settings (your go) | L2 + HQ 4E deployed | applied | 0.5 d |
