@@ -8,7 +8,7 @@ import {
   submitOrder, resolveOrderBranch, resetSubmitHarness, submitParams, makeSubmitInput,
   makeServerTotals, mockCalculate, mockCreate, mockSettle, mockTaxDoc, mockVoucher,
   mockWire, mockLine, mockPromo, mockInvoice, mockTransaction, mockTenantContext,
-  mockReadOrder, mockBranchRead, mockEffects, mockTx, tenantId, orderId, branchId,
+  mockReadOrder, mockBranchRead, mockEffects, mockTx, mockInitialCommit, tenantId, orderId, branchId,
 } from '../helpers/order-submit-harness';
 
 describe('WP01 actual canonical Create orchestration', () => {
@@ -23,6 +23,9 @@ describe('WP01 actual canonical Create orchestration', () => {
     expect(mockWire.mock.calls[0][5]).toBe(mockTx);
     expect(mockSettle).toHaveBeenCalledWith(mockTx, expect.objectContaining({ tenantId, orderId,
       breakdown: expect.objectContaining({ grandTotal: 20, outstanding: 0, creditsTotal: 0 }) }));
+    expect(mockInitialCommit).toHaveBeenCalledTimes(1);
+    expect(String.raw({ raw: mockInitialCommit.mock.calls[0][0] } as unknown as TemplateStringsArray))
+      .toContain('committed_at = clock_timestamp()');
     expect(mockInvoice).not.toHaveBeenCalled();
     expect(mockReadOrder).toHaveBeenCalledWith(expect.objectContaining({ where: { id: orderId, tenant_org_id: tenantId } }));
     expect(mockTenantContext.mock.calls.every(([tenant]) => tenant === tenantId)).toBe(true);
@@ -89,6 +92,11 @@ describe('WP01 actual canonical Create orchestration', () => {
     mockReadOrder.mockRejectedValueOnce(new Error('response-read-failed'));
     await expect(submitOrder(submitParams())).rejects.toThrow('response-read-failed');
     expect(mockSettle).toHaveBeenCalledTimes(1);
+  });
+  it('fails the aggregate when the initial commitment predicate is not met', async () => {
+    mockInitialCommit.mockResolvedValueOnce(0);
+    await expect(submitOrder(submitParams())).rejects.toThrow('ORDER_INITIAL_COMMIT_CONFLICT');
+    expect(mockReadOrder).not.toHaveBeenCalled();
   });
   it('resolves a branch with an explicit tenant predicate', async () => {
     mockBranchRead.mockResolvedValueOnce({ id: branchId });

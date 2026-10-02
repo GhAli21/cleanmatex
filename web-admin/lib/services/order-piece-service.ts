@@ -139,6 +139,7 @@ export class OrderPieceService {
   /**
    * Merge PIECE-level `org_order_preferences_dtl` rows into mapped pieces (`service_prefs`, `conditions`).
    * Shared by `getPiecesByItem` and `getPiecesByOrder` so all piece list APIs return the same pref shape.
+   * Removed preference lineage is retained for Change history and excluded from live piece projections.
    */
   static async attachPieceLevelPreferencesFromDtl(
     supabase: SupabaseClient,
@@ -160,6 +161,7 @@ export class OrderPieceService {
       .select('order_item_piece_id, preference_code, prefs_source, extra_price, preference_sys_kind')
       .eq('tenant_org_id', tenantId)
       .eq('prefs_level', 'PIECE')
+      .eq('rec_status', 1)
       .in('order_item_piece_id', pieceIds);
 
     for (const row of prefs ?? []) {
@@ -813,7 +815,8 @@ export class OrderPieceService {
   }
 
   /**
-   * Get all pieces for an order item
+   * Gets the current pieces for an order item.
+   * Removed rows are intentionally absent because operational work must follow the live hierarchy.
    */
   static async getPiecesByItem(
     tenantId: string,
@@ -827,6 +830,7 @@ export class OrderPieceService {
         .select('*')
         .eq('tenant_org_id', tenantId)
         .eq('order_item_id', orderItemId)
+        .eq('rec_status', 1)
         .order('piece_seq', { ascending: true });
 
       if (error) {
@@ -861,8 +865,9 @@ export class OrderPieceService {
   }
 
   /**
-   * Get pieces by order ID
-   * Includes packing_pref_code from pieces table and service_prefs from org_order_preferences_dtl
+   * Gets the current pieces for an order.
+   * Includes packing_pref_code from pieces table and service_prefs from org_order_preferences_dtl.
+   * Removed rows are intentionally absent because operational work must follow the live hierarchy.
    */
   static async getPiecesByOrder(
     tenantId: string,
@@ -876,6 +881,7 @@ export class OrderPieceService {
         .select(PROCESSING_PIECE_SELECT)
         .eq('tenant_org_id', tenantId)
         .eq('order_id', orderId)
+        .eq('rec_status', 1)
         .order('order_item_id', { ascending: true })
         .order('piece_seq', { ascending: true });
 
@@ -908,7 +914,8 @@ export class OrderPieceService {
   }
 
   /**
-   * Get single piece by ID
+   * Gets one current piece by ID.
+   * A removed piece is treated as unavailable to keep operational reads separate from Change history.
    */
   static async getPieceById(
     tenantId: string,
@@ -922,6 +929,7 @@ export class OrderPieceService {
         .select('*')
         .eq('tenant_org_id', tenantId)
         .eq('id', pieceId)
+        .eq('rec_status', 1)
         .single();
 
       if (error) {
@@ -1423,12 +1431,13 @@ export class OrderPieceService {
     try {
       const supabase = await createClient();
 
-      // Get all items for the order
+      // Only live items may contribute to readiness; removed rows remain historical Change evidence.
       const { data: items, error: itemsError } = await supabase
         .from('org_order_items_dtl')
         .select('id')
         .eq('tenant_org_id', tenantId)
-        .eq('order_id', orderId);
+        .eq('order_id', orderId)
+        .eq('rec_status', 1);
 
       if (itemsError) {
         return { success: false, errors: [{ itemId: 'unknown', error: itemsError.message }] };
@@ -1482,12 +1491,13 @@ export class OrderPieceService {
     try {
       const supabase = await createClient();
 
-      // Count ready pieces (status='ready' AND is_rejected=false)
+      // Count live ready pieces only; removed rows cannot inflate operational readiness.
       const { count, error: countError } = await supabase
         .from('org_order_item_pieces_dtl')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_org_id', tenantId)
         .eq('order_item_id', orderItemId)
+        .eq('rec_status', 1)
         .eq('piece_status', 'ready')
         .eq('is_rejected', false);
 

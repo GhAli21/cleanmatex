@@ -11,6 +11,7 @@ import {
 } from '@features/cash-drawers/api/cash-drawer-api'
 import { USER_SELECTABLE_TRX_TYPES } from '@lib/constants/cash-drawer'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
+import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import { cmxMessage } from '@ui/feedback'
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
@@ -58,7 +59,7 @@ export function CashDrawerTransactionDialog({
 }: CashDrawerTransactionDialogProps) {
   const t = useTranslations('billing.cashDrawers.trxDialog')
   const tCommon = useTranslations('common')
-  const tLedger = useTranslations('cashControl.ledgerErrors')
+  const errorMessage = useCashDrawerErrorMessage()
   const locale = useLocale()
   const { token: csrfToken } = useCSRFToken()
 
@@ -163,9 +164,7 @@ export function CashDrawerTransactionDialog({
       onOpenChange(false)
       onPosted()
     } catch (error) {
-      const message = error instanceof Error ? error.message : ''
-      const key = message as Parameters<typeof tLedger>[0]
-      cmxMessage.error(message && tLedger.has(key) ? tLedger(key) : message || t('postFailed'))
+      cmxMessage.error(errorMessage(error, t('postFailed')))
     } finally {
       setSubmitting(false)
     }

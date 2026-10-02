@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import { CashDrawerSessionError, VarianceApprovalError } from '@/lib/services/cash-drawer.service';
 import { CASH_LEDGER_ERRORS, type CashLedgerErrorCode } from '@/lib/constants/cash-drawer';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Shared cash-drawer route error mapper (CLF-7, plan §4B.11). Every CLF
@@ -54,6 +55,8 @@ export function mapCashDrawerError(error: unknown, fallbackMessage = 'Request fa
     const status = VARIANCE_ERROR_STATUS[error.code] ?? 409;
     return NextResponse.json({ success: false, error: error.code, code: error.code }, { status });
   }
-  const message = error instanceof Error ? error.message : fallbackMessage;
-  return NextResponse.json({ success: false, error: message }, { status: 500 });
+  // Untyped failure: the raw message may carry SQL / column / id detail, so it is logged for
+  // operators and never sent to the client — only the route's own fallback text is.
+  logger.error(fallbackMessage, error instanceof Error ? error : new Error(String(error)));
+  return NextResponse.json({ success: false, error: fallbackMessage }, { status: 500 });
 }

@@ -21,6 +21,7 @@ import {
 } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
+import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import { cmxMessage } from '@ui/feedback'
 import { CmxDataTable, CmxMoneyVariance } from '@ui/data-display'
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
@@ -202,6 +203,7 @@ export function CashDrawerCountsTab({
 }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
+  const errorMessage = useCashDrawerErrorMessage()
   const money = useCashDrawerMoneyFormatter()
   const fmtDateTime = useCashDrawerDateFormatter()
   const queryClient = useQueryClient()
@@ -260,7 +262,7 @@ export function CashDrawerCountsTab({
       setDialogOpen(false)
       await queryClient.invalidateQueries({ queryKey: ['cash-drawers', drawerId, 'counts'] })
     } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : t('tabs.counts.recordFailed'))
+      cmxMessage.error(errorMessage(error, t('tabs.counts.recordFailed')))
     } finally {
       setSubmitting(false)
     }

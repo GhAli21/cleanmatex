@@ -61,6 +61,15 @@ function artifactEnablesPieceTracking(artifact?: SemanticWorkflowArtifact | null
  * @param input.phase - Discovery vs execute; POD evidence is input-satisfied.
  * @param input.artifact - Optional immutable profile artifact for piece tracking.
  * @param input.transaction - Optional command transaction used to lock related rows.
+ * @returns Facts used to evaluate the requested workflow gates for the order.
+ *
+ * @example
+ * const facts = await loadWorkflowGateFacts({
+ *   tenantId: '11111111-1111-1111-1111-111111111111',
+ *   order: headerFacts,
+ *   gateCodes: ['all_pieces_scanned'],
+ *   phase: 'execute',
+ * });
  */
 export async function loadWorkflowGateFacts(input: {
   tenantId: string;
@@ -89,22 +98,24 @@ export async function loadWorkflowGateFacts(input: {
   const orderId = input.order.id;
 
   const [itemRows, pieceRows, issueRows, qaRows, pickupRows, stopRows] = await Promise.all([
+    // Commercial item and piece rows are status-governed: legacy NULL cannot satisfy a workflow gate.
     db.$queryRaw<ItemFactRow[]>(Prisma.sql`
       WITH locked AS (
         SELECT item_is_rejected, rec_status, item_status, quantity_ready, quantity
         FROM public.org_order_items_dtl
         WHERE tenant_org_id = ${tenantId}::uuid
           AND order_id = ${orderId}::uuid
+          AND rec_status = 1
         ${lockClause}
       )
       SELECT
         COUNT(*) FILTER (
           WHERE COALESCE(item_is_rejected, false) = false
-            AND COALESCE(rec_status, 1) = 1
+            AND rec_status = 1
         ) AS active_item_count,
         COUNT(*) FILTER (
           WHERE COALESCE(item_is_rejected, false) = false
-            AND COALESCE(rec_status, 1) = 1
+            AND rec_status = 1
             AND NOT (
               lower(COALESCE(item_status, '')) IN ('ready', 'assembled')
               OR COALESCE(quantity_ready, 0) >= GREATEST(COALESCE(quantity, 1), 1)
@@ -114,7 +125,7 @@ export async function loadWorkflowGateFacts(input: {
           GREATEST(COALESCE(quantity, 1), 0)
         ) FILTER (
           WHERE COALESCE(item_is_rejected, false) = false
-            AND COALESCE(rec_status, 1) = 1
+            AND rec_status = 1
         ), 0) AS expected_piece_count
       FROM locked
     `),
@@ -124,21 +135,22 @@ export async function loadWorkflowGateFacts(input: {
         FROM public.org_order_item_pieces_dtl
         WHERE tenant_org_id = ${tenantId}::uuid
           AND order_id = ${orderId}::uuid
+          AND rec_status = 1
         ${lockClause}
       )
       SELECT
         COUNT(*) FILTER (
           WHERE COALESCE(is_rejected, false) = false
-            AND COALESCE(rec_status, 1) = 1
+            AND rec_status = 1
         ) AS active_piece_count,
         COUNT(*) FILTER (
           WHERE COALESCE(is_rejected, false) = false
-            AND COALESCE(rec_status, 1) = 1
+            AND rec_status = 1
             AND lower(COALESCE(scan_state, '')) = 'scanned'
         ) AS scanned_piece_count,
         COUNT(*) FILTER (
           WHERE COALESCE(is_rejected, false) = false
-            AND COALESCE(rec_status, 1) = 1
+            AND rec_status = 1
             AND (is_ready = true OR lower(COALESCE(piece_status, '')) = 'ready')
         ) AS ready_piece_count
       FROM locked

@@ -174,6 +174,8 @@
       "dispositionRequired": "Choose a disposition for every currency before finalizing.",
       "destinationDrawer": "Destination drawer",
       "selectDestination": "Select a destination drawer",
+      "noEligibleDestinationShort": "no eligible drawer",
+      "unavailableDispositionsHint": "Options marked unavailable need a drawer in this branch that can receive the cash (for example a safe), and none is active.",
       "destinationRequired": "Select a destination drawer for this disposition.",
       "keptAmount": "Amount left in drawer",
       "keptAmountRequired": "Enter the amount left in the drawer.",

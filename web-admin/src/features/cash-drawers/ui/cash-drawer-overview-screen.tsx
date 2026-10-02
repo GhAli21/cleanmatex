@@ -216,6 +216,9 @@ export function CashDrawerOverviewScreen({
 
   const canCount = useHasPermissionCode('cash_drawer:count')
   const canTransfer = useHasPermissionCode('cash_drawer:transfer')
+  const canOpenSession = useHasPermissionCode('cash_drawer:open_session')
+  const canRecordMovement = useHasPermissionCode('cash_drawer:record_movement')
+  const canCloseSession = useHasPermissionCode('cash_drawer:close_session')
   const currentSession = overview.currentSession
   const latestSession = overview.latestSession
 
@@ -253,7 +256,7 @@ export function CashDrawerOverviewScreen({
               {tTrx('openButton')}
             </CmxButton>
           ) : null}
-          {!currentSession ? (
+          {!currentSession && canOpenSession ? (
             <CmxButton onClick={() => setOpenDialogOpen(true)} disabled={isPending}>
               <WalletCards className="me-2 h-4 w-4" aria-hidden />
               {t('openSession')}
@@ -261,13 +264,17 @@ export function CashDrawerOverviewScreen({
           ) : null}
           {currentSession ? (
             <>
-              <CmxButton variant="outline" onClick={() => setMoveDialogOpen(true)} disabled={isPending}>
-                <CircleDollarSign className="me-2 h-4 w-4" aria-hidden />
-                {t('addMovement')}
-              </CmxButton>
-              <CmxButton variant="destructive" onClick={() => setCloseDialogOpen(true)} disabled={isPending}>
-                {t('closeSession')}
-              </CmxButton>
+              {canRecordMovement ? (
+                <CmxButton variant="outline" onClick={() => setMoveDialogOpen(true)} disabled={isPending}>
+                  <CircleDollarSign className="me-2 h-4 w-4" aria-hidden />
+                  {t('addMovement')}
+                </CmxButton>
+              ) : null}
+              {canCloseSession ? (
+                <CmxButton variant="destructive" onClick={() => setCloseDialogOpen(true)} disabled={isPending}>
+                  {t('closeSession')}
+                </CmxButton>
+              ) : null}
             </>
           ) : null}
         </div>

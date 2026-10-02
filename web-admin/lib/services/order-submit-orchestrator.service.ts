@@ -1070,6 +1070,25 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         });
       }
 
+      // The canonical aggregate is commercially committed only after its order,
+      // settlement, and enabled fiscal work have completed in this transaction.
+      // A conditional write prevents a replay or an unexpected pre-existing state
+      // from silently replacing the immutable initial commitment evidence.
+      const commitmentCount = await tx.$executeRaw`
+        UPDATE public.org_orders_mst
+        SET
+          committed_at = clock_timestamp(),
+          committed_by = ${userId}::uuid,
+          edit_state_version = 1
+        WHERE id = ${orderId}::uuid
+          AND tenant_org_id = ${tenantId}::uuid
+          AND committed_at IS NULL
+          AND edit_state_version = 0
+      `;
+      if (Number(commitmentCount) !== 1) {
+        throw new Error('ORDER_INITIAL_COMMIT_CONFLICT');
+      }
+
       return { orderId, orderNo, invoiceId, currentStatus, voucherPostResult };
     }, { maxWait: 10000, timeout: 30000 })
   );

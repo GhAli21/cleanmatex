@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { fetchDrawerPolicy, updateDrawerPolicy } from '@features/cash-drawers/api/cash-drawer-api'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
+import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import {
   CASH_CONTROL_VALUE_SOURCE,
   CASH_CONTROL_VARIANCE_GATE_MODE,
@@ -39,6 +40,7 @@ export function CashDrawerPolicyTab({ drawerId }: { drawerId: string }) {
   const tCommon = useTranslations('common')
   const tSettings = useTranslations('cashControl.settings')
   const tEnums = useTranslations('cashControl.enums')
+  const errorMessage = useCashDrawerErrorMessage()
   const queryClient = useQueryClient()
   const { token: csrfToken } = useCSRFToken()
   const canManage = useHasPermissionCode('cash_control:manage')
@@ -58,7 +60,7 @@ export function CashDrawerPolicyTab({ drawerId }: { drawerId: string }) {
       queryClient.setQueryData(queryKey, updated)
       cmxMessage.success(t('saved'))
     } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : t('saveFailed'))
+      cmxMessage.error(errorMessage(error, t('saveFailed')))
     } finally {
       setSavingField(null)
     }
@@ -68,7 +70,7 @@ export function CashDrawerPolicyTab({ drawerId }: { drawerId: string }) {
   if (query.isError || !query.data) {
     return (
       <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 p-4 text-sm">
-        <span>{query.error instanceof Error ? query.error.message : t('saveFailed')}</span>
+        <span>{errorMessage(query.error, t('saveFailed'))}</span>
         <CmxButton size="sm" variant="outline" onClick={() => query.refetch()}>
           {tCommon('retry')}
         </CmxButton>

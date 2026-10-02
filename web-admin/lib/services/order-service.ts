@@ -367,13 +367,19 @@ export interface UpdateOrderResult {
   idempotentReplay?: boolean;
 }
 
+/**
+ * Builds a current-state preference snapshot for order detail responses.
+ *
+ * Removed preferences and their former parents remain immutable Change evidence,
+ * not part of the live order representation.
+ */
 async function loadOrderPreferenceSnapshots(
   tenantId: string,
   orderId: string,
   productNameByProductId?: Map<string, string>
 ): Promise<PreferenceSnapshot[]> {
   const rows = await prisma.org_order_preferences_dtl.findMany({
-    where: { tenant_org_id: tenantId, order_id: orderId },
+    where: { tenant_org_id: tenantId, order_id: orderId, rec_status: 1 },
     select: {
       preference_code: true,
       preference_sys_kind: true,
@@ -394,13 +400,13 @@ async function loadOrderPreferenceSnapshots(
   const [items, pieces] = await Promise.all([
     itemIds.length > 0
       ? prisma.org_order_items_dtl.findMany({
-          where: { tenant_org_id: tenantId, id: { in: itemIds } },
+          where: { tenant_org_id: tenantId, id: { in: itemIds }, rec_status: 1 },
           select: { id: true, product_id: true, product_name: true },
         })
       : Promise.resolve([]),
     pieceIds.length > 0
       ? prisma.org_order_item_pieces_dtl.findMany({
-          where: { tenant_org_id: tenantId, id: { in: pieceIds } },
+          where: { tenant_org_id: tenantId, id: { in: pieceIds }, rec_status: 1 },
           select: { id: true, piece_seq: true },
         })
       : Promise.resolve([]),
@@ -430,13 +436,19 @@ async function loadOrderPreferenceSnapshots(
   });
 }
 
+/**
+ * Builds a current-state piece snapshot for order detail responses.
+ *
+ * Removed pieces and their former item relationships remain immutable Change
+ * evidence, not part of the live order representation.
+ */
 async function loadOrderPieceSnapshots(
   tenantId: string,
   orderId: string,
   productNameByProductId?: Map<string, string>
 ): Promise<PieceSnapshot[]> {
   const rows = await prisma.org_order_item_pieces_dtl.findMany({
-    where: { tenant_org_id: tenantId, order_id: orderId },
+    where: { tenant_org_id: tenantId, order_id: orderId, rec_status: 1 },
     select: {
       piece_seq: true,
       product_id: true,
@@ -456,7 +468,7 @@ async function loadOrderPieceSnapshots(
   const items =
     itemIds.length > 0
       ? await prisma.org_order_items_dtl.findMany({
-          where: { tenant_org_id: tenantId, id: { in: itemIds } },
+          where: { tenant_org_id: tenantId, id: { in: itemIds }, rec_status: 1 },
           select: { id: true, product_id: true, product_name: true },
         })
       : [];

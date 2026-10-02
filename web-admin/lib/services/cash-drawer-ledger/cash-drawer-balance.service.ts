@@ -6,7 +6,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { sumLedgerWindow, netOfWindow, type LedgerWindowTotals } from './cash-drawer-ledger.repository';
-import { CASH_DRAWER_SESSION_STATUSES, CASH_DISPOSITION_MOVE_MODES } from '@/lib/constants/cash-drawer';
+import { CASH_DRAWER_SESSION_STATUSES } from '@/lib/constants/cash-drawer';
 
 /**
  * Public balance computations over the drawer ledger (CLF, ADR-057, §4B.4).
@@ -19,9 +19,9 @@ import { CASH_DRAWER_SESSION_STATUSES, CASH_DISPOSITION_MOVE_MODES } from '@/lib
 
 export interface OpeningExpectedRow {
   currencyCode: string;
-  /** Carried forward from the previous session's disposition (0 for a first session or nothing kept). */
+  /** The previous session's closing basis — what was in the drawer at its cut (0 for a first session). */
   carriedForward: Decimal;
-  /** Net ledger activity between the previous close and this open (float issued, between-session drops, etc). */
+  /** Net ledger activity after the previous cut and before this open: the close's own disposition transfer, float issued, deferred cash, etc. */
   betweenSessionNet: Decimal;
   /** carriedForward + betweenSessionNet. */
   openingExpected: Decimal;
@@ -29,10 +29,10 @@ export interface OpeningExpectedRow {
 
 /**
  * Chains a new session's opening-expected balance off the drawer's history
- * (P4/P5, plan §4B.10 CLF-4-3 "open"): what the previous session's
- * disposition left behind, plus any ledger activity that landed on this
- * drawer with no session open in between (a DEFERRED cash recognition, or a
- * manual custody transaction like FLOAT_ISSUE before the day's first open).
+ * (P4/P5, plan §4B.10 CLF-4-3 "open"): the previous session's closing basis
+ * plus every ledger entry after its cut — the close's own disposition transfer
+ * (a CLOSE_DISPOSITION custody transaction), a DEFERRED cash recognition, or a
+ * manual custody transaction like FLOAT_ISSUE before the day's first open.
  *
  * Always returns at least one row, for `drawerCurrencyCode` — a drawer with
  * no history and no between-session activity still needs an opening-expected
@@ -65,37 +65,17 @@ export async function computeOpeningExpectedTx(
   const carried = new Map<string, Decimal>();
 
   if (prevSession) {
+    // What was physically in the drawer at the cut: the count when there was one, else the
+    // expected figure. Whatever the close then removed (MOVED_TO_SAFE, PARTIAL_REMOVED, ...) is a
+    // custody transaction stamped AFTER the cut, so the window below already subtracts it — the
+    // chain is `basis + everything after the cut`. Subtracting the disposition here as well would
+    // count the removal twice (a full move to the safe would open the next session at -basis).
     const balRows = await tx.org_cash_drawer_ses_bal_dtl.findMany({
       where: { tenant_org_id: tenantOrgId, cash_drawer_session_id: prevSession.id },
-      select: {
-        currency_code: true,
-        closing_basis: true,
-        disposition_code: true,
-        disposition_kept_amount: true,
-      },
+      select: { currency_code: true, closing_basis: true },
     });
-    const dispCodes = [...new Set(balRows.map((r) => r.disposition_code).filter((v): v is string => !!v))];
-    const dispRows = dispCodes.length
-      ? await tx.sys_cash_drawer_ses_disp_cd.findMany({
-          where: { code: { in: dispCodes } },
-          select: { code: true, cash_move_mode: true },
-        })
-      : [];
-    const moveModeByCode = new Map(dispRows.map((r) => [r.code, r.cash_move_mode]));
-
     for (const row of balRows) {
-      const basis = row.closing_basis ? new Decimal(row.closing_basis.toString()) : new Decimal(0);
-      const moveMode = row.disposition_code ? moveModeByCode.get(row.disposition_code) : CASH_DISPOSITION_MOVE_MODES.NONE;
-      let keptAmount: Decimal;
-      if (moveMode === CASH_DISPOSITION_MOVE_MODES.ALL) {
-        keptAmount = new Decimal(0);
-      } else if (moveMode === CASH_DISPOSITION_MOVE_MODES.PART) {
-        keptAmount = row.disposition_kept_amount ? new Decimal(row.disposition_kept_amount.toString()) : new Decimal(0);
-      } else {
-        // NONE, or a disposition that was never recorded (defensive default — nothing known to have moved).
-        keptAmount = basis;
-      }
-      carried.set(row.currency_code, keptAmount);
+      carried.set(row.currency_code, row.closing_basis ? new Decimal(row.closing_basis.toString()) : new Decimal(0));
     }
   }
 

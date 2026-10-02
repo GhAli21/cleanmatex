@@ -596,7 +596,7 @@ export async function recalculateOrderFinancialSnapshotTx(
     .map((row) => row.charge_source_id as string);
   const preferenceLevels = preferenceSourceIds.length > 0
     ? await tx.org_order_preferences_dtl.findMany({
-        where: { tenant_org_id: tenantId, id: { in: preferenceSourceIds } },
+        where: { tenant_org_id: tenantId, id: { in: preferenceSourceIds }, rec_status: 1 },
         select: { id: true, prefs_level: true },
       })
     : [];

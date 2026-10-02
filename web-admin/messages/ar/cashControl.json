@@ -175,6 +175,7 @@
     "CASH_LEG_MUST_REVERSE": "هذه الدفعة النقدية موجودة في الدرج. قم بعكسها بدلاً من ذلك.",
     "POST_CLOSE_SESSION_NOT_CLOSED": "يجب إغلاق الجلسة أولاً.",
     "CASH_DRAWER_CURRENCY_NOT_CONFIGURED": "لم يتم إعداد عملة لدرج النقد هذا.",
-    "CASH_RECEIVER_INVALID": "مستلم النقد المحدد ليس عضوًا نشطًا في المنشأة."
+    "CASH_RECEIVER_INVALID": "مستلم النقد المحدد ليس عضوًا نشطًا في المنشأة.",
+    "DRAWER_SESSION_ALREADY_OPEN": "يوجد جلسة مفتوحة على درج النقد هذا بالفعل."
   }
 }

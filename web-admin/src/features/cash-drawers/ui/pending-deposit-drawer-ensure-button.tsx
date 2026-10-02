@@ -9,6 +9,7 @@ import {
   ensureBranchPendingDepositDrawer,
 } from '@features/cash-drawers/api/cash-drawer-api'
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token'
+import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import { cmxMessage } from '@ui/feedback'
 import { CmxButton } from '@ui/primitives'
 
@@ -34,6 +35,7 @@ export function PendingDepositDrawerEnsureButton({
   onCreated?: () => void
 }) {
   const t = useTranslations('billing.cashDrawers.pendingDeposit')
+  const errorMessage = useCashDrawerErrorMessage()
   const { token: csrfToken } = useCSRFToken()
   const queryClient = useQueryClient()
   const [isPending, startTransition] = useTransition()
@@ -57,7 +59,7 @@ export function PendingDepositDrawerEnsureButton({
         await queryClient.invalidateQueries({ queryKey: PENDING_DEPOSIT_STATUS_QUERY_KEY })
         onCreated?.()
       } catch (error) {
-        cmxMessage.error(error instanceof Error ? error.message : t('createFailed'))
+        cmxMessage.error(errorMessage(error, t('createFailed')))
       }
     })
   }

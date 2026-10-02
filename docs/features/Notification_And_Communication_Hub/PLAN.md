@@ -1,6 +1,8 @@
 # CMX-PRD-019 — Notification & Communication Hub
 # Implementation Plan
 
+> **2026-10-03 planning update:** The canonical plan for new production architecture enhancements is [Notification Hub — Production Implementation Plan](./notification-hub-production-implementation-plan.md), with a [schema and contract specification](./notification-hub-schema-and-contracts.md). Both are drafts for implementation review. The phases, identifiers and migration sequence below are historical context; verify current source/schema and use the current next sequence before new work. This update does not mark the enhancements implemented or authorize migration application.
+
 **Roadmap:** [ROADMAP.md](./ROADMAP.md)  
 **Status file:** [STATUS.md](./STATUS.md)  
 **Next migration seq:** 0364  

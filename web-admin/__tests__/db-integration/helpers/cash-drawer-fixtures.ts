@@ -16,6 +16,8 @@ import {
   type OpenSessionResult,
 } from '@/lib/services/cash-drawer-session.service';
 import { CASH_DRAWER_DISPOSITIONS } from '@/lib/constants/cash-drawer';
+import { stampCashLinesTx } from '@/lib/services/cash-drawer-ledger/cash-drawer-ledger-gate';
+import type { VoucherLineForWiring } from '@/lib/types/voucher-wiring';
 
 export interface DbTestScope {
   tenantId: string;
@@ -87,6 +89,78 @@ export async function closeTestSession(
   });
 }
 
+export interface StampedTestLine {
+  voucherId: string;
+  lineId: string;
+}
+
+/**
+ * Creates one voucher with one completed CASH line and runs it through the production ledger
+ * gate (`stampCashLinesTx`) — so the stamp (drawer, session, sequence) is exactly what a real
+ * posting would get. The voucher is tied to the drawer (`source_ref_id`) so
+ * {@link cleanupTestDrawers} removes it. Rejects with the gate's `CashDrawerLedgerError`
+ * when the gate refuses.
+ */
+export async function stampTestCashLine(
+  scope: DbTestScope,
+  opts: {
+    drawerId: string;
+    amount: number | string;
+    mode: 'INTERACTIVE' | 'DEFERRED';
+    direction?: 'IN' | 'OUT';
+    currency?: string;
+    sessionHint?: string | null;
+  },
+): Promise<StampedTestLine> {
+  const direction = opts.direction ?? 'IN';
+  const currency = opts.currency ?? 'OMR';
+  const voucher = await prisma.org_fin_vouchers_mst.create({
+    data: {
+      tenant_org_id: scope.tenantId,
+      voucher_no: `CLF-TEST-${randomUUID().slice(0, 12)}`,
+      voucher_category: direction === 'OUT' ? 'CASH_OUT' : 'CASH_IN',
+      total_amount: opts.amount,
+      branch_id: scope.branchId,
+      currency_code: currency,
+      source_ref_id: opts.drawerId,
+    },
+  });
+  const line = await prisma.org_fin_voucher_trx_lines_dtl.create({
+    data: {
+      tenant_org_id: scope.tenantId,
+      voucher_id: voucher.id,
+      line_no: 1,
+      line_type: 'RECEIPT',
+      line_role: 'ORDER_PAYMENT',
+      direction,
+      amount: opts.amount,
+      payment_method_code: 'CASH',
+      payment_status: 'COMPLETED',
+      currency_code: currency,
+      branch_id: scope.branchId,
+      cash_drawer_session_id: opts.sessionHint ?? null,
+    },
+  });
+  await prisma.$transaction((tx) =>
+    stampCashLinesTx(
+      tx,
+      { tenantOrgId: scope.tenantId, userId: 'clf-matrix-test', mode: opts.mode },
+      { id: voucher.id, branchId: scope.branchId, currencyCode: currency },
+      [{ ...(line as unknown as VoucherLineForWiring), cash_drawer_id: opts.drawerId }],
+    ),
+  );
+  return { voucherId: voucher.id, lineId: line.id };
+}
+
+/** The ledger stamp of a line written by {@link stampTestCashLine}. */
+export async function readLineStamp(scope: DbTestScope, lineId: string) {
+  const row = await prisma.org_fin_voucher_trx_lines_dtl.findFirstOrThrow({
+    where: { id: lineId, tenant_org_id: scope.tenantId },
+    select: { cash_effect_code: true, cash_drawer_id: true, cash_ledger_seq: true, cash_drawer_session_id: true },
+  });
+  return { ...row, seq: row.cash_ledger_seq == null ? null : Number(row.cash_ledger_seq) };
+}
+
 /**
  * Test cleanup, not a migration — but the same documented maintenance bypass applies
  * (`SET LOCAL cmx.allow_ledger_edit = 'on'`): counts, closed balance rows, post
@@ -119,16 +193,6 @@ export async function cleanupTestDrawers(scope: DbTestScope, drawerIds: string[]
     if (sessionIds.length > 0) {
       await tx.org_cash_drawer_ses_post_tr.deleteMany({ where: { cash_drawer_session_id: { in: sessionIds }, tenant_org_id: tenantId } });
       await tx.org_cash_drawer_ses_bal_dtl.deleteMany({ where: { cash_drawer_session_id: { in: sessionIds }, tenant_org_id: tenantId } });
-      // Legacy movement table (dropped by migration 0550): clear it while it still exists, so
-      // this helper works before and after that migration is applied (no Prisma model needed).
-      const legacy = await tx.$queryRaw<Array<{ present: boolean }>>`
-        SELECT to_regclass('public.org_cash_drawer_movements_dtl') IS NOT NULL AS present`;
-      if (legacy[0]?.present) {
-        await tx.$executeRaw`
-          DELETE FROM public.org_cash_drawer_movements_dtl
-           WHERE tenant_org_id = ${tenantId}::uuid
-             AND cash_drawer_session_id = ANY(${sessionIds}::uuid[])`;
-      }
     }
 
     const counts = await tx.org_cash_drawer_cnt_mst.findMany({

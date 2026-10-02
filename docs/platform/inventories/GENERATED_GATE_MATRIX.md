@@ -1,13 +1,13 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-10-02T17:47:18.647Z
-Git SHA: f33cff48
+Generated: 2026-10-02T19:58:18.617Z
+Git SHA: f3e4ff5a
 ## Summary
 | Domain | Count |
 | --- | --- |
 | Access contracts | 155 |
-| Permission usages | 368 |
+| Permission usages | 374 |
 | Feature flag usages | 82 |
 | Setting usages | 29 |
 | Plan limit usages | 8 |
@@ -80,8 +80,8 @@ Git SHA: f33cff48
 | /dashboard/internal_fin/ar/statements | Customer Statements | customer_statements:view | — | 0 |
 | /dashboard/internal_fin/ar/statements/print | Print Customer Statement | customer_statements:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers | Cash Drawers | cash_drawer:view | — | 0 |
-| /dashboard/internal_fin/cash-drawers/[drawerId] | Cash Drawer Details | cash_drawer:view | — | 0 |
-| /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId] | Cash Drawer Session Details | cash_drawer:view | — | 0 |
+| /dashboard/internal_fin/cash-drawers/[drawerId] | Cash Drawer Details | cash_drawer:view | — | 7 |
+| /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId] | Cash Drawer Session Details | cash_drawer:view | — | 2 |
 | /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print | Print Cash Drawer Session | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers/follow-up | Cash Deposit Follow-up | cash_drawer:view_reports | — | 0 |
 | /dashboard/internal_fin/invoices | Invoices | invoices:read | — | 0 |
@@ -90,7 +90,7 @@ Git SHA: f33cff48
 | /dashboard/internal_fin/invoices/new | New AR Invoice | invoices:create | — | 0 |
 | /dashboard/internal_fin/outbox | Financial Outbox Monitor | finance_outbox:view | — | 0 |
 | /dashboard/internal_fin/pending-payments | Pending Payments | orders:pending_payments_view | — | 0 |
-| /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 8 |
+| /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 11 |
 | /dashboard/internal_fin/reconciliation | Finance Reconciliation | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/reconciliation/[runId] | Finance Reconciliation Details | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/refunds | Refunds | orders:process_refund | — | 0 |

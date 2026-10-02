@@ -11,6 +11,8 @@ Useful planning material from `docs/plan_cr/` should be reconciled into this dir
 - **[plan_cr_reconciliation_map.md](./plan_cr_reconciliation_map.md)** - Topic-based map between the approved `docs/plan/` layer and the legacy `docs/plan_cr/` planning corpus.
 
 ### Detailed Promoted Plan Files
+- **[Notification Hub — Production Implementation Plan](../features/Notification_And_Communication_Hub/notification-hub-production-implementation-plan.md)** — Canonical feature plan, draft for implementation review, 2026-10-03. Cross-project database, services, APIs, HQ/tenant UI, security, testing, rollout and operational gates.
+- **[Notification Hub — Schema and Contracts](../features/Notification_And_Communication_Hub/notification-hub-schema-and-contracts.md)** — Supporting specification in the canonical feature folder; proposed ownership, field dictionaries, variable schemas and delivery contracts.
 - **[files/PRD_FILES_SUMMARY.md](./files/PRD_FILES_SUMMARY.md)** - Index of the detailed plan files already living under `docs/plan/files/`
 - **[files/Phase_2_Enhanced_Operations_Overview.md](./files/Phase_2_Enhanced_Operations_Overview.md)** - Approved Phase 2 overview
 - **[files/PRD_023_Bilingual_Support_Implementation_Plan.md](./files/PRD_023_Bilingual_Support_Implementation_Plan.md)** - Approved detailed bilingual-support plan

@@ -469,7 +469,14 @@ export async function completePreparation(
 // ==================================================================
 
 /**
- * Get order by ID with full details
+ * Gets an order with its current operational structure.
+ *
+ * Removed items remain available through immutable Change history, so this live
+ * reader deliberately excludes them from the editable and operational projection.
+ *
+ * @param tenantOrgId - Tenant organisation ID that scopes every order child query.
+ * @param orderId - Order identity within the tenant.
+ * @returns The order with active items, or `null` when it is absent for the tenant.
  */
 export async function getOrderById(
   tenantOrgId: string,
@@ -503,6 +510,7 @@ export async function getOrderById(
         },
       },
       org_order_items_dtl: {
+        where: { tenant_org_id: tenantOrgId, rec_status: 1 },
         orderBy: { created_at: 'asc' },
       },
       org_branches_mst: {
@@ -599,7 +607,14 @@ export async function getOrderByReference(
 }
 
 /**
- * List orders with filters and pagination
+ * Lists tenant orders with current item and piece counts.
+ *
+ * Counts exclude V2-removed structure so queue and summary views never revive
+ * historical rows preserved for Change lineage.
+ *
+ * @param tenantOrgId - Tenant organisation ID that scopes orders and structural counts.
+ * @param filters - Pagination, search, and lifecycle filters for the list projection.
+ * @returns A paginated order list with active structural counts.
  */
 export async function listOrders(
   tenantOrgId: string,
@@ -754,6 +769,7 @@ export async function listOrders(
         },
       },
       org_order_items_dtl: {
+        where: { tenant_org_id: tenantOrgId, rec_status: 1 },
         select: {
           id: true,
         },
@@ -776,6 +792,7 @@ export async function listOrders(
     where: {
       order_id: { in: orderIds },
       tenant_org_id: tenantOrgId,
+      rec_status: 1,
     },
     _count: {
       id: true,
@@ -965,10 +982,12 @@ async function recalculateOrderTotals(
   }
   const roundMoney = (n: number) => roundMoneyAmount(n, decimalPlaces);
 
+  // Removed item lineage remains auditable but must never affect a current commercial total.
   const items = await prisma.org_order_items_dtl.findMany({
     where: {
       order_id: orderId,
       tenant_org_id: tenantOrgId,
+      rec_status: 1,
     },
   });
 

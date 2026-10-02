@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-02",
+  "scope": "Final WP02 read-only count recheck after the user confirmed local and hosted order deletion. No migration, DML, RPC, constraint validation, backfill or schema change was performed.",
+  "targets": {
+    "local": {
+      "orders": 0,
+      "items": 0,
+      "pieces": 0,
+      "preferences": 0,
+      "changes": 0,
+      "ops": 0
+    },
+    "hosted": {
+      "orders": 0,
+      "items": 0,
+      "pieces": 0,
+      "preferences": 0,
+      "changes": 0,
+      "ops": 0
+    }
+  },
+  "conclusion": "No historical order cohort remains to classify or backfill in either target. Future orders still require source-specific commitment, actor and timezone handling."
+}

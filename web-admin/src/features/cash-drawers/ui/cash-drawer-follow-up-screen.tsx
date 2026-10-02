@@ -17,6 +17,7 @@ import {
 } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
+import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import { cmxMessage } from '@ui/feedback'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
@@ -35,6 +36,7 @@ export function CashDrawerFollowUpScreen() {
   const t = useTranslations('billing.cashDrawers.followUp')
   const tClosure = useTranslations('billing.cashDrawers.closure.postClose')
   const tCommon = useTranslations('common')
+  const errorMessage = useCashDrawerErrorMessage()
   const locale = useLocale()
   const money = useCashDrawerMoneyFormatter()
   const fmtDateTime = useCashDrawerDateFormatter()
@@ -95,7 +97,7 @@ export function CashDrawerFollowUpScreen() {
       setEditing(null)
       await queryClient.invalidateQueries({ queryKey: ['cash-drawers', 'follow-up'] })
     } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : tClosure('saveFailed'))
+      cmxMessage.error(errorMessage(error, tClosure('saveFailed')))
     } finally {
       setSaving(false)
     }

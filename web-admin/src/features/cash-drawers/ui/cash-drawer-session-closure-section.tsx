@@ -18,6 +18,7 @@ import {
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
+import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import { cmxMessage } from '@ui/feedback'
 import { CmxMoneyVariance } from '@ui/data-display'
 import { CmxButton, CmxSelect, CmxSkeleton, CmxTextarea, Label } from '@ui/primitives'
@@ -38,6 +39,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
   const t = useTranslations('billing.cashDrawers.closure')
   const tDrawers = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
+  const errorMessage = useCashDrawerErrorMessage()
   const locale = useLocale()
   const money = useCashDrawerMoneyFormatter()
   const fmtDateTime = useCashDrawerDateFormatter()
@@ -108,7 +110,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
       setNotesDraft(null)
       await queryClient.invalidateQueries({ queryKey })
     } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : t('postClose.saveFailed'))
+      cmxMessage.error(errorMessage(error, t('postClose.saveFailed')))
     } finally {
       setSaving(false)
     }

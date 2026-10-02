@@ -11,6 +11,7 @@ import { CmxMoneyVariance } from '@ui/data-display'
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
+import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import {
   startCashDrawerClose,
   finalizeCashDrawerClose,
@@ -59,6 +60,7 @@ export function CashDrawerCloseWizard({
 }: CashDrawerCloseWizardProps) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
+  const errorMessage = useCashDrawerErrorMessage()
   const { token: csrfToken } = useCSRFToken()
   const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency()
 
@@ -115,8 +117,9 @@ export function CashDrawerCloseWizard({
 
   const handleStartClose = async () => {
     if (countNow && countMode === 'TOTAL_ONLY') {
+      // A blank field is not a zero count: Number('') is 0, which would silently book a full shortage.
       const numeric = Number(totalAmount)
-      if (!Number.isFinite(numeric) || numeric < 0) {
+      if (totalAmount.trim() === '' || !Number.isFinite(numeric) || numeric < 0) {
         cmxMessage.error(t('wizard.countedAmountRequired'))
         return
       }
@@ -155,7 +158,7 @@ export function CashDrawerCloseWizard({
       )
       setPhase('disposition')
     } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : t('messages.closeFailed'))
+      cmxMessage.error(errorMessage(error, t('messages.closeFailed')))
     } finally {
       setSubmitting(false)
     }
@@ -188,7 +191,7 @@ export function CashDrawerCloseWizard({
       }
       if (disp?.requiresKeptAmount) {
         const kept = Number(row.keptAmount)
-        if (!Number.isFinite(kept) || kept < 0) {
+        if (row.keptAmount.trim() === '' || !Number.isFinite(kept) || kept < 0) {
           cmxMessage.error(t('wizard.keptAmountRequired'))
           return
         }
@@ -224,7 +227,7 @@ export function CashDrawerCloseWizard({
       resetAll()
       onOpenChange(false)
     } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : t('messages.closeFailed'))
+      cmxMessage.error(errorMessage(error, t('messages.closeFailed')))
     } finally {
       setSubmitting(false)
     }
@@ -238,6 +241,27 @@ export function CashDrawerCloseWizard({
       .filter((d) => (disp?.destDrawerTypeCode ? d.drawer_type === disp.destDrawerTypeCode : drawerTypeCanReceive.get(d.drawer_type) ?? false))
       .map((d) => ({ value: d.id, label: `${d.drawer_name} (${d.drawer_code})` }))
   }
+
+  /**
+   * The selectable dispositions for one currency. A cash-moving disposition is disabled — with the
+   * reason in its label and a hint under the select — when the branch has no active drawer that can
+   * receive it, instead of letting the user pick it and fail later with an empty destination list.
+   * Nothing is disabled while the sibling drawers are still loading.
+   */
+  const dispositionOptions = (currencyCode: string) =>
+    (catalogsQuery.data?.dispositions ?? [])
+      .filter((d) => d.isSelectable)
+      .map((d) => {
+        const unavailable =
+          d.cashMoveMode !== 'NONE' &&
+          !siblingDrawersQuery.isLoading &&
+          siblingDrawerOptions(currencyCode, d.code).length === 0
+        return {
+          value: d.code,
+          label: unavailable ? `${d.name} — ${t('wizard.noEligibleDestinationShort')}` : d.name,
+          disabled: unavailable,
+        }
+      })
 
   return (
     <CmxDialog
@@ -343,11 +367,14 @@ export function CashDrawerCloseWizard({
                     label={t('wizard.disposition')}
                     value={row?.dispositionCode ?? ''}
                     onChange={(event) => updateDisposition(balance.currencyCode, { dispositionCode: event.target.value, destDrawerId: '' })}
-                    options={(catalogsQuery.data?.dispositions ?? [])
-                      .filter((d) => d.isSelectable)
-                      .map((d) => ({ value: d.code, label: d.name }))}
+                    options={dispositionOptions(balance.currencyCode)}
                     placeholder={t('wizard.selectDisposition')}
                   />
+                  {dispositionOptions(balance.currencyCode).some((o) => o.disabled) ? (
+                    <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                      {t('wizard.unavailableDispositionsHint')}
+                    </p>
+                  ) : null}
 
                   {disp && disp.cashMoveMode !== 'NONE' ? (
                     <CmxSelect

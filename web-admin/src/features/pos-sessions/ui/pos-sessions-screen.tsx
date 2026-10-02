@@ -38,6 +38,7 @@ import {
   type PosSessionUserOption,
 } from '@features/pos-sessions/api/pos-session-api';
 import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-close-wizard';
+import { PosSessionDrawerLinker } from '@features/pos-sessions/ui/pos-session-drawer-linker';
 import type {
   GetMyActivePosSessionResult,
   PosSessionListResult,
@@ -112,6 +113,8 @@ interface OpenForUserDialogState {
   userLabel: string;
   branchId: string;
   terminalId: string;
+  /** Set once the session is created — switches the dialog to the optional drawer-link step. */
+  createdSessionId: string | null;
 }
 
 const EMPTY_OPEN_FOR_USER_DIALOG: OpenForUserDialogState = {
@@ -120,6 +123,7 @@ const EMPTY_OPEN_FOR_USER_DIALOG: OpenForUserDialogState = {
   userLabel: '',
   branchId: '',
   terminalId: '',
+  createdSessionId: null,
 };
 
 type PosSessionLookupKind = Exclude<PosSessionFilterOptionType, 'cashDrawerSession'>;
@@ -142,6 +146,7 @@ export function PosSessionsScreen() {
   const canForceClose = useHasPermissionCode('pos_session:force_close');
   const canViewCashDrawer = useHasPermissionCode('cash_drawer:view');
   const canCloseCashDrawer = useHasPermissionCode('cash_drawer:close_session');
+  const canOpenCashDrawer = useHasPermissionCode('cash_drawer:open_session');
   const canCloseOthers = useHasPermissionCode('pos_session:close_others');
   const canOpenOthers = useHasPermissionCode('pos_session:open_others');
   const canFullManageOthers = useHasPermissionCode('pos_session:full_manage_others');
@@ -317,16 +322,23 @@ export function PosSessionsScreen() {
     }
     setBusyAction('open-others');
     try {
-      await postOpenPosSessionForUser({
+      const result = await postOpenPosSessionForUser({
         csrfToken,
         targetUserId: openForUserDialog.userId,
         branchId: openForUserDialog.branchId,
         terminalId: openForUserDialog.terminalId || undefined,
         sourceChannel: 'pos_session_workbench',
       });
-      cmxMessage.success(t('messages.openedForUser'));
-      setOpenForUserDialog(EMPTY_OPEN_FOR_USER_DIALOG);
       await refreshAll();
+      if (result.type === 'BRANCH_CONFLICT') {
+        cmxMessage.error(t('banner.branchConflict'));
+        return;
+      }
+      cmxMessage.success(t('messages.openedForUser'));
+      // Stay open on an optional drawer-link step instead of closing — the
+      // session now exists, so the admin can finish provisioning the shift
+      // in one flow, or skip and let the cashier link a drawer later.
+      setOpenForUserDialog((current) => ({ ...current, createdSessionId: result.session.id }));
     } catch (error) {
       cmxMessage.error(error instanceof Error ? error.message : t('messages.actionFailed'));
     } finally {
@@ -965,39 +977,62 @@ export function PosSessionsScreen() {
           <CmxDialogHeader>
             <CmxDialogTitle>{t('openForUser')}</CmxDialogTitle>
           </CmxDialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t('operator')}</Label>
-              <CmxButton
-                className="w-full justify-start text-start font-normal"
-                variant="outline"
-                onClick={() => setUserPickerOpen(true)}
-              >
-                <span className="truncate">{openForUserDialog.userLabel || t('selectUser')}</span>
-                <Search className="ms-auto size-4 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-hidden />
-              </CmxButton>
+          {openForUserDialog.createdSessionId ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                {t('messages.openedForUser')}
+              </div>
+              <PosSessionDrawerLinker
+                branchId={openForUserDialog.branchId}
+                posSessionId={openForUserDialog.createdSessionId}
+                canViewCashDrawer={canViewCashDrawer}
+                canOpenCashDrawer={canOpenCashDrawer}
+                onLinked={refreshAll}
+              />
             </div>
-            <CmxSelect
-              label={t('branch')}
-              placeholder={t('selectBranch')}
-              value={openForUserDialog.branchId}
-              options={branchOptions}
-              disabled={branchesQuery.isLoading}
-              onChange={(event) => setOpenForUserDialog((current) => ({ ...current, branchId: event.target.value }))}
-            />
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>{t('operator')}</Label>
+                <CmxButton
+                  className="w-full justify-start text-start font-normal"
+                  variant="outline"
+                  onClick={() => setUserPickerOpen(true)}
+                >
+                  <span className="truncate">{openForUserDialog.userLabel || t('selectUser')}</span>
+                  <Search className="ms-auto size-4 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-hidden />
+                </CmxButton>
+              </div>
+              <CmxSelect
+                label={t('branch')}
+                placeholder={t('selectBranch')}
+                value={openForUserDialog.branchId}
+                options={branchOptions}
+                disabled={branchesQuery.isLoading}
+                onChange={(event) => setOpenForUserDialog((current) => ({ ...current, branchId: event.target.value }))}
+              />
+            </div>
+          )}
           <CmxDialogFooter>
-            <CmxButton variant="outline" onClick={() => setOpenForUserDialog(EMPTY_OPEN_FOR_USER_DIALOG)}>
-              {t('cancel')}
-            </CmxButton>
-            <CmxButton
-              variant="primary"
-              disabled={!openForUserDialog.userId || !openForUserDialog.branchId}
-              loading={busyAction === 'open-others'}
-              onClick={openSessionForUser}
-            >
-              {t('openForUser')}
-            </CmxButton>
+            {openForUserDialog.createdSessionId ? (
+              <CmxButton variant="primary" onClick={() => setOpenForUserDialog(EMPTY_OPEN_FOR_USER_DIALOG)}>
+                {t('hub.closePanel')}
+              </CmxButton>
+            ) : (
+              <>
+                <CmxButton variant="outline" onClick={() => setOpenForUserDialog(EMPTY_OPEN_FOR_USER_DIALOG)}>
+                  {t('cancel')}
+                </CmxButton>
+                <CmxButton
+                  variant="primary"
+                  disabled={!openForUserDialog.userId || !openForUserDialog.branchId}
+                  loading={busyAction === 'open-others'}
+                  onClick={openSessionForUser}
+                >
+                  {t('openForUser')}
+                </CmxButton>
+              </>
+            )}
           </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>

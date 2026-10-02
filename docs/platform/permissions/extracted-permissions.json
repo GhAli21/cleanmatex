@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-02T17:47:15.200Z",
+  "extractedAt": "2026-10-02T19:58:14.926Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -224,6 +224,30 @@
       "permission": "cash_drawer:transfer",
       "component": "useHasPermissionCode",
       "line": 218,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "permission": "cash_drawer:open_session",
+      "component": "useHasPermissionCode",
+      "line": 219,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "permission": "cash_drawer:record_movement",
+      "component": "useHasPermissionCode",
+      "line": 220,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "permission": "cash_drawer:close_session",
+      "component": "useHasPermissionCode",
+      "line": 221,
       "surface": "screen"
     },
     {
@@ -495,7 +519,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:view_all",
       "component": "useHasPermissionCode",
-      "line": 109,
+      "line": 138,
       "surface": "screen"
     },
     {
@@ -503,7 +527,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:open",
       "component": "useHasPermissionCode",
-      "line": 110,
+      "line": 139,
       "surface": "screen"
     },
     {
@@ -511,7 +535,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:pause_resume",
       "component": "useHasPermissionCode",
-      "line": 111,
+      "line": 140,
       "surface": "screen"
     },
     {
@@ -519,7 +543,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:close",
       "component": "useHasPermissionCode",
-      "line": 112,
+      "line": 141,
       "surface": "screen"
     },
     {
@@ -527,7 +551,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:force_close",
       "component": "useHasPermissionCode",
-      "line": 113,
+      "line": 142,
       "surface": "screen"
     },
     {
@@ -535,7 +559,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "cash_drawer:view",
       "component": "useHasPermissionCode",
-      "line": 114,
+      "line": 143,
       "surface": "screen"
     },
     {
@@ -543,7 +567,31 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "cash_drawer:close_session",
       "component": "useHasPermissionCode",
-      "line": 115,
+      "line": 144,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "permission": "pos_session:close_others",
+      "component": "useHasPermissionCode",
+      "line": 145,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "permission": "pos_session:open_others",
+      "component": "useHasPermissionCode",
+      "line": 146,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "permission": "pos_session:full_manage_others",
+      "component": "useHasPermissionCode",
+      "line": 147,
       "surface": "screen"
     },
     {

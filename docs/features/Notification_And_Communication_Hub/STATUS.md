@@ -2,8 +2,17 @@
 
 **Project:** CleanMateX Notification & Communication Hub
 **PRD:** CMX-PRD-019
-**Last Updated:** 2026-10-02
+**Last Updated:** 2026-10-03
 **Overall Status:** ✅ cleanmatex MVP COMPLETE — HQ phases pending in cleanmatexsaas
+
+## 2026-10-03 — Production architecture implementation planning
+
+- [x] Created the [canonical production implementation plan](./notification-hub-production-implementation-plan.md) covering both repositories, shared schema, services/APIs, provider transport, HQ/tenant UI, security, tests and rollout.
+- [x] Created the supporting [schema and contract specification](./notification-hub-schema-and-contracts.md), including platform/private ownership, localized/provider revisions, typed collections/calculations and delivery evidence.
+- [ ] Review the proposed implementation slices and schema/API decisions.
+- [ ] Implement and verify phases P0–P7; all enhancement implementation remains pending.
+
+This increment changes documentation only. Historical completion labels below do not establish production readiness for the proposed enhancements. No code, SQL, migration application, deployment, provider configuration or external send was performed.
 
 ---
 

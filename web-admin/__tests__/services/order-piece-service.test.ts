@@ -49,7 +49,7 @@ jest.mock('@/lib/supabase/server', () => ({
 }));
 
 /**
- * Matches Supabase chain: .select(..., { count, head }).eq().eq().eq().eq() → Promise<{ count, error }>
+ * Matches Supabase chain: .select(..., { count, head }).eq().eq().eq().eq().eq() → Promise<{ count, error }>
  * @param count
  * @param error
  */
@@ -60,7 +60,9 @@ function mockHeadCountChain(count: number | null, error: { message: string } | n
       eq: jest.fn(() => ({
         eq: jest.fn(() => ({
           eq: jest.fn(() => ({
-            eq: jest.fn(() => terminal),
+            eq: jest.fn(() => ({
+              eq: jest.fn(() => terminal),
+            })),
           })),
         })),
       })),
@@ -203,12 +205,14 @@ describe('OrderPieceService', () => {
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
             eq: jest.fn(() => ({
-              order: jest.fn(() =>
-                Promise.resolve({
-                  data: mockPieces,
-                  error: null,
-                })
-              ),
+              eq: jest.fn(() => ({
+                order: jest.fn(() =>
+                  Promise.resolve({
+                    data: mockPieces,
+                    error: null,
+                  })
+                ),
+              })),
             })),
           })),
         })),
@@ -229,12 +233,14 @@ describe('OrderPieceService', () => {
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
             eq: jest.fn(() => ({
-              order: jest.fn(() =>
-                Promise.resolve({
-                  data: null,
-                  error: { message: 'Database error' },
-                })
-              ),
+              eq: jest.fn(() => ({
+                order: jest.fn(() =>
+                  Promise.resolve({
+                    data: null,
+                    error: { message: 'Database error' },
+                  })
+                ),
+              })),
             })),
           })),
         })),

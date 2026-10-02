@@ -175,6 +175,7 @@
     "CASH_LEG_MUST_REVERSE": "This cash payment is already in the drawer. Reverse it instead.",
     "POST_CLOSE_SESSION_NOT_CLOSED": "The session must be closed first.",
     "CASH_DRAWER_CURRENCY_NOT_CONFIGURED": "No currency is configured for this cash drawer.",
-    "CASH_RECEIVER_INVALID": "This receiving user is not an active member of your organization."
+    "CASH_RECEIVER_INVALID": "This receiving user is not an active member of your organization.",
+    "DRAWER_SESSION_ALREADY_OPEN": "This cash drawer already has an open session."
   }
 }

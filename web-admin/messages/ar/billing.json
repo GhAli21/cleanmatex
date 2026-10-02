@@ -174,6 +174,8 @@
       "dispositionRequired": "اختر طريقة التصرف بالنقدية لكل عملة قبل إتمام الإغلاق.",
       "destinationDrawer": "درج الوجهة",
       "selectDestination": "اختر درج الوجهة",
+      "noEligibleDestinationShort": "لا يوجد درج مؤهل",
+      "unavailableDispositionsHint": "الخيارات غير المتاحة تتطلب وجود درج في هذا الفرع يمكنه استلام النقد (مثل الخزنة)، ولا يوجد درج نشط.",
       "destinationRequired": "اختر درج الوجهة لهذا التصرف.",
       "keptAmount": "المبلغ المتروك في الدرج",
       "keptAmountRequired": "أدخل المبلغ المتروك في الدرج.",

@@ -626,7 +626,23 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
       permissions: ['cash_drawer:view'],
       requireAllPermissions: true,
     },
-    notes: ['Cash drawer operations route with explicit page gate from navigation.'],
+    apiDependencies: [
+      {
+        label: 'Drawer hub list with the resolved cash-control policy (CLF-8-6)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Drawer overview aggregate (CLF-8-7)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/overview',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+    ],
+    notes: ['Cash drawer operations route with explicit page gate from navigation. Read-only hub: opening and closing happen on the drawer detail route.'],
   },
   {
     routePattern: '/dashboard/internal_fin/cash-drawers/follow-up',
@@ -676,7 +692,86 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
       permissions: ['cash_drawer:view'],
       requireAllPermissions: true,
     },
+    actions: {
+      openSession: {
+        label: 'Open a session (opening count) on the drawer',
+        requirement: { permissions: ['cash_drawer:open_session'], requireAllPermissions: true },
+      },
+      closeCount: {
+        label: 'Close wizard: count step, freezes the ledger cut',
+        requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
+      },
+      closeFinalize: {
+        label: 'Close wizard: choose disposition and finalize the close',
+        requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
+      },
+      recordMovement: {
+        label: 'Cash in / cash out on the open session',
+        requirement: { permissions: ['cash_drawer:record_movement'], requireAllPermissions: true },
+      },
+      transfer: {
+        label: 'Post or reverse a custody drawer transaction',
+        requirement: { permissions: ['cash_drawer:transfer'], requireAllPermissions: true },
+      },
+      count: {
+        label: 'Record a standalone spot count',
+        requirement: { permissions: ['cash_drawer:count'], requireAllPermissions: true },
+      },
+      policyEdit: {
+        label: 'Edit the drawer-level cash-control policy overrides',
+        requirement: { permissions: ['cash_control:manage'], requireAllPermissions: true },
+      },
+    },
     apiDependencies: [
+      {
+        label: 'Drawer overview aggregate (CLF-8-7)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/overview',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Open a session with an opening count (CLF-4)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/open-session-v2',
+        requirement: { permissions: ['cash_drawer:open_session'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Session list for the drawer',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/sessions',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Close wizard: preview the cut (CLF-8-5)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview',
+        requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Close wizard: count step (CLF-8-5)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count',
+        requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Close wizard: finalize with disposition (CLF-8-5)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize',
+        requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Cash rounding policy for the drawer currency (A6-1b)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/rounding-policy',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
       {
         label: 'Cash in / Cash out (CLF W11)',
         method: 'POST',
@@ -766,7 +861,38 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
       permissions: ['cash_drawer:view'],
       requireAllPermissions: true,
     },
+    actions: {
+      approveVariance: {
+        label: 'Approve a pending close-variance',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+      },
+      postCloseUpdate: {
+        label: 'Update the post-close status / notes of the session',
+        requirement: { permissions: ['cash_drawer:post_close_update'], requireAllPermissions: true },
+      },
+    },
     apiDependencies: [
+      {
+        label: 'Session detail',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Session close summary (print / header)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Approve a pending close-variance',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
       {
         label: 'Close preview (CLF-7, C2-1 absorbed)',
         method: 'GET',

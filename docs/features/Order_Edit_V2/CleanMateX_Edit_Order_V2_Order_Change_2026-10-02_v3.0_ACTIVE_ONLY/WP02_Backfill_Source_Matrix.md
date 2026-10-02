@@ -9,9 +9,9 @@ No code, producer, migration or historical data is changed by this matrix. Curre
 
 ## Tenant-bounded current-data classification — 2026-10-02
 
-The accompanying [read-only preflight evidence](WP02_Data_Preflight_Evidence.json) classified every currently catalogued tenant with explicit tenant predicates. Local is empty. Hosted still contains 72 orders despite the later reported deletion: all are `committed_at NULL`, `edit_state_version=0` and `service_speed NULL`; Change history is empty. The 72 legacy rows remain V2-ineligible. Their `created_by` values have valid existing `auth.users` identities, but that is not proof of a commercial commitment actor, source acceptance or historical timezone. No backfill is justified.
+The accompanying [initial read-only preflight evidence](WP02_Data_Preflight_Evidence.json) classified every then-catalogued tenant with explicit tenant predicates. It found 72 hosted orders, all `committed_at NULL`, `edit_state_version=0` and `service_speed NULL`, with empty Change history. After the user confirmed deletion, the [final local/hosted recheck](WP02_Final_Empty_Target_Recheck.json) confirmed both targets are empty. No historical cohort remains to backfill. The source matrix remains the required commitment, actor, and timezone contract for future producers.
 
-Current hosted items/pieces/preferences have no NULL/unsupported `rec_status`, no reported hierarchy/parent-shape defects and no removal lineage; that proves only the present structural scan. It does not make source/timezone/financial facts authoritative. Existing financial snapshot tokens include 53 `MISMATCH` and 19 `CURRENT`; this matrix does not repair, reinterpret or use them as a commitment classifier. Local's UTC and hosted's Asia/Muscat current session settings cannot establish legacy timestamp provenance.
+The initial hosted items/pieces/preferences had no NULL/unsupported `rec_status`, no reported hierarchy/parent-shape defects, and no removal lineage; that proved only the pre-deletion structural scan. Its snapshot tokens included 53 `MISMATCH` and 19 `CURRENT`; WP02 did not repair, reinterpret, or use them as a commitment classifier. Local's UTC and hosted's Asia/Muscat current session settings cannot establish the timestamp provenance of any future historical import.
 
 ## Current-code reconciliation
 

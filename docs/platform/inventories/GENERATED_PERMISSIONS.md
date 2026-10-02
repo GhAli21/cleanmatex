@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-10-02T17:47:18.647Z
+Generated: 2026-10-02T19:58:18.617Z
 
 ## By surface (counts)
 
@@ -11,7 +11,7 @@ Generated: 2026-10-02T17:47:18.647Z
 | --- | --- |
 | api | 293 |
 | middleware | 4 |
-| screen | 70 |
+| screen | 76 |
 | service | 1 |
 
 ## All permission usages
@@ -81,26 +81,29 @@ Generated: 2026-10-02T17:47:18.647Z
 | cash_drawer:approve_variance | screen | src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx | 50 | src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx |
 | cash_drawer:approve_variance | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance/route.ts | 52 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance |
 | cash_drawer:approve_variance | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/recount/route.ts | 34 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/recount |
+| cash_drawer:close_session | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 221 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
 | cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 81 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 115 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 144 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | cash_drawer:close_session | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count/route.ts | 27 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count |
 | cash_drawer:close_session | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize/route.ts | 27 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize |
 | cash_drawer:close_session | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview/route.ts | 22 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview |
 | cash_drawer:count | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 217 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
 | cash_drawer:count | api | app/api/v1/cash-drawers/[drawerId]/counts/route.ts | 29 | /api/v1/cash-drawers/[drawerId]/counts |
 | cash_drawer:count | api | app/api/v1/cash-drawers/[drawerId]/counts/route.ts | 68 | /api/v1/cash-drawers/[drawerId]/counts |
+| cash_drawer:open_session | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 219 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
 | cash_drawer:open_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 80 | src/features/pos-sessions/ui/pos-session-hub.tsx |
 | cash_drawer:open_session | api | app/api/v1/cash-drawers/[drawerId]/open-session-v2/route.ts | 28 | /api/v1/cash-drawers/[drawerId]/open-session-v2 |
 | cash_drawer:post_close_update | screen | src/features/cash-drawers/ui/cash-drawer-follow-up-screen.tsx | 43 | src/features/cash-drawers/ui/cash-drawer-follow-up-screen.tsx |
 | cash_drawer:post_close_update | screen | src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx | 47 | src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx |
 | cash_drawer:post_close_update | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close/route.ts | 26 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close |
+| cash_drawer:record_movement | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 220 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
 | cash_drawer:record_movement | api | app/api/v1/cash-drawers/[drawerId]/cash-in-out/route.ts | 42 | /api/v1/cash-drawers/[drawerId]/cash-in-out |
 | cash_drawer:transfer | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 218 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
 | cash_drawer:transfer | api | app/api/v1/cash-drawers/trx/route.ts | 24 | /api/v1/cash-drawers/trx |
 | cash_drawer:transfer | api | app/api/v1/cash-drawers/trx/route.ts | 54 | /api/v1/cash-drawers/trx |
 | cash_drawer:transfer | api | app/api/v1/cash-drawers/trx/[trxId]/reverse/route.ts | 26 | /api/v1/cash-drawers/trx/[trxId]/reverse |
 | cash_drawer:view | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 79 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 114 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 143 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | cash_drawer:view | api | app/api/v1/cash-drawers/catalogs/route.ts | 17 | /api/v1/cash-drawers/catalogs |
 | cash_drawer:view | api | app/api/v1/cash-drawers/overview/route.ts | 20 | /api/v1/cash-drawers/overview |
 | cash_drawer:view | api | app/api/v1/cash-drawers/pending-deposit/status/route.ts | 12 | /api/v1/cash-drawers/pending-deposit/status |
@@ -347,18 +350,21 @@ Generated: 2026-10-02T17:47:18.647Z
 | payment_config:view | api | app/api/v1/settings/payments/methods/route.ts | 12 | /api/v1/settings/payments/methods |
 | payment_config:view | api | app/api/v1/settings/payments/terminals/route.ts | 13 | /api/v1/settings/payments/terminals |
 | pos_session:close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 77 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 112 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 141 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:close | api | app/api/v1/pos-sessions/close/route.ts | 12 | /api/v1/pos-sessions/close |
+| pos_session:close_others | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 145 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:force_close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 78 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 113 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 142 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:force_close | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/force-close/route.ts | 26 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/force-close |
 | pos_session:force_close | api | app/api/v1/pos-sessions/force-close/route.ts | 12 | /api/v1/pos-sessions/force-close |
+| pos_session:full_manage_others | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 147 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:open | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 75 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:open | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 110 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:open | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 139 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:open | api | app/api/v1/pos-sessions/ensure-for-order-entry/route.ts | 12 | /api/v1/pos-sessions/ensure-for-order-entry |
 | pos_session:open | api | app/api/v1/pos-sessions/open/route.ts | 12 | /api/v1/pos-sessions/open |
+| pos_session:open_others | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 146 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 76 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 111 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 140 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:pause_resume | api | app/api/v1/pos-sessions/pause/route.ts | 12 | /api/v1/pos-sessions/pause |
 | pos_session:pause_resume | api | app/api/v1/pos-sessions/resume/route.ts | 12 | /api/v1/pos-sessions/resume |
 | pos_session:view | api | app/api/v1/pos-sessions/filter-options/route.ts | 16 | /api/v1/pos-sessions/filter-options |
@@ -366,7 +372,7 @@ Generated: 2026-10-02T17:47:18.647Z
 | pos_session:view | api | app/api/v1/pos-sessions/route.ts | 19 | /api/v1/pos-sessions |
 | pos_session:view | api | app/api/v1/pos-sessions/[sessionId]/events/route.ts | 21 | /api/v1/pos-sessions/[sessionId]/events |
 | pos_session:view | api | app/api/v1/pos-sessions/[sessionId]/summary/route.ts | 11 | /api/v1/pos-sessions/[sessionId]/summary |
-| pos_session:view_all | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 109 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:view_all | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 138 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | promotions:manage | api | app/api/v1/marketing/promotions/route.ts | 50 | /api/v1/marketing/promotions |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 61 | /api/v1/marketing/promotions/[promoId] |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 109 | /api/v1/marketing/promotions/[promoId] |

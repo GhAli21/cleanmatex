@@ -5,8 +5,13 @@
 import type { SubmitOrderRequest } from '@/lib/validations/new-order-payment-schemas';
 import type { OrderCalculationResult } from '@/lib/services/order-calculation.service';
 
+/** Records the guarded initial-commit write at the end of the aggregate transaction. */
+export const mockInitialCommit = jest.fn();
 /** Identity sentinel used to detect writes that escape the shared callback transaction. */
-export const mockTx = Object.freeze({ boundary: 'submit-transaction' });
+export const mockTx = Object.freeze({
+  boundary: 'submit-transaction',
+  $executeRaw: (...args: unknown[]) => mockInitialCommit(...args),
+});
 /** Supplies server totals without duplicating the calculator's pricing tests. */
 export const mockCalculate = jest.fn();
 /** Observes canonical order creation while leaving orchestration decisions real. */
@@ -158,6 +163,7 @@ export function resetSubmitHarness(): void {
   mockReadOrder.mockResolvedValue({ id: orderId, order_no: 'ORD-WP01', current_status: 'intake',
     total_amount: '20.000', total_paid_amount: '20.000', total_credit_applied_amount: '0.000',
     outstanding_amount: '0.000', payment_status: 'paid', payment_type_code: 'PAY_IN_ADVANCE' });
+  mockInitialCommit.mockResolvedValue(1);
   mockMethodConfigs.mockImplementation(async ({ methodCodes }: { methodCodes: string[] }) => methodCodes.map((code) => ({
     id: `method-${code}`, payment_method_code: code,
     payment_nature: code === 'GIFT_CARD' ? 'CREDIT_APPLICATION' : 'REAL_PAYMENT',

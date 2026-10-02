@@ -10,6 +10,7 @@ import { CmxDenominationCounter } from '@ui/patterns'
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
+import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import {
   openCashDrawerSessionV2,
   fetchCurrencyDenominations,
@@ -46,6 +47,7 @@ export function CashDrawerOpenSessionDialog({
 }: CashDrawerOpenSessionDialogProps) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
+  const errorMessage = useCashDrawerErrorMessage()
   const { token: csrfToken } = useCSRFToken()
   const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency()
 
@@ -73,8 +75,9 @@ export function CashDrawerOpenSessionDialog({
 
   const handleSubmit = async () => {
     if (countNow && countMode === 'TOTAL_ONLY') {
+      // A blank field is not a zero count: Number('') is 0, which would silently book a full shortage.
       const numeric = Number(totalAmount)
-      if (!Number.isFinite(numeric) || numeric < 0) {
+      if (totalAmount.trim() === '' || !Number.isFinite(numeric) || numeric < 0) {
         cmxMessage.error(t('wizard.countedAmountRequired'))
         return
       }
@@ -122,7 +125,7 @@ export function CashDrawerOpenSessionDialog({
       reset()
       onOpenChange(false)
     } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : t('messages.openFailed'))
+      cmxMessage.error(errorMessage(error, t('messages.openFailed')))
     } finally {
       setSubmitting(false)
     }
