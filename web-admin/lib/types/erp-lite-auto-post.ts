@@ -248,6 +248,28 @@ export interface ErpLiteWalletToppedUpInput {
   created_by?: string | null;
 }
 
+/**
+ * CLF / A6 — drawer cash recognition events that move no customer money: change rounding
+ * gain/loss and drawer over/short. `amount` is always positive; the event code carries the
+ * direction (the ERP-Lite rules post `gross_amount` Dr/Cr per event).
+ */
+export const ERP_LITE_CASH_EVENT_CODES = ['CASH_ROUND_LOSS', 'CASH_ROUND_GAIN', 'CASH_OVER', 'CASH_SHORT'] as const;
+export type ErpLiteCashEventCode = (typeof ERP_LITE_CASH_EVENT_CODES)[number];
+
+export interface ErpLiteCashEventInput {
+  tenant_org_id?: string;
+  event_code: ErpLiteCashEventCode;
+  /** The ADJUSTMENT voucher that recorded the rounding / over-short — the GL source document. */
+  voucher_id: string;
+  /** Positive magnitude in `currency_code`. */
+  amount: number;
+  currency_code: string;
+  exchange_rate?: number;
+  event_date: string;
+  branch_id?: string | null;
+  created_by?: string | null;
+}
+
 /** B6 (D008) — funding-side liability event for a customer advance receipt. Same shape/caveats as {@link ErpLiteWalletToppedUpInput}. */
 export interface ErpLiteCustomerAdvanceReceivedInput {
   tenant_org_id?: string;

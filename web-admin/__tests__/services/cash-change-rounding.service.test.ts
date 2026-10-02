@@ -36,6 +36,20 @@ jest.mock('@/lib/services/voucher-wiring.service', () => ({
   postAndWireBizVoucher: (...a: unknown[]) => mockPostWire(...a),
 }));
 
+const mockDispatchCash = jest.fn();
+jest.mock('@/lib/services/erp-lite-auto-post.service', () => ({
+  ErpLiteAutoPostService: { dispatchCashEventInTransaction: (...a: unknown[]) => mockDispatchCash(...a) },
+}));
+jest.mock('@/lib/services/erp-lite-auto-post.util', () => ({
+  safeDispatchAutoPost: async (_label: string, fn: () => Promise<unknown>) => {
+    try {
+      await fn();
+    } catch {
+      /* non-blocking, as in production */
+    }
+  },
+}));
+
 import {
   planCashChangeRounding,
   postCashChangeRoundingTx,
@@ -126,6 +140,7 @@ describe('postCashChangeRoundingTx', () => {
     mockCreateVoucher.mockResolvedValue({ id: 'v-1' });
     mockAddLine.mockResolvedValue({ id: 'l-1', line_no: 1 });
     mockPostWire.mockResolvedValue({ voucherId: 'v-1' });
+    mockDispatchCash.mockResolvedValue({ status: 'executed' });
   });
 
   it('posts a loss as an OUT line in the payment drawer session, anchored to the order', async () => {
@@ -163,11 +178,30 @@ describe('postCashChangeRoundingTx', () => {
       idempotency_key: 'k1_line',
     });
     expect(mockPostWire).toHaveBeenCalledWith(TENANT, 'v-1', USER, 'INTERACTIVE', 'k1_vch_post', tx);
+    expect(mockDispatchCash).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        tenant_org_id: TENANT,
+        event_code: 'CASH_ROUND_LOSS',
+        voucher_id: 'v-1',
+        amount: 0.003,
+        currency_code: 'OMR',
+        branch_id: 'b-1',
+      }),
+    );
+  });
+
+  it('never fails the rounding when the GL dispatch throws (NON_BLOCKING)', async () => {
+    mockDispatchCash.mockRejectedValue(new Error('gl down'));
+    await expect(postCashChangeRoundingTx(tx, ctx, { ...input, rounding: loss, orderId: 'o-1' })).resolves.toEqual({
+      voucherId: 'v-1',
+    });
   });
 
   it('posts a gain as an IN line', async () => {
     await postCashChangeRoundingTx(tx, ctx, { ...input, rounding: gain, orderId: 'o-1' });
     expect(mockAddLine.mock.calls[0][2]).toMatchObject({ direction: 'IN', amount: 0.002 });
+    expect(mockDispatchCash.mock.calls[0][1]).toMatchObject({ event_code: 'CASH_ROUND_GAIN', amount: 0.002 });
   });
 
   it('anchors to the customer when there is no order, with the caller-supplied source', async () => {

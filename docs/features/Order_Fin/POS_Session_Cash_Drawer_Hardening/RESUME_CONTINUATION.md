@@ -8,7 +8,17 @@
 
 ---
 
-## ▶ NOW — 2026-10-02 — R3 code retired, M10 written (D55)
+## ▶ NOW — 2026-10-03 — CLF COMPLETE (D57); next Wave A leftovers, then Waves B → E
+
+**Done, gated green:** everything in D56 plus CLF-10 exit — security review clean, `QA_TEST_GUIDE.md`, `CLF_FEATURE_REFERENCE.md`, plan boxes ticked.
+
+**Next (no owner action needed):** Wave A leftovers — A6-4 receipt/Z rounding line, A5 exit; cash refunds paid in cash are not yet rounded. (A6-2/2b/3/5/6/7, A3-5 done — D58, D59.) **Check first:** `web-admin/prisma/schema.prisma` was being rewritten by an outside process (raw `db pull`, invalid per `prisma validate`) — do not trust DB runs or `npm run build` until it validates and has no retired cash models. Then Waves B → E and close-out (`REMAINING_WORK.md`).
+
+**Owner:** commit (incl. `web-admin/prisma/schema.prisma`, which has reverted by itself twice — re-check `grep requires_session` before trusting a DB run); restart the dev server; finish or force-close the 2 sessions stuck in `CLOSING` (drawers ac312993 / 65546cc7); run `QA_TEST_GUIDE.md`.
+
+---
+
+## ✅ 2026-10-02 (superseded by ▶ NOW above) — R3 code retired, M10 written (D55)
 
 **Done, gated green (eslint, tsc, `check:i18n`, full jest 361 suites / 3319 tests, `npm run build`, 13/13 cash-drawer DB-integration):** the legacy single-step close/open, the five mirror handlers, `cash-drawer-cash-facts`, the legacy open-session route and every code reference to the retired movement links are gone; readers use the balance-row figures; M9 `0549` verified on remote. Full narrative: STATUS D55.
 

@@ -27,6 +27,7 @@ import type {
   ErpLitePettyCashAutoPostInput,
   ErpLiteRefundAutoPostInput,
   ErpLiteWalletToppedUpInput,
+  ErpLiteCashEventInput,
 } from '@/lib/types/erp-lite-auto-post';
 import type { ErpLitePostingRequest } from '@/lib/types/erp-lite-posting';
 import { ErpLitePostingEngineService } from '@/lib/services/erp-lite-posting-engine.service';
@@ -758,6 +759,64 @@ export class ErpLiteAutoPostService {
         payment_method_code: input.payment_method_code,
         source_context: 'customer_advance_received',
         payload_version: 'sv-v1',
+      },
+    };
+  }
+
+  // ============================================================================
+  // CLF / A6 — drawer cash recognition events (rounding gain/loss, over/short)
+  // ============================================================================
+
+  static async dispatchCashEvent(input: ErpLiteCashEventInput): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildCashEventPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  static async dispatchCashEventInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteCashEventInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildCashEventPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
+  }
+
+  /**
+   * CASH_ROUND_LOSS / CASH_OVER-SHORT family (migrations 0530, 0546). The rule for each event
+   * posts `gross_amount` Dr/Cr between the cash account and the matching P&L usage code, so only
+   * the positive magnitude is sent; the event code decides the side.
+   */
+  static buildCashEventPostingRequest(
+    input: ErpLiteCashEventInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    const amount = this.roundAmount(Math.abs(input.amount));
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES[input.event_code],
+      source_module_code: 'CASH_DRAWER',
+      source_doc_type_code: 'ADJUSTMENT_VOUCHER',
+      source_doc_id: input.voucher_id,
+      source_doc_no: null,
+      journal_date: input.event_date,
+      posting_date: input.event_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: amount,
+        tax_amount: 0,
+        gross_amount: amount,
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        source_context: 'cash_drawer_event',
+        payload_version: 'cash-v1',
       },
     };
   }

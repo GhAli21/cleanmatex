@@ -359,6 +359,30 @@ describe('ErpLiteAutoPostService', () => {
     expect(request.meta?.payment_method_code).toBe(PAYMENT_METHODS.CASH);
   });
 
+  it.each(['CASH_ROUND_LOSS', 'CASH_ROUND_GAIN', 'CASH_OVER', 'CASH_SHORT'] as const)(
+    'builds a %s cash event request from the positive magnitude only',
+    (eventCode) => {
+      const request = ErpLiteAutoPostService.buildCashEventPostingRequest(
+        {
+          event_code: eventCode,
+          voucher_id: '55555555-5555-5555-5555-555555555555',
+          amount: -0.005,
+          currency_code: 'OMR',
+          event_date: '2026-10-03',
+          branch_id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        },
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+      );
+
+      expect(request.txn_event_code).toBe(eventCode);
+      expect(request.source_doc_type_code).toBe('ADJUSTMENT_VOUCHER');
+      expect(request.source_doc_id).toBe('55555555-5555-5555-5555-555555555555');
+      expect(request.amounts.gross_amount).toBe(0.005);
+      expect(request.amounts.rounding_amount).toBe(0);
+      expect(request.exchange_rate).toBe(1);
+    }
+  );
+
   it('builds CUSTOMER_ADVANCE_RECEIVED posting request with the advance liability event code', () => {
     const request = ErpLiteAutoPostService.buildCustomerAdvanceReceivedPostingRequest(
       {

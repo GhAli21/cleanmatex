@@ -735,3 +735,25 @@ describe('ledger invariants (the M9 backfill verification queries, kept as a sta
     expect(Number(counterBehind[0].n)).toBe(0);
   });
 });
+
+describe('decimal exactness (A3-5)', () => {
+  dbit('500 sequential 0.005 OMR cash lines close balanced: expected 2.5, variance exactly 0', async () => {
+    const actor = randomUUID();
+    const drawerId = await drawer();
+    try {
+      const s = await openSession(scope!.tenantId, actor, { drawerId });
+      for (let i = 0; i < 500; i += 1) {
+        await stampTestCashLine(scope!, { drawerId, amount: '0.005', mode: 'INTERACTIVE' });
+      }
+      const started = await close(actor, drawerId, s.sessionId, 2.5);
+      expect(started.currencyBalances[0]).toMatchObject({
+        closingExpected: '2.5000',
+        closingCounted: '2.5000',
+        closingVariance: '0.0000',
+      });
+      expect((await balance(s.sessionId)).closing_variance?.toString()).toBe('0');
+    } finally {
+      await cleanupTestDrawers(scope!, [drawerId]);
+    }
+  }, 120_000);
+});

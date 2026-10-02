@@ -14,6 +14,7 @@
 
 import 'server-only';
 
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { CURRENCY_ROUNDING_MODES } from '@/lib/constants/order-financial';
 import type { CurrencyRoundingMode } from '@/lib/constants/order-financial';
@@ -25,50 +26,25 @@ export interface CurrencyRoundingRule {
   roundingUnit: number;
 }
 
-function round4(value: number): number {
-  return Math.round((value + Number.EPSILON) * 10000) / 10000;
-}
-
 /**
- * All 7 unified modes (`sys_rounding_mode_cd`, handoff §3.2.5), each
- * correct for negative `raw` too — refunds must round consistently with
- * charges, not just happen to work because every caller today is positive.
+ * Decimal.js rounding mode for each unified mode (`sys_rounding_mode_cd`).
+ * Decimal.js already defines every mode for negative values the way the
+ * catalog does (UP/DOWN = away from / toward zero, CEILING/FLOOR = toward
+ * +/- infinity, HALF_* = how an exact tie resolves), so refunds round
+ * consistently with charges.
  */
-function applyRoundingMode(raw: number, mode: CurrencyRoundingMode): number {
-  const sign = raw < 0 ? -1 : 1;
-  const abs = Math.abs(raw);
-  switch (mode) {
-    case CURRENCY_ROUNDING_MODES.FLOOR:
-      // Always toward -Infinity, regardless of sign.
-      return Math.floor(raw);
-    case CURRENCY_ROUNDING_MODES.CEILING:
-      // Always toward +Infinity, regardless of sign.
-      return Math.ceil(raw);
-    case CURRENCY_ROUNDING_MODES.UP:
-      // Always away from zero.
-      return sign * Math.ceil(abs);
-    case CURRENCY_ROUNDING_MODES.DOWN:
-      // Always toward zero (truncate).
-      return sign * Math.floor(abs);
-    case CURRENCY_ROUNDING_MODES.HALF_DOWN: {
-      // Ties toward zero.
-      const fractional = abs - Math.floor(abs);
-      return sign * (fractional > 0.5 ? Math.ceil(abs) : Math.floor(abs));
-    }
-    case CURRENCY_ROUNDING_MODES.HALF_EVEN: {
-      // Ties to the nearest even integer (banker's rounding).
-      const floor = Math.floor(abs);
-      const fractional = abs - floor;
-      if (fractional < 0.5) return sign * floor;
-      if (fractional > 0.5) return sign * (floor + 1);
-      return sign * (floor % 2 === 0 ? floor : floor + 1);
-    }
-    case CURRENCY_ROUNDING_MODES.HALF_UP:
-    default:
-      // Ties away from zero.
-      return sign * Math.round(abs);
-  }
-}
+const DECIMAL_ROUNDING: Record<CurrencyRoundingMode, Prisma.Decimal.Rounding> = {
+  [CURRENCY_ROUNDING_MODES.HALF_UP]: Prisma.Decimal.ROUND_HALF_UP,
+  [CURRENCY_ROUNDING_MODES.HALF_DOWN]: Prisma.Decimal.ROUND_HALF_DOWN,
+  [CURRENCY_ROUNDING_MODES.HALF_EVEN]: Prisma.Decimal.ROUND_HALF_EVEN,
+  [CURRENCY_ROUNDING_MODES.UP]: Prisma.Decimal.ROUND_UP,
+  [CURRENCY_ROUNDING_MODES.DOWN]: Prisma.Decimal.ROUND_DOWN,
+  [CURRENCY_ROUNDING_MODES.CEILING]: Prisma.Decimal.ROUND_CEIL,
+  [CURRENCY_ROUNDING_MODES.FLOOR]: Prisma.Decimal.ROUND_FLOOR,
+};
+
+/** Money precision of every persisted amount (DECIMAL(19,4)). */
+const MONEY_SCALE = 4;
 
 /**
  * Round `value` to the nearest multiple of `increment` using `mode`.
@@ -83,12 +59,15 @@ export function roundToIncrement(
   increment: number,
   mode: CurrencyRoundingMode,
 ): number {
-  if (!Number.isFinite(increment) || increment <= 0) {
+  if (!Number.isFinite(value) || !Number.isFinite(increment) || increment <= 0) {
     return value;
   }
-  const steps = value / increment;
-  const roundedSteps = applyRoundingMode(steps, mode);
-  return round4(roundedSteps * increment);
+  // Decimal arithmetic from the shortest decimal text of each number, so
+  // 2.0025 is exactly 2.0025 (not the nearest binary double) and a true tie
+  // is a tie. No float multiplication or Number.EPSILON nudging anywhere.
+  const step = new Prisma.Decimal(String(increment));
+  const steps = new Prisma.Decimal(String(value)).div(step).toDecimalPlaces(0, DECIMAL_ROUNDING[mode]);
+  return steps.times(step).toDecimalPlaces(MONEY_SCALE, Prisma.Decimal.ROUND_HALF_UP).toNumber();
 }
 
 /**
@@ -132,7 +111,7 @@ export async function resolveCurrencyRoundingRule(
     select: { minor_unit: true },
   });
   const decimalPlaces = row.output_decimal_places ?? currency?.minor_unit ?? 2;
-  const roundingUnit = row.rounding_increment_minor / 10 ** decimalPlaces;
+  const roundingUnit = new Prisma.Decimal(row.rounding_increment_minor).div(new Prisma.Decimal(10).pow(decimalPlaces)).toNumber();
   if (!Number.isFinite(roundingUnit) || roundingUnit <= 0) {
     return null;
   }

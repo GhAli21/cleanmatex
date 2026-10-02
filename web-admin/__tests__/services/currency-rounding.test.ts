@@ -173,3 +173,23 @@ describe('resolveCurrencyRoundingRule', () => {
     expect(rule?.roundingMethod).toBe('HALF_UP');
   });
 });
+
+describe('roundToIncrement — exact decimal arithmetic (A6-3)', () => {
+  it('treats a decimal tie as a tie even when the binary double sits just below it', () => {
+    // 2.0025 is stored as 2.00249999999999995..., a float implementation sees 400.4999 and rounds down.
+    expect(roundToIncrement(2.0025, 0.005, CURRENCY_ROUNDING_MODES.HALF_UP)).toBe(2.005);
+    expect(roundToIncrement(2.0025, 0.005, CURRENCY_ROUNDING_MODES.HALF_DOWN)).toBe(2);
+  });
+
+  it('accumulates no drift: 500 sequential 0.005 amounts stay exact after rounding to the increment', () => {
+    let total = 0;
+    for (let i = 0; i < 500; i += 1) {
+      total = roundToIncrement(total + 0.005, 0.005, CURRENCY_ROUNDING_MODES.HALF_UP);
+    }
+    expect(total).toBe(2.5);
+  });
+
+  it('returns a non-finite input unchanged instead of inventing a result', () => {
+    expect(roundToIncrement(Number.NaN, 0.005, CURRENCY_ROUNDING_MODES.HALF_UP)).toBeNaN();
+  });
+});

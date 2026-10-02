@@ -22,6 +22,8 @@ import {
   getCashControlSettings,
   type CashControlScope,
 } from '@/lib/services/cash-control-settings.service';
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { safeDispatchAutoPost } from '@/lib/services/erp-lite-auto-post.util';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
@@ -40,9 +42,8 @@ import { isCashFamilyMethod } from '@/lib/utils/cash-method';
  * total/line-sum stays exact, and a later reversal of the receipt does not undo the
  * rounding (the change really was handed out rounded).
  *
- * ERP-Lite GL dispatch for CASH_ROUND_LOSS / CASH_ROUND_GAIN (migration 0546) is the
- * same documented follow-up as the CLF over/short events: the voucher is the
- * authoritative record; GL posting is supplementary and NON_BLOCKING.
+ * ERP-Lite GL dispatch (CASH_ROUND_LOSS / CASH_ROUND_GAIN, migration 0546) follows the
+ * voucher: the voucher is the authoritative record; GL posting is supplementary and NON_BLOCKING.
  */
 
 /** Resolved change-rounding policy for one (scope, currency). */
@@ -250,6 +251,20 @@ export async function postCashChangeRoundingTx(
     CASH_GATE_MODES.INTERACTIVE,
     `${input.idempotencyKey}_vch_post`,
     tx,
+  );
+
+  // GL recognition: supplementary and NON_BLOCKING — the voucher above is the authoritative record.
+  await safeDispatchAutoPost('cash_change_rounding', () =>
+    ErpLiteAutoPostService.dispatchCashEventInTransaction(tx, {
+      tenant_org_id: ctx.tenantOrgId,
+      event_code: isGain ? 'CASH_ROUND_GAIN' : 'CASH_ROUND_LOSS',
+      voucher_id: voucher.id,
+      amount,
+      currency_code: rounding.currencyCode,
+      event_date: new Date().toISOString(),
+      branch_id: input.branchId ?? null,
+      created_by: ctx.userId,
+    }),
   );
 
   return { voucherId: voucher.id };

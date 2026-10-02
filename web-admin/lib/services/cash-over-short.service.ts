@@ -3,6 +3,8 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { safeDispatchAutoPost } from '@/lib/services/erp-lite-auto-post.util';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
@@ -29,12 +31,10 @@ import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
  * ledger gate's own cash-family filter ignores it; an over/short is a P&L
  * fact about a count, never a second cash event in the drawer it's about.
  *
- * ERP-Lite GL dispatch (CASH_OVER / CASH_SHORT usage codes, migration 0530)
- * is a documented follow-up, not wired yet — `ErpLiteAutoPostService` has no
- * generic by-event-code dispatcher, only bespoke per-event methods, and this
- * is the first consumer of its CLF events. The voucher is the authoritative
- * financial record regardless; GL posting is supplementary bookkeeping for
- * ERP-Lite-enabled tenants and is NON_BLOCKING even once added.
+ * ERP-Lite GL dispatch (CASH_OVER / CASH_SHORT, migration 0530) follows the voucher through
+ * `ErpLiteAutoPostService.dispatchCashEventInTransaction`. The voucher is the authoritative
+ * financial record regardless; GL posting is supplementary bookkeeping for ERP-Lite-enabled
+ * tenants and is NON_BLOCKING.
  */
 
 export interface OverShortVariance {
@@ -137,6 +137,20 @@ export async function postOverShortFromEventTx(
       CASH_GATE_MODES.DEFERRED,
       `${idempotencyKey}_vch_post`,
       tx,
+    );
+
+    // GL recognition: supplementary and NON_BLOCKING — the voucher is the authoritative record.
+    await safeDispatchAutoPost('cash_over_short', () =>
+      ErpLiteAutoPostService.dispatchCashEventInTransaction(tx, {
+        tenant_org_id: ctx.tenantOrgId,
+        event_code: isOver ? 'CASH_OVER' : 'CASH_SHORT',
+        voucher_id: voucher.id,
+        amount: amount.abs().toNumber(),
+        currency_code: variance.currencyCode,
+        event_date: new Date().toISOString(),
+        branch_id: input.branchId,
+        created_by: ctx.userId,
+      }),
     );
 
     results.push({ voucherId: voucher.id, voucherNo: voucher.voucher_no, currencyCode: variance.currencyCode });

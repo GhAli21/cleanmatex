@@ -4,7 +4,7 @@
 
 ## Recommended order
 
-1. **Finish CLF** — done so far: CLF-8-14, M9 `0549` (applied + verified), R3 code retirement (D55). **Now:** owner applies M10 `0550` (STOP-AND-WAIT) → regenerate Prisma/types → post-apply checks. Then CLF-8-15 (contract audit), CLF-9 tests (incl. a DB-integration test for the placement override), CLF-10 exit (§4B.15) + `/security-review`.
+1. **Finish CLF** — done so far: CLF-8-14, CLF-8-15, CLF-9, M9 `0549` + M10 `0550` + `0551` (applied + verified), R3 code retirement (D55, D56). **CLF-10 exit done (D57) — CLF COMPLETE.** Previously: **Now:** owner applies M10 `0550` (STOP-AND-WAIT) → regenerate Prisma/types → post-apply checks. Then CLF-8-15 (contract audit), CLF-9 tests (incl. a DB-integration test for the placement override), CLF-10 exit (§4B.15) + `/security-review`.
 2. **Wave A leftovers** — A6 rest (A6-2/2b/3, receipt/Z rounding line, A6-6/7/8), A3-5, A5 exit.
 3. **Wave B** — B1 server-resolved POS session, B2 business date/timezone/rollover (migrations), B3 branch scoping (security), B5 exit.
 4. **Wave C** — C1-1b tenant denomination control (+C1-1c, C1-4b/c), C2 blind-close remainder, C3 variance gating (`CLOSED_PENDING_APPROVAL`), C4 variance-by-cashier report, C6 exit.
@@ -50,7 +50,6 @@ Owner-only throughout: apply each new migration; manual browser QA (owed for sli
 - A5-3 — Invoke /documentation; update STATUS.md (wave row, migrations applied, gate results, new decisions); refresh RESUME_CONTINUATION.md.
 
 ### 4B.10 Work items
-- CLF-8-15 — Access contracts: add actions (openSession, closeCount, closeFinalize, recount, transfer, count, postCloseUpdate, policyEdit) and apiDependencies to t…
 
 ### 4B.15 Exit
 - Gates: — npx eslint . --quiet, npm run typecheck, npm run build, full jest, DB-integration suite, npm run check:i18n, check:ui-access-contract, check:platform-…

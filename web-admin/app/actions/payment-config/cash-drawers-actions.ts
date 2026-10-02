@@ -94,6 +94,13 @@ export async function createCashDrawer(
       return { success: false, error: 'Pending-deposit drawers are created by the system, one per branch.' };
     }
     const tenantCurrencyCode = await resolveTenantCurrencyCode(tenantId, userId);
+    // A6-7: a currency the platform marks as not cash-capable cannot hold a physical drawer.
+    // (sys_currency_cd is a global catalog — no tenant column; the flag is not in the Prisma model.)
+    const cashRows = await prisma.$queryRaw<Array<{ is_cash_supported: boolean | null }>>`
+      SELECT is_cash_supported FROM public.sys_currency_cd WHERE code = ${tenantCurrencyCode}`;
+    if (cashRows[0]?.is_cash_supported === false) {
+      return { success: false, error: `Currency ${tenantCurrencyCode} does not support cash, so a cash drawer cannot be created for it.` };
+    }
     return withTenantContext(tenantId, async () => {
       const row = await prisma.org_cash_drawers_mst.create({
         data: {

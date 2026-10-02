@@ -37,8 +37,12 @@ export async function POST(request: NextRequest) {
     const result = await ensureBranchPendingDepositDrawer(tenantId, parsed.data.branchId, userId);
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to ensure the pending-deposit drawer';
+    // Only a stable code-shaped refusal is echoed; any other message may carry internal detail.
+    const message = error instanceof Error ? error.message : '';
     const code = /^[A-Z][A-Z0-9_]+$/.test(message) ? message : undefined;
-    return NextResponse.json({ success: false, code, error: message }, { status: code ? 422 : 400 });
+    return NextResponse.json(
+      { success: false, code, error: code ?? 'Failed to ensure the pending-deposit drawer' },
+      { status: code ? 422 : 400 },
+    );
   }
 }
