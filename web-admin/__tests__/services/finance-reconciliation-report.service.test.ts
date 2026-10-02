@@ -22,6 +22,8 @@ jest.mock('@/lib/db/prisma', () => ({
     org_customer_advances_mst: { findMany: jest.fn() },
     org_credit_notes_mst: { findMany: jest.fn() },
     org_cash_drawer_sessions_mst: { findMany: jest.fn() },
+    // Frozen closing figures come from the per-currency balance rows.
+    org_cash_drawer_ses_bal_dtl: { findMany: jest.fn() },
     // CLF-6-2: the cash-drawer recon report sums the unified ledger via
     // `sumLedgerTotalsBySession` (cash-drawer-balance.service.ts) instead of
     // the retired `org_cash_drawer_movements_dtl` formula — one `$queryRaw`
@@ -49,6 +51,7 @@ const mockPrisma = prisma as unknown as {
   org_customer_advances_mst: { findMany: Fn };
   org_credit_notes_mst: { findMany: Fn };
   org_cash_drawer_sessions_mst: { findMany: Fn };
+  org_cash_drawer_ses_bal_dtl: { findMany: Fn };
   org_fin_voucher_trx_lines_dtl: { groupBy: Fn };
   org_cash_drawer_trx_dtl: { groupBy: Fn };
   $queryRaw: Fn;
@@ -173,13 +176,18 @@ describe('getCashDrawerReconReport', () => {
       {
         id: 'sess-ok', session_no: 'CDS-1', status: 'CLOSED', currency_code: 'OMR',
         opened_at: new Date('2026-06-10T08:00:00Z'), closed_at: new Date('2026-06-10T18:00:00Z'),
-        opening_float_amount: 100, expected_cash_amount: 150, counted_cash_amount: 150, difference_amount: 0,
+        opening_float_amount: 100,
       },
       {
         id: 'sess-bad', session_no: 'CDS-2', status: 'CLOSED', currency_code: 'OMR',
         opened_at: new Date('2026-06-11T08:00:00Z'), closed_at: new Date('2026-06-11T18:00:00Z'),
-        opening_float_amount: 100, expected_cash_amount: 150, counted_cash_amount: 140, difference_amount: -10,
+        opening_float_amount: 100,
       },
+    ]);
+    // Frozen by the count step: both sessions expected 150; the second counted 140.
+    mockPrisma.org_cash_drawer_ses_bal_dtl.findMany.mockResolvedValueOnce([
+      { cash_drawer_session_id: 'sess-ok', currency_code: 'OMR', closing_expected: 150, closing_counted: 150, closing_variance: 0 },
+      { cash_drawer_session_id: 'sess-bad', currency_code: 'OMR', closing_expected: 150, closing_counted: 140, closing_variance: -10 },
     ]);
     // ledger totals: both sessions have a single FIN IN entry of 50 (opening
     // 100 + net 50 = 150, matching both sessions' header expected).
@@ -215,8 +223,11 @@ describe('getCashDrawerReconReport', () => {
       {
         id: 'sess-legacy', session_no: 'CDS-0', status: 'CLOSED', currency_code: 'OMR',
         opened_at: new Date('2026-01-01T08:00:00Z'), closed_at: new Date('2026-01-01T18:00:00Z'),
-        opening_float_amount: 100, expected_cash_amount: 275, counted_cash_amount: 275, difference_amount: 0,
+        opening_float_amount: 100,
       },
+    ]);
+    mockPrisma.org_cash_drawer_ses_bal_dtl.findMany.mockResolvedValueOnce([
+      { cash_drawer_session_id: 'sess-legacy', currency_code: 'OMR', closing_expected: 275, closing_counted: 275, closing_variance: 0 },
     ]);
     mockPrisma.$queryRaw.mockResolvedValueOnce([]);
     mockPrisma.org_fin_voucher_trx_lines_dtl.groupBy.mockResolvedValueOnce([]);
@@ -225,6 +236,44 @@ describe('getCashDrawerReconReport', () => {
     const report = await getCashDrawerReconReport({ tenantOrgId: TENANT });
 
     expect(report.rows[0]).toMatchObject({ expectedDelta: 0, isReconciled: true });
+  });
+
+  it('flags drift between the frozen expected and the ledger recompute', async () => {
+    mockPrisma.org_cash_drawer_sessions_mst.findMany.mockResolvedValueOnce([
+      {
+        id: 'sess-drift', session_no: 'CDS-3', status: 'CLOSED', currency_code: 'OMR',
+        opened_at: new Date('2026-06-12T08:00:00Z'), closed_at: new Date('2026-06-12T18:00:00Z'),
+        opening_float_amount: 100,
+      },
+    ]);
+    mockPrisma.org_cash_drawer_ses_bal_dtl.findMany.mockResolvedValueOnce([
+      { cash_drawer_session_id: 'sess-drift', currency_code: 'OMR', closing_expected: 140, closing_counted: 140, closing_variance: 0 },
+    ]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([{ session_id: 'sess-drift', domain: 'FIN', direction: 'IN', total: 50 }]);
+    mockPrisma.org_fin_voucher_trx_lines_dtl.groupBy.mockResolvedValueOnce([{ cash_drawer_session_id: 'sess-drift', _count: { _all: 1 } }]);
+    mockPrisma.org_cash_drawer_trx_dtl.groupBy.mockResolvedValueOnce([]);
+
+    const report = await getCashDrawerReconReport({ tenantOrgId: TENANT });
+
+    expect(report.rows[0]).toMatchObject({ computedExpectedAmount: 150, headerExpectedAmount: 140, expectedDelta: 10, isReconciled: false });
+  });
+
+  it('does not flag an OPEN session that has not reached the count step (nothing frozen to drift from)', async () => {
+    mockPrisma.org_cash_drawer_sessions_mst.findMany.mockResolvedValueOnce([
+      {
+        id: 'sess-open', session_no: 'CDS-4', status: 'OPEN', currency_code: 'OMR',
+        opened_at: new Date('2026-06-13T08:00:00Z'), closed_at: null,
+        opening_float_amount: 100,
+      },
+    ]);
+    mockPrisma.org_cash_drawer_ses_bal_dtl.findMany.mockResolvedValueOnce([]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([{ session_id: 'sess-open', domain: 'FIN', direction: 'IN', total: 80 }]);
+    mockPrisma.org_fin_voucher_trx_lines_dtl.groupBy.mockResolvedValueOnce([{ cash_drawer_session_id: 'sess-open', _count: { _all: 2 } }]);
+    mockPrisma.org_cash_drawer_trx_dtl.groupBy.mockResolvedValueOnce([]);
+
+    const report = await getCashDrawerReconReport({ tenantOrgId: TENANT });
+
+    expect(report.rows[0]).toMatchObject({ headerExpectedAmount: null, expectedDelta: 0, differenceAmount: null, isReconciled: true });
   });
 
   it('skips the ledger query when there are no sessions', async () => {

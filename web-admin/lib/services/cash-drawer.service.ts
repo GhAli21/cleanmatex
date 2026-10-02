@@ -4,17 +4,14 @@ import { Prisma } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 
 import { lookupAuditActors, type AuditActorLookupResult } from '@lib/services/audit-actor.service'
+import { getCashControlSettings, withCashControlSettingsCache } from '@/lib/services/cash-control-settings.service'
 import { prisma } from '@lib/db/prisma'
 import { withTenantContext } from '@lib/db/tenant-context'
-import { lockDrawersTx } from '@/lib/services/cash-drawer-ledger/cash-drawer-lock'
-import { varianceToleranceFor } from '@/lib/constants/financial-tolerances'
 import { addMoney, subMoney, sumMoney, compareMoney, toDecimal, toMoneyString } from '@/lib/utils/money'
 import {
-  effectiveCashPaymentWhere,
-  expectedCashManualMovementWhere,
-} from '@/lib/services/cash-drawer-cash-facts'
-import {
   sumLedgerTotalsBySession,
+  loadSessionClosingFigures,
+  type SessionClosingFigures,
   getDrawerLedgerMovementsPage,
   type SessionLedgerTotals,
   type DrawerLedgerMovementRow,
@@ -39,21 +36,6 @@ import type {
 
 export type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
 
-/**
- * Serializes every mutation against one drawer (open, close, movement,
- * variance approval). Since CLF (P1) this is the drawer ROW lock shared with
- * the cash-ledger gate, so cash postings and session mutations on the same
- * drawer are ordered against each other (the D22 fix). Must be called with
- * `tx` from an already-open `prisma.$transaction`; the lock is released when
- * that transaction ends.
- * @param tx open Prisma transaction
- * @param tenantId tenant of the drawer
- * @param drawerId drawer to lock
- */
-export async function lockDrawerScope(tx: PrismaTx, tenantId: string, drawerId: string): Promise<void> {
-  await lockDrawersTx(tx, tenantId, [drawerId])
-}
-
 /** Stable error codes for cash-drawer session mutations (A2). */
 export const CASH_DRAWER_SESSION_ERRORS = {
   /** Another session is already open for this drawer (uq_open_cash_drawer_session). */
@@ -73,16 +55,6 @@ export class CashDrawerSessionError extends Error {
   }
 }
 
-/** Unique-constraint violation on uq_open_cash_drawer_session (double-open race). */
-function isDrawerAlreadyOpenViolation(err: unknown): boolean {
-  if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== 'P2002') {
-    return false
-  }
-  const target = err.meta?.target
-  const targetStr = Array.isArray(target) ? target.join(',') : String(target ?? '')
-  return targetStr.includes('uq_open_cash_drawer_session') || /uq_open_cash_drawer_session/i.test(err.message)
-}
-
 function toIsoString(value: Date | null | undefined): string | null {
   return value ? value.toISOString() : null
 }
@@ -94,36 +66,6 @@ function clampPage(page: number): number {
 function clampPageSize(pageSize: number): number {
   if (!Number.isFinite(pageSize) || pageSize <= 0) return 5
   return Math.floor(pageSize)
-}
-
-/**
- * Session close input for the close-session mutation flow.
- */
-export interface SessionCloseParams {
-  physicalCount: number
-  closedBy: string
-  notes?: string
-}
-
-/**
- * Close-session mutation result used by the existing action and API boundary.
- */
-export interface SessionCloseResult {
-  session: Awaited<ReturnType<typeof prisma.org_cash_drawer_sessions_mst.findFirstOrThrow>>
-  /** A3-4: exact fixed-point string, never a JS number — see `toMoneyString`. */
-  variance: string
-  isBalanced: boolean
-  /**
-   * B16: true when drawer-close v2 is on, a variance threshold is configured on
-   * the drawer, and |variance| exceeds it. The session still closes (deferred
-   * model) but is flagged pending a supervisor's variance approval.
-   */
-  varianceApprovalPending: boolean
-  /**
-   * The absolute variance threshold in effect at close (null = no gate
-   * configured). A3-4: exact fixed-point string, never a JS number.
-   */
-  varianceThreshold: string | null
 }
 
 /** Stable error codes for the variance-approval action. */
@@ -150,24 +92,6 @@ export class VarianceApprovalError extends Error {
 }
 
 /**
- * B16: derive the variance-approval state of a (closed) session from its
- * persisted columns — no extra status enum value is introduced.
- * @param session a session row exposing the variance columns + difference
- */
-export function deriveVarianceApprovalState(session: {
-  difference_amount: Decimal | number | null
-  variance_threshold_snapshot: Decimal | number | null
-  variance_approved_by: string | null
-  variance_approved_at: Date | null
-  variance_approval_reason: string | null
-}): { required: boolean; pending: boolean; approved: boolean } {
-  const threshold = session.variance_threshold_snapshot
-  const required = threshold != null
-  const approved = required && session.variance_approved_by != null
-  return { required, pending: required && !approved, approved }
-}
-
-/**
  * Backward-compatible drawer + current-session DTO used by existing POS and
  * checkout consumers.
  */
@@ -180,8 +104,6 @@ export interface CashDrawerWithCurrentSession {
   drawer_name2: string | null
   drawer_type: string
   currency_code: string
-  requires_session: boolean
-  opening_float_required: boolean
   max_cash_limit: number | null
   assigned_terminal_id: string | null
   is_active: boolean
@@ -326,9 +248,8 @@ async function loadDrawerTerminals(tenantId: string, terminalIds: string[]) {
  * built from the drawer ledger instead of the retired `org_cash_drawer_
  * movements_dtl` formula. Sourced by `cash_drawer_session_id` directly (set
  * by the CLF gate at posting time — CLF-5/W1-W15), so this works identically
- * for a session opened through the still-live legacy `openSession` route
- * (Payment Modal V4 checkout) and one opened through the CLF lifecycle; no
- * `open_ledger_seq`/chain math is needed for a single session's own totals.
+ * for every session, whichever screen opened it; no `open_ledger_seq`/chain
+ * math is needed for a single session's own totals.
  *
  * `cashCollected` = FIN-domain cash recognized IN (sales, receipts, cash
  * pay-in). `movementCashIn`/`movementCashOut` = TRX-domain custody transfers,
@@ -338,24 +259,20 @@ async function loadDrawerTerminals(tenantId: string, terminalIds: string[]) {
  * canonical closing formula (`cash-drawer-balance.service.ts`'s
  * `computeClosingExpectedTx`: baseline + finIn - finOut + trxIn - trxOut).
  *
- * For a CLOSED/FORCE_CLOSED session, `expectedCash`/`countedCash`/`variance`
- * always come from the session's own frozen header columns (whatever close
- * mechanism — old or new — computed and persisted them at close time); the
- * ledger-sourced breakdown fields are shown alongside for drill-down and will
- * read as zero for a session that predates the ledger (2026-09-26), which is
- * accurate, not a bug. An OPEN session has no frozen record yet, so every
- * field here is computed live.
+ * Once the count step froze the session's figures (CLOSING, CLOSED,
+ * FORCE_CLOSED — `closing`, read from the per-currency balance row), those are
+ * what `expectedCash`/`countedCash`/`variance` show, whichever flow closed the
+ * session; the ledger-sourced breakdown fields sit alongside for drill-down. A
+ * session that has not been counted yet has no frozen record, so every field
+ * is computed live and `countedCash`/`variance` stay null (blind close).
  */
 function buildLedgerReconciliation(
   session: {
     opening_float_amount: Decimal | null
-    status: string
-    expected_cash_amount: Decimal | null
-    counted_cash_amount: Decimal | null
-    difference_amount: Decimal | null
     currency_code: string | null
   },
   totals: SessionLedgerTotals,
+  closing?: SessionClosingFigures,
 ): CashDrawerReconciliationSummary {
   const openingFloatDecimal = toDecimal(session.opening_float_amount)
   const cashCollectedDecimal = toDecimal(totals.finIn)
@@ -367,14 +284,11 @@ function buildLedgerReconciliation(
     movementNetDecimal,
   )
 
-  const isFrozen = session.status === 'CLOSED' || session.status === 'FORCE_CLOSED'
-  const expectedCashDecimal =
-    isFrozen && session.expected_cash_amount != null ? toDecimal(session.expected_cash_amount) : liveExpectedCashDecimal
-  const countedCashDecimal =
-    session.counted_cash_amount == null ? null : toDecimal(session.counted_cash_amount)
+  const expectedCashDecimal = closing ? closing.expected : liveExpectedCashDecimal
+  const countedCashDecimal = closing?.counted ?? null
   const varianceDecimal =
-    isFrozen && session.difference_amount != null
-      ? toDecimal(session.difference_amount)
+    closing?.variance != null
+      ? closing.variance
       : countedCashDecimal == null
         ? null
         : subMoney(countedCashDecimal, expectedCashDecimal)
@@ -397,24 +311,20 @@ function buildLedgerReconciliation(
 /**
  * Snapshot-shaped variant of {@link buildLedgerReconciliation} for the
  * compact list/overview DTOs, which only expose `expectedCashAmount`/
- * `differenceAmount` (not the full reconciliation breakdown).
+ * `countedCashAmount`/`differenceAmount` (not the full reconciliation breakdown).
  */
 function deriveLedgerExpectedCashAndVariance(
   session: {
-    status: string
     opening_float_amount: Decimal | null
-    expected_cash_amount: Decimal | null
-    counted_cash_amount: Decimal | null
-    difference_amount: Decimal | null
+    currency_code: string | null
   },
   totals: SessionLedgerTotals,
-): { expectedCashAmount: string; differenceAmount: string | null } {
-  const reconciliation = buildLedgerReconciliation(
-    { ...session, currency_code: null },
-    totals,
-  )
+  closing?: SessionClosingFigures,
+): { expectedCashAmount: string; countedCashAmount: string | null; differenceAmount: string | null } {
+  const reconciliation = buildLedgerReconciliation(session, totals, closing)
   return {
     expectedCashAmount: reconciliation.expectedCash,
+    countedCashAmount: reconciliation.countedCash,
     differenceAmount: reconciliation.variance,
   }
 }
@@ -427,15 +337,16 @@ function buildSessionSnapshot(
     opened_at: Date | null
     closed_at: Date | null
     opening_float_amount: Decimal | null
-    expected_cash_amount: Decimal | null
-    counted_cash_amount: Decimal | null
-    difference_amount: Decimal | null
+    currency_code: string | null
   },
   totals: SessionLedgerTotals,
+  closing?: SessionClosingFigures,
 ): CashDrawerSessionSummarySnapshot {
-  const { expectedCashAmount, differenceAmount } = deriveLedgerExpectedCashAndVariance(session, totals)
-  const countedCashAmount =
-    session.counted_cash_amount == null ? null : toMoneyString(session.counted_cash_amount)
+  const { expectedCashAmount, countedCashAmount, differenceAmount } = deriveLedgerExpectedCashAndVariance(
+    session,
+    totals,
+    closing,
+  )
 
   return {
     id: session.id,
@@ -483,6 +394,26 @@ function buildVarianceApprovalDetail(
   }
 }
 
+/** The drawer rules the screens show, taken from the effective policy (never a drawer column). */
+interface DrawerPolicyView {
+  requiresSession: boolean
+  openingCountRequired: boolean
+}
+
+/**
+ * Resolves the effective cash-control policy of one drawer (DRAWER -> USER -> BRANCH -> TENANT ->
+ * type default -> default), reduced to what the drawer screens display.
+ * @param tenantId tenant of the drawer
+ * @param drawer drawer whose policy is wanted
+ */
+async function resolveDrawerPolicyView(
+  tenantId: string,
+  drawer: { id: string; branch_id: string | null },
+): Promise<DrawerPolicyView> {
+  const settings = await getCashControlSettings({ tenantId, branchId: drawer.branch_id, drawerId: drawer.id })
+  return { requiresSession: settings.requiresSession, openingCountRequired: settings.openingCountRequired }
+}
+
 function buildDrawerContext(
   drawer: {
     id: string
@@ -492,13 +423,12 @@ function buildDrawerContext(
     drawer_type: string
     branch_id: string | null
     currency_code: string
-    requires_session: boolean
-    opening_float_required: boolean
     max_cash_limit: Decimal | null
     assigned_terminal_id: string | null
   },
   branch: DrawerBranchInfo | undefined,
   terminal: DrawerTerminalInfo | undefined,
+  policy: DrawerPolicyView,
 ): CashDrawerDetailContext {
   return {
     id: drawer.id,
@@ -510,8 +440,8 @@ function buildDrawerContext(
     branchName: getBranchDisplayName(branch),
     branchName2: branch?.name2 ?? null,
     currencyCode: drawer.currency_code,
-    requiresSession: drawer.requires_session,
-    openingFloatRequired: drawer.opening_float_required,
+    requiresSession: policy.requiresSession,
+    openingCountRequired: policy.openingCountRequired,
     maxCashLimit: drawer.max_cash_limit == null ? null : toMoneyString(drawer.max_cash_limit),
     assignedTerminalId: drawer.assigned_terminal_id,
     assignedTerminalName: terminal?.terminal_name ?? terminal?.terminal_name2 ?? null,
@@ -744,8 +674,6 @@ export async function getDrawersWithCurrentSession(
       drawer_name2: drawer.drawer_name2,
       drawer_type: drawer.drawer_type,
       currency_code: drawer.currency_code,
-      requires_session: drawer.requires_session,
-      opening_float_required: drawer.opening_float_required,
       max_cash_limit: drawer.max_cash_limit != null ? Number(drawer.max_cash_limit) : null,
       assigned_terminal_id: drawer.assigned_terminal_id,
       is_active: drawer.is_active,
@@ -813,9 +741,7 @@ export async function getCashDrawerOverviewPage(
           opened_at: true,
           closed_at: true,
           opening_float_amount: true,
-          expected_cash_amount: true,
-          counted_cash_amount: true,
-          difference_amount: true,
+          currency_code: true,
         },
       }),
     ),
@@ -834,9 +760,7 @@ export async function getCashDrawerOverviewPage(
           opened_at: true,
           closed_at: true,
           opening_float_amount: true,
-          expected_cash_amount: true,
-          counted_cash_amount: true,
-          difference_amount: true,
+          currency_code: true,
         },
         orderBy: [{ opened_at: 'desc' }],
       }),
@@ -864,7 +788,13 @@ export async function getCashDrawerOverviewPage(
       .map((session) => session.id)
       .filter((sessionId) => !openSessions.some((openSession) => openSession.id === sessionId)),
   ]
-  const ledgerTotalsBySession = await sumLedgerTotalsBySession(tenantId, sessionsForCounts)
+  const [ledgerTotalsBySession, closingBySession] = await Promise.all([
+    sumLedgerTotalsBySession(tenantId, sessionsForCounts),
+    loadSessionClosingFigures(
+      tenantId,
+      [...openSessions, ...latestSessionMap.values()].filter((session) => sessionsForCounts.includes(session.id)),
+    ),
+  ])
   const emptyTotals: SessionLedgerTotals = {
     finIn: new Decimal(0), finOut: new Decimal(0), trxIn: new Decimal(0), trxOut: new Decimal(0), finCount: 0, trxCount: 0,
   }
@@ -872,7 +802,7 @@ export async function getCashDrawerOverviewPage(
   const openSessionMap = new Map(openSessions.map((session) => [session.cash_drawer_id, session]))
 
   const items = drawers
-    .map<CashDrawerOverviewRow>((drawer) => {
+    .map<Omit<CashDrawerOverviewRow, 'requiresSession' | 'openingCountRequired'>>((drawer) => {
       const openSession = openSessionMap.get(drawer.id) ?? null
       const latestSession = latestSessionMap.get(drawer.id) ?? null
       const branch = branchesById.get(drawer.branch_id)
@@ -890,18 +820,16 @@ export async function getCashDrawerOverviewPage(
         branchName: getBranchDisplayName(branch),
         branchName2: branch?.name2 ?? null,
         currencyCode: drawer.currency_code,
-        requiresSession: drawer.requires_session,
-        openingFloatRequired: drawer.opening_float_required,
         maxCashLimit: drawer.max_cash_limit == null ? null : toMoneyString(drawer.max_cash_limit),
         assignedTerminalId: drawer.assigned_terminal_id,
         assignedTerminalName: terminal?.terminal_name ?? terminal?.terminal_name2 ?? null,
         assignedTerminalCode: terminal?.terminal_code ?? null,
         operationalStatus: openSession ? 'OPEN' : 'CLOSED',
         currentSession: openSession
-          ? buildSessionSnapshot(openSession, ledgerTotalsBySession.get(openSession.id) ?? emptyTotals)
+          ? buildSessionSnapshot(openSession, ledgerTotalsBySession.get(openSession.id) ?? emptyTotals, closingBySession.get(openSession.id))
           : null,
         latestSession: latestSession
-          ? buildSessionSnapshot(latestSession, ledgerTotalsBySession.get(latestSession.id) ?? emptyTotals)
+          ? buildSessionSnapshot(latestSession, ledgerTotalsBySession.get(latestSession.id) ?? emptyTotals, closingBySession.get(latestSession.id))
           : null,
       }
     })
@@ -916,8 +844,13 @@ export async function getCashDrawerOverviewPage(
   const start = (safePage - 1) * safePageSize
   const pagedItems = items.slice(start, start + safePageSize)
 
+  // Policy is resolved only for the rows on this page (one cached lookup per drawer), not the whole tenant.
+  const policies = await withCashControlSettingsCache(() =>
+    Promise.all(pagedItems.map((row) => resolveDrawerPolicyView(tenantId, { id: row.id, branch_id: row.branchId }))),
+  )
+
   return {
-    items: pagedItems,
+    items: pagedItems.map((row, index) => ({ ...row, ...policies[index] })),
     total: items.length,
     page: safePage,
     pageSize: safePageSize,
@@ -978,8 +911,9 @@ export async function getCashDrawerSessionsPage(
   ])
 
   const sessionIds = sessions.map((session) => session.id)
-  const [ledgerTotalsBySession, actorMap] = await Promise.all([
+  const [ledgerTotalsBySession, closingBySession, actorMap] = await Promise.all([
     sumLedgerTotalsBySession(tenantId, sessionIds),
+    loadSessionClosingFigures(tenantId, sessions),
     resolveActorMap(
       tenantId,
       sessions.flatMap((session) => [session.opened_by, session.closed_by]),
@@ -991,7 +925,11 @@ export async function getCashDrawerSessionsPage(
 
   const items = sessions.map<CashDrawerSessionListRow>((session) => {
     const totals = ledgerTotalsBySession.get(session.id) ?? emptyTotals
-    const { expectedCashAmount, differenceAmount } = deriveLedgerExpectedCashAndVariance(session, totals)
+    const { expectedCashAmount, countedCashAmount, differenceAmount } = deriveLedgerExpectedCashAndVariance(
+      session,
+      totals,
+      closingBySession.get(session.id),
+    )
     return {
       id: session.id,
       sessionNo: session.session_no,
@@ -1000,7 +938,7 @@ export async function getCashDrawerSessionsPage(
       closedAt: toIsoString(session.closed_at),
       openingFloatAmount: toMoneyString(session.opening_float_amount),
       expectedCashAmount,
-      countedCashAmount: session.counted_cash_amount == null ? null : toMoneyString(session.counted_cash_amount),
+      countedCashAmount,
       differenceAmount,
       paymentCount: totals.finCount,
       movementCount: totals.trxCount,
@@ -1050,8 +988,6 @@ export async function getCashDrawerOverviewDetail(
         drawer_type: true,
         branch_id: true,
         currency_code: true,
-        requires_session: true,
-        opening_float_required: true,
         max_cash_limit: true,
         assigned_terminal_id: true,
       },
@@ -1074,8 +1010,9 @@ export async function getCashDrawerOverviewDetail(
   const recentMovements = recentMovementsPage.rows
 
   const recentSessionIds = sessions.map((session) => session.id)
-  const [ledgerTotalsBySession, actorMap] = await Promise.all([
+  const [ledgerTotalsBySession, closingBySession, actorMap] = await Promise.all([
     sumLedgerTotalsBySession(tenantId, recentSessionIds),
+    loadSessionClosingFigures(tenantId, sessions),
     resolveActorMap(
       tenantId,
       [
@@ -1090,7 +1027,11 @@ export async function getCashDrawerOverviewDetail(
 
   const mappedSessions = sessions.map<CashDrawerSessionListRow>((session) => {
     const totals = ledgerTotalsBySession.get(session.id) ?? emptyTotals
-    const { expectedCashAmount, differenceAmount } = deriveLedgerExpectedCashAndVariance(session, totals)
+    const { expectedCashAmount, countedCashAmount, differenceAmount } = deriveLedgerExpectedCashAndVariance(
+      session,
+      totals,
+      closingBySession.get(session.id),
+    )
     return {
       id: session.id,
       sessionNo: session.session_no,
@@ -1099,7 +1040,7 @@ export async function getCashDrawerOverviewDetail(
       closedAt: toIsoString(session.closed_at),
       openingFloatAmount: toMoneyString(session.opening_float_amount),
       expectedCashAmount,
-      countedCashAmount: session.counted_cash_amount == null ? null : toMoneyString(session.counted_cash_amount),
+      countedCashAmount,
       differenceAmount,
       paymentCount: totals.finCount,
       movementCount: totals.trxCount,
@@ -1113,6 +1054,7 @@ export async function getCashDrawerOverviewDetail(
       drawer,
       branchMap.get(drawer.branch_id),
       drawer.assigned_terminal_id ? terminalMap.get(drawer.assigned_terminal_id) : undefined,
+      await resolveDrawerPolicyView(tenantId, drawer),
     ),
     currentSession: mappedSessions.find((session) => session.status === 'OPEN') ?? null,
     latestSession: mappedSessions[0] ?? null,
@@ -1160,7 +1102,7 @@ export async function getCashDrawerSessionDetail(
     throw new Error('Cash drawer session not found')
   }
 
-  const [drawer, branchMap, ledgerTotals, movementsPage, paymentTotal, pagedPayments] = await Promise.all([
+  const [drawer, branchMap, ledgerTotals, closingBySession, movementsPage, paymentTotal, pagedPayments] = await Promise.all([
     withTenantContext(tenantId, () =>
       prisma.org_cash_drawers_mst.findFirstOrThrow({
         where: {
@@ -1176,8 +1118,6 @@ export async function getCashDrawerSessionDetail(
           drawer_type: true,
           branch_id: true,
           currency_code: true,
-          requires_session: true,
-          opening_float_required: true,
           max_cash_limit: true,
           assigned_terminal_id: true,
         },
@@ -1185,6 +1125,7 @@ export async function getCashDrawerSessionDetail(
     ),
     loadDrawerBranches(tenantId, summaryData.session.branch_id ? [summaryData.session.branch_id] : []),
     sumLedgerTotalsBySession(tenantId, [sessionId]),
+    loadSessionClosingFigures(tenantId, [summaryData.session]),
     getDrawerLedgerMovementsPage(tenantId, drawerId, { sessionId }, movementPage, movementPageSize),
     withTenantContext(tenantId, () =>
       prisma.org_order_payments_dtl.count({
@@ -1257,6 +1198,7 @@ export async function getCashDrawerSessionDetail(
   const reconciliation = buildLedgerReconciliation(
     summaryData.session,
     ledgerTotals.get(sessionId) ?? emptyTotals,
+    closingBySession.get(sessionId),
   )
 
   const sessionLifecycle: CashDrawerSessionLifecycleDetail = {
@@ -1268,15 +1210,9 @@ export async function getCashDrawerSessionDetail(
     openedBy: getActorSummary(actorMap, summaryData.session.opened_by),
     openingFloatAmount: toMoneyString(summaryData.session.opening_float_amount),
     currencyCode: summaryData.session.currency_code,
-    expectedCashAmount: toMoneyString(summaryData.session.expected_cash_amount),
-    countedCashAmount:
-      summaryData.session.counted_cash_amount == null
-        ? null
-        : toMoneyString(summaryData.session.counted_cash_amount),
-    differenceAmount:
-      summaryData.session.difference_amount == null
-        ? null
-        : toMoneyString(summaryData.session.difference_amount),
+    expectedCashAmount: reconciliation.expectedCash,
+    countedCashAmount: reconciliation.countedCash,
+    differenceAmount: reconciliation.variance,
     closedAt: toIsoString(summaryData.session.closed_at),
     closedBy: getActorSummary(actorMap, summaryData.session.closed_by),
     closeNotes: summaryData.session.close_notes,
@@ -1285,7 +1221,7 @@ export async function getCashDrawerSessionDetail(
   }
 
   return {
-    drawer: buildDrawerContext(drawer, branchMap.get(drawer.branch_id), terminal),
+    drawer: buildDrawerContext(drawer, branchMap.get(drawer.branch_id), terminal, await resolveDrawerPolicyView(tenantId, drawer)),
     session: sessionLifecycle,
     reconciliation,
     movements: {
@@ -1353,346 +1289,6 @@ export async function resolveCashDrawerSessionId(
 }
 
 /**
- * Open a new drawer session.
- *
- * @param tenantId tenant resolved server-side from the authenticated session
- * @param drawerId drawer identifier already checked against tenant scope
- * @param params mutation payload including opening balance and actor id
- * @returns newly created session row
- * @throws CashDrawerSessionError with code ALREADY_OPEN when a session is already open
- * @example
- * await openSession('tenant-001', 'drawer-001', { openingBalance: 10, openedBy: 'user-001' })
- */
-export async function openSession(
-  tenantId: string,
-  drawerId: string,
-  params: { openingBalance: number; openedBy: string; notes?: string },
-) {
-  const drawer = await withTenantContext(tenantId, () =>
-    prisma.org_cash_drawers_mst.findFirstOrThrow({
-      where: { id: drawerId, tenant_org_id: tenantId },
-    }),
-  )
-
-  // A1 (POS Session & Cash Drawer Hardening, migration 0519): session_no now
-  // comes from the DB's generate_cash_drawer_sess_no() (renamed from
-  // generate_session_no so it doesn't read as a generic session generator
-  // next to the unrelated POS-session numbering scheme), called inside this
-  // same transaction so its advisory lock actually protects the insert. The
-  // old `count(*) + 1` path raced under concurrent opens and produced a
-  // format (`SES-000007`) the DB function's own parser couldn't read. Do
-  // not reintroduce a client-computed sequence.
-  return withTenantContext(tenantId, () =>
-    prisma.$transaction(async (tx) => {
-      // A2 — serialize every mutation against this drawer. A concurrent
-      // opener now blocks here until this transaction commits or rolls
-      // back, then observes `existing` and gets the friendly error below
-      // instead of racing to insert and hitting the raw unique violation.
-      await lockDrawerScope(tx, tenantId, drawerId)
-
-      const existing = await tx.org_cash_drawer_sessions_mst.findFirst({
-        where: { tenant_org_id: tenantId, cash_drawer_id: drawerId, status: 'OPEN' },
-      })
-
-      if (existing) {
-        throw new CashDrawerSessionError(CASH_DRAWER_SESSION_ERRORS.ALREADY_OPEN, 'A session is already open for this drawer')
-      }
-
-      const [{ session_no: sessionNo }] = await tx.$queryRaw<{ session_no: string }[]>(
-        Prisma.sql`SELECT generate_cash_drawer_sess_no(${tenantId}::uuid) AS session_no`,
-      )
-
-      try {
-        return await tx.org_cash_drawer_sessions_mst.create({
-          data: {
-            tenant_org_id: tenantId,
-            branch_id: drawer.branch_id,
-            cash_drawer_id: drawerId,
-            session_no: sessionNo,
-            status: 'OPEN',
-            currency_code: drawer.currency_code,
-            opening_float_amount: params.openingBalance,
-            opened_by: params.openedBy,
-            opened_at: new Date(),
-            is_active: true,
-            rec_status: 1,
-          },
-        })
-      } catch (err) {
-        // Backstop, not the primary defense — lockDrawerScope above already
-        // prevents this in the normal path. Kept in case a row is ever
-        // attached to this drawer without going through the lock.
-        if (isDrawerAlreadyOpenViolation(err)) {
-          throw new CashDrawerSessionError(CASH_DRAWER_SESSION_ERRORS.ALREADY_OPEN, 'A session is already open for this drawer')
-        }
-        throw err
-      }
-    }),
-  )
-}
-
-/**
- * Close an open drawer session using the physical cash count.
- *
- * @param tenantId tenant resolved server-side from the authenticated session
- * @param sessionId session identifier already checked against tenant scope
- * @param params close payload including actor id and optional notes
- * @returns closed session row plus variance summary
- * @throws Error when the session is not open
- * @example
- * await closeSession('tenant-001', 'session-001', { physicalCount: 25, closedBy: 'user-001' })
- */
-export async function closeSession(
-  tenantId: string,
-  sessionId: string,
-  params: SessionCloseParams,
-): Promise<SessionCloseResult> {
-  return withTenantContext(tenantId, () =>
-    prisma.$transaction(
-      async (tx) => {
-          // A2 — the lock must be acquired BEFORE the status-determining
-          // read below, not after: two concurrent closers that both read
-          // status='OPEN' before either commits would otherwise both
-          // proceed, and the second would re-close an already-closed
-          // session using its stale read — the lock would exist but not
-          // actually guard the check it looks like it guards. (Found via a
-          // real DB-integration test failure during development, not
-          // theoretical — see STATUS.md D22.) So: minimal lookup just for
-          // the lock key, then lock, then the real status='OPEN' read.
-          const sessionForLock = await tx.org_cash_drawer_sessions_mst.findFirstOrThrow({
-            where: { id: sessionId, tenant_org_id: tenantId },
-            select: { cash_drawer_id: true },
-          })
-
-          // Serializes this close against every OTHER cash-drawer.service
-          // mutation on the same drawer (open/close/movement/approve), all
-          // of which take this same lock. Concurrent close x2, movement-
-          // during-close, and double-open are fully closed by this alone —
-          // confirmed by DB-integration tests (see A2-6, STATUS.md).
-          //
-          // NOT closed by this lock: a cash payment landing mid-close.
-          // Payment recording is a separate, wide set of code paths (order
-          // settlement, refunds, stored value, vouchers — 15+ files) that
-          // do not take this lock, and bringing them all under it is a
-          // much larger change than this pass. A SERIALIZABLE-isolation +
-          // retry approach was tried and measured live: on a small/empty
-          // org_order_payments_dtl (true on a fresh DB, and possible in
-          // production for a tenant with few cash sales), Postgres's
-          // planner prefers a sequential scan over the existing
-          // idx_org_ord_pay_dtl_session index, and a seq scan under
-          // SERIALIZABLE takes a relation-wide predicate lock — so
-          // unrelated concurrent closes on *different* sessions conflicted
-          // with each other too. 5 concurrent closes on 5 different
-          // drawers still hadn't converged after 8 retries. Reverted
-          // rather than ship a retry loop that doesn't reliably terminate;
-          // see STATUS.md D22 for the full writeup and the two real
-          // options for closing this gap properly (extend the lock to the
-          // payment-wiring handlers, or revisit SERIALIZABLE with a
-          // load-tested backoff strategy).
-          await lockDrawerScope(tx, tenantId, sessionForLock.cash_drawer_id)
-
-          const session = await tx.org_cash_drawer_sessions_mst.findFirstOrThrow({
-            where: { id: sessionId, tenant_org_id: tenantId, status: 'OPEN' },
-          })
-
-          // Expected cash counts each cash fact once (B16 M2 + Addendum A2 +
-          // QA §30.2): sale cash from the payment ledger, plus MANUAL drawer
-          // movements only. Sale-mirror CASH_SALE/change and B10
-          // PAYMENT_REVERSAL compensating OUTs are excluded — the payment
-          // already counts (or, after REVERSE, no longer counts) that cash.
-          const [cashPayments, movements, drawer, currency] = await Promise.all([
-            tx.org_order_payments_dtl.aggregate({
-              where: {
-                tenant_org_id: tenantId,
-                cash_drawer_session_id: sessionId,
-                ...effectiveCashPaymentWhere(),
-              },
-              _sum: { amount: true },
-            }),
-            tx.org_cash_drawer_movements_dtl.findMany({
-              where: {
-                tenant_org_id: tenantId,
-                cash_drawer_session_id: sessionId,
-                ...expectedCashManualMovementWhere(),
-              },
-              select: {
-                direction: true,
-                amount: true,
-              },
-            }),
-            // B16: per-drawer variance-approval threshold (NULL = no gate — the default).
-            tx.org_cash_drawers_mst.findFirst({
-              where: { id: session.cash_drawer_id, tenant_org_id: tenantId },
-              select: { variance_approval_threshold: true },
-            }),
-            // A3-3 (D10): sys_currency_cd is the authoritative decimal-places
-            // source, via `minor_unit` — NOT a `decimal_places` column, which
-            // does not exist on the live table (confirmed local + remote,
-            // 2026-09-24: a stale field survives only on the Prisma model
-            // and the pre-migration backup table `sys_currency_cd_b4`). The
-            // original A3-3 pass selected the nonexistent column, which
-            // meant `closeSession` — the write path this entire wave exists
-            // to protect — threw on every real call once deployed; only
-            // mocked unit tests ever ran it, so nothing caught this until a
-            // real-DB integration test did. This session's own currency,
-            // not the tenant default — D14 multi-currency readiness means
-            // these can differ.
-            tx.sys_currency_cd.findUnique({
-              where: { code: session.currency_code },
-              select: { minor_unit: true },
-            }),
-          ])
-
-          // A3-1 — expected-cash arithmetic stays in Decimal space end to
-          // end (opening float -> sum -> variance), never a JS `number`
-          // intermediate. The previous version converted every Decimal to
-          // a float via toNumber() and summed with `+`/`-`, which drifts on
-          // sequences of 3-decimal-currency amounts (OMR/BHD/KWD) the same
-          // way 0.1 + 0.2 !== 0.3 does in any language. Only the final
-          // return value (kept as `number` for existing callers — the
-          // broader money-as-strings API contract is A3-4, not this
-          // package) is derived from the correctly-summed Decimal.
-          const movementCashIn = sumMoney(
-            movements.filter((m) => m.direction === 'IN').map((m) => m.amount)
-          )
-          const movementCashOut = sumMoney(
-            movements.filter((m) => m.direction === 'OUT').map((m) => m.amount)
-          )
-          const expectedCashDecimal = subMoney(
-            addMoney(addMoney(session.opening_float_amount, cashPayments._sum.amount ?? 0), movementCashIn),
-            movementCashOut,
-          )
-          const physicalCountDecimal = toDecimal(params.physicalCount)
-          const varianceDecimal = subMoney(physicalCountDecimal, expectedCashDecimal)
-
-          // A3-3 (W0-15): tolerance is half the currency's own smallest
-          // unit, not a flat 0.01 — the flat value silently accepted real
-          // variance up to 0.0099 on 3-decimal-currency (OMR/BHD/KWD)
-          // drawers, which is 20x too wide for a 0.001 minor unit.
-          const decimalPlaces = currency?.minor_unit ?? 2
-          const tolerance = varianceToleranceFor(decimalPlaces)
-          const isBalanced = compareMoney(varianceDecimal.abs(), tolerance) < 0
-
-          // B16 variance approval (OPTIONAL, deferred, opt-in per drawer): when
-          // the drawer has a configured threshold and a not-balanced close
-          // exceeds it, the session is flagged eligible for optional
-          // supervisor approval. The close always completes; a supervisor MAY
-          // approve it separately via `approveSessionVariance`. Snapshotting
-          // the threshold marks the eligible state and preserves the value in
-          // effect at close time. NULL threshold (the default) = no approval
-          // concept at all.
-          //
-          // Kept as Decimal/number internally for the comparison below — only
-          // the public return value (A3-4) is serialized to a string, at the
-          // very end, so this decision logic is untouched by the wire format.
-          const varianceThresholdDecimal =
-            drawer?.variance_approval_threshold != null
-              ? toDecimal(drawer.variance_approval_threshold)
-              : null
-          const varianceApprovalPending =
-            varianceThresholdDecimal != null &&
-            !isBalanced &&
-            varianceDecimal.abs().greaterThan(varianceThresholdDecimal)
-
-          const updated = await tx.org_cash_drawer_sessions_mst.update({
-            where: { tenant_org_id: tenantId, id: sessionId },
-            data: {
-              status: 'CLOSED',
-              counted_cash_amount: physicalCountDecimal,
-              expected_cash_amount: expectedCashDecimal,
-              difference_amount: varianceDecimal,
-              closed_by: params.closedBy,
-              closed_at: new Date(),
-              close_notes: params.notes ?? null,
-              variance_threshold_snapshot: varianceApprovalPending ? varianceThresholdDecimal : null,
-              updated_at: new Date(),
-            },
-          })
-
-          return {
-            session: updated,
-            variance: toMoneyString(varianceDecimal),
-            isBalanced,
-            varianceApprovalPending,
-            varianceThreshold: varianceThresholdDecimal != null ? toMoneyString(varianceThresholdDecimal) : null,
-          }
-      },
-    ),
-  )
-}
-
-/**
- * B16: approve an over-threshold drawer-close variance (deferred approval
- * model). Performed by anyone holding `cash_drawer:approve_variance` — no
- * maker-checker, so the approver may be the same user who closed the session.
- * Single-shot and fully audited.
- *
- * @param tenantId tenant resolved server-side from the authenticated session
- * @param sessionId closed session whose variance is pending approval
- * @param params approver id (the authenticated user) + mandatory reason
- * @returns the updated session row
- * @throws VarianceApprovalError on state / reason violations
- */
-export async function approveSessionVariance(
-  tenantId: string,
-  sessionId: string,
-  params: { approvedBy: string; reason: string },
-): Promise<Awaited<ReturnType<typeof prisma.org_cash_drawer_sessions_mst.update>>> {
-  const reason = params.reason?.trim()
-  if (!reason) {
-    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.REASON_REQUIRED)
-  }
-
-  // A2 — the read-check-write below is now one transaction, locked per
-  // drawer, so two concurrent approval attempts on the same session can no
-  // longer both pass the "not yet approved" check before either commits.
-  // The lock must be acquired BEFORE the state-determining read, not after:
-  // acquiring it after would let two concurrent callers both read
-  // "not yet approved" before either commits, then both proceed to update
-  // using their now-stale read — the lock would exist but not actually
-  // guard the check it looks like it guards (found and fixed the same
-  // ordering bug in closeSession via a real DB-integration test — see
-  // STATUS.md D22 — so the minimal lookup-then-lock-then-real-read shape
-  // here is deliberate, not an oversight).
-  return withTenantContext(tenantId, () =>
-    prisma.$transaction(async (tx) => {
-      const sessionForLock = await tx.org_cash_drawer_sessions_mst.findFirstOrThrow({
-        where: { id: sessionId, tenant_org_id: tenantId },
-        select: { cash_drawer_id: true },
-      })
-
-      await lockDrawerScope(tx, tenantId, sessionForLock.cash_drawer_id)
-
-      const session = await tx.org_cash_drawer_sessions_mst.findFirstOrThrow({
-        where: { id: sessionId, tenant_org_id: tenantId },
-      })
-
-      const state = deriveVarianceApprovalState(session)
-      if (!state.required) {
-        throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.NOT_PENDING_APPROVAL)
-      }
-      if (state.approved) {
-        throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED)
-      }
-      // No maker-checker: holding `cash_drawer:approve_variance` is
-      // sufficient, even when the approver is the same user who closed the
-      // session (owner rule — see Remediation_Work_Packages/CLAUDE.md).
-      // Permission is the control here.
-
-      return tx.org_cash_drawer_sessions_mst.update({
-        where: { id: sessionId, tenant_org_id: tenantId },
-        data: {
-          variance_approved_by: params.approvedBy,
-          variance_approved_at: new Date(),
-          variance_approval_reason: reason,
-          updated_at: new Date(),
-        },
-      })
-    }),
-  )
-}
-
-/**
  * Raw session summary used by the existing print and POS reconciliation flows.
  *
  * Why:
@@ -1708,8 +1304,9 @@ export async function approveSessionVariance(
  */
 export async function getSessionSummary(tenantId: string, sessionId: string) {
   const { session, payments } = await loadSummaryData(tenantId, sessionId)
-  const [ledgerTotalsBySession, movementsPage] = await Promise.all([
+  const [ledgerTotalsBySession, closingBySession, movementsPage] = await Promise.all([
     sumLedgerTotalsBySession(tenantId, [sessionId]),
+    loadSessionClosingFigures(tenantId, [session]),
     // CLF-6-1: this function returns the session's full movement set (no
     // pagination, unlike the session-detail route) for print/POS
     // reconciliation consumers — a page size large enough for any real
@@ -1719,11 +1316,14 @@ export async function getSessionSummary(tenantId: string, sessionId: string) {
   const emptyTotals: SessionLedgerTotals = {
     finIn: new Decimal(0), finOut: new Decimal(0), trxIn: new Decimal(0), trxOut: new Decimal(0), finCount: 0, trxCount: 0,
   }
-  const reconciliation = buildLedgerReconciliation(session, ledgerTotalsBySession.get(sessionId) ?? emptyTotals)
+  const reconciliation = buildLedgerReconciliation(
+    session,
+    ledgerTotalsBySession.get(sessionId) ?? emptyTotals,
+    closingBySession.get(sessionId),
+  )
   // Legacy-shaped rows for `movements` (print-page + action consumers read
   // snake_case `direction`/`movement_type`/`amount`/`performed_by`/
-  // `performed_at` directly off the retired `org_cash_drawer_movements_dtl`
-  // row shape) — adapted from the unified ledger (CLF-8-12 gives these
+  // `performed_at` directly off the retired movements-table row shape) — adapted from the unified ledger (CLF-8-12 gives these
   // consumers a proper native shape; this keeps them working unchanged).
   const movements = movementsPage.rows.map((row) => ({
     id: row.id,

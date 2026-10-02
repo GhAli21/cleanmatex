@@ -22,7 +22,10 @@ import {
   RECON_REPORT_EPSILON,
 } from '@/lib/constants/reconciliation-reports';
 import { CREDIT_NOTE_STATUSES } from '@/lib/constants/order-financial';
-import { sumLedgerTotalsBySession } from '@/lib/services/cash-drawer-ledger/cash-drawer-balance.service';
+import {
+  sumLedgerTotalsBySession,
+  loadSessionClosingFigures,
+} from '@/lib/services/cash-drawer-ledger/cash-drawer-balance.service';
 import type {
   ReconReportFilter,
   ExcessLiabilityReport,
@@ -354,10 +357,11 @@ export async function getOverpaymentDispositionReconReport(
  * ledger (CLF-6-2 — opening float + Σ FIN IN/OUT + Σ TRX IN/OUT, the same
  * `cash_drawer_session_id`-scoped sum `cash-drawer.service.ts`'s readers use;
  * see its own doc comment for why this needs no `open_ledger_seq`/chain math)
- * and reconcile it against the session header's stored `expected_cash_amount`,
- * surfacing the close-time `difference_amount`. A session is an exception
- * when expected drifts from the recomputed value or the close difference is
- * non-zero.
+ * and reconcile it against the expected figure the count step froze for the
+ * session (`ses_bal_dtl.closing_expected`, session currency), surfacing the
+ * close-time variance. A session that never reached the count step has nothing
+ * frozen to drift from. A session is an exception when the frozen expected
+ * drifts from the recomputed value or the close variance is non-zero.
  *
  * `unlinkedMovementCount` is always 0 post-CLF: every ledger entry is by
  * construction a wired voucher line or a drawer-transaction row (CLF-5/W1-
@@ -389,15 +393,15 @@ export async function getCashDrawerReconReport(
         opened_at: true,
         closed_at: true,
         opening_float_amount: true,
-        expected_cash_amount: true,
-        counted_cash_amount: true,
-        difference_amount: true,
       },
       orderBy: { opened_at: 'desc' },
     });
 
     const sessionIds = sessions.map((s) => s.id);
-    const ledgerTotalsBySession = await sumLedgerTotalsBySession(tenantOrgId, sessionIds);
+    const [ledgerTotalsBySession, closingBySession] = await Promise.all([
+      sumLedgerTotalsBySession(tenantOrgId, sessionIds),
+      loadSessionClosingFigures(tenantOrgId, sessions),
+    ]);
 
     const rows: CashDrawerReconRow[] = sessions.map((s) => {
       const totals = ledgerTotalsBySession.get(s.id);
@@ -407,13 +411,15 @@ export async function getCashDrawerReconReport(
         ? toNumber(totals.finIn) - toNumber(totals.finOut) + toNumber(totals.trxIn) - toNumber(totals.trxOut)
         : 0;
       const computedExpected = openingFloat + netMovement;
-      const headerExpected = toNumber(s.expected_cash_amount);
+      const closing = closingBySession.get(s.id);
+      const frozenExpected = closing ? toNumber(closing.expected) : null;
       // A CLOSED session with zero ledger entries predates the CLF ledger
       // (2026-09-26) — there is nothing to recompute against, so it reports
       // as reconciled rather than as a false "expected drifted" exception
       // for every pre-CLF historical session.
-      const expectedDelta = s.status !== 'OPEN' && !hasLedgerActivity ? 0 : computedExpected - headerExpected;
-      const difference = s.difference_amount == null ? null : toNumber(s.difference_amount);
+      const expectedDelta =
+        frozenExpected == null || (s.status !== 'OPEN' && !hasLedgerActivity) ? 0 : computedExpected - frozenExpected;
+      const difference = closing?.variance == null ? null : toNumber(closing.variance);
 
       const isReconciled =
         Math.abs(expectedDelta) < RECON_REPORT_EPSILON &&
@@ -429,8 +435,8 @@ export async function getCashDrawerReconReport(
         openingFloatAmount: openingFloat,
         netMovementAmount: netMovement,
         computedExpectedAmount: computedExpected,
-        headerExpectedAmount: headerExpected,
-        countedCashAmount: s.counted_cash_amount == null ? null : toNumber(s.counted_cash_amount),
+        headerExpectedAmount: frozenExpected,
+        countedCashAmount: closing?.counted == null ? null : toNumber(closing.counted),
         differenceAmount: difference,
         expectedDelta,
         unlinkedMovementCount: 0,

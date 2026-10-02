@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-02T06:31:42.008Z",
+  "extractedAt": "2026-10-02T17:47:15.200Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -183,7 +183,7 @@
       "route": "src/features/billing/ui/refunds-list-client.tsx",
       "permission": "orders:approve_refund",
       "component": "useHasPermission",
-      "line": 161,
+      "line": 160,
       "surface": "screen"
     },
     {
@@ -191,7 +191,7 @@
       "route": "src/features/billing/ui/refunds-list-client.tsx",
       "permission": "orders:process_refund",
       "component": "useHasPermission",
-      "line": 162,
+      "line": 161,
       "surface": "screen"
     },
     {
@@ -1197,19 +1197,11 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/cash-drawers/[drawerId]/open-session/route.ts",
-      "method": "POST",
-      "route": "/api/v1/cash-drawers/[drawerId]/open-session",
-      "permission": "cash_drawer:open_session",
-      "line": 25,
-      "surface": "api"
-    },
-    {
       "file": "app/api/v1/cash-drawers/[drawerId]/open-session-v2/route.ts",
       "method": "POST",
       "route": "/api/v1/cash-drawers/[drawerId]/open-session-v2",
       "permission": "cash_drawer:open_session",
-      "line": 30,
+      "line": 28,
       "surface": "api"
     },
     {

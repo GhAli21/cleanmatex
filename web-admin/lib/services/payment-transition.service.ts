@@ -395,7 +395,7 @@ async function transitionPaymentCoreTx(
     let compensatingCashMovementCreated = false;
 
     if (action === 'VERIFY') {
-      // CLF (replaces the old B32 deferred movement, org_cash_drawer_movements_dtl):
+      // CLF (replaces the old B32 deferred movement):
       // the cash is only real now that VERIFY confirms it cleared, so recognise
       // it in the drawer ledger now — DEFERRED mode, never refused on session
       // state, lands in whatever window is current (or the next one).
@@ -433,7 +433,6 @@ async function transitionPaymentCoreTx(
         orderId,
         fallbackClassification as FallbackClassification,
       );
-      await warnIfOrphanMovementExistsTx(tx, tenantId, paymentId, orderId);
       // CLF — a PENDING cash leg that never cleared: nothing physical moved.
       if (lineCashEffect === CASH_EFFECTS.PENDING && row.fin_voucher_trx_line_id) {
         await abandonPendingCashLineTx(
@@ -443,9 +442,8 @@ async function transitionPaymentCoreTx(
         );
       }
     } else if (action === 'VOID') {
-      // B10 — a never-effective leg must never carry a live CASH_SALE
-      // movement (B32 status gate); trip-wire only, no auto-reversal.
-      await warnIfOrphanMovementExistsTx(tx, tenantId, paymentId, orderId);
+      // B10 — a never-effective leg never reached the drawer ledger (B32 status gate);
+      // a leg that did is refused above (CASH_LEG_MUST_REVERSE).
       if (lineCashEffect === CASH_EFFECTS.PENDING && row.fin_voucher_trx_line_id) {
         await abandonPendingCashLineTx(
           tx,
@@ -455,7 +453,7 @@ async function transitionPaymentCoreTx(
       }
     } else if (action === 'REVERSE') {
       // REVERSE — B10 error-correction negation. CLF (replaces the old
-      // compensating movement, org_cash_drawer_movements_dtl): a cash-family
+      // compensating movement): a cash-family
       // leg's correction is a real reversal voucher line (P3 — reversals
       // always mirror in the drawer ledger, in the window current NOW, never
       // a closed one). Non-cash legs get nothing here — gateway-side
@@ -600,33 +598,5 @@ async function maybeReclassifyPaymentTypeTx(
     data: { payment_type_code: newCode, updated_at: new Date() },
   });
   return true;
-}
-
-/**
- * Defense-in-depth trip-wire for the B32 invariant: a leg reaching this
- * service's CANCEL/FAIL_BOUNCE path is always sourced from PENDING/PROCESSING,
- * and `cashDrawerWiringHandler.canHandle` (post-B32) only ever creates a
- * movement for an effective-COMPLETED leg — so an existing movement here
- * should be structurally unreachable. If one is ever found, this does NOT
- * auto-reverse it (no silent money mutation); it logs loudly so it surfaces
- * in ops monitoring and the CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT
- * reconciliation check.
- */
-async function warnIfOrphanMovementExistsTx(
-  tx: PrismaTransactionClient,
-  tenantId: string,
-  paymentId: string,
-  orderId: string,
-): Promise<void> {
-  const existing = await tx.org_cash_drawer_movements_dtl.findFirst({
-    where: { tenant_org_id: tenantId, order_payment_id: paymentId, movement_type: 'CASH_SALE' },
-    select: { id: true },
-  });
-  if (existing) {
-    logger.warn(
-      'B30 CANCEL/FAIL_BOUNCE found an existing cash-drawer movement on a PENDING/PROCESSING leg — structurally unexpected post-B32; flagged for manual reconciliation, no automatic reversal performed',
-      { paymentId, orderId, movementId: existing.id },
-    );
-  }
 }
 

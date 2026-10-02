@@ -154,20 +154,12 @@
     "openingFloat": "رصيد الفتح",
     "cashCollected": "النقد المحصل",
     "expectedCash": "النقد المتوقع",
-    "countedCashPreview": "النقد المعدود",
     "variance": "الفرق",
-    "movementContext": "سياق حركات درج النقد",
     "cashInMovements": "نقد داخل",
     "cashOutMovements": "نقد خارج",
-    "netMovements": "صافي الحركة",
     "paymentRows": "صفوف المدفوعات",
-    "movementRows": "صفوف الحركات",
-    "movementContextHelp": "تظهر حركات الدرج كسياق تدقيق؛ تستخدم خطوة إغلاق نقطة البيع هذه إجمالي مدفوعات النقد المرتبطة لحساب النقد المتوقع.",
-    "expectedCashHelp": "النقد المتوقع هنا يطابق حساب واجهة إغلاق درج النقد الحالية: رصيد الفتح زائد مدفوعات النقد المرتبطة.",
     "summaryLoading": "جاري تحميل إجماليات تسوية الدرج...",
-    "summaryUnavailable": "تعذر تحميل إجماليات الدرج. يمكنك متابعة العد والإغلاق، وسيقوم الخادم بالتحقق من الإغلاق.",
-    "notCountedYet": "لم يتم العد بعد",
-    "notesVariancePlaceholder": "أضف ملاحظات تشرح الفرق"
+    "notCountedYet": "لم يتم العد بعد"
   },
   "messages": {
     "copyFailed": "تعذّر النسخ إلى الحافظة.",

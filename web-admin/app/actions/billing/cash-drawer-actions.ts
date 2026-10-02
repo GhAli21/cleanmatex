@@ -11,10 +11,9 @@
  * — the drawer overview screen now opens/closes through the CLF two-step
  * lifecycle routes directly (`CashDrawerOpenSessionDialog` /
  * `CashDrawerCloseWizard`, calling `/api/v1/cash-drawers/.../open-session-v2`
- * and `.../close/count` + `.../close/finalize`), not these actions. The
- * underlying legacy `openSession`/`closeSession` in `cash-drawer.service.ts`
- * are unmodified and still serve Payment Modal V4's own `open-session` call
- * directly — retiring them is a separate M10/R3 item.
+ * and `.../close/count` + `.../close/finalize`), as does Payment Modal V4 for
+ * its open-session step. CLF R3 deleted the legacy single-step
+ * `openSession`/`closeSession`/`approveSessionVariance`.
  *
  * CLF W15: every action checks the same permission its /api/v1/cash-drawers
  * route counterpart enforces (server actions are callable directly, so a UI

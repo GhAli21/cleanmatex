@@ -88,7 +88,7 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       {
         label: 'Open a cash-drawer session (tender step)',
         method: 'POST',
-        path: '/api/v1/cash-drawers/[drawerId]/open-session',
+        path: '/api/v1/cash-drawers/[drawerId]/open-session-v2',
         requirement: {
           permissions: ['cash_drawer:open_session'],
           requireAllPermissions: true,

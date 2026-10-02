@@ -1,5 +1,5 @@
 /**
- * Tests: stored-value-funding-wiring.handler + stored-value-cash-drawer-wiring.handler (B3)
+ * Tests: stored-value-funding-wiring.handler (B3). Cash legs need no handler — the ledger gate stamps them.
  */
 
 const mockFinalize = jest.fn();
@@ -8,7 +8,6 @@ jest.mock('@/lib/services/stored-value-funding.service', () => ({
 }));
 
 import { storedValueFundingWiringHandler } from '@/lib/services/wiring/stored-value-funding-wiring.handler';
-import { storedValueCashDrawerWiringHandler } from '@/lib/services/wiring/stored-value-cash-drawer-wiring.handler';
 import type { VoucherLineForWiring } from '@/lib/types/voucher-wiring';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
@@ -136,81 +135,5 @@ describe('storedValueFundingWiringHandler', () => {
     await expect(
       storedValueFundingWiringHandler.validate(makeFundingLine({ payment_method_code: null })),
     ).rejects.toThrow(/missing payment_method_code/);
-  });
-});
-
-describe('storedValueCashDrawerWiringHandler', () => {
-  it('canHandle requires CASH + a bound drawer session on a funding line', () => {
-    expect(
-      storedValueCashDrawerWiringHandler.canHandle(
-        makeFundingLine({ payment_method_code: 'CASH', cash_drawer_session_id: 'session-1' }),
-      ),
-    ).toBe(true);
-    expect(
-      storedValueCashDrawerWiringHandler.canHandle(makeFundingLine({ payment_method_code: 'CARD' })),
-    ).toBe(false);
-    expect(
-      storedValueCashDrawerWiringHandler.canHandle(
-        makeFundingLine({ payment_method_code: 'CASH', cash_drawer_session_id: null }),
-      ),
-    ).toBe(false);
-  });
-
-  it('creates one net SV_FUNDING_TENDER movement linked to funding_tender_id and no CASH_OUT for change', async () => {
-    const sessionFindFirst = jest.fn().mockResolvedValue({
-      id: 'session-1',
-      cash_drawer_id: 'drawer-1',
-      branch_id: 'branch-1',
-      currency_code: 'OMR',
-    });
-    const movementCreate = jest.fn().mockResolvedValue({ id: 'movement-001' });
-    const tx = {
-      org_cash_drawer_sessions_mst: { findFirst: sessionFindFirst },
-      org_cash_drawer_movements_dtl: { create: movementCreate },
-    };
-    const line = makeFundingLine({
-      payment_method_code: 'CASH',
-      cash_drawer_session_id: 'session-1',
-      sv_funding_tender_id: 'tender-001',
-      amount: 20 as never,
-      tendered_amount: 25 as never,
-      change_returned_amount: 5 as never,
-    });
-
-    const movementId = await storedValueCashDrawerWiringHandler.wire(line, VOUCHER_ID, TENANT, USER_ID, tx as never);
-
-    expect(movementId).toBe('movement-001');
-    expect(movementCreate).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        data: expect.objectContaining({
-          movement_type: 'SV_FUNDING_TENDER',
-          direction: 'IN',
-          amount: 20,
-          fin_voucher_id: VOUCHER_ID,
-          fin_voucher_trx_line_id: line.id,
-          funding_tender_id: 'tender-001',
-        }),
-      }),
-    );
-    // Change is already netted out of `amount`; a CASH_OUT row would subtract it twice.
-    expect(movementCreate).toHaveBeenCalledTimes(1);
-  });
-
-  it('throws when the cash drawer session is not found or not OPEN', async () => {
-    const tx = {
-      org_cash_drawer_sessions_mst: { findFirst: jest.fn().mockResolvedValue(null) },
-      org_cash_drawer_movements_dtl: { create: jest.fn() },
-    };
-
-    await expect(
-      storedValueCashDrawerWiringHandler.wire(
-        makeFundingLine({ cash_drawer_session_id: 'session-missing' }),
-        VOUCHER_ID,
-        TENANT,
-        USER_ID,
-        tx as never,
-      ),
-    ).rejects.toThrow(/not found or not OPEN/);
   });
 });

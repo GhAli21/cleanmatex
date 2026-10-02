@@ -30,7 +30,6 @@ const mockOutboxCreate = jest.fn();
 const mockQueryRaw = jest.fn();
 const mockRecalculateSnapshot = jest.fn();
 const mockCashDrawerSessionFindFirst = jest.fn();
-const mockCashDrawerMovementFindFirst = jest.fn();
 const mockAssertOpenPosSession = jest.fn().mockResolvedValue(null);
 
 const mockCreateBizVoucher = jest.fn();
@@ -127,7 +126,6 @@ function installTxMock() {
       org_order_credit_apps_dtl: { findFirst: mockCreditAppFindFirst },
       org_domain_events_outbox: { create: mockOutboxCreate },
       org_cash_drawer_sessions_mst: { findFirst: mockCashDrawerSessionFindFirst },
-      org_cash_drawer_movements_dtl: { findFirst: mockCashDrawerMovementFindFirst },
       // B14 — issueCorrectionTaxDocumentTx no-ops when there's no ISSUED
       // original tax document (the case for every tenant today).
       org_tax_documents_mst: { findFirst: jest.fn().mockResolvedValue(null) },
@@ -153,7 +151,6 @@ beforeEach(() => {
   mockAddVoucherLine.mockResolvedValue({ id: 'line-b9', line_no: 1 });
   mockPostAndWireBizVoucher.mockResolvedValue({ voucherId: 'vch-b9', fromCache: false });
   mockCashDrawerSessionFindFirst.mockResolvedValue({ id: DRAWER_SESSION });
-  mockCashDrawerMovementFindFirst.mockResolvedValue({ id: 'mvt-b9' });
 });
 
 describe('processRefund — CLF W4: CASH refunds always execute (no record-only cash path)', () => {
@@ -209,7 +206,7 @@ describe('processRefund — CASH destination execution', () => {
     expect(mockRefundUpdate).not.toHaveBeenCalled();
   });
 
-  it('creates a REFUND_VOUCHER wired to a CASH_OUT movement and backfills lineage', async () => {
+  it('creates a REFUND_VOUCHER with a CASH_OUT line stamped by the ledger gate and backfills lineage', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue(makeApprovedRefund({ refund_amount: new Decimal('30') }));
 
     await processRefund(TENANT, REFUND, PROCESSOR, {
@@ -255,7 +252,6 @@ describe('processRefund — CASH destination execution', () => {
         data: expect.objectContaining({
           fin_voucher_id: 'vch-b9',
           fin_voucher_trx_line_id: 'line-b9',
-          cash_drawer_movement_id: 'mvt-b9',
         }),
       }),
     );

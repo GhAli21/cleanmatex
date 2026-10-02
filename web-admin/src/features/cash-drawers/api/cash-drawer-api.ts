@@ -24,8 +24,6 @@ export interface CashDrawerWithCurrentSession {
   drawer_name2: string | null
   drawer_type: string
   currency_code: string
-  requires_session: boolean
-  opening_float_required: boolean
   max_cash_limit: number | null
   assigned_terminal_id: string | null
   is_active: boolean

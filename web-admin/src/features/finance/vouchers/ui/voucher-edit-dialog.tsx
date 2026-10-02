@@ -265,7 +265,6 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
         created_at:            new Date(),
         credit_application_type: input.credit_application_type ?? null,
         order_payment_id:        null,
-        cash_drawer_mvt_id:      null,
         org_payment_method_id:   input.org_payment_method_id ?? null,
         payment_terminal_id:     input.payment_terminal_id ?? null,
         cash_drawer_session_id:  input.cash_drawer_session_id ?? null,

@@ -474,12 +474,66 @@ export interface SessionLedgerTotals {
 }
 
 /**
+ * What the count step froze for one session in one currency
+ * (`org_cash_drawer_ses_bal_dtl.closing_*`). Present once the count step ran
+ * (CLOSING) and for every closed session — a legacy session carries the figures
+ * the old single-step close recorded (backfilled by M9).
+ */
+export interface SessionClosingFigures {
+  expected: Decimal;
+  counted: Decimal | null;
+  variance: Decimal | null;
+}
+
+/**
+ * Loads the frozen closing figures of a batch of sessions for ONE currency each
+ * (the session's own currency — what the single-currency screens display).
+ * Sessions that never reached the count step are simply absent from the map.
+ * @param tenantOrgId tenant of the sessions
+ * @param sessions sessions to look up, each with the currency to read
+ */
+export async function loadSessionClosingFigures(
+  tenantOrgId: string,
+  sessions: ReadonlyArray<{ id: string; currency_code: string | null }>,
+): Promise<Map<string, SessionClosingFigures>> {
+  const result = new Map<string, SessionClosingFigures>();
+  if (sessions.length === 0) return result;
+
+  const currencyById = new Map(sessions.map((session) => [session.id, session.currency_code]));
+  const rows = await withTenantContext(tenantOrgId, () =>
+    prisma.org_cash_drawer_ses_bal_dtl.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        cash_drawer_session_id: { in: [...currencyById.keys()] },
+        closing_expected: { not: null },
+      },
+      select: {
+        cash_drawer_session_id: true,
+        currency_code: true,
+        closing_expected: true,
+        closing_counted: true,
+        closing_variance: true,
+      },
+    }),
+  );
+
+  for (const row of rows) {
+    if (row.currency_code !== currencyById.get(row.cash_drawer_session_id)) continue;
+    result.set(row.cash_drawer_session_id, {
+      expected: new Decimal(row.closing_expected!.toString()),
+      counted: row.closing_counted == null ? null : new Decimal(row.closing_counted.toString()),
+      variance: row.closing_variance == null ? null : new Decimal(row.closing_variance.toString()),
+    });
+  }
+  return result;
+}
+
+/**
  * Sums a batch of sessions' own ledger activity (CLF-6-1), keyed by
  * `cash_drawer_session_id` directly — no `open_ledger_seq`/chain math needed,
  * since the gate stamps every posting's `cash_drawer_session_id` at write
  * time regardless of how the session itself was opened (works identically
- * for a session opened through the still-live legacy `openSession` route and
- * one opened through the CLF lifecycle). This is the session-summary
+ * for every session, whichever screen opened it). This is the session-summary
  * equivalent of {@link sumLedgerWindow}'s drawer-wide window sum.
  * @param tenantOrgId tenant of the sessions
  * @param sessionIds sessions to sum; returns an empty map for an empty input

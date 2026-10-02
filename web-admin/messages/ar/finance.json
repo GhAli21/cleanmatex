@@ -184,7 +184,7 @@
     "orderPaymentId": "معرّف دفعة الطلب",
     "orgPaymentMethodId": "معرّف طريقة الدفع",
     "paymentTerminalId": "معرّف جهاز الدفع",
-    "cashDrawerSessionId": "معرّف جلسة الصندوق",
+    "cashDrawerSessionId": "معرّف جلسة الدرج",
     "gatewayCode": "رمز البوابة",
     "gatewayTransactionId": "معرّف معاملة البوابة",
     "gatewayReference": "مرجع البوابة",
@@ -203,7 +203,7 @@
     "relatedOriginalVoucher": "السند الأصلي",
     "relatedReversalVoucher": "سند العكس",
     "refVoucher": "السند المرجعي",
-    "relatedCashDrawerSession": "جلسة الصندوق",
+    "relatedCashDrawerSession": "جلسة الدرج",
     "relatedRecords": "السجلات المرتبطة",
     "backToVouchers": "العودة إلى السندات",
     "reversedBy": "عُكس بواسطة",
@@ -220,7 +220,7 @@
     "linkedEffects": {
       "title": "التأثيرات التشغيلية المرتبطة",
       "orderPayments": "مدفوعات الطلبات",
-      "cashMovements": "قيود دفتر الصندوق النقدي",
+      "cashMovements": "قيود دفتر الدرج النقدي",
       "creditApplications": "تطبيقات الائتمان",
       "fundingTenders": "تمويل القيمة المخزّنة",
       "noEffects": "لا توجد تأثيرات مرتبطة.",
@@ -251,21 +251,21 @@
       "unwindTitle": "ستُفك هذه التأثيرات التشغيلية مع هذا العكس",
       "documentOnlyTitle": "عكس مستندي فقط — لن تُفك التأثيرات المرتبطة بينما علم الفكّ متوقف",
       "unknown": "تعذّر تحميل التأثيرات المرتبطة. ما زال العكس يتطلب سبباً.",
-      "none": "لا توجد مدفوعات أو ائتمانات أو قيود دفتر صندوق أو تمويلات مرتبطة.",
+      "none": "لا توجد مدفوعات أو ائتمانات أو قيود دفتر درج أو تمويلات مرتبطة.",
       "payments": "{count, plural, one {سيتم إبطال أو عكس دفعة طلب واحدة} other {سيتم إبطال أو عكس # دفعات طلب}}",
       "credits": "{count, plural, one {سيتم استعادة تطبيق ائتمان واحد إلى دفتر المصدر} other {سيتم استعادة # تطبيقات ائتمان إلى دفاتر المصدر}}",
-      "drawer": "{count, plural, one {يوجد قيد دفتر صندوق واحد مرتبط (يُعكس بقيد مقابل)} other {يوجد # قيود دفتر صندوق مرتبطة (تُعكس بقيود مقابلة)}}",
+      "drawer": "{count, plural, one {يوجد قيد دفتر درج واحد مرتبط (يُعكس بقيد مقابل)} other {يوجد # قيود دفتر درج مرتبطة (تُعكس بقيود مقابلة)}}",
       "funding": "{count, plural, one {سيتم استرداد تمويل قيمة مخزّنة واحد} other {سيتم استرداد # تمويلات قيمة مخزّنة}}"
     },
     "cashEffectCode": "أثر النقد",
-    "cashLedgerSeq": "تسلسل دفتر الصندوق",
+    "cashLedgerSeq": "تسلسل دفتر الدرج",
     "reversal": {
       "linesTitle": "البنود المراد عكسها",
       "linesHint": "جميع البنود المتبقية محددة. ألغِ تحديد بند للإبقاء عليه مرحَّلًا (عكس جزئي).",
       "lineLabel": "البند {lineNo} · {role} · {amount} {currency}",
       "noneSelected": "حدّد بندًا واحدًا على الأقل للعكس.",
       "confirmPartial": "{count, plural, one {عكس بند واحد} other {عكس # بنود}}",
-      "placementExplain": "تعذّر على صندوق النقد استلام هذا المبلغ. اختر صندوقًا لتسجيل عكس النقد فيه."
+      "placementExplain": "تعذّر على درج النقد استلام هذا المبلغ. اختر درجًا لتسجيل عكس النقد فيه."
     }
   }
 }

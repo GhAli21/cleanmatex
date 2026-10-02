@@ -168,21 +168,6 @@ export const CASH_DRAWER_SESSION_STATUSES = {
 } as const;
 export type CashDrawerSessionStatus = (typeof CASH_DRAWER_SESSION_STATUSES)[keyof typeof CASH_DRAWER_SESSION_STATUSES];
 
-export const CASH_DRAWER_MOVEMENT_TYPES = {
-  OPENING_FLOAT:  'OPENING_FLOAT',
-  CASH_SALE:      'CASH_SALE',
-  CASH_REFUND:    'CASH_REFUND',
-  CASH_IN:        'CASH_IN',
-  CASH_OUT:       'CASH_OUT',
-  CASH_DROP:      'CASH_DROP',
-  CLOSING_COUNT:  'CLOSING_COUNT',
-  SHORTAGE:       'SHORTAGE',
-  OVERAGE:        'OVERAGE',
-  ADJUSTMENT:     'ADJUSTMENT',
-  PAYMENT_REVERSAL: 'PAYMENT_REVERSAL',
-} as const;
-export type CashDrawerMovementType = (typeof CASH_DRAWER_MOVEMENT_TYPES)[keyof typeof CASH_DRAWER_MOVEMENT_TYPES];
-
 export const MOVEMENT_DIRECTIONS = {
   IN:   'IN',
   OUT:  'OUT',

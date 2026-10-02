@@ -23,7 +23,7 @@ Permission seeding and role mapping are separate. Do not silently grant `orders:
 
 Each new route must use current authentication, tenant context, permission and CSRF conventions. Browser-hidden controls are not authorization.
 
-Server tenant selection must prove active membership. `web-admin/lib/auth/server-auth.ts:47` treats user metadata as a selected-tenant hint and verifies it against `get_user_tenants()` before deriving the tenant. Reuse that membership proof, not the metadata value alone. Actor is the authenticated user, not a submitted override/actor UUID. Preview and Apply both enforce current permission; Apply rechecks authorization/policy after obtaining the shared order lock.
+Server tenant selection must prove active server-controlled membership. `web-admin/lib/auth/server-auth.ts:47` treats user metadata as a selected-tenant hint and verifies it against `get_user_tenants()` before deriving the tenant. This lookup requires membership integrity: current org_users_mst grants/policy permit ordinary self-row writes, so lookup alone is not sufficient security proof. Actor is the authenticated user, not a submitted override/actor UUID. Preview and Apply both enforce current permission; Apply rechecks authorization/policy after obtaining the shared order lock.
 
 ## 4. Target hierarchy
 
@@ -31,7 +31,7 @@ Every persisted ID is validated as belonging to the authenticated tenant and sam
 
 ## 5. RLS
 
-RLS is defense in depth, not a replacement for explicit tenant predicates. New Change rows are readable by authorized tenant context but not directly writable by ordinary clients.
+RLS is defense in depth, not a replacement for explicit tenant predicates. Initial WP02 objects deny ordinary-role direct reads and writes. Later authorized history uses a reviewed server endpoint or separately proven membership-safe SELECT policy; neither is implemented here.
 
 ### Confirmed current security gaps and required closure
 
@@ -50,6 +50,14 @@ Supabase explicitly documents that user metadata is user-editable and unsafe as 
 For every new/replaced SECURITY DEFINER function: justify the privilege boundary, schema-qualify references, set a reviewed fixed search_path, explicitly revoke PUBLIC/ordinary EXECUTE, grant only intended roles and enforce tenant/actor authority inside any user-callable command. Audit effective privileges, including inherited/default grants, not merely explicit GRANT text. Normal backend queries still need visible tenant predicates.
 
 WP02 must design new-object grants and avoid copying the unsafe helper as a trusted membership proof. WP17 owns writer/RPC closure; WP18 owns real role/claim/direct-access proof; WP19 pilot/cutover remains blocked until these confirmed gaps are closed for enabling scope. Catalog inspection as postgres cannot pass those runtime gates.
+
+### WP02 creation-time boundary
+
+[Tenant Security Preflight](WP02_Tenant_Security_Preflight.md) owns exact current role/default ACL/RPC evidence. Membership integrity is a platform dependency: org_users_mst permissive ALL self-row policy and ordinary INSERT/UPDATE/DELETE grants persist; cmx_can has membership-role admin bypass. A new EXISTS/get_user_tenants lookup over writable membership is insufficient. No exploit was executed. Close and prove the dependency without indiscriminately changing existing policies in WP02.
+
+NEW0548 sets postgres ownership, enables RLS with no ordinary policies, revokes ALL table rights from PUBLIC/anon/authenticated/service_role, then grants only service_role SELECT/INSERT. Normal owner/BYPASSRLS UPDATE/DELETE/TRUNCATE is rejected by immutable-history triggers. No role-claim GUC exemption or user-callable definer function is introduced. Trigger functions are SECURITY INVOKER with fixed pg_catalog search_path and ordinary EXECUTE revoked. Later service-role/Prisma queries require server-derived tenant/actor and explicit tenant predicates. Configured Prisma postgres role is configuration, not deployed runtime proof. Owner/DBA schema administration remains a separately audited limitation.
+
+Initial commitment stamping and edit_state_version/direct commercial writes on existing order tables are not privilege-closed by new-object revokes. Their mixed Create/Workflow/Finance ownership must be secured and tested before V2 enablement in WP17/WP18.0547/0548 are now operator-applied; read-only catalogs prove new-object ACLs/RLS/guards match the reviewed default-deny design. Global membership integrity/runtime authorization remains unproven. The agent applied no migration.
 
 ## 6. Immutable facts
 

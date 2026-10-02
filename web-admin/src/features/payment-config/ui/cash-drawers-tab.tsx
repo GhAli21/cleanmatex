@@ -166,19 +166,6 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
       ),
     },
     {
-      key: 'requirements',
-      header: t('cashDrawers.requirements'),
-      render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => (
-        <div className="flex flex-wrap gap-1">
-          {d.requires_session && <Badge variant="secondary">{t('cashDrawers.requiresSession')}</Badge>}
-          {d.opening_float_required && <Badge variant="secondary">{t('cashDrawers.openingFloatRequired')}</Badge>}
-          {!d.requires_session && !d.opening_float_required && (
-            <span className="text-xs text-muted-foreground">—</span>
-          )}
-        </div>
-      ),
-    },
-    {
       key: 'assignedTerminal',
       header: t('cashDrawers.assignedTerminal'),
       render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => {

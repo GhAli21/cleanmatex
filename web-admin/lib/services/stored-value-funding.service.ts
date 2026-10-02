@@ -134,9 +134,9 @@ export interface FundStoredValueResult {
  * Fund a gift-card sale, wallet top-up, or customer-advance receipt with a
  * real tender. Opens its own transaction (mirrors collectPaymentTx) covering
  * target resolution, the BVM voucher + lines, and posting/wiring — the
- * wiring handlers registered for these 3 line roles (stored-value-funding-wiring.handler.ts,
- * stored-value-cash-drawer-wiring.handler.ts) create the tender-leg rows and
- * credit the ledger exactly once, within the same transaction.
+ * wiring handler registered for these 3 line roles (stored-value-funding-wiring.handler.ts)
+ * creates the tender-leg rows and credits the ledger exactly once, within the same
+ * transaction; a cash leg's drawer effect is stamped by the cash-drawer ledger gate.
  */
 export async function fundStoredValue(params: FundStoredValueParams): Promise<FundStoredValueResult> {
   const {
@@ -433,10 +433,9 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
       if (rounding) plannedRoundings.push({ rounding, resolved, paymentLineId: paymentLine.id });
     }
 
-    // 4. Post + wire — dispatches to stored-value-funding-wiring.handler.ts /
-    //    stored-value-cash-drawer-wiring.handler.ts, which create the tender
-    //    rows, credit the ledger exactly once via finalizeStoredValueFundingIfReady,
-    //    and create drawer movements for cash legs.
+    // 4. Post + wire — dispatches to stored-value-funding-wiring.handler.ts,
+    //    which creates the tender rows and credits the ledger exactly once via
+    //    finalizeStoredValueFundingIfReady; cash legs are stamped by the ledger gate.
     await postAndWireBizVoucher(tenantId, voucher.id, performedBy, CASH_GATE_MODES.INTERACTIVE, `${idempotencyKey}_vch_post`, tx);
 
     // Cash change rounding gap (A6-1b) — the payment line now carries its drawer session.

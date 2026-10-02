@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
           r.openingFloatAmount,
           r.netMovementAmount,
           r.computedExpectedAmount,
-          r.headerExpectedAmount,
+          r.headerExpectedAmount ?? '',
           r.expectedDelta,
           r.countedCashAmount ?? '',
           r.differenceAmount ?? '',

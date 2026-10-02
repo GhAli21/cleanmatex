@@ -154,20 +154,12 @@
     "openingFloat": "Opening float",
     "cashCollected": "Cash collected",
     "expectedCash": "Expected cash",
-    "countedCashPreview": "Counted cash",
     "variance": "Variance",
-    "movementContext": "Drawer movement context",
     "cashInMovements": "Cash in",
     "cashOutMovements": "Cash out",
-    "netMovements": "Net movement",
     "paymentRows": "Payment rows",
-    "movementRows": "Movement rows",
-    "movementContextHelp": "Movement rows are shown for audit context; this POS close step uses the linked cash payment total for expected cash.",
-    "expectedCashHelp": "Expected cash here mirrors the current cash-drawer close API calculation: opening float plus linked cash payments.",
     "summaryLoading": "Loading drawer reconciliation totals...",
-    "summaryUnavailable": "Drawer totals could not be loaded. You can still count and close; the server will validate the close.",
-    "notCountedYet": "Not counted yet",
-    "notesVariancePlaceholder": "Add notes explaining the variance"
+    "notCountedYet": "Not counted yet"
   },
   "messages": {
     "copyFailed": "Could not copy to clipboard.",

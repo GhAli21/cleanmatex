@@ -8,7 +8,17 @@
 
 ---
 
-## ▶ NOW — 2026-10-02 — CLF-6 readers mostly done (D46); finish CLF-6-4/6-6, then continue CLF-8
+## ▶ NOW — 2026-10-02 — R3 code retired, M10 written (D55)
+
+**Done, gated green (eslint, tsc, `check:i18n`, full jest 361 suites / 3319 tests, `npm run build`, 13/13 cash-drawer DB-integration):** the legacy single-step close/open, the five mirror handlers, `cash-drawer-cash-facts`, the legacy open-session route and every code reference to the retired movement links are gone; readers use the balance-row figures; M9 `0549` verified on remote. Full narrative: STATUS D55.
+
+**STOP-AND-WAIT:** `supabase/migrations/0550_clf_retire_legacy_cash_model.sql` (M10) is written, not applied. Owner: review → apply local + remote → regenerate Prisma + types → tell me. After that I run the post-apply checks listed at the end of the file and continue with CLF-8-15, the CLF-9 test matrix (incl. a DB-integration test for the placement override), CLF-10 exit gates + `/security-review`, then Waves B → E → close-out (`REMAINING_WORK.md`).
+
+**Known follow-ups (not blockers):** the 2 sessions stuck in `CLOSING` (drawers ac312993 / 65546cc7) need finishing or force-closing from the UI; cash refunds paid in cash are not yet rounded (A6-1b later slice); ERP-Lite GL dispatch for CASH_ROUND_LOSS/GAIN (A6-5).
+
+---
+
+## ✅ 2026-10-02 (superseded by ▶ NOW above) — CLF-6 readers mostly done (D46); finish CLF-6-4/6-6, then continue CLF-8
 
 ### D46 — CLF-6 readers, this pass's exact state
 

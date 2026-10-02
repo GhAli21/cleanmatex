@@ -38,16 +38,6 @@ export function CashDrawerSessionCard({ session, drawer, open, onClose }: CashDr
       ? `${amount.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ${session.currency_code}`
       : '—';
 
-  const differenceAmount = session.difference_amount;
-  const diffColor =
-    differenceAmount == null
-      ? ''
-      : differenceAmount > 0
-      ? 'text-green-600'
-      : differenceAmount < 0
-      ? 'text-destructive'
-      : 'text-muted-foreground';
-
   return (
     <CmxDialog open={open} onOpenChange={(v) => !v && onClose()}>
       <CmxDialogContent className="max-w-sm">
@@ -69,27 +59,6 @@ export function CashDrawerSessionCard({ session, drawer, open, onClose }: CashDr
             label={t('cashDrawers.openingFloat')}
             value={formatAmount(session.opening_float_amount)}
           />
-          <CashDrawerSessionRow
-            label={t('cashDrawers.expectedCash')}
-            value={formatAmount(session.expected_cash_amount)}
-          />
-          {session.counted_cash_amount != null && (
-            <CashDrawerSessionRow
-              label={t('cashDrawers.countedCash')}
-              value={formatAmount(session.counted_cash_amount)}
-            />
-          )}
-          {differenceAmount != null && (
-            <CashDrawerSessionRow
-              label={t('cashDrawers.difference')}
-              value={
-                <span className={diffColor}>
-                  {differenceAmount >= 0 ? '+' : ''}
-                  {formatAmount(differenceAmount)}
-                </span>
-              }
-            />
-          )}
         </div>
 
         <CmxDialogFooter>

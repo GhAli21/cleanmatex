@@ -28,6 +28,7 @@
     "sessionClosed": "The selected cash drawer session is no longer open. Refresh and choose another session.",
     "sessionOpened": "Cash drawer session opened successfully.",
     "openFailed": "The cash drawer session could not be opened. Try again.",
+    "alreadyOpen": "This cash drawer already has an open session. Pick it from the list.",
     "selectDrawer": "Select the cash drawer that should be opened."
   }
 }

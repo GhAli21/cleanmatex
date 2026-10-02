@@ -3,13 +3,13 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-10-02T06:31:45.685Z
+Generated: 2026-10-02T17:47:18.647Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 294 |
+| api | 293 |
 | middleware | 4 |
 | screen | 70 |
 | service | 1 |
@@ -90,8 +90,7 @@ Generated: 2026-10-02T06:31:45.685Z
 | cash_drawer:count | api | app/api/v1/cash-drawers/[drawerId]/counts/route.ts | 29 | /api/v1/cash-drawers/[drawerId]/counts |
 | cash_drawer:count | api | app/api/v1/cash-drawers/[drawerId]/counts/route.ts | 68 | /api/v1/cash-drawers/[drawerId]/counts |
 | cash_drawer:open_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 80 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| cash_drawer:open_session | api | app/api/v1/cash-drawers/[drawerId]/open-session/route.ts | 25 | /api/v1/cash-drawers/[drawerId]/open-session |
-| cash_drawer:open_session | api | app/api/v1/cash-drawers/[drawerId]/open-session-v2/route.ts | 30 | /api/v1/cash-drawers/[drawerId]/open-session-v2 |
+| cash_drawer:open_session | api | app/api/v1/cash-drawers/[drawerId]/open-session-v2/route.ts | 28 | /api/v1/cash-drawers/[drawerId]/open-session-v2 |
 | cash_drawer:post_close_update | screen | src/features/cash-drawers/ui/cash-drawer-follow-up-screen.tsx | 43 | src/features/cash-drawers/ui/cash-drawer-follow-up-screen.tsx |
 | cash_drawer:post_close_update | screen | src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx | 47 | src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx |
 | cash_drawer:post_close_update | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close/route.ts | 26 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close |
@@ -242,7 +241,7 @@ Generated: 2026-10-02T06:31:45.685Z
 | notifications:view_log | api | app/api/v1/notifications/delivery-log/route.ts | 19 | /api/v1/notifications/delivery-log |
 | orders:apply_credit | screen | src/features/orders/ui/payment-full-view.tsx | 1420 | src/features/orders/ui/payment-full-view.tsx |
 | orders:apply_credit | api | app/api/v1/orders/[id]/credit-applications/route.ts | 35 | /api/v1/orders/[id]/credit-applications |
-| orders:approve_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 161 | src/features/billing/ui/refunds-list-client.tsx |
+| orders:approve_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 160 | src/features/billing/ui/refunds-list-client.tsx |
 | orders:approve_refund | api | app/api/v1/orders/refunds/[refundId]/approve/route.ts | 19 | /api/v1/orders/refunds/[refundId]/approve |
 | orders:cancel_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 73 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 76 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
@@ -267,7 +266,7 @@ Generated: 2026-10-02T06:31:45.685Z
 | orders:pending_payments_view | api | app/api/v1/finance/pending-payments/route.ts | 21 | /api/v1/finance/pending-payments |
 | orders:post_settlement_edit | api | app/api/v1/orders/recalc-preference-charges/route.ts | 24 | /api/v1/orders/recalc-preference-charges |
 | orders:post_settlement_edit | api | app/api/v1/orders/[id]/edit-history/[editHistoryId]/settlement/route.ts | 34 | /api/v1/orders/[id]/edit-history/[editHistoryId]/settlement |
-| orders:process_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 162 | src/features/billing/ui/refunds-list-client.tsx |
+| orders:process_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 161 | src/features/billing/ui/refunds-list-client.tsx |
 | orders:process_refund | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 90 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:process_refund | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 33 | /api/v1/orders/refunds/[refundId]/process |
 | orders:process_refund | api | app/api/v1/orders/[id]/refund/route.ts | 65 | /api/v1/orders/[id]/refund |

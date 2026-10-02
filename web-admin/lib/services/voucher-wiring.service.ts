@@ -34,14 +34,9 @@ import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.ser
 import { validateStatusTransition, validateVoucherForPosting } from './voucher-validation.service';
 import { orderPaymentWiringHandler } from './wiring/order-payment-wiring.handler';
 import { orderCreditApplicationWiringHandler } from './wiring/order-credit-application-wiring.handler';
-import { cashDrawerWiringHandler } from './wiring/cash-drawer-wiring.handler';
 import { invoicePaymentWiringHandler } from './wiring/invoice-payment-wiring.handler';
 import { statementPaymentWiringHandler } from './wiring/statement-payment-wiring.handler';
 import { storedValueFundingWiringHandler } from './wiring/stored-value-funding-wiring.handler';
-import { storedValueCashDrawerWiringHandler } from './wiring/stored-value-cash-drawer-wiring.handler';
-import { orderRefundCashDrawerWiringHandler } from './wiring/order-refund-cash-drawer-wiring.handler';
-import { customerReceiptCashDrawerWiringHandler } from './wiring/customer-receipt-cash-drawer-wiring.handler';
-import { cashMovementCashDrawerWiringHandler } from './wiring/cash-movement-cash-drawer-wiring.handler';
 import type {
   VoucherLineForWiring,
   WiringHandler,
@@ -52,26 +47,14 @@ import type {
   LineLinkedEffectResult,
 } from '@/lib/types/voucher-wiring';
 
+// Cash never needs a handler: the cash-drawer ledger gate stamps every cash line (CLF) and
+// the line's own stamp is its drawer effect. Only the non-cash operational effects are wired here.
 const WIRING_HANDLERS: WiringHandler[] = [
   orderPaymentWiringHandler,
   invoicePaymentWiringHandler,
   statementPaymentWiringHandler,
   orderCreditApplicationWiringHandler,
-  // B3 — must run before storedValueCashDrawerWiringHandler (writes
-  // line.sv_funding_tender_id, read by the handler immediately after it).
   storedValueFundingWiringHandler,
-  cashDrawerWiringHandler,
-  storedValueCashDrawerWiringHandler,
-  // B9 — CASH refund execution OUT movement. Independent of the ORDER_PAYMENT/IN
-  // handlers above (matches ORDER_REFUND/OUT lines only); position is arbitrary
-  // relative to them but kept adjacent to cashDrawerWiringHandler for readability.
-  orderRefundCashDrawerWiringHandler,
-  // CLF W6 — temporary legacy mirror for customer account receipts (one net
-  // CASH_SALE IN). Retired in CLF R3 with the three mirrors above (W13).
-  customerReceiptCashDrawerWiringHandler,
-  // CLF W11 — temporary legacy mirror for the drawer Cash in/Cash out dialog.
-  // Retired in CLF R3 with the mirrors above (W13).
-  cashMovementCashDrawerWiringHandler,
 ];
 
 const LINE_SELECT = {
@@ -98,7 +81,6 @@ const LINE_SELECT = {
   change_returned_amount:  true,
   credit_application_type: true,
   order_payment_id:        true,
-  cash_drawer_mvt_id:      true,
   sv_funding_tender_id:    true,
   card_brand_code:         true,
   card_last4:              true,

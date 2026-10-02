@@ -2,7 +2,7 @@
  * Types for the BVM (Business Voucher Module) wiring layer.
  *
  * Wiring connects posted voucher transaction lines to their operational effects
- * (org_order_payments_dtl, org_order_credit_apps_dtl, org_cash_drawer_movements_dtl).
+ * (org_order_payments_dtl, org_order_credit_apps_dtl, org_sv_funding_tenders_dtl).
  * Each handler implements WiringHandler. The orchestrator (voucher-wiring.service.ts)
  * runs handlers in a single DB transaction immediately after voucher posting.
  */
@@ -12,10 +12,9 @@ import type { Prisma } from '@prisma/client';
 /**
  * Minimal line projection loaded by the wiring orchestrator.
  * All fields the handlers need to produce their operational effect.
- * The orchestrator mutates order_payment_id and cash_drawer_mvt_id
+ * The orchestrator mutates order_payment_id
  * in-memory after each successful wire() call so subsequent handlers
- * can read them (e.g. cash drawer handler reads order_payment_id set
- * by the order payment handler).
+ * can read it.
  */
 export interface VoucherLineForWiring {
   id: string;
@@ -40,12 +39,9 @@ export interface VoucherLineForWiring {
   change_returned_amount: Prisma.Decimal | null;
   /** Sub-type for ORDER_CREDIT_APPLICATION: WALLET, GIFT_CARD, CUSTOMER_ADVANCE, CREDIT_NOTE, LOYALTY_CREDIT */
   credit_application_type: string | null;
-  /** Populated after orderPaymentWiringHandler runs — read by cashDrawerWiringHandler for FK */
+  /** Populated after orderPaymentWiringHandler runs. */
   order_payment_id: string | null;
-  /** Populated after cashDrawerWiringHandler runs */
-  cash_drawer_mvt_id: string | null;
-  /** B3 — populated after stored-value-funding-wiring.handler.ts runs; read by
-   *  stored-value-cash-drawer-wiring.handler.ts as a FK for cash legs. */
+  /** B3 — populated after stored-value-funding-wiring.handler.ts runs. */
   sv_funding_tender_id: string | null;
   card_brand_code: string | null;
   card_last4: string | null;
@@ -91,7 +87,6 @@ export interface LinkedEffect {
   effectId: string;
   tableRef:
     | 'org_order_payments_dtl'
-    | 'org_cash_drawer_movements_dtl'
     | 'org_fin_voucher_trx_lines_dtl'
     | 'org_order_credit_apps_dtl'
     | 'org_invoice_payments_dtl'

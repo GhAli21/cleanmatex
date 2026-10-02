@@ -4,5 +4,6 @@
   "reporting_currency": "Reporting Currency",
   "exchange_rate": "Exchange Rate",
   "multi_currency": "Multi-Currency",
-  "cash_disposition": "Disposition"
+  "cash_disposition": "Disposition",
+  "cash_drawer": "Cash Drawer"
 }

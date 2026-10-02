@@ -967,20 +967,11 @@ export async function processRefund(
 
         await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', CASH_GATE_MODES.INTERACTIVE, `refund-${refundId}-vch-post`, tx);
 
-        // Legacy link kept until CLF R3: the refund mirror handler (W13, retired
-        // in R3) still writes the drawer movement, and the AR reconciliation
-        // check (ar-checks.ts) expects CASH refunds to carry this id.
-        const movement = await tx.org_cash_drawer_movements_dtl.findFirst({
-          where: { fin_voucher_trx_line_id: line.id, tenant_org_id: tenantId },
-          select: { id: true },
-        });
-
         await tx.org_order_refunds_dtl.update({
           where: { id: refundId, tenant_org_id: tenantId },
           data: {
             fin_voucher_id:          voucher.id,
             fin_voucher_trx_line_id: line.id,
-            cash_drawer_movement_id: movement?.id ?? null,
           },
         });
       } else {

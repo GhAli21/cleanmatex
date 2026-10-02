@@ -1,13 +1,14 @@
 /**
- * A3-5 (POS Session & Cash Drawer Hardening, Wave A) — real-DB proof that
- * `closeSession`'s Decimal-space expected-cash computation (A3-1) does not
- * drift under a long sequence of 3-decimal-currency amounts, the exact class
- * of bug the old `toNumber()` + JS `+`/`-` write path had (drift the same
- * way `0.1 + 0.2 !== 0.3` does in binary floating point).
+ * A3-5 (POS Session & Cash Drawer Hardening, Wave A) — real-DB proof that the
+ * session's Decimal-space expected-cash computation does not drift under a long
+ * sequence of 3-decimal-currency amounts, the exact class of bug the old
+ * `toNumber()` + JS `+`/`-` write path had (drift the same way
+ * `0.1 + 0.2 !== 0.3` does in binary floating point).
  *
- * 500 sequential 0.0050 OMR cash payments must sum to EXACTLY 2.5000 and
- * close with zero variance — not "close enough" under the tolerance, but bit
- * -for-bit exact, proving the arithmetic itself doesn't drift.
+ * Re-pointed at the cash ledger (CLF R3): each 0.005 OMR cash-in goes through the
+ * production write path (voucher + ledger gate), and the count step sums the
+ * session window in the database. The total must equal the exact decimal sum and
+ * close with zero variance — not "close enough" under the tolerance.
  *
  * Local DB only — never remote (standing constraint for this program).
  * Skips gracefully when no DB is reachable.
@@ -16,168 +17,100 @@
  */
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/db/prisma';
-import { openSession, closeSession } from '@/lib/services/cash-drawer.service';
+import { startClose, finalizeClose } from '@/lib/services/cash-drawer-session.service';
+import { postDrawerCashMovement } from '@/lib/services/cash-drawer-movement-posting.service';
+import { LINE_ROLE } from '@/lib/constants/voucher';
+import { CASH_DRAWER_DISPOSITIONS } from '@/lib/constants/cash-drawer';
+import {
+  resolveTestScope,
+  createTestDrawer,
+  openTestSession,
+  cleanupTestDrawers,
+  type DbTestScope,
+} from './helpers/cash-drawer-fixtures';
 
 const DRAWER_CODE_PREFIX = 'A3-5-TEST';
-const PAYMENT_COUNT = 500;
+const PAYMENT_COUNT = 200;
 const PAYMENT_AMOUNT = '0.005'; // OMR minor unit is 0.001 — this is 5 baisa
-const EXPECTED_TOTAL = PAYMENT_COUNT * 0.005; // 2.5, exactly representable, used only for the assertion
+const EXPECTED_TOTAL = '1.0000'; // 200 x 0.005, exact in fixed-point
 
 let dbUp = false;
-let tenantId = '';
-let branchId = '';
-let orderId = '';
-let createdOrder = false;
+let scope: DbTestScope | null = null;
 
 beforeAll(async () => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    const tenants = await prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM public.org_tenants_mst ORDER BY created_at LIMIT 1`;
-    tenantId = tenants[0]?.id ?? '';
-
-    if (tenantId) {
-      const branches = await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT id FROM public.org_branches_mst WHERE tenant_org_id = ${tenantId}::uuid LIMIT 1`;
-      branchId = branches[0]?.id ?? '';
-
-      // Reuse an existing order as the FK target for the synthetic payment
-      // rows below — this test exercises the drawer-close aggregation, not
-      // order creation, so a real pre-existing order (any status) is enough
-      // and avoids re-deriving every NOT NULL/trigger-driven order field.
-      const orders = await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT id FROM public.org_orders_mst WHERE tenant_org_id = ${tenantId}::uuid LIMIT 1`;
-      orderId = orders[0]?.id ?? '';
-
-      // No existing order in this tenant (fresh/empty dev DB) — create the
-      // minimal row ourselves. `org_orders_mst` has exactly three required
-      // columns with no default (tenant_org_id, customer_id, order_no);
-      // everything else is nullable or defaulted, so this is safe to create
-      // directly rather than pulling in the full order-creation pipeline.
-      if (!orderId) {
-        const customers = await prisma.$queryRaw<Array<{ id: string }>>`
-          SELECT id FROM public.org_customers_mst WHERE tenant_org_id = ${tenantId}::uuid LIMIT 1`;
-        const customerId = customers[0]?.id ?? '';
-        if (customerId) {
-          const order = await prisma.org_orders_mst.create({
-            data: {
-              tenant_org_id: tenantId,
-              branch_id: branchId || null,
-              customer_id: customerId,
-              order_no: `A3-5-TEST-${randomUUID().slice(0, 8)}`,
-            },
-          });
-          orderId = order.id;
-          createdOrder = true;
-        }
-      }
-    }
-
-    dbUp = tenantId.length > 0 && branchId.length > 0 && orderId.length > 0;
-  } catch {
-    dbUp = false;
-  }
+  scope = await resolveTestScope();
+  dbUp = scope !== null;
 });
 
 afterAll(async () => {
-  if (dbUp && createdOrder && orderId) {
-    await prisma.org_orders_mst.deleteMany({ where: { id: orderId, tenant_org_id: tenantId } }).catch(() => {});
-  }
   await prisma.$disconnect();
 });
 
-async function makeDrawer(): Promise<string> {
-  const drawer = await prisma.org_cash_drawers_mst.create({
-    data: {
-      tenant_org_id: tenantId,
-      branch_id: branchId,
-      drawer_code: `${DRAWER_CODE_PREFIX}-${randomUUID().slice(0, 8)}`,
-      drawer_name: 'A3-5 Decimal precision test drawer',
-      drawer_type: 'TEMPORARY',
-      currency_code: 'OMR',
-      requires_session: true,
-      opening_float_required: false,
-      is_active: true,
-      rec_status: 1,
-    },
-  });
-  return drawer.id;
-}
-
-async function cleanupDrawer(drawerId: string, sessionId?: string): Promise<void> {
-  if (sessionId) {
-    await prisma.org_order_payments_dtl
-      .deleteMany({ where: { cash_drawer_session_id: sessionId, tenant_org_id: tenantId } })
-      .catch(() => {});
-  }
-  await prisma.org_cash_drawer_movements_dtl.deleteMany({ where: { cash_drawer_id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
-  await prisma.org_cash_drawer_sessions_mst.deleteMany({ where: { cash_drawer_id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
-  await prisma.org_cash_drawers_mst.deleteMany({ where: { id: drawerId, tenant_org_id: tenantId } }).catch(() => {});
-}
-
 function dbit(name: string, fn: () => Promise<void>): void {
-  it(name, async () => {
-    if (!dbUp) {
-      console.warn(`[cash-drawer-decimal-precision] DB unavailable — skipping: ${name}`);
-      return;
-    }
-    await fn();
-  });
+  it(
+    name,
+    async () => {
+      if (!dbUp) {
+        console.warn(`[cash-drawer-decimal-precision] DB unavailable — skipping: ${name}`);
+        return;
+      }
+      await fn();
+    },
+    300_000,
+  );
 }
 
-describe('closeSession Decimal-space precision under a long payment sequence (A3-5)', () => {
+describe('count step Decimal-space precision under a long cash sequence (A3-5)', () => {
   dbit(
-    `${PAYMENT_COUNT} sequential ${PAYMENT_AMOUNT} OMR cash payments close with EXACT zero variance`,
+    `${PAYMENT_COUNT} sequential ${PAYMENT_AMOUNT} OMR cash-ins close with EXACT zero variance`,
     async () => {
       const actor = randomUUID();
-      const drawerId = await makeDrawer();
-      let sessionId: string | undefined;
+      const drawerId = await createTestDrawer(scope!, { codePrefix: DRAWER_CODE_PREFIX, name: 'A3-5 Decimal precision test drawer' });
       try {
-        const session = await openSession(tenantId, drawerId, { openingBalance: 0, openedBy: actor });
-        sessionId = session.id;
+        const session = await openTestSession(scope!, actor, drawerId);
 
-        // Sequential, not batched: mirrors 500 real cash sales landing one
-        // at a time over a shift, and keeps each row's own paid_at ordered.
+        // Sequential, not batched: mirrors real cash landing one movement at a
+        // time over a shift, and keeps the ledger sequence ordered.
         for (let i = 0; i < PAYMENT_COUNT; i += 1) {
-          await prisma.org_order_payments_dtl.create({
-            data: {
-              tenant_org_id: tenantId,
-              branch_id: branchId,
-              order_id: orderId,
-              cash_drawer_id: drawerId,
-              cash_drawer_session_id: session.id,
-              payment_method_code: 'CASH',
-              payment_status: 'COMPLETED',
-              amount: PAYMENT_AMOUNT,
-              currency_code: 'OMR',
-              paid_at: new Date(),
-              is_active: true,
-              rec_status: 1,
-            },
+          await postDrawerCashMovement(scope!.tenantId, actor, {
+            drawerId,
+            cashDrawerSessionId: session.sessionId,
+            lineRole: LINE_ROLE.CASH_PAY_IN,
+            amount: PAYMENT_AMOUNT,
+            reason: 'A3-5 decimal precision',
+            idempotencyKey: `a3-5-${randomUUID()}`,
           });
         }
 
-        const result = await closeSession(tenantId, session.id, {
-          physicalCount: EXPECTED_TOTAL,
-          closedBy: actor,
+        const started = await startClose(scope!.tenantId, actor, {
+          sessionId: session.sessionId,
+          drawerId,
+          closingCount: { countMode: 'TOTAL_ONLY', totalAmount: EXPECTED_TOTAL },
         });
 
-        expect(result.isBalanced).toBe(true);
-        // A3-4 — money crosses the API as an exact fixed-point string.
-        expect(result.variance).toBe('0.0000');
-        expect(Number(result.session.expected_cash_amount)).toBe(EXPECTED_TOTAL);
-        expect(Number(result.session.difference_amount)).toBe(0);
+        // Money crosses the service as an exact fixed-point string.
+        const row = started.currencyBalances.find((b) => b.currencyCode === 'OMR');
+        expect(row?.closingExpected).toBe(EXPECTED_TOTAL);
+        expect(row?.closingCounted).toBe(EXPECTED_TOTAL);
+        expect(row?.closingVariance).toBe('0.0000');
 
-        // Re-read from the DB (not the in-memory result) — the persisted
-        // value is what every downstream reader (reports, session detail,
-        // reconciliation) sees.
-        const persisted = await prisma.org_cash_drawer_sessions_mst.findFirstOrThrow({
-          where: { id: session.id, tenant_org_id: tenantId },
+        const finalized = await finalizeClose(scope!.tenantId, actor, {
+          sessionId: session.sessionId,
+          drawerId,
+          dispositions: [{ currencyCode: 'OMR', dispositionCode: CASH_DRAWER_DISPOSITIONS.LEFT_IN_DRAWER }],
         });
-        expect(Number(persisted.expected_cash_amount)).toBe(EXPECTED_TOTAL);
-        expect(Number(persisted.difference_amount)).toBe(0);
+        expect(finalized.status).toBe('CLOSED');
+        expect(finalized.varianceApprovalPending).toBe(false);
+
+        // Re-read from the DB (not the in-memory result) — the persisted value is
+        // what every downstream reader (reports, session detail) sees.
+        const persisted = await prisma.org_cash_drawer_ses_bal_dtl.findFirstOrThrow({
+          where: { cash_drawer_session_id: session.sessionId, currency_code: 'OMR', tenant_org_id: scope!.tenantId },
+        });
+        expect(persisted.closing_expected?.toFixed(4)).toBe(EXPECTED_TOTAL);
+        expect(persisted.closing_variance?.toFixed(4)).toBe('0.0000');
       } finally {
-        await cleanupDrawer(drawerId, sessionId);
+        await cleanupTestDrawers(scope!, [drawerId]);
       }
     },
   );

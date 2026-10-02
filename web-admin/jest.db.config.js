@@ -32,6 +32,9 @@ const dbJestConfig = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
   testTimeout: 30000,
+  // Suites share one tenant and per-day/per-drawer sequences (session numbers, ledger seqs);
+  // parallel workers made the gapless-numbering proofs flaky, so the DB harness runs serially.
+  maxWorkers: 1,
   verbose: true,
 };
 

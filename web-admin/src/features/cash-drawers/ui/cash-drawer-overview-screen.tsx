@@ -294,8 +294,8 @@ export function CashDrawerOverviewScreen({
           value={overview.drawer.requiresSession ? t('yesValue') : t('noValue')}
         />
         <CashDrawerInfoTile
-          label={t('openingFloatRequired')}
-          value={overview.drawer.openingFloatRequired ? t('yesValue') : t('noValue')}
+          label={t('openingCountRequired')}
+          value={overview.drawer.openingCountRequired ? t('yesValue') : t('noValue')}
         />
         <CashDrawerInfoTile
           label={t('maxCashLimit')}

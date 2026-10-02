@@ -308,7 +308,6 @@ export async function reverseVoucherLinesInTx(
       change_returned_amount: line.change_returned_amount,
       credit_application_type: line.credit_application_type,
       order_payment_id: null,
-      cash_drawer_mvt_id: null,
       sv_funding_tender_id: null,
       card_brand_code: line.card_brand_code,
       card_last4: line.card_last4,

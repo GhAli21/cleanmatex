@@ -1,0 +1,1180 @@
+{
+  "observed_at_utc": "2026-10-02 17:59:10 UTC",
+  "scope": "WP02 aggregate read-only preflight. No local/hosted data/schema mutation; no migration application. Tenant inventory then explicit UUID-scoped SELECTs; auth identity existence only; no personal/secret values retained.",
+  "repository": {
+    "branch": "main",
+    "head": "f33cff481c7a5d35fb16ad5a10983db2762c9818",
+    "dirty": true
+  },
+  "configured_prisma_probe": {
+    "scope": "repository default base Prisma configuration, not hosted deployed app",
+    "runtime_role": "postgres",
+    "session_role": "postgres",
+    "server_version": "17.6",
+    "superuser": false,
+    "bypassrls": true,
+    "jwt_actor_present": false,
+    "session_timezone": "UTC"
+  },
+  "targets": {
+    "local": {
+      "baseline": {
+        "role": "postgres",
+        "tenants": [
+          "11111111-1111-1111-1111-111111111111",
+          "20000002-2222-2222-2222-222222222221"
+        ],
+        "database": "postgres",
+        "wp02_history": [
+          {
+            "name": "wp02_order_change_foundation",
+            "version": "0547"
+          },
+          {
+            "name": "wp02_order_change_history",
+            "version": "0548"
+          }
+        ],
+        "latest_numeric": "0549",
+        "server_version": "17.6",
+        "migration_count": 555,
+        "session_timezone": "UTC"
+      },
+      "tenants": [
+        {
+          "ops": 0,
+          "actors": null,
+          "orders": {
+            "total": 0,
+            "committed": 0,
+            "quick_drop": 0,
+            "split_child": 0,
+            "revision_zero": 0,
+            "draft_workflow": 0,
+            "has_creation_key": 0,
+            "missing_created_at": 0,
+            "unknown_service_speed": 0,
+            "legacy_created_at_without_original_zone": 0
+          },
+          "changes": 0,
+          "sources": null,
+          "hierarchy": {
+            "items_missing_order": 0,
+            "pieces_missing_item": 0,
+            "pieces_missing_order": 0,
+            "preferences_bad_shape": 0,
+            "pieces_wrong_item_order": 0,
+            "preferences_missing_item": 0,
+            "preferences_missing_order": 0,
+            "preferences_missing_piece": 0,
+            "active_pieces_nonactive_item": 0,
+            "preferences_wrong_item_order": 0,
+            "preferences_wrong_piece_parent": 0,
+            "active_preferences_nonactive_item": 0,
+            "active_preferences_nonactive_piece": 0
+          },
+          "tenant_org_id": "11111111-1111-1111-1111-111111111111",
+          "structural_status": [
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "items",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "pieces",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "preferences",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            }
+          ],
+          "lineage": [
+            {
+              "entity": "items",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "pieces",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "preferences",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            }
+          ],
+          "snapshot_status": null,
+          "workflow_status": null,
+          "wp02_check_violations": {
+            "speed": 0,
+            "access": 0,
+            "commit": 0,
+            "block_actor": 0,
+            "commit_actor": 0
+          }
+        },
+        {
+          "ops": 0,
+          "actors": null,
+          "orders": {
+            "total": 0,
+            "committed": 0,
+            "quick_drop": 0,
+            "split_child": 0,
+            "revision_zero": 0,
+            "draft_workflow": 0,
+            "has_creation_key": 0,
+            "missing_created_at": 0,
+            "unknown_service_speed": 0,
+            "legacy_created_at_without_original_zone": 0
+          },
+          "changes": 0,
+          "sources": null,
+          "hierarchy": {
+            "items_missing_order": 0,
+            "pieces_missing_item": 0,
+            "pieces_missing_order": 0,
+            "preferences_bad_shape": 0,
+            "pieces_wrong_item_order": 0,
+            "preferences_missing_item": 0,
+            "preferences_missing_order": 0,
+            "preferences_missing_piece": 0,
+            "active_pieces_nonactive_item": 0,
+            "preferences_wrong_item_order": 0,
+            "preferences_wrong_piece_parent": 0,
+            "active_preferences_nonactive_item": 0,
+            "active_preferences_nonactive_piece": 0
+          },
+          "tenant_org_id": "20000002-2222-2222-2222-222222222221",
+          "structural_status": [
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "items",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "pieces",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "preferences",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            }
+          ],
+          "lineage": [
+            {
+              "entity": "items",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "pieces",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "preferences",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            }
+          ],
+          "snapshot_status": null,
+          "workflow_status": null,
+          "wp02_check_violations": {
+            "speed": 0,
+            "access": 0,
+            "commit": 0,
+            "block_actor": 0,
+            "commit_actor": 0
+          }
+        }
+      ],
+      "catalog": {
+        "sizes": [
+          {
+            "bytes": 212992,
+            "table": "org_order_item_pieces_dtl"
+          },
+          {
+            "bytes": 286720,
+            "table": "org_order_items_dtl"
+          },
+          {
+            "bytes": 65536,
+            "table": "org_order_preferences_dtl"
+          },
+          {
+            "bytes": 598016,
+            "table": "org_orders_mst"
+          }
+        ],
+        "not_valid": [
+          {
+            "name": "oc_item_removal_actor_fk",
+            "table": "org_order_items_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_item_removal_change_fk",
+            "table": "org_order_items_dtl",
+            "deferrable": true,
+            "initially_deferred": true
+          },
+          {
+            "name": "oc_item_removal_ck",
+            "table": "org_order_items_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_access_ck",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_block_actor_fk",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_commit_actor_fk",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_commit_ck",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_speed_ck",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_piece_removal_actor_fk",
+            "table": "org_order_item_pieces_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_piece_removal_change_fk",
+            "table": "org_order_item_pieces_dtl",
+            "deferrable": true,
+            "initially_deferred": true
+          },
+          {
+            "name": "oc_piece_removal_ck",
+            "table": "org_order_item_pieces_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_pref_removal_actor_fk",
+            "table": "org_order_preferences_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_pref_removal_change_fk",
+            "table": "org_order_preferences_dtl",
+            "deferrable": true,
+            "initially_deferred": true
+          },
+          {
+            "name": "oc_pref_removal_ck",
+            "table": "org_order_preferences_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          }
+        ],
+        "timezone_settings": [
+          {
+            "role": "postgres",
+            "database": null,
+            "settings": []
+          },
+          {
+            "role": null,
+            "database": "postgres",
+            "settings": []
+          }
+        ],
+        "roles": [
+          {
+            "role": "authenticated",
+            "login": false,
+            "bypassrls": false,
+            "superuser": false
+          },
+          {
+            "role": "anon",
+            "login": false,
+            "bypassrls": false,
+            "superuser": false
+          },
+          {
+            "role": "service_role",
+            "login": false,
+            "bypassrls": true,
+            "superuser": false
+          },
+          {
+            "role": "postgres",
+            "login": true,
+            "bypassrls": true,
+            "superuser": false
+          }
+        ],
+        "history": [
+          {
+            "acl": "{postgres=arwdDxtm/postgres,service_role=ar/postgres}",
+            "rls": true,
+            "owner": "postgres",
+            "table": "org_order_change_ops_dtl",
+            "forced": false,
+            "policies": 0
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,service_role=ar/postgres}",
+            "rls": true,
+            "owner": "postgres",
+            "table": "org_order_changes_mst",
+            "forced": false,
+            "policies": 0
+          }
+        ],
+        "effective_rights": [
+          {
+            "role": "authenticated",
+            "table": "public.org_order_changes_mst",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "authenticated",
+            "table": "public.org_order_change_ops_dtl",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "authenticated",
+            "table": "public.org_users_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "anon",
+            "table": "public.org_order_changes_mst",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "anon",
+            "table": "public.org_order_change_ops_dtl",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "anon",
+            "table": "public.org_users_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "service_role",
+            "table": "public.org_order_changes_mst",
+            "delete": false,
+            "insert": true,
+            "select": true,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "service_role",
+            "table": "public.org_order_change_ops_dtl",
+            "delete": false,
+            "insert": true,
+            "select": true,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "service_role",
+            "table": "public.org_users_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "postgres",
+            "table": "public.org_order_changes_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "postgres",
+            "table": "public.org_order_change_ops_dtl",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "postgres",
+            "table": "public.org_users_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          }
+        ],
+        "repair_rpcs": [
+          {
+            "name": "claim_outbox_batch",
+            "definer": true,
+            "anon_execute": true,
+            "identity_arguments": "p_limit integer, p_now timestamp with time zone",
+            "authenticated_execute": true
+          },
+          {
+            "name": "fix_order_data",
+            "definer": true,
+            "anon_execute": true,
+            "identity_arguments": "p_tenant_org_id uuid, p_steps text[], p_order_id uuid, p_dry_run boolean",
+            "authenticated_execute": true
+          },
+          {
+            "name": "hq_mntnc_cleanup_tenant_orders",
+            "definer": true,
+            "anon_execute": true,
+            "identity_arguments": "p_tenant_org_id uuid, p_target_mode text, p_order_ids uuid[], p_order_nos text[], p_order_no_like text, p_created_from timestamp without time zone, p_created_to timestamp without time zone, p_include_fin_audit_rows boolean, p_max_target_orders integer, p_dry_run boolean",
+            "authenticated_execute": true
+          }
+        ],
+        "tenant_helper": {
+          "security_definer": true,
+          "fixed_search_path": false,
+          "user_editable_metadata_first": true
+        },
+        "membership_self_write_policy": true
+      }
+    },
+    "remote": {
+      "baseline": {
+        "role": "postgres",
+        "tenants": [
+          "11111111-1111-1111-1111-111111111111",
+          "20000002-2222-2222-2222-222222222221",
+          "c9ac29d1-219c-4a3a-8887-f860550c32be"
+        ],
+        "database": "postgres",
+        "wp02_history": [
+          {
+            "name": "wp02_order_change_foundation",
+            "version": "0547"
+          },
+          {
+            "name": "wp02_order_change_history",
+            "version": "0548"
+          }
+        ],
+        "latest_numeric": "0549",
+        "server_version": "17.6",
+        "migration_count": 555,
+        "session_timezone": "Asia/Muscat"
+      },
+      "tenants": [
+        {
+          "ops": 0,
+          "actors": {
+            "AUTH_USER_EXISTS_NOT_COMMIT_PROOF": 54
+          },
+          "orders": {
+            "total": 54,
+            "committed": 0,
+            "quick_drop": 0,
+            "split_child": 0,
+            "revision_zero": 54,
+            "draft_workflow": 1,
+            "has_creation_key": 54,
+            "missing_created_at": 0,
+            "unknown_service_speed": 54,
+            "legacy_created_at_without_original_zone": 54
+          },
+          "changes": 0,
+          "sources": [
+            {
+              "orders": 2,
+              "order_source_code": "customer_mobile_app"
+            },
+            {
+              "orders": 52,
+              "order_source_code": "pos"
+            }
+          ],
+          "hierarchy": {
+            "items_missing_order": 0,
+            "pieces_missing_item": 0,
+            "pieces_missing_order": 0,
+            "preferences_bad_shape": 0,
+            "pieces_wrong_item_order": 0,
+            "preferences_missing_item": 0,
+            "preferences_missing_order": 0,
+            "preferences_missing_piece": 0,
+            "active_pieces_nonactive_item": 0,
+            "preferences_wrong_item_order": 0,
+            "preferences_wrong_piece_parent": 0,
+            "active_preferences_nonactive_item": 0,
+            "active_preferences_nonactive_piece": 0
+          },
+          "tenant_org_id": "11111111-1111-1111-1111-111111111111",
+          "structural_status": [
+            {
+              "total": 76,
+              "active": 76,
+              "entity": "items",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 84,
+              "active": 84,
+              "entity": "pieces",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 37,
+              "active": 37,
+              "entity": "preferences",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            }
+          ],
+          "lineage": [
+            {
+              "entity": "items",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "pieces",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "preferences",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            }
+          ],
+          "snapshot_status": {
+            "CURRENT": 18,
+            "MISMATCH": 36
+          },
+          "workflow_status": {
+            "draft": 1,
+            "ready": 1,
+            "intake": 3,
+            "delivered": 8,
+            "processing": 40,
+            "awaiting_collection": 1
+          },
+          "wp02_check_violations": {
+            "speed": 0,
+            "access": 0,
+            "commit": 0,
+            "block_actor": 0,
+            "commit_actor": 0
+          }
+        },
+        {
+          "ops": 0,
+          "actors": null,
+          "orders": {
+            "total": 0,
+            "committed": 0,
+            "quick_drop": 0,
+            "split_child": 0,
+            "revision_zero": 0,
+            "draft_workflow": 0,
+            "has_creation_key": 0,
+            "missing_created_at": 0,
+            "unknown_service_speed": 0,
+            "legacy_created_at_without_original_zone": 0
+          },
+          "changes": 0,
+          "sources": null,
+          "hierarchy": {
+            "items_missing_order": 0,
+            "pieces_missing_item": 0,
+            "pieces_missing_order": 0,
+            "preferences_bad_shape": 0,
+            "pieces_wrong_item_order": 0,
+            "preferences_missing_item": 0,
+            "preferences_missing_order": 0,
+            "preferences_missing_piece": 0,
+            "active_pieces_nonactive_item": 0,
+            "preferences_wrong_item_order": 0,
+            "preferences_wrong_piece_parent": 0,
+            "active_preferences_nonactive_item": 0,
+            "active_preferences_nonactive_piece": 0
+          },
+          "tenant_org_id": "20000002-2222-2222-2222-222222222221",
+          "structural_status": [
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "items",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "pieces",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "preferences",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            }
+          ],
+          "lineage": [
+            {
+              "entity": "items",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "pieces",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "preferences",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            }
+          ],
+          "snapshot_status": null,
+          "workflow_status": null,
+          "wp02_check_violations": {
+            "speed": 0,
+            "access": 0,
+            "commit": 0,
+            "block_actor": 0,
+            "commit_actor": 0
+          }
+        },
+        {
+          "ops": 0,
+          "actors": {
+            "AUTH_USER_EXISTS_NOT_COMMIT_PROOF": 18
+          },
+          "orders": {
+            "total": 18,
+            "committed": 0,
+            "quick_drop": 2,
+            "split_child": 0,
+            "revision_zero": 18,
+            "draft_workflow": 0,
+            "has_creation_key": 18,
+            "missing_created_at": 0,
+            "unknown_service_speed": 18,
+            "legacy_created_at_without_original_zone": 18
+          },
+          "changes": 0,
+          "sources": [
+            {
+              "orders": 2,
+              "order_source_code": "customer_mobile_app"
+            },
+            {
+              "orders": 16,
+              "order_source_code": "pos"
+            }
+          ],
+          "hierarchy": {
+            "items_missing_order": 0,
+            "pieces_missing_item": 0,
+            "pieces_missing_order": 0,
+            "preferences_bad_shape": 0,
+            "pieces_wrong_item_order": 0,
+            "preferences_missing_item": 0,
+            "preferences_missing_order": 0,
+            "preferences_missing_piece": 0,
+            "active_pieces_nonactive_item": 0,
+            "preferences_wrong_item_order": 0,
+            "preferences_wrong_piece_parent": 0,
+            "active_preferences_nonactive_item": 0,
+            "active_preferences_nonactive_piece": 0
+          },
+          "tenant_org_id": "c9ac29d1-219c-4a3a-8887-f860550c32be",
+          "structural_status": [
+            {
+              "total": 22,
+              "active": 22,
+              "entity": "items",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 30,
+              "active": 30,
+              "entity": "pieces",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            },
+            {
+              "total": 0,
+              "active": 0,
+              "entity": "preferences",
+              "unknown": 0,
+              "inactive": 0,
+              "unsupported": 0
+            }
+          ],
+          "lineage": [
+            {
+              "entity": "items",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "pieces",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            },
+            {
+              "entity": "preferences",
+              "has_any_lineage": 0,
+              "check_violations": 0,
+              "actor_fk_violations": 0,
+              "change_fk_violations": 0
+            }
+          ],
+          "snapshot_status": {
+            "CURRENT": 1,
+            "MISMATCH": 17
+          },
+          "workflow_status": {
+            "ready": 1,
+            "intake": 1,
+            "packing": 2,
+            "delivered": 1,
+            "processing": 12,
+            "ready_for_pickup": 1
+          },
+          "wp02_check_violations": {
+            "speed": 0,
+            "access": 0,
+            "commit": 0,
+            "block_actor": 0,
+            "commit_actor": 0
+          }
+        }
+      ],
+      "catalog": {
+        "sizes": [
+          {
+            "bytes": 401408,
+            "table": "org_order_item_pieces_dtl"
+          },
+          {
+            "bytes": 417792,
+            "table": "org_order_items_dtl"
+          },
+          {
+            "bytes": 163840,
+            "table": "org_order_preferences_dtl"
+          },
+          {
+            "bytes": 827392,
+            "table": "org_orders_mst"
+          }
+        ],
+        "not_valid": [
+          {
+            "name": "oc_item_removal_actor_fk",
+            "table": "org_order_items_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_item_removal_change_fk",
+            "table": "org_order_items_dtl",
+            "deferrable": true,
+            "initially_deferred": true
+          },
+          {
+            "name": "oc_item_removal_ck",
+            "table": "org_order_items_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_access_ck",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_block_actor_fk",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_commit_actor_fk",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_commit_ck",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_order_speed_ck",
+            "table": "org_orders_mst",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_piece_removal_actor_fk",
+            "table": "org_order_item_pieces_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_piece_removal_change_fk",
+            "table": "org_order_item_pieces_dtl",
+            "deferrable": true,
+            "initially_deferred": true
+          },
+          {
+            "name": "oc_piece_removal_ck",
+            "table": "org_order_item_pieces_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_pref_removal_actor_fk",
+            "table": "org_order_preferences_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          },
+          {
+            "name": "oc_pref_removal_change_fk",
+            "table": "org_order_preferences_dtl",
+            "deferrable": true,
+            "initially_deferred": true
+          },
+          {
+            "name": "oc_pref_removal_ck",
+            "table": "org_order_preferences_dtl",
+            "deferrable": false,
+            "initially_deferred": false
+          }
+        ],
+        "timezone_settings": [
+          {
+            "role": "postgres",
+            "database": null,
+            "settings": []
+          },
+          {
+            "role": null,
+            "database": "postgres",
+            "settings": [
+              "TimeZone=Asia/Muscat"
+            ]
+          }
+        ],
+        "roles": [
+          {
+            "role": "authenticated",
+            "login": false,
+            "bypassrls": false,
+            "superuser": false
+          },
+          {
+            "role": "anon",
+            "login": false,
+            "bypassrls": false,
+            "superuser": false
+          },
+          {
+            "role": "service_role",
+            "login": false,
+            "bypassrls": true,
+            "superuser": false
+          },
+          {
+            "role": "postgres",
+            "login": true,
+            "bypassrls": true,
+            "superuser": false
+          }
+        ],
+        "history": [
+          {
+            "acl": "{postgres=arwdDxtm/postgres,service_role=ar/postgres}",
+            "rls": true,
+            "owner": "postgres",
+            "table": "org_order_change_ops_dtl",
+            "forced": false,
+            "policies": 0
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,service_role=ar/postgres}",
+            "rls": true,
+            "owner": "postgres",
+            "table": "org_order_changes_mst",
+            "forced": false,
+            "policies": 0
+          }
+        ],
+        "effective_rights": [
+          {
+            "role": "authenticated",
+            "table": "public.org_order_changes_mst",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "authenticated",
+            "table": "public.org_order_change_ops_dtl",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "authenticated",
+            "table": "public.org_users_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "anon",
+            "table": "public.org_order_changes_mst",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "anon",
+            "table": "public.org_order_change_ops_dtl",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "anon",
+            "table": "public.org_users_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "service_role",
+            "table": "public.org_order_changes_mst",
+            "delete": false,
+            "insert": true,
+            "select": true,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "service_role",
+            "table": "public.org_order_change_ops_dtl",
+            "delete": false,
+            "insert": true,
+            "select": true,
+            "update": false,
+            "truncate": false
+          },
+          {
+            "role": "service_role",
+            "table": "public.org_users_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "postgres",
+            "table": "public.org_order_changes_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "postgres",
+            "table": "public.org_order_change_ops_dtl",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          },
+          {
+            "role": "postgres",
+            "table": "public.org_users_mst",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "truncate": true
+          }
+        ],
+        "repair_rpcs": [
+          {
+            "name": "claim_outbox_batch",
+            "definer": true,
+            "anon_execute": true,
+            "identity_arguments": "p_limit integer, p_now timestamp with time zone",
+            "authenticated_execute": true
+          },
+          {
+            "name": "fix_order_data",
+            "definer": true,
+            "anon_execute": true,
+            "identity_arguments": "p_tenant_org_id uuid, p_steps text[], p_order_id uuid, p_dry_run boolean",
+            "authenticated_execute": true
+          },
+          {
+            "name": "hq_mntnc_cleanup_tenant_orders",
+            "definer": true,
+            "anon_execute": true,
+            "identity_arguments": "p_tenant_org_id uuid, p_target_mode text, p_order_ids uuid[], p_order_nos text[], p_order_no_like text, p_created_from timestamp without time zone, p_created_to timestamp without time zone, p_include_fin_audit_rows boolean, p_max_target_orders integer, p_dry_run boolean",
+            "authenticated_execute": true
+          }
+        ],
+        "tenant_helper": {
+          "security_definer": true,
+          "fixed_search_path": false,
+          "user_editable_metadata_first": true
+        },
+        "membership_self_write_policy": true
+      }
+    }
+  }
+}

@@ -43,7 +43,6 @@ const mockInvoicePaymentsFindMany = jest.fn();
 const mockVouchersFindMany = jest.fn();
 const mockVoucherFindFirstOrThrow = jest.fn();
 const mockTrxLinesFindMany = jest.fn();
-const mockCashMovementsFindMany = jest.fn();
 const mockOutboxCount = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
@@ -84,7 +83,6 @@ jest.mock('@/lib/db/prisma', () => ({
       findFirstOrThrow: (...a: unknown[]) => mockVoucherFindFirstOrThrow(...a),
     },
     org_fin_voucher_trx_lines_dtl: { findMany: (...a: unknown[]) => mockTrxLinesFindMany(...a) },
-    org_cash_drawer_movements_dtl: { findMany: (...a: unknown[]) => mockCashMovementsFindMany(...a) },
     org_domain_events_outbox: { count: (...a: unknown[]) => mockOutboxCount(...a) },
   },
 }));
@@ -177,35 +175,37 @@ describe('ar-checks', () => {
   });
 
   // B9 — unambiguous mode (fin_voucher_id backlink present, migration 0418).
-  it('REFUND_LINK_EXISTS (B9) — clean when fin_voucher_id resolves to a POSTED voucher and CASH has a linked movement', async () => {
+  it('REFUND_LINK_EXISTS (B9) — clean when fin_voucher_id resolves to a POSTED voucher and the CASH line carries a ledger stamp', async () => {
     mockRefundsFindMany.mockResolvedValue([
       {
         id: 'r1', order_id: 'o1', refund_amount: new Decimal('50'), refund_no: 'REF-001',
-        refund_method_code: 'CASH', fin_voucher_id: 'vch-1', cash_drawer_movement_id: 'mvt-1',
+        refund_method_code: 'CASH', fin_voucher_id: 'vch-1', fin_voucher_trx_line_id: 'line-1',
       },
     ]);
     mockVouchersFindMany.mockResolvedValue([{ id: 'vch-1' }]);
+    mockTrxLinesFindMany.mockResolvedValue([{ id: 'line-1' }]);
     expect(await checkRefundLink(TENANT, WINDOW)).toEqual([]);
   });
 
-  it('REFUND_LINK_EXISTS (B9) — flags a CASH refund with a posted voucher but no linked cash-drawer movement', async () => {
+  it('REFUND_LINK_EXISTS (B9) — flags a CASH refund with a posted voucher whose cash line has no resolved ledger stamp', async () => {
     mockRefundsFindMany.mockResolvedValue([
       {
         id: 'r1', order_id: 'o1', refund_amount: new Decimal('50'), refund_no: 'REF-001',
-        refund_method_code: 'CASH', fin_voucher_id: 'vch-1', cash_drawer_movement_id: null,
+        refund_method_code: 'CASH', fin_voucher_id: 'vch-1', fin_voucher_trx_line_id: 'line-1',
       },
     ]);
     mockVouchersFindMany.mockResolvedValue([{ id: 'vch-1' }]);
+    mockTrxLinesFindMany.mockResolvedValue([]); // no line with DRAWER/UNTRACKED/NONE
     const result = await checkRefundLink(TENANT, WINDOW);
     expect(result).toHaveLength(1);
-    expect(result[0].message).toContain('no linked cash-drawer movement');
+    expect(result[0].message).toContain('no resolved cash-drawer ledger stamp');
   });
 
   it('REFUND_LINK_EXISTS (B9) — flags fin_voucher_id pointing at a voucher that is not POSTED', async () => {
     mockRefundsFindMany.mockResolvedValue([
       {
         id: 'r1', order_id: 'o1', refund_amount: new Decimal('50'), refund_no: 'REF-001',
-        refund_method_code: 'ORIGINAL_METHOD', fin_voucher_id: 'vch-missing', cash_drawer_movement_id: null,
+        refund_method_code: 'ORIGINAL_METHOD', fin_voucher_id: 'vch-missing', fin_voucher_trx_line_id: null,
       },
     ]);
     mockVouchersFindMany.mockResolvedValue([]); // vch-missing not found/not POSTED
@@ -214,11 +214,11 @@ describe('ar-checks', () => {
     expect(result[0].message).toContain('not a POSTED REFUND_VOUCHER');
   });
 
-  it('REFUND_LINK_EXISTS (B9) — ORIGINAL_METHOD with a posted voucher never requires a cash-drawer movement', async () => {
+  it('REFUND_LINK_EXISTS (B9) — ORIGINAL_METHOD with a posted voucher never requires a cash-drawer ledger stamp', async () => {
     mockRefundsFindMany.mockResolvedValue([
       {
         id: 'r1', order_id: 'o1', refund_amount: new Decimal('50'), refund_no: 'REF-001',
-        refund_method_code: 'ORIGINAL_METHOD', fin_voucher_id: 'vch-1', cash_drawer_movement_id: null,
+        refund_method_code: 'ORIGINAL_METHOD', fin_voucher_id: 'vch-1', fin_voucher_trx_line_id: null,
       },
     ]);
     mockVouchersFindMany.mockResolvedValue([{ id: 'vch-1' }]);
@@ -680,29 +680,37 @@ describe('voucher-checks', () => {
     expect(await checkCashMovementLink(TENANT, WINDOW)).toEqual([]);
   });
 
-  it('CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT — flags retained-amount drift', async () => {
-    mockCashMovementsFindMany.mockResolvedValue([
-      { id: 'm1', cash_drawer_session_id: 's1', amount: new Decimal('47'), fin_voucher_trx_line_id: 'L1' },
-    ]);
-    mockTrxLinesFindMany.mockResolvedValue([
-      { id: 'L1', amount: new Decimal('47'), change_returned_amount: new Decimal('3') },
-    ]);
-    // amount (47) vs retained (47 - 3 = 44) = drift of 3
+  // CLF R3: the check now guards the ledger shape of recognised cash lines — a DRAWER
+  // stamp missing its drawer / sequence / currency (or a non-positive amount) is a blocker.
+  it('CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT — flags a DRAWER line missing part of its ledger entry', async () => {
+    mockTrxLinesFindMany.mockResolvedValue([{ id: 'L1', voucher_id: 'v1', amount: new Decimal('47') }]);
     const result = await checkCashMovementAmountEqualsRetained(TENANT, WINDOW);
-    expect(result[0]).toMatchObject({ expectedValue: 44, actualValue: 47 });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      checkName: 'CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT',
+      severity: 'BLOCKER',
+      actualValue: 47,
+      affectedEntityId: 'L1',
+    });
+    expect(mockTrxLinesFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ tenant_org_id: TENANT, cash_effect_code: 'DRAWER' }),
+      }),
+    );
   });
 
-  // B30/B32 — trip-wire: a CANCELLED/FAILED payment must never carry a live
-  // CASH_SALE movement (structurally unreachable post-B32; this is defense-in-depth).
-  it('CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT — flags a CANCELLED payment with a live CASH_SALE movement', async () => {
+  it('CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT — clean when every DRAWER line is complete', async () => {
+    mockTrxLinesFindMany.mockResolvedValue([]);
+    expect(await checkCashMovementAmountEqualsRetained(TENANT, WINDOW)).toEqual([]);
+  });
+
+  // B30/B32 — trip-wire: a CANCELLED/FAILED payment must never have its cash line in the
+  // drawer ledger (structurally unreachable post-B32; this is defense-in-depth).
+  it('CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT — flags a CANCELLED payment whose cash line is DRAWER-stamped', async () => {
     mockOrderPaymentsFindMany.mockResolvedValue([
-      {
-        id: 'p1',
-        order_id: 'o1',
-        payment_status: 'CANCELLED',
-        org_cash_drawer_movements_dtl: [{ id: 'm1', amount: new Decimal('50') }],
-      },
+      { id: 'p1', order_id: 'o1', payment_status: 'CANCELLED', fin_voucher_trx_line_id: 'L1' },
     ]);
+    mockTrxLinesFindMany.mockResolvedValue([{ id: 'L1', amount: new Decimal('50') }]);
     const result = await checkCancelledPaymentNoOrphanMovement(TENANT, WINDOW);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
@@ -711,25 +719,28 @@ describe('voucher-checks', () => {
       actualValue: 50,
       affectedEntityId: 'p1',
     });
+    // Only the original leg line counts — a reversal mirror line is a legitimate DRAWER line.
+    expect(mockTrxLinesFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ cash_effect_code: 'DRAWER', reversed_line_id: null }),
+      }),
+    );
   });
 
-  it('CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT — clean when no movement is attached', async () => {
+  it('CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT — clean when the cash line is not in the drawer ledger', async () => {
     mockOrderPaymentsFindMany.mockResolvedValue([
-      { id: 'p1', order_id: 'o1', payment_status: 'FAILED', org_cash_drawer_movements_dtl: [] },
+      { id: 'p1', order_id: 'o1', payment_status: 'FAILED', fin_voucher_trx_line_id: 'L1' },
     ]);
+    mockTrxLinesFindMany.mockResolvedValue([]);
     expect(await checkCancelledPaymentNoOrphanMovement(TENANT, WINDOW)).toEqual([]);
   });
 
   // ── B10 — void/reversal trip-wires ─────────────────────────────────────
-  it('VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT — flags a VOIDED payment with a live CASH_SALE movement', async () => {
+  it('VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT — flags a VOIDED payment whose cash line is DRAWER-stamped', async () => {
     mockOrderPaymentsFindMany.mockResolvedValue([
-      {
-        id: 'p2',
-        order_id: 'o2',
-        payment_status: 'VOIDED',
-        org_cash_drawer_movements_dtl: [{ id: 'm2', amount: new Decimal('30') }],
-      },
+      { id: 'p2', order_id: 'o2', payment_status: 'VOIDED', fin_voucher_trx_line_id: 'L2' },
     ]);
+    mockTrxLinesFindMany.mockResolvedValue([{ id: 'L2', amount: new Decimal('30') }]);
     const result = await checkVoidedPaymentNoOrphanMovement(TENANT, WINDOW);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
@@ -740,10 +751,8 @@ describe('voucher-checks', () => {
     });
   });
 
-  it('VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT — clean when no movement is attached', async () => {
-    mockOrderPaymentsFindMany.mockResolvedValue([
-      { id: 'p2', order_id: 'o2', payment_status: 'VOIDED', org_cash_drawer_movements_dtl: [] },
-    ]);
+  it('VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT — clean when the payments have no cash line in the ledger', async () => {
+    mockOrderPaymentsFindMany.mockResolvedValue([]);
     expect(await checkVoidedPaymentNoOrphanMovement(TENANT, WINDOW)).toEqual([]);
   });
 

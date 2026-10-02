@@ -205,10 +205,10 @@ export function CashDrawerHubScreen() {
       render: (row: CashDrawerOverviewRow) => (
         <div className="flex flex-wrap gap-1">
           {row.requiresSession ? <Badge variant="secondary">{t('requiresSession')}</Badge> : null}
-          {row.openingFloatRequired ? (
-            <Badge variant="secondary">{t('openingFloatRequired')}</Badge>
+          {row.openingCountRequired ? (
+            <Badge variant="secondary">{t('openingCountRequired')}</Badge>
           ) : null}
-          {!row.requiresSession && !row.openingFloatRequired ? (
+          {!row.requiresSession && !row.openingCountRequired ? (
             <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">—</span>
           ) : null}
         </div>

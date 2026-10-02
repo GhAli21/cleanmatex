@@ -337,8 +337,8 @@ const COLLECT_PAYMENT_IDEMPOTENCY_RESOURCE = 'collect_payment';
  *
  * BVM parity (B4): real-payment legs are wired through createBizVoucher +
  * addVoucherLine + postAndWireBizVoucher — the same voucher/wiring path
- * submit-order uses — instead of writing org_order_payments_dtl and
- * org_cash_drawer_movements_dtl directly. This is what gives every
+ * submit-order uses — instead of writing org_order_payments_dtl directly
+ * (cash lands in the drawer ledger through the gate). This is what gives every
  * collection a fin_voucher_id/fin_voucher_trx_line_id backlink and satisfies
  * the ORDER_PAYMENT_LINK_EXISTS reconciliation check (B20).
  *
@@ -594,8 +594,8 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     // One RECEIPT voucher per collection event; each leg becomes an
     // ORDER_PAYMENT voucher line, then postAndWireBizVoucher dispatches the
     // same wiring-handler registry submit-order uses — orderPaymentWiringHandler
-    // creates the org_order_payments_dtl row, cashDrawerWiringHandler creates
-    // the org_cash_drawer_movements_dtl row(s) — so every collection payment
+    // creates the org_order_payments_dtl row and the ledger gate stamps a cash
+    // leg into the drawer ledger — so every collection payment
     // carries a fin_voucher_id/fin_voucher_trx_line_id backlink and satisfies
     // ORDER_PAYMENT_LINK_EXISTS (B20). Change is auto-derived by addVoucherLine
     // from tenderedAmount − amount, same as submit.

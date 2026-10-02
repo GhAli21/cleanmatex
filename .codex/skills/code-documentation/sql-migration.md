@@ -2,6 +2,17 @@
 
 Every migration file must follow these comment standards. Comments explain WHY, not WHAT.
 
+## Mandatory Coverage — Every Database Object
+
+Every object created, altered, or removed in a migration requires a concise English SQL comment explaining its purpose, business/security invariant, or reason for change. This includes tables, **every column** (including standard identity/audit/lifecycle columns), primary/unique/check/foreign-key constraints, indexes, functions/procedures, triggers, views/materialized views, sequences, types/domains, schemas and RLS policies. Explain grants/revokes and default-privilege changes beside the statements.
+
+For every created/altered object supporting PostgreSQL catalog comments, also include the appropriate `COMMENT ON ... IS '...'` statement in the migration. Place it after creation/alteration while the object exists. For removed objects, explain removal intent and dependency/retention implications before removal. A migration header or shared block does not replace object-specific documentation.
+
+Comments explain WHY and meaningful semantics: units/currency, NULL/default meaning, actor/tenant ownership, FK timing/delete behavior, index query rationale and security boundary as applicable. Standard columns are not exempt; keep explanations short. Do not include secrets or unnecessary personal data.
+
+Never rewrite historical/applied migrations to retrofit this rule. Catalog-documentation corrections on deployed objects require a new forward migration and operator review. Fully document new unapplied drafts before their first application; explicitly authorized documentation passes may complete those drafts.
+
+
 ---
 
 ## File-Level Header (Required at Top of Every Migration)
@@ -48,7 +59,7 @@ CREATE TABLE org_order_prefs_dtl (
 - `rec_status`: always note "1=active, 0=soft-deleted"
 - Money/weight fields: always note units (kg, SAR, etc.)
 
-**Skip inline comments for:** `id`, `tenant_org_id`, `created_at/_by/_info`, `updated_at/_by/_info`, `name`, `name2` — these are project-standard, no explanation needed.
+**All columns require documentation**, including `id`, `tenant_org_id`, `created_at/_by/_info`, `updated_at/_by/_info`, `name` and `name2`. Use a concise inline explanation and corresponding `COMMENT ON COLUMN` metadata.
 
 ---
 
@@ -147,5 +158,4 @@ CREATE OR REPLACE FUNCTION resolve_pref_value(
 Skip comments for:
 - `BEGIN; ... COMMIT;` — standard transaction wrapper, no comment needed
 - `SET statement_timeout = '30s';` — standard guard, no comment needed
-- Standard audit field additions (`created_at`, `updated_at`) — project-standard, obvious
-- `DEFAULT gen_random_uuid()` on `id` columns — project-standard
+- Individual tokens such as `DEFAULT gen_random_uuid()` need no separate explanation once the column's identity/default semantics are documented; the column itself is never exempt.

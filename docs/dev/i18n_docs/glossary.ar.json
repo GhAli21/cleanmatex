@@ -4,5 +4,6 @@
   "reporting_currency": "عملة التقارير",
   "exchange_rate": "سعر الصرف",
   "multi_currency": "تعدد العملات",
-  "cash_disposition": "التصرف بالنقدية"
+  "cash_disposition": "التصرف بالنقدية",
+  "cash_drawer": "درج النقد"
 }

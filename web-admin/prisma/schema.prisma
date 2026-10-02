@@ -118,6 +118,14 @@ model users {
   org_users_mst                                       org_users_mst[]
   sys_audit_log                                       sys_audit_log[]
 
+  /// WP02 foundation only; PostgreSQL retains CHECK, trigger, RLS and deferred-FK enforcement.
+  org_order_changes_mst org_order_changes_mst[]
+  org_order_item_pieces_dtl org_order_item_pieces_dtl[]
+  org_order_items_dtl org_order_items_dtl[]
+  org_order_preferences_dtl org_order_preferences_dtl[]
+  org_orders_mst_org_orders_mst_edit_blocked_byTousers org_orders_mst[] @relation("org_orders_mst_edit_blocked_byTousers")
+  org_orders_mst_org_orders_mst_committed_byTousers org_orders_mst[] @relation("org_orders_mst_committed_byTousers")
+
   @@index([instance_id])
   @@index([is_anonymous])
   @@schema("auth")
@@ -758,6 +766,17 @@ model org_order_items_dtl {
   org_product_data_mst            org_product_data_mst?             @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_prod")
   org_users_mst                   org_users_mst?                    @relation(fields: [override_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  /// WP02 foundation only; PostgreSQL retains CHECK, trigger, RLS and deferred-FK enforcement.
+  /// Governed removal timestamp; legacy inactive rows may remain NULL without fabricated V2 lineage.
+  deleted_at                      DateTime?                         @db.Timestamptz(6)
+  /// auth.users actor required for governed removal; legacy unknown attribution is not backfilled by this migration.
+  deleted_by                      String?                           @db.Uuid
+  /// Preallocated applied Change identity establishing removal lineage; tenant-qualified deferred FK must resolve by COMMIT. PostgreSQL owns deferred timing and its sparse lineage index; Prisma does not represent them.
+  deleted_order_change_id         String?                           @db.Uuid
+  org_order_change_ops_dtl org_order_change_ops_dtl[]
+  users users? @relation(fields: [deleted_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_item_removal_actor_fk")
+  org_order_changes_mst org_order_changes_mst? @relation(fields: [deleted_order_change_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: Restrict, map: "oc_item_removal_change_fk")
+
   @@unique([id, tenant_org_id], map: "org_order_items_tenant_org_id_id_key")
   @@unique([id, order_id, tenant_org_id], map: "org_order_items_tenant_org_id_order_id_key")
   @@index([tenant_org_id], map: "idx_order_items_tenant")
@@ -806,6 +825,18 @@ model org_order_preferences_dtl {
   org_order_item_pieces_dtl org_order_item_pieces_dtl? @relation(fields: [order_item_piece_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_orders_mst            org_orders_mst             @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_tenants_mst           org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  /// WP02 foundation only; PostgreSQL retains CHECK, trigger, RLS and deferred-FK enforcement.
+  /// Governed removal timestamp; legacy inactive rows may remain NULL without fabricated V2 lineage.
+  deleted_at                DateTime?                  @db.Timestamptz(6)
+  /// auth.users actor required for governed removal; legacy unknown attribution is not backfilled by this migration.
+  deleted_by                String?                    @db.Uuid
+  /// Preallocated applied Change identity establishing removal lineage; tenant-qualified deferred FK must resolve by COMMIT. PostgreSQL owns deferred timing and its sparse lineage index; Prisma does not represent them.
+  deleted_order_change_id   String?                    @db.Uuid
+  org_order_change_ops_dtl org_order_change_ops_dtl[]
+  users users? @relation(fields: [deleted_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_pref_removal_actor_fk")
+  org_order_changes_mst org_order_changes_mst? @relation(fields: [deleted_order_change_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: Restrict, map: "oc_pref_removal_change_fk")
+  @@unique([id, tenant_org_id], map: "oc_pref_identity_uq")
 
   @@index([tenant_org_id, order_id], map: "idx_ord_pref_tenant_order")
   @@index([tenant_org_id, order_item_id], map: "idx_ord_pref_tenant_item")
@@ -1094,6 +1125,31 @@ model org_orders_mst {
   org_qa_decisions_tr                org_qa_decisions_tr[]
   org_rcpt_receipts_mst              org_rcpt_receipts_mst[]
   org_tax_documents_mst              org_tax_documents_mst[]
+
+  /// WP02 foundation only; PostgreSQL retains CHECK, trigger, RLS and deferred-FK enforcement.
+  /// Commercial commitment evidence; NULL remains V2-ineligible; immutable once recorded.
+  committed_at                                DateTime?                         @db.Timestamptz(6)
+  /// Optional auth.users commitment actor; NULL preserves unknown proven historical attribution without fabrication.
+  committed_by                                String?                           @db.Uuid
+  /// Commercial revision only: uncommitted 0, initial commitment 1, applied Change +1; state_version remains workflow-owned.
+  edit_state_version                          Int                               @default(0)
+  /// Stored OPEN, TEMPORARILY_BLOCKED or PERMANENTLY_BLOCKED access state; permanent blocks cannot be reopened by ordinary DML.
+  edit_access_status                          String                            @default("OPEN")
+  /// Optional controlled block reason token; a blocked state requires a nonblank code or explanation.
+  edit_block_reason_code                      String?
+  /// Optional block explanation; a blocked state requires a nonblank code or explanation.
+  edit_block_reason_text                      String?
+  /// Required timestamp when a block is stored; anchors coherent optional temporary expiry.
+  edit_blocked_at                             DateTime?                         @db.Timestamptz(6)
+  /// Optional auth.users block actor; later runtime supplies authenticated attribution without inventing unknown historical actors.
+  edit_blocked_by                             String?                           @db.Uuid
+  /// Optional temporary-block expiry later than blocked_at; permanent blocks prohibit expiry and policy owns effective-time evaluation.
+  edit_block_until                            DateTime?                         @db.Timestamptz(6)
+  /// Future STANDARD/EXPRESS commercial speed; NULL is unresolved. Never infer from priority or activate SAME_DAY here.
+  service_speed                               String?
+  org_order_changes_mst org_order_changes_mst[]
+  users_org_orders_mst_edit_blocked_byTousers users? @relation("org_orders_mst_edit_blocked_byTousers", fields: [edit_blocked_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_order_block_actor_fk")
+  users_org_orders_mst_committed_byTousers users? @relation("org_orders_mst_committed_byTousers", fields: [committed_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_order_commit_actor_fk")
 
   @@unique([tenant_org_id, order_no])
   @@unique([id, tenant_org_id], map: "org_orders_mst_tenant_org_id_order_id_key")
@@ -1552,6 +1608,9 @@ model org_tenants_mst {
   org_fx_provider_cf               org_fx_provider_cf[]
   org_fx_import_batch_mst          org_fx_import_batch_mst[]
   org_fx_rate_mst                  org_fx_rate_mst[]
+
+  /// WP02 foundation only; PostgreSQL retains CHECK, trigger, RLS and deferred-FK enforcement.
+  org_order_changes_mst org_order_changes_mst[]
 
   @@index([business_type_code], map: "idx_tenant_business_type")
   @@index([stng_profile_code], map: "idx_org_tenants_profile")
@@ -3924,6 +3983,9 @@ model sys_currency_cd {
   updated_by          String?   @db.Uuid
   rec_status          Int?      @default(1) @db.SmallInt
 
+  /// WP02 foundation only; PostgreSQL retains CHECK, trigger, RLS and deferred-FK enforcement.
+  org_order_changes_mst org_order_changes_mst[]
+
   @@index([is_active, display_order], map: "idx_currency_active")
   @@schema("public")
 }
@@ -5787,6 +5849,18 @@ model org_order_item_pieces_dtl {
   org_order_preferences_dtl org_order_preferences_dtl[]
   org_service_category_cf   org_service_category_cf?    @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_pieces_service_category")
   org_tenants_mst           org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_pieces_tenant")
+
+  /// WP02 foundation only; PostgreSQL retains CHECK, trigger, RLS and deferred-FK enforcement.
+  /// Governed removal timestamp; legacy inactive rows may remain NULL without fabricated V2 lineage.
+  deleted_at                                                                                                                DateTime?                   @db.Timestamptz(6)
+  /// auth.users actor required for governed removal; legacy unknown attribution is not backfilled by this migration.
+  deleted_by                                                                                                                String?                     @db.Uuid
+  /// Preallocated applied Change identity establishing removal lineage; tenant-qualified deferred FK must resolve by COMMIT. PostgreSQL owns deferred timing and its sparse lineage index; Prisma does not represent them.
+  deleted_order_change_id                                                                                                   String?                     @db.Uuid
+  org_order_change_ops_dtl org_order_change_ops_dtl[]
+  users users? @relation(fields: [deleted_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_piece_removal_actor_fk")
+  org_order_changes_mst org_order_changes_mst? @relation(fields: [deleted_order_change_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: Restrict, map: "oc_piece_removal_change_fk")
+  @@unique([id, tenant_org_id], map: "oc_piece_identity_uq")
 
   @@unique([tenant_org_id, order_id, order_item_id, piece_seq], map: "ak_piece_seq_unique_ord_item")
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_order_pieces_created")
@@ -8952,4 +9026,161 @@ enum one_time_token_type {
   phone_change_token
 
   @@schema("auth")
+}
+
+
+/// Immutable applied commercial Change, inserted once with final financial facts and replay response.
+/// Every org_* query requires an explicit tenant_org_id predicate. PostgreSQL owns CHECKs, append-only guards and server-only RLS/grants.
+model org_order_changes_mst {
+  /// Stable persisted UUID identity; retained independently of mutable parent relationships.
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Tenant ownership used in composite references and mandatory server query predicates; RLS alone does not prove membership safety.
+  tenant_org_id             String                      @db.Uuid
+  /// Order whose commercial history this fact records; paired with tenant ownership to prevent cross-tenant references.
+  order_id                  String                      @db.Uuid
+  /// Positive per-order Change sequence; unique within the tenant and order.
+  change_no                 Int
+  /// Committed commercial revision consumed by this Change; distinct from the workflow counter.
+  edit_state_version_before Int
+  /// Commercial revision produced by this Change; exactly one greater than the consumed revision.
+  edit_state_version_after  Int
+  /// Observed workflow revision expected by the command; preserves concurrency evidence without creating another workflow counter.
+  wf_state_version_expected Int
+  /// Nonblank command origin retained for support and audit; producer authority is enforced by later server code.
+  source_context            String
+  /// Authenticated auth.users identity responsible for the applied Change; later runtime must derive it server-side.
+  actor_user_id             String                      @db.Uuid
+  /// Optional actor display snapshot retained without depending on future profile changes.
+  actor_name                String?
+  /// Optional order-level explanation; later operation policy determines when a reason is required.
+  change_reason             String?
+  /// Explicit commercial currency referencing sys_currency_cd; no locale-derived default is supplied.
+  currency_code             String
+  /// Authoritative nonempty pre-Change financial snapshot in currency_code; not a separate settlement ledger.
+  financial_before          Json
+  /// Authoritative nonempty post-Change financial snapshot in currency_code; historical settlement facts are not rewritten.
+  financial_after           Json
+  /// Signed difference in commercial obligation, denominated in currency_code and stored at decimal precision 19,4.
+  commercial_delta          Decimal                     @db.Decimal(19, 4)
+  /// Follow-up classification NONE, OUTSTANDING_OPTIONAL, OUTSTANDING_REQUIRED or OVERPAYMENT; does not execute settlement.
+  financial_outcome         String
+  /// Tenant-unique durable Apply identity; retained with the final response for replay and duplicate detection.
+  idempotency_key           String
+  /// Nonblank canonical request fingerprint; later command code rejects reuse of a key with different content.
+  request_hash              String
+  /// Nonempty final authoritative response recorded with the applied Change for lost-response replay; never a pending shell.
+  apply_response            Json
+  /// Authoritative application timestamp supplied by the commercial transaction, rather than inferred from order creation.
+  applied_at                DateTime                    @db.Timestamptz(6)
+  /// Object-shaped extension context retained immutably with the applied fact; not another state authority.
+  metadata                  Json                        @default("{}")
+  /// Insertion audit timestamp for this immutable fact; distinct from business application time where applicable.
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  /// Nonblank insertion audit identity in the standard TEXT field; later runtime derives actor authority server-side.
+  created_by                String
+  /// Optional insertion provenance retained under the standard audit convention.
+  created_info              String?
+  /// Standard audit compatibility field constrained to NULL because applied facts cannot be updated.
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  /// Standard audit compatibility field constrained to NULL because applied facts cannot be updated.
+  updated_by                String?
+  /// Standard audit compatibility field constrained to NULL because applied facts cannot be updated.
+  updated_info              String?
+  /// Standard lifecycle vocabulary 1=active, 0=soft-deleted; immutable applied facts require 1 and prohibit soft erasure.
+  rec_status                Int                         @default(1) @db.SmallInt
+  /// Optional display ordering recorded at insertion; never updated to reorder applied business history.
+  rec_order                 Int?
+  /// Optional audit notes recorded at insertion; later corrections require separate governed facts.
+  rec_notes                 String?
+  /// Standard lifecycle compatibility flag constrained to true; cannot hide applied history.
+  is_active                 Boolean                     @default(true)
+  org_order_change_ops_dtl  org_order_change_ops_dtl[]
+  users                     users                       @relation(fields: [actor_user_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_change_actor_fk")
+  sys_currency_cd           sys_currency_cd             @relation(fields: [currency_code], references: [code], onDelete: Restrict, onUpdate: Restrict, map: "oc_change_currency_fk")
+  org_orders_mst            org_orders_mst              @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: Restrict, map: "oc_change_order_fk")
+  org_tenants_mst           org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_change_tenant_fk")
+  org_order_item_pieces_dtl org_order_item_pieces_dtl[]
+  org_order_items_dtl       org_order_items_dtl[]
+  org_order_preferences_dtl org_order_preferences_dtl[]
+
+  @@unique([id, order_id, tenant_org_id], map: "oc_change_aggregate_uq")
+  @@unique([tenant_org_id, idempotency_key], map: "oc_change_idempotency_uq")
+  @@unique([id, tenant_org_id], map: "oc_change_identity_uq")
+  @@unique([tenant_org_id, order_id, change_no], map: "oc_change_number_uq")
+  @@unique([tenant_org_id, order_id, edit_state_version_after], map: "oc_change_revision_uq")
+  @@index([tenant_org_id, is_active], map: "oc_change_active_ix")
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "oc_change_created_ix")
+  @@index([tenant_org_id, order_id, applied_at(sort: Desc)], map: "oc_change_order_time_ix")
+  @@index([tenant_org_id, rec_status], map: "oc_change_status_ix")
+  @@schema("public")
+}
+
+
+/// Immutable operation facts retain tenant-qualified target UUIDs independently of mutable current hierarchy.
+/// Every org_* query requires an explicit tenant_org_id predicate. PostgreSQL owns CHECKs, append-only guards and server-only RLS/grants.
+model org_order_change_ops_dtl {
+  /// Stable persisted UUID identity; retained independently of mutable parent relationships.
+  id                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Tenant ownership used in composite references and mandatory server query predicates; RLS alone does not prove membership safety.
+  tenant_org_id             String                     @db.Uuid
+  /// Order whose commercial history this fact records; paired with tenant ownership to prevent cross-tenant references.
+  order_id                  String                     @db.Uuid
+  /// Applied Change aggregate identity; paired with original order and tenant to prevent operations crossing aggregates.
+  order_change_id           String                     @db.Uuid
+  /// Positive operation sequence unique within the tenant and Change, preserving deterministic audit order.
+  operation_seq             Int
+  /// Frozen V1 operation token; checked against the supported thirteen-operation catalog.
+  operation_code            String
+  /// Affected persisted fact category ORDER, ITEM, PIECE or PREFERENCE; creation command parent scope is not the audit target.
+  target_type               String
+  /// Optional historical item UUID; tenant-qualified FK preserves identity without depending on current order parent.
+  order_item_id             String?                    @db.Uuid
+  /// Optional historical piece UUID; tenant-qualified FK permits future parent movement without rewriting history.
+  order_item_piece_id       String?                    @db.Uuid
+  /// Optional historical preference UUID; tenant-qualified FK preserves identity separately from mutable parent scope.
+  order_preference_id       String?                    @db.Uuid
+  /// Optional client UUID correlating a creation command with its preallocated persisted target; not a substitute for target identity.
+  client_ref                String?                    @db.Uuid
+  /// Object-shaped authoritative prior values and original parent context retained for audit.
+  before_values             Json                       @default("{}")
+  /// Object-shaped authoritative resulting values and original parent context retained for audit.
+  after_values              Json                       @default("{}")
+  /// Optional human-readable operation explanation captured at insertion; never recomputed from mutable current rows.
+  audit_summary             String?
+  /// Object-shaped extension context retained immutably with the applied fact; not another state authority.
+  metadata                  Json                       @default("{}")
+  /// Insertion audit timestamp for this immutable fact; distinct from business application time where applicable.
+  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
+  /// Nonblank insertion audit identity in the standard TEXT field; later runtime derives actor authority server-side.
+  created_by                String
+  /// Optional insertion provenance retained under the standard audit convention.
+  created_info              String?
+  /// Standard audit compatibility field constrained to NULL because applied facts cannot be updated.
+  updated_at                DateTime?                  @db.Timestamptz(6)
+  /// Standard audit compatibility field constrained to NULL because applied facts cannot be updated.
+  updated_by                String?
+  /// Standard audit compatibility field constrained to NULL because applied facts cannot be updated.
+  updated_info              String?
+  /// Standard lifecycle vocabulary 1=active, 0=soft-deleted; immutable applied facts require 1 and prohibit soft erasure.
+  rec_status                Int                        @default(1) @db.SmallInt
+  /// Optional display ordering recorded at insertion; never updated to reorder applied business history.
+  rec_order                 Int?
+  /// Optional audit notes recorded at insertion; later corrections require separate governed facts.
+  rec_notes                 String?
+  /// Standard lifecycle compatibility flag constrained to true; cannot hide applied history.
+  is_active                 Boolean                    @default(true)
+  org_order_changes_mst     org_order_changes_mst      @relation(fields: [order_change_id, order_id, tenant_org_id], references: [id, order_id, tenant_org_id], onDelete: Restrict, onUpdate: Restrict, map: "oc_op_change_fk")
+  org_order_items_dtl       org_order_items_dtl?       @relation(fields: [order_item_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: Restrict, map: "oc_op_item_fk")
+  org_order_item_pieces_dtl org_order_item_pieces_dtl? @relation(fields: [order_item_piece_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: Restrict, map: "oc_op_piece_fk")
+  org_order_preferences_dtl org_order_preferences_dtl? @relation(fields: [order_preference_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: Restrict, map: "oc_op_pref_fk")
+
+  @@unique([tenant_org_id, order_change_id, operation_seq], map: "oc_op_sequence_uq")
+  @@index([tenant_org_id, is_active], map: "oc_op_active_ix")
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "oc_op_created_ix")
+  @@index([tenant_org_id, order_item_id], map: "oc_op_item_ix")
+  @@index([tenant_org_id, order_id, order_change_id], map: "oc_op_order_change_ix")
+  @@index([tenant_org_id, order_item_piece_id], map: "oc_op_piece_ix")
+  @@index([tenant_org_id, order_preference_id], map: "oc_op_pref_ix")
+  @@index([tenant_org_id, rec_status], map: "oc_op_status_ix")
+  @@schema("public")
 }

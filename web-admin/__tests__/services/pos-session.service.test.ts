@@ -3,6 +3,7 @@ import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
 import {
   assertOpenPosSessionForFinanceTx,
   autoLinkDrawerTx,
+  closePosSession,
   getMyActivePosSession,
   getPosSessionSummary,
   listPosSessionFilterOptions,
@@ -213,6 +214,30 @@ describe('pos-session.service', () => {
     await expect(resumePosSession({ tenantId, userId })).rejects.toMatchObject({
       code: 'POS_SESSION_INVALID_STATUS',
       httpStatus: 409,
+    });
+  });
+
+  describe('closePosSession — linked drawer guard (CLF-4-5 allow-list)', () => {
+    it.each(['OPEN', 'CLOSING'])('blocks the POS close while the linked drawer session is %s', async (drawerStatus) => {
+      mockTx.$queryRaw
+        .mockResolvedValueOnce([posSession({ cash_drawer_session_id: drawerSessionId })])
+        .mockResolvedValueOnce([{ status: drawerStatus }]);
+
+      await expect(closePosSession({ tenantId, userId })).rejects.toMatchObject({
+        code: 'POS_SESSION_DRAWER_STILL_OPEN',
+        httpStatus: 409,
+      });
+    });
+
+    it.each(['CLOSED', 'FORCE_CLOSED'])('does not block on a terminal drawer status (%s)', async (drawerStatus) => {
+      mockTx.$queryRaw
+        .mockResolvedValueOnce([posSession({ cash_drawer_session_id: drawerSessionId })])
+        .mockResolvedValueOnce([{ status: drawerStatus }]);
+
+      // Whatever happens next (the UPDATE is not stubbed), it must not be the drawer guard.
+      await closePosSession({ tenantId, userId }).catch((error: { code?: string }) => {
+        expect(error.code).not.toBe('POS_SESSION_DRAWER_STILL_OPEN');
+      });
     });
   });
 

@@ -9,13 +9,11 @@ import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
 /**
  * POST /api/v1/cash-drawers/[drawerId]/open-session-v2
  *
- * CLF two-step lifecycle open (plan §4B.7 `open-session`, CLF-8 slice A).
- * A distinct path from the legacy `.../open-session` — that route is still
- * live for Payment Modal V4's checkout flow (`use-cash-drawer.ts`, an
- * explicitly behavior-frozen surface) and is retired separately, in the same
- * pass that migrates checkout onto this contract (M10/R3). The opening
- * float is always computed server-side from drawer history; this route
- * never accepts a manually declared `openingBalance`.
+ * CLF two-step lifecycle open (plan §4B.7 `open-session`) — the only way to
+ * open a drawer session (the legacy single-step route was removed in CLF R3;
+ * the drawer screen and Payment Modal V4 both call this). The expected
+ * opening cash is always computed server-side from drawer history; the
+ * caller may only supply what it physically counted (`openingCount`).
  * @param request JSON body matching `openSessionRequestSchema`
  * @param root0 route params
  * @param root0.params drawer id

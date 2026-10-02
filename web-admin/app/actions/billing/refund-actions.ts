@@ -86,7 +86,6 @@ export async function getAllRefunds(page = 1, pageSize = 20) {
       pos_session_id: r.pos_session_id,
       fin_voucher_id: r.fin_voucher_id,
       fin_voucher_trx_line_id: r.fin_voucher_trx_line_id,
-      cash_drawer_movement_id: r.cash_drawer_movement_id,
       created_by:         r.created_by,
       created_at:         r.created_at?.toISOString() ?? null,
       approved_by:        r.approved_by,

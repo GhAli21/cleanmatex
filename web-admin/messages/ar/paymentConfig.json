@@ -230,14 +230,11 @@
     "selectCurrency": "اختر العملة",
     "currencyLockedHint": "هذه العملة تأتي من ملف المستأجر وهي مقفلة لأدراج النقد.",
     "branch": "الفرع",
-    "requirements": "المتطلبات",
     "assignedTerminal": "الجهاز المخصص",
     "unassignedTerminal": "لا يوجد جهاز مخصص",
     "maxCashLimit": "الحد الأقصى للنقد",
     "varianceApprovalThreshold": "حد اعتماد فرق الجرد",
     "varianceApprovalThresholdHint": "اختياري. عند تجاوز فرق الإغلاق لهذا المبلغ يمكن للمشرف تسجيل اعتماد للتدقيق. اتركه فارغاً للتخطي.",
-    "requiresSession": "يتطلب جلسة",
-    "openingFloatRequired": "يتطلب رصيد افتتاحي",
     "sessionStatus": "حالة الجلسة",
     "noOpenSession": "لا توجد جلسة مفتوحة",
     "openSince": "مفتوحة منذ {time}",
@@ -245,9 +242,6 @@
     "sessionOpen": "الجلسة مفتوحة",
     "openedAt": "وقت الفتح",
     "openingFloat": "الرصيد الافتتاحي",
-    "expectedCash": "النقد المتوقع",
-    "countedCash": "النقد المعدود",
-    "difference": "الفرق",
     "empty": {
       "title": "لا توجد أدراج نقد مهيأة بعد"
     },
@@ -260,7 +254,7 @@
     "capFixed": "موقع ثابت",
     "capReceivesDisposition": "يمكنه استلام نقد الإغلاق",
     "capNoDisposition": "لا يمكنه استلام نقد الإغلاق",
-    "policyMovedHint": "تُدار قواعد الجلسات والجرد لهذا الصندوق من تبويب السياسة في صفحة الصندوق."
+    "policyMovedHint": "تُدار قواعد الجلسات والجرد لهذا الدرج من تبويب السياسة في صفحة الدرج."
   },
   "loyalty": {
     "title": "برنامج الولاء",

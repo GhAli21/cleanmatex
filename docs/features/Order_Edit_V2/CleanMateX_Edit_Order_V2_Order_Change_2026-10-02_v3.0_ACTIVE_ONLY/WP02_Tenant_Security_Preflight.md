@@ -10,6 +10,8 @@ Reviewed root `AGENTS.md`, `CLAUDE.md`, database/multitenancy/Supabase instructi
 
 Fresh metadata SELECTs succeeded against both local and hosted `ndjjycdgtponhosvztdg` catalogs. The sessions are `postgres` database / `postgres` role, PostgreSQL 17.6. These sessions inspect definitions and effective grants; they do not prove application-user authorization, normal Data API behavior, production application identity, backfill quality or concurrent execution.
 
+**Continuation baseline:** refreshed against repository HEAD `f33cff481c7a5d35fb16ad5a10983db2762c9818`. Both migration-history catalogs now contain **552 records**, with latest numeric version **0546**; repository versions 0541–0546 are cash-drawer/legacy-currency retirement and cash-change rounding work, not WP02 migrations. The helper, membership-policy, actor-key, role and default-ACL findings below were re-read after those migrations. They remain materially unchanged. Local PostgreSQL is x86_64; hosted PostgreSQL is aarch64. Equal migration versions do not prove equal catalogs: the legacy TEXT/VARCHAR actor/membership differences below persist.
+
 Queries read catalogs/function definitions only. No migration, role switch, schema experiment, RPC execution or business-row mutation was performed. No tenant was assigned to this security preflight, so no cross-tenant business/identity data scan or historical actor aggregate was performed.
 
 ## 2. Verified identity and membership schema
@@ -41,6 +43,8 @@ then active org_users_mst membership ordered by last_login_at
 
 Both installed `get_user_tenants()` bodies are SECURITY DEFINER owned by postgres, have no fixed search_path and select tenant membership for `u.user_id = auth.uid()`, `u.is_active = true`, `t.is_active = true`. Unlike `current_tenant_id()`, they filter authenticated membership rather than trusting a selected-tenant metadata value. Their effective EXECUTE ACLs include PUBLIC, anon, authenticated and service_role.
 
+Orders, items, pieces and preferences have RLS enabled, not forced, and postgres ownership on both targets. Their permissive tenant ALL policies use `current_tenant_id()`; pieces and preferences additionally have service-role ALL policies. This establishes **RLS enabled**, not **membership-safe authorization proven**. The inspection did not execute those policies under a browser identity.
+
 The NEW objects must not copy `tenant_org_id = current_tenant_id()` as their authorization predicate. Existing `web-admin/lib/auth/server-auth.ts:47` treats selected-tenant metadata as a hint and checks it against membership. This remains the application convention, but the membership table itself needs separate integrity proof.
 
 **Newly verified dependency:** both `org_users_mst` catalogs contain permissive policy `tenant_isolation_org_users_mst`:
@@ -61,11 +65,20 @@ A NEW helper can avoid raw metadata and recursive RLS, but merely checking membe
 
 ### 4.1 Foundation privilege boundary
 
-After creating the two NEW Change tables, remove their inherited PUBLIC/anon/authenticated rights explicitly. Neither ordinary role receives direct SELECT/INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER rights in the disabled foundation deployment. Grant service_role only SELECT and INSERT. The configured Prisma owner path can SELECT/INSERT; owner-path append-only protection requires the unconditional guards below.
+After creating the two NEW Change tables, remove their inherited PUBLIC/anon/authenticated/service_role rights explicitly, then grant service_role only SELECT and INSERT. Neither ordinary role receives direct SELECT/INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER rights in the disabled foundation deployment. The configured Prisma owner path can SELECT/INSERT; owner-path append-only protection requires the unconditional guards below.
+
+| Authority | Initial NEW-table access | Enforcement / limitation |
+|---|---|---|
+| Owner `postgres` | Owner SELECT/INSERT; normal UPDATE/DELETE/TRUNCATE rejected | RLS bypasses; unconditional immutable-history triggers required |
+| `service_role` | Explicit SELECT, INSERT only after REVOKE ALL | BYPASSRLS; server authentication, permissions and explicit tenant predicates still required |
+| `authenticated`, `anon`, PUBLIC | No direct table privileges; no ordinary policies | RLS default denial plus explicit revocation of inherited ACLs |
+| Administrative owner/superuser DDL | Can intentionally disable/drop protection | Outside normal command authority; reviewed maintenance protocol and release gate |
 
 Withholding authenticated SELECT is a foundation/cutover gate, not a replacement for the approved eventual authorized tenant-read behavior. A later reviewed grant may enable it only after membership/permission integrity and real-role tests pass. API history/context readers use server-derived tenant/actor and current permission guards; no server route bypass is justified by this foundation design.
 
 Enable RLS on both NEW tables. No ordinary INSERT/UPDATE/DELETE policy is created. A future authenticated SELECT policy can be defined using the scoped helper below, but must not become reachable through a SELECT grant until its dependency gates pass. Do not invent a JWT/custom-GUC marker to unlock DML.
+
+WP02's initial authored foundation must create **neither** the eventual membership helper **nor** an authenticated SELECT policy. Section 4.2 is the later gated contract; it is not an extra WP02 object or permission seed. No helper can certify membership integrity while the underlying self-write policy remains permissive.
 
 ### 4.2 Scoped membership predicate for eventual authorized reads
 
@@ -121,6 +134,18 @@ Normal command actor comes from verified server authentication, and tenant comes
 
 Both public-schema default ACL catalogs grant broad table and function rights to anon/authenticated/service_role for postgres and supabase_admin-created objects. NEW-object revokes are mandatory even if no explicit broad GRANT appears in the new migration. Do not alter global default ACLs or other tables/functions within this WP02 scope.
 
+### 5.1 Repair/maintenance RPC closure handoff
+
+Fresh function-definition and effective `has_function_privilege` inspection agrees on both targets:
+
+| RPC | Installed authority / tenant behavior | V2 revision risk | Required later gate |
+|---|---|---|---|
+| `fix_order_data(UUID,TEXT[],UUID,BOOLEAN)` | postgres-owned SECURITY DEFINER, `search_path=public`; anon/authenticated EXECUTE; tenant argument defaults NULL and outer predicate then matches every tenant; piece subqueries and trim DELETE lack explicit tenant predicates | Inserts/deletes persisted pieces without a governed Change or edit-version increment; it does not inspect commitment | WP17/WP18 close ordinary execution and require scoped, audited governed repair; do not use this RPC for WP02 proof/backfill |
+| `hq_mntnc_cleanup_tenant_orders(...)` | postgres-owned SECURITY DEFINER, `search_path=public`; anon/authenticated EXECUTE; requires tenant argument and scopes principal targets, but no caller membership/permission guard appears in its body | Destructive structural, payment, voucher, tax/history cleanup; no V2 commitment/revision guard | WP17/WP18 restrict authority and define protected-history maintenance; this is never a migration rollback or V2 cleanup route |
+| `claim_outbox_batch(INTEGER,TIMESTAMPTZ)` | postgres-owned SECURITY DEFINER, `search_path=public`; anon/authenticated EXECUTE; intentionally global worker claim without tenant predicate | Caller can claim/update worker events; default search path and ordinary EXECUTE are not a trusted worker boundary | WP17/WP18 restrict to reviewed worker authority and prove normal delivery behavior; no outbox runtime change in WP02 |
+
+No RPC was invoked, including dry-run modes. The findings are installed-body/ACL evidence, not a demonstrated exploit. Adding protected-history RESTRICT FKs must fail destructive history deletion rather than authorizing this existing cleanup body; it does not remove the ordinary EXECUTE exposure itself. There is no platform-wide RLS/RPC repair in this WP02 artifact.
+
 ## 6. Required proof and handoff
 
 Before calling WP02 security complete or enabling a cohort, record:
@@ -140,3 +165,8 @@ This document proves metadata/design only. Runtime security, historical data and
 
 The conclusions above use current catalog/source evidence. Platform behavior was checked against [Supabase RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security), [Supabase function security](https://supabase.com/docs/guides/database/functions) and [PostgreSQL 17 row security](https://www.postgresql.org/docs/17/ddl-rowsecurity.html). RLS does not replace table grants or protect TRUNCATE; definer helpers require fixed/schema-qualified resolution and narrowly justified privileges.
 
+## 8. Installed-object verification after operator application — 2026-10-02
+
+Fresh read-only catalogs now confirm0547/0548 installed on local and hosted (555 migration records/latest0549). Both history tables: ownerpostgres, RLSenabled, zero policies, no effective anon/authenticated table privileges; service_role SELECT/INSERTonly. Three invoker functions have fixed pg_catalog search_path and direct EXECUTEonlypostgres; eight guards enabled. Exact definitions/157 comments match reviewed SQL. Fourteen NOT VALID constraints remain intentional; installation is not runtime JWT/transaction/rollback proof. No migration/function/business-data write was executed by this verification.
+
+Existing current_tenant_id and org_users_mst membership-integrity dependencies are unchanged. The installed new-object boundary does not secure old membership/committed-writer/RPC authority. [WP02 report](WP02_Foundation_Preparation_v3.0.md) sections17/18 record deployment/type evidence and completed user-authorized Prisma sync. Generated ORM types do not enforce permissions/tenant predicates. WP02 security/data/runtime acceptance remains partial; WP03 is not started.

@@ -104,8 +104,6 @@ export async function createCashDrawer(
           drawer_name2: input.drawer_name2 ?? null,
           drawer_type: input.drawer_type,
           currency_code: tenantCurrencyCode,
-          requires_session: input.requires_session ?? true,
-          opening_float_required: input.opening_float_required ?? true,
           max_cash_limit: input.max_cash_limit ?? null,
           variance_approval_threshold: input.variance_approval_threshold ?? null,
           assigned_terminal_id: input.assigned_terminal_id ?? null,
@@ -161,8 +159,6 @@ export async function updateCashDrawer(
           ...(input.drawer_name !== undefined && { drawer_name: input.drawer_name }),
           ...(input.drawer_name2 !== undefined && { drawer_name2: input.drawer_name2 }),
           ...(input.drawer_type !== undefined && { drawer_type: input.drawer_type }),
-          ...(input.requires_session !== undefined && { requires_session: input.requires_session }),
-          ...(input.opening_float_required !== undefined && { opening_float_required: input.opening_float_required }),
           ...(input.max_cash_limit !== undefined && { max_cash_limit: input.max_cash_limit }),
           ...(input.variance_approval_threshold !== undefined && {
             variance_approval_threshold: input.variance_approval_threshold,

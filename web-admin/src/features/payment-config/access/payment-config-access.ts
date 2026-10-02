@@ -148,7 +148,7 @@ export const PAYMENT_CONFIG_ACCESS_CONTRACTS: PageAccessContract[] = [
       {
         label: 'Open cash drawer session',
         method: 'POST',
-        path: '/api/v1/cash-drawers/[drawerId]/open-session',
+        path: '/api/v1/cash-drawers/[drawerId]/open-session-v2',
         requirement: {
           permissions: [PAYMENT_CONFIG_PERMISSIONS.CASH_DRAWER_OPEN_SESSION],
           requireAllPermissions: true,

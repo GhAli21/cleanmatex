@@ -50,6 +50,7 @@ much as possible, even across different namespaces.
 | `exchange_rate` | Exchange Rate | سعر الصرف | Tenant_Currency_FX plan 01 (`org_fx_rate_mst`/`sys_currency_exchange_rate_mst`). Covers both the tenant's own rate book and the HQ reference book — one term for both. Decided 2026-10-01. |
 | `multi_currency` | Multi-Currency | تعدد العملات | Tenant_Currency_FX plan 01 — the `multi_currency_fx` feature flag and the progressive-disclosure toggle on the Currencies tab. Decided 2026-10-01. |
 | `cash_disposition` | Disposition | التصرف بالنقدية | CLF (ADR-057) — what happens to the counted cash at a drawer close (left in drawer, moved to safe, handed to manager, prepared for deposit, partial removal). Recurs across the close wizard, session detail, print report, and the follow-up screen (`sys_cash_drawer_ses_disp_cd`). Decided 2026-10-01. |
+| `cash_drawer` | Cash Drawer | درج النقد | The physical till drawer (POS_Session_Cash_Drawer_Hardening / CLF). "درج" is the accurate translation of a till drawer; "صندوق" means a box or fund and was creeping in, so the catalog read "درج" on checkout/POS screens but "صندوق" on the cash-drawer screens. Decided 2026-10-02; the 94 existing drawer strings were aligned to "درج" in the same pass (singular درج, definite الدرج, plural أدراج). Do not use "صندوق" for a cash drawer. |
 
 ## Adding a new term
 

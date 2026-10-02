@@ -14,11 +14,17 @@
 
 ### Current read-only baseline and remaining proof
 
-2026-10-02 inspection reached local (`http://127.0.0.1:54321`, x86 PostgreSQL 17.6) and hosted (`https://ndjjycdgtponhosvztdg.supabase.co`, aarch64 PostgreSQL 17.6) through their respective MCPs. Both catalog sessions run as postgres and both record 546 migrations, latest numeric `0540`, plus six legacy timestamp entries. Metadata access is currently available; older Unauthorized observations do not describe current access. No SQL migration or mutation was authored/executed during this review.
+2026-10-02 operator application verification reached local and hosted PostgreSQL17.6: both record555 migrations/latest0549;0547/0548 installed object/function/constraint/index/comment/ACL definitions match reviewed SQL. Initial authoring baseline was552/0546 at main/f33cff481c7a5d35fb16ad5a10983db2762c9818. The agent applied no migration. [WP02 evidence](WP02_Foundation_Preparation_v3.0.md) section17 owns current deployment/type results; final validation report is earlier review evidence.
 
 Do not assume identical target schema from migration counts: local preference parent-shape CHECK exists but hosted lacks it, item audit-column TEXT/VARCHAR differs, and equivalent order/item UNIQUE tuple names differ. Use the Blueprint's verified tuple definitions and target-specific absence checks. Re-list root numeric migration sequence immediately before authoring; old timestamp placeholders do not reserve a future sequence.
 
 Catalog success proves installed columns/keys/indexes/policies/function definitions/grants, not orphan-free data, historical commitment classification, actor/timezone provenance, runtime application role, JWT authorization, Data API exposure, concurrency or rollback. Every enabling tenant/order needs source classification evidence; unresolved rows remain V2-ineligible. Backfill must be repeatable and bounded, preserve existing valid classifications, report ambiguous/orphan rows and validate after application by the authorized operator. Never infer commitment from creation time or synthesize typed history from lossy legacy diffs.
+
+### WP02 operator review sequence
+
+Review0547 order columns/guards, then0548 immutable identity/history/removal/ACLs. Neither includes historical backfill/global hierarchy validation. Review locks/timeouts and size a maintenance window: current BEGIN/COMMIT convention precludes CONCURRENTLY. Identity UNIQUE/index creation scans existing pieces/preferences; NOT VALID CHECK/FKs still enforce future DML. Do not append global parent-shape/FKs simply with NOT VALID: current Split would break while V2 is disabled; removed-origin rows require an active-only hierarchy design. Keep V2 disabled and historical classifications unresolved until proven.
+
+Before operator execution, reverify migration number/catalog, backup/locks, owner/default ACLs, anon/auth denial, runtime identity and real fixture late-master/missing-master/rollback/immutability behavior. Operator application confirmation and approved Prisma sync are WP03 prerequisites, not automatic authorization. No destructive down is supplied. Applied-file fixes use a new forward migration. Never run repair/cleanup/outbox RPCs as preflight. WP17/WP18 own their privilege/writer closure and real role proof.
 
 ## 2. Additive deployment sequence
 

@@ -2,7 +2,7 @@
  * A1-5 (POS Session & Cash Drawer Hardening, Wave A) — real concurrency proof
  * for `generate_cash_drawer_sess_no()` (renamed from generate_session_no)
  * after migration 0519 (advisory lock + the
- * substring-parse fix) and the `openSession` rewrite that calls it inside
+ * substring-parse fix) and the `openSession` that calls it inside
  * the insert transaction.
  *
  * The unit tests for `cash-drawer.service` mock Prisma entirely, so they
@@ -19,65 +19,43 @@
  */
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/db/prisma';
-import { openSession, closeSession } from '@/lib/services/cash-drawer.service';
+import {
+  resolveTestScope,
+  createTestDrawer,
+  openTestSession,
+  closeTestSession,
+  cleanupTestDrawers,
+  type DbTestScope,
+} from './helpers/cash-drawer-fixtures';
 
 const DRAWER_CODE_PREFIX = 'A1-5-TEST';
 const DRAWER_COUNT = 5;
 const ROUNDS = 4; // 5 drawers x 4 rounds = 20 total opens (A1-5's stated scale)
 
 let dbUp = false;
-let tenantId = '';
-let branchId = '';
+let scope: DbTestScope | null = null;
 let drawerIds: string[] = [];
 
 beforeAll(async () => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    const tenants = await prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM public.org_tenants_mst ORDER BY created_at LIMIT 1`;
-    tenantId = tenants[0]?.id ?? '';
-
-    if (tenantId) {
-      const branches = await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT id FROM public.org_branches_mst WHERE tenant_org_id = ${tenantId}::uuid LIMIT 1`;
-      branchId = branches[0]?.id ?? '';
-    }
-
-    dbUp = tenantId.length > 0 && branchId.length > 0;
-  } catch {
-    dbUp = false;
-  }
+  scope = await resolveTestScope();
+  dbUp = scope !== null;
 
   if (!dbUp) return;
 
   drawerIds = [];
   for (let i = 0; i < DRAWER_COUNT; i += 1) {
-    const drawer = await prisma.org_cash_drawers_mst.create({
-      data: {
-        tenant_org_id: tenantId,
-        branch_id: branchId,
-        drawer_code: `${DRAWER_CODE_PREFIX}-${randomUUID().slice(0, 8)}`,
-        drawer_name: `A1-5 concurrency test drawer ${i}`,
-        drawer_type: 'TEMPORARY',
-        currency_code: 'OMR',
-        requires_session: true,
-        opening_float_required: false,
-        is_active: true,
-        rec_status: 1,
-      },
-    });
-    drawerIds.push(drawer.id);
+    drawerIds.push(
+      await createTestDrawer(scope!, {
+        codePrefix: DRAWER_CODE_PREFIX,
+        name: `A1-5 concurrency test drawer ${i}`,
+      }),
+    );
   }
 });
 
 afterAll(async () => {
-  if (dbUp && drawerIds.length > 0) {
-    await prisma.org_cash_drawer_sessions_mst
-      .deleteMany({ where: { cash_drawer_id: { in: drawerIds }, tenant_org_id: tenantId } })
-      .catch(() => { /* best-effort cleanup */ });
-    await prisma.org_cash_drawers_mst
-      .deleteMany({ where: { id: { in: drawerIds }, tenant_org_id: tenantId } })
-      .catch(() => { /* best-effort cleanup */ });
+  if (dbUp && scope && drawerIds.length > 0) {
+    await cleanupTestDrawers(scope, drawerIds).catch(() => { /* best-effort cleanup */ });
   }
   await prisma.$disconnect();
 });
@@ -100,11 +78,11 @@ describe('generate_cash_drawer_sess_no() — real concurrency proof (A1-5, migra
 
       const sessions = await Promise.all(
         drawerIds.map((drawerId) =>
-          openSession(tenantId, drawerId, { openingBalance: 10, openedBy })
+          openTestSession(scope!, openedBy, drawerId)
         )
       );
 
-      const sessionNos = sessions.map((s) => s.session_no);
+      const sessionNos = sessions.map((s) => s.sessionNo);
 
       // No two concurrent callers computed the same sequence value — the
       // property the old count(*) path and the unlocked function could not
@@ -130,7 +108,7 @@ describe('generate_cash_drawer_sess_no() — real concurrency proof (A1-5, migra
       // one OPEN session at a time (uq_open_cash_drawer_session), and the
       // next test reuses these same drawers.
       await Promise.all(
-        sessions.map((s) => closeSession(tenantId, s.id, { physicalCount: 10, closedBy: openedBy }))
+        sessions.map((s, i) => closeTestSession(scope!, openedBy, drawerIds[i], s.sessionId, { countedAmount: 0 }))
       );
     }
   );
@@ -144,16 +122,16 @@ describe('generate_cash_drawer_sess_no() — real concurrency proof (A1-5, migra
       for (let round = 0; round < ROUNDS; round += 1) {
         const opened = await Promise.all(
           drawerIds.map((drawerId) =>
-            openSession(tenantId, drawerId, { openingBalance: 10, openedBy })
+            openTestSession(scope!, openedBy, drawerId)
           )
         );
-        allSessionNos.push(...opened.map((s) => s.session_no));
+        allSessionNos.push(...opened.map((s) => s.sessionNo));
 
         // Close every session so the next round's opens are legal (only one
         // OPEN session per drawer is allowed — uq_open_cash_drawer_session).
         await Promise.all(
-          opened.map((s) =>
-            closeSession(tenantId, s.id, { physicalCount: 10, closedBy: openedBy })
+          opened.map((s, i) =>
+            closeTestSession(scope!, openedBy, drawerIds[i], s.sessionId, { countedAmount: 0 })
           )
         );
       }

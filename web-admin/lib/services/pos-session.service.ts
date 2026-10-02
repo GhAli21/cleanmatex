@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { toMoneyString } from '@/lib/utils/money';
+import { CASH_DRAWER_TERMINAL_SESSION_STATUSES } from '@/lib/constants/cash-drawer';
 import {
   POS_SESSION_EVENT_TYPE,
   POS_SESSION_IDEMPOTENCY_RESOURCE,
@@ -399,7 +400,10 @@ async function assertLinkedDrawerIsClosed(tx: PrismaTx, session: PosSessionRow):
       AND id = ${session.cash_drawer_session_id}::uuid
     LIMIT 1
   `);
-  if (rows[0]?.status === 'OPEN') {
+  // Allow-list (CLF-4-5): any non-terminal status — OPEN, CLOSING — still has cash in play,
+  // so a status added later can never silently let the POS session close first.
+  const drawerStatus = rows[0]?.status;
+  if (drawerStatus && !(CASH_DRAWER_TERMINAL_SESSION_STATUSES as readonly string[]).includes(drawerStatus)) {
     throw new PosSessionError(
       'POS_SESSION_DRAWER_STILL_OPEN',
       'Linked cash drawer session must be closed before closing the POS session.',

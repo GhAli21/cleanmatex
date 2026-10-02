@@ -7,8 +7,8 @@
  *  - a stale session hint is redirected to the drawer's open session and audited
  *  - a posted line's drawer stamp cannot be changed (DB immutability trigger)
  *
- * The full D22 proof (a payment racing a close, checked against the close's
- * exact sequence cut) lands with the two-step close in CLF-R2.
+ * The payment-vs-close race against the exact sequence cut is proved in
+ * cash-drawer-mutation-locking.db.test.ts and cash-drawer-session-lifecycle.db.test.ts.
  *
  * Local DB only — never remote. Skips gracefully when no DB is reachable.
  *
@@ -16,29 +16,33 @@
  */
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/db/prisma';
-import { openSession, closeSession } from '@/lib/services/cash-drawer.service';
 import { stampCashLinesTx } from '@/lib/services/cash-drawer-ledger/cash-drawer-ledger-gate';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import type { VoucherLineForWiring } from '@/lib/types/voucher-wiring';
+import {
+  resolveTestScope,
+  createTestDrawer,
+  openTestSession,
+  closeTestSession,
+  cleanupTestDrawers,
+  type DbTestScope,
+} from './helpers/cash-drawer-fixtures';
 
 const CODE_PREFIX = 'CLF-GATE-TEST';
 
 let dbUp = false;
 let cashTracked = false;
 const createdVoucherIds: string[] = [];
+let scope: DbTestScope | null = null;
 let tenantId = '';
 let branchId = '';
 
 beforeAll(async () => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
-    const tenants = await prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM public.org_tenants_mst ORDER BY created_at LIMIT 1`;
-    tenantId = tenants[0]?.id ?? '';
+    scope = await resolveTestScope();
+    tenantId = scope?.tenantId ?? '';
+    branchId = scope?.branchId ?? '';
     if (tenantId) {
-      const branches = await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT id FROM public.org_branches_mst WHERE tenant_org_id = ${tenantId}::uuid AND is_active LIMIT 1`;
-      branchId = branches[0]?.id ?? '';
       // The gate treats CASH as drawer-tracked unless the tenant disabled it.
       const eff = await prisma.$queryRaw<Array<{ v: boolean | null }>>`
         SELECT COALESCE(
@@ -69,19 +73,7 @@ function dbit(name: string, fn: () => Promise<void>): void {
 }
 
 async function makeDrawer(): Promise<string> {
-  const drawer = await prisma.org_cash_drawers_mst.create({
-    data: {
-      tenant_org_id: tenantId,
-      branch_id: branchId,
-      drawer_code: `${CODE_PREFIX}-${randomUUID().slice(0, 8)}`,
-      drawer_name: 'CLF gate test drawer',
-      drawer_type: 'TEMPORARY',
-      currency_code: 'OMR',
-      is_active: true,
-      rec_status: 1,
-    },
-  });
-  return drawer.id;
+  return createTestDrawer(scope!, { codePrefix: CODE_PREFIX, name: 'CLF gate test drawer' });
 }
 
 /** One DRAFT voucher with one completed CASH line; returns the line as the gate receives it. */
@@ -152,19 +144,23 @@ async function cleanup(drawerId: string): Promise<void> {
   await prisma.org_domain_events_outbox
     .deleteMany({ where: { tenant_org_id: tenantId, aggregate_id: { in: lines.map((l) => l.id) } } })
     .catch(() => {});
-  await prisma.org_fin_voucher_trx_lines_dtl
-    .deleteMany({ where: { tenant_org_id: tenantId, voucher_id: { in: voucherIds } } })
+  // A POSTED line is immutable — the documented maintenance bypass (transaction-local) allows the delete.
+  await prisma
+    .$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`SET LOCAL cmx.allow_posted_line_edit = 'on'`);
+      await tx.$executeRawUnsafe(`SET LOCAL cmx.allow_ledger_edit = 'on'`);
+      await tx.org_fin_voucher_trx_lines_dtl.deleteMany({ where: { tenant_org_id: tenantId, voucher_id: { in: voucherIds } } });
+      await tx.org_fin_vouchers_mst.deleteMany({ where: { tenant_org_id: tenantId, id: { in: voucherIds } } });
+    })
     .catch(() => {});
-  await prisma.org_fin_vouchers_mst.deleteMany({ where: { tenant_org_id: tenantId, id: { in: voucherIds } } }).catch(() => {});
-  await prisma.org_cash_drawer_sessions_mst.deleteMany({ where: { tenant_org_id: tenantId, cash_drawer_id: drawerId } }).catch(() => {});
-  await prisma.org_cash_drawers_mst.deleteMany({ where: { tenant_org_id: tenantId, id: drawerId } }).catch(() => {});
+  await cleanupTestDrawers(scope!, [drawerId]).catch(() => {});
 }
 
 describe('cash-drawer ledger gate — real database (CLF R1)', () => {
   dbit('concurrent postings on one drawer get unique, consecutive ledger sequences in the open session', async () => {
     const drawerId = await makeDrawer();
     try {
-      const session = await openSession(tenantId, drawerId, { openingBalance: 0, openedBy: randomUUID() });
+      const session = await openTestSession(scope!, randomUUID(), drawerId);
       const lines = await Promise.all(Array.from({ length: 8 }, () => makeCashLine({})));
       await Promise.all(lines.map((l) => stamp({ ...l, cash_drawer_id: drawerId }, 'INTERACTIVE')));
 
@@ -174,7 +170,7 @@ describe('cash-drawer ledger gate — real database (CLF R1)', () => {
       expect(seqs[7] - seqs[0]).toBe(7);
       for (const s of stamped) {
         expect(s.cash_effect_code).toBe('DRAWER');
-        expect(s.cash_drawer_session_id).toBe(session.id);
+        expect(s.cash_drawer_session_id).toBe(session.sessionId);
         expect(s.cash_recognized_at).not.toBeNull();
       }
       const drawer = await prisma.org_cash_drawers_mst.findFirstOrThrow({
@@ -208,10 +204,10 @@ describe('cash-drawer ledger gate — real database (CLF R1)', () => {
     const drawerId = await makeDrawer();
     try {
       const actor = randomUUID();
-      const session = await openSession(tenantId, drawerId, { openingBalance: 0, openedBy: actor });
-      await closeSession(tenantId, session.id, { physicalCount: 0, closedBy: actor });
+      const session = await openTestSession(scope!, actor, drawerId);
+      await closeTestSession(scope!, actor, drawerId, session.sessionId, { countedAmount: 0 });
 
-      const line = await makeCashLine({ sessionHint: session.id });
+      const line = await makeCashLine({ sessionHint: session.sessionId });
       await stamp(line, 'DEFERRED');
 
       const after = await readLine(line.id);
@@ -227,15 +223,15 @@ describe('cash-drawer ledger gate — real database (CLF R1)', () => {
     const drawerId = await makeDrawer();
     try {
       const actor = randomUUID();
-      const old = await openSession(tenantId, drawerId, { openingBalance: 0, openedBy: actor });
-      await closeSession(tenantId, old.id, { physicalCount: 0, closedBy: actor });
-      const current = await openSession(tenantId, drawerId, { openingBalance: 0, openedBy: actor });
+      const old = await openTestSession(scope!, actor, drawerId);
+      await closeTestSession(scope!, actor, drawerId, old.sessionId, { countedAmount: 0 });
+      const current = await openTestSession(scope!, actor, drawerId);
 
-      const line = await makeCashLine({ sessionHint: old.id });
+      const line = await makeCashLine({ sessionHint: old.sessionId });
       await stamp(line, 'INTERACTIVE');
 
       const after = await readLine(line.id);
-      expect(after.cash_drawer_session_id).toBe(current.id);
+      expect(after.cash_drawer_session_id).toBe(current.sessionId);
       const events = await prisma.org_domain_events_outbox.findMany({
         where: { tenant_org_id: tenantId, event_type: 'CASH_FACT_REDIRECTED', aggregate_id: line.id },
       });
@@ -248,7 +244,7 @@ describe('cash-drawer ledger gate — real database (CLF R1)', () => {
   dbit('a posted line\'s drawer stamp cannot be changed (CASH_LINE_IMMUTABLE)', async () => {
     const drawerId = await makeDrawer();
     try {
-      await openSession(tenantId, drawerId, { openingBalance: 0, openedBy: randomUUID() });
+      await openTestSession(scope!, randomUUID(), drawerId);
       const line = await makeCashLine({});
       await stamp({ ...line, cash_drawer_id: drawerId }, 'INTERACTIVE');
       await prisma.org_fin_voucher_trx_lines_dtl.updateMany({

@@ -3,13 +3,13 @@
 **Version:** 3.0  
 **Status:** Normative blueprint; migration SQL must re-check the live target catalog immediately before authoring/applying.
 
-**Current reconciliation:** 2026-10-02, read-only local and hosted `ndjjycdgtponhosvztdg` catalog inspection. This blueprint describes proposed work, not applied migrations. The living implementation plan remains the sole WP authority.
+**Current reconciliation:** 2026-10-02, read-only local and hosted `ndjjycdgtponhosvztdg` catalog inspection after user/operator application.0547/0548 are installed on both targets; later gated hierarchy/backfill design remains proposed. The living implementation plan remains the sole WP authority.
 
 ## 0. Verified current catalog and reuse boundary
 
-Both targets report PostgreSQL 17.6, 546 recorded migrations and latest numeric migration `0540`. Six older timestamp migration IDs also exist; a lexicographic maximum is not the next numeric sequence. Re-list root migration files and target metadata immediately before authoring; no migration number is reserved by this review.
+Before authoring, both targets at HEAD f33cff481c7a5d35fb16ad5a10983db2762c9818 reported PostgreSQL17.6/552 migrations/latest0546; files were re-listed before assigning0547/0548. After operator application, both histories report555 records/latest0549 (outside WP02). Six legacy timestamp IDs remain. Fresh catalogs match all75 introduced columns,41 constraints including14 NOT VALID,24 valid indexes,8 enabled guards,3 invoker functions and157 comments. [WP02 evidence](WP02_Foundation_Preparation_v3.0.md) section17 owns deployment/type-check details and remaining proof. Applied migration files are immutable.
 
-Both targets lack the proposed commitment, commercial revision, edit-access and `service_speed` columns and both Change tables. Stable item/piece/preference UUIDs, `rec_status`, workflow `state_version` (INTEGER), workflow profile bindings, financial snapshot/amounts, order currency/FX fields, `org_idempotency_keys` and `org_domain_events_outbox` already exist. Reuse them; do not create another workflow counter, settlement ledger, outbox or replay table.
+Both targets contain the reviewed commitment/revision/access/service_speed and removal-lineage fields and both Change tables. Existing UUIDs/rec_status/workflow state_version/profiles/Finance/currency/idempotency/outbox remain reused. No duplicate workflow counter/ledger/outbox/replay table was introduced. Supabase types and the scoped Prisma schema/generated Client now include all75 WP02 additions; the report section18 records validation. ORM models do not replace SQL CHECKs, deferred timing, partial indexes, guards or authorization.
 
 Verified existing domain tables include:
 
@@ -54,6 +54,8 @@ Metadata checks did not read historical business rows, prove actor/timezone line
 Retain physical `state_version` initially. V2 API exposes it as `wfStateVersion`. Do not create a second independently writable workflow counter.
 
 Require consistency CHECKs after legacy classification: uncommitted implies commercial version 0; committed implies version at least 1. Restrict commitment reversal and ordinary permanent-block reopening at the command/database boundary; a CHECK alone cannot enforce an irreversible transition. Blocked states require a blocked timestamp, permanent blocks have no expiry, and any temporary expiry is later than blocked time. Actor columns follow verified authenticated actor identity. System/unknown historical actors remain explicitly nullable according to the backfill contract; never invent an actor.
+
+The compatible WP02 SQL adds these CHECKs as NOT VALID (future DML enforced immediately) because all new commitment/block columns begin NULL/OPEN and revision0. OPEN has no stale block metadata; blocked states require a nonempty reason code or text and blocked_at. New runtime blocks require a server-derived actor; nullable blocked_by preserves explicit unknown historical provenance rather than fabricating identity. Expired temporary blocks are evaluated by later policy; time passage never implicitly rewrites a status. UPDATE/DELETE guard protects recorded commitment timestamp/actor and permanent-block reopening. No producer runs here. `service_speed` accepts NULL or STANDARD/EXPRESS as storage candidates only, supported by existing normal/express pricing; no priority-based backfill, pricing activation or SAME_DAY is added.
 
 ## 2. New `org_order_changes_mst`
 
@@ -154,6 +156,19 @@ is_active BOOLEAN NOT NULL DEFAULT true
 - Apply validates current order/item/piece/preference hierarchy under locks before recording historical references; live hierarchy FKs below enforce current structure;
 - JSON is bounded audit data, not an alternative untyped command model.
 
+### Persisted audit target versus command scope
+
+`target_type` describes the affected persisted fact after applying intent; command scope in the Operation Catalog identifies the parent receiving an addition. These concepts are distinct. ADD_ITEM's ORDER command records ITEM plus its preallocated item UUID; ADD_PIECE's ITEM command records PIECE plus item/piece UUIDs; ADD_PREFERENCE's ORDER/ITEM/PIECE command records PREFERENCE plus its new preference UUID and original nullable parent identities. Removals and changes use the same affected fact identity.
+
+| Persisted target | Operation codes | Typed identity shape |
+|---|---|---|
+| ITEM | ADD_ITEM, REMOVE_ITEM, CHANGE_ITEM_QUANTITY | item required; piece/preference NULL |
+| PIECE | ADD_PIECE, REMOVE_PIECE | item and piece required; preference NULL |
+| PREFERENCE | ADD_PREFERENCE, CHANGE_PREFERENCE, REMOVE_PREFERENCE | preference required; piece requires item; ORDER preference has both parent IDs NULL |
+| ORDER | CHANGE_PRIORITY, CHANGE_SERVICE_SPEED, CHANGE_READY_BY, CHANGE_ORDER_NOTES, CHANGE_CUSTOMER_SNAPSHOT | all typed entity IDs NULL; order_id is the target |
+
+The SQL CHECK freezes this audit shape without changing the 13 command codes or capability policy. WP04 validates public command scope/clientRef; WP12 validates current hierarchy and final snapshots under locks. `source_context` is nonblank TEXT rather than an invented exhaustive enum. Financial snapshots/final response must be nonempty JSON objects; SQL cannot prove their domain completeness, command permission or required operation coverage. Those are real service/DB integration gates. New monetary delta excludes numeric NaN. Applied master/ops stay rec_status1/is_active=true with no mutable updated_* evidence.
+
 ## 4. Stable removal lineage
 
 Reuse `rec_status=0` as inactive/removed; do not introduce a second `is_deleted` truth.
@@ -189,27 +204,42 @@ Retain piece UNIQUE `(tenant_org_id,order_id,order_item_id,piece_seq)`. Allocate
 
 Required new indexes cover master `(tenant_org_id,order_id,applied_at DESC)`, operation `(tenant_org_id,order_change_id,operation_seq)`, typed target history and removal-lineage lookups. Existing tuple UNIQUE indexes already cover their leading lookups; do not add equivalent indexes solely under different names. Evaluate active order/item/piece/preference reader predicates with representative EXPLAIN evidence before selecting additional partial indexes. Every new object name is at most 30 characters.
 
+**WP02 compatibility gate:** current item Split changes item.order_id in separate statements without moving pieces/preferences. Piece Split clones items/decrements quantities and does not transfer persisted piece/preference rows. Adding all-row live-parent FKs, even NOT VALID, would reject existing future writes while V2 is disabled. Removed descendants retained at origin also conflict with moved live parents even after an atomic Split rewrite. Therefore0548 adds only missing piece/preference `(id,tenant_org_id)` historical-identity keys. It does not add unused four-/three-column live keys, global hierarchy FKs or preference parent-shape CHECKs. The owning workflow must resolve active-only hierarchy/origin enforcement and fail-closed V2 Split support before those constraints/removals can activate. See [Split review](WP02_Split_Compatibility_Review.md). This is a recorded unresolved production dependency, not removal of the live-hierarchy invariant.
+
+### 5.1 Active hierarchy versus removal origin — WP02 disposition
+
+The distinction is frozen; implementation and enabled-cohort proof remain later-package gates:
+
+- **Always:** tenant/entity identity is retained independently of current parents. Change master/operation `order_id` is the originating commercial order. Historical target and removal-lineage FKs use `(id,tenant_org_id)` with RESTRICT, not a mutable live parent tuple.
+- **Active structure:** only `rec_status=1` participates in the live hierarchy. An active piece must have an active item in the same tenant/order; an active ITEM/PIECE preference must have the corresponding active ancestors in the same tenant/order/parent tuple. ORDER preferences have no item/piece parent; ITEM has item only; PIECE has both. Unknown/unsupported lifecycle rows are not silently active or eligible.
+- **Governed removed structure:** `rec_status=0` with V2 lineage is immutable. Its existing `order_id`, item/piece parent IDs, sequence and commercial values retain their removal-origin meaning; they are not rewritten when a surviving active parent later moves. The immutable operation snapshot records that original parent tuple. A removed row may retain the UUID identity of a now-reparented parent without claiming to belong to its current live hierarchy. New active descendants cannot be attached beneath removed parents. Legacy inactive rows without V2 lineage are separately classified; no origin is fabricated.
+- **Enforcement direction:** do not install all-row parent-tuple FKs on mutable structure. A normal FK has no active-row predicate; a partial UNIQUE index does not make it conditional. Use a reviewed active-aware database guard/constraint strategy, together with current-hierarchy checks under Apply locks, for the enabled cohort. A deferred row constraint trigger is a possible mechanism, but its exact affected-parent coverage, final-state reads, privileges, locking/deadlock behavior and cost must be specified and proven before SQL authoring. Parent reparent/removal and child insert/update must all be covered; checking only the edited child misses surviving descendants. Existing tenant-identity references remain in force. PostgreSQL supports deferred constraint triggers, but their `WHEN` condition is evaluated when the row changes, so a future implementation must not mistake it for final-state validation. See [PostgreSQL17 FK syntax](https://www.postgresql.org/docs/17/sql-createtable.html) and [constraint-trigger semantics](https://www.postgresql.org/docs/17/sql-createtrigger.html).
+
+WP06/WP07/WP12 own structure/preference projection and lock-time command validation; WP17 owns writer/Split bypass closure and any scoped database enforcement; WP18 owns real role/concurrency/rollback proof. Until that proof exists, the later server boundaries must deny unsupported V2-governed Split and split-derived/unclassified Change eligibility as specified in the [Split review](WP02_Split_Compatibility_Review.md#wp02-disposition-after-operator-installation-and-prisma-synchronization). No such runtime denial has been implemented in WP02. The foundation is sufficient for disabled WP03 commitment/readers once its other prerequisites pass; it is not permission to enable Apply, removals or Split support.
+
 ## 6. RLS and privileges
 
 - Enable RLS on new Change tables.
-- Authenticated read is tenant-scoped according to existing CleanMateX tenant membership/context patterns.
+- Initial foundation has no authenticated read policy/grant: membership integrity is unproven. Server-owned history reads require explicit authenticated tenant/permission enforcement later; direct tenant read policy remains gated.
 - Ordinary client direct INSERT/UPDATE/DELETE to Change tables is denied; server command path owns writes.
 - Service-role/backend queries still include explicit tenant predicates.
 - Audit direct Data API/RPC grants before pilot so a normal authenticated client cannot mutate committed commercial structure/money outside owned commands.
 
 New objects inherit broad public-schema default ACLs in the inspected targets. Their migration must explicitly revoke unnecessary table/function privileges from PUBLIC, anon and authenticated, including non-row privileges, then grant only reviewed tenant-read/backend-command rights. A SELECT policy plus RLS does not remove inherited grants. Use the Security companion as the single detailed authority for membership/helper/RPC corrections.
 
+0548 explicitly sets owner postgres, enables RLS with zero ordinary-role policies, revokes ALL from PUBLIC/anon/authenticated/service_role and grants only service_role SELECT/INSERT. Immutable row UPDATE/DELETE and statement TRUNCATE guards also constrain normal owner/BYPASSRLS commands. New trigger functions are SECURITY INVOKER, fixed pg_catalog search_path, no org queries and no direct ordinary EXECUTE grant. DBA schema/trigger administration remains a separate audited boundary. See [tenant preflight](WP02_Tenant_Security_Preflight.md) for default ACLs, observed Prisma role and unresolved membership/RPC dependencies.
+
 ## 7. Migration order
 
 1. target catalog/preflight;
 2. additive order columns;
-3. Change tables + indexes/RLS;
-4. removal lineage columns;
-5. permission/feature/config seeds;
-6. compatible application readers/writers;
-7. historical commitment classification/backfill;
-8. hierarchy FK validation after orphan report is clean/resolved;
-9. V2 pilot enablement.
+3. verified missing immutable identity keys, complete Change tables/indexes, removal lineage and explicit default-deny ACLs/immutability in0548;
+4. operator review only; no agent application;
+5. later tenant-bounded historical classification, active-only hierarchy/Split design, backfill and explicit constraint validation after proof;
+6. compatible application readers/writers in WP03 and later packages;
+7. permission/feature/config seeds in WP05, not WP02;
+8. real role/FK/deferred insertion/rollback proofs, writer closure and deployment reconciliation;
+9. V2 pilot only after owning release gates pass.
 
 Never edit old migration files. Re-list the latest migration immediately before assigning the next filename.
 

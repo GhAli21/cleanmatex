@@ -17,6 +17,7 @@ import { openSession, startClose, finalizeClose } from '@/lib/services/cash-draw
 import { postDrawerCashMovement } from '@/lib/services/cash-drawer-movement-posting.service';
 import { LINE_ROLE } from '@/lib/constants/voucher';
 import { CASH_DRAWER_DISPOSITIONS } from '@/lib/constants/cash-drawer';
+import { cleanupTestDrawers } from './helpers/cash-drawer-fixtures';
 
 const DRAWER_CODE_PREFIX = 'CLF-R2-LIFECYCLE';
 
@@ -63,68 +64,8 @@ async function makeDrawer(): Promise<string> {
   return drawer.id;
 }
 
-/**
- * Test cleanup, not a migration — but the same documented maintenance bypass
- * applies (`SET LOCAL cmx.allow_ledger_edit = 'on'`, see the M3/M4 trigger
- * comments): several of these rows are immutable by design
- * (org_cash_drawer_cnt_mst/_denom_dtl, org_cash_drawer_ses_bal_dtl once
- * CLOSED, org_cash_drawer_ses_post_tr, org_cash_drawer_trx_dtl), and `SET
- * LOCAL` only takes effect for the remainder of the current transaction, so
- * every delete here runs inside one `$transaction` after setting it.
- */
-async function cleanupDrawer(drawerId: string, extraDrawerIds: string[] = []): Promise<void> {
-  const allDrawerIds = [drawerId, ...extraDrawerIds];
-
-  await prisma.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe(`SET LOCAL cmx.allow_ledger_edit = 'on'`);
-
-    const vouchers = await tx.org_fin_vouchers_mst.findMany({
-      where: { source_ref_id: { in: allDrawerIds }, tenant_org_id: tenantId },
-      select: { id: true },
-    });
-    const voucherIds = vouchers.map((v) => v.id);
-    if (voucherIds.length > 0) {
-      await tx.org_fin_voucher_trx_lines_dtl.deleteMany({ where: { voucher_id: { in: voucherIds }, tenant_org_id: tenantId } });
-      await tx.org_fin_vouchers_mst.deleteMany({ where: { id: { in: voucherIds }, tenant_org_id: tenantId } });
-    }
-
-    const sessions = await tx.org_cash_drawer_sessions_mst.findMany({
-      where: { cash_drawer_id: { in: allDrawerIds }, tenant_org_id: tenantId },
-      select: { id: true },
-    });
-    const sessionIds = sessions.map((s) => s.id);
-    if (sessionIds.length > 0) {
-      await tx.org_cash_drawer_ses_post_tr.deleteMany({ where: { cash_drawer_session_id: { in: sessionIds }, tenant_org_id: tenantId } });
-      await tx.org_cash_drawer_ses_bal_dtl.deleteMany({ where: { cash_drawer_session_id: { in: sessionIds }, tenant_org_id: tenantId } });
-      // Legacy reader table (pre-CLF-6) — the cash-movement wiring handler
-      // still dual-writes here on every drawer-cash voucher post, and it FKs
-      // to the session, so it must go before the session row does.
-      await tx.org_cash_drawer_movements_dtl.deleteMany({ where: { cash_drawer_session_id: { in: sessionIds }, tenant_org_id: tenantId } });
-    }
-
-    const counts = await tx.org_cash_drawer_cnt_mst.findMany({
-      where: { cash_drawer_id: { in: allDrawerIds }, tenant_org_id: tenantId },
-      select: { id: true },
-    });
-    const countIds = counts.map((c) => c.id);
-    if (countIds.length > 0) {
-      await tx.org_cash_drawer_cnt_denom_dtl.deleteMany({ where: { count_id: { in: countIds }, tenant_org_id: tenantId } });
-      await tx.org_cash_drawer_cnt_mst.deleteMany({ where: { id: { in: countIds }, tenant_org_id: tenantId } });
-    }
-
-    const trxLines = await tx.org_cash_drawer_trx_dtl.findMany({
-      where: { cash_drawer_id: { in: allDrawerIds }, tenant_org_id: tenantId },
-      select: { trx_id: true },
-    });
-    const trxIds = [...new Set(trxLines.map((l) => l.trx_id))];
-    await tx.org_cash_drawer_trx_dtl.deleteMany({ where: { trx_id: { in: trxIds }, tenant_org_id: tenantId } });
-    if (trxIds.length > 0) {
-      await tx.org_cash_drawer_trx_mst.deleteMany({ where: { id: { in: trxIds }, tenant_org_id: tenantId } });
-    }
-    await tx.org_cash_drawer_sessions_mst.deleteMany({ where: { cash_drawer_id: { in: allDrawerIds }, tenant_org_id: tenantId } });
-    await tx.org_cash_drawers_mst.deleteMany({ where: { id: { in: allDrawerIds }, tenant_org_id: tenantId } });
-  });
-}
+const cleanupDrawer = (drawerId: string, extraDrawerIds: string[] = []) =>
+  cleanupTestDrawers({ tenantId, branchId }, [drawerId, ...extraDrawerIds]);
 
 function dbit(name: string, fn: () => Promise<void>): void {
   it(name, async () => {

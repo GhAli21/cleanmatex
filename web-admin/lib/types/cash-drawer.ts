@@ -67,8 +67,10 @@ export interface CashDrawerOverviewRow {
   branchName: string | null
   branchName2: string | null
   currencyCode: string
+  /** Effective policy (cash-control settings ladder), not a drawer column. */
   requiresSession: boolean
-  openingFloatRequired: boolean
+  /** Effective policy (cash-control settings ladder), not a drawer column. */
+  openingCountRequired: boolean
   maxCashLimit: string | null
   assignedTerminalId: string | null
   assignedTerminalName: string | null
@@ -110,8 +112,10 @@ export interface CashDrawerDetailContext {
   branchName: string | null
   branchName2: string | null
   currencyCode: string
+  /** Effective policy (cash-control settings ladder), not a drawer column. */
   requiresSession: boolean
-  openingFloatRequired: boolean
+  /** Effective policy (cash-control settings ladder), not a drawer column. */
+  openingCountRequired: boolean
   maxCashLimit: string | null
   assignedTerminalId: string | null
   assignedTerminalName: string | null

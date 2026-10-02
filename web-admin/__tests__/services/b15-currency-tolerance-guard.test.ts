@@ -103,9 +103,10 @@ describe('B15 source guard — money paths have no currency literals', () => {
     // unit. A3-3 replaced the comparison with `varianceToleranceFor`,
     // resolved from the session's own sys_currency_cd.decimal_places. The
     // flat constant is kept (deprecated) only for other, not-yet-migrated
-    // consumers — see financial-tolerances.ts.
+    // consumers — see financial-tolerances.ts. CLF R3: the comparison now lives in the
+    // two-step close (`cash-drawer-session.service.ts`); the legacy single-step close is gone.
     const code = fs.readFileSync(
-      path.join(process.cwd(), 'lib/services/cash-drawer.service.ts'),
+      path.join(process.cwd(), 'lib/services/cash-drawer-session.service.ts'),
       'utf8'
     );
     expect(code).toContain('varianceToleranceFor(');

@@ -68,8 +68,6 @@ export type CashDrawerOption = {
   drawer_name2: string | null;
   drawer_type: string;
   currency_code: string;
-  requires_session: boolean;
-  opening_float_required: boolean;
   currentSession: CashDrawerSessionOption | null;
 };
 
@@ -363,7 +361,10 @@ export function useCashDrawer({
     setCashDrawerRequestError(null);
 
     try {
-      const res = await fetch(`/api/v1/cash-drawers/${cashDrawerToOpenId}/open-session`, {
+      // CLF two-step lifecycle: the server derives the expected opening cash from the
+      // drawer's own history, so what the cashier types here is the physically counted
+      // opening cash (compared against that expectation), never a declared float.
+      const res = await fetch(`/api/v1/cash-drawers/${cashDrawerToOpenId}/open-session-v2`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -371,14 +372,16 @@ export function useCashDrawer({
         },
         credentials: 'include',
         body: JSON.stringify({
-          openingBalance: openingBalanceValue,
+          openingCount: { countMode: 'TOTAL_ONLY', totalAmount: openingBalanceValue },
         }),
       });
 
       const json = await res.json().catch(() => ({}));
+      // The route answers with a stable code (never display text); map the one the
+      // cashier can act on, everything else gets the generic message.
       const message =
-        typeof json.error === 'string' && json.error.trim().length > 0
-          ? json.error
+        json.code === 'DRAWER_SESSION_ALREADY_OPEN'
+          ? t('cashDrawer.messages.alreadyOpen')
           : t('cashDrawer.messages.openFailed');
 
       if (!res.ok || !json.success) {
@@ -387,8 +390,8 @@ export function useCashDrawer({
         return;
       }
 
-      const createdSession = json.data as CashDrawerSessionOption;
-      setSelectedCashDrawerSessionId(createdSession.id);
+      const createdSession = json.data as { sessionId: string };
+      setSelectedCashDrawerSessionId(createdSession.sessionId);
       persistPreferredCashDrawerId(cashDrawerToOpenId);
       setCashDrawerDialogOpen(false);
       setCashDrawerToOpenId('');

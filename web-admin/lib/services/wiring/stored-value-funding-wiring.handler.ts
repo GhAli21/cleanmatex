@@ -15,9 +15,7 @@ const FUNDING_LINE_ROLES = new Set<string>([
 /**
  * Handles GIFT_CARD_SALE / WALLET_TOPUP / CUSTOMER_ADVANCE_RECEIPT lines
  * (B3 — see stored-value-funding.service.ts). Creates the tender-leg fact
- * row, hands its id to stored-value-cash-drawer-wiring.handler.ts (which
- * runs immediately after, same line, same handler-registry loop — mirrors
- * how order_payment_id is handed to cashDrawerWiringHandler), then calls the
+ * row, then calls the
  * idempotent finalizer, which credits the ledger exactly once the running
  * tender total reaches the voucher's total_amount.
  *

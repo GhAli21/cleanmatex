@@ -20,8 +20,6 @@ const mockOutboxCreate = jest.fn();
 const mockRecalc = jest.fn();
 const mockIdempotencyFindFirst = jest.fn();
 const mockIdempotencyUpsert = jest.fn();
-const mockMovementFindFirst = jest.fn();
-const mockMovementCreate = jest.fn();
 const mockSessionFindFirst = jest.fn();
 const mockVoucherLineUpdateMany = jest.fn();
 const mockVoucherLineFindFirst = jest.fn();
@@ -47,10 +45,6 @@ jest.mock('@/lib/db/prisma', () => {
     org_idempotency_keys: {
       findFirst: (...a: unknown[]) => mockIdempotencyFindFirst(...a),
       upsert: (...a: unknown[]) => mockIdempotencyUpsert(...a),
-    },
-    org_cash_drawer_movements_dtl: {
-      findFirst: (...a: unknown[]) => mockMovementFindFirst(...a),
-      create: (...a: unknown[]) => mockMovementCreate(...a),
     },
     org_cash_drawer_sessions_mst: { findFirst: (...a: unknown[]) => mockSessionFindFirst(...a) },
     org_fin_voucher_trx_lines_dtl: {
@@ -113,7 +107,6 @@ beforeEach(() => {
   mockPaymentUpdateMany.mockResolvedValue({ count: 1 });
   mockIdempotencyFindFirst.mockResolvedValue(null);
   mockIdempotencyUpsert.mockResolvedValue({});
-  mockMovementFindFirst.mockResolvedValue(null);
   mockRecalc.mockResolvedValue({
     paymentStatus: 'PARTIAL',
     outstandingAmount: 100,
@@ -193,7 +186,6 @@ describe('transitionPaymentTx — VERIFY', () => {
       undefined, // no explicit placement override
     );
     // Superseded: no more org_cash_drawer_movements_dtl mirror row.
-    expect(mockMovementCreate).not.toHaveBeenCalled();
   });
 
   it('CLF: VERIFY forwards an explicit placement override to the gate', async () => {
@@ -382,25 +374,6 @@ describe('transitionPaymentTx — CANCEL / FAIL_BOUNCE', () => {
     expect(mockOutboxCreate.mock.calls[0][0].data).toMatchObject({
       event_type: OUTBOX_EVENT_TYPES.PAYMENT_FAILED,
     });
-  });
-
-  it('warns (does not auto-reverse) when an orphan movement unexpectedly exists', async () => {
-    mockQueryRaw.mockResolvedValue([pendingRow()]);
-    mockMovementFindFirst.mockResolvedValue({ id: 'unexpected-movement' });
-
-    await transitionPaymentTx({
-      orderId: ORDER_ID,
-      paymentId: PAYMENT_ID,
-      tenantId: TENANT_A,
-      actorId: USER_ID,
-      action: 'CANCEL',
-      reason: 'test',
-      fallbackClassification: 'MANUAL_REVIEW',
-      idempotencyKey: 'key-orphan',
-    });
-
-    expect(mockLoggerWarn).toHaveBeenCalled();
-    expect(mockMovementCreate).not.toHaveBeenCalled();
   });
 
   it('CLF: CANCEL of a still-PENDING cash line marks its cash effect NONE (nothing physical moved)', async () => {
@@ -625,7 +598,6 @@ describe('transitionPaymentTx — VOID (B10)', () => {
     expect(mockOutboxCreate.mock.calls[0][0].data).toMatchObject({
       event_type: OUTBOX_EVENT_TYPES.PAYMENT_VOIDED,
     });
-    expect(mockMovementCreate).not.toHaveBeenCalled();
   });
 
   it('is legal from AUTHORIZED (D001 never-effective set)', async () => {
@@ -660,23 +632,6 @@ describe('transitionPaymentTx — VOID (B10)', () => {
     ).rejects.toThrow('ILLEGAL_TRANSITION');
   });
 
-  it('warns (does not auto-reverse) when an orphan movement unexpectedly exists', async () => {
-    mockQueryRaw.mockResolvedValue([pendingRow()]);
-    mockMovementFindFirst.mockResolvedValue({ id: 'unexpected-movement' });
-
-    await transitionPaymentTx({
-      orderId: ORDER_ID,
-      paymentId: PAYMENT_ID,
-      tenantId: TENANT_A,
-      actorId: USER_ID,
-      action: 'VOID',
-      reason: 'test',
-      idempotencyKey: 'key-void-orphan',
-    });
-
-    expect(mockLoggerWarn).toHaveBeenCalled();
-    expect(mockMovementCreate).not.toHaveBeenCalled();
-  });
 });
 
 describe('transitionPaymentTx — REVERSE (B10)', () => {
@@ -748,7 +703,6 @@ describe('transitionPaymentTx — REVERSE (B10)', () => {
         data: expect.objectContaining({ payment_status: 'REVERSED', reversed_by: USER_ID }),
       }),
     );
-    expect(mockMovementCreate).not.toHaveBeenCalled();
     expect(mockReverseVoucherLinesInTx).not.toHaveBeenCalled();
     expect(mockOutboxCreate.mock.calls[0][0].data).toMatchObject({
       event_type: OUTBOX_EVENT_TYPES.PAYMENT_REVERSED,
@@ -809,7 +763,6 @@ describe('transitionPaymentTx — REVERSE (B10)', () => {
         reason: 'wrong amount collected',
       }),
     );
-    expect(mockMovementCreate).not.toHaveBeenCalled();
   });
 
   it('CLF: skips reverseVoucherLinesInTx when a mirror line already exists (nested from voucher-reversal — avoids double-reversal)', async () => {

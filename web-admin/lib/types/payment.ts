@@ -703,13 +703,13 @@ export type AmountMismatchDifferences = Partial<
 
 import type {
   PaymentNature, FeeType, TerminalType, DrawerType,
-  CashDrawerSessionStatus, CashDrawerMovementType, MovementDirection,
+  CashDrawerSessionStatus, MovementDirection,
   CreditType, OrderPaymentRowStatus, RefundStatus,
 } from '../constants/payment';
 
 export type {
   PaymentNature, FeeType, TerminalType, DrawerType,
-  CashDrawerSessionStatus, CashDrawerMovementType, MovementDirection,
+  CashDrawerSessionStatus, MovementDirection,
   CreditType, OrderPaymentRowStatus, RefundStatus,
 };
 
@@ -876,8 +876,6 @@ export interface OrgCashDrawer {
   drawer_name2: string | null;
   drawer_type: DrawerType;
   currency_code: string;
-  requires_session: boolean;
-  opening_float_required: boolean;
   max_cash_limit: number | null;
   variance_approval_threshold: number | null;
   assigned_user_id: string | null;
@@ -901,34 +899,11 @@ export interface OrgCashDrawerSession {
   opening_float_amount: number;
   currency_code: string;
   status: CashDrawerSessionStatus;
-  expected_cash_amount: number;
-  counted_cash_amount: number | null;
-  difference_amount: number | null;
   closed_by: string | null;
   closed_at: string | null;
   close_notes: string | null;
   force_close_reason: string | null;
   is_active: boolean;
-  created_at: string;
-}
-
-/** Cash drawer movement row */
-export interface OrgCashDrawerMovement {
-  id: string;
-  tenant_org_id: string;
-  branch_id: string;
-  cash_drawer_id: string;
-  cash_drawer_session_id: string;
-  movement_type: CashDrawerMovementType;
-  direction: MovementDirection;
-  amount: number;
-  currency_code: string;
-  order_id: string | null;
-  order_payment_id: string | null;
-  reference_no: string | null;
-  reason: string | null;
-  performed_by: string;
-  performed_at: string;
   created_at: string;
 }
 
@@ -1041,27 +1016,12 @@ export interface CreateCashDrawerInput {
   drawer_type: DrawerType;
   branch_id: string;
   currency_code: string;
-  requires_session?: boolean;
-  opening_float_required?: boolean;
   max_cash_limit?: number;
   variance_approval_threshold?: number;
   assigned_terminal_id?: string;
 }
 
 export type UpdateCashDrawerInput = Partial<Omit<CreateCashDrawerInput, 'currency_code' | 'drawer_code'>>;
-
-export interface OpenDrawerSessionInput {
-  cash_drawer_id: string;
-  branch_id: string;
-  opening_float_amount: number;
-  currency_code: string;
-}
-
-export interface CloseDrawerSessionInput {
-  session_id: string;
-  counted_cash_amount: number;
-  close_notes?: string;
-}
 
 export interface UpsertBranchPaymentMethodInput {
   branch_id: string;

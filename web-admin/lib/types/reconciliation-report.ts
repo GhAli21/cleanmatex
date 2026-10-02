@@ -119,12 +119,12 @@ export interface CashDrawerReconRow {
   netMovementAmount: number;
   /** openingFloat + netMovement — recomputed expected from movement rows. */
   computedExpectedAmount: number;
-  /** `expected_cash_amount` stored on the session header. */
-  headerExpectedAmount: number;
+  /** Expected cash the count step froze for the session (session currency); null before the count step. */
+  headerExpectedAmount: number | null;
   countedCashAmount: number | null;
-  /** Session `difference_amount` (counted − expected), null while OPEN. */
+  /** Closing variance (counted − expected), null before the count step. */
   differenceAmount: number | null;
-  /** computedExpected vs headerExpected drift (> epsilon = exception). */
+  /** computedExpected vs frozen expected drift (> epsilon = exception). */
   expectedDelta: number;
   /** Movements in the session lacking a fin_voucher backlink (BVM trail gap). */
   unlinkedMovementCount: number;

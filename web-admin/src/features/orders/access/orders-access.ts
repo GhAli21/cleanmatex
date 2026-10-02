@@ -2507,12 +2507,6 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
-        label: '[Id] Open Session',
-        method: 'GET',
-        path: '/api/v1/cash-drawers/[id]/open-session',
-        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
-      },
-      {
         label: '[Id] Payments',
         method: 'POST',
         path: '/api/v1/orders/[id]/payments',

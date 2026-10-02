@@ -6,6 +6,10 @@ user-invocable: true
 
 # Database Conventions
 
+## Mandatory Migration Object Documentation
+
+**Document every database object in migration files** — add concise English comments explaining purpose and important invariants for every object created, altered, or removed, including all columns (standard audit/identity columns too), tables, constraints/FKs, indexes, functions/procedures, triggers, views, sequences, types, schemas and RLS policies. Include PostgreSQL `COMMENT ON` metadata for every created/altered object that supports it; explain grants/revokes and removal intent beside their statements. See the `code-documentation/sql-migration.md` skill. Never rewrite historical/applied migrations to retrofit comments; deployed catalog-comment changes need a new forward migration. Fully document new unapplied drafts before first application; explicitly authorized documentation passes may complete those drafts.
+
 ## CRITICAL: Name Length Limit
 
 **Maximum 30 characters** for ALL database objects (tables, functions, views, indexes, etc.)

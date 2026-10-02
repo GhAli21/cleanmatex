@@ -1043,7 +1043,6 @@ BEGIN
         'org_invoice_mst',
         'org_invoice_lines_dtl',
         'org_invoice_orders_dtl',
-        'org_cash_drawer_movements_dtl',
         'org_order_credit_apps_dtl',
         'org_order_refunds_dtl',
         'org_order_payments_dtl',
@@ -1429,19 +1428,6 @@ WHERE cfg.do_execute
     x.order_id IN (SELECT order_id FROM tmp_target_orders)
     OR x.voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)
     OR x.voucher_trx_line_id IN (SELECT voucher_line_id FROM tmp_target_voucher_lines)
-  );
-
-DELETE FROM public.org_cash_drawer_movements_dtl AS x
-USING cleanup_config AS cfg
-WHERE cfg.do_execute
-  AND cfg.include_voucher_rows
-  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
-  AND (
-    x.order_id IN (SELECT order_id FROM tmp_target_orders)
-    OR x.order_payment_id IN (SELECT order_payment_id FROM tmp_target_order_payments)
-    OR x.fin_voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)
-    OR x.fin_voucher_trx_line_id IN (SELECT voucher_line_id FROM tmp_target_voucher_lines)
-    OR x.funding_tender_id IN (SELECT funding_tender_id FROM tmp_target_sv_funding_tenders)
   );
 
 DELETE FROM public.org_rcpt_receipts_mst AS x

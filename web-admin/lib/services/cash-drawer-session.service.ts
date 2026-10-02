@@ -961,13 +961,14 @@ export async function approveVarianceTx(
     select: { currency_code: true, closing_variance: true, variance_tolerance_snap: true },
   })) as unknown as Array<{ currency_code: string; closing_variance: Prisma.Decimal | null; variance_tolerance_snap: Prisma.Decimal | null }>;
 
-  const variances = balanceRows
-    .filter((r) => r.closing_variance != null)
-    .map((r) => ({ currencyCode: r.currency_code, varianceAmount: new Decimal((r.closing_variance as Prisma.Decimal).toString()) }))
-    .filter((v, i) => {
-      const tol = balanceRows[i]?.variance_tolerance_snap ? new Decimal((balanceRows[i].variance_tolerance_snap as Prisma.Decimal).toString()) : new Decimal(0);
-      return v.varianceAmount.abs().greaterThan(tol);
-    });
+  // Each currency is judged against its OWN tolerance snapshot (one pass over the same row).
+  const variances: Array<{ currencyCode: string; varianceAmount: Decimal }> = [];
+  for (const r of balanceRows) {
+    if (r.closing_variance == null) continue;
+    const varianceAmount = new Decimal(r.closing_variance.toString());
+    const tolerance = r.variance_tolerance_snap ? new Decimal(r.variance_tolerance_snap.toString()) : new Decimal(0);
+    if (varianceAmount.abs().greaterThan(tolerance)) variances.push({ currencyCode: r.currency_code, varianceAmount });
+  }
 
   if (variances.length > 0) {
     await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_OVER_SHORT, 'cash_drawer_session', sessionId, {

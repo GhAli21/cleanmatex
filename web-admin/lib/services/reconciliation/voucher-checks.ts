@@ -13,8 +13,8 @@
  * `org_fin_voucher_trx_lines_dtl` shape, just from different directions:
  *   - VOUCHER_* checks operate on a voucher (or set of vouchers) and walk
  *     its lines.
- *   - CASH_MOVEMENT_* checks operate on `org_cash_drawer_movements_dtl` rows
- *     and verify the line they reference.
+ *   - CASH_MOVEMENT_* / *_NO_ORPHAN_MOVEMENT checks operate on the cash
+ *     lines' own drawer-ledger stamp (`cash_effect_code`, CLF).
  *
  * Re-use:
  * The voucher-level helpers (`runVoucherIntegrityChecks`) are reused by the
@@ -28,8 +28,10 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import {
   RECONCILIATION_CHECK_NAMES,
   RECONCILIATION_SEVERITIES,
+  type ReconciliationCheckName,
 } from '@/lib/constants/order-financial';
 import { VOUCHER_STATUS } from '@/lib/constants/voucher';
+import { CASH_EFFECTS } from '@/lib/constants/cash-drawer';
 import { CASH_PAYMENT_METHOD_CODES } from '@/lib/utils/cash-method';
 
 import {
@@ -181,15 +183,14 @@ export async function runVoucherIntegrityChecks(
 }
 
 /**
- * CASH_MOVEMENT_LINK_EXISTS — every active cash-drawer movement created in
- * the window must carry both `fin_voucher_id` and `fin_voucher_trx_line_id`
- * (mig 0303 backlinks).
+ * CASH_MOVEMENT_LINK_EXISTS — every POSTED cash-family voucher line in the
+ * window must carry a resolved drawer-ledger stamp (`cash_effect_code`).
  *
- * Why BLOCKER: a cash movement without a voucher backlink means cash entered
- * or left the drawer outside the BVM accounting trail.
+ * Why BLOCKER: a posted cash line the gate never stamped means cash entered
+ * or left a drawer outside the unified ledger.
  *
  * @param tenantOrgId active tenant — query scoped via `withTenantContext`.
- * @param window applied against `performed_at` on the movement row.
+ * @param window applied against the line's `updated_at`.
  */
 export async function checkCashMovementLink(
   tenantOrgId: string,
@@ -239,106 +240,101 @@ export async function checkCashMovementLink(
 }
 
 /**
- * CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT (B30/B32) — a payment leg that ends
- * up CANCELLED or FAILED must never carry a live CASH_SALE movement, because
- * `cashDrawerWiringHandler.canHandle` (B32) only creates one for an
- * effective-COMPLETED leg, and `payment-transition.service.ts`'s CANCEL/
- * FAIL_BOUNCE path never sources from COMPLETED (that needs a B10 reversal
- * instead). This should be structurally unreachable — the check exists as
- * a trip-wire for a regression in either invariant, not routine drift.
+ * Shared body of the never-effective-leg trip-wires. A payment leg that ends
+ * up CANCELLED / FAILED / VOIDED must never have its cash line recognised in
+ * the drawer ledger: the ledger gate only stamps `DRAWER` for an
+ * effective-COMPLETED leg, and `payment-transition.service.ts`'s
+ * CANCEL/FAIL_BOUNCE/VOID path never sources from COMPLETED (that needs a B10
+ * reversal instead). Structurally unreachable — the check exists as a
+ * trip-wire for a regression in either invariant, not routine drift.
  */
-// CLF-6-3 note: dormant since R1 (2026-09-26) — nothing writes to
-// `org_cash_drawer_movements_dtl` anymore, so this can no longer find a
-// violation (harmless, not a false negative: the hazard it guards — a
-// CANCELLED/FAILED leg carrying a live CASH_SALE movement — is structurally
-// unreachable once no writer can create that movement at all). Kept for
-// pre-CLF historical data; retire alongside the table in R3.
-export async function checkCancelledPaymentNoOrphanMovement(
+async function findNeverEffectiveLegsInDrawer(
   tenantOrgId: string,
   window: PeriodWindow,
+  statuses: string[],
+  checkName: ReconciliationCheckName,
+  describe: (row: { id: string; order_id: string | null; payment_status: string | null }, lineId: string) => string,
 ): Promise<CheckResult[]> {
   const rows = await withTenantContext(tenantOrgId, () =>
     prisma.org_order_payments_dtl.findMany({
       where: {
         tenant_org_id: tenantOrgId,
-        payment_status: { in: ['CANCELLED', 'FAILED'] },
+        payment_status: { in: statuses },
         updated_at: { gte: window.periodFrom, lte: window.periodTo },
+        fin_voucher_trx_line_id: { not: null },
       },
-      select: {
-        id: true,
-        order_id: true,
-        payment_status: true,
-        org_cash_drawer_movements_dtl: {
-          where: { movement_type: 'CASH_SALE', is_active: true },
-          select: { id: true, amount: true },
-        },
-      },
+      select: { id: true, order_id: true, payment_status: true, fin_voucher_trx_line_id: true },
     }),
   );
+  if (rows.length === 0) return [];
+
+  const inDrawer = await withTenantContext(tenantOrgId, () =>
+    prisma.org_fin_voucher_trx_lines_dtl.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        id: { in: rows.map((r) => r.fin_voucher_trx_line_id!) },
+        cash_effect_code: CASH_EFFECTS.DRAWER,
+        // A reversal mirror line is a legitimate DRAWER line of its own; only the original leg line counts.
+        reversed_line_id: null,
+      },
+      select: { id: true, amount: true },
+    }),
+  );
+  const lineById = new Map(inDrawer.map((l) => [l.id, l]));
 
   const violations: CheckResult[] = [];
   for (const row of rows) {
-    for (const movement of row.org_cash_drawer_movements_dtl ?? []) {
-      violations.push({
-        checkName: RECONCILIATION_CHECK_NAMES.CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT,
-        severity: RECONCILIATION_SEVERITIES.BLOCKER,
-        passed: false,
-        actualValue: toNumber(movement.amount),
-        message: `Payment ${row.id} (order ${row.order_id}) is ${row.payment_status} but still has a live CASH_SALE movement ${movement.id} — B32 status-gate invariant violated`,
-        affectedEntityType: 'org_order_payments_dtl',
-        affectedEntityId: row.id,
-      });
-    }
+    const line = lineById.get(row.fin_voucher_trx_line_id!);
+    if (!line) continue;
+    violations.push({
+      checkName,
+      severity: RECONCILIATION_SEVERITIES.BLOCKER,
+      passed: false,
+      actualValue: toNumber(line.amount),
+      message: describe(row, line.id),
+      affectedEntityType: 'org_order_payments_dtl',
+      affectedEntityId: row.id,
+    });
   }
   return violations;
 }
 
 /**
- * VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT (B10) — same trip-wire as
- * CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT, extended to the new VOIDED status: a
- * never-effective leg (PENDING/PROCESSING/AUTHORIZED source) must never carry
- * a live CASH_SALE movement.
+ * CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT (B30/B32) — a CANCELLED/FAILED payment
+ * leg must not have its cash line in the drawer ledger (see
+ * `findNeverEffectiveLegsInDrawer`).
  */
-// CLF-6-3 note: dormant since R1, same reasoning as
-// `checkCancelledPaymentNoOrphanMovement` above — retire alongside the table in R3.
+export async function checkCancelledPaymentNoOrphanMovement(
+  tenantOrgId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  return findNeverEffectiveLegsInDrawer(
+    tenantOrgId,
+    window,
+    ['CANCELLED', 'FAILED'],
+    RECONCILIATION_CHECK_NAMES.CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT,
+    (row, lineId) =>
+      `Payment ${row.id} (order ${row.order_id}) is ${row.payment_status} but its cash line ${lineId} is recognised in the drawer ledger — B32 status-gate invariant violated`,
+  );
+}
+
+/**
+ * VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT (B10) — same trip-wire extended to the
+ * VOIDED status: a never-effective leg (PENDING/PROCESSING/AUTHORIZED source)
+ * must never be recognised in the drawer ledger.
+ */
 export async function checkVoidedPaymentNoOrphanMovement(
   tenantOrgId: string,
   window: PeriodWindow,
 ): Promise<CheckResult[]> {
-  const rows = await withTenantContext(tenantOrgId, () =>
-    prisma.org_order_payments_dtl.findMany({
-      where: {
-        tenant_org_id: tenantOrgId,
-        payment_status: 'VOIDED',
-        updated_at: { gte: window.periodFrom, lte: window.periodTo },
-      },
-      select: {
-        id: true,
-        order_id: true,
-        payment_status: true,
-        org_cash_drawer_movements_dtl: {
-          where: { movement_type: 'CASH_SALE', is_active: true },
-          select: { id: true, amount: true },
-        },
-      },
-    }),
+  return findNeverEffectiveLegsInDrawer(
+    tenantOrgId,
+    window,
+    ['VOIDED'],
+    RECONCILIATION_CHECK_NAMES.VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT,
+    (row, lineId) =>
+      `Payment ${row.id} (order ${row.order_id}) is VOIDED but its cash line ${lineId} is recognised in the drawer ledger — B10 void invariant violated (never-effective legs move no money)`,
   );
-
-  const violations: CheckResult[] = [];
-  for (const row of rows) {
-    for (const movement of row.org_cash_drawer_movements_dtl ?? []) {
-      violations.push({
-        checkName: RECONCILIATION_CHECK_NAMES.VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT,
-        severity: RECONCILIATION_SEVERITIES.BLOCKER,
-        passed: false,
-        actualValue: toNumber(movement.amount),
-        message: `Payment ${row.id} (order ${row.order_id}) is VOIDED but still has a live CASH_SALE movement ${movement.id} — B10 void invariant violated (never-effective legs move no money)`,
-        affectedEntityType: 'org_order_payments_dtl',
-        affectedEntityId: row.id,
-      });
-    }
-  }
-  return violations;
 }
 
 /**
@@ -423,100 +419,48 @@ export async function checkReversedCashPaymentHasCompensatingMovement(
 }
 
 /**
- * CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT — for each linked cash
- * movement in the window, the movement's `amount` must equal the trx line's
- * retained amount, where retained = `amount - (change_returned_amount ?? 0)`.
+ * CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT — ledger-shape integrity of the
+ * recognised cash lines in the window.
  *
- * Why "retained": when a cashier accepts a cash tender of 50 for a 47 sale
- * the trx line records amount=47, tendered_amount=50, change_returned=3.
- * The amount that actually stays in the drawer (retained) is 47 — the
- * cash-movement row mirrors this. A drift = drawer count and voucher leg
- * diverge.
- *
- * @param tenantOrgId active tenant — all queries scoped via `withTenantContext`.
- * @param window applied against `performed_at` on the movement row.
+ * The drawer ledger counts a recognised line's own `amount` (the retained
+ * sale amount — change is already netted out, tendered/change are recorded
+ * beside it, never added). There is no second "movement" row left to drift
+ * from the voucher line, so the live hazard is a line stamped `DRAWER` that is
+ * missing part of what makes it a ledger entry (drawer, per-drawer sequence,
+ * recognition time, currency) or carries a non-positive amount. The DB CHECKs
+ * make this unreachable from the app; the check is the trip-wire for a
+ * maintenance edit or a bypassed write path.
  */
-// CLF-6-3 note: dormant since R1, same reasoning as the other
-// `org_cash_drawer_movements_dtl`-sourced checks above — retire alongside the
-// table in R3. The amount-integrity concept this guarded (movement amount
-// must equal the voucher line's retained amount) has no live equivalent
-// check yet, since CLF no longer writes a second "movement" row to compare
-// the voucher line against — tracked as remaining CLF-6-3 scope in STATUS.
 export async function checkCashMovementAmountEqualsRetained(
   tenantOrgId: string,
   window: PeriodWindow,
 ): Promise<CheckResult[]> {
-  const movements = await withTenantContext(tenantOrgId, () =>
-    prisma.org_cash_drawer_movements_dtl.findMany({
-      where: {
-        tenant_org_id: tenantOrgId,
-        performed_at: { gte: window.periodFrom, lte: window.periodTo },
-        is_active: true,
-        fin_voucher_trx_line_id: { not: null },
-      },
-      select: {
-        id: true,
-        cash_drawer_session_id: true,
-        amount: true,
-        fin_voucher_trx_line_id: true,
-      },
-    }),
-  );
-
-  if (movements.length === 0) return [];
-
-  const lineIds = movements
-    .map((m) => m.fin_voucher_trx_line_id)
-    .filter((id): id is string => id != null);
-
-  const lines = await withTenantContext(tenantOrgId, () =>
+  const broken = await withTenantContext(tenantOrgId, () =>
     prisma.org_fin_voucher_trx_lines_dtl.findMany({
       where: {
         tenant_org_id: tenantOrgId,
-        id: { in: lineIds },
+        cash_effect_code: CASH_EFFECTS.DRAWER,
+        cash_recognized_at: { gte: window.periodFrom, lte: window.periodTo },
+        OR: [
+          { cash_drawer_id: null },
+          { cash_ledger_seq: null },
+          { currency_code: null },
+          { amount: { lte: 0 } },
+        ],
       },
-      select: { id: true, amount: true, change_returned_amount: true },
+      select: { id: true, voucher_id: true, amount: true },
     }),
   );
 
-  const lineById = new Map(lines.map((l) => [l.id, l]));
-  const results: CheckResult[] = [];
-
-  for (const mvt of movements) {
-    const lineId = mvt.fin_voucher_trx_line_id;
-    if (!lineId) continue;
-    const line = lineById.get(lineId);
-    if (!line) {
-      results.push({
-        checkName: RECONCILIATION_CHECK_NAMES.CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT,
-        severity: RECONCILIATION_SEVERITIES.BLOCKER,
-        passed: false,
-        actualValue: toNumber(mvt.amount),
-        message: `Cash movement ${mvt.id} references voucher trx line ${lineId} that does not exist`,
-        affectedEntityType: 'cash_drawer_movement',
-        affectedEntityId: mvt.id,
-      });
-      continue;
-    }
-    const retained = toNumber(line.amount) - toNumber(line.change_returned_amount);
-    const movementAmount = toNumber(mvt.amount);
-    const delta = movementAmount - retained;
-    if (Math.abs(delta) >= RECONCILIATION_TOLERANCE) {
-      results.push({
-        checkName: RECONCILIATION_CHECK_NAMES.CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT,
-        severity: RECONCILIATION_SEVERITIES.BLOCKER,
-        passed: false,
-        expectedValue: retained,
-        actualValue: movementAmount,
-        delta,
-        message: `Cash movement ${mvt.id} (session ${mvt.cash_drawer_session_id}) amount ${movementAmount} does not match voucher trx line ${lineId} retained amount ${retained}`,
-        affectedEntityType: 'cash_drawer_movement',
-        affectedEntityId: mvt.id,
-      });
-    }
-  }
-
-  return results;
+  return broken.map((row) => ({
+    checkName: RECONCILIATION_CHECK_NAMES.CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT,
+    severity: RECONCILIATION_SEVERITIES.BLOCKER,
+    passed: false,
+    actualValue: toNumber(row.amount),
+    message: `Voucher trx line ${row.id} (voucher ${row.voucher_id}) is stamped DRAWER but is missing its drawer, ledger sequence or currency, or has a non-positive amount`,
+    affectedEntityType: 'org_fin_voucher_trx_lines_dtl',
+    affectedEntityId: row.id,
+  }));
 }
 
 /**

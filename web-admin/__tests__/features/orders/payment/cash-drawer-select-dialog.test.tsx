@@ -27,8 +27,6 @@ function choice(drawerId: string, sessionId: string, sessionNo: string): CashDra
     drawer_name2: null,
     drawer_type: 'REGISTER',
     currency_code: 'KWD',
-    requires_session: true,
-    opening_float_required: true,
     currentSession: null,
   };
   return {

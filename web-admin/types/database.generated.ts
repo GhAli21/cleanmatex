@@ -4022,163 +4022,6 @@ export type Database = {
           },
         ]
       }
-      org_cash_drawer_movements_dtl: {
-        Row: {
-          amount: number
-          branch_id: string
-          cash_drawer_id: string
-          cash_drawer_session_id: string
-          created_at: string | null
-          created_by: string | null
-          created_info: string | null
-          currency_code: string
-          direction: string
-          fin_voucher_id: string | null
-          fin_voucher_trx_line_id: string | null
-          funding_tender_id: string | null
-          id: string
-          is_active: boolean
-          metadata: Json
-          movement_type: string
-          order_id: string | null
-          order_payment_id: string | null
-          performed_at: string
-          performed_by: string
-          reason: string | null
-          rec_notes: string | null
-          rec_order: number | null
-          rec_status: number
-          reference_no: string | null
-          refund_id: string | null
-          reversed_payment_id: string | null
-          tenant_org_id: string
-        }
-        Insert: {
-          amount: number
-          branch_id: string
-          cash_drawer_id: string
-          cash_drawer_session_id: string
-          created_at?: string | null
-          created_by?: string | null
-          created_info?: string | null
-          currency_code: string
-          direction: string
-          fin_voucher_id?: string | null
-          fin_voucher_trx_line_id?: string | null
-          funding_tender_id?: string | null
-          id?: string
-          is_active?: boolean
-          metadata?: Json
-          movement_type: string
-          order_id?: string | null
-          order_payment_id?: string | null
-          performed_at?: string
-          performed_by: string
-          reason?: string | null
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number
-          reference_no?: string | null
-          refund_id?: string | null
-          reversed_payment_id?: string | null
-          tenant_org_id: string
-        }
-        Update: {
-          amount?: number
-          branch_id?: string
-          cash_drawer_id?: string
-          cash_drawer_session_id?: string
-          created_at?: string | null
-          created_by?: string | null
-          created_info?: string | null
-          currency_code?: string
-          direction?: string
-          fin_voucher_id?: string | null
-          fin_voucher_trx_line_id?: string | null
-          funding_tender_id?: string | null
-          id?: string
-          is_active?: boolean
-          metadata?: Json
-          movement_type?: string
-          order_id?: string | null
-          order_payment_id?: string | null
-          performed_at?: string
-          performed_by?: string
-          reason?: string | null
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number
-          reference_no?: string | null
-          refund_id?: string | null
-          reversed_payment_id?: string | null
-          tenant_org_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_org_cdm_funding_tender"
-            columns: ["funding_tender_id"]
-            isOneToOne: false
-            referencedRelation: "org_sv_funding_tenders_dtl"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_org_cdm_order_payment"
-            columns: ["order_payment_id"]
-            isOneToOne: false
-            referencedRelation: "org_order_payments_dtl"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_org_cdm_reversed_payment"
-            columns: ["reversed_payment_id"]
-            isOneToOne: false
-            referencedRelation: "org_order_payments_dtl"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_cash_drawer_movements_dtl_cash_drawer_id_fkey"
-            columns: ["cash_drawer_id"]
-            isOneToOne: false
-            referencedRelation: "org_cash_drawers_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_cash_drawer_movements_dtl_cash_drawer_session_id_fkey"
-            columns: ["cash_drawer_session_id"]
-            isOneToOne: false
-            referencedRelation: "org_cash_drawer_sessions_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_cash_drawer_movements_dtl_movement_type_fkey"
-            columns: ["movement_type"]
-            isOneToOne: false
-            referencedRelation: "sys_cash_drawer_movement_type_cd"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "org_cash_drawer_movements_dtl_tenant_org_id_fkey"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "org_tenants_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_cash_drawer_movements_dtl_tenant_org_id_fkey"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fin_missing_required_usage"
-            referencedColumns: ["tenant_org_id"]
-          },
-          {
-            foreignKeyName: "org_cash_drawer_movements_dtl_tenant_org_id_fkey"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fin_tenant_readiness"
-            referencedColumns: ["tenant_org_id"]
-          },
-        ]
-      }
       org_cash_drawer_ses_bal_dtl: {
         Row: {
           cash_drawer_session_id: string
@@ -4467,13 +4310,10 @@ export type Database = {
           closed_by: string | null
           closing_started_at: string | null
           closing_started_by: string | null
-          counted_cash_amount: number | null
           created_at: string | null
           created_by: string | null
           created_info: string | null
           currency_code: string
-          difference_amount: number | null
-          expected_cash_amount: number
           force_close_reason: string | null
           id: string
           is_active: boolean
@@ -4509,13 +4349,10 @@ export type Database = {
           closed_by?: string | null
           closing_started_at?: string | null
           closing_started_by?: string | null
-          counted_cash_amount?: number | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
           currency_code: string
-          difference_amount?: number | null
-          expected_cash_amount?: number
           force_close_reason?: string | null
           id?: string
           is_active?: boolean
@@ -4551,13 +4388,10 @@ export type Database = {
           closed_by?: string | null
           closing_started_at?: string | null
           closing_started_by?: string | null
-          counted_cash_amount?: number | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
           currency_code?: string
-          difference_amount?: number | null
-          expected_cash_amount?: number
           force_close_reason?: string | null
           id?: string
           is_active?: boolean
@@ -4907,11 +4741,9 @@ export type Database = {
           ledger_seq: number
           max_cash_limit: number | null
           metadata: Json
-          opening_float_required: boolean
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
-          requires_session: boolean
           tenant_org_id: string
           updated_at: string | null
           updated_by: string | null
@@ -4935,11 +4767,9 @@ export type Database = {
           ledger_seq?: number
           max_cash_limit?: number | null
           metadata?: Json
-          opening_float_required?: boolean
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
-          requires_session?: boolean
           tenant_org_id: string
           updated_at?: string | null
           updated_by?: string | null
@@ -4963,11 +4793,9 @@ export type Database = {
           ledger_seq?: number
           max_cash_limit?: number | null
           metadata?: Json
-          opening_float_required?: boolean
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
-          requires_session?: boolean
           tenant_org_id?: string
           updated_at?: string | null
           updated_by?: string | null
@@ -12777,7 +12605,6 @@ export type Database = {
           card_brand_code: string | null
           card_last4: string | null
           cash_drawer_id: string | null
-          cash_drawer_mvt_id: string | null
           cash_drawer_session_id: string | null
           cash_effect_code: string | null
           cash_ledger_seq: number | null
@@ -12846,7 +12673,6 @@ export type Database = {
           card_brand_code?: string | null
           card_last4?: string | null
           cash_drawer_id?: string | null
-          cash_drawer_mvt_id?: string | null
           cash_drawer_session_id?: string | null
           cash_effect_code?: string | null
           cash_ledger_seq?: number | null
@@ -12915,7 +12741,6 @@ export type Database = {
           card_brand_code?: string | null
           card_last4?: string | null
           cash_drawer_id?: string | null
-          cash_drawer_mvt_id?: string | null
           cash_drawer_session_id?: string | null
           cash_effect_code?: string | null
           cash_ledger_seq?: number | null
@@ -16767,6 +16592,264 @@ export type Database = {
           },
         ]
       }
+      org_order_change_ops_dtl: {
+        Row: {
+          after_values: Json
+          audit_summary: string | null
+          before_values: Json
+          client_ref: string | null
+          created_at: string
+          created_by: string
+          created_info: string | null
+          id: string
+          is_active: boolean
+          metadata: Json
+          operation_code: string
+          operation_seq: number
+          order_change_id: string
+          order_id: string
+          order_item_id: string | null
+          order_item_piece_id: string | null
+          order_preference_id: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          target_type: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          after_values?: Json
+          audit_summary?: string | null
+          before_values?: Json
+          client_ref?: string | null
+          created_at?: string
+          created_by: string
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          operation_code: string
+          operation_seq: number
+          order_change_id: string
+          order_id: string
+          order_item_id?: string | null
+          order_item_piece_id?: string | null
+          order_preference_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          target_type: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          after_values?: Json
+          audit_summary?: string | null
+          before_values?: Json
+          client_ref?: string | null
+          created_at?: string
+          created_by?: string
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          operation_code?: string
+          operation_seq?: number
+          order_change_id?: string
+          order_id?: string
+          order_item_id?: string | null
+          order_item_piece_id?: string | null
+          order_preference_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          target_type?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oc_op_change_fk"
+            columns: ["order_change_id", "order_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_changes_mst"
+            referencedColumns: ["id", "order_id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "oc_op_item_fk"
+            columns: ["order_item_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_items_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "oc_op_piece_fk"
+            columns: ["order_item_piece_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_item_pieces_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "oc_op_pref_fk"
+            columns: ["order_preference_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_preferences_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
+      org_order_changes_mst: {
+        Row: {
+          actor_name: string | null
+          actor_user_id: string
+          applied_at: string
+          apply_response: Json
+          change_no: number
+          change_reason: string | null
+          commercial_delta: number
+          created_at: string
+          created_by: string
+          created_info: string | null
+          currency_code: string
+          edit_state_version_after: number
+          edit_state_version_before: number
+          financial_after: Json
+          financial_before: Json
+          financial_outcome: string
+          id: string
+          idempotency_key: string
+          is_active: boolean
+          metadata: Json
+          order_id: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          request_hash: string
+          source_context: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          wf_state_version_expected: number
+        }
+        Insert: {
+          actor_name?: string | null
+          actor_user_id: string
+          applied_at: string
+          apply_response: Json
+          change_no: number
+          change_reason?: string | null
+          commercial_delta: number
+          created_at?: string
+          created_by: string
+          created_info?: string | null
+          currency_code: string
+          edit_state_version_after: number
+          edit_state_version_before: number
+          financial_after: Json
+          financial_before: Json
+          financial_outcome: string
+          id?: string
+          idempotency_key: string
+          is_active?: boolean
+          metadata?: Json
+          order_id: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          request_hash: string
+          source_context: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          wf_state_version_expected: number
+        }
+        Update: {
+          actor_name?: string | null
+          actor_user_id?: string
+          applied_at?: string
+          apply_response?: Json
+          change_no?: number
+          change_reason?: string | null
+          commercial_delta?: number
+          created_at?: string
+          created_by?: string
+          created_info?: string | null
+          currency_code?: string
+          edit_state_version_after?: number
+          edit_state_version_before?: number
+          financial_after?: Json
+          financial_before?: Json
+          financial_outcome?: string
+          id?: string
+          idempotency_key?: string
+          is_active?: boolean
+          metadata?: Json
+          order_id?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          request_hash?: string
+          source_context?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          wf_state_version_expected?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oc_change_actor_fk"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "oc_change_currency_fk"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "sys_currency_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "oc_change_order_fk"
+            columns: ["order_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_orders_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "oc_change_tenant_fk"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oc_change_tenant_fk"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "oc_change_tenant_fk"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_order_charges_dtl: {
         Row: {
           amount: number
@@ -17575,6 +17658,9 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_info: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_order_change_id: string | null
           has_damage: boolean | null
           has_stain: boolean | null
           id: string
@@ -17617,6 +17703,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_order_change_id?: string | null
           has_damage?: boolean | null
           has_stain?: boolean | null
           id?: string
@@ -17659,6 +17748,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_order_change_id?: string | null
           has_damage?: boolean | null
           has_stain?: boolean | null
           id?: string
@@ -17749,6 +17841,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
             referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "oc_piece_removal_actor_fk"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "oc_piece_removal_change_fk"
+            columns: ["deleted_order_change_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_changes_mst"
+            referencedColumns: ["id", "tenant_org_id"]
           },
           {
             foreignKeyName: "org_order_item_pieces_dtl_packing_pref_code_fkey"
@@ -17888,6 +17994,9 @@ export type Database = {
           created_by: string | null
           created_info: string | null
           damage_notes: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_order_change_id: string | null
           has_damage: boolean | null
           has_stain: boolean | null
           id: string
@@ -17936,6 +18045,9 @@ export type Database = {
           created_by?: string | null
           created_info?: string | null
           damage_notes?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_order_change_id?: string | null
           has_damage?: boolean | null
           has_stain?: boolean | null
           id?: string
@@ -17984,6 +18096,9 @@ export type Database = {
           created_by?: string | null
           created_info?: string | null
           damage_notes?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_order_change_id?: string | null
           has_damage?: boolean | null
           has_stain?: boolean | null
           id?: string
@@ -18051,6 +18166,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_product_data_mst"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oc_item_removal_actor_fk"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "oc_item_removal_change_fk"
+            columns: ["deleted_order_change_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_changes_mst"
+            referencedColumns: ["id", "tenant_org_id"]
           },
           {
             foreignKeyName: "org_order_items_dtl_override_by_fkey"
@@ -18437,6 +18566,9 @@ export type Database = {
           confirmed_by: string | null
           created_at: string | null
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_order_change_id: string | null
           extra_price: number | null
           id: string
           notes_followup: Json
@@ -18464,6 +18596,9 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_order_change_id?: string | null
           extra_price?: number | null
           id?: string
           notes_followup?: Json
@@ -18491,6 +18626,9 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_order_change_id?: string | null
           extra_price?: number | null
           id?: string
           notes_followup?: Json
@@ -18519,6 +18657,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_preference_kind_cd"
             referencedColumns: ["kind_code"]
+          },
+          {
+            foreignKeyName: "oc_pref_removal_actor_fk"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "oc_pref_removal_change_fk"
+            columns: ["deleted_order_change_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_changes_mst"
+            referencedColumns: ["id", "tenant_org_id"]
           },
           {
             foreignKeyName: "org_order_preferences_dtl_order_id_fkey"
@@ -18568,7 +18720,6 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
-          cash_drawer_movement_id: string | null
           cash_drawer_session_id: string | null
           created_at: string | null
           created_by: string | null
@@ -18606,7 +18757,6 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
-          cash_drawer_movement_id?: string | null
           cash_drawer_session_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -18644,7 +18794,6 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
-          cash_drawer_movement_id?: string | null
           cash_drawer_session_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -18973,6 +19122,8 @@ export type Database = {
           cancelled_by: string | null
           cancelled_note: string | null
           change_returned_amount: number | null
+          committed_at: string | null
+          committed_by: string | null
           cost_center_code: string | null
           created_at: string | null
           created_by: string | null
@@ -18996,6 +19147,13 @@ export type Database = {
           delivery_charge_amount: number
           discount_rate: number | null
           discount_type: string | null
+          edit_access_status: string
+          edit_block_reason_code: string | null
+          edit_block_reason_text: string | null
+          edit_block_until: string | null
+          edit_blocked_at: string | null
+          edit_blocked_by: string | null
+          edit_state_version: number
           exempt_amount: number
           express_charge_amount: number
           failed_credit_application_amount: number
@@ -19088,6 +19246,7 @@ export type Database = {
           rounding_adjustment_amount: number | null
           service_category_code: string | null
           service_charge_amount: number
+          service_speed: string | null
           state_version: number
           status: string | null
           stored_value_restored_amount: number
@@ -19142,6 +19301,8 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_note?: string | null
           change_returned_amount?: number | null
+          committed_at?: string | null
+          committed_by?: string | null
           cost_center_code?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -19165,6 +19326,13 @@ export type Database = {
           delivery_charge_amount?: number
           discount_rate?: number | null
           discount_type?: string | null
+          edit_access_status?: string
+          edit_block_reason_code?: string | null
+          edit_block_reason_text?: string | null
+          edit_block_until?: string | null
+          edit_blocked_at?: string | null
+          edit_blocked_by?: string | null
+          edit_state_version?: number
           exempt_amount?: number
           express_charge_amount?: number
           failed_credit_application_amount?: number
@@ -19257,6 +19425,7 @@ export type Database = {
           rounding_adjustment_amount?: number | null
           service_category_code?: string | null
           service_charge_amount?: number
+          service_speed?: string | null
           state_version?: number
           status?: string | null
           stored_value_restored_amount?: number
@@ -19311,6 +19480,8 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_note?: string | null
           change_returned_amount?: number | null
+          committed_at?: string | null
+          committed_by?: string | null
           cost_center_code?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -19334,6 +19505,13 @@ export type Database = {
           delivery_charge_amount?: number
           discount_rate?: number | null
           discount_type?: string | null
+          edit_access_status?: string
+          edit_block_reason_code?: string | null
+          edit_block_reason_text?: string | null
+          edit_block_until?: string | null
+          edit_blocked_at?: string | null
+          edit_blocked_by?: string | null
+          edit_state_version?: number
           exempt_amount?: number
           express_charge_amount?: number
           failed_credit_application_amount?: number
@@ -19426,6 +19604,7 @@ export type Database = {
           rounding_adjustment_amount?: number | null
           service_category_code?: string | null
           service_charge_amount?: number
+          service_speed?: string | null
           state_version?: number
           status?: string | null
           stored_value_restored_amount?: number
@@ -19556,6 +19735,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_payment_method_cd"
             referencedColumns: ["payment_method_code"]
+          },
+          {
+            foreignKeyName: "oc_order_block_actor_fk"
+            columns: ["edit_blocked_by"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "oc_order_commit_actor_fk"
+            columns: ["committed_by"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "org_orders_mst_order_source_code_fkey"
@@ -26315,48 +26508,6 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
-        }
-        Relationships: []
-      }
-      sys_cash_drawer_movement_type_cd: {
-        Row: {
-          affects_expected_cash: boolean
-          code: string
-          created_at: string
-          default_direction: string
-          description: string | null
-          description2: string | null
-          display_order: number
-          is_active: boolean
-          name: string
-          name2: string | null
-          rec_status: number
-        }
-        Insert: {
-          affects_expected_cash?: boolean
-          code: string
-          created_at?: string
-          default_direction: string
-          description?: string | null
-          description2?: string | null
-          display_order?: number
-          is_active?: boolean
-          name: string
-          name2?: string | null
-          rec_status?: number
-        }
-        Update: {
-          affects_expected_cash?: boolean
-          code?: string
-          created_at?: string
-          default_direction?: string
-          description?: string | null
-          description2?: string | null
-          display_order?: number
-          is_active?: boolean
-          name?: string
-          name2?: string | null
-          rec_status?: number
         }
         Relationships: []
       }

@@ -32,6 +32,7 @@ import {
   REFUND_STATUSES,
 } from '@/lib/constants/order-financial';
 import { VOUCHER_STATUS, VOUCHER_TYPE } from '@/lib/constants/voucher';
+import { CASH_EFFECTS } from '@/lib/constants/cash-drawer';
 
 import { toNumber, type CheckResult } from './types';
 
@@ -106,18 +107,18 @@ export async function checkInvoicePaymentLink(
 /**
  * REFUND_LINK_EXISTS — every PROCESSED customer refund in the window must
  * have at least one POSTED `REFUND_VOUCHER`; for CASH-method refunds that
- * ran through B9 execution, a linked cash-drawer CASH_OUT movement is
- * additionally required.
+ *    ran through B9 execution, the refund's voucher line must additionally
+ *    carry a resolved cash-drawer ledger stamp.
  *
  * Two verification modes, distinguished by the B9 backlink columns
- * (migration 0418 — `fin_voucher_id`/`fin_voucher_trx_line_id`/
- * `cash_drawer_movement_id` on `org_order_refunds_dtl`):
+ * (`fin_voucher_id`/`fin_voucher_trx_line_id` on `org_order_refunds_dtl`):
  *
  *  - **Unambiguous mode** (`fin_voucher_id` set — B9 execution ran, flag ON):
  *    verify that exact voucher id is POSTED, and for `refund_method_code =
- *    CASH` that `cash_drawer_movement_id` is also set (the wiring handler
- *    always populates it in the same transaction — a NULL here means the
- *    wiring silently failed to run, a genuine defect).
+ *    CASH` that the refund's voucher line has a resolved `cash_effect_code`
+ *    (DRAWER / UNTRACKED / NONE — the ledger gate stamps it in the same
+ *    transaction; NULL or PENDING here means the gate did not run, a genuine
+ *    defect).
  *  - **Reverse-pointer fallback mode** (`fin_voucher_id` NULL — record-only
  *    refund, either B9's flag is OFF or the refund predates B9): the original
  *    Phase-2 check — any POSTED `REFUND_VOUCHER` for the same `order_id` — is
@@ -128,7 +129,7 @@ export async function checkInvoicePaymentLink(
  *
  * Why this is still a BLOCKER:
  * A PROCESSED refund row with no matching posted refund voucher (or, for
- * CASH, no linked drawer movement) means money has been returned to the
+ * CASH, an unstamped cash line) means money has been returned to the
  * customer without a full audit trail; the AR reconciliation pipeline cannot
  * vouch for the period totals.
  *
@@ -165,7 +166,7 @@ export async function checkRefundLink(
         refund_no: true,
         refund_method_code: true,
         fin_voucher_id: true,
-        cash_drawer_movement_id: true,
+        fin_voucher_trx_line_id: true,
       },
     }),
   );
@@ -193,6 +194,23 @@ export async function checkRefundLink(
     );
     const postedVoucherIds = new Set(postedVouchers.map((v) => v.id));
 
+    const cashLineIds = b9Refunds
+      .filter((r) => r.refund_method_code === REFUND_METHODS.CASH && r.fin_voucher_trx_line_id)
+      .map((r) => r.fin_voucher_trx_line_id!);
+    const stampedLines = cashLineIds.length
+      ? await withTenantContext(tenantOrgId, () =>
+          prisma.org_fin_voucher_trx_lines_dtl.findMany({
+            where: {
+              tenant_org_id: tenantOrgId,
+              id: { in: cashLineIds },
+              cash_effect_code: { in: [CASH_EFFECTS.DRAWER, CASH_EFFECTS.UNTRACKED, CASH_EFFECTS.NONE] },
+            },
+            select: { id: true },
+          }),
+        )
+      : [];
+    const stampedLineIds = new Set(stampedLines.map((l) => l.id));
+
     for (const row of b9Refunds) {
       const amount = toNumber(row.refund_amount);
       const refundLabel = row.refund_no ?? row.id;
@@ -208,13 +226,13 @@ export async function checkRefundLink(
         });
         continue;
       }
-      if (row.refund_method_code === REFUND_METHODS.CASH && !row.cash_drawer_movement_id) {
+      if (row.refund_method_code === REFUND_METHODS.CASH && !(row.fin_voucher_trx_line_id && stampedLineIds.has(row.fin_voucher_trx_line_id))) {
         results.push({
           checkName: RECONCILIATION_CHECK_NAMES.REFUND_LINK_EXISTS,
           severity: RECONCILIATION_SEVERITIES.BLOCKER,
           passed: false,
           actualValue: amount,
-          message: `CASH refund ${refundLabel} (order ${row.order_id}, amount ${amount}) has a POSTED REFUND_VOUCHER but no linked cash-drawer movement — B9 wiring did not complete`,
+          message: `CASH refund ${refundLabel} (order ${row.order_id}, amount ${amount}) has a POSTED REFUND_VOUCHER but its cash line carries no resolved cash-drawer ledger stamp — the ledger gate did not complete`,
           affectedEntityType: 'order_refund',
           affectedEntityId: row.id,
         });

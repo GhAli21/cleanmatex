@@ -1,0 +1,13 @@
+---
+description: Require comments for every database object in SQL migrations
+globs: "supabase/migrations/**/*.sql"
+alwaysApply: false
+---
+
+# Migration Object Comments
+
+- Always document every database object created, altered, or removed in a migration, including every column, table, constraint/FK, index, function/procedure, trigger, view, sequence, type, schema and RLS policy. Standard identity/audit columns are not exempt.
+- Use concise English SQL comments explaining purpose and significant semantics/invariants. Explain grants/revokes and default-privilege changes beside their statements.
+- Include PostgreSQL `COMMENT ON` metadata for every created/altered object supporting it, while the object exists. Explain removal intent before removal statements.
+- Follow the repository `code-documentation/sql-migration.md` skill for detailed coverage.
+- Never rewrite historical/applied migrations to retrofit comments. Deployed catalog-comment changes require a new forward migration and operator review. Complete documentation in new unapplied drafts before first application; an explicitly authorized documentation pass may update those drafts. Do not apply migrations.

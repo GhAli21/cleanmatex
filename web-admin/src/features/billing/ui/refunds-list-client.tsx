@@ -69,7 +69,6 @@ interface RefundItem {
   pos_session_id: string | null;
   fin_voucher_id: string | null;
   fin_voucher_trx_line_id: string | null;
-  cash_drawer_movement_id: string | null;
   created_by: string | null;
   created_at: string | null;
   approved_by: string | null;
