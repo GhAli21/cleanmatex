@@ -8,6 +8,9 @@ import { CmxTabsPanel } from '@ui/navigation/cmx-tabs-panel'
 import { CmxSkeleton } from '@ui/primitives/cmx-skeleton'
 import { CmxSummaryMessage, cmxMessage } from '@ui/feedback'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useHasPermission } from '@lib/hooks/usePermissions'
+import { CmxInput } from '@ui/primitives'
+import { WhatsAppTemplateSettings } from './whatsapp-template-settings'
 
 const CHANNELS = ['IN_APP', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH'] as const
 type ChannelCode = (typeof CHANNELS)[number]
@@ -44,11 +47,18 @@ type Tab = 'my-prefs' | 'channel-settings'
  *
  */
 export function NotificationSettingsPage() {
+  const { currentTenant } = useAuth()
+  // A fresh instance prevents an organization's draft and fetched settings from following a tenant switch.
+  return <NotificationSettingsContent key={currentTenant?.tenant_id ?? 'no-tenant'} />
+}
+
+/** Keep configuration actions aligned with the existing API permission rather than role names. */
+function NotificationSettingsContent() {
   const locale = useLocale()
   const isAr = locale === 'ar'
   const t = useTranslations('notifications')
   const { currentTenant } = useAuth()
-  const userRole = currentTenant?.user_role
+  const canConfigure = useHasPermission('notifications', 'configure')
 
   const [settings, setSettings] = useState<ChannelSetting[]>([])
   const [prefs, setPrefs] = useState<UserPref[]>([])
@@ -56,7 +66,7 @@ export function NotificationSettingsPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const isAdmin = ['super_admin', 'tenant_admin', 'admin'].includes(userRole ?? '')
+  const isAdmin = canConfigure
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -246,6 +256,15 @@ export function NotificationSettingsPage() {
                     <CmxSummaryMessage type="warning" title={t('settings.whatsappNoProvider')} items={[]} />
                   </CmxCardContent>
                 )}
+                {ch === 'WHATSAPP' && currentTenant?.tenant_id && canConfigure && (
+                  <CmxCardContent className="pt-0 pb-4">
+                    <WhatsAppTemplateSettings
+                      key={currentTenant.tenant_id}
+                      tenantId={currentTenant.tenant_id}
+                      onSaved={() => void fetchData()}
+                    />
+                  </CmxCardContent>
+                )}
                 {isEnabled && (
                   <CmxCardContent className="pt-0 pb-4 space-y-3">
                     <div className="flex items-center justify-between gap-4">
@@ -261,10 +280,8 @@ export function NotificationSettingsPage() {
                     {quietEnabled && (
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[11px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                            {t('settings.quietHoursStart')}
-                          </label>
-                          <input
+                          <CmxInput
+                            label={t('settings.quietHoursStart')}
                             type="time"
                             defaultValue={setting?.quiet_hours_start ?? '22:00'}
                             onBlur={(e) => void updateChannelSetting(ch, 'quiet_hours_start', e.target.value)}
@@ -272,10 +289,8 @@ export function NotificationSettingsPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[11px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                            {t('settings.quietHoursEnd')}
-                          </label>
-                          <input
+                          <CmxInput
+                            label={t('settings.quietHoursEnd')}
                             type="time"
                             defaultValue={setting?.quiet_hours_end ?? '08:00'}
                             onBlur={(e) => void updateChannelSetting(ch, 'quiet_hours_end', e.target.value)}

@@ -52,11 +52,21 @@ type OutboxRow = {
 };
 
 
-async function markProcessing(supabase: ReturnType<typeof createAdminSupabaseClient>, id: string): Promise<void> {
-  await supabase
+async function markProcessing(supabase: ReturnType<typeof createAdminSupabaseClient>, row: OutboxRow): Promise<boolean> {
+  const { data, error } = await supabase
     .from('org_ntf_outbox_dtl')
     .update({ status: OUTBOX_STATUS.PROCESSING, updated_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', row.id)
+    .eq('tenant_org_id', row.tenant_org_id)
+    .eq('status', row.status)
+    .eq('retry_count', row.retry_count)
+    .select('id')
+    .maybeSingle();
+  if (error) {
+    logger.error('process-outbox: failed to claim row', new Error(error.message), { outboxId: row.id, tenantOrgId: row.tenant_org_id, feature: 'notifications' });
+    return false;
+  }
+  return Boolean(data);
 }
 
 async function writeDeliveryLog(
@@ -81,14 +91,15 @@ async function writeDeliveryLog(
 async function processRow(
   supabase: ReturnType<typeof createAdminSupabaseClient>,
   row: OutboxRow
-): Promise<void> {
-  await markProcessing(supabase, row.id);
+): Promise<boolean> {
+  // A stale scheduler snapshot must not send a row already claimed by inline dispatch.
+  if (!(await markProcessing(supabase, row))) return false;
   const startMs = Date.now();
 
   let finalStatus: string;
   let errorMessage: string | undefined;
 
-  let result: { success: boolean; errorMessage?: string; permanent?: boolean } | null = null;
+  let result: { success: boolean; errorMessage?: string; permanent?: boolean; skipped?: boolean } | null = null;
 
   switch (row.channel_code) {
     case 'EMAIL':
@@ -126,7 +137,10 @@ async function processRow(
   }
 
   if (result !== null) {
-    if (result.success) {
+    if (result.skipped) {
+      finalStatus = OUTBOX_STATUS.SKIPPED;
+      errorMessage = result.errorMessage;
+    } else if (result.success) {
       finalStatus = OUTBOX_STATUS.SENT;
     } else if (result.permanent || row.retry_count >= row.max_retries) {
       finalStatus  = OUTBOX_STATUS.FAILED_PERMANENT;
@@ -142,6 +156,7 @@ async function processRow(
     status:      finalStatus,
     updated_at:  new Date().toISOString(),
     error_message: errorMessage ?? null,
+    skip_reason: finalStatus === OUTBOX_STATUS.SKIPPED ? errorMessage ?? 'Delivery skipped' : null,
   };
   if (finalStatus === OUTBOX_STATUS.SENT) {
     updatePayload.sent_at = new Date().toISOString();
@@ -150,7 +165,7 @@ async function processRow(
     updatePayload.retry_count    = row.retry_count + 1;
     updatePayload.next_retry_at  = nextRetryAt(row.retry_count + 1);
   }
-  await supabase.from('org_ntf_outbox_dtl').update(updatePayload).eq('id', row.id);
+  await supabase.from('org_ntf_outbox_dtl').update(updatePayload).eq('id', row.id).eq('tenant_org_id', row.tenant_org_id);
 
   // Write delivery log
   await writeDeliveryLog(
@@ -188,11 +203,13 @@ async function processRow(
     durationMs:  Date.now() - startMs,
     feature:     'notifications',
   });
+  return true;
 }
 
 /**
- *
- * @param request
+ * Process due external notifications only after the internal scheduler authenticates.
+ * @param request Internal POST carrying the server-side outbox secret.
+ * @returns Batch totals or an authorization/discovery failure response.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!isAuthorized(request)) {
@@ -202,11 +219,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = createAdminSupabaseClient();
   const now = new Date().toISOString();
 
+  // This authenticated scheduler can dispatch only for active tenant organizations.
+  // org_tenants_mst identifies its tenant by id and has no tenant_org_id column.
+  const { data: tenants, error: tenantError } = await supabase
+    .from('org_tenants_mst')
+    .select('id')
+    .eq('is_active', true)
+    .eq('rec_status', 1);
+  if (tenantError) {
+    logger.error('process-outbox: failed to resolve active tenants', new Error(tenantError.message), { feature: 'notifications' });
+    return NextResponse.json({ error: 'DB error fetching active tenants' }, { status: 500 });
+  }
+  const tenantIds = (tenants ?? []).map((tenant) => tenant.id);
+  if (tenantIds.length === 0) {
+    return NextResponse.json({ success: true, processed: 0, errors: 0, total: 0 });
+  }
+
   // Fetch QUEUED rows due for dispatch
   const { data: queued, error: queuedErr } = await supabase
     .from('org_ntf_outbox_dtl')
     .select('id, tenant_org_id, channel_code, recipient_address, recipient_user_id, rendered_subject, rendered_body, event_code, retry_count, max_retries, status, source_entity_type, source_entity_id, metadata')
     .eq('status', OUTBOX_STATUS.QUEUED)
+    .in('tenant_org_id', tenantIds)
     .lte('scheduled_at', now)
     .limit(BATCH_SIZE);
 
@@ -220,6 +254,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .from('org_ntf_outbox_dtl')
     .select('id, tenant_org_id, channel_code, recipient_address, recipient_user_id, rendered_subject, rendered_body, event_code, retry_count, max_retries, status, source_entity_type, source_entity_id, metadata')
     .eq('status', OUTBOX_STATUS.FAILED_TEMPORARY)
+    .in('tenant_org_id', tenantIds)
     .lte('next_retry_at', now)
     .limit(RETRY_BATCH_SIZE);
 
@@ -234,8 +269,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let errors     = 0;
   for (const row of rows) {
     try {
-      await processRow(supabase, row);
-      processed++;
+      if (await processRow(supabase, row)) processed++;
     } catch (err) {
       errors++;
       logger.error('process-outbox: unhandled error for row', err instanceof Error ? err : new Error(String(err)), {
@@ -246,7 +280,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       await supabase
         .from('org_ntf_outbox_dtl')
         .update({ status: OUTBOX_STATUS.FAILED_TEMPORARY, retry_count: (row.retry_count ?? 0) + 1, next_retry_at: nextRetryAt((row.retry_count ?? 0) + 1), updated_at: new Date().toISOString() })
-        .eq('id', row.id);
+        .eq('id', row.id)
+        .eq('tenant_org_id', row.tenant_org_id)
+        .eq('status', OUTBOX_STATUS.PROCESSING)
+        .eq('retry_count', row.retry_count);
     }
   }
 

@@ -280,6 +280,8 @@ function mapVoucherLine(l: {
   credit_application_type: string | null;
   order_payment_id: string | null;
   cash_drawer_mvt_id: string | null;
+  cash_effect_code?: string | null;
+  cash_ledger_seq?: bigint | null;
   org_payment_method_id: string | null;
   payment_terminal_id: string | null;
   cash_drawer_session_id: string | null;
@@ -328,6 +330,8 @@ function mapVoucherLine(l: {
     credit_application_type: l.credit_application_type ?? null,
     order_payment_id:        l.order_payment_id ?? null,
     cash_drawer_mvt_id:      l.cash_drawer_mvt_id ?? null,
+    cash_effect_code:        l.cash_effect_code ?? null,
+    cash_ledger_seq:         l.cash_ledger_seq != null ? l.cash_ledger_seq.toString() : null,
     org_payment_method_id:   l.org_payment_method_id ?? null,
     payment_terminal_id:     l.payment_terminal_id ?? null,
     cash_drawer_session_id:  l.cash_drawer_session_id ?? null,

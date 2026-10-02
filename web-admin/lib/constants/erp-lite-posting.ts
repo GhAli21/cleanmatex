@@ -92,6 +92,9 @@ export const ERP_LITE_TXN_EVENT_CODES = {
   CASH_OVER:    'CASH_OVER',
   CASH_SHORT:   'CASH_SHORT',
   CASH_PAID_IN: 'CASH_PAID_IN',
+  // A6-1b (migration 0546) — cash change rounding gain/loss.
+  CASH_ROUND_LOSS: 'CASH_ROUND_LOSS',
+  CASH_ROUND_GAIN: 'CASH_ROUND_GAIN',
 } as const;
 
 export const ERP_LITE_BLOCKING_MODES = {

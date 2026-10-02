@@ -30,6 +30,7 @@
   "cashDrawerImpact": "Cash Drawer Impact",
   "cashRetained": "Cash Retained",
   "changeReturned": "Change Returned",
+  "changeRounded": "Change rounded to the nearest cash increment, from {exact} to {rounded}",
   "currencyRounding": "Currency / Rounding",
   "b2bArDetails": "B2B / AR Details",
   "paymentNotes": "Payment Notes",

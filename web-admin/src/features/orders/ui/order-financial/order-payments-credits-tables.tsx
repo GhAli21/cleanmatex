@@ -519,6 +519,7 @@ function PaymentRow({
             paymentId={payment.id}
             action={transitionAction}
             paymentMethodCode={payment.payment_method_code}
+            currencyCode={currencyCode}
             onTransitioned={() => { setTransitionAction(null); router.refresh(); }}
           />
         ) : null}

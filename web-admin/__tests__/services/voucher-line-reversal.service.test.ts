@@ -28,6 +28,12 @@ const mockTx = {
   org_domain_events_outbox: {
     create: jest.fn(),
   },
+  org_cash_drawer_sessions_mst: {
+    findFirst: jest.fn(),
+  },
+  org_users_mst: {
+    findFirst: jest.fn(),
+  },
 };
 
 jest.mock('@/lib/services/voucher-number.service', () => ({
@@ -220,6 +226,63 @@ describe('reverseVoucherLinesInTx — full reversal', () => {
     expect(ctx).toEqual({ tenantOrgId: TENANT, userId: USER_ID, mode: 'DEFERRED' });
     expect(gateLines).toHaveLength(1); // only the CASH line — the CARD line never reaches the gate
     expect(gateLines[0].direction).toBe('OUT'); // opposite of the original IN
+  });
+
+  it('an explicit drawer override replaces the original drawer and drops its session hint', async () => {
+    mockTx.$queryRaw.mockResolvedValue([makeOriginalVoucher()]);
+    mockTx.org_fin_voucher_trx_lines_dtl.findMany.mockResolvedValue(makePostedLines());
+
+    await reverseVoucherLinesInTx(mockTx as never, {
+      tenantOrgId: TENANT,
+      voucherId: VOUCHER_ID,
+      reason: 'Original drawer deactivated',
+      userId: USER_ID,
+      cashDrawerId: '99999999-9999-9999-9999-999999999999',
+    });
+
+    const [, , , gateLines] = mockStampCashLinesTx.mock.calls[0];
+    expect(gateLines[0].cash_drawer_id).toBe('99999999-9999-9999-9999-999999999999');
+    expect(gateLines[0].cash_drawer_session_id).toBeNull();
+  });
+
+  it('forwards the receiving user to the gate as recognizedByUserId', async () => {
+    mockTx.$queryRaw.mockResolvedValue([makeOriginalVoucher()]);
+    mockTx.org_fin_voucher_trx_lines_dtl.findMany.mockResolvedValue(makePostedLines());
+    mockTx.org_users_mst.findFirst.mockResolvedValue({ user_id: 'cashier-1' });
+
+    await reverseVoucherLinesInTx(mockTx as never, {
+      tenantOrgId: TENANT,
+      voucherId: VOUCHER_ID,
+      reason: 'Refund',
+      userId: USER_ID,
+      receivedByUserId: 'cashier-1',
+    });
+
+    const [, ctx] = mockStampCashLinesTx.mock.calls[0];
+    expect(ctx.recognizedByUserId).toBe('cashier-1');
+  });
+
+  it('refuses when a pinned session is not the one the gate placed the cash in', async () => {
+    mockTx.$queryRaw.mockResolvedValue([makeOriginalVoucher()]);
+    mockTx.org_fin_voucher_trx_lines_dtl.findMany.mockResolvedValue(makePostedLines());
+    mockTx.org_cash_drawer_sessions_mst.findFirst.mockResolvedValue({ cash_drawer_id: 'drawer-2' });
+    mockStampCashLinesTx.mockImplementation(async (_tx: unknown, _ctx: unknown, _voucher: unknown, lines: Array<Record<string, unknown>>) => {
+      for (const l of lines) {
+        l.cash_drawer_id = 'drawer-2';
+        l.cash_drawer_session_id = 'some-other-session';
+      }
+      return new Map();
+    });
+
+    await expect(
+      reverseVoucherLinesInTx(mockTx as never, {
+        tenantOrgId: TENANT,
+        voucherId: VOUCHER_ID,
+        reason: 'Refund',
+        userId: USER_ID,
+        cashDrawerSessionId: 'pinned-session',
+      }),
+    ).rejects.toMatchObject({ code: 'CASH_DRAWER_SESSION_NOT_OPEN' });
   });
 
   it('reads the gate-decided session back onto the pair, not the original session', async () => {

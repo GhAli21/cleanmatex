@@ -11,7 +11,11 @@ import { VoucherDirectionBadge } from '@features/finance/vouchers/ui/voucher-dir
 import { ArrowUpRight, Plus } from 'lucide-react';
 import { VoucherLineTable } from '@features/finance/vouchers/ui/voucher-line-table';
 import { VoucherCancelDialog } from '@features/finance/vouchers/ui/voucher-cancel-dialog';
-import { VoucherReversalDialog } from '@features/finance/vouchers/ui/voucher-reversal-dialog';
+import {
+  VoucherReversalDialog,
+  type VoucherReversalOutcome,
+  type VoucherReversalRequest,
+} from '@features/finance/vouchers/ui/voucher-reversal-dialog';
 import { AddLineDialog } from '@features/finance/vouchers/ui/add-line-dialog';
 import { VoucherPostPreviewDialog } from '@features/finance/vouchers/ui/voucher-post-preview-dialog';
 import { VoucherLinkedEffectsPanel } from '@features/finance/vouchers/ui/voucher-linked-effects-panel';
@@ -132,6 +136,7 @@ export function VoucherDetailClient({
 }: VoucherDetailClientProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
+  const tLedger = useTranslations('cashControl.ledgerErrors');
   const router = useRouter();
   const { showSuccess, showError } = useMessage();
   const [isPending] = useTransition();
@@ -173,7 +178,7 @@ export function VoucherDetailClient({
 
   const canPost      = hasVoucherPermission(userRole, 'fin_vouchers:post')            && voucher.voucher_status === VOUCHER_STATUS.DRAFT;
   const canCancel    = hasVoucherPermission(userRole, 'fin_vouchers:cancel')          && voucher.voucher_status === VOUCHER_STATUS.DRAFT;
-  const canReverse   = hasVoucherPermission(userRole, 'fin_vouchers:reverse')         && voucher.voucher_status === VOUCHER_STATUS.POSTED;
+  const canReverse   = hasVoucherPermission(userRole, 'fin_vouchers:reverse')         && (voucher.voucher_status === VOUCHER_STATUS.POSTED || voucher.voucher_status === VOUCHER_STATUS.PARTIALLY_REVERSED);
   const canAddLine   = hasVoucherPermission(userRole, 'fin_voucher_lines:create')     && voucher.voucher_status === VOUCHER_STATUS.DRAFT;
 
   const handlePostSuccess = () => {
@@ -191,14 +196,23 @@ export function VoucherDetailClient({
     }
   };
 
-  const handleReverse = async (reason: string) => {
-    const result = await reverseBizVoucherAction(voucher.id, reason);
+  const handleReverse = async (request: VoucherReversalRequest): Promise<VoucherReversalOutcome> => {
+    const result = await reverseBizVoucherAction(voucher.id, request.reason, {
+      lineIds: request.lineIds,
+      cashDrawerId: request.cashDrawerId,
+      cashDrawerSessionId: request.cashDrawerSessionId,
+    });
     if (result.success) {
       showSuccess(t('reverseSuccess'));
       router.refresh();
-    } else {
-      showError(mapReverseError(result.error, t, tCommon('error')));
+      return { ok: true };
     }
+    // Cash-drawer gate refusals carry shared, translated text.
+    const ledgerKey = result.code as Parameters<typeof tLedger>[0] | undefined;
+    showError(
+      ledgerKey && tLedger.has(ledgerKey) ? tLedger(ledgerKey) : mapReverseError(result.error, t, tCommon('error')),
+    );
+    return { ok: false, code: result.code };
   };
 
   const handleDeleteLine = async (lineId: string) => {
@@ -532,6 +546,9 @@ export function VoucherDetailClient({
         onConfirm={handleReverse}
         linkedEffects={linkedEffects}
         unwindEnabled={unwindEnabled}
+        lines={voucher.lines}
+        branchId={voucher.branch_id}
+        currencyCode={voucher.currency_code}
       />
       <VoucherPostPreviewDialog
         open={postPreviewOpen}

@@ -3,7 +3,7 @@
  *
  * GET  /api/v1/notifications/settings/providers          — list all provider configs for tenant
  * POST /api/v1/notifications/settings/providers          — add a new provider config for a channel
- * PUT  /api/v1/notifications/settings/providers/activate — set one provider as active for a channel
+ * PUT  /api/v1/notifications/settings/providers          — save and activate one provider for a channel
  * DELETE /api/v1/notifications/settings/providers        — remove a provider config row
  *
  * All endpoints require notifications:configure permission.
@@ -15,10 +15,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requirePermission } from '@/lib/middleware/require-permission'
+import { validateCSRF } from '@/lib/middleware/csrf'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { notificationSettingsService } from '@/lib/notifications/settings-service'
 import { logger } from '@/lib/utils/logger'
 import type { Json } from '@/types/database'
+import { validateTwilioProductionTemplateConfig } from '@lib/notifications/adapters/whatsapp-template-config'
 
 // ---------------------------------------------------------------------------
 // GET — list all provider configs for the tenant
@@ -33,6 +35,10 @@ export async function GET(request: NextRequest) {
   if (authCheck instanceof NextResponse) return authCheck
 
   const { tenantId } = authCheck
+  // A stale form must never load another tenant's provider catalog after a tenant switch.
+  if (request.headers.get('X-Tenant-Id') && request.headers.get('X-Tenant-Id') !== tenantId) {
+    return NextResponse.json({ success: false, error: 'Organization changed; reload notification settings' }, { status: 409 })
+  }
   const { searchParams } = new URL(request.url)
   const channelCode = searchParams.get('channel_code')
 
@@ -67,10 +73,17 @@ export async function GET(request: NextRequest) {
  * @param request
  */
 export async function POST(request: NextRequest) {
+  // Prevent another site from changing the cookie-authenticated tenant's delivery provider.
+  const csrfResponse = await validateCSRF(request)
+  if (csrfResponse) return csrfResponse
   const authCheck = await requirePermission('notifications:configure')(request)
   if (authCheck instanceof NextResponse) return authCheck
 
   const { tenantId } = authCheck
+  // Bind the operator's form to the tenant verified by the existing permission middleware.
+  if (request.headers.get('X-Tenant-Id') && request.headers.get('X-Tenant-Id') !== tenantId) {
+    return NextResponse.json({ success: false, error: 'Organization changed; reload notification settings' }, { status: 409 })
+  }
 
   const body = await request.json() as {
     channel_code: string
@@ -81,6 +94,11 @@ export async function POST(request: NextRequest) {
 
   if (!body.channel_code || !body.provider_code) {
     return NextResponse.json({ success: false, error: 'channel_code and provider_code are required' }, { status: 400 })
+  }
+
+  if (body.provider_code === 'TWILIO_WHATSAPP' && body.config !== undefined) {
+    const configError = validateTwilioProductionTemplateConfig(body.config)
+    if (configError) return NextResponse.json({ success: false, error: configError }, { status: 400 })
   }
 
   const supabase = createAdminSupabaseClient()
@@ -118,7 +136,7 @@ export async function POST(request: NextRequest) {
 // PUT — activate a provider for a channel (deactivates all others)
 //
 // Body: { channel_code, provider_code }
-// This is an atomic two-step operation:
+// These two statements are sequential, not transactional:
 //   1. Deactivate all providers for (tenant, channel)
 //   2. Activate the target provider
 // The partial unique index on (tenant_org_id, channel_code) WHERE is_active=true
@@ -130,10 +148,17 @@ export async function POST(request: NextRequest) {
  * @param request
  */
 export async function PUT(request: NextRequest) {
+  // Activation changes live routing, so writes require the existing double-submit CSRF token.
+  const csrfResponse = await validateCSRF(request)
+  if (csrfResponse) return csrfResponse
   const authCheck = await requirePermission('notifications:configure')(request)
   if (authCheck instanceof NextResponse) return authCheck
 
   const { tenantId } = authCheck
+  // Preserve tenant ownership when the session changes while a UI request is in flight.
+  if (request.headers.get('X-Tenant-Id') && request.headers.get('X-Tenant-Id') !== tenantId) {
+    return NextResponse.json({ success: false, error: 'Organization changed; reload notification settings' }, { status: 409 })
+  }
 
   const body = await request.json() as {
     channel_code: string
@@ -144,6 +169,11 @@ export async function PUT(request: NextRequest) {
 
   if (!body.channel_code || !body.provider_code) {
     return NextResponse.json({ success: false, error: 'channel_code and provider_code are required' }, { status: 400 })
+  }
+
+  if (body.provider_code === 'TWILIO_WHATSAPP' && body.config !== undefined) {
+    const configError = validateTwilioProductionTemplateConfig(body.config)
+    if (configError) return NextResponse.json({ success: false, error: configError }, { status: 400 })
   }
 
   const supabase = createAdminSupabaseClient()

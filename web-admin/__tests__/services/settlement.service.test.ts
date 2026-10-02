@@ -129,6 +129,15 @@ jest.mock('@/lib/services/voucher-wiring.service', () => ({
   postAndWireBizVoucher: (...a: unknown[]) => mockPostAndWireBizVoucher(...a),
 }));
 
+// A6-1b: cash change rounding is covered by its own suite; here the planner is a
+// controllable stub (default: no rounding configured).
+const mockPlanCashChangeRounding = jest.fn();
+const mockPostCashChangeRoundingTx = jest.fn();
+jest.mock('@/lib/services/cash-change-rounding.service', () => ({
+  planCashChangeRounding: (...a: unknown[]) => mockPlanCashChangeRounding(...a),
+  postCashChangeRoundingTx: (...a: unknown[]) => mockPostCashChangeRoundingTx(...a),
+}));
+
 // ---------------------------------------------------------------------------
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
@@ -324,6 +333,71 @@ describe('order-settlement.service — collectPaymentTx', () => {
     // The old direct-write path must be fully retired — wiring now owns these tables.
     expect(mockPaymentCreate).not.toHaveBeenCalled();
     expect(mockCashDrawerMovementCreate).not.toHaveBeenCalled();
+  });
+
+  it('rounds the cash change (A6-1b): stores the rounded change and posts the rounding voucher after the receipt', async () => {
+    const tx = makeTx();
+    tx.$queryRaw.mockResolvedValue([
+      { id: ORDER, outstanding_amount: 2.003, currency_code: 'OMR', branch_id: 'branch-1', customer_id: 'cust-1' },
+    ]);
+    mockListEffectivePaymentMethodConfigs.mockResolvedValue([
+      {
+        id: 'method-cash',
+        payment_method_code: 'CASH',
+        payment_nature: 'REAL_PAYMENT',
+        gateway_code: null,
+        requires_cash_drawer: true,
+        supports_change_return: true,
+        supports_overpayment: false,
+        default_creation_status: null,
+        is_enabled: true,
+        is_platform_disabled: false,
+      },
+    ]);
+    mockCreateBizVoucher.mockResolvedValue({ id: 'voucher-1', voucher_no: 'RCV-1' });
+    mockAddVoucherLine.mockResolvedValue({ id: 'line-1', line_no: 1 });
+    mockPostAndWireBizVoucher.mockResolvedValue({ voucherId: 'voucher-1', fromCache: false });
+    mockOutboxCreate.mockResolvedValue({});
+    mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+    const rounding = { exactChange: 2.997, roundedChange: 3, adjustment: -0.003, currencyCode: 'OMR' };
+    mockPlanCashChangeRounding.mockResolvedValueOnce(rounding);
+
+    await collectPaymentTx({
+      orderId: ORDER,
+      tenantId: TENANT,
+      paymentLegs: [{ paymentMethodId: 'method-cash', amount: 2.003, cashTendered: 5 }],
+      cashDrawerSessionId: 'session-1',
+      collectedBy: 'user-1',
+      idempotencyKey: 'collect-round-001',
+    });
+
+    expect(mockPlanCashChangeRounding).toHaveBeenCalledWith(
+      { tenantId: TENANT, branchId: 'branch-1', userId: 'user-1' },
+      { paymentMethodCode: 'CASH', currencyCode: 'OMR', amount: 2.003, tenderedAmount: 5 },
+    );
+    expect(mockAddVoucherLine).toHaveBeenCalledWith(
+      TENANT,
+      'voucher-1',
+      expect.objectContaining({ amount: 2.003, tendered_amount: 5, change_returned_amount: 3 }),
+      'user-1',
+      undefined,
+      tx,
+    );
+    expect(mockPostCashChangeRoundingTx).toHaveBeenCalledWith(
+      tx,
+      { tenantOrgId: TENANT, userId: 'user-1' },
+      expect.objectContaining({
+        rounding,
+        orderId: ORDER,
+        paymentLineId: 'line-1',
+        paymentMethodCode: 'CASH',
+        idempotencyKey: 'collect-round-001_cash_round_0',
+      }),
+    );
+    // The rounding voucher is posted only after the receipt voucher (it needs the stamped drawer session).
+    expect(mockPostAndWireBizVoucher.mock.invocationCallOrder[0]).toBeLessThan(
+      mockPostCashChangeRoundingTx.mock.invocationCallOrder[0],
+    );
   });
 
   it('resolves PENDING from the D9 config instead of hardcoding gateway ? PENDING : COMPLETED (B31)', async () => {

@@ -1,5 +1,10 @@
 # Twilio WhatsApp — WABA Registration and Template Approval
 
+**2026-10-02 production integration:** use [14_twilio_production_order_created.md](./14_twilio_production_order_created.md)
+for the operator-confirmed approved `order_created_v4` template and its per-event
+provider mapping/customer opt-in requirements. The registration session and global
+sandbox flag instructions below describe the earlier configuration.
+
 **Last updated:** 2026-09-12 (evening operator session)  
 **Account checked:** Twilio `cleanmatex_comm` (Console + Meta Self Sign-up)  
 **Audience:** Platform operator who needs production WhatsApp (business-initiated) and Meta-approved templates  

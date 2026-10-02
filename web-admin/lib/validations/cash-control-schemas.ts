@@ -50,6 +50,10 @@ export const cashControlSettingsPatchSchema = z.object({
   posSessionRolloverMode: z.enum(enumValues(CASH_CONTROL_ROLLOVER_MODE)).nullable().optional(),
   posSessionStaleHours: z.number().int().positive().nullable().optional(),
   shiftZReportRequired: z.boolean().nullable().optional(),
+  // CLF (0528) — per-drawer policy tab; falls back to the drawer type default.
+  requiresSession: z.boolean().nullable().optional(),
+  openingCountRequired: z.boolean().nullable().optional(),
+  closingCountRequired: z.boolean().nullable().optional(),
 })
 
 export const updateCashControlSettingsRequestSchema = z.object({

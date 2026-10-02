@@ -5,10 +5,10 @@
  * (-> COMPLETED), CANCEL (-> CANCELLED), FAIL_BOUNCE (-> FAILED), VOID
  * (-> VOIDED), or REVERSE (-> REVERSED). CANCEL/FAIL_BOUNCE require a
  * mandatory reason and a D009 fallback classification; VOID/REVERSE require
- * a mandatory reason only. REVERSE additionally requires
- * `cashDrawerSessionId` when the leg being reversed is a cash-family method
- * (validated server-side by the service, not here — only the service knows
- * the leg's payment method).
+ * a mandatory reason only. VERIFY/REVERSE of a cash-family leg may carry an
+ * optional explicit placement (`cashDrawerId` / `cashDrawerSessionId` /
+ * `receivedByUserId`) for when the cash gate cannot place the cash itself;
+ * the service validates it and the gate's integrity rules still apply.
  *
  * Permission is action-dependent (checked after body validation, since the
  * action determines which code applies):
@@ -30,6 +30,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { getAuthContext } from '@/lib/middleware/require-permission';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { transitionPaymentTx } from '@/lib/services/payment-transition.service';
+import { cashPlacementShape } from '@/lib/validations/cash-drawer/placement-schemas';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import { FALLBACK_CLASSIFICATIONS, PAYMENT_TRANSITION_ACTIONS } from '@/lib/constants/order-financial';
 
@@ -66,8 +67,8 @@ const transitionSchema = z.object({
     ])
     .optional(),
   idempotencyKey: z.string().trim().min(1).max(200),
-  /** B10/REVERSE only — OPEN cash-drawer session id for the compensating OUT movement. */
-  cashDrawerSessionId: z.string().uuid().optional(),
+  /** VERIFY/REVERSE of a cash leg only — explicit cash placement (see cashPlacementShape). */
+  ...cashPlacementShape,
 });
 
 const ERROR_STATUS: Record<string, number> = {
@@ -85,6 +86,7 @@ const ERROR_STATUS: Record<string, number> = {
   CASH_DRAWER_SESSION_NOT_OPEN: 409,
   CASH_LEG_HAS_NO_VOUCHER_LINE: 422,
   CASH_LEG_MUST_REVERSE: 409,
+  PLACEMENT_OVERRIDE_NOT_APPLICABLE: 400,
 };
 
 export async function POST(
@@ -118,7 +120,7 @@ export async function POST(
       { status: 400 },
     );
   }
-  const { orderId, action, reason, fallbackClassification, idempotencyKey, cashDrawerSessionId } = parsed.data;
+  const { orderId, action, reason, fallbackClassification, idempotencyKey, cashDrawerId, cashDrawerSessionId, receivedByUserId } = parsed.data;
 
   const requiredPermission = TRANSITION_PERMISSION_BY_ACTION[action];
   const allowed = await hasPermissionServer(requiredPermission);
@@ -139,7 +141,9 @@ export async function POST(
       reason,
       fallbackClassification,
       idempotencyKey,
+      cashDrawerId,
       cashDrawerSessionId,
+      receivedByUserId,
     });
     return NextResponse.json({ success: true, data: result }, { status: 200 });
   } catch (err) {

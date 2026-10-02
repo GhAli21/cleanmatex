@@ -11,6 +11,7 @@ import {
   ArrowRightLeft, ShieldCheck, CircleAlert, EllipsisVertical, Plus, Info, RefreshCw,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { CashChangeRoundingNote } from '@features/orders/ui/cash-change-rounding-note';
 import Link from 'next/link';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
@@ -625,6 +626,7 @@ export function PaymentFullView({
     editableLegEntries,
     legacyDisplayChangeAmount,
     displayChangeAmount,
+    cashChangeRounding,
     netCashRetainedAmount,
     primaryMethodOption,
     cashDrawerRequired,
@@ -2608,6 +2610,7 @@ export function PaymentFullView({
                   saleTotal={saleTotal}
                   amountAppliedToOrder={amountAppliedToOrder}
                   displayChangeAmount={displayChangeAmount}
+                  cashChangeRounding={cashChangeRounding}
                   remainingBalance={remainingBalance}
                   settled={rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED}
                   balanceStatusLabel={balanceStatusLabel}
@@ -3187,6 +3190,7 @@ export function PaymentFullView({
                             <p className={`mt-1 text-sm font-semibold tabular-nums ${displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'}`}>
                               {currencyCode} {formatAmount(displayChangeAmount)}
                             </p>
+                            <CashChangeRoundingNote rounding={cashChangeRounding} currencyCode={currencyCode} formatAmount={formatAmount} isRTL={isRTL} />
                           </div>
                           {unresolvedOverpaymentAmount > moneyEpsilon ? (
                             <div data-testid="payment-balance-overpaid" className={isRTL ? 'text-right' : 'text-left'}>
@@ -4441,10 +4445,13 @@ export function PaymentFullView({
                           negative={remainingBalance > moneyEpsilon}
                         />
                         {displayChangeAmount > moneyEpsilon ? (
-                          <SummaryRow
-                            label={t('rightRail.changeReturned')}
-                            value={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
-                          />
+                          <>
+                            <SummaryRow
+                              label={t('rightRail.changeReturned')}
+                              value={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
+                            />
+                            <CashChangeRoundingNote rounding={cashChangeRounding} currencyCode={currencyCode} formatAmount={formatAmount} isRTL={isRTL} />
+                          </>
                         ) : null}
                         {unresolvedOverpaymentAmount > moneyEpsilon ? (
                           <SummaryRow
@@ -4874,10 +4881,13 @@ export function PaymentFullView({
                   negative={remainingBalance > moneyEpsilon}
                 />
                 {displayChangeAmount > moneyEpsilon ? (
-                  <SummaryRow
-                    label={t('rightRail.changeReturned')}
-                    value={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
-                  />
+                  <>
+                    <SummaryRow
+                      label={t('rightRail.changeReturned')}
+                      value={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
+                    />
+                    <CashChangeRoundingNote rounding={cashChangeRounding} currencyCode={currencyCode} formatAmount={formatAmount} isRTL={isRTL} />
+                  </>
                 ) : null}
                 {overpaymentResolutionPayload ? (
                   <SummaryRow

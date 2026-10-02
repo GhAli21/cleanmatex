@@ -30,6 +30,7 @@ import {
   RECONCILIATION_SEVERITIES,
 } from '@/lib/constants/order-financial';
 import { VOUCHER_STATUS } from '@/lib/constants/voucher';
+import { CASH_PAYMENT_METHOD_CODES } from '@/lib/utils/cash-method';
 
 import {
   RECONCILIATION_TOLERANCE,
@@ -194,36 +195,44 @@ export async function checkCashMovementLink(
   tenantOrgId: string,
   window: PeriodWindow,
 ): Promise<CheckResult[]> {
-  const orphans = await withTenantContext(tenantOrgId, () =>
-    prisma.org_cash_drawer_movements_dtl.findMany({
+  // CLF-6-3: replaces the retired `org_cash_drawer_movements_dtl` orphan
+  // check (no table in the new model can write cash outside a voucher line
+  // by construction — CLF-5/W1-W15 removed every writer capable of it, same
+  // reasoning as `getCashDrawerReconReport`'s now-permanent-0
+  // `unlinkedMovementCount`). The live equivalent hazard is a POSTED
+  // cash-family voucher line the CLF gate never stamped at all (`cash_
+  // effect_code IS NULL` is not a valid terminal gate state — every posted
+  // cash-family line is PENDING/DRAWER/UNTRACKED/NONE by the gate's own
+  // contract, see `lib/constants/cash-drawer.ts`'s `CASH_EFFECTS`) — a gate
+  // bypass or a code path that posts cash without running through it.
+  const unstamped = await withTenantContext(tenantOrgId, () =>
+    prisma.org_fin_voucher_trx_lines_dtl.findMany({
       where: {
         tenant_org_id: tenantOrgId,
-        performed_at: { gte: window.periodFrom, lte: window.periodTo },
-        is_active: true,
-        OR: [
-          { fin_voucher_id: null },
-          { fin_voucher_trx_line_id: null },
-        ],
+        updated_at: { gte: window.periodFrom, lte: window.periodTo },
+        line_status: 'POSTED',
+        payment_method_code: { in: [...CASH_PAYMENT_METHOD_CODES] },
+        cash_effect_code: null,
       },
       select: {
         id: true,
-        cash_drawer_session_id: true,
-        movement_type: true,
-        amount: true,
+        voucher_id: true,
+        line_role: true,
         direction: true,
+        amount: true,
       },
     }),
   );
 
-  return orphans.map((row) => {
+  return unstamped.map((row) => {
     const amount = toNumber(row.amount);
     return {
       checkName: RECONCILIATION_CHECK_NAMES.CASH_MOVEMENT_LINK_EXISTS,
       severity: RECONCILIATION_SEVERITIES.BLOCKER,
       passed: false,
       actualValue: amount,
-      message: `Cash movement ${row.id} (session ${row.cash_drawer_session_id}, ${row.movement_type} ${row.direction} ${amount}) has no fin_voucher backlink — performed outside a Business Voucher transaction`,
-      affectedEntityType: 'cash_drawer_movement',
+      message: `Voucher trx line ${row.id} (voucher ${row.voucher_id}, ${row.line_role} ${row.direction} ${amount}) is a POSTED cash-family line the CLF gate never stamped — cash_effect_code is NULL`,
+      affectedEntityType: 'org_fin_voucher_trx_lines_dtl',
       affectedEntityId: row.id,
     };
   });
@@ -238,6 +247,12 @@ export async function checkCashMovementLink(
  * instead). This should be structurally unreachable — the check exists as
  * a trip-wire for a regression in either invariant, not routine drift.
  */
+// CLF-6-3 note: dormant since R1 (2026-09-26) — nothing writes to
+// `org_cash_drawer_movements_dtl` anymore, so this can no longer find a
+// violation (harmless, not a false negative: the hazard it guards — a
+// CANCELLED/FAILED leg carrying a live CASH_SALE movement — is structurally
+// unreachable once no writer can create that movement at all). Kept for
+// pre-CLF historical data; retire alongside the table in R3.
 export async function checkCancelledPaymentNoOrphanMovement(
   tenantOrgId: string,
   window: PeriodWindow,
@@ -284,6 +299,8 @@ export async function checkCancelledPaymentNoOrphanMovement(
  * never-effective leg (PENDING/PROCESSING/AUTHORIZED source) must never carry
  * a live CASH_SALE movement.
  */
+// CLF-6-3 note: dormant since R1, same reasoning as
+// `checkCancelledPaymentNoOrphanMovement` above — retire alongside the table in R3.
 export async function checkVoidedPaymentNoOrphanMovement(
   tenantOrgId: string,
   window: PeriodWindow,
@@ -353,28 +370,50 @@ export async function checkReversedCashPaymentHasCompensatingMovement(
   );
   if (rows.length === 0) return [];
 
-  const compensatingMovements = await withTenantContext(tenantOrgId, () =>
-    prisma.org_cash_drawer_movements_dtl.findMany({
+  // CLF-6-3: the compensating effect for a reversed cash-family leg is now a
+  // mirror voucher line (`reversed_line_id` back-link, stamped `cash_effect_
+  // code='DRAWER'` by `reverseVoucherLinesInTx` — W9), not a `PAYMENT_REVERSAL`
+  // row in the retired movements table. Checking the old table here would
+  // false-positive-BLOCKER every real reversal post-CLF (R1, 2026-09-26),
+  // since nothing writes there anymore.
+  const originalLines = await withTenantContext(tenantOrgId, () =>
+    prisma.org_fin_voucher_trx_lines_dtl.findMany({
       where: {
         tenant_org_id: tenantOrgId,
-        reversed_payment_id: { in: rows.map((r) => r.id) },
-        movement_type: 'PAYMENT_REVERSAL',
-        is_active: true,
+        order_payment_id: { in: rows.map((r) => r.id) },
+        cash_effect_code: 'DRAWER',
       },
-      select: { reversed_payment_id: true },
+      select: { id: true, order_payment_id: true },
     }),
   );
-  const compensatedPaymentIds = new Set(compensatingMovements.map((m) => m.reversed_payment_id));
+  if (originalLines.length === 0) return [];
+  const originalLineByPaymentId = new Map(originalLines.map((l) => [l.order_payment_id, l.id]));
+
+  const mirrorLines = await withTenantContext(tenantOrgId, () =>
+    prisma.org_fin_voucher_trx_lines_dtl.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        reversed_line_id: { in: originalLines.map((l) => l.id) },
+        cash_effect_code: 'DRAWER',
+      },
+      select: { reversed_line_id: true },
+    }),
+  );
+  const reversedLineIdsWithMirror = new Set(mirrorLines.map((l) => l.reversed_line_id));
 
   const violations: CheckResult[] = [];
   for (const row of rows) {
-    if (!compensatedPaymentIds.has(row.id)) {
+    const originalLineId = originalLineByPaymentId.get(row.id);
+    // No DRAWER-recognized original line at all = this payment's cash was
+    // never in the CLF ledger to begin with (pre-CLF era) — nothing to check.
+    if (!originalLineId) continue;
+    if (!reversedLineIdsWithMirror.has(originalLineId)) {
       violations.push({
         checkName: RECONCILIATION_CHECK_NAMES.REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT,
         severity: RECONCILIATION_SEVERITIES.BLOCKER,
         passed: false,
         actualValue: toNumber(row.amount),
-        message: `Cash payment ${row.id} (order ${row.order_id}) is REVERSED but has no PAYMENT_REVERSAL compensating movement — the drawer's expected cash never reflected the correction`,
+        message: `Cash payment ${row.id} (order ${row.order_id}) is REVERSED but its recognised voucher line ${originalLineId} has no DRAWER-stamped reversal mirror line — the drawer's expected cash never reflected the correction`,
         affectedEntityType: 'org_order_payments_dtl',
         affectedEntityId: row.id,
       });
@@ -397,6 +436,12 @@ export async function checkReversedCashPaymentHasCompensatingMovement(
  * @param tenantOrgId active tenant — all queries scoped via `withTenantContext`.
  * @param window applied against `performed_at` on the movement row.
  */
+// CLF-6-3 note: dormant since R1, same reasoning as the other
+// `org_cash_drawer_movements_dtl`-sourced checks above — retire alongside the
+// table in R3. The amount-integrity concept this guarded (movement amount
+// must equal the voucher line's retained amount) has no live equivalent
+// check yet, since CLF no longer writes a second "movement" row to compare
+// the voucher line against — tracked as remaining CLF-6-3 scope in STATUS.
 export async function checkCashMovementAmountEqualsRetained(
   tenantOrgId: string,
   window: PeriodWindow,

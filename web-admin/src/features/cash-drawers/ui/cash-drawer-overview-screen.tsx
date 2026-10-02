@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
-import { ArrowLeft, CircleDollarSign, WalletCards } from 'lucide-react'
+import { ArrowLeft, ArrowLeftRight, CircleDollarSign, WalletCards } from 'lucide-react'
 
 import { postDrawerCashInOut } from '@/app/actions/billing/cash-drawer-actions'
 import {
   CashDrawerInfoTile,
-  CashDrawerMovementBadge,
   CashDrawerStatusBadge,
   CashDrawerTypeBadge,
   useCashDrawerDateFormatter,
@@ -17,6 +17,14 @@ import {
 } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
 import { CashDrawerOpenSessionDialog } from '@features/cash-drawers/ui/cash-drawer-open-session-dialog'
 import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-close-wizard'
+import {
+  CashDrawerCountsTab,
+  CashDrawerLedgerTab,
+  CashDrawerTransactionsTab,
+} from '@features/cash-drawers/ui/cash-drawer-ledger-tabs'
+import { CashDrawerTransactionDialog } from '@features/cash-drawers/ui/cash-drawer-transaction-dialog'
+import { CashDrawerPolicyTab } from '@features/cash-drawers/ui/cash-drawer-policy-tab'
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import type {
   CashDrawerOverviewDetail,
   CashDrawerSessionListRow,
@@ -28,6 +36,7 @@ type DrawerCashMovementRole =
   (typeof DRAWER_CASH_IN_OUT_ROLES.OUT)[number] | (typeof DRAWER_CASH_IN_OUT_ROLES.IN)[number]
 import { cmxMessage } from '@ui/feedback'
 import { CmxDataTable } from '@ui/data-display'
+import { CmxTabsPanel } from '@ui/navigation'
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
 import { Badge } from '@ui/primitives/badge'
 import {
@@ -61,7 +70,9 @@ export function CashDrawerOverviewScreen({
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
   const tLedger = useTranslations('cashControl.ledgerErrors')
+  const tTrx = useTranslations('billing.cashDrawers.trxDialog')
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isPending, startTransition] = useTransition()
 
   const money = useCashDrawerMoneyFormatter()
@@ -70,6 +81,7 @@ export function CashDrawerOverviewScreen({
   const [openDialogOpen, setOpenDialogOpen] = useState(false)
   const [moveDialogOpen, setMoveDialogOpen] = useState(false)
   const [closeDialogOpen, setCloseDialogOpen] = useState(false)
+  const [trxDialogOpen, setTrxDialogOpen] = useState(false)
 
   const [lineRole, setLineRole] = useState<DrawerCashMovementRole>(LINE_ROLE.EXPENSE_PAYMENT)
   const [moveAmount, setMoveAmount] = useState('0')
@@ -202,38 +214,8 @@ export function CashDrawerOverviewScreen({
     },
   ]
 
-  const movementColumns = [
-    {
-      key: 'performedAt',
-      header: t('performedAt'),
-      render: (row: CashDrawerOverviewDetail['recentMovements'][number]) => fmtDateTime(row.performedAt),
-    },
-    {
-      key: 'movementType',
-      header: t('movementType'),
-      render: (row: CashDrawerOverviewDetail['recentMovements'][number]) => (
-        <CashDrawerMovementBadge movement={row} />
-      ),
-    },
-    {
-      key: 'amount',
-      header: t('amount'),
-      render: (row: CashDrawerOverviewDetail['recentMovements'][number]) => money(row.amount, row.currencyCode),
-      align: 'right' as const,
-    },
-    {
-      key: 'reason',
-      header: t('reason'),
-      render: (row: CashDrawerOverviewDetail['recentMovements'][number]) => row.reason ?? '—',
-    },
-    {
-      key: 'performedBy',
-      header: t('performedBy'),
-      render: (row: CashDrawerOverviewDetail['recentMovements'][number]) =>
-        row.performedBy?.displayName ?? row.performedBy?.id ?? '—',
-    },
-  ]
-
+  const canCount = useHasPermissionCode('cash_drawer:count')
+  const canTransfer = useHasPermissionCode('cash_drawer:transfer')
   const currentSession = overview.currentSession
   const latestSession = overview.latestSession
 
@@ -265,6 +247,12 @@ export function CashDrawerOverviewScreen({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {canTransfer ? (
+            <CmxButton variant="outline" onClick={() => setTrxDialogOpen(true)} disabled={isPending}>
+              <ArrowLeftRight className="me-2 h-4 w-4" aria-hidden />
+              {tTrx('openButton')}
+            </CmxButton>
+          ) : null}
           {!currentSession ? (
             <CmxButton onClick={() => setOpenDialogOpen(true)} disabled={isPending}>
               <WalletCards className="me-2 h-4 w-4" aria-hidden />
@@ -394,43 +382,56 @@ export function CashDrawerOverviewScreen({
         </CmxCard>
       </div>
 
-      <CmxCard>
-        <CmxCardHeader>
-          <CmxCardTitle>{t('recentSessionsTitle')}</CmxCardTitle>
-        </CmxCardHeader>
-        <CmxCardContent>
-          <CmxDataTable
-            columns={sessionColumns}
-            data={overview.recentSessions}
-            currentPage={1}
-            pageSize={overview.recentSessions.length || 5}
-            totalCount={overview.recentSessions.length}
-            showPageSizeSelector={false}
-            paginationFooter="never"
-            emptyStateTitle={t('hub.noSessionsTitle')}
-            emptyStateDescription={t('hub.noSessionsDescription')}
-          />
-        </CmxCardContent>
-      </CmxCard>
+      <CmxTabsPanel
+        tabs={[
+          {
+            id: 'sessions',
+            label: t('tabs.sessions'),
+            content: (
+              <CmxDataTable
+                columns={sessionColumns}
+                data={overview.recentSessions}
+                currentPage={1}
+                pageSize={overview.recentSessions.length || 5}
+                totalCount={overview.recentSessions.length}
+                showPageSizeSelector={false}
+                paginationFooter="never"
+                emptyStateTitle={t('hub.noSessionsTitle')}
+                emptyStateDescription={t('hub.noSessionsDescription')}
+              />
+            ),
+          },
+          { id: 'ledger', label: t('tabs.ledger.title'), content: <CashDrawerLedgerTab drawerId={drawerId} /> },
+          { id: 'transactions', label: t('tabs.trx.title'), content: <CashDrawerTransactionsTab drawerId={drawerId} /> },
+          {
+            id: 'counts',
+            label: t('tabs.counts.title'),
+            content: (
+              <CashDrawerCountsTab
+                drawerId={drawerId}
+                currencyCode={overview.drawer.currencyCode}
+                currentSessionId={currentSession?.id ?? null}
+                canCount={canCount}
+              />
+            ),
+          },
+          { id: 'policy', label: t('tabs.policy.title'), content: <CashDrawerPolicyTab drawerId={drawerId} /> },
+        ]}
+      />
 
-      <CmxCard>
-        <CmxCardHeader>
-          <CmxCardTitle>{t('recentMovementsTitle')}</CmxCardTitle>
-        </CmxCardHeader>
-        <CmxCardContent>
-          <CmxDataTable
-            columns={movementColumns}
-            data={overview.recentMovements}
-            currentPage={1}
-            pageSize={overview.recentMovements.length || 10}
-            totalCount={overview.recentMovements.length}
-            showPageSizeSelector={false}
-            paginationFooter="never"
-            emptyStateTitle={t('noMovementsTitle')}
-            emptyStateDescription={t('noMovementsDescription')}
-          />
-        </CmxCardContent>
-      </CmxCard>
+      <CashDrawerTransactionDialog
+        drawerId={drawerId}
+        drawerType={overview.drawer.drawerType}
+        drawerName={overview.drawer.drawerName}
+        branchId={overview.drawer.branchId}
+        currencyCode={overview.drawer.currencyCode}
+        open={trxDialogOpen}
+        onOpenChange={setTrxDialogOpen}
+        onPosted={() => {
+          void queryClient.invalidateQueries({ queryKey: ['cash-drawers', drawerId] })
+          router.refresh()
+        }}
+      />
 
       <CashDrawerOpenSessionDialog
         drawerId={drawerId}

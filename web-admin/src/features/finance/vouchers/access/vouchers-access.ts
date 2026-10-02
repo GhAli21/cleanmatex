@@ -155,6 +155,13 @@ export const VOUCHER_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['fin_vouchers:cancel'], requireAllPermissions: true },
       },
       {
+        label: 'List drawers to re-place a cash reversal the gate refused (reversal dialog picker)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        notes: ['Only fetched after the cash-drawer gate refuses a cash mirror placement.'],
+      },
+      {
         label: 'Get voucher linked effects',
         method: 'GET',
         path: '/api/v1/finance/vouchers/[voucherId]/linked-effects',

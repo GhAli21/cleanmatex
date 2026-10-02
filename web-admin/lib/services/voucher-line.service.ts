@@ -49,6 +49,8 @@ function mapLineRow(row: Record<string, unknown>): VoucherLineData {
     credit_application_type:(row.credit_application_type as string) ?? null,
     order_payment_id:       (row.order_payment_id as string) ?? null,
     cash_drawer_mvt_id:     (row.cash_drawer_mvt_id as string) ?? null,
+    cash_effect_code:       (row.cash_effect_code as string) ?? null,
+    cash_ledger_seq:        row.cash_ledger_seq != null ? String(row.cash_ledger_seq) : null,
     org_payment_method_id:  (row.org_payment_method_id as string) ?? null,
     payment_terminal_id:    (row.payment_terminal_id as string) ?? null,
     cash_drawer_session_id: (row.cash_drawer_session_id as string) ?? null,

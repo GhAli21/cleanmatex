@@ -54,6 +54,11 @@ import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
 import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import { VOUCHER_TYPE, LINE_TYPE, LINE_ROLE } from '@/lib/constants/voucher';
 import { hashPayload } from '@/lib/utils/idempotency';
+import {
+  planCashChangeRounding,
+  postCashChangeRoundingTx,
+  type PlannedCashChangeRounding,
+} from '@/lib/services/cash-change-rounding.service';
 
 /** Prisma transaction client shared with submit-order's atomic settlement flow. */
 export type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -615,10 +620,30 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     );
 
     let changeReturned = 0;
+    // A6-1b: cash change is rounded to the cash increment; the gap is posted as its own
+    // rounding voucher once the receipt is posted (below).
+    const plannedRoundings: Array<{
+      rounding: PlannedCashChangeRounding;
+      resolved: (typeof resolvedLegs)[number];
+      paymentLineId: string;
+    }> = [];
 
     for (const resolved of resolvedLegs) {
-      const change =
-        resolved.cashTendered && resolved.cashTendered > resolved.amount
+      const rounding =
+        resolvedStatusByLegIndex.get(resolved.legIndex) === 'COMPLETED'
+          ? await planCashChangeRounding(
+              { tenantId, branchId: branchId ?? null, userId: collectedBy },
+              {
+                paymentMethodCode: resolved.paymentMethodCode,
+                currencyCode,
+                amount: resolved.amount,
+                tenderedAmount: resolved.cashTendered,
+              },
+            )
+          : null;
+      const change = rounding
+        ? rounding.roundedChange
+        : resolved.cashTendered && resolved.cashTendered > resolved.amount
           ? resolved.cashTendered - resolved.amount
           : 0;
       changeReturned += change;
@@ -627,7 +652,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
         throw new Error('CASH_DRAWER_SESSION_REQUIRED');
       }
 
-      await addVoucherLine(
+      const paymentLine = await addVoucherLine(
         tenantId,
         voucher.id,
         {
@@ -646,6 +671,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           currency_code:          currencyCode,
           cash_drawer_session_id: resolved.requiresCashDrawer ? (cashDrawerSessionId ?? undefined) : undefined,
           tendered_amount:        resolved.cashTendered,
+          ...(rounding && { change_returned_amount: rounding.roundedChange }),
           gateway_code:           resolved.gatewayCode ?? undefined,
           gateway_reference:      resolved.reference,
           check_number:           resolved.checkNumber,
@@ -663,6 +689,8 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
         tx,
       );
 
+      if (rounding) plannedRoundings.push({ rounding, resolved, paymentLineId: paymentLine.id });
+
       if (resolved.paymentMethodCode === 'CASH' && resolved.requiresCashDrawer && cashDrawerSessionId) {
         await autoLinkDrawerTx(tx, {
           tenantId,
@@ -677,6 +705,25 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     }
 
     await postAndWireBizVoucher(tenantId, voucher.id, collectedBy, CASH_GATE_MODES.INTERACTIVE, `${idempotencyKey}_vch_post`, tx);
+
+    // Cash change rounding gap (A6-1b) — the payment line now carries its drawer session.
+    for (const { rounding, resolved, paymentLineId } of plannedRoundings) {
+      await postCashChangeRoundingTx(
+        tx,
+        { tenantOrgId: tenantId, userId: collectedBy },
+        {
+          rounding,
+          orderId,
+          customerId: customerId ?? null,
+          branchId: branchId ?? null,
+          paymentLineId,
+          posSessionId: posSessionId ?? null,
+          orgPaymentMethodId: resolved.orgPaymentMethodId ?? null,
+          paymentMethodCode: resolved.paymentMethodCode,
+          idempotencyKey: `${idempotencyKey}_cash_round_${resolved.legIndex}`,
+        },
+      );
+    }
 
     if (overpaymentResolution && overpaymentMetrics.excessAmount > SETTLEMENT_MONEY_EPSILON) {
       const dispositionOnly = resolutionIncludesAllocation(overpaymentResolution)

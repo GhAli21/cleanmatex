@@ -2,8 +2,29 @@
 
 **Project:** CleanMateX Notification & Communication Hub
 **PRD:** CMX-PRD-019
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-10-02
 **Overall Status:** ✅ cleanmatex MVP COMPLETE — HQ phases pending in cleanmatexsaas
+
+---
+
+## 2026-10-02 — Direct Twilio production templates and operator UI
+
+- [x] Per-event Content SID/maps, production recipient/consent checks, tenant-safe retries and dispatch claims.
+- [x] Existing Notification Settings template editor and customer Preferences consent control (EN/AR).
+- [x] Existing permission/API access contracts; no schema, migration, navigation, or permission additions.
+- [x] [Operator setup and order-created test runbook](Setup_And_Config/14_twilio_production_order_created.md).
+- [ ] Deployment, tenant configuration, and live CleanMateX order-created delivery verification.
+
+The approved template's direct Twilio test succeeded per the operator. Repository changes
+do not establish deployment, active tenant configuration, or live order-created delivery.
+
+Validation for this increment: 133 targeted tests across 13 suites, production build, full ESLint, EN/AR catalog parity,
+scoped access-contract checks, and platform-inventory validation passed. Standalone
+typecheck remains blocked by existing FX BigInt/ES2017 errors and the missing required
+subscription currency in `lib/services/tenants.service.ts`; no notification-scope errors
+remain. The existing build configuration skips TypeScript errors. Storybook stories
+lint clean, but its build attempt exited with native code 3221226356 without a source
+diagnostic. Live browser and external delivery checks remain pending.
 
 ---
 

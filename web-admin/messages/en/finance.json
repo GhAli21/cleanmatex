@@ -182,7 +182,6 @@
     "updatedBy": "Updated By",
     "reversedLineId": "Reversed Line ID",
     "orderPaymentId": "Order Payment ID",
-    "cashDrawerMovementId": "Cash Drawer Movement ID",
     "orgPaymentMethodId": "Org Payment Method ID",
     "paymentTerminalId": "Payment Terminal ID",
     "cashDrawerSessionId": "Cash Drawer Session ID",
@@ -221,7 +220,7 @@
     "linkedEffects": {
       "title": "Linked Operational Effects",
       "orderPayments": "Order Payments",
-      "cashMovements": "Cash Drawer Movements",
+      "cashMovements": "Cash Drawer Ledger Entries",
       "creditApplications": "Credit Applications",
       "fundingTenders": "Stored-value funding",
       "noEffects": "No linked effects found.",
@@ -232,7 +231,7 @@
       "sessionId": "Session ID",
       "lineId": "Line ID",
       "paymentStatus": "Payment Status",
-      "movementType": "Movement Type",
+      "movementType": "Line Role",
       "viewOrder": "View Order",
       "viewSession": "Open session",
       "viewStoredValue": "Open stored value"
@@ -252,11 +251,21 @@
       "unwindTitle": "These operational effects will unwind with this reverse",
       "documentOnlyTitle": "Document reverse only — linked effects will not unwind while the unwind flag is off",
       "unknown": "Linked effects could not be loaded. Reverse still requires a reason.",
-      "none": "No linked payments, credits, drawer movements, or funding tenders.",
+      "none": "No linked payments, credits, drawer ledger entries, or funding tenders.",
       "payments": "{count, plural, one {# order payment will be voided or reversed} other {# order payments will be voided or reversed}}",
       "credits": "{count, plural, one {# credit application will be restored to its source ledger} other {# credit applications will be restored to their source ledgers}}",
-      "drawer": "{count, plural, one {# cash-drawer movement is linked} other {# cash-drawer movements are linked}}",
+      "drawer": "{count, plural, one {# cash-drawer ledger entry is linked (reversed with a mirror entry)} other {# cash-drawer ledger entries are linked (reversed with mirror entries)}}",
       "funding": "{count, plural, one {# stored-value funding tender will be clawed back} other {# stored-value funding tenders will be clawed back}}"
+    },
+    "cashEffectCode": "Cash Effect",
+    "cashLedgerSeq": "Drawer Ledger Seq",
+    "reversal": {
+      "linesTitle": "Lines to reverse",
+      "linesHint": "All remaining lines are selected. Untick a line to keep it posted (partial reversal).",
+      "lineLabel": "Line {lineNo} · {role} · {amount} {currency}",
+      "noneSelected": "Select at least one line to reverse.",
+      "confirmPartial": "{count, plural, one {Reverse # line} other {Reverse # lines}}",
+      "placementExplain": "The cash drawer could not take this cash. Choose a drawer to record the cash reversal in."
     }
   }
 }

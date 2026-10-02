@@ -64,6 +64,15 @@ jest.mock('@/lib/services/customer-receipt-allocation-policy.service', () => ({
   resolveReceiptAllocationPolicy: jest.fn().mockResolvedValue({}),
 }));
 
+// A6-1b: cash change rounding is covered by its own suite; here the planner is a
+// controllable stub (default: no rounding configured).
+const mockPlanCashChangeRounding = jest.fn();
+const mockPostCashChangeRoundingTx = jest.fn();
+jest.mock('@/lib/services/cash-change-rounding.service', () => ({
+  planCashChangeRounding: (...a: unknown[]) => mockPlanCashChangeRounding(...a),
+  postCashChangeRoundingTx: (...a: unknown[]) => mockPostCashChangeRoundingTx(...a),
+}));
+
 import { postCustomerAccountReceipt } from '@/lib/services/customer-receipt-posting.service';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
@@ -102,6 +111,41 @@ beforeEach(() => {
 });
 
 describe('postCustomerAccountReceipt', () => {
+  it('rounds the cash change (A6-1b): stores the rounded change and posts the rounding voucher after the receipt', async () => {
+    const rounding = { exactChange: 19.997, roundedChange: 20, adjustment: -0.003, currencyCode: 'OMR' };
+    mockPlanCashChangeRounding.mockResolvedValueOnce(rounding);
+
+    await postCustomerAccountReceipt(TENANT, USER, { ...baseInput, cashTendered: 50, cashDrawerSessionId: SESSION });
+
+    expect(mockPlanCashChangeRounding).toHaveBeenCalledWith(
+      { tenantId: TENANT, branchId: null, userId: USER },
+      { paymentMethodCode: 'CASH', currencyCode: 'OMR', amount: 30, tenderedAmount: 50 },
+    );
+    expect(mockAddVoucherLine).toHaveBeenCalledWith(
+      TENANT,
+      'vch-1',
+      expect.objectContaining({ amount: 30, tendered_amount: 50, change_returned_amount: 20 }),
+      USER,
+      undefined,
+      mockTx,
+    );
+    expect(mockPostCashChangeRoundingTx).toHaveBeenCalledWith(
+      mockTx,
+      { tenantOrgId: TENANT, userId: USER },
+      expect.objectContaining({
+        rounding,
+        customerId: CUSTOMER,
+        paymentLineId: 'line-1',
+        paymentMethodCode: 'CASH',
+        source: { module: 'CUSTOMERS', refType: 'CUSTOMER_ACCOUNT_PAYMENT', refId: PREVIEW },
+        idempotencyKey: `${baseInput.idempotencyKey}_cash_round`,
+      }),
+    );
+    expect(mockPostAndWire.mock.invocationCallOrder[0]).toBeLessThan(
+      mockPostCashChangeRoundingTx.mock.invocationCallOrder[0],
+    );
+  });
+
   it('creates one CUSTOMER_CREDIT_RECEIPT line and posts through the gate in INTERACTIVE mode', async () => {
     const result = await postCustomerAccountReceipt(TENANT, USER, {
       ...baseInput,

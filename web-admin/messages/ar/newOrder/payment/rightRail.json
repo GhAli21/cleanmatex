@@ -30,6 +30,7 @@
   "cashDrawerImpact": "أثر درج النقد",
   "cashRetained": "النقد المحتفظ به",
   "changeReturned": "الباقي المعاد",
+  "changeRounded": "تم تقريب الباقي إلى أقرب فئة نقدية، من {exact} إلى {rounded}",
   "currencyRounding": "العملة / التقريب",
   "b2bArDetails": "تفاصيل B2B / الذمم",
   "paymentNotes": "ملاحظات الدفع",

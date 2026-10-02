@@ -484,6 +484,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         permissions: ['cash_drawer:view'],
       },
       {
+        key: 'billing_cash_drawer_followup',
+        label: 'Cash Deposit Follow-up',
+        label2: 'متابعة الإيداعات النقدية',
+        path: '/dashboard/internal_fin/cash-drawers/follow-up',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager'],
+        permissions: ['cash_drawer:view_reports'],
+      },
+      {
         key: 'billing_pos_sessions',
         label: 'POS Sessions',
         label2: 'جلسات نقطة البيع',

@@ -133,7 +133,8 @@ export function VoucherLineTable({
         linkLabel={openLabel}
       />
     ) },
-    { key: 'cash_drawer_mvt_id', header: t('cashDrawerMovementId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.cash_drawer_mvt_id} maxLength={12} align={textAlign} /> },
+    { key: 'cash_effect_code', header: t('cashEffectCode'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.cash_effect_code ?? null} align={textAlign} /> },
+    { key: 'cash_ledger_seq', header: t('cashLedgerSeq'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.cash_ledger_seq ?? null} align={textAlign} /> },
     { key: 'org_payment_method_id', header: t('orgPaymentMethodId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.org_payment_method_id} maxLength={12} align={textAlign} /> },
     { key: 'payment_terminal_id', header: t('paymentTerminalId'), sortable: false, render: (line) => <VoucherDetailCopyValue value={line.payment_terminal_id} maxLength={12} align={textAlign} /> },
     { key: 'cash_drawer_session_id', header: t('cashDrawerSessionId'), sortable: false, render: (line) => (

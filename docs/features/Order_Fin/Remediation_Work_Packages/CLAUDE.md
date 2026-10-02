@@ -10,7 +10,7 @@ Do not reintroduce self-approval blocks in planning, UI disablement, error codes
 
 ## Current stage
 
-We are currently planning and reviewing.
+We are currently in implementing, planning and reviewing.
 
 Do not implement application code, migrations, APIs, frontend components, or tests unless the user explicitly asks to implement a specific Bxx work package.
 
@@ -157,7 +157,7 @@ Rules:
 3. **Skills before code, always:** load the related skills properly before writing in each domain — `/database` (SQL/migrations), `/backend` (services/APIs), `/frontend` (UI), `/i18n` (translations/RTL), `/multitenancy` (org_* access), `/implementation` (features), `/navigation` (nav dual-write), `/testing`, `/documentation`. Code written without the domain skill loaded must be re-verified against it.
 4. **Never ignore the project CLAUDE.md** (`F:\jhapp\cleanmatex\CLAUDE.md`): follow its CRITICAL RULES, use the required skills and agents per task type, read the rule docs it references. **UI reusability:** always use existing Cmx reusable components (`@ui/*` per `web-admin/.clauderc`); when an element will appear in 2+ places, create a reusable Cmx component instead of duplicating markup.
 5. **Production-grade only:** follow best practices with no gaps and no bugs — full-cycle delivery, UI/UX best practices (state contract, accessibility, EN/AR + RTL), validated inputs, idempotent money paths, honest error reporting. "Works on the happy path" is not done.
-6. **Manual QA guide — ALWAYS keep it current (owner rule, 2026-07-18):** [`QA_TEST_GUIDE.md`](QA_TEST_GUIDE.md) is a living manual-test document the owner runs. **After implementing ANY package (or a scoped change to one), you MUST add/refresh its QA scenarios in this guide** — before reporting the package done. Each scenario must be **owner-runnable and explain HOW/WHERE**: the sidebar path + URL + what to click/enter (see its §0.1 Screen map), then Expected → Result. Cover new screens, actions, flags, permissions, and any DB/config prerequisites. Updating this guide is part of the per-package "done" definition, alongside the Bxx file + master index + `RESUME_CONTINUATION.md` + memory updates.
+6. **Manual QA guide — ALWAYS keep it current (owner rule, 2026-07-18):** [`QA_TEST_GUIDE.md`](QA_TEST_GUIDE.md) is a living manual-test document the owner runs. **After implementing ANY package (or a scoped change to one), you MUST add/refresh its QA scenarios in this guide if it needed to be tested by user otherwise just add it after you test it and mark it as done** — before reporting the package done. Each scenario must be **owner-runnable and explain HOW/WHERE**: the sidebar path + URL + what to click/enter (see its §0.1 Screen map), then Expected → Result. Cover new screens, actions, flags, permissions, and any DB/config prerequisites. Updating this guide is part of the per-package "done" definition, alongside the Bxx file + master index + `RESUME_CONTINUATION.md` + memory updates.
 
 ## Required sections in every Bxx work package
 
@@ -242,7 +242,7 @@ A Bxx package may become `READY_FOR_IMPLEMENTATION` only when:
 * rollout and rollback are defined;
 * the user explicitly authorizes implementation of that package.
 
-## Validation after every planning change
+## Validation after every planning or implementation change
 
 Before finishing, verify:
 

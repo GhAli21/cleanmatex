@@ -28,6 +28,7 @@ export type {
   SelectableCurrency,
   FxRateTypeOption,
   FxRateSourceOption,
+  FxProviderOption,
 } from '@/lib/services/fx/fx-lookups.service';
 
 export type {
@@ -35,5 +36,17 @@ export type {
   HqCopyPreviewResult,
   HqCopyCommitResult,
 } from '@/lib/services/fx/fx-import.service';
+
+export type {
+  CsvPreviewRow,
+  CsvPreviewResult,
+  CsvCommitResult,
+} from '@/lib/services/fx/fx-csv-import.service';
+
+export type {
+  UrlImportPreviewRow,
+  UrlImportPreviewResult,
+  UrlImportCommitResult,
+} from '@/lib/services/fx/fx-url-import.service';
 
 export type { ResolvedRate } from '@/lib/services/fx/fx-rate-resolver.service';

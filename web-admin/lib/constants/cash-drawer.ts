@@ -176,5 +176,26 @@ export const CASH_LEDGER_ERRORS = {
   CASH_LEG_MUST_REVERSE: 'CASH_LEG_MUST_REVERSE',
   POST_CLOSE_SESSION_NOT_CLOSED: 'POST_CLOSE_SESSION_NOT_CLOSED',
   CASH_DRAWER_CURRENCY_NOT_CONFIGURED: 'CASH_DRAWER_CURRENCY_NOT_CONFIGURED',
+  /** A placement override named a user who is not an active member of the tenant. */
+  CASH_RECEIVER_INVALID: 'CASH_RECEIVER_INVALID',
 } as const;
 export type CashLedgerErrorCode = (typeof CASH_LEDGER_ERRORS)[keyof typeof CASH_LEDGER_ERRORS];
+
+/**
+ * Gate refusals a user can recover from by naming another drawer (and optionally
+ * its open session) for VERIFY / reversal. UIs show a drawer picker on these.
+ */
+export const CASH_PLACEMENT_RECOVERABLE_ERRORS: readonly CashLedgerErrorCode[] = [
+  CASH_LEDGER_ERRORS.CASH_DRAWER_REQUIRED,
+  CASH_LEDGER_ERRORS.CASH_DRAWER_INACTIVE,
+  CASH_LEDGER_ERRORS.CASH_DRAWER_BRANCH_MISMATCH,
+  CASH_LEDGER_ERRORS.CASH_DRAWER_TYPE_NOT_ALLOWED,
+  CASH_LEDGER_ERRORS.CASH_CURRENCY_MISMATCH,
+  CASH_LEDGER_ERRORS.CASH_DRAWER_SESSION_NOT_OPEN,
+  CASH_LEDGER_ERRORS.DRAWER_SESSION_WRONG_DRAWER,
+];
+
+/** True when `code` is a gate refusal the user can fix by choosing another drawer. */
+export function isCashPlacementRecoverable(code: unknown): boolean {
+  return typeof code === 'string' && (CASH_PLACEMENT_RECOVERABLE_ERRORS as readonly string[]).includes(code);
+}

@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
-import { CmxSwitch } from '@ui/primitives';
+import { Badge } from '@ui/primitives/badge';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
 import {
@@ -20,6 +21,7 @@ import { DRAWER_TYPES } from '@/lib/constants/payment';
 import { isUserCreatableDrawerType } from '@/lib/constants/cash-drawer';
 import type { OrgCashDrawer } from '@/lib/types/payment';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { fetchCashDrawerCatalogs } from '@features/cash-drawers/api/cash-drawer-api';
 
 interface CashDrawerFormDialogProps {
   drawer?: OrgCashDrawer;
@@ -51,6 +53,7 @@ export function CashDrawerFormDialog({
   onSuccess,
 }: CashDrawerFormDialogProps) {
   const t = useTranslations('paymentConfig');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const isEdit = !!drawer;
   const { currencyCode: tenantCurrencyCode } = useTenantCurrency();
@@ -64,8 +67,6 @@ export function CashDrawerFormDialog({
       drawer_type: isUserCreatableDrawerType(drawer.drawer_type) ? drawer.drawer_type : DRAWER_TYPES.COUNTER,
       branch_id: drawer.branch_id,
       currency_code: drawer.currency_code,
-      requires_session: drawer.requires_session,
-      opening_float_required: drawer.opening_float_required,
       max_cash_limit: drawer.max_cash_limit ?? undefined,
       variance_approval_threshold: drawer.variance_approval_threshold ?? undefined,
       assigned_terminal_id: drawer.assigned_terminal_id ?? undefined,
@@ -73,8 +74,6 @@ export function CashDrawerFormDialog({
       drawer_type: DRAWER_TYPES.COUNTER,
       branch_id: branches[0]?.id,
       currency_code: tenantCurrencyCode,
-      requires_session: true,
-      opening_float_required: true,
       assigned_terminal_id: undefined,
     },
   });
@@ -86,8 +85,16 @@ export function CashDrawerFormDialog({
   const selectedBranchId = useWatch({ control: form.control, name: 'branch_id' });
   const drawerType = useWatch({ control: form.control, name: 'drawer_type' });
   const assignedTerminalId = useWatch({ control: form.control, name: 'assigned_terminal_id' });
-  const requiresSession = useWatch({ control: form.control, name: 'requires_session' });
-  const openingFloatRequired = useWatch({ control: form.control, name: 'opening_float_required' });
+  const catalogsQuery = useQuery({
+    queryKey: ['cash-drawers', 'catalogs'],
+    enabled: open,
+    queryFn: fetchCashDrawerCatalogs,
+    staleTime: 5 * 60_000,
+  });
+  const creatableTypes = (catalogsQuery.data?.drawerTypes ?? [])
+    .filter((dt) => isUserCreatableDrawerType(dt.code))
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+  const selectedTypeRow = creatableTypes.find((dt) => dt.code === drawerType);
   const branchScopedTerminals = terminals.filter((terminal) => !selectedBranchId || terminal.branch_id === null || terminal.branch_id === selectedBranchId);
 
   const handleSubmit = (values: CreateCashDrawerFormValues) => {
@@ -98,8 +105,6 @@ export function CashDrawerFormDialog({
             drawer_name: values.drawer_name,
             drawer_name2: values.drawer_name2,
             drawer_type: values.drawer_type,
-            requires_session: values.requires_session,
-            opening_float_required: values.opening_float_required,
             max_cash_limit: values.max_cash_limit,
             variance_approval_threshold: values.variance_approval_threshold,
             assigned_terminal_id: values.assigned_terminal_id,
@@ -144,12 +149,27 @@ export function CashDrawerFormDialog({
             <CmxSelectDropdown value={drawerType} onValueChange={(v) => form.setValue('drawer_type', v as never)}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
-                {Object.values(DRAWER_TYPES).map((dt) => (
-                  <CmxSelectDropdownItem key={dt} value={dt}>{t(`cashDrawers.drawerTypeLabel.${dt}` as never)}</CmxSelectDropdownItem>
-                ))}
+                {creatableTypes.length > 0
+                  ? creatableTypes.map((dt) => (
+                      <CmxSelectDropdownItem key={dt.code} value={dt.code}>
+                        {locale === 'ar' && dt.name2 ? dt.name2 : dt.name}
+                      </CmxSelectDropdownItem>
+                    ))
+                  : [DRAWER_TYPES.COUNTER, DRAWER_TYPES.SAFE, DRAWER_TYPES.DRIVER_BAG, DRAWER_TYPES.TEMPORARY].map((dt) => (
+                      <CmxSelectDropdownItem key={dt} value={dt}>{t(`cashDrawers.drawerTypeLabel.${dt}` as never)}</CmxSelectDropdownItem>
+                    ))}
               </CmxSelectDropdownContent>
             </CmxSelectDropdown>
           </div>
+          {selectedTypeRow ? (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-muted-foreground">{t('cashDrawers.typeCapabilities')}</span>
+              <Badge variant="outline">{selectedTypeRow.isMobile ? t('cashDrawers.capMobile') : t('cashDrawers.capFixed')}</Badge>
+              <Badge variant="outline">
+                {selectedTypeRow.canReceiveDisposition ? t('cashDrawers.capReceivesDisposition') : t('cashDrawers.capNoDisposition')}
+              </Badge>
+            </div>
+          ) : null}
           <div>
             <label className="text-sm font-medium">{t('cashDrawers.branch')}</label>
             <CmxSelectDropdown value={selectedBranchId ?? ''} onValueChange={(v) => form.setValue('branch_id', v)}>
@@ -211,14 +231,7 @@ export function CashDrawerFormDialog({
               </CmxSelectDropdownContent>
             </CmxSelectDropdown>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">{t('cashDrawers.requiresSession')}</span>
-            <CmxSwitch checked={!!requiresSession} onCheckedChange={(v) => form.setValue('requires_session', v)} />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">{t('cashDrawers.openingFloatRequired')}</span>
-            <CmxSwitch checked={!!openingFloatRequired} onCheckedChange={(v) => form.setValue('opening_float_required', v)} />
-          </div>
+          <p className="text-xs text-muted-foreground">{t('cashDrawers.policyMovedHint')}</p>
           <CmxDialogFooter>
             <CmxButton type="button" variant="outline" onClick={onClose} disabled={isPending}>{t('common.cancel')}</CmxButton>
             <CmxButton type="submit" disabled={isPending}>{isPending ? t('common.saving') : t('common.save')}</CmxButton>

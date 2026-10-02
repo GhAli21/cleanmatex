@@ -4,6 +4,8 @@
  *   META_WHATSAPP    — Meta Cloud API (direct HTTP)
  *
  * Provider selected via org_ntf_channel_provider_cf (active provider for WHATSAPP channel).
+ * Live Twilio templates use provider.config.content_templates keyed by event code;
+ * customer consent is rechecked at delivery and sandbox recipient overrides are bypassed.
  * Sandbox testing: set TWILIO_WHATSAPP_USE_SANDBOX_TEMPLATE=true and
  * TWILIO_WHATSAPP_SANDBOX_CONTENT_SID (order_created_simple Content SID).
  *
@@ -24,18 +26,25 @@ import {
   isTwilioWhatsappSandboxTemplateEnabled,
 } from '@lib/notifications/config'
 import { buildTwilioContentVariables } from '@lib/notifications/adapters/whatsapp-content-variables'
+import {
+  hasTwilioProductionTemplates,
+  isTwilioProductionTemplateProvider,
+  resolveTwilioProductionTemplate,
+} from '@lib/notifications/adapters/whatsapp-template-config'
 import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env'
 import { stripWhatsAppPrefix } from '@lib/notifications/whatsapp-phone'
+import { resolveWhatsAppCustomerEligibility } from '@lib/notifications/whatsapp-customer-eligibility'
 
-async function resolveWhatsAppTo(row: OutboxWhatsAppRow): Promise<string | null> {
-  const sandboxTo = await getTwilioWhatsappSandboxToPhone()
+async function resolveWhatsAppTo(row: OutboxWhatsAppRow, productionTemplate = false): Promise<string | null> {
+  // Live templates must use the persisted recipient even when stale sandbox overrides exist.
+  const sandboxTo = productionTemplate ? undefined : await getTwilioWhatsappSandboxToPhone()
   const dest = sandboxTo?.trim() || row.recipient_address
   if (!dest) return null
   return stripWhatsAppPrefix(dest)
 }
 
 /**
- *
+ * Immutable delivery inputs scoped to the tenant that owns the outbox row.
  */
 export interface OutboxWhatsAppRow {
   id: string
@@ -45,16 +54,21 @@ export interface OutboxWhatsAppRow {
   rendered_subject: string | null    // used as template name hint for META API
   event_code: string | null
   retry_count: number
+  /** Source order enables a fresh tenant-customer consent check before every send. */
+  source_entity_type?: string | null
+  source_entity_id?: string | null
   metadata?: Record<string, unknown> | null
 }
 
 /**
- *
+ * Outcome used by the dispatcher to distinguish retryable and permanent failures.
  */
 export interface WhatsAppDeliveryResult {
   success: boolean
   errorMessage?: string
   permanent?: boolean
+  /** Policy blocks must not retry or trigger the transport-failure email fallback. */
+  skipped?: boolean
 }
 
 
@@ -69,7 +83,7 @@ async function resolveSandboxContentSid(providerConfig?: Record<string, unknown>
 }
 
 async function shouldUseSandboxTemplate(providerConfig?: Record<string, unknown>): Promise<boolean> {
-  if (providerConfig?.use_sandbox_template === true) return true
+  if (typeof providerConfig?.use_sandbox_template === 'boolean') return providerConfig.use_sandbox_template
   return isTwilioWhatsappSandboxTemplateEnabled()
 }
 
@@ -81,6 +95,11 @@ async function sendViaTwilio(
   row: OutboxWhatsAppRow,
   providerConfig?: Record<string, unknown>,
 ): Promise<WhatsAppDeliveryResult> {
+  const resolution = resolveTwilioProductionTemplate(row, providerConfig)
+  if (resolution && 'errorMessage' in resolution) {
+    return { success: false, errorMessage: resolution.errorMessage, permanent: true }
+  }
+  const productionTemplate = resolution && 'contentSid' in resolution ? resolution : null
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken  = process.env.TWILIO_AUTH_TOKEN
   const fromConfig = providerConfig?.from_number
@@ -107,7 +126,7 @@ async function sendViaTwilio(
       permanent: true,
     }
   }
-  const toNumber = await resolveWhatsAppTo(row)
+  const toNumber = await resolveWhatsAppTo(row, hasTwilioProductionTemplates(providerConfig))
   if (!toNumber) {
     logger.warn('whatsapp-adapter(twilio): no recipient phone number', {
       outboxId: row.id, tenantOrgId: row.tenant_org_id, feature: 'notifications',
@@ -115,8 +134,8 @@ async function sendViaTwilio(
     return { success: false, errorMessage: 'No recipient phone number', permanent: true }
   }
 
-  const useSandbox = await shouldUseSandboxTemplate(providerConfig)
-  const contentSid = await resolveSandboxContentSid(providerConfig)
+  const useSandbox = productionTemplate === null && await shouldUseSandboxTemplate(providerConfig)
+  const contentSid = productionTemplate?.contentSid ?? (useSandbox ? await resolveSandboxContentSid(providerConfig) : undefined)
   if (useSandbox && !contentSid) {
     logMissingNotificationEnv({
       adapter: 'whatsapp-adapter(twilio)',
@@ -138,8 +157,9 @@ async function sendViaTwilio(
     const client = twilio(accountSid, authToken)
 
     let message
-    if (useSandbox && contentSid) {
-      const varsObj = buildTwilioContentVariables(row, providerConfig)
+    if (contentSid && (productionTemplate || useSandbox)) {
+      const varsObj = productionTemplate?.contentVariables ?? buildTwilioContentVariables(row, providerConfig)
+      // Approved Content templates require substitutions without a competing free-text Body.
       const createPayload: Parameters<typeof client.messages.create>[0] = {
         from: fromAddr,
         to:   toAddr,
@@ -328,15 +348,49 @@ async function deliverViaHqProxy(row: OutboxWhatsAppRow): Promise<WhatsAppDelive
 }
 
 /**
- *
- * @param row
+ * Deliver through the active tenant provider without degrading live templates to
+ * free text. HQ's current body-only proxy contract cannot carry Content templates.
+ * @param row Immutable outbox delivery inputs, including the owning tenant ID.
+ * @returns Delivery outcome for the dispatcher's retry policy.
+ * @example await deliverWhatsAppOutbox(outboxRow)
  */
 export async function deliverWhatsAppOutbox(row: OutboxWhatsAppRow): Promise<WhatsAppDeliveryResult> {
-  if (await isNtfDispatchViaHq()) {
-    return deliverViaHqProxy(row)
+  const provider = await notificationSettingsService.getActiveProvider(row.tenant_org_id, 'WHATSAPP')
+
+  const productionTemplate = provider !== null &&
+    isTwilioProductionTemplateProvider(provider.providerCode, provider.config)
+  if (productionTemplate || row.metadata?.whatsapp_production_template === true) {
+    if (!productionTemplate) {
+      return { success: false, skipped: true, errorMessage: 'WhatsApp production template provider changed or was disabled after this notification was queued' }
+    }
+    if (!(await notificationSettingsService.isChannelEnabled(row.tenant_org_id, 'WHATSAPP'))) {
+      return { success: false, skipped: true, errorMessage: 'WhatsApp channel was disabled before delivery' }
+    }
+    const eligibility = await resolveWhatsAppCustomerEligibility(
+      row.tenant_org_id, row.source_entity_type, row.source_entity_id,
+    )
+    if (eligibility.allowed === false) {
+      return { success: false, skipped: !eligibility.retryable, permanent: false, errorMessage: eligibility.reason }
+    }
+    const queuedRecipient = row.recipient_address ? stripWhatsAppPrefix(row.recipient_address).trim() : null
+    const awaitingEligibility = queuedRecipient === null && row.metadata?.whatsapp_eligibility_pending === true
+    if (!awaitingEligibility && queuedRecipient !== eligibility.recipientAddress) {
+      return { success: false, skipped: true, errorMessage: 'WhatsApp queued recipient no longer matches the opted-in tenant customer' }
+    }
+    // An initial lookup failure can defer address resolution, but only this fresh check authorizes sending.
+    row = { ...row, recipient_address: eligibility.recipientAddress }
   }
 
-  const provider = await notificationSettingsService.getActiveProvider(row.tenant_org_id, 'WHATSAPP')
+  if (await isNtfDispatchViaHq()) {
+    if (provider && isTwilioProductionTemplateProvider(provider.providerCode, provider.config)) {
+      return {
+        success: false,
+        errorMessage: 'Twilio production content_templates require direct tenant dispatch; disable NTF_DISPATCH_VIA_HQ (including runtime ntf_dispatch_via_hq) or add template support to the HQ proxy contract',
+        permanent: true,
+      }
+    }
+    return deliverViaHqProxy(row)
+  }
 
   if (!provider) {
     logger.warn('whatsapp-adapter: no active WhatsApp provider', {

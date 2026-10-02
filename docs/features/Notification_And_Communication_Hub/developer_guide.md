@@ -568,3 +568,24 @@ FCM_SERVICE_ACCOUNT_JSON=...
 | `templates/` | Template CRUD API (sys_notification_templates_mst) |
 | `observability/` | ObservabilityService — aggregate usage + delivery stats |
 | `broadcast/` | BroadcastService — org_ntf_campaigns_mst CRUD |
+
+## 16. Direct Twilio production Content templates (2026-10-02)
+
+Use [the production order-created runbook](Setup_And_Config/14_twilio_production_order_created.md)
+for tenant activation and the operator-supplied approved SID. `adapters/whatsapp-template-config.ts`
+resolves provider `config.content_templates` by event without falling back to another event's
+SID/free text. `whatsapp-customer-eligibility.ts` checks the source order's tenant customer,
+active status, phone and exact `preferences.notifications.whatsapp` opt-in before enqueue
+and every send. It does not authorize delivery from staff marketing preferences.
+
+Outbox metadata marks production-template intent so later provider changes cannot bypass
+the gate. Policy blocks use existing `SKIPPED`; transient lookup failures remain retryable.
+The preferences-only customer PATCH merges tenant preferences without changing names or
+shared customer records. Production SID configuration and customer opt-in require existing
+`notifications:configure` and `customers:update` respectively. No new schema, navigation,
+permissions, feature flags, plan limits or secret values were introduced. Existing settings
+and customer Preferences screens now expose Cmx template/consent editors with matching
+EN/AR keys (`notifications.settings.templates.*`, `customers.whatsappConsent.*`).
+The client re-reads provider config before saving one event. GET/POST/PUT provider and
+GET/PATCH customer endpoints check an optional `X-Tenant-Id` against the authenticated
+tenant to reject stale forms. The access contracts describe existing permission gates.

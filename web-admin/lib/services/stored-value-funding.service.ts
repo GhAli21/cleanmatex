@@ -33,6 +33,11 @@ import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
 import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
+import {
+  planCashChangeRounding,
+  postCashChangeRoundingTx,
+  type PlannedCashChangeRounding,
+} from '@/lib/services/cash-change-rounding.service';
 import { emitEventTx } from '@/lib/services/outbox.service';
 import { topUpWalletTx, issueAdvanceTx } from '@/lib/services/stored-value.service';
 import { generateGiftCardCode, finalizeGiftCardSaleTx } from '@/lib/services/gift-card-service';
@@ -371,8 +376,28 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
 
     const lineRole = resolveFundingLineRole(fundingType);
 
+    // A6-1b: cash change is rounded to the cash increment; the gap is posted as its own
+    // rounding voucher once the funding voucher is posted (below).
+    const plannedRoundings: Array<{
+      rounding: PlannedCashChangeRounding;
+      resolved: (typeof resolvedLegs)[number];
+      paymentLineId: string;
+    }> = [];
+
     for (const resolved of resolvedLegs) {
-      await addVoucherLine(
+      const rounding =
+        resolved.resolvedStatus === 'COMPLETED'
+          ? await planCashChangeRounding(
+              { tenantId, branchId: branchId ?? null, userId: performedBy },
+              {
+                paymentMethodCode: resolved.method.payment_method_code,
+                currencyCode: resolvedCurrency,
+                amount: resolved.leg.amount,
+                tenderedAmount: resolved.leg.cashTendered,
+              },
+            )
+          : null;
+      const paymentLine = await addVoucherLine(
         tenantId,
         voucher.id,
         {
@@ -392,6 +417,7 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
             ? (cashDrawerSessionId ?? undefined)
             : undefined,
           tendered_amount: resolved.leg.cashTendered,
+          ...(rounding && { change_returned_amount: rounding.roundedChange }),
           gateway_code: resolved.method.gateway_code ?? undefined,
           gateway_reference: resolved.leg.reference,
           check_number: resolved.leg.checkNumber,
@@ -404,6 +430,7 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
         undefined,
         tx,
       );
+      if (rounding) plannedRoundings.push({ rounding, resolved, paymentLineId: paymentLine.id });
     }
 
     // 4. Post + wire — dispatches to stored-value-funding-wiring.handler.ts /
@@ -411,6 +438,25 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
     //    rows, credit the ledger exactly once via finalizeStoredValueFundingIfReady,
     //    and create drawer movements for cash legs.
     await postAndWireBizVoucher(tenantId, voucher.id, performedBy, CASH_GATE_MODES.INTERACTIVE, `${idempotencyKey}_vch_post`, tx);
+
+    // Cash change rounding gap (A6-1b) — the payment line now carries its drawer session.
+    for (const { rounding, resolved, paymentLineId } of plannedRoundings) {
+      await postCashChangeRoundingTx(
+        tx,
+        { tenantOrgId: tenantId, userId: performedBy },
+        {
+          rounding,
+          customerId: customerId ?? null,
+          branchId: branchId ?? null,
+          paymentLineId,
+          posSessionId: posSessionId ?? null,
+          orgPaymentMethodId: resolved.method.id,
+          paymentMethodCode: resolved.method.payment_method_code,
+          source: { module: 'STORED_VALUE', refType: fundingType, refId: targetId },
+          idempotencyKey: `${idempotencyKey}_cash_round_${resolved.legIndex}`,
+        },
+      );
+    }
 
     const result: FundStoredValueResult = {
       fundingType,

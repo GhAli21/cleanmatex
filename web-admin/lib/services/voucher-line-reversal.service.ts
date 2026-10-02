@@ -5,6 +5,7 @@ import type { Prisma } from '@prisma/client';
 import { CASH_EFFECTS, CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import { VOUCHER_STATUS, WIRING_STATUS } from '@/lib/constants/voucher';
 import { stampCashLinesTx, abandonPendingCashLineTx, type CashGateLine } from './cash-drawer-ledger/cash-drawer-ledger-gate';
+import { assertPinnedSession, resolveCashPlacementTx } from './cash-drawer-ledger/cash-placement';
 import { validateStatusTransition } from './voucher-validation.service';
 import { generateBizVoucherNo } from './voucher-number.service';
 import type { VoucherType } from '../types/voucher';
@@ -37,6 +38,10 @@ export interface ReverseVoucherLinesInput {
   lineIds?: readonly string[];
   /** Pay the cash side from this drawer instead of the original (e.g. original deactivated). */
   cashDrawerId?: string | null;
+  /** Pin the cash mirror to this session (must be the drawer's open session). */
+  cashDrawerSessionId?: string | null;
+  /** User who physically handled the cash, when not the acting user. */
+  receivedByUserId?: string | null;
 }
 
 /** One reversed line and its mirror. */
@@ -194,6 +199,13 @@ export async function reverseVoucherLinesInTx(
 
   // Mirror lines start DRAFT so the gate can stamp them (posted lines are immutable).
   const pairs: ReversedLinePair[] = [];
+  // Optional explicit cash placement (drawer / pinned session / receiving user),
+  // validated up-front so a bad id fails before any row is written.
+  const placement = await resolveCashPlacementTx(tx, tenantOrgId, {
+    cashDrawerId: input.cashDrawerId,
+    cashDrawerSessionId: input.cashDrawerSessionId,
+    receivedByUserId: input.receivedByUserId,
+  });
   const gateLines: CashGateLine[] = [];
   const pendingOriginalIds: string[] = [];
   let lineNo = 1;
@@ -288,7 +300,9 @@ export async function reverseVoucherLinesInTx(
       target_id: line.target_id,
       order_id: line.order_id,
       customer_id: line.customer_id,
-      cash_drawer_session_id: line.cash_drawer_session_id,
+      // An explicit drawer override replaces the original's session hint too
+      // (that session belongs to the original drawer).
+      cash_drawer_session_id: placement?.drawerId ? placement.sessionId : line.cash_drawer_session_id,
       pos_session_id: line.pos_session_id,
       tendered_amount: line.tendered_amount,
       change_returned_amount: line.change_returned_amount,
@@ -307,18 +321,31 @@ export async function reverseVoucherLinesInTx(
       org_payment_method_id: line.org_payment_method_id,
       payment_terminal_id: line.payment_terminal_id,
       branch_id: line.branch_id,
-      cash_drawer_id: input.cashDrawerId ?? line.cash_drawer_id,
+      cash_drawer_id: placement?.drawerId ?? line.cash_drawer_id,
     });
   }
 
   // Reversal is a back-office correction: DEFERRED — never refused on session state.
   await stampCashLinesTx(
     tx,
-    { tenantOrgId, userId, mode: CASH_GATE_MODES.DEFERRED },
+    {
+      tenantOrgId,
+      userId,
+      mode: CASH_GATE_MODES.DEFERRED,
+      ...(placement?.recognizedBy ? { recognizedByUserId: placement.recognizedBy } : {}),
+    },
     { id: reversalVoucher.id, branchId: original.branch_id, currencyCode: original.currency_code },
     gateLines,
   );
   const sessionByMirror = new Map(gateLines.map((l) => [l.id, l.cash_drawer_session_id]));
+  if (placement?.sessionId) {
+    for (const l of gateLines) {
+      // Only lines the gate placed in a drawer carry a drawer id after stamping.
+      if (l.cash_drawer_id) {
+        assertPinnedSession(placement, l.cash_drawer_session_id ?? null, { voucherId, lineId: l.id });
+      }
+    }
+  }
   for (const pair of pairs) {
     pair.reversalSessionId = sessionByMirror.get(pair.reversalLineId) ?? null;
   }

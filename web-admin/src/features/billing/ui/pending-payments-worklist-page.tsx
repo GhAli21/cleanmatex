@@ -24,6 +24,7 @@ interface WorklistRow {
   id: string;
   order_id: string;
   order_no: string | null;
+  branch_id: string | null;
   branch_name: string | null;
   customer_name: string | null;
   payment_method_code: string;
@@ -308,6 +309,8 @@ export function PendingPaymentsWorklistPage() {
           paymentId={dialogState.row.id}
           action={dialogState.action}
           paymentMethodCode={dialogState.row.payment_method_code}
+          branchId={dialogState.row.branch_id}
+          currencyCode={dialogState.row.currency_code}
           onTransitioned={() => { setDialogState(null); void fetchWorklist(); }}
         />
       ) : null}

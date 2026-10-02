@@ -518,16 +518,19 @@ export async function getVoucherLinkedEffects(
           payment_status:      true,
         },
       }),
-      prisma.org_cash_drawer_movements_dtl.findMany({
-        where:  effectWhere,
-        select: {
-          id:                      true,
-          cash_drawer_session_id:  true,
-          amount:                  true,
-          movement_type:           true,
-          fin_voucher_trx_line_id: true,
-        },
-      }),
+      // CLF-6-4: drawer effects are the DRAWER-stamped FIN lines themselves
+      // (unified cash ledger) — the retired movements table gets no new writes.
+      relatedLineIds.length > 0
+        ? prisma.org_fin_voucher_trx_lines_dtl.findMany({
+            where:  { tenant_org_id: tenantOrgId, id: { in: relatedLineIds }, cash_effect_code: 'DRAWER' },
+            select: {
+              id:                     true,
+              cash_drawer_session_id: true,
+              amount:                 true,
+              line_role:              true,
+            },
+          })
+        : Promise.resolve([]),
       prisma.org_order_credit_apps_dtl.findMany({
         where:  effectWhere,
         select: {
@@ -609,8 +612,8 @@ export async function getVoucherLinkedEffects(
           session_no:    session?.session_no ?? null,
           cash_drawer_id: session?.cash_drawer_id ?? null,
           amount:        m.amount,
-          movement_type: m.movement_type,
-          line_id:       m.fin_voucher_trx_line_id,
+          movement_type: m.line_role,
+          line_id:       m.id,
         };
       }),
       creditApplications: uniqueCredits.map((c) => ({
@@ -653,8 +656,9 @@ export async function getLineLinkedEffect(
       where:  { fin_voucher_trx_line_id: lineId, tenant_org_id: tenantOrgId },
       select: { id: true, amount: true, currency_code: true },
     }),
-    prisma.org_cash_drawer_movements_dtl.findFirst({
-      where:  { fin_voucher_trx_line_id: lineId, tenant_org_id: tenantOrgId },
+    // CLF-6-4: the line's own DRAWER stamp is the cash effect (unified ledger).
+    prisma.org_fin_voucher_trx_lines_dtl.findFirst({
+      where:  { id: lineId, tenant_org_id: tenantOrgId, cash_effect_code: 'DRAWER' },
       select: { id: true, amount: true, currency_code: true },
     }),
     prisma.org_order_credit_apps_dtl.findFirst({
@@ -677,7 +681,7 @@ export async function getLineLinkedEffect(
     effects.push({
       effectType:    'CASH_DRAWER_MOVEMENT' as const,
       effectId:      movement.id,
-      tableRef:      'org_cash_drawer_movements_dtl' as const,
+      tableRef:      'org_fin_voucher_trx_lines_dtl' as const,
       amount:        movement.amount,
       currency_code: movement.currency_code,
     });

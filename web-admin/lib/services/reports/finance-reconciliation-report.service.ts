@@ -21,8 +21,8 @@ import {
   EXCESS_LIABILITY_SOURCES,
   RECON_REPORT_EPSILON,
 } from '@/lib/constants/reconciliation-reports';
-import { MOVEMENT_DIRECTIONS } from '@/lib/constants/payment';
 import { CREDIT_NOTE_STATUSES } from '@/lib/constants/order-financial';
+import { sumLedgerTotalsBySession } from '@/lib/services/cash-drawer-ledger/cash-drawer-balance.service';
 import type {
   ReconReportFilter,
   ExcessLiabilityReport,
@@ -349,20 +349,23 @@ export async function getOverpaymentDispositionReconReport(
 // 4. Cash drawer movement reconciliation
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface MovementAggRaw {
-  cash_drawer_session_id: string;
-  net_movement: number;
-  unlinked_count: number;
-}
-
 /**
- * Per cash-drawer session, recompute expected cash from movement rows
- * (opening float + Σ IN − Σ OUT) and reconcile it against the session header's
- * stored `expected_cash_amount`, surface the close-time `difference_amount`, and
- * count movements missing a `fin_voucher` backlink (cash outside the BVM trail —
- * the CASH_MOVEMENT_LINK invariant). A session is an exception when expected
- * drifts from the recomputed value, the close difference is non-zero, or any
- * movement is unlinked.
+ * Per cash-drawer session, recompute expected cash from the unified drawer
+ * ledger (CLF-6-2 — opening float + Σ FIN IN/OUT + Σ TRX IN/OUT, the same
+ * `cash_drawer_session_id`-scoped sum `cash-drawer.service.ts`'s readers use;
+ * see its own doc comment for why this needs no `open_ledger_seq`/chain math)
+ * and reconcile it against the session header's stored `expected_cash_amount`,
+ * surfacing the close-time `difference_amount`. A session is an exception
+ * when expected drifts from the recomputed value or the close difference is
+ * non-zero.
+ *
+ * `unlinkedMovementCount` is always 0 post-CLF: every ledger entry is by
+ * construction a wired voucher line or a drawer-transaction row (CLF-5/W1-
+ * W15 removed every writer capable of creating cash outside that trail) — the
+ * old "cash movement with no voucher backlink" defect class this field
+ * tracked cannot occur in the new model. The field is kept on the DTO for
+ * backward compatibility with existing report consumers; drawer-ledger
+ * integrity is now covered by CLF-6-3's dedicated checks instead.
  *
  * @param filter tenant scope + optional branch + `opened_at` window.
  */
@@ -394,44 +397,27 @@ export async function getCashDrawerReconReport(
     });
 
     const sessionIds = sessions.map((s) => s.id);
-
-    const aggMap = new Map<string, MovementAggRaw>();
-    if (sessionIds.length > 0) {
-      const agg = await prisma.$queryRaw<MovementAggRaw[]>`
-        SELECT
-          cash_drawer_session_id AS cash_drawer_session_id,
-          COALESCE(SUM(
-            CASE
-              WHEN direction = ${MOVEMENT_DIRECTIONS.IN}  THEN amount
-              WHEN direction = ${MOVEMENT_DIRECTIONS.OUT} THEN -amount
-              ELSE 0
-            END
-          ), 0)::float8 AS net_movement,
-          COALESCE(SUM(
-            CASE WHEN fin_voucher_id IS NULL OR fin_voucher_trx_line_id IS NULL THEN 1 ELSE 0 END
-          ), 0)::int AS unlinked_count
-        FROM org_cash_drawer_movements_dtl
-        WHERE tenant_org_id = ${tenantOrgId}::uuid
-          AND is_active = true
-          AND cash_drawer_session_id = ANY(${sessionIds}::uuid[])
-        GROUP BY cash_drawer_session_id`;
-      for (const a of agg) aggMap.set(a.cash_drawer_session_id, a);
-    }
+    const ledgerTotalsBySession = await sumLedgerTotalsBySession(tenantOrgId, sessionIds);
 
     const rows: CashDrawerReconRow[] = sessions.map((s) => {
-      const agg = aggMap.get(s.id);
+      const totals = ledgerTotalsBySession.get(s.id);
+      const hasLedgerActivity = !!totals && (totals.finCount > 0 || totals.trxCount > 0);
       const openingFloat = toNumber(s.opening_float_amount);
-      const netMovement = agg ? agg.net_movement : 0;
+      const netMovement = totals
+        ? toNumber(totals.finIn) - toNumber(totals.finOut) + toNumber(totals.trxIn) - toNumber(totals.trxOut)
+        : 0;
       const computedExpected = openingFloat + netMovement;
       const headerExpected = toNumber(s.expected_cash_amount);
-      const expectedDelta = computedExpected - headerExpected;
+      // A CLOSED session with zero ledger entries predates the CLF ledger
+      // (2026-09-26) — there is nothing to recompute against, so it reports
+      // as reconciled rather than as a false "expected drifted" exception
+      // for every pre-CLF historical session.
+      const expectedDelta = s.status !== 'OPEN' && !hasLedgerActivity ? 0 : computedExpected - headerExpected;
       const difference = s.difference_amount == null ? null : toNumber(s.difference_amount);
-      const unlinked = agg ? agg.unlinked_count : 0;
 
       const isReconciled =
         Math.abs(expectedDelta) < RECON_REPORT_EPSILON &&
-        (difference == null || Math.abs(difference) < RECON_REPORT_EPSILON) &&
-        unlinked === 0;
+        (difference == null || Math.abs(difference) < RECON_REPORT_EPSILON);
 
       return {
         sessionId: s.id,
@@ -447,7 +433,7 @@ export async function getCashDrawerReconReport(
         countedCashAmount: s.counted_cash_amount == null ? null : toNumber(s.counted_cash_amount),
         differenceAmount: difference,
         expectedDelta,
-        unlinkedMovementCount: unlinked,
+        unlinkedMovementCount: 0,
         isReconciled,
       };
     });

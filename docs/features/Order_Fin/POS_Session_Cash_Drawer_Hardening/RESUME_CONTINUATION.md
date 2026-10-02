@@ -1,10 +1,49 @@
 # RESUME — POS Session & Cash Drawer Hardening (session continuation)
 
-**Updated:** 2026-10-02 (latest — local session, interrupted mid-flight for a `/clear`). **CLF-R1 Ledger CLOSED** (STATUS D39). **CLF-R2 Sessions IN PROGRESS: M4 applied, CLF-2/CLF-4 services built, CLF-7 API routes DONE, CLF-8 slice A (open/close UI cutover) mid-flight** (STATUS D44). **Read STATUS D44 in full before anything else — then come back here for the exact next steps.**
+**Updated:** 2026-10-02 (latest — session ended for a `/clear`, not a blocker). **CLF-R1 Ledger CLOSED** (STATUS D39). **CLF-R2 Sessions IN PROGRESS: M4 applied, CLF-2/CLF-4 services built, CLF-7 API routes DONE, CLF-8 slice A gates CLOSED pending owner manual QA, CLF-6 readers MOSTLY DONE** (STATUS D46). **Read STATUS D46 in full before anything else — then come back here for the exact next steps.**
+
+**Owner-approved standing direction (unchanged, re-confirm if in doubt):** "decide and continue implementation until finish all POS_Session_Cash_Drawer_Hardening ... production-ready, no gaps, no bugs, best practices." Proceed autonomously through the approved phase order below without re-asking for plan approval at each step — only stop for: (1) a new migration file (STOP-AND-WAIT per CRITICAL RULE #3, always), (2) a genuine architectural fork with no clearly-better option, (3) a real bug surfaced by gates/tests. Two decisions are explicitly parked, not blocking: A6-1b's rounding approach, and the Arabic "Tenant" translation swap.
+
+**Approved phase order (for the whole rest of the program):** CLF-6 (readers, in progress) → rest of CLF-8 (UI, CLF-8-6 through 8-15) → M8/M9 migrations → CLF-R3 retirement → A6 (independent, gated on the owner's parked rounding decision) → CLF-9/10 tests + exit gates → §13 program documentation close-out.
 
 ---
 
-## ▶ NOW — 2026-10-02 — CLF-8 slice A built and wired, NOT yet fully gated (D44) — finish gating, then CLF-6
+## ▶ NOW — 2026-10-02 — CLF-6 readers mostly done (D46); finish CLF-6-4/6-6, then continue CLF-8
+
+### D46 — CLF-6 readers, this pass's exact state
+
+**Done, gated green (eslint + scoped tsc + targeted jest 12 suites/166 tests — see STATUS D46 for full narrative):**
+- **CLF-6-1** `lib/services/cash-drawer.service.ts` + new functions in `lib/services/cash-drawer-ledger/cash-drawer-balance.service.ts` (`sumLedgerTotalsBySession`, `getDrawerLedgerMovementsPage`) — all 5 readers (`getCashDrawerOverviewPage`, `getCashDrawerSessionsPage`, `getCashDrawerOverviewDetail`, `getCashDrawerSessionDetail`, `getSessionSummary`) now compute from the unified ledger via `cash_drawer_session_id` directly (no `open_ledger_seq` needed — see the key finding in STATUS's summary line). `openSession`/`closeSession`/`approveSessionVariance`/`cash-drawer-cash-facts.ts` deliberately untouched.
+- **CLF-6-2** `lib/services/reports/finance-reconciliation-report.service.ts` — `getCashDrawerReconReport` ledger-backed, historical-session false-positive guarded.
+- **CLF-6-3** `lib/services/reconciliation/voucher-checks.ts` — `checkCashMovementLink` rewritten (CLF-native unstamped-line check); `checkReversedCashPaymentHasCompensatingMovement` **fixed a real active bug** (was about to false-positive-BLOCKER every real cash reversal — see STATUS D46 for why); the other 3 movements-table checks documented as dormant-but-harmless, left alone.
+- **CLF-6-5** `lib/services/reports/finance-money-position.service.ts` — added missing `is_active` filter.
+- Two test files updated to match: `__tests__/services/finance-reconciliation-report.service.test.ts`, `__tests__/services/reconciliation/check-modules.test.ts`.
+
+### D51 update (2026-10-02): A6-1b DONE — cash CHANGE rounding persisted as an explicit rounding voucher (migration 0546 applied by owner). Remaining A6 work: receipt/Z-report rounding line (A6-4), ERP-Lite GL dispatch for CASH_ROUND_LOSS/GAIN (A6-5, shared CLF follow-up), A6-2/A6-2b/A6-3 resolver rewire + constants + Decimal, A6-6/A6-7. See STATUS D51 and IMPLEMENTATION_PLAN §A6.
+
+### D47-D50 update (supersedes items 1-2 below): CLF-6 COMPLETE; CLF-8-2/6/7/8/9/10/11/12/13 DONE (8-11 was plumbing only — see D50 correction); M8 migration 0541 applied. **Remaining CLF-8:** 8-14 i18n sweep (orphan keys, glossary), Storybook for 8-1/8-2/8-3, owner browser QA. **Then:** M9 (backfill + disposition CHECK) → CLF-R3 retirement (migrate the 5 DB-integration tests off `closeSession`, delete legacy openSession/closeSession/approveSessionVariance + 4 mirror handlers + cash-facts + `cash_drawer_mvt_id` columns) → A6 (needs owner A6-1b decision) → CLF-9 tests / CLF-10 exit gates → §13 docs. See STATUS D47-D50.
+
+### ▶ Pick up exactly here — finish CLF-6, then continue to CLF-8
+
+1. **CLF-6-4** — `lib/services/voucher-wiring.service.ts`'s `getLineLinkedEffect` (~line 640-700) and `getVoucherLinkedEffects` (~line 464-633): drop the `CASH_DRAWER_MOVEMENT` effect type and its `org_cash_drawer_movements_dtl` query, expose the line's own `cash_effect_code`/`cash_ledger_seq`/`cash_drawer_session_id` stamp instead (these already live directly on `org_fin_voucher_trx_lines_dtl`, no join needed). Update `LinkedEffect`'s `effectType`/`tableRef` unions and `LinkedEffectsResult.cashDrawerMovements` in `lib/types/voucher-wiring.ts` (~line 86, ~line 172-180) to match. Check callers of `getVoucherLinkedEffects`/`getLineLinkedEffect` (voucher detail UI, reversal flows) for anything reading `.cashDrawerMovements` or `effectType === 'CASH_DRAWER_MOVEMENT'` before changing the shape — update those call sites in the same commit. Gate: eslint + scoped tsc + targeted jest on `voucher-wiring.service.ts`'s own test file plus anything importing the changed types.
+2. **CLF-6-6** — do **NOT** delete `cash-drawer-cash-facts.ts`/`CASH_DRAWER_MOVEMENT_TYPES` this pass (corrected from the original plan — see STATUS D46's key finding: `closeSession` still imports and uses `effectiveCashPaymentWhere`/`expectedCashManualMovementWhere` from that file, and `closeSession` itself can't be deleted yet because 5 DB-integration test files use it as test infrastructure for real locking/concurrency proofs). Record this as confirmed-correct scope (not a TODO) and move on.
+3. **CLF-6-7** — already recorded as flag-only in STATUS D46 (`getPosSessionSummary`'s missing payment-status/direction filter, belongs to D2 X/Z work). Nothing further to do.
+4. **Then CLF-8 remainder** (CLF-8-6 drawer-transaction dialog, CLF-8-7 overview screen tabs, CLF-8-8 session detail updates, CLF-8-9 follow-up screen — new page, needs its own access-contract entry + **M8 migration** (nav + permissions, STOP-AND-WAIT after writing) before it, CLF-8-10 drawer config form, CLF-8-11 VERIFY/reversal drawer pickers, CLF-8-12 print report, CLF-8-13 remaining movement-era UI removal, CLF-8-14 i18n sweep, CLF-8-15 access-contract actions). Full item list + file-level detail in `IMPLEMENTATION_PLAN.md` §4B.10.
+5. `ls supabase/migrations/` immediately before writing any new migration (M8 nav, M9 backfill+CHECK, M10 retirement still ahead) — do not trust a nominal number from the plan.
+6. **After CLF-8 is fully done:** M9 (backfill + closed-session disposition CHECK, demo data only) → CLF-R3 retirement (delete legacy `openSession`/`closeSession`/`approveSessionVariance` + the 4 temporary mirror handlers + `cash-drawer-cash-facts.ts` — but only after migrating the 5 DB-integration test files off `closeSession` onto `cash-drawer-session.service.ts`'s `startClose`/`finalizeClose` first) → A6 (independent, needs the owner's A6-1b decision) → CLF-9/10 exit gates → §13 program documentation close-out.
+7. **Outstanding:** none owner-side. Arabic "Tenant" swap is resolved by the i18n glossary. A6-1b decided 2026-10-02: round cash change only, persist the difference as an explicit ROUNDING line (see IMPLEMENTATION_PLAN §A6).
+8. **Manual QA still owed to the owner** (from D45, unresolved): CLF-8 slice A's browser smoke test — open/close a session locally, confirm `ses_bal_dtl` rows, confirm Payment Modal V4 checkout still opens a drawer normally.
+
+---
+
+## Prior entry (D45) — superseded for gating, kept for history
+
+### D45 update — what changed since D44
+- Ran the two gates D44 left outstanding: full `npx jest` → **346/346 suites, 3142/3142 tests passing**. `npm run build` → **exit 0**.
+- **Manual browser smoke test (RESUME item 2 below, unchanged) is still NOT done** — this sandbox has no dev server/real DB. This is owed to the owner before CLF-8 slice A is *truly* closed. Proceeding to CLF-6 anyway since it is only blocked by real ledger data existing (which the shipped code now produces), not by the smoke test itself — all automated gates are clean and the route/hook split was a deliberate, already-reviewed design choice (see D44), so the smoke test is expected to be confirmatory, not design-altering.
+- **If the owner's manual QA surfaces a real bug**, stop whatever CLF-6 step is in progress and fix it first — CLF-6 depends on slice A's mutation path being correct, not just gate-green.
+
+### Original D44 checkpoint (superseded for gating, still accurate for scope)
 
 **This session was interrupted by the owner mid-flight (context-window `/clear`), not by a blocker.** Everything below is real, saved-to-disk state — pick up exactly here, in order.
 

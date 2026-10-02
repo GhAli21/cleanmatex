@@ -95,7 +95,9 @@ export async function getMoneyPosition(tenantOrgId: string): Promise<MoneyPositi
           where: { tenant_org_id: tenantOrgId, is_active: true, remaining_balance: { gt: 0 } },
         }),
         prisma.org_cash_drawer_sessions_mst.count({
-          where: { tenant_org_id: tenantOrgId, status: 'OPEN' },
+          // CLF-6-5: a soft-deactivated session (rare, audit/cleanup only)
+          // must not inflate the "currently open" count.
+          where: { tenant_org_id: tenantOrgId, status: 'OPEN', is_active: true },
         }),
       ]);
 

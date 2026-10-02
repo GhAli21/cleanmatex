@@ -44,6 +44,11 @@ export async function GET(
     if (authCheck instanceof NextResponse) return authCheck;
     const { tenantId } = authCheck;
 
+    // Reject stale customer forms rather than applying them under a newly selected tenant.
+    if (request.headers.get('X-Tenant-Id') && request.headers.get('X-Tenant-Id') !== tenantId) {
+      return NextResponse.json({ success: false, error: 'Organization changed; reload customer details' }, { status: 409 });
+    }
+
     const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
     if (rateLimitResponse) return rateLimitResponse;
 
@@ -126,6 +131,15 @@ export async function PATCH(
     const authCheck = await requirePermission('customers:update')(request);
     if (authCheck instanceof NextResponse) return authCheck;
     const { tenantId } = authCheck;
+
+    // Bind consent edits to the organization that rendered the editor.
+    const expectedTenantId = request.headers.get('X-Tenant-Id');
+    if (expectedTenantId && expectedTenantId !== tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Organization changed; reload customer details' },
+        { status: 409 }
+      );
+    }
 
     const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
     if (rateLimitResponse) return rateLimitResponse;

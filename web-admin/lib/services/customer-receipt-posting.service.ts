@@ -5,6 +5,10 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
+import {
+  planCashChangeRounding,
+  postCashChangeRoundingTx,
+} from '@/lib/services/cash-change-rounding.service';
 import { executeAllocationPreviewTx } from '@/lib/services/customer-receipt-excess-executor.service';
 import { getAllocationPreview } from '@/lib/services/customer-receipt-allocation-preview.service';
 import { validateAllocationPreview } from '@/lib/services/customer-receipt-allocation-validator.service';
@@ -165,9 +169,21 @@ export async function postCustomerAccountReceipt(
         tx
       );
 
+      // A6-1b: cash change is rounded to the cash increment; the gap is posted as its own
+      // rounding voucher once the receipt is posted (below).
+      const rounding = await planCashChangeRounding(
+        { tenantId, branchId: input.branchId ?? null, userId },
+        {
+          paymentMethodCode: methodCode,
+          currencyCode: input.currencyCode,
+          amount: input.receiptAmount,
+          tenderedAmount: isCash ? (input.cashTendered ?? input.receiptAmount) : undefined,
+        },
+      );
+
       // One line for the whole tender. The session id is only a hint — the
       // gate resolves the drawer from it and stamps the session it decides.
-      await addVoucherLine(
+      const paymentLine = await addVoucherLine(
         tenantId,
         voucher.id,
         {
@@ -189,6 +205,7 @@ export async function postCustomerAccountReceipt(
             ? (input.cashDrawerSessionId ?? undefined)
             : undefined,
           tendered_amount: isCash ? (input.cashTendered ?? input.receiptAmount) : undefined,
+          ...(rounding && { change_returned_amount: rounding.roundedChange }),
           gateway_code: method.gateway_code ?? undefined,
           bank_reference: bankReference,
           check_number: checkNumber,
@@ -223,6 +240,28 @@ export async function postCustomerAccountReceipt(
         `${input.idempotencyKey}_vch_post`,
         tx
       );
+
+      // Cash change rounding gap (A6-1b) — the payment line now carries its drawer session.
+      if (rounding) {
+        await postCashChangeRoundingTx(
+          tx,
+          { tenantOrgId: tenantId, userId },
+          {
+            rounding,
+            customerId: input.customerId,
+            branchId: input.branchId ?? null,
+            paymentLineId: paymentLine.id,
+            orgPaymentMethodId: method.id,
+            paymentMethodCode: methodCode,
+            source: {
+              module: 'CUSTOMERS',
+              refType: VOUCHER_SOURCE_TYPES.CUSTOMER_ACCOUNT_PAYMENT,
+              refId: input.previewId,
+            },
+            idempotencyKey: `${input.idempotencyKey}_cash_round`,
+          },
+        );
+      }
 
       return {
         voucherId: voucher.id,

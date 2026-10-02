@@ -136,6 +136,12 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
       },
       {
+        label: 'Cash change rounding policy for the checkout (A6-1b)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/rounding-policy',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+      },
+      {
         label: 'Close wizard denomination catalog (CLF-7, CLF-8-1)',
         method: 'GET',
         path: '/api/v1/currencies/[code]/denominations',

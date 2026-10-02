@@ -359,3 +359,30 @@ Expected: Zero errors and zero warnings for all three commands.
 - [ ] Campaign targets are isolated by `tenant_org_id` in all queries
 - [ ] Multi-tenant: no cross-tenant data visible
 - [ ] pg_cron: all 3 ntf jobs showing `succeeded` status
+
+## Direct Twilio production order-created integration (2026-10-02)
+
+See [the activation and end-to-end runbook](Setup_And_Config/14_twilio_production_order_created.md).
+Automated tests mock provider and database calls; they never send customer messages.
+
+- [ ] Two event codes select their own approved SID and exact variable map; `Body` is absent.
+- [ ] Unmapped/invalid templates and missing substitutions never call Twilio or use a global sandbox SID.
+- [ ] Live recipients ignore stale sandbox destination overrides; legacy providers retain their behavior.
+- [ ] Exact customer opt-in `true` permits delivery; false/missing/malformed preferences and inactive customers skip.
+- [ ] Both order/customer lookup queries and all outbox writes include the owning tenant predicate.
+- [ ] Revocation or customer-phone change after enqueue prevents sending; skipped rows do not email-fallback.
+- [ ] Transient consent lookup failure retries and must recheck eligibility before resolving a pending destination.
+- [ ] Inline and cron paths carry source entity fields and honor delivery skip/retry outcomes.
+- [ ] A disabled channel or removed/switched production provider blocks an already queued production notification.
+- [ ] HQ body-only proxy cannot silently replace a production template with free text.
+- [ ] Preferences-only customer PATCH persists opt-in/revocation and preserves names/other preferences.
+- [ ] Template editor loads/saves/removes one event without losing sibling mappings or provider options.
+- [ ] Malformed SID/map is rejected before provider activation can change the current provider.
+- [ ] Switching tenant rejects stale provider/customer requests and never carries a draft to another tenant.
+- [ ] Customer consent is saved explicitly; missing edit permission is read-only; invalid phone blocks new enable.
+- [ ] English and Arabic/RTL template and consent editors render with matching labels and keyboard-accessible controls.
+- [ ] Inline dispatch respects future quiet-hours schedules and cannot claim a row already held by cron.
+- [ ] Controlled real order to the operator's consented phone is delivered; verify in Twilio separately from app `SENT`.
+
+Live deployment/catalog/provider configuration and the final order-created smoke test remain
+operator checks. The user reported a successful direct Twilio template test before implementation.

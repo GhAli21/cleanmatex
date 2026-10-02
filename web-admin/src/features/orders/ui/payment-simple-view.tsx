@@ -17,6 +17,8 @@
 
 import { type ReactNode, type RefObject } from 'react';
 import { useTranslations } from 'next-intl';
+import type { CashChangeRounding } from '@/lib/money/cash-rounding';
+import { CashChangeRoundingNote } from '@features/orders/ui/cash-change-rounding-note';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { Banknote, CreditCard, EllipsisVertical } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -126,6 +128,8 @@ export interface PaymentSimpleViewProps {
   saleTotal: number;
   amountAppliedToOrder: number;
   displayChangeAmount: number;
+  /** A6-1b: set when the change was rounded to the cash increment (shown inline). */
+  cashChangeRounding: CashChangeRounding | null;
   remainingBalance: number;
   settled: boolean;
   balanceStatusLabel: string;
@@ -197,6 +201,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     saleTotal,
     amountAppliedToOrder,
     displayChangeAmount,
+    cashChangeRounding,
     remainingBalance,
     settled,
     balanceStatusLabel,
@@ -584,6 +589,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               </span>
             )}
           </div>
+          <CashChangeRoundingNote rounding={cashChangeRounding} currencyCode={currencyCode} formatAmount={formatAmount} isRTL={isRTL} />
           <p
             data-testid="payment-simple-status"
             className={`mt-1 text-sm font-medium ${settled ? 'text-emerald-700' : 'text-slate-600'} ${isRTL ? 'text-right' : 'text-left'}`}

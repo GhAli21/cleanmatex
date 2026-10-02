@@ -254,7 +254,13 @@
     "deactivateConfirm": {
       "title": "تعطيل درج النقد؟",
       "description": "سيتم تعطيل درج النقد للجلسات النقدية الجديدة."
-    }
+    },
+    "typeCapabilities": "إمكانات النوع:",
+    "capMobile": "متنقل (يرافق شخصًا)",
+    "capFixed": "موقع ثابت",
+    "capReceivesDisposition": "يمكنه استلام نقد الإغلاق",
+    "capNoDisposition": "لا يمكنه استلام نقد الإغلاق",
+    "policyMovedHint": "تُدار قواعد الجلسات والجرد لهذا الصندوق من تبويب السياسة في صفحة الصندوق."
   },
   "loyalty": {
     "title": "برنامج الولاء",

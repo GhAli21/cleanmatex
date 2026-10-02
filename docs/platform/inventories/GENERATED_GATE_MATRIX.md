@@ -1,17 +1,17 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-10-01T22:02:42.051Z
-Git SHA: f192cd59
+Generated: 2026-10-02T06:31:45.685Z
+Git SHA: a5fc878f
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 154 |
-| Permission usages | 341 |
-| Feature flag usages | 81 |
-| Setting usages | 31 |
+| Access contracts | 155 |
+| Permission usages | 369 |
+| Feature flag usages | 82 |
+| Setting usages | 29 |
 | Plan limit usages | 8 |
-| Navigation entries | 103 |
+| Navigation entries | 104 |
 | Flag catalog entries | 298 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -38,7 +38,7 @@ Git SHA: f192cd59
 | /dashboard/catalog/services/[id] | Catalog Service Details | admin:manage | — | 0 |
 | /dashboard/catalog/services/new | New Catalog Service | admin:manage | — | 0 |
 | /dashboard/customers | Customers | — | — | 0 |
-| /dashboard/customers/[id] | Customer Details | — | — | 0 |
+| /dashboard/customers/[id] | Customer Details | — | — | 1 |
 | /dashboard/customers/account-receipt | Customer Account Receipt | customers:receipt_allocate | — | 0 |
 | /dashboard/customers/stored-value | Stored Value | stored_value:view_balances | — | 0 |
 | /dashboard/delivery | Delivery | drivers:read, orders:read | — | 0 |
@@ -83,6 +83,7 @@ Git SHA: f192cd59
 | /dashboard/internal_fin/cash-drawers/[drawerId] | Cash Drawer Details | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId] | Cash Drawer Session Details | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print | Print Cash Drawer Session | cash_drawer:view | — | 0 |
+| /dashboard/internal_fin/cash-drawers/follow-up | Cash Deposit Follow-up | cash_drawer:view_reports | — | 0 |
 | /dashboard/internal_fin/invoices | Invoices | invoices:read | — | 0 |
 | /dashboard/internal_fin/invoices/[id] | Invoice Details | invoices:read | — | 0 |
 | /dashboard/internal_fin/invoices/[id]/print | Print AR Invoice | invoices:print | — | 0 |

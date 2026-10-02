@@ -19,16 +19,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * Setting codes from sys_tenant_settings_cd (source of truth).
  * Must match catalog entries; see F:/jhapp/cleanmatex/supabase/migrations/
  *
- * Money (L2 cut-over, Tenant_Currency_FX plan 01): `TENANT_CURRENCY` and
- * `TENANT_DECIMAL_PLACES` are retired as the currency source of truth —
- * `getTenantCurrency`/`getTenantDecimalPlaces`/`getCurrencyConfig` below now
- * read `org_currency_cf` via `TenantCurrencyProfileService`. The two codes
- * stay listed here only until stage L4 soft-retires them in the settings
- * catalog itself; no other code path should read them for currency.
+ * Money (L2 cut-over, Tenant_Currency_FX plan 01): currency and decimal
+ * places are resolved from `org_currency_cf` via `TenantCurrencyProfileService`
+ * (`getTenantCurrency`/`getTenantDecimalPlaces`/`getCurrencyConfig` below).
+ * The settings-catalog codes `TENANT_CURRENCY`/`TENANT_DECIMAL_PLACES`/
+ * `BRANCH_CURRENCY` were soft-retired at stage L4 (migrations 0542/0543) and
+ * are intentionally absent from this map — no code path should read them.
  */
 export const SETTING_CODES = {
-  TENANT_CURRENCY: 'TENANT_CURRENCY',
-  TENANT_DECIMAL_PLACES: 'TENANT_DECIMAL_PLACES',
   TENANT_VAT_RATE: 'TENANT_VAT_RATE',
   DEFAULT_PHONE_COUNTRY_CODE: 'DEFAULT_PHONE_COUNTRY_CODE',
   USING_SPLIT_ORDER: 'USING_SPLIT_ORDER',

@@ -23,6 +23,7 @@ import type { VoucherLineForWiring } from '@/lib/types/voucher-wiring';
 
 import { allocateLedgerSeqTx, lockDrawersTx, type LockedDrawerRow } from './cash-drawer-lock';
 import { CashDrawerLedgerError } from './cash-drawer-errors';
+import { assertPinnedSession, resolveCashPlacementTx, type CashPlacementOverride } from './cash-placement';
 import { decideCashLine } from './cash-drawer-ledger-policy';
 
 /**
@@ -46,6 +47,8 @@ export interface CashGateContext {
   tenantOrgId: string;
   userId: string;
   mode: CashGateMode;
+  /** User who physically handled the cash, when not the acting user (`cash_recognized_by`). */
+  recognizedByUserId?: string | null;
 }
 
 /** Voucher header facts used as fallbacks for the lines. */
@@ -225,7 +228,7 @@ async function writeStampTx(
            cash_drawer_id         = ${stamp.drawerId}::uuid,
            cash_ledger_seq        = ${stamp.seq},
            cash_recognized_at     = CASE WHEN ${stamp.recognized} THEN clock_timestamp() ELSE NULL END,
-           cash_recognized_by     = CASE WHEN ${stamp.recognized} THEN ${ctx.userId} ELSE NULL END,
+           cash_recognized_by     = CASE WHEN ${stamp.recognized} THEN ${ctx.recognizedByUserId ?? ctx.userId} ELSE NULL END,
            cash_drawer_session_id = ${stamp.sessionId}::uuid,
            updated_at             = CURRENT_TIMESTAMP,
            updated_by             = ${ctx.userId}
@@ -364,8 +367,9 @@ export async function stampCashLinesTx(
  * @param tx open Prisma transaction
  * @param ctx tenant, acting user and mode (DEFERRED for back-office verification)
  * @param lineId the voucher line to recognise
- * @param drawerIdOverride another active drawer in the same branch, when the
- *        intended drawer can no longer take the cash (e.g. deactivated)
+ * @param placement optional explicit placement (another drawer / pinned session /
+ *        receiving user) for when the intended drawer can no longer take the
+ *        cash (e.g. deactivated); the gate's integrity rules still apply
  * @returns the decision applied
  * @throws CashDrawerLedgerError when the line cannot be recognised
  * @example await recognizeCashLineTx(tx, { tenantOrgId, userId, mode: 'DEFERRED' }, lineId);
@@ -374,7 +378,7 @@ export async function recognizeCashLineTx(
   tx: Prisma.TransactionClient,
   ctx: CashGateContext,
   lineId: string,
-  drawerIdOverride?: string | null,
+  placement?: CashPlacementOverride | null,
 ): Promise<CashLineDecision> {
   const line = await tx.org_fin_voucher_trx_lines_dtl.findFirst({
     where: { id: lineId, tenant_org_id: ctx.tenantOrgId },
@@ -404,7 +408,8 @@ export async function recognizeCashLineTx(
     select: { branch_id: true, currency_code: true },
   });
 
-  const drawerId = drawerIdOverride ?? line.cash_drawer_id;
+  const resolved = await resolveCashPlacementTx(tx, ctx.tenantOrgId, placement);
+  const drawerId = resolved?.drawerId ?? line.cash_drawer_id;
   const facts = await loadDrawerFacts(tx, ctx, drawerId ? [drawerId] : []);
   const decision = decideCashLine({
     line: {
@@ -427,10 +432,12 @@ export async function recognizeCashLineTx(
     });
   }
 
+  assertPinnedSession(resolved, decision.sessionId, { lineId, drawerId });
+
   const seq = await allocateLedgerSeqTx(tx, ctx.tenantOrgId, drawerId as string);
   await writeStampTx(
     tx,
-    ctx,
+    resolved?.recognizedBy ? { ...ctx, recognizedByUserId: resolved.recognizedBy } : ctx,
     lineId,
     { effect: CASH_EFFECTS.DRAWER, drawerId, seq, sessionId: decision.sessionId, recognized: true },
     false,

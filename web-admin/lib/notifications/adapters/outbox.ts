@@ -8,15 +8,18 @@
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { logger } from '@lib/utils/logger';
 import type { Database } from '@/types/database';
-import type { NotificationEvent } from '@lib/notifications/types';
+import type { NotificationEvent, OutboxStatus } from '@lib/notifications/types';
 import { NOTIFICATION_CHANNEL, OUTBOX_STATUS } from '@lib/notifications/types';
 import { renderChannelTemplate } from '@lib/notifications/template-renderer';
 import { resolveRecipientAddress } from '@lib/notifications/recipient-resolver';
 import { isOutboxInlineDispatchEnabled, isWhatsappEmailFallbackEnabled } from '@lib/notifications/config';
 import { deliverWhatsAppOutbox } from '@lib/notifications/adapters/whatsapp';
+import { notificationSettingsService } from '@lib/notifications/settings-service';
+import { isTwilioProductionTemplateProvider } from '@lib/notifications/adapters/whatsapp-template-config';
+import { resolveWhatsAppCustomerEligibility } from '@lib/notifications/whatsapp-customer-eligibility';
 
 /**
- *
+ * Dispatch options keep intentional skips auditable without losing event identity.
  */
 export interface EnqueueOptions {
   scheduledAt?: Date;
@@ -26,7 +29,7 @@ export interface EnqueueOptions {
 }
 
 /**
- *
+ * Retains the source order needed to authorize customer delivery and fallback.
  */
 export interface OutboxRowSnapshot {
   tenant_org_id:      string;
@@ -95,14 +98,22 @@ async function dispatchWhatsAppInline(row: {
   rendered_body: string
   rendered_subject: string | null
   event_code: string | null
+  source_entity_type: string | null
+  source_entity_id: string | null
   metadata?: Record<string, unknown> | null
 }): Promise<void> {
   const supabase = createAdminSupabaseClient();
-  await supabase
+  const { data: claimed, error: claimError } = await supabase
     .from('org_ntf_outbox_dtl')
     .update({ status: OUTBOX_STATUS.PROCESSING, updated_at: new Date().toISOString() })
     .eq('id', row.id)
-    .eq('tenant_org_id', row.tenant_org_id);
+    .eq('tenant_org_id', row.tenant_org_id)
+    .eq('status', OUTBOX_STATUS.QUEUED)
+    .select('id')
+    .maybeSingle();
+
+  // Only the worker that atomically claimed the queued row may call the provider.
+  if (claimError || !claimed) return;
 
   const result = await deliverWhatsAppOutbox({
     id: row.id,
@@ -111,11 +122,15 @@ async function dispatchWhatsAppInline(row: {
     rendered_body: row.rendered_body,
     rendered_subject: row.rendered_subject,
     event_code: row.event_code,
+    source_entity_type: row.source_entity_type,
+    source_entity_id: row.source_entity_id,
     retry_count: 0,
     metadata: row.metadata,
   });
 
-  const finalStatus = result.success
+  const finalStatus = result.skipped
+    ? OUTBOX_STATUS.SKIPPED
+    : result.success
     ? OUTBOX_STATUS.SENT
     : result.permanent
       ? OUTBOX_STATUS.FAILED_PERMANENT
@@ -126,7 +141,13 @@ async function dispatchWhatsAppInline(row: {
     .update({
       status: finalStatus,
       error_message: result.errorMessage ?? null,
+      skip_reason: result.skipped ? result.errorMessage ?? 'WhatsApp delivery skipped' : null,
       sent_at: result.success ? new Date().toISOString() : null,
+      ...(finalStatus === OUTBOX_STATUS.FAILED_TEMPORARY ? {
+        retry_count: 1,
+        // Match the processor's first retry backoff so inline transport failures remain dispatchable.
+        next_retry_at: new Date(Date.now() + 15 * 60_000).toISOString(),
+      } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq('id', row.id)
@@ -238,10 +259,11 @@ export async function enqueueEmailFallbackFromWhatsApp(
 }
 
 /**
- *
- * @param event
- * @param channelCode
- * @param opts
+ * Persist external deliveries with consent-aware production WhatsApp destinations.
+ * @param event Business event including its tenantOrgId and source entity.
+ * @param channelCode Persisted delivery channel code.
+ * @param opts Scheduling and explicit skip instructions.
+ * @returns Resolves after tenant-scoped rows are recorded and optional inline dispatch finishes.
  */
 export async function enqueueOutbox(
   event: NotificationEvent,
@@ -249,12 +271,18 @@ export async function enqueueOutbox(
   opts: EnqueueOptions = {},
 ): Promise<void> {
   const scheduledAt = opts.scheduledAt ?? new Date();
-  const skipReason = opts.skipReason;
-  const status = skipReason ? OUTBOX_STATUS.SKIPPED : OUTBOX_STATUS.QUEUED;
+  const provider = channelCode === NOTIFICATION_CHANNEL.WHATSAPP
+    ? await notificationSettingsService.getActiveProvider(event.tenantOrgId, NOTIFICATION_CHANNEL.WHATSAPP)
+    : null;
+  const productionTemplateMode = provider !== null && isTwilioProductionTemplateProvider(provider.providerCode, provider.config);
 
   const rendered = await renderChannelTemplate(event.code, channelCode, event.variables);
 
   for (const recipientUserId of event.recipientUserIds) {
+    let skipReason = opts.skipReason;
+    let eligibilityPending = false;
+    let status: OutboxStatus = skipReason ? OUTBOX_STATUS.SKIPPED : OUTBOX_STATUS.QUEUED;
+    let eligibilityError: string | null = null;
     const sourceEntityId = event.sourceEntityId ?? 'none';
     const idempotencyKey = buildOutboxIdempotencyKey(
       event.tenantOrgId,
@@ -275,10 +303,28 @@ export async function enqueueOutbox(
 
     let recipientAddress: string | null = null;
     if (!skipReason) {
-      recipientAddress = await resolveRecipientAddress(resolveCtx);
+      if (productionTemplateMode) {
+        const eligibility = await resolveWhatsAppCustomerEligibility(
+          event.tenantOrgId, event.sourceEntityType, event.sourceEntityId,
+        );
+        if (eligibility.allowed === true) {
+          recipientAddress = eligibility.recipientAddress;
+        } else if (eligibility.retryable) {
+          // Preserve transient lookup failures for dispatch, which must recheck consent before sending.
+          eligibilityPending = true;
+          eligibilityError = eligibility.reason;
+          status = OUTBOX_STATUS.FAILED_TEMPORARY;
+        } else {
+          skipReason = eligibility.reason;
+          status = OUTBOX_STATUS.SKIPPED;
+        }
+      } else {
+        recipientAddress = await resolveRecipientAddress(resolveCtx);
+      }
 
       if (
         channelCode === NOTIFICATION_CHANNEL.WHATSAPP &&
+        !productionTemplateMode &&
         !recipientAddress &&
         await isWhatsappEmailFallbackEnabled()
       ) {
@@ -299,7 +345,12 @@ export async function enqueueOutbox(
       }
     }
 
-    const metadata = { ...rendered.metadata, variables: event.variables };
+    const metadata = {
+      ...rendered.metadata,
+      variables: event.variables,
+      ...(productionTemplateMode ? { whatsapp_production_template: true } : {}),
+      ...(eligibilityPending ? { whatsapp_eligibility_pending: true } : {}),
+    };
     const outboxId = await insertOutboxRow(
       {
         tenant_org_id:      event.tenantOrgId,
@@ -316,6 +367,8 @@ export async function enqueueOutbox(
         source_entity_id:   event.sourceEntityId ?? null,
         status,
         skip_reason:        skipReason ?? null,
+        error_message:      eligibilityError,
+        ...(eligibilityPending ? { next_retry_at: scheduledAt.toISOString() } : {}),
         scheduled_at:       scheduledAt.toISOString(),
         idempotency_key:    idempotencyKey,
         created_by:         'system',
@@ -333,6 +386,8 @@ export async function enqueueOutbox(
     if (
       outboxId &&
       !skipReason &&
+      !eligibilityPending &&
+      scheduledAt.getTime() <= Date.now() &&
       channelCode === NOTIFICATION_CHANNEL.WHATSAPP &&
       await isOutboxInlineDispatchEnabled()
     ) {
@@ -343,6 +398,8 @@ export async function enqueueOutbox(
         rendered_body: rendered.body,
         rendered_subject: rendered.title,
         event_code: event.code,
+        source_entity_type: event.sourceEntityType ?? null,
+        source_entity_id: event.sourceEntityId ?? null,
         metadata,
       });
     }

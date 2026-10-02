@@ -1,6 +1,8 @@
 'use client'
 
 import { getCSRFHeader } from '@lib/hooks/use-csrf-token'
+import type { CashControlSettings, CashControlValueSource } from '@lib/constants/cash-control'
+import type { CashControlSettingsPatchInput } from '@lib/validations/cash-control-schemas'
 import type {
   CashDrawerOverviewListResult,
   CashDrawerSessionDetail,
@@ -425,6 +427,256 @@ export async function ensureBranchPendingDepositDrawer(input: {
   })
 
   return parseCashDrawerResponse<EnsurePendingDepositDrawerResult>(response)
+}
+
+// -----------------------------------------------------------------------------
+// Drawer overview tabs — Ledger / Transactions / Counts (CLF-7 routes, CLF-8-7)
+// -----------------------------------------------------------------------------
+
+export interface PagedResult<T> {
+  rows: T[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface DrawerLedgerEntry {
+  ledgerSeq: string
+  domain: 'FIN' | 'TRX'
+  entryId: string
+  direction: string
+  amount: string
+  currencyCode: string
+  occurredAt: string
+  sessionId: string | null
+  description: string | null
+}
+
+/** One page of the drawer's unified (finance + custody) ledger, newest first. */
+export async function fetchDrawerLedger(input: {
+  drawerId: string
+  page: number
+  pageSize: number
+}): Promise<PagedResult<DrawerLedgerEntry>> {
+  return fetchCashDrawerJson<PagedResult<DrawerLedgerEntry>>(
+    `/api/v1/cash-drawers/${input.drawerId}/ledger?page=${input.page}&pageSize=${input.pageSize}`,
+  )
+}
+
+export interface DrawerTrxEntry {
+  trxId: string
+  trxNo: string
+  trxTypeCode: string
+  reasonCode: string | null
+  notes: string | null
+  performedBy: string
+  reversesTrxId: string | null
+  occurredAt: string
+  lines: Array<{ drawerId: string; direction: string; amount: string; currencyCode: string }>
+}
+
+/** One page of custody transactions touching this drawer (either side). */
+export async function fetchDrawerTransactions(input: {
+  drawerId: string
+  page: number
+  pageSize: number
+}): Promise<PagedResult<DrawerTrxEntry>> {
+  return fetchCashDrawerJson<PagedResult<DrawerTrxEntry>>(
+    `/api/v1/cash-drawers/trx?drawerId=${input.drawerId}&page=${input.page}&pageSize=${input.pageSize}`,
+  )
+}
+
+export interface DrawerCountEntry {
+  countId: string
+  countType: string
+  countMethod: string
+  currencyCode: string
+  cashDrawerSessionId: string | null
+  expectedAmount: string
+  countedAmount: string
+  varianceAmount: string
+  supersedesCountId: string | null
+  countedBy: string
+  notes: string | null
+  createdAt: string
+}
+
+/** One page of count history (opening / spot / closing / recount), newest first. */
+export async function fetchDrawerCounts(input: {
+  drawerId: string
+  page: number
+  pageSize: number
+}): Promise<PagedResult<DrawerCountEntry>> {
+  return fetchCashDrawerJson<PagedResult<DrawerCountEntry>>(
+    `/api/v1/cash-drawers/${input.drawerId}/counts?page=${input.page}&pageSize=${input.pageSize}`,
+  )
+}
+
+/** Records a standalone SPOT count (optionally against the open session). */
+export async function recordDrawerSpotCount(input: {
+  drawerId: string
+  currencyCode: string
+  cashDrawerSessionId?: string
+  count: OpeningCountInput
+  notes?: string
+  csrfToken: string | null
+}): Promise<{ countId: string }> {
+  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/counts`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+    body: JSON.stringify({
+      countType: 'SPOT',
+      currencyCode: input.currencyCode,
+      cashDrawerSessionId: input.cashDrawerSessionId,
+      count: input.count,
+      notes: input.notes || undefined,
+    }),
+  })
+  return parseCashDrawerResponse<{ countId: string }>(response)
+}
+
+export interface DrawerPolicy {
+  settings: CashControlSettings
+  sources: Record<keyof CashControlSettings, CashControlValueSource>
+}
+
+/** Effective cash-control policy for one drawer, with the source of each value. */
+export async function fetchDrawerPolicy(drawerId: string): Promise<DrawerPolicy> {
+  return fetchCashDrawerJson<DrawerPolicy>(`/api/v1/cash-drawers/${drawerId}/policy`)
+}
+
+/** Patches drawer-scoped overrides; a field set to `null` clears the override. */
+export async function updateDrawerPolicy(input: {
+  drawerId: string
+  patch: CashControlSettingsPatchInput
+  csrfToken: string | null
+}): Promise<DrawerPolicy> {
+  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/policy`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+    body: JSON.stringify({ patch: input.patch }),
+  })
+  return parseCashDrawerResponse<DrawerPolicy>(response)
+}
+
+/** Posts a custody transaction between drawers (CLF-7 `POST /cash-drawers/trx`). */
+export async function postCashDrawerTrx(input: {
+  trxTypeCode: string
+  branchId: string
+  lines: Array<{ drawerId: string; direction: 'IN' | 'OUT'; amount: number; currencyCode: string }>
+  notes?: string
+  idempotencyKey: string
+  csrfToken: string | null
+}): Promise<{ trxId: string; trxNo: string }> {
+  const response = await fetch('/api/v1/cash-drawers/trx', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+    body: JSON.stringify({
+      trxTypeCode: input.trxTypeCode,
+      branchId: input.branchId,
+      lines: input.lines,
+      notes: input.notes || undefined,
+      idempotencyKey: input.idempotencyKey,
+    }),
+  })
+  return parseCashDrawerResponse<{ trxId: string; trxNo: string }>(response)
+}
+
+export interface SessionClosureBalanceView {
+  currencyCode: string
+  openingExpected: string
+  openingCounted: string | null
+  openingVariance: string | null
+  finIn: string
+  finOut: string
+  trxIn: string
+  trxOut: string
+  closingExpected: string | null
+  closingCounted: string | null
+  closingVariance: string | null
+  dispositionCode: string | null
+  dispositionNotes: string | null
+  dispositionDestDrawerId: string | null
+  dispositionDestDrawerName: string | null
+  dispositionKeptAmount: string | null
+}
+
+export interface SessionClosureCountView {
+  countId: string
+  countType: string
+  countMethod: string
+  currencyCode: string
+  expectedAmount: string
+  countedAmount: string
+  varianceAmount: string
+  countedBy: string
+  countedAt: string
+  notes: string | null
+  supersedesCountId: string | null
+  denominations: Array<{ valueMinor: number; quantity: number; lineAmount: string }>
+}
+
+export interface SessionClosureViewResult {
+  sessionId: string
+  status: string
+  balances: SessionClosureBalanceView[]
+  counts: SessionClosureCountView[]
+  postClose: {
+    statusCode: string | null
+    notes: string | null
+    by: string | null
+    at: string | null
+    history: Array<{ statusCode: string; notes: string | null; changedBy: string | null; changedAt: string | null }>
+  }
+}
+
+/** Per-currency balances, counts, disposition and post-close log for one session (CLF-8-8). */
+export async function fetchSessionClosure(drawerId: string, sessionId: string): Promise<SessionClosureViewResult> {
+  return fetchCashDrawerJson<SessionClosureViewResult>(`/api/v1/cash-drawers/${drawerId}/session/${sessionId}/closure`)
+}
+
+/** Updates the post-close follow-up status/notes of a closed session (CLF-8-8). */
+export async function updateSessionPostClose(input: {
+  drawerId: string
+  sessionId: string
+  postCloseStatusCode: string
+  notes?: string
+  csrfToken: string | null
+}): Promise<{ sessionId: string }> {
+  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/session/${input.sessionId}/post-close`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+    body: JSON.stringify({ postCloseStatusCode: input.postCloseStatusCode, notes: input.notes || undefined }),
+  })
+  return parseCashDrawerResponse<{ sessionId: string }>(response)
+}
+
+export interface FollowUpSessionEntry {
+  sessionId: string
+  sessionNo: string
+  drawerId: string
+  drawerName: string | null
+  branchId: string
+  branchName: string | null
+  closedAt: string | null
+  postCloseStatusCode: string | null
+  postCloseNotes: string | null
+  pendingDepositAmounts: Array<{ currencyCode: string; amount: string }>
+}
+
+/** Closed sessions whose closing cash went to a PENDING_DEPOSIT drawer (CLF-8-9). */
+export async function fetchCashDrawerFollowUp(input: {
+  page: number
+  pageSize: number
+  postCloseStatusCode?: string
+}): Promise<PagedResult<FollowUpSessionEntry>> {
+  const params = new URLSearchParams({ page: String(input.page), pageSize: String(input.pageSize) })
+  if (input.postCloseStatusCode) params.set('postCloseStatusCode', input.postCloseStatusCode)
+  return fetchCashDrawerJson<PagedResult<FollowUpSessionEntry>>(`/api/v1/cash-drawers/follow-up?${params.toString()}`)
 }
 
 async function fetchCashDrawerJson<T>(url: string): Promise<T> {

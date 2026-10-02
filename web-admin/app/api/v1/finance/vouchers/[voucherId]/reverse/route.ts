@@ -1,14 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { cashPlacementShape } from '@/lib/validations/cash-drawer/placement-schemas';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { reverseBizVoucher } from '@/lib/services/voucher-reversal.service';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import { CUSTOMER_RECEIPT_POST_ERRORS } from '@/lib/types/customer-receipt-allocation';
 
 /**
- *
- * @param request
- * @param root0
- * @param root0.params
+ * Body: mandatory `reason`; optional `lineIds` (partial reversal — default is
+ * every POSTED line) and explicit cash placement for the cash mirrors.
+ */
+const reverseBodySchema = z.object({
+  reason: z.string().trim().min(1),
+  lineIds: z.array(z.string().uuid()).min(1).max(200).optional(),
+  ...cashPlacementShape,
+});
+
+/**
+ * POST /api/v1/finance/vouchers/[voucherId]/reverse — full or partial reversal.
+ * Cash-drawer ledger refusals come back as `{ success:false, error: <code> }` (422).
+ * @param request JSON body matching `reverseBodySchema`
+ * @param root0 route context
+ * @param root0.params voucher id
  */
 export async function POST(
   request: NextRequest,
@@ -20,11 +33,21 @@ export async function POST(
   const { voucherId } = await params;
 
   try {
-    const body = await request.json() as { reason: string };
-    if (!body?.reason?.trim()) {
-      return NextResponse.json({ success: false, error: 'reason is required' }, { status: 400 });
+    const parsed = reverseBodySchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      const reasonMissing = parsed.error.issues.some((i) => i.path[0] === 'reason');
+      return NextResponse.json(
+        { success: false, error: reasonMissing ? 'reason is required' : 'Invalid request', details: parsed.error.issues },
+        { status: 400 },
+      );
     }
-    const result = await reverseBizVoucher(tenantId, voucherId, body.reason.trim(), userId);
+    const { reason, lineIds, cashDrawerId, cashDrawerSessionId, receivedByUserId } = parsed.data;
+    const result = await reverseBizVoucher(tenantId, voucherId, reason, userId, {
+      lineIds,
+      cashDrawerId,
+      cashDrawerSessionId,
+      receivedByUserId,
+    });
     return NextResponse.json({ success: true, data: result });
   } catch (err) {
     // CLF: the cash-drawer ledger gate raises a typed refusal with a stable

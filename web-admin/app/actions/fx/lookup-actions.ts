@@ -8,9 +8,9 @@
 
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
-import { listAddableCurrencies, listFxRateTypes, listFxSources } from '@/lib/services/fx/fx-lookups.service';
+import { listActiveFxProviders, listAddableCurrencies, listFxRateTypes, listFxSources } from '@/lib/services/fx/fx-lookups.service';
 import { CURRENCY_FX_PERMISSIONS } from '@/lib/constants/permissions/currency-fx-perm';
-import type { FxRateSourceOption, FxRateTypeOption, SelectableCurrency } from '@/lib/types/currency-fx';
+import type { FxProviderOption, FxRateSourceOption, FxRateTypeOption, SelectableCurrency } from '@/lib/types/currency-fx';
 
 interface ActionResult<T> {
   success: boolean;
@@ -54,5 +54,18 @@ export async function getFxSourcesAction(): Promise<ActionResult<FxRateSourceOpt
     return { success: true, data };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to load rate sources' };
+  }
+}
+
+export async function getActiveFxProvidersAction(): Promise<ActionResult<FxProviderOption[]>> {
+  try {
+    await getAuthContext();
+    if (!(await hasPermissionServer(CURRENCY_FX_PERMISSIONS.FX_RATES_VIEW))) {
+      return { success: false, error: 'Forbidden' };
+    }
+    const data = await listActiveFxProviders();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to load providers' };
   }
 }

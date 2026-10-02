@@ -101,6 +101,11 @@ export interface ProviderRow {
   parserCode: string;
 }
 
+/** Whether a given `parser_code` is actually implemented here — the real gate on fetchability, not just `is_active`. */
+export function isProviderFetchable(parserCode: string): boolean {
+  return parserCode in PARSER_REGISTRY;
+}
+
 /** Fetches and parses one curated provider's feed. Never accepts a caller-supplied URL. */
 export async function fetchProviderRates(provider: ProviderRow): Promise<FetchedProviderRates> {
   const parser = PARSER_REGISTRY[provider.parserCode];

@@ -23,7 +23,9 @@ export interface FollowUpSessionRow {
   sessionId: string;
   sessionNo: string;
   drawerId: string;
+  drawerName: string | null;
   branchId: string;
+  branchName: string | null;
   closedAt: Date | null;
   postCloseStatusCode: string | null;
   postCloseNotes: string | null;
@@ -83,6 +85,25 @@ export async function listFollowUpSessions(tenantOrgId: string, filter: FollowUp
       prisma.org_cash_drawer_sessions_mst.count({ where }),
     ]);
 
+    const drawerIds = [...new Set(sessions.map((s) => s.cash_drawer_id))];
+    const branchIds = [...new Set(sessions.map((s) => s.branch_id).filter((id): id is string => Boolean(id)))];
+    const [drawers, branches] = await Promise.all([
+      drawerIds.length
+        ? prisma.org_cash_drawers_mst.findMany({
+            where: { tenant_org_id: tenantOrgId, id: { in: drawerIds } },
+            select: { id: true, drawer_name: true },
+          })
+        : Promise.resolve([]),
+      branchIds.length
+        ? prisma.org_branches_mst.findMany({
+            where: { tenant_org_id: tenantOrgId, id: { in: branchIds } },
+            select: { id: true, branch_name: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const drawerNameById = new Map(drawers.map((d) => [d.id, d.drawer_name]));
+    const branchNameById = new Map(branches.map((b) => [b.id, b.branch_name]));
+
     const balBySession = new Map<string, typeof balRows>();
     for (const r of balRows) {
       balBySession.set(r.cash_drawer_session_id, [...(balBySession.get(r.cash_drawer_session_id) ?? []), r]);
@@ -93,7 +114,9 @@ export async function listFollowUpSessions(tenantOrgId: string, filter: FollowUp
         sessionId: s.id,
         sessionNo: s.session_no,
         drawerId: s.cash_drawer_id,
+        drawerName: drawerNameById.get(s.cash_drawer_id) ?? null,
         branchId: s.branch_id,
+        branchName: s.branch_id ? branchNameById.get(s.branch_id) ?? null : null,
         closedAt: s.closed_at,
         postCloseStatusCode: s.post_close_status_code,
         postCloseNotes: s.post_close_notes,

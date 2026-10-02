@@ -276,6 +276,10 @@ export interface VoucherLineData {
   credit_application_type: string | null;
   order_payment_id: string | null;
   cash_drawer_mvt_id: string | null;
+  /** CLF unified-ledger stamp (NULL / PENDING / DRAWER / UNTRACKED / NONE). */
+  cash_effect_code?: string | null;
+  /** Per-drawer ledger sequence (bigint serialised as a string); set when `cash_effect_code='DRAWER'`. */
+  cash_ledger_seq?: string | null;
   org_payment_method_id: string | null;
   payment_terminal_id: string | null;
   cash_drawer_session_id: string | null;

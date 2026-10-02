@@ -92,6 +92,7 @@ export interface LinkedEffect {
   tableRef:
     | 'org_order_payments_dtl'
     | 'org_cash_drawer_movements_dtl'
+    | 'org_fin_voucher_trx_lines_dtl'
     | 'org_order_credit_apps_dtl'
     | 'org_invoice_payments_dtl'
     | 'org_b2b_statements_mst'

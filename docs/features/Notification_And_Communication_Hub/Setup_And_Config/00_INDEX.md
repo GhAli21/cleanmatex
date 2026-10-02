@@ -32,6 +32,7 @@
 | 11 | [11_smoke_tests.md](./11_smoke_tests.md) | Per-channel smoke test procedure + SQL test harness |
 | 12 | [12_provider_switching.md](./12_provider_switching.md) | Zero-downtime provider switch + rollback |
 | 13 | [13_twilio_waba_and_template_approval.md](./13_twilio_waba_and_template_approval.md) | Twilio WABA Self Sign-up, why templates stay unapproved, sandbox vs production, resubmit + HQ flags |
+| 14 | [14_twilio_production_order_created.md](./14_twilio_production_order_created.md) | Approved order-created Content SID, tenant event mapping, customer opt-in, production dispatch and end-to-end test |
 
 ## Diagnostics
 

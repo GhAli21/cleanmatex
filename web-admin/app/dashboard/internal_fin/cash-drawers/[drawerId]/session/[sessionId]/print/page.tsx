@@ -11,6 +11,7 @@ export const metadata: Metadata = { title: 'Cash Drawer Session Print' };
 import { notFound } from 'next/navigation';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { getSessionSummary } from '@/lib/services/cash-drawer.service';
+import { getSessionClosureView } from '@/lib/services/cash-drawer-session-view.service';
 import { CashDrawerSessionPrintRprt } from '@features/billing/ui/cash-drawer-session-print-rprt';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
@@ -30,7 +31,7 @@ interface PageProps {
  * @param root0.params
  */
 export default async function CashDrawerSessionPrintPage({ params }: PageProps) {
-  const { sessionId } = await params;
+  const { drawerId, sessionId } = await params;
 
   const { tenantId } = await getAuthContext();
 
@@ -42,6 +43,10 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
   }
 
   const { session, movements, payments, reconciliation } = summary;
+
+  // CLF per-currency snapshot; a failure here must not block the legacy report.
+  const closureView = await getSessionClosureView(tenantId, drawerId, sessionId).catch(() => null);
+  const closure = closureView ? JSON.parse(JSON.stringify(closureView)) : null;
 
   // A3-4: `reconciliation.expectedCash`/`.variance` are already computed in
   // Decimal space by the service (A3-7's `buildSessionReconciliation`) and
@@ -97,6 +102,7 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
       session={serializedSession}
       movements={serializedMovements}
       payments={serializedPayments}
+      closure={closure}
       totals={{
         totalCashIn: Number(reconciliation.movementCashIn),
         totalCashOut: Number(reconciliation.movementCashOut),

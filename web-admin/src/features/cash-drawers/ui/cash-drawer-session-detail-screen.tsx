@@ -14,6 +14,7 @@ import {
   useCashDrawerDateFormatter,
   useCashDrawerMoneyFormatter,
 } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
+import { CashDrawerSessionClosureSection } from '@features/cash-drawers/ui/cash-drawer-session-closure-section'
 import { CashDrawerVarianceApprovalDialog } from '@features/cash-drawers/ui/cash-drawer-variance-approval-dialog'
 import type { CashDrawerSessionDetail } from '@lib/types/cash-drawer'
 import { CmxDataTable } from '@ui/data-display'
@@ -369,6 +370,8 @@ export function CashDrawerSessionDetailScreen({
           </CmxCardContent>
         </CmxCard>
       </div>
+
+      <CashDrawerSessionClosureSection drawerId={drawerId} sessionId={sessionId} />
 
       <CmxCard>
         <CmxCardHeader>

@@ -307,3 +307,251 @@ export async function getDrawerLedgerPage(
     pageSize,
   };
 }
+
+/**
+ * One ledger entry enriched with the reference fields the legacy
+ * `CashDrawerMovementRow` screen contract exposes (CLF-6-1). Kept distinct
+ * from {@link DrawerLedgerEntryRow} (CLF-8-7's own unified Ledger tab, which
+ * does not need these joins) so this query only pays for the extra columns
+ * where a caller actually needs the old movement-row shape.
+ */
+export interface DrawerLedgerMovementRow {
+  id: string;
+  domain: 'FIN' | 'TRX';
+  /** FIN: the voucher line's `line_role` (e.g. `ORDER_PAYMENT`, `CASH_PAY_IN`). TRX: the transaction's `trx_type_code`. */
+  movementType: string;
+  direction: string;
+  amount: Decimal;
+  currencyCode: string;
+  orderId: string | null;
+  orderPaymentId: string | null;
+  /** Human-readable reference: FIN has none readily joinable here; TRX carries its own `trx_no`. */
+  referenceNo: string | null;
+  reason: string | null;
+  occurredAt: Date;
+  performedBy: string | null;
+}
+
+interface LedgerMovementQueryRow {
+  id: string;
+  domain: 'FIN' | 'TRX';
+  movement_type: string;
+  direction: string;
+  amount: Prisma.Decimal;
+  currency_code: string;
+  order_id: string | null;
+  order_payment_id: string | null;
+  reference_no: string | null;
+  reason: string | null;
+  occurred_at: Date;
+  performed_by: string | null;
+}
+
+export interface DrawerLedgerMovementsPage {
+  rows: DrawerLedgerMovementRow[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Paginated unified ledger (finance + custody), scoped to one session or one
+ * drawer, shaped for the pre-CLF `CashDrawerMovementRow` screen contract
+ * (CLF-6-1 — keeps the existing session-detail / overview-recent-activity
+ * screens working unchanged until CLF-8-7/8-8 give them a native ledger view).
+ * @param tenantOrgId tenant of the drawer
+ * @param drawerId drawer whose ledger is read
+ * @param scope exactly one of `sessionId` (session-scoped) or no session (drawer-wide recent activity)
+ * @param page 1-based page number
+ * @param pageSize rows per page
+ */
+export async function getDrawerLedgerMovementsPage(
+  tenantOrgId: string,
+  drawerId: string,
+  scope: { sessionId?: string },
+  page: number,
+  pageSize: number,
+): Promise<DrawerLedgerMovementsPage> {
+  const offset = Math.max(0, (page - 1) * pageSize);
+  const sessionFilter = scope.sessionId ?? null;
+
+  const [rows, countRows] = await withTenantContext(tenantOrgId, () =>
+    Promise.all([
+      prisma.$queryRaw<LedgerMovementQueryRow[]>(Prisma.sql`
+        WITH entries AS (
+          SELECT l.id,
+                 'FIN'::text AS domain,
+                 l.line_role AS movement_type,
+                 l.direction,
+                 l.amount,
+                 l.currency_code,
+                 l.order_id,
+                 l.order_payment_id,
+                 NULL::text AS reference_no,
+                 COALESCE(l.description, l.notes, l.party_name) AS reason,
+                 l.cash_recognized_at AS occurred_at,
+                 l.cash_recognized_by AS performed_by,
+                 l.cash_drawer_session_id AS session_id
+            FROM org_fin_voucher_trx_lines_dtl l
+           WHERE l.tenant_org_id = ${tenantOrgId}::uuid
+             AND l.cash_drawer_id = ${drawerId}::uuid
+             AND l.cash_effect_code = 'DRAWER'
+          UNION ALL
+          SELECT d.id,
+                 'TRX'::text AS domain,
+                 h.trx_type_code AS movement_type,
+                 d.direction,
+                 d.amount,
+                 d.currency_code,
+                 NULL::uuid AS order_id,
+                 NULL::uuid AS order_payment_id,
+                 h.trx_no AS reference_no,
+                 COALESCE(h.reason_code, h.notes) AS reason,
+                 h.occurred_at,
+                 h.performed_by,
+                 d.cash_drawer_session_id AS session_id
+            FROM org_cash_drawer_trx_dtl d
+            JOIN org_cash_drawer_trx_mst h ON h.id = d.trx_id
+           WHERE d.tenant_org_id = ${tenantOrgId}::uuid
+             AND d.cash_drawer_id = ${drawerId}::uuid
+        )
+        SELECT id, domain, movement_type, direction, amount, currency_code,
+               order_id, order_payment_id, reference_no, reason, occurred_at, performed_by
+          FROM entries
+         WHERE ${sessionFilter === null ? Prisma.sql`TRUE` : Prisma.sql`session_id = ${sessionFilter}::uuid`}
+         ORDER BY occurred_at DESC
+         LIMIT ${pageSize} OFFSET ${offset}
+      `),
+      prisma.$queryRaw<Array<{ total: bigint }>>(Prisma.sql`
+        SELECT (
+          (SELECT COUNT(*) FROM org_fin_voucher_trx_lines_dtl
+            WHERE tenant_org_id = ${tenantOrgId}::uuid AND cash_drawer_id = ${drawerId}::uuid AND cash_effect_code = 'DRAWER'
+              AND ${sessionFilter === null ? Prisma.sql`TRUE` : Prisma.sql`cash_drawer_session_id = ${sessionFilter}::uuid`})
+          +
+          (SELECT COUNT(*) FROM org_cash_drawer_trx_dtl
+            WHERE tenant_org_id = ${tenantOrgId}::uuid AND cash_drawer_id = ${drawerId}::uuid
+              AND ${sessionFilter === null ? Prisma.sql`TRUE` : Prisma.sql`cash_drawer_session_id = ${sessionFilter}::uuid`})
+        ) AS total
+      `),
+    ]),
+  );
+
+  return {
+    rows: rows.map((r) => ({
+      id: r.id,
+      domain: r.domain,
+      movementType: r.movement_type,
+      direction: r.direction,
+      amount: new Decimal(r.amount.toString()),
+      currencyCode: r.currency_code,
+      orderId: r.order_id,
+      orderPaymentId: r.order_payment_id,
+      referenceNo: r.reference_no,
+      reason: r.reason,
+      occurredAt: r.occurred_at,
+      performedBy: r.performed_by,
+    })),
+    totalCount: Number(countRows[0]?.total ?? BigInt(0)),
+    page,
+    pageSize,
+  };
+}
+
+interface SessionLedgerTotalsRow {
+  domain: 'FIN' | 'TRX';
+  direction: string;
+  total: Prisma.Decimal;
+}
+
+/** Per-session, per-domain IN/OUT ledger totals. Decimal, zero-filled when a session has no entries yet. */
+export interface SessionLedgerTotals {
+  finIn: Decimal;
+  finOut: Decimal;
+  trxIn: Decimal;
+  trxOut: Decimal;
+  finCount: number;
+  trxCount: number;
+}
+
+/**
+ * Sums a batch of sessions' own ledger activity (CLF-6-1), keyed by
+ * `cash_drawer_session_id` directly — no `open_ledger_seq`/chain math needed,
+ * since the gate stamps every posting's `cash_drawer_session_id` at write
+ * time regardless of how the session itself was opened (works identically
+ * for a session opened through the still-live legacy `openSession` route and
+ * one opened through the CLF lifecycle). This is the session-summary
+ * equivalent of {@link sumLedgerWindow}'s drawer-wide window sum.
+ * @param tenantOrgId tenant of the sessions
+ * @param sessionIds sessions to sum; returns an empty map for an empty input
+ */
+export async function sumLedgerTotalsBySession(
+  tenantOrgId: string,
+  sessionIds: string[],
+): Promise<Map<string, SessionLedgerTotals>> {
+  const empty = () => ({ finIn: new Decimal(0), finOut: new Decimal(0), trxIn: new Decimal(0), trxOut: new Decimal(0), finCount: 0, trxCount: 0 });
+  const result = new Map<string, SessionLedgerTotals>();
+  if (sessionIds.length === 0) return result;
+
+  const rows = await withTenantContext(tenantOrgId, () =>
+    prisma.$queryRaw<Array<SessionLedgerTotalsRow & { session_id: string }>>(Prisma.sql`
+      SELECT session_id, domain, direction, SUM(amount)::numeric(19,4) AS total
+        FROM (
+          SELECT l.cash_drawer_session_id AS session_id, 'FIN'::text AS domain, l.direction, l.amount
+            FROM org_fin_voucher_trx_lines_dtl l
+           WHERE l.tenant_org_id = ${tenantOrgId}::uuid
+             AND l.cash_drawer_session_id = ANY(${sessionIds}::uuid[])
+             AND l.cash_effect_code = 'DRAWER'
+          UNION ALL
+          SELECT d.cash_drawer_session_id AS session_id, 'TRX'::text AS domain, d.direction, d.amount
+            FROM org_cash_drawer_trx_dtl d
+           WHERE d.tenant_org_id = ${tenantOrgId}::uuid
+             AND d.cash_drawer_session_id = ANY(${sessionIds}::uuid[])
+             AND d.is_active = TRUE
+        ) entries
+       GROUP BY session_id, domain, direction
+    `),
+  );
+
+  for (const sessionId of sessionIds) result.set(sessionId, empty());
+
+  for (const row of rows) {
+    const bucket = result.get(row.session_id) ?? empty();
+    const amount = new Decimal(row.total.toString());
+    if (row.domain === 'FIN' && row.direction === 'IN') bucket.finIn = amount;
+    else if (row.domain === 'FIN' && row.direction === 'OUT') bucket.finOut = amount;
+    else if (row.domain === 'TRX' && row.direction === 'IN') bucket.trxIn = amount;
+    else if (row.domain === 'TRX' && row.direction === 'OUT') bucket.trxOut = amount;
+    result.set(row.session_id, bucket);
+  }
+
+  // Entry counts separately (COUNT alongside the UNION above would double-count
+  // across the direction GROUP BY), one lightweight pass per domain.
+  const [finCounts, trxCounts] = await withTenantContext(tenantOrgId, () =>
+    Promise.all([
+      prisma.org_fin_voucher_trx_lines_dtl.groupBy({
+        by: ['cash_drawer_session_id'],
+        where: { tenant_org_id: tenantOrgId, cash_drawer_session_id: { in: sessionIds }, cash_effect_code: 'DRAWER' },
+        _count: { _all: true },
+      }),
+      prisma.org_cash_drawer_trx_dtl.groupBy({
+        by: ['cash_drawer_session_id'],
+        where: { tenant_org_id: tenantOrgId, cash_drawer_session_id: { in: sessionIds }, is_active: true },
+        _count: { _all: true },
+      }),
+    ]),
+  );
+  for (const row of finCounts) {
+    if (!row.cash_drawer_session_id) continue;
+    const bucket = result.get(row.cash_drawer_session_id) ?? empty();
+    bucket.finCount = row._count._all;
+    result.set(row.cash_drawer_session_id, bucket);
+  }
+  for (const row of trxCounts) {
+    if (!row.cash_drawer_session_id) continue;
+    const bucket = result.get(row.cash_drawer_session_id) ?? empty();
+    bucket.trxCount = row._count._all;
+    result.set(row.cash_drawer_session_id, bucket);
+  }
+
+  return result;
+}

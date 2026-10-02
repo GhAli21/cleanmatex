@@ -77,6 +77,15 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'Cash change rounding policy for the checkout (A6-1b)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/rounding-policy',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'Open a cash-drawer session (tender step)',
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/open-session',
@@ -153,6 +162,10 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     label: 'Customer Details',
     page: {},
     actions: {
+      updateWhatsAppConsent: {
+        label: 'Save customer WhatsApp consent (Preferences tab)',
+        requirement: { permissions: ['customers:update'], requireAllPermissions: true },
+      },
       topUpWallet: {
         label: 'Top up customer wallet (stored-value tab)',
         requirement: {
@@ -176,6 +189,13 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     },
     apiDependencies: [
+      {
+        label: 'Save customer WhatsApp consent',
+        method: 'PATCH',
+        path: '/api/v1/customers/[id]',
+        requirement: { permissions: ['customers:update'], requireAllPermissions: true },
+        notes: ['Preferences-only payload; CSRF and expected-tenant guard preserve customer ownership.'],
+      },
       {
         label: 'Get customer details',
         method: 'GET',

@@ -22,6 +22,12 @@ jest.mock('@/lib/db/prisma', () => ({
     org_customer_advances_mst: { findMany: jest.fn() },
     org_credit_notes_mst: { findMany: jest.fn() },
     org_cash_drawer_sessions_mst: { findMany: jest.fn() },
+    // CLF-6-2: the cash-drawer recon report sums the unified ledger via
+    // `sumLedgerTotalsBySession` (cash-drawer-balance.service.ts) instead of
+    // the retired `org_cash_drawer_movements_dtl` formula — one `$queryRaw`
+    // for the FIN/TRX amount totals, two `groupBy` calls for entry counts.
+    org_fin_voucher_trx_lines_dtl: { groupBy: jest.fn() },
+    org_cash_drawer_trx_dtl: { groupBy: jest.fn() },
     $queryRaw: jest.fn(),
   },
 }));
@@ -43,6 +49,8 @@ const mockPrisma = prisma as unknown as {
   org_customer_advances_mst: { findMany: Fn };
   org_credit_notes_mst: { findMany: Fn };
   org_cash_drawer_sessions_mst: { findMany: Fn };
+  org_fin_voucher_trx_lines_dtl: { groupBy: Fn };
+  org_cash_drawer_trx_dtl: { groupBy: Fn };
   $queryRaw: Fn;
 };
 
@@ -160,7 +168,7 @@ describe('getOverpaymentDispositionReconReport', () => {
 });
 
 describe('getCashDrawerReconReport', () => {
-  it('recomputes expected from movements and flags exceptions (delta / difference / unlinked)', async () => {
+  it('recomputes expected from the ledger and flags exceptions (delta / difference)', async () => {
     mockPrisma.org_cash_drawer_sessions_mst.findMany.mockResolvedValueOnce([
       {
         id: 'sess-ok', session_no: 'CDS-1', status: 'CLOSED', currency_code: 'OMR',
@@ -173,11 +181,17 @@ describe('getCashDrawerReconReport', () => {
         opening_float_amount: 100, expected_cash_amount: 150, counted_cash_amount: 140, difference_amount: -10,
       },
     ]);
-    // movement aggregate: sess-ok net 50 / 0 unlinked; sess-bad net 50 / 1 unlinked
+    // ledger totals: both sessions have a single FIN IN entry of 50 (opening
+    // 100 + net 50 = 150, matching both sessions' header expected).
     mockPrisma.$queryRaw.mockResolvedValueOnce([
-      { cash_drawer_session_id: 'sess-ok', net_movement: 50, unlinked_count: 0 },
-      { cash_drawer_session_id: 'sess-bad', net_movement: 50, unlinked_count: 1 },
+      { session_id: 'sess-ok', domain: 'FIN', direction: 'IN', total: 50 },
+      { session_id: 'sess-bad', domain: 'FIN', direction: 'IN', total: 50 },
     ]);
+    mockPrisma.org_fin_voucher_trx_lines_dtl.groupBy.mockResolvedValueOnce([
+      { cash_drawer_session_id: 'sess-ok', _count: { _all: 1 } },
+      { cash_drawer_session_id: 'sess-bad', _count: { _all: 1 } },
+    ]);
+    mockPrisma.org_cash_drawer_trx_dtl.groupBy.mockResolvedValueOnce([]);
 
     const report = await getCashDrawerReconReport({ tenantOrgId: TENANT });
 
@@ -185,17 +199,35 @@ describe('getCashDrawerReconReport', () => {
     const bad = report.rows.find((r) => r.sessionId === 'sess-bad')!;
 
     expect(ok).toMatchObject({ computedExpectedAmount: 150, expectedDelta: 0, isReconciled: true });
-    // close difference (-10) AND an unlinked movement both make this an exception
-    expect(bad).toMatchObject({ differenceAmount: -10, unlinkedMovementCount: 1, isReconciled: false });
+    // close difference (-10) alone makes this an exception; the expected
+    // figure itself still matches the ledger recompute.
+    expect(bad).toMatchObject({ differenceAmount: -10, unlinkedMovementCount: 0, isReconciled: false });
     expect(report.summary).toMatchObject({
       sessionCount: 2,
       exceptionCount: 1,
       totalDifference: -10,
-      totalUnlinkedMovements: 1,
+      totalUnlinkedMovements: 0,
     });
   });
 
-  it('skips the movement query when there are no sessions', async () => {
+  it('treats a closed session with no ledger activity as reconciled (predates CLF)', async () => {
+    mockPrisma.org_cash_drawer_sessions_mst.findMany.mockResolvedValueOnce([
+      {
+        id: 'sess-legacy', session_no: 'CDS-0', status: 'CLOSED', currency_code: 'OMR',
+        opened_at: new Date('2026-01-01T08:00:00Z'), closed_at: new Date('2026-01-01T18:00:00Z'),
+        opening_float_amount: 100, expected_cash_amount: 275, counted_cash_amount: 275, difference_amount: 0,
+      },
+    ]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([]);
+    mockPrisma.org_fin_voucher_trx_lines_dtl.groupBy.mockResolvedValueOnce([]);
+    mockPrisma.org_cash_drawer_trx_dtl.groupBy.mockResolvedValueOnce([]);
+
+    const report = await getCashDrawerReconReport({ tenantOrgId: TENANT });
+
+    expect(report.rows[0]).toMatchObject({ expectedDelta: 0, isReconciled: true });
+  });
+
+  it('skips the ledger query when there are no sessions', async () => {
     mockPrisma.org_cash_drawer_sessions_mst.findMany.mockResolvedValueOnce([]);
     const report = await getCashDrawerReconReport({ tenantOrgId: TENANT });
     expect(report.rows).toHaveLength(0);

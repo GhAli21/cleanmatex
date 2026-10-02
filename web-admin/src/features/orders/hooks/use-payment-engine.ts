@@ -98,6 +98,7 @@ import { usePaymentTotals } from '@features/orders/hooks/use-payment-totals';
 import type { OrderItemServicePref } from '@features/orders/model/new-order-types';
 import { usePaymentLegs } from '@features/orders/hooks/use-payment-legs';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
+import { useCashChangeRoundingPolicy, useRoundedCashChange } from '@features/orders/hooks/use-cash-change-rounding';
 import {
   resolvePaymentOverpaymentPolicy,
   resolveSupportsRetainedOverpayment,
@@ -999,9 +1000,23 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     canReturnChangeFromCash,
     moneyEpsilon
   );
+  // A6-1b: the change actually handed out is rounded to the cash increment. Only the plain
+  // tendered-minus-amount change is rounded (an overpayment resolution keeps its exact
+  // amount, same as the server); the typed tender is never rewritten.
+  const cashChangeRoundingPolicy = useCashChangeRoundingPolicy({
+    enabled: open && !payExtraIntent && legacyDisplayChangeAmount > moneyEpsilon,
+    tenantOrgId,
+    branchId,
+    currencyCode,
+  });
+  const cashChangeRounding = useRoundedCashChange(
+    payExtraIntent ? null : cashChangeRoundingPolicy,
+    legacyDisplayChangeAmount,
+    cashTenderedAmount,
+  );
   const displayChangeAmount = payExtraIntent
     ? payExtra.checkoutMetrics.changeResolvedAmount
-    : legacyDisplayChangeAmount;
+    : (cashChangeRounding?.roundedChange ?? legacyDisplayChangeAmount);
 
   useEffect(() => {
     if (!open) return;
@@ -1662,6 +1677,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     editableLegEntries,
     legacyDisplayChangeAmount,
     displayChangeAmount,
+    cashChangeRounding,
     netCashRetainedAmount,
     primaryMethodOption,
     cashDrawerRequired,

@@ -88,6 +88,18 @@
     "shiftZReportRequired": {
       "label": "Z-report required at close",
       "description": "Require a Z-report to be generated as part of closing the POS session."
+    },
+    "requiresSession": {
+      "label": "Requires an open session",
+      "description": "Cash can only be taken on this drawer while a session is open."
+    },
+    "openingCountRequired": {
+      "label": "Opening count required",
+      "description": "A physical count must be entered when a session opens."
+    },
+    "closingCountRequired": {
+      "label": "Closing count required",
+      "description": "A physical count must be entered when a session closes."
     }
   },
   "enums": {
@@ -162,6 +174,7 @@
     "CASH_LINE_IMMUTABLE": "This cash entry is already recorded and cannot be changed.",
     "CASH_LEG_MUST_REVERSE": "This cash payment is already in the drawer. Reverse it instead.",
     "POST_CLOSE_SESSION_NOT_CLOSED": "The session must be closed first.",
-    "CASH_DRAWER_CURRENCY_NOT_CONFIGURED": "No currency is configured for this cash drawer."
+    "CASH_DRAWER_CURRENCY_NOT_CONFIGURED": "No currency is configured for this cash drawer.",
+    "CASH_RECEIVER_INVALID": "This receiving user is not an active member of your organization."
   }
 }

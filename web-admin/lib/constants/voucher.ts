@@ -152,6 +152,12 @@ export const LINE_ROLE = {
   CASH_PAY_IN:                  'CASH_PAY_IN',
   /** CLF (migration 0530): over/short adjustment from a drawer count variance; never carries a payment method. */
   CASH_OVER_SHORT:              'CASH_OVER_SHORT',
+  /**
+   * A6-1b (migration 0546): gap between the exact cash change owed and the rounded change
+   * handed out. System-generated only (never user-selectable); direction follows the sign —
+   * OUT = drawer holds less (rounding loss), IN = drawer holds more (rounding gain).
+   */
+  CASH_CHANGE_ROUNDING:         'CASH_CHANGE_ROUNDING',
 } as const;
 
 /**
@@ -320,6 +326,9 @@ export const LINE_ROLE_REQUIREMENTS: Record<string, { targetTypes: string[]; req
   [LINE_ROLE.ORDER_CREDIT_APPLICATION]: { targetTypes: [TARGET_TYPE.ORDER],       requiredFields: ['order_id'] },
   [LINE_ROLE.CASH_PAY_IN]:              { targetTypes: [TARGET_TYPE.CASH_DRAWER], requiredFields: [] },
   [LINE_ROLE.CASH_OVER_SHORT]:          { targetTypes: [TARGET_TYPE.CASH_DRAWER], requiredFields: [] },
+  // Anchored to the order the cash was taken for; payments without an order (wallet top-up,
+  // customer account receipt) anchor to the customer, then to the drawer.
+  [LINE_ROLE.CASH_CHANGE_ROUNDING]:     { targetTypes: [TARGET_TYPE.ORDER, TARGET_TYPE.CUSTOMER, TARGET_TYPE.CASH_DRAWER], requiredFields: [] },
 };
 
 /**
@@ -353,6 +362,7 @@ export const LINE_ROLE_TO_LINE_TYPE: Record<LineRole, LineType> = {
   [LINE_ROLE.ORDER_CREDIT_APPLICATION]: LINE_TYPE.ADJUSTMENT,
   [LINE_ROLE.CASH_PAY_IN]:              LINE_TYPE.RECEIPT,
   [LINE_ROLE.CASH_OVER_SHORT]:          LINE_TYPE.ADJUSTMENT,
+  [LINE_ROLE.CASH_CHANGE_ROUNDING]:     LINE_TYPE.ROUNDING,
 };
 
 /** Canonical line_role → direction map (single source of truth, see LINE_ROLE_TO_LINE_TYPE). */
@@ -382,4 +392,6 @@ export const LINE_ROLE_TO_DIRECTION: Record<LineRole, VoucherDirection> = {
   [LINE_ROLE.ORDER_CREDIT_APPLICATION]: VOUCHER_DIRECTION.NEUTRAL,
   [LINE_ROLE.CASH_PAY_IN]:              VOUCHER_DIRECTION.IN,
   [LINE_ROLE.CASH_OVER_SHORT]:          VOUCHER_DIRECTION.NEUTRAL,
+  // Placeholder only: the writer sets IN/OUT from the sign of the rounding gap.
+  [LINE_ROLE.CASH_CHANGE_ROUNDING]:     VOUCHER_DIRECTION.NEUTRAL,
 };

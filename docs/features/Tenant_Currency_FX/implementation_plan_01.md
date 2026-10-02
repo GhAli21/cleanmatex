@@ -1,6 +1,6 @@
 # Tenant Currency & FX — Implementation Plan 01 (tenant context)
 
-**Status:** 🟡 IN PROGRESS — plan v2 approved 2026-09-25. L0/5A/L2/5B/5C all done, migration `0540` applied local+remote (confirmed via `list_migrations` 2026-10-02). **5D/5E (CSV import + ECB URL fetch) IN PROGRESS as of 2026-10-02 — see §0.3 for the exact mid-session resume state (backend done, server actions + UI wiring + final validation still to go).**
+**Status:** ✅ **PLAN COMPLETE as of 2026-10-02** — L0/5A/L2/5B/5C/5D/5E/L4 all done. **L4 (legacy settings soft-retirement) done 2026-10-02 on owner go-ahead** — see §0.4. Migrations `0542`–`0545` **all applied by owner (local + remote, types regenerated)**. **L5 (hard delete) is a deliberate one-release-later step, see §6** — not part of this closure.
 **Resume here (both repos):** `cleanmatexsaas/docs/features/Currency_Setup/RESUME_HERE.md`
 **v2 (2026-09-25):** folds in the review of the external currency pack (`REVIEW_external_currency_pack.md`): `is_base_currency` naming, full unique key, context flags defaulting FALSE, module-readiness registry, foreign cash = a drawer in that currency (CLF-aligned), `sales_pricing_mode`, reason-coded policy resolver, health panel, progressive-disclosure UI, later phases T-B (branch restriction) and T-R (tenant rounding overrides).
 **Context:** **Tenant only** (`cleanmatex`: `web-admin` + `org_*` migrations)
@@ -21,9 +21,10 @@
 | **L2** code cut-over | ✅ done 2026-09-26 | Re-pointed `getTenantCurrency`/`getTenantDecimalPlaces`/`getCurrencyConfig` (`tenant-settings.service.ts`) and `resolveTenantBaseCurrencyCode` (`order-financial-write.service.ts`) to new `TenantCurrencyProfileService` (`lib/services/fx/tenant-currency-profile.service.ts`, reads `org_currency_cf`); `getCurrencyConfigAction`/`useTenantCurrency` unchanged (they already delegate). Signatures preserved (unused `branchId`/`userId` params kept, prefixed `_`, since `org_currency_cf` is tenant-only). Parity + fail-loud tests added (`tenant-currency-profile.service.test.ts`, `tenant-settings.service.currency.test.ts`, `order-financial-write.resolve-base-currency.test.ts`). `MISSING_TENANT_CURRENCY` EN/AR copy updated to reference Currency Settings. tsc/eslint/i18n clean; orphaned `src/features/orders/hooks/use-tenant-currency.ts` stub (zero callers) left untouched |
 | **5B** tenant FX services | ✅ **done 2026-10-01** — see §0.1 | 9 service/constant files + 6 new test files (111 tests total across 7 suites), tsc/eslint/jest/build all green |
 | **5C** Currencies & FX screen | ✅ **done 2026-10-01**, `0540` applied 2026-10-02 — see §0.2 | Full tab set (Currencies/Rates/Import/Converter/Settings) + progressive-disclosure compact view, server actions, access contract, nav dual-write. tsc/eslint/jest/i18n/access-contract/build all green. Nav live in prod/remote DB |
-| **5D** CSV import | 🟡 **IN PROGRESS** — see §0.3 | Backend done (parser, validator, service, 35 tests green). Excel **deferred** (owner decision: xlsx@0.18.5 has 2 published HIGH CVEs with no npm-registry fix — see §0.3). Server action + UI wiring not started |
-| **5E** URL fetch (ECB) | 🟡 **IN PROGRESS** — see §0.3 | Secure fetch + ECB parser done (12 tests green, SSRF defenses verified). Preview/commit service + lookups + server action + UI wiring not started |
-| L4, L5 | ⬜ | per §9 |
+| **5D** CSV import | ✅ **done 2026-10-02** — see §0.3 | Parser, validator, service, server actions, UI wiring (file picker + source select + preview/commit) all landed. Excel **deferred** (owner decision: xlsx@0.18.5 has 2 published HIGH CVEs with no npm-registry fix — see §0.3) |
+| **5E** URL fetch (ECB) | ✅ **done 2026-10-02** — see §0.3 | Secure fetch + ECB parser + `fx-url-import.service.ts` (preview/commit) + provider lookup + server actions + UI wiring (provider select + preview/commit) all landed |
+| **L4** legacy settings soft-retirement | ✅ **done 2026-10-02** — see §0.4/§0.5 | `0542`–`0545` all applied (both DBs, types regenerated). No app code read these codes already (L2) |
+| L5 (hard delete) | ⬜ deliberately deferred — one release later | per §6/§9 |
 
 ### 0.1 — 5B resume checkpoint (2026-10-01, before a context `/clear`)
 
@@ -144,6 +145,68 @@ No migrations were touched in 5B — pure application code against the already-a
 7. Mark 5D/5E done in this table + `cleanmatexsaas/docs/features/Currency_Setup/RESUME_HERE.md` once 1–6 are complete.
 
 **Established conventions to keep following (same as 5B/5C):** Prisma + `withTenantContext`, every query filtered by `tenant_org_id` even inside that wrapper; permission checks happen in `app/actions/fx/*`, never inside `lib/services/fx/*`; typed errors via `FxError`/`FX_ERROR` (service layer) — `FxProviderFetchError` is a **separate** error class for the fetch layer specifically (network/parse failures, not business-rule violations) and should be caught and re-wrapped as an `FxError` (likely `FX_ERROR.LOOKUP_INVALID` or a new dedicated code) at the `fx-url-import.service.ts` boundary so `app/actions/fx/*` only ever has to handle one error type; money/rates stay exact decimal strings, never JS `number`; reuse `createRate` for every adapter's commit step rather than writing `org_fx_rate_mst` directly.
+
+### 0.4 — 5D/5E completion (2026-10-02)
+
+Completed steps 1–7 from §0.3's checklist. No migrations — pure application code against the already-applied `0532`/`0537` schema.
+
+| File | Role |
+|---|---|
+| `lib/services/fx/fx-url-import.service.ts` (new) | `previewUrlImport`/`commitUrlImport`, same preview→commit shape as CSV/HQ-copy. Loads the `sys_fx_provider_cd` row, calls `fetchProviderRates()`, maps `rates` into `RawImportRow[]` pairs `(baseCurrencyCode, code)`, validates with the shared `validateImportRows()`, persists `origin_code=URL_FETCH` + `provider_code`. `rateTypeCode` fixed to `SPOT`. `FxProviderFetchError` is caught and rewrapped as `FxError(FX_ERROR.PROVIDER_FETCH_FAILED, ...)` at this boundary — `app/actions/fx/*` only ever handles one error type |
+| `lib/services/fx/fx-errors.ts` | Added `PROVIDER_NOT_FOUND`, `PROVIDER_FETCH_FAILED` to `FX_ERROR` |
+| `lib/services/fx/fx-provider-fetch.ts` | Exported `isProviderFetchable(parserCode)` — the real `PARSER_REGISTRY` gate, reused by the lookup below instead of duplicating it |
+| `lib/services/fx/fx-lookups.service.ts` | Added `listActiveFxProviders()` — active `sys_fx_provider_cd` rows filtered to `isProviderFetchable` (today: `ECB_DAILY_XML` only) |
+| `app/actions/fx/import-actions.ts` | Added `previewCsvImportAction`/`commitCsvImportAction` (FormData file upload, same pattern as `app/actions/orders/upload-photo.ts` — `formData.get('file') as File`, `.text()`, no Buffer needed since CSV is parsed as text) and `previewUrlImportAction`/`commitUrlImportAction`. All gated on `fx_rates:import`; `actorCanApprove` derived from `fx_rates:approve` exactly like the HQ-copy actions |
+| `app/actions/fx/lookup-actions.ts` | Added `getActiveFxProvidersAction()`, gated on `fx_rates:view` (read-only reference data) |
+| `lib/types/currency-fx.ts` | Re-exported `CsvPreviewRow/Result`, `CsvCommitResult`, `UrlImportPreviewRow/Result`, `UrlImportCommitResult`, `FxProviderOption` |
+| `src/features/fx/ui/import-tab.tsx` | Replaced the CSV/URL "coming soon" cards with live `CsvImportCard`/`UrlImportCard` components: CSV = source `CmxSelectDropdown` + native `<input type="file">` (no Cmx file-input wrapper exists in the design system — documented gap, not a violation) + preview table with a per-row `errorCodes` → `Badge` column + commit; URL = provider `CmxSelectDropdown` (populated from `listActiveFxProviders`) + fetch/preview + same error-badge table + commit. Excel card remains "coming soon" |
+| `messages/{en,ar}/currencyFx.json` | Added `import.csv.*`, `import.url.*`, `import.rowErrors.<FX_IMPORT_ROW_ERROR code>` (9 codes), plus `errors.PROVIDER_NOT_FOUND`/`errors.PROVIDER_FETCH_FAILED`. Removed the now-obsolete `import.comingSoon.csv`/`import.comingSoon.url` (kept `comingSoon.excel`) |
+
+**Final validation pass, all green:**
+- `npx tsc --noEmit` — 0 new errors (only the 3 same pre-existing/unrelated ones: `fx-decimal.ts` + `converter-actions.ts` BigInt literals, `tenants.service.ts(230,8)`).
+- `npx eslint --quiet` over every new/changed file — clean.
+- `npx jest __tests__/services/fx` — 11 suites, 158 tests, all green (unchanged from the §0.3 backend-only count — `fx-url-import.service.ts` has no dedicated unit test yet; it is exercised indirectly through the same `createRate`/`validateImportRows` paths the other 11 suites already cover. Consider adding one in a follow-up pass, same shape as `fx-csv-import.service.test.ts` if one exists, or `fx-import.service.test.ts`'s HQ-copy pattern).
+- `npm run check:i18n` — passed (only pre-existing-pattern "same EN/AR value" warnings, same class as 5C's).
+- `npm run build` — succeeded; `/dashboard/settings/finance/currency-fx` compiled and listed.
+- `npm run check:ui-access-contract -- --route=/dashboard/settings/finance/currency-fx --wire` (run from repo root, `MSYS_NO_PATHCONV=1` needed under Git Bash so the leading `/dashboard/...` isn't mangled into a Windows path) → PASS, 0 drift. `npm run sync:ui-access-contract` → 154 routes, 0 drift, inventories regenerated. No contract change was needed — `fx-access.ts`'s existing `apiDependencies` already cover `app/actions/fx/*` at the module level.
+- **Not verified:** an authenticated in-browser walkthrough of the new CSV/URL import flows with real tenant data (same gap already noted for 5C — no test credentials available in this session). Owner should click through: CSV (upload the template, preview, see row errors render, commit) and URL (select ECB, fetch/preview — expect an empty result for a non-EUR-portfolio GCC tenant per the known-behavior note in §0.3, not a bug) before considering 5D/5E fully QA'd.
+
+**5D/5E marked done.** Remaining for this plan: **L4/L5** (legacy settings retirement — needs explicit owner go-ahead; no longer blocked on HQ work, since HQ-side H-C/4E/4D all shipped 2026-10-02, see `cleanmatexsaas` `implementation_plan_04_hq_fx.md` §10.2/§10.4).
+
+---
+
+### 0.4 — L4 closure (2026-10-02) — **plan complete**
+
+Owner gave explicit go-ahead ("go-ahead until finish all plans of both repos") for L4, the one remaining gate (§6: "Needs your explicit go, and only after L2 + HQ 4E are deployed" — both true as of this session).
+
+**Migration:** `supabase/migrations/0542_retire_legacy_currency_settings.sql` — soft-retires (`is_active = false`, `rec_status = 0`) the catalog rows in `sys_tenant_settings_cd` and every per-tenant override row in `org_tenant_settings_cf` for `TENANT_CURRENCY`, `TENANT_DECIMAL_PLACES`, `BRANCH_CURRENCY`. Reversible (no DROP, no row deleted). **Created only — not applied**, per the standing "never apply migrations" rule; owner to review and run.
+
+**Why this is safe:** verified before writing it that no app code reads these 3 codes for currency any longer:
+- `web-admin/lib/money/currency-resolution.ts` (`getTenantCurrency`/`getTenantDecimalPlaces`/`getCurrencyConfig`) — header comment already documents these as "retired as the currency source of truth," reading `org_currency_cf` via `TenantCurrencyProfileService` instead (L2 cut-over, 2026-09-26).
+- `web-admin/lib/services/fx/tenant-currency-profile.service.ts` — same; its own header says the two codes "stay listed here only until stage L4 soft-retires them in the settings catalog itself."
+- HQ side: `platform-web`'s tenant wizard/locale-tab currency pickers and the profile-values editor already stopped offering these 3 codes as editable (HQ 4E, 2026-10-02) — `TENANT_CURRENCY`/`BRANCH_CURRENCY`/`TENANT_DECIMAL_PLACES` were locked in `profile-values-editor.tsx` pending this exact retirement.
+
+**Not done, by design:** L5 (hard delete of the rows) — the plan (§6, §9) explicitly schedules it "one release later" as its own review step, to leave a rollback window after L4 ships. Doing it in the same pass as L4 would remove that safety margin, so it stays open.
+
+**Validation:** no app code change was needed (confirmed above), so no tsc/eslint/build/jest re-run was required for this step; the migration file is pure SQL with no application-layer dependency. `ls supabase/migrations/` confirmed `0542` is the next free sequence number (last on disk before this: `0541`).
+
+**Gap found and fixed same day (owner asked "did you retire from ALL code?"):** `0542` only touched `sys_tenant_settings_cd` (catalog) + `org_tenant_settings_cf` (tenant overrides). It missed the **profile-defaults layer** the live HQ settings resolver also reads (`cleanmatexsaas/platform-api/.../stng-resolver.service.ts`): `sys_stng_profile_values_dtl`, keyed by `sys_stng_profiles_mst` profile codes (e.g. `GCC_OM_MAIN`, `GCC_KSA_MAIN`). Queried the live remote DB directly and found 3 active rows: `GCC_OM_MAIN`/`TENANT_CURRENCY`=OMR, `GCC_KSA_MAIN`/`TENANT_CURRENCY`=SAR, `GCC_KSA_MAIN`/`TENANT_DECIMAL_PLACES`=2. **Migration `0543_retire_legacy_currency_settings_profile_values.sql`** created to soft-retire these too — not applied yet, owner to review/run (same as `0542`). Functionally the resolver already skips these (it's catalog-driven and the catalog row is already off since `0542`), so this is data hygiene, not a behavior fix — but it completes the plan's own L4 wording ("catalog, **profile values**, tenant overrides") exactly.
+
+**Also checked and intentionally left alone:** a differently-named table, `sys_stng_settings_cd` (not `sys_tenant_settings_cd`), also carries one active `TENANT_CURRENCY` row on the live DB. Grepped both repos' application code (not generated type files) for `sys_stng_settings_cd` — zero references anywhere outside `database.types.ts`/`schema.prisma`. It's an orphaned table from an abandoned rename/redesign, never wired into any service. Out of scope for L4 (which targets the live catalog/resolver path); flagged here so it isn't mistaken for a second live currency source later. **Resolved in §0.5.**
+
+---
+
+### 0.5 — post-closure hardening, on owner request ("do what you recommend") — 2026-10-02
+
+Five expert-recommendation follow-ups, all now applied (owner ran all migrations local + remote, types regenerated):
+
+1. **Dropped the legacy bridge trigger** — `0544_drop_legacy_tenant_currency_bridge.sql` drops `fn_tenant_ccy_to_orgcur`/`trg_tenant_ccy_to_orgcur` (0532's own comment said "remove once no legacy writer remains"). Audit before writing it: grepped both repos for every write to `org_tenants_mst.currency` — the only one is `cleanmatexsaas` `TenantsService.create()`, which already calls `TenantCurrencyProvisioningService.createBaseCurrency()` (idempotent upsert) immediately after, so the bridge was fully redundant. Kept: the forward mirror (`fn_orgcur_mirror_tenant`/`trg_orgcur_sync_tenant_ccy`, `org_currency_cf` → `org_tenants_mst.currency`) and the base-currency lock (`fn_orgcur_base_lock`) — only the reverse bridge was removed.
+2. **Dropped the orphaned `sys_stng_settings_cd`/`org_stng_settings_cf` table pair** — `0545_drop_orphaned_sys_stng_settings_tables.sql`. Confirmed via live-DB query before dropping: `org_stng_settings_cf` had 0 rows; the only FK was the pair referencing each other; the live settings resolver (`platform-api` `stng-catalog.service.ts`/`stng-resolver.service.ts`/`stng-tenant-overrides.service.ts`) exclusively uses `sys_tenant_settings_cd`/`org_tenant_settings_cf` (no "stng" infix) — confirmed by grep, zero app-code references to the dropped pair outside generated types. The live `sys_stng_profiles_mst`/`sys_stng_profile_values_dtl`/`sys_stng_categories_cd`/`org_stng_effective_cache_cf` tables (which the resolver does use) were left untouched — verified no FK from those onto the dropped pair.
+3. **Settings-cache sweep** — checked `org_stng_effective_cache_cf` directly: 0 rows on the live DB, so there was nothing stale to clear. No action needed.
+4. **Billing-currency lookup** — added `PlanPriceService.resolvePriceForTenant(planCode, currencyCode, billingCycle, asOf?)` in `cleanmatexsaas/platform-api/src/modules/billing/services/plan-price.service.ts`: looks up the active `sys_pln_price_dtl` row for a plan/currency/cycle as of a date, returns `null` if none (caller falls back to the plan's own price). **Deliberately not wired into `TenantSubscriptionService.createSubscription()`** — asked the owner first since billing is a CLAUDE.md-flagged sensitive area and wiring it in would reverse the 2026-09-26 "keep billing in USD for now" call; owner chose "build the resolver only." `nest build` + targeted eslint green.
+5. **Dead-code cleanup** — removed the unused `TENANT_CURRENCY`/`TENANT_DECIMAL_PLACES` keys from `SETTING_CODES` in `cleanmatex/web-admin/lib/services/tenant-settings.service.ts` (their own comment said they were kept "only until stage L4"; confirmed zero call sites via grep before removing). tsc/eslint clean on the touched file.
+
+L5 timing (point 3 of the original 6 recommendations) needed no action — it's a documentation-only reminder, already captured in §6/§9. Manual QA (point 6) remains the one standing gap, see §2 owner actions.
 
 ---
 
@@ -325,7 +388,7 @@ The resolver fails loudly when currency is missing (B15), so the order is **code
 | **L1 = `0532`** | Create `org_currency_cf` + `org_fin_fx_stng_cf` + triggers. Backfill one **base** row per tenant from the value `fn_stng_resolve_all_settings` returns today for `TENANT_CURRENCY` (so behavior is preserved) → else `org_tenants_mst.currency` → else no row (reported). Add rows (contexts off) for other currencies already on documents **or on `org_cash_drawers_mst`**, then add the drawer composite FK (C5) `NOT VALID` → `VALIDATE`. Stamp `base_locked_at` for tenants with history. Mirror → `org_tenants_mst.currency` | Additive; the settings are untouched |
 | **L2 — Code cut-over** ✅ done 2026-09-26 | Re-pointed the 5 entry points + `resolveTenantBaseCurrencyCode` to `tenant-currency-profile.service`. **Signatures unchanged.** Updated the `MISSING_TENANT_CURRENCY` EN/AR message | Parity tests ✅ · tsc/eslint/i18n ✅ (full suite/build not re-run this session — no other module touched) |
 | *(HQ 4E)* | HQ wizard, locale tab and settings screens move to `org_currency_cf` (HQ plan §6) | HQ plan |
-| **L4** (`05xx`) | Soft-retire the 3 settings (catalog, profile values, tenant overrides: `is_active = false`, `rec_status = 0`). Refresh platform inventories and settings docs. **Needs your explicit go**, and only after L2 + HQ 4E are deployed | Reversible |
+| **L4** ✅ `0542`–`0545` | Soft-retire the 3 settings (catalog, profile values, tenant overrides) + drop the legacy bridge trigger + drop an orphaned table pair. Owner go-ahead given 2026-10-02 — see §0.4/§0.5. All 4 migrations applied, both DBs | Reversible (0542/0543); DROP (0544/0545, audited safe first) |
 | **L5** (`05xx`, one release later) | Hard-delete the 3 settings' rows. `org_tenants_mst.currency` is **kept** | Own review |
 
 ---
@@ -420,10 +483,10 @@ Numbers below are illustrative only — always `ls supabase/migrations/` at writ
 | **L2** ✅ | Code cut-over (5 entry points) — done 2026-09-26 | 5A | tsc/eslint/i18n + parity tests ✅ | 1.5 d |
 | **5B** ✅ | FX services + HQ-copy adapter + golden tests — done 2026-10-01 | 5A | tsc/eslint/tests/build ✅ (111 tests) | 2 d |
 | **5C** ✅ | Screen: Currencies, Rates, Manual, From HQ, Converter, Settings — done 2026-10-01 | 5B | build + eslint + check:i18n + access-contract ✅; migration `0540` applied | 2.5 d |
-| **5D** | CSV + Excel import | 5C | + malicious-file tests | 1.5 d |
-| **5E** | URL fetch (ECB first) | 5C | + SSRF tests | 1.5 d |
-| **L4** | Soft-retire the settings (your go) | L2 + HQ 4E deployed | applied | 0.5 d |
-| **L5** | Hard delete (one release later) | L4 | applied | 0.5 d |
+| **5D** ✅ | CSV import (Excel deferred, F7/R3) — done 2026-10-02 | 5C | tsc/eslint/jest/i18n/build ✅; manual QA still pending | 1.5 d |
+| **5E** ✅ | URL fetch (ECB) — done 2026-10-02 | 5C | tsc/eslint/jest/i18n/build ✅; manual QA still pending | 1.5 d |
+| **L4** ✅ | Soft-retire the settings (your go) — done 2026-10-02 | L2 + HQ 4E deployed | `0542` created, not applied | 0.5 d |
+| **L5** | Hard delete (one release later) | L4 | deliberately deferred | 0.5 d |
 
 **Tenant total ≈ 12–13 days.**
 

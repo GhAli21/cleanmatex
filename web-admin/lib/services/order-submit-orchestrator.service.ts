@@ -69,6 +69,11 @@ import type {
   SettlementOption,
 } from '@/lib/types/order-financial';
 import type { PostAndWireResult } from '@/lib/types/voucher-wiring';
+import {
+  planCashChangeRounding,
+  postCashChangeRoundingTx,
+  type PlannedCashChangeRounding,
+} from '@/lib/services/cash-change-rounding.service';
 import type { RequestAuditContext } from '@/lib/utils/request-audit';
 
 const TOLERANCE = 0.001;
@@ -821,13 +826,35 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         }
 
         // 5.1 Real-payment lines (cash, card, gateway, check, bank transfer)
+        // A6-1b: cash change is rounded to the cash increment; the order stays exact and
+        // the gap is posted as its own rounding voucher after the receipt is posted (5.3).
+        const plannedRoundings: Array<{
+          rounding: PlannedCashChangeRounding;
+          leg: (typeof plan.realPaymentLegs)[number];
+          paymentLineId: string;
+        }> = [];
         for (const leg of plan.realPaymentLegs) {
-          const changeReturned = resolveVoucherCashChangeReturned(
+          let changeReturned = resolveVoucherCashChangeReturned(
             leg,
             paymentLegs,
             overpaymentResolution ?? undefined
           );
-          await addVoucherLine(
+          // Only the plain tendered-minus-amount change is rounded. An explicit change fixed by
+          // an overpayment resolution is already tied to a disposition line, so it stays exact.
+          const rounding =
+            leg.resolvedPaymentStatus === 'COMPLETED' && changeReturned === undefined
+              ? await planCashChangeRounding(
+                  { tenantId, branchId: branchId ?? null, userId },
+                  {
+                    paymentMethodCode: leg.paymentMethodCode,
+                    currencyCode: leg.currencyCode,
+                    amount: leg.amount,
+                    tenderedAmount: leg.tenderedAmount,
+                  },
+                )
+              : null;
+          if (rounding) changeReturned = rounding.roundedChange;
+          const paymentLine = await addVoucherLine(
             tenantId,
             voucher.id,
             {
@@ -865,6 +892,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             undefined,
             tx,
           );
+
+          if (rounding) plannedRoundings.push({ rounding, leg, paymentLineId: paymentLine.id });
 
           await autoLinkDrawerTx(tx, {
             tenantId,
@@ -937,6 +966,26 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           `${orderId}_vch_post`,
           tx,
         );
+
+        // 5.4 Cash change rounding gap (A6-1b) — after the receipt is posted, so the cash
+        // payment line already carries its drawer session.
+        for (const { rounding, leg, paymentLineId } of plannedRoundings) {
+          await postCashChangeRoundingTx(
+            tx,
+            { tenantOrgId: tenantId, userId },
+            {
+              rounding,
+              orderId,
+              customerId: input.customerId ?? null,
+              branchId: branchId ?? null,
+              paymentLineId,
+              posSessionId: input.posSessionId ?? null,
+              orgPaymentMethodId: leg.orgPaymentMethodId ?? null,
+              paymentMethodCode: leg.paymentMethodCode,
+              idempotencyKey: `${orderId}_cash_round_${leg.legIndex}`,
+            },
+          );
+        }
       }
 
       if (overpaymentResolution && overpaymentResolution.excessAmount > TOLERANCE) {

@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-09-26T05:11:23.420Z",
+  "extractedAt": "2026-10-02T06:31:42.008Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -31,7 +31,7 @@
       "route": "/dashboard/preparation/[orderId]",
       "permission": "/dashboard/preparation",
       "component": "hasPermissionServer",
-      "line": 75,
+      "line": 79,
       "surface": "screen"
     },
     {
@@ -143,7 +143,7 @@
       "route": "src/features/billing/ui/pending-payments-worklist-page.tsx",
       "permission": "orders:verify_payment",
       "component": "useHasPermissionCode",
-      "line": 71,
+      "line": 72,
       "surface": "screen"
     },
     {
@@ -151,7 +151,7 @@
       "route": "src/features/billing/ui/pending-payments-worklist-page.tsx",
       "permission": "orders:cancel_payment",
       "component": "useHasPermissionCode",
-      "line": 72,
+      "line": 73,
       "surface": "screen"
     },
     {
@@ -159,7 +159,7 @@
       "route": "src/features/billing/ui/pending-payments-worklist-page.tsx",
       "permission": "orders:fail_payment",
       "component": "useHasPermissionCode",
-      "line": 73,
+      "line": 74,
       "surface": "screen"
     },
     {
@@ -167,7 +167,7 @@
       "route": "src/features/billing/ui/pending-payments-worklist-page.tsx",
       "permission": "orders:void_payment",
       "component": "useHasPermissionCode",
-      "line": 76,
+      "line": 77,
       "surface": "screen"
     },
     {
@@ -175,7 +175,7 @@
       "route": "src/features/billing/ui/pending-payments-worklist-page.tsx",
       "permission": "orders:verify_payment",
       "component": "useHasPermissionCode",
-      "line": 79,
+      "line": 80,
       "surface": "screen"
     },
     {
@@ -203,11 +203,51 @@
       "surface": "screen"
     },
     {
+      "file": "src/features/cash-drawers/ui/cash-drawer-follow-up-screen.tsx",
+      "route": "src/features/cash-drawers/ui/cash-drawer-follow-up-screen.tsx",
+      "permission": "cash_drawer:post_close_update",
+      "component": "useHasPermissionCode",
+      "line": 43,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "permission": "cash_drawer:count",
+      "component": "useHasPermissionCode",
+      "line": 217,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
+      "permission": "cash_drawer:transfer",
+      "component": "useHasPermissionCode",
+      "line": 218,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/cash-drawers/ui/cash-drawer-policy-tab.tsx",
+      "route": "src/features/cash-drawers/ui/cash-drawer-policy-tab.tsx",
+      "permission": "cash_control:manage",
+      "component": "useHasPermissionCode",
+      "line": 44,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx",
+      "route": "src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx",
+      "permission": "cash_drawer:post_close_update",
+      "component": "useHasPermissionCode",
+      "line": 47,
+      "surface": "screen"
+    },
+    {
       "file": "src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx",
       "route": "src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx",
       "permission": "cash_drawer:approve_variance",
       "component": "useHasPermissionCode",
-      "line": 49,
+      "line": 50,
       "surface": "screen"
     },
     {
@@ -243,6 +283,14 @@
       "surface": "screen"
     },
     {
+      "file": "src/features/customers/ui/customer-whatsapp-consent-card.tsx",
+      "route": "src/features/customers/ui/customer-whatsapp-consent-card.tsx",
+      "permission": "customers:update",
+      "component": "useHasPermission",
+      "line": 27,
+      "surface": "screen"
+    },
+    {
       "file": "src/features/delivery/ui/delivery-order-detail-screen.tsx",
       "route": "src/features/delivery/ui/delivery-order-detail-screen.tsx",
       "permission": "orders:collect_payment",
@@ -264,6 +312,14 @@
       "permission": "delivery:assign",
       "component": "useHasPermissionCode",
       "line": 102,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/notifications/ui/notification-settings-page.tsx",
+      "route": "src/features/notifications/ui/notification-settings-page.tsx",
+      "permission": "notifications:configure",
+      "component": "useHasPermission",
+      "line": 61,
       "surface": "screen"
     },
     {
@@ -375,7 +431,7 @@
       "route": "src/features/orders/ui/payment-full-view.tsx",
       "permission": "orders:apply_credit",
       "component": "useHasPermissionCode",
-      "line": 1418,
+      "line": 1420,
       "surface": "screen"
     },
     {
@@ -439,7 +495,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:view_all",
       "component": "useHasPermissionCode",
-      "line": 102,
+      "line": 109,
       "surface": "screen"
     },
     {
@@ -447,7 +503,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:open",
       "component": "useHasPermissionCode",
-      "line": 103,
+      "line": 110,
       "surface": "screen"
     },
     {
@@ -455,7 +511,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:pause_resume",
       "component": "useHasPermissionCode",
-      "line": 104,
+      "line": 111,
       "surface": "screen"
     },
     {
@@ -463,7 +519,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:close",
       "component": "useHasPermissionCode",
-      "line": 105,
+      "line": 112,
       "surface": "screen"
     },
     {
@@ -471,7 +527,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:force_close",
       "component": "useHasPermissionCode",
-      "line": 106,
+      "line": 113,
       "surface": "screen"
     },
     {
@@ -479,7 +535,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "cash_drawer:view",
       "component": "useHasPermissionCode",
-      "line": 107,
+      "line": 114,
       "surface": "screen"
     },
     {
@@ -487,7 +543,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "cash_drawer:close_session",
       "component": "useHasPermissionCode",
-      "line": 108,
+      "line": 115,
       "surface": "screen"
     },
     {
@@ -1037,6 +1093,22 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/cash-drawers/catalogs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/catalogs",
+      "permission": "cash_drawer:view",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/follow-up/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/follow-up",
+      "permission": "cash_drawer:view_reports",
+      "line": 16,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/cash-drawers/overview/route.ts",
       "method": "GET",
       "route": "/api/v1/cash-drawers/overview",
@@ -1053,11 +1125,43 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/cash-drawers/rounding-policy/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/rounding-policy",
+      "permission": "cash_drawer:view",
+      "line": 23,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/cash-drawers/route.ts",
       "method": "GET",
       "route": "/api/v1/cash-drawers",
       "permission": "cash_drawer:view",
       "line": 10,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/trx/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/trx",
+      "permission": "cash_drawer:transfer",
+      "line": 24,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/trx/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/trx",
+      "permission": "cash_drawer:transfer",
+      "line": 54,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/trx/[trxId]/reverse/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/trx/[trxId]/reverse",
+      "permission": "cash_drawer:transfer",
+      "line": 26,
       "surface": "api"
     },
     {
@@ -1069,11 +1173,27 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/cash-drawers/[drawerId]/close-session/route.ts",
+      "file": "app/api/v1/cash-drawers/[drawerId]/counts/route.ts",
       "method": "POST",
-      "route": "/api/v1/cash-drawers/[drawerId]/close-session",
-      "permission": "cash_drawer:close_session",
-      "line": 26,
+      "route": "/api/v1/cash-drawers/[drawerId]/counts",
+      "permission": "cash_drawer:count",
+      "line": 29,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/counts/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/counts",
+      "permission": "cash_drawer:count",
+      "line": 68,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/ledger/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/[drawerId]/ledger",
+      "permission": "cash_drawer:view",
+      "line": 21,
       "surface": "api"
     },
     {
@@ -1085,11 +1205,99 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/cash-drawers/[drawerId]/open-session-v2/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/open-session-v2",
+      "permission": "cash_drawer:open_session",
+      "line": 30,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/policy/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/[drawerId]/policy",
+      "permission": "cash_control:view",
+      "line": 37,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/policy/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/[drawerId]/policy",
+      "permission": "cash_control:manage",
+      "line": 70,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance/route.ts",
       "method": "POST",
       "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance",
       "permission": "cash_drawer:approve_variance",
-      "line": 46,
+      "line": 52,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count",
+      "permission": "cash_drawer:close_session",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize",
+      "permission": "cash_drawer:close_session",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/recount/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/recount",
+      "permission": "cash_drawer:approve_variance",
+      "line": 34,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview",
+      "permission": "cash_drawer:close_session",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/closure/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/closure",
+      "permission": "cash_drawer:view",
+      "line": 20,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/force-close/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/force-close",
+      "permission": "pos_session:force_close",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close/history/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close/history",
+      "permission": "cash_drawer:view",
+      "line": 19,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close/route.ts",
+      "method": "PUT",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close",
+      "permission": "cash_drawer:post_close_update",
+      "line": 26,
       "surface": "api"
     },
     {
@@ -1269,6 +1477,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/currencies/[code]/denominations/route.ts",
+      "method": "GET",
+      "route": "/api/v1/currencies/[code]/denominations",
+      "permission": "cash_drawer:view",
+      "line": 23,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/customer-categories/check-code/route.ts",
       "method": "GET",
       "route": "/api/v1/customer-categories/check-code",
@@ -1385,7 +1601,7 @@
       "method": "GET",
       "route": "/api/v1/customers/[id]",
       "permission": "customers:update",
-      "line": 126,
+      "line": 131,
       "surface": "api"
     },
     {
@@ -1393,7 +1609,7 @@
       "method": "GET",
       "route": "/api/v1/customers/[id]",
       "permission": "customers:delete",
-      "line": 214,
+      "line": 228,
       "surface": "api"
     },
     {
@@ -1769,7 +1985,7 @@
       "method": "POST",
       "route": "/api/v1/finance/vouchers/[voucherId]/reverse",
       "permission": "fin_vouchers:reverse",
-      "line": 17,
+      "line": 30,
       "surface": "api"
     },
     {
@@ -1953,7 +2169,7 @@
       "method": "GET",
       "route": "/api/v1/notifications/settings/providers",
       "permission": "notifications:configure",
-      "line": 32,
+      "line": 34,
       "surface": "api"
     },
     {
@@ -1961,7 +2177,7 @@
       "method": "GET",
       "route": "/api/v1/notifications/settings/providers",
       "permission": "notifications:configure",
-      "line": 70,
+      "line": 79,
       "surface": "api"
     },
     {
@@ -1969,7 +2185,7 @@
       "method": "GET",
       "route": "/api/v1/notifications/settings/providers",
       "permission": "notifications:configure",
-      "line": 133,
+      "line": 154,
       "surface": "api"
     },
     {
@@ -1977,7 +2193,7 @@
       "method": "GET",
       "route": "/api/v1/notifications/settings/providers",
       "permission": "notifications:configure",
-      "line": 209,
+      "line": 239,
       "surface": "api"
     },
     {
@@ -2498,6 +2714,14 @@
       "route": "/api/v1/pos-sessions/ensure-for-order-entry",
       "permission": "pos_session:open",
       "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/filter-options/route.ts",
+      "method": "GET",
+      "route": "/api/v1/pos-sessions/filter-options",
+      "permission": "pos_session:view",
+      "line": 16,
       "surface": "api"
     },
     {

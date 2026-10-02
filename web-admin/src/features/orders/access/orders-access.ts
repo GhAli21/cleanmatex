@@ -147,6 +147,15 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'Cash change rounding policy for the checkout (A6-1b)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/rounding-policy',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'Open cash drawer session (CLF two-step lifecycle) from Session Hub (CLF-7, CLF-8 slice A)',
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/open-session-v2',
@@ -2483,6 +2492,15 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'V1 Cash Drawers',
         method: 'GET',
         path: '/api/v1/cash-drawers',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Cash change rounding policy for the checkout (A6-1b)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/rounding-policy',
         requirement: {
           permissions: ['cash_drawer:view'],
           requireAllPermissions: true,

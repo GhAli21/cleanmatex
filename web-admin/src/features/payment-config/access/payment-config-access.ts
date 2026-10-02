@@ -128,6 +128,24 @@ export const PAYMENT_CONFIG_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'Cash change rounding policy for the checkout (A6-1b)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/rounding-policy',
+        requirement: {
+          permissions: [PAYMENT_CONFIG_PERMISSIONS.CASH_DRAWER_VIEW],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Drawer type catalog for the drawer form (CLF-8-10)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/catalogs',
+        requirement: {
+          permissions: [PAYMENT_CONFIG_PERMISSIONS.CASH_DRAWER_VIEW],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'Open cash drawer session',
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/open-session',

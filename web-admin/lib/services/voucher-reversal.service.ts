@@ -51,6 +51,18 @@ export interface ReversalResult {
   originalStatus?: string;
 }
 
+/** Optional line selection and explicit cash placement for {@link reverseBizVoucher}. */
+export interface ReverseBizVoucherOptions {
+  /** Reverse only these POSTED lines; omitted = full reversal. */
+  lineIds?: string[];
+  /** Place the cash mirror in this drawer (e.g. the original drawer was deactivated). */
+  cashDrawerId?: string | null;
+  /** Pin the cash mirror to this session of the drawer. */
+  cashDrawerSessionId?: string | null;
+  /** User who physically handled the cash, when not the acting user. */
+  receivedByUserId?: string | null;
+}
+
 /**
  * Reverse a POSTED (or partially reversed) voucher — every remaining line, or
  * only `opts.lineIds`. The reversal voucher and its mirror lines are built by
@@ -62,14 +74,14 @@ export interface ReversalResult {
  * @param voucherId posted voucher to reverse
  * @param reason mandatory operator reason persisted on the reversal voucher
  * @param userId actor who confirmed the reverse
- * @param opts optional line selection and a replacement drawer for cash mirrors
+ * @param opts optional line selection and explicit cash placement ({@link ReverseBizVoucherOptions})
  */
 export async function reverseBizVoucher(
   tenantOrgId: string,
   voucherId: string,
   reason: string,
   userId: string,
-  opts: { lineIds?: string[]; cashDrawerId?: string | null } = {},
+  opts: ReverseBizVoucherOptions = {},
 ): Promise<ReversalResult> {
   // Flag resolution uses HQ RPC (separate connection). Resolve before the
   // voucher row lock so we never hold FOR UPDATE across a network round-trip.
@@ -84,6 +96,8 @@ export async function reverseBizVoucher(
         userId,
         lineIds: opts.lineIds,
         cashDrawerId: opts.cashDrawerId,
+        cashDrawerSessionId: opts.cashDrawerSessionId,
+        receivedByUserId: opts.receivedByUserId,
       });
 
       const ordersToRecalc = new Set<string>();

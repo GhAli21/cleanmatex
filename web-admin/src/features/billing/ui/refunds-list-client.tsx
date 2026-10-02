@@ -317,7 +317,6 @@ export default function RefundsListClient({
       ) : row.original.cash_drawer_session_id ?? '—',
       meta: { hideBelow: 'lg', isCopyable: true },
     },
-    { accessorKey: 'cash_drawer_movement_id', header: t('cashDrawerMovementId'), meta: { hideBelow: 'lg', isCopyable: true } },
     { accessorKey: 'pos_session_id', header: t('posSessionId'), meta: { hideBelow: 'lg', isCopyable: true } },
     { accessorKey: 'gateway_refund_id', header: t('settlementReference'), meta: { hideBelow: 'lg', isCopyable: true } },
     { accessorKey: 'created_by', header: t('requestedBy'), meta: { hideBelow: 'lg', isCopyable: true } },

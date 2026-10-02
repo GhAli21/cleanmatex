@@ -190,9 +190,51 @@ describe('transitionPaymentTx — VERIFY', () => {
       expect.anything(),
       { tenantOrgId: TENANT_A, userId: USER_ID, mode: 'DEFERRED' },
       lineId,
+      undefined, // no explicit placement override
     );
     // Superseded: no more org_cash_drawer_movements_dtl mirror row.
     expect(mockMovementCreate).not.toHaveBeenCalled();
+  });
+
+  it('CLF: VERIFY forwards an explicit placement override to the gate', async () => {
+    mockQueryRaw.mockResolvedValue([
+      pendingRow({ payment_method_code: 'CASH', fin_voucher_trx_line_id: 'line-ov' }),
+    ]);
+    mockRecognizeCashLineTx.mockResolvedValue({ effect: 'DRAWER', sessionId: 'session-9', error: null });
+
+    await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'VERIFY',
+      idempotencyKey: 'key-verify-override',
+      cashDrawerId: 'drawer-9',
+      cashDrawerSessionId: 'session-9',
+    });
+
+    expect(mockRecognizeCashLineTx).toHaveBeenCalledWith(
+      expect.anything(),
+      { tenantOrgId: TENANT_A, userId: USER_ID, mode: 'DEFERRED' },
+      'line-ov',
+      { cashDrawerId: 'drawer-9', cashDrawerSessionId: 'session-9', receivedByUserId: undefined },
+    );
+  });
+
+  it('rejects a placement override on an action that never places cash', async () => {
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'CANCEL',
+        reason: 'x',
+        fallbackClassification: 'RETRY_TENDER' as never,
+        idempotencyKey: 'key-cancel-override',
+        cashDrawerId: 'drawer-9',
+      }),
+    ).rejects.toThrow('PLACEMENT_OVERRIDE_NOT_APPLICABLE');
   });
 
   it('CLF: VERIFY of a CASH leg with no open session on the drawer still recognises it — lands in the next window, never refused', async () => {

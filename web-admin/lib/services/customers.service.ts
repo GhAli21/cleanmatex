@@ -1296,15 +1296,70 @@ export async function searchCustomersAll(
 
 /**
  * Update customer profile (org-only: org_customers_mst only; sys: org + sys).
+ * Preferences-only requests remain tenant-local so channel consent never changes a shared profile.
+ * Tenant is resolved server-side from the authenticated session, never from the update payload.
+ * @param customerId Tenant customer identifier; preferences-only requests require org_customers_mst.id.
+ * @param updates Requested profile fields or a partial tenant preference object.
+ * @returns The persisted customer profile.
+ * @throws When preferences are invalid or the customer is outside the authenticated tenant.
+ * @example
+ * await updateCustomer(customerId, { preferences: { notifications: { whatsapp: true } } });
  */
 export async function updateCustomer(
   customerId: string,
   updates: CustomerUpdateRequest
 ): Promise<Customer> {
   const supabase = await createClient();
+  // Resolve the tenant server-side so preference writes cannot choose another tenant through the payload.
   const session = await getCurrentUserTenantSessionContext();
   const tenantId = session.userTenantOrgId;
   const curUserId = session.userId;
+
+  if (updates.preferences !== undefined && Object.keys(updates).every((key) => key === 'preferences')) {
+    const preferences = updates.preferences;
+    if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
+      throw new Error('Customer preferences must be an object');
+    }
+    const notifications = preferences.notifications;
+    if (notifications !== undefined) {
+      if (!notifications || typeof notifications !== 'object' || Array.isArray(notifications)) {
+        throw new Error('Customer notification preferences must be an object');
+      }
+      for (const channel of ['whatsapp', 'sms', 'email'] as const) {
+        if (notifications[channel] !== undefined && typeof notifications[channel] !== 'boolean') {
+          throw new Error(`Customer ${channel} preference must be a boolean`);
+        }
+      }
+    }
+
+    // Consent belongs to this tenant; a preferences-only update must not rewrite customer names.
+    const { data: existing, error: lookupError } = await supabase
+      .from('org_customers_mst')
+      .select('preferences')
+      .eq('id', customerId)
+      .eq('tenant_org_id', tenantId)
+      .maybeSingle();
+    if (lookupError || !existing) throw new Error('Customer not found or access denied');
+
+    const previous = existing.preferences && typeof existing.preferences === 'object' && !Array.isArray(existing.preferences)
+      ? existing.preferences as CustomerPreferences
+      : {};
+    // Preserve unrelated preferences and channel choices when changing only WhatsApp consent.
+    const merged: CustomerPreferences = {
+      ...previous,
+      ...preferences,
+      ...(notifications !== undefined ? { notifications: { ...previous.notifications, ...notifications } } : {}),
+    };
+    const { data: updated, error: updateError } = await supabase
+      .from('org_customers_mst')
+      .update({ preferences: merged as Json, updated_at: new Date().toISOString(), updated_by: curUserId })
+      .eq('id', customerId)
+      .eq('tenant_org_id', tenantId)
+      .select()
+      .single();
+    if (updateError || !updated) throw new Error('Customer not found or access denied');
+    return mapFromOrgRow(updated as Record<string, unknown>, tenantId);
+  }
 
   if (!shouldUseSysCustomers()) {
     const updatePayload: Record<string, unknown> = {

@@ -659,12 +659,25 @@ describe('voucher-checks', () => {
     expect(result.find((r) => r.checkName === 'GATEWAY_STATE_VALID')).toBeDefined();
   });
 
-  it('CASH_MOVEMENT_LINK_EXISTS — flags null backlink', async () => {
-    mockCashMovementsFindMany.mockResolvedValue([
-      { id: 'm1', cash_drawer_session_id: 's1', movement_type: 'SALE', amount: new Decimal('40'), direction: 'IN' },
+  // CLF-6-3: the CLF-native replacement — a POSTED cash-family voucher trx
+  // line the gate never stamped (`cash_effect_code` NULL is not a valid
+  // terminal gate state), not the retired movements-table orphan check.
+  it('CASH_MOVEMENT_LINK_EXISTS — flags a POSTED cash-family line with no cash_effect_code stamp', async () => {
+    mockTrxLinesFindMany.mockResolvedValue([
+      { id: 'L1', voucher_id: 'v1', line_role: 'ORDER_PAYMENT', direction: 'IN', amount: new Decimal('40') },
     ]);
     const result = await checkCashMovementLink(TENANT, WINDOW);
-    expect(result[0].checkName).toBe('CASH_MOVEMENT_LINK_EXISTS');
+    expect(result[0]).toMatchObject({
+      checkName: 'CASH_MOVEMENT_LINK_EXISTS',
+      severity: 'BLOCKER',
+      actualValue: 40,
+      affectedEntityId: 'L1',
+    });
+  });
+
+  it('CASH_MOVEMENT_LINK_EXISTS — clean when nothing is unstamped', async () => {
+    mockTrxLinesFindMany.mockResolvedValue([]);
+    expect(await checkCashMovementLink(TENANT, WINDOW)).toEqual([]);
   });
 
   it('CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT — flags retained-amount drift', async () => {
@@ -734,11 +747,17 @@ describe('voucher-checks', () => {
     expect(await checkVoidedPaymentNoOrphanMovement(TENANT, WINDOW)).toEqual([]);
   });
 
-  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — flags a REVERSED cash payment with no PAYMENT_REVERSAL movement', async () => {
+  // CLF-6-3: the compensating effect is now a DRAWER-stamped mirror voucher
+  // line (`reversed_line_id` back-link), not a `PAYMENT_REVERSAL` row in the
+  // retired movements table — checking the old table here would false-
+  // positive-BLOCKER every real reversal post-R1 (2026-09-26).
+  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — flags a REVERSED cash payment with no DRAWER-stamped reversal mirror line', async () => {
     mockOrderPaymentsFindMany.mockResolvedValue([
       { id: 'p3', order_id: 'o3', amount: new Decimal('75') },
     ]);
-    mockCashMovementsFindMany.mockResolvedValue([]); // no compensating movement found
+    mockTrxLinesFindMany
+      .mockResolvedValueOnce([{ id: 'L1', order_payment_id: 'p3' }]) // original line, DRAWER-stamped
+      .mockResolvedValueOnce([]); // no mirror line found
     const result = await checkReversedCashPaymentHasCompensatingMovement(TENANT, WINDOW);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
@@ -749,18 +768,28 @@ describe('voucher-checks', () => {
     });
   });
 
-  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — clean when the compensating movement exists', async () => {
+  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — clean when a DRAWER-stamped mirror line exists', async () => {
     mockOrderPaymentsFindMany.mockResolvedValue([
       { id: 'p3', order_id: 'o3', amount: new Decimal('75') },
     ]);
-    mockCashMovementsFindMany.mockResolvedValue([{ reversed_payment_id: 'p3' }]);
+    mockTrxLinesFindMany
+      .mockResolvedValueOnce([{ id: 'L1', order_payment_id: 'p3' }])
+      .mockResolvedValueOnce([{ reversed_line_id: 'L1' }]);
     expect(await checkReversedCashPaymentHasCompensatingMovement(TENANT, WINDOW)).toEqual([]);
   });
 
-  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — empty set short-circuits without querying movements', async () => {
+  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — clean (nothing to check) when the payment predates the CLF ledger', async () => {
+    mockOrderPaymentsFindMany.mockResolvedValue([
+      { id: 'p3', order_id: 'o3', amount: new Decimal('75') },
+    ]);
+    mockTrxLinesFindMany.mockResolvedValueOnce([]); // no DRAWER-stamped original line at all
+    expect(await checkReversedCashPaymentHasCompensatingMovement(TENANT, WINDOW)).toEqual([]);
+  });
+
+  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — empty payment set short-circuits without querying voucher lines', async () => {
     mockOrderPaymentsFindMany.mockResolvedValue([]);
     expect(await checkReversedCashPaymentHasCompensatingMovement(TENANT, WINDOW)).toEqual([]);
-    expect(mockCashMovementsFindMany).not.toHaveBeenCalled();
+    expect(mockTrxLinesFindMany).not.toHaveBeenCalled();
   });
 });
 

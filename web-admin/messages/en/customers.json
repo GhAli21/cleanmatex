@@ -320,5 +320,18 @@
       "RECEIPT_ALLOCATION_TARGET_CURRENCY_MISMATCH": "One of the selected balances is in a different currency.",
       "VALIDATION_ERROR": "Some receipt details are invalid. Check the form and try again."
     }
+  },
+  "whatsappConsent": {
+    "title": "Customer WhatsApp notifications",
+    "description": "Choose whether this customer agrees to receive order updates through WhatsApp. This setting applies only to this customer in your organization.",
+    "optIn": "The customer has agreed to WhatsApp order notifications",
+    "phone": "WhatsApp phone",
+    "noPhone": "No phone number recorded",
+    "phoneRequired": "Add a valid phone number with country code in the customer profile before enabling WhatsApp. You can still withdraw existing consent.",
+    "readOnly": "You can view consent. Permission to update customers is required to change it.",
+    "consentHint": "Enable this only after the customer explicitly agrees. Uncheck and save if they withdraw consent. Approved templates and an enabled WhatsApp channel are also required for delivery.",
+    "saved": "Customer WhatsApp consent saved",
+    "saveFailed": "Could not save customer WhatsApp consent. Your choice remains available to retry.",
+    "loadFailed": "Could not load customer WhatsApp consent. Retry after checking the selected organization."
   }
 }

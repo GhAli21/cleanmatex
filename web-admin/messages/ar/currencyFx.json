@@ -148,18 +148,55 @@
       "committed": "{count, plural, one {تم استيراد سعر واحد} other {تم استيراد # أسعار}}",
       "skippedDuplicates": "{count, plural, one {تم تخطي سعر واحد (مستورد مسبقًا)} other {تم تخطي # أسعار (مستوردة مسبقًا)}}"
     },
+    "csv": {
+      "title": "من ملف CSV",
+      "description": "استيراد جماعي للأسعار من ملف CSV. يجب أن يكون صف الترويسة بالضبط: from_currency,to_currency,rate_date,rate_type,rate,source_reference.",
+      "sourceLabel": "المصدر",
+      "selectSource": "اختر مصدرًا",
+      "fileLabel": "ملف CSV",
+      "chooseFile": "اختيار ملف",
+      "selectedFile": "{fileName} ({sizeKb} كيلوبايت)",
+      "preview": "معاينة",
+      "previewing": "جارٍ فحص الملف…",
+      "commit": "استيراد المحدد",
+      "committing": "جارٍ الاستيراد…",
+      "empty": "لم يتم العثور على صفوف في هذا الملف.",
+      "rowNumber": "الصف",
+      "errorsColumn": "الأخطاء",
+      "missingFile": "اختر ملف CSV ومصدرًا أولًا.",
+      "committed": "{count, plural, one {تم استيراد سعر واحد} other {تم استيراد # أسعار}}",
+      "skipped": "{count, plural, one {تم تخطي صف واحد (مستورد مسبقًا)} other {تم تخطي # صفوف (مستوردة مسبقًا)}}"
+    },
+    "url": {
+      "title": "من رابط مزوّد",
+      "description": "جلب أسعار حية من مزوّد معتمد — لا يتم إدخال أي رابط، يمكن جلب مزوّدين معتمدين من CleanMateX فقط.",
+      "providerLabel": "المزوّد",
+      "selectProvider": "اختر مزوّدًا",
+      "preview": "جلب ومعاينة",
+      "previewing": "جارٍ الجلب…",
+      "commit": "استيراد المحدد",
+      "committing": "جارٍ الاستيراد…",
+      "empty": "لا توجد أسعار مطابقة — عملة هذا المزوّد ليست ضمن عملاتك بعد.",
+      "feedDate": "تاريخ البيانات: {date}",
+      "missingProvider": "اختر مزوّدًا أولًا.",
+      "committed": "{count, plural, one {تم استيراد سعر واحد} other {تم استيراد # أسعار}}",
+      "skipped": "{count, plural, one {تم تخطي صف واحد (مستورد مسبقًا)} other {تم تخطي # صفوف (مستوردة مسبقًا)}}"
+    },
+    "rowErrors": {
+      "MISSING_FIELD": "حقل مطلوب مفقود.",
+      "SAME_CURRENCY": "يجب أن تكون العملتان مختلفتين.",
+      "UNKNOWN_CURRENCY": "هذه العملة ليست ضمن عملاتك.",
+      "INVALID_PAIR": "يجب أن يكون أحد طرفي الزوج عملتك الأساسية أو عملة التقارير.",
+      "UNKNOWN_RATE_TYPE": "نوع السعر هذا غير معروف.",
+      "INVALID_DATE": "أدخل تاريخًا صحيحًا (YYYY-MM-DD).",
+      "INVALID_RATE": "أدخل سعرًا صحيحًا أكبر من الصفر.",
+      "DUPLICATE_IN_FILE": "هذا الزوج والتاريخ والنوع يتكرر في مكان آخر من الملف.",
+      "DUPLICATE_EXISTING": "يوجد سعر صرف بالفعل لهذا الزوج والتاريخ والنوع والمصدر."
+    },
     "comingSoon": {
-      "csv": {
-        "title": "من ملف CSV",
-        "description": "استيراد جماعي للأسعار من ملف CSV. قريبًا."
-      },
       "excel": {
         "title": "من ملف Excel",
         "description": "استيراد جماعي للأسعار من ملف Excel. قريبًا."
-      },
-      "url": {
-        "title": "من رابط مزوّد",
-        "description": "جلب أسعار حية من مزوّد معتمد. قريبًا."
       }
     }
   },
@@ -214,6 +251,8 @@
     "LOOKUP_INVALID": "هذه القيمة غير معروفة.",
     "IMPORT_BATCH_NOT_FOUND": "دفعة الاستيراد غير موجودة.",
     "IMPORT_BATCH_NOT_PREVIEWED": "تم استيراد هذه الدفعة بالفعل.",
+    "PROVIDER_NOT_FOUND": "هذا المزوّد غير متاح.",
+    "PROVIDER_FETCH_FAILED": "تعذّر الوصول إلى المزوّد. يرجى المحاولة لاحقًا.",
     "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
   }
 }

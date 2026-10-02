@@ -20,6 +20,7 @@ import { CASH_EFFECTS, CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import { isCashFamilyMethod } from '@/lib/utils/cash-method';
 import { recognizeCashLineTx, abandonPendingCashLineTx } from './cash-drawer-ledger/cash-drawer-ledger-gate';
 import { reverseVoucherLinesInTx } from './voucher-line-reversal.service';
+import { hasCashPlacement } from './cash-drawer-ledger/cash-placement';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { hashPayload } from '@/lib/utils/idempotency';
@@ -82,12 +83,16 @@ export interface TransitionPaymentParams {
    */
   idempotencyKey: string;
   /**
-   * @deprecated Unused by REVERSE since CLF — the cash-drawer ledger gate
-   * decides the window itself (DEFERRED mode). Kept only so the idempotency
-   * hash stays stable for keys generated before this change; ignored
-   * otherwise. Do not read this for new logic.
+   * Optional explicit cash placement for VERIFY / REVERSE of a cash-family leg,
+   * used when the cash gate cannot place the cash on its own (the leg's drawer
+   * was deactivated …). Default is the gate's automatic placement; the gate's
+   * integrity rules still apply. Rejected for every other action.
    */
+  cashDrawerId?: string;
+  /** Pins the placement to this session; must be the drawer's open session. */
   cashDrawerSessionId?: string;
+  /** User who physically handled the cash, when not the acting user. */
+  receivedByUserId?: string;
 }
 
 export interface TransitionPaymentResult {
@@ -195,7 +200,12 @@ async function transitionPaymentCoreTx(
   tx: PrismaTransactionClient,
   params: TransitionPaymentParams,
 ): Promise<TransitionPaymentResult> {
-  const { orderId, paymentId, tenantId, actorId, action, reason, fallbackClassification, idempotencyKey, cashDrawerSessionId } = params;
+  const { orderId, paymentId, tenantId, actorId, action, reason, fallbackClassification, idempotencyKey, cashDrawerId, cashDrawerSessionId, receivedByUserId } = params;
+
+  const placement = { cashDrawerId, cashDrawerSessionId, receivedByUserId };
+  if (hasCashPlacement(placement) && action !== 'VERIFY' && action !== 'REVERSE') {
+    throw new Error('PLACEMENT_OVERRIDE_NOT_APPLICABLE');
+  }
 
   const requiresReason = REASON_REQUIRED_ACTIONS.has(action);
   const requiresFallback = FALLBACK_REQUIRED_ACTIONS.has(action);
@@ -225,6 +235,9 @@ async function transitionPaymentCoreTx(
       reason: reason ?? null,
       fallbackClassification: fallbackClassification ?? null,
       cashDrawerSessionId: cashDrawerSessionId ?? null,
+      // Only present when set, so hashes of pre-existing keys are unchanged.
+      ...(cashDrawerId ? { cashDrawerId } : {}),
+      ...(receivedByUserId ? { receivedByUserId } : {}),
     });
     const existingIdempotency = await tx.org_idempotency_keys.findFirst({
       where: {
@@ -391,6 +404,7 @@ async function transitionPaymentCoreTx(
           tx,
           { tenantOrgId: tenantId, userId: actorId, mode: CASH_GATE_MODES.DEFERRED },
           row.fin_voucher_trx_line_id,
+          hasCashPlacement(placement) ? placement : undefined,
         );
         deferredCashMovementCreated = decision.effect === CASH_EFFECTS.DRAWER;
       }
@@ -471,6 +485,7 @@ async function transitionPaymentCoreTx(
             reason: reason as string,
             userId: actorId,
             lineIds: [row.fin_voucher_trx_line_id],
+            ...(hasCashPlacement(placement) ? placement : {}),
           });
         }
         compensatingCashMovementCreated = true;

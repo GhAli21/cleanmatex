@@ -148,18 +148,55 @@
       "committed": "{count, plural, one {# rate imported} other {# rates imported}}",
       "skippedDuplicates": "{count, plural, one {# rate was skipped (already imported)} other {# rates were skipped (already imported)}}"
     },
+    "csv": {
+      "title": "From CSV",
+      "description": "Bulk-import rates from a CSV file. The header row must be exactly: from_currency,to_currency,rate_date,rate_type,rate,source_reference.",
+      "sourceLabel": "Source",
+      "selectSource": "Select a source",
+      "fileLabel": "CSV file",
+      "chooseFile": "Choose file",
+      "selectedFile": "{fileName} ({sizeKb} KB)",
+      "preview": "Preview",
+      "previewing": "Checking file…",
+      "commit": "Import Selected",
+      "committing": "Importing…",
+      "empty": "No rows found in this file.",
+      "rowNumber": "Row",
+      "errorsColumn": "Errors",
+      "missingFile": "Choose a CSV file and a source first.",
+      "committed": "{count, plural, one {# rate imported} other {# rates imported}}",
+      "skipped": "{count, plural, one {# row was skipped (already imported)} other {# rows were skipped (already imported)}}"
+    },
+    "url": {
+      "title": "From a provider URL",
+      "description": "Fetch live rates from a curated provider — no URL is ever entered, only CleanMateX-vetted providers can be fetched.",
+      "providerLabel": "Provider",
+      "selectProvider": "Select a provider",
+      "preview": "Fetch & Preview",
+      "previewing": "Fetching…",
+      "commit": "Import Selected",
+      "committing": "Importing…",
+      "empty": "No matching rates — this provider's currency isn't in your portfolio yet.",
+      "feedDate": "Feed date: {date}",
+      "missingProvider": "Select a provider first.",
+      "committed": "{count, plural, one {# rate imported} other {# rates imported}}",
+      "skipped": "{count, plural, one {# row was skipped (already imported)} other {# rows were skipped (already imported)}}"
+    },
+    "rowErrors": {
+      "MISSING_FIELD": "A required field is missing.",
+      "SAME_CURRENCY": "The two currencies must be different.",
+      "UNKNOWN_CURRENCY": "This currency isn't in your portfolio.",
+      "INVALID_PAIR": "One side of this pair must be your base or reporting currency.",
+      "UNKNOWN_RATE_TYPE": "This rate type isn't recognized.",
+      "INVALID_DATE": "Enter a valid date (YYYY-MM-DD).",
+      "INVALID_RATE": "Enter a valid rate greater than zero.",
+      "DUPLICATE_IN_FILE": "This pair, date, and type repeats elsewhere in the file.",
+      "DUPLICATE_EXISTING": "A rate already exists for this pair, date, type, and source."
+    },
     "comingSoon": {
-      "csv": {
-        "title": "From CSV",
-        "description": "Bulk-import rates from a CSV file. Coming soon."
-      },
       "excel": {
         "title": "From Excel",
         "description": "Bulk-import rates from an Excel file. Coming soon."
-      },
-      "url": {
-        "title": "From a provider URL",
-        "description": "Fetch live rates from a curated provider. Coming soon."
       }
     }
   },
@@ -214,6 +251,8 @@
     "LOOKUP_INVALID": "That value isn't recognized.",
     "IMPORT_BATCH_NOT_FOUND": "Import batch not found.",
     "IMPORT_BATCH_NOT_PREVIEWED": "This batch was already imported.",
+    "PROVIDER_NOT_FOUND": "This provider isn't available.",
+    "PROVIDER_FETCH_FAILED": "Couldn't reach the provider. Please try again later.",
     "generic": "Something went wrong. Please try again."
   }
 }

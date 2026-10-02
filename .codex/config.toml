@@ -1,5 +1,5 @@
-model = "gpt-5.6-terra"
-model_reasoning_effort = "medium"
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
 
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
@@ -15,6 +15,7 @@ url = "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
 url = "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
 
 [mcp_servers.supabase_remote_with_token]
+enabled = false
 command = "npx"
 args = [
     "-y",

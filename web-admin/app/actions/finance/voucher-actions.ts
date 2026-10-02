@@ -17,7 +17,10 @@ import {
 } from '@/lib/services/voucher-wiring.service';
 import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
 import type { PostAndWireResult, LinkedEffectsResult } from '@/lib/types/voucher-wiring';
-import { reverseBizVoucher } from '@/lib/services/voucher-reversal.service';
+import { z } from 'zod';
+import { reverseBizVoucher, type ReverseBizVoucherOptions } from '@/lib/services/voucher-reversal.service';
+import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
+import { cashPlacementShape } from '@/lib/validations/cash-drawer/placement-schemas';
 import {
   createBizVoucherSchema,
   updateBizVoucherSchema,
@@ -139,15 +142,29 @@ export async function cancelBizVoucherAction(
   }
 }
 
+/** Server-side validation of the optional partial-reversal / cash-placement options. */
+const reverseOptionsSchema = z.object({
+  lineIds: z.array(z.string().uuid()).min(1).max(200).optional(),
+  ...cashPlacementShape,
+});
+
 /**
- *
- * @param voucherId
- * @param reason
+ * Reverses a POSTED (or partially reversed) voucher, fully or for selected lines.
+ * @param voucherId voucher to reverse
+ * @param reason mandatory operator reason
+ * @param opts optional `lineIds` (partial) and explicit cash placement when the cash gate refused
  */
 export async function reverseBizVoucherAction(
   voucherId: string,
-  reason: string
-): Promise<{ success: boolean; data?: { reversalVoucherId: string; reversalVoucherNo: string }; error?: string }> {
+  reason: string,
+  opts: ReverseBizVoucherOptions = {}
+): Promise<{
+  success: boolean;
+  data?: { reversalVoucherId: string; reversalVoucherNo: string };
+  error?: string;
+  /** Stable cash-drawer gate code when the reversal was refused by the gate. */
+  code?: string;
+}> {
   try {
     const auth = await getAuthContext();
     const hasPerm = await hasPermissionServer('fin_vouchers:reverse');
@@ -155,12 +172,17 @@ export async function reverseBizVoucherAction(
 
     if (!reason?.trim()) return { success: false, error: 'Reversal reason is required' };
 
-    const result = await reverseBizVoucher(auth.tenantId, voucherId, reason.trim(), auth.userId);
+    const parsedOpts = reverseOptionsSchema.safeParse(opts);
+    if (!parsedOpts.success) return { success: false, error: 'Invalid reversal options' };
+
+    const result = await reverseBizVoucher(auth.tenantId, voucherId, reason.trim(), auth.userId, parsedOpts.data);
 
     revalidatePath('/dashboard/internal_fin/vouchers');
     revalidatePath(`/dashboard/internal_fin/vouchers/${voucherId}`);
     return { success: true, data: result };
   } catch (error) {
+    // The cash-drawer gate raises a typed refusal with a stable, translatable code.
+    if (error instanceof CashDrawerLedgerError) return { success: false, error: error.code, code: error.code };
     return { success: false, error: error instanceof Error ? error.message : 'Failed to reverse voucher' };
   }
 }

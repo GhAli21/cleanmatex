@@ -629,6 +629,47 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ['Cash drawer operations route with explicit page gate from navigation.'],
   },
   {
+    routePattern: '/dashboard/internal_fin/cash-drawers/follow-up',
+    label: 'Cash Deposit Follow-up',
+    page: {
+      permissions: ['cash_drawer:view_reports'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      updatePostClose: {
+        label: 'Update the post-close status / notes of a session',
+        requirement: {
+          permissions: ['cash_drawer:post_close_update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Follow-up list: sessions whose cash went to a pending-deposit drawer (CLF-8-9)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/follow-up',
+        requirement: { permissions: ['cash_drawer:view_reports'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Post-close status catalog for the filter and editor (CLF-8-9)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/catalogs',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Post-close status update (CLF-8-9 inline editor)',
+        method: 'PUT',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close',
+        requirement: { permissions: ['cash_drawer:post_close_update'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+    ],
+    notes: ['Worklist for cash sent to PENDING_DEPOSIT drawers at close. Nav entry: migration 0541 / navigation.ts billing_cash_drawer_followup.'],
+  },
+  {
     routePattern: '/dashboard/internal_fin/cash-drawers/[drawerId]',
     label: 'Cash Drawer Details',
     page: {
@@ -759,6 +800,13 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/force-close',
         requirement: { permissions: ['pos_session:force_close'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Session closure view: balances, counts, disposition, post-close log (CLF-8-8)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/closure',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
         enforcement: 'permission',
       },
       {
@@ -975,6 +1023,26 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'List drawers to re-place cash the gate refused (VERIFY/REVERSE recovery picker)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+        notes: ['Only fetched after the cash-drawer gate refuses a VERIFY/REVERSE placement.'],
+      },
+      {
+        label: 'Cash change rounding policy for the checkout (A6-1b)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/rounding-policy',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+        notes: ['Only fetched after the cash-drawer gate refuses a VERIFY/REVERSE placement.'],
+      },
+      {
         label: 'Transition a payment leg (VERIFY/CANCEL/FAIL_BOUNCE/VOID/REVERSE)',
         method: 'POST',
         path: '/api/v1/finance/pending-payments/[paymentId]/transition',
@@ -1075,6 +1143,8 @@ export const BILLING_INTERNAL_FIN_AR_STATEMENTS_PRINT_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/statements/print')!
 export const BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers')!
+export const BILLING_INTERNAL_FIN_CASH_DRAWER_FOLLOW_UP_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers/follow-up')!
 export const BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_ACCESS =
   BILLING_ACCESS_CONTRACTS.find(
     (contract) =>

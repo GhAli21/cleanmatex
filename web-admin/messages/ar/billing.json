@@ -246,6 +246,191 @@
       "varianceAlreadyApproved": "تم اعتماد هذا الفرق مسبقًا.",
       "varianceNotPendingApproval": "لا يوجد فرق بانتظار الاعتماد لهذه الجلسة.",
       "varianceReasonRequired": "السبب مطلوب لاعتماد الفرق."
+    },
+    "tabs": {
+      "loadFailed": "تعذّر تحميل البيانات",
+      "sessions": "الجلسات",
+      "ledger": {
+        "title": "دفتر الحركات",
+        "seq": "التسلسل",
+        "source": "المصدر",
+        "domain": {
+          "FIN": "مالي",
+          "TRX": "عهدة"
+        },
+        "emptyTitle": "لا توجد قيود بعد",
+        "emptyDescription": "ستظهر هنا النقدية المثبتة في هذا الصندوق أو المنقولة عبره."
+      },
+      "trx": {
+        "title": "المعاملات",
+        "trxNo": "رقم المعاملة",
+        "type": "النوع",
+        "reversal": "عكس",
+        "emptyTitle": "لا توجد معاملات بعد",
+        "emptyDescription": "ستظهر هنا عمليات صرف العهدة والإيداعات والتحويلات التي تخص هذا الصندوق.",
+        "types": {
+          "FLOAT_ISSUE": "صرف عهدة افتتاحية",
+          "CASH_DROP": "إيداع نقدي في الخزنة",
+          "DRAWER_TO_DRAWER": "تحويل بين الصناديق",
+          "DRIVER_HANDOVER": "تسليم للسائق",
+          "DEPOSIT_PREP": "تجهيز الإيداع البنكي",
+          "CLOSE_DISPOSITION": "تسوية الإغلاق",
+          "REVERSAL": "عكس"
+        }
+      },
+      "counts": {
+        "title": "الجرد",
+        "type": "النوع",
+        "counted": "المعدود",
+        "record": "تسجيل جرد",
+        "recorded": "تم تسجيل الجرد",
+        "recordFailed": "تعذّر تسجيل الجرد",
+        "emptyTitle": "لا توجد عمليات جرد بعد",
+        "emptyDescription": "ستظهر هنا عمليات الجرد الافتتاحية والفورية وجرد الإغلاق.",
+        "dialogDescriptionSession": "يُسجَّل هذا الجرد الفوري على الجلسة المفتوحة الحالية.",
+        "dialogDescriptionNoSession": "يُسجَّل هذا الجرد الفوري على الصندوق (لا توجد جلسة مفتوحة).",
+        "types": {
+          "OPENING": "افتتاحي",
+          "SPOT": "فوري",
+          "CLOSING": "إغلاق",
+          "RECOUNT": "إعادة جرد"
+        }
+      },
+      "policy": {
+        "title": "السياسة",
+        "description": "قواعد ضبط النقد الفعلية لهذا الصندوق. تطبَّق أي قيمة يتم تجاوزها هنا على هذا الصندوق فقط.",
+        "source": {
+          "DRAWER": "مُتجاوَزة هنا",
+          "USER": "موروثة من المستخدم",
+          "BRANCH": "موروثة من الفرع",
+          "TENANT": "موروثة من المنشأة",
+          "TYPE_DEFAULT": "افتراضي النوع",
+          "DEFAULT": "افتراضي النظام"
+        },
+        "reset": "إعادة إلى القيمة الموروثة",
+        "saved": "تم تحديث السياسة",
+        "saveFailed": "تعذّر تحديث السياسة",
+        "on": "نعم",
+        "off": "لا",
+        "viewOnly": "يمكنك عرض هذه السياسة ولكن لا تملك صلاحية تغييرها."
+      }
+    },
+    "trxDialog": {
+      "title": "تحويل نقد",
+      "description": "نقل النقد من أو إلى {drawer}.",
+      "type": "نوع المعاملة",
+      "typePlaceholder": "اختر النوع",
+      "thisDrawerIs": "هذا الصندوق هو",
+      "sideSource": "المصدر (يخرج النقد)",
+      "sideDestination": "الوجهة (يصل النقد)",
+      "toDrawer": "إلى الصندوق",
+      "fromDrawer": "من الصندوق",
+      "drawerPlaceholder": "اختر صندوقًا",
+      "noCounterparty": "لا يوجد صندوق مؤهل في هذا الفرع بنفس العملة. قم بإعداد صندوق في إعدادات الصناديق أولاً.",
+      "amount": "المبلغ",
+      "notes": "ملاحظات",
+      "notesOptional": "ملاحظات (اختياري)",
+      "submit": "ترحيل التحويل",
+      "amountMustBePositive": "يجب أن يكون المبلغ أكبر من صفر",
+      "counterpartyRequired": "اختر الصندوق الآخر",
+      "notesRequired": "الملاحظات مطلوبة لهذا النوع من المعاملات",
+      "posted": "تم ترحيل التحويل {trxNo}",
+      "postFailed": "تعذّر ترحيل التحويل",
+      "openButton": "تحويل"
+    },
+    "closure": {
+      "loadFailed": "تعذّر تحميل تفاصيل الإغلاق",
+      "noBalances": "لا توجد أرصدة لكل عملة مسجلة لهذه الجلسة (سبقت دفتر النقد).",
+      "balanceTitle": "الأرصدة — {currency}",
+      "openingExpected": "الافتتاح (المتوقع)",
+      "financeIn": "وارد مالي",
+      "financeOut": "صادر مالي",
+      "custodyIn": "وارد عهدة",
+      "custodyOut": "صادر عهدة",
+      "closingExpected": "الإغلاق (المتوقع)",
+      "closingCounted": "الإغلاق (المعدود)",
+      "disposition": "التصرف بنقد الإغلاق",
+      "dispositionDestination": "أُرسل إلى {drawer}",
+      "dispositionKept": "المُبقى: {amount}",
+      "countHistory": "سجل الجرد",
+      "countedOfExpected": "المعدود {counted} من {expected}",
+      "totalOnlyCount": "جرد بالإجمالي فقط (بدون تفصيل الفئات).",
+      "postClose": {
+        "title": "المتابعة بعد الإغلاق",
+        "current": "الحالة الحالية:",
+        "none": "غير محددة",
+        "status": "الحالة",
+        "selectStatus": "اختر الحالة",
+        "notes": "ملاحظات",
+        "notesOptional": "ملاحظات (اختياري)",
+        "save": "حفظ",
+        "saved": "تم تحديث حالة ما بعد الإغلاق",
+        "saveFailed": "تعذّر تحديث حالة ما بعد الإغلاق",
+        "statusRequired": "اختر الحالة",
+        "notesRequired": "الملاحظات مطلوبة لهذه الحالة",
+        "history": "سجل التغييرات"
+      }
+    },
+    "print": {
+      "title": "تقرير جلسة الصندوق النقدي",
+      "printButton": "طباعة",
+      "status": "الحالة",
+      "currency": "العملة",
+      "openedBy": "فتحها",
+      "openedAt": "وقت الفتح",
+      "closedBy": "أغلقها",
+      "closedAt": "وقت الإغلاق",
+      "notes": "ملاحظات",
+      "financialSummary": "الملخص المالي",
+      "openingFloat": "رصيد الافتتاح",
+      "cashInMovements": "وارد نقدي (حركات)",
+      "cashOutMovements": "صادر نقدي (حركات)",
+      "paymentsReceived": "المدفوعات المستلمة",
+      "expectedBalance": "الرصيد المتوقع",
+      "physicalCount": "الجرد الفعلي",
+      "variance": "الفرق",
+      "movementsTitle": "الحركات النقدية ({count})",
+      "noMovements": "لا توجد حركات مسجلة.",
+      "paymentsTitle": "المدفوعات المستلمة ({count})",
+      "noPayments": "لا توجد مدفوعات مسجلة لهذه الجلسة.",
+      "total": "الإجمالي",
+      "generatedOn": "أُنشئ في {date}",
+      "time": "الوقت",
+      "type": "النوع",
+      "direction": "الاتجاه",
+      "reason": "السبب",
+      "amount": "المبلغ",
+      "method": "الطريقة"
+    },
+    "placement": {
+      "label": "تسجيل النقد في الصندوق",
+      "placeholder": "اختر صندوقًا",
+      "loading": "جارٍ تحميل الصناديق…",
+      "loadFailed": "تعذّر تحميل صناديق النقد.",
+      "noneEligible": "لا يوجد صندوق نقد نشط بعملة مطابقة. أنشئ صندوقًا أو فعّله أولاً.",
+      "openSession": "جلسة مفتوحة {sessionNo}",
+      "noOpenSession": "لا توجد جلسة مفتوحة"
+    },
+    "followUp": {
+      "title": "متابعة الإيداعات النقدية",
+      "description": "الجلسات التي أُرسل نقد إغلاقها إلى صندوق الإيداع المعلّق. تابع كل جلسة حتى يصل المبلغ إلى البنك.",
+      "filterStatus": "حالة ما بعد الإغلاق",
+      "allStatuses": "كل الحالات",
+      "columns": {
+        "session": "الجلسة",
+        "drawer": "الصندوق",
+        "branch": "الفرع",
+        "closedAt": "وقت الإغلاق",
+        "amount": "المُرسل للإيداع",
+        "status": "الحالة",
+        "notes": "ملاحظات"
+      },
+      "noStatus": "غير محددة",
+      "update": "تحديث",
+      "emptyTitle": "لا شيء للمتابعة",
+      "emptyDescription": "لم ترسل أي جلسة مغلقة نقدًا إلى صندوق إيداع معلّق بعد.",
+      "loadFailed": "تعذّر تحميل قائمة المتابعة.",
+      "updateTitle": "تحديث حالة ما بعد الإغلاق"
     }
   },
   "refunds": {
@@ -299,7 +484,6 @@
     "financeVoucher": "سند مالي",
     "voucherLineId": "معرّف سطر السند",
     "cashDrawerSession": "جلسة درج النقد",
-    "cashDrawerMovementId": "معرّف حركة درج النقد",
     "posSessionId": "معرّف جلسة نقطة البيع",
     "settlementReference": "مرجع التسوية",
     "requestedBy": "طُلب بواسطة",
@@ -622,10 +806,6 @@
       "reasonPlaceholder": "السبب (مطلوب)",
       "fallbackClassificationLabel": "ماذا سيحدث للرصيد المستحق؟",
       "fallbackClassificationPlaceholder": "اختر تصنيفًا",
-      "cashDrawerSessionLabel": "جلسة درج النقدية للإخراج النقدي التعويضي",
-      "cashDrawerSessionLoading": "جارٍ تحميل جلسات درج النقدية المفتوحة…",
-      "cashDrawerSessionNoneOpen": "لا توجد جلسة درج نقدي مفتوحة — افتح جلسة قبل عكس هذه الدفعة النقدية.",
-      "cashDrawerSessionPlaceholder": "اختر جلسة مفتوحة",
       "fallback": {
         "RETRY_TENDER": "سيعيد العميل محاولة الدفع",
         "PAY_ON_COLLECTION": "التحصيل عند التسليم/الاستلام",
@@ -641,10 +821,11 @@
         "illegalTransition": "لم يعد بالإمكان تحويل هذه الدفعة بهذه الطريقة",
         "raceDetected": "حدث تحديث آخر للتو — يرجى إعادة المحاولة",
         "idempotencyConflict": "يتعارض هذا الطلب مع محاولة سابقة — يرجى إعادة المحاولة من نافذة جديدة",
-        "cashDrawerSessionRequired": "جلسة درج نقدي مفتوحة مطلوبة لعكس هذه الدفعة النقدية",
-        "cashDrawerSessionNotOpen": "جلسة درج النقدية المحددة لم تعد مفتوحة — اختر جلسة أخرى",
         "notFound": "الدفعة غير موجودة",
         "notRealPayment": "هذه ليست دفعة نقدية فعلية"
+      },
+      "placement": {
+        "explain": "تعذّر على صندوق النقد استلام هذا المبلغ. اختر صندوقًا لتسجيله فيه."
       }
     }
   },

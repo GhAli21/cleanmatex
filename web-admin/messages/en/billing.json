@@ -246,6 +246,191 @@
       "varianceAlreadyApproved": "This variance was already approved.",
       "varianceNotPendingApproval": "This session has no variance pending approval.",
       "varianceReasonRequired": "A reason is required to approve the variance."
+    },
+    "tabs": {
+      "loadFailed": "Failed to load data",
+      "sessions": "Sessions",
+      "ledger": {
+        "title": "Ledger",
+        "seq": "Seq",
+        "source": "Source",
+        "domain": {
+          "FIN": "Finance",
+          "TRX": "Custody"
+        },
+        "emptyTitle": "No ledger entries yet",
+        "emptyDescription": "Cash recognized in or moved through this drawer will appear here."
+      },
+      "trx": {
+        "title": "Transactions",
+        "trxNo": "Transaction No",
+        "type": "Type",
+        "reversal": "Reversal",
+        "emptyTitle": "No transactions yet",
+        "emptyDescription": "Float issues, drops and transfers touching this drawer will appear here.",
+        "types": {
+          "FLOAT_ISSUE": "Float issue",
+          "CASH_DROP": "Cash drop",
+          "DRAWER_TO_DRAWER": "Drawer to drawer",
+          "DRIVER_HANDOVER": "Driver handover",
+          "DEPOSIT_PREP": "Deposit preparation",
+          "CLOSE_DISPOSITION": "Close disposition",
+          "REVERSAL": "Reversal"
+        }
+      },
+      "counts": {
+        "title": "Counts",
+        "type": "Type",
+        "counted": "Counted",
+        "record": "Record count",
+        "recorded": "Count recorded",
+        "recordFailed": "Failed to record the count",
+        "emptyTitle": "No counts yet",
+        "emptyDescription": "Opening, spot and closing counts will appear here.",
+        "dialogDescriptionSession": "This spot count is recorded against the current open session.",
+        "dialogDescriptionNoSession": "This spot count is recorded against the drawer (no open session).",
+        "types": {
+          "OPENING": "Opening",
+          "SPOT": "Spot",
+          "CLOSING": "Closing",
+          "RECOUNT": "Recount"
+        }
+      },
+      "policy": {
+        "title": "Policy",
+        "description": "Effective cash-control rules for this drawer. Overriding a value here applies to this drawer only.",
+        "source": {
+          "DRAWER": "Overridden here",
+          "USER": "Inherited from User",
+          "BRANCH": "Inherited from Branch",
+          "TENANT": "Inherited from Organization",
+          "TYPE_DEFAULT": "Type default",
+          "DEFAULT": "System default"
+        },
+        "reset": "Reset to inherited",
+        "saved": "Policy updated",
+        "saveFailed": "Failed to update the policy",
+        "on": "Yes",
+        "off": "No",
+        "viewOnly": "You can view this policy but don't have permission to change it."
+      }
+    },
+    "trxDialog": {
+      "title": "Transfer cash",
+      "description": "Move cash to or from {drawer}.",
+      "type": "Transaction type",
+      "typePlaceholder": "Select a type",
+      "thisDrawerIs": "This drawer is the",
+      "sideSource": "Source (cash leaves)",
+      "sideDestination": "Destination (cash arrives)",
+      "toDrawer": "To drawer",
+      "fromDrawer": "From drawer",
+      "drawerPlaceholder": "Select a drawer",
+      "noCounterparty": "No eligible drawer in this branch with the same currency. Configure one in drawer settings first.",
+      "amount": "Amount",
+      "notes": "Notes",
+      "notesOptional": "Notes (optional)",
+      "submit": "Post transfer",
+      "amountMustBePositive": "Amount must be greater than zero",
+      "counterpartyRequired": "Select the other drawer",
+      "notesRequired": "Notes are required for this transaction type",
+      "posted": "Transfer {trxNo} posted",
+      "postFailed": "Failed to post the transfer",
+      "openButton": "Transfer"
+    },
+    "closure": {
+      "loadFailed": "Failed to load closure details",
+      "noBalances": "No per-currency balances recorded for this session (it predates the cash ledger).",
+      "balanceTitle": "Balances — {currency}",
+      "openingExpected": "Opening (expected)",
+      "financeIn": "Finance in",
+      "financeOut": "Finance out",
+      "custodyIn": "Custody in",
+      "custodyOut": "Custody out",
+      "closingExpected": "Closing (expected)",
+      "closingCounted": "Closing (counted)",
+      "disposition": "Closing cash disposition",
+      "dispositionDestination": "Sent to {drawer}",
+      "dispositionKept": "Kept: {amount}",
+      "countHistory": "Count history",
+      "countedOfExpected": "Counted {counted} of {expected}",
+      "totalOnlyCount": "Total-only count (no denomination breakdown).",
+      "postClose": {
+        "title": "Post-close follow-up",
+        "current": "Current status:",
+        "none": "Not set",
+        "status": "Status",
+        "selectStatus": "Select a status",
+        "notes": "Notes",
+        "notesOptional": "Notes (optional)",
+        "save": "Save",
+        "saved": "Post-close status updated",
+        "saveFailed": "Failed to update the post-close status",
+        "statusRequired": "Select a status",
+        "notesRequired": "Notes are required for this status",
+        "history": "Change log"
+      }
+    },
+    "print": {
+      "title": "Cash Drawer Session Report",
+      "printButton": "Print",
+      "status": "Status",
+      "currency": "Currency",
+      "openedBy": "Opened By",
+      "openedAt": "Opened At",
+      "closedBy": "Closed By",
+      "closedAt": "Closed At",
+      "notes": "Notes",
+      "financialSummary": "Financial Summary",
+      "openingFloat": "Opening Float",
+      "cashInMovements": "Cash In (movements)",
+      "cashOutMovements": "Cash Out (movements)",
+      "paymentsReceived": "Payments Received",
+      "expectedBalance": "Expected Balance",
+      "physicalCount": "Physical Count",
+      "variance": "Variance",
+      "movementsTitle": "Cash Movements ({count})",
+      "noMovements": "No movements recorded.",
+      "paymentsTitle": "Payments Received ({count})",
+      "noPayments": "No payments recorded for this session.",
+      "total": "Total",
+      "generatedOn": "Generated on {date}",
+      "time": "Time",
+      "type": "Type",
+      "direction": "Direction",
+      "reason": "Reason",
+      "amount": "Amount",
+      "method": "Method"
+    },
+    "placement": {
+      "label": "Record the cash in drawer",
+      "placeholder": "Select a drawer",
+      "loading": "Loading drawers…",
+      "loadFailed": "Failed to load cash drawers.",
+      "noneEligible": "No active cash drawer with a matching currency is available. Create or activate one first.",
+      "openSession": "open session {sessionNo}",
+      "noOpenSession": "no open session"
+    },
+    "followUp": {
+      "title": "Cash Deposit Follow-up",
+      "description": "Sessions whose closing cash was sent to a pending-deposit drawer. Track each one until it reaches the bank.",
+      "filterStatus": "Post-close status",
+      "allStatuses": "All statuses",
+      "columns": {
+        "session": "Session",
+        "drawer": "Drawer",
+        "branch": "Branch",
+        "closedAt": "Closed",
+        "amount": "Sent to deposit",
+        "status": "Status",
+        "notes": "Notes"
+      },
+      "noStatus": "Not set",
+      "update": "Update",
+      "emptyTitle": "Nothing to follow up",
+      "emptyDescription": "No closed session has sent cash to a pending-deposit drawer yet.",
+      "loadFailed": "Failed to load the follow-up list.",
+      "updateTitle": "Update post-close status"
     }
   },
   "refunds": {
@@ -299,7 +484,6 @@
     "financeVoucher": "Finance voucher",
     "voucherLineId": "Voucher line ID",
     "cashDrawerSession": "Cash drawer session",
-    "cashDrawerMovementId": "Cash drawer movement ID",
     "posSessionId": "POS session ID",
     "settlementReference": "Settlement reference",
     "requestedBy": "Requested by",
@@ -622,10 +806,6 @@
       "reasonPlaceholder": "Reason (required)",
       "fallbackClassificationLabel": "What happens to the outstanding balance?",
       "fallbackClassificationPlaceholder": "Select a classification",
-      "cashDrawerSessionLabel": "Cash-drawer session for the compensating cash-out",
-      "cashDrawerSessionLoading": "Loading open cash-drawer sessions…",
-      "cashDrawerSessionNoneOpen": "No open cash-drawer session — open one before reversing this cash payment.",
-      "cashDrawerSessionPlaceholder": "Select an open session",
       "fallback": {
         "RETRY_TENDER": "Customer will retry the payment",
         "PAY_ON_COLLECTION": "Collect on delivery/pickup",
@@ -641,10 +821,11 @@
         "illegalTransition": "This payment can no longer be transitioned this way",
         "raceDetected": "Another update just happened — please retry",
         "idempotencyConflict": "This request conflicts with a previous attempt — please retry from a fresh dialog",
-        "cashDrawerSessionRequired": "An open cash-drawer session is required to reverse this cash payment",
-        "cashDrawerSessionNotOpen": "The selected cash-drawer session is no longer open — pick another",
         "notFound": "Payment not found",
         "notRealPayment": "This is not a real-payment leg"
+      },
+      "placement": {
+        "explain": "The cash drawer could not take this cash. Choose a drawer to record it in."
       }
     }
   },

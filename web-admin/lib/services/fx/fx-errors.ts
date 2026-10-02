@@ -34,6 +34,10 @@ export const FX_ERROR = {
   // Import (fx-import.service.ts)
   IMPORT_BATCH_NOT_FOUND: 'IMPORT_BATCH_NOT_FOUND',
   IMPORT_BATCH_NOT_PREVIEWED: 'IMPORT_BATCH_NOT_PREVIEWED',
+
+  // URL fetch (fx-url-import.service.ts, 5E) — wraps FxProviderFetchError
+  PROVIDER_NOT_FOUND: 'PROVIDER_NOT_FOUND',
+  PROVIDER_FETCH_FAILED: 'PROVIDER_FETCH_FAILED',
 } as const;
 
 export type FxErrorCode = (typeof FX_ERROR)[keyof typeof FX_ERROR];

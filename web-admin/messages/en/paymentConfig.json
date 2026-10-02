@@ -254,7 +254,13 @@
     "deactivateConfirm": {
       "title": "Deactivate cash drawer?",
       "description": "The cash drawer will be disabled for new cashier sessions."
-    }
+    },
+    "typeCapabilities": "Type capabilities:",
+    "capMobile": "Mobile (travels with a person)",
+    "capFixed": "Fixed location",
+    "capReceivesDisposition": "Can receive closing cash",
+    "capNoDisposition": "Cannot receive closing cash",
+    "policyMovedHint": "Session and count rules for this drawer are managed on the drawer's Policy tab."
   },
   "loyalty": {
     "title": "Loyalty Program",
