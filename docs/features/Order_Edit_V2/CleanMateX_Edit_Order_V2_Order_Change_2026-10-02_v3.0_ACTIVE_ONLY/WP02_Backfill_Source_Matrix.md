@@ -5,7 +5,13 @@
 **Repository:** main, HEAD `f33cff481c7a5d35fb16ad5a10983db2762c9818`, shared dirty working tree; source evidence refreshed on 2026-10-02.
 **Authority:** the active v3.0 Architecture/Production Specification and existing living plan. This is supporting source evidence, not another implementation plan.
 
-No code, producer, migration or historical data is changed by this matrix. Current producers do not persist the proposed committed_at/committed_by/edit_state_version. A known current source path identifies a future producer boundary; it does not prove which historical row used it or provide a historical commitment timestamp. No live business-data query was performed for this document.
+No code, producer, migration or historical data is changed by this matrix. Current producers do not persist the proposed committed_at/committed_by/edit_state_version. A known current source path identifies a future producer boundary; it does not prove which historical row used it or provide a historical commitment timestamp.
+
+## Tenant-bounded current-data classification — 2026-10-02
+
+The accompanying [read-only preflight evidence](WP02_Data_Preflight_Evidence.json) classified every currently catalogued tenant with explicit tenant predicates. Local is empty. Hosted still contains 72 orders despite the later reported deletion: all are `committed_at NULL`, `edit_state_version=0` and `service_speed NULL`; Change history is empty. The 72 legacy rows remain V2-ineligible. Their `created_by` values have valid existing `auth.users` identities, but that is not proof of a commercial commitment actor, source acceptance or historical timezone. No backfill is justified.
+
+Current hosted items/pieces/preferences have no NULL/unsupported `rec_status`, no reported hierarchy/parent-shape defects and no removal lineage; that proves only the present structural scan. It does not make source/timezone/financial facts authoritative. Existing financial snapshot tokens include 53 `MISMATCH` and 19 `CURRENT`; this matrix does not repair, reinterpret or use them as a commitment classifier. Local's UTC and hosted's Asia/Muscat current session settings cannot establish legacy timestamp provenance.
 
 ## Current-code reconciliation
 
@@ -37,7 +43,7 @@ All paths below resolve under `web-admin/`. Initial revision 1 applies only when
 
 created_by is legacy nullable text. Staff UUIDs, public customer IDs and absent split actors are different cases. Validate lexical UUID form and identity existence through the actor-authority review before populating committed_by. Preserve unknown actor as NULL only under an approved historical rule; never invent an authenticated staff actor. Current Source KNOWN does not mean Historical Source PROVEN.
 
-Backfill classification must report separate counts/IDs for proven accepted aggregates, uncommitted drafts, failed/orphan creates, split children, malformed/missing actors, unknown timestamps/timezones, legacy rec_status NULL, and ambiguous service speed. No business-data counts are claimed here. Dry-run/report and reviewed operator backfill come before historical cohort enablement.
+Backfill classification must report separate counts/IDs for proven accepted aggregates, uncommitted drafts, failed/orphan creates, split children, malformed/missing actors, unknown timestamps/timezones, legacy rec_status NULL, and ambiguous service speed. The current tenant-bounded counts are retained in the evidence artifact above; dry-run/report and reviewed operator backfill come before historical cohort enablement.
 
 ## Priority and service-speed foundation qualification
 

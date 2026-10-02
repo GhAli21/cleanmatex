@@ -30,7 +30,10 @@
       "Bash(wc*)",
       "Bash(node -e*)",
       "Bash(sed 's/\\(.*//')",
-      "mcp__supabase_remote_db__list_migrations"
+      "mcp__supabase_remote_db__list_migrations",
+      "Bash(python -)",
+      "Read(//c/Users/JHNLP/AppData/Local/Temp/claude/f--jhapp-cleanmatex/70fe7673-dad5-49bc-b444-2da34ab46c3f/scratchpad/**)",
+      "Bash(sed -i \"s/RAISE EXCEPTION 'DRYRUN OK len=%', length\\(v_new\\);/EXECUTE v_new; RAISE EXCEPTION 'DRYRUN EXEC OK';/\" dry0551.sql)"
     ],
     "deny": [
       "Read(**/node_modules/**)",
@@ -87,6 +90,7 @@
       "Bash(Remove-Item*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase_remote_with_token",
     "supabase_remote",
@@ -97,6 +101,5 @@
   "disabledMcpjsonServers": [
     "supabase"
   ],
-  "outputStyle": "concise",
-  "enableAllProjectMcpServers": true
+  "outputStyle": "concise"
 }

@@ -25,6 +25,18 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Force-close POS session',
         requirement: { permissions: ['pos_session:force_close'], requireAllPermissions: true },
       },
+      openOthersPosSession: {
+        label: 'Open POS session for another user',
+        requirement: { permissions: ['pos_session:open_others', 'pos_session:full_manage_others'], requireAllPermissions: false },
+      },
+      closeOthersPosSession: {
+        label: 'Close another user\'s POS session',
+        requirement: { permissions: ['pos_session:close_others', 'pos_session:full_manage_others'], requireAllPermissions: false },
+      },
+      forceCloseOthersPosSession: {
+        label: 'Force-close another user\'s POS session',
+        requirement: { permissions: ['pos_session:close_others', 'pos_session:force_close', 'pos_session:full_manage_others'], requireAllPermissions: false },
+      },
       viewAllPosSessions: {
         label: 'View all POS sessions',
         requirement: { permissions: ['pos_session:view_all'], requireAllPermissions: true },
@@ -87,16 +99,42 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['pos_session:pause_resume'], requireAllPermissions: true },
       },
       {
-        label: 'Close POS session',
+        label: 'Close POS session (self, legacy active-session endpoint)',
         method: 'POST',
         path: '/api/v1/pos-sessions/close',
         requirement: { permissions: ['pos_session:close'], requireAllPermissions: true },
       },
       {
-        label: 'Force-close POS session',
+        label: 'Force-close POS session (self, legacy active-session endpoint)',
         method: 'POST',
         path: '/api/v1/pos-sessions/force-close',
         requirement: { permissions: ['pos_session:force_close'], requireAllPermissions: true },
+      },
+      {
+        label: 'Open POS session for another user (row/toolbar action)',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/open-others',
+        requirement: { permissions: ['pos_session:open_others', 'pos_session:full_manage_others'], requireAllPermissions: false },
+      },
+      {
+        label: 'List tenant users for the open-for-user picker',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/users',
+        requirement: { permissions: ['pos_session:open_others', 'pos_session:full_manage_others'], requireAllPermissions: false },
+      },
+      {
+        label: 'Close a specific session by id (own or, with close_others/full_manage_others, another user\'s)',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/[sessionId]/close',
+        requirement: { permissions: ['pos_session:close', 'pos_session:close_others', 'pos_session:full_manage_others'], requireAllPermissions: false },
+        notes: ['Actual server rule: own session needs pos_session:close; another user\'s session needs pos_session:close_others OR pos_session:full_manage_others. This any-of listing is a declarative over-approximation — see route code for the exact branch.'],
+      },
+      {
+        label: 'Force-close a specific session by id (own or, with close_others+force_close/full_manage_others, another user\'s)',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/[sessionId]/force-close',
+        requirement: { permissions: ['pos_session:force_close', 'pos_session:close_others', 'pos_session:full_manage_others'], requireAllPermissions: false },
+        notes: ['Actual server rule: own session needs pos_session:force_close; another user\'s session needs (pos_session:close_others AND pos_session:force_close) OR pos_session:full_manage_others, and bypasses the drawer-closed check. This any-of listing is a declarative over-approximation — see route code for the exact branch.'],
       },
       {
         label: 'Get POS session summary',
@@ -158,6 +196,7 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
       'POS session is user-owned operational lineage; cash drawer session remains physical cash reconciliation truth.',
       'If the linked drawer is still open, the UI requires the drawer close step before retrying POS close.',
       'B16: `cash_drawer:approve_variance` is seeded by B27 — the route stays fail-closed (permission denied) until that migration lands and a role is granted it.',
+      'Session management actions (E3-1, migration 0552): open_others/close_others/full_manage_others are permission-gated only, with no server-side branch scoping — there is no user-to-branch assignment table in this codebase to enforce it against, same gap as cash_drawer:view_all_branches. Admin force-close of another user\'s session bypasses the drawer-closed requirement by design (abandoned-session recovery); the event is tagged drawerCheckBypassed for audit.',
     ],
   },
 ];

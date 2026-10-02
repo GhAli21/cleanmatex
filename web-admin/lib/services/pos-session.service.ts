@@ -36,7 +36,10 @@ type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 interface OpenPosSessionInput {
   tenantId: string;
+  /** Session owner — whose active-session slot this consumes. */
   userId: string;
+  /** Actor actually performing the open. Defaults to `userId` for self-service opens. */
+  performedBy?: string;
   branchId: string;
   terminalId?: string | null;
   idempotencyKey?: string | null;
@@ -47,11 +50,20 @@ interface OpenPosSessionInput {
 
 interface LifecycleInput {
   tenantId: string;
+  /** Session owner — whose active session this transition targets. */
   userId: string;
+  /** Actor actually performing the transition. Defaults to `userId` for self-service calls. */
+  performedBy?: string;
   reason?: string | null;
   idempotencyKey?: string | null;
   sourceChannel?: string | null;
   metadata?: PosSessionMetadata;
+  /**
+   * Admin override (close_others/full_manage_others paths only): skip the
+   * linked-cash-drawer-must-be-closed check for a stuck/abandoned session.
+   * Never set for a user's own close/force-close.
+   */
+  bypassDrawerCheck?: boolean;
 }
 
 interface PosSessionFinanceContextInput {
@@ -292,6 +304,20 @@ async function assertTerminalIsUsable(
   }
 }
 
+async function assertUserExists(tx: PrismaTx, tenantId: string, userId: string): Promise<void> {
+  const rows = await tx.$queryRaw<Array<{ user_id: string }>>(Prisma.sql`
+    SELECT user_id
+    FROM public.org_users_mst
+    WHERE tenant_org_id = ${tenantId}::uuid
+      AND user_id = ${userId}::uuid
+      AND COALESCE(is_active, TRUE) = TRUE
+    LIMIT 1
+  `);
+  if (!rows[0]) {
+    throw new PosSessionError('POS_SESSION_TARGET_USER_NOT_FOUND', 'Target user was not found for this tenant.', 404);
+  }
+}
+
 async function resolveBusinessTimezone(tx: PrismaTx, tenantId: string): Promise<string> {
   const rows = await tx.$queryRaw<Array<{ timezone: string | null }>>(Prisma.sql`
     SELECT timezone
@@ -438,6 +464,35 @@ async function getPosSessionForUpdateById(
     );
   }
   return session;
+}
+
+/**
+ * Resolves the owning user and status of a POS session for authorization
+ * decisions (own-session vs. acting-on-another-user's-session) before a
+ * lifecycle action is attempted. Tenant-scoped.
+ *
+ * @param input - Tenant and session to look up.
+ * @returns The session's owner `userId` and current status, or null if not found.
+ *
+ * @example
+ * const owner = await getPosSessionOwner({ tenantId: 'tenant-uuid', posSessionId: 'session-uuid' });
+ */
+export async function getPosSessionOwner(input: {
+  tenantId: string;
+  posSessionId: string;
+}): Promise<{ userId: string; status: PosSessionStatus; branchId: string } | null> {
+  return withTenantContext(input.tenantId, async () => {
+    const rows = await prisma.$queryRaw<Array<{ user_id: string; status: PosSessionStatus; branch_id: string }>>(Prisma.sql`
+      SELECT user_id, status, branch_id
+      FROM public.org_pos_sessions_mst
+      WHERE tenant_org_id = ${input.tenantId}::uuid
+        AND id = ${input.posSessionId}::uuid
+        AND is_active = TRUE
+      LIMIT 1
+    `);
+    const row = rows[0];
+    return row ? { userId: row.user_id, status: row.status, branchId: row.branch_id } : null;
+  });
 }
 
 /**
@@ -873,6 +928,68 @@ export async function getPosSessionSummary(input: {
   });
 }
 
+/**
+ * Lists tenant users for the "open session on behalf of" picker. Intentionally
+ * independent of POS session history (unlike `listPosSessionFilterOptions`'s
+ * `operator` dimension) so a cashier who has never opened a session yet can
+ * still be selected.
+ *
+ * @param input - Tenant, optional search query, and paging.
+ * @returns A page of tenant users matching the query.
+ *
+ * @example
+ * await listTenantUsersForPosSessionOpen({ tenantId: 'tenant-uuid', query: 'ali', page: 1, pageSize: 25 });
+ */
+export async function listTenantUsersForPosSessionOpen(input: {
+  tenantId: string;
+  query?: string | null;
+  page: number;
+  pageSize: number;
+}): Promise<{ items: Array<{ id: string; label: string; secondaryLabel: string | null }>; total: number; page: number; pageSize: number }> {
+  const page = Math.max(1, input.page);
+  const pageSize = Math.min(Math.max(1, input.pageSize), 100);
+  const offset = (page - 1) * pageSize;
+  const searchSql = input.query
+    ? Prisma.sql`AND (
+        u.display_name ILIKE ${`%${input.query}%`}
+        OR u.name ILIKE ${`%${input.query}%`}
+        OR u.email ILIKE ${`%${input.query}%`}
+      )`
+    : Prisma.empty;
+
+  return withTenantContext(input.tenantId, async () => {
+    const [countRows, rows] = await Promise.all([
+      prisma.$queryRaw<Array<{ total: number }>>(Prisma.sql`
+        SELECT COUNT(*)::int AS total
+        FROM public.org_users_mst u
+        WHERE u.tenant_org_id = ${input.tenantId}::uuid
+          AND COALESCE(u.is_active, TRUE) = TRUE
+          ${searchSql}
+      `),
+      prisma.$queryRaw<Array<{ id: string; label: string; secondary_label: string | null }>>(Prisma.sql`
+        SELECT
+          u.user_id::text AS id,
+          COALESCE(u.display_name, u.name, u.email) AS label,
+          u.email AS secondary_label
+        FROM public.org_users_mst u
+        WHERE u.tenant_org_id = ${input.tenantId}::uuid
+          AND COALESCE(u.is_active, TRUE) = TRUE
+          ${searchSql}
+        ORDER BY label ASC
+        LIMIT ${pageSize}
+        OFFSET ${offset}
+      `),
+    ]);
+
+    return {
+      items: rows.map((row) => ({ id: row.id, label: row.label, secondaryLabel: row.secondary_label })),
+      total: countRows[0]?.total ?? 0,
+      page,
+      pageSize,
+    };
+  });
+}
+
 async function createOpenSessionTx(
   tx: PrismaTx,
   input: OpenPosSessionInput,
@@ -880,6 +997,11 @@ async function createOpenSessionTx(
 ): Promise<{ type: 'CREATED'; session: PosSessionRow }> {
   await assertBranchExists(tx, input.tenantId, input.branchId);
   await assertTerminalIsUsable(tx, input.tenantId, input.branchId, input.terminalId);
+
+  const performedBy = input.performedBy ?? input.userId;
+  if (performedBy !== input.userId) {
+    await assertUserExists(tx, input.tenantId, input.userId);
+  }
 
   const businessTimezone = await resolveBusinessTimezone(tx, input.tenantId);
   const businessDate = businessDateForTimezone(businessTimezone);
@@ -894,7 +1016,7 @@ async function createOpenSessionTx(
     VALUES (
       ${input.tenantId}::uuid, ${input.branchId}::uuid, ${input.userId}::uuid, ${input.terminalId ?? null}::uuid,
       ${sessionNo}, ${businessDate}::date, ${businessTimezone}, ${POS_SESSION_STATUS.OPEN},
-      ${input.userId}::uuid, ${input.userId}, ${JSON.stringify(input.metadata ?? {})}::jsonb
+      ${performedBy}::uuid, ${performedBy}, ${JSON.stringify(input.metadata ?? {})}::jsonb
     )
     RETURNING *
   `);
@@ -906,10 +1028,13 @@ async function createOpenSessionTx(
     eventType,
     previousStatus: null,
     newStatus: POS_SESSION_STATUS.OPEN,
-    performedBy: input.userId,
+    performedBy,
     idempotencyKey: input.idempotencyKey,
     sourceChannel: input.sourceChannel,
-    metadata: input.metadata,
+    metadata:
+      performedBy !== input.userId
+        ? { ...(input.metadata ?? {}), openedOnBehalfOfUserId: input.userId }
+        : input.metadata,
   });
 
   return { type: 'CREATED', session };
@@ -1561,7 +1686,10 @@ async function transitionActiveSession(
         );
       }
 
-      if (transition.requireDrawerClosed) {
+      const performedBy = input.performedBy ?? input.userId;
+      const actingOnOthers = performedBy !== input.userId;
+
+      if (transition.requireDrawerClosed && !(input.bypassDrawerCheck && actingOnOthers)) {
         await assertLinkedDrawerIsClosed(tx, active);
       }
 
@@ -1569,10 +1697,10 @@ async function transitionActiveSession(
         UPDATE public.org_pos_sessions_mst
         SET status = ${transition.targetStatus},
             ${Prisma.raw(transition.timestampColumn)} = NOW(),
-            ${Prisma.raw(transition.actorColumn)} = ${input.userId}::uuid,
+            ${Prisma.raw(transition.actorColumn)} = ${performedBy}::uuid,
             ${transition.reasonColumn ? Prisma.sql`${Prisma.raw(transition.reasonColumn)} = ${input.reason ?? null},` : Prisma.empty}
             updated_at = NOW(),
-            updated_by = ${input.userId}
+            updated_by = ${performedBy}
         WHERE tenant_org_id = ${input.tenantId}::uuid
           AND id = ${active.id}::uuid
         RETURNING *
@@ -1585,11 +1713,17 @@ async function transitionActiveSession(
         eventType: transition.eventType,
         previousStatus: active.status as PosSessionStatus,
         newStatus: transition.targetStatus,
-        performedBy: input.userId,
+        performedBy,
         reason: input.reason,
         idempotencyKey: input.idempotencyKey,
         sourceChannel: input.sourceChannel,
-        metadata: input.metadata,
+        metadata: actingOnOthers
+          ? {
+              ...(input.metadata ?? {}),
+              actedOnBehalfOfUserId: input.userId,
+              drawerCheckBypassed: Boolean(transition.requireDrawerClosed && input.bypassDrawerCheck),
+            }
+          : input.metadata,
       });
 
       const result: PosSessionLifecycleResult = { type: 'UPDATED', session };

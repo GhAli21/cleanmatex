@@ -1301,7 +1301,7 @@ Many POS sessions → one drawer session is intentional (plain index `idx_ops_cd
 
 ### E3 — Permissions & tolerance cleanup
 
-- [ ] E3-1 Implement `pos_session:close_others` in the close path.
+- [x] E3-1 Implement `pos_session:close_others` in the close path — done 2026-10-02 (migration `0552`), as part of the broader "session management actions" request. Shipped `pos_session:close` / `pos_session:close_others` on a new `[sessionId]/close` route (target resolved by session id, not just the caller's own active session), plus the symmetric `force-close` route and a new `pos_session:open_others` + `pos_session:full_manage_others` pair for opening/fully managing another user's session. Admin force-close of another user's session bypasses the drawer-closed check by design (abandoned-session recovery) and tags the event `drawerCheckBypassed`. No server-side branch scoping — permission-only, per explicit product decision (same gap as `cash_drawer:view_all_branches`). UI: POS Sessions list gained row-level Close/Force-close actions (any session the actor is authorized for) and a toolbar "Open session for user" picker. See `web-admin/lib/services/pos-session.service.ts`, `app/api/v1/pos-sessions/{open-others,users,[sessionId]/close,[sessionId]/force-close}`, `src/features/pos-sessions/ui/pos-sessions-screen.tsx`.
 - [ ] E3-2 Migrate remaining `CASH_VARIANCE_TOLERANCE` call sites (`lib/constants/reconciliation-reports.ts`) to the currency-aware helper; delete the alias.
 - [ ] E3-3 `npm run rebuild:platform-info-inventories` + `check:`; resolve `DRIFT_REPORT.md`.
 

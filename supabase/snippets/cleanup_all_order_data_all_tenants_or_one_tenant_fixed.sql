@@ -1,4 +1,5 @@
---ROLLBACK;
+ROLLBACK;
+select count(*) from org_orders_mst;
 -- =============================================================================
 -- Cleanup script: delete ALL order-related test data for ALL tenants or ONE tenant
 --
@@ -44,21 +45,25 @@
 --     credit-note / loyalty master balances
 --   - optional deletion of orphan stored-value masters after cleanup
 --
--- Schema alignment (last verified 2026-08-22):
+-- Schema alignment (last verified 2026-10-02):
 --   - org_payments_dtl_tr and org_payment_audit_log were dropped when the legacy
 --     payment ledger was retired. All references to them are removed, together
 --     with the include_legacy_payment_rows option.
 --   - Tables that hold an ON DELETE RESTRICT foreign key into the target set are
 --     deleted explicitly and in dependency order, so the transaction cannot abort
 --     on a foreign-key violation:
---       org_ar_credit_allocs_dtl   -> org_customer_ar_ledger_dtl, org_invoice_mst
---       org_ar_disputes_mst        -> org_invoice_mst
---       org_dlv_ev_uploads_tr      -> org_dlv_stops_dtl
---       org_fin_overpay_disp_dtl   -> org_orders_mst
---       org_sv_funding_tenders_dtl -> org_fin_vouchers_mst, org_fin_voucher_trx_lines_dtl
---       org_tax_doc_lines_dtl      -> org_tax_documents_mst
---       org_tax_documents_mst      -> org_orders_mst (and itself, via supersedes_id)
---       org_wf_gate_decision_mst   -> org_orders_mst
+--       org_ar_credit_allocs_dtl     -> org_customer_ar_ledger_dtl, org_invoice_mst
+--       org_ar_disputes_mst          -> org_invoice_mst
+--       org_dlv_ev_uploads_tr        -> org_dlv_stops_dtl
+--       org_fin_overpay_disp_dtl     -> org_orders_mst
+--       org_loyalty_txn_allocs_dtl   -> org_loyalty_accounts_mst, org_loyalty_txn_dtl
+--         (FIFO redemption-allocation ledger added after this script was first
+--         written; deleted before org_loyalty_txn_dtl, matched by account_id OR
+--         either consuming_txn_id/source_txn_id landing in the targeted set)
+--       org_sv_funding_tenders_dtl   -> org_fin_vouchers_mst, org_fin_voucher_trx_lines_dtl
+--       org_tax_doc_lines_dtl        -> org_tax_documents_mst
+--       org_tax_documents_mst       -> org_orders_mst (and itself, via supersedes_id)
+--       org_wf_gate_decision_mst    -> org_orders_mst
 --   - Tables that would otherwise be silently SET NULL or cascaded are deleted
 --     explicitly instead: org_ar_dunning_runs_mst, org_b2b_statement_payments_dtl,
 --     org_fin_voucher_audit_log, org_asm_exceptions_tr, org_dlv_pod_tr.
@@ -176,9 +181,9 @@ DROP TABLE IF EXISTS cleanup_order_nos;
 -- -----------------------------------------------------------------------------
 CREATE TEMP TABLE cleanup_config (
   do_execute                         BOOLEAN NOT NULL,
-  cleanup_all_tenants                 BOOLEAN NOT NULL DEFAULT false,
+  cleanup_all_tenants                 BOOLEAN NOT NULL DEFAULT true,
   tenant_org_id                      UUID,
-  max_target_orders                  INTEGER NOT NULL DEFAULT 25,
+  max_target_orders                  INTEGER NOT NULL DEFAULT 100000,
   fail_on_uncovered_refs             BOOLEAN NOT NULL DEFAULT true,
 
   -- auto_target_mode picks which orders are targeted -- ALL_TENANT_ORDERS,
@@ -828,6 +833,23 @@ WHERE credit_type = 'LOYALTY_POINTS'
 
 CREATE UNIQUE INDEX idx_tmp_target_loyalty_accounts ON tmp_target_loyalty_accounts (account_id);
 
+-- FIFO redemption-allocation ledger rows tied to the targeted loyalty account
+-- or either side (consuming/source) of a targeted loyalty txn. RESTRICTs both
+-- org_loyalty_accounts_mst and org_loyalty_txn_dtl, so it must be deleted
+-- before org_loyalty_txn_dtl.
+CREATE TEMP TABLE tmp_target_loyalty_txn_allocs ON COMMIT DROP AS
+SELECT DISTINCT a.id AS alloc_id
+FROM public.org_loyalty_txn_allocs_dtl AS a
+CROSS JOIN cleanup_config AS cfg
+WHERE (cfg.cleanup_all_tenants OR a.tenant_org_id = cfg.tenant_org_id)
+  AND (
+    a.account_id IN (SELECT account_id FROM tmp_target_loyalty_accounts)
+    OR a.consuming_txn_id IN (SELECT id FROM tmp_target_loyalty_txns)
+    OR a.source_txn_id IN (SELECT id FROM tmp_target_loyalty_txns)
+  );
+
+CREATE UNIQUE INDEX idx_tmp_target_loyalty_txn_allocs ON tmp_target_loyalty_txn_allocs (alloc_id);
+
 -- -----------------------------------------------------------------------------
 -- Finance posting/audit target sets (only used when include_fin_audit_rows)
 -- -----------------------------------------------------------------------------
@@ -1075,7 +1097,9 @@ BEGIN
         'org_tax_doc_lines_dtl',
         'org_wf_gate_decision_mst',
         'org_wf_release_mst',
-        'org_wf_release_ln'
+        'org_wf_release_ln',
+        -- covered as of 2026-10-02
+        'org_loyalty_txn_allocs_dtl'
       )
   LOOP
     v_predicate := CASE r.column_name
@@ -1303,6 +1327,7 @@ FROM (
     ('org_gift_card_txn_dtl',         (SELECT count(*)::bigint FROM tmp_target_gift_card_txns)),
     ('org_credit_note_txn_dtl',       (SELECT count(*)::bigint FROM tmp_target_credit_note_txns)),
     ('org_loyalty_txn_dtl',           (SELECT count(*)::bigint FROM tmp_target_loyalty_txns)),
+    ('org_loyalty_txn_allocs_dtl',    (SELECT count(*)::bigint FROM tmp_target_loyalty_txn_allocs)),
     ('org_domain_events_outbox',      (SELECT count(*)::bigint FROM tmp_target_outbox_events)),
     ('org_customer_ar_ledger_dtl',    (SELECT count(*)::bigint FROM tmp_target_ar_ledger_rows)),
     ('org_sv_funding_tenders_dtl',    (SELECT count(*)::bigint FROM tmp_target_sv_funding_tenders)),
@@ -1494,6 +1519,15 @@ WHERE cfg.do_execute
   AND cfg.include_credit_note_rows
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.id IN (SELECT id FROM tmp_target_credit_note_txns);
+
+-- org_loyalty_txn_allocs_dtl RESTRICTs org_loyalty_txn_dtl via
+-- consuming_txn_id/source_txn_id, so it must go first.
+DELETE FROM public.org_loyalty_txn_allocs_dtl AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_loyalty_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.id IN (SELECT alloc_id FROM tmp_target_loyalty_txn_allocs);
 
 DELETE FROM public.org_loyalty_txn_dtl AS x
 USING cleanup_config AS cfg

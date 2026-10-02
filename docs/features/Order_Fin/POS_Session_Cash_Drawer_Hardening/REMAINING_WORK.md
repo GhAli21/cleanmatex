@@ -159,7 +159,7 @@ Owner-only throughout: apply each new migration; manual browser QA (owed for sli
 - E2-3 — Carry the breakdown into the Z-report snapshot.
 
 ### E3 — Permissions & tolerance cleanup
-- E3-1 — Implement pos_session:close_others in the close path.
+- [DONE 2026-10-02] E3-1 — Implement pos_session:close_others in the close path. Shipped as part of broader "session management actions": `[sessionId]/close` + `[sessionId]/force-close` routes act on any session by id (own session uses the base permission; another user's session needs close_others/force_close or the new full_manage_others override), plus new `open-others` + `users` picker routes and row-level UI actions. Migration 0552 seeds `pos_session:open_others` and `pos_session:full_manage_others`. See IMPLEMENTATION_PLAN.md E3-1 for the full file list.
 - E3-2 — Migrate remaining CASH_VARIANCE_TOLERANCE call sites (lib/constants/reconciliation-reports.ts) to the currency-aware helper; delete the alias.
 - E3-3 — npm run rebuild:platform-info-inventories + check:; resolve DRIFT_REPORT.md.
 

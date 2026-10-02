@@ -111,6 +111,101 @@ export async function postPosSessionLifecycleAction(
   return payload.data;
 }
 
+/** One row-scoped lifecycle action targeting a specific session (not necessarily the caller's own). */
+export type PosSessionRowAction = 'close' | 'force-close';
+
+/**
+ * Closes or force-closes a specific session by id. Used for row-level
+ * management actions on the POS Sessions list — works on the caller's own
+ * session or, with `pos_session:close_others`/`pos_session:full_manage_others`,
+ * on another user's session.
+ */
+export async function postPosSessionRowAction(
+  sessionId: string,
+  action: PosSessionRowAction,
+  input: {
+    csrfToken: string | null;
+    reason?: string;
+    sourceChannel: string;
+  }
+): Promise<PosSessionLifecycleResult> {
+  const response = await fetch(`/api/v1/pos-sessions/${sessionId}/${action}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getCSRFHeader(input.csrfToken),
+    },
+    body: JSON.stringify({
+      reason: input.reason || undefined,
+      idempotencyKey: `${action}:${sessionId}:${crypto.randomUUID()}`,
+      sourceChannel: input.sourceChannel,
+    }),
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as PosSessionApiEnvelope<PosSessionLifecycleResult>;
+  if (!response.ok || payload.success === false) {
+    throw new PosSessionApiError(payload.error || 'POS session action failed', payload.errorCode, response.status);
+  }
+  if (!payload.data) {
+    throw new PosSessionApiError('POS session action failed', undefined, response.status);
+  }
+  return payload.data;
+}
+
+/**
+ * Opens a POS session on behalf of another tenant user (admin/supervisor action).
+ */
+export async function postOpenPosSessionForUser(input: {
+  csrfToken: string | null;
+  targetUserId: string;
+  branchId: string;
+  terminalId?: string | null;
+  sourceChannel: string;
+}): Promise<OpenPosSessionResult> {
+  const response = await fetch('/api/v1/pos-sessions/open-others', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getCSRFHeader(input.csrfToken),
+    },
+    body: JSON.stringify({
+      targetUserId: input.targetUserId,
+      branchId: input.branchId,
+      terminalId: input.terminalId || undefined,
+      idempotencyKey: `open-others:${input.targetUserId}:${crypto.randomUUID()}`,
+      sourceChannel: input.sourceChannel,
+    }),
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as PosSessionApiEnvelope<OpenPosSessionResult>;
+  if (!response.ok && payload.errorCode === 'POS_SESSION_BRANCH_CONFLICT' && payload.data) {
+    return payload.data;
+  }
+  if (!response.ok || payload.success === false) {
+    throw new PosSessionApiError(payload.error || 'Failed to open POS session for user', payload.errorCode, response.status);
+  }
+  if (!payload.data) {
+    throw new PosSessionApiError('Failed to open POS session for user', undefined, response.status);
+  }
+  return payload.data;
+}
+
+/** One user option for the "open session for user" picker. */
+export interface PosSessionUserOption {
+  id: string;
+  label: string;
+  secondaryLabel: string | null;
+}
+
+/** Lists tenant users for the "open session for user" picker. */
+export async function fetchPosSessionUsers(query?: string): Promise<{ items: PosSessionUserOption[]; total: number }> {
+  const params = new URLSearchParams({ pageSize: '50' });
+  if (query) params.set('query', query);
+  return fetchPosSessionJson<{ items: PosSessionUserOption[]; total: number }>(`/api/v1/pos-sessions/users?${params.toString()}`);
+}
+
 /**
  * Links an OPEN cash drawer session to an OPEN POS session.
  */

@@ -96,6 +96,8 @@
   "selectBranch": "Select branch",
   "optionalBranch": "All branches",
   "none": "None",
+  "openForUser": "Open session for user",
+  "selectUser": "Select user",
   "summary": {
     "payments": "Payments",
     "refunds": "Refunds",
@@ -180,6 +182,9 @@
     "drawerLinkFailed": "Unable to link the cash drawer to this POS session.",
     "selectCashDrawer": "Select a cash drawer first.",
     "openingBalanceRequired": "Enter a valid opening balance.",
-    "eventsLoadFailed": "Failed to load POS session events."
+    "eventsLoadFailed": "Failed to load POS session events.",
+    "selectUserAndBranch": "Select a user and a branch before opening a session.",
+    "openedForUser": "POS session opened for the selected user.",
+    "actingOnOtherUser": "You are managing {operator}'s session, not your own."
   }
 }

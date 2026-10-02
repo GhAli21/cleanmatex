@@ -13,6 +13,11 @@ export const posSessionOpenSchema = z.object({
 /** Reuses opening constraints when order entry must ensure a session exists. */
 export const posSessionEnsureSchema = posSessionOpenSchema;
 
+/** Opens a session on behalf of a specific target user (admin/supervisor action). */
+export const posSessionOpenOthersSchema = posSessionOpenSchema.extend({
+  targetUserId: z.string().uuid(),
+});
+
 /** Validates a drawer link only after the finance flow has selected its session. */
 export const posSessionAutoLinkDrawerSchema = z.object({
   posSessionId: z.string().uuid(),

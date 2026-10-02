@@ -96,6 +96,8 @@
   "selectBranch": "اختر الفرع",
   "optionalBranch": "كل الفروع",
   "none": "لا يوجد",
+  "openForUser": "فتح جلسة لمستخدم آخر",
+  "selectUser": "اختر المستخدم",
   "summary": {
     "payments": "المدفوعات",
     "refunds": "المبالغ المرتجعة",
@@ -180,6 +182,9 @@
     "drawerLinkFailed": "تعذر ربط درج النقد بجلسة نقطة البيع هذه.",
     "selectCashDrawer": "اختر درج نقد أولاً.",
     "openingBalanceRequired": "أدخل رصيد فتح صالحاً.",
-    "eventsLoadFailed": "تعذر تحميل أحداث جلسة نقطة البيع."
+    "eventsLoadFailed": "تعذر تحميل أحداث جلسة نقطة البيع.",
+    "selectUserAndBranch": "اختر مستخدماً وفرعاً قبل فتح الجلسة.",
+    "openedForUser": "تم فتح جلسة نقطة البيع للمستخدم المحدد.",
+    "actingOnOtherUser": "أنت تدير جلسة {operator}، وليست جلستك الخاصة."
   }
 }

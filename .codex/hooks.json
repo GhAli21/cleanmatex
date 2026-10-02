@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'f:\\jhapp\\cleanmatex\\.codex\\hooks\\session-start.sh'"
+          }
+        ]
+      }
+    ]
+  }
+}

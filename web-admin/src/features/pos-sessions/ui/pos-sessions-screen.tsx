@@ -3,7 +3,7 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { Check, Copy, CreditCard, RefreshCw, Search, ShieldAlert } from 'lucide-react';
+import { Check, Copy, CreditCard, RefreshCw, Search, ShieldAlert, UserPlus } from 'lucide-react';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxSelect } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
@@ -24,12 +24,18 @@ import {
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
+import { useAuth } from '@/lib/auth/auth-context';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
 import {
   fetchMyActivePosSession,
   fetchPosSessionSummary,
+  fetchPosSessionUsers,
   PosSessionApiError,
+  postOpenPosSessionForUser,
   postPosSessionLifecycleAction,
+  postPosSessionRowAction,
+  type PosSessionRowAction,
+  type PosSessionUserOption,
 } from '@features/pos-sessions/api/pos-session-api';
 import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-close-wizard';
 import type {
@@ -93,6 +99,29 @@ interface SessionActionDialogState {
   reason: string;
 }
 
+/** Row-level management action dialog state — targets an arbitrary session, own or another user's. */
+interface RowActionDialogState {
+  row: PosSessionListRow | null;
+  action: PosSessionRowAction | null;
+  reason: string;
+}
+
+interface OpenForUserDialogState {
+  open: boolean;
+  userId: string;
+  userLabel: string;
+  branchId: string;
+  terminalId: string;
+}
+
+const EMPTY_OPEN_FOR_USER_DIALOG: OpenForUserDialogState = {
+  open: false,
+  userId: '',
+  userLabel: '',
+  branchId: '',
+  terminalId: '',
+};
+
 type PosSessionLookupKind = Exclude<PosSessionFilterOptionType, 'cashDrawerSession'>;
 
 /**
@@ -113,6 +142,14 @@ export function PosSessionsScreen() {
   const canForceClose = useHasPermissionCode('pos_session:force_close');
   const canViewCashDrawer = useHasPermissionCode('cash_drawer:view');
   const canCloseCashDrawer = useHasPermissionCode('cash_drawer:close_session');
+  const canCloseOthers = useHasPermissionCode('pos_session:close_others');
+  const canOpenOthers = useHasPermissionCode('pos_session:open_others');
+  const canFullManageOthers = useHasPermissionCode('pos_session:full_manage_others');
+  const canManageOthersClose = canCloseOthers || canFullManageOthers;
+  const canManageOthersForceClose = (canCloseOthers && canForceClose) || canFullManageOthers;
+  const canManageOthersOpen = canOpenOthers || canFullManageOthers;
+  const { user: currentUser } = useAuth();
+  const currentUserId = currentUser?.id ?? null;
 
   const [page, setPage] = useState(1);
   const [branchId, setBranchId] = useState('');
@@ -131,6 +168,9 @@ export function PosSessionsScreen() {
   const [openedAtTo, setOpenedAtTo] = useState('');
   const [openBranchId, setOpenBranchId] = useState('');
   const [actionDialog, setActionDialog] = useState<SessionActionDialogState>({ action: null, reason: '' });
+  const [rowActionDialog, setRowActionDialog] = useState<RowActionDialogState>({ row: null, action: null, reason: '' });
+  const [openForUserDialog, setOpenForUserDialog] = useState<OpenForUserDialogState>(EMPTY_OPEN_FOR_USER_DIALOG);
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
   const [drawerDialogOpen, setDrawerDialogOpen] = useState(false);
   const [summarySessionId, setSummarySessionId] = useState<string | null>(null);
   const [eventsSession, setEventsSession] = useState<PosSessionListRow | null>(null);
@@ -192,6 +232,12 @@ export function PosSessionsScreen() {
     },
   });
 
+  const userPickerQueryResult = useQuery({
+    queryKey: ['pos-sessions', 'users'],
+    enabled: userPickerOpen,
+    queryFn: () => fetchPosSessionUsers(),
+  });
+
   const activeSession =
     activeQuery.data?.type === 'ACTIVE' ? activeQuery.data.session : null;
   const activeSessionContext = activeSession as PosSessionWithContext | null;
@@ -239,6 +285,54 @@ export function PosSessionsScreen() {
     }
     await runLifecycleAction('open', { branchId: openBranchId }, t('messages.opened'));
   }, [openBranchId, runLifecycleAction, t]);
+
+  const runRowAction = useCallback(async (
+    row: PosSessionListRow,
+    action: PosSessionRowAction,
+    reason: string
+  ): Promise<'ok' | 'error'> => {
+    setBusyAction(`row-${action}`);
+    try {
+      await postPosSessionRowAction(row.id, action, {
+        csrfToken,
+        reason: reason || undefined,
+        sourceChannel: 'pos_session_workbench',
+      });
+      cmxMessage.success(action === 'force-close' ? t('messages.forceClosed') : t('messages.closed'));
+      await refreshAll();
+      await queryClient.invalidateQueries({ queryKey: ['pos-sessions', 'events', row.id] });
+      return 'ok';
+    } catch (error) {
+      cmxMessage.error(error instanceof Error ? error.message : t('messages.actionFailed'));
+      return 'error';
+    } finally {
+      setBusyAction(null);
+    }
+  }, [csrfToken, queryClient, refreshAll, t]);
+
+  const openSessionForUser = useCallback(async () => {
+    if (!openForUserDialog.userId || !openForUserDialog.branchId) {
+      cmxMessage.error(t('messages.selectUserAndBranch'));
+      return;
+    }
+    setBusyAction('open-others');
+    try {
+      await postOpenPosSessionForUser({
+        csrfToken,
+        targetUserId: openForUserDialog.userId,
+        branchId: openForUserDialog.branchId,
+        terminalId: openForUserDialog.terminalId || undefined,
+        sourceChannel: 'pos_session_workbench',
+      });
+      cmxMessage.success(t('messages.openedForUser'));
+      setOpenForUserDialog(EMPTY_OPEN_FOR_USER_DIALOG);
+      await refreshAll();
+    } catch (error) {
+      cmxMessage.error(error instanceof Error ? error.message : t('messages.actionFailed'));
+    } finally {
+      setBusyAction(null);
+    }
+  }, [openForUserDialog, csrfToken, refreshAll, t]);
 
   const handleDrawerFinalized = useCallback(async () => {
     cmxMessage.success(t('messages.drawerClosed'));
@@ -348,16 +442,40 @@ export function PosSessionsScreen() {
       header: '',
       sortable: false,
       align: 'right',
-      render: (row) => (
-        <div className="flex gap-2">
-          <CmxButton size="sm" variant="outline" onClick={() => setSummarySessionId(row.id)}>
-            {t('viewSummary')}
-          </CmxButton>
-          <CmxButton size="sm" variant="outline" onClick={() => setEventsSession(row)}>
-            {t('viewEvents')}
-          </CmxButton>
-        </div>
-      ),
+      render: (row) => {
+        const isOwnRow = currentUserId !== null && row.user_id === currentUserId;
+        const rowIsActive = row.status === POS_SESSION_STATUS.OPEN || row.status === POS_SESSION_STATUS.PAUSED;
+        const canCloseRow = rowIsActive && (isOwnRow ? canClose : canManageOthersClose);
+        const canForceCloseRow = rowIsActive && (isOwnRow ? canForceClose : canManageOthersForceClose);
+        return (
+          <div className="flex flex-wrap justify-end gap-2">
+            <CmxButton size="sm" variant="outline" onClick={() => setSummarySessionId(row.id)}>
+              {t('viewSummary')}
+            </CmxButton>
+            <CmxButton size="sm" variant="outline" onClick={() => setEventsSession(row)}>
+              {t('viewEvents')}
+            </CmxButton>
+            {canCloseRow ? (
+              <CmxButton
+                size="sm"
+                variant="outline"
+                onClick={() => setRowActionDialog({ row, action: 'close', reason: '' })}
+              >
+                {t('close')}
+              </CmxButton>
+            ) : null}
+            {canForceCloseRow ? (
+              <CmxButton
+                size="sm"
+                variant="destructive"
+                onClick={() => setRowActionDialog({ row, action: 'force-close', reason: '' })}
+              >
+                {t('forceClose')}
+              </CmxButton>
+            ) : null}
+          </div>
+        );
+      },
     },
   ];
 
@@ -445,10 +563,18 @@ export function PosSessionsScreen() {
             {t('description')}
           </p>
         </div>
-        <CmxButton variant="outline" onClick={refreshAll} disabled={sessionsQuery.isFetching || activeQuery.isFetching}>
-          <RefreshCw className="me-2 h-4 w-4" aria-hidden />
-          {t('refresh')}
-        </CmxButton>
+        <div className="flex flex-wrap gap-2">
+          {canManageOthersOpen ? (
+            <CmxButton variant="outline" onClick={() => setOpenForUserDialog({ ...EMPTY_OPEN_FOR_USER_DIALOG, open: true })}>
+              <UserPlus className="me-2 h-4 w-4" aria-hidden />
+              {t('openForUser')}
+            </CmxButton>
+          ) : null}
+          <CmxButton variant="outline" onClick={refreshAll} disabled={sessionsQuery.isFetching || activeQuery.isFetching}>
+            <RefreshCw className="me-2 h-4 w-4" aria-hidden />
+            {t('refresh')}
+          </CmxButton>
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -783,6 +909,131 @@ export function PosSessionsScreen() {
           </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>
+
+      <CmxDialog open={rowActionDialog.row !== null} onOpenChange={(open) => !open && setRowActionDialog({ row: null, action: null, reason: '' })}>
+        <CmxDialogContent>
+          <CmxDialogHeader>
+            <CmxDialogTitle>
+              {rowActionDialog.action === 'force-close' ? t('forceClose') : t('close')}
+              {rowActionDialog.row ? ` · ${rowActionDialog.row.session_no}` : ''}
+            </CmxDialogTitle>
+          </CmxDialogHeader>
+          <div className="space-y-4">
+            {rowActionDialog.row && currentUserId !== null && rowActionDialog.row.user_id !== currentUserId ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
+                {t('messages.actingOnOtherUser', { operator: rowActionDialog.row.user_display_name ?? rowActionDialog.row.user_id })}
+              </div>
+            ) : null}
+            {rowActionDialog.action === 'force-close' ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
+                {t('forceClose')}
+              </div>
+            ) : null}
+            <CmxTextarea
+              value={rowActionDialog.reason}
+              placeholder={t('reason')}
+              onChange={(event) => setRowActionDialog((current) => ({ ...current, reason: event.target.value }))}
+            />
+          </div>
+          <CmxDialogFooter>
+            <CmxButton variant="outline" onClick={() => setRowActionDialog({ row: null, action: null, reason: '' })}>
+              {t('cancel')}
+            </CmxButton>
+            <CmxButton
+              variant={rowActionDialog.action === 'force-close' ? 'destructive' : 'primary'}
+              disabled={rowActionDialog.action === 'force-close' && rowActionDialog.reason.trim().length === 0}
+              loading={busyAction === `row-${rowActionDialog.action}`}
+              onClick={() => {
+                if (!rowActionDialog.row || !rowActionDialog.action) return;
+                runRowAction(rowActionDialog.row, rowActionDialog.action, rowActionDialog.reason).then((result) => {
+                  if (result === 'ok') {
+                    setRowActionDialog({ row: null, action: null, reason: '' });
+                  }
+                });
+              }}
+            >
+              {rowActionDialog.action === 'force-close' ? t('forceClose') : t('close')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
+
+      <CmxDialog open={openForUserDialog.open} onOpenChange={(open) => !open && setOpenForUserDialog(EMPTY_OPEN_FOR_USER_DIALOG)}>
+        <CmxDialogContent>
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('openForUser')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('operator')}</Label>
+              <CmxButton
+                className="w-full justify-start text-start font-normal"
+                variant="outline"
+                onClick={() => setUserPickerOpen(true)}
+              >
+                <span className="truncate">{openForUserDialog.userLabel || t('selectUser')}</span>
+                <Search className="ms-auto size-4 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-hidden />
+              </CmxButton>
+            </div>
+            <CmxSelect
+              label={t('branch')}
+              placeholder={t('selectBranch')}
+              value={openForUserDialog.branchId}
+              options={branchOptions}
+              disabled={branchesQuery.isLoading}
+              onChange={(event) => setOpenForUserDialog((current) => ({ ...current, branchId: event.target.value }))}
+            />
+          </div>
+          <CmxDialogFooter>
+            <CmxButton variant="outline" onClick={() => setOpenForUserDialog(EMPTY_OPEN_FOR_USER_DIALOG)}>
+              {t('cancel')}
+            </CmxButton>
+            <CmxButton
+              variant="primary"
+              disabled={!openForUserDialog.userId || !openForUserDialog.branchId}
+              loading={busyAction === 'open-others'}
+              onClick={openSessionForUser}
+            >
+              {t('openForUser')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
+
+      {userPickerOpen ? (
+        <CmxListOfValuesDialog<PosSessionUserOption>
+          open
+          onOpenChange={(open) => !open && setUserPickerOpen(false)}
+          options={userPickerQueryResult.data?.items ?? []}
+          selectedId={openForUserDialog.userId || null}
+          onApply={(selectedId) => {
+            const selected = userPickerQueryResult.data?.items.find((option) => option.id === selectedId);
+            setOpenForUserDialog((current) => ({
+              ...current,
+              userId: selectedId ?? '',
+              userLabel: selected?.label ?? '',
+            }));
+            setUserPickerOpen(false);
+          }}
+          getOptionId={(option) => option.id}
+          getOptionLabel={(option) => option.label}
+          getOptionDescription={(option) => option.secondaryLabel}
+          isLoading={userPickerQueryResult.isLoading}
+          labels={{
+            title: t('operator'),
+            searchLabel: tCommon('search'),
+            searchPlaceholder: tCommon('search'),
+            loadingLabel: t('banner.loading'),
+            emptyLabel: t('noFilterOptions'),
+            clearLabel: tCommon('clear'),
+            cancelLabel: tCommon('cancel'),
+            applyLabel: tCommon('done'),
+            optionsLabel: t('operator'),
+          }}
+        />
+      ) : null}
 
       {canViewCashDrawer && activeSession?.cash_drawer_id && activeSession.cash_drawer_session_id ? (
         <CashDrawerCloseWizard

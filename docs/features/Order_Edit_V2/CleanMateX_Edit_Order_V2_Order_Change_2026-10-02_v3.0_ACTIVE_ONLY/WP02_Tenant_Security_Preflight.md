@@ -1,7 +1,7 @@
 # WP02 Tenant Security Preflight
 
 **Date:** 2026-10-02 (Asia/Muscat)  
-**Status:** Read-only metadata and scoped foundation-security design complete; runtime/security/data proof pending.  
+**Status:** WP02 foundation evidence complete; platform authority and authenticated application-flow proof remain later release gates.
 **Scope:** NEW Order Change objects only. This evidence supplements the existing v3.0 living implementation plan; it is not another plan and does not authorize changes to platform-wide helpers, existing RPCs, permissions, settings or deployed data.
 
 ## 1. Sources and verification boundary
@@ -146,20 +146,17 @@ Fresh function-definition and effective `has_function_privilege` inspection agre
 
 No RPC was invoked, including dry-run modes. The findings are installed-body/ACL evidence, not a demonstrated exploit. Adding protected-history RESTRICT FKs must fail destructive history deletion rather than authorizing this existing cleanup body; it does not remove the ordinary EXECUTE exposure itself. There is no platform-wide RLS/RPC repair in this WP02 artifact.
 
-## 6. Required proof and handoff
+## 6. WP02 proof completed and later handoff
 
-Before calling WP02 security complete or enabling a cohort, record:
+The following WP02 foundation evidence is now recorded:
 
-- reviewed NEW table/function/trigger definitions, grants/revokes, owner and helper search_path;
-- actual application/Prisma connection identity and effective privileges;
-- authenticated users with valid, absent, inactive and revoked membership; supported multi-tenant switching; forged selected-tenant metadata;
-- self-membership role/tenant manufacture denial in dedicated Auth/Data API fixtures before enabling ordinary NEW direct reads;
-- no ordinary direct history INSERT/UPDATE/DELETE/TRUNCATE, with service-role and configured postgres UPDATE/DELETE/TRUNCATE guards also tested;
-- valid one-shot master/ops insert, deferred missing-master rejection and rollback through the real ORM transaction path;
-- legitimate Create/Workflow/Finance behavior retained, and no privileged repair/global-outbox/HQ RPC bypass in enabling scope;
-- tenant-bound historical actor/backfill compatibility if a concrete authorized tenant is supplied.
+- reviewed NEW table/function/trigger definitions, grants/revokes, owner and fixed search path;
+- configured Prisma base connection: non-superuser `postgres`, BYPASSRLS, no JWT actor, UTC session;
+- exact deployed table ACL/RLS metadata on both targets;
+- disposable PG17 role fixtures: ordinary history read/write denial, no-policy RLS denial even after a temporary SELECT grant, service-role append-only access, and owner immutable guards;
+- complete-master insertion, missing-master COMMIT rejection and no-partial-history rollback at the PostgreSQL boundary.
 
-This document proves metadata/design only. Runtime security, historical data and deployed application role checks remain PENDING. No database change was applied.
+The following are later activation gates, not incomplete WP02 foundation evidence: authenticated JWT/Data API proof for valid/absent/inactive/revoked membership and forged tenant metadata; self-membership/role manufacture denial; actual Order Change ORM/service transaction; Create/Workflow/Finance regression; and restriction of existing repair/HQ/outbox RPC authority. They remain owned by WP11/WP12/WP17/WP18. No database change was applied.
 
 ## 7. Primary references
 
@@ -169,4 +166,4 @@ The conclusions above use current catalog/source evidence. Platform behavior was
 
 Fresh read-only catalogs now confirm0547/0548 installed on local and hosted (555 migration records/latest0549). Both history tables: ownerpostgres, RLSenabled, zero policies, no effective anon/authenticated table privileges; service_role SELECT/INSERTonly. Three invoker functions have fixed pg_catalog search_path and direct EXECUTEonlypostgres; eight guards enabled. Exact definitions/157 comments match reviewed SQL. Fourteen NOT VALID constraints remain intentional; installation is not runtime JWT/transaction/rollback proof. No migration/function/business-data write was executed by this verification.
 
-Existing current_tenant_id and org_users_mst membership-integrity dependencies are unchanged. The installed new-object boundary does not secure old membership/committed-writer/RPC authority. [WP02 report](WP02_Foundation_Preparation_v3.0.md) sections17/18 record deployment/type evidence and completed user-authorized Prisma sync. Generated ORM types do not enforce permissions/tenant predicates. WP02 security/data/runtime acceptance remains partial; WP03 is not started.
+Existing current_tenant_id and org_users_mst membership-integrity dependencies are unchanged. The installed new-object boundary does not secure old membership/committed-writer/RPC authority. [WP02 report](WP02_Foundation_Preparation_v3.0.md) sections17–20 record deployment/type, data-preflight and disposable-fixture evidence. Generated ORM types do not enforce permissions/tenant predicates. WP02 is complete; WP03 is not started, and activation remains gated by the later owners above.

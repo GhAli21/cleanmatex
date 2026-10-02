@@ -1,8 +1,8 @@
 # WP02 Foundation Preparation — Edit Order V2 v3.0
 
-**Date:** 2026-10-02, Asia/Muscat. **Status: PARTIAL.**
+**Date:** 2026-10-02, Asia/Muscat. **Status: DONE.**
 
-WP02 evidence and migration review only. The living plan remains the sole sequence/progress authority. WP01.1–.4 DONE/WP01.5 PARTIAL preserved; WP03–WP20 NOT STARTED. Operator-applied0547/0548 are verified on both targets (section17). User-authorized scoped Prisma schema/client synchronization is complete (section18), alongside Supabase types. The agent applied no migrations or business-data writes; no runtime producer/service/UI/Finance/workflow/permission/flag behavior was implemented.
+WP02 foundation evidence and migration review only. The living plan remains the sole sequence/progress authority. WP01.1–.4 DONE/WP01.5 PARTIAL preserved; WP03–WP20 NOT STARTED. Operator-applied0547/0548 are verified on both targets (section17). User-authorized scoped Prisma schema/client synchronization is complete (section18), alongside Supabase types. Sections19–20 close the WP02 data-preflight, Split-disposition and disposable PostgreSQL structural-fixture evidence. The agent applied no migrations or business-data writes; no runtime producer/service/UI/Finance/workflow/permission/flag behavior was implemented.
 
 ## 1. Repository baseline
 
@@ -144,7 +144,7 @@ Only new files were authored. No existing migration was edited. No permission/fl
 
 pglast7.19 was installed into an isolated OS temporary directory, without changing repository dependencies. Its embedded PostgreSQL17.7 parser accepted both SQL files after the explicitly requested full object-comment pass (0547:27 statements/1 PLpgSQL function, 0548:181 statements/2 PLpgSQL functions). The [parser API](https://pglast.readthedocs.io/en/v7/parser.html) parses syntax only.
 
-The comments-only follow-up documents all75 columns inline and all created/altered objects with157 catalog COMMENT ON statements:6 tables,75 columns,41 constraints including2 implicit PKs,24 indexes including constraint-backed indexes,3 functions and8 triggers. Existing legacy table descriptions were verified equal locally/hosted and preserved as prefixes. Before/after non-Comment PostgreSQL ASTs are identical after removing source-location fields; schema/constraint/grant/guard logic is unchanged. Focused21-test suite passed again. Read-only follow-up confirmed0547/0548 absent from both migration histories and both Change tables/committed_at still absent. No migration was applied; WP02 remains PARTIAL, WP03 remains NOT STARTED.
+The comments-only follow-up documents all75 columns inline and all created/altered objects with157 catalog COMMENT ON statements:6 tables,75 columns,41 constraints including2 implicit PKs,24 indexes including constraint-backed indexes,3 functions and8 triggers. Existing legacy table descriptions were verified equal locally/hosted and preserved as prefixes. Before/after non-Comment PostgreSQL ASTs are identical after removing source-location fields; schema/constraint/grant/guard logic is unchanged. Focused21-test suite passed again. At that historical pre-application point,0547/0548 were absent from both migration histories and Change tables/committed_at were absent. The later operator installation, data preflight and fixture proof supersede the former partial status; WP03 remains NOT STARTED.
 
 From web-admin:
 
@@ -167,16 +167,16 @@ Compatible foundation SQL is ready for operator design review, with the catalog,
 |---|---|
 | Current catalogs/history; no duplicate columns/tables/keys | PASS, operator-installed0547/0548 match both targets through0549; section17 has exact proof |
 | Exact compatible columns/history/audit target/FK/ACL design | PASS, SQL and owning Blueprint/Security freeze it |
-| Auth actor authority; known source/timezone treatment | PASS for authority/design; historical row compatibility remains unproven |
-| Immutable insertion/deferred timing | PASS for parsed structural contract; real FK/rollback/ORM fixture proof PENDING |
-| Source matrix, rec_status NULL handling and Split analysis | PASS for documented evidence; tenant-bounded classification and active-only hierarchy/origin solution PENDING |
-| Membership/runtime/direct authority | New tables fail closed by design; platform membership integrity/deployed role/real ACL proof PENDING, WP17/WP18 owns release closure |
+| Auth actor authority; known source/timezone treatment | PASS: `auth.users(id)` is the FK authority; live rows are explicitly classified as uncommitted/V2-ineligible unless a later approved source proof qualifies them |
+| Immutable insertion/deferred timing | PASS for PostgreSQL structural contract: disposable PG17 fixture proved late-master commit, missing-master commit failure and complete rollback. Order Change ORM/service composition remains WP11/WP12/WP18 work |
+| Source matrix, rec_status NULL handling and Split analysis | PASS: both target scans found no current structural/lifecycle violations; remote legacy cohort remains uncommitted/V2-ineligible; active-only hierarchy/removal-origin contract and temporary Split denial are frozen |
+| Membership/runtime/direct authority | PASS for WP02 baseline: actual repository Prisma connection is non-superuser `postgres` with BYPASSRLS and no JWT actor; new tables fail closed to ordinary roles. Platform membership/RPC closure remains a WP17/WP18 activation gate |
 | SQL review/static validation | PASS, PostgreSQL parser and21 focused source-contract tests |
-| Migration application | Operator-applied on both; deployment verification PASS. Agent-applied NONE. Real fixture/constraint behavior remains unproven |
+| Migration application | Operator-applied on both; deployment verification PASS. Agent-applied NONE. Disposable structural fixture PASS; no production data or migration write was made |
 
-WP01–WP20 sequence is unchanged. Operator installation and scoped Prisma schema/client sync are complete. Resolution/disposition of remaining historical/data/active-hierarchy/security/runtime proof is still required. WP17/WP18 security closure gates eventual enablement; no later package was started.
+WP01–WP20 sequence is unchanged. Operator installation, scoped Prisma schema/client sync, data classification and structural-fixture evidence are complete. WP17/WP18 still own membership/RPC/direct-authority closure and real authenticated application-flow proof for enablement; no later package was started.
 
-**WP03 remains NOT STARTED.** Deployed-catalog verification and scoped Prisma schema/client sync have passed (sections17/18). Remaining data/compatibility/security/runtime gate disposition and explicit user approval are still required. WP02 remains PARTIAL; no new implementation plan is created.
+**WP03 remains NOT STARTED.** Its foundation prerequisites are complete. WP03 requires explicit user approval and must keep V2 disabled, exclude unqualified historical/split-derived orders, and use server-validated tenant/actor authority. No new implementation plan is created.
 
 ## Files created/updated by this WP02 package
 
@@ -203,7 +203,7 @@ Installation proves PostgreSQL accepted the schema/function/privilege definition
 
 **Pre-synchronization gap (resolved in section18):** At the section17 inspection, schema.prisma/installed Prisma.dmmf lacked both Change models and19 order/lineage additions. Supabase regeneration alone did not refresh Prisma. The later explicit authorization permitted scoped introspection reconciliation and client generation, preserving unrelated definitions; this historical gap is no longer open.
 
-Focused checks passed: `npx tsc --noEmit --skipLibCheck types/database.ts types/database.generated.ts` (exit0); generated-type AST inspection (zero parse diagnostics); migration contracts (1suite/21tests). This is not full application compilation or DB fixture proof. Agent changes in this follow-up are evidence/owning-document/ledger reconciliation only. WP02 remains PARTIAL; WP03 remains NOT STARTED pending the remaining prerequisite disposition and explicit approval.
+Focused checks passed: `npx tsc --noEmit --skipLibCheck types/database.ts types/database.generated.ts` (exit0); generated-type AST inspection (zero parse diagnostics); migration contracts (1suite/21tests). This is not full application compilation. The later disposable fixture in section20 supplies the PostgreSQL structural proof; application command composition remains later work. WP03 remains NOT STARTED pending explicit approval.
 
 ## 18. User-authorized scoped Prisma synchronization — 2026-10-02
 
@@ -213,4 +213,22 @@ All75 new fields match deployed-introspection type/default/nullability and have 
 
 Validation PASS: Prisma schema validation; `npm run prisma:generate`; generated-client DMMF coverage/preservation comparison; temporary noEmit TypeScript fixture selecting all75 fields and checking composite master idempotency/operation sequence inputs; deployed introspection parity; scoped migration contracts(1suite/21tests); whitespace check. No temporary fixture or dependency/package change was committed, no database query/write was run through the generated client, and no migration/data/backfill/constraint validation/runtime service/UI/WP03 implementation was executed.
 
-The Prisma sync prerequisite is CLOSED. This follow-up changes the schema plus this report, living plan, Database Blueprint, Release Gates and Security Preflight status references. WP02 remains PARTIAL because the independently recorded data/hierarchy/runtime/security proof is still open. WP03 requires subsequent explicit approval; stop at WP02.
+The Prisma sync prerequisite is CLOSED. This follow-up changes the schema plus this report, living plan, Database Blueprint, Release Gates and Security Preflight status references. Subsequent sections record the completed data/hierarchy/runtime structural proof. WP03 still requires subsequent explicit approval; stop at WP02.
+
+## 19. Tenant-bounded data preflight and runtime baseline — 2026-10-02
+
+The reproducible [read-only query set](../../../../supabase/tests/wp02_data_preflight.sql) was executed against every catalogued tenant using explicit `tenant_org_id` predicates on every `org_*` source and join. The complete non-sensitive result is retained in [WP02_Data_Preflight_Evidence.json](WP02_Data_Preflight_Evidence.json). This was classification only: it did not assign `committed_at`, populate lineage, validate a `NOT VALID` constraint, repair finance, invoke an RPC, or mutate either target.
+
+At 17:59 UTC, local contained no orders or related structure. Hosted contained 72 orders, 98 items, 114 pieces and 37 preferences; all Change tables remained empty. All current structural rows had `rec_status=1`; the scans found zero NULL/unsupported lifecycle values, orphan/wrong-parent/invalid-preference-shape records, foundation-check violations, actor/lineage FK violations and existing removal lineage. All 72 hosted orders remained `committed_at NULL`, `edit_state_version=0` and `service_speed NULL`; `created_by` values were UUID-shaped and exist in `auth.users`, but that is not commitment-actor evidence. They remain V2-ineligible until a later approved source/actor/timezone qualification. The hosted snapshot catalog reported 53 `MISMATCH` and 19 `CURRENT` rows; this is recorded as existing Finance evidence, not repaired or reclassified by WP02.
+
+After the user reported deleting all orders, a fresh direct count confirmed local remains empty. The configured hosted target still returned 72 orders, 98 items, 114 pieces and 37 preferences. This report does not infer which environment the user deleted or perform a second deletion. Local and hosted sessions differ in current timezone (UTC and Asia/Muscat respectively); neither setting proves the original convention of legacy `TIMESTAMP WITHOUT TIME ZONE` writes.
+
+The configured repository Prisma base connection was also tested in a read-only transaction. It runs as non-superuser `postgres` with `BYPASSRLS`, no JWT actor and UTC session timezone. `withTenantContext` and the Prisma tenant guard are therefore defense in depth; future V2 writers must still derive and validate actor/tenant server-side, include explicit tenant predicates, and never accept the bare metadata/header helpers as authority. Canonical submit has a stronger membership validator today, but the integrity of the membership/RPC authority remains an enablement gate owned by WP17/WP18.
+
+## 20. Disposable PostgreSQL structural fixture — 2026-10-02
+
+The new [fixture harness](../../../../scripts/tests/wp02-isolated-postgres.py) creates one self-labelled PostgreSQL17 container with `--network none`, no published port, no external volume, only a bounded tmpfs data directory and a local Unix socket. It rejects database URLs, host/port arguments, dotenv-derived `PG*` values, existing containers and migration runners; it removes only its verified owned container. It compiles the reviewed object DDL/comments/ACLs extracted verbatim from0547/0548 while skipping only migration transaction wrappers/history tracking, against a documented minimum synthetic prerequisite schema. No local/hosted database, migration history or business fact is connected or changed.
+
+The fixture passed on PostgreSQL17.11. It proves all three deferred removal-lineage FKs accept late complete-master insertion at COMMIT, reject a missing master at COMMIT with `23503`, and leave no partial master/ops/removal/revision fact after failed COMMIT. It also proves immediate `SET CONSTRAINTS`, NULL-safe `rec_status` lineage checks, immutable removals/history/commitment/permanent blocks, tenant-qualified historical FKs, same-tenant reparent survival, `anon`/`authenticated` ACL and no-policy RLS denial, and service-role append-only access. The fixture uses a non-superuser BYPASSRLS owner to match the verified deployed runtime attribute; bootstrap administration is distinct. PostgreSQL checks an incomplete referenced-table TRUNCATE before the trigger (`0A000`); the complete-set case reaches the immutable-history trigger (`23514`).
+
+This closes the WP02 database-structural proof. It does not implement or prove an Order Change Prisma/service transaction, actual Supabase JWT/Data API behavior, membership integrity, existing privileged repair RPC authorization, Finance races, Split execution, or end-user permissions. Those are owned later by WP11/WP12/WP17/WP18 and remain release/enablement gates, not reasons to leave the foundation package incomplete.
