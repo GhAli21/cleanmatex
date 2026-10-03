@@ -99,6 +99,14 @@ CREATE POLICY tenant_isolation ON org_order_prefs_dtl
 
 ---
 
+## Composite FK / 1:1 unique comments
+
+When adding a composite FK or a 1:1 unique, the SQL comment must state **why this column order** — it must match the referenced parent key (Prisma 6). Example: `0553` uses `UNIQUE (account_id, tenant_org_id)` because `fk_ofba_acct` is `(account_id, tenant_org_id) REFERENCES (id, tenant_org_id)`, not because tenant-second is a new house style.
+
+Do not `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. Document the chosen action (`RESTRICT` / `CASCADE` / PG 15+ column-only `SET NULL`).
+
+Full rule: `/database` skill → "Prisma-safe composite FKs".
+
 ## ALTER TABLE Comment
 
 ```sql

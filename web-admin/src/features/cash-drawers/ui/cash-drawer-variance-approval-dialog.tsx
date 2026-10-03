@@ -15,37 +15,46 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays'
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token'
-import { approveCashDrawerSessionVariance } from '@features/cash-drawers/api/cash-drawer-api'
+import {
+  approveCashDrawerSessionVariance,
+  rejectCashDrawerSessionVariance,
+} from '@features/cash-drawers/api/cash-drawer-api'
+
+/** Which supervisor decision the dialog records. */
+export type CashDrawerVarianceDecisionMode = 'approve' | 'reject'
 
 /**
- * B16 — variance-approval dialog (deferred approval model).
+ * B16 / C3 — variance decision dialog (deferred approval model).
  *
- * A session that closed with |variance| over the drawer's configured
- * threshold stays flagged `varianceApproval.pending` until someone holding
- * `cash_drawer:approve_variance` approves it here with a mandatory reason.
- * No maker-checker — the approver may be the same user who closed the session;
- * permission is the only gate. The server remains the source of truth for the
- * remaining rules (duplicate approval, reason required) — this dialog surfaces
- * the resulting error via `cmxMessage` rather than re-deriving them client-side.
+ * A session that closed with |variance| over the drawer's configured threshold stays pending
+ * until someone holding `cash_drawer:approve_variance` decides it here with a mandatory reason:
+ * **approve** (accept the variance) or **reject** (not accepted — needs investigation). The
+ * decision is final. No maker-checker — the decider may be the user who closed the session;
+ * permission is the only gate. The server remains the source of truth for the remaining rules
+ * (already decided, reason required) — this dialog surfaces the resulting error via `cmxMessage`
+ * rather than re-deriving them client-side.
  */
 export function CashDrawerVarianceApprovalDialog({
   open,
   onOpenChange,
   drawerId,
   sessionId,
-  onApproved,
+  mode = 'approve',
+  onDecided,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   drawerId: string
   sessionId: string
-  onApproved: () => void
+  mode?: CashDrawerVarianceDecisionMode
+  onDecided: () => void
 }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
   const { token: csrfToken } = useCSRFToken()
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const rejecting = mode === 'reject'
 
   const close = () => {
     setReason('')
@@ -56,14 +65,15 @@ export function CashDrawerVarianceApprovalDialog({
     if (reason.trim().length === 0) return
     setSubmitting(true)
     try {
-      await approveCashDrawerSessionVariance({ drawerId, sessionId, reason, csrfToken })
-      cmxMessage.success(t('messages.varianceApproved'))
+      const decide = rejecting ? rejectCashDrawerSessionVariance : approveCashDrawerSessionVariance
+      await decide({ drawerId, sessionId, reason, csrfToken })
+      cmxMessage.success(rejecting ? t('messages.varianceRejected') : t('messages.varianceApproved'))
       setReason('')
       onOpenChange(false)
-      onApproved()
+      onDecided()
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('messages.varianceApprovalFailed')
-      cmxMessage.error(mapVarianceApprovalError(message, t))
+      const message = error instanceof Error ? error.message : ''
+      cmxMessage.error(mapVarianceDecisionError(message, t, rejecting))
     } finally {
       setSubmitting(false)
     }
@@ -74,19 +84,23 @@ export function CashDrawerVarianceApprovalDialog({
       <CmxDialogContent className="max-w-md">
         <CmxDialogHeader>
           <CmxDialogTitle className="flex items-center gap-2">
-            <ShieldAlert className="h-4 w-4 text-amber-600" aria-hidden />
-            {t('varianceApprovalTitle')}
+            <ShieldAlert className={`h-4 w-4 ${rejecting ? 'text-red-600' : 'text-amber-600'}`} aria-hidden />
+            {rejecting ? t('varianceRejectTitle') : t('varianceApprovalTitle')}
           </CmxDialogTitle>
         </CmxDialogHeader>
         <div className="space-y-4">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            {t('varianceApprovalWarning')}
+          <div
+            className={`rounded-lg border p-3 text-sm ${
+              rejecting ? 'border-red-200 bg-red-50 text-red-900' : 'border-amber-200 bg-amber-50 text-amber-900'
+            }`}
+          >
+            {rejecting ? t('varianceRejectWarning') : t('varianceApprovalWarning')}
           </div>
           <CmxTextarea
             value={reason}
-            placeholder={t('varianceApprovalReasonPlaceholder')}
+            placeholder={rejecting ? t('varianceRejectReasonPlaceholder') : t('varianceApprovalReasonPlaceholder')}
             onChange={(event) => setReason(event.target.value)}
-            aria-label={t('varianceApprovalReasonPlaceholder')}
+            aria-label={rejecting ? t('varianceRejectReasonPlaceholder') : t('varianceApprovalReasonPlaceholder')}
           />
         </div>
         <CmxDialogFooter>
@@ -94,12 +108,12 @@ export function CashDrawerVarianceApprovalDialog({
             {tCommon('cancel')}
           </CmxButton>
           <CmxButton
-            variant="primary"
+            variant={rejecting ? 'destructive' : 'primary'}
             disabled={reason.trim().length === 0}
             loading={submitting}
             onClick={submit}
           >
-            {t('approveVariance')}
+            {rejecting ? t('rejectVariance') : t('approveVariance')}
           </CmxButton>
         </CmxDialogFooter>
       </CmxDialogContent>
@@ -108,15 +122,17 @@ export function CashDrawerVarianceApprovalDialog({
 }
 
 /** Map the server's stable `VARIANCE_APPROVAL_ERRORS` codes to i18n-resolved text. */
-function mapVarianceApprovalError(rawMessage: string, t: (key: string) => string): string {
+function mapVarianceDecisionError(rawMessage: string, t: (key: string) => string, rejecting: boolean): string {
   switch (rawMessage) {
     case 'VARIANCE_ALREADY_APPROVED':
       return t('messages.varianceAlreadyApproved')
+    case 'VARIANCE_ALREADY_REJECTED':
+      return t('messages.varianceAlreadyRejected')
     case 'VARIANCE_NOT_PENDING_APPROVAL':
       return t('messages.varianceNotPendingApproval')
     case 'VARIANCE_REASON_REQUIRED':
       return t('messages.varianceReasonRequired')
     default:
-      return t('messages.varianceApprovalFailed')
+      return rejecting ? t('messages.varianceRejectFailed') : t('messages.varianceApprovalFailed')
   }
 }

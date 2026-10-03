@@ -39,10 +39,19 @@ export interface FollowUpPage {
   pageSize: number;
 }
 
-export async function listFollowUpSessions(tenantOrgId: string, filter: FollowUpListFilter): Promise<FollowUpPage> {
+export async function listFollowUpSessions(
+  tenantOrgId: string,
+  filter: FollowUpListFilter,
+  /** B3: the actor's permitted branches; undefined = all branches, empty = nothing. */
+  scopeBranchIds?: readonly string[],
+): Promise<FollowUpPage> {
   return withTenantContext(tenantOrgId, async () => {
     const pendingDepositDrawers = await prisma.org_cash_drawers_mst.findMany({
-      where: { tenant_org_id: tenantOrgId, drawer_type: DRAWER_TYPES.PENDING_DEPOSIT },
+      where: {
+        tenant_org_id: tenantOrgId,
+        drawer_type: DRAWER_TYPES.PENDING_DEPOSIT,
+        ...(scopeBranchIds ? { branch_id: { in: [...scopeBranchIds] } } : {}),
+      },
       select: { id: true },
     });
     const pdDrawerIds = pendingDepositDrawers.map((d) => d.id);

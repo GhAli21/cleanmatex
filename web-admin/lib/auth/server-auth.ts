@@ -5,6 +5,8 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { guardSession, isSessionActive } from '@/lib/auth/session-guard';
+import { getCurrentRequestMeta } from '@/lib/services/auth/session/request-meta.server';
 
 /**
  *
@@ -22,8 +24,8 @@ export interface AuthContext {
 /**
  * Get authenticated user and tenant context for server components
  *
- * Uses JWT user_metadata.tenant_org_id when available (matches client's selected tenant
- * after tenant switch). Falls back to first tenant from get_user_tenants otherwise.
+ * Tenant = the tenant the validated session is bound to (server-side, membership-based; one account per
+ * tenant, no tenant switching). user_metadata is never trusted. The role comes from get_user_tenants.
  *
  * @returns Auth context with user and tenant information
  * @throws Error if user is not authenticated or has no tenant access
@@ -38,22 +40,18 @@ export async function getAuthContext(): Promise<AuthContext> {
     throw new Error('Unauthorized');
   }
 
+  const validation = await guardSession(supabase, await getCurrentRequestMeta());
+  if (!isSessionActive(validation) || !validation.tenantOrgId) {
+    throw new Error('Unauthorized');
+  }
+
   const { data: tenants, error } = await supabase.rpc('get_user_tenants');
   if (error || !tenants || tenants.length === 0) {
     throw new Error('No tenant access found' + error?.message);
   }
 
-  // Prefer JWT tenant_org_id (matches client's selected tenant after switch)
-  const jwtTenantId = user.user_metadata?.tenant_org_id as string | undefined;
-  const tenantFromRpc = tenants[0];
-  const hasAccessToJwtTenant =
-    jwtTenantId && tenants.some((t) => t.tenant_id === jwtTenantId);
-
-  const tenantId = hasAccessToJwtTenant
-    ? jwtTenantId
-    : (tenantFromRpc.tenant_id as string);
-  const tenantEntry =
-    tenants.find((t) => t.tenant_id === tenantId) ?? tenantFromRpc;
+  const tenantId = validation.tenantOrgId;
+  const tenantEntry = tenants.find((t) => t.tenant_id === tenantId) ?? tenants[0];
 
   return {
     user: {

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { requirePermission } from '@lib/middleware/require-permission'
 import { getCashDrawerOverviewPage } from '@lib/services/cash-drawer.service'
+import { narrowBranchFilter, resolveBranchScope } from '@lib/services/branch-access.service'
 import { cashDrawerOverviewQuerySchema } from '@lib/validations/cash-drawer-schemas'
 
 /**
@@ -34,6 +35,8 @@ export async function GET(request: NextRequest) {
       auth.tenantId,
       parsed.data.page,
       parsed.data.pageSize,
+      // B3: only the actor's permitted branches (undefined = all branches).
+      narrowBranchFilter(await resolveBranchScope(auth)),
     )
 
     return NextResponse.json({ success: true, data })

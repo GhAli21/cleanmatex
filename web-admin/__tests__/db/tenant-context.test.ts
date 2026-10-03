@@ -30,6 +30,25 @@ jest.mock('@/lib/supabase/server', () => ({
   })),
 }));
 
+// The tenant now comes from the server-validated session (fn_auth_session_validate), never from
+// user_metadata. The guard and request-meta helper are mocked at their module boundary.
+const mockGuardSession = jest.fn();
+jest.mock('@/lib/auth/session-guard', () => ({
+  guardSession: (...args: unknown[]) => mockGuardSession(...args),
+}));
+jest.mock('@/lib/services/auth/session/request-meta.server', () => ({
+  getCurrentRequestMeta: jest.fn(async () => ({ ipAddress: null, userAgent: null, deviceId: null })),
+}));
+
+const activeSession = (tenantOrgId: string | null) => ({
+  state: 'ACTIVE',
+  endReason: null,
+  tenantOrgId,
+  idleRemainingSec: 1800,
+  absoluteRemainingSec: 43200,
+  idleWarningSec: 60,
+});
+
 describe('Tenant Context Management', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -151,12 +170,20 @@ describe('Tenant Context Management', () => {
   });
 
   describe('getTenantIdFromSession', () => {
-    test('should return tenant ID from Supabase session', async () => {
+    test('returns the tenant of the validated session', async () => {
+      mockGuardSession.mockResolvedValueOnce(activeSession('tenant-123'));
       const tenantId = await getTenantIdFromSession();
       expect(tenantId).toBe('tenant-123');
     });
 
-    test('should return null when user is not authenticated', async () => {
+    test('IGNORES a forged user_metadata tenant — the session tenant wins', async () => {
+      // mockUser.user_metadata.tenant_org_id is 'tenant-123'; the validated session says otherwise.
+      mockGuardSession.mockResolvedValueOnce(activeSession('tenant-from-session'));
+      const tenantId = await getTenantIdFromSession();
+      expect(tenantId).toBe('tenant-from-session');
+    });
+
+    test('returns null when user is not authenticated', async () => {
       const { createClient } = require('@/lib/supabase/server');
       createClient.mockReturnValueOnce({
         auth: {
@@ -169,32 +196,32 @@ describe('Tenant Context Management', () => {
 
       const tenantId = await getTenantIdFromSession();
       expect(tenantId).toBeNull();
+      expect(mockGuardSession).not.toHaveBeenCalled();
     });
 
-    test('should return null when user has no tenant_org_id', async () => {
-      const { createClient } = require('@/lib/supabase/server');
-      createClient.mockReturnValueOnce({
-        auth: {
-          getUser: jest.fn(() => ({
-            data: {
-              user: {
-                id: 'user-123',
-                user_metadata: {},
-              },
-            },
-            error: null,
-          })),
-        },
-      });
-
-      const tenantId = await getTenantIdFromSession();
-      expect(tenantId).toBeNull();
+    test.each(['ENDED', 'NOT_REGISTERED', 'NO_SESSION'])('returns null when the session state is %s', async (state) => {
+      mockGuardSession.mockResolvedValueOnce({ ...activeSession('tenant-123'), state, endReason: 'IDLE_TIMEOUT' });
+      expect(await getTenantIdFromSession()).toBeNull();
     });
 
-    test('should handle errors gracefully', async () => {
+    test('returns null when an active session carries no tenant', async () => {
+      mockGuardSession.mockResolvedValueOnce(activeSession(null));
+      expect(await getTenantIdFromSession()).toBeNull();
+    });
+
+    test('fails closed (null) when session validation throws', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockGuardSession.mockRejectedValueOnce(new Error('rpc unavailable'));
+
+      expect(await getTenantIdFromSession()).toBeNull();
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    test('handles errors gracefully', async () => {
       const { createClient } = require('@/lib/supabase/server');
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      
+
       createClient.mockReturnValueOnce({
         auth: {
           getUser: jest.fn(() => {
@@ -210,7 +237,6 @@ describe('Tenant Context Management', () => {
       consoleSpy.mockRestore();
     });
   });
-
   describe('Nested Context Scenarios', () => {
     test('should use inner context when nested', async () => {
       const outerTenant = 'tenant-123';

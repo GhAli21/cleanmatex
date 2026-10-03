@@ -16,6 +16,7 @@ import type { TaxPricingMode, ExtraPricePricingMode } from '@/lib/types/order-fi
 import { useFeature } from '@/src/features/auth/ui/RequireFeature';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { PendingDepositDrawerEnsureButton } from '@features/cash-drawers/ui/pending-deposit-drawer-ensure-button';
+import { BranchBusinessDayCard } from './branch-business-day-card';
 
 interface BranchOption {
   id: string;
@@ -168,6 +169,9 @@ export function BranchSettingsScreen() {
           <div className="flex justify-end">
             <PendingDepositDrawerEnsureButton branchId={selectedBranchId} />
           </div>
+
+          {/* B2 — branch timezone: the business day belongs to the branch */}
+          <BranchBusinessDayCard branchId={selectedBranchId} />
 
           {/* Pricing mode overrides */}
           <CmxCard>

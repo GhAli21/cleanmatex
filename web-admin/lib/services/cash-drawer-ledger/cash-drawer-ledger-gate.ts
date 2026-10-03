@@ -16,6 +16,7 @@ import { resolvePaymentStatus } from '@/lib/services/wiring/order-payment-wiring
 import { isCashFamilyMethod } from '@/lib/utils/cash-method';
 import type {
   CashLineDecision,
+  DrawerAssignmentFacts,
   DrawerLiveSession,
   DrawerProfile,
 } from '@/lib/types/cash-drawer-ledger';
@@ -25,6 +26,7 @@ import { allocateLedgerSeqTx, lockDrawersTx, type LockedDrawerRow } from './cash
 import { CashDrawerLedgerError } from './cash-drawer-errors';
 import { assertPinnedSession, resolveCashPlacementTx, type CashPlacementOverride } from './cash-placement';
 import { decideCashLine } from './cash-drawer-ledger-policy';
+import { resolveDrawerAssignment } from './cash-drawer-assignment';
 
 /**
  * Cash-drawer ledger gate (CLF, ADR-057, plan §4B.4).
@@ -150,6 +152,7 @@ async function loadDrawerFacts(
   profiles: Map<string, DrawerProfile>;
   liveSessions: Map<string, DrawerLiveSession>;
   requiresSession: Map<string, boolean>;
+  assignments: Map<string, DrawerAssignmentFacts>;
 }> {
   const locked: LockedDrawerRow[] = await lockDrawersTx(tx, ctx.tenantOrgId, drawerIds);
   const typeCodes = [...new Set(locked.map((d) => d.drawer_type))];
@@ -193,6 +196,7 @@ async function loadDrawerFacts(
   }
 
   const requiresSession = new Map<string, boolean>();
+  const assignments = new Map<string, DrawerAssignmentFacts>();
   await Promise.all(
     locked.map(async (d) => {
       const settings = await getCashControlSettings({
@@ -202,10 +206,14 @@ async function loadDrawerFacts(
         drawerId: d.id,
       });
       requiresSession.set(d.id, settings.requiresSession);
+      // B3-1: only interactive posting is bound to the assignee; deferred events are back-office work.
+      if (ctx.mode === 'INTERACTIVE') {
+        assignments.set(d.id, await resolveDrawerAssignment({ tenantOrgId: ctx.tenantOrgId, userId: ctx.userId, drawer: d }));
+      }
     }),
   );
 
-  return { profiles, liveSessions, requiresSession };
+  return { profiles, liveSessions, requiresSession, assignments };
 }
 
 /** Writes the drawer stamp on one line; `requireDraft` guards the posting path. */
@@ -298,6 +306,7 @@ export async function stampCashLinesTx(
       liveSession: drawerId ? facts.liveSessions.get(drawerId) ?? null : null,
       requiresSession: drawerId ? facts.requiresSession.get(drawerId) ?? true : true,
       mode: ctx.mode,
+      assignment: drawerId ? facts.assignments.get(drawerId) : undefined,
     });
     if (decision.error) {
       throw new CashDrawerLedgerError(decision.error, `Cash line ${line.id} refused: ${decision.error}`, {

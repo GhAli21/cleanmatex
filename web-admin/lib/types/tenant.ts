@@ -95,6 +95,11 @@ export interface FeatureFlags {
      */
     order_fin_governed_amendments: boolean;
     /**
+     * Edit Order V2 is default-off and only enables capability evaluation.
+     * Workflow policy, order access, permissions, and review proof still gate every Change.
+     */
+    order_edit_v2: boolean;
+    /**
      * B13 — Voucher reverse operational unwind. When ON, reversing a posted
      * voucher also VOID/REVERSE linked ORDER_PAYMENT legs (B10). Default OFF.
      */

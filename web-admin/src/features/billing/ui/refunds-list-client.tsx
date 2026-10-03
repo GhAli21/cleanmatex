@@ -41,6 +41,10 @@ import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useHasPermission } from '@/lib/hooks/usePermissions';
 import { REFUND_METHODS, REFUND_STATUSES } from '@/lib/constants/order-financial';
 import { VOUCHER_RELATED_HREFS } from '@/lib/constants/voucher-related-hrefs';
+import { useAuth } from '@/lib/auth/auth-context';
+import { useCashChangeRoundingPolicy, useRoundedCashChange } from '@features/orders/hooks/use-cash-change-rounding';
+import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
+import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 
 /**
  * Refund data safe for the tenant billing grid. Sensitive replay and raw metadata
@@ -161,6 +165,8 @@ export default function RefundsListClient({
   const canProcess = useHasPermission('orders', 'process_refund');
 
   const [pendingAction, setPendingAction] = useState<{ refund: RefundItem; action: StageAction } | null>(null);
+  // D62: processing a cash refund may be refused until the user has a POS session; offered inline.
+  const [posSessionRequired, setPosSessionRequired] = useState<PosSessionRequiredInfo | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // B9: execution inputs collected only for the CASH/ORIGINAL_METHOD process dialog.
   const [cashDrawerSessionId, setCashDrawerSessionId] = useState('');
@@ -172,6 +178,19 @@ export default function RefundsListClient({
   const requiresCashDrawer =
     pendingAction?.action === 'process' &&
     pendingAction.refund.refund_method_code === REFUND_METHODS.CASH;
+  // A6 follow-up: cash handed to the customer is rounded to the cash increment. The refund keeps its
+  // exact amount; the difference is shown here, before confirming, and recorded as a rounding voucher.
+  const { currentTenant } = useAuth();
+  const refundCashRoundingPolicy = useCashChangeRoundingPolicy({
+    enabled: !!requiresCashDrawer,
+    tenantOrgId: currentTenant?.tenant_id ?? '',
+    currencyCode: pendingAction?.refund.currency_code ?? '',
+  });
+  const refundCashRounding = useRoundedCashChange(
+    refundCashRoundingPolicy,
+    requiresCashDrawer ? (pendingAction?.refund.refund_amount ?? 0) : 0,
+    Number.POSITIVE_INFINITY,
+  );
   const requiresManualReference =
     executionEnabled &&
     pendingAction?.action === 'process' &&
@@ -358,6 +377,7 @@ export default function RefundsListClient({
   async function executeStageAction() {
     if (!pendingAction || submitting || !canSubmitProcess) return;
     setSubmitting(true);
+    setPosSessionRequired(null);
     try {
       const body =
         pendingAction.action === 'process' && (requiresCashDrawer || requiresManualReference)
@@ -380,6 +400,7 @@ export default function RefundsListClient({
         | { success?: boolean; error?: string; code?: string }
         | null;
       if (!response.ok || !payload?.success) {
+        setPosSessionRequired(readPosSessionRequired(payload));
         const code = payload?.code;
         showError(
           code && t.has(`errors.${code}`)
@@ -507,6 +528,17 @@ export default function RefundsListClient({
             </div>
           ) : null}
 
+          {requiresCashDrawer && refundCashRounding && refundCashRoundingPolicy ? (
+            <p role="status" className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              {t('execution.cashRounding', {
+                rounded: refundCashRounding.roundedChange.toFixed(refundCashRoundingPolicy.decimalPlaces),
+                exact: refundCashRounding.exactChange.toFixed(refundCashRoundingPolicy.decimalPlaces),
+                difference: Math.abs(refundCashRounding.adjustment).toFixed(refundCashRoundingPolicy.decimalPlaces),
+                currency: refundCashRoundingPolicy.currencyCode,
+              })}
+            </p>
+          ) : null}
+
           {requiresManualReference ? (
             <div className="space-y-2">
               <Label htmlFor="refund-manual-ref">{t('execution.manualSettlementReferenceLabel')} *</Label>
@@ -519,11 +551,21 @@ export default function RefundsListClient({
             </div>
           ) : null}
 
+          {posSessionRequired && pendingAction ? (
+            <PosSessionRequiredAction
+              info={posSessionRequired}
+              idempotencyKey={`refund_${pendingAction.refund.id}`}
+              sourceChannel="refund_process"
+              onOpened={() => setPosSessionRequired(null)}
+            />
+          ) : null}
+
           <CmxDialogFooter>
             <CmxButton
               variant="outline"
               disabled={submitting}
               onClick={() => {
+                setPosSessionRequired(null);
                 setPendingAction(null);
                 setCashDrawerSessionId('');
                 setManualSettlementReference('');

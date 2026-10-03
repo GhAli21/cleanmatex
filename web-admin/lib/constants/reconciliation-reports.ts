@@ -11,7 +11,7 @@
  * rather than re-declared here, per the DB-mirror rule.
  */
 
-import { CASH_VARIANCE_TOLERANCE } from '@/lib/constants/financial-tolerances';
+import { MONEY_COMPARISON_TOLERANCE } from '@/lib/constants/financial-tolerances';
 
 /** Report identifiers — drive the API route segment and the UI tab key. */
 export const RECONCILIATION_REPORT_KEYS = {
@@ -40,9 +40,9 @@ export type ExcessLiabilitySource =
   (typeof EXCESS_LIABILITY_SOURCES)[keyof typeof EXCESS_LIABILITY_SOURCES];
 
 /**
- * Drift tolerance for flagging a reconciliation exception (header vs detail,
- * expected vs counted). Mirrors `RECONCILIATION_TOLERANCE` used by the
- * BVM reconciliation engine so reports and the engine agree on what "balanced"
- * means. Value owned by `lib/constants/financial-tolerances` (B15).
+ * Drift tolerance for ledger comparisons in the reconciliation reports (statement header vs detail).
+ * Same strict class as the engine's `RECONCILIATION_TOLERANCE`, so reports and the engine agree on
+ * what "balanced" means. Counted cash against expected is judged per currency with
+ * `varianceToleranceFor` instead. Value owned by `lib/constants/financial-tolerances` (B15).
  */
-export const RECON_REPORT_EPSILON = CASH_VARIANCE_TOLERANCE;
+export const RECON_REPORT_EPSILON = MONEY_COMPARISON_TOLERANCE;

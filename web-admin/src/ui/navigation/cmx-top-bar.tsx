@@ -21,11 +21,10 @@ import { SessionActivityTrigger } from '@features/session-activity'
 export default function CmxTopBar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, currentTenant, availableTenants, signOut, switchTenant } = useAuth()
+  const { user, currentTenant, signOut } = useAuth()
   const isRTL = useRTL()
   const t = useTranslations('layout.topBar')
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showTenantMenu, setShowTenantMenu] = useState(false)
 
   const currentPageContract = getPageAccessContractByPath(pathname)
   const pageTitle = currentPageContract?.label ?? 'Dashboard'
@@ -35,15 +34,6 @@ export default function CmxTopBar() {
       await signOut()
     } catch (error) {
       console.error('Error signing out:', error)
-    }
-  }
-
-  const handleTenantSwitch = async (tenantId: string) => {
-    try {
-      await switchTenant(tenantId)
-      setShowTenantMenu(false)
-    } catch (error) {
-      console.error('Error switching tenant:', error)
     }
   }
 
@@ -82,44 +72,15 @@ export default function CmxTopBar() {
 
             <NotificationBell />
 
-            {availableTenants.length > 1 && (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowTenantMenu(!showTenantMenu)}
-                  className="flex items-center space-x-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <span className="line-clamp-1 hidden max-w-32 break-words md:block">
-                    {currentTenant?.tenant_name}
-                  </span>
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-
-                {showTenantMenu && (
-                  <div
-                    className={`absolute ${isRTL ? 'left-0' : 'right-0'} z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg`}
-                  >
-                    <div className="border-b border-gray-200 px-4 py-2">
-                      <p className="text-xs text-gray-500">{t('switchTenant')}</p>
-                    </div>
-                    {availableTenants.map((tenant) => (
-                      <button
-                        key={tenant.tenant_id}
-                        onClick={() => void handleTenantSwitch(tenant.tenant_id)}
-                        className={`w-full px-4 py-2 text-sm hover:bg-gray-50 ${isRTL ? 'text-right' : 'text-left'} ${
-                          currentTenant?.tenant_id === tenant.tenant_id
-                            ? 'bg-blue-50 font-medium text-blue-700'
-                            : 'text-gray-700'
-                        }`}
-                      >
-                        <div className="line-clamp-1 break-words">{tenant.tenant_name}</div>
-                        <div className="text-xs text-gray-500">{tenant.user_role}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {/* A session is bound to one tenant at sign-in; to use another tenant the user signs out and signs in there. */}
+            {currentTenant?.tenant_name ? (
+              <span
+                className="line-clamp-1 hidden max-w-40 break-words rounded-md bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-700 md:block"
+                title={currentTenant.tenant_name}
+              >
+                {currentTenant.tenant_name}
+              </span>
+            ) : null}
 
             <div className="relative">
               <button

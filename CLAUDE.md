@@ -209,6 +209,7 @@ npm run build                      # Build (run after changes)
 - **Permissions require a migration** — every new permission code must be seeded into the DB permissions table via a migration file. A permission that exists only in TypeScript/code but not in the DB is incomplete. Include ALL new permissions for a feature in a single dedicated migration.
 - **Navigation requires a migration** — every new or modified navigation entry must have a corresponding `sys_components_cd` migration. Use the `/navigation` skill to generate it. See CRITICAL RULE #10.
 - **Feature flags require a migration** — every new feature flag must be registered via a migration into `hq_ff_feature_flags_mst` (+ `sys_ff_pln_flag_mappings_dtl` plan mappings when `plan_bound`), then synced into `web-admin/lib/constants/feature-flags.ts`. Use the `/create-feature-flag` skill.
+- **Prisma-safe composite FKs** — Postgres ignores unique column order; Prisma 6 does not. Child FK + 1:1 UNIQUE + referenced parent key MUST use the same columns in the same order. If the parent key is `(id, tenant_org_id)`, the child is `(parent_id, tenant_org_id)` (tenant **second** — this is `0553`). If the parent is `(tenant_org_id, id)`, the child is tenant-first. List indexes stay tenant-first. Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. After `db pull`, fix P1012 unique-order bugs in a NEW SQL migration; `SetNull` warnings are not P1012. Full rule: `/database` skill.
 
 **See:** `/database` skill for complete rules
 
@@ -293,6 +294,7 @@ npm run build                      # Build (run after changes)
 - `/create-feature-flag` — Register a new feature flag via migration (`hq_ff_feature_flags_mst` + plan mappings) and sync the web-admin `FLAG_CATALOG`
 - `/manage-currency-setup-hq` — Create a currency and/or complete its seed data across `sys_currency_cd`, `sys_currency_rounding_rules_cf`, `sys_currency_denominations_cd` via migration; researches missing rounding/denomination facts (WebSearch, cited) rather than guessing
 - `/manage-wf-policy-issues-catalog` — **HQ repo only** (`cleanmatexsaas`). Add/update/retire Check-policy issue catalog rows. Do not hand-edit tenant `docs/features/Workflow_Order_Advance/generated/`
+- `/pull-prisma` — **On demand only** (not a mandatory preload). From the repo root run `npm run prisma:pull` (no `cd web-admin`; includes post-pull `@ignore` patch). Use after a migration is applied, on P1012/schema drift, or when the user asks to pull Prisma.
 
 ---
 

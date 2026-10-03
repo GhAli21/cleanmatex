@@ -8,7 +8,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, SB_REMEMBER_ME_COOKIE } from '@/lib/supabase/server'
+import { createAdminSupabaseClient, createClient, SB_REMEMBER_ME_COOKIE } from '@/lib/supabase/server'
+import { getSessionIdFromToken } from '@/lib/auth/jwt-claims'
+import { forgetSessionValidation } from '@/lib/auth/session-guard'
+import { endOwnSession } from '@/lib/services/auth/session/use-cases/session-lifecycle'
 import { onLogoutInvalidate } from '@/lib/auth/on-logout-invalidate'
 import { logger } from '@/lib/utils/logger'
 
@@ -28,8 +31,10 @@ export async function POST(request: NextRequest) {
       error: authError,
     } = await supabase.auth.getUser()
 
-    // If no user, still return success (already logged out)
+    // If no user, still return success (already logged out) — and make sure this browser's auth cookies
+    // are cleared (a stale/expired token can still be sitting in them).
     if (!user || authError) {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
       return NextResponse.json(
         { success: true, message: 'Already logged out' },
         { status: 200 }
@@ -60,8 +65,29 @@ export async function POST(request: NextRequest) {
       reason,
     })
 
-    // Note: Supabase session is cleared client-side
-    // This API only handles server-side cleanup
+    // ─── End the session on the server ────────────────────────────────────────
+    // The session id comes from the caller's own verified token (never from the request body), so a user can
+    // only ever end their own session here. Ending also deletes the Supabase session (kills refresh) and
+    // writes the audit event. Logout must never fail because of a bookkeeping error, so errors are logged only.
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const authSessionId = getSessionIdFromToken(session?.access_token)
+      if (authSessionId) {
+        await endOwnSession(createAdminSupabaseClient(), { authSessionId, userId, reason })
+        forgetSessionValidation(authSessionId)
+      }
+    } catch (endError) {
+      logger.error('Failed to end session on logout', endError as Error, {
+        feature: 'auth',
+        action: 'logout',
+        userId,
+      })
+    }
+
+    // Clear this browser's Supabase auth cookies (local scope: other devices are NOT signed out).
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
 
     const res = NextResponse.json({
       success: true,

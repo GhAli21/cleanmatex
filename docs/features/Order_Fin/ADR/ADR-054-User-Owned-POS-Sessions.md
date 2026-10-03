@@ -175,3 +175,20 @@ Phase 1 does not create:
 
 See [POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md §4B](../POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md) (CLF-4-5).
 
+## Amendment 2026-10-03 (POS Session & Cash Drawer Hardening — delivered)
+
+The 2026-09-25 target architecture shipped (ADR-057), and the hardening program added the following, all
+of which are now behaviour, not plan:
+
+| Area | Amendment |
+|---|---|
+| Is a POS session required? | **Per finance screen, not global.** Six policy modes (`pos_session_mode_*`: order entry, later collection, stored-value sale, cash refund, customer receipt, manual voucher), each `REQUIRED` / `REQUIRED_FOR_CASH` / `OPTIONAL`, resolved through the scoped cash-control settings ladder (drawer → user → branch → tenant → default). The session is resolved server-side from the auth context; a missing one is `POS_SESSION_REQUIRED` 409 with an inline-open path. Cash **custody** is a separate invariant enforced by the ledger gate, never by this policy. |
+| Business day | The business date belongs to the **branch**: `org_branches_mst.timezone_code`, else the tenant's timezone, **never a default zone** (`TENANT_TIMEZONE_NOT_CONFIGURED` 409 when neither is valid). |
+| Rollover | The `pos_session_rollover` job (every 15 minutes on the finance-jobs scheduler) applies `pos_session_rollover_mode` once the branch day moves past the session's business date: `PAUSE_AT_ROLLOVER` pauses (an already-paused session is only stamped), `FORCE_CLOSE_AT_ROLLOVER` force-closes **only when the linked drawer session holds no cash** (otherwise it pauses — custody stays its own invariant). A rolled-over session **cannot be resumed** (`POS_SESSION_ROLLED_OVER`): it is closed and a new one opened, so no payment is booked into a past day. A person closing at the same moment always wins. |
+| Stale sessions | `stale_flagged_at` is set once after `pos_session_stale_hours`; the owner and the branch's supervisors are notified (Notification Hub `pos_session.stale` / `pos_session.rolled_over`). |
+| Branch scoping | An actor's scope is every branch for `cash_drawer:view_all_branches` holders, else the home branch plus granted branches; no branch is no access. `pos_session:full_manage_others` stays a tenant-wide override. |
+| Drawer assignment | `drawer_assignment_mode = ASSIGNED_ONLY` limits open/count/close and interactive cash to the assignee unless the actor holds `cash_drawer:operate_any`. |
+| Shared drawer sessions | `shared_session_mode = EXCLUSIVE` allows one live POS session per drawer session (`DRAWER_SESSION_EXCLUSIVE`); with `SHARED` the drawer close and the Z-report show cash per POS session, unattributed cash on its own line. |
+| Shift reports | X (live) and Z (frozen in the closing transaction) — [ADR-059](./ADR-059-Immutable-Shift-Z-Report.md). |
+
+Still true: no maker ≠ checker anywhere — permission is the only approval gate.

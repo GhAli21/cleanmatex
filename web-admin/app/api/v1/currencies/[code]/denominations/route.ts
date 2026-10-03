@@ -11,7 +11,7 @@ import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
  * denominations for one currency (global `sys_currency_denominations_cd`, no
  * tenant scoping). Gated on `cash_drawer:view` rather than left fully
  * unauthenticated, consistent with the rest of the CLF surface;
- * `org_currency_denom_cf` tenant overrides are a documented C1 follow-up.
+ * `org_currency_denom_cf` tenant overrides (C1-1b) are applied for the caller's tenant.
  * @param request authenticated request
  * @param root0 route params
  * @param root0.params ISO currency code
@@ -26,7 +26,8 @@ export async function GET(
   const { code } = await params;
 
   try {
-    const rows = await getCurrencyDenominations(code.toUpperCase());
+    // The tenant's own grid: switched-off denominations are left out and its order is applied (C1-1b).
+    const rows = await getCurrencyDenominations(code.toUpperCase(), auth.tenantId);
     return NextResponse.json({ success: true, data: rows });
   } catch (error) {
     return mapCashDrawerError(error, 'Failed to load currency denominations');

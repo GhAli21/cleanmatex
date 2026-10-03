@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-10-02T19:58:18.617Z
+Generated: 2026-10-03T09:04:51.046Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -19,6 +19,6 @@ Generated: 2026-10-02T19:58:18.617Z
 | getFeatureFlags | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/workflow-service-enhanced.ts | 220 | const featureFlags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/workflow-service-enhanced.ts | 425 | const flags = await getFeatureFlags(tenantId); |
-| order_fin_governed_amendments | lib/services/order-service.ts | 3065 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
+| order_fin_governed_amendments | lib/services/order-service.ts | 3077 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
 | order_fin_voucher_unwind | lib/services/voucher-reversal.service.ts | 88 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
 | pdf_invoices | lib/services/feature-flags.service.ts | 408 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |

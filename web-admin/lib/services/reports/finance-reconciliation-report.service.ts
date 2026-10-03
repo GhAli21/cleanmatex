@@ -22,6 +22,7 @@ import {
   RECON_REPORT_EPSILON,
 } from '@/lib/constants/reconciliation-reports';
 import { CREDIT_NOTE_STATUSES } from '@/lib/constants/order-financial';
+import { varianceToleranceFor } from '@/lib/constants/financial-tolerances';
 import {
   sumLedgerTotalsBySession,
   loadSessionClosingFigures,
@@ -398,6 +399,12 @@ export async function getCashDrawerReconReport(
     });
 
     const sessionIds = sessions.map((s) => s.id);
+    // Physical cash is judged against half the smallest unit of each session's own currency.
+    const currencyCodes = [...new Set(sessions.map((s) => s.currency_code))];
+    const currencies = currencyCodes.length
+      ? await prisma.sys_currency_cd.findMany({ where: { code: { in: currencyCodes } }, select: { code: true, minor_unit: true } })
+      : [];
+    const minorUnitByCurrency = new Map(currencies.map((c) => [c.code, c.minor_unit]));
     const [ledgerTotalsBySession, closingBySession] = await Promise.all([
       sumLedgerTotalsBySession(tenantOrgId, sessionIds),
       loadSessionClosingFigures(tenantOrgId, sessions),
@@ -421,9 +428,9 @@ export async function getCashDrawerReconReport(
         frozenExpected == null || (s.status !== 'OPEN' && !hasLedgerActivity) ? 0 : computedExpected - frozenExpected;
       const difference = closing?.variance == null ? null : toNumber(closing.variance);
 
+      const cashTolerance = varianceToleranceFor(minorUnitByCurrency.get(s.currency_code) ?? 2);
       const isReconciled =
-        Math.abs(expectedDelta) < RECON_REPORT_EPSILON &&
-        (difference == null || Math.abs(difference) < RECON_REPORT_EPSILON);
+        Math.abs(expectedDelta) < cashTolerance && (difference == null || Math.abs(difference) < cashTolerance);
 
       return {
         sessionId: s.id,

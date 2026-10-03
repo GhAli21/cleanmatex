@@ -5,6 +5,7 @@ import { openPosSession } from '@/lib/services/pos-session.service';
 import { posSessionOpenOthersSchema } from '@/lib/validations/pos-session-schemas';
 import { posSessionConflictResponse, posSessionErrorResponse, posSessionResponse } from '../_response';
 import { POS_SESSION_PERMISSIONS } from '@/lib/constants/permissions/pos-session-perm';
+import { guardPosBranchIds } from '@/lib/api/branch-access-guard';
 
 /**
  * POST /api/v1/pos-sessions/open-others
@@ -29,6 +30,10 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
   }
+
+  // B3: the branch the session is opened/linked in must be one the actor may operate on.
+  const branchDenied = parsed.data.branchId ? await guardPosBranchIds(auth, [parsed.data.branchId]) : null;
+  if (branchDenied) return branchDenied;
 
   try {
     const result = await openPosSession({

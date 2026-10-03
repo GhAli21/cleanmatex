@@ -4,6 +4,7 @@ import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { listPosSessionEvents } from '@/lib/services/pos-session.service';
 import { posSessionEventsQuerySchema } from '@/lib/validations/pos-session-schemas';
 import { posSessionErrorResponse, posSessionResponse } from '../../_response';
+import { guardPosSessionBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * GET /api/v1/pos-sessions/:sessionId/events
@@ -25,6 +26,8 @@ export async function GET(
     return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
   }
   const { sessionId } = await params;
+  const branchDenied = await guardPosSessionBranch(auth, sessionId);
+  if (branchDenied) return branchDenied;
   try {
     return posSessionResponse(await listPosSessionEvents({
       tenantId: auth.tenantId,

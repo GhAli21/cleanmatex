@@ -32,6 +32,9 @@ import {
 } from '@/lib/constants/voucher';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
+import { POS_SESSION_SURFACE } from '@/lib/constants/pos-session';
+import { resolvePosSessionForFinanceTx } from '@/lib/services/pos-session.service';
+import { financeTenderScopeOf } from '@/lib/utils/cash-method';
 import type { PostCustomerReceiptRequest } from '@/lib/validations/customer-receipt-allocation-schema';
 
 /**
@@ -149,6 +152,16 @@ export async function postCustomerAccountReceipt(
         throw new Error(CUSTOMER_RECEIPT_POST_ERRORS.CHECK_DETAILS_REQUIRED);
       }
 
+      // Per-screen POS-session policy (D62): the receipt is linked to the actor's own open
+      // session, or refused with POS_SESSION_REQUIRED when this tenant/branch requires one.
+      const posSession = await resolvePosSessionForFinanceTx(tx, {
+        tenantId,
+        userId,
+        branchId: input.branchId ?? null,
+        surface: POS_SESSION_SURFACE.CUSTOMER_RECEIPT,
+        tenderScope: financeTenderScopeOf([methodCode]),
+      });
+
       const voucher = await createBizVoucher(
         tenantId,
         {
@@ -194,6 +207,7 @@ export async function postCustomerAccountReceipt(
           target_id: input.customerId,
           customer_id: input.customerId,
           branch_id: input.branchId ?? undefined,
+          pos_session_id: posSession?.id,
           payment_method_code: methodCode,
           org_payment_method_id: method.id,
           // The receipt is taken now: the allocation below books every order

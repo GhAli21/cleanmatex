@@ -9,7 +9,7 @@ New commercial capabilities:
 - `orders:edit` — enter/use commercial Edit V2 where policy allows;
 - `orders:edit_override` — satisfy authorized override decisions; never bypass hard invariants.
 
-Both are absent from the inspected local/hosted `sys_auth_permissions` catalogs on 2026-10-02; `orders:update`, `orders:post_settlement_edit` and `pricing:override` exist. Seed the two proposed codes in one dedicated reviewed migration, with explicit reviewed role mappings. A proposed constant/contract is not a deployed permission. Do not grant broadly because a role name sounds appropriate.
+Both were absent from the inspected local/hosted `sys_auth_permissions` catalogs on 2026-10-02; `orders:update`, `orders:post_settlement_edit` and `pricing:override` exist. The operator applied WP05 migration `0566_order_change_v2_permissions.sql` to local and remote environments; it seeds the two codes but intentionally adds no default role grant. A catalog code is not authorization. Do not grant broadly because a role name sounds appropriate.
 
 Reuse specialized permissions such as pricing override, discount, refund/process-refund, post-settlement legacy controls during migration, manual charge where implemented.
 
@@ -17,7 +17,7 @@ Do not trust client-supplied actor IDs, `overrideBy`, tenant IDs, permission cla
 
 ## 2. Role mapping
 
-Permission seeding and role mapping are separate. Do not silently grant `orders:edit` or `orders:edit_override` to every role. The migration must first enumerate actual current system role codes; map only reviewed roles. Tenant custom-role administrators may assign through the normal permission framework where product policy permits.
+Permission seeding and role mapping are separate. WP05 deliberately leaves `sys_auth_role_default_permissions` unchanged: the current `admin`, `finance_manager`, `super_admin`, and `tenant_admin` precedent for `orders:post_settlement_edit` is evidence only, not authorization to copy grants. Before a pilot, enumerate actual current system role codes and approve exact base/override holders. Tenant custom-role administrators may assign through the normal permission framework where product policy permits.
 
 ## 3. Route security
 

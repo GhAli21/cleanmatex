@@ -116,6 +116,15 @@
     "operationFailed": "Operation failed"
   },
   "detail": {
+    "userCode": "User code",
+    "userCodeEdit": "Change user code",
+    "userCodeEditTitle": "Change user code",
+    "userCodeHelp": "Used to sign in instead of an email. 3-30 letters, numbers, dots, underscores or hyphens. Must be unique across the platform.",
+    "userCodeSaved": "User code updated.",
+    "userCodeSaveFailed": "Could not update the user code. Please try again.",
+    "userCodeTaken": "This user code is already in use.",
+    "userCodeInvalid": "A user code has 3-30 letters, numbers, dots, underscores or hyphens.",
+    "userCodeLoadFailed": "Unavailable",
     "backToUsers": "Back to Users",
     "rolesTab": "Roles",
     "permissionsTab": "Permissions",

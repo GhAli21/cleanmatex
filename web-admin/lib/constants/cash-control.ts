@@ -13,6 +13,13 @@
  * read `org_fin_cash_ctrl_stng_cf` anywhere else.
  */
 
+import {
+  POS_SESSION_REQUIREMENT_MODE,
+  POS_SESSION_SURFACE,
+  type PosSessionRequirementMode,
+  type PosSessionSurface,
+} from '@/lib/constants/pos-session';
+
 // ========================
 // Scope
 // ========================
@@ -66,6 +73,24 @@ export const CASH_CONTROL_COUNT_MODE = {
 } as const;
 export type CashControlCountMode =
   (typeof CASH_CONTROL_COUNT_MODE)[keyof typeof CASH_CONTROL_COUNT_MODE];
+
+/** How a physical count is entered: one total, or note-by-note. */
+export type CashCountMethod = 'TOTAL_ONLY' | 'DENOMINATION';
+
+/**
+ * The count methods a count policy permits. `TOTAL_ONLY` and `DENOMINATION` are mandatory
+ * choices; `OPTIONAL_DENOMINATION` lets the counter pick. Pure — shared by the server check and the
+ * UI so what the form offers is exactly what the server accepts.
+ *
+ * @param mode the resolved opening or closing count mode
+ * @returns the allowed methods, default first
+ * @example allowedCountMethods('DENOMINATION') // ['DENOMINATION']
+ */
+export function allowedCountMethods(mode: CashControlCountMode): CashCountMethod[] {
+  if (mode === CASH_CONTROL_COUNT_MODE.DENOMINATION) return ['DENOMINATION'];
+  if (mode === CASH_CONTROL_COUNT_MODE.TOTAL_ONLY) return ['TOTAL_ONLY'];
+  return ['TOTAL_ONLY', 'DENOMINATION'];
+}
 
 /** D16 — who absorbs the un-tenderable fraction of cash change. */
 export const CASH_CONTROL_CHANGE_BEARER = {
@@ -134,8 +159,13 @@ export interface CashControlSettings {
   sharedSessionMode: CashControlSharedSessionMode;
   maxCashEnforceMode: CashControlMaxCashEnforceMode;
   cashDropRequiresDest: boolean;
-  posSessionReqForCash: boolean;
-  posSessionReqAllTenders: boolean;
+  /** POS-session requirement per finance screen (0554); see POS_SESSION_SURFACE. */
+  posSessionModeOrderEntry: PosSessionRequirementMode;
+  posSessionModeLaterColl: PosSessionRequirementMode;
+  posSessionModeStoredVal: PosSessionRequirementMode;
+  posSessionModeCashRefd: PosSessionRequirementMode;
+  posSessionModeCustRcpt: PosSessionRequirementMode;
+  posSessionModeManualVchr: PosSessionRequirementMode;
   posSessionRolloverMode: CashControlRolloverMode;
   posSessionStaleHours: number;
   shiftZReportRequired: boolean;
@@ -327,18 +357,52 @@ export const CASH_CONTROL_SETTING_DEFS: readonly CashControlSettingDef[] = [
     i18nKey: 'cashDropRequiresDest',
   },
   {
-    dbColumn: 'pos_session_req_for_cash',
-    tsField: 'posSessionReqForCash',
-    type: 'boolean',
-    default: true,
-    i18nKey: 'posSessionReqForCash',
+    dbColumn: 'pos_session_mode_order_entry',
+    tsField: 'posSessionModeOrderEntry',
+    type: 'enum',
+    values: Object.values(POS_SESSION_REQUIREMENT_MODE),
+    default: POS_SESSION_REQUIREMENT_MODE.REQUIRED_FOR_CASH,
+    i18nKey: 'posSessionModeOrderEntry',
   },
   {
-    dbColumn: 'pos_session_req_all_tenders',
-    tsField: 'posSessionReqAllTenders',
-    type: 'boolean',
-    default: false,
-    i18nKey: 'posSessionReqAllTenders',
+    dbColumn: 'pos_session_mode_later_coll',
+    tsField: 'posSessionModeLaterColl',
+    type: 'enum',
+    values: Object.values(POS_SESSION_REQUIREMENT_MODE),
+    default: POS_SESSION_REQUIREMENT_MODE.OPTIONAL,
+    i18nKey: 'posSessionModeLaterColl',
+  },
+  {
+    dbColumn: 'pos_session_mode_stored_val',
+    tsField: 'posSessionModeStoredVal',
+    type: 'enum',
+    values: Object.values(POS_SESSION_REQUIREMENT_MODE),
+    default: POS_SESSION_REQUIREMENT_MODE.OPTIONAL,
+    i18nKey: 'posSessionModeStoredVal',
+  },
+  {
+    dbColumn: 'pos_session_mode_cash_refd',
+    tsField: 'posSessionModeCashRefd',
+    type: 'enum',
+    values: Object.values(POS_SESSION_REQUIREMENT_MODE),
+    default: POS_SESSION_REQUIREMENT_MODE.OPTIONAL,
+    i18nKey: 'posSessionModeCashRefd',
+  },
+  {
+    dbColumn: 'pos_session_mode_cust_rcpt',
+    tsField: 'posSessionModeCustRcpt',
+    type: 'enum',
+    values: Object.values(POS_SESSION_REQUIREMENT_MODE),
+    default: POS_SESSION_REQUIREMENT_MODE.OPTIONAL,
+    i18nKey: 'posSessionModeCustRcpt',
+  },
+  {
+    dbColumn: 'pos_session_mode_manual_vchr',
+    tsField: 'posSessionModeManualVchr',
+    type: 'enum',
+    values: Object.values(POS_SESSION_REQUIREMENT_MODE),
+    default: POS_SESSION_REQUIREMENT_MODE.OPTIONAL,
+    i18nKey: 'posSessionModeManualVchr',
   },
   {
     dbColumn: 'pos_session_rollover_mode',
@@ -388,6 +452,16 @@ export const CASH_CONTROL_SETTING_DEFS: readonly CashControlSettingDef[] = [
     i18nKey: 'closingCountRequired',
   },
 ] as const;
+
+/** Which setting holds the POS-session requirement of each finance surface. */
+export const POS_SESSION_SURFACE_SETTING_FIELD = {
+  [POS_SESSION_SURFACE.ORDER_ENTRY]: 'posSessionModeOrderEntry',
+  [POS_SESSION_SURFACE.LATER_COLLECTION]: 'posSessionModeLaterColl',
+  [POS_SESSION_SURFACE.STORED_VALUE_SALE]: 'posSessionModeStoredVal',
+  [POS_SESSION_SURFACE.CASH_REFUND]: 'posSessionModeCashRefd',
+  [POS_SESSION_SURFACE.CUSTOMER_RECEIPT]: 'posSessionModeCustRcpt',
+  [POS_SESSION_SURFACE.MANUAL_VOUCHER]: 'posSessionModeManualVchr',
+} as const satisfies Record<PosSessionSurface, keyof CashControlSettings>;
 
 /**
  * Fully-defaulted settings object. Returned by the resolver when no scope in

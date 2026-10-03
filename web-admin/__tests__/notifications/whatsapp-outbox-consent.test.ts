@@ -32,11 +32,23 @@ describe('production WhatsApp outbox consent', () => {
     jest.mocked(createAdminSupabaseClient).mockReturnValue({
       from: () => {
         let isClaim = false;
+        let claimToken: string | null = null;
         const query = {
           insert: jest.fn((row: Record<string, unknown>) => { inserted.push(row); return query; }),
-          update: jest.fn((row: Record<string, unknown>) => { updated.push(row); isClaim = row.status === 'PROCESSING'; return query; }),
+          update: jest.fn((row: Record<string, unknown>) => {
+            updated.push(row);
+            isClaim = row.status === 'PROCESSING';
+            claimToken = isClaim ? String(row.claim_token) : null;
+            return query;
+          }),
           select: jest.fn(() => query), eq: jest.fn(() => query),
-          maybeSingle: jest.fn(async () => ({ data: isClaim && !canClaim ? null : { id: 'outbox-a' }, error: null })),
+          is: jest.fn(() => query),
+          maybeSingle: jest.fn(async () => ({
+            data: isClaim && !canClaim
+              ? null
+              : { id: 'outbox-a', ...(isClaim ? { claim_token: claimToken } : {}) },
+            error: null,
+          })),
         };
         return query;
       },
@@ -73,7 +85,8 @@ describe('production WhatsApp outbox consent', () => {
     jest.mocked(deliverWhatsAppOutbox).mockResolvedValue({ success: false, skipped: true, errorMessage: 'Consent revoked' });
     await enqueueOutbox(event, 'WHATSAPP');
     expect(updated.at(-1)).toMatchObject({ status: 'SKIPPED', skip_reason: 'Consent revoked' });
-    expect(inserted).toHaveLength(1);
+    expect(inserted).toHaveLength(2);
+    expect(inserted[1]).toMatchObject({ outbox_id: 'outbox-a', status: 'SKIPPED', attempt_number: 1 });
   });
 
   it('does not dispatch when another processor already claimed the row', async () => {

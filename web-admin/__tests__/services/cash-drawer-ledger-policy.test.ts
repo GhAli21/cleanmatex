@@ -146,3 +146,35 @@ describe('decideCashLine — session windows', () => {
     }
   });
 });
+
+describe('decideCashLine — drawer assignment (B3-1)', () => {
+  const facts = (over: Partial<NonNullable<CashLineDecisionInput['assignment']>> = {}) => ({
+    mode: 'ASSIGNED_ONLY',
+    assignedUserId: 'user-assigned',
+    actorUserId: 'user-other',
+    actorCanOperateAny: false,
+    ...over,
+  });
+
+  it('refuses interactive cash by a non-assignee on an ASSIGNED_ONLY drawer', () => {
+    expect(decideCashLine(input({ assignment: facts() })).error).toBe('DRAWER_NOT_ASSIGNED_TO_USER');
+    expect(decideCashLine(input({ assignment: facts({ assignedUserId: null }) })).error).toBe('DRAWER_NOT_ASSIGNED_TO_USER');
+  });
+
+  it('lets the assignee and a supervisor (operate_any) through', () => {
+    expect(decideCashLine(input({ assignment: facts({ actorUserId: 'user-assigned' }) })).error).toBeNull();
+    expect(decideCashLine(input({ assignment: facts({ actorCanOperateAny: true }) })).error).toBeNull();
+  });
+
+  it('does not restrict an OPEN drawer', () => {
+    expect(decideCashLine(input({ assignment: facts({ mode: 'OPEN' }) })).error).toBeNull();
+  });
+
+  it('never applies to deferred (back-office) postings', () => {
+    expect(decideCashLine(input({ mode: 'DEFERRED', assignment: facts() })).error).toBeNull();
+  });
+
+  it('is checked after integrity: a missing drawer still reports CASH_DRAWER_REQUIRED', () => {
+    expect(decideCashLine(input({ drawer: null, assignment: facts() })).error).toBe('CASH_DRAWER_REQUIRED');
+  });
+});

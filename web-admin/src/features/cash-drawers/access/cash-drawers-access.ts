@@ -51,6 +51,33 @@ export const CASH_DRAWERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'Countable currencies for the denomination admin (C1-1b)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/denominations/currencies',
+        requirement: {
+          permissions: [FINANCE_PERMISSIONS.CASH_CONTROL_VIEW],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Tenant denomination overrides of a currency (C1-1b)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/denominations',
+        requirement: {
+          permissions: [FINANCE_PERMISSIONS.CASH_CONTROL_VIEW],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Save tenant denomination overrides (C1-1b)',
+        method: 'PUT',
+        path: '/api/v1/cash-drawers/denominations',
+        requirement: {
+          permissions: [FINANCE_PERMISSIONS.CASH_CONTROL_MANAGE],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'List branches (pending-deposit status card, CLF §4B.2a-B)',
         method: 'GET',
         path: '/api/v1/branches',

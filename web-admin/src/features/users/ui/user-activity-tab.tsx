@@ -3,14 +3,13 @@
 /**
  * UserActivityTab — Two sections:
  *   1. Effective Permissions — grouped by resource prefix, badge list per group
- *   2. Audit Log — last 20 entries from sys_audit_log filtered by user_id + tenant_org_id
+ *   2. Audit Log — last 20 entries via GET /api/users/[userId]/activity (audit:read, tenant-scoped)
  */
 
 import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Check, Activity } from 'lucide-react'
 import { useEffectivePermissions } from '@/lib/hooks/use-user-role-assignments'
-import { supabase } from '@/lib/supabase/client'
 
 interface UserActivityTabProps {
   userId: string
@@ -54,17 +53,16 @@ function UserAuditLogTable({ userId, tenantId, formatDate, emptyLabel }: UserAud
 
   useEffect(() => {
     let cancelled = false
-    supabase
-      .from('sys_audit_log')
-      .select('id, action, entity_type, created_at, ip_address')
-      .eq('user_id', userId)
-      .eq('tenant_org_id', tenantId)
-      .order('created_at', { ascending: false })
-      .limit(20)
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (!error && data) setAuditLog(data as AuditEntry[])
-        else setAuditLog([])
+    // sys_audit_log is service-role only; the API route enforces audit:read + tenant membership.
+    fetch(`/api/users/${encodeURIComponent(userId)}/activity`, { credentials: 'same-origin' })
+      .then(async (res) => {
+        if (!res.ok) return [] as AuditEntry[]
+        const body = (await res.json()) as { data?: AuditEntry[] }
+        return body.data ?? []
+      })
+      .catch(() => [] as AuditEntry[])
+      .then((rows) => {
+        if (!cancelled) setAuditLog(rows)
       })
     return () => {
       cancelled = true

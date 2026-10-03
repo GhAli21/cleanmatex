@@ -457,24 +457,43 @@ description2    TEXT               -- Arabic
 
 ## Composite Foreign Keys
 
-**CRITICAL for tenant isolation**:
+**CRITICAL for tenant isolation**.
+
+**Prisma-safe order (MUST):** child FK + 1:1 UNIQUE + referenced parent key = same columns, same order. Postgres ignores unique column order; Prisma 6 does not (`db pull` → P1012).
+
+Copy the parent key that already exists:
+
+| Parent key | Child FK and 1:1 UNIQUE | Example |
+|---|---|---|
+| `(id, tenant_org_id)` | `(parent_id, tenant_org_id)` tenant **second** | `0553` / many live `org_*` FKs |
+| `(tenant_org_id, id)` | `(tenant_org_id, parent_id)` tenant first | when the parent unique is already tenant-first |
 
 ```sql
--- Example: Order references customer
-FOREIGN KEY (tenant_org_id, customer_id)
-  REFERENCES org_customers_mst(tenant_org_id, customer_id)
-  ON DELETE CASCADE
-
--- Example: Order item references product
+-- Parent unique/PK is (tenant_org_id, service_category_code)
 FOREIGN KEY (tenant_org_id, service_category_code)
   REFERENCES org_service_category_cf(tenant_org_id, service_category_code)
+
+-- Parent unique/PK is (id, tenant_org_id) — do NOT flip this to tenant-first
+FOREIGN KEY (account_id, tenant_org_id)
+  REFERENCES org_fin_acct_mst(id, tenant_org_id)
+  ON DELETE RESTRICT
 ```
+
+**MUST NOT**
+
+- `UNIQUE (tenant_org_id, parent_id)` + `FOREIGN KEY (parent_id, tenant_org_id)`
+- `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`
+- Make `tenant_org_id` optional to silence Prisma `SetNull` warnings
+- Change real 1:1 order back-relations (`org_asm_tasks_mst`, `org_pck_packing_lists_mst`) to `[]` to “fix” P1012
+
+List indexes stay tenant-first (`idx_*(tenant_org_id, …)`). That is not the FK/unique order.
 
 **Why composite keys?**
 
 - Database-level enforcement of tenant boundaries
 - Prevents accidental cross-tenant references
 - Complements RLS policies
+- Full write-time rule: `.claude/skills/database/SKILL.md` → "Prisma-safe composite FKs"
 
 ---
 

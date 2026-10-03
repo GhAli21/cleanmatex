@@ -1,11 +1,16 @@
 /**
- * GET  /api/v1/branches/[id] — Branch detail including pricing mode fields
- * PATCH /api/v1/branches/[id] — Update branch pricing mode overrides
+ * GET  /api/v1/branches/[id] — Branch detail including pricing mode fields and the business-day timezone
+ * PATCH /api/v1/branches/[id] — Update branch pricing mode overrides and/or the branch timezone
+ *
+ * The branch timezone (`timezone_code`, NULL = inherit the organization timezone) decides the branch
+ * business date and when a POS session rolls over, so changing it needs `settings:update`.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import { SETTINGS_PERMISSIONS } from '@/lib/constants/permissions/settings-perm';
 import { TAX_PRICING_MODES, EXTRA_PRICE_PRICING_MODES } from '@/lib/constants/order-financial';
 
 const VALID_TAX_MODES = new Set<string>(Object.values(TAX_PRICING_MODES));
@@ -34,6 +39,7 @@ export async function GET(
         is_main: true,
         tax_pricing_mode: true,
         extra_price_pricing_mode: true,
+        timezone_code: true,
       },
     });
 
@@ -41,7 +47,13 @@ export async function GET(
       return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ data: branch });
+    // What the branch actually uses when it has no timezone of its own.
+    const tenant = await prisma.org_tenants_mst.findFirst({
+      where: { id: tenantId },
+      select: { timezone: true },
+    });
+
+    return NextResponse.json({ data: { ...branch, tenant_timezone: tenant?.timezone ?? null } });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -63,10 +75,30 @@ export async function PATCH(
   try {
     const { id } = await params;
     const tenantId = await getTenantIdFromSession();
-    const body: { tax_pricing_mode?: string | null; extra_price_pricing_mode?: string | null } =
-      await request.json();
+    const body: {
+      tax_pricing_mode?: string | null;
+      extra_price_pricing_mode?: string | null;
+      timezone_code?: string | null;
+    } = await request.json();
 
     const updateData: Record<string, string | null> = {};
+
+    if ('timezone_code' in body) {
+      const auth = await requirePermission(SETTINGS_PERMISSIONS.UPDATE)(request);
+      if (auth instanceof NextResponse) return auth;
+
+      const zone = body.timezone_code;
+      if (zone !== null && zone !== undefined) {
+        const known = await prisma.sys_timezone_cd.findFirst({
+          where: { code: zone, is_active: true },
+          select: { code: true },
+        });
+        if (!known) {
+          return NextResponse.json({ error: 'Invalid timezone_code. Choose a catalogued timezone.' }, { status: 400 });
+        }
+      }
+      updateData.timezone_code = zone ?? null;
+    }
 
     if ('tax_pricing_mode' in body) {
       const mode = body.tax_pricing_mode;

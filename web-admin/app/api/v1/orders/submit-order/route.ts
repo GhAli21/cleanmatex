@@ -13,6 +13,7 @@
  * See: docs/features/Order_Fin/ADR_submit_order_canonical_path.md
  */
 
+import { posSessionFinanceErrorResponse } from '@/lib/api/pos-session-finance-errors';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { WorkflowProfileResolutionError } from '@/lib/services/workflow/workflow-profile-resolution.service';
@@ -363,6 +364,10 @@ export async function POST(request: NextRequest) {
           errorCode, error: err instanceof Error ? err.message : String(err),
         });
       });
+
+    // B1: a mandatory POS session is missing / mismatched — stable code + payload for the inline-open offer.
+    const posSessionResponse = posSessionFinanceErrorResponse(error);
+    if (posSessionResponse) return posSessionResponse;
 
     if (error instanceof SemanticInitialStatusResolutionError) {
       return NextResponse.json(

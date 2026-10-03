@@ -6,7 +6,9 @@ import { postDrawerTrx, listDrawerTrx } from '@/lib/services/cash-drawer-trx.ser
 import { postDrawerTrxRequestSchema } from '@/lib/validations/cash-drawer/trx-schemas';
 import { drawerTrxListQuerySchema } from '@/lib/validations/cash-drawer/list-schemas';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { narrowBranchFilter, resolveBranchScope } from '@/lib/services/branch-access.service';
 import type { CashDrawerTrxType } from '@/lib/constants/cash-drawer';
+import { guardBranchIds, guardDrawersBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * POST /api/v1/cash-drawers/trx
@@ -30,6 +32,12 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
   }
+
+  // B3: the transaction's branch and every drawer it touches must be in the actor's scope.
+  const branchDenied =
+    (await guardBranchIds(auth, [parsed.data.branchId])) ??
+    (await guardDrawersBranch(auth, parsed.data.lines.map((line) => line.drawerId)));
+  if (branchDenied) return branchDenied;
 
   try {
     const result = await postDrawerTrx(tenantId, userId, {
@@ -62,7 +70,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await listDrawerTrx(tenantId, parsed.data);
+    const result = await listDrawerTrx(
+      tenantId,
+      parsed.data,
+      narrowBranchFilter(await resolveBranchScope(auth)),
+    );
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     return mapCashDrawerError(error, 'Failed to load drawer transactions');

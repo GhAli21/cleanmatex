@@ -168,7 +168,22 @@
     "pricingSection": "Finance & Pricing Overrides",
     "pricingDescription": "Override pricing modes for this branch. Select \"Inherit from tenant\" to use the tenant default.",
     "inheritFromTenant": "Inherit from tenant",
-    "inheritedValue": "Currently inheriting from tenant default"
+    "inheritedValue": "Currently inheriting from tenant default",
+    "businessDay": {
+      "title": "Business day",
+      "description": "The timezone that decides this branch’s business date and when a POS session rolls over at the end of the day.",
+      "label": "Branch timezone",
+      "inherit": "Same as the organization ({zone})",
+      "inEffect": "In effect now: {zone}",
+      "noPermission": "You need the settings update permission to change the timezone.",
+      "changeNoteTitle": "Applies from now on",
+      "changeNote": "Sessions already open keep the business date they opened with. New sessions, and the next rollover check, use the new timezone.",
+      "missingTitle": "No timezone is configured",
+      "missingBody": "Neither this branch nor the organization has a valid timezone, so POS sessions cannot be opened here. Choose a timezone.",
+      "saved": "Branch timezone updated",
+      "saveFailed": "Failed to update the branch timezone",
+      "loadFailed": "Failed to load the timezone settings"
+    }
   },
   "pricingMode": {
     "taxPricingMode": "Tax Pricing Mode",

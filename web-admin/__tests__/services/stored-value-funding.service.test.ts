@@ -29,6 +29,12 @@ jest.mock('@/lib/db/prisma', () => ({
   prisma: { $transaction: (...a: unknown[]) => mockTransaction(...a) },
 }));
 
+// B1: the POS-session resolver has its own suite (pos-session.service.test.ts); here "no session".
+jest.mock('@/lib/services/pos-session.service', () => ({
+  assertOpenPosSessionForFinanceTx: jest.fn().mockResolvedValue(null),
+  resolvePosSessionForFinanceTx: jest.fn().mockResolvedValue(null),
+  autoLinkDrawerTx: jest.fn().mockResolvedValue(null),
+}));
 jest.mock('@/lib/services/payment-config.service', () => ({
   listEffectivePaymentMethodConfigs: (...a: unknown[]) => mockListEffectivePaymentMethodConfigs(...a),
 }));

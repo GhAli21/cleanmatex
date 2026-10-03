@@ -24,7 +24,7 @@ export type UserCreatableDrawerType = (typeof USER_CREATABLE_DRAWER_TYPES)[numbe
 /**
  * Narrows a drawer type to one the drawer form may show.
  * @param type drawer type code from the DB
- * @returns true for every type except the system PENDING_DEPOSIT
+ * @returns true for every type except the system PENDING_DEPOSIT and IN_TRANSIT holders
  */
 export function isUserCreatableDrawerType(type: string): type is UserCreatableDrawerType {
   return (USER_CREATABLE_DRAWER_TYPES as readonly string[]).includes(type);
@@ -47,6 +47,12 @@ export const CASH_DRAWER_TRX_TYPES = {
   CLOSE_DISPOSITION: 'CLOSE_DISPOSITION',
   /** System only — mirror of a reversed custody transaction. */
   REVERSAL: 'REVERSAL',
+  /** System only (D1-4, 0562) — cash handed over for carrying: source OUT, IN_TRANSIT holder IN. */
+  TRANSIT_SEND: 'TRANSIT_SEND',
+  /** System only (D1-4) — cash in transit counted into its destination: holder OUT, destination IN. */
+  TRANSIT_RECEIVE: 'TRANSIT_RECEIVE',
+  /** System only (D1-4) — cash in transit returned to its source: holder OUT, source IN. */
+  TRANSIT_CANCEL: 'TRANSIT_CANCEL',
 } as const;
 export type CashDrawerTrxType = (typeof CASH_DRAWER_TRX_TYPES)[keyof typeof CASH_DRAWER_TRX_TYPES];
 
@@ -59,6 +65,21 @@ export const USER_SELECTABLE_TRX_TYPES = [
   CASH_DRAWER_TRX_TYPES.DEPOSIT_PREP,
 ] as const;
 export type UserSelectableTrxType = (typeof USER_SELECTABLE_TRX_TYPES)[number];
+
+/** The three legs of an in-transit transfer; reversed by cancel, never by REVERSAL. */
+export const CASH_TRANSIT_TRX_TYPES: readonly CashDrawerTrxType[] = [
+  CASH_DRAWER_TRX_TYPES.TRANSIT_SEND,
+  CASH_DRAWER_TRX_TYPES.TRANSIT_RECEIVE,
+  CASH_DRAWER_TRX_TYPES.TRANSIT_CANCEL,
+];
+
+/** In-transit transfer statuses — CHECK chk_octt_status on org_cash_drawer_transit_tr (0562). */
+export const CASH_TRANSIT_STATUS = {
+  IN_TRANSIT: 'IN_TRANSIT',
+  RECEIVED: 'RECEIVED',
+  CANCELLED: 'CANCELLED',
+} as const;
+export type CashTransitStatus = (typeof CASH_TRANSIT_STATUS)[keyof typeof CASH_TRANSIT_STATUS];
 
 /** Count types — sys_cash_drawer_cnt_type_cd (0523). */
 export const CASH_DRAWER_COUNT_TYPES = {
@@ -178,6 +199,22 @@ export const CASH_LEDGER_ERRORS = {
   CASH_DRAWER_CURRENCY_NOT_CONFIGURED: 'CASH_DRAWER_CURRENCY_NOT_CONFIGURED',
   /** A placement override named a user who is not an active member of the tenant. */
   CASH_RECEIVER_INVALID: 'CASH_RECEIVER_INVALID',
+  /** B3-1: the drawer is ASSIGNED_ONLY and the actor is neither its assignee nor allowed to operate any drawer. */
+  DRAWER_NOT_ASSIGNED_TO_USER: 'DRAWER_NOT_ASSIGNED_TO_USER',
+  /** B3-2: the drawer (or session) belongs to a branch outside the actor's permitted branches. */
+  DRAWER_BRANCH_FORBIDDEN: 'DRAWER_BRANCH_FORBIDDEN',
+  /** D1-4: no in-transit transfer with that id exists for this tenant. */
+  CASH_TRANSIT_NOT_FOUND: 'CASH_TRANSIT_NOT_FOUND',
+  /** D1-4: the transfer was already received or cancelled — a transfer settles exactly once. */
+  CASH_TRANSIT_NOT_OPEN: 'CASH_TRANSIT_NOT_OPEN',
+  /** D1-4: a cancel needs a reason. */
+  CASH_TRANSIT_REASON_REQUIRED: 'CASH_TRANSIT_REASON_REQUIRED',
+  /** D1-4: a transit leg cannot be reversed — cancel the transfer instead. */
+  CASH_TRANSIT_USE_CANCEL: 'CASH_TRANSIT_USE_CANCEL',
+  /** C1-1b: a count line uses a denomination the tenant switched off. */
+  CASH_DENOMINATION_DISABLED: 'CASH_DENOMINATION_DISABLED',
+  /** The count was entered a way the opening/closing count policy does not allow (e.g. a total where denominations are required). */
+  CASH_COUNT_MODE_NOT_ALLOWED: 'CASH_COUNT_MODE_NOT_ALLOWED',
 } as const;
 export type CashLedgerErrorCode = (typeof CASH_LEDGER_ERRORS)[keyof typeof CASH_LEDGER_ERRORS];
 

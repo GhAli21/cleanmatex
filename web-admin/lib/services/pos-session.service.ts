@@ -4,15 +4,22 @@ import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import { toMoneyString } from '@/lib/utils/money';
+import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { getCashControlSettings } from '@/lib/services/cash-control-settings.service';
 import { CASH_DRAWER_TERMINAL_SESSION_STATUSES } from '@/lib/constants/cash-drawer';
 import {
   POS_SESSION_EVENT_TYPE,
   POS_SESSION_IDEMPOTENCY_RESOURCE,
+  POS_SESSION_ROLLOVER_ERROR,
+  POS_SESSION_SHARING_ERROR,
   POS_SESSION_STATUS,
+  isPosSessionRequired,
+  type FinanceTenderScope,
   type PosSessionEventType,
   type PosSessionStatus,
+  type PosSessionSurface,
 } from '@/lib/constants/pos-session';
+import { CASH_CONTROL_SHARED_SESSION_MODE, POS_SESSION_SURFACE_SETTING_FIELD } from '@/lib/constants/cash-control';
 import type {
   GetMyActivePosSessionResult,
   OpenPosSessionResult,
@@ -31,6 +38,12 @@ import type {
   PosSessionSummary,
   PosSessionWithContext,
 } from '@/lib/types/pos-session';
+
+import { PosSessionError } from '@/lib/services/pos-session-error';
+import { loadPosSessionRollup } from '@/lib/services/pos-session-rollup';
+import { generateShiftZReportTx } from '@/lib/services/pos-shift-report.service';
+
+export { PosSessionError, loadPosSessionRollup };
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -73,6 +86,12 @@ interface PosSessionFinanceContextInput {
   branchId?: string | null;
 }
 
+interface ResolvePosSessionForFinanceInput extends PosSessionFinanceContextInput {
+  /** The finance screen doing the write; its policy decides whether a session is mandatory. */
+  surface: PosSessionSurface;
+  tenderScope: FinanceTenderScope;
+}
+
 interface AutoLinkDrawerInput extends PosSessionFinanceContextInput {
   cashDrawerSessionId?: string | null;
   idempotencyKey?: string | null;
@@ -84,18 +103,6 @@ interface AutoLinkDrawerInput extends PosSessionFinanceContextInput {
 const ACTIVE_STATUSES = [POS_SESSION_STATUS.OPEN, POS_SESSION_STATUS.PAUSED] as const;
 // Seven days retains retries across transient client failures without indefinitely retaining response payloads.
 const IDEMPOTENCY_TTL_DAYS = 7;
-
-/** Domain error that maps expected POS lifecycle failures to safe HTTP responses. */
-export class PosSessionError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly httpStatus = 422
-  ) {
-    super(message);
-    this.name = 'PosSessionError';
-  }
-}
 
 function serializeJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue;
@@ -139,21 +146,6 @@ function normalizeSessionWithContext(row: PosSessionWithContext): PosSessionWith
     ...row,
     ...normalizeSession(row),
   };
-}
-
-function businessDateForTimezone(timezone: string, now = new Date()): string {
-  try {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(now);
-    const part = (type: string) => parts.find((item) => item.type === type)?.value;
-    return `${part('year')}-${part('month')}-${part('day')}`;
-  } catch {
-    return now.toISOString().slice(0, 10);
-  }
 }
 
 function sessionNoForDate(businessDate: string): string {
@@ -318,17 +310,38 @@ async function assertUserExists(tx: PrismaTx, tenantId: string, userId: string):
   }
 }
 
-async function resolveBusinessTimezone(tx: PrismaTx, tenantId: string): Promise<string> {
-  const rows = await tx.$queryRaw<Array<{ timezone: string | null }>>(Prisma.sql`
-    SELECT timezone
-    FROM public.org_tenants_mst
-    WHERE id = ${tenantId}::uuid
+/**
+ * The IANA timezone that decides a branch's business date: the branch's own `timezone_code`,
+ * else the tenant's. There is deliberately no fallback zone — a branch and tenant with no valid
+ * timezone is a configuration error, reported instead of silently booking into the wrong day.
+ */
+export async function resolveBranchBusinessTimezone(
+  db: Pick<PrismaTx, '$queryRaw'>,
+  tenantId: string,
+  branchId: string
+): Promise<string> {
+  const rows = await db.$queryRaw<Array<{ timezone: string | null }>>(Prisma.sql`
+    SELECT COALESCE(b.timezone_code, t.timezone) AS timezone
+    FROM public.org_tenants_mst t
+    LEFT JOIN public.org_branches_mst b
+      ON b.tenant_org_id = t.id
+     AND b.id = ${branchId}::uuid
+    WHERE t.id = ${tenantId}::uuid
     LIMIT 1
   `);
-  return rows[0]?.timezone || 'Asia/Muscat';
+  const timezone = rows[0]?.timezone ?? null;
+  if (!isValidTimeZone(timezone)) {
+    throw new PosSessionError(
+      POS_SESSION_ROLLOVER_ERROR.TENANT_TIMEZONE_NOT_CONFIGURED,
+      'No valid timezone is configured for this branch or organization. Set one before opening a POS session.',
+      409,
+      { branchId }
+    );
+  }
+  return timezone;
 }
 
-async function recordEventTx(
+export async function recordEventTx(
   tx: PrismaTx,
   input: {
     tenantId: string;
@@ -530,6 +543,86 @@ export async function assertOpenPosSessionForFinanceTx(
 }
 
 /**
+ * B1 — the server decides which POS session a finance write belongs to.
+ *
+ * The session is the actor's own OPEN session (locked for the transaction). A client-sent
+ * `posSessionId` is only a cross-check: when it names a different session the write is refused
+ * (`POS_SESSION_MISMATCH`) rather than trusted. With no session, the write is refused with
+ * `POS_SESSION_REQUIRED` (carrying what the UI can offer) when the surface's resolved policy
+ * (`pos_session_mode_*`, per finance screen) requires one for this tender; otherwise it proceeds
+ * unlinked (`null`). Cash custody is a separate invariant enforced by the drawer ledger gate.
+ *
+ * @param tx - The finance write's own transaction.
+ * @param input - Tenant, session owner, branch, optional client hint and tender scope.
+ * @returns The locked open session, or null when none exists and none is required.
+ * @throws PosSessionError POS_SESSION_MISMATCH / POS_SESSION_REQUIRED / POS_SESSION_BRANCH_CONFLICT /
+ *   POS_SESSION_OPEN_NOT_FOUND.
+ *
+ * @example
+ * const session = await resolvePosSessionForFinanceTx(tx, { tenantId, userId, branchId, posSessionId, surface: 'ORDER_ENTRY', tenderScope: 'CASH' });
+ */
+export async function resolvePosSessionForFinanceTx(
+  tx: PrismaTx,
+  input: ResolvePosSessionForFinanceInput
+): Promise<PosSessionRow | null> {
+  const active = input.userId ? await getActiveSessionForUserForUpdate(tx, input.tenantId, input.userId) : null;
+
+  if (input.posSessionId) {
+    if (active && active.id !== input.posSessionId) {
+      throw new PosSessionError(
+        'POS_SESSION_MISMATCH',
+        "The POS session sent with this request is not the current user's active session.",
+        409,
+        { requestedSessionId: input.posSessionId, activeSessionId: active.id }
+      );
+    }
+    return assertOpenPosSessionForFinanceTx(tx, input);
+  }
+
+  if (active && active.status === POS_SESSION_STATUS.OPEN) {
+    if (input.branchId && active.branch_id !== input.branchId) {
+      throw new PosSessionError(
+        'POS_SESSION_BRANCH_CONFLICT',
+        'POS session branch does not match the current finance write branch.',
+        409
+      );
+    }
+    return active;
+  }
+
+  if (input.tenderScope === 'NONE') return null;
+  const settings = await getCashControlSettings({
+    tenantId: input.tenantId,
+    branchId: input.branchId ?? null,
+    userId: input.userId || null,
+  });
+  const mode = settings[POS_SESSION_SURFACE_SETTING_FIELD[input.surface]];
+  if (!isPosSessionRequired(mode, input.tenderScope)) return null;
+
+  // The branch the UI should open the session in: the write's own branch, else the user's home
+  // branch (screens such as customer receipts carry no branch of their own).
+  const homeBranch = input.branchId
+    ? null
+    : await tx.org_users_mst.findFirst({
+        where: { tenant_org_id: input.tenantId, user_id: input.userId, is_active: true },
+        select: { main_branch_id: true },
+      });
+
+  throw new PosSessionError(
+    'POS_SESSION_REQUIRED',
+    'An open POS session is required to take this payment.',
+    409,
+    {
+      surface: input.surface,
+      branchId: input.branchId ?? homeBranch?.main_branch_id ?? null,
+      reason: active ? 'PAUSED' : 'NONE',
+      pausedSessionId: active?.id ?? null,
+      canOpenInline: true,
+    }
+  );
+}
+
+/**
  * Links a selected open drawer session within the caller's existing transaction.
  *
  * @param tx - Existing tenant-scoped transaction shared with the drawer flow.
@@ -593,23 +686,74 @@ export async function autoLinkDrawerTx(
   }
 
   if (session.cash_drawer_session_id) {
-    if (session.cash_drawer_session_id !== input.cashDrawerSessionId) {
+    if (session.cash_drawer_session_id === input.cashDrawerSessionId) {
+      const result: PosSessionLifecycleResult = { type: 'NOOP', session };
+      await storeIdempotencyResult(tx, {
+        tenantId: input.tenantId,
+        key: idempotencyKey,
+        resourceType: POS_SESSION_IDEMPOTENCY_RESOURCE.AUTO_LINK_DRAWER,
+        resourceId: session.id,
+        result,
+      });
+      return result;
+    }
+
+    // A different drawer session is currently linked. Relinking is only safe
+    // once that prior link is terminal (CLOSED/FORCE_CLOSED) — a POS session
+    // whose drawer is still OPEN/CLOSING genuinely has cash in play under the
+    // old link, and swapping it silently would orphan that custody trail.
+    const priorRows = await tx.$queryRaw<Array<{ status: string }>>(Prisma.sql`
+      SELECT status
+      FROM public.org_cash_drawer_sessions_mst
+      WHERE tenant_org_id = ${input.tenantId}::uuid
+        AND id = ${session.cash_drawer_session_id}::uuid
+      LIMIT 1
+    `);
+    const priorStatus = priorRows?.[0]?.status;
+    const priorIsTerminal =
+      !!priorStatus && (CASH_DRAWER_TERMINAL_SESSION_STATUSES as readonly string[]).includes(priorStatus);
+
+    if (!priorIsTerminal) {
       throw new PosSessionError(
         'POS_SESSION_DRAWER_ALREADY_LINKED',
         'POS session is already linked to a different cash drawer session.',
         409
       );
     }
-    const result: PosSessionLifecycleResult = { type: 'NOOP', session };
-    await storeIdempotencyResult(tx, {
-      tenantId: input.tenantId,
-      key: idempotencyKey,
-      resourceType: POS_SESSION_IDEMPOTENCY_RESOURCE.AUTO_LINK_DRAWER,
-      resourceId: session.id,
-      result,
-    });
-    return result;
+    // Fall through: prior drawer session is terminal, so the UPDATE below
+    // replaces the stale link with the newly chosen/opened drawer session.
   }
+
+  // E2-2: under shared_session_mode = EXCLUSIVE a drawer session belongs to one POS session at a time, so
+  // every cash line in it has exactly one cashier. Another live POS session on it blocks this link.
+  const sharing = await getCashControlSettings({
+    tenantId: input.tenantId,
+    branchId: drawerSession.branch_id ?? session.branch_id,
+    userId: session.user_id,
+    drawerId: drawerSession.cash_drawer_id,
+  });
+  if (sharing.sharedSessionMode === CASH_CONTROL_SHARED_SESSION_MODE.EXCLUSIVE) {
+    const others = await tx.$queryRaw<Array<{ id: string; session_no: string }>>(Prisma.sql`
+      SELECT id, session_no
+      FROM public.org_pos_sessions_mst
+      WHERE tenant_org_id = ${input.tenantId}::uuid
+        AND cash_drawer_session_id = ${input.cashDrawerSessionId}::uuid
+        AND id <> ${session.id}::uuid
+        AND status IN (${Prisma.join([...ACTIVE_STATUSES])})
+        AND is_active = TRUE
+      LIMIT 1
+    `);
+    if (others[0]) {
+      throw new PosSessionError(
+        POS_SESSION_SHARING_ERROR.DRAWER_SESSION_EXCLUSIVE,
+        'This cash drawer session is already in use by another POS session and sharing is turned off.',
+        409,
+        { otherPosSessionId: others[0].id, otherSessionNo: others[0].session_no }
+      );
+    }
+  }
+
+  const priorCashDrawerSessionId = session.cash_drawer_session_id ?? null;
 
   const rows = await tx.$queryRaw<PosSessionRow[]>(Prisma.sql`
     UPDATE public.org_pos_sessions_mst
@@ -636,6 +780,7 @@ export async function autoLinkDrawerTx(
       ...(input.metadata ?? {}),
       cashDrawerSessionId: input.cashDrawerSessionId,
       cashDrawerId: drawerSession.cash_drawer_id,
+      ...(priorCashDrawerSessionId ? { replacedCashDrawerSessionId: priorCashDrawerSessionId } : {}),
     },
   });
 
@@ -758,25 +903,6 @@ export async function setRefundPosSessionTx(
 }
 
 /**
- * A3-2 (POS Session & Cash Drawer Hardening) — the raw SQL below casts every
- * SUM(...) to `::text`, not `::float8`. `::float8` forced Postgres to
- * compute (and round) the aggregate in IEEE-754 double precision *inside the
- * database*, before the value ever reaches JS — a running SUM over many
- * transactions can accumulate binary-rounding error server-side that no
- * amount of careful JS-side math can undo. `::text` makes Postgres do the
- * SUM in exact NUMERIC space and hand over an exact decimal string.
- *
- * A3-4: that exact string is now passed through to the API as-is (normalized
- * to a fixed MONEY_SCALE via `toMoneyString`) instead of being parsed into a
- * JS `number` here — a `Number()` parse was already lossless for any
- * realistic money total, but keeping the wire type as `string` end to end
- * means nothing downstream can ever reintroduce float rounding by accident.
- */
-function parseNumericSum(value: string): string {
-  return toMoneyString(value);
-}
-
-/**
  * Builds exact, currency-separated financial totals for one authorized POS session.
  * All Prisma queries are scoped to the tenant through withTenantContext.
  *
@@ -811,120 +937,7 @@ export async function getPosSessionSummary(input: {
       throw new PosSessionError('POS_SESSION_NOT_FOUND', 'POS session was not found.', 404);
     }
 
-    const [paymentTotals, paymentGroups, refundTotals, refundGroups, voucherTotals, voucherGroups] =
-      await Promise.all([
-        // A4-1 — no LIMIT: a mixed-currency session must return one row per
-        // currency, not silently drop every currency but one.
-        prisma.$queryRaw<Array<{ currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
-          SELECT currency_code, COALESCE(SUM(amount), 0)::text AS amount, COUNT(*)::int AS count
-          FROM public.org_order_payments_dtl
-          WHERE tenant_org_id = ${input.tenantId}::uuid
-            AND pos_session_id = ${input.posSessionId}::uuid
-            AND is_active = TRUE
-          GROUP BY currency_code
-          ORDER BY currency_code NULLS LAST
-        `),
-        prisma.$queryRaw<Array<{ payment_method_code: string | null; payment_status: string | null; currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
-          SELECT payment_method_code, payment_status, currency_code,
-                 COALESCE(SUM(amount), 0)::text AS amount,
-                 COUNT(*)::int AS count
-          FROM public.org_order_payments_dtl
-          WHERE tenant_org_id = ${input.tenantId}::uuid
-            AND pos_session_id = ${input.posSessionId}::uuid
-            AND is_active = TRUE
-          GROUP BY payment_method_code, payment_status, currency_code
-          ORDER BY payment_method_code NULLS LAST, payment_status NULLS LAST
-        `),
-        prisma.$queryRaw<Array<{ currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
-          SELECT currency_code, COALESCE(SUM(refund_amount), 0)::text AS amount, COUNT(*)::int AS count
-          FROM public.org_order_refunds_dtl
-          WHERE tenant_org_id = ${input.tenantId}::uuid
-            AND pos_session_id = ${input.posSessionId}::uuid
-            AND is_active = TRUE
-          GROUP BY currency_code
-          ORDER BY currency_code NULLS LAST
-        `),
-        prisma.$queryRaw<Array<{ refund_method_code: string | null; refund_status: string | null; currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
-          SELECT refund_method_code, refund_status, currency_code,
-                 COALESCE(SUM(refund_amount), 0)::text AS amount,
-                 COUNT(*)::int AS count
-          FROM public.org_order_refunds_dtl
-          WHERE tenant_org_id = ${input.tenantId}::uuid
-            AND pos_session_id = ${input.posSessionId}::uuid
-            AND is_active = TRUE
-          GROUP BY refund_method_code, refund_status, currency_code
-          ORDER BY refund_method_code NULLS LAST, refund_status NULLS LAST
-        `),
-        prisma.$queryRaw<Array<{ currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
-          SELECT currency_code, COALESCE(SUM(amount), 0)::text AS amount, COUNT(*)::int AS count
-          FROM public.org_fin_voucher_trx_lines_dtl
-          WHERE tenant_org_id = ${input.tenantId}::uuid
-            AND pos_session_id = ${input.posSessionId}::uuid
-            AND is_active = TRUE
-          GROUP BY currency_code
-          ORDER BY currency_code NULLS LAST
-        `),
-        prisma.$queryRaw<Array<{ line_role: string | null; payment_method_code: string | null; direction: string | null; currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
-          SELECT line_role, payment_method_code, direction, currency_code,
-                 COALESCE(SUM(amount), 0)::text AS amount,
-                 COUNT(*)::int AS count
-          FROM public.org_fin_voucher_trx_lines_dtl
-          WHERE tenant_org_id = ${input.tenantId}::uuid
-            AND pos_session_id = ${input.posSessionId}::uuid
-            AND is_active = TRUE
-          GROUP BY line_role, payment_method_code, direction, currency_code
-          ORDER BY line_role NULLS LAST, payment_method_code NULLS LAST
-        `),
-      ]);
-
-    return {
-      session,
-      payments: {
-        // A4-1 — every currency the session actually collected, not just
-        // the alphabetically-first one.
-        totals: paymentTotals.map((row) => ({
-          currencyCode: row.currency_code,
-          amount: parseNumericSum(row.amount),
-          count: row.count,
-        })),
-        byMethod: paymentGroups.map((row) => ({
-          groupCode: row.payment_method_code,
-          status: row.payment_status,
-          currencyCode: row.currency_code,
-          amount: parseNumericSum(row.amount),
-          count: row.count,
-        })),
-      },
-      refunds: {
-        totals: refundTotals.map((row) => ({
-          currencyCode: row.currency_code,
-          amount: parseNumericSum(row.amount),
-          count: row.count,
-        })),
-        byMethod: refundGroups.map((row) => ({
-          groupCode: row.refund_method_code,
-          status: row.refund_status,
-          currencyCode: row.currency_code,
-          amount: parseNumericSum(row.amount),
-          count: row.count,
-        })),
-      },
-      voucherLines: {
-        totals: voucherTotals.map((row) => ({
-          currencyCode: row.currency_code,
-          amount: parseNumericSum(row.amount),
-          count: row.count,
-        })),
-        byRole: voucherGroups.map((row) => ({
-          lineRole: row.line_role,
-          paymentMethodCode: row.payment_method_code,
-          direction: row.direction,
-          currencyCode: row.currency_code,
-          amount: parseNumericSum(row.amount),
-          count: row.count,
-        })),
-      },
-    };
+    return { session, ...(await loadPosSessionRollup(prisma, input.tenantId, input.posSessionId)) };
   });
 }
 
@@ -1003,7 +1016,7 @@ async function createOpenSessionTx(
     await assertUserExists(tx, input.tenantId, input.userId);
   }
 
-  const businessTimezone = await resolveBusinessTimezone(tx, input.tenantId);
+  const businessTimezone = await resolveBranchBusinessTimezone(tx, input.tenantId, input.branchId);
   const businessDate = businessDateForTimezone(businessTimezone);
   const sessionNo = sessionNoForDate(businessDate);
 
@@ -1149,6 +1162,11 @@ export async function listPosSessions(input: {
   pageSize: number;
   branchId?: string | null;
   /**
+   * B3 branch scope: when set, other users' sessions are limited to these branches (the actor's own
+   * sessions stay visible). `undefined` = every branch; an empty list = own sessions only.
+   */
+  branchIds?: readonly string[];
+  /**
    * Optional "sessions of this operator" filter. Distinct from `userId` (the
    * acting user, which drives the own-scope restriction) — the two used to
    * share one name, so the filter silently replaced the actor id.
@@ -1184,6 +1202,9 @@ export async function listPosSessions(input: {
     : Prisma.sql`AND ps.user_id = ${input.userId}::uuid`;
   const branchSql = input.branchId
     ? Prisma.sql`AND ps.branch_id = ${input.branchId}::uuid`
+    : Prisma.empty;
+  const branchScopeSql = input.branchIds
+    ? Prisma.sql`AND (ps.user_id = ${input.userId}::uuid OR ps.branch_id = ANY(${[...input.branchIds]}::uuid[]))`
     : Prisma.empty;
   const userSql = input.filterUserId
     ? Prisma.sql`AND ps.user_id = ${input.filterUserId}::uuid`
@@ -1252,6 +1273,7 @@ export async function listPosSessions(input: {
           ${recordStateSql}
           ${userScopeSql}
           ${branchSql}
+          ${branchScopeSql}
           ${userSql}
           ${operatorQuerySql}
           ${terminalQuerySql}
@@ -1307,6 +1329,7 @@ export async function listPosSessions(input: {
           ${recordStateSql}
           ${userScopeSql}
           ${branchSql}
+          ${branchScopeSql}
           ${userSql}
           ${operatorQuerySql}
           ${terminalQuerySql}
@@ -1368,6 +1391,8 @@ export async function listPosSessionFilterOptions(input: {
   query?: string | null;
   page: number;
   pageSize: number;
+  /** B3 branch scope for other users' sessions (undefined = every branch). */
+  branchIds?: readonly string[];
   scope?: 'own' | 'all';
   recordState?: PosSessionRecordState;
 }): Promise<PosSessionFilterOptionsResult> {
@@ -1378,6 +1403,9 @@ export async function listPosSessionFilterOptions(input: {
   const userScopeSql = showAll
     ? Prisma.empty
     : Prisma.sql`AND ps.user_id = ${input.userId}::uuid`;
+  const branchScopeSql = input.branchIds
+    ? Prisma.sql`AND (ps.user_id = ${input.userId}::uuid OR ps.branch_id = ANY(${[...input.branchIds]}::uuid[]))`
+    : Prisma.empty;
   // Keep deactivated records out of lookup values by default, while allowing
   // an explicit audit view to use the same dimension and visibility boundary.
   const recordStateSql = input.recordState === 'all'
@@ -1405,6 +1433,7 @@ export async function listPosSessionFilterOptions(input: {
       WHERE ps.tenant_org_id = ${input.tenantId}::uuid
         ${recordStateSql}
         ${userScopeSql}
+        ${branchScopeSql}
     )`;
 
   let rows!: PosSessionFilterOptionQueryRow[];
@@ -1649,6 +1678,10 @@ async function transitionActiveSession(
     actorColumn: 'paused_by' | 'closed_by' | 'force_closed_by';
     reasonColumn?: 'pause_reason' | 'close_reason' | 'force_close_reason';
     requireDrawerClosed?: boolean;
+    /** Refuse when the rollover job already acted on the session (resume only). */
+    blockWhenRolledOver?: boolean;
+    /** The transition ends the shift (close / force-close): generate the Z-report when required. */
+    freezesShift?: boolean;
   }
 ): Promise<PosSessionLifecycleResult> {
   return withTenantContext(input.tenantId, () =>
@@ -1686,6 +1719,15 @@ async function transitionActiveSession(
         );
       }
 
+      if (transition.blockWhenRolledOver && active.rollover_applied_at) {
+        throw new PosSessionError(
+          POS_SESSION_ROLLOVER_ERROR.ROLLED_OVER,
+          'This POS session was paused because the business day changed. Close it and open a new session.',
+          409,
+          { sessionId: active.id, businessDate: active.business_date }
+        );
+      }
+
       const performedBy = input.performedBy ?? input.userId;
       const actingOnOthers = performedBy !== input.userId;
 
@@ -1707,6 +1749,22 @@ async function transitionActiveSession(
       `);
 
       const session = normalizeSession(rows[0]);
+      // Z-report (D2): when the tenant requires it, the shift is frozen in the SAME transaction that
+      // closes it, so a closed session can never exist without its Z-report.
+      if (transition.freezesShift) {
+        const settings = await getCashControlSettings({
+          tenantId: input.tenantId,
+          branchId: active.branch_id,
+          userId: active.user_id,
+        });
+        if (settings.shiftZReportRequired) {
+          await generateShiftZReportTx(tx, {
+            tenantId: input.tenantId,
+            posSessionId: session.id,
+            generatedBy: performedBy,
+          });
+        }
+      }
       await recordEventTx(tx, {
         tenantId: input.tenantId,
         sessionId: session.id,
@@ -1779,6 +1837,7 @@ export function resumePosSession(input: LifecycleInput): Promise<PosSessionLifec
     noopWhen: POS_SESSION_STATUS.OPEN,
     timestampColumn: 'paused_at',
     actorColumn: 'paused_by',
+    blockWhenRolledOver: true,
   });
 }
 
@@ -1801,6 +1860,7 @@ export function closePosSession(input: LifecycleInput): Promise<PosSessionLifecy
     actorColumn: 'closed_by',
     reasonColumn: 'close_reason',
     requireDrawerClosed: true,
+    freezesShift: true,
   });
 }
 
@@ -1823,5 +1883,6 @@ export function forceClosePosSession(input: LifecycleInput): Promise<PosSessionL
     actorColumn: 'force_closed_by',
     reasonColumn: 'force_close_reason',
     requireDrawerClosed: true,
+    freezesShift: true,
   });
 }

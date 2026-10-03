@@ -57,6 +57,16 @@ export async function createTestDrawer(
       rec_status: 1,
     },
   });
+  // The default closing policy counts by denomination; most suites close with a bare total, so every test
+  // drawer carries a drawer-scope OPTIONAL_DENOMINATION override (the suites that test the policy set their own).
+  await prisma.org_fin_cash_ctrl_stng_cf.create({
+    data: {
+      tenant_org_id: scope.tenantId,
+      scope_level: 'DRAWER',
+      scope_id: drawer.id,
+      closing_count_mode: 'OPTIONAL_DENOMINATION',
+    },
+  });
   return drawer.id;
 }
 
@@ -110,6 +120,8 @@ export async function stampTestCashLine(
     direction?: 'IN' | 'OUT';
     currency?: string;
     sessionHint?: string | null;
+    /** Payment method of the line; anything but a cash-family code is ignored by the gate. Default CASH. */
+    method?: string;
   },
 ): Promise<StampedTestLine> {
   const direction = opts.direction ?? 'IN';
@@ -134,7 +146,7 @@ export async function stampTestCashLine(
       line_role: 'ORDER_PAYMENT',
       direction,
       amount: opts.amount,
-      payment_method_code: 'CASH',
+      payment_method_code: opts.method ?? 'CASH',
       payment_status: 'COMPLETED',
       currency_code: currency,
       branch_id: scope.branchId,
@@ -171,6 +183,8 @@ export async function cleanupTestDrawers(scope: DbTestScope, drawerIds: string[]
   if (drawerIds.length === 0) return;
   const { tenantId } = scope;
 
+  await prisma.org_fin_cash_ctrl_stng_cf.deleteMany({ where: { tenant_org_id: tenantId, scope_level: 'DRAWER', scope_id: { in: drawerIds } } });
+
   await prisma.$transaction(async (tx) => {
     await tx.$executeRawUnsafe(`SET LOCAL cmx.allow_ledger_edit = 'on'`);
     await tx.$executeRawUnsafe(`SET LOCAL cmx.allow_posted_line_edit = 'on'`);
@@ -204,6 +218,13 @@ export async function cleanupTestDrawers(scope: DbTestScope, drawerIds: string[]
       await tx.org_cash_drawer_cnt_denom_dtl.deleteMany({ where: { count_id: { in: countIds }, tenant_org_id: tenantId } });
       await tx.org_cash_drawer_cnt_mst.deleteMany({ where: { id: { in: countIds }, tenant_org_id: tenantId } });
     }
+
+    // In-transit transfers (D1-4) point at drawers and custody transactions: remove them first.
+    await tx.$executeRaw`
+      DELETE FROM public.org_cash_drawer_transit_tr
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND (source_drawer_id = ANY(${drawerIds}::uuid[]) OR dest_drawer_id = ANY(${drawerIds}::uuid[])
+             OR transit_drawer_id = ANY(${drawerIds}::uuid[]))`;
 
     const trxLines = await tx.org_cash_drawer_trx_dtl.findMany({
       where: { cash_drawer_id: { in: drawerIds }, tenant_org_id: tenantId },

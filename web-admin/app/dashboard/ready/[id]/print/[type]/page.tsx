@@ -15,7 +15,8 @@ import {
   type ReadyOrder,
   type ReadyOrderStateResponse,
 } from '@features/orders/model/ready-order-types';
-import { OrderReceiptPrint } from '@features/orders/ui/order-receipt-print';
+import { OrderReceiptPrint, type ReceiptPaymentLine } from '@features/orders/ui/order-receipt-print';
+import type { CashChangeRoundingLike } from '@features/orders/model/cash-change-rows';
 import { OrderDetailsPrint } from '@features/orders/ui/order-details-print';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import { OrderInvoicesPaymentsPrintRprt, type OrderInvoicesPaymentsPrintRprtData } from '@features/orders/ui/order-invoices-payments-print-rprt';
@@ -45,6 +46,8 @@ export default function ReadyPrintPage() {
 
   const [order, setOrder] = useState<ReadyOrder | null>(null);
   const [discountLines, setDiscountLines] = useState<OrderDiscountLine[]>([]);
+  const [receiptPayments, setReceiptPayments] = useState<ReceiptPaymentLine[]>([]);
+  const [receiptCashChangeRounding, setReceiptCashChangeRounding] = useState<CashChangeRoundingLike[]>([]);
   const [reportData, setReportData] = useState<OrderInvoicesPaymentsPrintRprtData | OrderPaymentsPrintRprtData | OrderHistoryPrintRprtData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,9 +61,13 @@ export default function ReadyPrintPage() {
       setLoading(true);
       setError(null);
       try {
-        const [stateRes, discountsRes] = await Promise.all([
+        const [stateRes, discountsRes, paymentsRes] = await Promise.all([
           fetch(`/api/v1/orders/${id}/state`, { signal: controller.signal, cache: 'no-store' }),
           fetch(`/api/v1/orders/${id}/discounts`, { signal: controller.signal, cache: 'no-store' }),
+          // The tender block is supplementary: a failed lookup prints the receipt without it.
+          fetch(`/api/v1/orders/${id}/report/payments-rprt?sort=asc`, { signal: controller.signal, cache: 'no-store' }).catch(
+            () => null,
+          ),
         ]);
         const json: ReadyOrderStateResponse = await stateRes.json();
         const mapped = mapReadyOrderFromStateResponse(json);
@@ -69,6 +76,11 @@ export default function ReadyPrintPage() {
         if (discountsRes.ok) {
           const discountsJson = await discountsRes.json();
           setDiscountLines(discountsJson.discountLines ?? []);
+        }
+        if (paymentsRes?.ok) {
+          const paymentsJson = await paymentsRes.json().catch(() => null);
+          setReceiptPayments(paymentsJson?.payments ?? []);
+          setReceiptCashChangeRounding(paymentsJson?.cashChangeRounding ?? []);
         }
       } catch (e: unknown) {
         if (e instanceof Error && e.name === 'AbortError') return;
@@ -301,7 +313,13 @@ export default function ReadyPrintPage() {
       {!loading && !error && (order || reportData) && (
         <div className="print-document px-4">
           {type === 'receipt' && order && (
-            <OrderReceiptPrint order={order} layout={layout} discountLines={discountLines} />
+            <OrderReceiptPrint
+              order={order}
+              layout={layout}
+              discountLines={discountLines}
+              payments={receiptPayments}
+              cashChangeRounding={receiptCashChangeRounding}
+            />
           )}
           {type === 'order-details' && order && (
             <OrderDetailsPrint order={order} layout={layout} discountLines={discountLines} />

@@ -136,6 +136,16 @@ Skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md`
 
 ---
 
+## Pull Prisma — when to invoke
+
+**Not in the mandatory preload table above.** Invoke **`/pull-prisma`** when the agent needs a current Prisma schema.
+
+From the repo root run `npm run prisma:pull` (no `cd web-admin`; includes post-pull `@ignore` patch). Use after a migration is applied, on P1012/schema drift, or when the user asks to pull Prisma.
+
+Skill: `.claude/skills/pull-prisma/SKILL.md` · Cursor: `.cursor/skills/pull-prisma/SKILL.md`
+
+---
+
 **ALWAYS use agents for:**
 - Exploratory questions: "How does X work?" → Explore agent
 - Finding code: "Where is Y?" → Explore agent
@@ -157,6 +167,7 @@ Skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md`
 .\scripts\dev\start-services.ps1  # Start all services
 cd web-admin; npm run dev          # Start web admin
 npm run build                      # Build (run after changes)
+npm run prisma:pull                # Sync Prisma from repo root (no cd web-admin)
 ```
 
 ---
@@ -178,6 +189,7 @@ npm run build                      # Build (run after changes)
 - **Permissions require a migration** — every new permission code must be seeded into the DB permissions table via a migration file. A permission that exists only in TypeScript/code but not in the DB is incomplete. Include ALL new permissions for a feature in a single dedicated migration.
 - **Navigation requires a migration** — every new or modified navigation entry must have a corresponding `sys_components_cd` migration. See CRITICAL RULE #10.
 - **Feature flags require a migration** — every new feature flag must be registered via a migration into `hq_ff_feature_flags_mst` (+ `sys_ff_pln_flag_mappings_dtl` plan mappings when `plan_bound`), then synced into `web-admin/lib/constants/feature-flags.ts`. Use the `/create-feature-flag` skill.
+- **Prisma-safe composite FKs** — Postgres ignores unique column order; Prisma 6 does not. Child FK + 1:1 UNIQUE + referenced parent key MUST use the same columns in the same order. If the parent key is `(id, tenant_org_id)`, the child is `(parent_id, tenant_org_id)` (tenant **second** — this is `0553`). If the parent is `(tenant_org_id, id)`, the child is tenant-first. List indexes stay tenant-first. Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. After `db pull`, fix P1012 unique-order bugs in a NEW SQL migration; `SetNull` warnings are not P1012. Full rule: `/database` skill.
 
 ---
 

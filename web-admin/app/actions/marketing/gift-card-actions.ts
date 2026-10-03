@@ -9,6 +9,7 @@
 
 'use server';
 
+import { PosSessionError } from '@/lib/services/pos-session.service';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getAuthContext } from '@/lib/auth/server-auth';
@@ -23,6 +24,7 @@ import {
   suspendGiftCard,
   adminAdjustGiftCard,
   getGiftCardTransactions,
+  attachIssuedToCustomers,
 } from '@/lib/services/gift-card-service';
 import { fundStoredValue, FUNDING_TYPES } from '@/lib/services/stored-value-funding.service';
 import { logger } from '@/lib/utils/logger';
@@ -124,11 +126,6 @@ export async function listGiftCards(params: {
       const [rows, total] = await Promise.all([
         prisma.org_gift_cards_mst.findMany({
           where,
-          include: {
-            issued_to_customer: {
-              select: { name: true },
-            },
-          },
           orderBy: { created_at: 'desc' },
           skip,
           take: limit,
@@ -136,7 +133,7 @@ export async function listGiftCards(params: {
         prisma.org_gift_cards_mst.count({ where }),
       ]);
 
-      const data: GiftCard[] = rows.map((row) => ({
+      const data: GiftCard[] = (await attachIssuedToCustomers(tenantId, rows)).map((row) => ({
         id: row.id,
         tenant_org_id: row.tenant_org_id,
         gift_card_code: row.gift_card_code,
@@ -197,7 +194,7 @@ export async function sellGiftCardWithTenderAction(
   input: z.infer<typeof sellGiftCardWithTenderSchema>
 ): Promise<
   | { success: true; data: { giftCardId: string; giftCardCode: string; voucherId: string } }
-  | { success: false; error: string }
+  | { success: false; error: string; errorDetails?: Record<string, unknown> }
 > {
   try {
     const auth = await getAuthContext();
@@ -259,6 +256,10 @@ export async function sellGiftCardWithTenderAction(
     // code so the dialog can show the translated cashControl.ledgerErrors text.
     if (error instanceof CashDrawerLedgerError) {
       return { success: false, error: error.code };
+    }
+    // B1: stable POS-session code (POS_SESSION_REQUIRED, …) for the translated dialog text.
+    if (error instanceof PosSessionError) {
+      return { success: false, error: error.code, errorDetails: error.details };
     }
     const raw = error instanceof Error ? error.message : 'Failed to sell gift card';
     if (
@@ -790,9 +791,6 @@ export async function listGiftCardLiabilityAction(params: {
       const [rows, total] = await Promise.all([
         prisma.org_gift_cards_mst.findMany({
           where,
-          include: {
-            issued_to_customer: { select: { name: true } },
-          },
           orderBy: { available_amount: 'desc' },
           skip,
           take: pageSize,
@@ -800,7 +798,7 @@ export async function listGiftCardLiabilityAction(params: {
         prisma.org_gift_cards_mst.count({ where }),
       ]);
 
-      const data: GiftCard[] = rows.map((row) => ({
+      const data: GiftCard[] = (await attachIssuedToCustomers(tenantId, rows)).map((row) => ({
         id: row.id,
         tenant_org_id: row.tenant_org_id,
         gift_card_code: row.gift_card_code,

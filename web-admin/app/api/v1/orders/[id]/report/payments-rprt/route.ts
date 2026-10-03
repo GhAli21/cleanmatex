@@ -14,6 +14,10 @@ import {
   getOrderPaymentsCanonical,
   type OrderPaymentRow,
 } from '@/lib/services/order-financial-summary.service';
+import {
+  getOrderCashChangeRounding,
+  type OrderCashChangeRoundingSummary,
+} from '@/lib/services/cash-change-rounding.service';
 
 /** Response contract consumed by `order-payments-print-rprt.tsx`. */
 export interface PaymentsRprtResponse {
@@ -23,6 +27,8 @@ export interface PaymentsRprtResponse {
     customer: { name: string; phone: string };
   };
   payments: OrderPaymentRow[];
+  /** Net posted cash-change rounding per currency (A6-4); empty when none applied. */
+  cashChangeRounding: OrderCashChangeRoundingSummary[];
   sortOrder: 'asc' | 'desc';
 }
 
@@ -81,12 +87,16 @@ export async function GET(
       },
     };
 
-    const payments = await getOrderPaymentsCanonical(tenantId, id);
+    const [payments, cashChangeRounding] = await Promise.all([
+      getOrderPaymentsCanonical(tenantId, id),
+      getOrderCashChangeRounding(tenantId, id),
+    ]);
     if (sortOrder === 'asc') payments.reverse();
 
     const body: PaymentsRprtResponse = {
       order: orderHeader,
       payments,
+      cashChangeRounding,
       sortOrder,
     };
     return NextResponse.json({ success: true, ...body });

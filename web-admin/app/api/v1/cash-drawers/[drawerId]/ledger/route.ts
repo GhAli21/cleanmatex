@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { getDrawerLedgerPage } from '@/lib/services/cash-drawer-ledger/cash-drawer-balance.service';
 import { drawerLedgerQuerySchema } from '@/lib/validations/cash-drawer/list-schemas';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { guardDrawerBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * GET /api/v1/cash-drawers/[drawerId]/ledger
@@ -23,6 +24,8 @@ export async function GET(
   const { tenantId } = auth;
 
   const { drawerId } = await params;
+  const branchDenied = await guardDrawerBranch(auth, drawerId);
+  if (branchDenied) return branchDenied;
   const query = Object.fromEntries(request.nextUrl.searchParams.entries());
   const parsed = drawerLedgerQuerySchema.safeParse(query);
   if (!parsed.success) {

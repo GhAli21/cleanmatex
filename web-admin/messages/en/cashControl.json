@@ -69,13 +69,29 @@
       "label": "Cash drops require a destination",
       "description": "Forbid a cash transfer out of a drawer with no safe, bank, or drawer named as the destination."
     },
-    "posSessionReqForCash": {
-      "label": "POS session required for cash",
-      "description": "Refuse a cash tender unless the cashier has an open POS session."
+    "posSessionModeOrderEntry": {
+      "label": "POS session — order entry",
+      "description": "Creating or updating an order with a payment. Cash always also needs an open cash drawer session."
     },
-    "posSessionReqAllTenders": {
-      "label": "POS session required for all tenders",
-      "description": "Extend the requirement above to card, wallet, and other tender types."
+    "posSessionModeLaterColl": {
+      "label": "POS session — later payment collection",
+      "description": "Collecting a payment on an existing order after it was created."
+    },
+    "posSessionModeStoredVal": {
+      "label": "POS session — wallet, advance and gift-card sales",
+      "description": "Wallet top-ups, customer advances and gift-card sales that take payment."
+    },
+    "posSessionModeCustRcpt": {
+      "label": "POS session — customer account receipts",
+      "description": "Receiving a payment on a customer's account (Customers → receive payment)."
+    },
+    "posSessionModeManualVchr": {
+      "label": "POS session — manual finance vouchers",
+      "description": "Posting a voucher by hand from Finance → Vouchers when it carries a payment."
+    },
+    "posSessionModeCashRefd": {
+      "label": "POS session — cash refunds",
+      "description": "Processing a refund paid out in cash. The cash drawer session is required either way."
     },
     "posSessionRolloverMode": {
       "label": "Business-date rollover",
@@ -136,6 +152,11 @@
       "WARN": "Warn",
       "BLOCK": "Block"
     },
+    "posSessionRequirementMode": {
+      "REQUIRED": "Required for any payment",
+      "REQUIRED_FOR_CASH": "Required for cash payments only",
+      "OPTIONAL": "Optional — linked when one is open"
+    },
     "posSessionRolloverMode": {
       "OFF": "Off",
       "PAUSE_AT_ROLLOVER": "Pause at rollover",
@@ -151,6 +172,11 @@
     "saved": "Cash control settings saved.",
     "loadFailed": "Failed to load cash control settings.",
     "saveFailed": "Failed to save cash control settings."
+  },
+  "posSessionRequired": {
+    "open": "Open POS session",
+    "opened": "POS session opened. Press the action again to continue.",
+    "openFailed": "Could not open a POS session. Try again or open it from POS Sessions."
   },
   "ledgerErrors": {
     "CASH_DRAWER_REQUIRED": "Select a cash drawer session for this cash payment.",
@@ -176,6 +202,18 @@
     "POST_CLOSE_SESSION_NOT_CLOSED": "The session must be closed first.",
     "CASH_DRAWER_CURRENCY_NOT_CONFIGURED": "No currency is configured for this cash drawer.",
     "CASH_RECEIVER_INVALID": "This receiving user is not an active member of your organization.",
-    "DRAWER_SESSION_ALREADY_OPEN": "This cash drawer already has an open session."
+    "DRAWER_NOT_ASSIGNED_TO_USER": "This cash drawer is assigned to another user. Ask its assigned cashier or a supervisor.",
+    "DRAWER_BRANCH_FORBIDDEN": "You don't have access to this branch's cash drawers.",
+    "DRAWER_SESSION_ALREADY_OPEN": "This cash drawer already has an open session.",
+    "POS_SESSION_REQUIRED": "Open a POS session before taking this payment.",
+    "POS_SESSION_MISMATCH": "This payment belongs to a different POS session than the one you are working in. Refresh and try again.",
+    "POS_SESSION_OPEN_NOT_FOUND": "Your POS session is not open. Open or resume it, then try again.",
+    "POS_SESSION_BRANCH_CONFLICT": "Your POS session belongs to a different branch than this payment.",
+    "CASH_TRANSIT_NOT_FOUND": "This transfer was not found.",
+    "CASH_TRANSIT_NOT_OPEN": "This transfer was already received or cancelled.",
+    "CASH_TRANSIT_REASON_REQUIRED": "A reason is required to cancel a transfer.",
+    "CASH_TRANSIT_USE_CANCEL": "An in-transit leg cannot be reversed. Cancel the transfer instead.",
+    "CASH_DENOMINATION_DISABLED": "This denomination is switched off for your organization and cannot be counted.",
+    "CASH_COUNT_MODE_NOT_ALLOWED": "This way of counting is not allowed by your organization’s count policy. Count by denomination or by total as the screen offers."
   }
 }

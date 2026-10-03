@@ -36,6 +36,8 @@ import {
 import { useFeature } from '@features/auth/ui/RequireFeature';
 import { useAuth } from '@/lib/auth/auth-context';
 import { StoredValueTenderFields, type StoredValueTenderResult } from './stored-value-tender-fields';
+import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
+import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 
 interface CreditNoteRow {
   id:                string;
@@ -71,6 +73,8 @@ type DialogType = 'topUp' | 'advance' | 'creditNote' | null;
 export function CustomerStoredValueTab({ customerId }: Props) {
   const t       = useTranslations('customers.storedValue');
   const tCommon = useTranslations('common');
+  const tLedger = useTranslations('cashControl.ledgerErrors');
+  const [posSessionRequired, setPosSessionRequired] = useState<PosSessionRequiredInfo | null>(null);
   const { decimalPlaces, currencyCode: tenantCurrency } = useTenantCurrency();
   // B3 — governed DIRECT_TENDER top-up/advance (tender step) once enabled;
   // falls back to the existing no-tender topUpWallet/issueAdvance actions
@@ -176,10 +180,18 @@ export function CustomerStoredValueTab({ customerId }: Props) {
         : await issueAdvanceWithTenderAction(payload);
 
       if (tenderResult.success === false) {
-        cmxMessage.error(tenderResult.error);
+        // Stable codes (POS_SESSION_REQUIRED, ledger refusals) get translated text; a POS-session
+        // refusal also gets an inline "Open POS session" action in the dialog.
+        setPosSessionRequired(readPosSessionRequired({ code: tenderResult.error, details: tenderResult.errorDetails }));
+        cmxMessage.error(
+          tLedger.has(tenderResult.error as Parameters<typeof tLedger>[0])
+            ? tLedger(tenderResult.error as Parameters<typeof tLedger>[0])
+            : tenderResult.error
+        );
         setSaving(false);
         return;
       }
+      setPosSessionRequired(null);
       cmxMessage.success(dialog === 'topUp' ? t('topUpSuccess') : t('issueAdvanceSuccess'));
       setSaving(false);
       setDialog(null);
@@ -444,6 +456,15 @@ export function CustomerStoredValueTab({ customerId }: Props) {
               </div>
             )}
           </div>
+
+          {posSessionRequired ? (
+            <PosSessionRequiredAction
+              info={posSessionRequired}
+              idempotencyKey={idempotencyKey}
+              sourceChannel="stored_value_funding"
+              onOpened={() => setPosSessionRequired(null)}
+            />
+          ) : null}
 
           <CmxDialogFooter>
             <CmxButton variant="outline" onClick={() => setDialog(null)} disabled={isSaving}>

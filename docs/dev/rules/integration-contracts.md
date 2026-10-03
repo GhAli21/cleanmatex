@@ -421,6 +421,13 @@ All HQ notification operations write to `hq_audit_logs` via `AuditService`:
 
 ---
 
+## 17. Cash-control settings and currency catalogs (POS Session & Cash Drawer Hardening)
+
+- **Currency / denomination catalogs are HQ-owned, tenant-consumed.** `sys_currency_cd`, `sys_currency_rounding_rules_cf` and `sys_currency_denominations_cd` are managed in `cleanmatexsaas` (and seeded by this project's migrations because this project owns all migrations). The tenant app only **reads** them. A tenant's own choices are sparse overrides in tenant tables: `org_currency_cf` (which currencies it uses) and `org_currency_denom_cf` (which notes/coins it counts, and their grid order). HQ data is never edited from the tenant app.
+- **Cash-control settings are the deliberate exception to "settings come from the HQ API".** The `cash_*`, `pos_session_*`, `variance_*`, `opening/closing_count_mode`, `shared_session_mode` and `shift_z_report_required` settings live in the finance-owned, tenant-scoped table `org_fin_cash_ctrl_stng_cf` (ADR-056) with their own scope ladder (drawer → user → branch → tenant → default) and audit trail, because they gate posting inside a finance transaction and need row-level scope. Do not query that table directly: use `getCashControlSettings` / `updateCashControlSettings` only. `sys_stng_*` is still consumed through the HQ API.
+- **Notification events** `pos_session.stale` and `pos_session.rolled_over` are catalog rows in `sys_ntf_*` registered by this project's migration 0558; HQ can edit their templates through the Notification Hub catalog.
+- **Navigation / permissions:** every screen of this program is dual-written (`config/navigation.ts` + `sys_components_cd`); no permission code is HQ-defined.
+
 ## Update Log
 
 | Date | Change | Author |

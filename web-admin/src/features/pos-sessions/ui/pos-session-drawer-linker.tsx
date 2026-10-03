@@ -15,7 +15,8 @@ import {
   type OpenCashDrawerSessionV2Result,
 } from '@features/cash-drawers/api/cash-drawer-api';
 import { CashDrawerOpenSessionDialog } from '@features/cash-drawers/ui/cash-drawer-open-session-dialog';
-import { postPosSessionAutoLinkDrawer } from '@features/pos-sessions/api/pos-session-api';
+import { PosSessionApiError, postPosSessionAutoLinkDrawer } from '@features/pos-sessions/api/pos-session-api';
+import { posSessionErrorKey } from '@features/pos-sessions/model/pos-session-flags';
 
 interface PosSessionDrawerLinkerProps {
   branchId: string | null;
@@ -43,6 +44,12 @@ export function PosSessionDrawerLinker({
   const [selectedDrawerId, setSelectedDrawerId] = useState('');
   const [openDialogOpen, setOpenDialogOpen] = useState(false);
   const [busy, setBusy] = useState<'link' | 'open-link' | null>(null);
+
+  // A known business rule reads in the cashier's language; anything else keeps the server text.
+  const linkErrorMessage = (error: unknown): string => {
+    const key = error instanceof PosSessionApiError ? posSessionErrorKey(error.errorCode) : null;
+    return key ? t(`errors.${key}`) : error instanceof Error ? error.message : t('messages.drawerLinkFailed');
+  };
 
   const drawersQuery = useQuery({
     queryKey: ['cash-drawers', 'with-current-session', branchId ?? 'none', 'pos-session-hub'],
@@ -76,7 +83,7 @@ export function PosSessionDrawerLinker({
       cmxMessage.success(t('messages.drawerLinked'));
       await onLinked();
     } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : t('messages.drawerLinkFailed'));
+      cmxMessage.error(linkErrorMessage(error));
     } finally {
       setBusy(null);
     }
@@ -99,7 +106,7 @@ export function PosSessionDrawerLinker({
       cmxMessage.success(t('messages.drawerOpenedAndLinked'));
       await onLinked();
     } catch (error) {
-      cmxMessage.error(error instanceof Error ? error.message : t('messages.drawerLinkFailed'));
+      cmxMessage.error(linkErrorMessage(error));
     } finally {
       setBusy(null);
     }

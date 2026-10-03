@@ -147,6 +147,9 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                 <CashDrawerInfoTile label={t('openingExpected')} value={money(b.openingExpected, b.currencyCode)} />
                 <CashDrawerInfoTile label={t('financeIn')} value={money(b.finIn, b.currencyCode)} />
                 <CashDrawerInfoTile label={t('financeOut')} value={money(b.finOut, b.currencyCode)} />
+                {Number(b.changeRounding) !== 0 ? (
+                  <CashDrawerInfoTile label={t('ofWhichChangeRounding')} value={money(b.changeRounding, b.currencyCode)} />
+                ) : null}
                 <CashDrawerInfoTile label={t('custodyIn')} value={money(b.trxIn, b.currencyCode)} />
                 <CashDrawerInfoTile label={t('custodyOut')} value={money(b.trxOut, b.currencyCode)} />
                 <CashDrawerInfoTile
@@ -219,6 +222,43 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
           </CmxCard>
         ))
       )}
+
+      {view.attribution.length > 0 ? (
+        <CmxCard>
+          <CmxCardHeader>
+            <CmxCardTitle>{t('attribution.title')}</CmxCardTitle>
+            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('attribution.description')}</p>
+          </CmxCardHeader>
+          <CmxCardContent className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b text-start text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <th className="py-1 text-start font-medium">{t('attribution.posSession')}</th>
+                  <th className="py-1 text-start font-medium">{t('attribution.cashier')}</th>
+                  <th className="py-1 text-end font-medium">{t('attribution.cashIn')}</th>
+                  <th className="py-1 text-end font-medium">{t('attribution.cashOut')}</th>
+                  <th className="py-1 text-end font-medium">{t('attribution.net')}</th>
+                  <th className="py-1 text-end font-medium">{t('attribution.lines')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {view.attribution.map((a) => (
+                  <tr key={`${a.posSessionId ?? 'none'}-${a.currencyCode}`} className="border-b border-gray-100">
+                    <td className="py-1 font-mono text-xs">
+                      {a.posSessionNo ?? <Badge variant="warning">{t('attribution.unattributed')}</Badge>}
+                    </td>
+                    <td className="py-1">{a.operatorName ?? '—'}</td>
+                    <td className="py-1 text-end tabular-nums">{money(a.cashIn, a.currencyCode)}</td>
+                    <td className="py-1 text-end tabular-nums">{money(a.cashOut, a.currencyCode)}</td>
+                    <td className="py-1 text-end font-semibold tabular-nums">{money(a.net, a.currencyCode)}</td>
+                    <td className="py-1 text-end tabular-nums">{a.lineCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CmxCardContent>
+        </CmxCard>
+      ) : null}
 
       {isClosed ? (
         <CmxCard>

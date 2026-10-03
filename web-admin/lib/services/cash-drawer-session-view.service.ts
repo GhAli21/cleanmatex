@@ -3,6 +3,8 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { LINE_ROLE, LINE_STATUS, VOUCHER_DIRECTION } from '@/lib/constants/voucher';
+import { loadDrawerCashAttribution, type DrawerCashAttributionRow } from '@/lib/services/cash-drawer-attribution';
 
 /**
  * Read model for the session-detail "closure" section (CLF-8-8): per-currency
@@ -18,6 +20,8 @@ export interface SessionClosureBalance {
   openingVariance: string | null;
   finIn: string;
   finOut: string;
+  /** Net posted cash-change rounding already inside finIn/finOut (+ gain, − loss); informational. */
+  changeRounding: string;
   trxIn: string;
   trxOut: string;
   closingExpected: string | null;
@@ -50,6 +54,8 @@ export interface SessionClosureView {
   status: string;
   balances: SessionClosureBalance[];
   counts: SessionClosureCount[];
+  /** E2: cash taken and paid out per POS session (cashier) inside this drawer session. */
+  attribution: DrawerCashAttributionRow[];
   postClose: {
     statusCode: string | null;
     notes: string | null;
@@ -88,7 +94,8 @@ export async function getSessionClosureView(
     });
     if (!session) return null;
 
-    const [balances, counts, history] = await Promise.all([
+    const [attribution, balances, counts, history, roundingLines] = await Promise.all([
+      loadDrawerCashAttribution(prisma, tenantOrgId, sessionId),
       prisma.org_cash_drawer_ses_bal_dtl.findMany({
         where: { tenant_org_id: tenantOrgId, cash_drawer_session_id: sessionId },
         orderBy: { currency_code: 'asc' },
@@ -102,7 +109,22 @@ export async function getSessionClosureView(
         orderBy: { changed_at: 'desc' },
         select: { post_close_status_code: true, post_close_notes: true, changed_by: true, changed_at: true },
       }),
+      prisma.org_fin_voucher_trx_lines_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          cash_drawer_session_id: sessionId,
+          line_role: LINE_ROLE.CASH_CHANGE_ROUNDING,
+          line_status: LINE_STATUS.POSTED,
+        },
+        select: { direction: true, amount: true, currency_code: true },
+      }),
     ]);
+    const roundingByCurrency = new Map<string, Decimal>();
+    for (const line of roundingLines) {
+      const amount = new Decimal(line.amount.toString());
+      const signed = line.direction === VOUCHER_DIRECTION.IN ? amount : amount.negated();
+      roundingByCurrency.set(line.currency_code, (roundingByCurrency.get(line.currency_code) ?? new Decimal(0)).plus(signed));
+    }
 
     const destIds = [...new Set(balances.map((b) => b.disposition_dest_drawer_id).filter((id): id is string => Boolean(id)))];
     const countIds = counts.map((c) => c.id);
@@ -126,6 +148,7 @@ export async function getSessionClosureView(
     return {
       sessionId: session.id,
       status: session.status,
+      attribution,
       balances: balances.map((b) => ({
         currencyCode: b.currency_code,
         openingExpected: dec(b.opening_expected),
@@ -133,6 +156,7 @@ export async function getSessionClosureView(
         openingVariance: decOrNull(b.opening_variance),
         finIn: dec(b.fin_in),
         finOut: dec(b.fin_out),
+        changeRounding: dec(roundingByCurrency.get(b.currency_code) ?? new Decimal(0)),
         trxIn: dec(b.trx_in),
         trxOut: dec(b.trx_out),
         closingExpected: decOrNull(b.closing_expected),

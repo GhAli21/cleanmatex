@@ -6,7 +6,7 @@ import { deliverWhatsAppOutbox } from '@lib/notifications/adapters/whatsapp';
 import { enqueueEmailFallbackFromWhatsApp } from '@lib/notifications/adapters/outbox';
 
 jest.mock('@/lib/supabase/server', () => ({ createAdminSupabaseClient: jest.fn() }));
-jest.mock('@/lib/utils/logger', () => ({ logger: { info: jest.fn(), error: jest.fn() } }));
+jest.mock('@/lib/utils/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } }));
 jest.mock('@lib/notifications/adapters/whatsapp', () => ({ deliverWhatsAppOutbox: jest.fn() }));
 jest.mock('@lib/notifications/adapters/email', () => ({ deliverEmailOutbox: jest.fn() }));
 jest.mock('@lib/notifications/adapters/sms', () => ({ deliverSmsOutbox: jest.fn() }));
@@ -40,6 +40,7 @@ describe('WhatsApp scheduled outbox dispatch', () => {
           select: jest.fn(() => query),
           eq: jest.fn((field: string, value: unknown) => { filters.push([table, field, value]); if (field === 'status') status = String(value); return query; }),
           in: jest.fn((field: string, value: unknown) => { filters.push([table, field, value]); return query; }),
+          is: jest.fn((field: string, value: unknown) => { filters.push([table, field, value]); return query; }),
           lte: jest.fn(() => query),
           limit: jest.fn(async () => ({ data: status === 'QUEUED' ? [row] : [], error: null })),
           update: jest.fn((data: Record<string, unknown>) => { updates.push(data); return query; }),
@@ -62,6 +63,8 @@ describe('WhatsApp scheduled outbox dispatch', () => {
     expect(enqueueEmailFallbackFromWhatsApp).not.toHaveBeenCalled();
     expect(filters).toContainEqual(['org_ntf_outbox_dtl', 'tenant_org_id', ['tenant-a']]);
     expect(filters.filter((filter) => filter[0] === 'org_ntf_outbox_dtl' && filter[1] === 'tenant_org_id' && filter[2] === 'tenant-a')).toHaveLength(2);
+    expect(filters).toContainEqual(['org_ntf_outbox_dtl', 'claim_token', null]);
+    expect(filters).toContainEqual(['org_ntf_outbox_dtl', 'reconcile_state', null]);
   });
 
   it('does not dispatch or finalize a stale row claimed by another worker', async () => {
@@ -81,13 +84,14 @@ describe('WhatsApp scheduled outbox dispatch', () => {
     expect(updates).toHaveLength(1);
   });
 
-  it('restricts exception recovery to the row still owned by this attempt', async () => {
+  it('holds an ambiguous provider submission for reconciliation instead of retrying it', async () => {
     jest.mocked(deliverWhatsAppOutbox).mockRejectedValue(new Error('Provider unavailable'));
     const response = await POST(request());
-    expect(await response.json()).toMatchObject({ processed: 0, errors: 1 });
-    expect(updates[1]).toMatchObject({ status: 'FAILED_TEMPORARY', retry_count: 1 });
+    expect(await response.json()).toMatchObject({ processed: 1, errors: 0 });
+    expect(updates[1]).toMatchObject({ reconcile_state: 'ACCEPTANCE_UNCERTAIN', error_message: 'Provider unavailable' });
+    expect(updates[1]).not.toHaveProperty('next_retry_at');
     expect(filters).toContainEqual(['org_ntf_outbox_dtl', 'status', 'PROCESSING']);
-    expect(filters.filter((filter) => filter[0] === 'org_ntf_outbox_dtl' && filter[1] === 'retry_count' && filter[2] === 0)).toHaveLength(2);
+    expect(filters).toContainEqual(['org_ntf_outbox_dtl', 'claim_token', expect.any(String)]);
   });
 
   it('keeps lookup failures retryable instead of skipping or falling back to email', async () => {

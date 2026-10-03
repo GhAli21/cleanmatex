@@ -9,6 +9,7 @@
 
 'use server';
 
+import { PosSessionError } from '@/lib/services/pos-session.service';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getAuthContext } from '@/lib/auth/server-auth';
@@ -274,7 +275,7 @@ const withTenderSchema = z.object({
  */
 export async function topUpWalletWithTenderAction(
   input: z.infer<typeof withTenderSchema>
-): Promise<{ success: true; voucherId: string } | { success: false; error: string }> {
+): Promise<{ success: true; voucherId: string } | { success: false; error: string; errorDetails?: Record<string, unknown> }> {
   try {
     const flagOn = await currentTenantCan('order_fin_sv_funding_capture');
     if (!flagOn) {
@@ -313,6 +314,8 @@ export async function topUpWalletWithTenderAction(
     revalidatePath(`/dashboard/customers/${data.customerId}`);
     return { success: true, voucherId: result.voucherId };
   } catch (error) {
+    // B1: stable POS-session code so the dialog shows the translated cashControl.ledgerErrors text.
+    if (error instanceof PosSessionError) return { success: false, error: error.code, errorDetails: error.details };
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to top up wallet',
@@ -327,7 +330,7 @@ export async function topUpWalletWithTenderAction(
  */
 export async function issueAdvanceWithTenderAction(
   input: z.infer<typeof withTenderSchema>
-): Promise<{ success: true; voucherId: string } | { success: false; error: string }> {
+): Promise<{ success: true; voucherId: string } | { success: false; error: string; errorDetails?: Record<string, unknown> }> {
   try {
     const flagOn = await currentTenantCan('order_fin_sv_funding_capture');
     if (!flagOn) {
@@ -366,6 +369,8 @@ export async function issueAdvanceWithTenderAction(
     revalidatePath(`/dashboard/customers/${data.customerId}`);
     return { success: true, voucherId: result.voucherId };
   } catch (error) {
+    // B1: stable POS-session code so the dialog shows the translated cashControl.ledgerErrors text.
+    if (error instanceof PosSessionError) return { success: false, error: error.code, errorDetails: error.details };
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to issue advance',

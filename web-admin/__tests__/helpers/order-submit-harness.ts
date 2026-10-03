@@ -91,7 +91,7 @@ jest.mock('@/lib/services/customer-receipt-excess-executor.service', () => ({
 jest.mock('@/lib/services/payment-config.service', () => ({ listEffectivePaymentMethodConfigs: (...args: unknown[]) => mockMethodConfigs(...args) }));
 jest.mock('@/lib/services/cash-drawer.service', () => ({ resolveCashDrawerSessionId: jest.fn().mockResolvedValue('drawer-1') }));
 jest.mock('@/lib/services/pos-session.service', () => ({
-  assertOpenPosSessionForFinanceTx: jest.fn().mockResolvedValue(undefined), autoLinkDrawerTx: jest.fn().mockResolvedValue(undefined),
+  assertOpenPosSessionForFinanceTx: jest.fn().mockResolvedValue(undefined), resolvePosSessionForFinanceTx: jest.fn().mockResolvedValue(null), autoLinkDrawerTx: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/lib/utils/logger', () => ({ logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn() } }));
 

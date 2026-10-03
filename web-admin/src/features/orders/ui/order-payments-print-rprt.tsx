@@ -6,6 +6,7 @@ import { useLocale } from '@/lib/hooks/useLocale';
 import type { OrderPaymentRow } from '@/lib/services/order-financial-summary.service';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { buildCashChangeRows } from '@features/orders/model/cash-change-rows';
 
 /** Print payload — canonical payment rows (`org_order_payments_dtl`, ADR-002). */
 export interface OrderPaymentsPrintRprtData {
@@ -15,6 +16,8 @@ export interface OrderPaymentsPrintRprtData {
     customer: { name: string; phone: string };
   };
   payments: OrderPaymentRow[];
+  /** Net posted cash-change rounding per currency; absent on older payloads. */
+  cashChangeRounding?: Array<{ currencyCode: string; adjustment: number }>;
   sortOrder: 'asc' | 'desc';
 }
 
@@ -41,12 +44,15 @@ function formatDate(dateStr: string | undefined, locale: string): string {
  */
 export function OrderPaymentsPrintRprt({ data }: OrderPaymentsPrintRprtProps) {
   const tOrders = useTranslations('orders');
+  const tDetail = useTranslations('orders.detailFull');
   const tInvoices = useTranslations('invoices');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
   const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+
+  const cashChangeRows = buildCashChangeRows(data.payments, data.cashChangeRounding ?? [], tenantCurrency);
 
   return (
     <div
@@ -113,6 +119,32 @@ export function OrderPaymentsPrintRprt({ data }: OrderPaymentsPrintRprtProps) {
           </table>
         )}
       </section>
+
+      {cashChangeRows.length > 0 && (
+        <section className="print-section">
+          <h2>{tDetail('cashChangeTitle')}</h2>
+          {cashChangeRows.map((row) => {
+            const money = (n: number) =>
+              formatMoneyAmountWithCode(n, { currencyCode: row.currencyCode, decimalPlaces, locale: moneyLocale });
+            return (
+              <div key={row.currencyCode} className="space-y-1">
+                <div className="flex justify-between print-row">
+                  <span>{tDetail('exactChange')}</span>
+                  <span>{money(row.exactChange)}</span>
+                </div>
+                <div className="flex justify-between print-row">
+                  <span>{row.adjustment > 0 ? tDetail('roundingGain') : tDetail('roundingLoss')}</span>
+                  <span>{money(Math.abs(row.adjustment))}</span>
+                </div>
+                <div className="flex justify-between print-row font-medium">
+                  <span>{tDetail('handedOut')}</span>
+                  <span>{money(row.handedOut)}</span>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
 
       <footer className="print-footer">
         <p>{tCommon('thanks') ?? 'Thank you for your business!'}</p>

@@ -39,9 +39,10 @@ import {
 import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
 import { resolveCashDrawerSessionId } from '@/lib/services/cash-drawer.service';
 import {
-  assertOpenPosSessionForFinanceTx,
+  resolvePosSessionForFinanceTx,
   autoLinkDrawerTx,
 } from '@/lib/services/pos-session.service';
+import { POS_SESSION_SURFACE } from '@/lib/constants/pos-session';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
 import {
@@ -69,6 +70,7 @@ import type {
   SettlementOption,
 } from '@/lib/types/order-financial';
 import type { PostAndWireResult } from '@/lib/types/voucher-wiring';
+import { financeTenderScopeOf } from '@/lib/utils/cash-method';
 import {
   planCashChangeRounding,
   postCashChangeRoundingTx,
@@ -792,6 +794,20 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       const overpaymentResolution =
         input.overpaymentResolution ?? input.overpaymentDisposition;
 
+      // B1: the server resolves the POS session (the request value is only a cross-check) and
+      // refuses a tender the cash-control settings say needs one.
+      const posSession = await resolvePosSessionForFinanceTx(tx, {
+        tenantId,
+        userId,
+        branchId,
+        posSessionId: input.posSessionId,
+        surface: POS_SESSION_SURFACE.ORDER_ENTRY,
+        tenderScope: plan.shouldCreateReceiptVoucher
+          ? financeTenderScopeOf(plan.realPaymentLegs.map((leg) => leg.paymentMethodCode))
+          : 'NONE',
+      });
+      const effectivePosSessionId = posSession?.id ?? undefined;
+
       if (plan.shouldCreateReceiptVoucher) {
         const voucher = await createBizVoucher(
           tenantId,
@@ -815,15 +831,6 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           userId,
           tx,
         );
-
-        if (input.posSessionId) {
-          await assertOpenPosSessionForFinanceTx(tx, {
-            tenantId,
-            userId,
-            posSessionId: input.posSessionId,
-            branchId,
-          });
-        }
 
         // 5.1 Real-payment lines (cash, card, gateway, check, bank transfer)
         // A6-1b: cash change is rounded to the cash increment; the order stays exact and
@@ -882,7 +889,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
               check_bank:             leg.checkBank,
               check_date:             leg.checkDate,
               payment_terminal_id:    leg.terminalId,
-              pos_session_id:         input.posSessionId,
+              pos_session_id:         effectivePosSessionId,
               card_brand_code:        leg.cardBrandCode,
               card_last4:             leg.cardLast4,
               auth_code:              leg.authCode,
@@ -898,7 +905,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           await autoLinkDrawerTx(tx, {
             tenantId,
             userId,
-            posSessionId: input.posSessionId,
+            posSessionId: effectivePosSessionId,
             branchId,
             cashDrawerSessionId: leg.cashDrawerSessionId,
             idempotencyKey: `${orderId}_pos_link_${leg.legIndex}`,
@@ -925,7 +932,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
               amount:                  leg.amount,
               currency_code:           leg.currencyCode,
               credit_application_type: leg.creditType,
-              pos_session_id:          input.posSessionId,
+              pos_session_id:          effectivePosSessionId,
               idempotency_key:         `${orderId}_vl_ca_${leg.legIndex}`,
             },
             userId,
@@ -979,7 +986,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
               customerId: input.customerId ?? null,
               branchId: branchId ?? null,
               paymentLineId,
-              posSessionId: input.posSessionId ?? null,
+              posSessionId: effectivePosSessionId ?? null,
               orgPaymentMethodId: leg.orgPaymentMethodId ?? null,
               paymentMethodCode: leg.paymentMethodCode,
               idempotencyKey: `${orderId}_cash_round_${leg.legIndex}`,
@@ -1044,7 +1051,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         settlementLegs,
         cashDrawerSessionId,
         settledBy:           userId,
-        posSessionId:        input.posSessionId,
+        posSessionId:        effectivePosSessionId,
       });
 
       // B14 — tax-document issuance trigger. Non-blocking by design: a new

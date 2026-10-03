@@ -1,22 +1,21 @@
 /**
- * JWT Tenant Validator Middleware
- * 
- * Validates that JWT contains tenant_org_id and automatically repairs if missing.
- * This middleware should be used in API routes to ensure tenant context is always present.
+ * Tenant-aware request validator for API routes (used by requirePermission).
+ *
+ * Authenticates the caller, validates that their session is still alive on the server (membership,
+ * absolute expiry, idle timeout — fn_auth_session_validate) and returns the tenant the session is bound to.
+ * The tenant comes from the database, never from user_metadata, so there is nothing to "repair" any more.
+ * Fail closed: if the session cannot be validated the request is rejected.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import {
-  validateJWTTenantContext,
-  repairJWTTenantContext,
-  type JWTValidationResult,
-} from '@/lib/auth/jwt-tenant-manager';
-import { logJWTHealthEvent } from '@/lib/monitoring/jwt-health-monitor';
+import { guardSession, isSessionActive, sessionEndedResponse } from '@/lib/auth/session-guard';
+import { readRequestMeta } from '@/lib/services/auth/session/request-meta';
+import { DEVICE_COOKIE_NAME } from '@/lib/constants/auth-session';
 import { logger } from '@/lib/utils/logger';
 
 /**
- *
+ * Authenticated, tenant-resolved request context.
  */
 export interface JWTValidationContext {
   user: any;
@@ -26,9 +25,10 @@ export interface JWTValidationContext {
 }
 
 /**
- * Validate JWT tenant context and repair if needed
+ * Authenticate the caller and resolve their tenant from the validated session.
+ *
  * @param request - Next.js request object
- * @returns Validation context or error response
+ * @returns Validation context, or an error response (401 unauthenticated / SESSION_ENDED, 503 on infra failure)
  */
 export async function validateJWTWithTenant(
   request: NextRequest
@@ -49,126 +49,53 @@ export async function validateJWTWithTenant(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Validate JWT tenant context
-    const validation = await validateJWTTenantContext(user);
+    const validation = await guardSession(
+      supabase,
+      readRequestMeta(request.headers, request.cookies.get(DEVICE_COOKIE_NAME)?.value)
+    );
 
-    // Fire-and-forget health logging — never block the request on a monitoring write.
-    logJWTHealthEvent({
-      userId: user.id,
-      eventType: 'validation',
-      tenantId: validation.tenantId || undefined,
-      hadTenantContext: validation.isValid,
-    }).catch(() => {/* ignore — monitoring must not affect request latency */});
-
-    if (!validation.isValid) {
-      // If repair is possible, attempt it
-      if (validation.needsRepair && validation.tenantId) {
-        logger.info('Repairing JWT tenant context', {
-          feature: 'jwt-tenant-validator',
-          action: 'validateJWTWithTenant',
-          userId: user.id,
-          tenantId: validation.tenantId,
-        });
-
-        const repairResult = await repairJWTTenantContext(user.id, validation.tenantId);
-
-        logJWTHealthEvent({
-          userId: user.id,
-          eventType: 'repair',
-          tenantId: validation.tenantId,
-          hadTenantContext: false,
-          repairAttempted: true,
-          repairSuccessful: repairResult.success,
-          errorMessage: repairResult.error,
-        }).catch(() => {/* ignore */});
-
-        if (repairResult.success) {
-          // Refresh session to get new JWT with tenant context
-          const { error: refreshError } = await supabase.auth.refreshSession();
-
-          if (refreshError) {
-            logger.error('Failed to refresh session after JWT repair', refreshError as Error, {
-              feature: 'jwt-tenant-validator',
-              action: 'validateJWTWithTenant',
-              userId: user.id,
-            });
-            return NextResponse.json(
-              { error: 'Failed to refresh session' },
-              { status: 500 }
-            );
-          }
-
-          // Re-validate after repair
-          const { data: { user: refreshedUser } } = await supabase.auth.getUser();
-          if (refreshedUser) {
-            const revalidation = await validateJWTTenantContext(refreshedUser);
-            if (revalidation.isValid && revalidation.tenantId) {
-              logJWTHealthEvent({
-                userId: refreshedUser.id,
-                eventType: 'validation',
-                tenantId: revalidation.tenantId,
-                hadTenantContext: true,
-              }).catch(() => {/* ignore */});
-
-              return {
-                user: refreshedUser,
-                tenantId: revalidation.tenantId,
-                userId: refreshedUser.id,
-                isValid: true,
-              };
-            }
-          }
-        }
-      }
-
-      // If repair failed or not possible, reject request
-      logger.warn('JWT tenant validation failed', {
+    if (!isSessionActive(validation) || !validation.tenantOrgId) {
+      logger.warn('Session not active', {
         feature: 'jwt-tenant-validator',
         action: 'validateJWTWithTenant',
         userId: user.id,
-        error: validation.error,
+        state: validation.state,
+        reason: validation.endReason,
       });
-
-      return NextResponse.json(
-        {
-          error: validation.error || 'Invalid tenant context',
-          code: 'TENANT_CONTEXT_MISSING',
-        },
-        { status: 403 }
-      );
+      return sessionEndedResponse(validation);
     }
 
-    // JWT is valid with tenant context
     return {
       user,
-      tenantId: validation.tenantId!,
+      tenantId: validation.tenantOrgId,
       userId: user.id,
       isValid: true,
     };
   } catch (error) {
-    logger.error('Error validating JWT tenant context', error as Error, {
+    // Fail closed: an unvalidated session must not be let through.
+    logger.error('Error validating session', error as Error, {
       feature: 'jwt-tenant-validator',
       action: 'validateJWTWithTenant',
     });
 
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: 'Session validation unavailable', code: 'SESSION_VALIDATION_UNAVAILABLE' },
+      { status: 503 }
     );
   }
 }
 
 /**
- * Middleware wrapper that validates JWT tenant context
- * Use this in API routes before processing requests
- * 
+ * Middleware wrapper that validates the session and resolves the tenant.
+ * Use this in API routes before processing requests.
+ *
  * @param handler
  * @example
  * ```typescript
  * export async function GET(request: NextRequest) {
  *   const jwtValidation = await validateJWTWithTenant(request);
  *   if (jwtValidation instanceof NextResponse) return jwtValidation;
- *   
+ *
  *   const { tenantId, userId } = jwtValidation;
  *   // Proceed with tenant-scoped operations
  * }
@@ -179,7 +106,7 @@ export function withJWTTenantValidation<T>(
 ) {
   return async (request: NextRequest): Promise<T | NextResponse> => {
     const validation = await validateJWTWithTenant(request);
-    
+
     if (validation instanceof NextResponse) {
       return validation;
     }
@@ -187,4 +114,3 @@ export function withJWTTenantValidation<T>(
     return handler(validation, request);
   };
 }
-

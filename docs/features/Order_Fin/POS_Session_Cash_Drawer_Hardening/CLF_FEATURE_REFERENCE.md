@@ -39,7 +39,7 @@ Drawer page tabs: Sessions · Ledger · Transactions · Counts · Policy. Shared
 
 ## 5. Settings
 
-Tenant defaults in `org_fin_cash_ctrl_stng_cf` (one typed column per setting, audit in `org_fin_cash_ctrl_audit_dtl`); a drawer may override a subset (`/[drawerId]/policy`, resolved drawer → tenant by `cash-drawer-policy` services). Relevant to CLF: count required at open/close, blind close, variance gate mode and thresholds, count modes, disposition rules, POS-session requirement. Disposition and custody rules are catalog data (`sys_cash_drawer_ses_disp_cd`, `sys_cash_drawer_trx_type_cd`), not code.
+Tenant defaults in `org_fin_cash_ctrl_stng_cf` (one typed column per setting, audit in `org_fin_cash_ctrl_audit_dtl`); a drawer may override a subset (`/[drawerId]/policy`, resolved drawer → tenant by `cash-drawer-policy` services). Relevant to CLF: count required at open/close, blind close, variance gate mode and thresholds, count modes, disposition rules, POS-session requirement is per finance screen (`pos_session_mode_*`, migration 0554; order entry / later collection / wallet-advance-gift-card sales / cash refunds). Disposition and custody rules are catalog data (`sys_cash_drawer_ses_disp_cd`, `sys_cash_drawer_trx_type_cd`), not code.
 
 ## 6. Constants
 

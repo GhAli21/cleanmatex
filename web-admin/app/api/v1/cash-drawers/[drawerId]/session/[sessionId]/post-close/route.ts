@@ -5,6 +5,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { updatePostClose } from '@/lib/services/cash-drawer-session.service';
 import { updatePostCloseRequestSchema } from '@/lib/validations/cash-drawer/session-schemas';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { guardCashDrawerSessionBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * PUT /api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close
@@ -28,6 +29,8 @@ export async function PUT(
   const { tenantId, userId } = auth;
 
   const { sessionId } = await params;
+  const sessionDenied = await guardCashDrawerSessionBranch(auth, sessionId);
+  if (sessionDenied) return sessionDenied;
   const body = await request.json().catch(() => null);
   const parsed = updatePostCloseRequestSchema.safeParse(body);
   if (!parsed.success) {

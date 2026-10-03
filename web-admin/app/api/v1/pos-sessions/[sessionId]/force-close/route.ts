@@ -6,6 +6,7 @@ import { forceClosePosSession, getPosSessionOwner } from '@/lib/services/pos-ses
 import { posSessionForceCloseSchema } from '@/lib/validations/pos-session-schemas';
 import { posSessionErrorResponse, posSessionResponse } from '../../_response';
 import { POS_SESSION_PERMISSIONS } from '@/lib/constants/permissions/pos-session-perm';
+import { guardPosSessionBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * POST /api/v1/pos-sessions/:sessionId/force-close
@@ -36,6 +37,10 @@ export async function POST(
 
   const { sessionId } = await params;
 
+
+  const branchDenied = await guardPosSessionBranch(auth, sessionId);
+
+  if (branchDenied) return branchDenied;
   try {
     const owner = await getPosSessionOwner({ tenantId: auth.tenantId, posSessionId: sessionId });
     if (!owner) {

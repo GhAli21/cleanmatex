@@ -223,7 +223,7 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
             </CmxButton>
           )}
           {/* The branch pending-deposit drawer is system-provisioned; the server rejects edit/deactivate too. */}
-          {d.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT ? (
+          {d.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT || d.drawer_type === DRAWER_TYPES.IN_TRANSIT ? (
             <Badge variant="secondary">{t('cashDrawers.systemDrawer')}</Badge>
           ) : (
             <>

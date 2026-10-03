@@ -55,6 +55,9 @@ import { hashPayload } from '@/lib/utils/idempotency';
 import bcrypt from 'bcryptjs';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 import { safeDispatchAutoPost } from '@/lib/services/erp-lite-auto-post.util';
+import { resolvePosSessionForFinanceTx } from '@/lib/services/pos-session.service';
+import { POS_SESSION_SURFACE } from '@/lib/constants/pos-session';
+import { financeTenderScopeOf } from '@/lib/utils/cash-method';
 import type { PaymentMethodCode } from '@/lib/constants/payment';
 
 /** Prisma interactive-transaction client type, matching every other financial service. */
@@ -374,6 +377,18 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
       tx,
     );
 
+    // B1: the server resolves the POS session (the request value is only a cross-check) and
+    // refuses a tender the cash-control settings say needs one.
+    const posSession = await resolvePosSessionForFinanceTx(tx, {
+      tenantId,
+      userId: performedBy,
+      posSessionId,
+      branchId: branchId ?? null,
+      surface: POS_SESSION_SURFACE.STORED_VALUE_SALE,
+      tenderScope: financeTenderScopeOf(resolvedLegs.map((r) => r.method.payment_method_code)),
+    });
+    const effectivePosSessionId = posSession?.id ?? undefined;
+
     const lineRole = resolveFundingLineRole(fundingType);
 
     // A6-1b: cash change is rounded to the cash increment; the gap is posted as its own
@@ -423,7 +438,7 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
           check_number: resolved.leg.checkNumber,
           check_bank: resolved.leg.checkBank,
           check_date: resolved.leg.checkDate,
-          pos_session_id: posSessionId,
+          pos_session_id: effectivePosSessionId,
           idempotency_key: `${idempotencyKey}_leg_${resolved.legIndex}`,
         },
         performedBy,
@@ -448,7 +463,7 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
           customerId: customerId ?? null,
           branchId: branchId ?? null,
           paymentLineId,
-          posSessionId: posSessionId ?? null,
+          posSessionId: effectivePosSessionId ?? null,
           orgPaymentMethodId: resolved.method.id,
           paymentMethodCode: resolved.method.payment_method_code,
           source: { module: 'STORED_VALUE', refType: fundingType, refId: targetId },

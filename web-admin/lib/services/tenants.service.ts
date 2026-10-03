@@ -232,6 +232,8 @@ export async function registerTenant(
         plan_code: 'free',
         status: 'trial',
         base_price: 0,
+        // Required by 0535 (no column default): the subscription bills in the tenant's own currency.
+        currency: request.currency,
         current_period_start: new Date().toISOString(),
         current_period_end: endDate.toISOString(),
         trial_end: trialEnds.toISOString(),

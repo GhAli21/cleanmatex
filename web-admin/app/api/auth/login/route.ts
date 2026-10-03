@@ -7,7 +7,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createServerSupabaseClientForLogin, SB_REMEMBER_ME_COOKIE } from '@/lib/supabase/server';
+import {
+  createAdminSupabaseClient,
+  createServerSupabaseClientForLogin,
+  SB_REMEMBER_ME_COOKIE,
+} from '@/lib/supabase/server';
 import { checkLoginRateLimit } from '@/lib/middleware/rate-limit';
 import { ensureTenantInUserMetadata } from '@/lib/auth/jwt-tenant-manager';
 import {
@@ -16,6 +20,15 @@ import {
   validateCSRFToken,
 } from '@/lib/security/csrf';
 import { logger } from '@/lib/utils/logger';
+import { normalizeLoginIdentifier } from '@/lib/auth/login-identifier';
+import { resolveLoginIdentifier } from '@/lib/services/auth/resolve-login-identifier';
+import { LOGIN_ERROR_CODES } from '@/lib/constants/auth-user';
+import { SESSION_ERROR_CODES, SESSION_REGISTER_STATUS, DEVICE_COOKIE_NAME } from '@/lib/constants/auth-session';
+import { getSessionIdFromToken } from '@/lib/auth/jwt-claims';
+import { generateDeviceId, isValidDeviceId } from '@/lib/services/auth/session/domain/device';
+import { deviceCookieOptions, type RequestMeta } from '@/lib/services/auth/session/request-meta';
+import { startSession } from '@/lib/services/auth/session/use-cases/session-lifecycle';
+import { getSessionLifetime } from '@/lib/services/auth/session/auth-session.repository';
 
 /**
  *
@@ -44,21 +57,56 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password, remember_me: rememberMe = false } = body;
+    // `identifier` = email OR user_code; legacy clients still send `email`.
+    const rawIdentifier: unknown = body.identifier ?? body.email;
+    const { password, remember_me: rememberMe = false } = body;
+    const identifier =
+      typeof rawIdentifier === 'string' ? normalizeLoginIdentifier(rawIdentifier) : '';
 
-    if (!email || !password) {
+    if (!identifier || typeof password !== 'string' || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Sign-in identifier and password are required' },
         { status: 400 }
       );
     }
 
+    // x-forwarded-for can be a comma-separated proxy chain; the INET column needs the client (first) hop.
+    const clientIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      null;
+    const userAgent = request.headers.get('user-agent') || null;
+
     const supabase = await createServerSupabaseClientForLogin(Boolean(rememberMe));
+
+    // Lockout/audit RPCs are service-role only (migration 0561): they are never callable with
+    // the anon key, so an attacker cannot lock accounts, clear lockouts or enumerate emails.
+    const adminSupabase = createAdminSupabaseClient();
+
+    // ─── Resolve identifier (email or user_code) → auth account ───────────
+    // Tenant is resolved server-side from the account's single membership. An unknown identifier
+    // gets the SAME response as a wrong password so accounts/codes cannot be enumerated.
+    const account = await resolveLoginIdentifier(adminSupabase, identifier);
+    if (!account) {
+      await adminSupabase.rpc('record_login_attempt', {
+        p_email: identifier,
+        p_success: false,
+        p_ip_address: clientIp ?? undefined,
+        p_user_agent: userAgent ?? undefined,
+        p_error_message: 'UNKNOWN_IDENTIFIER',
+      });
+      return NextResponse.json(
+        { error: 'Invalid credentials', code: LOGIN_ERROR_CODES.INVALID_CREDENTIALS },
+        { status: 401 }
+      );
+    }
+    // Email used for Supabase password auth and lockout bookkeeping (may be synthetic for code-only users).
+    const email = account.email;
 
     // Check if account is locked
     try {
       console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ is_account_locked`);
-      const { data: lockStatus, error: lockError } = await supabase.rpc('is_account_locked', {
+      const { data: lockStatus, error: lockError } = await adminSupabase.rpc('is_account_locked', {
         p_email: email,
       });
       console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ is_account_locked done — ${lockStatus?.length ?? 0} row(s)`);
@@ -97,11 +145,11 @@ export async function POST(request: NextRequest) {
     if (error) {
       // Record failed login attempt and check if account is now locked
       console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ record_login_attempt (failed)`);
-      const { data: loginResult } = await supabase.rpc('record_login_attempt', {
+      const { data: loginResult } = await adminSupabase.rpc('record_login_attempt', {
         p_email: email,
         p_success: false,
-        p_ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-        p_user_agent: request.headers.get('user-agent') || null,
+        p_ip_address: clientIp ?? undefined,
+        p_user_agent: userAgent ?? undefined,
         p_error_message: error.message,
       });
       console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ record_login_attempt (failed) done — ${loginResult?.length ?? 0} row(s)`);
@@ -119,20 +167,65 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: error.message || 'Invalid email or password' },
+        { error: 'Invalid credentials', code: LOGIN_ERROR_CODES.INVALID_CREDENTIALS },
         { status: 401 }
       );
     }
 
+    // ─── Register the session (server-authoritative lifecycle) ───────────────
+    // The tenant is resolved by the DB from the user's single membership; policy (idle timeout, session
+    // length, concurrent-session limit, new-device detection) is snapshotted onto the session here.
+    const cookieStore = await cookies();
+    const existingDeviceId = cookieStore.get(DEVICE_COOKIE_NAME)?.value;
+    const deviceId = isValidDeviceId(existingDeviceId) ? existingDeviceId : generateDeviceId();
+    if (deviceId !== existingDeviceId) {
+      // First visit from this browser: issue the long-lived device cookie (httpOnly; only its hash is stored).
+      cookieStore.set({ ...deviceCookieOptions(process.env.NODE_ENV === 'production'), value: deviceId });
+    }
+    const requestMeta: RequestMeta = { ipAddress: clientIp, userAgent, deviceId };
+
+    const authSessionId = getSessionIdFromToken(data.session?.access_token);
+    if (!authSessionId) {
+      await supabase.auth.signOut({ scope: 'local' });
+      logger.error('Login produced no session_id claim', new Error('missing session_id'), { feature: 'auth', action: 'login' });
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    const registration = await startSession(adminSupabase, {
+      authSessionId,
+      authUserId: data.user.id,
+      rememberMe: Boolean(rememberMe),
+      meta: requestMeta,
+    });
+
+    if (registration.status === SESSION_REGISTER_STATUS.BLOCKED_SESSION_LIMIT) {
+      // startSession already deleted the Supabase session; clear this browser's cookies too.
+      await supabase.auth.signOut({ scope: 'local' });
+      return NextResponse.json(
+        {
+          error: 'Maximum number of active sessions reached. Sign out on another device and try again.',
+          code: SESSION_ERROR_CODES.SESSION_LIMIT_REACHED,
+        },
+        { status: 409 }
+      );
+    }
+    if (registration.status === SESSION_REGISTER_STATUS.NO_MEMBERSHIP) {
+      await supabase.auth.signOut({ scope: 'local' });
+      return NextResponse.json(
+        { error: 'Your account has been deactivated. Please contact your administrator.' },
+        { status: 403 }
+      );
+    }
+
     // Parallel: record successful login + fetch tenants (both are independent of each other)
-    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null;
+    const ipAddress = clientIp;
     console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ record_login_attempt (success) + get_user_tenants [parallel]`);
     const [, tenantsResult] = await Promise.all([
-      supabase.rpc('record_login_attempt', {
+      adminSupabase.rpc('record_login_attempt', {
         p_email: email,
         p_success: true,
-        p_ip_address: ipAddress,
-        p_user_agent: request.headers.get('user-agent') || null,
+        p_ip_address: ipAddress ?? undefined,
+        p_user_agent: userAgent ?? undefined,
         p_error_message: undefined,
       }),
       supabase.rpc('get_user_tenants'),
@@ -172,14 +265,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Set sb-remember-me so proxy/server/browser respect session vs persistent cookies
-    const cookieStore = await cookies();
-    cookieStore.set(SB_REMEMBER_ME_COOKIE, rememberMe ? '1' : '0', {
+    // Set sb-remember-me so proxy/server/browser respect session vs persistent cookies. Remember-me only
+    // applies when the policy allows it (AUTH_REMEMBER_ME_DAYS > 0): read the effective value from the
+    // registered session, and size the cookie to the session's absolute expiry.
+    const lifetime =
+      registration.sessionRowId && registration.tenantOrgId
+        ? await getSessionLifetime(adminSupabase, {
+            tenantOrgId: registration.tenantOrgId,
+            sessionRowId: registration.sessionRowId,
+          })
+        : null;
+    const effectiveRememberMe = Boolean(lifetime?.isRememberMe);
+    cookieStore.set(SB_REMEMBER_ME_COOKIE, effectiveRememberMe ? '1' : '0', {
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      ...(rememberMe ? { maxAge: 60 * 60 * 24 } : {}),
+      ...(effectiveRememberMe && lifetime
+        ? { maxAge: Math.max(60, Math.floor((new Date(lifetime.expiresAt).getTime() - Date.now()) / 1000)) }
+        : {}),
     });
 
     console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ done — returning response`);

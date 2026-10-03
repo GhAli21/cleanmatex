@@ -13,6 +13,8 @@ import type React from 'react'
 interface IntlProviderProps {
   locale: string
   messages: Record<string, unknown>
+  /** Tenant IANA timezone; undefined falls back to the viewer's own timezone. */
+  timeZone?: string
   children: React.ReactNode
 }
 
@@ -21,11 +23,12 @@ interface IntlProviderProps {
  * @param root0
  * @param root0.locale
  * @param root0.messages
+ * @param root0.timeZone
  * @param root0.children
  */
-export function IntlProvider({ locale, messages, children }: IntlProviderProps) {
+export function IntlProvider({ locale, messages, timeZone, children }: IntlProviderProps) {
   return (
-    <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Muscat">
+    <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
       {children}
     </NextIntlClientProvider>
   )

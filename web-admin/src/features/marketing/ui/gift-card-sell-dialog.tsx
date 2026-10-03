@@ -32,6 +32,8 @@ import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
 import { Alert, AlertDescription } from '@ui/primitives';
 import { sellGiftCardWithTenderAction } from '@/app/actions/marketing/gift-card-actions';
+import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
+import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import {
@@ -103,6 +105,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
   const userId = user?.id;
 
   const [serverError, setServerError]     = useState<string | null>(null);
+  const [posSessionRequired, setPosSessionRequired] = useState<PosSessionRequiredInfo | null>(null);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [copied, setCopied]               = useState(false);
   const [pinVisible, setPinVisible]       = useState(false);
@@ -184,6 +187,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
+    setPosSessionRequired(null);
 
     const issuedTo = sameAsBuyer
       ? (values.purchased_by_cust_id || undefined)
@@ -220,6 +224,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
     });
 
     if (result.success === false) {
+      setPosSessionRequired(readPosSessionRequired({ code: result.error, details: result.errorDetails }));
       setServerError(
         result.error === 'GIFT_CARD_AMOUNT_MUST_BE_POSITIVE' ||
           result.error === 'FUNDED_AMOUNT_MUST_BE_POSITIVE'
@@ -512,6 +517,18 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                   placeholder={tCommon('optional')}
                 />
               </div>
+
+              {posSessionRequired ? (
+                <PosSessionRequiredAction
+                  info={posSessionRequired}
+                  idempotencyKey={idempotencyKey}
+                  sourceChannel="gift_card_sale"
+                  onOpened={() => {
+                    setPosSessionRequired(null);
+                    setServerError(null);
+                  }}
+                />
+              ) : null}
 
               <CmxDialogFooter>
                 <CmxButton type="button" variant="outline" onClick={handleClose}>

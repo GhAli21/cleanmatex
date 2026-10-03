@@ -59,6 +59,8 @@ export const FINANCE_PERMISSIONS = {
   CASH_DRAWER_RECEIVE_TRANSFER: 'cash_drawer:receive_transfer',
   CASH_DRAWER_DEPOSIT: 'cash_drawer:deposit',
   CASH_DRAWER_VIEW_ALL_BRANCHES: 'cash_drawer:view_all_branches',
+  /** B3-1 (migration 0555): operate any drawer even when it is ASSIGNED_ONLY to someone else (supervisor override). */
+  CASH_DRAWER_OPERATE_ANY: 'cash_drawer:operate_any',
   /** CLF (migration 0529): gates the drawer "Cash in / Cash out" dialog, which posts finance vouchers. */
   CASH_DRAWER_RECORD_MOVEMENT: 'cash_drawer:record_movement',
   /** CLF (migration 0529): after-close follow-up status + notes on a closed session. */

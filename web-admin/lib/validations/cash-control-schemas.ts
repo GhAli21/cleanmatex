@@ -9,6 +9,7 @@ import {
   CASH_CONTROL_TRACKING_MODE,
   CASH_CONTROL_VARIANCE_GATE_MODE,
 } from '@/lib/constants/cash-control'
+import { POS_SESSION_REQUIREMENT_MODE } from '@/lib/constants/pos-session'
 
 /**
  * Shared client/server validation for the cash-control settings PUT payload
@@ -45,8 +46,12 @@ export const cashControlSettingsPatchSchema = z.object({
   sharedSessionMode: z.enum(enumValues(CASH_CONTROL_SHARED_SESSION_MODE)).nullable().optional(),
   maxCashEnforceMode: z.enum(enumValues(CASH_CONTROL_MAX_CASH_ENFORCE_MODE)).nullable().optional(),
   cashDropRequiresDest: z.boolean().nullable().optional(),
-  posSessionReqForCash: z.boolean().nullable().optional(),
-  posSessionReqAllTenders: z.boolean().nullable().optional(),
+  posSessionModeOrderEntry: z.enum(enumValues(POS_SESSION_REQUIREMENT_MODE)).nullable().optional(),
+  posSessionModeLaterColl: z.enum(enumValues(POS_SESSION_REQUIREMENT_MODE)).nullable().optional(),
+  posSessionModeStoredVal: z.enum(enumValues(POS_SESSION_REQUIREMENT_MODE)).nullable().optional(),
+  posSessionModeCashRefd: z.enum(enumValues(POS_SESSION_REQUIREMENT_MODE)).nullable().optional(),
+  posSessionModeCustRcpt: z.enum(enumValues(POS_SESSION_REQUIREMENT_MODE)).nullable().optional(),
+  posSessionModeManualVchr: z.enum(enumValues(POS_SESSION_REQUIREMENT_MODE)).nullable().optional(),
   posSessionRolloverMode: z.enum(enumValues(CASH_CONTROL_ROLLOVER_MODE)).nullable().optional(),
   posSessionStaleHours: z.number().int().positive().nullable().optional(),
   shiftZReportRequired: z.boolean().nullable().optional(),

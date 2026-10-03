@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Check, Copy, CreditCard, RefreshCw, Search, ShieldAlert, UserPlus } from 'lucide-react';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
@@ -39,6 +40,9 @@ import {
 } from '@features/pos-sessions/api/pos-session-api';
 import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-close-wizard';
 import { PosSessionDrawerLinker } from '@features/pos-sessions/ui/pos-session-drawer-linker';
+import { PosSessionAttentionNotice, PosSessionFlagBadges } from '@features/pos-sessions/ui/pos-session-flags';
+import { getPosSessionFlags, posSessionErrorKey } from '@features/pos-sessions/model/pos-session-flags';
+import { needsDrawerSelection } from '@features/pos-sessions/model/pos-session-drawer-link';
 import type {
   GetMyActivePosSessionResult,
   PosSessionListResult,
@@ -137,6 +141,7 @@ type PosSessionLookupKind = Exclude<PosSessionFilterOptionType, 'cashDrawerSessi
 export function PosSessionsScreen() {
   const t = useTranslations('posSessions');
   const tCommon = useTranslations('common');
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { token: csrfToken } = useCSRFToken();
   const canViewAll = useHasPermissionCode('pos_session:view_all');
@@ -276,7 +281,8 @@ export function PosSessionsScreen() {
         cmxMessage.info(t('messages.drawerStillOpen'));
         return 'drawer-open';
       }
-      cmxMessage.error(error instanceof Error ? error.message : t('messages.actionFailed'));
+      const errorKey = error instanceof PosSessionApiError ? posSessionErrorKey(error.errorCode) : null;
+      cmxMessage.error(errorKey ? t(`errors.${errorKey}`) : error instanceof Error ? error.message : t('messages.actionFailed'));
       return 'error';
     } finally {
       setBusyAction(null);
@@ -383,7 +389,12 @@ export function PosSessionsScreen() {
     {
       key: 'status',
       header: t('status'),
-      render: (row) => <CmxStatusBadge label={row.status} variant={statusVariant(row.status)} size="sm" />,
+      render: (row) => (
+        <>
+          <CmxStatusBadge label={row.status} variant={statusVariant(row.status)} size="sm" />
+          <PosSessionFlagBadges session={row} />
+        </>
+      ),
     },
     {
       key: 'operator',
@@ -467,6 +478,13 @@ export function PosSessionsScreen() {
             <CmxButton size="sm" variant="outline" onClick={() => setEventsSession(row)}>
               {t('viewEvents')}
             </CmxButton>
+            <CmxButton
+              size="sm"
+              variant="outline"
+              onClick={() => router.push(`/dashboard/internal_fin/pos-sessions/${row.id}/report`)}
+            >
+              {t('viewReport')}
+            </CmxButton>
             {canCloseRow ? (
               <CmxButton
                 size="sm"
@@ -507,6 +525,12 @@ export function PosSessionsScreen() {
   const activeTerminalLabel = activeSessionContext?.terminal_name
     ? [activeSessionContext.terminal_name, activeSessionContext.terminal_code].filter(Boolean).join(' · ')
     : activeSession?.terminal_id ?? null;
+  const activeSessionNeedsDrawer = activeSession
+    ? needsDrawerSelection({
+        cash_drawer_session_id: activeSession.cash_drawer_session_id,
+        cash_drawer_session_status: activeSessionContext?.cash_drawer_session_status ?? null,
+      })
+    : false;
   const resetFilters = () => {
     setPage(1);
     setBranchId('');
@@ -609,6 +633,7 @@ export function PosSessionsScreen() {
                       variant={statusVariant(activeSession.status)}
                       size="sm"
                     />
+                    <PosSessionFlagBadges session={activeSession} />
                   </InfoRow>
                   <InfoRow label={t('sessionNo')} value={activeSession.session_no} copyValue={activeSession.session_no} />
                   <InfoRow label={t('businessDate')} value={activeSession.business_date} />
@@ -619,23 +644,55 @@ export function PosSessionsScreen() {
                     value={activeTerminalLabel ?? t('none')}
                     copyValue={activeSessionContext?.terminal_code ?? activeSession.terminal_id}
                   />
-                  <InfoRow
-                    label={t('cashDrawer')}
-                    value={activeSessionContext?.cash_drawer_name ?? activeSession.cash_drawer_id ?? t('none')}
-                    copyValue={activeSession.cash_drawer_id}
-                  />
-                  <InfoRow
-                    label={t('drawerSession')}
-                    value={activeSessionContext?.cash_drawer_session_no ?? activeSession.cash_drawer_session_id ?? t('none')}
-                    copyValue={activeSessionContext?.cash_drawer_session_no ?? activeSession.cash_drawer_session_id}
-                  >
-                    {activeSessionContext?.cash_drawer_session_status ? (
-                      <Badge variant={activeSessionContext.cash_drawer_session_status === 'OPEN' ? 'success' : 'secondary'}>
-                        {activeSessionContext.cash_drawer_session_status}
-                      </Badge>
-                    ) : null}
-                  </InfoRow>
+                  {!activeSessionNeedsDrawer ? (
+                    <>
+                      <InfoRow
+                        label={t('cashDrawer')}
+                        value={activeSessionContext?.cash_drawer_name ?? activeSession.cash_drawer_id ?? t('none')}
+                        copyValue={activeSession.cash_drawer_id}
+                      />
+                      <InfoRow
+                        label={t('drawerSession')}
+                        value={activeSessionContext?.cash_drawer_session_no ?? activeSession.cash_drawer_session_id ?? t('none')}
+                        copyValue={activeSessionContext?.cash_drawer_session_no ?? activeSession.cash_drawer_session_id}
+                      >
+                        {activeSessionContext?.cash_drawer_session_status ? (
+                          <Badge variant="success">{activeSessionContext.cash_drawer_session_status}</Badge>
+                        ) : null}
+                      </InfoRow>
+                    </>
+                  ) : null}
                 </dl>
+                {canViewCashDrawer && activeSessionNeedsDrawer ? (
+                  activeSession.status === POS_SESSION_STATUS.OPEN ? (
+                    <div className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+                      {activeSession.cash_drawer_session_id ? (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                          <p className="font-medium">{t('drawerSessionClosedTitle')}</p>
+                          <p className="mt-1 text-amber-900">
+                            {t('drawerSessionClosedDescription', {
+                              drawer: activeSessionContext?.cash_drawer_name ?? t('none'),
+                              sessionNo: activeSessionContext?.cash_drawer_session_no ?? t('none'),
+                              status: activeSessionContext?.cash_drawer_session_status ?? t('none'),
+                            })}
+                          </p>
+                        </div>
+                      ) : null}
+                      <PosSessionDrawerLinker
+                        branchId={activeSession.branch_id}
+                        posSessionId={activeSession.id}
+                        canViewCashDrawer={canViewCashDrawer}
+                        canOpenCashDrawer={canOpenCashDrawer}
+                        onLinked={refreshAll}
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                      {t('hub.resumeBeforeDrawerLink')}
+                    </div>
+                  )
+                ) : null}
+                <PosSessionAttentionNotice session={activeSession} />
                 <div className="flex flex-wrap gap-2">
                   {canPauseResume && activeSession.status === POS_SESSION_STATUS.OPEN ? (
                     <CmxButton
@@ -646,7 +703,7 @@ export function PosSessionsScreen() {
                       {t('pause')}
                     </CmxButton>
                   ) : null}
-                  {canPauseResume && activeSession.status === POS_SESSION_STATUS.PAUSED ? (
+                  {canPauseResume && getPosSessionFlags(activeSession).canResume ? (
                     <CmxButton
                       variant="secondary"
                       loading={busyAction === 'resume'}
@@ -655,6 +712,12 @@ export function PosSessionsScreen() {
                       {t('resume')}
                     </CmxButton>
                   ) : null}
+                  <CmxButton
+                    variant="outline"
+                    onClick={() => router.push(`/dashboard/internal_fin/pos-sessions/${activeSession.id}/report`)}
+                  >
+                    {t('viewReport')}
+                  </CmxButton>
                   {canClose ? (
                     <CmxButton
                       variant="outline"

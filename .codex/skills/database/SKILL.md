@@ -118,15 +118,35 @@ CONSTRAINT chk_<tbl>_fx_same_ccy CHECK (
 ```
 
 
+## Prisma-safe composite FKs (MUST — write-time)
+
+**Invariant:** FK columns + 1:1 UNIQUE + referenced parent key = **same columns, same order**.
+Postgres treats `(a,b)` and `(b,a)` as the same unique. Prisma 6 does not (`db pull` → P1012).
+
+| Parent key already in DB | Child FK and 1:1 UNIQUE must be | Tenant position |
+|---|---|---|
+| `(id, tenant_org_id)` | `(parent_id, tenant_org_id)` | **second** — this is `0553` |
+| `(tenant_org_id, id)` | `(tenant_org_id, parent_id)` | first |
+
+**MUST NOT:** `UNIQUE (tenant_org_id, parent_id)` + `FOREIGN KEY (parent_id, tenant_org_id)`. Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. List indexes stay tenant-first.
+
 ## Composite Foreign Keys (CRITICAL for tenant isolation)
 
+**Prisma-safe order (MUST):** copy the parent key that already exists.
+
 ```sql
+-- Parent unique/PK is (tenant_org_id, id)
 FOREIGN KEY (tenant_org_id, customer_id)
-  REFERENCES org_customers_mst(tenant_org_id, customer_id)
+  REFERENCES org_customers_mst(tenant_org_id, id)
   ON DELETE CASCADE
+
+-- Parent unique/PK is (id, tenant_org_id) — tenant second (0553)
+FOREIGN KEY (account_id, tenant_org_id)
+  REFERENCES org_fin_acct_mst(id, tenant_org_id)
+  ON DELETE RESTRICT
 ```
 
-**Why?** Database-level enforcement of tenant boundaries prevents cross-tenant data leaks.
+**Why?** Database-level tenant isolation. Column order is for Prisma 6, not a second uniqueness rule.
 
 ## Standard Indexes
 

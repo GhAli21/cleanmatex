@@ -1,18 +1,18 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-10-02T19:58:18.617Z
-Git SHA: f3e4ff5a
+Generated: 2026-10-03T09:04:51.046Z
+Git SHA: 7daa4ee1
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 155 |
-| Permission usages | 374 |
+| Access contracts | 162 |
+| Permission usages | 400 |
 | Feature flag usages | 82 |
 | Setting usages | 29 |
 | Plan limit usages | 8 |
-| Navigation entries | 104 |
-| Flag catalog entries | 298 |
+| Navigation entries | 107 |
+| Flag catalog entries | 299 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
 | --- | --- | --- | --- | --- |
@@ -81,9 +81,11 @@ Git SHA: f3e4ff5a
 | /dashboard/internal_fin/ar/statements/print | Print Customer Statement | customer_statements:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers | Cash Drawers | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers/[drawerId] | Cash Drawer Details | cash_drawer:view | — | 7 |
-| /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId] | Cash Drawer Session Details | cash_drawer:view | — | 2 |
+| /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId] | Cash Drawer Session Details | cash_drawer:view | — | 3 |
 | /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print | Print Cash Drawer Session | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers/follow-up | Cash Deposit Follow-up | cash_drawer:view_reports | — | 0 |
+| /dashboard/internal_fin/cash-drawers/in-transit | Cash In Transit | cash_drawer:transfer | — | 3 |
+| /dashboard/internal_fin/cash-drawers/variance-approvals | Cash Variance Approvals | cash_drawer:approve_variance | — | 1 |
 | /dashboard/internal_fin/invoices | Invoices | invoices:read | — | 0 |
 | /dashboard/internal_fin/invoices/[id] | Invoice Details | invoices:read | — | 0 |
 | /dashboard/internal_fin/invoices/[id]/print | Print AR Invoice | invoices:print | — | 0 |
@@ -91,6 +93,8 @@ Git SHA: f3e4ff5a
 | /dashboard/internal_fin/outbox | Financial Outbox Monitor | finance_outbox:view | — | 0 |
 | /dashboard/internal_fin/pending-payments | Pending Payments | orders:pending_payments_view | — | 0 |
 | /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 11 |
+| /dashboard/internal_fin/pos-sessions/[sessionId]/report | POS Shift Report (X / Z) | pos_session:view | — | 1 |
+| /dashboard/internal_fin/pos-sessions/[sessionId]/report/print | POS Shift Report (print) | pos_session:view | — | 0 |
 | /dashboard/internal_fin/reconciliation | Finance Reconciliation | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/reconciliation/[runId] | Finance Reconciliation Details | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/refunds | Refunds | orders:process_refund | — | 0 |
@@ -136,6 +140,8 @@ Git SHA: f3e4ff5a
 | /dashboard/ready/[id]/print/[type] | Print Ready Document | — | — | 0 |
 | /dashboard/receipts/[orderId] | Receipt Details | — | — | 0 |
 | /dashboard/reports | Reports | — | advanced_analytics | 0 |
+| /dashboard/reports/cash-variance | Cash Variance by Cashier | cash_drawer:view_reports | — | 0 |
+| /dashboard/reports/cash-variance/print | Cash Variance by Cashier (print) | cash_drawer:view_reports | — | 0 |
 | /dashboard/reports/customers | Customers Report | — | advanced_analytics | 0 |
 | /dashboard/reports/financial | Financial Report | — | advanced_analytics | 0 |
 | /dashboard/reports/invoices | Invoices Report | — | advanced_analytics | 0 |
@@ -159,6 +165,7 @@ Git SHA: f3e4ff5a
 | /dashboard/settings/permissions | Permissions Management | *:*, settings:* | — | 0 |
 | /dashboard/settings/preferences | Settings Preferences | — | — | 0 |
 | /dashboard/settings/roles | Roles Management | *:*, settings:* | — | 0 |
+| /dashboard/settings/security | Security & Sessions | auth_config:read | — | 0 |
 | /dashboard/settings/tax | Tax Setup | tax:view_config | — | 0 |
 | /dashboard/settings/tenant | Tenant Settings | — | — | 0 |
 | /dashboard/settings/users | Settings Users | — | — | 0 |

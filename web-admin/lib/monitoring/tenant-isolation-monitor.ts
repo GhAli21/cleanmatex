@@ -4,7 +4,8 @@
  * Monitors tenant isolation violations and logs them for alerting.
  */
 
-import { createClient } from '@/lib/supabase/server';
+// sys_audit_log is service-role only (migration 0561): the cookie-bound user client cannot read/write it.
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { validateTenantIsolation } from '../validation/tenant-isolation-validator';
 
@@ -29,8 +30,8 @@ export async function logIsolationViolation(
   violation: Omit<IsolationViolation, 'id' | 'detectedAt'>
 ): Promise<void> {
   try {
-    const supabase = await createClient();
-    
+    const supabase = createAdminSupabaseClient();
+
     // Log to sys_audit_log
     await supabase.from('sys_audit_log').insert({
       tenant_org_id: violation.tenantId,
@@ -96,7 +97,7 @@ export async function monitorTenantIsolation(
  */
 export async function getRecentViolations(hours: number = 24): Promise<any[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminSupabaseClient();
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
     
     const { data, error } = await supabase

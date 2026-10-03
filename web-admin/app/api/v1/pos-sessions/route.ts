@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { listPosSessions } from '@/lib/services/pos-session.service';
+import { narrowBranchFilter, resolveBranchScope } from '@/lib/services/branch-access.service';
 import { posSessionListQuerySchema } from '@/lib/validations/pos-session-schemas';
 import { posSessionErrorResponse, posSessionResponse } from './_response';
 
@@ -37,6 +38,8 @@ export async function GET(request: NextRequest) {
       page: parsed.data.page,
       pageSize: parsed.data.pageSize,
       branchId: parsed.data.branchId,
+      // B3: other users' sessions only from the actor's permitted branches.
+      branchIds: narrowBranchFilter(await resolveBranchScope(auth)),
       filterUserId: parsed.data.userId,
       operatorQuery: parsed.data.operatorQuery,
       terminalQuery: parsed.data.terminalQuery,

@@ -33,7 +33,20 @@
       "mcp__supabase_remote_db__list_migrations",
       "Bash(python -)",
       "Read(//c/Users/JHNLP/AppData/Local/Temp/claude/f--jhapp-cleanmatex/70fe7673-dad5-49bc-b444-2da34ab46c3f/scratchpad/**)",
-      "Bash(sed -i \"s/RAISE EXCEPTION 'DRYRUN OK len=%', length\\(v_new\\);/EXECUTE v_new; RAISE EXCEPTION 'DRYRUN EXEC OK';/\" dry0551.sql)"
+      "Bash(sed -i \"s/RAISE EXCEPTION 'DRYRUN OK len=%', length\\(v_new\\);/EXECUTE v_new; RAISE EXCEPTION 'DRYRUN EXEC OK';/\" dry0551.sql)",
+      "Bash(node scratch-edit-sweep.cjs)",
+      "Bash(node scratch-edit-ui.cjs)",
+      "Bash(node scratch-edit-branch-route.cjs)",
+      "Bash(node scratch-edit-branch-ui.cjs)",
+      "Bash(node scratch-edit-tz.cjs)",
+      "Bash(node scratch-edit-tz2.cjs)",
+      "mcp__supabase_remote_db__execute_sql",
+      "Bash(node scratch-denom3.cjs)",
+      "Bash(node scratch-e2.cjs)",
+      "Bash(node scratch-countmode.cjs)",
+      "Bash(NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit -p tsconfig.json)",
+      "Bash(node scratch-countui.cjs)",
+      "Bash(node scratch-ut.cjs)"
     ],
     "deny": [
       "Read(**/node_modules/**)",

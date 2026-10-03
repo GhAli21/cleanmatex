@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { getClosePreview } from '@/lib/services/cash-drawer-session.service';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { guardCashDrawerSessionBranch, guardDrawerBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * GET /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview
@@ -24,6 +25,10 @@ export async function GET(
   const { tenantId, userId } = auth;
 
   const { drawerId, sessionId } = await params;
+  const branchDenied = await guardDrawerBranch(auth, drawerId);
+  if (branchDenied) return branchDenied;
+  const sessionDenied = await guardCashDrawerSessionBranch(auth, sessionId);
+  if (sessionDenied) return sessionDenied;
 
   try {
     const result = await getClosePreview(tenantId, userId, { drawerId, sessionId });

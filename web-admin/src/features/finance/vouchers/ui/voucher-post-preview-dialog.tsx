@@ -11,6 +11,8 @@ import {
   CmxDialogFooter,
 } from '@ui/overlays';
 import { postBizVoucherAction } from '@/app/actions/finance/voucher-actions';
+import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
+import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 import { LINE_ROLE } from '@/lib/constants/voucher';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import type { VoucherLineData } from '@/lib/types/voucher';
@@ -55,18 +57,28 @@ export function VoucherPostPreviewDialog({
 }: VoucherPostPreviewDialogProps) {
   const t = useTranslations('finance.vouchers.postPreview');
   const tCommon = useTranslations('common');
+  const tLedger = useTranslations('cashControl.ledgerErrors');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [posSessionRequired, setPosSessionRequired] = useState<PosSessionRequiredInfo | null>(null);
 
   const draftLines = lines.filter((l) => l.line_status === 'DRAFT');
 
   const handleConfirm = async () => {
     setLoading(true);
     setError(null);
+    setPosSessionRequired(null);
     try {
       const result = await postBizVoucherAction(voucherId);
       if (!result.success) {
-        setError(result.error ?? 'Failed to post voucher');
+        // A POS-session refusal gets translated text and an inline "Open POS session" action.
+        const required = readPosSessionRequired({ code: result.errorCode, details: result.errorDetails });
+        setPosSessionRequired(required);
+        setError(
+          result.errorCode && tLedger.has(result.errorCode as Parameters<typeof tLedger>[0])
+            ? tLedger(result.errorCode as Parameters<typeof tLedger>[0])
+            : (result.error ?? 'Failed to post voucher')
+        );
         return;
       }
       onSuccess();
@@ -122,6 +134,18 @@ export function VoucherPostPreviewDialog({
           {error && (
             <p className="mt-3 text-sm font-medium text-destructive">{error}</p>
           )}
+          {posSessionRequired ? (
+            <PosSessionRequiredAction
+              info={posSessionRequired}
+              idempotencyKey={`voucher_post_${voucherId}`}
+              sourceChannel="manual_voucher"
+              className="mt-2"
+              onOpened={() => {
+                setPosSessionRequired(null);
+                setError(null);
+              }}
+            />
+          ) : null}
         </div>
 
         <CmxDialogFooter>

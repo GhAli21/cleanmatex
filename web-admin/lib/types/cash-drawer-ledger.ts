@@ -56,6 +56,18 @@ export interface CashLineDecisionInput {
   // Resolved cash-control setting (settings chain → type default → constant).
   requiresSession: boolean;
   mode: CashGateMode;
+  /** B3-1: who may operate the drawer; omitted = no assignment rule applies. */
+  assignment?: DrawerAssignmentFacts;
+}
+
+/** Assignment facts for one drawer and the acting user (B3-1). */
+export interface DrawerAssignmentFacts {
+  /** Resolved `drawer_assignment_mode`: `OPEN` (any cashier) or `ASSIGNED_ONLY`. */
+  mode: string;
+  assignedUserId: string | null;
+  actorUserId: string;
+  /** Holds `cash_drawer:operate_any` (supervisor override). */
+  actorCanOperateAny: boolean;
 }
 
 /**

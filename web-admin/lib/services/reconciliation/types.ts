@@ -22,14 +22,15 @@ import {
   type ReconciliationCheckName,
   type ReconciliationSeverity,
 } from '@/lib/constants/order-financial';
-import { CASH_VARIANCE_TOLERANCE } from '@/lib/constants/financial-tolerances';
+import { MONEY_COMPARISON_TOLERANCE } from '@/lib/constants/financial-tolerances';
 
 /**
- * Physical-cash variance tolerance for drawer/cash reconciliation checks.
- * Value owned by `lib/constants/financial-tolerances` (B15); order-level
- * checks use the strict `MONEY_COMPARISON_TOLERANCE` instead.
+ * Ledger-equality tolerance of the reconciliation engine's checks (order, voucher, stored-value).
+ * These compare two computed money amounts, so they use the strict class owned by
+ * `lib/constants/financial-tolerances` (B15). Physical cash counted against expected is NOT
+ * compared here — that is `varianceToleranceFor(decimalPlaces)`.
  */
-export const RECONCILIATION_TOLERANCE = CASH_VARIANCE_TOLERANCE;
+export const RECONCILIATION_TOLERANCE = MONEY_COMPARISON_TOLERANCE;
 
 /**
  * Output of a single reconciliation check.

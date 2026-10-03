@@ -9,6 +9,7 @@ import {
   listPosSessionFilterOptions,
   listPosSessions,
   PosSessionError,
+  resolvePosSessionForFinanceTx,
   resumePosSession,
 } from '@/lib/services/pos-session.service';
 import type { PosSessionRow, PosSessionWithContext } from '@/lib/types/pos-session';
@@ -47,6 +48,11 @@ jest.mock('@/lib/db/prisma', () => ({
       __tx: tx,
     };
   })(),
+}));
+
+const mockCashControlSettings = jest.fn();
+jest.mock('@/lib/services/cash-control-settings.service', () => ({
+  getCashControlSettings: (...args: unknown[]) => mockCashControlSettings(...args),
 }));
 
 jest.mock('@/lib/db/tenant-context', () => ({
@@ -140,6 +146,9 @@ describe('pos-session.service', () => {
     mockTx.org_idempotency_keys.findFirst.mockReset();
     mockTx.org_idempotency_keys.upsert.mockReset();
     mockTx.org_idempotency_keys.findFirst.mockResolvedValue(null);
+    // E2-2: linking consults the drawer's sharing policy; SHARED (the default) never blocks.
+    mockCashControlSettings.mockReset();
+    mockCashControlSettings.mockResolvedValue({ sharedSessionMode: 'SHARED' });
   });
 
   it('returns branch conflict instead of silently switching branches', async () => {
@@ -285,10 +294,11 @@ describe('pos-session.service', () => {
     );
   });
 
-  it('auto-link drawer rejects a different drawer after locking the POS session row', async () => {
+  it('auto-link drawer rejects a different drawer that is still genuinely open', async () => {
     mockTx.$queryRaw
       .mockResolvedValueOnce([posSession({ cash_drawer_session_id: drawerSessionId })])
-      .mockResolvedValueOnce([{ id: otherDrawerSessionId, cash_drawer_id: 'drawer-2', branch_id: branchA }]);
+      .mockResolvedValueOnce([{ id: otherDrawerSessionId, cash_drawer_id: 'drawer-2', branch_id: branchA }])
+      .mockResolvedValueOnce([{ status: 'OPEN' }]);
 
     await expect(
       autoLinkDrawerTx(mockTx as never, {
@@ -302,7 +312,94 @@ describe('pos-session.service', () => {
       code: 'POS_SESSION_DRAWER_ALREADY_LINKED',
       httpStatus: 409,
     });
-    expect(mockTx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(mockTx.$queryRaw).toHaveBeenCalledTimes(3);
+  });
+
+  it('auto-link drawer replaces a prior link once that drawer session is closed', async () => {
+    mockTx.$queryRaw
+      .mockResolvedValueOnce([posSession({ cash_drawer_session_id: drawerSessionId })])
+      .mockResolvedValueOnce([{ id: otherDrawerSessionId, cash_drawer_id: 'drawer-2', branch_id: branchA }])
+      .mockResolvedValueOnce([{ status: 'CLOSED' }])
+      .mockResolvedValueOnce([posSession({ cash_drawer_session_id: otherDrawerSessionId, cash_drawer_id: 'drawer-2' })]);
+
+    const result = await autoLinkDrawerTx(mockTx as never, {
+      tenantId,
+      userId,
+      posSessionId: sessionId,
+      branchId: branchA,
+      cashDrawerSessionId: otherDrawerSessionId,
+    });
+
+    expect(result).toMatchObject({
+      type: 'UPDATED',
+      session: { cash_drawer_session_id: otherDrawerSessionId },
+    });
+  });
+
+  describe('auto-link drawer under shared_session_mode = EXCLUSIVE (E2-2)', () => {
+    const link = () =>
+      autoLinkDrawerTx(mockTx as never, {
+        tenantId,
+        userId,
+        posSessionId: sessionId,
+        branchId: branchA,
+        cashDrawerSessionId: otherDrawerSessionId,
+      });
+
+    it('refuses a second live POS session on the drawer session and says which one holds it', async () => {
+      mockCashControlSettings.mockResolvedValue({ sharedSessionMode: 'EXCLUSIVE' });
+      mockTx.$queryRaw
+        .mockResolvedValueOnce([posSession()])
+        .mockResolvedValueOnce([{ id: otherDrawerSessionId, cash_drawer_id: 'drawer-2', branch_id: branchA }])
+        .mockResolvedValueOnce([{ id: 'holder-pos-session', session_no: 'POS-HOLDER-1' }]);
+
+      await expect(link()).rejects.toMatchObject({
+        code: 'DRAWER_SESSION_EXCLUSIVE',
+        httpStatus: 409,
+        details: { otherPosSessionId: 'holder-pos-session', otherSessionNo: 'POS-HOLDER-1' },
+      });
+      // The policy is read for THIS drawer, so a drawer-scope override applies.
+      expect(mockCashControlSettings).toHaveBeenCalledWith(expect.objectContaining({ tenantId, drawerId: 'drawer-2' }));
+    });
+
+    it('links when nobody else holds the drawer session', async () => {
+      mockCashControlSettings.mockResolvedValue({ sharedSessionMode: 'EXCLUSIVE' });
+      mockTx.$queryRaw
+        .mockResolvedValueOnce([posSession()])
+        .mockResolvedValueOnce([{ id: otherDrawerSessionId, cash_drawer_id: 'drawer-2', branch_id: branchA }])
+        .mockResolvedValueOnce([]) // no other live POS session
+        .mockResolvedValueOnce([posSession({ cash_drawer_session_id: otherDrawerSessionId, cash_drawer_id: 'drawer-2' })]);
+
+      expect((await link()).type).toBe('UPDATED');
+    });
+
+    it('never asks the question under SHARED, so shared drawers cost no extra query', async () => {
+      mockTx.$queryRaw
+        .mockResolvedValueOnce([posSession()])
+        .mockResolvedValueOnce([{ id: otherDrawerSessionId, cash_drawer_id: 'drawer-2', branch_id: branchA }])
+        .mockResolvedValueOnce([posSession({ cash_drawer_session_id: otherDrawerSessionId, cash_drawer_id: 'drawer-2' })]);
+
+      expect((await link()).type).toBe('UPDATED');
+      expect(mockTx.$queryRaw).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  it('auto-link drawer replaces a prior link once that drawer session is force-closed', async () => {
+    mockTx.$queryRaw
+      .mockResolvedValueOnce([posSession({ cash_drawer_session_id: drawerSessionId })])
+      .mockResolvedValueOnce([{ id: otherDrawerSessionId, cash_drawer_id: 'drawer-2', branch_id: branchA }])
+      .mockResolvedValueOnce([{ status: 'FORCE_CLOSED' }])
+      .mockResolvedValueOnce([posSession({ cash_drawer_session_id: otherDrawerSessionId, cash_drawer_id: 'drawer-2' })]);
+
+    const result = await autoLinkDrawerTx(mockTx as never, {
+      tenantId,
+      userId,
+      posSessionId: sessionId,
+      branchId: branchA,
+      cashDrawerSessionId: otherDrawerSessionId,
+    });
+
+    expect(result.type).toBe('UPDATED');
   });
 
   it('summarizes POS session finance facts from active finance tables', async () => {
@@ -538,6 +635,144 @@ describe('pos-session.service', () => {
         recordState: 'all',
       });
       expect(JSON.stringify(db.$queryRaw.mock.calls[0])).not.toContain('AND ps.is_active = TRUE');
+    });
+  });
+
+  describe('resolvePosSessionForFinanceTx (B1 — server-resolved session)', () => {
+    const base = { tenantId, userId, branchId: branchA, surface: 'ORDER_ENTRY' as const };
+    const modes = (overrides: Record<string, string> = {}) => ({
+      posSessionModeOrderEntry: 'REQUIRED_FOR_CASH',
+      posSessionModeLaterColl: 'OPTIONAL',
+      posSessionModeStoredVal: 'OPTIONAL',
+      posSessionModeCashRefd: 'OPTIONAL',
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      mockTx.$queryRaw.mockReset();
+      mockCashControlSettings.mockReset();
+      mockCashControlSettings.mockResolvedValue(modes());
+    });
+
+    it("uses the actor's own open session when the request names none", async () => {
+      mockTx.$queryRaw.mockResolvedValueOnce([posSession()]);
+      const session = await resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'CASH' });
+      expect(session?.id).toBe(sessionId);
+      expect(mockCashControlSettings).not.toHaveBeenCalled();
+    });
+
+    it("refuses a client-sent session that is not the actor's active one (cross-check only)", async () => {
+      mockTx.$queryRaw.mockResolvedValueOnce([posSession()]);
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, {
+          ...base,
+          posSessionId: '99999999-9999-4999-8999-999999999999',
+          tenderScope: 'CASH',
+        })
+      ).rejects.toMatchObject({ code: 'POS_SESSION_MISMATCH', httpStatus: 409 });
+    });
+
+    it('accepts a client-sent session that matches the active one', async () => {
+      mockTx.$queryRaw.mockResolvedValueOnce([posSession()]).mockResolvedValueOnce([posSession()]);
+      const session = await resolvePosSessionForFinanceTx(mockTx as never, {
+        ...base,
+        posSessionId: sessionId,
+        tenderScope: 'CASH',
+      });
+      expect(session?.id).toBe(sessionId);
+    });
+
+    it('requires a session for cash when the setting says so, with an actionable payload', async () => {
+      mockTx.$queryRaw.mockResolvedValueOnce([]);
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'CASH' })
+      ).rejects.toMatchObject({
+        code: 'POS_SESSION_REQUIRED',
+        httpStatus: 409,
+        details: { reason: 'NONE', canOpenInline: true },
+      });
+      expect(mockCashControlSettings).toHaveBeenCalledWith({ tenantId, branchId: branchA, userId });
+    });
+
+    it('reports a paused session as the reason, with its id', async () => {
+      mockTx.$queryRaw.mockResolvedValueOnce([posSession({ status: POS_SESSION_STATUS.PAUSED })]);
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'CASH' })
+      ).rejects.toMatchObject({
+        code: 'POS_SESSION_REQUIRED',
+        details: { reason: 'PAUSED', pausedSessionId: sessionId },
+      });
+    });
+
+    it('lets a non-cash tender through unlinked unless the surface requires a session for every tender', async () => {
+      mockTx.$queryRaw.mockResolvedValue([]);
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'NON_CASH' })
+      ).resolves.toBeNull();
+
+      mockCashControlSettings.mockResolvedValue(modes({ posSessionModeOrderEntry: 'REQUIRED' }));
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'NON_CASH' })
+      ).rejects.toMatchObject({ code: 'POS_SESSION_REQUIRED' });
+    });
+
+    it('proceeds unlinked when cash does not need a session (surface set to optional)', async () => {
+      mockTx.$queryRaw.mockResolvedValueOnce([]);
+      mockCashControlSettings.mockResolvedValue(modes({ posSessionModeOrderEntry: 'OPTIONAL' }));
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'CASH' })
+      ).resolves.toBeNull();
+    });
+
+    it('applies the policy of the screen doing the write, not a global one', async () => {
+      mockTx.$queryRaw.mockResolvedValue([]);
+      mockCashControlSettings.mockResolvedValue(
+        modes({ posSessionModeOrderEntry: 'REQUIRED', posSessionModeLaterColl: 'OPTIONAL' })
+      );
+
+      // POS order entry is strict ...
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'CASH' })
+      ).rejects.toMatchObject({ code: 'POS_SESSION_REQUIRED', details: { surface: 'ORDER_ENTRY' } });
+
+      // ... while the same cashier-less user can still collect a later payment, take a wallet
+      // top-up and pay out a cash refund: those screens are optional here.
+      for (const surface of ['LATER_COLLECTION', 'STORED_VALUE_SALE', 'CASH_REFUND'] as const) {
+        await expect(
+          resolvePosSessionForFinanceTx(mockTx as never, { ...base, surface, tenderScope: 'CASH' })
+        ).resolves.toBeNull();
+      }
+    });
+
+    it('can require a session on a later-collection screen without touching order entry', async () => {
+      mockTx.$queryRaw.mockResolvedValue([]);
+      mockCashControlSettings.mockResolvedValue(
+        modes({ posSessionModeOrderEntry: 'OPTIONAL', posSessionModeLaterColl: 'REQUIRED_FOR_CASH' })
+      );
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, surface: 'LATER_COLLECTION', tenderScope: 'CASH' })
+      ).rejects.toMatchObject({ code: 'POS_SESSION_REQUIRED', details: { surface: 'LATER_COLLECTION' } });
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, surface: 'LATER_COLLECTION', tenderScope: 'NON_CASH' })
+      ).resolves.toBeNull();
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'CASH' })
+      ).resolves.toBeNull();
+    });
+
+    it('never requires a session when there is no tender', async () => {
+      mockTx.$queryRaw.mockResolvedValueOnce([]);
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'NONE' })
+      ).resolves.toBeNull();
+      expect(mockCashControlSettings).not.toHaveBeenCalled();
+    });
+
+    it('refuses an active session that belongs to another branch than the write', async () => {
+      mockTx.$queryRaw.mockResolvedValueOnce([posSession({ branch_id: branchB })]);
+      await expect(
+        resolvePosSessionForFinanceTx(mockTx as never, { ...base, tenderScope: 'CASH' })
+      ).rejects.toMatchObject({ code: 'POS_SESSION_BRANCH_CONFLICT' });
     });
   });
 });

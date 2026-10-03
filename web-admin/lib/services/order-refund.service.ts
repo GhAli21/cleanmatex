@@ -21,7 +21,9 @@ import type {
 } from '@/lib/types/order-financial';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
-import { assertOpenPosSessionForFinanceTx } from './pos-session.service';
+import { resolvePosSessionForFinanceTx } from './pos-session.service';
+import { POS_SESSION_SURFACE } from '@/lib/constants/pos-session';
+import { planCashRefundRounding, postCashChangeRoundingTx } from '@/lib/services/cash-change-rounding.service';
 import { topUpWalletTx, issueCreditNoteTx } from './stored-value.service';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -469,11 +471,15 @@ export async function initiateRefund(
       orderId
     );
 
-    await assertOpenPosSessionForFinanceTx(tx, {
+    // B1: a refund *request* is linked to the requester's session when there is one, but never
+    // requires it — cash only leaves the drawer when the refund is processed (tender scope NONE).
+    const requestSession = await resolvePosSessionForFinanceTx(tx, {
       tenantId,
       userId: requestedBy,
       posSessionId,
       branchId: order.branch_id,
+      surface: POS_SESSION_SURFACE.CASH_REFUND,
+      tenderScope: 'NONE',
     });
 
     if (amount > refundableBalance) {
@@ -608,7 +614,7 @@ export async function initiateRefund(
         refund_method_code: method,
         refund_source_type: refundSourceType,
         refund_context: refundContext,
-        pos_session_id: posSessionId ?? null,
+        pos_session_id: requestSession?.id ?? null,
         refund_status: approvalRequired ? REFUND_STATUSES.PENDING_APPROVAL : REFUND_STATUSES.APPROVED,
         idempotency_key: idempotencyKey,
         created_by: requestedBy,
@@ -913,11 +919,15 @@ export async function processRefund(
         // with a CashDrawerLedgerError when that drawer has no OPEN session.
         // Opportunistic register-session gate — mirrors initiateRefund's own
         // opt-in check (item 5 of the B9 research); a no-op if not supplied.
-        await assertOpenPosSessionForFinanceTx(tx, {
+        // B1: the server resolves the processor's session; a CASH refund needs one when the
+        // cash-control settings say so (the request value is only a cross-check).
+        const executionSession = await resolvePosSessionForFinanceTx(tx, {
           tenantId,
           userId: processedBy ?? '',
           posSessionId: execution?.posSessionId,
           branchId: order.branch_id ?? undefined,
+          surface: POS_SESSION_SURFACE.CASH_REFUND,
+          tenderScope: 'CASH',
         });
 
         const voucher = await createBizVoucher(
@@ -957,7 +967,7 @@ export async function processRefund(
             amount,
             currency_code:          refundCurrencyCode,
             cash_drawer_session_id: execution.cashDrawerSessionId,
-            pos_session_id:         execution?.posSessionId,
+            pos_session_id:         executionSession?.id ?? undefined,
             idempotency_key:        `refund-${refundId}-vch-line`,
           },
           processedBy ?? 'system',
@@ -966,6 +976,31 @@ export async function processRefund(
         );
 
         await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', CASH_GATE_MODES.INTERACTIVE, `refund-${refundId}-vch-post`, tx);
+
+        // Cash handed to the customer cannot be below the smallest coin/note: the refund stays at
+        // its exact amount and the gap to the rounded payout is its own rounding voucher, stamped
+        // into the same drawer session (so the drawer's expected cash equals its counted cash).
+        const refundRounding = await planCashRefundRounding(
+          { tenantId, branchId: order.branch_id ?? null, userId: processedBy ?? null },
+          { currencyCode: refundCurrencyCode, amount }
+        );
+        if (refundRounding) {
+          await postCashChangeRoundingTx(
+            tx,
+            { tenantOrgId: tenantId, userId: processedBy ?? 'system' },
+            {
+              rounding: refundRounding,
+              orderId: order.id,
+              customerId: customerId ?? null,
+              branchId: order.branch_id ?? null,
+              paymentLineId: line.id,
+              posSessionId: executionSession?.id ?? null,
+              paymentMethodCode: REFUND_METHODS.CASH,
+              idempotencyKey: `refund-${refundId}-cash-round`,
+              label: 'Cash refund rounding',
+            }
+          );
+        }
 
         await tx.org_order_refunds_dtl.update({
           where: { id: refundId, tenant_org_id: tenantId },

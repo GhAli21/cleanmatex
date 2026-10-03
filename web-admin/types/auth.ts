@@ -6,6 +6,7 @@
 
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import type { LogoutReason } from '@/lib/auth/logout-tracker'
+import type { LoginReason } from '@/lib/constants/auth-session'
 
 /**
  * User roles within a tenant organization
@@ -66,16 +67,25 @@ export interface AuthState {
 /**
  * Auth context methods
  */
+/** Optional behaviour of signOut. */
+export interface SignOutOptions {
+  /** Banner to show on /login (defaults from the logout reason). */
+  loginReason?: LoginReason
+  /** Page to return to after the next sign-in (validated; ignored for plain user sign-outs). */
+  returnTo?: string
+  /** Do not tell the other tabs (set when this sign-out was itself triggered by another tab). */
+  skipBroadcast?: boolean
+}
+
 export interface AuthContextType extends AuthState {
   // Authentication methods
-  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>
+  signIn: (identifier: string, password: string, rememberMe?: boolean, redirectTo?: string) => Promise<void>
   signUp: (email: string, password: string, displayName: string) => Promise<void>
-  signOut: (reason?: LogoutReason) => Promise<void>
+  signOut: (reason?: LogoutReason, options?: SignOutOptions) => Promise<void>
   resetPassword: (email: string) => Promise<void>
   updatePassword: (newPassword: string) => Promise<void>
 
   // Tenant management
-  switchTenant: (tenantId: string) => Promise<void>
   refreshTenants: () => Promise<void>
   refreshPermissions: () => Promise<void>
 

@@ -68,6 +68,12 @@ export function withTenantContextSync<T>(
  * Helper to get tenant ID from Supabase session
  * Use this in server actions/API routes to get tenant ID
  *
+ * Tenant resolved server-side from the authenticated session. The session guard asks the database
+ * (fn_auth_session_validate) which validates the session (membership, expiry, idle timeout) and returns the
+ * tenant the session is bound to. user_metadata is user-editable and is therefore NEVER read here (a forged
+ * value would otherwise leak across tenants for every Prisma query that trusts this result). An ended or
+ * unregistered-and-unregisterable session yields null (callers treat it as unauthenticated).
+ *
  * @returns Tenant ID or null if not authenticated/no tenant
  */
 export async function getTenantIdFromSession(): Promise<string | null> {
@@ -80,7 +86,13 @@ export async function getTenantIdFromSession(): Promise<string | null> {
       return null;
     }
 
-    return user.user_metadata?.tenant_org_id ?? null;
+    const [{ guardSession }, { getCurrentRequestMeta }] = await Promise.all([
+      import('@/lib/auth/session-guard'),
+      import('@/lib/services/auth/session/request-meta.server'),
+    ]);
+    const validation = await guardSession(supabase, await getCurrentRequestMeta());
+
+    return validation.state === 'ACTIVE' ? validation.tenantOrgId : null;
   } catch (error) {
     console.error('[getTenantIdFromSession] Error:', error);
     return null;

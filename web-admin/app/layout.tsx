@@ -4,6 +4,7 @@ import '@mdi/font/css/materialdesignicons.min.css';
 import { AppProviders } from '@/lib/providers/AppProviders'
 import { loadLocaleMessages } from '@/lib/i18n/load-locale-messages'
 import { getLocaleFromCookies } from '@/lib/utils/locale.server';
+import { getTenantTimeZone } from '@/lib/utils/tenant-timezone.server';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default async function RootLayout({
   // Get locale from cookies (server-side compatible)
   const locale = await getLocaleFromCookies();
   const messages = await loadLocaleMessages(locale)
+  const timeZone = await getTenantTimeZone()
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
 
   return (
@@ -39,7 +41,7 @@ export default async function RootLayout({
       <body
         className="antialiased"
       >
-        <AppProviders locale={locale} messages={messages}>
+        <AppProviders locale={locale} messages={messages} timeZone={timeZone}>
          {children}
         </AppProviders>
       </body>

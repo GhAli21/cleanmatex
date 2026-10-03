@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { listFollowUpSessions } from '@/lib/services/cash-drawer-follow-up.service';
+import { narrowBranchFilter, resolveBranchScope } from '@/lib/services/branch-access.service';
 import { followUpListQuerySchema } from '@/lib/validations/cash-drawer/list-schemas';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
 
@@ -24,7 +25,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await listFollowUpSessions(tenantId, parsed.data);
+    const result = await listFollowUpSessions(
+      tenantId,
+      parsed.data,
+      narrowBranchFilter(await resolveBranchScope(auth)),
+    );
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     return mapCashDrawerError(error, 'Failed to load the follow-up list');

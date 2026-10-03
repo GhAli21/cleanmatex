@@ -253,3 +253,33 @@ async function fetchPosSessionJson<T>(url: string): Promise<T> {
   }
   return payload.data;
 }
+
+/**
+ * Opens (or reuses) the caller's own POS session for the given branch — the inline recovery for a
+ * `POS_SESSION_REQUIRED` refusal (B1). Idempotent per `idempotencyKey`.
+ */
+export async function postEnsureOwnPosSession(input: {
+  csrfToken: string | null;
+  branchId: string;
+  idempotencyKey: string;
+  sourceChannel: string;
+}): Promise<OpenPosSessionResult> {
+  const response = await fetch('/api/v1/pos-sessions/ensure-for-order-entry', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getCSRFHeader(input.csrfToken),
+    },
+    body: JSON.stringify({
+      branchId: input.branchId,
+      idempotencyKey: input.idempotencyKey,
+      sourceChannel: input.sourceChannel,
+    }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as PosSessionApiEnvelope<OpenPosSessionResult>;
+  if (!response.ok || payload.success === false || !payload.data) {
+    throw new PosSessionApiError(payload.error || 'Failed to open POS session', payload.errorCode, response.status);
+  }
+  return payload.data;
+}

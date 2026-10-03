@@ -49,10 +49,22 @@ import {
   CASH_CONTROL_SHARED_SESSION_MODE,
   CASH_CONTROL_TRACKING_MODE,
   CASH_CONTROL_VARIANCE_GATE_MODE,
+  POS_SESSION_SURFACE_SETTING_FIELD,
   type CashControlSettings,
 } from '@lib/constants/cash-control'
+import { POS_SESSION_REQUIREMENT_MODE, POS_SESSION_SURFACE } from '@lib/constants/pos-session'
 
 const QUERY_KEY = ['cash-control-settings'] as const
+
+/** One POS-session requirement selector per finance screen, in display order. */
+const POS_SESSION_SURFACE_FIELDS = [
+  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.ORDER_ENTRY],
+  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.LATER_COLLECTION],
+  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.STORED_VALUE_SALE],
+  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.CASH_REFUND],
+  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.CUSTOMER_RECEIPT],
+  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.MANUAL_VOUCHER],
+] as const
 
 /** RHF form values are the full resolved settings; the PUT patch is derived from dirty fields only. */
 type FormValues = CashControlSettings
@@ -333,18 +345,17 @@ export function CashControlSettingsScreen() {
           <CmxCardTitle>{t('sections.posSession')}</CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent className="space-y-4">
-          <SwitchField
-            label={t('settings.posSessionReqForCash.label')}
-            description={t('settings.posSessionReqForCash.description')}
-            checked={!!form.watch('posSessionReqForCash')}
-            onCheckedChange={(v) => form.setValue('posSessionReqForCash', v, { shouldDirty: true })}
-          />
-          <SwitchField
-            label={t('settings.posSessionReqAllTenders.label')}
-            description={t('settings.posSessionReqAllTenders.description')}
-            checked={!!form.watch('posSessionReqAllTenders')}
-            onCheckedChange={(v) => form.setValue('posSessionReqAllTenders', v, { shouldDirty: true })}
-          />
+          {POS_SESSION_SURFACE_FIELDS.map((field) => (
+            <SelectField
+              key={field}
+              label={t(`settings.${field}.label` as never)}
+              description={t(`settings.${field}.description` as never)}
+              value={form.watch(field)}
+              options={Object.values(POS_SESSION_REQUIREMENT_MODE)}
+              optionLabel={(v) => t(`enums.posSessionRequirementMode.${v}` as never)}
+              onChange={(v) => form.setValue(field, v as never, { shouldDirty: true })}
+            />
+          ))}
           <SelectField
             label={t('settings.posSessionRolloverMode.label')}
             description={t('settings.posSessionRolloverMode.description')}

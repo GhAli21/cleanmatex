@@ -11,6 +11,8 @@ import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialo
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
 import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
+import { useDrawerCountMethod, type CountMethod } from '@features/cash-drawers/hooks/use-drawer-count-method'
+import { CashCountMethodField } from '@features/cash-drawers/ui/cash-count-method-field'
 import {
   openCashDrawerSessionV2,
   fetchCurrencyDenominations,
@@ -52,7 +54,9 @@ export function CashDrawerOpenSessionDialog({
   const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency()
 
   const [countNow, setCountNow] = useState(false)
-  const [countMode, setCountMode] = useState<'TOTAL_ONLY' | 'DENOMINATION'>('TOTAL_ONLY')
+  const [countChoice, setCountMode] = useState<CountMethod>('TOTAL_ONLY')
+  const countPolicy = useDrawerCountMethod(drawerId, 'opening', open)
+  const countMode = countPolicy.resolve(countChoice)
   const [totalAmount, setTotalAmount] = useState('')
   const [denomQuantities, setDenomQuantities] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState('')
@@ -157,15 +161,7 @@ export function CashDrawerOpenSessionDialog({
 
           {countNow ? (
             <div className="space-y-4 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
-              <CmxSelect
-                label={t('wizard.countMethod')}
-                value={countMode}
-                onChange={(event) => setCountMode(event.target.value as 'TOTAL_ONLY' | 'DENOMINATION')}
-                options={[
-                  { value: 'TOTAL_ONLY', label: t('wizard.countMethodTotal') },
-                  { value: 'DENOMINATION', label: t('wizard.countMethodDenomination') },
-                ]}
-              />
+              <CashCountMethodField methods={countPolicy.methods} value={countMode} onChange={setCountMode} />
 
               {countMode === 'TOTAL_ONLY' ? (
                 <CmxInput

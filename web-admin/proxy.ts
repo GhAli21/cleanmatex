@@ -16,6 +16,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { defaultLocale } from './i18n'
 import { generateCSRFToken, getCSRFTokenFromRequest, setCSRFTokenInResponse } from './lib/security/csrf'
 import { isPublicRoutePath } from './lib/security/public-routes'
+import { guardSession, isSessionActive } from './lib/auth/session-guard'
+import { readRequestMeta } from './lib/services/auth/session/request-meta'
+import { DEVICE_COOKIE_NAME, loginReasonForEndReason } from './lib/constants/auth-session'
 
 /** Cookie storing "Remember me" choice; when "0" or missing, auth cookies are session-only. */
 const SB_REMEMBER_ME_COOKIE = 'sb-remember-me'
@@ -23,7 +26,9 @@ const SB_REMEMBER_ME_COOKIE = 'sb-remember-me'
 /**
  * Auth routes (should redirect to dashboard if already authenticated)
  */
-const AUTH_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password']
+// NOTE: /reset-password is deliberately NOT listed: a password-recovery link creates an authenticated session,
+// and that user must be able to reach the reset form (listing it would bounce them to the dashboard).
+const AUTH_ROUTES = ['/login', '/register', '/forgot-password']
 
 /**
  * Admin-only routes
@@ -43,6 +48,32 @@ const DEFAULT_REDIRECT = '/dashboard'
  * Login page path
  */
 const LOGIN_PATH = '/login'
+
+/**
+ * Build a redirect to the login page for an ended/invalid session and clear this browser's Supabase auth
+ * cookies on the response. Clearing is essential: otherwise the login page would still see an authenticated
+ * user (proxy step 1) and bounce back to the dashboard — an infinite redirect loop.
+ *
+ * @param request - Incoming request (cookies to clear, return URL)
+ * @param reason - ?reason= code for the login page banner
+ */
+function redirectToLoginClearingSession(request: NextRequest, reason: string): NextResponse {
+  const { pathname, search } = request.nextUrl
+  const redirectUrl = request.nextUrl.clone()
+  redirectUrl.pathname = LOGIN_PATH
+  redirectUrl.search = ''
+  redirectUrl.searchParams.set('reason', reason)
+  redirectUrl.searchParams.set('redirect', pathname + search)
+
+  const redirectResponse = NextResponse.redirect(redirectUrl)
+  for (const { name } of request.cookies.getAll()) {
+    // Supabase auth cookies (incl. chunked .0/.1) and our remember-me flag all start with sb-.
+    if (name.startsWith('sb-')) {
+      redirectResponse.cookies.set(name, '', { path: '/', maxAge: 0 })
+    }
+  }
+  return redirectResponse
+}
 
 /**
  * Proxy function
@@ -150,9 +181,29 @@ export async function proxy(request: NextRequest) {
   if (!user || authError) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = LOGIN_PATH
-    // Add return URL to redirect back after login
-    redirectUrl.searchParams.set('redirect', pathname)
+    // Add return URL to redirect back after login (keep the query string)
+    redirectUrl.searchParams.set('redirect', pathname + request.nextUrl.search)
     return NextResponse.redirect(redirectUrl)
+  }
+
+  // 3b. Server-authoritative session lifecycle: the session must still be alive (membership, absolute
+  // expiry, idle timeout). Navigation does NOT count as activity — only the client heartbeat extends the
+  // idle window — so this validation is read-only apart from ending a timed-out session.
+  try {
+    const validation = await guardSession(
+      supabase,
+      readRequestMeta(request.headers, request.cookies.get(DEVICE_COOKIE_NAME)?.value)
+    )
+    if (!isSessionActive(validation)) {
+      return redirectToLoginClearingSession(request, loginReasonForEndReason(validation.endReason))
+    }
+  } catch (sessionError) {
+    // Fail closed WITHOUT redirecting to /login: cookies are intact, so /login would bounce back here.
+    console.error('Proxy session validation failed:', sessionError)
+    return new NextResponse('Service temporarily unavailable. Please try again.', {
+      status: 503,
+      headers: { 'Retry-After': '5' },
+    })
   }
 
   // 4. If admin route, check user role

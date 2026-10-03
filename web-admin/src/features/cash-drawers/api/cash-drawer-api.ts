@@ -13,6 +13,8 @@ interface CashDrawerApiEnvelope<T> {
   success?: boolean
   data?: T
   error?: string
+  /** Stable refusal code (plan §4B.11); preferred over `error`, which can be prose (e.g. a branch 403). */
+  code?: string
 }
 
 export interface CashDrawerWithCurrentSession {
@@ -383,6 +385,76 @@ export async function approveCashDrawerSessionVariance(input: {
   return parseCashDrawerResponse<unknown>(response)
 }
 
+/**
+ * C3 — reject an over-threshold drawer-close variance: not accepted, needs investigation. Same
+ * gate as approval (`cash_drawer:approve_variance`); the decision is final.
+ *
+ * @param input route ids, mandatory reason, and CSRF token
+ * @returns the raw API payload (re-fetch detail to refresh the DTO)
+ */
+export async function rejectCashDrawerSessionVariance(input: {
+  drawerId: string
+  sessionId: string
+  reason: string
+  csrfToken: string | null
+}): Promise<unknown> {
+  const response = await fetch(
+    `/api/v1/cash-drawers/${input.drawerId}/session/${input.sessionId}/reject-variance`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCSRFHeader(input.csrfToken),
+      },
+      body: JSON.stringify({ reason: input.reason }),
+    },
+  )
+
+  return parseCashDrawerResponse<unknown>(response)
+}
+
+/** Decision filter of the variance queue. */
+export type VarianceQueueDecision = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'
+
+export interface VarianceQueueEntry {
+  sessionId: string
+  sessionNo: string
+  drawerId: string
+  drawerName: string | null
+  branchId: string
+  branchName: string | null
+  closedAt: string | null
+  closedById: string | null
+  closedByName: string | null
+  thresholdSnapshot: string
+  decision: Exclude<VarianceQueueDecision, 'ALL'>
+  decidedById: string | null
+  decidedByName: string | null
+  decidedAt: string | null
+  decisionReason: string | null
+  currencies: Array<{
+    currencyCode: string
+    closingExpected: string | null
+    closingCounted: string | null
+    closingVariance: string | null
+  }>
+}
+
+/** Closed drawer sessions whose variance tripped its threshold, by supervisor decision (C3). */
+export async function fetchVarianceQueue(input: {
+  page: number
+  pageSize: number
+  decision: VarianceQueueDecision
+}): Promise<PagedResult<VarianceQueueEntry>> {
+  const params = new URLSearchParams({
+    page: String(input.page),
+    pageSize: String(input.pageSize),
+    decision: input.decision,
+  })
+  return fetchCashDrawerJson<PagedResult<VarianceQueueEntry>>(`/api/v1/cash-drawers/variance-approvals?${params.toString()}`)
+}
+
 export interface BranchPendingDepositStatusRow {
   branchId: string
   branchName: string | null
@@ -544,6 +616,19 @@ export async function fetchDrawerPolicy(drawerId: string): Promise<DrawerPolicy>
   return fetchCashDrawerJson<DrawerPolicy>(`/api/v1/cash-drawers/${drawerId}/policy`)
 }
 
+/** The count methods a drawer's policy allows (C1-1c). */
+export interface DrawerCountPolicyView {
+  opening: Array<'TOTAL_ONLY' | 'DENOMINATION'>
+  closing: Array<'TOTAL_ONLY' | 'DENOMINATION'>
+  openingRequired: boolean
+  closingRequired: boolean
+}
+
+/** What the open dialog, close wizard and recount dialog may offer when counting this drawer. */
+export async function fetchDrawerCountPolicy(drawerId: string): Promise<DrawerCountPolicyView> {
+  return fetchCashDrawerJson<DrawerCountPolicyView>(`/api/v1/cash-drawers/${drawerId}/count-policy`)
+}
+
 /** Patches drawer-scoped overrides; a field set to `null` clears the override. */
 export async function updateDrawerPolicy(input: {
   drawerId: string
@@ -590,6 +675,8 @@ export interface SessionClosureBalanceView {
   openingVariance: string | null
   finIn: string
   finOut: string
+  /** Net posted change rounding already inside finIn/finOut (+ gain, − loss). */
+  changeRounding: string
   trxIn: string
   trxOut: string
   closingExpected: string | null
@@ -617,11 +704,25 @@ export interface SessionClosureCountView {
   denominations: Array<{ valueMinor: number; quantity: number; lineAmount: string }>
 }
 
+/** Cash taken and paid out by one POS session (cashier) inside a drawer session; `posSessionId = null` is unattributed cash (E2). */
+export interface SessionCashAttributionView {
+  posSessionId: string | null
+  posSessionNo: string | null
+  operatorUserId: string | null
+  operatorName: string | null
+  currencyCode: string
+  cashIn: string
+  cashOut: string
+  net: string
+  lineCount: number
+}
+
 export interface SessionClosureViewResult {
   sessionId: string
   status: string
   balances: SessionClosureBalanceView[]
   counts: SessionClosureCountView[]
+  attribution: SessionCashAttributionView[]
   postClose: {
     statusCode: string | null
     notes: string | null
@@ -686,7 +787,7 @@ async function parseCashDrawerResponse<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as CashDrawerApiEnvelope<T>
 
   if (!response.ok || payload.success === false) {
-    throw new Error(payload.error || `Request failed: ${response.status}`)
+    throw new Error(payload.code || payload.error || `Request failed: ${response.status}`)
   }
 
   if (!payload.data) {
@@ -760,4 +861,61 @@ function parseCountedCash(value: string): number | null {
 
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+}
+
+export interface RecountCloseResultView {
+  sessionId: string
+  currencyCode: string
+  closingExpected: string
+  closingCounted: string
+  closingVariance: string
+  varianceReasonRequired: boolean
+}
+
+/**
+ * Supervisor recount of a session in the count step (`CLOSING`). Supersedes the prior closing (or
+ * recount) count of one currency against the same frozen cut; needs `cash_drawer:approve_variance`.
+ */
+export async function recountCashDrawerClose(input: {
+  drawerId: string
+  sessionId: string
+  currencyCode: string
+  count: OpeningCountInput
+  supersedesCountId: string
+  notes?: string
+  csrfToken: string | null
+}): Promise<RecountCloseResultView> {
+  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/session/${input.sessionId}/close/recount`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+    body: JSON.stringify({
+      currencyCode: input.currencyCode,
+      count: input.count,
+      supersedesCountId: input.supersedesCountId,
+      notes: input.notes || undefined,
+    }),
+  })
+  return parseCashDrawerResponse<RecountCloseResultView>(response)
+}
+
+/**
+ * Supervisor force-close of a session from `OPEN` (the count step never ran) or `CLOSING`
+ * (abandoned mid-close). A reason is mandatory; the same disposition rules as a normal close
+ * apply. Needs `pos_session:force_close`.
+ */
+export async function forceCloseCashDrawerSession(input: {
+  drawerId: string
+  sessionId: string
+  reason: string
+  dispositions: DispositionDecisionInput[]
+  csrfToken: string | null
+}): Promise<FinalizeCloseResultV2> {
+  const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/session/${input.sessionId}/force-close`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+    body: JSON.stringify({ reason: input.reason, dispositions: input.dispositions }),
+  })
+  return parseCashDrawerResponse<FinalizeCloseResultV2>(response)
 }

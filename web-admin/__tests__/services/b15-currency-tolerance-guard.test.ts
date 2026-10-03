@@ -19,10 +19,8 @@ import {
   optionalCurrencyCode,
   requireCurrencyCode,
 } from '@/lib/money/currency-resolution';
-import {
-  CASH_VARIANCE_TOLERANCE,
-  MONEY_COMPARISON_TOLERANCE,
-} from '@/lib/constants/financial-tolerances';
+import * as tolerances from '@/lib/constants/financial-tolerances';
+import { MONEY_COMPARISON_TOLERANCE, varianceToleranceFor } from '@/lib/constants/financial-tolerances';
 import { ORDER_FINANCIAL_COMPARISON_TOLERANCE } from '@/lib/services/order-financial-aggregation';
 import { RECONCILIATION_TOLERANCE } from '@/lib/services/reconciliation/types';
 import { RECON_REPORT_EPSILON } from '@/lib/constants/reconciliation-reports';
@@ -110,7 +108,16 @@ describe('B15 source guard — money paths have no currency literals', () => {
       'utf8'
     );
     expect(code).toContain('varianceToleranceFor(');
-    expect(code).not.toContain('Math.abs(variance) < CASH_VARIANCE_TOLERANCE');
+    expect(code).not.toContain('CASH_VARIANCE_TOLERANCE');
+  });
+
+  it('the cash-drawer reconciliation report judges counted cash with the currency-aware tolerance (E3-2)', () => {
+    const code = fs.readFileSync(
+      path.join(process.cwd(), 'lib/services/reports/finance-reconciliation-report.service.ts'),
+      'utf8'
+    );
+    expect(code).toContain('varianceToleranceFor(');
+    expect(code).not.toContain('CASH_VARIANCE_TOLERANCE');
   });
 });
 
@@ -172,16 +179,18 @@ describe('currency-resolution', () => {
 // ---------------------------------------------------------------------------
 
 describe('financial tolerances', () => {
-  it('defines the two documented classes', () => {
+  it('defines the two documented classes: strict ledger equality and currency-aware physical cash', () => {
     expect(MONEY_COMPARISON_TOLERANCE).toBe(0.001);
-    expect(CASH_VARIANCE_TOLERANCE).toBe(0.01);
+    expect(varianceToleranceFor(3)).toBe(0.0005);
+    // The flat physical-cash constant (0.01, 20x too wide for 3-decimal currencies) is gone for good.
+    expect(tolerances).not.toHaveProperty('CASH_VARIANCE_TOLERANCE');
   });
 
   it('all re-exports point at the central constants', () => {
     expect(ORDER_FINANCIAL_COMPARISON_TOLERANCE).toBe(MONEY_COMPARISON_TOLERANCE);
     expect(SETTLEMENT_MONEY_EPSILON).toBe(MONEY_COMPARISON_TOLERANCE);
-    expect(RECONCILIATION_TOLERANCE).toBe(CASH_VARIANCE_TOLERANCE);
-    expect(RECON_REPORT_EPSILON).toBe(CASH_VARIANCE_TOLERANCE);
+    expect(RECONCILIATION_TOLERANCE).toBe(MONEY_COMPARISON_TOLERANCE);
+    expect(RECON_REPORT_EPSILON).toBe(MONEY_COMPARISON_TOLERANCE);
   });
 });
 

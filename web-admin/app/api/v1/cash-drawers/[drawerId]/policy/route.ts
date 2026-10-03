@@ -1,3 +1,4 @@
+import { guardDrawerBranch } from '@/lib/api/branch-access-guard';
 /**
  * Cash-drawer policy API (CLF §4B.7) — the drawer Policy tab (CLF-8-7).
  *
@@ -39,6 +40,8 @@ export async function GET(
     const { tenantId } = authCheck;
 
     const { drawerId } = await params;
+    const branchDenied = await guardDrawerBranch(authCheck, drawerId);
+    if (branchDenied) return branchDenied;
     const settings = await getCashControlSettingsWithSource({ tenantId, drawerId });
     return NextResponse.json({ success: true, data: settings });
   } catch (err) {
@@ -72,6 +75,8 @@ export async function PUT(
     const { tenantId, userId } = authCheck;
 
     const { drawerId } = await params;
+    const branchDenied = await guardDrawerBranch(authCheck, drawerId);
+    if (branchDenied) return branchDenied;
     const raw = await request.json();
     const parsed = updateCashControlSettingsRequestSchema.safeParse(raw);
     if (!parsed.success) {

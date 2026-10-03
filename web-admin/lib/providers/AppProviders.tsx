@@ -25,15 +25,18 @@ import { type Locale } from '@/lib/utils/locale.client'
  * @param root0.children
  * @param root0.locale
  * @param root0.messages
+ * @param root0.timeZone Tenant IANA timezone for date formatting; undefined falls back to the viewer's own
  */
 export function AppProviders({
   children,
   locale = 'en',
   messages,
+  timeZone,
 }: {
   children: ReactNode;
   locale?: Locale;
   messages: AbstractIntlMessages;
+  timeZone?: string;
 }) {
   // Create QueryClient instance with default options
   const [queryClient] = useState(
@@ -60,7 +63,7 @@ export function AppProviders({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Muscat">
+      <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
         <AuthProvider>
           <TenantCurrencyProvider>
             <RoleProvider>

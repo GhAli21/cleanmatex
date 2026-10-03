@@ -116,13 +116,42 @@ CONSTRAINT chk_<tbl>_fx_same_ccy CHECK (
 
 ## Composite Foreign Keys (CRITICAL for tenant isolation)
 
+**Prisma-safe order (MUST):** child FK + 1:1 UNIQUE + referenced parent key use the **same columns in the same order**. Copy the parent key that already exists. Do not flip it to tenant-first unless the parent key is already tenant-first.
+
 ```sql
+-- Tenant isolation AND Prisma-legal when the parent unique/PK is (tenant_org_id, id)
 FOREIGN KEY (tenant_org_id, customer_id)
-  REFERENCES org_customers_mst(tenant_org_id, customer_id)
+  REFERENCES org_customers_mst(tenant_org_id, id)
   ON DELETE CASCADE
+
+-- Tenant isolation AND Prisma-legal when the parent unique/PK is (id, tenant_org_id)
+-- This is the live pattern for many org_* tables and is what 0553 matches.
+FOREIGN KEY (account_id, tenant_org_id)
+  REFERENCES org_fin_acct_mst(id, tenant_org_id)
+  ON DELETE RESTRICT
 ```
 
-**Why?** Database-level enforcement of tenant boundaries prevents cross-tenant data leaks.
+**Why?** Database-level enforcement of tenant boundaries prevents cross-tenant data leaks. Column order is for Prisma 6 introspection, not a second uniqueness rule.
+
+### Prisma 6 column-order invariant (P1012)
+
+Postgres treats `UNIQUE (tenant_org_id, account_id)` and `UNIQUE (account_id, tenant_org_id)` as the same uniqueness. Prisma 6 does not.
+
+```sql
+-- WRONG — pull emits P1012
+UNIQUE (tenant_org_id, account_id)
+FOREIGN KEY (account_id, tenant_org_id)
+  REFERENCES org_fin_acct_mst (id, tenant_org_id)
+
+-- RIGHT when parent key is (id, tenant_org_id) — tenant second (0553)
+UNIQUE (account_id, tenant_org_id)
+FOREIGN KEY (account_id, tenant_org_id)
+  REFERENCES org_fin_acct_mst (id, tenant_org_id)
+```
+
+Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. Do not flip `org_asm_tasks_mst` / `org_pck_packing_lists_mst` on orders from `?` to `[]`.
+
+See `0135_fix_prisma_unique_constraints_order.sql` and `0553_prisma_1to1_unique_column_order.sql`.
 
 ## Standard Indexes
 

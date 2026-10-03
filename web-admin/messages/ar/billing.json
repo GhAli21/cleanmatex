@@ -88,8 +88,30 @@
     "closeNotes": "ملاحظات الإغلاق",
     "forceCloseReason": "سبب الإغلاق الإجباري",
     "varianceThreshold": "حد اعتماد الفرق النقدي",
+    "recount": {
+      "action": "إعادة العد",
+      "title": "إعادة عد النقد عند الإغلاق",
+      "description": "أدخل عدًّا فعليًا جديدًا للنقد في درج النقد هذا. يحلّ محلّ عدّ الإغلاق عند نفس نقطة القطع، ويبقى العدّ السابق في السجل.",
+      "currency": "العملة",
+      "previousCount": "العدّ السابق",
+      "confirm": "تسجيل إعادة العد",
+      "recorded": "تم تسجيل إعادة العد: المعدود {counted}، الفرق {variance}.",
+      "failed": "تعذر تسجيل إعادة العد.",
+      "nothingToRecount": "لا يوجد عدّ إغلاق لهذه الجلسة بعد ليتم استبداله."
+    },
+    "forceClose": {
+      "action": "إغلاق قسري",
+      "title": "إغلاق هذه الجلسة قسريًا",
+      "warning": "استخدم هذا فقط عندما يتعذر إغلاق الجلسة بالطريقة المعتادة — مثل جلسة متروكة أو مغادرة الكاشير أثناء العد. يُسجَّل السبب ويبقى نقد الإغلاق بحاجة إلى تصرّف.",
+      "reason": "السبب",
+      "reasonPlaceholder": "لماذا تُغلق هذه الجلسة قسريًا؟",
+      "reasonRequired": "أدخل سبب الإغلاق القسري لهذه الجلسة.",
+      "confirm": "إغلاق الجلسة قسريًا",
+      "done": "تم إغلاق الجلسة قسريًا.",
+      "failed": "تعذر إغلاق الجلسة قسريًا."
+    },
     "varianceApprovalTitle": "اعتماد فرق النقدية",
-    "varianceApprovalWarning": "أُغلقت هذه الجلسة بفرق يتجاوز حد الدرج. الاعتماد اختياري — فهو يسجّل موافقة المشرف لأغراض التدقيق، ويجب أن يقوم به مستخدم مختلف عن الذي أغلق الجلسة.",
+    "varianceApprovalWarning": "أُغلقت هذه الجلسة بفرق يتجاوز حد الدرج. الاعتماد اختياري — فهو يسجّل موافقة المشرف لأغراض التدقيق.",
     "varianceApprovalReasonPlaceholder": "سبب الفرق (مطلوب للاعتماد)",
     "varianceApprovalPendingBanner": "فرق إغلاق هذه الجلسة يتجاوز حد الدرج. اعتماد المشرف اختياري ويمكن تسجيله في سجل التدقيق.",
     "varianceApprovedBanner": "تم اعتماد الفرق من قبل {approver} بتاريخ {date}.",
@@ -183,7 +205,9 @@
       "dispositionNotesRequired": "الملاحظات مطلوبة لهذا التصرف.",
       "varianceReason": "سبب الفرق",
       "varianceReasonRequired": "السبب مطلوب — فرق هذا الإغلاق يتجاوز حد تسامح الدرج.",
-      "closedPendingApproval": "تم إغلاق الجلسة. الفرق يتجاوز حد الاعتماد وهو بانتظار موافقة المشرف."
+      "closedPendingApproval": "تم إغلاق الجلسة. الفرق يتجاوز حد الاعتماد وهو بانتظار موافقة المشرف.",
+      "countMethodFixedDenomination": "تتطلب منشأتك العدّ حسب الفئات.",
+      "countMethodFixedTotal": "تعدّ منشأتك الدرج كإجمالي واحد."
     },
     "columns": {
       "drawerCode": "رمز الدرج",
@@ -243,7 +267,10 @@
       "varianceApprovalFailed": "فشل اعتماد الفرق.",
       "varianceAlreadyApproved": "تم اعتماد هذا الفرق مسبقًا.",
       "varianceNotPendingApproval": "لا يوجد فرق بانتظار الاعتماد لهذه الجلسة.",
-      "varianceReasonRequired": "السبب مطلوب لاعتماد الفرق."
+      "varianceReasonRequired": "السبب مطلوب لاعتماد الفرق.",
+      "varianceRejected": "تم رفض الفرق.",
+      "varianceRejectFailed": "تعذر رفض الفرق.",
+      "varianceAlreadyRejected": "تم رفض هذا الفرق مسبقاً."
     },
     "tabs": {
       "loadFailed": "تعذّر تحميل البيانات",
@@ -343,6 +370,7 @@
       "openingExpected": "الافتتاح (المتوقع)",
       "financeIn": "وارد مالي",
       "financeOut": "صادر مالي",
+      "ofWhichChangeRounding": "منها تقريب الباقي النقدي (الصافي)",
       "custodyIn": "وارد عهدة",
       "custodyOut": "صادر عهدة",
       "closingExpected": "الإغلاق (المتوقع)",
@@ -367,6 +395,17 @@
         "statusRequired": "اختر الحالة",
         "notesRequired": "الملاحظات مطلوبة لهذه الحالة",
         "history": "سجل التغييرات"
+      },
+      "attribution": {
+        "title": "النقد حسب جلسة نقطة البيع",
+        "description": "من استلم نقداً ومن صرفه داخل جلسة الدرج هذه. النقد غير المرتبط بجلسة نقطة بيع يظهر في سطر مستقل ولا يُضاف إلى أي كاشير.",
+        "posSession": "جلسة نقطة البيع",
+        "cashier": "الكاشير",
+        "cashIn": "نقد وارد",
+        "cashOut": "نقد صادر",
+        "net": "الصافي",
+        "lines": "البنود",
+        "unattributed": "بلا جلسة نقطة بيع"
       }
     },
     "print": {
@@ -429,6 +468,109 @@
       "emptyDescription": "لم ترسل أي جلسة مغلقة نقدًا إلى درج إيداع معلّق بعد.",
       "loadFailed": "تعذّر تحميل قائمة المتابعة.",
       "updateTitle": "تحديث حالة ما بعد الإغلاق"
+    },
+    "varianceRejectTitle": "رفض فرق النقد",
+    "varianceRejectWarning": "الرفض يسجّل أن هذا الفرق غير مقبول ويجب التحقيق فيه. القرار نهائي ويُحفظ مع سببك في سجل التدقيق.",
+    "varianceRejectReasonPlaceholder": "ما سبب رفض الفرق؟ (مطلوب)",
+    "varianceRejectedBanner": "رفض {rejecter} الفرق بتاريخ {date} — قيد التحقيق.",
+    "rejectVariance": "رفض الفرق",
+    "varianceQueue": {
+      "title": "اعتماد الفروقات",
+      "description": "جلسات أدراج النقد المغلقة التي اختلف عدّها عن النقد المتوقع بأكثر من الحد المسموح. اعتمد الفرق لقبوله، أو ارفضه لتحويله إلى التحقيق.",
+      "filterDecision": "القرار",
+      "decisions": {
+        "PENDING": "بانتظار الاعتماد",
+        "APPROVED": "معتمد",
+        "REJECTED": "مرفوض",
+        "ALL": "الكل"
+      },
+      "columns": {
+        "session": "الجلسة",
+        "drawer": "الدرج",
+        "branch": "الفرع",
+        "closedAt": "وقت الإغلاق",
+        "closedBy": "أغلقها",
+        "variance": "الفرق",
+        "threshold": "الحد",
+        "decision": "القرار",
+        "decidedBy": "قرّره",
+        "reason": "السبب"
+      },
+      "expectedCounted": "المتوقع {expected} · المعدود {counted}",
+      "review": "مراجعة",
+      "emptyTitle": "لا شيء للمراجعة",
+      "emptyDescription": "لا توجد جلسات أدراج تطابق فلتر القرار هذا.",
+      "loadFailed": "تعذر تحميل اعتماد الفروقات.",
+      "approve": "اعتماد",
+      "reject": "رفض"
+    },
+    "transit": {
+      "title": "النقد قيد النقل",
+      "description": "نقدية غادرت درجاً ولم تصل إلى وجهتها بعد. أرسل النقد ثم استلمه في الوجهة، أو ألغِه ليعود إلى المصدر. تُسوّى كل عملية نقل مرة واحدة فقط.",
+      "sendCash": "إرسال نقد",
+      "filterStatus": "الحالة",
+      "statuses": {
+        "IN_TRANSIT": "قيد النقل",
+        "RECEIVED": "تم الاستلام",
+        "CANCELLED": "ملغاة",
+        "ALL": "الكل"
+      },
+      "columns": {
+        "no": "عملية النقل",
+        "branch": "الفرع",
+        "route": "من ← إلى",
+        "amount": "المبلغ",
+        "sent": "أرسلها",
+        "status": "الحالة",
+        "settled": "التسوية"
+      },
+      "receive": "استلام",
+      "cancel": "إلغاء",
+      "receiveTitle": "استلام النقد",
+      "cancelTitle": "إلغاء عملية النقل",
+      "receiveBody": "أكّد وصول {amount} إلى {drawer}. سيُضاف النقد إلى ذلك الدرج الآن.",
+      "cancelBody": "سيعود {amount} إلى {drawer}. اذكر السبب؛ يبقى محفوظاً مع عملية النقل.",
+      "reason": "السبب",
+      "confirmReceive": "استلام النقد",
+      "confirmCancel": "إلغاء عملية النقل",
+      "received": "تم استلام عملية النقل {no}.",
+      "cancelled": "أُلغيت عملية النقل {no} وعاد النقد إلى مصدره.",
+      "receiveFailed": "تعذر استلام عملية النقل.",
+      "cancelFailed": "تعذر إلغاء عملية النقل.",
+      "emptyTitle": "لا توجد عمليات نقل",
+      "emptyDescription": "لا شيء يطابق هذا الفلتر للفروع التي يمكنك رؤيتها.",
+      "loadFailed": "تعذر تحميل عمليات النقل.",
+      "send": {
+        "title": "إرسال نقد قيد النقل",
+        "description": "يغادر النقد الدرج المصدر الآن ويبقى قيد النقل حتى يُستلم أو يُلغى.",
+        "from": "من الدرج",
+        "to": "إلى الدرج",
+        "drawerPlaceholder": "اختر درجاً",
+        "noDestination": "لا يوجد درج آخر في نفس الفرع والعملة يمكنه استلام هذه العملية.",
+        "amount": "المبلغ",
+        "amountInvalid": "أدخل مبلغاً موجباً بحد أقصى 4 خانات عشرية، مثل 25 أو 12.500.",
+        "notesOptional": "ملاحظة (اختياري)",
+        "submit": "إرسال النقد",
+        "sent": "تم إرسال النقد قيد النقل ({no}).",
+        "failed": "تعذر إرسال النقد."
+      }
+    },
+    "denominations": {
+      "title": "الفئات المعدودة",
+      "description": "اختر الأوراق والعملات التي يتعامل بها نشاطك وترتيب ظهورها عند عدّ الدرج. كتالوج الفئات من المقر الرئيسي؛ وإيقاف فئة يخفيها في العدّ الجديد فقط، ولا يغيّر الجرد المسجّل سابقاً.",
+      "currency": "العملة",
+      "noCurrencies": "لا توجد عملة نقدية بكتالوج فئات مفعّلة لهذه المنشأة.",
+      "note": "ورقة",
+      "coin": "عملة معدنية",
+      "accepted": "مقبولة",
+      "moveUp": "تحريك لأعلى",
+      "moveDown": "تحريك لأسفل",
+      "resetToHq": "إعادة إلى افتراضيات المقر",
+      "saved": "تم حفظ الفئات.",
+      "saveFailed": "تعذر حفظ الفئات.",
+      "viewOnly": "يمكنك عرض هذه الإعدادات دون تغييرها.",
+      "allOffTitle": "جميع الفئات موقوفة",
+      "allOffBody": "لن يكون عدّ هذه العملة حسب الفئات ممكناً؛ ويمكن عدّ الأدراج بالإجمالي."
     }
   },
   "refunds": {
@@ -463,6 +605,7 @@
     "execution": {
       "cashDrawerLabel": "جلسة الدرج النقدي",
       "selectDrawerPlaceholder": "اختر جلسة درج مفتوحة",
+      "cashRounding": "النقد المراد تسليمه: {rounded} {currency}. يبقى مبلغ الاسترداد {exact} {currency}، ويُسجَّل فرق {difference} {currency} كتقريب نقدي.",
       "noOpenDrawerSessions": "لا توجد جلسة درج نقدي مفتوحة — افتح واحدة من صفحة الأدراج النقدية قبل معالجة هذا الاسترداد",
       "manualSettlementReferenceLabel": "مرجع التسوية اليدوية",
       "manualSettlementReferencePlaceholder": "مثال: مرجع التحويل البنكي، رقم إيصال الإلغاء من الجهاز، مرجع لوحة تحكم البوابة"
@@ -877,7 +1020,8 @@
       "credit_note_expiry": "انتهاء صلاحية إشعارات الائتمان",
       "loyalty_points_expiry": "انتهاء صلاحية نقاط الولاء",
       "idempotency_cleanup": "تنظيف مفاتيح عدم التكرار",
-      "erp_posting_retry": "إعادة محاولة ترحيل ERP"
+      "erp_posting_retry": "إعادة محاولة ترحيل ERP",
+      "pos_session_rollover": "تدوير جلسات نقطة البيع"
     },
     "schedules": {
       "outbox_processor": "كل دقيقة",
@@ -885,14 +1029,16 @@
       "credit_note_expiry": "يومياً 02:05",
       "loyalty_points_expiry": "يومياً 02:10",
       "idempotency_cleanup": "يومياً 03:00",
-      "erp_posting_retry": "كل ساعة عند :15"
+      "erp_posting_retry": "كل ساعة عند :15",
+      "pos_session_rollover": "كل 15 دقيقة"
     },
     "relatedLinks": {
       "outbox_processor": "جدول الأحداث",
       "gift_card_expiry": "بطاقات الهدايا",
       "credit_note_expiry": "القيمة المخزّنة",
       "loyalty_points_expiry": "برنامج الولاء",
-      "erp_posting_retry": "استثناءات ERP"
+      "erp_posting_retry": "استثناءات ERP",
+      "pos_session_rollover": "جلسات نقطة البيع"
     },
     "statusLabels": {
       "RUNNING": "قيد التشغيل",

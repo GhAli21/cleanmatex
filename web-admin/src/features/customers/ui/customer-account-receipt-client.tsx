@@ -15,6 +15,8 @@ import { LoadingButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { cmxMessage } from '@ui/feedback';
 import { useOverpaymentAllocation } from '@features/orders/hooks/use-overpayment-allocation';
+import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
+import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 import { AutoAllocationPreviewDrawer } from '@features/orders/ui/payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from '@features/orders/ui/payment-modal/allocation/manual-allocation-drawer';
 import {
@@ -57,6 +59,7 @@ export function CustomerAccountReceiptClient() {
   const [customer, setCustomer] = useState<SelectedCustomer | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [receiptAmount, setReceiptAmount] = useState(0);
+  const [posSessionRequired, setPosSessionRequired] = useState<PosSessionRequiredInfo | null>(null);
   const [tender, setTender] = useState<StoredValueTenderResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // Remounts the tender step after a successful post so references clear.
@@ -126,6 +129,7 @@ export function CustomerAccountReceiptClient() {
       return;
     }
     setSubmitting(true);
+    setPosSessionRequired(null);
     try {
       const res = await fetch('/api/v1/customer-receipts/post', {
         method: 'POST',
@@ -153,6 +157,8 @@ export function CustomerAccountReceiptClient() {
         data?: { voucherNo?: string };
       };
       if (!res.ok || !json.success) {
+        // The policy for this screen needs a POS session: offer to open one right here.
+        setPosSessionRequired(readPosSessionRequired(json));
         cmxMessage.error(resolveErrorMessage(json.code));
         return;
       }
@@ -260,6 +266,15 @@ export function CustomerAccountReceiptClient() {
                   <p className="text-sm text-green-700">{t('allocationConfirmed')}</p>
                 ) : null}
               </div>
+
+              {posSessionRequired ? (
+                <PosSessionRequiredAction
+                  info={posSessionRequired}
+                  idempotencyKey={`car_${allocation.allocationPreviewId ?? 'receipt'}`}
+                  sourceChannel="customer_receipt"
+                  onOpened={() => setPosSessionRequired(null)}
+                />
+              ) : null}
 
               <LoadingButton loading={submitting} disabled={!canSubmit} onClick={handlePost}>
                 {t('postReceipt')}

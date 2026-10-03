@@ -686,6 +686,107 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ['Worklist for cash sent to PENDING_DEPOSIT drawers at close. Nav entry: migration 0541 / navigation.ts billing_cash_drawer_followup.'],
   },
   {
+    routePattern: '/dashboard/internal_fin/cash-drawers/in-transit',
+    label: 'Cash In Transit',
+    page: {
+      // Same tier as the sidebar entry (migration 0562): roles that hold transfer also hold receive_transfer (0517).
+      permissions: ['cash_drawer:transfer'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      sendTransit: {
+        label: 'Send cash in transit',
+        requirement: { permissions: ['cash_drawer:transfer'], requireAllPermissions: true },
+      },
+      cancelTransit: {
+        label: 'Cancel an in-transit transfer (cash returns to the source)',
+        requirement: { permissions: ['cash_drawer:transfer'], requireAllPermissions: true },
+      },
+      receiveTransit: {
+        label: 'Receive an in-transit transfer into its destination drawer',
+        requirement: { permissions: ['cash_drawer:receive_transfer'], requireAllPermissions: true },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'List in-transit transfers (D1-4)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/transit',
+        requirement: { permissions: ['cash_drawer:transfer', 'cash_drawer:receive_transfer'], requireAllPermissions: false },
+        enforcement: 'permission',
+        notes: ['Limited server-side to the permitted branches of the actor.'],
+      },
+      {
+        label: 'Send cash in transit (D1-4)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/transit',
+        requirement: { permissions: ['cash_drawer:transfer'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Receive an in-transit transfer (D1-4)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/transit/[transitId]/receive',
+        requirement: { permissions: ['cash_drawer:receive_transfer'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Cancel an in-transit transfer (D1-4)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/transit/[transitId]/cancel',
+        requirement: { permissions: ['cash_drawer:transfer'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Drawer pickers for the send dialog',
+        method: 'GET',
+        path: '/api/v1/cash-drawers',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+    ],
+    notes: ['D1-4 two-leg transfers. A transfer settles exactly once; the sender may receive their own transfer (permission is the only gate). Nav entry: migration 0562 / navigation.ts billing_cash_drawer_in_transit.'],
+  },
+  {
+    routePattern: '/dashboard/internal_fin/cash-drawers/variance-approvals',
+    label: 'Cash Variance Approvals',
+    page: {
+      permissions: ['cash_drawer:approve_variance'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      decideVariance: {
+        label: 'Approve or reject a pending close-variance',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Variance decision queue: closed sessions over their variance threshold (C3)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/variance-approvals',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+        enforcement: 'permission',
+        notes: ['Limited server-side to the permitted branches of the actor.'],
+      },
+      {
+        label: 'Approve a pending close-variance',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Reject a pending close-variance (C3)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/reject-variance',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+    ],
+    notes: ['C3 worklist. Rejecting is final (never both approved and rejected) and, unlike approving, does not release the withheld closing over/short event. Nav entry ships with the next navigation migration.'],
+  },
+  {
     routePattern: '/dashboard/internal_fin/cash-drawers/[drawerId]',
     label: 'Cash Drawer Details',
     page: {
@@ -866,6 +967,10 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Approve a pending close-variance',
         requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
       },
+      rejectVariance: {
+        label: 'Reject a pending close-variance (C3)',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+      },
       postCloseUpdate: {
         label: 'Update the post-close status / notes of the session',
         requirement: { permissions: ['cash_drawer:post_close_update'], requireAllPermissions: true },
@@ -890,6 +995,13 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Approve a pending close-variance',
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Reject a pending close-variance (C3)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/reject-variance',
         requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
         enforcement: 'permission',
       },
@@ -1271,6 +1383,10 @@ export const BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers')!
 export const BILLING_INTERNAL_FIN_CASH_DRAWER_FOLLOW_UP_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers/follow-up')!
+export const BILLING_INTERNAL_FIN_CASH_DRAWER_IN_TRANSIT_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers/in-transit')!
+export const BILLING_INTERNAL_FIN_CASH_DRAWER_VARIANCE_APPROVALS_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers/variance-approvals')!
 export const BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_ACCESS =
   BILLING_ACCESS_CONTRACTS.find(
     (contract) =>

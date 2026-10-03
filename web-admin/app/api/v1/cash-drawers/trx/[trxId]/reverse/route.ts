@@ -5,6 +5,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { reverseDrawerTrx } from '@/lib/services/cash-drawer-trx.service';
 import { reverseDrawerTrxRequestSchema } from '@/lib/validations/cash-drawer/trx-schemas';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { guardDrawerTrxBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * POST /api/v1/cash-drawers/trx/[trxId]/reverse
@@ -28,6 +29,8 @@ export async function POST(
   const { tenantId, userId } = auth;
 
   const { trxId } = await params;
+  const branchDenied = await guardDrawerTrxBranch(auth, trxId);
+  if (branchDenied) return branchDenied;
   const body = await request.json().catch(() => null);
   const parsed = reverseDrawerTrxRequestSchema.safeParse(body);
   if (!parsed.success) {

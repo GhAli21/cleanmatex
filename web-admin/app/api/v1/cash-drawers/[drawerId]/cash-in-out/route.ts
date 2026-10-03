@@ -5,6 +5,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import { postDrawerCashMovement } from '@/lib/services/cash-drawer-movement-posting.service';
 import { DRAWER_CASH_IN_OUT_ROLES } from '@/lib/constants/cash-drawer';
+import { guardDrawerBranch } from '@/lib/api/branch-access-guard';
 
 const ALLOWED_ROLES = [
   ...DRAWER_CASH_IN_OUT_ROLES.OUT,
@@ -44,6 +45,8 @@ export async function POST(
   const { tenantId, userId } = auth;
 
   const { drawerId } = await params;
+  const branchDenied = await guardDrawerBranch(auth, drawerId);
+  if (branchDenied) return branchDenied;
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

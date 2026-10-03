@@ -1,0 +1,59 @@
+{
+  "lifecycle": {
+    "idleWarningTitle": "Are you still there?",
+    "idleWarningMessage": "You have been inactive for a while. For your security you will be signed out automatically unless you choose to stay signed in.",
+    "countdown": "{seconds, plural, one {# second} other {# seconds}}",
+    "staySignedIn": "Stay signed in",
+    "signOutNow": "Sign out now",
+    "stayFailed": "We could not reach the server. Check your connection and try again.",
+    "absoluteHeadsUp": "Your session will end in a few minutes. Please save your work; you will need to sign in again."
+  },
+  "settings": {
+    "title": "Security & Sessions",
+    "subtitle": "Control how long people stay signed in, how many devices they can use, and when they are alerted about new sign-ins.",
+    "appliesToNewSignIns": "Changes apply to new sign-ins. People who are already signed in keep their current session rules until they sign in again.",
+    "readOnlyPlan": "Customizing security settings is not included in your current plan. You can review the platform settings below.",
+    "readOnlyPermission": "You can view these settings but you do not have permission to change them.",
+    "loadFailed": "Could not load the security settings.",
+    "saved": "Security settings saved.",
+    "saveFailed": "Could not save the security settings. Please try again.",
+    "unsavedChanges": "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+    "discard": "Discard changes",
+    "groups": {
+      "SESSION": "Sessions",
+      "DEVICE": "Devices",
+      "LOCKOUT": "Sign-in protection"
+    },
+    "source": {
+      "PLATFORM": "Platform default",
+      "TENANT": "Customized",
+      "PLATFORM_ENFORCED": "Platform value enforced",
+      "MANAGED": "Managed by platform"
+    },
+    "currentValue": "Current value",
+    "platformDefault": "Platform default",
+    "allowedRange": "Allowed range",
+    "usePlatformDefault": "Use platform default",
+    "customValue": "Your value",
+    "managedHint": "This setting is managed by the platform and cannot be changed for your organization.",
+    "enforcedHint": "Your saved value is no longer allowed by the platform, so the platform value is used. Choose the platform default or a new value to fix it.",
+    "on": "On",
+    "off": "Off",
+    "units": {
+      "SECONDS": "sec",
+      "MINUTES": "min",
+      "HOURS": "h",
+      "DAYS": "days",
+      "COUNT": ""
+    },
+    "enumValues": {
+      "REVOKE_OLDEST": "Sign out the oldest session",
+      "BLOCK_NEW": "Block the new sign-in"
+    },
+    "errors": {
+      "invalid": "Enter a valid value.",
+      "range": "Enter a whole number between {min} and {max}.",
+      "serverInvalid": "One of the values is not allowed. Check the highlighted fields."
+    }
+  }
+}

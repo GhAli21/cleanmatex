@@ -367,7 +367,6 @@ export default function AuthContextViewer() {
                 'signOut()',
                 'resetPassword(email)',
                 'updatePassword(newPassword)',
-                'switchTenant(tenantId)',
                 'refreshTenants()',
                 'updateProfile(displayName, preferences)',
               ].map((method) => (
@@ -402,7 +401,6 @@ function MyComponent() {
     isAuthenticated,
     signIn,
     signOut,
-    switchTenant,
   } = useAuth();
 
   // Use auth state and methods

@@ -19,6 +19,7 @@ import {
   type CashDrawerCountType,
 } from '@/lib/constants/cash-drawer';
 import { CASH_CONTROL_COUNT_MODE, type CashControlCountMode } from '@/lib/constants/cash-control';
+import { assertDenominationsEnabledTx } from '@/lib/services/cash-denomination-control.service';
 
 /**
  * Cash count recording (CLF, ADR-057, plan §4B.4 CLF-4-1).
@@ -110,6 +111,8 @@ export async function recordCountTx(
       select: { id: true, currency_code: true, denomination_minor: true },
     });
     const byId = new Map(denomRows.map((d) => [d.id, d]));
+    // C1-1b: a denomination the tenant switched off can never enter a new count.
+    await assertDenominationsEnabledTx(tx, ctx.tenantOrgId, input.currencyCode, denomIds);
 
     const currency = await tx.sys_currency_cd.findUnique({
       where: { code: input.currencyCode },

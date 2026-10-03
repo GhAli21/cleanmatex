@@ -73,6 +73,19 @@ export function decideCashLine(input: CashLineDecisionInput): CashLineDecision {
     return reject(CASH_LEDGER_ERRORS.CASH_CURRENCY_MISMATCH);
   }
 
+  // 9b. Assignment (B3-1): an ASSIGNED_ONLY drawer is operated by its assignee or a supervisor.
+  // Interactive only — deferred events (late verification, reversal) are back-office work.
+  const assignment = input.assignment;
+  if (
+    mode === CASH_GATE_MODES.INTERACTIVE &&
+    assignment &&
+    assignment.mode === 'ASSIGNED_ONLY' &&
+    assignment.assignedUserId !== assignment.actorUserId &&
+    !assignment.actorCanOperateAny
+  ) {
+    return reject(CASH_LEDGER_ERRORS.DRAWER_NOT_ASSIGNED_TO_USER);
+  }
+
   // 10. Open session: the cash belongs to it.
   if (liveSession?.status === CASH_DRAWER_SESSION_STATUSES.OPEN) {
     return { effect: CASH_EFFECTS.DRAWER, sessionId: liveSession.id, error: null };

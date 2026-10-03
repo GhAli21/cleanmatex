@@ -15,6 +15,7 @@ import { Pencil, User } from 'lucide-react'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import type { TenantUser } from '@/lib/api/users'
 import UserModal from './user-modal'
+import { UserCodeField } from './user-code-field'
 
 interface UserProfileTabProps {
   user: TenantUser
@@ -67,6 +68,7 @@ export function UserProfileTab({ user, onUpdated, accessToken }: UserProfileTabP
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
           <InfoRow label={t('displayName')} value={user.display_name ?? '—'} />
           <InfoRow label={tCommon('email')} value={user.email} />
+          <UserCodeField userId={user.user_id} />
           {user.phone && <InfoRow label={t('phone')} value={user.phone} />}
           <InfoRow
             label={t('role')}

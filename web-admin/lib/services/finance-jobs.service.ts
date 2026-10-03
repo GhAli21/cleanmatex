@@ -7,6 +7,7 @@ import { expireCreditNotes } from './stored-value.service';
 import { expireLoyaltyPoints } from './loyalty.service';
 import { processOutboxBatch } from './outbox-processor.service';
 import { ErpLitePostingEngineService } from './erp-lite-posting-engine.service';
+import { runPosSessionRolloverSweep } from './pos-session-rollover.service';
 
 /**
  * Finance maintenance jobs shown on the outbox ops hub.
@@ -29,6 +30,7 @@ export const FINANCE_JOB_CODES = {
   LOYALTY_POINTS_EXPIRY: 'loyalty_points_expiry',
   IDEMPOTENCY_CLEANUP: 'idempotency_cleanup',
   ERP_POSTING_RETRY: 'erp_posting_retry',
+  POS_SESSION_ROLLOVER: 'pos_session_rollover',
 } as const;
 export type FinanceJobCode = (typeof FINANCE_JOB_CODES)[keyof typeof FINANCE_JOB_CODES];
 
@@ -83,6 +85,12 @@ export const FINANCE_JOB_CATALOG: readonly FinanceJobCatalogEntry[] = [
     cronExpr: '15 * * * *',
     relatedHref: '/dashboard/erp-lite/exceptions',
   },
+  {
+    jobCode: FINANCE_JOB_CODES.POS_SESSION_ROLLOVER,
+    cronName: 'fin-pos-session-rollover',
+    cronExpr: '*/15 * * * *',
+    relatedHref: '/dashboard/internal_fin/pos-sessions',
+  },
 ];
 
 export interface FinanceJobOutcome {
@@ -107,12 +115,14 @@ export function isFinanceJobAlreadyRunningError(
 function cronFieldMatches(field: string, value: number): boolean {
   if (field === '*') return true;
   if (/^\d+$/.test(field)) return Number(field) === value;
+  const step = /^\*\/(\d+)$/.exec(field);
+  if (step && Number(step[1]) > 0) return value % Number(step[1]) === 0;
   return false;
 }
 
 /**
  * Next UTC occurrence for the 5-field cron expressions this hub actually
- * registers (`*`, or a single integer). Not a general cron parser.
+ * registers (`*`, a single integer, or a star-slash step such as every 15 minutes). Not a general cron parser.
  */
 export function nextCronOccurrence(cronExpr: string, from: Date = new Date()): Date | null {
   const parts = cronExpr.trim().split(/\s+/);
@@ -267,6 +277,15 @@ async function runErpPostingRetry(): Promise<FinanceJobOutcome> {
   return { processedCount, failedCount };
 }
 
+/**
+ * POS-session rollover + stale sweep (migration 0558): pauses or force-closes sessions whose
+ * branch business day has ended and flags sessions left open too long. See
+ * `runPosSessionRolloverSweep` in `pos-session-rollover.service.ts`.
+ */
+async function runPosSessionRollover(): Promise<FinanceJobOutcome> {
+  return runPosSessionRolloverSweep();
+}
+
 const JOB_RUNNERS: Record<FinanceJobCode, () => Promise<FinanceJobOutcome>> = {
   [FINANCE_JOB_CODES.OUTBOX_PROCESSOR]: runOutboxProcessor,
   [FINANCE_JOB_CODES.GIFT_CARD_EXPIRY]: runGiftCardExpiry,
@@ -274,6 +293,7 @@ const JOB_RUNNERS: Record<FinanceJobCode, () => Promise<FinanceJobOutcome>> = {
   [FINANCE_JOB_CODES.LOYALTY_POINTS_EXPIRY]: runLoyaltyPointsExpiry,
   [FINANCE_JOB_CODES.IDEMPOTENCY_CLEANUP]: runIdempotencyCleanup,
   [FINANCE_JOB_CODES.ERP_POSTING_RETRY]: runErpPostingRetry,
+  [FINANCE_JOB_CODES.POS_SESSION_ROLLOVER]: runPosSessionRollover,
 };
 
 export interface RunJobParams {

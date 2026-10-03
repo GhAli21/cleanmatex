@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAnyPermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { ensureBranchPendingDepositDrawer } from '@/lib/services/pending-deposit-drawer.service';
+import { guardBranchIds } from '@/lib/api/branch-access-guard';
 
 const schema = z.object({
   branchId: z.string().uuid(),
@@ -32,6 +33,10 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  // B3: provisioning a branch's drawer needs access to that branch.
+  const branchDenied = await guardBranchIds(auth, [parsed.data.branchId]);
+  if (branchDenied) return branchDenied;
 
   try {
     const result = await ensureBranchPendingDepositDrawer(tenantId, parsed.data.branchId, userId);

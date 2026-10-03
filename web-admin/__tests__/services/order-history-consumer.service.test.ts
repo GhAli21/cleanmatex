@@ -17,14 +17,18 @@
  *   9. consumeOrderHistoryBatch returns outcomes 1:1 with events.
  */
 
-const mockHistoryUpsert = jest.fn();
+const mockHistoryCreate = jest.fn();
+const mockHistoryFindFirst = jest.fn();
 const mockVoucherFindFirst = jest.fn();
 const mockInvoiceFindFirst = jest.fn();
 const mockPaymentFindFirst = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
-    org_order_history: { upsert: (...a: unknown[]) => mockHistoryUpsert(...a) },
+    org_order_history: {
+      findFirst: (...a: unknown[]) => mockHistoryFindFirst(...a),
+      create: (...a: unknown[]) => mockHistoryCreate(...a),
+    },
     org_fin_vouchers_mst: { findFirst: (...a: unknown[]) => mockVoucherFindFirst(...a) },
     org_invoice_mst: { findFirst: (...a: unknown[]) => mockInvoiceFindFirst(...a) },
     org_order_payments_dtl: { findFirst: (...a: unknown[]) => mockPaymentFindFirst(...a) },
@@ -66,7 +70,8 @@ function baseEvent(overrides: Partial<OutboxEventForHistory>): OutboxEventForHis
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockHistoryUpsert.mockResolvedValue({ id: 'hist-1' });
+  mockHistoryCreate.mockResolvedValue({ id: 'hist-1' });
+  mockHistoryFindFirst.mockResolvedValue(null);
 });
 
 describe('consumeOrderHistoryEvent', () => {
@@ -81,16 +86,9 @@ describe('consumeOrderHistoryEvent', () => {
     expect(outcome).toEqual({ status: 'WRITTEN', historyId: 'hist-1' });
     expect(mockVoucherFindFirst).not.toHaveBeenCalled();
     expect(mockInvoiceFindFirst).not.toHaveBeenCalled();
-    expect(mockHistoryUpsert).toHaveBeenCalledWith(
+    expect(mockHistoryCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          tenant_org_id_outbox_event_id: {
-            tenant_org_id: TENANT_A,
-            outbox_event_id: EVENT_ID,
-          },
-        },
-        update: {},
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           tenant_org_id: TENANT_A,
           order_id: ORDER_ID,
           action_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
@@ -132,9 +130,9 @@ describe('consumeOrderHistoryEvent', () => {
       where: { id: VOUCHER_ID, tenant_org_id: TENANT_A },
       select: expect.objectContaining({ id: true, order_id: true, voucher_no: true }),
     });
-    expect(mockHistoryUpsert).toHaveBeenCalledWith(
+    expect(mockHistoryCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           order_id: ORDER_ID,
           action_type: OUTBOX_EVENT_TYPES.VOUCHER_POSTED_AND_WIRED,
           to_value: 'VCH-001',
@@ -160,7 +158,7 @@ describe('consumeOrderHistoryEvent', () => {
     const outcome = await consumeOrderHistoryEvent(event);
 
     expect(outcome).toEqual({ status: 'SKIPPED_NOT_ORDER_LINKED' });
-    expect(mockHistoryUpsert).not.toHaveBeenCalled();
+    expect(mockHistoryCreate).not.toHaveBeenCalled();
   });
 
   it('resolves order_id from invoice for AR_INVOICE_ISSUED', async () => {
@@ -183,9 +181,9 @@ describe('consumeOrderHistoryEvent', () => {
       where: { id: INVOICE_ID, tenant_org_id: TENANT_A },
       select: expect.objectContaining({ id: true, order_id: true, invoice_no: true }),
     });
-    expect(mockHistoryUpsert).toHaveBeenCalledWith(
+    expect(mockHistoryCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           order_id: ORDER_ID,
           action_type: OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
           to_value: 'ARI-100',
@@ -210,7 +208,7 @@ describe('consumeOrderHistoryEvent', () => {
     const outcome = await consumeOrderHistoryEvent(event);
 
     expect(outcome).toEqual({ status: 'SKIPPED_NOT_ORDER_LINKED' });
-    expect(mockHistoryUpsert).not.toHaveBeenCalled();
+    expect(mockHistoryCreate).not.toHaveBeenCalled();
   });
 
   it('resolves order_id from payment for PAYMENT_VERIFIED (BVM Phase 6)', async () => {
@@ -239,9 +237,9 @@ describe('consumeOrderHistoryEvent', () => {
       where: { id: PAYMENT_ID, tenant_org_id: TENANT_A },
       select: expect.objectContaining({ id: true, order_id: true, payment_method_code: true }),
     });
-    expect(mockHistoryUpsert).toHaveBeenCalledWith(
+    expect(mockHistoryCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           order_id: ORDER_ID,
           action_type: OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
           from_value: 'PENDING',
@@ -264,7 +262,7 @@ describe('consumeOrderHistoryEvent', () => {
     const outcome = await consumeOrderHistoryEvent(event);
 
     expect(outcome).toEqual({ status: 'SKIPPED_NOT_ORDER_LINKED' });
-    expect(mockHistoryUpsert).not.toHaveBeenCalled();
+    expect(mockHistoryCreate).not.toHaveBeenCalled();
   });
 
   it('skips events outside the BVM history scope', async () => {
@@ -277,28 +275,48 @@ describe('consumeOrderHistoryEvent', () => {
     const outcome = await consumeOrderHistoryEvent(event);
 
     expect(outcome).toEqual({ status: 'SKIPPED_UNSUPPORTED_EVENT' });
-    expect(mockHistoryUpsert).not.toHaveBeenCalled();
+    expect(mockHistoryCreate).not.toHaveBeenCalled();
     expect(mockVoucherFindFirst).not.toHaveBeenCalled();
     expect(mockInvoiceFindFirst).not.toHaveBeenCalled();
   });
 
-  it('is idempotent — replaying the same event uses the unique-key upsert', async () => {
+  it('is idempotent — an event that already has a history row is not written again', async () => {
     const event = baseEvent({
       event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
       payload: { paymentStatus: 'PAID', settled: true },
     });
 
-    await consumeOrderHistoryEvent(event);
-    await consumeOrderHistoryEvent(event);
+    mockHistoryFindFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'hist-1' });
+    const first = await consumeOrderHistoryEvent(event);
+    const replay = await consumeOrderHistoryEvent(event);
 
-    expect(mockHistoryUpsert).toHaveBeenCalledTimes(2);
-    // Both calls use the same composite unique key — DB collapses to no-op.
-    const firstCallWhere = mockHistoryUpsert.mock.calls[0][0].where;
-    const secondCallWhere = mockHistoryUpsert.mock.calls[1][0].where;
-    expect(firstCallWhere).toEqual(secondCallWhere);
-    // The `update: {}` clause keeps the existing row untouched on retry —
-    // this is the "no clobber" guarantee.
-    expect(mockHistoryUpsert.mock.calls[0][0].update).toEqual({});
+    expect(first).toEqual({ status: 'WRITTEN', historyId: 'hist-1' });
+    expect(replay).toEqual({ status: 'WRITTEN', historyId: 'hist-1' });
+    // Only the first call inserts; the replay returns the existing row untouched ("no clobber").
+    expect(mockHistoryCreate).toHaveBeenCalledTimes(1);
+    expect(mockHistoryFindFirst).toHaveBeenCalledWith({
+      where: { tenant_org_id: TENANT_A, outbox_event_id: EVENT_ID },
+      select: { id: true },
+    });
+  });
+
+  it('treats a lost insert race (partial unique index, P2002) as the the winning row, not a failure', async () => {
+    mockHistoryFindFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'hist-winner' });
+    mockHistoryCreate.mockRejectedValueOnce(Object.assign(new Error('unique violation'), { code: 'P2002' }));
+    const outcome = await consumeOrderHistoryEvent(
+      baseEvent({ event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED, payload: { paymentStatus: 'PAID' } }),
+    );
+    expect(outcome).toEqual({ status: 'WRITTEN', historyId: 'hist-winner' });
+  });
+
+  it('rethrows any other insert failure so the worker marks the event failed', async () => {
+    const failure = new Error('connection reset');
+    mockHistoryCreate.mockRejectedValueOnce(failure);
+    await expect(
+      consumeOrderHistoryEvent(
+        baseEvent({ event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED, payload: { paymentStatus: 'PAID' } }),
+      ),
+    ).rejects.toBe(failure);
   });
 
   it('forwards tenant id into every Prisma where clause (multi-tenant isolation)', async () => {
@@ -317,12 +335,9 @@ describe('consumeOrderHistoryEvent', () => {
         where: expect.objectContaining({ tenant_org_id: TENANT_B }),
       }),
     );
-    expect(mockHistoryUpsert).toHaveBeenCalledWith(
+    expect(mockHistoryCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          tenant_org_id_outbox_event_id: expect.objectContaining({ tenant_org_id: TENANT_B }),
-        }),
-        create: expect.objectContaining({ tenant_org_id: TENANT_B }),
+        data: expect.objectContaining({ tenant_org_id: TENANT_B }),
       }),
     );
   });

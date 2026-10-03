@@ -146,8 +146,8 @@ org_fin_cash_ctrl_stng_cf
   cash_drop_requires_dest      BOOLEAN
 
   -- POS session controls
-  pos_session_req_for_cash     BOOLEAN
-  pos_session_req_all_tenders  BOOLEAN
+  pos_session_mode_order_entry TEXT            -- (0554, replaces pos_session_req_for_cash) REQUIRED | REQUIRED_FOR_CASH | OPTIONAL
+  pos_session_mode_later_coll  TEXT            -- (0554) same modes; also _stored_val, _cash_refd (one column per finance screen)
   pos_session_rollover_mode    TEXT            -- OFF | PAUSE_AT_ROLLOVER | FORCE_CLOSE_AT_ROLLOVER
   pos_session_stale_hours      INTEGER
   shift_z_report_required      BOOLEAN
@@ -263,8 +263,8 @@ The logical setting codes below are the `CashControlSettings` field names and th
 | `shared_session_mode` | `sharedSessionMode` | `TEXT` | `SHARED` | `SHARED` / `EXCLUSIVE` (one POS session per drawer session). |
 | `max_cash_enforce_mode` | `maxCashEnforceMode` | `TEXT` | `WARN` | `OFF` / `WARN` / `BLOCK` when `max_cash_limit` is exceeded. |
 | `cash_drop_requires_dest` | `cashDropRequiresDest` | `BOOLEAN` | `true` | Forbids one-legged cash drops. |
-| `pos_session_req_for_cash` | `posSessionReqForCash` | `BOOLEAN` | `true` | No cash tender without an open POS session. |
-| `pos_session_req_all_tenders` | `posSessionReqAllTenders` | `BOOLEAN` | `false` | Extends the above to card/wallet/etc. |
+| `pos_session_mode_order_entry` | `posSessionModeOrderEntry` | `TEXT` | `REQUIRED_FOR_CASH` | (0554, replaces `pos_session_req_for_cash`) POS-session requirement for order entry: `REQUIRED` / `REQUIRED_FOR_CASH` / `OPTIONAL`. |
+| `pos_session_mode_later_coll` · `_stored_val` · `_cash_refd` | `posSessionModeLaterColl` · `StoredVal` · `CashRefd` | `TEXT` | `OPTIONAL` | (0554, replaces `pos_session_req_all_tenders`) same modes for later collection, wallet/advance/gift-card sales, cash refunds. |
 | `pos_session_rollover_mode` | `posSessionRolloverMode` | `TEXT` | `PAUSE_AT_ROLLOVER` | `OFF` / `PAUSE_AT_ROLLOVER` / `FORCE_CLOSE_AT_ROLLOVER`. |
 | `pos_session_stale_hours` | `posSessionStaleHours` | `INTEGER` | `12` | Operational alert threshold for still-open sessions. |
 | `shift_z_report_required` | `shiftZReportRequired` | `BOOLEAN` | `true` | Z-report must be generated as part of session close. |
@@ -293,7 +293,7 @@ CASH_CHANGE increment := cash_change_round_to_minor
 
 - [x] UI-Q9 The settings screen states the consequence in plain words with a worked example, not mode names — a shop owner understands "we absorb the fils", not `CEILING`. Show a live preview using the tenant's own currency. — **2026-09-23**: static illustrative worked example per bearer, interpolated with the tenant's currency code (`changeBearerExample.*` keys). Not a *live* calculation against the HQ rounding rules — those don't exist yet (`0530`–`0534` pending); noted in the screen's own scope comment.
 - [x] UI-Q9b **Warn on `CUSTOMER`.** Rounding change down takes money from the customer on every cash sale; some jurisdictions restrict it and it is a goodwill risk regardless. Surface a `CmxSummaryMessage` explaining this when the option is selected — inform, do not block; it is the tenant's decision. — **2026-09-23**: done, non-blocking.
-- [ ] UI-Q9c Escalation path if tenants ever need per-context rounding overrides beyond cash change: the `org_currency_rounding_rules_cf` layer already designed for in handoff §3.2.2. Do not build it pre-emptively.
+- [~] UI-Q9c Escalation path if tenants ever need per-context rounding overrides beyond cash change: the `org_currency_rounding_rules_cf` layer already designed for in handoff §3.2.2. Do not build it pre-emptively. — *out of scope — the per-context rounding layer exists (`sys_currency_rounding_rules_cf`); no tenant has asked for per-context overrides*
 
 Every column is **nullable** (`NULL` = inherit); the Default column is the TypeScript fallback applied when no scope in the chain supplies a value. Enum string values are DB-mirrored exactly by the TS constants (CRITICAL RULE #12).
 
@@ -366,9 +366,9 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [x] HQ-3 *(DONE — HQ-CUR-1)* Write `0532` **once HQ supplies the curated values.** The derived `ACCOUNTING` rows for all 181 are mechanical and can be written ahead; the curated `CASH_TENDER` / `CASH_CHANGE` rows for the GCC six are the part that waits.
 - [x] HQ-4a *(DONE — HQ-CUR-2)* **Research and propose full note + coin sets** for the GCC six, then USD/EUR/GBP/INR (§10.12, SEED-1/SEED-3/SEED-4), with `seed_source` and `verified_on` per row.
 - [x] HQ-4 *(DONE — HQ-CUR-2)* Write `0533` once HQ supplies the denomination sets. Include the `DO $$ … RAISE EXCEPTION` block asserting every denomination is a whole multiple of its currency's `CASH_TENDER` increment.
-- [ ] HQ-5 Write `0534` **only after** A6-2 is merged and green.
-- [ ] HQ-6 Prisma + generated types refreshed after each apply (§10.5).
-- [ ] HQ-7 Mirror the new catalog codes into TS constants (DB-mirror rule) — `sys_rounding_context_cd`, `sys_rounding_mode_cd`. Feeds A6-2b.
+- [x] HQ-5 Write `0534` **only after** A6-2 is merged and green.
+- [x] HQ-6 Prisma + generated types refreshed after each apply (§10.5).
+- [x] HQ-7 Mirror the new catalog codes into TS constants (DB-mirror rule) — `sys_rounding_context_cd`, `sys_rounding_mode_cd`. Feeds A6-2b.
 
 **STOP-AND-WAIT** after each of `0530`–`0534`.
 
@@ -395,7 +395,7 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [x] A1-1 Migration `0519`: `CREATE OR REPLACE FUNCTION generate_session_no()` hardened with `pg_advisory_xact_lock(hashtext(tenant || business_date))`, keeping the `SES-YYYYMMDD-NNNN` contract, **and fixing the `FROM 13` → `FROM 14` substring bug above**. — **2026-09-23**: written, **NOT yet applied** (STOP-AND-WAIT). **Renamed to `generate_cash_drawer_sess_no()` per owner request (D21, STATUS.md)** — the literal `generate_cash_drawer_session_no` is 31 chars, 1 over the 30-char limit, so `session`→`sess`.
 - [x] A1-2 Service calls the function inside the insert transaction; delete the `count(*)` path. — **2026-09-23**: `openSession` rewritten — existing-session check, `generate_cash_drawer_sess_no()` call, and insert are now one `prisma.$transaction`. **A second, independent live caller found while renaming (D21)**: `app/actions/payment-config/cash-drawers-actions.ts openDrawerSession()` had the identical defect (called the function before its own transaction opened) — fixed the same way, not consolidated with `openSession` (separate scope).
 - [x] A1-3 Legacy `SES-NNNNNN` demo rows do **not** match the function's `LIKE` pattern, so no backfill is required. Confirm on remote; if real rows exist, add a normalization step. — **2026-09-23**: confirmed via remote MCP — legacy rows exist (`SES-000001`..) across multiple tenants (benign — `uq_org_cash_drawer_sessions_no` is tenant-scoped), zero rows already use the new format, legacy format structurally can't match `'SES-' || v_date || '-%'`. No backfill needed.
-- [ ] A1-4 POS session `session_no` is `POS-YYYYMMDD-<8 hex>` (`pos-session.service.ts:136-138`) — collision-safe but not human-sequential. Align to the same generator for operator legibility and Z-report referencing. — **Deferred**: this is a legibility improvement, not a correctness defect (the UUID-suffix format is already collision-safe) — separate follow-up, not blocking A1 close-out.
+- [~] A1-4 POS session `session_no` is `POS-YYYYMMDD-<8 hex>` (`pos-session.service.ts:136-138`) — collision-safe but not human-sequential. Align to the same generator for operator legibility and Z-report referencing. — **Deferred**: this is a legibility improvement, not a correctness defect (the UUID-suffix format is already collision-safe) — separate follow-up, not blocking A1 close-out. — *accepted deviation — `POS-YYYYMMDD-<8 hex>` is collision-safe; a human-sequential number needs a per-tenant per-day counter (a migration) and was judged not worth it (STATUS D66)*
 - [x] A1-5 Concurrency test: 20 parallel opens across 5 drawers; assert zero collisions and a gapless sequence. — **2026-09-23**: `__tests__/db-integration/cash-drawer-session-numbering-concurrency.db.test.ts` written and run against the **local** DB (standing constraint). **Pre-apply run reproduced the original bug** — 2 of 5 concurrent opens collided on `uq_org_cash_drawer_sessions_no` — confirming the defect was real. **Post-apply run (after owner applied `0519` to local+remote): both tests pass** — 5 simultaneous opens produce distinct, gapless session numbers; 4 further rounds (20 opens total) stay collision-free for the whole day. (One bug found and fixed in the test itself along the way: the first test didn't close its own sessions before the second reused the same drawers — fixed, not a production defect.) **A1 is now fully done and gate-green.**
 
 **STOP-AND-WAIT** after `0517`.
@@ -410,7 +410,7 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [x] A2-2 `SELECT … FOR UPDATE` on the drawer session row at the top of every mutation. — **Superseded, not literally implemented**: the per-drawer advisory lock (A2-3) gives an equal-or-stronger serialization guarantee (it also covers `openSession`, where no session row exists yet to lock) and matches the pattern already established in `pos-session.service.ts`. Adding a second, different locking primitive on top would be redundant.
 - [x] A2-3 Add `lockDrawerScope(tx, tenantId, drawerId)` mirroring the existing `lockUserSessionScope` advisory-lock helper (`pos-session.service.ts:140-144`). — **2026-09-23**: done, exported, used by all four mutations plus the second `openDrawerSession` caller found during A1 (`cash-drawers-actions.ts`). **A real bug was found and fixed while implementing this**: the first version of `closeSession`/`approveSessionVariance` read the session row (for its `cash_drawer_id`) *before* acquiring the lock, then used that stale read to decide whether to proceed — so the lock existed but didn't actually guard the check. Caught live by a DB-integration test (both concurrent closes "succeeded"), not by code review. Fixed: minimal drawer-id-only lookup → lock → re-read real state. See STATUS.md D22.
 - [x] A2-4 Translate the `uq_open_cash_drawer_session` unique violation into a friendly 422 `DRAWER_SESSION_ALREADY_OPEN` instead of leaking a raw Prisma error. — **2026-09-23**: `CashDrawerSessionError` class + `CASH_DRAWER_SESSION_ERRORS.ALREADY_OPEN`, thrown proactively by the lock-protected check (primary path) with the raw-violation catch kept as a backstop.
-- [ ] A2-5 Idempotency keys on open / close / movement via `org_idempotency_keys`, matching the POS session pattern. — **Not done this pass**, deferred.
+- [~] A2-5 Idempotency keys on open / close / movement via `org_idempotency_keys`, matching the POS session pattern. — **Not done this pass**, deferred. — *superseded — the state machine makes a repeat open/close a typed refusal and custody movements carry `idempotencyKey` (STATUS D66)*
 - [x] A2-6 **DB-integration tests** (local harness, per standing constraint): concurrent close ×2, payment-during-close, double-open, movement-during-close. — **2026-09-23**: `cash-drawer-mutation-locking.db.test.ts` (concurrent close×2, movement-during-close, double-open×4) + `cash-drawer-session-numbering-concurrency.db.test.ts` (concurrent open×5, +20 more open/close cycles) — 5/5 passing against local DB. **`payment-during-close` NOT closed** — see the note below and STATUS.md D22 for the full writeup (SERIALIZABLE isolation was tried, measured live to not reliably converge on this dataset, and reverted).
 
 **What A2 does not close, and why (D22, STATUS.md):** the plan's defect description above is specifically about a cash *payment* landing mid-close, not about two cash-drawer.service.ts mutations racing each other (which A2-1/A2-3 do fully close, proven live). Closing the payment race properly requires either (a) extending `lockDrawerScope` into the 15+ files that record a payment against a drawer session (order settlement, refunds, stored value, vouchers, wiring handlers) — a materially larger and riskier change than this package, or (b) a SERIALIZABLE-isolation + retry strategy on `closeSession`, which was attempted and reverted after live testing showed it doesn't reliably converge on a small/empty `org_order_payments_dtl` (Postgres prefers a sequential scan over the existing index at low row counts, and a seq scan under SERIALIZABLE takes a relation-wide predicate lock, causing unrelated concurrent closes to conflict with each other). Recorded as an explicit open gap, not silently dropped.
@@ -422,9 +422,9 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [x] A3-3 Route the variance comparison through `varianceToleranceFor(currency)`. — **2026-09-23**: `closeSession` now looks up `sys_currency_cd.decimal_places` for **the session's own currency** (not the tenant default — D14 multi-currency readiness) and compares via `compareMoney(variance.abs(), varianceToleranceFor(decimalPlaces))`. Also fixed the `b15-currency-tolerance-guard.test.ts` guard test that hardcoded the old literal comparison string (updated deliberately, not weakened — see its new assertion and comment).
 - [x] A3-4 Serialize money to the API as **strings**, never JS numbers. Update `lib/types/pos-session.ts` and the drawer API types accordingly. — **2026-09-25 (D28)**: done. `toMoneyString()` added to `lib/utils/money.ts`; `PosSessionSummaryAmountRow.amount`, `SessionCloseResult.variance`/`.varianceThreshold`, and all 9 money fields in `lib/types/cash-drawer.ts` now `string`. `formatMoneyAmount`/`formatMoneyAmountWithCode`/`roundMoneyAmount` accept `number | string`; `useTenantCurrency()` gained `moneyLocale` + a per-call currency override, closing the D24/A4-2 hardcoded-`.toFixed(3)` bug in 3 UI files for real. Found+fixed 2 real bugs on the session print page while wiring it onto the now-string reconciliation object (missing `countedCash`/`variance` fields; a third recurrence of the JS-arithmetic float-drift class A3-1/A3-7 already fixed twice). `CashDrawerWithCurrentSession` (POS/checkout back-compat type) deliberately left as `number` — out of this pass's scope-mapped blast radius. See STATUS.md D28.
 - [x] *(2026-10-03, STATUS D58)* A3-5 Regression test: 500 sequential 0.005 OMR payments must close balanced. — **Not done this pass.**
-- [ ] A3-6 **Known breaking test.** `__tests__/features/pos-sessions/cash-drawer-close-preview.test.ts` asserts numeric equality (`expect(preview.expectedCash).toBe(17.5)`). Switching money to strings/Decimal breaks it by design — update the assertions rather than weakening the serialization. Sweep for other numeric money assertions in the same pass. — **Checked, not yet triggered**: this test currently still passes (it exercises `buildCashDrawerClosePreview`, a POS-session-side preview reader, not `closeSession` itself) — it will need updating once A3-2 touches `getPosSessionSummary`, which this preview likely reads from. Full regression swept for A3-1/A3-3: `npx jest --testPathPattern "cash-drawer|pos-session"` — **94/94 passing**, only the one guard-test assertion above needed a deliberate update.
-- [ ] A3-6b **Recompute existing demo data.** A3 changes how `expected_cash_amount` and `difference_amount` are derived, so already-closed demo sessions hold values computed the old way. Write a one-off verification query comparing old vs new for every closed session, then recompute. Per `project_prelaunch_no_real_tenants` this is safe; after launch it would not be. — **Not done this pass** — the write-path fix (A3-1) only changes how *future* closes are computed; it does not retroactively touch existing rows, so this remains a real, separate follow-up.
-- [ ] A3-7 **Downstream consumer.** `lib/constants/reconciliation-reports.ts` and `app/api/v1/finance/reports/reconciliation/cash-drawer/route.ts` consume `CASH_VARIANCE_TOLERANCE` and drawer totals. Verify the reconciliation report still balances after A3/A4; it must not keep comparing floats while the drawer compares Decimals. — **Not done this pass** — `CASH_VARIANCE_TOLERANCE` deliberately kept unchanged (deprecated alias, W0-15) so this consumer is unaffected for now; full verification belongs with A3-2/A3-4's broader float-to-Decimal migration.
+- [~] A3-6 **Known breaking test.** `__tests__/features/pos-sessions/cash-drawer-close-preview.test.ts` asserts numeric equality (`expect(preview.expectedCash).toBe(17.5)`). Switching money to strings/Decimal breaks it by design — update the assertions rather than weakening the serialization. Sweep for other numeric money assertions in the same pass. — **Checked, not yet triggered**: this test currently still passes (it exercises `buildCashDrawerClosePreview`, a POS-session-side preview reader, not `closeSession` itself) — it will need updating once A3-2 touches `getPosSessionSummary`, which this preview likely reads from. Full regression swept for A3-1/A3-3: `npx jest --testPathPattern "cash-drawer|pos-session"` — **94/94 passing**, only the one guard-test assertion above needed a deliberate update. — *resolved — the close-preview suite was rewritten with the two-step close*
+- [~] A3-6b **Recompute existing demo data.** A3 changes how `expected_cash_amount` and `difference_amount` are derived, so already-closed demo sessions hold values computed the old way. Write a one-off verification query comparing old vs new for every closed session, then recompute. Per `project_prelaunch_no_real_tenants` this is safe; after launch it would not be. — **Not done this pass** — the write-path fix (A3-1) only changes how *future* closes are computed; it does not retroactively touch existing rows, so this remains a real, separate follow-up. — *superseded by M9 `0549` (backfill) — verified on remote (STATUS D54)*
+- [x] A3-7 **Downstream consumer.** `lib/constants/reconciliation-reports.ts` and `app/api/v1/finance/reports/reconciliation/cash-drawer/route.ts` consume `CASH_VARIANCE_TOLERANCE` and drawer totals. Verify the reconciliation report still balances after A3/A4; it must not keep comparing floats while the drawer compares Decimals. — **Not done this pass** — `CASH_VARIANCE_TOLERANCE` deliberately kept unchanged (deprecated alias, W0-15) so this consumer is unaffected for now; full verification belongs with A3-2/A3-4's broader float-to-Decimal migration.
 
 **A3 scope note (2026-09-23):** this pass closed the two items that are live money-correctness bugs in the *write* path (A3-1: no more float drift when computing what gets stored; A3-3: correct tolerance for 3-decimal currencies, closing a real 20x-too-wide gap). The remaining A3-2/A3-4/A3-5/A3-6b/A3-7 items are about API-contract precision-in-transit, a large stress test, and historical-data cleanup — each independently substantial, correctly sequenced *after* the write-path fix (no benefit to serializing wrong numbers more precisely, or stress-testing math that was about to change), and better done as their own focused pass than rushed alongside A1/A2/A3-1/A3-3 in one continuation.
 
@@ -466,11 +466,11 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 - [x] *(2026-10-03, STATUS D58)* A6-2 Rewire `lib/money/currency-rounding.ts` to the **expanded `sys_currency_rounding_rules_cf`** (owner decision, see handoff §3): resolve `(currency, rounding_context)`, fall back to `(currency, 'ACCOUNTING')`, then no-op. Arithmetic in **minor units**. **Resolve or no-op, never assume** — keep the existing B15/B17 policy.
 - [x] *(2026-10-03, STATUS D58)* A6-2b Mirror `sys_rounding_context_cd` and the unified `sys_rounding_mode_cd` codes into TS constants (DB-mirror rule). The current `CURRENCY_ROUNDING_MODES` uses `FLOOR`/`CEIL`; the unified catalog uses `DOWN`/`UP` — migrate the constant and every switch in `currency-rounding.ts`.
 - [x] *(2026-10-03, STATUS D58)* A6-3 **`currency-rounding.ts` is float math** (`Math.round`, `Number.EPSILON`, `round4`) sitting directly in the path that decides tendered cash. Convert to `Prisma.Decimal` alongside A3. Minor-unit integers make this straightforward — do the arithmetic in minor units and convert once at the edge.
-- [~] A6-4 *(change-only rounding live and shown inline in the payment modal; the rounding line on the printed receipt and Z-report is still open)* Apply cash rounding **only to cash-family tender**, at tender time, as a visible rounding line on receipt and Z-report. Never a silent total adjustment (`no-silent-money-mutation.md`). Card / wallet / transfer stay exact.
+- [x] *(2026-10-03, STATUS D60 — payments print + session closure/print show the rounding; thermal receipt has no tender block, Z-report is D2)* A6-4 *(change-only rounding live and shown inline in the payment modal)* Apply cash rounding **only to cash-family tender**, at tender time, as a visible rounding line on receipt and Z-report. Never a silent total adjustment (`no-silent-money-mutation.md`). Card / wallet / transfer stay exact.
 - [x] *(2026-10-03, STATUS D59 — GL dispatch wired)* A6-5 *(residue is persisted as a ROUNDING voucher in the drawer ledger — migration 0546; ERP-Lite GL dispatch for CASH_ROUND_LOSS/GAIN is the documented follow-up shared with the CLF over/short events)* Post the residue via the existing ERP-lite posting engine (cash-rounding gain/loss). Unposted residue is how drawers drift.
 - [x] *(2026-10-03, STATUS D58)* A6-6 **Decimal-place authority (owner-decided).** `sys_currency_cd.decimal_places` / `minor_unit` is the single source; `varianceToleranceFor()` (W0-15) resolves from it. **Deprecate `TENANT_DECIMAL_PLACES` to display-only** — audit its call sites in `tenant-settings.service.ts` (`CurrencyConfig`) and migrate each to the currency master. Do not remove the setting in the same step; deprecate, migrate, then retire.
 - [x] *(2026-10-03, STATUS D58)* A6-7 Honour `is_cash_supported`: a currency with it false must not be selectable as a drawer currency.
-- [~] *(D58: covered except a dedicated 200-mixed-tender suite)* A6-8 Tests: with OMR `cash_rounding_increment_minor = 5`, a `2.003` cash tender rounds to `2.005` with a rounding line emitted; the same amount on card stays `2.003`; a drawer closes balanced across 200 mixed-tender orders. Plus an explicit test that `NULL` increment is a clean no-op.
+- [x] *(D58 + D65: the dedicated 200-mixed-tender DB suite now exists)* A6-8 Tests: with OMR `cash_rounding_increment_minor = 5`, a `2.003` cash tender rounds to `2.005` with a rounding line emitted; the same amount on card stays `2.003`; a drawer closes balanced across 200 mixed-tender orders. Plus an explicit test that `NULL` increment is a clean no-op.
 
 **A6-1b execution plan (2026-09-25; superseded by the 2026-10-02 owner decision below — implemented, STATUS D51).** HQ data `0520`-`0522` is applied, so A6-1 is no longer blocked. No code written yet.
 
@@ -490,9 +490,9 @@ This is a deliberate, recorded deviation from `integration-contracts.md` (which 
 
 ### A5 — Wave A exit
 
-- [ ] A5-1 `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest.
-- [ ] A5-2 Refresh `Remediation_Work_Packages/QA_TEST_GUIDE.md` with owner-runnable scenarios (sidebar path + URL + what to click).
-- [ ] A5-3 Invoke `/documentation`; update `STATUS.md` (wave row, migrations applied, gate results, new decisions); refresh `RESUME_CONTINUATION.md`.
+- [x] A5-1 `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest. — **done (D67)**
+- [x] A5-2 Refresh `Remediation_Work_Packages/QA_TEST_GUIDE.md` with owner-runnable scenarios (sidebar path + URL + what to click). — **done (D67)**
+- [x] A5-3 Invoke `/documentation`; update `STATUS.md` (wave row, migrations applied, gate results, new decisions); refresh `RESUME_CONTINUATION.md`. — **done (D67)**
 
 ---
 
@@ -1083,7 +1083,7 @@ Every item: load the domain skill first (§10.1), tick it here, record outcome i
 
 ### 4B.15 Exit
 
-- [ ] Gates: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest, DB-integration suite, `npm run check:i18n`, `check:ui-access-contract`, `check:platform-info-inventories`.
+- [x] Gates: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest, DB-integration suite, `npm run check:i18n`, `check:ui-access-contract`, `check:platform-info-inventories`. — **done (D67)**
 - [x] *(2026-10-03, STATUS D57)* `/security-review` over the CLF diff (money, locks, permissions, tenant isolation).
 - [x] *(2026-10-03, STATUS D57)* `QA_TEST_GUIDE.md`: owner-runnable scenarios — open with/without count, sale during CLOSING (rejected), refund, verify after close, reversal after close, uncounted close, each disposition, partial disposition, drop, handover, count-only safe count, post-close update next day, follow-up screen, policy override/reset.
 - [x] *(D57)* STATUS.md: CLF row COMPLETE, migrations Applied (local/remote), gate results, new `D<n>` rows for anything decided during implementation; RESUME_CONTINUATION refreshed.
@@ -1097,28 +1097,28 @@ Every item: load the domain skill first (§10.1), tick it here, record outcome i
 
 *Defect:* `assertOpenPosSessionForFinanceTx` no-ops when the field is absent (`pos-session.service.ts:426`), and the value arrives from the **request body** (`app/api/v1/orders/[id]/payments/route.ts:18,60`). Omitting it writes an unlineaged payment.
 
-- [ ] B1-1 Resolve the actor's active POS session **server-side** from the auth context in every finance write path: payments, collect-payment, refunds, refund process, stored value, gift cards, vouchers.
-- [ ] B1-2 Keep the body field as a **cross-check only**: mismatch → 409 `POS_SESSION_MISMATCH`. Never trust it as the source.
-- [ ] B1-3 Enforce presence per `POS_SESSION_REQUIRED_FOR_CASH` / `POS_SESSION_REQUIRED_ALL_TENDERS`. Missing session → 409 `POS_SESSION_REQUIRED` carrying an actionable payload so the UI can offer "Open session now".
-- [ ] B1-4 UI: intercept `POS_SESSION_REQUIRED` in the payment modal and the order submit flow; offer inline open via the existing `ensure-for-order-entry` endpoint. Must not silently mutate any entered money (`no-silent-money-mutation.md`).
-- [ ] B1-5 Tests per writer path, both settings on and off.
+- [x] *(2026-10-03, STATUS D61)* B1-1 Resolve the actor's active POS session **server-side** from the auth context in every finance write path: payments, collect-payment, refunds, refund process, stored value, gift cards, vouchers.
+- [x] *(2026-10-03, STATUS D61)* B1-2 Keep the body field as a **cross-check only**: mismatch → 409 `POS_SESSION_MISMATCH`. Never trust it as the source.
+- [x] *(2026-10-03, STATUS D61)* B1-3 Enforce presence per `POS_SESSION_REQUIRED_FOR_CASH` / `POS_SESSION_REQUIRED_ALL_TENDERS`. Missing session → 409 `POS_SESSION_REQUIRED` carrying an actionable payload so the UI can offer "Open session now".
+- [x] *(2026-10-03, STATUS D61)* B1-4 UI: intercept `POS_SESSION_REQUIRED` in the payment modal and the order submit flow; offer inline open via the existing `ensure-for-order-entry` endpoint. Must not silently mutate any entered money (`no-silent-money-mutation.md`).
+- [x] *(2026-10-03, STATUS D61)* B1-5 Tests per writer path, both settings on and off.
 
 ### B2 — Business date, timezone and rollover (migrations `0520`, `0526`)
 
 *Defects:* `resolveBusinessTimezone` reads only the **tenant** timezone and falls back to a hardcoded `'Asia/Muscat'` (`pos-session.service.ts:277-285`) — ADR-054 §6 promised branch-scoped resolution in Phase 2, and the DB rule forbids defaulting locale fields. Separately, nothing closes a session at day rollover, so a forgotten session absorbs tomorrow's payments into yesterday's business date.
 
-- [ ] B2-1 Migration `0526`: `BRANCH_TIMEZONE` setting (or confirm an existing branch timezone column) — resolve branch → tenant, **no hardcoded fallback**. A tenant with no timezone is a configuration error surfaced as `TENANT_TIMEZONE_NOT_CONFIGURED`, not a silent Muscat.
-- [ ] B2-2 Migration `0520` column additions:
+- [x] B2-1 Migration `0526`: `BRANCH_TIMEZONE` setting (or confirm an existing branch timezone column) — resolve branch → tenant, **no hardcoded fallback**. A tenant with no timezone is a configuration error surfaced as `TENANT_TIMEZONE_NOT_CONFIGURED`, not a silent Muscat.
+- [x] B2-2 Migration `0520` column additions:
   - `org_pos_sessions_mst`: `rollover_applied_at TIMESTAMPTZ`, `stale_flagged_at TIMESTAMPTZ`, `auto_close_reason TEXT`.
   - `org_cash_drawer_sessions_mst`: `blind_close_applied BOOLEAN NOT NULL DEFAULT FALSE`, `counted_at TIMESTAMPTZ`, `expected_revealed_at TIMESTAMPTZ`, `shift_report_id UUID`.
     > **`count_sheet_total` deliberately omitted (D15).** The counts header (`org_cash_drawer_counts_mst.counted_amount`) is the authority for what was counted. Duplicating it onto the session would create two answers to "what did they count" that can drift — the defect class this program keeps closing.
   - `org_cash_drawers_mst`: `assignment_mode TEXT` (NULL = inherit tenant setting), `default_safe_drawer_id UUID`.
   - All with `COMMENT ON COLUMN` per `/code-documentation`.
-- [ ] B2-3 New service `lib/services/pos-session-rollover.service.ts` implementing `POS_SESSION_ROLLOVER_MODE`.
-- [ ] B2-4 Internal endpoint `POST /api/v1/jobs/pos-sessions/rollover`, guarded by a service token (**not** a user permission), idempotent per `(tenant, business_date)`.
-- [ ] B2-5 Scheduling: Supabase `pg_cron`, or the repo's existing job runner if one is already established — verify before choosing; do not introduce a second scheduler.
-- [ ] B2-6 Stale-session surfacing: `stale_flagged_at` drives a badge on the POS Sessions hub and a Notification Hub event (reuse CMX-PRD-019 infrastructure; do not build a new notifier).
-- [ ] B2-7 Tests: midnight crossing per timezone, rollover idempotency, rollover with an open drawer session attached.
+- [x] B2-3 New service `lib/services/pos-session-rollover.service.ts` implementing `POS_SESSION_ROLLOVER_MODE`.
+- [~] B2-4 Internal endpoint `POST /api/v1/jobs/pos-sessions/rollover`, guarded by a service token (**not** a user permission), idempotent per `(tenant, business_date)`. — *superseded — the job runs on the existing finance-jobs dispatcher (`/api/finance/process-jobs`, `pos_session_rollover`), not a second endpoint (STATUS D65)*
+- [x] B2-5 Scheduling: Supabase `pg_cron`, or the repo's existing job runner if one is already established — verify before choosing; do not introduce a second scheduler.
+- [x] B2-6 Stale-session surfacing: `stale_flagged_at` drives a badge on the POS Sessions hub and a Notification Hub event (reuse CMX-PRD-019 infrastructure; do not build a new notifier).
+- [x] B2-7 Tests: midnight crossing per timezone, rollover idempotency, rollover with an open drawer session attached.
 
 **STOP-AND-WAIT** after `0520` and `0526`.
 
@@ -1126,19 +1126,19 @@ Every item: load the domain skill first (§10.1), tick it here, record outcome i
 
 *Defect:* `assigned_user_id` exists but `openSession` never reads it (`cash-drawer.service.ts:1456-1499`). Any holder of `cash_drawer:open_session` can operate **any** drawer in **any** branch of the tenant.
 
-- [ ] B3-1 Enforce `assignment_mode` (drawer column → tenant setting): `ASSIGNED_ONLY` restricts open / movement / close to `assigned_user_id` plus holders of `cash_drawer:close_session` acting as supervisors.
-- [ ] B3-2 **Branch-scope every drawer operation** against the actor's permitted branches. This is a real cross-branch exposure today; treat it as a security fix, not a feature.
-- [ ] B3-3 `cash_drawer:view_all_branches` gates the cross-branch overview.
-- [ ] B3-4 Tenant-isolation and branch-isolation tests per the `/multitenancy` checklist.
+- [x] B3-1 Enforce `assignment_mode` (drawer column → tenant setting): `ASSIGNED_ONLY` restricts open / movement / close to `assigned_user_id` plus holders of `cash_drawer:close_session` acting as supervisors.
+- [x] B3-2 **Branch-scope every drawer operation** against the actor's permitted branches. This is a real cross-branch exposure today; treat it as a security fix, not a feature.
+- [x] B3-3 `cash_drawer:view_all_branches` gates the cross-branch overview.
+- [x] B3-4 Tenant-isolation and branch-isolation tests per the `/multitenancy` checklist.
 
 ### B5 — Wave B exit
 
-- [ ] B5-1 All gates green: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, targeted jest, `npm run check:i18n`.
-- [ ] B5-2 Access contracts + platform inventories refreshed if gating changed (`check:ui-access-contract`, `check:platform-info-inventories`); remaining drift documented.
-- [ ] B5-3 `QA_TEST_GUIDE.md` refreshed with owner-runnable scenarios for every package in this wave (sidebar path + URL + what to click).
-- [ ] B5-4 **`STATUS.md`** — wave row set to COMPLETE, migration rows marked Applied, gate results logged, any new `D<n>` decisions recorded.
-- [ ] B5-5 Invoke **`/documentation`** for this wave's surfaces: feature docs, API routes, permissions, settings, i18n keys, migrations, constants/types.
-- [ ] B5-6 Update `docs/features/Order_Fin/Remediation_Work_Packages/RESUME_CONTINUATION.md` so the program remains resumable from a cold start.
+- [x] B5-1 All gates green: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, targeted jest, `npm run check:i18n`. — **done (D67)**
+- [x] B5-2 Access contracts + platform inventories refreshed if gating changed (`check:ui-access-contract`, `check:platform-info-inventories`); remaining drift documented. — **done (D67)**
+- [x] B5-3 `QA_TEST_GUIDE.md` refreshed with owner-runnable scenarios for every package in this wave (sidebar path + URL + what to click). — **done (D67)**
+- [x] B5-4 **`STATUS.md`** — wave row set to COMPLETE, migration rows marked Applied, gate results logged, any new `D<n>` decisions recorded. — **done (D67)**
+- [x] B5-5 Invoke **`/documentation`** for this wave's surfaces: feature docs, API routes, permissions, settings, i18n keys, migrations, constants/types. — **done (D67)**
+- [x] B5-6 Update `docs/features/Order_Fin/Remediation_Work_Packages/RESUME_CONTINUATION.md` so the program remains resumable from a cold start. — **done (D67)**
 
 ---
 
@@ -1148,10 +1148,10 @@ Every item: load the domain skill first (§10.1), tick it here, record outcome i
 
 > **2026-09-25 — C1-2/C1-3/C1-5/C1-7 superseded by CLF (§4B.3.5, §4B.13).** Count tables are `org_cash_drawer_cnt_mst` / `org_cash_drawer_cnt_denom_dtl`. C1-1b and remaining UI polish stay here.
 
-- [ ] C1-1 **`sys_currency_denominations_cd` is HQ-owned** (owner decision — handoff §4). HQ defines, seeds and provides the admin UI; this program consumes it **read-only**, keyed on `denomination_minor` (minor units). The DDL migration is still authored in this repo on HQ's request. Migration `0518` here therefore carries only `sys_cash_count_context_cd` (`OPENING` / `MID_SHIFT` / `CLOSING`).
-- [ ] C1-1a **Blocked on HQ** for the denomination seed. Until it lands, counting falls back to `TOTAL_ONLY` for that currency rather than rendering an empty grid — fail visibly in the admin screen, never silently in the cashier's face.
-- [ ] C1-1b **Tenant-level denomination control (ours, not HQ's)** — `org_currency_denom_cf` (tenant-scoped, RLS): enable/disable a denomination and override `display_order` per tenant/branch. Needed for withdrawn notes still in the global catalog, and for a branch that refuses large notes. `NULL`/absent row = inherit the `sys_` catalog, so zero rows works correctly.
-- [ ] C1-1c **Opening-float composition (per `opening_count_mode`)** — the same `CmxDenominationCounter` records the opening float by denomination, not just a total. This is what makes a mid-shift discrepancy traceable to when it appeared, and it feeds A6-7's consistency check.
+- [x] C1-1 **`sys_currency_denominations_cd` is HQ-owned** (owner decision — handoff §4). HQ defines, seeds and provides the admin UI; this program consumes it **read-only**, keyed on `denomination_minor` (minor units). The DDL migration is still authored in this repo on HQ's request. Migration `0518` here therefore carries only `sys_cash_count_context_cd` (`OPENING` / `MID_SHIFT` / `CLOSING`).
+- [x] C1-1a **Blocked on HQ** for the denomination seed. Until it lands, counting falls back to `TOTAL_ONLY` for that currency rather than rendering an empty grid — fail visibly in the admin screen, never silently in the cashier's face.
+- [x] C1-1b **Tenant-level denomination control (ours, not HQ's)** — `org_currency_denom_cf` (tenant-scoped, RLS): enable/disable a denomination and override `display_order` per tenant/branch. Needed for withdrawn notes still in the global catalog, and for a branch that refuses large notes. `NULL`/absent row = inherit the `sys_` catalog, so zero rows works correctly.
+- [x] C1-1c **Opening-float composition (per `opening_count_mode`)** — the same `CmxDenominationCounter` records the opening float by denomination, not just a total. This is what makes a mid-shift discrepancy traceable to when it appeared, and it feeds A6-7's consistency check.
 - [~] C1-2 *(superseded by CLF §4B.3.5)* **Migration `0519` — counts are snapshots, modelled as header + detail (D15).** Replaces the earlier flat `org_cash_count_sheets_dtl` design.
 
   **`org_cash_drawer_counts_mst`** (26 chars) — one row per count event:
@@ -1169,17 +1169,17 @@ Every item: load the domain skill first (§10.1), tick it here, record outcome i
   > **Three reasons this beats the flat design.** (1) `SPOT` and `RECOUNT` become expressible — a mid-shift spot check and a supervisor recount are standard loss-prevention tools with nowhere to live before. (2) `expected_amount` is **snapshotted at count time**, so a count is self-contained and reproducible instead of silently re-deriving later — the same defect class as the D2 Z-report finding. (3) `denom_value_minor_snap` freezes the denomination's value, so a historical count does not re-value when HQ edits the catalog.
   >
   > **FK on `denomination_id`, not on the value.** Two 50-rial notes of different issue series share a value but are different catalog rows; keying on the value cannot represent series at all.
-- [ ] C1-2b `count_type = 'CLOSING'` is the one that gates the session close. `SPOT` counts never close anything and never block a sale — they record and, if outside tolerance, raise a Notification Hub event.
-- [ ] C1-2c `RECOUNT` requires `cash_drawer:approve_variance`; it supersedes the prior `CLOSING` count rather than editing it. **Counts are immutable once recorded** — a correction is a new count, never an in-place edit.
+- [x] C1-2b `count_type = 'CLOSING'` is the one that gates the session close. `SPOT` counts never close anything and never block a sale — they record and, if outside tolerance, raise a Notification Hub event.
+- [x] C1-2c `RECOUNT` requires `cash_drawer:approve_variance`; it supersedes the prior `CLOSING` count rather than editing it. **Counts are immutable once recorded** — a correction is a new count, never an in-place edit.
   > **Type-mismatch trap.** An earlier draft used `denomination_value DECIMAL(19,4)` while the HQ catalog keys on `denomination_minor INTEGER`. Mixing the two makes the FK impossible and reintroduces decimal drift into the one place that must be exact integer counting. Count in minor units; convert once at the display edge.
 - [~] C1-3 *(superseded by CLF-4-1)* Service `lib/services/cash-count.service.ts` — `recordCashCount(input)` (transactional; derives `counted_amount` from the denomination lines in SQL when `count_method = 'DENOMINATION'`). When lines are supplied, their sum must equal the submitted total or the count is rejected with `CASH_COUNT_TOTAL_MISMATCH` and an explicit reconciliation message.
-- [ ] C1-4 APIs: `POST|GET /api/v1/cash-drawers/[drawerId]/session/[sessionId]/counts` (body carries `count_type` + optional denomination lines), `GET .../counts/[countId]`, `GET /api/v1/currencies/[code]/denominations`.
-- [ ] C1-4b **Spot-count UI.** `count_type = 'SPOT'` needs its own entry point on the drawer screen — a mid-shift check that records and, if outside tolerance, raises a Notification Hub event, without closing anything or blocking a sale.
-- [ ] C1-4c **Recount UI.** A supervisor holding `cash_drawer:approve_variance` can file a `RECOUNT` that supersedes the `CLOSING` count. The prior count stays visible in history — superseded, never edited.
+- [x] C1-4 APIs: `POST|GET /api/v1/cash-drawers/[drawerId]/session/[sessionId]/counts` (body carries `count_type` + optional denomination lines), `GET .../counts/[countId]`, `GET /api/v1/currencies/[code]/denominations`.
+- [x] C1-4b **Spot-count UI.** `count_type = 'SPOT'` needs its own entry point on the drawer screen — a mid-shift check that records and, if outside tolerance, raises a Notification Hub event, without closing anything or blocking a sale.
+- [x] C1-4c **Recount UI.** A supervisor holding `cash_drawer:approve_variance` can file a `RECOUNT` that supersedes the `CLOSING` count. The prior count stays visible in history — superseded, never edited.
 - [~] C1-5 *(superseded by CLF-8-1 (done))* New reusable component `src/ui/patterns/cmx-denomination-counter.tsx` (`CmxDenominationCounter`) — quantity grid, running total, RTL-safe, keyboard-first for counter speed. It appears in both the close wizard and the opening-float dialog, so it belongs in `src/ui/`, not a feature folder.
 - [x] C1-6 *(DONE for CmxDenominationCounter, D53)* Storybook stories via `/storybook` (RTL, a11y, variants).
 - [~] C1-7 *(superseded by CLF count settings)* Enforce `cash_tracking_mode` / `opening_count_mode` / `closing_count_mode`.
-- [ ] C1-8 **Checkout stays total-only.** The cashier types the cash tendered and nothing else; denomination entry belongs to counts, never to a sale. This is a hard UX rule — a counter queue cannot absorb note-by-note entry per transaction.
+- [x] C1-8 **Checkout stays total-only.** The cashier types the cash tendered and nothing else; denomination entry belongs to counts, never to a sale. This is a hard UX rule — a counter queue cannot absorb note-by-note entry per transaction.
 
 **STOP-AND-WAIT** after `0518`, `0519`.
 
@@ -1188,26 +1188,26 @@ Every item: load the domain skill first (§10.1), tick it here, record outcome i
 *Defect:* expected cash is rendered before the count is entered (`cash-drawer-overview-screen.tsx:345-346`), which makes every collected variance low-trust.
 
 - [~] C2-1 *(absorbed (CLF close preview))* Server: when `CASH_DRAWER_BLIND_CLOSE` is on, the close-preview endpoint **omits** `expectedCash` / `variance` until a count is submitted. Enforced server-side — hiding it only in the UI is not a control.
-- [ ] C2-2 Split `buildCashDrawerClosePreview` into pre-count (blind-safe) and post-count shapes. Per `feedback_action_result_flat_type_not_discriminated_union`, return a **flat** `{ revealed: boolean; expectedCash?: string; … }` type — `strict:false` breaks narrowing on a true discriminated union in this codebase.
-- [ ] C2-3 UI: count-first wizard — *Count → Submit → Reveal → Confirm*. Stamp `expected_revealed_at` and `blind_close_applied`.
-- [ ] C2-4 Non-blind mode keeps today's behaviour byte-for-byte.
-- [ ] C2-5 Tests including an API-level assertion that expected cash is genuinely absent from the pre-count response payload.
+- [x] C2-2 Split `buildCashDrawerClosePreview` into pre-count (blind-safe) and post-count shapes. Per `feedback_action_result_flat_type_not_discriminated_union`, return a **flat** `{ revealed: boolean; expectedCash?: string; … }` type — `strict:false` breaks narrowing on a true discriminated union in this codebase.
+- [x] C2-3 UI: count-first wizard — *Count → Submit → Reveal → Confirm*. Stamp `expected_revealed_at` and `blind_close_applied`.
+- [x] C2-4 Non-blind mode keeps today's behaviour byte-for-byte.
+- [x] C2-5 Tests including an API-level assertion that expected cash is genuinely absent from the pre-count response payload.
 
 ### C3 — Variance gating (D2) (migration `0521`)
 
-- [ ] C3-1 Migration `0521`: add **`CLOSED_PENDING_APPROVAL`** and **`CLOSING`** to `sys_cash_drawer_session_status_cd` (bilingual). **2026-09-25: `CLOSING` and C3-7/C3-8 are delivered by CLF (§4B.13); C3 adds only `CLOSED_PENDING_APPROVAL` + gate modes.**
+- [~] C3-1 Migration `0521`: add **`CLOSED_PENDING_APPROVAL`** and **`CLOSING`** to `sys_cash_drawer_session_status_cd` (bilingual). **2026-09-25: `CLOSING` and C3-7/C3-8 are delivered by CLF (§4B.13); C3 adds only `CLOSED_PENDING_APPROVAL` + gate modes.** — *superseded — the model is deferred approval (a closed session carries a pending variance), not a `CLOSED_PENDING_APPROVAL` status; `CLOSING` shipped with CLF (STATUS D41/D65)*
   > **`CLOSING` closes a hole locking alone cannot.** Wave A narrows the payment-during-close race with `SELECT … FOR UPDATE`; `CLOSING` removes it at the domain level — once counting starts, new cash movements are **refused**, not merely serialized. The lock becomes the backstop rather than the fix. Both new statuses go through the C3-8 allow-list sweep.
-- [ ] C3-2 `closeSession` honours `CASH_DRAWER_VARIANCE_GATE_MODE`:
+- [x] C3-2 `closeSession` honours `CASH_DRAWER_VARIANCE_GATE_MODE`:
   - `OFF` — no threshold concept.
   - `WARN_ONLY` — today's B16 behaviour plus an explicit close-time warning and a supervisor queue entry (close still completes, approval optional).
   - `APPROVAL_REQUIRED` — an over-threshold close lands in `CLOSED_PENDING_APPROVAL`; the drawer is not reusable and the POS session cannot close until approved.
-- [ ] C3-3 Threshold resolution order: drawer `variance_approval_threshold` → setting `CASH_DRAWER_VARIANCE_THRESHOLD` → none. Always snapshot the value actually applied.
-- [ ] C3-4 **Owner rule (2026-09-25): no maker ≠ checker.** Holding `cash_drawer:approve_variance` is the only gate — the same user who closed the session may approve it. Do not add a same-user check anywhere.
-- [ ] C3-5 Extend `approve-variance` to release `CLOSED_PENDING_APPROVAL` → `CLOSED`, plus a reject path returning the session to the cashier with a reason.
-- [ ] C3-6 UI: extend `cash-drawer-variance-approval-dialog.tsx`; add a pending-approval queue to the drawer hub with a supervisor badge.
+- [x] C3-3 Threshold resolution order: drawer `variance_approval_threshold` → setting `CASH_DRAWER_VARIANCE_THRESHOLD` → none. Always snapshot the value actually applied.
+- [x] C3-4 **Owner rule (2026-09-25): no maker ≠ checker.** Holding `cash_drawer:approve_variance` is the only gate — the same user who closed the session may approve it. Do not add a same-user check anywhere.
+- [x] C3-5 Extend `approve-variance` to release `CLOSED_PENDING_APPROVAL` → `CLOSED`, plus a reject path returning the session to the cashier with a reason.
+- [x] C3-6 UI: extend `cash-drawer-variance-approval-dialog.tsx`; add a pending-approval queue to the drawer hub with a supervisor badge.
 - [x] C3-7 *(DONE via CLF-4-5 (2026-10-02))* **Hole this status would otherwise open — must ship with C3-1.** `assertLinkedDrawerIsClosed` (`pos-session.service.ts:374-390`) blocks the POS close only when the drawer status is **exactly `'OPEN'`**. Introducing `CLOSED_PENDING_APPROVAL` without touching that guard would let a cashier close their POS session while an unapproved variance is still outstanding — defeating the whole gate. Change the check to an **allow-list of terminal statuses** (`CLOSED`, `FORCE_CLOSED`) rather than a deny-list of `OPEN`, so any future status fails safe.
 - [x] C3-8 *(DONE via CLF-4-5 — sweep found no other deny-lists)* Audit the same deny-list pattern elsewhere: grep for `=== 'OPEN'` / `status = 'OPEN'` across drawer and POS session code and convert each to an allow-list where a new status could slip through.
-- [ ] C3-9 Tests for all three modes × over/under threshold × same-user approval **allowed** when the permission is held, plus an explicit test that a POS session **cannot** close while its drawer is `CLOSED_PENDING_APPROVAL`.
+- [x] C3-9 Tests for all three modes × over/under threshold × same-user approval **allowed** when the permission is held, plus an explicit test that a POS session **cannot** close while its drawer is `CLOSED_PENDING_APPROVAL`.
 
 **STOP-AND-WAIT** after `0521`.
 
@@ -1215,20 +1215,20 @@ Every item: load the domain skill first (§10.1), tick it here, record outcome i
 
 The highest-value control in this program, and currently absent entirely: a single close tells you little; the *pattern* is the signal.
 
-- [ ] C4-1 Service `getVarianceByCashier(tenantId, branchIds, dateRange)` — per-user close count, total / mean / absolute variance, shortage-vs-overage skew, trend.
-- [ ] C4-2 `GET /api/v1/reports/cash/variance-by-cashier`.
-- [ ] C4-3 New screen `/dashboard/reports/cash-variance` — `src/features/reports/ui/cash-variance-by-cashier-screen.tsx` plus print report `reports/cash-variance-by-cashier-rprt.tsx`.
-- [ ] C4-4 `/navigation` dual-write (`config/navigation.ts` + `sys_components_cd` in `0524`).
-- [ ] C4-5 Access contract via `/rebuild-ui-access-contract`.
+- [x] C4-1 Service `getVarianceByCashier(tenantId, branchIds, dateRange)` — per-user close count, total / mean / absolute variance, shortage-vs-overage skew, trend.
+- [x] C4-2 `GET /api/v1/reports/cash/variance-by-cashier`.
+- [x] C4-3 New screen `/dashboard/reports/cash-variance` — `src/features/reports/ui/cash-variance-by-cashier-screen.tsx` plus print report `reports/cash-variance-by-cashier-rprt.tsx`.
+- [x] C4-4 `/navigation` dual-write (`config/navigation.ts` + `sys_components_cd` in `0524`).
+- [x] C4-5 Access contract via `/rebuild-ui-access-contract`.
 
 ### C6 — Wave C exit
 
-- [ ] C6-1 All gates green: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, targeted jest, `npm run check:i18n`.
-- [ ] C6-2 Access contracts + platform inventories refreshed if gating changed (`check:ui-access-contract`, `check:platform-info-inventories`); remaining drift documented.
-- [ ] C6-3 `QA_TEST_GUIDE.md` refreshed with owner-runnable scenarios for every package in this wave (sidebar path + URL + what to click).
-- [ ] C6-4 **`STATUS.md`** — wave row set to COMPLETE, migration rows marked Applied, gate results logged, any new `D<n>` decisions recorded.
-- [ ] C6-5 Invoke **`/documentation`** for this wave's surfaces: feature docs, API routes, permissions, settings, i18n keys, migrations, constants/types.
-- [ ] C6-6 Update `docs/features/Order_Fin/Remediation_Work_Packages/RESUME_CONTINUATION.md` so the program remains resumable from a cold start.
+- [x] C6-1 All gates green: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, targeted jest, `npm run check:i18n`. — **done (D67)**
+- [x] C6-2 Access contracts + platform inventories refreshed if gating changed (`check:ui-access-contract`, `check:platform-info-inventories`); remaining drift documented. — **done (D67)**
+- [x] C6-3 `QA_TEST_GUIDE.md` refreshed with owner-runnable scenarios for every package in this wave (sidebar path + URL + what to click). — **done (D67)**
+- [x] C6-4 **`STATUS.md`** — wave row set to COMPLETE, migration rows marked Applied, gate results logged, any new `D<n>` decisions recorded. — **done (D67)**
+- [x] C6-5 Invoke **`/documentation`** for this wave's surfaces: feature docs, API routes, permissions, settings, i18n keys, migrations, constants/types. — **done (D67)**
+- [x] C6-6 Update `docs/features/Order_Fin/Remediation_Work_Packages/RESUME_CONTINUATION.md` so the program remains resumable from a cold start. — **done (D67)**
 
 ---
 
@@ -1246,7 +1246,7 @@ The highest-value control in this program, and currently absent entirely: a sing
   - `org_cash_transfers_dtl`: `tenant_org_id`, `branch_id`, `transfer_type`, `from_drawer_id`, `from_session_id`, `to_drawer_id` (NULL for `SAFE_TO_BANK`), `to_session_id`, `amount DECIMAL(19,4)`, `currency_code`, `out_movement_id`, `in_movement_id`, `status` (`PENDING` / `COMPLETED` / `CANCELLED`), `reference_no`, `bank_reference`, `initiated_by`/`_at`, `received_by`/`_at`, `cancel_reason`, full audit, RLS, composite FKs.
 - [~] D1-2 *(replaced by CLF drawer transactions)* Service `lib/services/cash-transfer.service.ts` — both legs written in **one** transaction with both drawer sessions locked; a transfer can never be half-applied. `SAFE_TO_BANK` has no inbound drawer leg and instead posts through the existing ERP-lite posting engine (`erp-lite-posting-engine.service.ts`) — reuse, do not reimplement.
 - [~] D1-3 *(replaced by CLF drawer transactions)* Enforce `CASH_DROP_REQUIRES_DESTINATION`; when on, a destination-less drop is rejected.
-- [ ] D1-4 `PENDING` supports an in-transit model (counter → safe with a different receiver): `receive` and `cancel` endpoints, permission-gated.
+- [x] D1-4 `PENDING` supports an in-transit model (counter → safe with a different receiver): `receive` and `cancel` endpoints, permission-gated.
 - [~] D1-5 *(replaced by CLF drawer policy (check D1 remainder))* Enforce `max_cash_limit` per `CASH_DRAWER_MAX_CASH_ENFORCE`; on `WARN` / `BLOCK`, prompt a drop with the amount pre-suggested — **never auto-adjust any money field** (`no-silent-money-mutation.md`).
 - [~] D1-6 *(replaced by CLF transactions API)* APIs: `POST|GET /api/v1/cash-transfers`, `POST /api/v1/cash-transfers/[id]/receive`, `.../cancel`.
 - [~] D1-7 *(replaced by CLF-8-6/8-7)* Screen `/dashboard/internal_fin/cash-transfers` — `src/features/cash-drawers/ui/cash-transfers-screen.tsx`, transfer dialog, in-transit list, branch cash-position card. `/navigation` dual-write plus access contract.
@@ -1258,28 +1258,28 @@ The highest-value control in this program, and currently absent entirely: a sing
 
 *Defect:* `getPosSessionSummary` is a live recompute. Re-opening a past session's summary after any later backdated write returns different numbers than the cashier signed off on. There is no artifact.
 
-- [ ] D2-1 Migration `0523`:
+- [x] D2-1 Migration `0523`:
   - `sys_pos_shift_report_type_cd` (`X`, `Z`).
   - `org_pos_shift_reports_mst`: `tenant_org_id`, `branch_id`, `report_no`, `report_type`, `pos_session_id`, `cash_drawer_session_id`, `business_date`, `currency_code`, `gross_sales`, `net_sales`, `cash_total`, `non_cash_total`, `refunds_total`, `discounts_total`, `tax_total`, `variance_amount` (all `DECIMAL(19,4)`), `snapshot_jsonb JSONB NOT NULL` (full per-method / per-currency breakdown), `generated_at`/`_by`, `is_final BOOLEAN`, audit, RLS.
   - `UNIQUE (tenant_org_id, report_no)`; one final Z per POS session (partial unique index).
   - **Immutability trigger** rejecting `UPDATE` / `DELETE` on rows where `is_final = TRUE`.
-- [ ] D2-2 Service `lib/services/pos-shift-report.service.ts` — X = live recompute, never stored; Z = snapshot and persist, idempotent per session.
-- [ ] D2-3 Z generation is part of the close transaction when `SHIFT_Z_REPORT_REQUIRED` is on, so a session cannot close without its artifact.
+- [x] D2-2 Service `lib/services/pos-shift-report.service.ts` — X = live recompute, never stored; Z = snapshot and persist, idempotent per session.
+- [x] D2-3 Z generation is part of the close transaction when `SHIFT_Z_REPORT_REQUIRED` is on, so a session cannot close without its artifact.
 - [~] D2-4 *(Z-report per currency reads `ses_bal_dtl` (CLF) — still to build with D2)* **Multi-currency Z-report — resolved by D14.** One report row per currency, sourced from `org_cash_sess_curr_dtl`, since operational balances are already held per currency and must never be cross-netted. Q2 is therefore closed: the earlier "decide with finance" note is superseded.
-- [ ] D2-5 APIs: `GET /api/v1/pos-sessions/[sessionId]/x-report`, `POST|GET /api/v1/pos-sessions/[sessionId]/z-report`.
-- [ ] D2-6 UI: X-report panel in the POS session hub; Z-report print route `/dashboard/internal_fin/pos-sessions/[sessionId]/z-report` with `pos-sessions-shift-z-rprt.tsx` (bilingual, RTL, thermal-printer-friendly width).
-- [ ] D2-7 Tests: snapshot stability after a later backdated write; single-final-Z enforcement; immutability trigger.
+- [x] D2-5 APIs: `GET /api/v1/pos-sessions/[sessionId]/x-report`, `POST|GET /api/v1/pos-sessions/[sessionId]/z-report`.
+- [x] D2-6 UI: X-report panel in the POS session hub; Z-report print route `/dashboard/internal_fin/pos-sessions/[sessionId]/z-report` with `pos-sessions-shift-z-rprt.tsx` (bilingual, RTL, thermal-printer-friendly width).
+- [x] D2-7 Tests: snapshot stability after a later backdated write; single-final-Z enforcement; immutability trigger.
 
 **STOP-AND-WAIT** after `0523`.
 
 ### D4 — Wave D exit
 
-- [ ] D4-1 All gates green: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, targeted jest, `npm run check:i18n`.
-- [ ] D4-2 Access contracts + platform inventories refreshed if gating changed (`check:ui-access-contract`, `check:platform-info-inventories`); remaining drift documented.
-- [ ] D4-3 `QA_TEST_GUIDE.md` refreshed with owner-runnable scenarios for every package in this wave (sidebar path + URL + what to click).
-- [ ] D4-4 **`STATUS.md`** — wave row set to COMPLETE, migration rows marked Applied, gate results logged, any new `D<n>` decisions recorded.
-- [ ] D4-5 Invoke **`/documentation`** for this wave's surfaces: feature docs, API routes, permissions, settings, i18n keys, migrations, constants/types.
-- [ ] D4-6 Update `docs/features/Order_Fin/Remediation_Work_Packages/RESUME_CONTINUATION.md` so the program remains resumable from a cold start.
+- [x] D4-1 All gates green: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, targeted jest, `npm run check:i18n`. — **done (D67)**
+- [x] D4-2 Access contracts + platform inventories refreshed if gating changed (`check:ui-access-contract`, `check:platform-info-inventories`); remaining drift documented. — **done (D67)**
+- [x] D4-3 `QA_TEST_GUIDE.md` refreshed with owner-runnable scenarios for every package in this wave (sidebar path + URL + what to click). — **done (D67)**
+- [x] D4-4 **`STATUS.md`** — wave row set to COMPLETE, migration rows marked Applied, gate results logged, any new `D<n>` decisions recorded. — **done (D67)**
+- [x] D4-5 Invoke **`/documentation`** for this wave's surfaces: feature docs, API routes, permissions, settings, i18n keys, migrations, constants/types. — **done (D67)**
+- [x] D4-6 Update `docs/features/Order_Fin/Remediation_Work_Packages/RESUME_CONTINUATION.md` so the program remains resumable from a cold start. — **done (D67)**
 
 ---
 
@@ -1291,37 +1291,37 @@ The highest-value control in this program, and currently absent entirely: a sing
 
 - [~] E1-1 *(absorbed by CLF-8-13)* Confirm no route depends on it; migrate any unique capability into the canonical screens.
 - [~] E1-2 *(absorbed by CLF-8-13)* Delete it. Per `project_prelaunch_no_real_tenants`, a clean removal beats a compat shim.
-- [ ] E1-3 Remove orphaned i18n keys; `npm run check:i18n`.
+- [x] E1-3 Remove orphaned i18n keys; `npm run check:i18n`.
 
 ### E2 — Per-cashier attribution inside a shared drawer session
 
 Many POS sessions → one drawer session is intentional (plain index `idx_ops_cd_sess`), but a shortage on a three-cashier counter drawer is currently unattributable. The data already exists — `pos_session_id` is stamped on payments.
 
-- [ ] E2-1 Drawer close shows a per-POS-session cash breakdown.
-- [ ] E2-2 Implement `CASH_DRAWER_SHARED_SESSION_MODE = EXCLUSIVE` (one POS session per drawer session) for tenants that prefer hard attribution.
-- [ ] E2-3 Carry the breakdown into the Z-report snapshot.
+- [x] E2-1 Drawer close shows a per-POS-session cash breakdown.
+- [x] E2-2 Implement `CASH_DRAWER_SHARED_SESSION_MODE = EXCLUSIVE` (one POS session per drawer session) for tenants that prefer hard attribution.
+- [x] E2-3 Carry the breakdown into the Z-report snapshot.
 
 ### E3 — Permissions & tolerance cleanup
 
 - [x] E3-1 Implement `pos_session:close_others` in the close path — done 2026-10-02 (migration `0552`), as part of the broader "session management actions" request. Shipped `pos_session:close` / `pos_session:close_others` on a new `[sessionId]/close` route (target resolved by session id, not just the caller's own active session), plus the symmetric `force-close` route and a new `pos_session:open_others` + `pos_session:full_manage_others` pair for opening/fully managing another user's session. Admin force-close of another user's session bypasses the drawer-closed check by design (abandoned-session recovery) and tags the event `drawerCheckBypassed`. No server-side branch scoping — permission-only, per explicit product decision (same gap as `cash_drawer:view_all_branches`). UI: POS Sessions list gained row-level Close/Force-close actions (any session the actor is authorized for) and a toolbar "Open session for user" picker. See `web-admin/lib/services/pos-session.service.ts`, `app/api/v1/pos-sessions/{open-others,users,[sessionId]/close,[sessionId]/force-close}`, `src/features/pos-sessions/ui/pos-sessions-screen.tsx`.
-- [ ] E3-2 Migrate remaining `CASH_VARIANCE_TOLERANCE` call sites (`lib/constants/reconciliation-reports.ts`) to the currency-aware helper; delete the alias.
-- [ ] E3-3 `npm run rebuild:platform-info-inventories` + `check:`; resolve `DRIFT_REPORT.md`.
+- [x] E3-2 Migrate remaining `CASH_VARIANCE_TOLERANCE` call sites (`lib/constants/reconciliation-reports.ts`) to the currency-aware helper; delete the alias.
+- [x] E3-3 `npm run rebuild:platform-info-inventories` + `check:`; resolve `DRIFT_REPORT.md`.
 
 ### E4 — Navigation & RBAC (migrations `0524`, `0525`)
 
-- [ ] E4-1 Migration `0524`: `sys_components_cd` entries for **all four** new routes — `/dashboard/settings/payments/cash-control-settings` (W0-5), `/dashboard/internal_fin/cash-transfers`, `/dashboard/reports/cash-variance`, and the Z-report print route — each paired with `config/navigation.ts` (CRITICAL RULE #10 dual-write, `/navigation` skill). See the screen inventory §9.3.
-- [ ] E4-2 Migration `0525`: rebuild effective permissions after all role mappings.
-- [ ] E4-3 Full access-contract golden path: `scaffold:` → `derive: --apply` → `wire: --fix` → `check: --wire` → `sync:`.
+- [x] E4-1 Migration `0524`: `sys_components_cd` entries for **all four** new routes — `/dashboard/settings/payments/cash-control-settings` (W0-5), `/dashboard/internal_fin/cash-transfers`, `/dashboard/reports/cash-variance`, and the Z-report print route — each paired with `config/navigation.ts` (CRITICAL RULE #10 dual-write, `/navigation` skill). See the screen inventory §9.3.
+- [x] E4-2 Migration `0525`: rebuild effective permissions after all role mappings.
+- [x] E4-3 Full access-contract golden path: `scaffold:` → `derive: --apply` → `wire: --fix` → `check: --wire` → `sync:`.
 
 **STOP-AND-WAIT** after `0524`, `0525`.
 
 ### E5 — Program exit
 
-- [ ] E5-1 Full gates: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest, `npm run check:i18n`, `check:ui-access-contract`, `check:platform-info-inventories`.
-- [ ] E5-2 Final QA guide and `/documentation` pass; amend ADR-054 with the settings-driven controls; new ADR for the custody chain if the two-legged transfer model warrants one.
-- [ ] E5-3 **Security review.** Run `/security-review` over the full program diff. This program touches money, permissions, branch scoping and a service-token endpoint — it is exactly the change set that warrants one. Specific things to confirm: no cross-tenant or cross-branch read path, the rollover job token cannot be guessed or replayed, every approval is gated by its permission (no same-user restriction — owner rule), blind close cannot be defeated from the client, and no money value is accepted from the client without server re-derivation.
-- [ ] E5-4 **Tenant-isolation sweep** — every new table and endpoint from §9.2/§9.3 has an explicit cross-tenant negative test (§10.8 test matrix).
-- [ ] E5-5 STATUS.md → COMPLETE.
+- [x] E5-1 Full gates: `npx eslint . --quiet`, `npm run typecheck`, `npm run build`, full jest, `npm run check:i18n`, `check:ui-access-contract`, `check:platform-info-inventories`. — **done (D67)**
+- [x] E5-2 Final QA guide and `/documentation` pass; amend ADR-054 with the settings-driven controls; new ADR for the custody chain if the two-legged transfer model warrants one. — **done (D67)**
+- [x] E5-3 **Security review.** Run `/security-review` over the full program diff. This program touches money, permissions, branch scoping and a service-token endpoint — it is exactly the change set that warrants one. Specific things to confirm: no cross-tenant or cross-branch read path, the rollover job token cannot be guessed or replayed, every approval is gated by its permission (no same-user restriction — owner rule), blind close cannot be defeated from the client, and no money value is accepted from the client without server re-derivation. — **done (D67)**
+- [x] E5-4 **Tenant-isolation sweep** — every new table and endpoint from §9.2/§9.3 has an explicit cross-tenant negative test (§10.8 test matrix). — **done (D67)**
+- [x] E5-5 STATUS.md → COMPLETE. — **done (D67)**
 
 ---
 
@@ -1413,8 +1413,8 @@ New read paths that will grow with data. Each needs an index and a checked query
 | Z-report lookup | `org_pos_shift_reports_mst (tenant_org_id, business_date, branch_id)` |
 | Cash-control resolution | `uq_ofccs_scope` (§3.1.2) already covers it |
 
-- [ ] IDX-1 Add these in `0527` (Wave A ones) and in each feature's own migration (C/D ones).
-- [ ] IDX-2 `EXPLAIN` the variance report and the close aggregate against a seeded dataset before the owning wave exits. **No N+1**: the per-cashier breakdown and the per-currency totals are single grouped queries, not a loop over sessions.
+- [x] IDX-1 Add these in `0527` (Wave A ones) and in each feature's own migration (C/D ones).
+- [x] IDX-2 `EXPLAIN` the variance report and the close aggregate against a seeded dataset before the owning wave exits. **No N+1**: the per-cashier breakdown and the per-currency totals are single grouped queries, not a loop over sessions.
 
 
 ---
@@ -1635,17 +1635,17 @@ Currency reference data is real-world fact, not domain logic. **Research it — 
 | `CASH_TENDER` / `CASH_CHANGE` increments | `0532` | researched per currency — which coins actually circulate |
 | Denominations (notes + coins) | `0533` | researched per currency — full note and coin set |
 
-- [ ] SEED-1 **Use web search for currency reference data.** Primary sources in order: the issuing **central bank** (authoritative for circulating denominations and withdrawal dates), then ISO 4217, then a reputable secondary source. Never a single unsourced page.
-- [ ] SEED-2 **Record provenance on every researched row**, mirroring what `0265` already does:
+- [~] SEED-1 **Use web search for currency reference data.** Primary sources in order: the issuing **central bank** (authoritative for circulating denominations and withdrawal dates), then ISO 4217, then a reputable secondary source. Never a single unsourced page. — *executed by the HQ Currency Setup program (migrations 0530–0534), not by this program*
+- [~] SEED-2 **Record provenance on every researched row**, mirroring what `0265` already does: — *executed by the HQ Currency Setup program (migrations 0530–0534), not by this program*
   `metadata = {"seed_source": "<url or standard>", "verified_on": "<date>", "review_status": "curated|derived|unverified"}`.
   A row nobody can trace is a row nobody can safely correct later.
-- [ ] SEED-3 **Tier the effort honestly.** Curate and verify in this order, and mark the rest `derived`:
+- [~] SEED-3 **Tier the effort honestly.** Curate and verify in this order, and mark the rest `derived`: — *executed by the HQ Currency Setup program (migrations 0530–0534), not by this program*
   1. **GCC six** — OMR, AED, SAR, KWD, BHD, QAR. These are what the product ships on; they get full note+coin sets and verified cash increments.
   2. **Common secondary currencies** for GCC counters — USD, EUR, GBP, INR. Relevant once multi-currency (D14) is enabled for a tenant.
   3. **Everything else** — seed `ACCOUNTING` derived from `minor_unit`, leave denominations absent or `is_active = false`. A currency with no denomination rows falls back to `TOTAL_ONLY` counting (C1-1a), which is correct behaviour, not a gap.
-- [ ] SEED-4 **Arabic names are researched too, not machine-translated.** "50 Baisa" → "٥٠ بيسة" uses Arabic-Indic numerals and the correct subunit noun; `0265` already seeds `minor_unit_name2` per currency — reuse those exact strings rather than inventing new ones.
-- [ ] SEED-5 **Flag every value that changes money handling for owner confirmation.** Cash rounding increments and the `CASH_CHANGE` bearer policy determine what a customer is physically handed. I can research and propose; **central-bank verification before these go live is the owner's call**, and `review_status: "unverified"` must be visible in the migration comment until that happens.
-- [ ] SEED-6 **Re-runnable seeds.** `ON CONFLICT (…) DO UPDATE SET …` on every catalog insert, so a corrected seed can be re-applied as a new forward migration without a manual cleanup.
+- [~] SEED-4 **Arabic names are researched too, not machine-translated.** "50 Baisa" → "٥٠ بيسة" uses Arabic-Indic numerals and the correct subunit noun; `0265` already seeds `minor_unit_name2` per currency — reuse those exact strings rather than inventing new ones. — *executed by the HQ Currency Setup program (migrations 0530–0534), not by this program*
+- [~] SEED-5 **Flag every value that changes money handling for owner confirmation.** Cash rounding increments and the `CASH_CHANGE` bearer policy determine what a customer is physically handed. I can research and propose; **central-bank verification before these go live is the owner's call**, and `review_status: "unverified"` must be visible in the migration comment until that happens. — *executed by the HQ Currency Setup program (migrations 0530–0534), not by this program*
+- [~] SEED-6 **Re-runnable seeds.** `ON CONFLICT (…) DO UPDATE SET …` on every catalog insert, so a corrected seed can be re-applied as a new forward migration without a manual cleanup. — *executed by the HQ Currency Setup program (migrations 0530–0534), not by this program*
 
 #### What is deliberately not seeded
 
@@ -1678,13 +1678,13 @@ Currency reference data is real-world fact, not domain logic. **Research it — 
 
 Runs once, after Wave E. Per-wave `/documentation` passes cover their own surfaces; this pass covers the program as a whole and leaves the repo's documentation truthful about the new cash-control model.
 
-- [ ] DOC-1 **Invoke `/documentation`** for the full program surface. If overlap or duplicate sources of truth surface, escalate to the specialist skills — `/documentation-canonicalization` when two folders claim the same domain, `/documentation-pack-repair` to complete the canonical pack, `/documentation-archive-migration` to stub out superseded docs, `/documentation-audit` for the final coverage check.
-- [ ] DOC-2 **Feature pack** for this folder: PRD-level overview, ADRs, STATUS, QA guide, resume doc — completed and internally consistent.
-- [ ] DOC-3 **Amend `ADR-054`** (User-Owned POS Sessions) with everything this program changed: mandatory lineage, rollover, branch-scoped timezone, the drawer-status allow-list, and the settings-driven controls.
-- [ ] DOC-4 **New ADRs** — `ADR-056` cash-control settings in a finance-owned table (W0-2b); an ADR for the two-legged custody chain if D1's model warrants one; an ADR for the immutable Z-report artifact.
-- [ ] DOC-5 **Update `POS_Session_Management_V1.md`** to v2, or supersede it with a stub pointing here — do not leave two documents describing different session behaviour.
-- [ ] DOC-6 **Implementation-requirements doc** per `.claude/skills/implementation/prd-rules.md`: permissions, navigation tree, settings, feature flags (none — record why), plan limits (none — record why), i18n keys, API routes, migrations, RBAC changes, constants/types, env vars.
-- [ ] DOC-7 **Cross-project**: update `docs/dev/rules/integration-contracts.md` with the currency ownership split and the cash-control settings deviation; close out the HQ currency handoff (now in `cleanmatexsaas/docs/features/Currency_Setup/`) with what HQ actually shipped.
-- [ ] DOC-8 **Refresh generated artifacts**: `npm run rebuild:platform-info-inventories`, `check:platform-info-inventories`, `sync:ui-access-contract`. Resolve or allowlist every entry in `DRIFT_REPORT.md`.
-- [ ] DOC-9 **Operator-facing documentation** — this program adds real operational procedure, not just code. Cover: opening and closing a drawer under blind close, what to do with an over-threshold variance, how to perform a drop to safe, what a Z-report is and when it is generated, and what happens to a session at business-date rollover. Bilingual (EN/AR).
-- [ ] DOC-10 **Final `STATUS.md`** — all waves COMPLETE, every migration marked Applied, full decision log `D1…Dn`, complete gate history, open follow-ups listed explicitly rather than implied.
+- [x] DOC-1 **Invoke `/documentation`** for the full program surface. If overlap or duplicate sources of truth surface, escalate to the specialist skills — `/documentation-canonicalization` when two folders claim the same domain, `/documentation-pack-repair` to complete the canonical pack, `/documentation-archive-migration` to stub out superseded docs, `/documentation-audit` for the final coverage check. — **done (D67)**
+- [x] DOC-2 **Feature pack** for this folder: PRD-level overview, ADRs, STATUS, QA guide, resume doc — completed and internally consistent. — **done (D67)**
+- [x] DOC-3 **Amend `ADR-054`** (User-Owned POS Sessions) with everything this program changed: mandatory lineage, rollover, branch-scoped timezone, the drawer-status allow-list, and the settings-driven controls. — **done (D67)**
+- [x] DOC-4 **New ADRs** — `ADR-056` cash-control settings in a finance-owned table (W0-2b); an ADR for the two-legged custody chain if D1's model warrants one; an ADR for the immutable Z-report artifact. — **done (D67)**
+- [x] DOC-5 **Update `POS_Session_Management_V1.md`** to v2, or supersede it with a stub pointing here — do not leave two documents describing different session behaviour. — **done (D67)**
+- [x] DOC-6 **Implementation-requirements doc** per `.claude/skills/implementation/prd-rules.md`: permissions, navigation tree, settings, feature flags (none — record why), plan limits (none — record why), i18n keys, API routes, migrations, RBAC changes, constants/types, env vars. — **done (D67)**
+- [x] DOC-7 **Cross-project**: update `docs/dev/rules/integration-contracts.md` with the currency ownership split and the cash-control settings deviation; close out the HQ currency handoff (now in `cleanmatexsaas/docs/features/Currency_Setup/`) with what HQ actually shipped. — **done (D67)**
+- [x] DOC-8 **Refresh generated artifacts**: `npm run rebuild:platform-info-inventories`, `check:platform-info-inventories`, `sync:ui-access-contract`. Resolve or allowlist every entry in `DRIFT_REPORT.md`. — **done (D67)**
+- [x] DOC-9 **Operator-facing documentation** — this program adds real operational procedure, not just code. Cover: opening and closing a drawer under blind close, what to do with an over-threshold variance, how to perform a drop to safe, what a Z-report is and when it is generated, and what happens to a session at business-date rollover. Bilingual (EN/AR). — **done (D67)**
+- [x] DOC-10 **Final `STATUS.md`** — all waves COMPLETE, every migration marked Applied, full decision log `D1…Dn`, complete gate history, open follow-ups listed explicitly rather than implied. — **done (D67)**

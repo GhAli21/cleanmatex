@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
+import { listEffectiveDenominations } from '@/lib/services/cash-denomination-control.service';
 
 /**
  * Read-only bilingual catalogs backing the CLF UI (§4B.7
@@ -136,7 +137,29 @@ export interface CurrencyDenominationRow {
  * overrides are a documented C1 follow-up, not read here (plan §4B.7).
  * @param currencyCode ISO currency code
  */
-export async function getCurrencyDenominations(currencyCode: string): Promise<CurrencyDenominationRow[]> {
+export async function getCurrencyDenominations(currencyCode: string, tenantId?: string): Promise<CurrencyDenominationRow[]> {
+  if (tenantId) {
+    // C1-1b: the counting grid of this tenant — switched-off denominations removed, tenant order applied.
+    const effective = await listEffectiveDenominations(tenantId, currencyCode);
+    const enabledCodes = new Set(effective.filter((d) => d.isEnabled).map((d) => d.denominationCode));
+    const orderByCode = new Map(effective.map((d, index) => [d.denominationCode, index]));
+    const catalog = await prisma.sys_currency_denominations_cd.findMany({
+      where: { currency_code: currencyCode, is_active: true, is_in_circulation: true },
+      select: { id: true, denomination_code: true, denomination_minor: true, denom_kind: true, name: true, name2: true, display_order: true },
+    });
+    return catalog
+      .filter((r) => enabledCodes.has(r.denomination_code))
+      .sort((a, b) => (orderByCode.get(a.denomination_code) ?? 0) - (orderByCode.get(b.denomination_code) ?? 0))
+      .map((r) => ({
+        id: r.id,
+        denominationCode: r.denomination_code,
+        denominationMinor: r.denomination_minor,
+        denomKind: r.denom_kind,
+        name: r.name,
+        name2: r.name2,
+        displayOrder: orderByCode.get(r.denomination_code) ?? r.display_order,
+      }));
+  }
   const rows = await prisma.sys_currency_denominations_cd.findMany({
     where: { currency_code: currencyCode, is_active: true, is_in_circulation: true },
     orderBy: [{ display_order: 'asc' }, { denomination_minor: 'asc' }],

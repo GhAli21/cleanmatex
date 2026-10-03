@@ -31,7 +31,7 @@ agents:
 ### Phase 2: Database
 - [ ] Check if tables exist (use table-check-workflow)
 - [ ] Create migrations for new tables
-- [ ] Add composite foreign keys for tenant isolation
+- [ ] Add composite foreign keys for tenant isolation — FK + 1:1 UNIQUE + parent key use the **same column order** (`/database` Prisma-safe FKs). If parent is `(id, tenant_org_id)`, child is `(parent_id, tenant_org_id)` (tenant second). Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`.
 - [ ] Enable RLS policies
 - [ ] Add standard indexes
 - [ ] Update Prisma schema

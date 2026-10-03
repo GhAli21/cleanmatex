@@ -61,6 +61,10 @@ async function makeDrawer(): Promise<string> {
       rec_status: 1,
     },
   });
+  // This suite closes with a bare total; the default closing policy requires denominations (C1-1c).
+  await prisma.org_fin_cash_ctrl_stng_cf.create({
+    data: { tenant_org_id: tenantId, scope_level: 'DRAWER', scope_id: drawer.id, closing_count_mode: 'OPTIONAL_DENOMINATION' },
+  });
   return drawer.id;
 }
 

@@ -9,7 +9,12 @@ import { lockDrawersTx, allocateLedgerSeqTx } from '@/lib/services/cash-drawer-l
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import { emitEventTx } from '@/lib/services/outbox.service';
 import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
-import { CASH_DRAWER_TRX_TYPES, CASH_LEDGER_ERRORS, type CashDrawerTrxType } from '@/lib/constants/cash-drawer';
+import {
+  CASH_DRAWER_TRX_TYPES,
+  CASH_LEDGER_ERRORS,
+  CASH_TRANSIT_TRX_TYPES,
+  type CashDrawerTrxType,
+} from '@/lib/constants/cash-drawer';
 
 /**
  * Custody (operational) drawer transactions — CLF, ADR-057, plan §4B.4
@@ -255,6 +260,13 @@ export async function reverseDrawerTrxTx(
   if (original.trx_type_code === CASH_DRAWER_TRX_TYPES.REVERSAL) {
     throw new Error('reverseDrawerTrxTx: cannot reverse a reversal');
   }
+  if ((CASH_TRANSIT_TRX_TYPES as readonly string[]).includes(original.trx_type_code)) {
+    // An in-transit leg is undone by cancelling the transfer; a reversal would leave the transfer record contradicting the ledger.
+    throw new CashDrawerLedgerError(
+      CASH_LEDGER_ERRORS.CASH_TRANSIT_USE_CANCEL,
+      'reverseDrawerTrxTx: an in-transit leg cannot be reversed — cancel the transfer instead',
+    );
+  }
   const alreadyReversed = await tx.org_cash_drawer_trx_mst.findFirst({
     where: { tenant_org_id: ctx.tenantOrgId, reverses_trx_id: trxId },
     select: { id: true },
@@ -397,7 +409,12 @@ export interface DrawerTrxPage {
  * @param tenantOrgId tenant scope
  * @param filter see {@link DrawerTrxListFilter}
  */
-export async function listDrawerTrx(tenantOrgId: string, filter: DrawerTrxListFilter): Promise<DrawerTrxPage> {
+export async function listDrawerTrx(
+  tenantOrgId: string,
+  filter: DrawerTrxListFilter,
+  /** B3: the actor's permitted branches; undefined = all branches, empty = nothing. */
+  branchIds?: readonly string[],
+): Promise<DrawerTrxPage> {
   return withTenantContext(tenantOrgId, async () => {
     let trxIdsForDrawer: string[] | undefined;
     if (filter.drawerId) {
@@ -414,6 +431,7 @@ export async function listDrawerTrx(tenantOrgId: string, filter: DrawerTrxListFi
 
     const where: Prisma.org_cash_drawer_trx_mstWhereInput = {
       tenant_org_id: tenantOrgId,
+      ...(branchIds ? { branch_id: { in: [...branchIds] } } : {}),
       ...(filter.trxTypeCode ? { trx_type_code: filter.trxTypeCode } : {}),
       ...(filter.dateFrom || filter.dateTo
         ? { occurred_at: { ...(filter.dateFrom ? { gte: filter.dateFrom } : {}), ...(filter.dateTo ? { lte: filter.dateTo } : {}) } }

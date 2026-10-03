@@ -51,13 +51,18 @@ afterAll(async () => {
 });
 
 function dbit(name: string, fn: () => Promise<void>): void {
-  it(name, async () => {
-    if (!dbUp) {
-      console.warn(`[cash-drawer-ledger-matrix] DB unavailable or CASH not drawer-tracked — skipping: ${name}`);
-      return;
-    }
-    await fn();
-  });
+  it(
+    name,
+    async () => {
+      if (!dbUp) {
+        console.warn(`[cash-drawer-ledger-matrix] DB unavailable or CASH not drawer-tracked — skipping: ${name}`);
+        return;
+      }
+      await fn();
+    },
+    // The 500-line decimal-exactness case takes ~15 s alone and over 30 s when the whole DB suite runs in parallel.
+    120_000,
+  );
 }
 
 const drawer = (type: 'TEMPORARY' | 'SAFE' = 'TEMPORARY') =>

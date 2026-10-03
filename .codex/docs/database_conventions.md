@@ -458,18 +458,27 @@ description2    TEXT               -- Arabic
 
 ## Composite Foreign Keys
 
-**CRITICAL for tenant isolation**:
+**CRITICAL for tenant isolation**.
+
+**Prisma-safe order (MUST):** child FK + 1:1 UNIQUE + referenced parent key = same columns, same order. Postgres ignores unique column order; Prisma 6 does not (`db pull` → P1012).
+
+| Parent key | Child FK and 1:1 UNIQUE |
+|---|---|
+| `(id, tenant_org_id)` | `(parent_id, tenant_org_id)` tenant **second** (`0553`) |
+| `(tenant_org_id, id)` | `(tenant_org_id, parent_id)` tenant first |
 
 ```sql
--- Example: Order references customer
-FOREIGN KEY (tenant_org_id, customer_id)
-  REFERENCES org_customers_mst(tenant_org_id, customer_id)
-  ON DELETE CASCADE
-
--- Example: Order item references product
 FOREIGN KEY (tenant_org_id, service_category_code)
   REFERENCES org_service_category_cf(tenant_org_id, service_category_code)
+
+FOREIGN KEY (account_id, tenant_org_id)
+  REFERENCES org_fin_acct_mst(id, tenant_org_id)
+  ON DELETE RESTRICT
 ```
+
+**MUST NOT:** mismatched unique/FK order; `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`; flipping packing/assembly `?` to `[]`.
+
+List indexes stay tenant-first. Full rule: `/database` skill.
 
 **Why composite keys?**
 

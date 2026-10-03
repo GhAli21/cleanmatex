@@ -3,7 +3,22 @@
 **Project:** CleanMateX Notification & Communication Hub
 **PRD:** CMX-PRD-019
 **Last Updated:** 2026-10-03
-**Overall Status:** ✅ cleanmatex MVP COMPLETE — HQ phases pending in cleanmatexsaas
+**Overall Status:** P1 legacy-transport safety implemented; P2–P7 remain pending.
+
+## 2026-10-03 — P1/M1 durable legacy dispatch safety
+
+- [x] User applied shared migration `0556_ntf_outbox_claim_safety.sql` to local and remote databases, then regenerated tenant and HQ database types and tenant Prisma.
+- [x] Tenant outbox workers now acquire tenant-scoped claim tokens and leases, conditionally finalize only their own claim, append immutable attempt logs, and hold thrown provider calls as `ACCEPTANCE_UNCERTAIN` rather than resend them.
+- [x] Optional inline WhatsApp dispatch now uses the same durable claim/finalization rules and no longer bypasses the outbox safety boundary.
+- [x] HQ reserves `hq_ntf_dispatch_log` as `PENDING` before provider submission, returns a matched concurrent command rather than duplicate-send, and rejects incomplete BYO routes instead of using platform credentials.
+- [x] HQ preserves raw callback bytes for signature verification, rejects invalid callbacks before persistence, validates Twilio form callbacks against the configured callback URL, and scopes provider-status projection to compatible provider codes.
+- [x] Focused tenant and HQ suites pass; tenant production build passes.
+
+**Required HQ configuration before Twilio callback activation:** set `HQ_TWILIO_WEBHOOK_URL` to the exact HTTPS callback URL registered in Twilio. The P1 verifier rejects Twilio callbacks when this value is absent or differs from Twilio's signed URL.
+
+**Still pending:** M1-B append-only acceptance/receipt correlation schema, durable receipt projection, provider account/sender/template revisions, typed variables/collections, route assignments, HQ and tenant administration UX, quota reservations, campaigns hardening, pilot evidence, and production rollout gates.
+
+No billing, plan, feature-flag, navigation, permission, or external-send behavior was enabled by this increment. Deployment and live provider callback verification remain operator-controlled.
 
 ## 2026-10-03 — Production architecture implementation planning
 

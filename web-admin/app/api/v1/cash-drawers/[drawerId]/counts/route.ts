@@ -6,6 +6,7 @@ import { recordSpotCount, listDrawerCounts } from '@/lib/services/cash-drawer-co
 import { recordSpotCountRequestSchema } from '@/lib/validations/cash-drawer/count-schemas';
 import { drawerCountsListQuerySchema } from '@/lib/validations/cash-drawer/list-schemas';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { guardDrawerBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * POST /api/v1/cash-drawers/[drawerId]/counts
@@ -31,6 +32,8 @@ export async function POST(
   const { tenantId, userId } = auth;
 
   const { drawerId } = await params;
+  const branchDenied = await guardDrawerBranch(auth, drawerId);
+  if (branchDenied) return branchDenied;
   const body = await request.json().catch(() => null);
   const parsed = recordSpotCountRequestSchema.safeParse(body);
   if (!parsed.success) {
@@ -70,6 +73,8 @@ export async function GET(
   const { tenantId } = auth;
 
   const { drawerId } = await params;
+  const branchDenied = await guardDrawerBranch(auth, drawerId);
+  if (branchDenied) return branchDenied;
   const query = Object.fromEntries(request.nextUrl.searchParams.entries());
   const parsed = drawerCountsListQuerySchema.safeParse(query);
   if (!parsed.success) {

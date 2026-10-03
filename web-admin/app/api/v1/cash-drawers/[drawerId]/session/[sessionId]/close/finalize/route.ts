@@ -5,6 +5,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { finalizeClose, type DispositionDecisionInput } from '@/lib/services/cash-drawer-session.service';
 import { finalizeCloseRequestSchema } from '@/lib/validations/cash-drawer/session-schemas';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { guardCashDrawerSessionBranch, guardDrawerBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * POST /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize
@@ -29,6 +30,10 @@ export async function POST(
   const { tenantId, userId } = auth;
 
   const { drawerId, sessionId } = await params;
+  const branchDenied = await guardDrawerBranch(auth, drawerId);
+  if (branchDenied) return branchDenied;
+  const sessionDenied = await guardCashDrawerSessionBranch(auth, sessionId);
+  if (sessionDenied) return sessionDenied;
   const body = await request.json().catch(() => null);
   const parsed = finalizeCloseRequestSchema.safeParse(body);
   if (!parsed.success) {

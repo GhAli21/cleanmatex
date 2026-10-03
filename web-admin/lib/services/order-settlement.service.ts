@@ -41,11 +41,14 @@ import {
   SETTLEMENT_MONEY_EPSILON,
 } from '@/lib/constants/settlement-catalog';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { financeTenderScopeOf } from '@/lib/utils/cash-method';
 import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 import {
   assertOpenPosSessionForFinanceTx,
+  resolvePosSessionForFinanceTx,
   autoLinkDrawerTx,
 } from '@/lib/services/pos-session.service';
+import { POS_SESSION_SURFACE } from '@/lib/constants/pos-session';
 import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
 import { resolveDefaultStatus } from '@/lib/services/order-settlement-planner.service';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
@@ -435,12 +438,6 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     const customerId = params.customerId ?? rows[0].customer_id;
     const totalCollected = paymentLegs.reduce((sum, leg) => sum + leg.amount, 0);
 
-    await assertOpenPosSessionForFinanceTx(tx, {
-      tenantId,
-      userId: posSessionUserId ?? collectedBy,
-      posSessionId,
-      branchId,
-    });
 
     if (totalCollected <= 0) {
       throw new Error('Collected amount must be greater than zero');
@@ -521,6 +518,17 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
         checkDate: leg.checkDate,
       });
     }
+
+    // B1: the server resolves the POS session; `posSessionId` from the request is only a cross-check.
+    const posSession = await resolvePosSessionForFinanceTx(tx, {
+      tenantId,
+      userId: posSessionUserId ?? collectedBy,
+      posSessionId,
+      branchId,
+      surface: POS_SESSION_SURFACE.LATER_COLLECTION,
+      tenderScope: financeTenderScopeOf(resolvedLegs.map((leg) => leg.paymentMethodCode)),
+    });
+    const effectivePosSessionId = posSession?.id ?? undefined;
 
     const overpaymentMetrics = computeCollectionOverpaymentMetrics(outstanding, resolvedLegs, { currencyCode });
     if (overpaymentMetrics.unresolvedExcessAmount > SETTLEMENT_MONEY_EPSILON) {
@@ -681,7 +689,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           // one payment row per leg, so this is where it has to live to reach
           // `org_order_payments_dtl.rec_notes`.
           notes:                  notes,
-          pos_session_id:         posSessionId,
+          pos_session_id:         effectivePosSessionId,
           idempotency_key:        `${idempotencyKey}_leg_${resolved.legIndex}`,
         },
         collectedBy,
@@ -695,7 +703,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
         await autoLinkDrawerTx(tx, {
           tenantId,
           userId: posSessionUserId ?? collectedBy,
-          posSessionId,
+          posSessionId: effectivePosSessionId,
           branchId,
           cashDrawerSessionId,
           idempotencyKey: `${idempotencyKey}_pos_link_${resolved.legIndex}`,
@@ -717,7 +725,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           customerId: customerId ?? null,
           branchId: branchId ?? null,
           paymentLineId,
-          posSessionId: posSessionId ?? null,
+          posSessionId: effectivePosSessionId ?? null,
           orgPaymentMethodId: resolved.orgPaymentMethodId ?? null,
           paymentMethodCode: resolved.paymentMethodCode,
           idempotencyKey: `${idempotencyKey}_cash_round_${resolved.legIndex}`,

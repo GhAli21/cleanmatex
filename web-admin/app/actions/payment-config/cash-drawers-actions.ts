@@ -93,6 +93,9 @@ export async function createCashDrawer(
     if (input.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT) {
       return { success: false, error: 'Pending-deposit drawers are created by the system, one per branch.' };
     }
+    if (input.drawer_type === DRAWER_TYPES.IN_TRANSIT) {
+      return { success: false, error: 'In-transit drawers are created by the system when cash is first sent in a currency.' };
+    }
     const tenantCurrencyCode = await resolveTenantCurrencyCode(tenantId, userId);
     // A6-7: a currency the platform marks as not cash-capable cannot hold a physical drawer.
     // (sys_currency_cd is a global catalog — no tenant column; the flag is not in the Prisma model.)
@@ -145,11 +148,11 @@ export async function updateCashDrawer(
       });
       if (!existing) return { success: false, error: 'Cash drawer not found' };
       // The branch pending-deposit drawer is system-provisioned (ensure_branch_pd_drawer); its identity is fixed.
-      if (existing.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT) {
-        return { success: false, error: 'The pending-deposit drawer is managed by the system and cannot be edited.' };
+      if (existing.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT || existing.drawer_type === DRAWER_TYPES.IN_TRANSIT) {
+        return { success: false, error: 'This drawer is managed by the system and cannot be edited.' };
       }
-      if (input.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT) {
-        return { success: false, error: 'A drawer cannot be changed into a pending-deposit drawer.' };
+      if (input.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT || input.drawer_type === DRAWER_TYPES.IN_TRANSIT) {
+        return { success: false, error: 'A drawer cannot be changed into a system-managed drawer.' };
       }
 
       const sessionCount = await prisma.org_cash_drawer_sessions_mst.count({
@@ -198,8 +201,8 @@ export async function toggleCashDrawerActive(
         where: { id, tenant_org_id: tenantId },
       });
       if (!existing) return { success: false, error: 'Cash drawer not found' };
-      if (existing.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT) {
-        return { success: false, error: 'The pending-deposit drawer is managed by the system and cannot be deactivated.' };
+      if (existing.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT || existing.drawer_type === DRAWER_TYPES.IN_TRANSIT) {
+        return { success: false, error: 'This drawer is managed by the system and cannot be deactivated.' };
       }
 
       if (!isActive) {

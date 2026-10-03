@@ -22,6 +22,11 @@ const mockExpireLoyaltyPoints = jest.fn();
 const mockProcessOutboxBatch = jest.fn();
 const mockRetry = jest.fn();
 const mockLoggerError = jest.fn();
+const mockRolloverSweep = jest.fn();
+
+jest.mock('@/lib/services/pos-session-rollover.service', () => ({
+  runPosSessionRolloverSweep: (...a: unknown[]) => mockRolloverSweep(...a),
+}));
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -206,7 +211,7 @@ describe('listFinanceJobsLastRun', () => {
 
     const result = await listFinanceJobsLastRun();
 
-    expect(result).toHaveLength(6);
+    expect(result).toHaveLength(7);
     expect(result[0].jobCode).toBe(FINANCE_JOB_CODES.OUTBOX_PROCESSOR);
     expect(result[0].lastRun?.status).toBe('SUCCESS');
     expect(result[1].jobCode).toBe(FINANCE_JOB_CODES.GIFT_CARD_EXPIRY);
@@ -346,6 +351,11 @@ describe('listFinanceJobRuns', () => {
 });
 
 describe('nextCronOccurrence', () => {
+  it('understands a star-slash step so the 15-minute rollover job shows its next run', () => {
+    const next = nextCronOccurrence('*/15 * * * *', new Date('2026-07-24T10:07:00Z'));
+    expect(next?.toISOString()).toBe('2026-07-24T10:15:00.000Z');
+  });
+
   it('returns the next UTC minute for * * * * *', () => {
     const from = new Date('2026-09-17T10:15:30.000Z');
     const next = nextCronOccurrence('* * * * *', from);

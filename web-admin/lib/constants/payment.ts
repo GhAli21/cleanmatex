@@ -155,6 +155,8 @@ export const DRAWER_TYPES = {
   TEMPORARY:  'TEMPORARY',
   /** CLF (migration 0523): one per branch, system-provisioned; never created from the drawer form. */
   PENDING_DEPOSIT: 'PENDING_DEPOSIT',
+  /** D1-4 (migration 0562): system holder per branch and currency for cash on the road between two drawers; never created from the drawer form. */
+  IN_TRANSIT: 'IN_TRANSIT',
 } as const;
 export type DrawerType = (typeof DRAWER_TYPES)[keyof typeof DRAWER_TYPES];
 

@@ -1,5 +1,7 @@
 # POS Session Management v1
 
+> **Superseded in behaviour (2026-10-03).** This v1 document records how POS sessions were first built. Current behaviour — per-screen POS-session policy, branch-scoped business day and rollover, drawer-session sharing, X/Z shift reports, branch scoping — is defined by [ADR-054 and its amendments](./ADR/ADR-054-User-Owned-POS-Sessions.md), [ADR-059](./ADR/ADR-059-Immutable-Shift-Z-Report.md) and the [POS Session & Cash Drawer Hardening feature pack](./POS_Session_Cash_Drawer_Hardening/STATUS.md) (operator view: [OPERATOR_GUIDE.md](./POS_Session_Cash_Drawer_Hardening/OPERATOR_GUIDE.md)). Where this file and those disagree, they win.
+
 ## Purpose
 
 POS Session Management v1 introduces a user-owned operational session for POS work. It gives later phases a single runtime lineage key, `pos_session_id`, without changing the existing ownership of payment terminals or cash drawer reconciliation.

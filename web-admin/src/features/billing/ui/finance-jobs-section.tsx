@@ -27,7 +27,8 @@ type JobCode =
   | 'credit_note_expiry'
   | 'loyalty_points_expiry'
   | 'idempotency_cleanup'
-  | 'erp_posting_retry';
+  | 'erp_posting_retry'
+  | 'pos_session_rollover';
 
 interface JobLastRun {
   runId: string;

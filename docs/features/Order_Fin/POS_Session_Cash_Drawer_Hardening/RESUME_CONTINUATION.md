@@ -8,11 +8,21 @@
 
 ---
 
-## ▶ NOW — 2026-10-03 — CLF COMPLETE (D57); next Wave A leftovers, then Waves B → E
+## ▶ NOW — 2026-10-03 — PROGRAM COMPLETE (D67)
+
+**Nothing is left to build.** The whole plan is implemented, gated and documented: CLF ledger, Wave 0, Waves A–E (B2 rollover, D2 X/Z reports, C3 reject + queue, C4 cashier report, D1-4 in-transit, C1-1b/1c denominations and count policy, E2 attribution, E3-2 tolerance cleanup, E4 navigation). Migrations 0515–0562 are applied. The authoritative record is [STATUS.md](./STATUS.md) (D62–D67); the operator view is [OPERATOR_GUIDE.md](./OPERATOR_GUIDE.md); the as-built lookup is [IMPLEMENTATION_REQUIREMENTS.md](./IMPLEMENTATION_REQUIREMENTS.md).
+
+**Owner:** commit everything (incl. `web-admin/prisma/schema.prisma` — re-check `grep timezone_code` / `org_cash_drawer_transit_tr` after any `prisma:pull`); restart the dev server; run [QA_TEST_GUIDE.md](./QA_TEST_GUIDE.md) §13–§17; force-close the two stuck CLOSING sessions (drawers ac312993 / 65546cc7) from the session page. Build needs `NODE_OPTIONS=--max-old-space-size=8192`.
+
+**If you ever resume here:** only the follow-ups listed in D67 remain, all optional. Do not re-open the closed decisions: per-screen POS-session policy (D62), cash custody vs attribution, no maker≠checker, rollover never force-closes a session whose drawer holds cash, a transit leg is undone by cancel not reversal.
+
+---
+
+## ✅ (superseded by ▶ NOW above) — 2026-10-03 — CLF COMPLETE (D57); next Wave A leftovers, then Waves B → E
 
 **Done, gated green:** everything in D56 plus CLF-10 exit — security review clean, `QA_TEST_GUIDE.md`, `CLF_FEATURE_REFERENCE.md`, plan boxes ticked.
 
-**Next (no owner action needed):** Wave A leftovers — A6-4 receipt/Z rounding line, A5 exit; cash refunds paid in cash are not yet rounded. (A6-2/2b/3/5/6/7, A3-5 done — D58, D59.) **Check first:** `web-admin/prisma/schema.prisma` was being rewritten by an outside process (raw `db pull`, invalid per `prisma validate`) — do not trust DB runs or `npm run build` until it validates and has no retired cash models. Then Waves B → E and close-out (`REMAINING_WORK.md`).
+**Next (no owner action needed):** **B1 done (D61), refined to a per-screen POS-session policy over 6 finance screens (D62; migrations 0554 + 0557 applied), and B3 done (D63: branch scoping, assigned drawers, new permission `cash_drawer:operate_any`, migration 0555 applied).** All migrations through 0557 are applied local + remote and Prisma is regenerated (restart the dev server after `prisma generate`). Carried items still to do: thermal receipt tender/change block; Z-report rounding row (Wave D). Cash-refund rounding and the recount/force-close UI are done (D64). **Next: Wave B — B2 (business date/timezone/rollover, migrations `0520`/`0526`-style: STOP-AND-WAIT), B5 exit.** (A6-2/2b/3/4/5/6/7, A3-5 done — D58–D60.) **Check first:** `web-admin/prisma/schema.prisma` was being rewritten by an outside process (raw `db pull`, invalid per `prisma validate`) — do not trust DB runs or `npm run build` until it validates and has no retired cash models. Then Waves B → E and close-out (`REMAINING_WORK.md`).
 
 **Owner:** commit (incl. `web-admin/prisma/schema.prisma`, which has reverted by itself twice — re-check `grep requires_session` before trusting a DB run); restart the dev server; finish or force-close the 2 sessions stuck in `CLOSING` (drawers ac312993 / 65546cc7); run `QA_TEST_GUIDE.md`.
 

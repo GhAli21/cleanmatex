@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { posSessionFinanceErrorResponse } from '@/lib/api/pos-session-finance-errors';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
@@ -55,6 +56,8 @@ export async function POST(
     });
     return NextResponse.json({ success: true, data: result });
   } catch (err) {
+    const posSessionResponse = posSessionFinanceErrorResponse(err);
+    if (posSessionResponse) return posSessionResponse;
     // CLF W3: cash-drawer ledger gate refusal — stable code for the UI
     // (translated via cashControl.ledgerErrors / the payment modal guard).
     if (err instanceof CashDrawerLedgerError) {

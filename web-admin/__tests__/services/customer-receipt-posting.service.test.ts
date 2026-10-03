@@ -73,6 +73,13 @@ jest.mock('@/lib/services/cash-change-rounding.service', () => ({
   postCashChangeRoundingTx: (...a: unknown[]) => mockPostCashChangeRoundingTx(...a),
 }));
 
+// D62: the per-screen POS-session policy has its own suite (pos-session.service.test.ts); here the
+// resolver is a controllable stub (default: no session, none required).
+const mockResolvePosSession = jest.fn();
+jest.mock('@/lib/services/pos-session.service', () => ({
+  resolvePosSessionForFinanceTx: (...a: unknown[]) => mockResolvePosSession(...a),
+}));
+
 import { postCustomerAccountReceipt } from '@/lib/services/customer-receipt-posting.service';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
@@ -97,6 +104,7 @@ function method(code: string, requiresDrawer = code === 'CASH') {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockResolvePosSession.mockResolvedValue(null);
   mockVoucherFindFirst.mockResolvedValue(null);
   mockGetPreview.mockResolvedValue({
     previewStatus: 'CONFIRMED',
@@ -144,6 +152,32 @@ describe('postCustomerAccountReceipt', () => {
     expect(mockPostAndWire.mock.invocationCallOrder[0]).toBeLessThan(
       mockPostCashChangeRoundingTx.mock.invocationCallOrder[0],
     );
+  });
+
+  it('applies the CUSTOMER_RECEIPT POS-session policy and links the resolved session on the line (D62)', async () => {
+    mockResolvePosSession.mockResolvedValue({ id: 'pos-ses-1' });
+    await postCustomerAccountReceipt(TENANT, USER, { ...baseInput, cashTendered: 50, cashDrawerSessionId: SESSION });
+
+    expect(mockResolvePosSession).toHaveBeenCalledWith(
+      mockTx,
+      expect.objectContaining({ tenantId: TENANT, userId: USER, surface: 'CUSTOMER_RECEIPT', tenderScope: 'CASH' })
+    );
+    expect(mockAddVoucherLine).toHaveBeenCalledWith(
+      TENANT,
+      'vch-1',
+      expect.objectContaining({ pos_session_id: 'pos-ses-1' }),
+      USER,
+      undefined,
+      mockTx
+    );
+  });
+
+  it('refuses the receipt before any voucher is written when the policy requires a session', async () => {
+    const refusal = Object.assign(new Error('required'), { code: 'POS_SESSION_REQUIRED' });
+    mockResolvePosSession.mockRejectedValue(refusal);
+    await expect(postCustomerAccountReceipt(TENANT, USER, baseInput)).rejects.toBe(refusal);
+    expect(mockCreateBizVoucher).not.toHaveBeenCalled();
+    expect(mockAddVoucherLine).not.toHaveBeenCalled();
   });
 
   it('creates one CUSTOMER_CREDIT_RECEIPT line and posts through the gate in INTERACTIVE mode', async () => {

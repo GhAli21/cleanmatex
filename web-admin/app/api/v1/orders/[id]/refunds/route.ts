@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { posSessionFinanceErrorResponse } from '@/lib/api/pos-session-finance-errors';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
@@ -168,6 +169,8 @@ export async function POST(
     });
     return NextResponse.json({ success: true, data: refund }, { status: 201 });
   } catch (err) {
+    const posSessionResponse = posSessionFinanceErrorResponse(err);
+    if (posSessionResponse) return posSessionResponse;
     if (err instanceof RefundValidationError) {
       return NextResponse.json(
         { success: false, code: err.code, error: err.message },

@@ -15,6 +15,7 @@ import {
   useCashDrawerMoneyFormatter,
 } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
 import { CashDrawerSessionClosureSection } from '@features/cash-drawers/ui/cash-drawer-session-closure-section'
+import { CashDrawerSessionSupervisorActions } from '@features/cash-drawers/ui/cash-drawer-session-supervisor-actions'
 import { CashDrawerVarianceApprovalDialog } from '@features/cash-drawers/ui/cash-drawer-variance-approval-dialog'
 import type { CashDrawerSessionDetail } from '@lib/types/cash-drawer'
 import { CmxDataTable } from '@ui/data-display'
@@ -48,7 +49,7 @@ export function CashDrawerSessionDetailScreen({
   const money = useCashDrawerMoneyFormatter()
   const fmtDateTime = useCashDrawerDateFormatter()
   const canApproveVariance = useHasPermissionCode('cash_drawer:approve_variance')
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false)
+  const [decisionMode, setDecisionMode] = useState<'approve' | 'reject' | null>(null)
 
   const varianceApproval = detail.session.varianceApproval
 
@@ -212,6 +213,13 @@ export function CashDrawerSessionDetailScreen({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <CashDrawerSessionSupervisorActions
+            drawerId={drawerId}
+            sessionId={sessionId}
+            branchId={detail.drawer.branchId ?? null}
+            status={detail.session.status}
+            currencyCode={detail.session.currencyCode}
+          />
           <CmxButton asChild variant="outline" size="sm">
             <Link href={`/dashboard/internal_fin/cash-drawers/${drawerId}/session/${sessionId}/print`}>
               <Printer className="me-2 h-4 w-4" aria-hidden />
@@ -227,14 +235,37 @@ export function CashDrawerSessionDetailScreen({
             <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden />
             <span>{t('varianceApprovalPendingBanner')}</span>
           </div>
-          <CmxButton
-            variant="primary"
-            size="sm"
-            disabled={!canApproveVariance}
-            onClick={() => setApprovalDialogOpen(true)}
-          >
-            {t('approveVariance')}
-          </CmxButton>
+          <div className="flex flex-wrap gap-2">
+            <CmxButton
+              variant="outline"
+              size="sm"
+              disabled={!canApproveVariance}
+              onClick={() => setDecisionMode('reject')}
+            >
+              {t('rejectVariance')}
+            </CmxButton>
+            <CmxButton
+              variant="primary"
+              size="sm"
+              disabled={!canApproveVariance}
+              onClick={() => setDecisionMode('approve')}
+            >
+              {t('approveVariance')}
+            </CmxButton>
+          </div>
+        </div>
+      ) : varianceApproval.rejected ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+          <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden />
+          <span>
+            {t('varianceRejectedBanner', {
+              rejecter: varianceApproval.rejectedBy?.displayName ?? varianceApproval.rejectedBy?.id ?? '—',
+              date: fmtDateTime(varianceApproval.rejectedAt),
+            })}
+          </span>
+          {varianceApproval.rejectionReason ? (
+            <span className="italic text-red-800">— {varianceApproval.rejectionReason}</span>
+          ) : null}
         </div>
       ) : varianceApproval.approved ? (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
@@ -430,11 +461,14 @@ export function CashDrawerSessionDetailScreen({
       </CmxCard>
 
       <CashDrawerVarianceApprovalDialog
-        open={approvalDialogOpen}
-        onOpenChange={setApprovalDialogOpen}
+        open={decisionMode !== null}
+        onOpenChange={(next) => {
+          if (!next) setDecisionMode(null)
+        }}
         drawerId={drawerId}
         sessionId={sessionId}
-        onApproved={() => router.refresh()}
+        mode={decisionMode ?? 'approve'}
+        onDecided={() => router.refresh()}
       />
     </div>
   )

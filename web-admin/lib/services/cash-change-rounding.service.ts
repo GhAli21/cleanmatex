@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
 import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
@@ -9,6 +9,7 @@ import type { CurrencyRoundingMode } from '@/lib/constants/order-financial';
 import { ROUNDING_CONTEXT } from '@/lib/constants/rounding-context';
 import {
   LINE_ROLE,
+  LINE_STATUS,
   LINE_TYPE,
   PARTY_TYPE,
   TARGET_TYPE,
@@ -133,6 +134,35 @@ export async function planCashChangeRounding(
   return { ...rounding, currencyCode: leg.currencyCode };
 }
 
+/**
+ * Plan the rounding of a CASH REFUND paid out of a drawer (A6 follow-up). The same increment and
+ * bearer policy as change apply — cash handed to the customer cannot be below the smallest
+ * coin/note — but there is no tendered amount to cap it, so the payout is simply rounded.
+ * The refund itself stays at its exact amount; the gap is recorded as a rounding voucher by
+ * {@link postCashChangeRoundingTx} (negative adjustment = the drawer pays out more = loss).
+ * Returns `null` when nothing applies (non-cash, no increment configured, already on the increment).
+ * @param scope tenant + branch/user/drawer scope
+ * @param leg the cash refund leg: currency and the exact amount refunded
+ */
+export async function planCashRefundRounding(
+  scope: CashControlScope,
+  leg: { currencyCode: string; amount: number },
+): Promise<PlannedCashChangeRounding | null> {
+  if (!(leg.amount > 0)) return null;
+
+  const policy = await resolveCashChangeRoundingPolicy(scope, leg.currencyCode);
+  if (policy.incrementMinor == null) return null;
+
+  const rounding = computeCashChangeRounding({
+    exactChange: leg.amount,
+    decimalPlaces: policy.decimalPlaces,
+    incrementMinor: policy.incrementMinor,
+    mode: policy.mode,
+  });
+  if (rounding.adjustment === 0) return null;
+  return { ...rounding, currencyCode: leg.currencyCode };
+}
+
 /** Inputs to persist one planned rounding. */
 export interface PostCashChangeRoundingInput {
   rounding: PlannedCashChangeRounding;
@@ -156,6 +186,8 @@ export interface PostCashChangeRoundingInput {
   paymentMethodCode: string;
   /** Stable per-leg key (e.g. `${orderId}_cash_round_${legIndex}`) — retries never double-post. */
   idempotencyKey: string;
+  /** What was rounded, for the voucher text; defaults to "Cash change rounding". */
+  label?: string;
 }
 
 /**
@@ -193,7 +225,8 @@ export async function postCashChangeRoundingTx(
   const isGain = rounding.adjustment > 0;
   const direction = isGain ? VOUCHER_DIRECTION.IN : VOUCHER_DIRECTION.OUT;
   const amount = Math.abs(rounding.adjustment);
-  const description = isGain ? 'Cash change rounding gain' : 'Cash change rounding loss';
+  const label = input.label ?? 'Cash change rounding';
+  const description = isGain ? `${label} gain` : `${label} loss`;
 
   const voucher = await createBizVoucher(
     ctx.tenantOrgId,
@@ -236,7 +269,7 @@ export async function postCashChangeRoundingTx(
       pos_session_id: input.posSessionId ?? undefined,
       amount,
       currency_code: rounding.currencyCode,
-      description: `${description} — exact change ${rounding.exactChange}, handed out ${rounding.roundedChange}`,
+      description: `${description} — exact ${rounding.exactChange}, handed out ${rounding.roundedChange}`,
       idempotency_key: `${input.idempotencyKey}_line`,
     },
     ctx.userId,
@@ -268,4 +301,42 @@ export async function postCashChangeRoundingTx(
   );
 
   return { voucherId: voucher.id };
+}
+
+/** Printed-document view of the change rounding on one order, per currency. */
+export interface OrderCashChangeRoundingSummary {
+  currencyCode: string;
+  /** Net of the posted rounding lines: positive = the customer absorbed a fraction (gain), negative = the business gave more change (loss). */
+  adjustment: number;
+}
+
+/**
+ * Net posted change-rounding per currency for an order, read from the `CASH_CHANGE_ROUNDING`
+ * voucher lines. Powers the visible rounding line on the order payments print (A6-4): the
+ * exact change the payment recorded, the rounding, and what was physically handed out.
+ * @param tenantOrgId tenant that owns the order
+ * @param orderId order to summarise
+ */
+export async function getOrderCashChangeRounding(
+  tenantOrgId: string,
+  orderId: string,
+): Promise<OrderCashChangeRoundingSummary[]> {
+  const lines = await prisma.org_fin_voucher_trx_lines_dtl.findMany({
+    where: {
+      tenant_org_id: tenantOrgId,
+      order_id: orderId,
+      line_role: LINE_ROLE.CASH_CHANGE_ROUNDING,
+      line_status: LINE_STATUS.POSTED,
+    },
+    select: { direction: true, amount: true, currency_code: true },
+  });
+  const net = new Map<string, Prisma.Decimal>();
+  for (const line of lines) {
+    const amount = new Prisma.Decimal(line.amount);
+    const signed = line.direction === VOUCHER_DIRECTION.IN ? amount : amount.negated();
+    net.set(line.currency_code, (net.get(line.currency_code) ?? new Prisma.Decimal(0)).plus(signed));
+  }
+  return [...net.entries()]
+    .filter(([, adjustment]) => !adjustment.isZero())
+    .map(([currencyCode, adjustment]) => ({ currencyCode, adjustment: adjustment.toNumber() }));
 }

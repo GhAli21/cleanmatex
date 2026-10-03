@@ -56,8 +56,16 @@ jest.mock('@/lib/services/order-financial-write.service', () => ({
   recalculateOrderFinancialSnapshotTx: (...args: unknown[]) => mockRecalculateSnapshot(...args),
 }));
 
+// A6 follow-up: controllable cash-refund rounding (default: no increment configured).
+const mockPlanCashRefundRounding = jest.fn();
+const mockPostCashChangeRoundingTx = jest.fn();
+jest.mock('@/lib/services/cash-change-rounding.service', () => ({
+  planCashRefundRounding: (...args: unknown[]) => mockPlanCashRefundRounding(...args),
+  postCashChangeRoundingTx: (...args: unknown[]) => mockPostCashChangeRoundingTx(...args),
+}));
 jest.mock('@/lib/services/pos-session.service', () => ({
   assertOpenPosSessionForFinanceTx: (...args: unknown[]) => mockAssertOpenPosSession(...args),
+  resolvePosSessionForFinanceTx: (...args: unknown[]) => mockAssertOpenPosSession(...args),
 }));
 
 jest.mock('@/lib/services/voucher-biz.service', () => ({
@@ -137,6 +145,8 @@ function installTxMock() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPlanCashRefundRounding.mockResolvedValue(null);
+  mockPostCashChangeRoundingTx.mockResolvedValue(null);
   installTxMock();
   mockRefundAggregate.mockResolvedValue({ _sum: { refund_amount: new Decimal('0') } });
   mockOrderFindFirstOrThrow.mockResolvedValue(makeOrder());
@@ -256,6 +266,65 @@ describe('processRefund — CASH destination execution', () => {
       }),
     );
     expect(mockRefundUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ refund_status: 'PROCESSED' }) }),
+    );
+  });
+});
+
+describe('processRefund — cash refund rounding (A6 follow-up)', () => {
+  const rounding = { exactChange: 30.003, roundedChange: 30.005, adjustment: -0.002, currencyCode: 'OMR' };
+
+  it('plans the payout rounding on the exact refund amount, in the branch and scope of the processor', async () => {
+    mockRefundFindFirstOrThrow.mockResolvedValue(makeApprovedRefund({ refund_amount: new Decimal('30') }));
+    await processRefund(TENANT, REFUND, PROCESSOR, { enabled: true, cashDrawerSessionId: DRAWER_SESSION });
+
+    expect(mockPlanCashRefundRounding).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: TENANT, userId: PROCESSOR }),
+      expect.objectContaining({ amount: 30 }),
+    );
+    // No increment configured → nothing extra is posted.
+    expect(mockPostCashChangeRoundingTx).not.toHaveBeenCalled();
+  });
+
+  it('posts the rounding as its own voucher on the refund line, after the refund voucher is posted', async () => {
+    mockRefundFindFirstOrThrow.mockResolvedValue(makeApprovedRefund({ refund_amount: new Decimal('30') }));
+    mockPlanCashRefundRounding.mockResolvedValue(rounding);
+    await processRefund(TENANT, REFUND, PROCESSOR, { enabled: true, cashDrawerSessionId: DRAWER_SESSION });
+
+    expect(mockPostCashChangeRoundingTx).toHaveBeenCalledTimes(1);
+    expect(mockPostCashChangeRoundingTx).toHaveBeenCalledWith(
+      expect.anything(),
+      { tenantOrgId: TENANT, userId: PROCESSOR },
+      expect.objectContaining({
+        rounding,
+        orderId: ORDER,
+        paymentLineId: 'line-b9',
+        paymentMethodCode: 'CASH',
+        idempotencyKey: `refund-${REFUND}-cash-round`,
+        label: 'Cash refund rounding',
+      }),
+    );
+    expect(mockPostAndWireBizVoucher.mock.invocationCallOrder[0]).toBeLessThan(
+      mockPostCashChangeRoundingTx.mock.invocationCallOrder[0],
+    );
+    // The refund record keeps the exact amount.
+    expect(mockCreateBizVoucher).toHaveBeenCalledWith(
+      TENANT,
+      expect.objectContaining({ total_amount: 30 }),
+      PROCESSOR,
+      expect.anything(),
+    );
+  });
+
+  it('a refused rounding post aborts the whole processing (nothing is half-recorded)', async () => {
+    mockRefundFindFirstOrThrow.mockResolvedValue(makeApprovedRefund({ refund_amount: new Decimal('30') }));
+    mockPlanCashRefundRounding.mockResolvedValue(rounding);
+    const refusal = new Error('gate refused');
+    mockPostCashChangeRoundingTx.mockRejectedValue(refusal);
+    await expect(
+      processRefund(TENANT, REFUND, PROCESSOR, { enabled: true, cashDrawerSessionId: DRAWER_SESSION }),
+    ).rejects.toBe(refusal);
+    expect(mockRefundUpdate).not.toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ refund_status: 'PROCESSED' }) }),
     );
   });

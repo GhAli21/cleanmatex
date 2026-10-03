@@ -13,7 +13,7 @@
  * comment describes ("two concurrent processRefund calls could both read
  * status APPROVED and both issue a wallet top-up / credit note").
  *
- * Deliberately scoped to CASH with no `execution` param (B9's flag-off,
+ * Deliberately scoped to ORIGINAL_METHOD with no `execution` param (B9's flag-off,
  * record-only path) — this exercises the real, production `processRefund`
  * function end to end (not a reimplementation of its lock), while avoiding
  * the need to fabricate realistic drawer-session/gateway/wallet fixtures;
@@ -87,7 +87,7 @@ async function seedApprovedRefund(refundAmount: number, totalPaid: number): Prom
        refund_method_code, refund_source_type, refund_context, approved_at)
     VALUES
       (${tenantId}::uuid, ${orderId}::uuid, ${refundAmount}, 'OMR', 'APPROVED',
-       'CASH', 'GOODWILL_CONCESSION', 'STANDARD', now())
+       'ORIGINAL_METHOD', 'GOODWILL_CONCESSION', 'STANDARD', now())
     RETURNING id`;
   const refundId = refund[0].id;
 

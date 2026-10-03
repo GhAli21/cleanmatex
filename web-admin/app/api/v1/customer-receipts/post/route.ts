@@ -3,6 +3,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { requireAnyPermission } from '@/lib/middleware/require-permission';
 import { postCustomerAccountReceipt } from '@/lib/services/customer-receipt-posting.service';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
+import { posSessionFinanceErrorResponse } from '@/lib/api/pos-session-finance-errors';
 import { postCustomerReceiptRequestSchema } from '@/lib/validations/customer-receipt-allocation-schema';
 
 /**
@@ -44,6 +45,8 @@ export async function POST(request: NextRequest) {
     );
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
+    const posSessionResponse = posSessionFinanceErrorResponse(error);
+    if (posSessionResponse) return posSessionResponse;
     if (error instanceof CashDrawerLedgerError) {
       return NextResponse.json(
         { success: false, code: error.code, error: error.code },

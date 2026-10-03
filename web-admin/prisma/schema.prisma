@@ -125,8 +125,10 @@ model users {
   org_order_status_history                             org_order_status_history[]
   org_orders_mst_org_orders_mst_edit_blocked_byTousers org_orders_mst[]                  @relation("org_orders_mst_edit_blocked_byTousers")
   org_orders_mst_org_orders_mst_committed_byTousers    org_orders_mst[]                  @relation("org_orders_mst_committed_byTousers")
-  org_users_mst                                        org_users_mst[]
+  org_users_mst                                        org_users_mst?
   sys_audit_log                                        sys_audit_log[]
+  sys_auth_audit_log                                   sys_auth_audit_log[]
+  sys_auth_user_sessions_mst                           sys_auth_user_sessions_mst[]
 
   @@index([instance_id])
   @@index([is_anonymous])
@@ -416,11 +418,14 @@ model org_branches_mst {
   tax_pricing_mode                                                                             String?
   extra_price_pricing_mode                                                                     String?
   tax_registration_no                                                                          String?
+  timezone_code                                                                                String?
   org_ar_appr_policies_cf                                                                      org_ar_appr_policies_cf[]
   org_asm_exceptions_tr                                                                        org_asm_exceptions_tr[]
   org_asm_locations_mst                                                                        org_asm_locations_mst[]
+  sys_timezone_cd                                                                              sys_timezone_cd?                  @relation(fields: [timezone_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_branch_timezone")
   org_tenants_mst                                                                              org_tenants_mst                   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
   org_cash_drawer_cnt_mst                                                                      org_cash_drawer_cnt_mst[]
+  org_cash_drawer_transit_tr                                                                   org_cash_drawer_transit_tr[]
   org_cash_drawer_trx_mst                                                                      org_cash_drawer_trx_mst[]
   org_dlv_pod_tr                                                                               org_dlv_pod_tr[]
   org_dlv_routes_mst                                                                           org_dlv_routes_mst[]
@@ -1545,6 +1550,7 @@ model org_tenants_mst {
   org_advance_txn_dtl              org_advance_txn_dtl[]
   org_asm_locations_mst            org_asm_locations_mst[]
   org_asm_tasks_mst                org_asm_tasks_mst[]
+  org_auth_admin_config_cf         org_auth_admin_config_cf[]
   org_b2b_contacts_dtl             org_b2b_contacts_dtl[]
   org_b2b_contracts_mst            org_b2b_contracts_mst[]
   org_b2b_statements_mst           org_b2b_statements_mst[]
@@ -1556,12 +1562,14 @@ model org_tenants_mst {
   org_cash_drawer_ses_bal_dtl      org_cash_drawer_ses_bal_dtl[]
   org_cash_drawer_ses_post_tr      org_cash_drawer_ses_post_tr[]
   org_cash_drawer_sessions_mst     org_cash_drawer_sessions_mst[]
+  org_cash_drawer_transit_tr       org_cash_drawer_transit_tr[]
   org_cash_drawer_trx_dtl          org_cash_drawer_trx_dtl[]
   org_cash_drawer_trx_mst          org_cash_drawer_trx_mst[]
   org_cash_drawers_mst             org_cash_drawers_mst[]
   org_credit_note_txn_dtl          org_credit_note_txn_dtl[]
   org_credit_notes_mst             org_credit_notes_mst[]
   org_currency_cf                  org_currency_cf[]
+  org_currency_denom_cf            org_currency_denom_cf[]
   org_customer_addresses           org_customer_addresses[]
   org_customer_advances_mst        org_customer_advances_mst[]
   org_customer_category_cf         org_customer_category_cf[]
@@ -1632,6 +1640,8 @@ model org_tenants_mst {
   org_ntf_audit_dtl                org_ntf_audit_dtl[]
   org_ntf_camp_targets_dtl         org_ntf_camp_targets_dtl[]
   org_ntf_campaigns_mst            org_ntf_campaigns_mst[]
+  org_ntf_prov_acct_mst            org_ntf_prov_acct_mst[]
+  org_ntf_receipts_tr              org_ntf_receipts_tr[]
   org_ntf_usage_daily              org_ntf_usage_daily[]
   org_order_adjustments_dtl        org_order_adjustments_dtl[]
   org_order_changes_mst            org_order_changes_mst[]
@@ -1659,6 +1669,7 @@ model org_tenants_mst {
   org_pln_subscriptions_mst        org_pln_subscriptions_mst[]
   org_pos_session_events_dtl       org_pos_session_events_dtl[]
   org_pos_sessions_mst             org_pos_sessions_mst[]
+  org_pos_shift_z_rpt_tr           org_pos_shift_z_rpt_tr[]
   org_preference_bundles_cf        org_preference_bundles_cf[]
   org_preference_kind_cf           org_preference_kind_cf[]
   org_price_history_audit          org_price_history_audit[]
@@ -1692,6 +1703,8 @@ model org_tenants_mst {
   org_workflow_rules               org_workflow_rules[]
   org_workflow_settings_cf         org_workflow_settings_cf[]
   sys_audit_log                    sys_audit_log[]
+  sys_auth_audit_log               sys_auth_audit_log[]
+  sys_auth_user_sessions_mst       sys_auth_user_sessions_mst[]
   sys_bill_discount_redemptions_tr sys_bill_discount_redemptions_tr[]
   sys_bill_dunning_mst             sys_bill_dunning_mst[]
   sys_bill_invoice_payments_tr     sys_bill_invoice_payments_tr[]
@@ -1739,9 +1752,10 @@ model org_usage_tracking {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model org_users_mst {
   id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id                     String                        @db.Uuid
+  user_id                     String                        @unique(map: "uq_org_users_mst_user_id") @db.Uuid
   tenant_org_id               String                        @db.Uuid
   display_name                String?                       @db.VarChar(255)
   role                        String?
@@ -1776,6 +1790,7 @@ model org_users_mst {
   last_failed_login_at        DateTime?                     @db.Timestamp(6)
   locked_until                DateTime?                     @db.Timestamp(6)
   lock_reason                 String?                       @db.VarChar(200)
+  user_code                   String                        @default(dbgenerated("fn_org_user_code_next()"))
   org_drivers_mst             org_drivers_mst[]
   org_fin_cash_ctrl_audit_dtl org_fin_cash_ctrl_audit_dtl[]
   org_invoice_mst_handed_to   org_invoice_mst[]             @relation("invoice_handed_to_user")
@@ -1784,6 +1799,8 @@ model org_users_mst {
   org_stng_effective_cache_cf org_stng_effective_cache_cf[]
   org_tenants_mst             org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users                       users                         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sys_auth_audit_log          sys_auth_audit_log[]
+  sys_auth_user_sessions_mst  sys_auth_user_sessions_mst[]
 
   @@unique([user_id, tenant_org_id])
   @@index([last_login_at(sort: Desc)], map: "idx_org_users_last_login")
@@ -4172,6 +4189,7 @@ model sys_currency_cd {
   org_cash_drawer_cnt_mst                                                                           org_cash_drawer_cnt_mst[]
   org_cash_drawer_ses_bal_dtl                                                                       org_cash_drawer_ses_bal_dtl[]
   org_cash_drawer_sessions_mst                                                                      org_cash_drawer_sessions_mst[]
+  org_cash_drawer_transit_tr                                                                        org_cash_drawer_transit_tr[]
   org_cash_drawer_trx_dtl                                                                           org_cash_drawer_trx_dtl[]
   org_currency_cf                                                                                   org_currency_cf[]
   org_customer_wallets_mst                                                                          org_customer_wallets_mst[]
@@ -4551,12 +4569,17 @@ model sys_ntf_channel_cd {
   org_ntf_channel_provider_cf org_ntf_channel_provider_cf[]
   org_ntf_inbox_mst           org_ntf_inbox_mst[]
   org_ntf_outbox_dtl          org_ntf_outbox_dtl[]
+  org_ntf_prov_acct_mst       org_ntf_prov_acct_mst[]
+  org_ntf_prov_send_mst       org_ntf_prov_send_mst[]
   org_ntf_settings_cf         org_ntf_settings_cf[]
   org_ntf_usage_daily         org_ntf_usage_daily[]
   org_ntf_user_prefs_dtl      org_ntf_user_prefs_dtl[]
   sys_ntf_event_chan_map      sys_ntf_event_chan_map[]
+  sys_ntf_prov_acct_mst       sys_ntf_prov_acct_mst[]
+  sys_ntf_prov_send_mst       sys_ntf_prov_send_mst[]
   sys_ntf_providers_cd        sys_ntf_providers_cd[]
   sys_ntf_template_chan_dtl   sys_ntf_template_chan_dtl[]
+  sys_ntf_tpl_locale_dtl      sys_ntf_tpl_locale_dtl[]
 
   @@index([is_active, display_order], map: "idx_ntf_channel_active")
   @@index([channel_type, is_active], map: "idx_ntf_channel_type")
@@ -4842,31 +4865,32 @@ model sys_service_prod_templates_cd {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_timezone_cd {
-  code               String    @id @db.VarChar(50)
-  name               String    @db.VarChar(250)
-  name2              String?   @db.VarChar(250)
+  code               String             @id @db.VarChar(50)
+  name               String             @db.VarChar(250)
+  name2              String?            @db.VarChar(250)
   description        String?
   description2       String?
-  display_order      Int?      @default(0)
-  icon               String?   @db.VarChar(100)
-  color              String?   @db.VarChar(60)
+  display_order      Int?               @default(0)
+  icon               String?            @db.VarChar(100)
+  color              String?            @db.VarChar(60)
   utc_offset_hours   Int
-  utc_offset_minutes Int?      @default(0)
-  utc_offset_string  String?   @db.VarChar(10)
-  uses_dst           Boolean?  @default(false)
+  utc_offset_minutes Int?               @default(0)
+  utc_offset_string  String?            @db.VarChar(10)
+  uses_dst           Boolean?           @default(false)
   dst_start_rule     String?
   dst_end_rule       String?
-  region             String?   @db.VarChar(50)
-  country_code       String?   @db.VarChar(2)
-  is_default         Boolean?  @default(false)
-  is_system          Boolean?  @default(true)
-  is_active          Boolean?  @default(true)
+  region             String?            @db.VarChar(50)
+  country_code       String?            @db.VarChar(2)
+  is_default         Boolean?           @default(false)
+  is_system          Boolean?           @default(true)
+  is_active          Boolean?           @default(true)
   metadata           Json?
-  created_at         DateTime? @default(now()) @db.Timestamp(6)
-  created_by         String?   @db.Uuid
-  updated_at         DateTime? @db.Timestamp(6)
-  updated_by         String?   @db.Uuid
-  rec_status         Int?      @default(1) @db.SmallInt
+  created_at         DateTime?          @default(now()) @db.Timestamp(6)
+  created_by         String?            @db.Uuid
+  updated_at         DateTime?          @db.Timestamp(6)
+  updated_by         String?            @db.Uuid
+  rec_status         Int?               @default(1) @db.SmallInt
+  org_branches_mst   org_branches_mst[]
 
   @@index([is_active, display_order], map: "idx_timezone_active")
   @@index([region, is_active], map: "idx_timezone_region")
@@ -6908,41 +6932,44 @@ model org_card_brand_cf {
 }
 
 model org_cash_drawers_mst {
-  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id                 String                          @db.Uuid
-  branch_id                     String                          @db.Uuid
-  drawer_code                   String
-  drawer_name                   String
-  drawer_name2                  String?
-  drawer_type                   String                          @default("COUNTER")
-  currency_code                 String
-  max_cash_limit                Decimal?                        @db.Decimal(19, 4)
-  assigned_user_id              String?                         @db.Uuid
-  assigned_terminal_id          String?                         @db.Uuid
-  created_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
-  created_by                    String?
-  created_info                  String?
-  updated_at                    DateTime?                       @db.Timestamptz(6)
-  updated_by                    String?
-  updated_info                  String?
-  rec_status                    Int                             @default(1) @db.SmallInt
-  rec_order                     Int?
-  rec_notes                     String?
-  is_active                     Boolean                         @default(true)
-  metadata                      Json                            @default("{}")
-  variance_approval_threshold   Decimal?                        @db.Decimal(19, 4)
-  ledger_seq                    BigInt                          @default(0)
-  org_cash_drawer_cnt_mst       org_cash_drawer_cnt_mst[]
-  org_cash_drawer_ses_bal_dtl   org_cash_drawer_ses_bal_dtl[]
-  org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst[]
-  org_cash_drawer_trx_dtl       org_cash_drawer_trx_dtl[]
-  sys_cash_drawer_type_cd       sys_cash_drawer_type_cd         @relation(fields: [drawer_type], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocd_drawer_type")
-  org_currency_cf               org_currency_cf                 @relation(fields: [tenant_org_id, currency_code], references: [tenant_org_id, currency_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocd_tenant_currency")
-  org_payment_terminals_cf      org_payment_terminals_cf?       @relation(fields: [assigned_terminal_id], references: [id], onUpdate: NoAction)
-  org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  org_fin_voucher_trx_lines_dtl org_fin_voucher_trx_lines_dtl[]
-  org_order_payments_dtl        org_order_payments_dtl[]        @relation("OrdPayCashDrawer")
-  org_pos_sessions_mst          org_pos_sessions_mst[]
+  id                                                                                                          String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                                                                                               String                          @db.Uuid
+  branch_id                                                                                                   String                          @db.Uuid
+  drawer_code                                                                                                 String
+  drawer_name                                                                                                 String
+  drawer_name2                                                                                                String?
+  drawer_type                                                                                                 String                          @default("COUNTER")
+  currency_code                                                                                               String
+  max_cash_limit                                                                                              Decimal?                        @db.Decimal(19, 4)
+  assigned_user_id                                                                                            String?                         @db.Uuid
+  assigned_terminal_id                                                                                        String?                         @db.Uuid
+  created_at                                                                                                  DateTime?                       @default(now()) @db.Timestamptz(6)
+  created_by                                                                                                  String?
+  created_info                                                                                                String?
+  updated_at                                                                                                  DateTime?                       @db.Timestamptz(6)
+  updated_by                                                                                                  String?
+  updated_info                                                                                                String?
+  rec_status                                                                                                  Int                             @default(1) @db.SmallInt
+  rec_order                                                                                                   Int?
+  rec_notes                                                                                                   String?
+  is_active                                                                                                   Boolean                         @default(true)
+  metadata                                                                                                    Json                            @default("{}")
+  variance_approval_threshold                                                                                 Decimal?                        @db.Decimal(19, 4)
+  ledger_seq                                                                                                  BigInt                          @default(0)
+  org_cash_drawer_cnt_mst                                                                                     org_cash_drawer_cnt_mst[]
+  org_cash_drawer_ses_bal_dtl                                                                                 org_cash_drawer_ses_bal_dtl[]
+  org_cash_drawer_sessions_mst                                                                                org_cash_drawer_sessions_mst[]
+  org_cash_drawer_transit_tr_org_cash_drawer_transit_tr_dest_drawer_id_tenant_org_idToorg_cash_drawers_mst    org_cash_drawer_transit_tr[]    @relation("org_cash_drawer_transit_tr_dest_drawer_id_tenant_org_idToorg_cash_drawers_mst")
+  org_cash_drawer_transit_tr_org_cash_drawer_transit_tr_transit_drawer_id_tenant_org_idToorg_cash_drawers_mst org_cash_drawer_transit_tr[]    @relation("org_cash_drawer_transit_tr_transit_drawer_id_tenant_org_idToorg_cash_drawers_mst")
+  org_cash_drawer_transit_tr_org_cash_drawer_transit_tr_source_drawer_id_tenant_org_idToorg_cash_drawers_mst  org_cash_drawer_transit_tr[]    @relation("org_cash_drawer_transit_tr_source_drawer_id_tenant_org_idToorg_cash_drawers_mst")
+  org_cash_drawer_trx_dtl                                                                                     org_cash_drawer_trx_dtl[]
+  sys_cash_drawer_type_cd                                                                                     sys_cash_drawer_type_cd         @relation(fields: [drawer_type], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocd_drawer_type")
+  org_currency_cf                                                                                             org_currency_cf                 @relation(fields: [tenant_org_id, currency_code], references: [tenant_org_id, currency_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocd_tenant_currency")
+  org_payment_terminals_cf                                                                                    org_payment_terminals_cf?       @relation(fields: [assigned_terminal_id], references: [id], onUpdate: NoAction)
+  org_tenants_mst                                                                                             org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_fin_voucher_trx_lines_dtl                                                                               org_fin_voucher_trx_lines_dtl[]
+  org_order_payments_dtl                                                                                      org_order_payments_dtl[]        @relation("OrdPayCashDrawer")
+  org_pos_sessions_mst                                                                                        org_pos_sessions_mst[]
 
   @@unique([tenant_org_id, drawer_code], map: "uq_org_cash_drawers_mst_code")
   @@unique([id, tenant_org_id], map: "uq_ocd_id_tenant")
@@ -6989,6 +7016,9 @@ model org_cash_drawer_sessions_mst {
   post_close_notes                  String?
   post_close_by                     String?
   post_close_at                     DateTime?                         @db.Timestamptz(6)
+  variance_rejected_by              String?                           @db.Uuid
+  variance_rejected_at              DateTime?                         @db.Timestamptz(6)
+  variance_rejection_reason         String?
   org_cash_drawer_cnt_mst           org_cash_drawer_cnt_mst[]
   org_cash_drawer_ses_bal_dtl       org_cash_drawer_ses_bal_dtl[]
   org_cash_drawer_ses_post_tr       org_cash_drawer_ses_post_tr[]
@@ -7015,39 +7045,41 @@ model org_cash_drawer_sessions_mst {
 
 /// CLF (migration 0527): custody transaction header — append-only; corrections are REVERSAL transactions.
 model org_cash_drawer_trx_mst {
-  id                            String                        @id(map: "pk_org_cash_drawer_trx_mst") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id                 String                        @db.Uuid
-  branch_id                     String                        @db.Uuid
-  trx_no                        String
-  trx_type_code                 String
-  occurred_at                   DateTime                      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
-  business_date                 DateTime?                     @db.Date
-  source_session_id             String?                       @db.Uuid
-  reverses_trx_id               String?                       @db.Uuid
-  reason_code                   String?
-  notes                         String?
-  performed_by                  String
-  approved_by                   String?
-  idempotency_key               String?
-  metadata                      Json                          @default("{}")
-  created_at                    DateTime?                     @default(now()) @db.Timestamptz(6)
-  created_by                    String?
-  created_info                  String?
-  updated_at                    DateTime?                     @db.Timestamptz(6)
-  updated_by                    String?
-  updated_info                  String?
-  rec_status                    Int                           @default(1) @db.SmallInt
-  rec_order                     Int?
-  rec_notes                     String?
-  is_active                     Boolean                       @default(true)
-  org_cash_drawer_ses_bal_dtl   org_cash_drawer_ses_bal_dtl[]
-  org_cash_drawer_trx_dtl       org_cash_drawer_trx_dtl[]
-  org_branches_mst              org_branches_mst              @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdt_branch")
-  org_cash_drawer_trx_mst       org_cash_drawer_trx_mst?      @relation("org_cash_drawer_trx_mstToorg_cash_drawer_trx_mst", fields: [reverses_trx_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdt_reverses")
-  other_org_cash_drawer_trx_mst org_cash_drawer_trx_mst[]     @relation("org_cash_drawer_trx_mstToorg_cash_drawer_trx_mst")
-  org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst? @relation(fields: [source_session_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdt_source_ses")
-  org_tenants_mst               org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  sys_cash_drawer_trx_type_cd   sys_cash_drawer_trx_type_cd   @relation(fields: [trx_type_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  id                                                                                                         String                        @id(map: "pk_org_cash_drawer_trx_mst") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                                                                                              String                        @db.Uuid
+  branch_id                                                                                                  String                        @db.Uuid
+  trx_no                                                                                                     String
+  trx_type_code                                                                                              String
+  occurred_at                                                                                                DateTime                      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  business_date                                                                                              DateTime?                     @db.Date
+  source_session_id                                                                                          String?                       @db.Uuid
+  reverses_trx_id                                                                                            String?                       @db.Uuid
+  reason_code                                                                                                String?
+  notes                                                                                                      String?
+  performed_by                                                                                               String
+  approved_by                                                                                                String?
+  idempotency_key                                                                                            String?
+  metadata                                                                                                   Json                          @default("{}")
+  created_at                                                                                                 DateTime?                     @default(now()) @db.Timestamptz(6)
+  created_by                                                                                                 String?
+  created_info                                                                                               String?
+  updated_at                                                                                                 DateTime?                     @db.Timestamptz(6)
+  updated_by                                                                                                 String?
+  updated_info                                                                                               String?
+  rec_status                                                                                                 Int                           @default(1) @db.SmallInt
+  rec_order                                                                                                  Int?
+  rec_notes                                                                                                  String?
+  is_active                                                                                                  Boolean                       @default(true)
+  org_cash_drawer_ses_bal_dtl                                                                                org_cash_drawer_ses_bal_dtl[]
+  org_cash_drawer_transit_tr_org_cash_drawer_transit_tr_send_trx_id_tenant_org_idToorg_cash_drawer_trx_mst   org_cash_drawer_transit_tr?   @relation("org_cash_drawer_transit_tr_send_trx_id_tenant_org_idToorg_cash_drawer_trx_mst")
+  org_cash_drawer_transit_tr_org_cash_drawer_transit_tr_settle_trx_id_tenant_org_idToorg_cash_drawer_trx_mst org_cash_drawer_transit_tr[]  @relation("org_cash_drawer_transit_tr_settle_trx_id_tenant_org_idToorg_cash_drawer_trx_mst")
+  org_cash_drawer_trx_dtl                                                                                    org_cash_drawer_trx_dtl[]
+  org_branches_mst                                                                                           org_branches_mst              @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdt_branch")
+  org_cash_drawer_trx_mst                                                                                    org_cash_drawer_trx_mst?      @relation("org_cash_drawer_trx_mstToorg_cash_drawer_trx_mst", fields: [reverses_trx_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdt_reverses")
+  other_org_cash_drawer_trx_mst                                                                              org_cash_drawer_trx_mst[]     @relation("org_cash_drawer_trx_mstToorg_cash_drawer_trx_mst")
+  org_cash_drawer_sessions_mst                                                                               org_cash_drawer_sessions_mst? @relation(fields: [source_session_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdt_source_ses")
+  org_tenants_mst                                                                                            org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sys_cash_drawer_trx_type_cd                                                                                sys_cash_drawer_trx_type_cd   @relation(fields: [trx_type_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([id, tenant_org_id], map: "uq_ocdt_id_tenant")
   @@unique([tenant_org_id, trx_no], map: "uq_ocdt_trx_no")
@@ -7245,44 +7277,48 @@ model org_cash_drawer_ses_post_tr {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model org_fin_cash_ctrl_stng_cf {
-  id                          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id               String          @db.Uuid
-  scope_level                 String
-  scope_id                    String?         @db.Uuid
-  blind_close_enabled         Boolean?
-  variance_gate_mode          String?
-  variance_threshold_amount   Decimal?        @db.Decimal(19, 4)
-  variance_reason_amount      Decimal?        @db.Decimal(19, 4)
-  variance_tolerance_amount   Decimal?        @db.Decimal(19, 4)
-  cash_tracking_mode          String?
-  opening_count_mode          String?
-  closing_count_mode          String?
-  cash_change_bearer          String?
-  cash_change_round_to_minor  Int?
-  drawer_assignment_mode      String?
-  shared_session_mode         String?
-  max_cash_enforce_mode       String?
-  cash_drop_requires_dest     Boolean?
-  pos_session_req_for_cash    Boolean?
-  pos_session_req_all_tenders Boolean?
-  pos_session_rollover_mode   String?
-  pos_session_stale_hours     Int?
-  shift_z_report_required     Boolean?
-  metadata                    Json            @default("{}")
-  created_at                  DateTime        @default(now()) @db.Timestamptz(6)
-  created_by                  String?
-  created_info                String?
-  updated_at                  DateTime?       @db.Timestamptz(6)
-  updated_by                  String?
-  updated_info                String?
-  rec_status                  Int             @default(1) @db.SmallInt
-  rec_order                   Int?
-  rec_notes                   String?
-  is_active                   Boolean         @default(true)
-  requires_session            Boolean?
-  opening_count_required      Boolean?
-  closing_count_required      Boolean?
-  org_tenants_mst             org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                String          @db.Uuid
+  scope_level                  String
+  scope_id                     String?         @db.Uuid
+  blind_close_enabled          Boolean?
+  variance_gate_mode           String?
+  variance_threshold_amount    Decimal?        @db.Decimal(19, 4)
+  variance_reason_amount       Decimal?        @db.Decimal(19, 4)
+  variance_tolerance_amount    Decimal?        @db.Decimal(19, 4)
+  cash_tracking_mode           String?
+  opening_count_mode           String?
+  closing_count_mode           String?
+  cash_change_bearer           String?
+  cash_change_round_to_minor   Int?
+  drawer_assignment_mode       String?
+  shared_session_mode          String?
+  max_cash_enforce_mode        String?
+  cash_drop_requires_dest      Boolean?
+  pos_session_rollover_mode    String?
+  pos_session_stale_hours      Int?
+  shift_z_report_required      Boolean?
+  metadata                     Json            @default("{}")
+  created_at                   DateTime        @default(now()) @db.Timestamptz(6)
+  created_by                   String?
+  created_info                 String?
+  updated_at                   DateTime?       @db.Timestamptz(6)
+  updated_by                   String?
+  updated_info                 String?
+  rec_status                   Int             @default(1) @db.SmallInt
+  rec_order                    Int?
+  rec_notes                    String?
+  is_active                    Boolean         @default(true)
+  requires_session             Boolean?
+  opening_count_required       Boolean?
+  closing_count_required       Boolean?
+  pos_session_mode_order_entry String?
+  pos_session_mode_later_coll  String?
+  pos_session_mode_stored_val  String?
+  pos_session_mode_cash_refd   String?
+  pos_session_mode_cust_rcpt   String?
+  pos_session_mode_manual_vchr String?
+  org_tenants_mst              org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -7360,6 +7396,7 @@ model org_currency_cf {
   sys_fx_rate_type_cd                                                                               sys_fx_rate_type_cd?         @relation(fields: [default_rate_type_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_orgcur_rate_type")
   sys_exchange_rate_source_cd_org_currency_cf_tax_rate_source_codeTosys_exchange_rate_source_cd     sys_exchange_rate_source_cd? @relation("org_currency_cf_tax_rate_source_codeTosys_exchange_rate_source_cd", fields: [tax_rate_source_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_orgcur_tax_src")
   org_tenants_mst                                                                                   org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_orgcur_tenant")
+  org_currency_denom_cf                                                                             org_currency_denom_cf[]
 
   @@unique([tenant_org_id, currency_code], map: "uq_orgcur_ccy")
   @@unique([tenant_org_id, id], map: "uq_orgcur_tenant_id")
@@ -8626,6 +8663,7 @@ model sys_currency_denominations_cd {
   updated_by                    String?
   updated_info                  String?
   org_cash_drawer_cnt_denom_dtl org_cash_drawer_cnt_denom_dtl[]
+  org_currency_denom_cf         org_currency_denom_cf[]
   sys_currency_cd               sys_currency_cd                 @relation(fields: [currency_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([currency_code, denomination_code], map: "uq_scdn_code")
@@ -8883,7 +8921,7 @@ model org_sv_funding_tenders_dtl {
   @@unique([tenant_org_id, id], map: "uq_svft_tenant_id")
   @@unique([tenant_org_id, fin_voucher_id, leg_index], map: "uq_svft_leg")
   @@unique([tenant_org_id, idempotency_key], map: "uq_svft_idem")
-  @@unique([fin_voucher_trx_line_id, tenant_org_id])
+  @@unique([fin_voucher_trx_line_id, tenant_org_id], map: "uq_svft_vch_line_tenant")
   @@index([tenant_org_id, fin_voucher_id], map: "idx_svft_voucher")
   @@index([tenant_org_id, target_type, target_id], map: "idx_svft_target")
   @@schema("public")
@@ -11918,10 +11956,10 @@ model org_ntf_channel_provider_cf {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_ntf_delivery_log_dtl {
-  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id       String             @db.Uuid
-  outbox_id           String             @db.Uuid
-  attempt_number      Int                @default(1)
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id       String                @db.Uuid
+  outbox_id           String                @db.Uuid
+  attempt_number      Int                   @default(1)
   status              String
   provider_code       String?
   provider_message_id String?
@@ -11929,11 +11967,21 @@ model org_ntf_delivery_log_dtl {
   error_code          String?
   error_message       String?
   duration_ms         Int?
-  logged_at           DateTime           @default(now()) @db.Timestamp(6)
-  rec_status          Int?               @default(1) @db.SmallInt
+  logged_at           DateTime              @default(now()) @db.Timestamp(6)
+  rec_status          Int?                  @default(1) @db.SmallInt
   rec_notes           String?
-  org_ntf_outbox_dtl  org_ntf_outbox_dtl @relation(fields: [outbox_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attempt_id          String                @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  claim_token         String?               @db.Uuid
+  request_hash        String?
+  started_at          DateTime?             @db.Timestamptz(6)
+  finished_at         DateTime?             @db.Timestamptz(6)
+  acceptance_state    String?
+  retryable           Boolean?
+  receipt_deadline    DateTime?             @db.Timestamptz(6)
+  org_ntf_outbox_dtl  org_ntf_outbox_dtl    @relation(fields: [outbox_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_dlog_outbox_tnt")
+  org_ntf_receipts_tr org_ntf_receipts_tr[]
 
+  @@unique([tenant_org_id, attempt_id], map: "uq_ntf_dlog_attempt")
   @@index([outbox_id, attempt_number], map: "idx_ntf_dlog_outbox")
   @@index([tenant_org_id, logged_at(sort: Desc)], map: "idx_ntf_dlog_tenant")
   @@schema("public")
@@ -12028,13 +12076,22 @@ model org_ntf_outbox_dtl {
   rec_status               Int?                       @default(1) @db.SmallInt
   rec_notes                String?
   is_active                Boolean                    @default(true)
+  claim_token              String?                    @db.Uuid
+  lease_expires_at         DateTime?                  @db.Timestamptz(6)
+  claimed_by               String?
+  reconcile_state          String?
+  finalized_at             DateTime?                  @db.Timestamptz(6)
+  recipient_hash           String?
+  payload_hash             String?
   org_ntf_camp_targets_dtl org_ntf_camp_targets_dtl[]
   org_ntf_delivery_log_dtl org_ntf_delivery_log_dtl[]
   sys_ntf_channel_cd       sys_ntf_channel_cd         @relation(fields: [channel_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
   sys_ntf_events_cd        sys_ntf_events_cd?         @relation(fields: [event_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
   org_ntf_inbox_mst        org_ntf_inbox_mst?         @relation(fields: [inbox_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sys_ntf_providers_cd     sys_ntf_providers_cd?      @relation(fields: [provider_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  org_ntf_receipts_tr      org_ntf_receipts_tr[]
 
+  @@unique([id, tenant_org_id], map: "uq_ntf_outbox_id_tenant")
   @@index([tenant_org_id, channel_code, status, created_at(sort: Desc)], map: "idx_ntf_outbox_channel")
   @@index([tenant_org_id], map: "idx_ntf_outbox_tenant")
   @@schema("public")
@@ -12355,6 +12412,9 @@ model org_pos_sessions_mst {
   rec_order                     Int?
   rec_notes                     String?
   is_active                     Boolean                         @default(true)
+  rollover_applied_at           DateTime?                       @db.Timestamptz(6)
+  stale_flagged_at              DateTime?                       @db.Timestamptz(6)
+  auto_close_reason             String?
   org_fin_voucher_trx_lines_dtl org_fin_voucher_trx_lines_dtl[]
   org_order_payments_dtl        org_order_payments_dtl[]
   org_order_refunds_dtl         org_order_refunds_dtl[]
@@ -12365,6 +12425,7 @@ model org_pos_sessions_mst {
   org_payment_terminals_cf      org_payment_terminals_cf?       @relation(fields: [terminal_id], references: [id], onUpdate: NoAction, map: "fk_ops_term")
   sys_pos_session_status_cd     sys_pos_session_status_cd       @relation(fields: [status], references: [code], onDelete: NoAction, onUpdate: NoAction)
   org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_pos_shift_z_rpt_tr        org_pos_shift_z_rpt_tr?
   org_sv_funding_tenders_dtl    org_sv_funding_tenders_dtl[]
 
   @@unique([tenant_org_id, branch_id, session_no], map: "uq_ops_branch_no")
@@ -13824,7 +13885,7 @@ model sys_ntf_pricing_cf {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_ntf_providers_cd {
-  code                       String               @id
+  code                       String                  @id
   channel_code               String
   name                       String
   name2                      String?
@@ -13832,22 +13893,24 @@ model sys_ntf_providers_cd {
   description2               String?
   api_endpoint               String?
   webhook_path               String?
-  supports_delivery_tracking Boolean              @default(false)
-  supports_read_receipt      Boolean              @default(false)
+  supports_delivery_tracking Boolean                 @default(false)
+  supports_read_receipt      Boolean                 @default(false)
   max_message_length         Int?
-  display_order              Int?                 @default(0)
-  created_at                 DateTime?            @default(now()) @db.Timestamp(6)
+  display_order              Int?                    @default(0)
+  created_at                 DateTime?               @default(now()) @db.Timestamp(6)
   created_by                 String?
   created_info               String?
-  updated_at                 DateTime?            @db.Timestamp(6)
+  updated_at                 DateTime?               @db.Timestamp(6)
   updated_by                 String?
   updated_info               String?
-  rec_status                 Int?                 @default(1) @db.SmallInt
+  rec_status                 Int?                    @default(1) @db.SmallInt
   rec_order                  Int?
   rec_notes                  String?
-  is_active                  Boolean              @default(true)
+  is_active                  Boolean                 @default(true)
   org_ntf_outbox_dtl         org_ntf_outbox_dtl[]
-  sys_ntf_channel_cd         sys_ntf_channel_cd   @relation(fields: [channel_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  org_ntf_prov_acct_mst      org_ntf_prov_acct_mst[]
+  sys_ntf_prov_acct_mst      sys_ntf_prov_acct_mst[]
+  sys_ntf_channel_cd         sys_ntf_channel_cd      @relation(fields: [channel_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -13951,6 +14014,8 @@ model sys_ntf_template_ver_dtl {
   is_active                 Boolean                     @default(true)
   sys_ntf_template_chan_dtl sys_ntf_template_chan_dtl[]
   sys_ntf_templates_mst     sys_ntf_templates_mst       @relation(fields: [template_code], references: [template_code], onDelete: NoAction, onUpdate: NoAction)
+  sys_ntf_tpl_locale_dtl    sys_ntf_tpl_locale_dtl[]
+  sys_ntf_tpl_var_dtl       sys_ntf_tpl_var_dtl[]
 
   @@unique([template_code, version_number])
   @@index([template_code, status, is_active], map: "idx_ntf_tver_template")
@@ -14850,6 +14915,670 @@ model sys_wf_transitions_cd {
   sys_wf_statuses_cd_sys_wf_transitions_cd_from_statusTosys_wf_statuses_cd sys_wf_statuses_cd       @relation("sys_wf_transitions_cd_from_statusTosys_wf_statuses_cd", fields: [from_status], references: [status_code], onDelete: NoAction, onUpdate: NoAction)
   sys_wf_statuses_cd_sys_wf_transitions_cd_to_statusTosys_wf_statuses_cd   sys_wf_statuses_cd       @relation("sys_wf_transitions_cd_to_statusTosys_wf_statuses_cd", fields: [to_status], references: [status_code], onDelete: NoAction, onUpdate: NoAction)
 
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_pos_shift_z_rpt_tr {
+  id                     String               @id(map: "pk_opszr") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String               @db.Uuid
+  branch_id              String               @db.Uuid
+  pos_session_id         String               @db.Uuid
+  report_no              String
+  business_date          DateTime             @db.Date
+  business_timezone      String
+  session_status         String
+  session_opened_at      DateTime             @db.Timestamptz(6)
+  session_closed_at      DateTime             @db.Timestamptz(6)
+  operator_user_id       String               @db.Uuid
+  cash_drawer_session_id String?              @db.Uuid
+  snapshot_version       Int                  @default(1) @db.SmallInt
+  snapshot               Json
+  snapshot_hash          String
+  generated_at           DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  generated_by           String
+  metadata               Json                 @default("{}")
+  created_at             DateTime             @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  rec_status             Int                  @default(1) @db.SmallInt
+  is_active              Boolean              @default(true)
+  org_pos_sessions_mst   org_pos_sessions_mst @relation(fields: [tenant_org_id, pos_session_id], references: [tenant_org_id, id], onDelete: NoAction, onUpdate: NoAction, map: "fk_opszr_session")
+  org_tenants_mst        org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_org_id, pos_session_id], map: "uq_opszr_session")
+  @@unique([tenant_org_id, id], map: "uq_opszr_tenant_id")
+  @@index([tenant_org_id, branch_id, business_date(sort: Desc)], map: "idx_opszr_branch_date")
+  @@index([tenant_org_id, operator_user_id, generated_at(sort: Desc)], map: "idx_opszr_operator")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_cash_drawer_transit_tr {
+  id                                                                                                      String                   @id(map: "pk_octt") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                                                                                           String                   @db.Uuid
+  branch_id                                                                                               String                   @db.Uuid
+  transit_no                                                                                              String
+  source_drawer_id                                                                                        String                   @db.Uuid
+  dest_drawer_id                                                                                          String                   @db.Uuid
+  transit_drawer_id                                                                                       String                   @db.Uuid
+  currency_code                                                                                           String
+  amount                                                                                                  Decimal                  @db.Decimal(19, 4)
+  status                                                                                                  String                   @default("IN_TRANSIT")
+  send_trx_id                                                                                             String                   @db.Uuid
+  settle_trx_id                                                                                           String?                  @db.Uuid
+  carried_by_user_id                                                                                      String?                  @db.Uuid
+  notes                                                                                                   String?
+  sent_by                                                                                                 String
+  sent_at                                                                                                 DateTime                 @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  received_by                                                                                             String?
+  received_at                                                                                             DateTime?                @db.Timestamptz(6)
+  cancelled_by                                                                                            String?
+  cancelled_at                                                                                            DateTime?                @db.Timestamptz(6)
+  cancel_reason                                                                                           String?
+  metadata                                                                                                Json                     @default("{}")
+  created_at                                                                                              DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by                                                                                              String?
+  created_info                                                                                            String?
+  updated_at                                                                                              DateTime?                @db.Timestamptz(6)
+  updated_by                                                                                              String?
+  updated_info                                                                                            String?
+  rec_status                                                                                              Int                      @default(1) @db.SmallInt
+  is_active                                                                                               Boolean                  @default(true)
+  org_branches_mst                                                                                        org_branches_mst         @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_octt_branch")
+  org_cash_drawers_mst_org_cash_drawer_transit_tr_dest_drawer_id_tenant_org_idToorg_cash_drawers_mst      org_cash_drawers_mst     @relation("org_cash_drawer_transit_tr_dest_drawer_id_tenant_org_idToorg_cash_drawers_mst", fields: [dest_drawer_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_octt_dest")
+  org_cash_drawers_mst_org_cash_drawer_transit_tr_transit_drawer_id_tenant_org_idToorg_cash_drawers_mst   org_cash_drawers_mst     @relation("org_cash_drawer_transit_tr_transit_drawer_id_tenant_org_idToorg_cash_drawers_mst", fields: [transit_drawer_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_octt_holder")
+  org_cash_drawer_trx_mst_org_cash_drawer_transit_tr_send_trx_id_tenant_org_idToorg_cash_drawer_trx_mst   org_cash_drawer_trx_mst  @relation("org_cash_drawer_transit_tr_send_trx_id_tenant_org_idToorg_cash_drawer_trx_mst", fields: [send_trx_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_octt_send_trx")
+  org_cash_drawer_trx_mst_org_cash_drawer_transit_tr_settle_trx_id_tenant_org_idToorg_cash_drawer_trx_mst org_cash_drawer_trx_mst? @relation("org_cash_drawer_transit_tr_settle_trx_id_tenant_org_idToorg_cash_drawer_trx_mst", fields: [settle_trx_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_octt_settle_trx")
+  org_cash_drawers_mst_org_cash_drawer_transit_tr_source_drawer_id_tenant_org_idToorg_cash_drawers_mst    org_cash_drawers_mst     @relation("org_cash_drawer_transit_tr_source_drawer_id_tenant_org_idToorg_cash_drawers_mst", fields: [source_drawer_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_octt_source")
+  sys_currency_cd                                                                                         sys_currency_cd          @relation(fields: [currency_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  org_tenants_mst                                                                                         org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([id, tenant_org_id], map: "uq_octt_id_tenant")
+  @@unique([tenant_org_id, transit_no], map: "uq_octt_no")
+  @@unique([send_trx_id, tenant_org_id], map: "uq_octt_send")
+  @@index([tenant_org_id, branch_id, sent_at(sort: Desc)], map: "idx_octt_branch_sent")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_currency_denom_cf {
+  id                            String                        @id(map: "pk_ocdn") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                 String                        @db.Uuid
+  currency_code                 String
+  denomination_code             String
+  is_enabled                    Boolean                       @default(true)
+  display_order                 Int?
+  created_at                    DateTime                      @default(now()) @db.Timestamptz(6)
+  created_by                    String?
+  created_info                  String?
+  updated_at                    DateTime?                     @db.Timestamptz(6)
+  updated_by                    String?
+  updated_info                  String?
+  rec_status                    Int                           @default(1) @db.SmallInt
+  is_active                     Boolean                       @default(true)
+  sys_currency_denominations_cd sys_currency_denominations_cd @relation(fields: [currency_code, denomination_code], references: [currency_code, denomination_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdn_denom")
+  org_currency_cf               org_currency_cf               @relation(fields: [tenant_org_id, currency_code], references: [tenant_org_id, currency_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdn_tenant_cur")
+  org_tenants_mst               org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_org_id, currency_code, denomination_code], map: "uq_ocdn")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_auth_audit_log {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  auth_user_id      String?           @db.Uuid
+  org_user_id       String?           @db.Uuid
+  tenant_org_id     String?           @db.Uuid
+  auth_session_id   String?           @db.Uuid
+  event_code        String
+  outcome           String
+  reason_code       String?
+  login_identifier  String?
+  ip_address        String?           @db.Inet
+  user_agent        String?
+  device_label      String?
+  details           Json              @default("{}")
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  users             users?            @relation(fields: [auth_user_id], references: [id], onUpdate: NoAction)
+  sys_auth_event_cd sys_auth_event_cd @relation(fields: [event_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  org_users_mst     org_users_mst?    @relation(fields: [org_user_id], references: [id], onUpdate: NoAction)
+  org_tenants_mst   org_tenants_mst?  @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at], map: "idx_auth_audit_created")
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_auth_audit_tenant_time")
+  @@index([auth_user_id, created_at(sort: Desc)], map: "idx_auth_audit_user_time")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_auth_event_cd {
+  code               String               @id
+  name               String
+  name2              String?
+  description        String?
+  description2       String?
+  event_group        String
+  display_order      Int                  @default(0)
+  is_active          Boolean              @default(true)
+  rec_status         Int                  @default(1) @db.SmallInt
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime?            @db.Timestamptz(6)
+  updated_by         String?
+  updated_info       String?
+  sys_auth_audit_log sys_auth_audit_log[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_receipts_tr {
+  id                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id            String                   @db.Uuid
+  delivery_id              String                   @db.Uuid
+  attempt_id               String                   @db.Uuid
+  provider_code            String
+  provider_event_key       String
+  provider_message_id      String?
+  receipt_kind             String
+  provider_status_raw      String?
+  received_at              DateTime                 @default(now()) @db.Timestamptz(6)
+  verified_at              DateTime                 @db.Timestamptz(6)
+  payload_hash             String?
+  redacted_payload         Json                     @default("{}")
+  created_at               DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  rec_status               Int                      @default(1) @db.SmallInt
+  rec_order                Int?
+  rec_notes                String?
+  is_active                Boolean                  @default(true)
+  org_ntf_delivery_log_dtl org_ntf_delivery_log_dtl @relation(fields: [attempt_id, tenant_org_id], references: [attempt_id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_rcpt_attempt_tnt")
+  org_ntf_outbox_dtl       org_ntf_outbox_dtl       @relation(fields: [delivery_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_rcpt_outbox_tnt")
+  org_tenants_mst          org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_rcpt_tenant")
+
+  @@unique([tenant_org_id, provider_code, provider_event_key], map: "uq_ntf_rcpt_event")
+  @@index([tenant_org_id, delivery_id, received_at], map: "ix_ntf_rcpt_del_time")
+  @@index([tenant_org_id, received_at(sort: Desc)], map: "ix_ntf_rcpt_tenant_time")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_auth_admin_config_cf {
+  id                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id            String                   @db.Uuid
+  config_code              String
+  config_value             String
+  rec_notes                String?
+  is_active                Boolean                  @default(true)
+  rec_status               Int                      @default(1) @db.SmallInt
+  created_at               DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  sys_auth_admin_config_cf sys_auth_admin_config_cf @relation(fields: [config_code], references: [config_code], onUpdate: NoAction)
+  org_tenants_mst          org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_org_id, config_code], map: "uq_org_auth_cfg_tenant_code")
+  @@index([config_code], map: "idx_org_auth_cfg_code")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_prov_acct_mst {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id         String                  @db.Uuid
+  provider_code         String
+  channel_code          String
+  account_key           String
+  external_account_id   String
+  environment_code      String
+  credential_ref        String?
+  verification_state    String                  @default("PENDING")
+  verified_at           DateTime?               @db.Timestamptz(6)
+  config                Json                    @default("{}")
+  name                  String
+  name2                 String?
+  description           String?
+  description2          String?
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?               @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  rec_status            Int                     @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  is_active             Boolean                 @default(true)
+  sys_ntf_channel_cd    sys_ntf_channel_cd      @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_oacct_channel")
+  sys_ntf_providers_cd  sys_ntf_providers_cd    @relation(fields: [provider_code], references: [code], onUpdate: NoAction, map: "fk_ntf_oacct_provider")
+  org_tenants_mst       org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_oacct_tenant")
+  org_ntf_prov_send_mst org_ntf_prov_send_mst[]
+
+  @@unique([tenant_org_id, provider_code, channel_code, environment_code, external_account_id], map: "uq_ntf_oacct_ext")
+  @@unique([tenant_org_id, provider_code, channel_code, environment_code, account_key], map: "uq_ntf_oacct_key")
+  @@unique([id, tenant_org_id], map: "uq_ntf_oacct_tnt")
+  @@index([tenant_org_id, channel_code, is_active], map: "ix_ntf_oacct_active")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_prov_send_mst {
+  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id         String                @db.Uuid
+  account_id            String                @db.Uuid
+  channel_code          String
+  sender_key            String
+  external_sender_id    String
+  sender_address        String?
+  sender_kind           String
+  verification_state    String                @default("PENDING")
+  verified_at           DateTime?             @db.Timestamptz(6)
+  capabilities          Json                  @default("{}")
+  name                  String
+  name2                 String?
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?             @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  rec_status            Int                   @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  is_active             Boolean               @default(true)
+  org_ntf_prov_acct_mst org_ntf_prov_acct_mst @relation(fields: [account_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_osend_acct")
+  sys_ntf_channel_cd    sys_ntf_channel_cd    @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_osend_chan")
+
+  @@unique([tenant_org_id, account_id, external_sender_id], map: "uq_ntf_osend_ext")
+  @@unique([tenant_org_id, account_id, sender_key], map: "uq_ntf_osend_key")
+  @@unique([id, tenant_org_id], map: "uq_ntf_osend_tnt")
+  @@index([tenant_org_id, channel_code, is_active], map: "ix_ntf_osend_active")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_auth_admin_config_cf {
+  config_code              String                     @id
+  name                     String
+  name2                    String?
+  description              String?
+  description2             String?
+  config_group             String
+  value_type               String
+  unit                     String                     @default("NONE")
+  config_value             String
+  min_value                Int?
+  max_value                Int?
+  allowed_values           String[]
+  is_allow_tenant_change   Boolean                    @default(false)
+  display_order            Int                        @default(0)
+  is_active                Boolean                    @default(true)
+  rec_status               Int                        @default(1) @db.SmallInt
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                  @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  org_auth_admin_config_cf org_auth_admin_config_cf[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ntf_prov_acct_mst {
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_code             String
+  channel_code              String
+  account_key               String
+  external_account_id       String
+  environment_code          String
+  credential_ref            String
+  credential_version        String
+  verification_state        String                      @default("PENDING")
+  verified_at               DateTime?                   @db.Timestamptz(6)
+  config                    Json                        @default("{}")
+  name                      String
+  name2                     String?
+  description               String?
+  description2              String?
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  rec_status                Int                         @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                     @default(true)
+  sys_ntf_channel_cd        sys_ntf_channel_cd          @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_pacct_channel")
+  sys_ntf_providers_cd      sys_ntf_providers_cd        @relation(fields: [provider_code], references: [code], onUpdate: NoAction, map: "fk_ntf_pacct_provider")
+  sys_ntf_prov_send_mst     sys_ntf_prov_send_mst[]
+  sys_ntf_prov_tmpl_reg_mst sys_ntf_prov_tmpl_reg_mst[]
+
+  @@unique([provider_code, channel_code, environment_code, external_account_id], map: "uq_ntf_pacct_ext")
+  @@unique([provider_code, channel_code, environment_code, account_key], map: "uq_ntf_pacct_key")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ntf_prov_send_mst {
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  account_id                String                      @db.Uuid
+  channel_code              String
+  sender_key                String
+  external_sender_id        String
+  sender_address            String?
+  sender_kind               String
+  verification_state        String                      @default("PENDING")
+  verified_at               DateTime?                   @db.Timestamptz(6)
+  capabilities              Json                        @default("{}")
+  name                      String
+  name2                     String?
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  rec_status                Int                         @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                     @default(true)
+  sys_ntf_prov_acct_mst     sys_ntf_prov_acct_mst       @relation(fields: [account_id], references: [id], onUpdate: NoAction, map: "fk_ntf_psend_acct")
+  sys_ntf_channel_cd        sys_ntf_channel_cd          @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_psend_chan")
+  sys_ntf_prov_tmpl_reg_mst sys_ntf_prov_tmpl_reg_mst[]
+
+  @@unique([account_id, external_sender_id], map: "uq_ntf_psend_ext")
+  @@unique([account_id, sender_key], map: "uq_ntf_psend_key")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ntf_tpl_locale_dtl {
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  template_version_id       String                      @db.Uuid
+  channel_code              String
+  language_code             String
+  subject                   String?
+  content_format            String
+  content                   Json
+  content_hash              String
+  missing_policy            String                      @default("REJECT")
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  rec_status                Int                         @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                     @default(true)
+  sys_ntf_prov_tmpl_reg_mst sys_ntf_prov_tmpl_reg_mst[]
+  sys_ntf_channel_cd        sys_ntf_channel_cd          @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_tloc_chan")
+  sys_ntf_template_ver_dtl  sys_ntf_template_ver_dtl    @relation(fields: [template_version_id], references: [id], onUpdate: NoAction, map: "fk_ntf_tloc_ver")
+
+  @@unique([template_version_id, channel_code, language_code], map: "uq_ntf_tloc_lang")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ntf_tpl_var_dtl {
+  id                         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  template_version_id        String                       @db.Uuid
+  variable_key               String
+  display_name               String
+  display_name2              String?
+  value_type                 String
+  source_kind                String
+  source_definition          Json                         @default("{}")
+  format_spec                Json                         @default("{}")
+  example_value              String?
+  is_required                Boolean                      @default(true)
+  is_collection              Boolean                      @default(false)
+  ordinal                    Int
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?                    @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  rec_status                 Int                          @default(1) @db.SmallInt
+  rec_order                  Int?
+  rec_notes                  String?
+  is_active                  Boolean                      @default(true)
+  sys_ntf_prov_tmpl_bind_dtl sys_ntf_prov_tmpl_bind_dtl[]
+  sys_ntf_template_ver_dtl   sys_ntf_template_ver_dtl     @relation(fields: [template_version_id], references: [id], onUpdate: NoAction, map: "fk_ntf_tvar_ver")
+  sys_ntf_tpl_var_field_dtl  sys_ntf_tpl_var_field_dtl[]
+
+  @@unique([template_version_id, variable_key], map: "uq_ntf_tvar_key")
+  @@unique([template_version_id, ordinal], map: "uq_ntf_tvar_ord")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ntf_tpl_var_field_dtl {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  variable_id         String              @db.Uuid
+  field_key           String
+  display_name        String
+  display_name2       String?
+  value_type          String
+  source_definition   Json                @default("{}")
+  format_spec         Json                @default("{}")
+  ordinal             Int
+  is_required         Boolean             @default(true)
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?           @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  rec_status          Int                 @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean             @default(true)
+  sys_ntf_tpl_var_dtl sys_ntf_tpl_var_dtl @relation(fields: [variable_id], references: [id], onUpdate: NoAction, map: "fk_ntf_tvfield_var")
+
+  @@unique([variable_id, field_key], map: "uq_ntf_tvfield_key")
+  @@unique([variable_id, ordinal], map: "uq_ntf_tvfield_ord")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ntf_prov_tmpl_bind_dtl {
+  id                        String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  revision_id               String                    @db.Uuid
+  component_key             String
+  component_position        Int
+  parameter_position        Int
+  external_slot             String
+  variable_id               String?                   @db.Uuid
+  static_value              String?
+  format_spec               Json                      @default("{}")
+  is_required               Boolean                   @default(true)
+  created_at                DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  rec_status                Int                       @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                   @default(true)
+  sys_ntf_prov_tmpl_rev_dtl sys_ntf_prov_tmpl_rev_dtl @relation(fields: [revision_id], references: [id], onUpdate: NoAction, map: "fk_ntf_ptb_rev")
+  sys_ntf_tpl_var_dtl       sys_ntf_tpl_var_dtl?      @relation(fields: [variable_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_ptb_var")
+
+  @@unique([revision_id, component_position, parameter_position], map: "uq_ntf_ptb_pos")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ntf_prov_tmpl_reg_mst {
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  account_id                String                      @db.Uuid
+  sender_id                 String?                     @db.Uuid
+  locale_id                 String                      @db.Uuid
+  registration_key          String
+  external_name             String
+  external_template_id      String?
+  provider_language_code    String
+  content_type_code         String
+  category_code             String?
+  observed_status           String                      @default("PENDING")
+  observed_status_raw       String
+  observed_at               DateTime                    @default(now()) @db.Timestamptz(6)
+  approval_fresh_until      DateTime?                   @db.Timestamptz(6)
+  rejection_code            String?
+  rejection_reason          String?
+  observation_evidence      Json                        @default("{}")
+  current_revision_id       String?                     @db.Uuid
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  rec_status                Int                         @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                     @default(true)
+  sys_ntf_prov_acct_mst     sys_ntf_prov_acct_mst       @relation(fields: [account_id], references: [id], onUpdate: NoAction, map: "fk_ntf_ptr_acct")
+  sys_ntf_tpl_locale_dtl    sys_ntf_tpl_locale_dtl      @relation(fields: [locale_id], references: [id], onUpdate: NoAction, map: "fk_ntf_ptr_locale")
+  sys_ntf_prov_send_mst     sys_ntf_prov_send_mst?      @relation(fields: [sender_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_ptr_sender")
+  sys_ntf_prov_tmpl_rev_dtl sys_ntf_prov_tmpl_rev_dtl[]
+
+  @@unique([account_id, external_template_id], map: "uq_ntf_ptr_ext")
+  @@unique([account_id, registration_key], map: "uq_ntf_ptr_key")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ntf_prov_tmpl_rev_dtl {
+  id                         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registration_id            String                       @db.Uuid
+  revision_no                Int
+  provider_status_at_import  String
+  provider_status_raw        String
+  external_revision_id       String?
+  content_sid                String?
+  provider_content_hash      String
+  provider_snapshot          Json
+  approval_evidence          Json
+  rejection_evidence         Json?
+  submitted_at               DateTime?                    @db.Timestamptz(6)
+  verified_at                DateTime?                    @db.Timestamptz(6)
+  valid_until_at_import      DateTime?                    @db.Timestamptz(6)
+  unique_var_count           Int
+  occurrence_count           Int
+  provider_param_count       Int
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  rec_status                 Int                          @default(1) @db.SmallInt
+  rec_order                  Int?
+  rec_notes                  String?
+  is_active                  Boolean                      @default(true)
+  sys_ntf_prov_tmpl_bind_dtl sys_ntf_prov_tmpl_bind_dtl[]
+  sys_ntf_prov_tmpl_reg_mst  sys_ntf_prov_tmpl_reg_mst    @relation(fields: [registration_id], references: [id], onUpdate: NoAction, map: "fk_ntf_ptrv_reg")
+
+  @@unique([registration_id, revision_no], map: "uq_ntf_ptrv_rev")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_auth_sess_end_rsn_cd {
+  code                       String                       @id
+  name                       String
+  name2                      String?
+  description                String?
+  description2               String?
+  display_order              Int                          @default(0)
+  is_active                  Boolean                      @default(true)
+  rec_status                 Int                          @default(1) @db.SmallInt
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?                    @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  sys_auth_user_sessions_mst sys_auth_user_sessions_mst[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_auth_user_sessions_mst {
+  id                       String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  auth_session_id          String                    @unique @db.Uuid
+  auth_user_id             String                    @db.Uuid
+  org_user_id              String?                   @db.Uuid
+  tenant_org_id            String                    @db.Uuid
+  status                   String                    @default("ACTIVE")
+  end_reason_code          String?
+  ended_at                 DateTime?                 @db.Timestamptz(6)
+  ended_by                 String?                   @db.Uuid
+  login_method             String                    @default("PASSWORD")
+  is_remember_me           Boolean                   @default(false)
+  idle_timeout_sec         Int                       @default(0)
+  idle_warning_sec         Int                       @default(60)
+  expires_at               DateTime                  @db.Timestamptz(6)
+  last_activity_at         DateTime                  @default(now()) @db.Timestamptz(6)
+  last_seen_at             DateTime                  @default(now()) @db.Timestamptz(6)
+  login_ip                 String?                   @db.Inet
+  last_ip                  String?                   @db.Inet
+  user_agent               String?
+  device_label             String?
+  device_id_hash           String?
+  created_at               DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime?                 @db.Timestamptz(6)
+  users                    users                     @relation(fields: [auth_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sys_auth_sess_end_rsn_cd sys_auth_sess_end_rsn_cd? @relation(fields: [end_reason_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  org_users_mst            org_users_mst?            @relation(fields: [org_user_id], references: [id], onUpdate: NoAction)
+  org_tenants_mst          org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([tenant_org_id, status, last_activity_at(sort: Desc)], map: "idx_auth_sess_tenant_status")
+  @@index([auth_user_id, status], map: "idx_auth_sess_user_status")
   @@schema("public")
 }
 

@@ -137,24 +137,34 @@ export async function consumeOrderHistoryEvent(
       return { status: 'SKIPPED_NOT_ORDER_LINKED' };
     }
 
-    // Idempotent upsert keyed on the partial unique index.
-    // `update: {}` makes the upsert truly idempotent — no field gets
-    // overwritten on the retry path, so a row that was hand-edited
-    // (e.g. payload backfill) cannot be clobbered.
-    const row = await prisma.org_order_history.upsert({
-      where: {
-        // Composite unique key from mig 0330: uq_history_outbox_event
-        tenant_org_id_outbox_event_id: {
-          tenant_org_id: tenantOrgId,
-          outbox_event_id: event.id,
-        },
-      },
-      update: {},
-      create: mapped,
-      select: { id: true },
-    });
+    // Idempotent write keyed on the partial unique index uq_history_outbox_event (mig 0330:
+    // (tenant_org_id, outbox_event_id) WHERE outbox_event_id IS NOT NULL). Prisma cannot model a
+    // partial unique index — `db pull` never emits it — so the key is checked explicitly instead
+    // of through `upsert`. An existing row is returned untouched (a hand-edited row, e.g. a payload
+    // backfill, is never clobbered on the retry path).
+    const findExisting = () =>
+      prisma.org_order_history.findFirst({
+        where: { tenant_org_id: tenantOrgId, outbox_event_id: event.id },
+        select: { id: true },
+      });
 
-    return { status: 'WRITTEN', historyId: row.id };
+    const existing = await findExisting();
+    if (existing) return { status: 'WRITTEN', historyId: existing.id };
+
+    try {
+      const row = await prisma.org_order_history.create({ data: mapped, select: { id: true } });
+      return { status: 'WRITTEN', historyId: row.id };
+    } catch (error) {
+      // A concurrent consumer of the same event won the race: the partial unique index rejected
+      // this insert, so the winner's row is the result — same outcome as the replay above.
+      // (Matched on the stable Prisma error code rather than `instanceof`, which is not reliable
+      // across the client's node / edge / test builds.)
+      if ((error as { code?: unknown } | null)?.code === 'P2002') {
+        const winner = await findExisting();
+        if (winner) return { status: 'WRITTEN', historyId: winner.id };
+      }
+      throw error;
+    }
   });
 }
 

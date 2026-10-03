@@ -26,12 +26,16 @@ import { removeAllFeatureFlagQueries } from '@/lib/query/feature-flag-keys'
 import { removeAllNotificationQueries } from '@/lib/query/notification-keys'
 import type {
   AuthContextType,
+  SignOutOptions,
   AuthUser,
   UserTenant,
   AuthSession,
   UserRole,
 } from '@/types/auth'
 import { trackLogout, type LogoutReason } from '@/lib/auth/logout-tracker'
+import { getSafeRedirectPath } from '@/lib/security/safe-redirect'
+import { LOGIN_REASONS, type LoginReason } from '@/lib/constants/auth-session'
+import { broadcastLogout } from '@/src/features/auth-session/model/session-channel'
 import { getCSRFToken } from '@/lib/utils/csrf-token'
 
 // Create the context
@@ -42,6 +46,41 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * @param root0
  * @param root0.children
  */
+/** Login-page banner for a client-side logout reason (plain user sign-out shows none). */
+function loginReasonForLogout(reason: LogoutReason): LoginReason | null {
+  switch (reason) {
+    case 'timeout':
+      return LOGIN_REASONS.IDLE_TIMEOUT
+    case 'session_expired':
+      return LOGIN_REASONS.SESSION_EXPIRED
+    case 'security':
+      return LOGIN_REASONS.DEACTIVATED
+    default:
+      return null
+  }
+}
+
+/** Current page (path + query) for "come back here after signing in"; null when unavailable or already on an auth page. */
+function currentLocationPath(): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  const { pathname, search } = window.location
+  return pathname + search
+}
+
+/**
+ * Build the /login URL with an optional reason banner and a validated return-to path.
+ *
+ * @param reason - Login banner code (null = none)
+ * @param returnTo - Page to return to after sign-in; validated (open-redirect safe) and dropped when it is an auth page
+ */
+function buildLoginUrl(reason: LoginReason | null, returnTo?: string): string {
+  const params = new URLSearchParams()
+  if (reason) params.set('reason', reason)
+  const safe = returnTo ? getSafeRedirectPath(returnTo, '') : ''
+  if (safe) params.set('redirect', safe)
+  const query = params.toString()
+  return query ? `/login?${query}` : '/login'
+}
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -207,9 +246,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   /**
-   * Sign in with email and password
+   * Sign in with a user code or email plus password.
+   *
+   * @param identifier - User code or email (the server tells them apart and resolves the account)
+   * @param password - Account password
+   * @param rememberMe - Persist the session across browser restarts
+   * @param redirectTo - Page to return to after sign-in (validated; unsafe values fall back to /dashboard)
    */
-  const signIn = useCallback(async (email: string, password: string, rememberMe = false) => {
+  const signIn = useCallback(async (identifier: string, password: string, rememberMe = false, redirectTo?: string) => {
     // Prevent multiple simultaneous login attempts
     if (isLoggingInRef.current) {
       throw new Error('Login already in progress')
@@ -231,7 +275,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           'Content-Type': 'application/json',
           ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         },
-        body: JSON.stringify({ email, password, remember_me: rememberMe }),
+        body: JSON.stringify({ identifier, password, remember_me: rememberMe }),
       })
       console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ POST /api/auth/login done — status: ${loginResponse.status}`)
 
@@ -247,7 +291,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (loginResponse.status === 423) {
           throw new Error(loginData.error || 'Account is temporarily locked.')
         }
-        throw new Error(loginData.error || 'Invalid email or password')
+        // Carry the machine code so the login page can show a translated message.
+        const signInError = new Error(loginData.error || 'Invalid credentials') as Error & { code?: string }
+        signInError.code = typeof loginData.code === 'string' ? loginData.code : undefined
+        throw signInError
       }
 
       const { user: authUser, session: authSession, tenants: rawTenants } = loginData
@@ -323,9 +370,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setIsTenantContextReady(true)
 
-      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ done — redirecting to /dashboard`)
+      const destination = getSafeRedirectPath(redirectTo)
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ done — redirecting to ${destination}`)
       // Redirect after state is set
-      router.push('/dashboard')
+      router.push(destination)
     } catch (error: unknown) {
       // Error handling is done in API route, just re-throw
       throw error
@@ -378,9 +426,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   /**
-   * Sign out
+   * Sign out (single path: the logout page and every caller go through here).
+   *
+   * Order matters: the server ends the session first (registry row, Supabase session and its refresh token,
+   * audit event); then this browser's local session is cleared (local scope - other devices stay signed in);
+   * then every cache is dropped and the other tabs are told. Server/bookkeeping errors never block sign-out.
+   *
+   * @param reason - Why the user is signing out
+   * @param options.loginReason - Banner to show on /login (defaults from `reason`)
+   * @param options.returnTo - Page to return to after the next sign-in (validated; ignored for plain sign-outs)
    */
-  const signOut = useCallback(async (reason: LogoutReason = 'user') => {
+  const signOut = useCallback(async (reason: LogoutReason = 'user', options: SignOutOptions = {}) => {
     isSigningOutRef.current = true
     setIsLoading(true)
     try {
@@ -396,9 +452,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('Logout API call failed:', apiError)
       }
 
-      // Supabase auth sign out
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      // Clear this browser's Supabase session. Local scope: other devices are NOT signed out. If the server
+      // already deleted the session (idle timeout, revoke) this fails harmlessly - cleanup continues.
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch (localError) {
+        console.warn('Local sign-out failed (continuing cleanup):', localError)
+      }
+
+      // Tell the other tabs of this browser to drop their state and go to /login.
+      const loginReason = options.loginReason ?? loginReasonForLogout(reason)
+      if (!options.skipBroadcast) broadcastLogout(loginReason)
 
       // Clear all auth state
       const currentUser = user
@@ -413,11 +477,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setWorkflowRoles([])
       permissionsLoadedForTenantRef.current = null
       setIsTenantContextReady(true)
-      removeAllFeatureFlagQueries(queryClient)
-      removeAllNotificationQueries(queryClient)
-
-      // Clear browser storage
-      localStorage.removeItem('permissions_cache')
+      // Drop every cached query (nothing of this user may leak to the next one) and all browser caches.
+      queryClient.clear()
+      invalidatePermissionCache()
       sessionActivityStore.clear()
       sessionStorage.clear()
 
@@ -430,7 +492,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
       }
 
-      router.push('/login')
+      router.push(buildLoginUrl(loginReason, options.returnTo))
     } catch (error) {
       console.error('Error signing out:', error)
       throw error
@@ -543,94 +605,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, currentTenant])
 
-  /**
-   * Switch active tenant context
-   * Enhanced to ensure JWT is updated with tenant context
-   */
-  const switchTenant = useCallback(async (tenantId: string) => {
-    setIsLoading(true)
-    try {
-      // 1. Validate user has access to tenant via RPC
-      const { data, error } = await supabase.rpc('switch_tenant_context', {
-        p_tenant_id: tenantId,
-      })
 
-      if (error) throw error
-
-      if (!data || data.length === 0 || !data[0].success) {
-        throw new Error('Failed to switch tenant')
-      }
-
-      const tenantData = data[0]
-      const newTenant: UserTenant = {
-        tenant_id: tenantData.tenant_id,
-        tenant_name: tenantData.tenant_name,
-        tenant_slug: tenantData.tenant_slug,
-        user_role: tenantData.user_role as UserRole,
-        is_active: true,
-        last_login_at: new Date().toISOString(),
-      }
-
-      // 2. Update user_metadata with tenant_org_id BEFORE refresh
-      // This ensures the new JWT will contain the tenant context
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          tenant_org_id: tenantId,
-        },
-      })
-
-      if (updateError) {
-        console.error('Error updating user metadata:', updateError)
-        throw new Error('Failed to update tenant context in JWT')
-      }
-
-      // 3. Refresh session to get new JWT with tenant context
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-
-      if (refreshError) {
-        console.error('Error refreshing session:', refreshError)
-        throw new Error('Failed to refresh session')
-      }
-
-      // 4. Verify new JWT contains correct tenant
-      if (refreshData.session?.user.user_metadata?.tenant_org_id !== tenantId) {
-        console.warn('JWT tenant mismatch after refresh, retrying...')
-        
-        // Retry once with exponential backoff
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        const { data: retryData, error: retryError } = await supabase.auth.refreshSession()
-        
-        if (retryError || retryData.session?.user.user_metadata?.tenant_org_id !== tenantId) {
-          console.error('JWT tenant verification failed after retry')
-          throw new Error('Tenant context not updated in JWT')
-        }
-      }
-
-      // 5. Update local state
-      setCurrentTenant(newTenant)
-      currentTenantRef.current = newTenant
-
-      // 6. Reset loaded-for ref so refreshPermissions re-fetches for the new tenant
-      permissionsLoadedForTenantRef.current = null
-
-      // 7. Fetch permissions for new tenant
-      await refreshPermissions()
-
-      // Clear session UX log so prior tenant messages do not leak
-      sessionActivityStore.clear()
-      removeAllFeatureFlagQueries(queryClient)
-      removeAllNotificationQueries(queryClient)
-
-      // 8. Reload the page to ensure all queries use new tenant context
-      window.location.reload()
-    } catch (error) {
-      console.error('Error switching tenant:', error)
-      throw error
-    } finally {
-      setIsLoading(false)
-    }
-  }, [refreshPermissions, queryClient])
 
   /**
    * Update user profile
@@ -695,9 +670,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           removeAllFeatureFlagQueries(queryClient)
           removeAllNotificationQueries(queryClient)
           sessionStorage.clear()
-          // Redirect to login with reason when session expired (not user-initiated)
+          // Redirect to login with reason when session expired (not user-initiated), remembering where the
+          // user was so they come back to it after signing in again.
           if (!isSigningOutRef.current) {
-            router.push('/login?reason=session_expired')
+            router.push(buildLoginUrl(LOGIN_REASONS.SESSION_EXPIRED, currentLocationPath()))
           }
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession({
@@ -799,7 +775,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     resetPassword,
     updatePassword,
-    switchTenant,
     refreshTenants,
     refreshPermissions,
     updateProfile,

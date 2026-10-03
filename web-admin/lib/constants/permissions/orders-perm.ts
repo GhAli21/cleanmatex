@@ -35,6 +35,10 @@ export const ORDERS_PERMISSIONS = {
   MANUAL_CHARGE: 'orders:manual_charge',
   /** Reserved for B12 (order amendment after settlement) — not built yet. */
   POST_SETTLEMENT_EDIT: 'orders:post_settlement_edit',
+  /** Edit Order V2 base capability; evaluated with profile policy and per-order access, never sufficient alone. */
+  EDIT: 'orders:edit',
+  /** Edit Order V2 override capability; hard structural, fiscal, and permanent access denials remain non-overridable. */
+  EDIT_OVERRIDE: 'orders:edit_override',
   /** Reserved for B26 (FX/gateway/rate override) — not built yet. */
   RATE_OVERRIDE: 'orders:rate_override',
   /** Already seeded/granted pre-B27 (lib/db/orders.ts addOrderItems) — resource is `pricing`, kept here for the orders-domain grouping. */

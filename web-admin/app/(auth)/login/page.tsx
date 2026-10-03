@@ -10,18 +10,22 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
+import { Eye, EyeOff, LockKeyhole, User } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useLocale, useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/auth/auth-context'
-import { validateLoginForm } from '@/lib/auth/validation'
+import { validateLoginIdentifier, normalizeLoginIdentifier } from '@/lib/auth/login-identifier'
+import { LOGIN_ERROR_CODES } from '@/lib/constants/auth-user'
+import { LOGIN_REASONS, SESSION_ERROR_CODES } from '@/lib/constants/auth-session'
+import { getSafeRedirectPath } from '@/lib/security/safe-redirect'
 import { setLocale as persistLocale, type Locale } from '@/lib/utils/locale.client'
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
 import { Alert, AlertDescription, CmxButton, CmxCheckbox, CmxInput } from '@ui/primitives'
 import { CmxForm, CmxFormField } from '@ui/forms'
 
 interface LoginFormValues {
-  email: string
+  /** User code or email. */
+  identifier: string
   password: string
   rememberMe: boolean
 }
@@ -101,7 +105,7 @@ export default function LoginPage() {
 
   const form = useForm<LoginFormValues>({
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
       rememberMe: false,
     },
@@ -110,7 +114,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [generalError, setGeneralError] = useState<string | null>(null)
 
-  const isSessionExpired = searchParams.get('reason') === 'session_expired'
+  // Why the user is here (idle timeout, revoked, ...) and where to return to after signing in. Both come from
+  // the URL, so both are validated: unknown reasons show nothing; the return path must be a safe internal path.
+  const reasonParam = searchParams.get('reason')
+  const loginReason = (Object.values(LOGIN_REASONS) as string[]).includes(reasonParam ?? '') ? reasonParam : null
+  const redirectTo = getSafeRedirectPath(searchParams.get('redirect'))
   const rememberMe = useWatch({
     control: form.control,
     name: 'rememberMe',
@@ -121,30 +129,43 @@ export default function LoginPage() {
     setGeneralError(null)
     form.clearErrors()
 
-    const validationErrors = validateLoginForm(values.email, values.password)
+    const identifierError = validateLoginIdentifier(values.identifier)
+    const identifierMessages = {
+      required: t('login.identifierRequired'),
+      invalid_email: t('login.identifierInvalidEmail'),
+      invalid_user_code: t('login.identifierInvalidUserCode'),
+    } as const
 
-    if (validationErrors.email) {
-      form.setError('email', {
+    if (identifierError) {
+      form.setError('identifier', {
         type: 'manual',
-        message: validationErrors.email,
+        message: identifierMessages[identifierError],
       })
     }
 
-    if (validationErrors.password) {
+    if (!values.password) {
       form.setError('password', {
         type: 'manual',
-        message: validationErrors.password,
+        message: t('login.passwordRequired'),
       })
     }
 
-    if (validationErrors.email || validationErrors.password) {
+    if (identifierError || !values.password) {
       return
     }
 
     try {
-      await signIn(values.email, values.password, values.rememberMe)
+      await signIn(normalizeLoginIdentifier(values.identifier), values.password, values.rememberMe, redirectTo)
     } catch (error: unknown) {
-      setGeneralError(getLoginErrorMessage(error, t('login.invalidCredentials')))
+      // Unknown identifier and wrong password share one server code (no account enumeration).
+      const code = error instanceof Error ? (error as Error & { code?: string }).code : undefined
+      setGeneralError(
+        code === LOGIN_ERROR_CODES.INVALID_CREDENTIALS
+          ? t('login.invalidCredentials')
+          : code === SESSION_ERROR_CODES.SESSION_LIMIT_REACHED
+            ? t('login.sessionLimitReached')
+            : getLoginErrorMessage(error, t('login.invalidCredentials'))
+      )
     }
   }
 
@@ -273,9 +294,12 @@ export default function LoginPage() {
                   onSubmit={handleSubmit}
                   className="space-y-5"
                 >
-                  {isSessionExpired ? (
-                    <Alert variant="warning" className="border-amber-200/80 bg-amber-50/90">
-                      <AlertDescription>{t('sessionExpired')}</AlertDescription>
+                  {loginReason ? (
+                    <Alert
+                      variant={loginReason === LOGIN_REASONS.PASSWORD_CHANGED ? 'info' : 'warning'}
+                      className="border-amber-200/80 bg-amber-50/90"
+                    >
+                      <AlertDescription>{t(`reasons.${loginReason}`)}</AlertDescription>
                     </Alert>
                   ) : null}
 
@@ -286,16 +310,20 @@ export default function LoginPage() {
                   ) : null}
 
                   <CmxFormField<LoginFormValues>
-                    name="email"
-                    label={t('login.emailLabel')}
+                    name="identifier"
+                    label={t('login.identifierLabel')}
+                    hint={t('login.identifierHint')}
                     required
                   >
                     {({ id, value, onBlur, onChange, invalid, describedBy }) => (
                       <CmxInput
                         id={id}
-                        name="email"
-                        type="email"
-                        autoComplete="email"
+                        name="identifier"
+                        type="text"
+                        autoComplete="username"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
                         value={value ?? ''}
                         onBlur={onBlur}
                         onChange={(event) => {
@@ -306,8 +334,8 @@ export default function LoginPage() {
                         }}
                         aria-invalid={invalid}
                         aria-describedby={describedBy}
-                        placeholder={t('login.emailPlaceholder')}
-                        leftIcon={<Mail className="h-4 w-4" />}
+                        placeholder={t('login.identifierPlaceholder')}
+                        leftIcon={<User className="h-4 w-4" />}
                         className="h-12 rounded-xl border-white/70 bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
                       />
                     )}

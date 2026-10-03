@@ -130,6 +130,90 @@ Repeat §1.2, §6.2 and §6.5 in **Arabic**: RTL layout, glossary term **درج 
 HQ console → Tenant → Maintenance → **Delete Orders** → *Preview* on a demo tenant.
 ✅ Preview returns counts (no `malformed array literal`); a tenant with cash drawer history is reported as blocked with a readable reason.
 
+## 13. POS session per screen (B1 + 0554/0557)
+
+Setting: **Settings → Payments → Cash Control Settings → POS Session Controls** — one selector per screen: *order entry*, *later payment collection*, *wallet / advance / gift-card sales*, *cash refunds*, *customer account receipts*, *manual finance vouchers*. Modes: **Required for any payment** · **Required for cash payments only** · **Optional — linked when one is open**. Defaults: order entry = required for cash, everything else = optional. Cash always also needs an open **cash drawer** session (a separate rule, not configurable here). Needs migrations `0554` and `0557` applied.
+
+| # | Steps | Expected |
+|---|---|---|
+| 13.1 | Close your POS session (POS Sessions). Open an order with a balance → **Collect payment**, cash, press collect (later collection is *optional* by default). | ✅ Succeeds, unlinked to a POS session (the cash lands in your open drawer session). |
+| 13.2 | Set *later payment collection* to **Required for cash payments only**, save, repeat 13.1. | ❌ Rejected with "Open a POS session before taking this payment" and an **Open POS session** button; the typed amount is untouched. |
+| 13.3 | Press **Open POS session**, then collect again. | ✅ Session opens, the second attempt succeeds and the payment is linked to that session (POS Sessions → summary). |
+| 13.4 | Same screen set to **Required for cash payments only**, no session, collect by **card**. | ✅ Succeeds. Switch to **Required for any payment** → ❌ rejected like 13.2. |
+| 13.5 | With *order entry* = required for cash and no session: New Order → pay cash. | ✅ The existing flow opens a session first, then submits. Set *order entry* to **Optional** → submits without opening one. |
+| 13.6 | Leave *later collection*, *wallet sales* and *cash refunds* **Optional**; with no POS session, collect a later cash payment, top up a wallet with cash, process a cash refund. | ✅ All succeed (each needs an open drawer session for the cash). Set one to **Required…** → only that screen refuses. |
+| 13.7 | Pause your session, collect cash on a *Required* screen. | ❌ Rejected like 13.2; opening/resuming is offered. |
+| 13.8 | A cash refund *request* (pending approval) with no session, even when *cash refunds* is Required. | ✅ Accepted — only **processing** (cash leaves the drawer) is gated. |
+| 13.10 | Customers → receive payment (customer account receipt) with *customer account receipts* set to **Required…** and no session → Post. | ❌ Translated message + **Open POS session** button; after opening, press Post again → ✅. |
+| 13.11 | Finance → Vouchers → a draft voucher with a cash line → Post with *manual finance vouchers* set to **Required…** and no session. | ❌ Dialog shows the translated message + **Open POS session**; after opening and posting, the voucher lines carry your session. A voucher with no payment line posts regardless. |
+| 13.9 | Override one screen for a single branch or user (scope selector), leave the tenant value. | ✅ That branch/user follows the override; others keep the tenant value. |
+
+## 14. Branch scoping and assigned drawers (B3)
+
+Needs migration `0555` applied. A **cashier** is branch-scoped (home branch + any granted branch); roles holding *View cash drawers across branches* (admin, branch manager, finance manager, accountant, operator…) see every branch. Use two users in two branches.
+
+| # | Steps | Expected |
+|---|---|---|
+| 14.1 | Sign in as a cashier of Branch A → **Finance → Cash Drawers**. | Only Branch A drawers are listed (hub, overview, follow-up, transactions). |
+| 14.2 | Paste the URL of a Branch B drawer (`/dashboard/internal_fin/cash-drawers/<id>`) or one of its sessions. | The page cannot load it — "You don't have access to this branch's cash drawers." (HTTP 403 `DRAWER_BRANCH_FORBIDDEN`). |
+| 14.3 | Same cashier → **POS Sessions** hub. | Own sessions plus other users' sessions of Branch A only; filters list Branch A values only. |
+| 14.4 | As an admin → open the same Branch B drawer and a Branch B POS session. | ✅ Loads (all-branch role). |
+| 14.5 | **Cash Drawers → [drawer] → Policy tab**: set *Drawer assignment* to **Assigned cashier only**, assign the drawer to user X. As user Y (cashier, same branch) try Open session / Cash in / Close. | ❌ "This cash drawer is assigned to another user…" for each; X can do all three. |
+| 14.6 | As a branch manager or admin (holds *operate any drawer*) on that drawer. | ✅ Allowed (supervisor override). |
+| 14.7 | Customer receipt or POS payment in cash into that drawer as user Y. | ❌ Same refusal; the payment is not recorded. |
+| 14.8 | Grant user Y a second branch (resource grant) and reload. | Y now also sees that branch's drawers. |
+
+## 15. Cash refund rounding, recount and force close
+
+| # | Steps | Expected |
+|---|---|---|
+| 15.1 | **Billing → Refunds** → a CASH refund of an amount that is not on the cash increment (e.g. 10.003 OMR with a 0.005 increment) → **Process**. | The dialog says "Cash to hand out: 10.005 OMR. The refund stays 10.003 OMR; the 0.002 OMR difference is recorded as cash rounding." (who absorbs it follows *Cash-change rounding* in Cash Control Settings). The typed refund amount is not changed. |
+| 15.2 | Confirm, then open the drawer session page → closure / movements. | The refund voucher is the exact 10.003; a separate *Cash refund rounding* voucher for 0.002 sits in the same session, and the expected cash equals what is physically counted. |
+| 15.3 | A session stuck in **CLOSING** (count taken, never finalized) → open it from the drawer's Sessions tab. As a user with *approve variance*: **Recount**. | A dialog shows expected / previous count / variance; enter a new count (total or by denomination) → "Recount recorded". The old count stays in the closure history; the variance is recomputed. A user without the permission sees no button. |
+| 15.4 | Same stuck session, as a user with *force close POS session*: **Force close**. | A dialog with a warning, a mandatory reason and the per-currency disposition form (same as the normal close). Submitting closes the session as FORCE_CLOSED with the reason shown on the page. |
+| 15.5 | An **OPEN** session abandoned by a cashier → session page → **Force close**. | Same dialog; works without a count (expected cash comes from the ledger). |
+| 15.6 | A CLOSED session. | Neither button appears. |
+
+## 16. Business-day rollover, shift reports, variance decisions
+
+Needs migrations `0558`, `0559`, `0560` applied. Rollover runs every 15 minutes; to test sooner, run the job from **Finance → Outbox → Jobs → POS Session Rollover → Run now**.
+
+| # | Steps | Expected |
+|---|---|---|
+| 16.1 | **Settings → Branch Settings** → pick a branch → **Business day** card. Choose a timezone → Save. | "Branch timezone updated"; the card says "In effect now: <zone>". Choosing *Same as the organization* shows the organization's zone. A user without *update settings* sees it disabled. |
+| 16.2 | Cash Control Settings: *Session rollover* = **Pause at rollover**. Leave a POS session open across the branch midnight (or change the session's business date in the DB to yesterday), then run the job. | The session becomes **PAUSED** with a *Rolled over* badge; a notice explains the business day changed. **Resume is not offered**; calling resume returns "paused because the business day changed". Close it, then open a new session. |
+| 16.3 | Same with **Force close at rollover** and *no* drawer session linked. | The session is **FORCE_CLOSED** (*Auto-closed* badge); its timeline shows "Force-Closed at Rollover" by the system. |
+| 16.4 | Same with **Force close at rollover** but the session's drawer session still **open**. | The session is only **paused** (cash is never abandoned); the timeline event notes the drawer blocked the close. |
+| 16.5 | A session open longer than *Stale after (hours)*. | *Stale* badge once; the cashier and branch supervisors get an in-app notification. Running the job again does not repeat it. |
+| 16.6 | Remove a branch's and the organization's timezone (DB) and try to open a POS session. | Refused: "No timezone is set for this branch or organization…" — it never silently uses another zone. |
+| 16.7 | **POS Sessions** → a session row → **Shift report**. | Open session: live **X-report** (sales by tender, refunds, cash in/out/net, change rounding, drawer session). Figures match the session summary. |
+| 16.8 | Close the drawer session, then close the POS session (with *Require Z-report* on). Open the **Shift report** again. | The **Z-report** (number `Z-<session no>`) shows the frozen figures and "Integrity verified". Toggle *Live figures (X)* — it says these are not the frozen report. **Print 80mm / Print A4** open a clean print preview. |
+| 16.9 | Turn *Require Z-report* off, close a session, open its report. | A warning "No Z-report for this shift yet" and a **Generate Z-report** button; after generating, the report states when it was generated. |
+| 16.10 | A drawer session closed with a variance beyond its threshold → **Finance → Cash Drawers → [drawer] → session**. | Banner "Supervisor approval…" with **Reject Variance** and **Approve Variance**. Reject needs a reason; afterwards a red "Variance rejected by … — under investigation" banner; Approve is no longer possible ("already rejected"). The user who closed it may decide it (no maker≠checker). |
+| 16.11 | Open `/dashboard/internal_fin/cash-drawers/variance-approvals` (user with *approve variance*). | Pending list with per-currency variance, expected vs counted, Approve / Reject / Review; filter Rejected / Approved / All. A cashier of another branch's sessions never appear. |
+| 16.12 | **Reports → Cash Variance by Cashier** → pick a date range. | One row per cashier and currency: sessions, short/over, net, average, absolute total, short-share badge, pending/rejected counts. Print opens an A4 preview. Different currencies are separate rows. |
+
+## 17. In-transit cash, denominations, count policy, attribution
+
+Needs migration `0562` applied. Use a branch with a counter drawer and a safe in the same currency.
+
+| # | Steps | Expected |
+|---|---|---|
+| 17.1 | **Finance → Cash In Transit** → **Send cash** → From: the counter drawer, To: the safe, amount `4.250`, a note → Send. | "Cash sent in transit (CDT-…)". The row is *In transit*. The counter drawer's expected cash dropped by 4.250; the safe has not gained it yet. A system drawer "In transit (OMR)" appears in the drawer list, badged *System drawer*. |
+| 17.2 | In the dialog, type `abc`, `-1`, `1.23456`. | Inline message under the amount; **Send** stays disabled. What you typed is never changed. |
+| 17.3 | Pick a driver-bag drawer as destination. | It is not offered (only drawers the transfer can reach). |
+| 17.4 | On the in-transit row → **Receive** → confirm. | Status *Received*; the safe now holds 4.250; the in-transit holder is back to zero. Receive again from another tab → "already received or cancelled". |
+| 17.5 | Send another, then **Cancel** with no reason → button disabled; with a reason → *Cancelled*, the cash is back in the counter drawer, the reason shows in the Settled column. |
+| 17.6 | The user who sent it opens **Receive**. | Allowed (permission is the only gate). A user without *receive transfer* sees no Receive button. |
+| 17.7 | **Cash Drawers → Transactions**: try to reverse the transit transaction. | Refused: "cannot be reversed — cancel the transfer instead". |
+| 17.8 | **Settings → Payments → Cash control settings → Counted denominations** → OMR → switch off a coin → **Save**. | "Denominations saved". Open a drawer count / close wizard → that coin is no longer in the grid. Old counts that used it still show it. Re-enable and Save → back. |
+| 17.9 | Same card: move a row up/down → Save. | The counting grid follows your order. **Reset to HQ defaults** → Save restores HQ order. |
+| 17.10 | Cash control settings: *Closing count mode* = **Denominations**. Close a drawer. | The wizard says "Your organization requires counting by denomination" and offers only the grid; a bare total is not possible. *Total only* → only the total field; *Optional* → the method select. |
+| 17.11 | Switch off **every** OMR denomination, close a drawer with *Denominations* policy. | The wizard falls back to the total field (nothing to count with) and the close succeeds. |
+| 17.12 | Cash control settings: *Shared session mode* = **Exclusive**. Two cashiers try to link their POS sessions to the same open drawer session. | The second link is refused: "…already in use by another POS session, and sharing … is turned off". With **Shared** both link. |
+| 17.13 | A drawer session shared by two cashiers → session page → **Cash by POS session**. | One row per POS session (cash in / out / net / lines); cash with no POS session shows as "No POS session" on its own line. The same table is on the Z-report of each of those shifts. |
+| 17.14 | **Reports → Reconciliation → Cash drawer**: a session counted 4 baisa short on OMR. | Flagged as an exception (before, the flat 0.01 tolerance hid it); a 4-fils difference on a 2-decimal currency is not flagged. |
+
 ---
 
 ## Report back

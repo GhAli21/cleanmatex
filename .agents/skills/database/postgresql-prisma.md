@@ -29,6 +29,10 @@ npm run prisma:pull
 npm run prisma:generate
 ```
 
+Use `npm run prisma:pull` (not raw `prisma db pull`). It runs `db pull`, then `scripts/prisma-patch-after-pull.mjs`, then `prisma validate`.
+
+**Order reminder:** if the parent key is `(id, tenant_org_id)`, the child FK and 1:1 unique are `(parent_id, tenant_org_id)` (tenant **second** — `0553`).
+
 ## Multi-Tenancy
 
 - every `org_*` query must respect `tenant_org_id`

@@ -218,10 +218,15 @@ export interface CashDrawerSessionLifecycleDetail {
 export interface CashDrawerVarianceApproval {
   /** True when this close exceeded the drawer's configured threshold. */
   required: boolean
-  /** True when required and not yet approved. */
+  /** True when required and neither approved nor rejected yet. */
   pending: boolean
   /** True when required and approved. */
   approved: boolean
+  /** True when required and a supervisor rejected it (C3): not accepted, needs investigation. */
+  rejected: boolean
+  rejectedBy: CashDrawerActorSummary | null
+  rejectedAt: string | null
+  rejectionReason: string | null
   thresholdSnapshot: string | null
   approvedBy: CashDrawerActorSummary | null
   approvedAt: string | null

@@ -57,10 +57,18 @@ async function asTenant<T>(
   let result!: T;
   await prisma
     .$transaction(async (tx) => {
+      // current_tenant_id() (migration 0563) resolves the tenant from the caller's single active
+      // membership (auth.uid() = JWT `sub`), no longer from user_metadata — so impersonate a real
+      // member of the tenant. Looked up before dropping to the `authenticated` role.
+      const member = await tx.$queryRaw<Array<{ user_id: string }>>`
+        SELECT user_id FROM public.org_users_mst
+        WHERE tenant_org_id = ${tenantId}::uuid AND is_active = true
+        ORDER BY created_at LIMIT 1`;
+      const sub = member[0]?.user_id ?? randomUUID();
       await tx.$executeRawUnsafe('SET LOCAL ROLE authenticated');
       await tx.$queryRaw`SELECT set_config(
         'request.jwt.claims',
-        ${JSON.stringify({ role: 'authenticated', user_metadata: { tenant_org_id: tenantId } })},
+        ${JSON.stringify({ role: 'authenticated', sub, user_metadata: { tenant_org_id: tenantId } })},
         true
       )`;
       result = await fn(tx);
@@ -79,7 +87,10 @@ beforeAll(async () => {
     const role = await prisma.$queryRaw<Array<{ ok: boolean }>>`
       SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') AS ok`;
     const other = await prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM public.org_tenants_mst WHERE id <> ${scope.tenantId}::uuid LIMIT 1`;
+      SELECT t.id FROM public.org_tenants_mst t
+      WHERE t.id <> ${scope.tenantId}::uuid
+        AND EXISTS (SELECT 1 FROM public.org_users_mst u WHERE u.tenant_org_id = t.id AND u.is_active)
+      LIMIT 1`;
     otherTenantId = other[0]?.id ?? '';
     if (!role[0]?.ok || !otherTenantId) return;
 

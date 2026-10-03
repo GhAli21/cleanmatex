@@ -76,6 +76,39 @@ export const REPORTS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     notes: ['D-09 read-only reconciliation report views.'],
   },
+  {
+    routePattern: '/dashboard/reports/cash-variance',
+    label: 'Cash Variance by Cashier',
+    page: {
+      permissions: ['cash_drawer:view_reports'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Cash variance by cashier report (C4)',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/variance-report',
+        requirement: { permissions: ['cash_drawer:view_reports'], requireAllPermissions: true },
+        enforcement: 'permission',
+        notes: ['Limited server-side to the permitted branches of the actor; branchId can only narrow it.'],
+      },
+      {
+        label: 'Branch picker',
+        method: 'GET',
+        path: '/api/v1/branches',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+    ],
+    notes: ['C4 per-cashier variance history. Nav entry: migration 0560 / navigation.ts reports_cash_variance.'],
+  },
+  {
+    routePattern: '/dashboard/reports/cash-variance/print',
+    label: 'Cash Variance by Cashier (print)',
+    page: {
+      permissions: ['cash_drawer:view_reports'],
+      requireAllPermissions: true,
+    },
+  },
 ]
 
 export const REPORTS_REPORTS_ACCESS = REPORTS_ACCESS_CONTRACTS[0]!
@@ -87,3 +120,5 @@ export const REPORTS_REPORTS_FINANCIAL_ACCESS = REPORTS_ACCESS_CONTRACTS[5]!
 export const REPORTS_REPORTS_CUSTOMERS_ACCESS = REPORTS_ACCESS_CONTRACTS[6]!
 export const REPORTS_REPORTS_PRINT_ACCESS = REPORTS_ACCESS_CONTRACTS[7]!
 export const REPORTS_REPORTS_RECONCILIATION_ACCESS = REPORTS_ACCESS_CONTRACTS[8]!
+export const REPORTS_REPORTS_CASH_VARIANCE_ACCESS = REPORTS_ACCESS_CONTRACTS[9]!
+export const REPORTS_REPORTS_CASH_VARIANCE_PRINT_ACCESS = REPORTS_ACCESS_CONTRACTS[10]!

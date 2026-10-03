@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { posSessionFinanceErrorResponse } from '@/lib/api/pos-session-finance-errors';
 import { z } from 'zod';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { requirePermission } from '@/lib/middleware/require-permission';
@@ -60,6 +61,8 @@ export async function PATCH(
     });
     return NextResponse.json({ success: true, data: refund });
   } catch (err) {
+    const posSessionResponse = posSessionFinanceErrorResponse(err);
+    if (posSessionResponse) return posSessionResponse;
     // CLF: the drawer ledger gate refused the cash line (no open session, …).
     if (err instanceof CashDrawerLedgerError) {
       return NextResponse.json(

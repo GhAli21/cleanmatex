@@ -29,6 +29,14 @@ npm run prisma:pull
 npm run prisma:generate
 ```
 
+Use `npm run prisma:pull` (not raw `prisma db pull`). That command runs `db pull`, then `scripts/prisma-patch-after-pull.mjs` (restores `@ignore` on `cmx_effective_permissions[]` and any 1:1 unique-order safety net), then `prisma validate`.
+
+Raw `npx prisma db pull` still strips `@ignore` and will fail the next pull until you run `npm run prisma:patch-after-pull`.
+
+Mass `onDelete: SetNull` warnings are not P1012.
+
+**Order reminder:** if the parent key is `(id, tenant_org_id)`, the child FK and 1:1 unique are `(parent_id, tenant_org_id)` (tenant **second**). That is what `0553` does. Do not flip those uniques to tenant-first unless you also rebuild the FK and the referenced key.
+
 ## Multi-Tenancy
 
 - every `org_*` query must respect `tenant_org_id`

@@ -22,7 +22,7 @@ jest.mock('@/lib/services/cash-drawer-ledger/cash-drawer-balance.service', () =>
 }));
 
 import { Decimal } from '@prisma/client/runtime/library';
-import { approveVarianceTx } from '@/lib/services/cash-drawer-session.service';
+import { approveVarianceTx, rejectVarianceTx } from '@/lib/services/cash-drawer-session.service';
 import { VarianceApprovalError, VARIANCE_APPROVAL_ERRORS } from '@/lib/services/cash-drawer.service';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
@@ -127,5 +127,76 @@ describe('approveVarianceTx (B16)', () => {
     await approveVarianceTx(tx, ctx, SESSION, { reason: 'ok' });
 
     expect(mockEmitEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('approveVarianceTx after a rejection (C3)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('refuses to approve a variance that was already rejected, and writes nothing', async () => {
+    const { tx, update } = makeTx(pendingSession({ variance_rejected_by: 'supervisor-002' }));
+
+    await expect(approveVarianceTx(tx, ctx, SESSION, { reason: 'ok' })).rejects.toMatchObject({
+      code: VARIANCE_APPROVAL_ERRORS.ALREADY_REJECTED,
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('rejectVarianceTx (C3)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('rejects with a reason and records who, when and why, tenant-scoped', async () => {
+    const { tx, update } = makeTx(pendingSession());
+
+    await rejectVarianceTx(tx, ctx, SESSION, { reason: '  Count looks wrong, recount needed  ' });
+
+    expect(update).toHaveBeenCalledTimes(1);
+    const arg = update.mock.calls[0][0];
+    expect(arg.where).toEqual({ tenant_org_id: TENANT, id: SESSION });
+    expect(arg.data).toMatchObject({
+      variance_rejected_by: 'supervisor-001',
+      variance_rejection_reason: 'Count looks wrong, recount needed',
+    });
+    expect(arg.data.variance_rejected_at).toBeInstanceOf(Date);
+    // Approval fields are untouched: a session is never both approved and rejected.
+    expect(arg.data).not.toHaveProperty('variance_approved_by');
+  });
+
+  it('does NOT release the withheld over/short event — the variance is not accepted', async () => {
+    const { tx } = makeTx(pendingSession(), [
+      { currency_code: 'OMR', closing_variance: new Decimal('-50'), variance_tolerance_snap: new Decimal('1') },
+    ]);
+
+    await rejectVarianceTx(tx, ctx, SESSION, { reason: 'investigate' });
+
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+  });
+
+  it('allows the closer to reject their own session (permission is the only gate)', async () => {
+    const { tx, update } = makeTx(pendingSession({ closed_by: 'supervisor-001' }));
+    await rejectVarianceTx(tx, ctx, SESSION, { reason: 'self-reported, needs a second look' });
+    expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it('requires a reason', async () => {
+    const { tx, update } = makeTx(pendingSession());
+    await expect(rejectVarianceTx(tx, ctx, SESSION, { reason: '   ' })).rejects.toMatchObject({
+      code: VARIANCE_APPROVAL_ERRORS.REASON_REQUIRED,
+    });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a session that never tripped a threshold', { variance_threshold_snapshot: null }, VARIANCE_APPROVAL_ERRORS.NOT_PENDING_APPROVAL],
+    ['an already approved variance', { variance_approved_by: 'someone' }, VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED],
+    ['an already rejected variance', { variance_rejected_by: 'someone' }, VARIANCE_APPROVAL_ERRORS.ALREADY_REJECTED],
+  ])('refuses %s', async (_label, over, code) => {
+    const { tx, update } = makeTx(pendingSession(over));
+    const attempt = rejectVarianceTx(tx, ctx, SESSION, { reason: 'x' });
+    await expect(attempt).rejects.toBeInstanceOf(VarianceApprovalError);
+    await expect(attempt).rejects.toMatchObject({ code });
+    expect(update).not.toHaveBeenCalled();
   });
 });

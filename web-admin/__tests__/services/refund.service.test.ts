@@ -61,8 +61,14 @@ jest.mock('@/lib/services/voucher-line.service', () => ({
 jest.mock('@/lib/services/voucher-wiring.service', () => ({
   postAndWireBizVoucher: jest.fn().mockResolvedValue({ voucherId: 'vch-test', fromCache: false }),
 }));
+// A6 follow-up: cash refund rounding has its own coverage (order-refund-b9-execution); here no increment applies.
+jest.mock('@/lib/services/cash-change-rounding.service', () => ({
+  planCashRefundRounding: jest.fn().mockResolvedValue(null),
+  postCashChangeRoundingTx: jest.fn().mockResolvedValue(null),
+}));
 jest.mock('@/lib/services/pos-session.service', () => ({
   assertOpenPosSessionForFinanceTx: jest.fn().mockResolvedValue(null),
+  resolvePosSessionForFinanceTx: jest.fn().mockResolvedValue(null),
 }));
 
 /** Drawer-session hint every CASH refund now needs (CLF W4). */

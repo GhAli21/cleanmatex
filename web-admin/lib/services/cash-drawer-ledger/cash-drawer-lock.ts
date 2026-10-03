@@ -28,6 +28,8 @@ export interface LockedDrawerRow {
   currency_code: string;
   is_active: boolean;
   ledger_seq: bigint;
+  /** B3-1: the user the drawer is assigned to, if any. */
+  assigned_user_id: string | null;
 }
 
 /**
@@ -48,7 +50,7 @@ export async function lockDrawersTx(
   if (ids.length === 0) return [];
   // ORDER BY is applied before the row locks are taken, so locks follow id order.
   return tx.$queryRaw<LockedDrawerRow[]>(Prisma.sql`
-    SELECT id, tenant_org_id, branch_id, drawer_type, currency_code, is_active, ledger_seq
+    SELECT id, tenant_org_id, branch_id, drawer_type, currency_code, is_active, ledger_seq, assigned_user_id
       FROM org_cash_drawers_mst
      WHERE tenant_org_id = ${tenantOrgId}::uuid
        AND id = ANY(${ids}::uuid[])

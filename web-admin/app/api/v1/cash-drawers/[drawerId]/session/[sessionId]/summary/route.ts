@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { getSessionSummary } from '@/lib/services/cash-drawer.service';
+import { guardCashDrawerSessionBranch } from '@/lib/api/branch-access-guard';
 
 /**
  *
@@ -17,6 +18,8 @@ export async function GET(
   const { tenantId } = auth;
 
   const { sessionId } = await params;
+  const sessionDenied = await guardCashDrawerSessionBranch(auth, sessionId);
+  if (sessionDenied) return sessionDenied;
 
   try {
     const summary = await getSessionSummary(tenantId, sessionId);

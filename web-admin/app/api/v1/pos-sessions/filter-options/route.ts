@@ -3,6 +3,7 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { listPosSessionFilterOptions } from '@/lib/services/pos-session.service';
 import { posSessionFilterOptionsQuerySchema } from '@/lib/validations/pos-session-schemas';
+import { narrowBranchFilter, resolveBranchScope } from '@/lib/services/branch-access.service';
 import { posSessionErrorResponse, posSessionResponse } from '../_response';
 
 /**
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
       tenantId: auth.tenantId,
       userId: auth.userId,
       canViewAll: await hasPermissionServer('pos_session:view_all'),
+      branchIds: narrowBranchFilter(await resolveBranchScope(auth)),
       ...parsed.data,
     }));
   } catch (error) {

@@ -1,27 +1,32 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 
 import { cmxMessage } from '@ui/feedback'
 import { CmxButton, CmxInput, CmxSelect, CmxSwitch, CmxTextarea, Label } from '@ui/primitives'
 import { CmxDenominationCounter } from '@ui/patterns'
-import { CmxMoneyVariance } from '@ui/data-display'
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
 import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
+import { useDrawerCountMethod, type CountMethod } from '@features/cash-drawers/hooks/use-drawer-count-method'
+import { CashCountMethodField } from '@features/cash-drawers/ui/cash-count-method-field'
 import {
   startCashDrawerClose,
   finalizeCashDrawerClose,
   fetchCashDrawerCatalogs,
   fetchCurrencyDenominations,
-  fetchCashDrawersWithCurrentSession,
   type CurrencyBalancePreview,
   type FinalizeCloseResultV2,
-  type DispositionDecisionInput,
 } from '@features/cash-drawers/api/cash-drawer-api'
+import {
+  EMPTY_DISPOSITION_ROW,
+  buildDispositionPayload,
+  type DispositionFormRow,
+} from '@features/cash-drawers/model/cash-drawer-disposition'
+import { CashDrawerDispositionFields } from '@features/cash-drawers/ui/cash-drawer-disposition-fields'
 
 interface CashDrawerCloseWizardProps {
   drawerId: string
@@ -32,23 +37,15 @@ interface CashDrawerCloseWizardProps {
   onFinalized: (result: FinalizeCloseResultV2) => void
 }
 
-interface DispositionFormRow {
-  dispositionCode: string
-  destDrawerId: string
-  keptAmount: string
-  dispositionNotes: string
-}
-
 /**
  * Two-screen close wizard on the CLF lifecycle (plan §4B.10 CLF-8-5):
  * Count (optional physical count, freezes the cut) -> Result & Disposition
  * (per-currency reveal + mandatory disposition, posts the close). Shared by
  * the drawer overview screen and the POS session hub/list close flows.
  *
- * Deliberately out of scope for this pass (documented, not silently
- * dropped): the supervisor recount sub-step and force-close. Both need their
- * own permission-gated entry points and are lower-frequency paths than the
- * everyday open/count/finalize flow this wizard replaces.
+ * The supervisor recount and force-close are separate, permission-gated dialogs on the session
+ * page (`CashDrawerRecountDialog`, `CashDrawerForceCloseDialog`); the disposition form is
+ * shared with them through `CashDrawerDispositionFields` / `buildDispositionPayload`.
  */
 export function CashDrawerCloseWizard({
   drawerId,
@@ -66,7 +63,9 @@ export function CashDrawerCloseWizard({
 
   const [phase, setPhase] = useState<'count' | 'disposition'>('count')
   const [countNow, setCountNow] = useState(false)
-  const [countMode, setCountMode] = useState<'TOTAL_ONLY' | 'DENOMINATION'>('TOTAL_ONLY')
+  const [countChoice, setCountMode] = useState<CountMethod>('TOTAL_ONLY')
+  const countPolicy = useDrawerCountMethod(drawerId, 'closing', open)
+  const countMode = countPolicy.resolve(countChoice)
   const [totalAmount, setTotalAmount] = useState('')
   const [denomQuantities, setDenomQuantities] = useState<Record<string, number>>({})
   const [countNotes, setCountNotes] = useState('')
@@ -90,18 +89,6 @@ export function CashDrawerCloseWizard({
     enabled: open && countNow && countMode === 'DENOMINATION' && !!primaryCurrencyCode,
     queryFn: () => fetchCurrencyDenominations(primaryCurrencyCode as string),
   })
-
-  const siblingDrawersQuery = useQuery({
-    queryKey: ['cash-drawers', 'with-current-session', branchId ?? 'none', 'close-wizard'],
-    enabled: open && phase === 'disposition' && !!branchId,
-    queryFn: () => fetchCashDrawersWithCurrentSession(branchId),
-  })
-
-  const drawerTypeCanReceive = useMemo(() => {
-    const map = new Map<string, boolean>()
-    for (const dt of catalogsQuery.data?.drawerTypes ?? []) map.set(dt.code, dt.canReceiveDisposition)
-    return map
-  }, [catalogsQuery.data])
 
   const resetAll = () => {
     setPhase('count')
@@ -152,7 +139,7 @@ export function CashDrawerCloseWizard({
         Object.fromEntries(
           result.currencyBalances.map((b) => [
             b.currencyCode,
-            { dispositionCode: '', destDrawerId: '', keptAmount: '', dispositionNotes: '' },
+            { ...EMPTY_DISPOSITION_ROW },
           ]),
         ),
       )
@@ -171,39 +158,14 @@ export function CashDrawerCloseWizard({
   const anyVarianceReasonRequired = balances.some((b) => b.varianceReasonRequired)
 
   const handleFinalize = async () => {
-    const dispositionCatalog = catalogsQuery.data?.dispositions ?? []
-    const payload: DispositionDecisionInput[] = []
-
-    for (const balance of balances) {
-      const row = dispositions[balance.currencyCode]
-      if (!row?.dispositionCode) {
-        cmxMessage.error(t('wizard.dispositionRequired'))
-        return
-      }
-      const disp = dispositionCatalog.find((d) => d.code === row.dispositionCode)
-      if (disp && disp.cashMoveMode !== 'NONE' && !row.destDrawerId) {
-        cmxMessage.error(t('wizard.destinationRequired'))
-        return
-      }
-      if (disp?.requiresNotes && !row.dispositionNotes.trim()) {
-        cmxMessage.error(t('wizard.dispositionNotesRequired'))
-        return
-      }
-      if (disp?.requiresKeptAmount) {
-        const kept = Number(row.keptAmount)
-        if (row.keptAmount.trim() === '' || !Number.isFinite(kept) || kept < 0) {
-          cmxMessage.error(t('wizard.keptAmountRequired'))
-          return
-        }
-      }
-
-      payload.push({
-        currencyCode: balance.currencyCode,
-        dispositionCode: row.dispositionCode,
-        dispositionNotes: row.dispositionNotes.trim() || undefined,
-        destDrawerId: row.destDrawerId || undefined,
-        keptAmount: disp?.requiresKeptAmount ? Number(row.keptAmount) : undefined,
-      })
+    const { payload, error } = buildDispositionPayload(
+      balances.map((b) => b.currencyCode),
+      dispositions,
+      catalogsQuery.data?.dispositions ?? [],
+    )
+    if (error) {
+      cmxMessage.error(t(`wizard.${error}`))
+      return
     }
 
     if (anyVarianceReasonRequired && !varianceReason.trim()) {
@@ -233,36 +195,6 @@ export function CashDrawerCloseWizard({
     }
   }
 
-  const siblingDrawerOptions = (currencyCode: string, dispositionCode: string) => {
-    const disp = (catalogsQuery.data?.dispositions ?? []).find((d) => d.code === dispositionCode)
-    const drawers = siblingDrawersQuery.data ?? []
-    return drawers
-      .filter((d) => d.id !== drawerId && d.is_active && d.currency_code === currencyCode)
-      .filter((d) => (disp?.destDrawerTypeCode ? d.drawer_type === disp.destDrawerTypeCode : drawerTypeCanReceive.get(d.drawer_type) ?? false))
-      .map((d) => ({ value: d.id, label: `${d.drawer_name} (${d.drawer_code})` }))
-  }
-
-  /**
-   * The selectable dispositions for one currency. A cash-moving disposition is disabled — with the
-   * reason in its label and a hint under the select — when the branch has no active drawer that can
-   * receive it, instead of letting the user pick it and fail later with an empty destination list.
-   * Nothing is disabled while the sibling drawers are still loading.
-   */
-  const dispositionOptions = (currencyCode: string) =>
-    (catalogsQuery.data?.dispositions ?? [])
-      .filter((d) => d.isSelectable)
-      .map((d) => {
-        const unavailable =
-          d.cashMoveMode !== 'NONE' &&
-          !siblingDrawersQuery.isLoading &&
-          siblingDrawerOptions(currencyCode, d.code).length === 0
-        return {
-          value: d.code,
-          label: unavailable ? `${d.name} — ${t('wizard.noEligibleDestinationShort')}` : d.name,
-          disabled: unavailable,
-        }
-      })
-
   return (
     <CmxDialog
       open={open}
@@ -289,15 +221,7 @@ export function CashDrawerCloseWizard({
 
             {countNow ? (
               <div className="space-y-4 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
-                <CmxSelect
-                  label={t('wizard.countMethod')}
-                  value={countMode}
-                  onChange={(event) => setCountMode(event.target.value as 'TOTAL_ONLY' | 'DENOMINATION')}
-                  options={[
-                    { value: 'TOTAL_ONLY', label: t('wizard.countMethodTotal') },
-                    { value: 'DENOMINATION', label: t('wizard.countMethodDenomination') },
-                  ]}
-                />
+                <CashCountMethodField methods={countPolicy.methods} value={countMode} onChange={setCountMode} />
                 {countMode === 'TOTAL_ONLY' ? (
                   <CmxInput
                     label={t('wizard.countedAmount')}
@@ -333,80 +257,13 @@ export function CashDrawerCloseWizard({
           </div>
         ) : (
           <div className="space-y-5">
-            {balances.map((balance) => {
-              const row = dispositions[balance.currencyCode]
-              const disp = (catalogsQuery.data?.dispositions ?? []).find((d) => d.code === row?.dispositionCode)
-              const variance = balance.closingVariance != null ? Number(balance.closingVariance) : 0
-
-              return (
-                <div key={balance.currencyCode} className="space-y-3 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-sm font-semibold">{balance.currencyCode}</span>
-                    {balance.closingVariance != null ? (
-                      <CmxMoneyVariance
-                        amount={variance}
-                        formattedAmount={formatMoneyWithCode(Math.abs(variance), balance.currencyCode)}
-                        labels={{ over: t('over'), short: t('short'), balanced: t('balanced') }}
-                      />
-                    ) : null}
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <ResultMetric label={t('expectedCash')} value={formatMoneyWithCode(Number(balance.closingExpected ?? 0), balance.currencyCode)} />
-                    <ResultMetric
-                      label={t('wizard.countedAmount')}
-                      value={balance.closingCounted != null ? formatMoneyWithCode(Number(balance.closingCounted), balance.currencyCode) : t('wizard.notCountedYet')}
-                    />
-                    <ResultMetric
-                      label={t('variance')}
-                      value={balance.closingVariance != null ? formatMoneyWithCode(Number(balance.closingVariance), balance.currencyCode) : '—'}
-                    />
-                  </div>
-
-                  <CmxSelect
-                    label={t('wizard.disposition')}
-                    value={row?.dispositionCode ?? ''}
-                    onChange={(event) => updateDisposition(balance.currencyCode, { dispositionCode: event.target.value, destDrawerId: '' })}
-                    options={dispositionOptions(balance.currencyCode)}
-                    placeholder={t('wizard.selectDisposition')}
-                  />
-                  {dispositionOptions(balance.currencyCode).some((o) => o.disabled) ? (
-                    <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                      {t('wizard.unavailableDispositionsHint')}
-                    </p>
-                  ) : null}
-
-                  {disp && disp.cashMoveMode !== 'NONE' ? (
-                    <CmxSelect
-                      label={t('wizard.destinationDrawer')}
-                      value={row?.destDrawerId ?? ''}
-                      onChange={(event) => updateDisposition(balance.currencyCode, { destDrawerId: event.target.value })}
-                      options={siblingDrawerOptions(balance.currencyCode, row?.dispositionCode ?? '')}
-                      placeholder={t('wizard.selectDestination')}
-                    />
-                  ) : null}
-
-                  {disp?.requiresKeptAmount ? (
-                    <CmxInput
-                      label={t('wizard.keptAmount')}
-                      type="number"
-                      min="0"
-                      step="0.001"
-                      value={row?.keptAmount ?? ''}
-                      onChange={(event) => updateDisposition(balance.currencyCode, { keptAmount: event.target.value })}
-                    />
-                  ) : null}
-
-                  {disp?.requiresNotes || disp?.code === 'OTHER' ? (
-                    <CmxTextarea
-                      placeholder={t('wizard.dispositionNotesPlaceholder')}
-                      value={row?.dispositionNotes ?? ''}
-                      onChange={(event) => updateDisposition(balance.currencyCode, { dispositionNotes: event.target.value })}
-                    />
-                  ) : null}
-                </div>
-              )
-            })}
+            <CashDrawerDispositionFields
+              drawerId={drawerId}
+              branchId={branchId}
+              balances={balances}
+              rows={dispositions}
+              onRowChange={updateDisposition}
+            />
 
             {anyVarianceReasonRequired ? (
               <div className="space-y-2">
@@ -439,14 +296,5 @@ export function CashDrawerCloseWizard({
         </CmxDialogFooter>
       </CmxDialogContent>
     </CmxDialog>
-  )
-}
-
-function ResultMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{label}</div>
-      <div className="mt-1 text-sm font-bold">{value}</div>
-    </div>
   )
 }

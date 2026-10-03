@@ -13,6 +13,8 @@ import {
   type OpeningBalanceForClosing,
 } from '@/lib/services/cash-drawer-ledger/cash-drawer-balance.service';
 import { recordCountTx, type DenominationCountLine } from '@/lib/services/cash-drawer-count.service';
+import { CASH_CONTROL_COUNT_MODE as COUNT_MODE, allowedCountMethods, type CashControlCountMode } from '@/lib/constants/cash-control';
+import { countEnabledDenominationsTx } from '@/lib/services/cash-denomination-control.service';
 import { postDrawerTrxTx } from '@/lib/services/cash-drawer-trx.service';
 import { getCashControlSettings } from '@/lib/services/cash-control-settings.service';
 import { emitEventTx } from '@/lib/services/outbox.service';
@@ -33,6 +35,7 @@ import {
 } from '@/lib/constants/cash-drawer';
 import { varianceToleranceFor } from '@/lib/constants/financial-tolerances';
 import { CASH_CONTROL_COUNT_MODE } from '@/lib/constants/cash-control';
+import { assertDrawerAssignment } from '@/lib/services/cash-drawer-ledger/cash-drawer-assignment';
 
 /**
  * Two-step drawer session lifecycle (CLF, ADR-057, plan §4B.4/§4B.10 CLF-4-3).
@@ -64,6 +67,43 @@ interface SessionBalanceRowDb {
 // -----------------------------------------------------------------------------
 // Open
 // -----------------------------------------------------------------------------
+
+/**
+ * Refuses a count entered a way the policy does not allow, so a tenant that requires denominations
+ * cannot be bypassed by posting a bare total (and vice versa). The UI offers only the allowed
+ * methods; this is the server-side guarantee behind it.
+ *
+ * A policy that requires denominations cannot be met when the tenant has no denomination to count with
+ * in the drawer's currency (HQ has not published one, or the tenant switched them all off), so a total is
+ * accepted rather than leaving the drawer impossible to close.
+ *
+ * @param tx open transaction
+ * @param tenantId tenant (explicitly filtered)
+ * @param drawerId the drawer being counted (its currency decides the fallback)
+ * @param policy the resolved opening or closing count mode
+ * @param requested how the caller entered the count
+ * @throws CashDrawerLedgerError CASH_COUNT_MODE_NOT_ALLOWED
+ */
+export async function assertCountMethodAllowedTx(
+  tx: Tx,
+  tenantId: string,
+  drawerId: string,
+  policy: CashControlCountMode,
+  requested: 'TOTAL_ONLY' | 'DENOMINATION',
+): Promise<void> {
+  if (allowedCountMethods(policy).includes(requested)) return;
+  if (requested === 'TOTAL_ONLY' && policy === COUNT_MODE.DENOMINATION) {
+    const drawer = await tx.org_cash_drawers_mst.findFirst({
+      where: { id: drawerId, tenant_org_id: tenantId },
+      select: { currency_code: true },
+    });
+    if (drawer && (await countEnabledDenominationsTx(tx, tenantId, drawer.currency_code)) === 0) return;
+  }
+  throw new CashDrawerLedgerError(
+    CASH_LEDGER_ERRORS.CASH_COUNT_MODE_NOT_ALLOWED,
+    `count by ${requested} is not allowed: the policy is ${policy}`,
+  );
+}
 
 export interface OpeningCountInput {
   countMode: 'TOTAL_ONLY' | 'DENOMINATION';
@@ -103,6 +143,8 @@ export async function openSessionTx(tx: Tx, ctx: Ctx, input: OpenSessionInput): 
   if (!drawer) {
     throw new Error(`openSessionTx: drawer ${input.drawerId} not found for tenant ${ctx.tenantOrgId}`);
   }
+  // B3-1: an ASSIGNED_ONLY drawer is opened by its assignee or a supervisor.
+  await assertDrawerAssignment({ tenantOrgId: ctx.tenantOrgId, userId: ctx.userId, drawer });
 
   const existing = await tx.org_cash_drawer_sessions_mst.findFirst({
     where: {
@@ -125,6 +167,9 @@ export async function openSessionTx(tx: Tx, ctx: Ctx, input: OpenSessionInput): 
   });
   if (settings.openingCountRequired && !input.openingCount) {
     throw new CashDrawerLedgerError(CASH_LEDGER_ERRORS.CASH_COUNT_REQUIRED, 'openSessionTx: an opening count is required for this drawer');
+  }
+  if (input.openingCount) {
+    await assertCountMethodAllowedTx(tx, ctx.tenantOrgId, input.drawerId, settings.openingCountMode, input.openingCount.countMode);
   }
 
   const [{ session_no: sessionNo }] = await tx.$queryRaw<{ session_no: string }[]>(
@@ -349,6 +394,8 @@ export async function startCloseTx(tx: Tx, ctx: Ctx, input: StartCloseInput): Pr
   if (!drawer) {
     throw new Error(`startCloseTx: drawer ${input.drawerId} not found`);
   }
+  // B3-1: the count/close step is the assignee's (or a supervisor's) job on an ASSIGNED_ONLY drawer.
+  await assertDrawerAssignment({ tenantOrgId: ctx.tenantOrgId, userId: ctx.userId, drawer });
   const cutSeq = drawer.ledger_seq;
 
   const settings = await getCashControlSettings({
@@ -359,6 +406,9 @@ export async function startCloseTx(tx: Tx, ctx: Ctx, input: StartCloseInput): Pr
   });
   if (settings.closingCountRequired && !input.closingCount) {
     throw new CashDrawerLedgerError(CASH_LEDGER_ERRORS.CASH_COUNT_REQUIRED, 'startCloseTx: a closing count is required for this drawer');
+  }
+  if (input.closingCount) {
+    await assertCountMethodAllowedTx(tx, ctx.tenantOrgId, input.drawerId, settings.closingCountMode, input.closingCount.countMode);
   }
 
   const openingRowsDb = (await tx.org_cash_drawer_ses_bal_dtl.findMany({
@@ -498,7 +548,10 @@ export async function recountCloseTx(tx: Tx, ctx: Ctx, input: RecountCloseInput)
     throw new CashDrawerLedgerError(CASH_LEDGER_ERRORS.DRAWER_SESSION_NOT_CLOSING, `recountCloseTx: session is ${session.status}, not CLOSING`);
   }
 
-  await lockDrawersTx(tx, ctx.tenantOrgId, [input.drawerId]);
+  const [recountDrawer] = await lockDrawersTx(tx, ctx.tenantOrgId, [input.drawerId]);
+  if (recountDrawer) {
+    await assertDrawerAssignment({ tenantOrgId: ctx.tenantOrgId, userId: ctx.userId, drawer: recountDrawer });
+  }
 
   const row = (await tx.org_cash_drawer_ses_bal_dtl.findFirst({
     where: { tenant_org_id: ctx.tenantOrgId, cash_drawer_session_id: session.id, currency_code: input.currencyCode },
@@ -508,6 +561,15 @@ export async function recountCloseTx(tx: Tx, ctx: Ctx, input: RecountCloseInput)
     throw new Error(`recountCloseTx: currency ${input.currencyCode} has no closing-expected figure yet — run the count step first`);
   }
   const closingExpected = new Decimal(row.closing_expected.toString());
+
+  // A recount replaces the closing count, so it follows the closing count policy.
+  const recountSettings = await getCashControlSettings({
+    tenantId: ctx.tenantOrgId,
+    branchId: session.branch_id,
+    userId: ctx.userId,
+    drawerId: input.drawerId,
+  });
+  await assertCountMethodAllowedTx(tx, ctx.tenantOrgId, input.drawerId, recountSettings.closingCountMode, input.count.countMode);
 
   const countResult = await recordCountTx(tx, ctx, {
     drawerId: input.drawerId,
@@ -934,7 +996,14 @@ export async function approveVarianceTx(
 
   const session = await tx.org_cash_drawer_sessions_mst.findFirst({
     where: { id: sessionId, tenant_org_id: ctx.tenantOrgId },
-    select: { id: true, cash_drawer_id: true, branch_id: true, variance_threshold_snapshot: true, variance_approved_by: true },
+    select: {
+      id: true,
+      cash_drawer_id: true,
+      branch_id: true,
+      variance_threshold_snapshot: true,
+      variance_approved_by: true,
+      variance_rejected_by: true,
+    },
   });
   if (!session) {
     throw new Error(`approveVarianceTx: session ${sessionId} not found`);
@@ -944,6 +1013,9 @@ export async function approveVarianceTx(
   }
   if (session.variance_approved_by != null) {
     throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED);
+  }
+  if (session.variance_rejected_by != null) {
+    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.ALREADY_REJECTED);
   }
 
   await tx.org_cash_drawer_sessions_mst.update({
@@ -979,6 +1051,61 @@ export async function approveVarianceTx(
       variances: variances.map((v) => ({ currencyCode: v.currencyCode, varianceAmount: v.varianceAmount.toFixed(4) })),
     });
   }
+}
+
+/**
+ * C3: a supervisor rejects a pending over-threshold closing variance — it is not accepted and needs
+ * investigation. The decision (who, when, why) is recorded on the session; it is final, and a
+ * session is never both approved and rejected. Unlike approval, rejection does NOT release the
+ * withheld closing over/short event: the variance stays unresolved until it is investigated, so
+ * nothing downstream books it as an accepted over/short.
+ *
+ * Permission (`cash_drawer:approve_variance`) is the only gate — the rejecting user may be the
+ * one who closed the session (no maker-checker).
+ *
+ * @param tx open transaction
+ * @param ctx tenant and acting user
+ * @param sessionId drawer session being decided
+ * @param params mandatory reason
+ * @throws VarianceApprovalError REASON_REQUIRED, NOT_PENDING_APPROVAL, ALREADY_APPROVED or ALREADY_REJECTED
+ */
+export async function rejectVarianceTx(
+  tx: Tx,
+  ctx: Ctx,
+  sessionId: string,
+  params: { reason: string },
+): Promise<void> {
+  const reason = params.reason?.trim();
+  if (!reason) {
+    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.REASON_REQUIRED);
+  }
+
+  const session = await tx.org_cash_drawer_sessions_mst.findFirst({
+    where: { id: sessionId, tenant_org_id: ctx.tenantOrgId },
+    select: { id: true, variance_threshold_snapshot: true, variance_approved_by: true, variance_rejected_by: true },
+  });
+  if (!session) {
+    throw new Error(`rejectVarianceTx: session ${sessionId} not found`);
+  }
+  if (session.variance_threshold_snapshot == null) {
+    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.NOT_PENDING_APPROVAL);
+  }
+  if (session.variance_approved_by != null) {
+    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED);
+  }
+  if (session.variance_rejected_by != null) {
+    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.ALREADY_REJECTED);
+  }
+
+  await tx.org_cash_drawer_sessions_mst.update({
+    where: { tenant_org_id: ctx.tenantOrgId, id: sessionId },
+    data: {
+      variance_rejected_by: ctx.userId,
+      variance_rejected_at: new Date(),
+      variance_rejection_reason: reason,
+      updated_at: new Date(),
+    },
+  });
 }
 
 // -----------------------------------------------------------------------------
@@ -1087,6 +1214,10 @@ export async function forceClose(tenantOrgId: string, userId: string, input: For
 
 export async function approveVariance(tenantOrgId: string, userId: string, sessionId: string, params: { reason: string }): Promise<void> {
   return withTenantContext(tenantOrgId, () => prisma.$transaction((tx) => approveVarianceTx(tx, { tenantOrgId, userId }, sessionId, params)));
+}
+
+export async function rejectVariance(tenantOrgId: string, userId: string, sessionId: string, params: { reason: string }): Promise<void> {
+  return withTenantContext(tenantOrgId, () => prisma.$transaction((tx) => rejectVarianceTx(tx, { tenantOrgId, userId }, sessionId, params)));
 }
 
 export async function updatePostClose(tenantOrgId: string, userId: string, input: UpdatePostCloseInput): Promise<void> {

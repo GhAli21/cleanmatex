@@ -8,6 +8,7 @@ import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { CashControlSettingsScreen } from '@features/cash-drawers/ui/cash-control-settings-screen';
+import { CashDenominationControlCard } from '@features/cash-drawers/ui/cash-denomination-control-card';
 import type { Metadata } from 'next';
 
 /** Keeps browser history identifiable without coupling it to the brand suffix. */
@@ -30,5 +31,10 @@ export default async function CashControlSettingsRoutePage() {
     );
   }
 
-  return <CashControlSettingsScreen />;
+  return (
+    <>
+      <CashControlSettingsScreen />
+      <CashDenominationControlCard />
+    </>
+  );
 }

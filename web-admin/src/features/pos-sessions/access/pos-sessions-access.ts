@@ -199,6 +199,67 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
       'Session management actions (E3-1, migration 0552): open_others/close_others/full_manage_others are permission-gated only, with no server-side branch scoping — there is no user-to-branch assignment table in this codebase to enforce it against, same gap as cash_drawer:view_all_branches. Admin force-close of another user\'s session bypasses the drawer-closed requirement by design (abandoned-session recovery); the event is tagged drawerCheckBypassed for audit.',
     ],
   },
+  {
+    routePattern: '/dashboard/internal_fin/pos-sessions/[sessionId]/report',
+    label: 'POS Shift Report (X / Z)',
+    page: {
+      permissions: ['pos_session:view'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      generateZReport: {
+        label: 'Generate the Z-report of a closed POS session',
+        requirement: { permissions: ['pos_session:report_z'], requireAllPermissions: true },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Live X-report of a POS session',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/[sessionId]/x-report',
+        requirement: { permissions: ['pos_session:view'], requireAllPermissions: true },
+        notes: ['Own session, or any session with pos_session:view_all; branch-scoped server-side.'],
+      },
+      {
+        label: 'Stored Z-report of a closed POS session',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/[sessionId]/z-report',
+        requirement: { permissions: ['pos_session:report_z'], requireAllPermissions: true },
+      },
+      {
+        label: 'Generate the Z-report of a closed POS session (idempotent)',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/[sessionId]/z-report',
+        requirement: { permissions: ['pos_session:report_z'], requireAllPermissions: true },
+      },
+    ],
+    notes: [
+      'D2: the X-report is computed on demand and never stored; the Z-report is an immutable snapshot (org_pos_shift_z_rpt_tr, migration 0559) frozen in the session-close transaction when the tenant setting shift_z_report_required is on.',
+    ],
+  },
+  {
+    routePattern: '/dashboard/internal_fin/pos-sessions/[sessionId]/report/print',
+    label: 'POS Shift Report (print)',
+    page: {
+      permissions: ['pos_session:view'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Live X-report of a POS session',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/[sessionId]/x-report',
+        requirement: { permissions: ['pos_session:view'], requireAllPermissions: true },
+      },
+      {
+        label: 'Stored Z-report of a closed POS session',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/[sessionId]/z-report',
+        requirement: { permissions: ['pos_session:report_z'], requireAllPermissions: true },
+      },
+    ],
+    notes: ['Print preview (80mm thermal or A4) of the X or Z shift report; same data and gates as the report screen.'],
+  },
 ];
 
 export const POS_SESSIONS_DASHBOARD_ACCESS = POS_SESSIONS_ACCESS_CONTRACTS[0]!;

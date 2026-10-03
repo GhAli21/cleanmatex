@@ -74,6 +74,8 @@ export const VARIANCE_APPROVAL_ERRORS = {
   NOT_PENDING_APPROVAL: 'VARIANCE_NOT_PENDING_APPROVAL',
   /** Variance was already approved — approval is single-shot. */
   ALREADY_APPROVED: 'VARIANCE_ALREADY_APPROVED',
+  /** Variance was already rejected (C3) — a decision is final; it is never both approved and rejected. */
+  ALREADY_REJECTED: 'VARIANCE_ALREADY_REJECTED',
   /** A non-empty reason is mandatory for a variance approval. */
   REASON_REQUIRED: 'VARIANCE_REASON_REQUIRED',
 } as const;
@@ -376,16 +378,24 @@ function buildVarianceApprovalDetail(
     variance_approved_by: string | null
     variance_approved_at: Date | null
     variance_approval_reason: string | null
+    variance_rejected_by: string | null
+    variance_rejected_at: Date | null
+    variance_rejection_reason: string | null
   },
   actorMap: Map<string, CashDrawerActorSummary>,
 ): CashDrawerVarianceApproval {
   const required = session.variance_threshold_snapshot != null
   const approved = required && session.variance_approved_by != null
+  const rejected = required && session.variance_rejected_by != null
 
   return {
     required,
-    pending: required && !approved,
+    pending: required && !approved && !rejected,
     approved,
+    rejected,
+    rejectedBy: getActorSummary(actorMap, session.variance_rejected_by),
+    rejectedAt: toIsoString(session.variance_rejected_at),
+    rejectionReason: session.variance_rejection_reason,
     thresholdSnapshot:
       session.variance_threshold_snapshot == null ? null : toMoneyString(session.variance_threshold_snapshot),
     approvedBy: getActorSummary(actorMap, session.variance_approved_by),
@@ -603,19 +613,20 @@ async function loadSummaryData(tenantId: string, sessionId: string): Promise<Sum
  * method stays intentionally lightweight and backward compatible.
  *
  * @param tenantId tenant resolved server-side from the authenticated session
- * @param branchId optional branch filter for branch-scoped drawer consumers
+ * @param branchId optional branch filter (one id, or the actor's permitted branch list) for branch-scoped consumers
  * @returns active drawer rows ordered by creation time
  * @example
  * await getDrawers('tenant-001')
  */
-export async function getDrawers(tenantId: string, branchId?: string) {
+export async function getDrawers(tenantId: string, branchId?: string | readonly string[]) {
   return withTenantContext(tenantId, () =>
     prisma.org_cash_drawers_mst.findMany({
       where: {
         tenant_org_id: tenantId,
         is_active: true,
         rec_status: 1,
-        ...(branchId ? { branch_id: branchId } : {}),
+        // A list restricts to those branches (an empty list matches nothing — B3 branch scope).
+        ...(typeof branchId === 'string' ? { branch_id: branchId } : branchId ? { branch_id: { in: [...branchId] } } : {}),
       },
       orderBy: { created_at: 'asc' },
     }),
@@ -634,7 +645,7 @@ export async function getDrawers(tenantId: string, branchId?: string) {
  */
 export async function getDrawersWithCurrentSession(
   tenantId: string,
-  branchId?: string,
+  branchId?: string | readonly string[],
 ): Promise<CashDrawerWithCurrentSession[]> {
   const drawers = await getDrawers(tenantId, branchId)
 
@@ -709,10 +720,11 @@ export async function getCashDrawerOverviewPage(
   tenantId: string,
   page: number,
   pageSize: number,
+  branchIds?: readonly string[],
 ): Promise<CashDrawerOverviewListResult> {
   const safePage = clampPage(page)
   const safePageSize = clampPageSize(pageSize)
-  const drawers = await getDrawers(tenantId)
+  const drawers = await getDrawers(tenantId, branchIds)
 
   if (drawers.length === 0) {
     return {

@@ -4,6 +4,7 @@ import { requireAllPermissions } from '@/lib/middleware/require-permission';
 import { autoLinkDrawer } from '@/lib/services/pos-session.service';
 import { posSessionAutoLinkDrawerSchema } from '@/lib/validations/pos-session-schemas';
 import { posSessionErrorResponse, posSessionResponse } from '../_response';
+import { guardBranchIds } from '@/lib/api/branch-access-guard';
 
 /**
  * POST /api/v1/pos-sessions/auto-link-drawer
@@ -23,6 +24,10 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
   }
+
+  // B3: the branch the session is opened/linked in must be one the actor may operate on.
+  const branchDenied = parsed.data.branchId ? await guardBranchIds(auth, [parsed.data.branchId]) : null;
+  if (branchDenied) return branchDenied;
 
   try {
     const result = await autoLinkDrawer({

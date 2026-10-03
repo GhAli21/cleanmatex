@@ -31,10 +31,10 @@ agents:
 ### Phase 2: Database
 - [ ] Check if tables exist (use table-check-workflow)
 - [ ] Create migrations for new tables
-- [ ] Add composite foreign keys for tenant isolation
+- [ ] Add composite foreign keys for tenant isolation — FK + 1:1 UNIQUE + parent key use the **same column order** (`/database` Prisma-safe FKs). If parent is `(id, tenant_org_id)`, child is `(parent_id, tenant_org_id)` (tenant second). Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`.
 - [ ] Enable RLS policies
-- [ ] Add standard indexes
-- [ ] Update Prisma schema
+- [ ] Add standard indexes (list indexes stay tenant-first; that is not the FK order)
+- [ ] Sync Prisma with `db pull` + `validate` + `generate` (do not hand-edit generated 1:1s to `[]`)
 - [ ] **Permissions** — migration seeds DB; add `{DOMAIN}_PERMISSIONS` in `lib/constants/permissions/{domain}-perm.ts`
 - [ ] **Navigation** (menu-visible routes) — `/navigation` dual-write: `navigation.ts` + `sys_components_cd` migration **before** derive (derive reads `navigation.ts` for `page.permissions`)
 - [ ] **Access contract** — load `/rebuild-ui-access-contract`; do **not** hand-write full `*-access.ts` from scratch:

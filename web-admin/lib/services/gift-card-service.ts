@@ -135,6 +135,44 @@ function toNum(v: { toNumber(): number } | number | null | undefined): number {
   return v.toNumber();
 }
 
+/**
+ * `org_gift_cards_mst.issued_to_customer_id` carries no database foreign key (only
+ * `purchased_by_cust_id` does), so there is no Prisma relation to include: the holder's name is
+ * resolved with one tenant-scoped lookup for all the cards instead. A lookup keyed on the column
+ * keeps working across `prisma db pull`, which can only ever generate relations the database has.
+ *
+ * @param tenantId tenant of the cards (also filters the customer lookup)
+ * @param cards gift-card rows that carry `issued_to_customer_id`
+ * @returns the same rows plus `issued_to_customer: { name }` (null when not issued to anyone)
+ */
+export async function attachIssuedToCustomers<T extends { issued_to_customer_id: string | null }>(
+  tenantId: string,
+  cards: T[]
+): Promise<Array<T & { issued_to_customer: { name: string | null } | null }>> {
+  const ids = [...new Set(cards.map((c) => c.issued_to_customer_id).filter((v): v is string => !!v))];
+  const customers = ids.length
+    ? await prisma.org_customers_mst.findMany({
+        where: { tenant_org_id: tenantId, id: { in: ids } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const nameById = new Map(customers.map((c) => [c.id, c.name]));
+  return cards.map((card) => ({
+    ...card,
+    issued_to_customer: card.issued_to_customer_id
+      ? { name: nameById.get(card.issued_to_customer_id) ?? null }
+      : null,
+  }));
+}
+
+/** Single-card form of {@link attachIssuedToCustomers}. */
+export async function attachIssuedToCustomer<T extends { issued_to_customer_id: string | null }>(
+  tenantId: string,
+  card: T
+): Promise<T & { issued_to_customer: { name: string | null } | null }> {
+  return (await attachIssuedToCustomers(tenantId, [card]))[0];
+}
+
 function mapGiftCardToType(
   giftCard: {
     id: string;
@@ -301,10 +339,9 @@ export async function createGiftCard(params: {
         created_at: new Date(),
         created_by: params.createdBy,
       },
-      include: { issued_to_customer: { select: { name: true } } },
     });
 
-    return mapGiftCardToType(giftCard);
+    return mapGiftCardToType(await attachIssuedToCustomer(params.tenantOrgId, giftCard));
   });
 }
 
@@ -425,10 +462,9 @@ export async function adminActivateGiftCard(
 
     const updated = await prisma.org_gift_cards_mst.findFirstOrThrow({
       where: { id, tenant_org_id: tenantOrgId },
-      include: { issued_to_customer: { select: { name: true } } },
     });
 
-    return mapGiftCardToType(updated);
+    return mapGiftCardToType(await attachIssuedToCustomer(tenantOrgId, updated));
   });
 }
 
@@ -493,7 +529,6 @@ export async function validateGiftCard(
           created_by: true,
           updated_at: true,
           updated_by: true,
-          issued_to_customer: { select: { name: true } },
         },
       });
 
@@ -580,7 +615,7 @@ export async function validateGiftCard(
 
       return {
         isValid: true,
-        giftCard: mapGiftCardToType(card),
+        giftCard: mapGiftCardToType(await attachIssuedToCustomer(tenantId, card)),
         availableBalance,
       };
     } catch (error) {
@@ -607,7 +642,6 @@ export async function validateGiftCardByIdForCalculation(
     try {
       const card = await prisma.org_gift_cards_mst.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
-        include: { issued_to_customer: { select: { name: true } } },
       });
 
       if (!card) {
@@ -632,7 +666,7 @@ export async function validateGiftCardByIdForCalculation(
         return { isValid: false, error: 'Gift card has no remaining balance', errorCode: 'INSUFFICIENT_BALANCE' };
       }
 
-      return { isValid: true, giftCard: mapGiftCardToType(card), availableBalance };
+      return { isValid: true, giftCard: mapGiftCardToType(await attachIssuedToCustomer(tenantId, card)), availableBalance };
     } catch (error) {
       logger.error('Error validating gift card by ID', error as Error, {
         feature: 'gift-cards',
@@ -1295,11 +1329,10 @@ export async function getGiftCard(
   return withTenantContext(tenantOrgId, async () => {
     const giftCard = await prisma.org_gift_cards_mst.findFirst({
       where: { id: giftCardId, tenant_org_id: tenantOrgId },
-      include: { issued_to_customer: { select: { name: true } } },
     });
 
     if (!giftCard) return null;
-    return mapGiftCardToType(giftCard);
+    return mapGiftCardToType(await attachIssuedToCustomer(tenantOrgId, giftCard));
   });
 }
 
@@ -1314,11 +1347,10 @@ export async function getGiftCardByCode(
   return withTenantContext(tenantOrgId, async () => {
     const giftCard = await prisma.org_gift_cards_mst.findFirst({
       where: { gift_card_code: code, tenant_org_id: tenantOrgId, is_active: true },
-      include: { issued_to_customer: { select: { name: true } } },
     });
 
     if (!giftCard) return null;
-    return mapGiftCardToType(giftCard);
+    return mapGiftCardToType(await attachIssuedToCustomer(tenantOrgId, giftCard));
   });
 }
 
@@ -1355,7 +1387,6 @@ export async function listGiftCards(params: {
     const [giftCards, total] = await Promise.all([
       prisma.org_gift_cards_mst.findMany({
         where,
-        include: { issued_to_customer: { select: { name: true } } },
         orderBy: { created_at: 'desc' },
         take: params.limit ?? 50,
         skip: params.offset ?? 0,
@@ -1363,7 +1394,8 @@ export async function listGiftCards(params: {
       prisma.org_gift_cards_mst.count({ where }),
     ]);
 
-    return { giftCards: giftCards.map(mapGiftCardToType), total };
+    const withHolders = await attachIssuedToCustomers(tenantId, giftCards);
+    return { giftCards: withHolders.map(mapGiftCardToType), total };
   });
 }
 

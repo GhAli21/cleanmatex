@@ -1,0 +1,30 @@
+{
+  "title": "Cash Variance by Cashier",
+  "description": "How each cashier’s closed drawer sessions came out against the expected cash: how many, the total and average variance, and whether the errors lean towards shortage or overage.",
+  "dateFrom": "Closed from",
+  "dateTo": "Closed to",
+  "branch": "Branch",
+  "allBranches": "All branches",
+  "rangeInvalidTitle": "Check the dates",
+  "rangeInvalid": "The start date must not be after the end date.",
+  "columns": {
+    "cashier": "Cashier",
+    "currency": "Currency",
+    "sessions": "Sessions",
+    "shortOver": "Short / Over",
+    "total": "Net variance",
+    "mean": "Average",
+    "absolute": "Absolute total",
+    "shortageShare": "Short share",
+    "decisions": "Supervisor"
+  },
+  "balanced": "Always balanced",
+  "pending": "{count} pending",
+  "rejected": "{count} rejected",
+  "emptyTitle": "No closed sessions in this range",
+  "emptyDescription": "No closed drawer sessions with a count fall in this period for the branches you can see.",
+  "loadFailed": "Failed to load the cash variance report.",
+  "period": "Closed {from} to {to}",
+  "generatedAt": "Generated {when}",
+  "footnote": "Negative = shortage. Variances of different currencies are never added together. “Short share” is the portion of sessions with a variance that were short; a high share points to a pattern, not a one-off miss. The cashier is the user who opened the drawer session."
+}

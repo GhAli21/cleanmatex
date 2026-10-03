@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { hasPermissionServer } from '@/lib/services/permission-service-server'
 import { validateJWTWithTenant } from './jwt-tenant-validator'
+import { guardSession, isSessionActive } from '@/lib/auth/session-guard'
+import { getCurrentRequestMeta } from '@/lib/services/auth/session/request-meta.server'
 import { logger } from '@/lib/utils/logger'
 
 // ========================
@@ -53,27 +55,15 @@ export async function getAuthContext(): Promise<AuthContext> {
     throw new Error('Unauthorized')
   }
 
-  // Get tenant from JWT metadata (guaranteed by JWT validator)
-  const tenantId = user.user_metadata?.tenant_org_id
-
-  if (!tenantId) {
-    // Fallback to RPC if JWT doesn't have tenant (shouldn't happen with JWT validator)
-    const { data: tenants, error } = await supabase.rpc('get_user_tenants')
-    if (error || !tenants || tenants.length === 0) {
-      throw new Error('No tenant access found')
-    }
-
-    return {
-      user,
-      tenantId: tenants[0].tenant_id as string,
-      userId: user.id as string,
-      userName: user.user_metadata?.full_name || user.email || 'User',
-    }
+  // Tenant comes from the validated session (server-side, membership-based) — never from user metadata.
+  const validation = await guardSession(supabase, await getCurrentRequestMeta())
+  if (!isSessionActive(validation) || !validation.tenantOrgId) {
+    throw new Error('Unauthorized')
   }
 
   return {
     user,
-    tenantId,
+    tenantId: validation.tenantOrgId,
     userId: user.id as string,
     userName: user.user_metadata?.full_name || user.email || 'User',
   }

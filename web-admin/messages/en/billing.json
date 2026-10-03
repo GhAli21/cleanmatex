@@ -88,8 +88,30 @@
     "closeNotes": "Close Notes",
     "forceCloseReason": "Force-Close Reason",
     "varianceThreshold": "Variance Approval Threshold",
+    "recount": {
+      "action": "Recount",
+      "title": "Recount closing cash",
+      "description": "Enter a new physical count for the cash in this drawer. It replaces the closing count against the same cut-off; the earlier count stays in the history.",
+      "currency": "Currency",
+      "previousCount": "Previous count",
+      "confirm": "Record recount",
+      "recorded": "Recount recorded: counted {counted}, variance {variance}.",
+      "failed": "Could not record the recount.",
+      "nothingToRecount": "This session has no closing count to replace yet."
+    },
+    "forceClose": {
+      "action": "Force close",
+      "title": "Force-close this session",
+      "warning": "Use this only when the session cannot be closed the normal way — for example it was abandoned, or the cashier left during the count. The reason is recorded and the closing cash still needs a disposition.",
+      "reason": "Reason",
+      "reasonPlaceholder": "Why is this session being force-closed?",
+      "reasonRequired": "Enter the reason for force-closing this session.",
+      "confirm": "Force close session",
+      "done": "Session force-closed.",
+      "failed": "Could not force-close the session."
+    },
     "varianceApprovalTitle": "Approve Cash Variance",
-    "varianceApprovalWarning": "This session closed with a variance beyond the drawer's threshold. Approval is optional — it records a supervisor sign-off for the audit trail and must be given by a different user than the one who closed the session.",
+    "varianceApprovalWarning": "This session closed with a variance beyond the drawer's threshold. Approval is optional — it records a supervisor sign-off for the audit trail.",
     "varianceApprovalReasonPlaceholder": "Reason for the variance (required to approve)",
     "varianceApprovalPendingBanner": "This session's close variance exceeds the drawer's threshold. Supervisor approval is optional and can be recorded for the audit trail.",
     "varianceApprovedBanner": "Variance approved by {approver} on {date}.",
@@ -183,7 +205,9 @@
       "dispositionNotesRequired": "Notes are required for this disposition.",
       "varianceReason": "Variance reason",
       "varianceReasonRequired": "A reason is required — this close's variance exceeds the drawer's tolerance.",
-      "closedPendingApproval": "Session closed. The variance exceeds the approval threshold and is pending supervisor approval."
+      "closedPendingApproval": "Session closed. The variance exceeds the approval threshold and is pending supervisor approval.",
+      "countMethodFixedDenomination": "Your organization requires counting by denomination.",
+      "countMethodFixedTotal": "Your organization counts the drawer as a single total."
     },
     "columns": {
       "drawerCode": "Drawer Code",
@@ -243,7 +267,10 @@
       "varianceApprovalFailed": "Failed to approve the variance.",
       "varianceAlreadyApproved": "This variance was already approved.",
       "varianceNotPendingApproval": "This session has no variance pending approval.",
-      "varianceReasonRequired": "A reason is required to approve the variance."
+      "varianceReasonRequired": "A reason is required to approve the variance.",
+      "varianceRejected": "Variance rejected.",
+      "varianceRejectFailed": "Failed to reject the variance.",
+      "varianceAlreadyRejected": "This variance was already rejected."
     },
     "tabs": {
       "loadFailed": "Failed to load data",
@@ -343,6 +370,7 @@
       "openingExpected": "Opening (expected)",
       "financeIn": "Finance in",
       "financeOut": "Finance out",
+      "ofWhichChangeRounding": "Of which cash change rounding (net)",
       "custodyIn": "Custody in",
       "custodyOut": "Custody out",
       "closingExpected": "Closing (expected)",
@@ -367,6 +395,17 @@
         "statusRequired": "Select a status",
         "notesRequired": "Notes are required for this status",
         "history": "Change log"
+      },
+      "attribution": {
+        "title": "Cash by POS session",
+        "description": "Who took and paid out cash inside this drawer session. Cash with no POS session attached is shown on its own line, never added to a cashier.",
+        "posSession": "POS session",
+        "cashier": "Cashier",
+        "cashIn": "Cash in",
+        "cashOut": "Cash out",
+        "net": "Net",
+        "lines": "Lines",
+        "unattributed": "No POS session"
       }
     },
     "print": {
@@ -429,6 +468,109 @@
       "emptyDescription": "No closed session has sent cash to a pending-deposit drawer yet.",
       "loadFailed": "Failed to load the follow-up list.",
       "updateTitle": "Update post-close status"
+    },
+    "varianceRejectTitle": "Reject Cash Variance",
+    "varianceRejectWarning": "Rejecting records that this variance is not accepted and must be investigated. The decision is final and is kept with your reason on the audit trail.",
+    "varianceRejectReasonPlaceholder": "Why is the variance rejected? (required)",
+    "varianceRejectedBanner": "Variance rejected by {rejecter} on {date} — under investigation.",
+    "rejectVariance": "Reject Variance",
+    "varianceQueue": {
+      "title": "Variance Approvals",
+      "description": "Closed drawer sessions whose count differed from the expected cash by more than the allowed threshold. Approve to accept the variance, or reject it to flag it for investigation.",
+      "filterDecision": "Decision",
+      "decisions": {
+        "PENDING": "Pending approval",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected",
+        "ALL": "All"
+      },
+      "columns": {
+        "session": "Session",
+        "drawer": "Drawer",
+        "branch": "Branch",
+        "closedAt": "Closed",
+        "closedBy": "Closed by",
+        "variance": "Variance",
+        "threshold": "Threshold",
+        "decision": "Decision",
+        "decidedBy": "Decided by",
+        "reason": "Reason"
+      },
+      "expectedCounted": "Expected {expected} · counted {counted}",
+      "review": "Review",
+      "emptyTitle": "Nothing to review",
+      "emptyDescription": "No drawer sessions match this decision filter.",
+      "loadFailed": "Failed to load the variance approvals.",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "transit": {
+      "title": "Cash In Transit",
+      "description": "Cash that left one drawer and has not reached its destination yet. Send cash, then receive it at the destination, or cancel it back to the source. Each transfer settles exactly once.",
+      "sendCash": "Send cash",
+      "filterStatus": "Status",
+      "statuses": {
+        "IN_TRANSIT": "In transit",
+        "RECEIVED": "Received",
+        "CANCELLED": "Cancelled",
+        "ALL": "All"
+      },
+      "columns": {
+        "no": "Transfer",
+        "branch": "Branch",
+        "route": "From → To",
+        "amount": "Amount",
+        "sent": "Sent by",
+        "status": "Status",
+        "settled": "Settled"
+      },
+      "receive": "Receive",
+      "cancel": "Cancel",
+      "receiveTitle": "Receive cash",
+      "cancelTitle": "Cancel transfer",
+      "receiveBody": "Confirm that {amount} reached {drawer}. The cash is added to that drawer now.",
+      "cancelBody": "The {amount} returns to {drawer}. Give the reason; it stays with the transfer.",
+      "reason": "Reason",
+      "confirmReceive": "Receive cash",
+      "confirmCancel": "Cancel transfer",
+      "received": "Transfer {no} received.",
+      "cancelled": "Transfer {no} cancelled; the cash returned to its source.",
+      "receiveFailed": "Could not receive the transfer.",
+      "cancelFailed": "Could not cancel the transfer.",
+      "emptyTitle": "No transfers",
+      "emptyDescription": "Nothing matches this filter for the branches you can see.",
+      "loadFailed": "Failed to load the transfers.",
+      "send": {
+        "title": "Send cash in transit",
+        "description": "The cash leaves the source drawer now and stays in transit until it is received or cancelled.",
+        "from": "From drawer",
+        "to": "To drawer",
+        "drawerPlaceholder": "Select a drawer",
+        "noDestination": "No other drawer in the same branch and currency can receive this transfer.",
+        "amount": "Amount",
+        "amountInvalid": "Enter a positive amount with at most 4 decimals, for example 25 or 12.500.",
+        "notesOptional": "Note (optional)",
+        "submit": "Send cash",
+        "sent": "Cash sent in transit ({no}).",
+        "failed": "Could not send the cash."
+      }
+    },
+    "denominations": {
+      "title": "Counted denominations",
+      "description": "Choose which notes and coins your business handles and the order they appear when counting a drawer. HQ owns the catalog; switching a denomination off only hides it for new counts. Counts already recorded are not changed.",
+      "currency": "Currency",
+      "noCurrencies": "No cash currency with a denomination catalog is enabled for this organization.",
+      "note": "Note",
+      "coin": "Coin",
+      "accepted": "Accepted",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "resetToHq": "Reset to HQ defaults",
+      "saved": "Denominations saved.",
+      "saveFailed": "Failed to save the denominations.",
+      "viewOnly": "You can view these settings but not change them.",
+      "allOffTitle": "Every denomination is switched off",
+      "allOffBody": "Counting this currency by denomination will not be possible; drawers can still be counted by total."
     }
   },
   "refunds": {
@@ -464,6 +606,7 @@
       "cashDrawerLabel": "Cash drawer session",
       "selectDrawerPlaceholder": "Select an open drawer session",
       "noOpenDrawerSessions": "No open cash-drawer session found — open one from Cash Drawers before processing this refund",
+      "cashRounding": "Cash to hand out: {rounded} {currency}. The refund stays {exact} {currency}; the {difference} {currency} difference is recorded as cash rounding.",
       "manualSettlementReferenceLabel": "Manual settlement reference",
       "manualSettlementReferencePlaceholder": "e.g. bank transfer ref, terminal void slip no., gateway dashboard ref"
     },
@@ -877,7 +1020,8 @@
       "credit_note_expiry": "Credit-Note Expiry",
       "loyalty_points_expiry": "Loyalty Points Expiry",
       "idempotency_cleanup": "Idempotency-Key Cleanup",
-      "erp_posting_retry": "ERP Posting Retry"
+      "erp_posting_retry": "ERP Posting Retry",
+      "pos_session_rollover": "POS Session Rollover"
     },
     "schedules": {
       "outbox_processor": "Every minute",
@@ -885,14 +1029,16 @@
       "credit_note_expiry": "02:05 daily",
       "loyalty_points_expiry": "02:10 daily",
       "idempotency_cleanup": "03:00 daily",
-      "erp_posting_retry": "Hourly at :15"
+      "erp_posting_retry": "Hourly at :15",
+      "pos_session_rollover": "Every 15 minutes"
     },
     "relatedLinks": {
       "outbox_processor": "Event table",
       "gift_card_expiry": "Gift cards",
       "credit_note_expiry": "Stored value",
       "loyalty_points_expiry": "Loyalty program",
-      "erp_posting_retry": "ERP exceptions"
+      "erp_posting_retry": "ERP exceptions",
+      "pos_session_rollover": "POS sessions"
     },
     "statusLabels": {
       "RUNNING": "Running",

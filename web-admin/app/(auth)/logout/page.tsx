@@ -52,21 +52,9 @@ export default function LogoutPage() {
     hasLoggedOutRef.current = true
 
     try {
-      // Call server-side logout API for cache invalidation
-      try {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason }),
-        })
-      } catch (apiError) {
-        // Log but don't fail - client-side logout will still work
-        console.warn('Logout API call failed:', apiError)
-      }
-
-      // Perform client-side logout
+      // signOut is the single sign-out path: it calls the logout API once (ends the server session), clears
+      // this browser's session and caches, notifies other tabs and redirects to /login.
       await signOut(reason)
-      // signOut already redirects to /login
     } catch (error) {
       console.error('Logout error:', error)
       setError(t('error'))

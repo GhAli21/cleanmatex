@@ -16,6 +16,8 @@ import {
   recalcOrderSnapshotIfLinked,
 } from '@/lib/services/voucher-wiring.service';
 import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
+import { postManualVoucherWithPosPolicy } from '@/lib/services/voucher-pos-session.service';
+import { PosSessionError } from '@/lib/services/pos-session.service';
 import type { PostAndWireResult, LinkedEffectsResult } from '@/lib/types/voucher-wiring';
 import { z } from 'zod';
 import { reverseBizVoucher, type ReverseBizVoucherOptions } from '@/lib/services/voucher-reversal.service';
@@ -91,13 +93,21 @@ export async function updateBizVoucherAction(
 export async function postBizVoucherAction(
   voucherId: string,
   idempotencyKey?: string
-): Promise<{ success: boolean; data?: PostAndWireResult; error?: string }> {
+): Promise<{
+  success: boolean;
+  data?: PostAndWireResult;
+  error?: string;
+  /** Stable code for a POS-session refusal (POS_SESSION_REQUIRED, ...) so the dialog can translate it. */
+  errorCode?: string;
+  errorDetails?: Record<string, unknown>;
+}> {
   try {
     const auth = await getAuthContext();
     const hasPerm = await hasPermissionServer('fin_vouchers:post');
     if (!hasPerm) return { success: false, error: 'Permission denied: fin_vouchers:post' };
 
-    const result = await postAndWireBizVoucher(auth.tenantId, voucherId, auth.userId, CASH_GATE_MODES.DEFERRED, idempotencyKey);
+    // MANUAL_VOUCHER POS-session policy is applied in the same transaction as the post.
+    const result = await postManualVoucherWithPosPolicy(auth.tenantId, auth.userId, voucherId, idempotencyKey);
 
     // X5 fix — refresh the linked order's snapshot after a manual voucher post.
     // recalcOrderSnapshotIfLinked is a no-op for non-order vouchers.
@@ -112,6 +122,9 @@ export async function postBizVoucherAction(
     }
     return { success: true, data: result };
   } catch (error) {
+    if (error instanceof PosSessionError) {
+      return { success: false, error: error.message, errorCode: error.code, errorDetails: error.details };
+    }
     return { success: false, error: error instanceof Error ? error.message : 'Failed to post voucher' };
   }
 }

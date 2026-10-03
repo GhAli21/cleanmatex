@@ -1,3 +1,4 @@
+import { guardDrawerBranch } from '@/lib/api/branch-access-guard';
 /**
  * GET /api/v1/cash-drawers/[drawerId]/sessions
  *
@@ -25,6 +26,8 @@ export async function GET(
   if (auth instanceof NextResponse) return auth
 
   const { drawerId } = await params
+  const branchDenied = await guardDrawerBranch(auth, drawerId);
+  if (branchDenied) return branchDenied;
   const query = Object.fromEntries(request.nextUrl.searchParams.entries())
   const parsed = cashDrawerSessionsQuerySchema.safeParse(query)
   if (!parsed.success) {

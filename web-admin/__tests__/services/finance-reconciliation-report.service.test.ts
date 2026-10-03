@@ -24,6 +24,8 @@ jest.mock('@/lib/db/prisma', () => ({
     org_cash_drawer_sessions_mst: { findMany: jest.fn() },
     // Frozen closing figures come from the per-currency balance rows.
     org_cash_drawer_ses_bal_dtl: { findMany: jest.fn() },
+    // E3-2: counted cash is judged against each session currency's own minor unit.
+    sys_currency_cd: { findMany: jest.fn() },
     // CLF-6-2: the cash-drawer recon report sums the unified ledger via
     // `sumLedgerTotalsBySession` (cash-drawer-balance.service.ts) instead of
     // the retired `org_cash_drawer_movements_dtl` formula — one `$queryRaw`
@@ -52,6 +54,7 @@ const mockPrisma = prisma as unknown as {
   org_credit_notes_mst: { findMany: Fn };
   org_cash_drawer_sessions_mst: { findMany: Fn };
   org_cash_drawer_ses_bal_dtl: { findMany: Fn };
+  sys_currency_cd: { findMany: Fn };
   org_fin_voucher_trx_lines_dtl: { groupBy: Fn };
   org_cash_drawer_trx_dtl: { groupBy: Fn };
   $queryRaw: Fn;
@@ -61,6 +64,11 @@ const TENANT = '11111111-1111-1111-1111-111111111111';
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Sessions are judged against the minor unit of their own currency (E3-2).
+  mockPrisma.sys_currency_cd.findMany.mockResolvedValue([
+    { code: 'OMR', minor_unit: 3 },
+    { code: 'AED', minor_unit: 2 },
+  ]);
 });
 
 describe('getExcessLiabilityReport', () => {
@@ -216,6 +224,41 @@ describe('getCashDrawerReconReport', () => {
       totalDifference: -10,
       totalUnlinkedMovements: 0,
     });
+  });
+
+  it('judges counted cash against half the smallest unit of EACH session currency (E3-2)', async () => {
+    // A 0.004 difference is 4 baisa: real money on a 3-decimal currency (tolerance 0.0005), but noise on a
+    // 2-decimal one (tolerance 0.005). The flat 0.01 the report used to apply accepted both.
+    mockPrisma.org_cash_drawer_sessions_mst.findMany.mockResolvedValueOnce([
+      {
+        id: 'sess-omr', session_no: 'CDS-OMR', status: 'CLOSED', currency_code: 'OMR',
+        opened_at: new Date('2026-06-10T08:00:00Z'), closed_at: new Date('2026-06-10T18:00:00Z'),
+        opening_float_amount: 100,
+      },
+      {
+        id: 'sess-aed', session_no: 'CDS-AED', status: 'CLOSED', currency_code: 'AED',
+        opened_at: new Date('2026-06-10T08:00:00Z'), closed_at: new Date('2026-06-10T18:00:00Z'),
+        opening_float_amount: 100,
+      },
+    ]);
+    mockPrisma.org_cash_drawer_ses_bal_dtl.findMany.mockResolvedValueOnce([
+      { cash_drawer_session_id: 'sess-omr', currency_code: 'OMR', closing_expected: 150, closing_counted: 149.996, closing_variance: -0.004 },
+      { cash_drawer_session_id: 'sess-aed', currency_code: 'AED', closing_expected: 150, closing_counted: 149.996, closing_variance: -0.004 },
+    ]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([
+      { session_id: 'sess-omr', domain: 'FIN', direction: 'IN', total: 50 },
+      { session_id: 'sess-aed', domain: 'FIN', direction: 'IN', total: 50 },
+    ]);
+    mockPrisma.org_fin_voucher_trx_lines_dtl.groupBy.mockResolvedValueOnce([
+      { cash_drawer_session_id: 'sess-omr', _count: { _all: 1 } },
+      { cash_drawer_session_id: 'sess-aed', _count: { _all: 1 } },
+    ]);
+    mockPrisma.org_cash_drawer_trx_dtl.groupBy.mockResolvedValueOnce([]);
+
+    const report = await getCashDrawerReconReport({ tenantOrgId: TENANT });
+
+    expect(report.rows.find((r) => r.sessionId === 'sess-omr')).toMatchObject({ isReconciled: false });
+    expect(report.rows.find((r) => r.sessionId === 'sess-aed')).toMatchObject({ isReconciled: true });
   });
 
   it('treats a closed session with no ledger activity as reconciled (predates CLF)', async () => {

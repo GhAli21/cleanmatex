@@ -34,6 +34,9 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
+import { needsDrawerSelection } from '@features/pos-sessions/model/pos-session-drawer-link';
+import { PosSessionAttentionNotice, PosSessionFlagBadges } from '@features/pos-sessions/ui/pos-session-flags';
+import { getPosSessionFlags, posSessionErrorKey } from '@features/pos-sessions/model/pos-session-flags';
 import {
   fetchMyActivePosSession,
   fetchPosSessionSummary,
@@ -133,7 +136,8 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
         cmxMessage.info(t('messages.drawerStillOpen'));
         return 'drawer-open';
       }
-      cmxMessage.error(error instanceof Error ? error.message : t('messages.actionFailed'));
+      const errorKey = error instanceof PosSessionApiError ? posSessionErrorKey(error.errorCode) : null;
+      cmxMessage.error(errorKey ? t(`errors.${errorKey}`) : error instanceof Error ? error.message : t('messages.actionFailed'));
       return 'error';
     } finally {
       setBusyAction(null);
@@ -215,6 +219,7 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
           </CmxDialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            {activeSession ? <PosSessionAttentionNotice session={activeSession} className="mb-4" /> : null}
             <HubBody
               queryData={activeQuery.data}
               isLoading={activeQuery.isLoading}
@@ -253,7 +258,7 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
                   {t('pause')}
                 </CmxButton>
               ) : null}
-              {activeSession?.status === POS_SESSION_STATUS.PAUSED && canPauseResume ? (
+              {activeSession && getPosSessionFlags(activeSession).canResume && canPauseResume ? (
                 <CmxButton
                   variant="secondary"
                   size="sm"
@@ -443,22 +448,33 @@ function HubBody({
         </CmxCardHeader>
         <CmxCardContent>
           {canViewCashDrawer ? (
-            session.cash_drawer_session_id ? (
+            needsDrawerSelection(session) ? (
+              session.status === POS_SESSION_STATUS.OPEN ? (
+                <div className="space-y-3">
+                  {session.cash_drawer_session_id ? (
+                    <DrawerSessionClosedNotice
+                      drawerName={session.cash_drawer_name}
+                      sessionNo={session.cash_drawer_session_no}
+                      status={session.cash_drawer_session_status}
+                    />
+                  ) : null}
+                  <PosSessionDrawerLinker
+                    branchId={session.branch_id}
+                    posSessionId={session.id}
+                    canViewCashDrawer={canViewCashDrawer}
+                    canOpenCashDrawer={canOpenCashDrawer}
+                    onLinked={onDrawerLinked}
+                  />
+                </div>
+              ) : (
+                <DrawerSetupPausedNotice />
+              )
+            ) : (
               <InfoGrid>
                 <InfoTile label={t('cashDrawer')} value={session.cash_drawer_name ?? t('hub.drawerNotLinked')} />
                 <InfoTile label={t('drawerSession')} value={session.cash_drawer_session_no ?? session.cash_drawer_session_id ?? t('none')} />
                 <InfoTile label={t('status')} value={session.cash_drawer_session_status ?? t('none')} />
               </InfoGrid>
-            ) : session.status === POS_SESSION_STATUS.OPEN ? (
-              <PosSessionDrawerLinker
-                branchId={session.branch_id}
-                posSessionId={session.id}
-                canViewCashDrawer={canViewCashDrawer}
-                canOpenCashDrawer={canOpenCashDrawer}
-                onLinked={onDrawerLinked}
-              />
-            ) : (
-              <DrawerSetupPausedNotice />
             )
           ) : (
             <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
@@ -503,6 +519,30 @@ function HubBody({
   );
 }
 
+function DrawerSessionClosedNotice({
+  drawerName,
+  sessionNo,
+  status,
+}: {
+  drawerName: string | null | undefined;
+  sessionNo: string | null | undefined;
+  status: string | null | undefined;
+}) {
+  const t = useTranslations('posSessions');
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+      <p className="font-medium">{t('drawerSessionClosedTitle')}</p>
+      <p className="mt-1 text-amber-900">
+        {t('drawerSessionClosedDescription', {
+          drawer: drawerName ?? t('none'),
+          sessionNo: sessionNo ?? t('none'),
+          status: status ?? t('none'),
+        })}
+      </p>
+    </div>
+  );
+}
+
 function DrawerSetupPausedNotice() {
   const t = useTranslations('posSessions');
   return (
@@ -527,7 +567,12 @@ function HubTriggerStatus({
   if (queryData?.type === 'BRANCH_CONFLICT') return <Badge variant="destructive">{t('hub.branchConflictBadge')}</Badge>;
   if (queryData?.type === 'ACTIVE') {
     const tone = queryData.session.status === POS_SESSION_STATUS.PAUSED ? 'warning' : 'success';
-    return <Badge variant={tone}>{queryData.session.status}</Badge>;
+    return (
+      <>
+        <Badge variant={tone}>{queryData.session.status}</Badge>
+        <PosSessionFlagBadges session={queryData.session} />
+      </>
+    );
   }
   return <Badge variant="info">{t('hub.autoOpen')}</Badge>;
 }
@@ -544,7 +589,12 @@ function HubPanelStatus({
   if (isLoading || isError || !queryData || queryData.type !== 'ACTIVE') {
     return <HubTriggerStatus queryData={queryData} isLoading={isLoading} isError={isError} />;
   }
-  return <CmxStatusBadge label={queryData.session.status} variant={statusVariant(queryData.session.status)} size="sm" />;
+  return (
+    <>
+      <CmxStatusBadge label={queryData.session.status} variant={statusVariant(queryData.session.status)} size="sm" />
+      <PosSessionFlagBadges session={queryData.session} />
+    </>
+  );
 }
 
 function InfoGrid({ children }: { children: ReactNode }) {

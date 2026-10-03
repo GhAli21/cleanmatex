@@ -10,6 +10,8 @@
   "historyTitle": "Session history",
   "historyDescription": "Review current and closed POS sessions for audit and reconciliation support.",
   "openSession": "Open session",
+  "drawerSessionClosedTitle": "Cash drawer session closed",
+  "drawerSessionClosedDescription": "{drawer} ({sessionNo}) is {status}. Select an open drawer or open a new one to continue.",
   "pause": "Pause",
   "resume": "Resume",
   "close": "Close",
@@ -18,6 +20,7 @@
   "cancel": "Cancel",
   "viewSummary": "View summary",
   "viewEvents": "View events",
+  "viewReport": "Shift report",
   "audit": "Audit",
   "events": "Session events",
   "eventsDescription": "Read-only lifecycle events recorded for this POS session.",
@@ -186,5 +189,19 @@
     "selectUserAndBranch": "Select a user and a branch before opening a session.",
     "openedForUser": "POS session opened for the selected user.",
     "actingOnOtherUser": "You are managing {operator}'s session, not your own."
+  },
+  "flags": {
+    "stale": "Stale",
+    "rolledOver": "Rolled over",
+    "autoClosed": "Auto-closed",
+    "rolledOverTitle": "The business day changed",
+    "rolledOverBody": "This session was paused because the business day changed, so it cannot be resumed. Close it, then open a new session to keep taking payments.",
+    "staleTitle": "This session has been open for a long time",
+    "staleBody": "Close it or hand it over so the day can be reconciled."
+  },
+  "errors": {
+    "rolledOver": "This session was paused because the business day changed. Close it and open a new session.",
+    "timezoneNotConfigured": "No timezone is set for this branch or organization. Ask an administrator to set one before opening a session.",
+    "drawerSessionExclusive": "This cash drawer session is already in use by another POS session, and sharing a drawer session is turned off for it."
   }
 }

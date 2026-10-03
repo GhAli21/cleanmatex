@@ -1,3 +1,4 @@
+import { guardCashDrawerSessionBranch } from '@/lib/api/branch-access-guard';
 /**
  * POST /api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance
  *
@@ -31,6 +32,7 @@ const schema = z.object({
 const ERROR_STATUS: Record<string, number> = {
   [VARIANCE_APPROVAL_ERRORS.NOT_PENDING_APPROVAL]: 409,
   [VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED]: 409,
+  [VARIANCE_APPROVAL_ERRORS.ALREADY_REJECTED]: 409,
   [VARIANCE_APPROVAL_ERRORS.REASON_REQUIRED]: 400,
 }
 
@@ -54,6 +56,8 @@ export async function POST(
   const { tenantId, userId } = auth
 
   const { sessionId } = await params
+  const sessionDenied = await guardCashDrawerSessionBranch(auth, sessionId);
+  if (sessionDenied) return sessionDenied;
   const body = await request.json().catch(() => null)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {

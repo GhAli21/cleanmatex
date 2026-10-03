@@ -199,6 +199,9 @@ export function CashDrawerSessionPrintRprt({
                     <SummaryRow label={tClosure('openingExpected')} value={bfmt(b.openingExpected)} isRTL={isRTL} />
                     <SummaryRow label={tClosure('financeIn')} value={bfmt(b.finIn)} isRTL={isRTL} valueClass="text-green-700" />
                     <SummaryRow label={tClosure('financeOut')} value={`−${bfmt(b.finOut)}`} isRTL={isRTL} valueClass="text-red-600" />
+                    {Number(b.changeRounding) !== 0 ? (
+                      <SummaryRow label={tClosure('ofWhichChangeRounding')} value={bfmt(b.changeRounding)} isRTL={isRTL} />
+                    ) : null}
                     <SummaryRow label={tClosure('custodyIn')} value={bfmt(b.trxIn)} isRTL={isRTL} valueClass="text-green-700" />
                     <SummaryRow label={tClosure('custodyOut')} value={`−${bfmt(b.trxOut)}`} isRTL={isRTL} valueClass="text-red-600" />
                     {b.closingExpected !== null ? (

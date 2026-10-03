@@ -54,6 +54,32 @@ Rules:
 
 Full detail + CHECK constraint template: `reference-original.md` → "Multi-Currency Transaction Standard".
 
+## Prisma-safe composite FKs (MUST — write-time)
+
+**Invariant:** FK columns + 1:1 UNIQUE + referenced parent key = **same columns, same order**.
+Postgres treats `(a,b)` and `(b,a)` as the same unique. Prisma 6 does not (`db pull` → P1012).
+
+| Parent key already in DB | Child FK and 1:1 UNIQUE must be | Tenant position |
+|---|---|---|
+| `(id, tenant_org_id)` | `(parent_id, tenant_org_id)` | **second** — this is `0553` |
+| `(tenant_org_id, id)` | `(tenant_org_id, parent_id)` | first |
+
+**MUST**
+- Look up the parent unique/PK **before** writing the child FK. Copy that order. Do not invent a new order.
+- If the child is 1:1, add a UNIQUE on the **full** FK column list in that same order (a unique on `parent_id` alone is not enough for Prisma).
+- List indexes stay tenant-first: `idx_*(tenant_org_id, …)`. Index order ≠ Prisma 1:1 unique/FK order.
+
+**MUST NOT**
+- `UNIQUE (tenant_org_id, parent_id)` + `FOREIGN KEY (parent_id, tenant_org_id)` (order mismatch → P1012).
+- Flip an existing FK to tenant-first just to match index style. Either match the FK, or rebuild FK + unique + referenced key together.
+- `ON DELETE SET NULL` on a composite FK that includes required `tenant_org_id`. Use `RESTRICT` / `NO ACTION` / `CASCADE`. Optional detach: PG 15+ `ON DELETE SET NULL (branch_id)` only.
+- “Fix” P1012 by changing `org_asm_tasks_mst` / `org_pck_packing_lists_mst` on `org_orders_mst` from `?` to `[]`. Those are real 1:1s.
+- Make `tenant_org_id` optional to silence Prisma `SetNull` warnings.
+
+**After pull:** from the repo root, `npm run prisma:pull` (no `cd web-admin`). It auto-patches `@ignore` on `cmx_effective_permissions[]` via `scripts/prisma-patch-after-pull.mjs`. Mass `onDelete: SetNull` warnings are not P1012.
+
+Details + SQL: `reference-original.md` → "Composite Foreign Keys".
+
 ## Workflow
 
 ```text

@@ -9,8 +9,12 @@
 jest.mock('server-only', () => ({}));
 
 const mockCurrencyFind = jest.fn();
+const mockLineFindMany = jest.fn();
 jest.mock('@/lib/db/prisma', () => ({
-  prisma: { sys_currency_cd: { findUnique: (...a: unknown[]) => mockCurrencyFind(...a) } },
+  prisma: {
+    sys_currency_cd: { findUnique: (...a: unknown[]) => mockCurrencyFind(...a) },
+    org_fin_voucher_trx_lines_dtl: { findMany: (...a: unknown[]) => mockLineFindMany(...a) },
+  },
 }));
 
 const mockSettings = jest.fn();
@@ -51,7 +55,9 @@ jest.mock('@/lib/services/erp-lite-auto-post.util', () => ({
 }));
 
 import {
+  getOrderCashChangeRounding,
   planCashChangeRounding,
+  planCashRefundRounding,
   postCashChangeRoundingTx,
   resolveCashChangeRoundingPolicy,
 } from '@/lib/services/cash-change-rounding.service';
@@ -127,6 +133,29 @@ describe('planCashChangeRounding', () => {
   });
 });
 
+describe('planCashRefundRounding (A6 follow-up)', () => {
+  it('rounds the payout under the bearer policy: BUSINESS pays up, recorded as a loss', async () => {
+    const plan = await planCashRefundRounding(scope, { currencyCode: 'OMR', amount: 10.003 });
+    expect(plan).toMatchObject({ currencyCode: 'OMR', exactChange: 10.003, roundedChange: 10.005 });
+    expect(plan!.adjustment).toBeCloseTo(-0.002, 6);
+  });
+
+  it('CUSTOMER bearer pays down, recorded as a gain; the payout is never capped by a tender', async () => {
+    mockSettings.mockResolvedValue(settings({ cashChangeBearer: 'CUSTOMER' }));
+    const plan = await planCashRefundRounding(scope, { currencyCode: 'OMR', amount: 10.003 });
+    expect(plan).toMatchObject({ roundedChange: 10 });
+    expect(plan!.adjustment).toBeCloseTo(0.003, 6);
+  });
+
+  it('returns null when nothing applies: no increment, already on the increment, or no amount', async () => {
+    mockHqRule.mockResolvedValue(null);
+    expect(await planCashRefundRounding(scope, { currencyCode: 'OMR', amount: 10.003 })).toBeNull();
+    mockHqRule.mockResolvedValue({ roundingMethod: 'HALF_UP', roundingUnit: 0.005 });
+    expect(await planCashRefundRounding(scope, { currencyCode: 'OMR', amount: 10 })).toBeNull();
+    expect(await planCashRefundRounding(scope, { currencyCode: 'OMR', amount: 0 })).toBeNull();
+  });
+});
+
 describe('postCashChangeRoundingTx', () => {
   const findLine = jest.fn();
   const tx = { org_fin_voucher_trx_lines_dtl: { findFirst: (...a: unknown[]) => findLine(...a) } } as never;
@@ -141,6 +170,11 @@ describe('postCashChangeRoundingTx', () => {
     mockAddLine.mockResolvedValue({ id: 'l-1', line_no: 1 });
     mockPostWire.mockResolvedValue({ voucherId: 'v-1' });
     mockDispatchCash.mockResolvedValue({ status: 'executed' });
+  });
+
+  it('labels the voucher with the wording the caller passes (refund rounding)', async () => {
+    await postCashChangeRoundingTx(tx, ctx, { ...input, orderId: 'o-1', rounding: loss, label: 'Cash refund rounding' });
+    expect(mockCreateVoucher.mock.calls[0][1].description).toBe('Cash refund rounding loss');
   });
 
   it('posts a loss as an OUT line in the payment drawer session, anchored to the order', async () => {
@@ -238,5 +272,28 @@ describe('postCashChangeRoundingTx', () => {
     findLine.mockResolvedValue({ cash_drawer_session_id: 'sess-1', cash_drawer_id: null });
     expect(await postCashChangeRoundingTx(tx, ctx, { ...input, rounding: loss })).toBeNull();
     expect(mockCreateVoucher).not.toHaveBeenCalled();
+  });
+});
+
+describe('getOrderCashChangeRounding', () => {
+  it('nets posted rounding lines per currency (IN = gain, OUT = loss), tenant-scoped, and drops zero nets', async () => {
+    mockLineFindMany.mockResolvedValue([
+      { direction: 'OUT', amount: '0.003', currency_code: 'OMR' },
+      { direction: 'IN', amount: '0.002', currency_code: 'OMR' },
+      { direction: 'IN', amount: '0.5', currency_code: 'USD' },
+      { direction: 'OUT', amount: '0.5', currency_code: 'USD' },
+    ]);
+    const res = await getOrderCashChangeRounding(TENANT, 'o-1');
+    expect(res).toEqual([{ currencyCode: 'OMR', adjustment: -0.001 }]);
+    expect(mockLineFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          tenant_org_id: TENANT,
+          order_id: 'o-1',
+          line_role: 'CASH_CHANGE_ROUNDING',
+          line_status: 'POSTED',
+        },
+      }),
+    );
   });
 });

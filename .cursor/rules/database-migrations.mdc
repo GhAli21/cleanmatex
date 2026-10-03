@@ -31,3 +31,11 @@ alwaysApply: true
 - ✅ Creating `0164_fix_stng_resolver_stng_code_ambiguity.sql` with the fix
 
 See: `CLAUDE.md` (Database Quick Rules), `.cursor/rules/supabaserules.mdc` (Migration Rules), `/database` skill.
+
+## Prisma-safe composite FKs
+
+When a migration adds a composite FK or a 1:1 unique: child FK + 1:1 UNIQUE + referenced parent key MUST use the same columns in the same order. If the parent key is `(id, tenant_org_id)`, the child is `(parent_id, tenant_org_id)` (tenant **second** — `0553`). If the parent is `(tenant_org_id, id)`, the child is tenant-first. List indexes stay tenant-first. Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. Full rule: `.claude/skills/database/SKILL.md`.
+
+## Pull Prisma (on demand)
+
+**Not a mandatory preload.** After the user applies a migration, on P1012/schema drift, or when asked to pull/sync Prisma, invoke `/pull-prisma` or run from the repo root: `npm run prisma:pull` (no `cd web-admin`). That includes the post-pull `@ignore` patch. Skill: `.cursor/skills/pull-prisma/SKILL.md`. Command: `/pull-prisma`.

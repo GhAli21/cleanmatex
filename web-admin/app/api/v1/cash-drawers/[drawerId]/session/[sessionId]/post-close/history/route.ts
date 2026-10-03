@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { listPostCloseHistory } from '@/lib/services/cash-drawer-session.service';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { guardCashDrawerSessionBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * GET /api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close/history
@@ -21,6 +22,8 @@ export async function GET(
   const { tenantId } = auth;
 
   const { sessionId } = await params;
+  const sessionDenied = await guardCashDrawerSessionBranch(auth, sessionId);
+  if (sessionDenied) return sessionDenied;
 
   try {
     const rows = await listPostCloseHistory(tenantId, sessionId);

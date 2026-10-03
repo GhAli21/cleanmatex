@@ -64,6 +64,8 @@ import { deriveQuickTenderChips } from '@features/orders/ui/payment-modal-v4.uti
 import type { CheckoutSettlementOption } from '@features/orders/hooks/use-payment-catalog';
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
+import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
+import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 import type { GetMyActivePosSessionResult } from '@/lib/types/pos-session';
 
 /**
@@ -274,6 +276,8 @@ export function OrderCollectPaymentModal({
    * it disappears before the cashier can read, let alone act on, the reason.
    */
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // B1: set when the server refused with POS_SESSION_REQUIRED — drives the inline "Open POS session" offer.
+  const [posSessionRequired, setPosSessionRequired] = useState<PosSessionRequiredInfo | null>(null);
   /**
    * True once the cashier edits the amount. Gates whether a late authoritative
    * balance may re-prefill the field: overwriting typed money would be a silent
@@ -679,6 +683,7 @@ export function OrderCollectPaymentModal({
       setCashLegRef(crypto.randomUUID());
       setAmountDirty(false);
       setSubmitError(null);
+      setPosSessionRequired(null);
       setMethodsError(null);
       setReference('');
       setCheckNumber('');
@@ -786,6 +791,7 @@ export function OrderCollectPaymentModal({
     }
     setSubmitting(true);
     setSubmitError(null);
+    setPosSessionRequired(null);
     try {
       const legsWithRefs = ensurePaymentLegRefs([
         {
@@ -867,6 +873,7 @@ export function OrderCollectPaymentModal({
                   : errorCode && tLedger.has(errorCode)
                     ? tLedger(errorCode as Parameters<typeof tLedger>[0])
                     : null;
+        setPosSessionRequired(readPosSessionRequired(json));
         throw new Error(mapped ?? json.error ?? t('submitError'));
       }
       cmxMessage.success(t('success'));
@@ -1005,6 +1012,19 @@ export function OrderCollectPaymentModal({
 
             {submitError ? (
               <CmxSummaryMessage type="error" title={t('submitError')} items={[submitError]} />
+            ) : null}
+            {posSessionRequired ? (
+              <PosSessionRequiredAction
+                info={{ ...posSessionRequired, branchId: posSessionRequired.branchId ?? branchId ?? null }}
+                idempotencyKey={idempotencyKey}
+                sourceChannel="collect_payment"
+                className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}
+                onOpened={async () => {
+                  await activePosSessionQuery.refetch();
+                  setPosSessionRequired(null);
+                  setSubmitError(null);
+                }}
+              />
             ) : null}
 
             {methodsLoading ? (

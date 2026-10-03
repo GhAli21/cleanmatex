@@ -5,6 +5,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { openSession } from '@/lib/services/cash-drawer-session.service';
 import { openSessionRequestSchema } from '@/lib/validations/cash-drawer/session-schemas';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { guardDrawerBranch } from '@/lib/api/branch-access-guard';
 
 /**
  * POST /api/v1/cash-drawers/[drawerId]/open-session-v2
@@ -30,6 +31,8 @@ export async function POST(
   const { tenantId, userId } = auth;
 
   const { drawerId } = await params;
+  const branchDenied = await guardDrawerBranch(auth, drawerId);
+  if (branchDenied) return branchDenied;
   const body = await request.json().catch(() => null);
   const parsed = openSessionRequestSchema.safeParse(body);
   if (!parsed.success) {
