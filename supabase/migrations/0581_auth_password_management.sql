@@ -35,8 +35,9 @@ COMMENT ON COLUMN public.org_users_mst.pwd_changed_at IS
 -- tenant membership, so there is no tenant_org_id here. Service-role / definer access only.
 CREATE TABLE IF NOT EXISTS public.sys_auth_pwd_history_dtl (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),            -- Row identity.
-  auth_user_id  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, -- Owner; history disappears with the account.
+  auth_user_id  UUID NOT NULL,-- REFERENCES auth.users(id) ON DELETE CASCADE, -- Owner; history disappears with the account.
   password_hash TEXT NOT NULL,                                         -- Previous bcrypt hash copied from auth.users.encrypted_password.
+  rec_notes     TEXT,                                                  -- Optional free-form note (who/how is recorded in sys_auth_audit_log, not here).
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()                     -- When this password was replaced.
 );
 
@@ -45,6 +46,7 @@ COMMENT ON TABLE public.sys_auth_pwd_history_dtl IS
 COMMENT ON COLUMN public.sys_auth_pwd_history_dtl.id IS 'Row identity.';
 COMMENT ON COLUMN public.sys_auth_pwd_history_dtl.auth_user_id IS 'Owning auth.users row (cascade delete).';
 COMMENT ON COLUMN public.sys_auth_pwd_history_dtl.password_hash IS 'Previous bcrypt hash; never plaintext.';
+COMMENT ON COLUMN public.sys_auth_pwd_history_dtl.rec_notes IS 'Optional note. Who changed the password and how (self/admin/HQ/link, email sent) is audited in sys_auth_audit_log.details, not here.';
 COMMENT ON COLUMN public.sys_auth_pwd_history_dtl.created_at IS 'Time the password was replaced.';
 
 CREATE INDEX IF NOT EXISTS idx_auth_pwd_hist_user
@@ -96,8 +98,8 @@ CREATE TRIGGER trg_auth_pwd_capture
   FOR EACH ROW
   WHEN (OLD.encrypted_password IS DISTINCT FROM NEW.encrypted_password)
   EXECUTE FUNCTION public.fn_auth_pwd_capture();
-COMMENT ON TRIGGER trg_auth_pwd_capture ON auth.users IS
-  'Captures password history for every change path (tenant app, HQ, recovery).';
+-- No COMMENT ON TRIGGER here: the migration role does not own auth.users (it may create triggers, not comment on them).
+-- Purpose: captures password history for every change path (tenant app, HQ, recovery).
 
 -- Reuse check: true when p_new_password equals the CURRENT password or one of the most recent previous ones, so that
 -- the last p_depth passwords (current included) cannot be reused. p_depth = 0 disables the rule.

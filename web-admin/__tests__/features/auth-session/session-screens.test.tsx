@@ -11,6 +11,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const mockPermissions = new Set<string>();
 const mockRevoke = jest.fn();
 const mockChangePassword = jest.fn();
+const mockSignOut = jest.fn();
+const mockSendLink = jest.fn();
+const mockPolicy = {
+  current: { requireCurrent: true, freshSigninMin: 15, historyCount: 5, breachCheck: true, canEmailLink: true, maskedEmail: 'm***@example.com', mustChange: false },
+};
 const mockMessage = { error: jest.fn(), success: jest.fn(), warning: jest.fn(), info: jest.fn() };
 
 jest.mock('next-intl', () => ({
@@ -23,6 +28,8 @@ jest.mock('next-intl', () => ({
 }));
 // The primitives barrel pulls in the tenant-currency context (and with it the Supabase browser client).
 jest.mock('@lib/context/tenant-currency-context', () => ({ useTenantCurrency: () => ({}) }));
+// ChangePasswordCard signs the user out through the auth context (pulls the Supabase browser client otherwise).
+jest.mock('@/lib/auth/auth-context', () => ({ useAuth: () => ({ signOut: (...a: unknown[]) => mockSignOut(...a) }) }));
 jest.mock('@/lib/hooks/use-has-permission', () => ({ useHasPermission: (r: string, a: string) => mockPermissions.has(`${r}:${a}`) }));
 jest.mock('@ui/feedback', () => ({
   // Lazy wrappers: the factory runs at import time, before the const below is initialized.
@@ -56,7 +63,12 @@ jest.mock('@features/auth-session/api/sessions-api', () => {
 });
 jest.mock('@features/auth-session/api/password-api', () => {
   const actual = jest.requireActual('@features/auth-session/api/password-api');
-  return { ...actual, changePassword: (...a: unknown[]) => mockChangePassword(...a) };
+  return {
+    ...actual,
+    changePassword: (...a: unknown[]) => mockChangePassword(...a),
+    fetchPasswordPolicy: async () => mockPolicy.current,
+    sendMyPasswordLink: (...a: unknown[]) => mockSendLink(...a),
+  };
 });
 
 import { MySessionsCard } from '@features/auth-session/ui/my-sessions-card';
@@ -71,6 +83,7 @@ function mount(ui: React.ReactElement) {
 beforeEach(() => {
   jest.clearAllMocks();
   mockPermissions.clear();
+  mockPolicy.current = { requireCurrent: true, freshSigninMin: 15, historyCount: 5, breachCheck: true, canEmailLink: true, maskedEmail: 'm***@example.com', mustChange: false };
 });
 
 describe('MySessionsCard', () => {
@@ -119,11 +132,66 @@ describe('ChangePasswordCard', () => {
     expect(mockMessage.error).not.toHaveBeenCalled();
   });
 
-  it('confirms success and clears the form', async () => {
+  it('on success clears the form and asks whether to sign out now or later', async () => {
     mockChangePassword.mockResolvedValue(2);
     mount(<ChangePasswordCard />);
     fill('Old1password', 'Str0ngPassw', 'Str0ngPassw');
-    await waitFor(() => expect(mockMessage.success).toHaveBeenCalled());
+    expect(await screen.findByText('authSession.password.changedDialog.title')).toBeInTheDocument();
     expect((document.getElementById('change-password-current') as HTMLInputElement).value).toBe('');
+    expect(mockChangePassword.mock.calls[0][0]).toEqual({ currentPassword: 'Old1password', newPassword: 'Str0ngPassw' });
+  });
+
+  it('"Later" keeps the session; "Sign out now" signs out', async () => {
+    mockChangePassword.mockResolvedValue(0);
+    mount(<ChangePasswordCard />);
+    fill('Old1password', 'Str0ngPassw', 'Str0ngPassw');
+    fireEvent.click(await screen.findByRole('button', { name: 'authSession.password.changedDialog.later' }));
+    expect(mockSignOut).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText('authSession.password.changedDialog.title')).not.toBeInTheDocument());
+
+    fill('Old1password', 'Str0ngPassw', 'Str0ngPassw');
+    fireEvent.click(await screen.findByRole('button', { name: 'authSession.password.changedDialog.signOutNow' }));
+    expect(mockSignOut).toHaveBeenCalledWith('user');
+  });
+
+  it('shows only the two new-password fields when the policy does not require the current password', async () => {
+    mockPolicy.current = { ...mockPolicy.current, requireCurrent: false };
+    mockChangePassword.mockResolvedValue(1);
+    mount(<ChangePasswordCard />);
+    await waitFor(() => expect(document.getElementById('change-password-current')).toBeNull());
+
+    fireEvent.change(document.getElementById('change-password-new') as HTMLInputElement, { target: { value: 'Str0ngPassw' } });
+    fireEvent.change(document.getElementById('change-password-confirm') as HTMLInputElement, { target: { value: 'Str0ngPassw' } });
+    fireEvent.click(screen.getByRole('button', { name: 'authSession.password.submitChange' }));
+    await waitFor(() => expect(mockChangePassword).toHaveBeenCalled());
+    expect(mockChangePassword.mock.calls[0][0]).toEqual({ currentPassword: undefined, newPassword: 'Str0ngPassw' });
+  });
+
+  it('offers the emailed link / sign-in again when the sign-in is too old for the two-field form', async () => {
+    mockPolicy.current = { ...mockPolicy.current, requireCurrent: false };
+    mockChangePassword.mockRejectedValue(new PasswordApiError('old', 'REAUTH_REQUIRED', 403));
+    mount(<ChangePasswordCard />);
+    await waitFor(() => expect(document.getElementById('change-password-current')).toBeNull());
+    fireEvent.change(document.getElementById('change-password-new') as HTMLInputElement, { target: { value: 'Str0ngPassw' } });
+    fireEvent.change(document.getElementById('change-password-confirm') as HTMLInputElement, { target: { value: 'Str0ngPassw' } });
+    fireEvent.click(screen.getByRole('button', { name: 'authSession.password.submitChange' }));
+
+    expect(await screen.findByText('authSession.password.errors.reauth')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'authSession.password.reauthSignIn' }));
+    expect(mockSignOut).toHaveBeenCalledWith('user');
+  });
+
+  it('sends the emailed link and confirms with the masked address; hides the option without a real email', async () => {
+    mockSendLink.mockResolvedValue(undefined);
+    const first = mount(<ChangePasswordCard />);
+    const button = await screen.findByRole('button', { name: 'authSession.password.link.send' });
+    fireEvent.click(button);
+    await waitFor(() => expect(mockMessage.success).toHaveBeenCalledWith('authSession.password.link.sent'));
+    first.unmount();
+
+    mockPolicy.current = { ...mockPolicy.current, canEmailLink: false, maskedEmail: null };
+    mount(<ChangePasswordCard />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'authSession.password.submitChange' })).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'authSession.password.link.send' })).not.toBeInTheDocument();
   });
 });

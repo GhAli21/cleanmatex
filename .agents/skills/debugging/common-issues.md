@@ -844,4 +844,57 @@ Then delete the now-empty conflicting folder.
 
 ---
 
+### Issue 14: Inventory/test reports `nav_contract_permission_mismatch` for an entry that has no permissions
+
+**Symptom**: `__tests__/auth/platform-inventories.test.ts` ("no new navigation vs contract drift") fails with `nav_contract_permission_mismatch:/dashboard/...` for a nav entry whose `navigation.ts` block has no `permissions`.
+
+**Root cause**: The inventory extractor parses `config/navigation.ts` textually. A malformed neighbour (two entries on one line, e.g. `},      {`) makes it attribute the next entry's `permissions` to the previous entry, producing a false mismatch against that route's contract.
+
+**Fix**: Put every entry on its own lines (`},` newline `{`), then `npm run rebuild:platform-info-inventories` (drift must be 0) and re-run the test.
+
+**Prevention**: After pasting/inserting a navigation entry, check the block boundaries; run the rebuild and `check:platform-info-inventories` as part of the navigation dual-write.
+
+---
+
+### Issue 15: `tsc` TS2737 "BigInt literals are not available when targeting lower than ES2020"
+
+**Symptom**: `npx tsc --noEmit` reports TS2737 on `10n`-style literals (e.g. `lib/services/fx/fx-decimal.ts`) while `npm run build` succeeds.
+
+**Root cause**: `web-admin/tsconfig.json` had `"target": "ES2017"`. The config is `noEmit` and Next compiles with its own compiler, so this is a type-check-only error, not a runtime problem.
+
+**Fix**: `"target": "ES2020"` in `web-admin/tsconfig.json`.
+
+**Prevention**: Don't rewrite literals to `BigInt(0)` to silence it. Note `tsc` with `incremental: true` can keep serving cached diagnostics after a config change; verify with a fresh buildinfo: `npx tsc --noEmit --tsBuildInfoFile <tmp>/fresh.tsbuildinfo` (`--incremental false` is NOT valid — `false` is parsed as a file name and tsc prints its help text).
+
+---
+
+### Issue 16: TS7056 "inferred type exceeds the maximum length" on Supabase query methods (HQ platform-api)
+
+**Symptom**: `npx tsc -p tsconfig.build.json` fails with TS7056 on repository methods that end in `.order(...)` or `.rpc(...)`; `single()`/`maybeSingle()` methods are fine.
+
+**Root cause**: `SupabaseClient<Database>` with a ~40k-line `database.types.ts`; declaration emit cannot serialise the inferred builder type.
+
+**Fix**: Give the method an explicit return type:
+```ts
+import type { PostgrestSingleResponse } from '@supabase/supabase-js';
+type Row = Database['public']['Tables']['org_x']['Row'];
+list(tenantOrgId: string): PromiseLike<PostgrestSingleResponse<Row[]>> { ... }
+// column-subset select: Pick<Row, 'id' | 'name' | ...>; rpc: Database['public']['Functions']['fn']['Returns']
+```
+Callers that only `await` and destructure `{ data, error }` need no change.
+
+**Prevention**: Annotate every new ordered-list / rpc repository method up front.
+
+---
+
+### Issue 17: `check:ui-access-contract --wire` "Expected page gate" on redirect-only or client print pages
+
+**Symptom**: `PAGE_GATE_MISSING` for a page whose contract declares `page.permissions` but whose `page.tsx` only calls `redirect()` or is a `'use client'` print view.
+
+**Fix**: Redirect-only server page: follow `app/dashboard/marketing/page.tsx` — `hasPermissionServer` over the contract's `page.permissions`, `redirect('/dashboard')` if denied, then the real redirect. Client page: rename the body to a content component and wrap it in `<RequireAnyPermission permissions={X_ACCESS.page.permissions ?? []}>` (as the sibling report page does).
+
+**Prevention**: Run `npm run check:ui-access-contract -- --wire` after adding any page, including redirects and print routes.
+
+---
+
 ## Return to [Main Documentation](../CLAUDE.md)

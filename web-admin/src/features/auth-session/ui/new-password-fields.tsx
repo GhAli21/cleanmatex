@@ -21,6 +21,8 @@ interface NewPasswordFieldsProps {
   error: NewPasswordError
   showErrors: boolean
   disabled?: boolean
+  /** Keep the values visible (e.g. a just-generated temporary password the admin must read out). */
+  forceReveal?: boolean
 }
 
 /**
@@ -35,10 +37,11 @@ export function NewPasswordFields({
   error,
   showErrors,
   disabled,
+  forceReveal,
 }: NewPasswordFieldsProps) {
   const t = useTranslations('authSession.password')
   const [reveal, setReveal] = useState(false)
-  const type = reveal ? 'text' : 'password'
+  const type = reveal || forceReveal ? 'text' : 'password'
 
   return (
     <div className="space-y-4">
@@ -63,7 +66,7 @@ export function NewPasswordFields({
         onChange={(event) => onConfirmationChange(event.target.value)}
         error={showErrors && error === 'mismatch' ? t('errors.mismatch') : undefined}
       />
-      <CmxSwitch size="sm" checked={reveal} onCheckedChange={setReveal} label={t('showPasswords')} />
+      <CmxSwitch size="sm" checked={reveal || !!forceReveal} onCheckedChange={setReveal} disabled={forceReveal} label={t('showPasswords')} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 # QA Test Guide — Cash Ledger Foundation (CLF)
 
-Owner-runnable scenarios for the cash drawer ledger (ADR-057). Authoritative status: `STATUS.md` (D56).
-Last refreshed: 2026-10-03.
+Owner-runnable scenarios for the cash drawer ledger (ADR-057) and the program built on it: §1–§12 the ledger, §13–§17 policy, rollover, reports, in-transit and denominations, §18 catalog labels / Z-report archive / POS-session permissions, §19 the POS Settings page. Authoritative status: `STATUS.md` (D56–D70).
+Last refreshed: 2026-10-09 (migrations through **0587** applied).
 
 ## Before you start
 
@@ -11,7 +11,8 @@ Last refreshed: 2026-10-03.
   - **Billing → Cash Drawers** → `/dashboard/internal_fin/cash-drawers` (hub); click a drawer for its page.
   - **Billing → Cash Deposit Follow-up** → `/dashboard/internal_fin/cash-drawers/follow-up`.
   - **Billing → POS Sessions** → `/dashboard/internal_fin/pos-sessions`.
-  - **Settings → Payments → Cash Control Settings** → `/dashboard/settings/payments/cash-control-settings`.
+  - **Settings → Cash Control Settings** → `/dashboard/settings/payments/cash-control-settings` (drawer close, custody, cash-change rounding, denominations, pending-deposit status).
+  - **Settings → POS Settings** → `/dashboard/settings/pos-settings` (POS-session requirement per screen, rollover, stale hours, Z-report required).
 - Drawer page tabs: **Sessions**, **Ledger**, **Transactions**, **Counts**, **Policy**. Every closed session shows a *Closure* section on its session page.
 - Before cleanup: sessions stuck in `CLOSING` (drawers ac312993 / 65546cc7) — finish or force-close them from POS Sessions first, otherwise "open" scenarios on those drawers report `DRAWER_SESSION_ALREADY_OPEN`.
 - Expected on every failure: a **translated message** (never a raw code such as `CASH_COUNT_REQUIRED`), in EN and AR.
@@ -98,7 +99,7 @@ Follow-up screen → pick a session from §6.4 → **Update** → status e.g. *D
 
 ## 8. Policy override / reset
 
-1. **Settings → Payments → Cash Control Settings**: set tenant policy (e.g. *Count required at close = on*, *Blind close = on*).
+1. **Settings → Cash Control Settings**: set tenant policy (e.g. *Count required at close = on*, *Blind close = on*).
 2. Till page → **Policy** tab: override *Count required* = off for this drawer.
    ✅ The field shows the **drawer value with the inherited tenant value beside it**; saving is audited.
 3. Close a session on that drawer → the count step is skippable (§6.7). On another drawer it is still required (❌ blank rejected).
@@ -132,7 +133,7 @@ HQ console → Tenant → Maintenance → **Delete Orders** → *Preview* on a d
 
 ## 13. POS session per screen (B1 + 0554/0557)
 
-Setting: **Settings → Payments → Cash Control Settings → POS Session Controls** — one selector per screen: *order entry*, *later payment collection*, *wallet / advance / gift-card sales*, *cash refunds*, *customer account receipts*, *manual finance vouchers*. Modes: **Required for any payment** · **Required for cash payments only** · **Optional — linked when one is open**. Defaults: order entry = required for cash, everything else = optional. Cash always also needs an open **cash drawer** session (a separate rule, not configurable here). Needs migrations `0554` and `0557` applied.
+Setting: **Settings → POS Settings → Session requirement** — one selector per screen: *order entry*, *later payment collection*, *wallet / advance / gift-card sales*, *cash refunds*, *customer account receipts*, *manual finance vouchers*. Modes: **Required for any payment** · **Required for cash payments only** · **Optional — linked when one is open**. Defaults: order entry = required for cash, everything else = optional. Cash always also needs an open **cash drawer** session (a separate rule, not configurable here). Needs migrations `0554` and `0557` applied.
 
 | # | Steps | Expected |
 |---|---|---|
@@ -181,7 +182,7 @@ Needs migrations `0558`, `0559`, `0560` applied. Rollover runs every 15 minutes;
 | # | Steps | Expected |
 |---|---|---|
 | 16.1 | **Settings → Branch Settings** → pick a branch → **Business day** card. Choose a timezone → Save. | "Branch timezone updated"; the card says "In effect now: <zone>". Choosing *Same as the organization* shows the organization's zone. A user without *update settings* sees it disabled. |
-| 16.2 | Cash Control Settings: *Session rollover* = **Pause at rollover**. Leave a POS session open across the branch midnight (or change the session's business date in the DB to yesterday), then run the job. | The session becomes **PAUSED** with a *Rolled over* badge; a notice explains the business day changed. **Resume is not offered**; calling resume returns "paused because the business day changed". Close it, then open a new session. |
+| 16.2 | **POS Settings → Shift lifecycle**: *Session rollover* = **Pause at rollover**. Leave a POS session open across the branch midnight (or change the session's business date in the DB to yesterday), then run the job. | The session becomes **PAUSED** with a *Rolled over* badge; a notice explains the business day changed. **Resume is not offered**; calling resume returns "paused because the business day changed". Close it, then open a new session. |
 | 16.3 | Same with **Force close at rollover** and *no* drawer session linked. | The session is **FORCE_CLOSED** (*Auto-closed* badge); its timeline shows "Force-Closed at Rollover" by the system. |
 | 16.4 | Same with **Force close at rollover** but the session's drawer session still **open**. | The session is only **paused** (cash is never abandoned); the timeline event notes the drawer blocked the close. |
 | 16.5 | A session open longer than *Stale after (hours)*. | *Stale* badge once; the cashier and branch supervisors get an in-app notification. Running the job again does not repeat it. |
@@ -206,7 +207,7 @@ Needs migration `0562` applied. Use a branch with a counter drawer and a safe in
 | 17.5 | Send another, then **Cancel** with no reason → button disabled; with a reason → *Cancelled*, the cash is back in the counter drawer, the reason shows in the Settled column. |
 | 17.6 | The user who sent it opens **Receive**. | Allowed (permission is the only gate). A user without *receive transfer* sees no Receive button. |
 | 17.7 | **Cash Drawers → Transactions**: try to reverse the transit transaction. | Refused: "cannot be reversed — cancel the transfer instead". |
-| 17.8 | **Settings → Payments → Cash control settings → Counted denominations** → OMR → switch off a coin → **Save**. | "Denominations saved". Open a drawer count / close wizard → that coin is no longer in the grid. Old counts that used it still show it. Re-enable and Save → back. |
+| 17.8 | **Settings → Cash Control Settings → Counted denominations** → OMR → switch off a coin → **Save**. | "Denominations saved". Open a drawer count / close wizard → that coin is no longer in the grid. Old counts that used it still show it. Re-enable and Save → back. |
 | 17.9 | Same card: move a row up/down → Save. | The counting grid follows your order. **Reset to HQ defaults** → Save restores HQ order. |
 | 17.10 | Cash control settings: *Closing count mode* = **Denominations**. Close a drawer. | The wizard says "Your organization requires counting by denomination" and offers only the grid; a bare total is not possible. *Total only* → only the total field; *Optional* → the method select. |
 | 17.11 | Switch off **every** OMR denomination, close a drawer with *Denominations* policy. | The wizard falls back to the total field (nothing to count with) and the close succeeds. |
@@ -233,6 +234,22 @@ Needs migration `0562` applied. Use a branch with a counter drawer and a safe in
 | 18.9 | As a **cashier** (no `pos_session:view_all`): open the archive. | Only the cashier's own shifts. As a branch manager: every cashier's shifts in the branch scope. |
 | 18.10 | After applying **0578**, sign in as **viewer**, **driver**, **laundry worker** and **B2B customer**. | No POS Sessions menu item; the page and its APIs answer "permission denied". **Cashier / operator** can still open, pause, close their own shift but cannot force-close or see other cashiers; **branch manager / supervisor / finance manager** can force-close and see all. |
 | 18.11 | Rollover job raises a stale-session notice. | Only supervisors / managers (holders of `pos_session:force_close`) and the session owner are notified — not every user. |
+
+---
+
+## 19. POS Settings page (D70)
+
+> Apply migration **0587** first for 19.1 (menu entry). The URL works without it.
+
+| # | Do this | Expect |
+|---|---|---|
+| 19.1 | **Settings** menu. | A new **POS Settings** item sits right after **Cash Control Settings**. |
+| 19.2 | Open **POS Settings** (`/dashboard/settings/pos-settings`). | Two tabs: **Session requirement** (six per-screen selectors) and **Shift lifecycle** (rollover mode, stale hours, Z-report required). Opening `?tab=lifecycle` lands on the second tab. |
+| 19.3 | Change one selector on each tab. | An amber dot appears on both tabs; the footer says "2 unsaved changes". Save writes both in one request; the dots clear; a success message shows. **Discard changes** restores the saved values. |
+| 19.4 | Open **Cash Control Settings**. | No POS-session card any more; drawer close, custody, cash-change rounding, denominations and pending-deposit status are all still there and save as before. |
+| 19.5 | Change a value on POS Settings, then reload Cash Control Settings. | The value is unaffected there; saving one page never touches the other page's fields. |
+| 19.6 | Sign in with `cash_control:view` only. | Both pages open read-only with a "View only" notice; tabs still switch; no Save/Discard bar. |
+| 19.7 | Switch to Arabic. | Page title "إعدادات نقطة البيع", tab names and descriptions are Arabic and the layout is right-to-left. |
 
 ---
 

@@ -1,17 +1,17 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-10-08T18:12:27.726Z
-Git SHA: 22926159
+Generated: 2026-10-08T22:25:11.561Z
+Git SHA: e13d94c2
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 165 |
-| Permission usages | 404 |
-| Feature flag usages | 82 |
+| Access contracts | 166 |
+| Permission usages | 410 |
+| Feature flag usages | 81 |
 | Setting usages | 29 |
-| Plan limit usages | 8 |
-| Navigation entries | 108 |
+| Plan limit usages | 2 |
+| Navigation entries | 110 |
 | Flag catalog entries | 299 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -165,6 +165,7 @@ Git SHA: 22926159
 | /dashboard/settings/payments | Payment Setup | payment_config:view | — | 0 |
 | /dashboard/settings/payments/cash-control-settings | Cash Control Settings | cash_control:view | — | 0 |
 | /dashboard/settings/permissions | Permissions Management | *:*, settings:* | — | 0 |
+| /dashboard/settings/pos-settings | POS Settings | cash_control:view | — | 0 |
 | /dashboard/settings/preferences | Settings Preferences | — | — | 0 |
 | /dashboard/settings/roles | Roles Management | *:*, settings:* | — | 0 |
 | /dashboard/settings/security | Security & Sessions | auth_config:read | — | 0 |

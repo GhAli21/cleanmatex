@@ -1,36 +1,43 @@
 # START HERE — POS Session & Cash Drawer Hardening
 
-**Entry point for a cold session.** Read this first, then `STATUS.md`, then `RESUME_CONTINUATION.md`, then the part of `IMPLEMENTATION_PLAN.md` you are about to work on.
+**Entry point for a cold session.** Read this first, then `STATUS.md` (the top rows), then `REMAINING_WORK.md`. `RESUME_CONTINUATION.md` is the session-to-session log; `IMPLEMENTATION_PLAN.md` is the original plan and is now history.
 
 ---
 
-## 1. State as of 2026-09-25 — **STATUS.md is authoritative; this section is a summary only**
+## 1. State as of 2026-10-09 — **STATUS.md is authoritative; this section is a summary only**
 
-- **Planning is complete.** 188 tasks, decisions D1–D28, three completeness audits.
-- **Wave 0 is COMPLETE** (migrations `0515`–`0518`, applied local+remote). **Wave A is IN PROGRESS**: A1, A2 (except the documented payment-during-close gap), **A3 is fully COMPLETE** (A3-1/A3-2/A3-3/A3-4/A3-5/A3-6/A3-7 all done — only A3-6b remains, deliberately deferred pending an owner call), and A4-1/A4-2 are done; A5-1/A5-2/A5-3 were run 2026-09-24 as an **interim checkpoint** (whole-project gates green, QA guide + docs refreshed) at the owner's request — this is **not** a Wave A close. **D26 (2026-09-24, CRITICAL, fixed): `closeSession` was failing on every real call since A3-3 shipped** — a Prisma-modeled column (`sys_currency_cd.decimal_places`) never existed on the live table, local or remote; fixed to the real `minor_unit` column, DB-integration-verified. **D28 (2026-09-25): A3-4 shipped** — money now crosses the drawer/POS-session APIs as exact fixed-point strings end to end, plus 2 real bugs found and fixed on the session print page along the way. Remaining in Wave A: A4-3/A4-3b/A4-3c/A4-3d/A4-4, A6 (now confirmed blocked at the DDL-authoring level too, not just value-supply — see D28/RESUME), and A3-6b pending an owner call (see D27). Waves B–E not started.
-- **New package CLF — Cash Ledger Foundation (approved 2026-09-25 — **R1 Ledger COMPLETE 2026-09-26**, **R2 Sessions IN PROGRESS**).** The owner approved a two-domain cash ledger ([ADR-057](../ADR/ADR-057-Two-Domain-Cash-Ledger.md); STATUS **D29** design, **D30** plan approved with changes A–E, **D31** petty cash + pending-deposit buttons). Plan: [`IMPLEMENTATION_PLAN.md` §4B](./IMPLEMENTATION_PLAN.md). Delivered in three releases — **R1 Ledger** → **R2 Sessions** → **R3 Retirement**. CLF runs after the Wave A items it does not supersede and **before Waves B–E**, which build on it. It supersedes A4-3/3b/3c/3d, parts of C1/C2/C3, most of D1, and E1 (§4B.13). **Status 2026-09-26 (D39): CLF-R1 Ledger is CLOSED** — all migrations M1–M7 applied, core ledger, writer items W1–W15, cash in/cash out dialog (§4B.2a-A), and pending-deposit provisioning (§4B.2a-B) all shipped, whole-project gates green. **Status 2026-10-01 (D40/D41): CLF-R2 schema (M4) applied local+remote, and the full CLF-2/CLF-4 types/Zod/service layer (counts, custody transactions, balance/chain math, over/short, the two-step session lifecycle) is written, gated green, and proven against the real local DB.** **Next: CLF-7 API routes** — see `RESUME_CONTINUATION.md` ▶ NOW.
-- **Next action:** see [`RESUME_CONTINUATION.md`](./RESUME_CONTINUATION.md) for the current pointer and options.
-- All open questions are answered or carry a recorded safe default.
-- The only external dependency is HQ's curated currency values — and both affected packages degrade safely without them, so nothing is blocked.
+- **The program is COMPLETE (2026-10-03, STATUS D67).** CLF ledger, Wave 0 and Waves A–E are built, gated and documented. Migrations `0515`–`0562` are applied (local + remote). The plan has no open boxes.
+- **Post-program polish, all delivered:**
+  - **D68 (2026-10-08) — HQ catalog screens.** The eight cash-drawer / POS-session `sys_*` code tables are managed in the HQ repo (`cleanmatexsaas`): `/system-codes/cash-pos`. HQ edits names, descriptions and order only; codes, `is_active` and behaviour flags stay a tenant-repo migration plus a constant.
+  - **D69 (2026-10-08) — web-admin audit.** Screens show bilingual catalog names instead of raw codes (HQ edits appear within about 10 minutes); the missing **Z-report archive** screen was added (`/dashboard/internal_fin/pos-sessions/z-reports`); the shift-report print page got its page gate; migration **`0578`** (applied 2026-10-09) replaced the over-granted `pos_session:*` defaults of old migration 0396 with a least-privilege role matrix.
+  - **D70 (2026-10-09) — POS Settings page.** The POS-session settings (session requirement per screen, rollover mode, stale hours, Z-report required) moved off Cash Control Settings to `/dashboard/settings/pos-settings` (tabs *Session requirement* and *Shift lifecycle*). Cash Control Settings keeps drawer and cash policy. Migration **`0587`** (applied 2026-10-09) added the menu entry.
+- **Only owner-side items remain** — see `REMAINING_WORK.md`: commit, restart the dev servers, run `QA_TEST_GUIDE.md` §13–§19, force-close the two historical `CLOSING` sessions (drawers ac312993 / 65546cc7).
 
 ## 2. Files in this folder
 
 | File | What it is |
 |---|---|
 | `START_HERE.md` | this file |
-| `STATUS.md` | decisions, wave status, open questions, HQ obligations, audit history — **the progress record; if it disagrees with anything else, it wins** |
-| `RESUME_CONTINUATION.md` | session-to-session log — what just happened, what's next; read this for the current pointer |
-| `IMPLEMENTATION_PLAN.md` | the full plan: waves, tasks, DDL, inventories, standing rules |
+| `STATUS.md` | decisions D1–D70, wave status, audit history — **the progress record; if it disagrees with anything else, it wins** |
+| `REMAINING_WORK.md` | what is still open (owner-only items and optional follow-ups) |
+| `RESUME_CONTINUATION.md` | session-to-session log; the top entries are current, the rest is history |
+| `OPERATOR_GUIDE.md` | how branch managers, supervisors, cashiers and finance staff run the day |
+| `QA_TEST_GUIDE.md` | owner-runnable scenarios, §1–§19 |
+| `IMPLEMENTATION_REQUIREMENTS.md` | as-built lookup: migrations, permissions, routes, APIs, settings, jobs, error codes |
+| `CLF_FEATURE_REFERENCE.md` | the cash ledger (ADR-057) as built |
+| `IMPLEMENTATION_PLAN.md` | the original plan (history; its checkboxes are all ticked or superseded) |
 | `ARCHITECTURE_REVIEW_2026-09-23.md` | evaluation of the external architecture doc — what was adopted, rejected, corrected |
 
-Related, in the **HQ repo**: `cleanmatexsaas/docs/features/Currency_Setup/HQ_CURRENCY_HANDOFF.md`.
+ADRs: [054](../ADR/ADR-054-User-Owned-POS-Sessions.md) · [056](../ADR/ADR-056-Cash-Control-Settings-Finance-Owned-Table.md) · [057](../ADR/ADR-057-Two-Domain-Cash-Ledger.md) · [058](../ADR/ADR-058-In-Transit-Cash-Transfers.md) · [059](../ADR/ADR-059-Immutable-Shift-Z-Report.md).
 
-## 3. Read order before writing anything
+Related, in the **HQ repo** (`cleanmatexsaas`): `docs/features/Cash_Pos_Catalogs/progress_status.md` (the HQ screens for the eight system-code tables) and `docs/features/Currency_Setup/HQ_CURRENCY_HANDOFF.md`.
 
-1. `STATUS.md` — decisions D1–D37 and any newly answered questions (D29–D37 = CLF; D36/D37 = R1 writer decisions).
-2. `RESUME_CONTINUATION.md` — the current pointer (what just shipped, what's next).
-3. `IMPLEMENTATION_PLAN.md` **§10** — the standing rules. All of them apply to every task.
-4. The specific wave section you are starting.
+## 3. Read order before changing anything
+
+1. `STATUS.md` — the top rows (D70 → D65) and any decision that touches your area.
+2. `REMAINING_WORK.md` — what is genuinely open.
+3. `IMPLEMENTATION_REQUIREMENTS.md` — what exists (routes, APIs, settings, permissions).
+4. `IMPLEMENTATION_PLAN.md` **§10** — the standing rules, if you are about to build something.
 
 ## 4. Before the first line of code — mandatory
 
@@ -44,38 +51,48 @@ Load the skills for the domain. This is CLAUDE.md's hard stop, and it has been s
 | any component or JSX | `/frontend` |
 | any translation key | `/i18n` |
 | a new feature end to end | `/implementation` |
+| a menu entry | `/navigation` (dual-write: `config/navigation.ts` + a `sys_components_cd` migration) |
 
-For W0 specifically: **`/database` + `/multitenancy`**.
+## 5. Where things live (quick map)
 
-## 5. Where to start — CLF R1 COMPLETE, R2 mid-flight (schema + services done, routes/readers/UI next), then R3, then Waves B–E
-
-> **CLF changes the order.** CLF-R1 Ledger is done (STATUS D39, 2026-09-26). CLF-R2 Sessions is **in progress**: M4 schema applied, CLF-2 (types/Zod) and CLF-4 (count/trx/balance/over-short/session services) built and DB-proven (STATUS D40/D41, 2026-10-01). Next inside R2: **CLF-7 (API routes)**, then **CLF-6 (readers)**, then **CLF-8 (UI)**, then M8/M9. After R2's readers are live, R3 retires the temporary mirror handlers (W13). The remaining Wave A items CLF does not supersede (e.g. A6, A3-6b) can be picked up independently of R2. **Do not start A4-3/3b/3c/3d** — replaced by `org_cash_drawer_ses_bal_dtl` in CLF. Waves B–E start only after CLF. Owner rule: no maker ≠ checker anywhere (§4B.2a-E).
-
-Wave 0 is fully shipped and applied. Wave A is partially shipped (A1, A2, **A3 fully done**, A4-1/2, A5-1/2/3-as-checkpoint). See `RESUME_CONTINUATION.md`'s latest entry for the owner's next pick among: A4-3/A4-3b/A4-3c/A4-3d/A4-4 (per-currency session balances table + `allow_multi_currency_drawer` setting — Wave-0-sized, its own pass) or A6 (cash tender rounding — blocked pending HQ's rounding-vocabulary sign-off, `HQ-CUR-3`; not a viable pick until that lands). A3-6b (demo-data recompute) needs an owner call on which historical sessions are safe to touch before it can be picked up (see D27). Load `/database` + `/multitenancy` for any of these that touch a table or `org_*` query; `/backend`/`/frontend`/`/i18n` per CLAUDE.md's table for the rest.
+| Area | Where |
+|---|---|
+| Tenant policy (one row per tenant, `org_fin_cash_ctrl_stng_cf`) | API `GET/PUT /api/v1/settings/payments/cash-control`; resolver `lib/services/cash-control-settings.service.ts` |
+| POS-session settings page | `/dashboard/settings/pos-settings` — `src/features/pos-settings/` |
+| Drawer / cash policy page | `/dashboard/settings/payments/cash-control-settings` — `src/features/cash-drawers/ui/cash-control-settings-screen.tsx` |
+| POS sessions, shift reports, Z archive | `/dashboard/internal_fin/pos-sessions` — `src/features/pos-sessions/` |
+| Cash drawers, ledger, variance, in-transit | `/dashboard/internal_fin/cash-drawers` — `src/features/cash-drawers/` |
+| Bilingual names of statuses, events, drawer types | `sys_*` catalogs → `GET /api/v1/pos-sessions/catalogs`, `GET /api/v1/cash-drawers/catalogs`; edited in HQ |
 
 ## 6. The rules that get broken most often
 
 - **Never apply a migration.** Write the `.sql`, stop, wait for confirmation. Every `STOP-AND-WAIT` marker in the plan is real.
 - **Load the skill first.** Not after.
 - **`withTenantContext(tenantId, () => prisma.$transaction(...))`** — never the reverse, or RLS context is lost inside the transaction and every `org_*` read silently returns zero rows.
+- **Every `org_*` query filters `tenant_org_id` itself**, including raw SQL and joins.
 - **Money is `DECIMAL(19,4)`** in the DB and `Prisma.Decimal` in code — never a JS `number`, never `::float8`.
 - **Minor-unit columns are `INTEGER`** (D13), not `BIGINT`.
 - **`TEXT` not `VARCHAR`; `TIMESTAMPTZ` not naive timestamps; audit actors are `TEXT`** with `_info` columns.
-- **Cmx components only**, `cmxMessage` for all feedback, EN **and** AR for every key.
+- **Cmx components only**, `cmxMessage` for all feedback, EN **and** AR for every key (cash drawer = **درج النقد**, plural **أدراج النقد**).
+- **Constants mirror DB values exactly** (CLAUDE.md rule 12) — which is why HQ cannot rename a code or flip a flag.
+- **No maker ≠ checker**: permission is the only approval gate.
 - **Update `STATUS.md`** at every package close (§10.9).
 
 ## 7. What NOT to redo
 
 These are settled. Reopening them wastes a session:
 
-- Settings live in `org_fin_cash_ctrl_stng_cf` with one column per setting and a single resolver service (D3, D4).
+- Settings live in `org_fin_cash_ctrl_stng_cf` with one column per setting and a single resolver service (D3, D4). Two pages edit it — POS Settings (POS-session fields) and Cash Control Settings (everything else) — each sending only the fields it changed (D70). Do not merge them back.
 - Rounding policy lives in `sys_currency_rounding_rules_cf`, HQ-owned (D8, D12).
-- Denomination catalog is HQ-owned; we consume it read-only (D9).
-- Per-currency session balances, **not** a single-currency `CHECK` (D14) — realised by CLF as `org_cash_drawer_ses_bal_dtl` (not `org_cash_sess_curr_dtl`).
-- Counts are header + detail snapshots, immutable (D15) — CLF tables `org_cash_drawer_cnt_mst` / `org_cash_drawer_cnt_denom_dtl`.
-- Two-domain cash ledger: finance = vouchers, custody = drawer transactions, one central gate, no mirrors, no recovery sessions (D29–D31, ADR-057).
+- Denomination catalog is HQ-owned; tenants may switch notes and coins off and reorder, never edit values (D9, C1-1b).
+- Per-currency session balances, **not** a single-currency `CHECK` (D14) — `org_cash_drawer_ses_bal_dtl`.
+- Counts are header + detail snapshots, immutable (D15).
+- Two-domain cash ledger: finance = vouchers, custody = drawer transactions, one central gate, no mirrors (D29–D31, ADR-057).
+- Per-screen POS-session policy, not global booleans; cash custody is separate from shift attribution (D62).
+- Rollover never force-closes a session whose drawer holds cash (it pauses); a transit leg is undone by cancel, never by reversal; the Z-report is frozen in the closing transaction and immutable.
 - Cash-change rounding is a tenant setting; tender rounding is not (D16).
+- HQ owns the presentation (names, descriptions, order) of the eight `sys_*` tables; the tenant app owns their meaning (D68).
 
 ## 8. Suggested first prompt for a cold session
 
-> Read `docs/features/Order_Fin/POS_Session_Cash_Drawer_Hardening/START_HERE.md`, `STATUS.md`, and `RESUME_CONTINUATION.md` (in that order), then continue CLF R2 per `RESUME_CONTINUATION.md`'s latest "▶ NOW" pointer — load the relevant skill(s) first per CLAUDE.md's table before writing anything.
+> Read `docs/features/Order_Fin/POS_Session_Cash_Drawer_Hardening/START_HERE.md`, then the top of `STATUS.md` and `REMAINING_WORK.md`. The program is complete; work only on what the owner asks, and load the relevant skill(s) first per CLAUDE.md's table before writing anything.

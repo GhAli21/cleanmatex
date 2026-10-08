@@ -72,7 +72,12 @@ export async function POST(request: NextRequest) {
     return res
   } catch (error) {
     if (error instanceof PasswordError) {
-      const status = error.code === PASSWORD_ERROR_CODES.WEAK_PASSWORD ? 422 : 400
+      const unprocessable: string[] = [
+        PASSWORD_ERROR_CODES.WEAK_PASSWORD,
+        PASSWORD_ERROR_CODES.REUSED_PASSWORD,
+        PASSWORD_ERROR_CODES.BREACHED_PASSWORD,
+      ]
+      const status = unprocessable.includes(error.code) ? 422 : 400
       return NextResponse.json({ success: false, error: error.message, code: error.code }, { status })
     }
     logger.error('Password reset failed', error as Error, { feature: 'auth', action: 'reset_password' })

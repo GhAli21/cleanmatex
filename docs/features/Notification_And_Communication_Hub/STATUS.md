@@ -1,3 +1,18 @@
+# Current production enhancement status — 2026-10-08
+
+**Authority:** The dated entries below are historical delivery records. The current implementation authority is [notification-hub-production-implementation-plan.md](./notification-hub-production-implementation-plan.md) and its schema/contract companion.
+
+- [x] Shared schema applied through `0582_ntf_private_template_regs.sql`; the operator regenerated database types and tenant Prisma after each applied migration.
+- [x] Migration `0583_ntf_route_private_account_nullable.sql` is applied; `platform_account_id` is nullable so valid PRIVATE routes can be created.
+- [x] P1 durable dispatch/receipt safety and P2 platform provider-account, sender, localized-contract, provider-registration, route-assignment, and private-resource foundations are implemented.
+- [x] HQ route administration: tenant-scoped create, optimistic draft edit, activate, suspend, and retire APIs use canonical HQ permissions, audit logs, ownership-branch validation, and approved account/sender/template/locale/binding checks for platform and private routes.
+- [x] HQ provider-template registration discovery APIs expose redacted platform registrations and immutable revision metadata for route configuration.
+- [ ] Migration draft `0586_ntf_platform_template_import_command.sql` adds the service-role-only atomic persistence boundary needed for provider-authenticated platform imports. It is awaiting operator review and application; no API/UI calls it yet.
+- [x] HQ can import a selected Twilio WhatsApp Content SID through a server-only authenticated connector. The request contains only resource selectors; the connector fetches the Content and approval records, then persists the redacted observation through `0586`.
+- [ ] Additional provider connectors, scheduled synchronization, tenant-private imports, explicit binding administration, and HQ/tenant configuration UIs remain pending.
+- [ ] Provider/tenant management APIs, UI workflows, dispatch resolver integration, consent/suppression enforcement, reconciliation, operational runbooks, and pilot evidence remain required before production rollout.
+
+---
 # CMX-PRD-019 — Notification Hub: Status
 
 **Project:** CleanMateX Notification & Communication Hub

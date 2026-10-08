@@ -35,7 +35,7 @@ export interface ListShiftZReportsInput {
 }
 
 interface ArchiveDbRow {
-  id: string;
+  id: string | null;
   report_no: string;
   pos_session_id: string;
   session_no: string | null;
@@ -68,8 +68,8 @@ const likeTerm = (term: string): string => `%${term.replace(/[\\%_]/g, (c) => `\
  *
  * Reads the headline figures straight from the stored snapshot in SQL so a page never ships whole
  * snapshots. Visibility follows the POS-session list: your own shifts, plus other operators' when
- * you hold `pos_session:view_all` and the shift is in your branch scope. The integrity flag is
- * recomputed per row (SHA-256 of the stored snapshot against the stored hash).
+ * you hold `pos_session:view_all` and the shift is in your branch scope. The integrity hash is
+ * computed only for the returned page; the match set is counted without reading snapshot bodies.
  *
  * @param input tenant, actor, scope, filters and paging
  * @returns one page of archive rows and the unpaged total
@@ -106,7 +106,30 @@ export async function listShiftZReports(input: ListShiftZReportsInput): Promise<
     : Prisma.empty;
 
   return withTenantContext(input.tenantId, async () => {
+    // `filtered` keeps ids and sort keys only. Hashing snapshot::text here would read every
+    // historical body before LIMIT. The hash runs on the page join below.
     const rows = await prisma.$queryRaw<ArchiveDbRow[]>(Prisma.sql`
+      WITH filtered AS MATERIALIZED (
+        SELECT z.id, z.business_date, z.generated_at
+        FROM public.org_pos_shift_z_rpt_tr z
+        JOIN public.org_pos_sessions_mst ps
+          ON ps.tenant_org_id = z.tenant_org_id AND ps.id = z.pos_session_id
+        WHERE z.tenant_org_id = ${input.tenantId}::uuid
+          AND z.is_active = TRUE
+          ${ownOnlySql}
+          ${branchScopeSql}
+          ${branchSql}
+          ${operatorSql}
+          ${fromSql}
+          ${toSql}
+          ${querySql}
+      ),
+      page_ids AS (
+        SELECT id
+        FROM filtered
+        ORDER BY business_date DESC, generated_at DESC, id DESC
+        LIMIT ${pageSize} OFFSET ${offset}
+      )
       SELECT z.id, z.report_no, z.pos_session_id, ps.session_no,
              z.branch_id, COALESCE(b.name, b.branch_name) AS branch_name,
              z.operator_user_id, COALESCE(u.display_name, u.name, u.email) AS operator_name,
@@ -116,54 +139,51 @@ export async function listShiftZReports(input: ListShiftZReportsInput): Promise<
              z.snapshot->'drawer'->'balances' AS drawer_balances,
              (z.snapshot->'drawer'->>'variancePending')::boolean AS variance_pending,
              (encode(sha256(convert_to(z.snapshot::text, 'UTF8')), 'hex') = z.snapshot_hash) AS hash_ok,
-             COUNT(*) OVER () AS total
-      FROM public.org_pos_shift_z_rpt_tr z
-      JOIN public.org_pos_sessions_mst ps
+             totals.total
+      FROM (SELECT COUNT(*)::bigint AS total FROM filtered) totals
+      LEFT JOIN page_ids p ON TRUE
+      LEFT JOIN public.org_pos_shift_z_rpt_tr z
+        ON z.tenant_org_id = ${input.tenantId}::uuid AND z.id = p.id
+      LEFT JOIN public.org_pos_sessions_mst ps
         ON ps.tenant_org_id = z.tenant_org_id AND ps.id = z.pos_session_id
       LEFT JOIN public.org_branches_mst b
         ON b.tenant_org_id = z.tenant_org_id AND b.id = z.branch_id
       LEFT JOIN public.org_users_mst u
         ON u.tenant_org_id = z.tenant_org_id AND u.user_id = z.operator_user_id
-      WHERE z.tenant_org_id = ${input.tenantId}::uuid
-        AND z.is_active = TRUE
-        ${ownOnlySql}
-        ${branchScopeSql}
-        ${branchSql}
-        ${operatorSql}
-        ${fromSql}
-        ${toSql}
-        ${querySql}
-      ORDER BY z.business_date DESC, z.generated_at DESC, z.id DESC
-      LIMIT ${pageSize} OFFSET ${offset}
+      ORDER BY z.business_date DESC NULLS LAST, z.generated_at DESC NULLS LAST, z.id DESC NULLS LAST
     `);
 
-    const items: PosShiftZArchiveRow[] = rows.map((row) => {
+    const total = rows.length > 0 ? Number(rows[0].total) : 0;
+    const items: PosShiftZArchiveRow[] = rows.flatMap((row) => {
+      if (row.id === null) return [];
       const drawerVariance: PosShiftZArchiveVariance[] = (row.drawer_balances ?? []).map((b) => ({
         currencyCode: b.currencyCode,
         variance: b.closingVariance ?? null,
       }));
-      return {
-        id: row.id,
-        reportNo: row.report_no,
-        posSessionId: row.pos_session_id,
-        sessionNo: row.session_no,
-        branchId: row.branch_id,
-        branchName: row.branch_name,
-        operatorUserId: row.operator_user_id,
-        operatorName: row.operator_name,
-        businessDate: dateOnly(row.business_date),
-        businessTimezone: row.business_timezone,
-        openedAt: iso(row.session_opened_at),
-        closedAt: iso(row.session_closed_at),
-        generatedAt: iso(row.generated_at),
-        autoClosed: row.auto_close_reason !== null,
-        sales: row.sales ?? [],
-        drawerVariance,
-        variancePending: row.variance_pending === true,
-        hashVerified: row.hash_ok,
-      };
+      return [
+        {
+          id: row.id,
+          reportNo: row.report_no,
+          posSessionId: row.pos_session_id,
+          sessionNo: row.session_no,
+          branchId: row.branch_id,
+          branchName: row.branch_name,
+          operatorUserId: row.operator_user_id,
+          operatorName: row.operator_name,
+          businessDate: dateOnly(row.business_date),
+          businessTimezone: row.business_timezone,
+          openedAt: iso(row.session_opened_at),
+          closedAt: iso(row.session_closed_at),
+          generatedAt: iso(row.generated_at),
+          autoClosed: row.auto_close_reason !== null,
+          sales: row.sales ?? [],
+          drawerVariance,
+          variancePending: row.variance_pending === true,
+          hashVerified: row.hash_ok,
+        },
+      ];
     });
 
-    return { items, total: rows.length > 0 ? Number(rows[0].total) : 0, page, pageSize };
+    return { items, total, page, pageSize };
   });
 }

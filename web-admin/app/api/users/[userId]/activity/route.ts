@@ -71,13 +71,25 @@ export async function GET(
 
     if (error) throw error
 
-    // Bilingual event names come from the catalog (sys_auth_event_cd) so new event codes need no UI change.
-    const { data: events, error: eventsError } = await admin
-      .from('sys_auth_event_cd')
-      .select('code, name, name2')
-      .in('code', Array.from(new Set((data ?? []).map((r) => r.event_code))))
-    if (eventsError) throw eventsError
-    const eventNames = new Map((events ?? []).map((e) => [e.code, e]))
+    // PostgREST rejects `.in('code', [])`, which would turn a user with no audit rows into a 500.
+    const eventCodes = [
+      ...new Set(
+        (data ?? [])
+          .map((r) => r.event_code)
+          .filter((code): code is string => typeof code === 'string' && code.length > 0)
+      ),
+    ]
+    const eventNames = new Map<string, { name: string; name2: string | null }>()
+    if (eventCodes.length > 0) {
+      const { data: events, error: eventsError } = await admin
+        .from('sys_auth_event_cd')
+        .select('code, name, name2')
+        .in('code', eventCodes)
+      if (eventsError) throw eventsError
+      for (const event of events ?? []) {
+        eventNames.set(event.code, { name: event.name, name2: event.name2 })
+      }
+    }
 
     // Shape kept compatible with the Activity tab: action = event code, entity = device.
     const rows = (data ?? []).map((r) => ({

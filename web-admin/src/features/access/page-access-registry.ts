@@ -16,6 +16,7 @@ import { MARKETING_ACCESS_CONTRACTS } from '@features/marketing/access/marketing
 import { NOTIFICATIONS_ACCESS_CONTRACTS } from '@features/notifications/access/notifications-access'
 import { ORDERS_ACCESS_CONTRACTS } from '@features/orders/access/orders-access'
 import { PAYMENT_CONFIG_ACCESS_CONTRACTS } from '@features/payment-config/access/payment-config-access'
+import { POS_SETTINGS_ACCESS_CONTRACTS } from '@features/pos-settings/access/pos-settings-access'
 import { POS_SESSIONS_ACCESS_CONTRACTS } from '@features/pos-sessions/access/pos-sessions-access'
 import { REPORTS_ACCESS_CONTRACTS } from '@features/reports/access/reports-access'
 import { SETTINGS_ACCESS_CONTRACTS } from '@features/settings/access/settings-access'
@@ -59,6 +60,7 @@ export const PAGE_ACCESS_CONTRACTS: PageAccessContract[] = [
   ...ORDERS_ACCESS_CONTRACTS,
   ...PAYMENT_CONFIG_ACCESS_CONTRACTS,
   ...POS_SESSIONS_ACCESS_CONTRACTS,
+  ...POS_SETTINGS_ACCESS_CONTRACTS,
   ...REPORTS_ACCESS_CONTRACTS,
   ...SETTINGS_ACCESS_CONTRACTS,
   ...TENANT_ADMIN_ACCESS_CONTRACTS,

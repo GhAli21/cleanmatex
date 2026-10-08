@@ -85,6 +85,18 @@ Force-closes the current active session with a required reason. This route does 
 }
 ```
 
+### `GET /api/v1/pos-sessions/z-reports`
+
+Z-report archive (post-program D69): a server-paged list of frozen shift reports. **Permission:** `pos_session:report_z`. A user without `pos_session:view_all` sees only their own shifts; branch scope is applied for everyone. Filters: branch, business-date range, free text over report number / session / cashier. Each row carries sales per currency, drawer variance (or pending), auto-close flag and an integrity result recomputed from the stored snapshot.
+
+### `GET /api/v1/pos-sessions/catalogs` and `GET /api/v1/cash-drawers/catalogs`
+
+Bilingual names (`name`, `name2`) of the system-code catalogs the screens label with: POS-session statuses and events and drawer-session statuses (`pos-sessions/catalogs`); drawer types, movement types, dispositions and post-close statuses (`cash-drawers/catalogs`). Includes inactive rows so history keeps its name. **Permission:** `pos-sessions/catalogs` any of `pos_session:view`, `cash_drawer:view`; `cash-drawers/catalogs` `cash_drawer:view`. Edited in the HQ console.
+
+### `GET|PUT /api/v1/settings/payments/cash-control`
+
+The tenant cash-control / POS policy (`org_fin_cash_ctrl_stng_cf`). **Permission:** `cash_control:view` to read, `cash_control:manage` to write. PUT takes `{ patch, reason? }`; a field absent from the patch is untouched, `null` clears an override. Used by two pages: POS Settings (POS-session fields) and Cash Control Settings (all others).
+
 ### `GET /api/v1/pos-sessions/[sessionId]/summary`
 
 Returns a summary for the current user's POS session using only active finance tables:

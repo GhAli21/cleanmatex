@@ -16,10 +16,21 @@ import {
 } from '@features/cash-drawers/api/cash-drawer-variance-report-api'
 import { CashDrawerVarianceByCashierRprt } from '@features/cash-drawers/ui/cash-drawer-variance-by-cashier-rprt'
 import { useCashDrawerDateFormatter } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { REPORTS_REPORTS_CASH_VARIANCE_PRINT_ACCESS } from '@features/reports/access/reports-access'
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
 
+/** Page gate is declared in the reports access contract; the report API is branch-scoped server-side. */
 export default function CashVarianceReportPrintPage() {
+  return (
+    <RequireAnyPermission permissions={REPORTS_REPORTS_CASH_VARIANCE_PRINT_ACCESS.page.permissions ?? []}>
+      <CashVarianceReportPrintContent />
+    </RequireAnyPermission>
+  )
+}
+
+function CashVarianceReportPrintContent() {
   const searchParams = useSearchParams()
   const t = useTranslations('cashVarianceReport')
   const tCommon = useTranslations('common')

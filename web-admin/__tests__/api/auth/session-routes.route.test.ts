@@ -37,6 +37,8 @@ jest.mock('@/lib/supabase/server', () => ({ createAdminSupabaseClient: () => ({}
 jest.mock('@/lib/services/auth/session/use-cases/session-management', () => ({
   revokeTenantSessions: (...args: unknown[]) => revokeTenantSessionsMock(...args),
 }))
+// password-deps pulls in the Notification Hub (and with it the Supabase browser client).
+jest.mock('@lib/notifications/event-emitter', () => ({ emitNotificationEvent: jest.fn() }))
 jest.mock('@/lib/utils/logger', () => ({ logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn() } }))
 
 const { POST: revoke } = require('@/app/api/users/sessions/revoke/route') as {

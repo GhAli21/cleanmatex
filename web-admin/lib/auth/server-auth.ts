@@ -45,6 +45,11 @@ export async function getAuthContext(): Promise<AuthContext> {
     throw new Error('Unauthorized');
   }
 
+  // A pending forced password change blocks server actions too (pages are blocked by the proxy).
+  if (validation.mustChangePassword) {
+    throw new Error('Password change required')
+  }
+
   const { data: tenants, error } = await supabase.rpc('get_user_tenants');
   if (error || !tenants || tenants.length === 0) {
     throw new Error('No tenant access found' + error?.message);

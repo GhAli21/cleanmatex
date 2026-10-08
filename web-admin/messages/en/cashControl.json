@@ -1,11 +1,10 @@
 {
   "title": "Cash Control Settings",
-  "description": "Tenant-wide policy for drawer closes, variance handling, cash-change rounding, drawer custody, and POS session lifecycle.",
+  "description": "Tenant-wide policy for drawer closes, variance handling, cash-change rounding, and drawer custody. POS session settings are under POS Settings.",
   "sections": {
     "drawerClose": "Drawer Close Controls",
     "cashChangeRounding": "Cash-Change Rounding",
-    "drawerCustody": "Drawer Custody",
-    "posSession": "POS Session Controls"
+    "drawerCustody": "Drawer Custody"
   },
   "varianceOrderHint": "Tolerance must be at or below the reason threshold, which must be at or below the approval threshold.",
   "viewOnlyTitle": "View only",

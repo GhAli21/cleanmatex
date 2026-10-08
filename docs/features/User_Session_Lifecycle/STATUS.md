@@ -1,16 +1,18 @@
 # User Session Lifecycle — STATUS
 
 **Authoritative plan:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) (copy of the approved plan; update both when scope changes)
-**Last updated:** 2026-10-08 (all phases code complete; 0576 applied local+remote; 0577 applied; HQ follow-ups implemented; owner QA pending)
+**Last updated:** 2026-10-09 — program code-complete in both repos; every migration of this program (0561–0585) applied local + remote; owner manual QA and commits pending. **What is left:** [REMAINING_WORK.md](REMAINING_WORK.md).
 **Docs:** all feature docs live in this folder, including `session-management-guide.md` (moved from `docs/dev/`).
-**Next migration number:** 0578+ (ours: 0561, 0563, 0568, 0570, 0573, 0575, 0576, 0577 — ALWAYS re-list the folder before numbering)
+**Next migration number:** 0588+ (ours: 0561, 0563, 0568, 0570, 0573, 0575, 0576, 0577, 0581, 0584, 0585 — ALWAYS re-list the folder before numbering; other programs use 0578-0580, 0582-0583, 0586, 0587)
 
 ## Decisions (user-confirmed)
 - One auth account per tenant membership; session bound to one tenant at sign-in; **no tenant switching** (sign out → sign in to the other tenant).
 - Sign-in by globally unique `user_code` **or** email + password.
 - Dedicated audit table `sys_auth_audit_log` (+ `sys_auth_event_cd`); `sys_audit_log` only locked down.
 - Auth config in two tables: `sys_auth_admin_config_cf` (global catalog) + `org_auth_admin_config_cf` (tenant override, only where `is_allow_tenant_change`).
-- Optional modules in scope: concurrent session limit, new-device alert. Deferred: MFA, cmx-api enforcement.
+- Optional modules in scope: concurrent session limit, new-device alert. Deferred: MFA, cmx-api enforcement (full list with reasons in [REMAINING_WORK.md](REMAINING_WORK.md) §3).
+- Password management (added 2026-10-09): defaults accepted + all suggestions, with the two-field self-service change (new + re-type) and a "sign out now / later" prompt.
+- Plan downgrade does not clear tenant overrides automatically; HQ's manual action is enough for now (owner, 2026-10-09).
 
 ## Progress
 
@@ -24,44 +26,67 @@
 | 0 | Activity tab → `GET /api/users/[userId]/activity` (`audit:read`, reads `sys_auth_audit_log`) + access contract entry | ✅ Code done (eslint ✅, i18n ✅, tsc ✅ for touched files) |
 | 0 | Tenant switch removed (top bar, auth context, types, viewer page, i18n key) | ✅ Code done |
 | 0 | db-integration tests for Phase 0 (forged metadata, anon grants, guard trigger) | ✅ Written (`auth-identity-hardening.db.test.ts`) |
-| 0/1a | `npm run build` (web-admin) | ✅ Passed (exit 0) after Phase 1a code, 2026-10-03; `tsc --noEmit` still shows unrelated pre-existing errors (BigInt/ES2020 in `lib/services/fx/*`, `CASH_DENOMINATION_DISABLED` in cash-denomination work) |
+| 0/1a | `npm run build` (web-admin) | ✅ Passed (exit 0) after Phase 1a code, 2026-10-03; `tsc --noEmit` showed unrelated errors at the time (BigInt/ES2020 — fixed 2026-10-09 by raising the tsconfig target) |
 | 1a | Migration `0563_org_users_user_code.sql`: `user_code`, `UNIQUE(user_id)`, `current_tenant_id()` membership-only, login-identifier resolver, `USER_CODE_CHANGED` event + audit trigger | ✅ Applied local + remote (verified read-only on remote: 5 users coded U000001-U000005) |
 | 1a | Login API accepts `identifier` (email or user_code) via `fn_auth_resolve_login_identifier`; uniform `INVALID_CREDENTIALS`; first-hop client IP fix | ✅ Code done |
 | 1a | Login page: single "User code or email" field (EN/AR), client `signIn(identifier, ...)`, error-code mapping | ✅ Code done |
 | 1a | Users UI: User code on profile tab + change dialog; `GET/PATCH /api/users/[userId]/user-code` (`users:read` / `users:update`); access contract entries | ✅ Code done |
-| 1a | Tests: `login-identifier.test.ts` (8 ✅ jest); `auth-identity-hardening.db.test.ts` (db-integration, local DB); updated `rls-tenant-isolation` + `cash-drawer-tenant-isolation` db tests to impersonate a real member (`sub`) — both ✅ | ✅ (auth-identity test re-run pending 0568) |
+| 1a | Tests: `login-identifier.test.ts` (8 ✅ jest); `auth-identity-hardening.db.test.ts` (db-integration, local DB); updated `rls-tenant-isolation` + `cash-drawer-tenant-isolation` db tests to impersonate a real member (`sub`) — both ✅ | ✅ (auth-identity re-run after 0568: all 24 db-integration tests ✅, see the 0568 row) |
 | 1a | **Finding:** `service_role` could UPDATE/DELETE `sys_auth_audit_log` (default privileges) → migration `0568_auth_audit_log_append_only.sql` (revoke + immutability trigger) | ✅ Applied local + remote (verified: service_role INSERT only, UPDATE-blocking trigger present); all 24 db-integration tests ✅ |
 | 1 | Migration `0570_auth_admin_config.sql`: `sys_auth_admin_config_cf` (10 seeded items) + `org_auth_admin_config_cf` (tenant overrides, DB-enforced `is_allow_tenant_change` + bounds), `fn_auth_config_effective`, CONFIG_CHANGED audit triggers, `record_login_attempt` reads lockout thresholds from catalog | ✅ Applied local + remote (verified: 10 items, 7 tenant-changeable; triggers; resolver service_role-only) |
 | 1 | Config TS: `lib/constants/auth-admin-config.ts`, `lib/types/auth-admin-config.ts`, `lib/auth/auth-config-validation.ts`, repository + use-cases (`getEffectiveAuthConfig`, `updateTenantAuthConfig`) in `lib/services/auth/config/` | ✅ Code done; unit 8/8 ✅, db-integration `auth-admin-config.db.test.ts` 11/11 ✅, eslint ✅, tsc ✅ (own files) |
 | 1 | Migration `0573_auth_config_permissions_nav.sql`: permissions `auth_config:read/update`, `user_sessions:read/revoke` (+ default roles super_admin/tenant_admin/admin) and nav `settings_security`; `navigation.ts` entry + permission constants files added | ✅ Applied local + remote (verified: 4 permissions, 12 role rows, nav row under `config_settings`) |
 | 1 | `GET/PUT /api/settings/auth-config`; `/dashboard/settings/security` page + `src/features/auth-session/{api,hooks,model,ui,access}`; i18n `authSession` (EN/AR); access contract `auth-session-access.ts` (check --wire PASS, sync done) | ✅ Code done; eslint ✅, i18n ✅, tsc ✅ (own files); `npm run build` ✅ (exit 0, 2026-10-03; `/dashboard/settings/security` compiled) |
 | 1 | Manual QA of Security & Sessions screen (QA_TEST_GUIDE §1) | ⏳ Owner |
-| 1 | Migration `0575_auth_session_registry.sql`: `sys_auth_sess_end_rsn_cd`, `sys_auth_user_sessions_mst` (RLS own/tenant-admin), `fn_auth_session_register` (policy snapshot, remember-me, concurrent limit REVOKE_OLDEST/BLOCK_NEW, new-device detection), `fn_auth_session_validate` (membership, absolute, idle, touch-only-on-heartbeat), `fn_auth_session_end`/`fn_auth_sessions_revoke`, `fn_auth_sessions_sweep`, deactivation/removal trigger | ✍️ Written — **waiting for owner to review/apply (local + remote), then types + Prisma**. DB test written: `auth-session-registry.db.test.ts` (run after apply) |
+| 1 | Migration `0575_auth_session_registry.sql`: `sys_auth_sess_end_rsn_cd`, `sys_auth_user_sessions_mst` (RLS own/tenant-admin), `fn_auth_session_register` (policy snapshot, remember-me, concurrent limit REVOKE_OLDEST/BLOCK_NEW, new-device detection), `fn_auth_session_validate` (membership, absolute, idle, touch-only-on-heartbeat), `fn_auth_session_end`/`fn_auth_sessions_revoke`, `fn_auth_sessions_sweep`, deactivation/removal trigger | ✅ Applied local + remote (verified read-only on remote 2026-10-08); db-integration `auth-session-registry.db.test.ts` 21/21 ✅ |
 | 1 | Session TS: `lib/constants/auth-session.ts`, `lib/types/auth-session.ts`, `lib/services/auth/session/{auth-session.repository,request-meta,domain/device,use-cases/session-lifecycle}.ts`, `lib/auth/{session-guard,jwt-claims}.ts`, `lib/security/safe-redirect.ts`; guard wired into `proxy.ts`, `validateJWTWithTenant` (all `requirePermission` routes), both `getAuthContext`s and `getTenantIdFromSession` (fail closed; 5 s ACTIVE cache; lazy registration of pre-registry sessions) | ✅ Code done; unit tests: session-guard 12, session-helpers 19, tenant-context 21 ✅; db-integration `auth-session-registry` 21/21 ✅ (local) |
 | 2 | Login registers the session (device cookie `cmx-did`, policy snapshot, BLOCK_NEW → 409), logout ends it server-side (single API call, local-scope sign-out), login page: safe `?redirect=`, reason banners (`idle_timeout`, `session_expired`, `revoked`, `password_changed`, `session_limit`, `deactivated`), session-limit message; sign-out clears all caches and notifies other tabs | ✅ Code done |
 | 3 | `POST /api/auth/session/activity` (heartbeat/status), pure idle state machine (14 tests ✅), `use-session-lifecycle` (heartbeat only after real input, cross-tab sync, visibility re-check, server-confirmed expiry), idle-warning dialog (Escape = stay signed in), absolute-expiry heads-up, `SessionLifecycleProvider` in dashboard layout, EN/AR | ✅ Code done; `npm run build` ✅ (exit 0) with phases 1-3 in place; manual QA pending |
 | 4 | APIs: own sessions (list/revoke one/revoke others), tenant sessions (list/revoke ids or all), password change/reset, `/auth/callback` recovery exchange (httpOnly recovery cookie), reset redirect fix; `PASSWORD_ERROR_CODES` moved to `lib/constants/auth-session.ts` | ✅ Code done |
-| 4 | UI: `/dashboard/account/security` (my sessions + change password, user-menu link), `/dashboard/users/sessions` (CmxDataTable server paging, status filter, row sign-out, emergency sign-out-everyone with double confirm), `/reset-password` rewritten (Cmx + i18n, invalid-link state, hard redirect to `/login?reason=password_changed`), forgot-password `?error=invalid_link` banner; EN/AR i18n; access contracts (static route registered before `/dashboard/users/[userId]`); nav entry in `navigation.ts` | ✅ Code done; eslint ✅, tsc ✅ (own files), i18n ✅, jest auth 149/150 (1 pre-existing nav-drift), `check:ui-access-contract --wire` clean for our routes (3 pre-existing FAILs), sync ✅ |
-| 4/6 | Migration `0576_auth_session_screens_nav_cron.sql`: nav `users_sessions` (creates parent `users` node only if missing — local DB lacked it), pg_cron `auth-session-sweep` every 5 min | ✍️ Written — **waiting for owner to review/apply (local + remote)**. First local run failed on the parent lookup; file fixed (never applied) |
+| 4 | UI: `/dashboard/account/security` (my sessions + change password, user-menu link), `/dashboard/users/sessions` (CmxDataTable server paging, status filter, row sign-out, emergency sign-out-everyone with double confirm), `/reset-password` rewritten (Cmx + i18n, invalid-link state, hard redirect to `/login?reason=password_changed`), forgot-password `?error=invalid_link` banner; EN/AR i18n; access contracts (static route registered before `/dashboard/users/[userId]`); nav entry in `navigation.ts` | ✅ Code done; eslint ✅, tsc ✅ (own files), i18n ✅, jest auth ✅, `check:ui-access-contract --wire` ✅ (the earlier unrelated nav-drift and page-gate failures were fixed on 2026-10-09), sync ✅ |
+| 4/6 | Migration `0576_auth_session_screens_nav_cron.sql`: nav `users_sessions` (creates parent `users` node only if missing — local DB lacked it), pg_cron `auth-session-sweep` every 5 min | ✅ Applied local + remote (verified on remote: job `*/5 * * * *`, nav row present). First local run had failed on the parent lookup; the file was fixed before it was ever applied |
 | 4 | User detail "Sessions" tab (`UserSessionsTab`, shown with `user_sessions:read`, sign out one/all with `user_sessions:revoke`) + Activity tab: bilingual event names from `sys_auth_event_cd`, i18n column headers, error/empty states | ✅ Code done |
 | 5 | Concurrent session limit (done in 0575 + login 409) and new-device alert: `notifyNewDeviceSignIn` → Notification Hub `security.login.detected`; migration `0577_ntf_new_device_login_template.sql` (template v2 with device/IP/time, EN/AR, IN_APP/EMAIL/PUSH) | ✅ Code done; 0577 ✅ applied local + remote (verified on remote: template v2 APPROVED with IN_APP/EMAIL/PUSH) |
 | 5 | Global `SESSION_ENDED` handling: fetch guard → server-confirmed sign-out (`installSessionEndedGuard`) | ✅ Code done |
 | 6 | pg_cron sweep/purge (0576 ✅ applied; verified on remote: job `*/5 * * * *`, nav row present), tests (route tests `session-routes.route.test.ts`, `new-device-alert`, `session-ended-guard`, `session-ui-model`, db `auth-session-screens`), ADR, `docs/features/User_Session_Lifecycle/session-management-guide.md` rewritten, `AUTH_SYSTEM_EVALUATION.md` ticked, `integration-contracts.md` §18, inventories refreshed | ✅ Done (+ component tests `session-screens.test.tsx`) |
-| HQ | cleanmatexsaas: optional `user_code`/email on user creation (synthetic `<code>@users.invalid`), admin password reset revokes sessions, `/auth-config` catalog + `/tenants/[id]/auth-config` screens + API, audit, tests — see `cleanmatexsaas/docs/features/Auth_Session_Config/progress_status.md` | ✅ Code done (platform-api tests 25, platform-web 8; platform-web build ✅; platform-api `nest build` ✅ after repointing the retired cash-drawer movement-type catalog to `sys_cash_drawer_trx_type_cd`) |
+| HQ | cleanmatexsaas: optional `user_code`/email on user creation (synthetic `<code>@users.invalid`), admin password reset revokes sessions, `/auth-config` catalog + `/tenants/[id]/auth-config` screens + API, audit, tests — see `cleanmatexsaas/docs/features/Auth_Session_Config/progress_status.md` | ✅ Code done (2026-10-08: `nest build` ✅ after repointing the retired cash-drawer movement-type catalog to `sys_cash_drawer_trx_type_cd`, platform-web build ✅; password work 2026-10-09: tenant-users 20 ✅, web model 3 ✅, platform-web `tsc` ✅ — HQ builds not re-run since, see REMAINING_WORK §4) |
+
+## Password management (2026-10-09)
+
+| Item | State |
+|---|---|
+| Migration `0581_auth_password_management` (flag `pwd_must_change`, `sys_auth_pwd_history_dtl` + `trg_auth_pwd_capture`, `fn_auth_pwd_reuse_check`, PASSWORD config group + 4 items, events `PASSWORD_RESET_BY_ADMIN`/`PASSWORD_RESET_LINK_SENT`/`ACCOUNT_UNLOCKED`, `fn_auth_session_validate` + `must_change_password`, `users:reset_password` → admin, template v2) | ✅ Applied local + remote (db-integration `auth-password-history` 7/7 locally) |
+| Migration `0584_ntf_password_changed_bilingual_actor` (template v3: Arabic text uses `{{actor_label2}}`) | ✅ Applied local + remote (v3 APPROVED on remote) |
+| Migration `0585_auth_pwd_history_clock_ts` (history `created_at` = wall-clock so "most recent N" has a defined order) | ✅ Applied local + remote (default `clock_timestamp()` verified); db test `auth-password-history` 7/7 including the ordering case |
+| Tenant services `lib/services/auth/password/*` (policy, breach check, link + email, notify, admin actions) and reworked `changeOwnPassword` / `completePasswordReset` | ✅ Code done |
+| Routes: `GET /api/auth/password/policy`, `POST /api/auth/password/link`, `GET /auth/confirm`, `POST /api/users/[userId]/{password,password/link,unlock}`; change route accepts optional `currentPassword` | ✅ Code done |
+| Forced change gate: proxy → `/change-password`, API validator 403 `PASSWORD_CHANGE_REQUIRED`, server actions | ✅ Code done |
+| UI: change card adapts (3 fields / 2 fields), "Sign out now / Later" dialog, email-link button, forced-change page, admin Reset-password dialog + Unlock on user detail, PASSWORD group in Security & Sessions; EN/AR | ✅ Code done |
+| HQ platform-api: `reset-password` (policy, forced change, notice), `password-link`, `unlock`; HQ web dialog + Unlock; PASSWORD group in auth-config screens; EN/AR | ✅ Code done |
+| Validation | tenant: eslint ✅ (whole project), tsc ✅ (0 errors), jest auth/api/features 222 ✅ (nav-drift fixed), access-contract `--wire` ✅ PASS, i18n ✅; HQ: tenant-users 20 ✅, web model 3 ✅, tsc ✅ (web); api `tsc` errors are all in `notifications-hq` (Notification program — see its HANDOFF doc) |
+| Manual QA (QA_TEST_GUIDE §6) | ⏳ Owner |
+
+### Owner prerequisites for the new flows
+- Mail: tenant `RESEND_API_KEY` + `NEXT_PUBLIC_SITE_URL`; HQ `HQ_RESEND_API_KEY` + `TENANT_APP_URL` (without them the link/notice options report "email not configured" instead of failing silently; everything else works).
+- Default policy: `AUTH_PWD_REQUIRE_CURRENT` = on (3-field form). Turn it off (platform or per tenant) to give users the 2-field form.
+
+### Suggestions not built yet
+Password expiry/rotation, MFA, "cannot reset a higher role" rule for administrators, per-role forced-change defaults — tracked with reasons in [REMAINING_WORK.md](REMAINING_WORK.md) §3.
 
 ## Plan deviations
 - Dropped the redundant `is_platform_only` column from the config catalog: "platform-managed" is simply `is_allow_tenant_change = false`.
 
 ## Open items
-- **Remote DB:** verified 2026-10-08 — 0575 and 0576 are applied on remote (sessions table, sweep cron job, nav row present). 0577 verified too (template v2 on remote).
-- **Ops (owner):** on the hosted Supabase project set JWT expiry to 600 s and enable Secure password change (local `supabase/config.toml` already updated). See `docs/features/User_Session_Lifecycle/session-management-guide.md` → Operations.
-- **Not wired on purpose:** clearing tenant overrides automatically on plan downgrade (HQ billing code needs explicit approval); HQ has an explicit action instead.
-- Pre-existing, unrelated: `platform-inventories` nav-drift test reports `/dashboard/settings/permissions`.
+Single source: [REMAINING_WORK.md](REMAINING_WORK.md). Summary:
+- **Owner:** manual QA (QA_TEST_GUIDE phases 0–5, §6, HQ H.1–H.8); commit both repos; mail env (`RESEND_API_KEY` + `NEXT_PUBLIC_SITE_URL`; HQ `HQ_RESEND_API_KEY` + `TENANT_APP_URL`); grant `auth_config.view/manage` to HQ roles before enabling RBAC enforcement.
+- **Recommended before go-live (not required for features):** hosted Supabase JWT expiry 600 s and Secure password change — what each does and what happens without it is in REMAINING_WORK §1.1.
+- **Remote DB:** verified read-only 2026-10-08/09 — 0575, 0576, 0577, 0581, 0584, 0585 are applied on remote.
+- **Not wired on purpose:** clearing tenant overrides automatically on plan downgrade; HQ has an explicit action instead (accepted as enough for now).
+- **Cleared 2026-10-09:** `platform-inventories` nav-drift test (cause: malformed `settings_security` entry in `navigation.ts` made the extractor mis-attribute `auth_config:read`); page-gate FAILs on `marketing/promotions` (server gate before redirect) and `reports/cash-variance/print` (`RequireAnyPermission`); `check:ui-access-contract --wire` PASS; BigInt TS2737 errors (`tsconfig.json` target ES2017 → ES2020, type-check only); corrupted `docs/dev/rules/integration-contracts.md` repaired (see CHANGELOG).
 
 ## Known follow-ups / flags
-- Routes reading `user.user_metadata.role` for authorization (e.g. `app/api/v1/customers/export/route.ts`) trust a user-editable field — outside this program, needs a separate fix.
-- HQ (`cleanmatexsaas`): follow-ups implemented 2026-10-08 (see HQ row above). Remaining HQ-side decisions: grant `auth_config.view/manage` to HQ roles before enabling RBAC enforcement; whether plan downgrade should auto-clear overrides (needs billing approval).
-- Pre-existing: `npx tsc --noEmit` reports TS2737 BigInt errors in `lib/services/fx/*` (target < ES2020).
+- Later-phase items (MFA, password expiry, cmx-api enforcement, role-change revocation, higher-role reset rule, per-role forced-change defaults, `user_metadata.role` routes): see [REMAINING_WORK.md](REMAINING_WORK.md) §3.
+- HQ `notifications-hq` TS7056 errors and the stale `metering.service.spec.ts` belong to the Notification program: handoff in HQ `docs/features/Notification_And_Communication_Hub/Notification_HANDOFF_from_User_Session_Lifecycle.md`.
 
 ## Docs/tasks still owed per phase
 STATUS update + `/documentation` pass at the end of each phase; `QA_TEST_GUIDE.md` scenarios added per phase (sidebar path + URL + what to click).

@@ -45,33 +45,20 @@ import {
   CASH_CONTROL_CHANGE_BEARER,
   CASH_CONTROL_COUNT_MODE,
   CASH_CONTROL_MAX_CASH_ENFORCE_MODE,
-  CASH_CONTROL_ROLLOVER_MODE,
   CASH_CONTROL_SHARED_SESSION_MODE,
   CASH_CONTROL_TRACKING_MODE,
   CASH_CONTROL_VARIANCE_GATE_MODE,
-  POS_SESSION_SURFACE_SETTING_FIELD,
   type CashControlSettings,
 } from '@lib/constants/cash-control'
-import { POS_SESSION_REQUIREMENT_MODE, POS_SESSION_SURFACE } from '@lib/constants/pos-session'
 
 const QUERY_KEY = ['cash-control-settings'] as const
-
-/** One POS-session requirement selector per finance screen, in display order. */
-const POS_SESSION_SURFACE_FIELDS = [
-  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.ORDER_ENTRY],
-  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.LATER_COLLECTION],
-  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.STORED_VALUE_SALE],
-  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.CASH_REFUND],
-  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.CUSTOMER_RECEIPT],
-  POS_SESSION_SURFACE_SETTING_FIELD[POS_SESSION_SURFACE.MANUAL_VOUCHER],
-] as const
 
 /** RHF form values are the full resolved settings; the PUT patch is derived from dirty fields only. */
 type FormValues = CashControlSettings
 
 /**
  * Tenant-level cash-control policy admin screen (POS Session & Cash Drawer
- * Hardening, W0-5). Route: /dashboard/settings/payments/cash-control-settings,
+ * Hardening, W0-5). POS-session settings live on /dashboard/settings/pos-settings. Route: /dashboard/settings/payments/cash-control-settings,
  * gated by cash_control:view (page) / cash_control:manage (save).
  *
  * v1 scope: TENANT-level defaults only. The resolver/service already
@@ -335,46 +322,6 @@ export function CashControlSettingsScreen() {
             description={t('settings.cashDropRequiresDest.description')}
             checked={!!form.watch('cashDropRequiresDest')}
             onCheckedChange={(v) => form.setValue('cashDropRequiresDest', v, { shouldDirty: true })}
-          />
-        </CmxCardContent>
-      </CmxCard>
-
-      {/* POS session controls */}
-      <CmxCard>
-        <CmxCardHeader>
-          <CmxCardTitle>{t('sections.posSession')}</CmxCardTitle>
-        </CmxCardHeader>
-        <CmxCardContent className="space-y-4">
-          {POS_SESSION_SURFACE_FIELDS.map((field) => (
-            <SelectField
-              key={field}
-              label={t(`settings.${field}.label` as never)}
-              description={t(`settings.${field}.description` as never)}
-              value={form.watch(field)}
-              options={Object.values(POS_SESSION_REQUIREMENT_MODE)}
-              optionLabel={(v) => t(`enums.posSessionRequirementMode.${v}` as never)}
-              onChange={(v) => form.setValue(field, v as never, { shouldDirty: true })}
-            />
-          ))}
-          <SelectField
-            label={t('settings.posSessionRolloverMode.label')}
-            description={t('settings.posSessionRolloverMode.description')}
-            value={form.watch('posSessionRolloverMode')}
-            options={Object.values(CASH_CONTROL_ROLLOVER_MODE)}
-            optionLabel={(v) => t(`enums.posSessionRolloverMode.${v}` as never)}
-            onChange={(v) => form.setValue('posSessionRolloverMode', v as never, { shouldDirty: true })}
-          />
-          <NumberField
-            label={t('settings.posSessionStaleHours.label')}
-            description={t('settings.posSessionStaleHours.description')}
-            value={form.watch('posSessionStaleHours')}
-            onChange={(v) => form.setValue('posSessionStaleHours', v ?? 0, { shouldDirty: true })}
-          />
-          <SwitchField
-            label={t('settings.shiftZReportRequired.label')}
-            description={t('settings.shiftZReportRequired.description')}
-            checked={!!form.watch('shiftZReportRequired')}
-            onCheckedChange={(v) => form.setValue('shiftZReportRequired', v, { shouldDirty: true })}
           />
         </CmxCardContent>
       </CmxCard>

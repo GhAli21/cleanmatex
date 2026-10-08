@@ -91,9 +91,15 @@ Everything is written to the dedicated, append-only `sys_auth_audit_log` (event 
 
 ## Password flows
 
-- **Change** (`POST /api/auth/password/change`, Account security page): requires the current password (a wrong one counts toward lockout), enforces the password policy, ends the user's **other** sessions.
-- **Forgot / reset**: `/api/auth/reset-password` emails a link to `/auth/callback?next=/reset-password`; the callback exchanges the code, sets the short-lived httpOnly `cmx-recovery` cookie and redirects. `POST /api/auth/password/reset` refuses without that cookie, sets the password and ends **every** session (including the recovery one); the page hard-navigates to `/login?reason=password_changed`.
-- Users without a real email (synthetic `<user_code>@users.invalid` login) cannot receive reset mail: an HQ administrator resets their password.
+Shared rules (every flow): strength policy (8+, upper, lower, number) → **no reuse** of the last N passwords (`AUTH_PWD_HISTORY_COUNT`, hashes kept by trigger `trg_auth_pwd_capture` on `auth.users`, checked by `fn_auth_pwd_reuse_check`) → **breached-password check** (`AUTH_PWD_BREACH_CHECK`, Have I Been Pwned k-anonymity, fails open). Code: `lib/services/auth/password/*`. Every change is audited in `sys_auth_audit_log` and the owner is notified (`security.password.changed`, template v3). **A password is never emailed** — "send to the user" always means a one-time link.
+
+- **Change by the user** (`POST /api/auth/password/change`, Account security): three verification paths, chosen by policy and account state — *current password* (`AUTH_PWD_REQUIRE_CURRENT` on, default; a wrong one counts toward lockout), *fresh sign-in* (policy off: the form shows only new + re-type; allowed while the session is younger than `AUTH_PWD_FRESH_SIGNIN_MIN`, otherwise `REAUTH_REQUIRED` → sign in again or use the link), *forced* (see below). Other sessions end; this one continues and a dialog asks "Sign out now / Later".
+- **Change by emailed link** (`POST /api/auth/password/link` from Account security, or an administrator): `auth.admin.generateLink` → email (Resend, `lib/notifications/email-sender`) with `/auth/confirm?token_hash=…&type=recovery`. `GET /auth/confirm` verifies the token in the recipient's browser, sets the `cmx-recovery` cookie and goes to `/reset-password`. Works when someone else requested it (no PKCE verifier needed). Needs a real email and a working mail provider (`RESEND_API_KEY`, `NEXT_PUBLIC_SITE_URL`).
+- **Forgot / reset (public)**: `/api/auth/reset-password` → Supabase email → `/auth/callback?next=/reset-password` (PKCE). Both link kinds end at `POST /api/auth/password/reset`, which refuses without the recovery cookie, applies the shared rules, clears a pending forced change, ends **every** session and sends the user to `/login?reason=password_changed`.
+- **Administrator actions on another user of the same tenant** (permission `users:reset_password`, all tenant-scoped, never on one's own account): `POST /api/users/[userId]/password` (set a temporary password, `mustChange` default true, ends all their sessions), `POST /api/users/[userId]/password/link` (email a link, optional `revokeSessions`), `POST /api/users/[userId]/unlock` (clear lockout). UI: user detail header → **Reset password** (choose/generate password with copy, or email a link) and **Unlock account**.
+- **Forced change**: `org_users_mst.pwd_must_change` is set by an administrator reset. `fn_auth_session_validate` returns `must_change_password`; the proxy redirects every page to `/change-password`, `validateJWTWithTenant` / `getAuthContext` answer `403 PASSWORD_CHANGE_REQUIRED` for everything except `/api/auth/*`. Choosing a password (there or via a link) clears the flag.
+- Users without a real email (synthetic `<user_code>@users.invalid` login) have no link option; an administrator sets a temporary password and hands it over in person.
+- **HQ** (platform-api `tenants/:tenantId/users/:userId` → `reset-password`, `password-link`, `unlock`): same rules via `fn_auth_pwd_reuse_check` and the tenant's effective policy; optional "notify user" email (never contains the password) and "email a link" (needs `TENANT_APP_URL` and `HQ_RESEND_API_KEY`).
 
 ---
 
@@ -148,8 +154,10 @@ The permissions `useEffect` depends only on `[user, currentTenant, isLoading]`. 
 
 ## Operations
 
-- **Access-token lifetime:** `jwt_expiry = 600` (local: `supabase/config.toml`; hosted: Supabase Dashboard → Authentication → Sessions → "JWT expiry", or Project Settings → API → JWT expiry). It bounds how long a revoked session still works for direct PostgREST calls.
-- **`secure_password_change = true`** (local: `config.toml` `[auth.email]`; hosted: Dashboard → Authentication → Providers → Email → "Secure password change"). It forces a recent sign-in for a user-initiated password update through GoTrue. The app's own change/reset flows run on the server and are unaffected.
+- **Access-token lifetime (recommended, not required):** `jwt_expiry = 600` (local: `supabase/config.toml`; hosted: Supabase Dashboard → Authentication → Sessions → "JWT expiry", or Project Settings → API → JWT expiry). It bounds how long a revoked session still works for direct PostgREST calls.
+- **`secure_password_change = true`** (recommended, not required; local: `config.toml` `[auth.email]`; hosted: Dashboard → Authentication → Providers → Email → "Secure password change"). It forces a recent sign-in for a user-initiated password update through GoTrue. The app's own change/reset flows run on the server and are unaffected.
+- **Mail for links and notices:** tenant app needs `RESEND_API_KEY` (+ from address) and `NEXT_PUBLIC_SITE_URL`; HQ needs `HQ_RESEND_API_KEY` and `TENANT_APP_URL`. Supabase's own SMTP is only used by the public "forgot password" page. Link lifetime follows the project OTP expiry (default 1 h).
+- **What happens if the two hosted settings are not applied:** see [REMAINING_WORK.md](REMAINING_WORK.md) §1.1 — nothing breaks; direct browser-to-Supabase calls just stay valid longer after a revoke (up to the default 1 h), and a user's own token could change the password through Supabase directly, outside this app's policy checks.
 - **Cron:** confirm `select jobname, schedule from cron.job where jobname = 'auth-session-sweep'` returns `*/5 * * * *`.
 - **New-device alerts** use the Notification Hub template `security.login.detected.default` v2 (migration 0577); outbox delivery follows the Notification Hub setup.
 
@@ -171,4 +179,5 @@ The permissions `useEffect` depends only on `[user, currentTenant, isLoading]`. 
 | Screens | `/dashboard/account/security`, `/dashboard/users/sessions`, `/dashboard/settings/security` |
 | CSRF | `web-admin/lib/security/csrf.ts`, `web-admin/lib/utils/csrf-token.ts` |
 | Remember me | `web-admin/lib/supabase/server.ts` (`createServerSupabaseClientForLogin`), login page + auth context |
-| DB | migrations 0561, 0563, 0568, 0570, 0573, 0575, 0576, 0577 |
+| Password services | `web-admin/lib/services/auth/password/**`, `lib/services/auth/session/use-cases/password.ts`, `app/api/auth/password/**`, `app/api/users/[userId]/{password,unlock}`, `app/auth/confirm`, `app/(auth)/change-password` |
+| DB | migrations 0561, 0563, 0568, 0570, 0573, 0575, 0576, 0577, 0581, 0584, 0585 |

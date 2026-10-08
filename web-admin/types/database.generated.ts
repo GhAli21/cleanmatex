@@ -16547,6 +16547,301 @@ export type Database = {
           },
         ]
       }
+      org_ntf_ptbind_dtl: {
+        Row: {
+          component_key: string
+          component_position: number
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          external_slot: string
+          format_spec: Json
+          id: string
+          is_active: boolean
+          is_required: boolean
+          parameter_position: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          revision_id: string
+          static_value: string | null
+          tenant_org_id: string
+          variable_id: string | null
+        }
+        Insert: {
+          component_key: string
+          component_position: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          external_slot: string
+          format_spec?: Json
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          parameter_position: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          revision_id: string
+          static_value?: string | null
+          tenant_org_id: string
+          variable_id?: string | null
+        }
+        Update: {
+          component_key?: string
+          component_position?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          external_slot?: string
+          format_spec?: Json
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          parameter_position?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          revision_id?: string
+          static_value?: string | null
+          tenant_org_id?: string
+          variable_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ntf_optb_rev"
+            columns: ["revision_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_ptrev_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_optb_var"
+            columns: ["variable_id"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_tpl_var_dtl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_ntf_ptreg_mst: {
+        Row: {
+          account_id: string
+          approval_fresh_until: string | null
+          category_code: string | null
+          content_type_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          current_revision_id: string | null
+          external_name: string
+          external_template_id: string | null
+          id: string
+          is_active: boolean
+          locale_id: string
+          observation_evidence: Json
+          observed_at: string
+          observed_status: string
+          observed_status_raw: string
+          provider_language_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          registration_key: string
+          rejection_code: string | null
+          rejection_reason: string | null
+          sender_id: string | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          account_id: string
+          approval_fresh_until?: string | null
+          category_code?: string | null
+          content_type_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          current_revision_id?: string | null
+          external_name: string
+          external_template_id?: string | null
+          id?: string
+          is_active?: boolean
+          locale_id: string
+          observation_evidence?: Json
+          observed_at?: string
+          observed_status?: string
+          observed_status_raw: string
+          provider_language_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          registration_key: string
+          rejection_code?: string | null
+          rejection_reason?: string | null
+          sender_id?: string | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          account_id?: string
+          approval_fresh_until?: string | null
+          category_code?: string | null
+          content_type_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          current_revision_id?: string | null
+          external_name?: string
+          external_template_id?: string | null
+          id?: string
+          is_active?: boolean
+          locale_id?: string
+          observation_evidence?: Json
+          observed_at?: string
+          observed_status?: string
+          observed_status_raw?: string
+          provider_language_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          registration_key?: string
+          rejection_code?: string | null
+          rejection_reason?: string | null
+          sender_id?: string | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ntf_optr_acct"
+            columns: ["account_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_prov_acct_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_optr_cur"
+            columns: ["current_revision_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_ptrev_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_optr_loc"
+            columns: ["locale_id"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_tpl_locale_dtl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_optr_send"
+            columns: ["sender_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_prov_send_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
+      org_ntf_ptrev_dtl: {
+        Row: {
+          approval_evidence: Json
+          content_sid: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          external_revision_id: string | null
+          id: string
+          is_active: boolean
+          occurrence_count: number
+          provider_content_hash: string
+          provider_param_count: number
+          provider_snapshot: Json
+          provider_status_at_import: string
+          provider_status_raw: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          registration_id: string
+          rejection_evidence: Json | null
+          revision_no: number
+          submitted_at: string | null
+          tenant_org_id: string
+          unique_var_count: number
+          valid_until_at_import: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          approval_evidence: Json
+          content_sid?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          external_revision_id?: string | null
+          id?: string
+          is_active?: boolean
+          occurrence_count: number
+          provider_content_hash: string
+          provider_param_count: number
+          provider_snapshot: Json
+          provider_status_at_import: string
+          provider_status_raw: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          registration_id: string
+          rejection_evidence?: Json | null
+          revision_no: number
+          submitted_at?: string | null
+          tenant_org_id: string
+          unique_var_count: number
+          valid_until_at_import?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          approval_evidence?: Json
+          content_sid?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          external_revision_id?: string | null
+          id?: string
+          is_active?: boolean
+          occurrence_count?: number
+          provider_content_hash?: string
+          provider_param_count?: number
+          provider_snapshot?: Json
+          provider_status_at_import?: string
+          provider_status_raw?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          registration_id?: string
+          rejection_evidence?: Json | null
+          revision_no?: number
+          submitted_at?: string | null
+          tenant_org_id?: string
+          unique_var_count?: number
+          valid_until_at_import?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ntf_optrv_reg"
+            columns: ["registration_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_ptreg_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
       org_ntf_push_subs_dtl: {
         Row: {
           app_version: string | null
@@ -16805,11 +17100,12 @@ export type Database = {
           id: string
           is_active: boolean
           language_code: string
-          platform_account_id: string
+          platform_account_id: string | null
           platform_sender_id: string | null
           private_account_id: string | null
+          private_revision_id: string | null
           private_sender_id: string | null
-          provider_revision_id: string
+          provider_revision_id: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
@@ -16831,11 +17127,12 @@ export type Database = {
           id?: string
           is_active?: boolean
           language_code: string
-          platform_account_id: string
+          platform_account_id?: string | null
           platform_sender_id?: string | null
           private_account_id?: string | null
+          private_revision_id?: string | null
           private_sender_id?: string | null
-          provider_revision_id: string
+          provider_revision_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -16857,11 +17154,12 @@ export type Database = {
           id?: string
           is_active?: boolean
           language_code?: string
-          platform_account_id?: string
+          platform_account_id?: string | null
           platform_sender_id?: string | null
           private_account_id?: string | null
+          private_revision_id?: string | null
           private_sender_id?: string | null
-          provider_revision_id?: string
+          provider_revision_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -16899,6 +17197,13 @@ export type Database = {
             columns: ["private_account_id", "tenant_org_id"]
             isOneToOne: false
             referencedRelation: "org_ntf_prov_acct_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_prev"
+            columns: ["private_revision_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_ptrev_dtl"
             referencedColumns: ["id", "tenant_org_id"]
           },
           {
@@ -25090,6 +25395,8 @@ export type Database = {
           password_hash: string | null
           phone: string | null
           preferences: Json | null
+          pwd_changed_at: string | null
+          pwd_must_change: boolean
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
@@ -25129,6 +25436,8 @@ export type Database = {
           password_hash?: string | null
           phone?: string | null
           preferences?: Json | null
+          pwd_changed_at?: string | null
+          pwd_must_change?: boolean
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
@@ -25168,6 +25477,8 @@ export type Database = {
           password_hash?: string | null
           phone?: string | null
           preferences?: Json | null
+          pwd_changed_at?: string | null
+          pwd_must_change?: boolean
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
@@ -26273,6 +26584,30 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_auth_pwd_history_dtl: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          id: string
+          password_hash: string
+          rec_notes: string | null
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          id?: string
+          password_hash: string
+          rec_notes?: string | null
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          id?: string
+          password_hash?: string
+          rec_notes?: string | null
         }
         Relationships: []
       }
@@ -41357,6 +41692,47 @@ export type Database = {
         Args: { p_from?: string; p_order: string; p_tenant: string }
         Returns: Json
       }
+      cmx_import_sys_ntf_prov_tmpl: {
+        Args: {
+          p_account_id: string
+          p_actor: string
+          p_approval_evidence: Json
+          p_approval_fresh_until: string
+          p_category_code: string
+          p_content_sid: string
+          p_content_type_code: string
+          p_external_name: string
+          p_external_revision_id: string
+          p_external_template_id: string
+          p_locale_id: string
+          p_observation_evidence: Json
+          p_observed_at: string
+          p_observed_status: string
+          p_observed_status_raw: string
+          p_occurrence_count: number
+          p_provenance: string
+          p_provider_content_hash: string
+          p_provider_language_code: string
+          p_provider_param_count: number
+          p_provider_snapshot: Json
+          p_provider_status_at_import: string
+          p_provider_status_raw: string
+          p_registration_key: string
+          p_rejection_code: string
+          p_rejection_evidence: Json
+          p_rejection_reason: string
+          p_sender_id: string
+          p_submitted_at: string
+          p_unique_var_count: number
+          p_valid_until_at_import: string
+          p_verified_at: string
+        }
+        Returns: {
+          registration_id: string
+          revision_id: string
+          revision_no: number
+        }[]
+      }
       cmx_ord_assembly_pre_conditions: { Args: never; Returns: Json }
       cmx_ord_assembly_transition: {
         Args: {
@@ -41696,6 +42072,14 @@ export type Database = {
         }
         Returns: string
       }
+      fn_auth_pwd_reuse_check: {
+        Args: {
+          p_auth_user_id: string
+          p_depth: number
+          p_new_password: string
+        }
+        Returns: boolean
+      }
       fn_auth_resolve_login_identifier: {
         Args: { p_identifier: string }
         Returns: {
@@ -41756,6 +42140,7 @@ export type Database = {
           end_reason: string
           idle_remaining_sec: number
           idle_warning_sec: number
+          must_change_password: boolean
           state: string
           tenant_org_id: string
         }[]

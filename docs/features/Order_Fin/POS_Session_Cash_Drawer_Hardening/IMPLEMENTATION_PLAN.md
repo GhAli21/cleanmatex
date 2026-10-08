@@ -1,6 +1,6 @@
 # POS Session & Cash Drawer — Production Hardening Program
 
-- **Status:** PLAN — awaiting approval. No code written, no migrations created.
+- **Status:** **HISTORICAL — the program is COMPLETE (2026-10-03, STATUS D67).** This file is the original plan; its checkboxes are ticked or superseded. For current state read [START_HERE.md](./START_HERE.md), [STATUS.md](./STATUS.md) and [REMAINING_WORK.md](./REMAINING_WORK.md). See the post-program addendum at the end of this file for what changed after the plan (D68–D70).
 - **Created:** 2026-09-23
 - **Owner domain:** Order Fin / POS
 - **Extends:** `ADR-054-User-Owned-POS-Sessions.md`, `POS_Session_Management_V1.md`, B16 (drawer variance approval), B27 (financial permissions)
@@ -1387,6 +1387,8 @@ Existing endpoints materially changed: `/api/v1/orders/[id]/payments`, `/collect
 | Route | Package | Screen file | Nav? |
 |---|---|---|---|
 | `/dashboard/settings/payments/cash-control-settings` | W0-5 | `src/features/cash-drawers/ui/cash-control-settings-screen.tsx` | yes |
+| `/dashboard/settings/pos-settings` | D70 (post-program) | `src/features/pos-settings/ui/pos-settings-screen.tsx` | yes (`0587`) |
+| `/dashboard/internal_fin/pos-sessions/z-reports` | D69 (post-program) | `src/features/pos-sessions/ui/pos-shift-z-archive-screen.tsx` | no (button on POS Sessions) |
 | `/dashboard/internal_fin/cash-transfers` | D1-7 | `src/features/cash-drawers/ui/cash-transfers-screen.tsx` | yes |
 | `/dashboard/reports/cash-variance` | C4-3 | `src/features/reports/ui/cash-variance-by-cashier-screen.tsx` | yes |
 | `/dashboard/internal_fin/pos-sessions/[sessionId]/z-report` | D2-6 | `src/features/pos-sessions/reports/pos-sessions-shift-z-rprt.tsx` | print route |
@@ -1688,3 +1690,13 @@ Runs once, after Wave E. Per-wave `/documentation` passes cover their own surfac
 - [x] DOC-8 **Refresh generated artifacts**: `npm run rebuild:platform-info-inventories`, `check:platform-info-inventories`, `sync:ui-access-contract`. Resolve or allowlist every entry in `DRIFT_REPORT.md`. — **done (D67)**
 - [x] DOC-9 **Operator-facing documentation** — this program adds real operational procedure, not just code. Cover: opening and closing a drawer under blind close, what to do with an over-threshold variance, how to perform a drop to safe, what a Z-report is and when it is generated, and what happens to a session at business-date rollover. Bilingual (EN/AR). — **done (D67)**
 - [x] DOC-10 **Final `STATUS.md`** — all waves COMPLETE, every migration marked Applied, full decision log `D1…Dn`, complete gate history, open follow-ups listed explicitly rather than implied. — **done (D67)**
+
+---
+
+## Post-program addendum (2026-10-08 / 2026-10-09 — STATUS D68–D70)
+
+The plan above was completed on 2026-10-03. Three follow-ups were delivered afterwards; none changes a decision above.
+
+- **D68 — HQ catalog screens.** The eight cash-drawer / POS-session `sys_*` tables are managed in the HQ repo (`cleanmatexsaas`, `/system-codes/cash-pos`). HQ owns presentation (names, descriptions, order); behaviour stays a tenant-repo migration plus constant.
+- **D69 — web-admin audit.** Catalog-driven bilingual labels on every POS-session / drawer screen; the Z-report archive screen; the print-page gate; migration **0578** (least-privilege `pos_session:*` defaults, replacing the over-grant of 0396).
+- **D70 — POS Settings page.** The §3.1.5 / W0-5 screen kept its route for drawer and cash policy; its *POS session controls* card (per-screen requirement, rollover mode, stale hours, Z-report required) moved to `/dashboard/settings/pos-settings` (feature `src/features/pos-settings/`, tabs *Session requirement* and *Shift lifecycle*). Same API (`/api/v1/settings/payments/cash-control`) and permissions; each page sends only its own changed fields. Menu entry: migration **0587**.

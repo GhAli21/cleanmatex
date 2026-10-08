@@ -17,7 +17,7 @@ then the POS session.
 
 ## 2. Which screens need a POS session
 
-Your administrator decides, per screen (Settings → Payments → Cash control settings): order entry,
+Your administrator decides, per screen (Settings → POS Settings → Session requirement): order entry,
 collecting a later payment, wallet/advance/gift-card sales, cash refunds, customer receipts, manual
 vouchers. Each is *required*, *required for cash* or *optional*. When a screen needs one and you have none,
 it offers to open it right there. Cash always needs an open **drawer** session regardless.
@@ -70,6 +70,39 @@ a pattern, not a one-off miss.
 - **Shift report.** POS Sessions → *Shift report*: the live **X-report** while the shift runs; the **Z-report**
   is frozen when it closes (number `Z-<session no>`, with an integrity line). Print on 80 mm or A4. If your
   organization does not auto-generate the Z-report, press *Generate Z-report* after closing.
+- **Z-report archive.** POS Sessions → *Z-report archive* lists every closed shift's frozen report, newest
+  business day first: sales per currency, drawer variance (or "pending" while undecided), whether it was
+  auto-closed by the rollover, and an integrity check. Filter by branch, business day, report number or
+  cashier. A cashier sees their own shifts; a supervisor or branch manager sees everyone in their branch scope.
+  Needs the *Z-report* permission.
+
+## 7a. Where the settings are
+
+| Page | What it controls |
+|---|---|
+| Settings → **POS Settings** | Where a POS session is required (per screen); what happens to open shifts at the business-day rollover; when a shift counts as stale; whether closing a shift freezes a Z-report |
+| Settings → **Cash Control Settings** | Blind close, variance tolerance bands, counting rules, cash-change rounding, drawer assignment and sharing, maximum cash, which notes and coins are counted, and the per-branch pending-deposit drawer |
+
+Both pages are tenant-wide defaults; a single drawer can override its own policy on its *Policy* tab. Viewing needs
+*cash control view*, saving needs *cash control manage*.
+
+## 7b. Names you see on screen
+
+Status, event and drawer-type names (for example *Rolled over*, *Force-closed*, *Pending deposit*, *In transit*) come
+from the platform's code catalogs in English and Arabic. The platform team can reword them; the change appears within
+about ten minutes without a release.
+
+## 7c. Who can do what (default roles)
+
+| Action | Roles that have it by default |
+|---|---|
+| See own POS sessions | accountant, admin, branch manager, cashier, finance manager, operator, supervisor, tenant admin |
+| See everyone's POS sessions | accountant, admin, branch manager, finance manager, supervisor, tenant admin |
+| Open, pause/resume, close own shift | admin, branch manager, cashier, finance manager, operator, tenant admin |
+| Force-close a session | admin, branch manager, finance manager, supervisor, tenant admin |
+
+Super admin holds all of these. A tenant can still grant or remove a permission for a single user. Roles such as
+viewer, driver and B2B customer hold none of them.
 
 ## 8. When something looks wrong
 

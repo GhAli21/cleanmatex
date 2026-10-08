@@ -26,6 +26,8 @@ export interface SessionValidation {
   absoluteRemainingSec: number | null
   /** Seconds before idle expiry at which the UI warns the user. */
   idleWarningSec: number | null
+  /** true = an administrator set a temporary password; the user must choose a new one before anything else. */
+  mustChangePassword: boolean
 }
 
 /** Result of registering a session at sign-in (fn_auth_session_register). */

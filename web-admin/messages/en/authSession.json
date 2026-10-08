@@ -22,7 +22,8 @@
     "groups": {
       "SESSION": "Sessions",
       "DEVICE": "Devices",
-      "LOCKOUT": "Sign-in protection"
+      "LOCKOUT": "Sign-in protection",
+      "PASSWORD": "Passwords"
     },
     "source": {
       "PLATFORM": "Platform default",
@@ -73,7 +74,35 @@
       "mismatch": "The two passwords do not match.",
       "same": "The new password must be different from the current one.",
       "locked": "Too many failed attempts. The account is temporarily locked; try again later.",
-      "failed": "Could not change the password. Please try again."
+      "failed": "Could not change the password. Please try again.",
+      "reused": "You used this password recently. Choose a different one.",
+      "breached": "This password appears in known data breaches. Choose a different one.",
+      "reauth": "For your security, sign in again or use the emailed link to change your password.",
+      "noEmail": "Your account has no email address, so a link cannot be sent.",
+      "emailFailed": "The email could not be sent. Please try again later.",
+      "selfReset": "Use Account security to change your own password.",
+      "userNotFound": "User not found."
+    },
+    "changeHintNoCurrent": "Choose a new password and type it twice. You will stay signed in on this device; all your other devices will be signed out.",
+    "reauthSignIn": "Sign in again",
+    "link": {
+      "title": "Prefer an emailed link?",
+      "hint": "We will send a one-time link to {email}. Opening it lets you choose a new password without typing the current one.",
+      "send": "Email me a link",
+      "sent": "A link was sent to {email}. It works once and expires soon."
+    },
+    "changedDialog": {
+      "title": "Password changed",
+      "body": "{count, plural, =0 {Your password was changed.} one {Your password was changed. 1 other device was signed out.} other {Your password was changed. # other devices were signed out.}}",
+      "question": "Do you want to sign out of this device now, or later?",
+      "later": "Later",
+      "signOutNow": "Sign out now"
+    },
+    "forced": {
+      "title": "Set a new password",
+      "subtitle": "An administrator gave you a temporary password. Choose your own password to continue.",
+      "submit": "Save and continue",
+      "signOut": "Sign out"
     }
   },
   "sessions": {
@@ -161,5 +190,34 @@
     "confirmAllDescription": "{count, plural, one {# device will be signed out.} other {# devices will be signed out.}} The user will need to sign in again.",
     "revoked": "{count, plural, =0 {No sessions were ended.} one {# session ended.} other {# sessions ended.}}",
     "revokeFailed": "Could not sign the user out. Please try again."
+  },
+  "adminReset": {
+    "open": "Reset password",
+    "unlock": "Unlock account",
+    "unlocked": "The account was unlocked.",
+    "notLocked": "The account was not locked.",
+    "title": "Reset password for {user}",
+    "modeSet": "Choose the password",
+    "modeSetHint": "Set a temporary password and give it to the user in person. All their devices are signed out.",
+    "modeLink": "Email a link",
+    "modeLinkHint": "The user receives a one-time link at {email} and chooses their own password. The password is never emailed.",
+    "modeLinkNoEmail": "Not available: this user has no email address.",
+    "generate": "Generate password",
+    "copy": "Copy",
+    "copied": "Password copied.",
+    "copyFailed": "Could not copy. Select and copy it manually.",
+    "mustChange": "Require the user to change it at next sign-in",
+    "mustChangeHint": "Recommended. The user must choose their own password before using the app.",
+    "revokeNow": "Also sign the user out of all devices now",
+    "revokeNowHint": "Use this if the account may be compromised.",
+    "cancel": "Cancel",
+    "submitSet": "Set password",
+    "submitLink": "Send link",
+    "doneSet": "{count, plural, =0 {Password set.} one {Password set. 1 session was signed out.} other {Password set. # sessions were signed out.}}",
+    "doneSetMustChange": "The user must choose a new password at next sign-in.",
+    "doneSetNoForce": "The user can keep using this password.",
+    "doneLink": "A link was sent to {email}. Nothing changes until the user opens it.",
+    "shareHint": "Share it securely (in person or by phone). It will not be shown again.",
+    "close": "Close"
   }
 }

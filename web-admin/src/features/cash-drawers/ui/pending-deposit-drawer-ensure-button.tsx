@@ -65,7 +65,7 @@ export function PendingDepositDrawerEnsureButton({
   }
 
   return (
-    <CmxButton variant="outline" size="sm" loading={isPending} onClick={handleCreate}>
+    <CmxButton type="button" variant="outline" size="sm" loading={isPending} onClick={handleCreate}>
       <PlusCircle className="me-2 h-4 w-4" aria-hidden />
       {t('createButton')}
     </CmxButton>

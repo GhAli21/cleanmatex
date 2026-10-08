@@ -1792,6 +1792,8 @@ model org_users_mst {
   locked_until                DateTime?                     @db.Timestamp(6)
   lock_reason                 String?                       @db.VarChar(200)
   user_code                   String                        @default(dbgenerated("fn_org_user_code_next()"))
+  pwd_must_change             Boolean                       @default(false)
+  pwd_changed_at              DateTime?                     @db.Timestamptz(6)
   org_drivers_mst             org_drivers_mst[]
   org_fin_cash_ctrl_audit_dtl org_fin_cash_ctrl_audit_dtl[]
   org_invoice_mst_handed_to   org_invoice_mst[]             @relation("invoice_handed_to_user")
@@ -15181,6 +15183,7 @@ model org_ntf_prov_acct_mst {
   sys_ntf_providers_cd    sys_ntf_providers_cd      @relation(fields: [provider_code], references: [code], onUpdate: NoAction, map: "fk_ntf_oacct_provider")
   org_tenants_mst         org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_oacct_tenant")
   org_ntf_prov_send_mst   org_ntf_prov_send_mst[]
+  org_ntf_ptreg_mst       org_ntf_ptreg_mst[]
   org_ntf_route_assign_cf org_ntf_route_assign_cf[]
 
   @@unique([tenant_org_id, provider_code, channel_code, environment_code, external_account_id], map: "uq_ntf_oacct_ext")
@@ -15219,6 +15222,7 @@ model org_ntf_prov_send_mst {
   is_active               Boolean                   @default(true)
   org_ntf_prov_acct_mst   org_ntf_prov_acct_mst     @relation(fields: [account_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_osend_acct")
   sys_ntf_channel_cd      sys_ntf_channel_cd        @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_osend_chan")
+  org_ntf_ptreg_mst       org_ntf_ptreg_mst[]
   org_ntf_route_assign_cf org_ntf_route_assign_cf[]
 
   @@unique([tenant_org_id, account_id, external_sender_id], map: "uq_ntf_osend_ext")
@@ -15355,6 +15359,7 @@ model sys_ntf_tpl_locale_dtl {
   rec_order                 Int?
   rec_notes                 String?
   is_active                 Boolean                     @default(true)
+  org_ntf_ptreg_mst         org_ntf_ptreg_mst[]
   sys_ntf_prov_tmpl_reg_mst sys_ntf_prov_tmpl_reg_mst[]
   sys_ntf_channel_cd        sys_ntf_channel_cd          @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_tloc_chan")
   sys_ntf_template_ver_dtl  sys_ntf_template_ver_dtl    @relation(fields: [template_version_id], references: [id], onUpdate: NoAction, map: "fk_ntf_tloc_ver")
@@ -15389,6 +15394,7 @@ model sys_ntf_tpl_var_dtl {
   rec_order                  Int?
   rec_notes                  String?
   is_active                  Boolean                      @default(true)
+  org_ntf_ptbind_dtl         org_ntf_ptbind_dtl[]
   sys_ntf_prov_tmpl_bind_dtl sys_ntf_prov_tmpl_bind_dtl[]
   sys_ntf_template_ver_dtl   sys_ntf_template_ver_dtl     @relation(fields: [template_version_id], references: [id], onUpdate: NoAction, map: "fk_ntf_tvar_ver")
   sys_ntf_tpl_var_field_dtl  sys_ntf_tpl_var_field_dtl[]
@@ -15594,40 +15600,171 @@ model sys_auth_user_sessions_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_ntf_route_assign_cf {
-  id                        String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id             String                    @db.Uuid
+  id                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id             String                     @db.Uuid
   event_code                String
   channel_code              String
   language_code             String
-  platform_account_id       String                    @db.Uuid
-  platform_sender_id        String?                   @db.Uuid
-  provider_revision_id      String                    @db.Uuid
-  route_state               String                    @default("DRAFT")
-  assignment_version        Int                       @default(1)
+  platform_account_id       String?                    @db.Uuid
+  platform_sender_id        String?                    @db.Uuid
+  provider_revision_id      String?                    @db.Uuid
+  route_state               String                     @default("DRAFT")
+  assignment_version        Int                        @default(1)
   fallback_language         String?
-  created_at                DateTime                  @default(now()) @db.Timestamptz(6)
+  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
   created_by                String?
   created_info              String?
-  updated_at                DateTime?                 @db.Timestamptz(6)
+  updated_at                DateTime?                  @db.Timestamptz(6)
   updated_by                String?
   updated_info              String?
-  rec_status                Int                       @default(1) @db.SmallInt
+  rec_status                Int                        @default(1) @db.SmallInt
   rec_order                 Int?
   rec_notes                 String?
-  is_active                 Boolean                   @default(true)
-  private_account_id        String?                   @db.Uuid
-  private_sender_id         String?                   @db.Uuid
-  route_owner               String                    @default("PLATFORM")
-  sys_ntf_prov_acct_mst     sys_ntf_prov_acct_mst     @relation(fields: [platform_account_id], references: [id], onUpdate: NoAction, map: "fk_ntf_route_acct")
-  sys_ntf_channel_cd        sys_ntf_channel_cd        @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_route_chan")
-  sys_ntf_events_cd         sys_ntf_events_cd         @relation(fields: [event_code], references: [code], onUpdate: NoAction, map: "fk_ntf_route_event")
-  org_ntf_prov_acct_mst     org_ntf_prov_acct_mst?    @relation(fields: [private_account_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_route_pacct")
-  org_ntf_prov_send_mst     org_ntf_prov_send_mst?    @relation(fields: [private_sender_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_route_psend")
-  sys_ntf_prov_tmpl_rev_dtl sys_ntf_prov_tmpl_rev_dtl @relation(fields: [provider_revision_id], references: [id], onUpdate: NoAction, map: "fk_ntf_route_rev")
-  sys_ntf_prov_send_mst     sys_ntf_prov_send_mst?    @relation(fields: [platform_sender_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_route_send")
-  org_tenants_mst           org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_route_tenant")
+  is_active                 Boolean                    @default(true)
+  private_account_id        String?                    @db.Uuid
+  private_sender_id         String?                    @db.Uuid
+  route_owner               String                     @default("PLATFORM")
+  private_revision_id       String?                    @db.Uuid
+  sys_ntf_prov_acct_mst     sys_ntf_prov_acct_mst?     @relation(fields: [platform_account_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_route_acct")
+  sys_ntf_channel_cd        sys_ntf_channel_cd         @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_route_chan")
+  sys_ntf_events_cd         sys_ntf_events_cd          @relation(fields: [event_code], references: [code], onUpdate: NoAction, map: "fk_ntf_route_event")
+  org_ntf_prov_acct_mst     org_ntf_prov_acct_mst?     @relation(fields: [private_account_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_route_pacct")
+  org_ntf_ptrev_dtl         org_ntf_ptrev_dtl?         @relation(fields: [private_revision_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_route_prev")
+  org_ntf_prov_send_mst     org_ntf_prov_send_mst?     @relation(fields: [private_sender_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_route_psend")
+  sys_ntf_prov_tmpl_rev_dtl sys_ntf_prov_tmpl_rev_dtl? @relation(fields: [provider_revision_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_route_rev")
+  sys_ntf_prov_send_mst     sys_ntf_prov_send_mst?     @relation(fields: [platform_sender_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_route_send")
+  org_tenants_mst           org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_route_tenant")
 
   @@unique([tenant_org_id, event_code, channel_code, language_code], map: "uq_ntf_route_scope")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_ptbind_dtl {
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id       String               @db.Uuid
+  revision_id         String               @db.Uuid
+  component_key       String
+  component_position  Int
+  parameter_position  Int
+  external_slot       String
+  variable_id         String?              @db.Uuid
+  static_value        String?
+  format_spec         Json                 @default("{}")
+  is_required         Boolean              @default(true)
+  created_at          DateTime             @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  rec_status          Int                  @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean              @default(true)
+  org_ntf_ptrev_dtl   org_ntf_ptrev_dtl    @relation(fields: [revision_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_optb_rev")
+  sys_ntf_tpl_var_dtl sys_ntf_tpl_var_dtl? @relation(fields: [variable_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_optb_var")
+
+  @@unique([tenant_org_id, revision_id, component_position, parameter_position], map: "uq_ntf_optb_pos")
+  @@index([tenant_org_id, revision_id, component_position, parameter_position], map: "ix_ntf_optb_rev")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_ptreg_mst {
+  id                                                                                       String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                                                                            String                 @db.Uuid
+  account_id                                                                               String                 @db.Uuid
+  sender_id                                                                                String?                @db.Uuid
+  locale_id                                                                                String                 @db.Uuid
+  registration_key                                                                         String
+  external_name                                                                            String
+  external_template_id                                                                     String?
+  provider_language_code                                                                   String
+  content_type_code                                                                        String
+  category_code                                                                            String?
+  observed_status                                                                          String                 @default("PENDING")
+  observed_status_raw                                                                      String
+  observed_at                                                                              DateTime               @default(now()) @db.Timestamptz(6)
+  approval_fresh_until                                                                     DateTime?              @db.Timestamptz(6)
+  rejection_code                                                                           String?
+  rejection_reason                                                                         String?
+  observation_evidence                                                                     Json                   @default("{}")
+  current_revision_id                                                                      String?                @db.Uuid
+  created_at                                                                               DateTime               @default(now()) @db.Timestamptz(6)
+  created_by                                                                               String?
+  created_info                                                                             String?
+  updated_at                                                                               DateTime?              @db.Timestamptz(6)
+  updated_by                                                                               String?
+  updated_info                                                                             String?
+  rec_status                                                                               Int                    @default(1) @db.SmallInt
+  rec_order                                                                                Int?
+  rec_notes                                                                                String?
+  is_active                                                                                Boolean                @default(true)
+  org_ntf_prov_acct_mst                                                                    org_ntf_prov_acct_mst  @relation(fields: [account_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_optr_acct")
+  org_ntf_ptrev_dtl_org_ntf_ptreg_mst_current_revision_id_tenant_org_idToorg_ntf_ptrev_dtl org_ntf_ptrev_dtl?     @relation("org_ntf_ptreg_mst_current_revision_id_tenant_org_idToorg_ntf_ptrev_dtl", fields: [current_revision_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_optr_cur")
+  sys_ntf_tpl_locale_dtl                                                                   sys_ntf_tpl_locale_dtl @relation(fields: [locale_id], references: [id], onUpdate: NoAction, map: "fk_ntf_optr_loc")
+  org_ntf_prov_send_mst                                                                    org_ntf_prov_send_mst? @relation(fields: [sender_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_optr_send")
+  org_ntf_ptrev_dtl_org_ntf_ptrev_dtl_registration_id_tenant_org_idToorg_ntf_ptreg_mst     org_ntf_ptrev_dtl[]    @relation("org_ntf_ptrev_dtl_registration_id_tenant_org_idToorg_ntf_ptreg_mst")
+
+  @@unique([tenant_org_id, account_id, external_template_id], map: "uq_ntf_optr_ext")
+  @@unique([tenant_org_id, account_id, registration_key], map: "uq_ntf_optr_key")
+  @@unique([id, tenant_org_id], map: "uq_ntf_optr_tid")
+  @@index([tenant_org_id, account_id, observed_status, is_active], map: "ix_ntf_optr_state")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_ptrev_dtl {
+  id                                                                                       String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                                                                            String                    @db.Uuid
+  registration_id                                                                          String                    @db.Uuid
+  revision_no                                                                              Int
+  provider_status_at_import                                                                String
+  provider_status_raw                                                                      String
+  external_revision_id                                                                     String?
+  content_sid                                                                              String?
+  provider_content_hash                                                                    String
+  provider_snapshot                                                                        Json
+  approval_evidence                                                                        Json
+  rejection_evidence                                                                       Json?
+  submitted_at                                                                             DateTime?                 @db.Timestamptz(6)
+  verified_at                                                                              DateTime?                 @db.Timestamptz(6)
+  valid_until_at_import                                                                    DateTime?                 @db.Timestamptz(6)
+  unique_var_count                                                                         Int
+  occurrence_count                                                                         Int
+  provider_param_count                                                                     Int
+  created_at                                                                               DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                                                                               String?
+  created_info                                                                             String?
+  rec_status                                                                               Int                       @default(1) @db.SmallInt
+  rec_order                                                                                Int?
+  rec_notes                                                                                String?
+  is_active                                                                                Boolean                   @default(true)
+  org_ntf_ptbind_dtl                                                                       org_ntf_ptbind_dtl[]
+  org_ntf_ptreg_mst_org_ntf_ptreg_mst_current_revision_id_tenant_org_idToorg_ntf_ptrev_dtl org_ntf_ptreg_mst[]       @relation("org_ntf_ptreg_mst_current_revision_id_tenant_org_idToorg_ntf_ptrev_dtl")
+  org_ntf_ptreg_mst_org_ntf_ptrev_dtl_registration_id_tenant_org_idToorg_ntf_ptreg_mst     org_ntf_ptreg_mst         @relation("org_ntf_ptrev_dtl_registration_id_tenant_org_idToorg_ntf_ptreg_mst", fields: [registration_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_optrv_reg")
+  org_ntf_route_assign_cf                                                                  org_ntf_route_assign_cf[]
+
+  @@unique([tenant_org_id, registration_id, revision_no], map: "uq_ntf_optrv_rev")
+  @@unique([id, tenant_org_id], map: "uq_ntf_optrv_tid")
+  @@index([tenant_org_id, registration_id, revision_no(sort: Desc)], map: "ix_ntf_optrv_reg")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_auth_pwd_history_dtl {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  auth_user_id  String   @db.Uuid
+  password_hash String
+  rec_notes     String?
+  created_at    DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+
+  @@index([auth_user_id, created_at(sort: Desc)], map: "idx_auth_pwd_hist_user")
   @@schema("public")
 }
 

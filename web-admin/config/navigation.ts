@@ -965,7 +965,8 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Permissions',
         path: '/dashboard/settings/permissions',
         roles: ['admin', 'super_admin', 'tenant_admin'],
-      },      {
+      },
+      {
         key: 'settings_security',
         label: 'Security & Sessions',
         label2: 'الأمان والجلسات',
@@ -1010,6 +1011,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Cash Control Settings',
         label2: 'إعدادات ضبط النقد',
         path: '/dashboard/settings/payments/cash-control-settings',
+        roles: ['admin', 'super_admin', 'tenant_admin', 'branch_manager', 'finance_manager', 'operator'],
+        permissions: ['cash_control:view'],
+      },
+      {
+        key: 'settings_pos',
+        label: 'POS Settings',
+        label2: 'إعدادات نقطة البيع',
+        path: '/dashboard/settings/pos-settings',
         roles: ['admin', 'super_admin', 'tenant_admin', 'branch_manager', 'finance_manager', 'operator'],
         permissions: ['cash_control:view'],
       },

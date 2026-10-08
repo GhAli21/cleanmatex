@@ -3,15 +3,15 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-10-08T18:12:27.726Z
+Generated: 2026-10-08T22:25:11.561Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 307 |
+| api | 310 |
 | middleware | 4 |
-| screen | 92 |
+| screen | 95 |
 | service | 1 |
 
 ## All permission usages
@@ -25,7 +25,7 @@ Generated: 2026-10-08T18:12:27.726Z
 
       return authContext
     } catch (error) {
-      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 155 | lib/middleware/require-permission.ts |
+      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 160 | lib/middleware/require-permission.ts |
 | )}]` },
           { status: 403 }
         )
@@ -33,7 +33,7 @@ Generated: 2026-10-08T18:12:27.726Z
 
       return authContext
     } catch (error) {
-      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 186 | lib/middleware/require-permission.ts |
+      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 191 | lib/middleware/require-permission.ts |
 | )}]`,
             code: | middleware | lib/middleware/tenant-guard.ts | 95 | lib/middleware/tenant-guard.ts |
 | )}]`,
@@ -54,9 +54,9 @@ Generated: 2026-10-08T18:12:27.726Z
 | ar_stmt_cycles:manage | api | app/api/v1/ar/statement-cycles/route.ts | 39 | /api/v1/ar/statement-cycles |
 | ar_stmt_cycles:view | api | app/api/v1/ar/statement-cycles/route.ts | 18 | /api/v1/ar/statement-cycles |
 | ar_stmt_cycles:view | api | app/api/v1/ar/statement-cycles/[id]/preview/route.ts | 17 | /api/v1/ar/statement-cycles/[id]/preview |
-| audit:read | screen | src/features/users/access/users-access.ts | 92 | src/features/users/access/users-access.ts |
+| audit:read | screen | src/features/users/access/users-access.ts | 98 | src/features/users/access/users-access.ts |
 | audit:read | api | app/api/users/[userId]/activity/route.ts | 33 | /api/users/[userId]/activity |
-| auth_config:update | screen | src/features/auth-session/ui/security-settings-screen.tsx | 32 | src/features/auth-session/ui/security-settings-screen.tsx |
+| auth_config:update | screen | src/features/auth-session/ui/security-settings-screen.tsx | 37 | src/features/auth-session/ui/security-settings-screen.tsx |
 | b2b_contacts:create | api | app/api/v1/b2b-contacts/route.ts | 60 | /api/v1/b2b-contacts |
 | b2b_contacts:create | api | app/api/v1/b2b-contacts/[id]/route.ts | 101 | /api/v1/b2b-contacts/[id] |
 | b2b_contacts:create | api | app/api/v1/b2b-contacts/[id]/route.ts | 143 | /api/v1/b2b-contacts/[id] |
@@ -74,9 +74,10 @@ Generated: 2026-10-08T18:12:27.726Z
 | b2b_statements:view | api | app/api/v1/b2b-statements/route.ts | 16 | /api/v1/b2b-statements |
 | b2b_statements:view | api | app/api/v1/b2b-statements/[id]/print/route.ts | 22 | /api/v1/b2b-statements/[id]/print |
 | b2b_statements:view | api | app/api/v1/b2b-statements/[id]/route.ts | 30 | /api/v1/b2b-statements/[id] |
-| cash_control:manage | screen | src/features/cash-drawers/ui/cash-control-settings-screen.tsx | 90 | src/features/cash-drawers/ui/cash-control-settings-screen.tsx |
+| cash_control:manage | screen | src/features/cash-drawers/ui/cash-control-settings-screen.tsx | 77 | src/features/cash-drawers/ui/cash-control-settings-screen.tsx |
 | cash_control:manage | screen | src/features/cash-drawers/ui/cash-denomination-control-card.tsx | 52 | src/features/cash-drawers/ui/cash-denomination-control-card.tsx |
 | cash_control:manage | screen | src/features/cash-drawers/ui/cash-drawer-policy-tab.tsx | 46 | src/features/cash-drawers/ui/cash-drawer-policy-tab.tsx |
+| cash_control:manage | screen | src/features/pos-settings/ui/pos-settings-screen.tsx | 49 | src/features/pos-settings/ui/pos-settings-screen.tsx |
 | cash_control:manage | screen | src/features/cash-drawers/access/cash-drawers-access.ts | 7 | src/features/cash-drawers/access/cash-drawers-access.ts |
 | cash_control:manage | api | app/api/v1/cash-drawers/denominations/route.ts | 61 | /api/v1/cash-drawers/denominations |
 | cash_control:manage | api | app/api/v1/cash-drawers/[drawerId]/policy/route.ts | 73 | /api/v1/cash-drawers/[drawerId]/policy |
@@ -430,11 +431,16 @@ Generated: 2026-10-08T18:12:27.726Z
 | tax:manage_config | api | app/api/v1/settings/tax/profiles/[profileId]/route.ts | 29 | /api/v1/settings/tax/profiles/[profileId] |
 | tax:view_config | api | app/api/v1/settings/tax/exemptions/route.ts | 13 | /api/v1/settings/tax/exemptions |
 | tax:view_config | api | app/api/v1/settings/tax/profiles/route.ts | 13 | /api/v1/settings/tax/profiles |
-| user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 39 | src/features/users/ui/user-detail-screen.tsx |
+| user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 40 | src/features/users/ui/user-detail-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 32 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 41 | src/features/auth-session/ui/user-sessions-tab.tsx |
-| users:read | screen | src/features/users/access/users-access.ts | 100 | src/features/users/access/users-access.ts |
+| users:read | screen | src/features/users/access/users-access.ts | 106 | src/features/users/access/users-access.ts |
 | users:read | api | app/api/users/[userId]/user-code/route.ts | 35 | /api/users/[userId]/user-code |
+| users:reset_password | screen | src/features/auth-session/ui/user-credential-actions.tsx | 36 | src/features/auth-session/ui/user-credential-actions.tsx |
+| users:reset_password | screen | src/features/users/access/users-access.ts | 122 | src/features/users/access/users-access.ts |
+| users:reset_password | api | app/api/users/[userId]/password/link/route.ts | 28 | /api/users/[userId]/password/link |
+| users:reset_password | api | app/api/users/[userId]/password/route.ts | 34 | /api/users/[userId]/password |
+| users:reset_password | api | app/api/users/[userId]/unlock/route.ts | 26 | /api/users/[userId]/unlock |
 | users:update | screen | src/features/users/ui/user-code-field.tsx | 34 | src/features/users/ui/user-code-field.tsx |
-| users:update | screen | src/features/users/access/users-access.ts | 108 | src/features/users/access/users-access.ts |
+| users:update | screen | src/features/users/access/users-access.ts | 114 | src/features/users/access/users-access.ts |
 | users:update | api | app/api/users/[userId]/user-code/route.ts | 73 | /api/users/[userId]/user-code |

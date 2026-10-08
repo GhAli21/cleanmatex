@@ -5,7 +5,7 @@
  * Handles user login with rate limiting protection
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import {
   createAdminSupabaseClient,
@@ -220,16 +220,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // New-device alert (best effort — never blocks the sign-in). The DB already applied the tenant policy.
-    await notifyNewDeviceSignIn(
-      registration,
-      {
-        authUserId: data.user.id,
-        deviceLabel: parseDeviceLabel(userAgent),
-        ipAddress: clientIp,
-        signedInAt: new Date(),
-      },
-      emitNotificationEvent
+    // Runs after the response is sent. The hub can be slow; sign-in must not wait for it.
+    // The DB already decided whether this sign-in should raise the alert.
+    const signedInAt = new Date();
+    after(() =>
+      notifyNewDeviceSignIn(
+        registration,
+        {
+          authUserId: data.user.id,
+          deviceLabel: parseDeviceLabel(userAgent),
+          ipAddress: clientIp,
+          signedInAt,
+        },
+        emitNotificationEvent
+      )
     );
 
     // Parallel: record successful login + fetch tenants (both are independent of each other)

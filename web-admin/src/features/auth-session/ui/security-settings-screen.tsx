@@ -22,7 +22,12 @@ import { useAuthConfig, useSaveAuthConfig } from '../hooks/use-auth-config'
 import { buildChanges, draftError, initialDraft, isDirty, type AuthConfigDraft } from '../model/auth-config-draft'
 import { AuthConfigField } from './auth-config-field'
 
-const GROUP_ORDER: AuthConfigGroup[] = [AUTH_CONFIG_GROUPS.SESSION, AUTH_CONFIG_GROUPS.DEVICE, AUTH_CONFIG_GROUPS.LOCKOUT]
+const GROUP_ORDER: AuthConfigGroup[] = [
+  AUTH_CONFIG_GROUPS.SESSION,
+  AUTH_CONFIG_GROUPS.DEVICE,
+  AUTH_CONFIG_GROUPS.PASSWORD,
+  AUTH_CONFIG_GROUPS.LOCKOUT,
+]
 
 /** Security & Sessions settings screen. */
 export function SecuritySettingsScreen() {

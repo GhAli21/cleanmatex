@@ -1,5 +1,24 @@
 # User Session Lifecycle — Implementation Plan
 
+> **Status 2026-10-09: implemented.** This document is the plan as approved; the text below is kept as written so the reasoning stays visible. Where it differs from what shipped, the table below and [STATUS.md](STATUS.md) are authoritative. What is left to close the program: [REMAINING_WORK.md](REMAINING_WORK.md).
+>
+> **As built vs. plan**
+>
+> | Plan | Shipped |
+> |---|---|
+> | `0561` security hardening | `0561` ✅ (also created the audit tables and `fn_auth_log_event`) |
+> | Phase 1a migration "after 0561" | `0563_org_users_user_code` |
+> | `0562_auth_admin_config` | `0570_auth_admin_config` |
+> | `0563_auth_session_registry` | `0575_auth_session_registry` — also contains the register/validate/end/revoke/sweep functions, the concurrent-limit and new-device logic (planned as `0567`) and the deactivation/removal revoke trigger (planned as `0566`) |
+> | `0565_user_sessions_permissions_nav` | `0573_auth_config_permissions_nav` (permissions + Security & Sessions nav); the Active Sessions nav row went into `0576` |
+> | `0568_auth_session_sweep_cron` | `0576_auth_session_screens_nav_cron` |
+> | (new) audit log hardening | `0568_auth_audit_log_append_only` — found during Phase 1a: `service_role` could update/delete audit rows |
+> | new-device alert template | `0577_ntf_new_device_login_template` |
+> | (added 2026-10-09) password management | `0581`, `0584`, `0585` — see Phase 7 |
+> | Config catalog column `is_platform_only` | dropped as redundant: "platform-managed" is `is_allow_tenant_change = false` |
+> | Plan downgrade deactivates overrides | **not wired** (billing behavior needs approval); HQ has an explicit "clear overrides" action. Owner accepted this on 2026-10-09 |
+> | MFA, cmx-api enforcement | deferred, as planned |
+
 ## Context
 
 CleanMateX staff sessions today = raw Supabase Auth: password login → JWT (1h) + rotating refresh token → `signOut()`. There is **no session model of our own**, so we cannot: enforce idle/absolute timeout, list or revoke sessions/devices, revoke sessions on password change / deactivation, limit concurrent sessions, or audit logout. Exploration (verified against the **remote DB**) also surfaced **critical security holes that must ship first**:
@@ -187,7 +206,15 @@ Seed (codes mirrored in `lib/constants/auth-admin-config.ts`)
 - **Migration `0568_auth_session_sweep_cron.sql`** (pg_cron present — verified): every 5 min `fn_auth_sessions_sweep()` ends ACTIVE rows past idle/absolute deadline or whose `auth.sessions` row vanished; daily purge of ENDED rows > 180 days.
 - **Tests**: jest — `safe-redirect`, `idle-timer` state machine, activity tracker throttle/broadcast, session-guard reason mapping, all new API routes (401 on ended session, permission gates, cross-tenant revoke denied, tenant filter present). db-integration — hook claim (forged metadata ignored, ENDED → error), validate timeouts/touch throttle, config resolver (override used / rejected when disallowed / `PLATFORM_ENFORCED` after bound tightening, trigger rejects platform-only override), revoke fns delete `auth.sessions`, trigger on deactivation, concurrency policies, Phase-0 grants.
 - **Docs**: feature folder STATUS/QA guide (sidebar path + URL + clicks per scenario), ADR, update `docs/features/User_Session_Lifecycle/session-management-guide.md`, tick `docs/security/AUTH_SYSTEM_EVALUATION.md` checklist, implementation requirements (permissions, `sys_auth_admin_config_cf` / `org_auth_admin_config_cf` config items, flag semantics, i18n keys, API routes, migrations, env/ops steps). `/rebuild-platform-info-inventories` refresh (api, page, permissions).
-- **HQ follow-ups (cleanmatexsaas, documented in `docs/dev/rules/integration-contracts.md`)**: platform-api `resetPassword` → call `fn_auth_sessions_revoke(..., 'PASSWORD_CHANGED')`; HQ screen to manage `sys_auth_admin_config_cf` items (platform value, bounds, `is_allow_tenant_change`) and view/edit/reset any tenant's `org_auth_admin_config_cf` overrides (HQ bypasses the `session_timeout_control` gate); on plan downgrade deactivate the tenant's overrides.
+- **HQ follow-ups (cleanmatexsaas, documented in `docs/dev/rules/integration-contracts.md`)**: platform-api `resetPassword` → call `fn_auth_sessions_revoke(..., 'PASSWORD_CHANGED')`; HQ screen to manage `sys_auth_admin_config_cf` items (platform value, bounds, `is_allow_tenant_change`) and view/edit/reset any tenant's `org_auth_admin_config_cf` overrides (HQ bypasses the `session_timeout_control` gate); on plan downgrade deactivate the tenant's overrides (shipped as an explicit HQ action; automatic wiring deliberately not done).
+
+### Phase 7 — Password management (added 2026-10-09; implemented)
+Requested after the base program: HQ and tenant admins can change/reset another user's password with an optional email to the user; users change their own password with two fields (new + re-type) and then choose "sign out now / later"; users can change it through an emailed link; plus expert suggestions, all approved.
+- **Migrations** `0581` (flag `org_users_mst.pwd_must_change`, `sys_auth_pwd_history_dtl` + trigger `trg_auth_pwd_capture` on `auth.users`, `fn_auth_pwd_reuse_check`, config group `PASSWORD` with `AUTH_PWD_REQUIRE_CURRENT` / `AUTH_PWD_FRESH_SIGNIN_MIN` / `AUTH_PWD_HISTORY_COUNT` / `AUTH_PWD_BREACH_CHECK`, audit events, `must_change_password` in `fn_auth_session_validate`, `users:reset_password` → admin, notice template v2), `0584` (template v3, bilingual actor), `0585` (history timestamps use wall-clock time).
+- **Rules** (shared by tenant app and HQ through the database): strength, history, breached-password check (HIBP, fail-open); three self-service paths (current password / fresh sign-in / forced change); every change ends the user's other sessions and notifies the owner (`security.password.changed`); a password is never emailed — only one-time links and notices; admins cannot reset their own account.
+- **Tenant app:** `lib/services/auth/password/*`, reworked `changeOwnPassword` / `completePasswordReset`, routes `/api/auth/password/{change,reset,link,policy}`, `/auth/confirm`, `/api/users/[userId]/{password,password/link,unlock}`, forced-change gate (proxy, API validator, server actions), UI in `src/features/auth-session`, `/change-password`.
+- **HQ:** `tenant-users` service/controller (`reset-password`, `password-link`, `unlock`), `PasswordPolicyService`, `PasswordMailService`, reset-password dialog and Unlock button.
+- **Suggestions not built:** password expiry, MFA, higher-role reset rule, per-role forced-change defaults ([REMAINING_WORK.md](REMAINING_WORK.md) §3).
 
 ## Reused building blocks
 `createAdminSupabaseClient` / `createServerSupabaseClientForLogin` (`lib/supabase/server.ts`), `checkLoginRateLimit` (`lib/middleware/rate-limit.ts`), CSRF (`lib/security/csrf`), `isPublicRoutePath` (`lib/security/public-routes.ts`), `onLogoutInvalidate` (`lib/auth/on-logout-invalidate.ts`), `LogoutReason` (`lib/auth/logout-tracker.ts` — extended), `log_audit_event`, `sys_audit_log`, Notification Hub outbox, flag `session_timeout_control`, users feature tabs (`src/features/users/ui/`), `requirePermission`, Cmx `CmxDialog` / `CmxConfirmDialog` / `CmxDataTable`, `cmxMessage`.
@@ -195,7 +222,7 @@ Seed (codes mirrored in `lib/constants/auth-admin-config.ts`)
 ## Risks / trade-offs
 - 1:1 account-per-tenant means the same real email cannot be reused in two tenants (`auth.users.email` is unique): a person in two tenants needs two accounts/emails (or a synthetic login email + user code). HQ user-creation must generate a synthetic email (`<user_code>@users.invalid`) for users without a real one; password reset for those users is admin-driven.
 - Proxy adds one RPC per page navigation (~5–20 ms); API routes already do auth lookups.
-- Revocation lag for direct browser→Supabase queries ≤ JWT expiry (600s after ops change).
+- Revocation lag for direct browser→Supabase queries ≤ JWT expiry (600s after the hosted-project ops change; up to 1 h until it is made — recommended before go-live, see REMAINING_WORK §1.1).
 - Idle timeout mid-POS order: warning dialog + tenant override in `org_auth_admin_config_cf`; branch/role-level override deferred (override table can gain nullable `branch_id`/`role_code` scope columns later; resolver picks most specific).
 - Login still returns tokens in JSON body (client `setSession`) — left as-is to avoid destabilizing login; flagged as follow-up.
 - Role change does not revoke sessions (permissions refresh path is separate) — flagged.

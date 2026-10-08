@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { guardSession, isSessionActive, sessionEndedResponse } from '@/lib/auth/session-guard';
 import { readRequestMeta } from '@/lib/services/auth/session/request-meta';
-import { DEVICE_COOKIE_NAME } from '@/lib/constants/auth-session';
+import { DEVICE_COOKIE_NAME, PASSWORD_CHANGE_REQUIRED_CODE } from '@/lib/constants/auth-session';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -22,7 +22,12 @@ export interface JWTValidationContext {
   tenantId: string;
   userId: string;
   isValid: boolean;
+  /** true = an administrator set a temporary password; only /api/auth/* may be used until it is replaced. */
+  mustChangePassword: boolean;
 }
+
+/** Endpoints reachable while a password change is pending (change it, sign out, session heartbeat, own sessions). */
+const PASSWORD_PENDING_ALLOWED_PREFIX = '/api/auth/';
 
 /**
  * Authenticate the caller and resolve their tenant from the validated session.
@@ -65,11 +70,20 @@ export async function validateJWTWithTenant(
       return sessionEndedResponse(validation);
     }
 
+    // A pending forced password change blocks every business endpoint (the proxy blocks the pages).
+    if (validation.mustChangePassword && !request.nextUrl.pathname.startsWith(PASSWORD_PENDING_ALLOWED_PREFIX)) {
+      return NextResponse.json(
+        { error: 'Password change required', code: PASSWORD_CHANGE_REQUIRED_CODE },
+        { status: 403 }
+      );
+    }
+
     return {
       user,
       tenantId: validation.tenantOrgId,
       userId: user.id,
       isValid: true,
+      mustChangePassword: validation.mustChangePassword,
     };
   } catch (error) {
     // Fail closed: an unvalidated session must not be let through.

@@ -22,7 +22,9 @@ Decision record: `../ADR/ADR-057-Two-Domain-Cash-Ledger.md` (amends ADR-054 and 
 | Session page (closure, variance approval, post-close) | `/dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]` | `cash_drawer:view` |
 | Cash Deposit Follow-up | `/dashboard/internal_fin/cash-drawers/follow-up` | `cash_drawer:view_reports` |
 | POS Sessions hub (force close lives here) | `/dashboard/internal_fin/pos-sessions` | `pos_session:view` |
-| Cash Control Settings | `/dashboard/settings/payments/cash-control-settings` | `cash_control:view` / `manage` |
+| Cash Control Settings (drawer close, custody, rounding, denominations, pending-deposit status) | `/dashboard/settings/payments/cash-control-settings` | `cash_control:view` / `manage` |
+| POS Settings (POS-session requirement, rollover, stale hours, Z-report required) | `/dashboard/settings/pos-settings` | `cash_control:view` / `manage` |
+| Z-report archive | `/dashboard/internal_fin/pos-sessions/z-reports` | `pos_session:report_z` |
 
 Drawer page tabs: Sessions · Ledger · Transactions · Counts · Policy. Shared components: `CmxDenominationCounter`, `CmxScopedSettingField`, `CashPlacementPicker`. Open / Cash In-Out / Close buttons are gated per action (see §3).
 

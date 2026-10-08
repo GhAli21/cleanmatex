@@ -100,6 +100,7 @@ export async function validateOwnSession(
     idleRemainingSec: row.idle_remaining_sec ?? null,
     absoluteRemainingSec: row.absolute_remaining_sec ?? null,
     idleWarningSec: row.idle_warning_sec ?? null,
+    mustChangePassword: row.must_change_password === true,
   }
 }
 

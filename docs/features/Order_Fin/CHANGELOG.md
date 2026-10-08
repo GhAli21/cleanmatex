@@ -1,5 +1,21 @@
 # Changelog — Order Financial Platform
 
+## 2026-10-09 — POS Session & Cash Drawer: HQ catalogs, web-admin audit, POS Settings page (D68–D70)
+
+**Scope:** post-program polish after the hardening program closed (STATUS D67). Details: `POS_Session_Cash_Drawer_Hardening/STATUS.md` D68–D70.
+
+### Added
+- **HQ console** (`cleanmatexsaas`): management screens for the eight cash-drawer / POS-session system-code tables at `/system-codes/cash-pos` (names, descriptions and order only).
+- **web-admin**: bilingual catalog labels on POS-session and drawer screens (`GET /api/v1/pos-sessions/catalogs`); **Z-report archive** (`/dashboard/internal_fin/pos-sessions/z-reports`, `GET /api/v1/pos-sessions/z-reports`); **POS Settings** page (`/dashboard/settings/pos-settings`, tabs *Session requirement* and *Shift lifecycle*).
+
+### Changed
+- The POS-session card moved off Cash Control Settings onto POS Settings (same API and `cash_control:*` permissions; each page sends only its own changed fields).
+- The shift-report print page is now a server-gated page.
+- Migration **0578**: the `pos_session:view|view_all|open|pause_resume|close|force_close` defaults are now least-privilege (they had been granted to all 19 roles by 0396). Migration **0587**: POS Settings menu entry. Both applied 2026-10-09.
+
+### Fixed
+- Raw codes (`ROLLOVER_PAUSE`, `FORCE_CLOSED`, `CLOSING`, …) on session and drawer screens; missing label for in-transit transaction legs.
+
 ## 2026-09-25 — Two-domain cash ledger design approved (ADR-057); package CLF planned, not implemented
 
 **Scope:** design and documentation only. **No code and no migrations.** Current behaviour is unchanged until package CLF ships.

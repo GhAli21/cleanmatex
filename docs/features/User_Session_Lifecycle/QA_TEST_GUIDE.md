@@ -14,7 +14,7 @@ Owner-runnable scenarios. Each entry: where to click / URL / expected result. Ex
 | 0.6 | User Activity tab | Dashboard → Users → pick a user → Activity tab | Shows recent auth events (action = event code, device, IP, date) |
 | 0.7 | No tenant switcher | Any dashboard page, top bar | Tenant name shown as read-only label; no dropdown |
 
-(Phases 1a–6 scenarios are added as each phase lands.)
+(Phases 1a–6, the password scenarios in §6 and the HQ scenarios follow below. All of them are still to be run by the owner — see [REMAINING_WORK.md](REMAINING_WORK.md).)
 
 ## Phase 1a — Sign in with user code (migration 0563)
 
@@ -114,6 +114,43 @@ URL `/forgot-password` → email link → `/reset-password`
 | 5.6 | No alert | Sign in again from the **same** browser, or turn the policy item off | No notification |
 | 5.7 | Session ended elsewhere | While on any page, sign the user out from Active Sessions | The next failed API call (any screen) sends the user to `/login` with the revoked banner within a moment |
 
+## Phase 6 — Password management (migrations 0581, 0584, 0585)
+
+Prerequisites: mail configured (tenant `RESEND_API_KEY`, `NEXT_PUBLIC_SITE_URL`) for the link scenarios; two test users with real emails and one without.
+
+### Self-service — Account security (`/dashboard/account/security`, user menu → Account security)
+| # | Scenario | Steps | Expected |
+|---|---|---|---|
+| 6.1 | Three-field change (default) | Current + new + re-type → **Change password** | Dialog "Password changed" with how many other devices were signed out and **Later / Sign out now**; the other browser is signed out on its next click |
+| 6.2 | Later vs now | Choose **Later** / repeat and choose **Sign out now** | Later: stays signed in; Now: lands on `/login` |
+| 6.3 | Reuse | Change to a password used in the last 5 changes | "You used this password recently…" |
+| 6.4 | Breached | Try `Password1` (or any known-breached password) | "appears in known data breaches" (when internet is available) |
+| 6.5 | Two-field form | Settings → Security & Sessions → **Passwords** → turn off *Require current password* (needs `auth_config:update` + plan flag) → reload Account security | Form shows only *New password* and *Confirm*; change works right after signing in |
+| 6.6 | Old sign-in | With 6.5 active and a sign-in older than the freshness window (set it to 1 min) | Amber notice: sign in again or use the emailed link |
+| 6.7 | Email link | **Email me a link** | Toast with the masked address; email arrives (EN + AR text); link opens `/reset-password`; after saving, all sessions end and `/login` shows the password-changed banner; reusing the link shows the invalid-link page |
+| 6.8 | No real email | Sign in as a user without email | The email-link section is absent |
+
+### Administrator — user detail (`/dashboard/users/[userId]`, needs `users:reset_password`)
+| # | Scenario | Steps | Expected |
+|---|---|---|---|
+| 6.9 | Set a temporary password | **Reset password** → *Choose the password* → **Generate password** → Set | Success view shows the password once with **Copy**; the user's sessions end; the user gets a "password changed" notification (bell/email) — no password in it |
+| 6.10 | Forced change | Sign in as that user with the temporary password | Redirected to `/change-password` (nothing else reachable, API calls answer 403); after saving → dashboard; other sessions ended |
+| 6.11 | No force | Same, with *Require change* unticked | User keeps using the password |
+| 6.12 | Email a link | *Email a link* (user with email); optionally tick *Also sign out now* | Email arrives; user chooses own password through it; option is disabled with an explanation for users without email |
+| 6.13 | Own account | Open your own user | No Reset/Unlock buttons (use Account security) |
+| 6.14 | Unlock | Lock a user (5 wrong sign-ins) → **Unlock account** | "The account was unlocked"; the user can sign in; audit shows `ACCOUNT_UNLOCKED` |
+| 6.15 | Audit | User detail → Activity | `Password reset by administrator` / `Password reset link emailed` / `Account unlocked` rows |
+| 6.16 | Permission | Sign in as a role without `users:reset_password` | Buttons hidden; direct API calls answer 403 |
+
+### HQ (cleanmatexsaas) — Tenants → Users → user
+| # | Scenario | Steps | Expected |
+|---|---|---|---|
+| 6.17 | Set password + notice | **Reset Password** → *Choose the password*, tick *Email the user a notice* | Success view with the password and Copy; notice email (no password) when the user has a real email; user's sessions end; forced change at next sign-in |
+| 6.18 | Email a link | *Email a link* | Link email arrives; works as 6.12; without `TENANT_APP_URL`/`HQ_RESEND_API_KEY` the dialog says email is not configured |
+| 6.19 | Policy parity | Use a recently used / breached password | Rejected with the same messages as the tenant app |
+| 6.20 | Unlock | **Unlock Account** | Success toast; audit in `hq_audit_logs` and `sys_auth_audit_log` |
+| 6.21 | Catalog | HQ → Sign-in & Sessions | New **Passwords** group (4 items); *Block breached passwords* is platform-only |
+
 ## HQ (cleanmatexsaas) — sign-in policy and user creation
 
 | # | Scenario | Steps | Expected |
@@ -126,3 +163,134 @@ URL `/forgot-password` → email link → `/reset-password`
 | H.6 | Create user without email | Tenant → Users → New: leave email empty, optional user code | Created; the user signs in on the tenant app with the code (or the generated `U000123`) + password |
 | H.7 | Duplicate code | Create another user with the same code (any case) | 409 "already in use"; no orphan auth user is left |
 | H.8 | Admin password reset | Tenant → user → Reset password while the user is signed in | The user's sessions end (next click → `/login`); audit entry shows `sessions_revoked` |
+
+---
+
+## Financial_Expert_Tester Results — Preview/HQ manual QA, 2026-10-09 (Asia/Muscat)
+
+> Appended by Financial_Expert_Tester (the tables above have no Result column, so results are kept here). Environment: Preview https://cmx.cleanmatex.com (Demo Laundry OMR, Saudi Riyadh SAR) + HQ https://hqsaas.cleanmatex.com. Shared demo passwords untouched; all policy overrides restored. Summary: 35 PASS / 5 FAIL / 13 PARTIAL / 34 BLOCKED / 0 N/A (87 scenarios). Key blockers: §6 password code not deployed on Preview/HQ (DB migrations applied); HQ user creation fails (no test users); session_timeout_control flag off on all plans.
+
+| # | Result | Evidence |
+|---|---|---|
+| 0.1 | **PASS** | 01:59: Demo operator (U000001) token PUT /auth/v1/user {data.tenant_org_id: Saudi c9ac29d1…} → 500 unexpected_failure "Error updating user" (GoTrue wraps 42501 from trg_auth_guard_user_tenant_meta); auth.users meta tenant still 1111…; REST org_users_mst with same token → only own row (U000001, tenant 1111…). Note: error surfaces as 500, not a clean 42501/403 (FET-USL-S12). |
+| 0.2 | **PASS** | Anon key GET /rest/v1/sys_audit_log, sys_auth_audit_log, sys_auth_user_sessions_mst → 401 42501 "permission denied for table …"; org_users_mst → 200 []. Never rows. |
+| 0.3 | **PASS** | Anon RPC is_account_locked / record_login_attempt / fn_auth_resolve_login_identifier → 401 42501 "permission denied for function …". |
+| 0.4 | **PASS** | /api/auth login 200; LOGIN_SUCCESS rows in sys_auth_audit_log (e.g. 01:58:22 admin@demo-laundry.example; 01:52:08 via Activity API). |
+| 0.5 | **BLOCKED** | Needs a disposable user; HQ user creation fails (H.6) and shared demo accounts were deliberately not locked. |
+| 0.6 | **PASS** | API: GET /api/users/370466e6…/activity 200, 20 rows {action, action_label EN + action_label2 AR, device, ip, created_at}; cross-tenant id → 404 "User not found"; route needs auth user id (org row id → 404). UI (02:10, direct URL /dashboard/users/7dbe9b05… because All Users list redirects, see 5.1/FET-USL-S4): Activity tab shows event, device, IP, date. Load ~5 s. |
+| 0.7 | **PASS** | UI 01:48: top bar "Demo Laundry LLC" plain label; sidebar CURRENT TENANT read-only, no dropdown. |
+| 1a.1 | **PASS** | POST login identifier U000003 (Demo admin) + password → 200, session created. |
+| 1a.2 | **PASS** | admin@demo-laundry.example + password → 200. |
+| 1a.3 | **PASS** | u000003 → 200; "  ADMIN@Demo-Laundry.example " (mixed case, spaces) → 200. |
+| 1a.4 | **PASS** | UI 02:12: ZZ999999 / wrong123 → "Invalid user code, email or password. Please try again." (fields cleared; extra sentence vs guide text, acceptable). API: unknown code / wrong pwd for U000004 / unknown email → identical 401 INVALID_CREDENTIALS. |
+| 1a.5 | **PASS** | UI: empty submit → inline "Enter your user code or email." + "Enter your password.", both fields marked invalid, no request. API: '' → 400 "Sign-in identifier and password are required"; 'ab'/'bad@' reach server → generic 401 (see FET-USL-S11). |
+| 1a.6 | **BLOCKED** | No disposable test user (H.6 FAIL); shared accounts not locked by rule. |
+| 1a.7 | **BLOCKED** | Success path needs a test user (H.6). Negatives OK: PATCH /api/users/{id}/user-code 'ab' → 400 INVALID_USER_CODE; cross-tenant PATCH → 404 "User not found"; operator → 403 users:update. UI: Profile shows User code U000001 / U000003 with pencil icon (icon has no accessible name, FET-USL-S19). |
+| 1a.8 | **PASS** | API: PATCH viewer (U000004) user code → 'u000003' → 409 USER_CODE_TAKEN "User code already in use"; no change (unique lower(user_code)). Inline UI message not exercised. |
+| 1a.9 | **BLOCKED** | No successful code change possible (1a.7); trigger trg_org_users_user_code_audit exists; 0 USER_CODE_CHANGED rows ever. |
+| 1.1 | **PASS** | UI 01:48 (Demo admin): groups Sessions / Devices / Sign-in protection with current value, platform default, allowed range; lockout items "Managed by platform". API: GET /api/settings/auth-config 200, 14 items (SESSION/DEVICE/LOCKOUT/PASSWORD), lockout isAllowTenantChange=false, canEdit=false. Screen hides the 4 PASSWORD items (see 6.21). |
+| 1.2 | **PASS** | UI: banner "Customizing security settings is not included in your current plan…", no inputs. API: PUT → 403 FEATURE_NOT_ENABLED. Note: session_timeout_control is_enabled=f on all 5 plans, ENTERPRISE included (FET-USL-S5). |
+| 1.3 | **BLOCKED** | PUT idle 45 → 403 FEATURE_NOT_ENABLED "Security settings customization is not enabled for this plan"; no plan has the flag. |
+| 1.4 | **BLOCKED** | PUT 9999 → 403 FEATURE_NOT_ENABLED (plan check runs before range validation); inline range error not reachable. |
+| 1.5 | **BLOCKED** | PUT reset → 403 FEATURE_NOT_ENABLED. |
+| 1.6 | **BLOCKED** | Page is read-only for every tenant (flag off on all plans), so no save bar or Discard to test. |
+| 1.7 | **PARTIAL** | No user with auth_config:read only exists on Preview; operator PUT → 403 "Permission denied: auth_config:update". Read-only banner not viewable. |
+| 1.8 | **PASS** | API: operator GET /api/settings/auth-config → 403 "Permission denied: auth_config:read". UI error shell not separately captured. |
+| 1.9 | **PASS** | Via HQ overrides: CONFIG_CHANGED SET/CHANGE/RESET rows for Demo tenant 02:02:42–02:02:47. Defect: RESET rows new_value = old tenant value and actor_auth_user_id null (FET-USL-S8). |
+| 1.10 | **PARTIAL** | UI 01:48 Arabic: RTL mirrors, item labels/descriptions Arabic; untranslated: page header title "Security & Sessions", most sidebar items, enum values REVOKE_OLDEST / BLOCK_NEW shown raw. |
+| 1.11 | **PASS** | Covered by H.3: Demo override 120 + HQ max 60 → tenant app item source PLATFORM_ENFORCED (effective 30); reverted. |
+| 2.1 | **PASS** | API: code U000003 and email both 200; wrong password / unknown identifier → identical 401 INVALID_CREDENTIALS. |
+| 2.2 | **PASS** | Signed-out GET /dashboard/orders → 307 /login?redirect=%2Fdashboard%2Forders; getSafeRedirectPath rejects //, /\, %2f, %5c and auth paths. UI 02:10: /login?redirect=//evil.com while signed in → https://cmx.cleanmatex.com/dashboard?redirect=%2F%2Fevil.com (stays on domain). |
+| 2.3 | **PASS** | Saudi overrides idle 1 min / warning 15 s (02:11). Signed in U000002 (Remember me off) 02:12:46; dialog "Are you still there?" / "You have been inactive for a while. For your security you will be signed out automatically unless you choose to stay signed in." + 15 s countdown, buttons Sign out now / Stay signed in / X. Stay (02:14:50) closed it and stayed on /dashboard. Note: first dialog at ~35 s after sign-in (expected ~45 s) — FET-USL-S30. |
+| 2.4 | **FAIL** | Idle with no input: warning 02:17:45, session ended ~02:18:02. Visible tab → /login?reason=session_expired&redirect=%2Fdashboard, banner "Your session has expired. Please sign in again." (expected reason=idle_timeout + idle banner). Second tab → /login?redirect=%2Fdashboard with no reason/banner. API side does record IDLE_TIMEOUT end reason (4.9). FET-USL-S28. |
+| 2.5 | **PARTIAL** | Two tabs on /dashboard: warning shown in both at 02:16:57. Stay in visible tab closed it instantly; other tab still open 3 s later (countdown 12), closed by +12 s — syncs but delayed (FET-USL-S29). On final timeout the second tab landed on /login with no reason banner (FET-USL-S28). |
+| 2.6 | **PASS** | API 02:05: remember_me login → cookie sb-remember-me=1, session isRememberMe=true, expiresAt +7 d (2026-10-16 02:05). Note: sb auth-token cookie expires 2026-10-10 02:05 (~24 h), shorter than the 7-day session (FET-USL-S9). Dialog suppression not UI-verified. |
+| 2.7 | **PARTIAL** | HQ override max=1 on Demo: BLOCK_NEW → 409 SESSION_LIMIT_REACHED "Maximum number of active sessions reached…" (SESSION_LIMIT_HIT DENIED {active:3,max:1}); REVOKE_OLDEST → 200, 3 old sessions ended SESSION_LIMIT; but old client → 307 /login?redirect=… with NO reason=session_limit. Overrides cleared (H.5) → all PLATFORM. |
+| 4.1 | **PASS** | API: /api/auth/sessions/me lists devices with isCurrent, device, IP, created/lastActivity; revoke current → 409 CANNOT_REVOKE_CURRENT. UI 01:48: devices list with This device badge, Sign out on others, Sign out all other devices. ("Email me a link" missing, logged under 6.7.) |
+| 4.2 | **PARTIAL** | DELETE other own session 200 {success:true}; current → 409; unknown → 404 SESSION_NOT_FOUND. Revoked client: API 401 {"error":"Unauthorized"} (no SESSION_ENDED code), page 307 /login?redirect=%2Fdashboard%2Forders without reason=revoked, so no revoked banner. |
+| 4.3 | **PASS** | Operator 3 sessions: revoke-others → 200 {revoked:2}; both other clients 401; caller 200. |
+| 4.4 | **BLOCKED** | Success path needs a disposable user (H.6); shared passwords not changed. |
+| 4.5 | **PARTIAL** | Wrong current → 403 WRONG_PASSWORD "Current password is incorrect"; 5-try lockout part BLOCKED (no test user). |
+| 4.6 | **PASS** | API: 'abc' → 422 WEAK_PASSWORD (length/upper/number messages); 'alllowercase1' → 422 "must contain at least one uppercase letter"; missing current → 400. Inline UI errors not exercised. |
+| 4.7 | **PARTIAL** | UI 02:10 Arabic: fully translated + RTL, but the right sidebar overlaps the main content (page title and card right edges hidden) at ~920 px; reproduced 2x; EN fine. |
+| 4.8 | **PASS** | UI: columns USER/DEVICE/IP/SIGNED IN/LAST ACTIVE/STATUS/ACTIONS/AUDIT, Show filter Active/Ended/All, Sign out per row, Sign out everyone. API: 200, tenant-only rows (user code U000003, name, email); Saudi userId filter → 0. Notes: Audit dialog shows only "Created at"; rows don't link to user detail (FET-USL-S18/S20). |
+| 4.9 | **PASS** | API: status=ENDED shows reasons USER_REVOKED / USER_LOGOUT / IDLE_TIMEOUT; offset pages disjoint (server-side); limit=101 → 400 "Invalid query". UI filter present; pager not visible (only 2 rows). |
+| 4.10 | **FAIL** | POST /api/users/sessions/revoke {sessionIds:[active operator session 2f564c67…]} → 200 {revoked:0, notFound:0, skippedCurrent:false}; session stays ACTIVE; random / cross-tenant ids also → notFound 0. Route sends sessionIds, service reads sessionRowIds (FET-USL-S2). |
+| 4.11 | **PASS** | Saudi admin 02:05: {all:true} → 200 {revoked:1, skippedCurrent:true}; other session 76a73ab8 ended ADMIN_REVOKED; own e746c909 kept. |
+| 4.12 | **PARTIAL** | No read-only user_sessions role on Preview; operator → 403 user_sessions:read / user_sessions:revoke. |
+| 4.13 | **BLOCKED** | No disposable signed-in user to deactivate (H.6). |
+| 4.14 | **BLOCKED** | No readable test inbox for the recovery link. |
+| 4.15 | **BLOCKED** | Depends on 4.14 link. |
+| 4.16 | **PASS** | API: POST /api/auth/password/reset without recovery session → 403 RECOVERY_REQUIRED "Recovery link required". |
+| 4.17 | **PASS** | cron.job auth-session-sweep, schedule */5 * * * *, active. |
+| 5.1 | **PASS** | UI 02:10 (direct URL, All Users list redirects to ?error=insufficient_permissions): own admin Sessions tab lists Chrome on Linux (This device) + Edge on Windows with Sign out / Sign out all devices; operator: "This user has no active sessions." API: /api/users/sessions?userId= returns only that user. |
+| 5.2 | **FAIL** | Same endpoint as 4.10: single-session admin revoke returns {revoked:0} and the session stays ACTIVE. |
+| 5.3 | **PASS** | UI: operator Activity shows Sign-in succeeded / Sign-in failed + Failed / Password changed + Blocked / Session limit reached + Blocked / Signed out / Session revoked; columns EVENT/DEVICE/IP ADDRESS/DATE; Arabic: names + headers Arabic, RTL OK. ~5 s load. |
+| 5.4 | **BLOCKED** | No user with zero events (fresh user creation broken, H.6); API-blocked error state not exercised. |
+| 5.5 | **PARTIAL** | First login from new device: NEW_DEVICE audit + inbox security.login.detected (+ EMAIL/PUSH outbox SENT) created, but inbox title "New notification: security.login.detected", generic body, title2 (AR) empty, template_code empty. |
+| 5.6 | **PASS** | Re-login 01:59:09 with same cmx-did → no NEW_DEVICE row, no notification. |
+| 5.7 | **PARTIAL** | Next API call after revoke → 401 but body {"error":"Unauthorized"} without code SESSION_ENDED; page → /login?redirect=… without reason=revoked banner. |
+| 6.1 | **BLOCKED** | Phase 6 not deployed on Preview: /api/auth/password/policy → 404; Account security shows the old 3-field form without the "Password changed / Later / Sign out now" flow. |
+| 6.2 | **BLOCKED** | Depends on 6.1 (not deployed). |
+| 6.3 | **BLOCKED** | Not deployed; history check unreachable (also no test user). |
+| 6.4 | **BLOCKED** | Not deployed; breach check unreachable (also no test user). |
+| 6.5 | **BLOCKED** | Security & Sessions has no Passwords group (UI); plan flag off on all plans. |
+| 6.6 | **BLOCKED** | Depends on 6.5. |
+| 6.7 | **BLOCKED** | UI: Account security has no "Email me a link" option; POST /api/auth/password/link → Next.js not-found HTML page (HTTP 200 on POST, not JSON). |
+| 6.8 | **BLOCKED** | Feature not deployed; also no user without email can be created (H.6). |
+| 6.9 | **BLOCKED** | UI: no Reset password button on other users (operator 7dbe9b05); POST /api/users/7dbe9b05…/password → Next.js not-found HTML. |
+| 6.10 | **BLOCKED** | GET /change-password → 404. |
+| 6.11 | **BLOCKED** | Depends on 6.9. |
+| 6.12 | **BLOCKED** | POST /api/users/{id}/password/link → Next.js not-found HTML; no Email a link option in UI. |
+| 6.13 | **PARTIAL** | UI 02:10: own admin user detail has no Reset/Unlock (correct), but operator user detail also has none, so the check isn't meaningful until Phase 6 is deployed. |
+| 6.14 | **BLOCKED** | POST /api/users/{id}/unlock → Next.js not-found HTML; no Unlock button; no test user to lock. |
+| 6.15 | **BLOCKED** | Depends on 6.9/6.12/6.14. |
+| 6.16 | **BLOCKED** | Buttons absent for everyone; endpoints not deployed. |
+| 6.17 | **BLOCKED** | HQ /en/tenants/1111…/users row menu: View details / Edit / Deactivate / Delete only, no Reset Password (HQ Phase 6 UI not deployed); no test user (H.6). |
+| 6.18 | **BLOCKED** | No Email a link action in HQ row menu. |
+| 6.19 | **BLOCKED** | Depends on 6.17. |
+| 6.20 | **BLOCKED** | No Unlock Account action in HQ row menu; no locked test user. |
+| 6.21 | **FAIL** | Deploy gap. DB/API: HQ catalog API returns PASSWORD group with 4 items (AUTH_PWD_REQUIRE_CURRENT, AUTH_PWD_FRESH_SIGNIN_MIN, AUTH_PWD_HISTORY_COUNT, AUTH_PWD_BREACH_CHECK = platform-only), so migrations are applied. UI: no Passwords group on HQ /en/auth-config, HQ tenant Sign-in & sessions tab, or tenant /dashboard/settings/security. |
+| H.1 | **PARTIAL** | UI 01:55: https://hqsaas.cleanmatex.com/en/auth-config "Sign-in & session policy": Sessions 6 / Devices 1 / Sign-in protection 3 (Platform only) = 10 items; columns SETTING/PLATFORM VALUE/ALLOWED RANGE/TENANTS + Edit. API 200 matches. But there's no sidebar entry (reachable by URL only), so the guide's navigation step fails. |
+| H.2 | **PASS** | Idle 9999 → 400 (raw DB text leaked: "violates check constraint chk_auth_cfg_value_valid", FET-USL-S7); 45 → 200, tenant app platformValue 45, new session idle_timeout_sec 2700; reverted to 30. |
+| H.3 | **PASS** | Demo override 120 + max 60 → PLATFORM_ENFORCED in HQ effective and tenant app (effective 30); reverted max 480, override deleted. |
+| H.4 | **PASS** | UI: tenant Sign-in & sessions tab shows source (Platform default / Managed by platform), Refresh + Set value. API: set/change/reset 200; max sessions 99 → 400 "value 99 is not valid…" (02:02:41); hq_audit_logs auth_config.override.set + CONFIG_CHANGED. |
+| H.5 | **PARTIAL** | API: clear-without-plan → 200 {cleared:2} + hq_audit. UI: banner "This tenant's plan does not include session policy customization…" shown for Demo Laundry on ENTERPRISE (and Saudi); no Clear custom values button when there are no overrides. 400 variant untestable because no plan has the flag. |
+| H.6 | **FAIL** | 01:55: HQ POST /tenants/{id}/users with/without email and with/without code → 400 "Failed to create auth user: Database error creating new user" (traceIds 75fcef7a…, 3c2e4f68…). |
+| H.7 | **BLOCKED** | Create fails before the uniqueness check (duplicate QA.FET1 also 400 same error). |
+| H.8 | **BLOCKED** | No user can be created; HQ row menu has no Reset password. |
+
+### Tester suggestions — Financial_Expert_Tester (FET-USL)
+
+1. **Financial_Expert_Tester / FET-USL-S1 (P0)** — HQ user creation is broken (H.6): every POST /tenants/{id}/users returns 400 "Failed to create auth user: Database error creating new user", with or without email or code. This blocks 0.5, 1a.6, 1a.7, 1a.9, 4.4, 4.13, 6.x and H.7/H.8. Fix hint: look up the Postgres/GoTrue log for traceId 75fcef7a…; a likely cause is a trigger on auth.users (e.g. the 0561 tenant-metadata guard or the user-code trigger) rejecting service-role inserts. Also return a meaningful message instead of the generic GoTrue text.
+2. **Financial_Expert_Tester / FET-USL-S2 (P0)** — Admin single-session sign-out does nothing (4.10/5.2). POST /api/users/sessions/revoke {sessionIds:[…]} returns 200 {revoked:0, notFound:0} and the session stays ACTIVE. The route sends `sessionIds` but the service reads `sessionRowIds`. Fix hint: align the field name; count unknown or cross-tenant ids as notFound; add a regression test that asserts status=ENDED after the call.
+3. **Financial_Expert_Tester / FET-USL-S3 (P1)** — Phase 6 password management isn't deployed on Preview or HQ even though migrations 0581/0584/0585 are applied. /api/auth/password/policy is 404, /change-password is 404, the POST password/link/unlock routes return the Next.js not-found HTML page, and there are no Reset/Email/Unlock buttons or Passwords group. Fix hint: deploy the web-admin and HQ builds together with the migrations. Make unknown /api/* routes return a JSON 404 instead of the HTML page with HTTP 200.
+4. **Financial_Expert_Tester / FET-USL-S4 (P1)** — All Users (/dashboard/users) redirects to /dashboard?error=insufficient_permissions for super_admin (Demo) and tenant_admin (Saudi), reproducibly. The server returns 200 for the page and org_users_mst role is correct, so it looks like a client-side `withAdminRole` race (redirecting before role/tenant context has loaded). Fix hint: wait for the auth/role context to finish loading before deciding, and include super_admin in the allowed roles.
+5. **Financial_Expert_Tester / FET-USL-S5 (P1)** — `session_timeout_control` is disabled on all 5 plans, ENTERPRISE included (sys_ff_pln_flag_mappings_dtl is_enabled=f). Tenant customization (1.3–1.6, 6.5) can't be used or tested anywhere. Fix hint: enable it for the intended plans (at least ENTERPRISE) or document which plan should have it.
+6. **Financial_Expert_Tester / FET-USL-S6 (P1)** — Session-end reason is lost for the user (2.7, 4.2, 5.7). A revoked or session-limit client gets 307 /login?redirect=… without reason=revoked / reason=session_limit, and APIs return 401 {"error":"Unauthorized"} without code SESSION_ENDED, so the revoked and session-limit banners never show. Fix hint: in middleware and API auth, look up the session's end_reason_code, return {code:"SESSION_ENDED", reason} and append ?reason=… on redirect.
+7. **Financial_Expert_Tester / FET-USL-S7 (P2)** — HQ platform edit leaks raw DB text (H.2): idle 9999 → 400 "new row for relation sys_auth_admin_config_cf violates check constraint chk_auth_cfg_value_valid". Fix hint: validate against min/max (and the hard limits) in the API and return a friendly "between X and Y" message like the tenant override path does.
+8. **Financial_Expert_Tester / FET-USL-S8 (P2)** — CONFIG_CHANGED RESET audit rows store new_value = the old tenant value, and actor_auth_user_id is null for HQ-made changes (1.9). Fix hint: on RESET write old_value = tenant value and new_value = platform value (or null), and record the HQ actor id/email in a dedicated column.
+9. **Financial_Expert_Tester / FET-USL-S9 (P2)** — With Remember me, the session expires in 7 days but the sb auth-token cookie expires after ~24 h (2.6), so the user may be signed out early despite ticking Remember me. Fix hint: set the auth cookie maxAge from AUTH_REMEMBER_ME_DAYS when isRememberMe is true.
+10. **Financial_Expert_Tester / FET-USL-S10 (P2)** — The new-device notification is generic (5.5): inbox title "New notification: security.login.detected", generic body, empty Arabic title2, empty template_code. Fix hint: seed or link the 0577 template for security.login.detected (EN/AR with browser, IP and time placeholders) and fail loudly when a template is missing.
+11. **Financial_Expert_Tester / FET-USL-S11 (P2)** — Login accepts obviously invalid identifiers ('ab', 'bad@') and spends a server round-trip and rate-limit attempt on them (1a.5). Fix hint: mirror the client Zod rule on the server (400 INVALID_IDENTIFIER) and make sure the inline client check blocks the request.
+12. **Financial_Expert_Tester / FET-USL-S12 (P2)** — A forged tenant-metadata update (0.1) is blocked correctly but surfaces as GoTrue 500 unexpected_failure "Error updating user", which looks like an outage in logs and monitoring. Fix hint: raise the trigger error with a clear message/hint and map it to 403 in any app-level wrapper; exclude it from 5xx alerting.
+13. **Financial_Expert_Tester / FET-USL-S13 (P2)** — Account security in Arabic: the right sidebar overlaps the main content at ~920 px viewport (page title and card right edges hidden), reproduced twice; English is fine (4.7). Fix hint: use logical properties (margin-inline-start/end) for the sidebar offset and test RTL at tablet widths.
+14. **Financial_Expert_Tester / FET-USL-S14 (P2)** — Arabic gaps on Security & Sessions (1.10): page header title "Security & Sessions", most sidebar items and enum values REVOKE_OLDEST / BLOCK_NEW stay in English or raw. Fix hint: add ar.json keys for the header/sidebar and render enum values through translated labels ("Sign out the oldest device" / "Block the new sign-in").
+15. **Financial_Expert_Tester / FET-USL-S15 (P2)** — HQ tenant Users list shows the raw i18n key "tenants.users.roles.super_admin" in the role column. Fix hint: add the missing role keys (super_admin, tenant_admin, operator, viewer) in HQ EN/AR catalogs and fall back to a humanized role name.
+16. **Financial_Expert_Tester / FET-USL-S16 (P2)** — HQ platform policy page /en/auth-config has no sidebar entry (H.1 navigation step fails; reachable by URL only). Fix hint: add Settings → Sign-in & Sessions to the HQ sidebar, gated by the HQ permission.
+17. **Financial_Expert_Tester / FET-USL-S17 (P2)** — The HQ tenant auth-config banner says the plan lacks session policy customization for Demo Laundry, which is on ENTERPRISE. That's confusing for HQ staff (related to S5). Fix hint: show the plan name and the exact flag ("Plan ENTERPRISE: session_timeout_control = off") with a link to plan flags.
+18. **Financial_Expert_Tester / FET-USL-S18 (P2)** — The Active Sessions Audit dialog shows only "Created at". Fix hint: add signed-in-by, login IP / last IP, device, ended at, ended reason (localized) and ended by (user/admin/system).
+19. **Financial_Expert_Tester / FET-USL-S19 (P2, a11y)** — The User code pencil (edit) icon button on the user Profile has no accessible name. Fix hint: add aria-label / title "Edit user code" (EN/AR).
+20. **Financial_Expert_Tester / FET-USL-S20 (P2)** — Active Sessions rows don't link to the user, and /dashboard/users/[userId] only accepts the auth user UUID (/dashboard/users/U000001 → "User not found"; org row id → 404). With All Users broken (S4), admins can't reach user detail. Fix hint: make the user cell a link to the user detail, and have the route also resolve a user code or org row id.
+21. **Financial_Expert_Tester / FET-USL-S21 (P2, perf)** — The user Activity tab takes ~5 s to load. Fix hint: index sys_auth_audit_log (tenant_org_id, auth_user_id, created_at desc), page the query server-side, and show a skeleton.
+22. **Financial_Expert_Tester / FET-USL-S22 (P2, expert)** — Add a password-strength meter and a live policy checklist (length, upper, lower, number, not recently used) to every new-password form, so users see the rules before submitting instead of after a 422.
+23. **Financial_Expert_Tester / FET-USL-S23 (P2, expert)** — Record a human "Signed out because…" reason (idle, revoked by <admin>, session limit, password changed, user deactivated) on every session end. Show it in the end-session audit and on the login banner.
+24. **Financial_Expert_Tester / FET-USL-S24 (P2, expert)** — Add admin actions "Lock now" and "Force password change at next sign-in" on user detail (tenant + HQ) for suspected-compromise cases, with audit rows.
+25. **Financial_Expert_Tester / FET-USL-S25 (P2, expert)** — Add CSV export (current filter) to Active Sessions for security reviews and audits.
+26. **Financial_Expert_Tester / FET-USL-S26 (P2, expert)** — During the idle warning, show the countdown in the browser tab title (e.g. "(0:45) Are you still there?") so users working in another tab notice before being signed out.
+27. **Financial_Expert_Tester / FET-USL-S27 (P3)** — Preview lacks QA fixtures: no role with auth_config:read only (1.7), no user_sessions:read-only role (4.12), no disposable users, no readable test inbox (4.14/4.15, 6.7, 6.12). Fix hint: seed a QA role set plus 2–3 disposable users per demo tenant (one without email) and a catch-all test mailbox so these scenarios stop being BLOCKED.
+
+28. **Financial_Expert_Tester / FET-USL-S28 (P1)** — Idle timeout ends with the wrong reason (2.4): browser lands on /login?reason=session_expired ("Your session has expired…") instead of reason=idle_timeout, and a second tab gets no reason at all, although the server records IDLE_TIMEOUT. Fix hint: when the client idle state machine or the server status says IDLE_TIMEOUT, redirect with reason=idle_timeout and broadcast the reason to other tabs (same channel as sign-out) so every tab shows the right banner. Related to FET-USL-S6.
+29. **Financial_Expert_Tester / FET-USL-S29 (P2)** — Cross-tab "Stay signed in" is delayed 3–12 s (2.5): the other tab's warning keeps counting down after the user already chose to stay. Fix hint: post the "stay" event on BroadcastChannel/storage immediately and close peer dialogs on receipt instead of waiting for the next poll.
+30. **Financial_Expert_Tester / FET-USL-S30 (P2)** — Idle warning appeared ~35 s after sign-in with idle 1 min / warning 15 s (expected ~45 s). Fix hint: confirm the warning start = idle timeout − warning period, measured from last real input, not from page load/heartbeat time.
+31. **Financial_Expert_Tester / FET-USL-S31 (P2)** — Explicit Sign Out lands on /login?redirect=%2Fdashboard%2Faccount%2Fsecurity, so the next person who signs in on that browser is sent to the previous user's last page. Fix hint: drop the redirect param on a deliberate sign-out; keep it only for expiry/revocation.

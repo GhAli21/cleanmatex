@@ -1,13 +1,21 @@
 # Notification Hub — Production Implementation Plan
 
-**Status:** P1 safety and P2 provider/template data foundations applied; provider registration, APIs, UI and runtime cutover remain planned.
-**Date:** 2026-10-08 (Asia/Muscat).
+**Status:** P1 safety and P2 provider/template data foundations are applied. HQ route list/create/edit/activate/suspend/retire APIs and redacted provider-registration discovery are implemented. An atomic platform-import command is drafted as migration `0586`; authenticated connector, administration UI, and runtime cutover remain planned.
+**Date:** 2026-10-09 (Asia/Muscat).
 **Scope:** CleanMateX tenant app, Platform HQ API/UI, platform workers, shared notification schema.
 **Canonical planning authority:** this document in docs/plan/.
 **Detailed specification:** [Schema and contracts](./notification-hub-schema-and-contracts.md).
 **Existing operator runbook:** [Direct Twilio order-created setup](./Setup_And_Config/14_twilio_production_order_created.md).
 
 Approval to create this plan is not approval to apply migrations, deploy, change billing, or send production messages. Every proposed identifier, endpoint and service below is a design target unless explicitly marked existing. No promise of zero defects replaces the acceptance tests and release gates in this plan.
+
+### Current trusted-import implementation
+
+The implemented HQ command `POST /notifications/provider-template-registrations/import/twilio` accepts only `account_id`, `locale_id`, an optional `sender_id`, and a Twilio `ContentSid`. It is gated by `hq_notifications:manage`. The API fetches the Twilio Content and WhatsApp approval resources server-side, redacts and hashes the provider snapshot, then invokes `cmx_import_sys_ntf_prov_tmpl` atomically. The browser cannot supply approval status, evidence, provider content, hashes, or credentials.
+
+The account must be an active verified `TWILIO` / `WHATSAPP` platform account whose opaque `credential_ref` exactly equals deployment setting `NTF_TWILIO_CONTENT_CREDENTIAL_REF`. Production secret injection supplies the existing `HQ_TWILIO_ACCOUNT_SID` and `HQ_TWILIO_AUTH_TOKEN`; optional `NTF_TWILIO_CONTENT_CREDENTIAL_VERSION` must match the account version when set. Any missing/mismatched binding fails closed. The first imported revision deliberately has no logical variable bindings, so a route stays non-activatable until an administrator maps every required provider parameter to an approved typed variable or explicit static value.
+
+The accompanying protected candidate endpoint `GET /notifications/provider-template-registrations/import/twilio/candidates?accountId=` exposes only verified active Twilio WhatsApp accounts, their optional verified senders, and active canonical WhatsApp locales. It intentionally excludes credential references, account configuration, evidence, and provider snapshots so the UI never needs internal identifiers pasted by an operator.
 
 ## 1. Outcome and scope
 
@@ -683,7 +691,7 @@ Restore from backup can replay old queue/acceptance state; use provider reconcil
 |---|---|---|
 | Transport ownership | Tenant intent/outbox authority; HQ transport for platform accounts; direct BYO compatibility where supported | P0 route/credential ownership contract. |
 | First producer scope | order.created pilot, then approved lifecycle/payment/other event integrations | Verify exact producer transactions/call sites before edits. |
-| Private logical-template authoring | Deferred; import private provider registrations against approved typed event contracts | Separate product/security scope if needed. |
+| Private logical-template authoring | `0582` establishes imported private registrations against approved typed event contracts; authoring remains deferred | Types regenerated; implement import/review UI and expand activation tests. |
 | HQ permission provisioning | Existing utilities + exact reviewed grants; production enforcement mandatory | Registry/schema audit and approved seed/application, no global casual rewrite. |
 | Provider named-slot discrepancy | Import exact approved names and validate with account evidence | Do not auto-rename working estimated_ready_at. |
 | Working-day calculation | Consume authoritative due date; optional estimate only with named calendar/base/cutoff | Business SLA owner approval. |
@@ -749,7 +757,9 @@ The notification platform is deliberately provider-neutral. A channel adapter is
 | Attempt and verified receipt evidence | `0564` applied | Attempt identity, acceptance evidence, receipt facts and provider-message correlation. |
 | Provider accounts and senders | `0571` applied | Typed platform/tenant account and sender identity, verification state, opaque credential references and tenant RLS. |
 | Localized contract and variables | `0572` applied | Explicit language rows, ordered typed scalar/derived/collection variables and repeated-row fields. |
-| Provider registrations and bindings | `0574` applied | Provider template name/ID or Content SID, approval observation, immutable snapshot and ordered component-slot bindings. |
+| Provider registrations and bindings | `0574` applied | Platform provider template name/ID or Content SID, approval observation, immutable snapshot and ordered component-slot bindings. |
+| Private provider registrations and bindings | `0582` applied | Tenant-owned provider registration, immutable revision and ordered binding evidence; enables safe private-route activation. |
+| Private-route nullability correction | `0583` applied | Makes the platform-account field nullable so the already-enforced PRIVATE ownership branch is insertable. |
 
 `0569` must be treated as a historical no-op migration only; it does not establish provider resources. Do not build runtime behavior against it.
 
@@ -763,6 +773,16 @@ The notification platform is deliberately provider-neutral. A channel adapter is
 6. **Shared UI requirements:** Cmx components only, EN/AR keys, RTL layout, accessible keyboard behavior, server-side permission gates, loading/empty/error states and no secret/raw-payload rendering.
 7. **Operations:** provider credential rotation, sender verification, template approval refresh, callback verification, reconciliation, suppression/consent, queue drain, rollback and pilot runbooks.
 
+The implemented HQ catalog-discovery endpoints expose only registration/revision selection metadata. They never return credential references, account configuration, provider snapshots, or approval-evidence JSON. Provider import/synchronization remains a server-side connector responsibility.
+
+### 26.2.1 Implemented HQ route-control API slice
+
+- `GET /notifications/tenants/:tenantOrgId/routes` lists routes under `hq_notifications:read`.
+- `POST /notifications/tenants/:tenantOrgId/routes` creates a complete `DRAFT` route under `hq_notifications:manage`; mixed platform/private resource selections are rejected before persistence.
+- `POST /notifications/tenants/:tenantOrgId/routes/:id/activate` uses optimistic version checking, immutable provider evidence, sender compatibility, template locale/event/channel/language agreement, and binding-count agreement before it can set `ACTIVE`.
+- Every route mutation is audit logged. Every `org_*` read/write includes an explicit `tenant_org_id` predicate.
+
+Pending route operations: optimistic draft edit, suspend, retire, UI wiring, preview/test rendering, and dispatch resolver adoption.
 ### 26.3 Non-negotiable provider rules
 
 - A Twilio `ContentSid` is valid only for its provider account, language, approved content revision and compatible sender; it is never a global event-level setting.

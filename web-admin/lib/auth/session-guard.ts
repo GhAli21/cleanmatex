@@ -111,6 +111,7 @@ function endedResult(reason: SessionValidation['endReason']): SessionValidation 
     idleRemainingSec: 0,
     absoluteRemainingSec: 0,
     idleWarningSec: null,
+    mustChangePassword: false,
   }
 }
 

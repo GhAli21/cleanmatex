@@ -63,8 +63,9 @@ see the dedicated audit table decision below.
 `integration-contracts.md` assigns tenant-settings ownership to `cleanmatexsaas`.
 This ADR records a deliberate, narrow exception: cash-control settings only,
 editable through a tenant-side admin screen
-(`/dashboard/settings/payments/cash-control-settings`, gated by
-`cash_control:manage`) in **this** repo. HQ-console editing of these settings is
+(`/dashboard/settings/payments/cash-control-settings` for drawer and cash policy and, since 2026-10-09,
+`/dashboard/settings/pos-settings` for the POS-session fields; both gated by `cash_control:view` / `manage`
+and backed by the same API and table) in **this** repo. HQ-console editing of these settings is
 out of scope until the exit criteria below are met. This is not a precedent for
 moving other settings domains out of the general catalog.
 

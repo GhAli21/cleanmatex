@@ -77,9 +77,45 @@ export const PASSWORD_ERROR_CODES = {
   SAME_PASSWORD: 'SAME_PASSWORD',
   ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
   UPDATE_FAILED: 'UPDATE_FAILED',
+  /** The new password matches the current one or one of the recent previous ones (policy AUTH_PWD_HISTORY_COUNT). */
+  REUSED_PASSWORD: 'REUSED_PASSWORD',
+  /** The new password appears in public breach lists (policy AUTH_PWD_BREACH_CHECK). */
+  BREACHED_PASSWORD: 'BREACHED_PASSWORD',
+  /** The tenant policy requires the current password (AUTH_PWD_REQUIRE_CURRENT) and none was sent. */
+  CURRENT_REQUIRED: 'CURRENT_REQUIRED',
+  /** Current password not required, but the sign-in is older than AUTH_PWD_FRESH_SIGNIN_MIN: sign in again or use the emailed link. */
+  REAUTH_REQUIRED: 'REAUTH_REQUIRED',
+  /** The account has no real email address (synthetic sign-in), so nothing can be emailed. */
+  NO_EMAIL: 'NO_EMAIL',
+  /** Target user is not a member of the caller's tenant. */
+  USER_NOT_FOUND: 'USER_NOT_FOUND',
+  /** An administrator targeted their own account through the admin route (they must use Account security). */
+  SELF_RESET_NOT_ALLOWED: 'SELF_RESET_NOT_ALLOWED',
+  /** The email with the reset link could not be sent. */
+  EMAIL_FAILED: 'EMAIL_FAILED',
 } as const
 
 export type PasswordErrorCode = (typeof PASSWORD_ERROR_CODES)[keyof typeof PASSWORD_ERROR_CODES]
+
+/** Answer of API routes while the user must set a new password first (admin-set temporary password). */
+export const PASSWORD_CHANGE_REQUIRED_CODE = 'PASSWORD_CHANGE_REQUIRED'
+
+/** Page that forces the password change (outside the dashboard so the dashboard shell never renders). */
+export const FORCED_PASSWORD_CHANGE_PATH = '/change-password'
+
+/** Authentication audit event codes written by the password flows (sys_auth_event_cd.code, migration 0581). */
+export const PASSWORD_AUDIT_EVENTS = {
+  PASSWORD_CHANGED: 'PASSWORD_CHANGED',
+  PASSWORD_RESET_BY_ADMIN: 'PASSWORD_RESET_BY_ADMIN',
+  PASSWORD_RESET_LINK_SENT: 'PASSWORD_RESET_LINK_SENT',
+  ACCOUNT_UNLOCKED: 'ACCOUNT_UNLOCKED',
+} as const
+
+/** Notification Hub event (sys_ntf_events_cd.code) raised after every password change / reset. */
+export const PASSWORD_CHANGED_EVENT_CODE = 'security.password.changed'
+
+/** Mail domain of synthetic sign-in addresses (users created without an email): nothing can be delivered there. */
+export const SYNTHETIC_EMAIL_DOMAIN = '@users.invalid'
 
 /** Reset endpoint answer when the request is not backed by an emailed recovery link. */
 export const RECOVERY_REQUIRED_CODE = 'RECOVERY_REQUIRED'

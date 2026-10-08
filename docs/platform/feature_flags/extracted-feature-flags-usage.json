@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-08T18:12:24.211Z",
+  "extractedAt": "2026-10-08T22:25:07.692Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -385,13 +385,6 @@
       }
     ],
     "b2b_contracts": [
-      {
-        "path": "src/features/billing/ui/invoice-filters-bar.tsx",
-        "line": 25,
-        "context": "const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS);",
-        "surface": "screen",
-        "pattern": "useFeature"
-      },
       {
         "path": "src/features/customers/ui/customer-create-modal.tsx",
         "line": 43,

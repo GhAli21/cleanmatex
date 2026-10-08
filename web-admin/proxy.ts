@@ -18,7 +18,7 @@ import { generateCSRFToken, getCSRFTokenFromRequest, setCSRFTokenInResponse } fr
 import { isPublicRoutePath } from './lib/security/public-routes'
 import { guardSession, isSessionActive } from './lib/auth/session-guard'
 import { readRequestMeta } from './lib/services/auth/session/request-meta'
-import { DEVICE_COOKIE_NAME, loginReasonForEndReason } from './lib/constants/auth-session'
+import { DEVICE_COOKIE_NAME, FORCED_PASSWORD_CHANGE_PATH, loginReasonForEndReason } from './lib/constants/auth-session'
 
 /** Cookie storing "Remember me" choice; when "0" or missing, auth cookies are session-only. */
 const SB_REMEMBER_ME_COOKIE = 'sb-remember-me'
@@ -196,6 +196,16 @@ export async function proxy(request: NextRequest) {
     )
     if (!isSessionActive(validation)) {
       return redirectToLoginClearingSession(request, loginReasonForEndReason(validation.endReason))
+    }
+
+    // An administrator-set temporary password must be replaced before anything else is reachable; the forced page
+    // itself is only for accounts in that state.
+    const onForcedPage = pathname === FORCED_PASSWORD_CHANGE_PATH
+    if (validation.mustChangePassword !== onForcedPage) {
+      const target = request.nextUrl.clone()
+      target.pathname = validation.mustChangePassword ? FORCED_PASSWORD_CHANGE_PATH : DEFAULT_REDIRECT
+      target.search = ''
+      return NextResponse.redirect(target)
     }
   } catch (sessionError) {
     // Fail closed WITHOUT redirecting to /login: cookies are intact, so /login would bounce back here.

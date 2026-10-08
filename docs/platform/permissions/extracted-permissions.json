@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-08T18:12:23.103Z",
+  "extractedAt": "2026-10-08T22:25:06.640Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -119,7 +119,7 @@
       "route": "src/features/auth-session/ui/security-settings-screen.tsx",
       "permission": "auth_config:update",
       "component": "useHasPermission",
-      "line": 32,
+      "line": 37,
       "surface": "screen"
     },
     {
@@ -128,6 +128,14 @@
       "permission": "user_sessions:revoke",
       "component": "useHasPermission",
       "line": 32,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/auth-session/ui/user-credential-actions.tsx",
+      "route": "src/features/auth-session/ui/user-credential-actions.tsx",
+      "permission": "users:reset_password",
+      "component": "useHasPermission",
+      "line": 36,
       "surface": "screen"
     },
     {
@@ -223,7 +231,7 @@
       "route": "src/features/cash-drawers/ui/cash-control-settings-screen.tsx",
       "permission": "cash_control:manage",
       "component": "useHasPermissionCode",
-      "line": 90,
+      "line": 77,
       "surface": "screen"
     },
     {
@@ -683,6 +691,14 @@
       "surface": "screen"
     },
     {
+      "file": "src/features/pos-settings/ui/pos-settings-screen.tsx",
+      "route": "src/features/pos-settings/ui/pos-settings-screen.tsx",
+      "permission": "cash_control:manage",
+      "component": "useHasPermissionCode",
+      "line": 49,
+      "surface": "screen"
+    },
+    {
       "file": "src/features/users/ui/user-code-field.tsx",
       "route": "src/features/users/ui/user-code-field.tsx",
       "permission": "users:update",
@@ -695,7 +711,7 @@
       "route": "src/features/users/ui/user-detail-screen.tsx",
       "permission": "user_sessions:read",
       "component": "useHasPermission",
-      "line": 39,
+      "line": 40,
       "surface": "screen"
     },
     {
@@ -719,7 +735,7 @@
       "route": "src/features/users/access/users-access.ts",
       "permission": "audit:read",
       "component": "requirePermission",
-      "line": 92,
+      "line": 98,
       "surface": "screen"
     },
     {
@@ -727,7 +743,7 @@
       "route": "src/features/users/access/users-access.ts",
       "permission": "users:read",
       "component": "requirePermission",
-      "line": 100,
+      "line": 106,
       "surface": "screen"
     },
     {
@@ -735,7 +751,15 @@
       "route": "src/features/users/access/users-access.ts",
       "permission": "users:update",
       "component": "requirePermission",
-      "line": 108,
+      "line": 114,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/users/access/users-access.ts",
+      "route": "src/features/users/access/users-access.ts",
+      "permission": "users:reset_password",
+      "component": "requirePermission",
+      "line": 122,
       "surface": "screen"
     },
     {
@@ -751,7 +775,7 @@
       "route": "lib/middleware/require-permission.ts",
       "permission": ")}]` },\n          { status: 403 }\n        )\n      }\n\n      return authContext\n    } catch (error) {\n      const message = error instanceof Error ? error.message :",
       "component": "hasPermissionServer",
-      "line": 155,
+      "line": 160,
       "surface": "middleware"
     },
     {
@@ -759,7 +783,7 @@
       "route": "lib/middleware/require-permission.ts",
       "permission": ")}]` },\n          { status: 403 }\n        )\n      }\n\n      return authContext\n    } catch (error) {\n      const message = error instanceof Error ? error.message :",
       "component": "hasPermissionServer",
-      "line": 186,
+      "line": 191,
       "surface": "middleware"
     },
     {
@@ -810,6 +834,30 @@
       "route": "/api/users/[userId]/activity",
       "permission": "audit:read",
       "line": 33,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/users/[userId]/password/link/route.ts",
+      "method": "POST",
+      "route": "/api/users/[userId]/password/link",
+      "permission": "users:reset_password",
+      "line": 28,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/users/[userId]/password/route.ts",
+      "method": "POST",
+      "route": "/api/users/[userId]/password",
+      "permission": "users:reset_password",
+      "line": 34,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/users/[userId]/unlock/route.ts",
+      "method": "POST",
+      "route": "/api/users/[userId]/unlock",
+      "permission": "users:reset_password",
+      "line": 26,
       "surface": "api"
     },
     {

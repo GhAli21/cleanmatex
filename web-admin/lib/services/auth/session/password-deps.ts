@@ -6,6 +6,9 @@
 
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { createAdminSupabaseClient } from '@/lib/supabase/server'
+import { emitNotificationEvent } from '@lib/notifications/event-emitter'
+import { assertPasswordAcceptable, loadPasswordPolicy } from '@/lib/services/auth/password/password-policy'
+import { notifyPasswordChanged } from '@/lib/services/auth/password/password-notify'
 import type { PasswordDeps } from './use-cases/password'
 
 type AdminClient = ReturnType<typeof createAdminSupabaseClient>
@@ -55,6 +58,36 @@ export function createPasswordDeps(
         p_user_agent: meta.userAgent ?? undefined,
         p_error_message: 'WRONG_CURRENT_PASSWORD',
       })
+    },
+
+    loadPolicy: (tenantId) => loadPasswordPolicy(admin, tenantId),
+
+    assertAcceptable: (authUserId, newPassword, policy) =>
+      assertPasswordAcceptable(admin, policy, authUserId, newPassword),
+
+    async getSessionAgeMinutes(tenantId, authSessionId) {
+      if (!authSessionId) return null
+      // Registry row of the caller's own session; the explicit tenant predicate scopes the lookup.
+      const { data } = await admin
+        .from('sys_auth_user_sessions_mst')
+        .select('created_at')
+        .eq('tenant_org_id', tenantId)
+        .eq('auth_session_id', authSessionId)
+        .maybeSingle()
+      if (!data?.created_at) return null
+      return (Date.now() - new Date(data.created_at).getTime()) / 60_000
+    },
+
+    async clearMustChange(tenantId, authUserId) {
+      await admin
+        .from('org_users_mst')
+        .update({ pwd_must_change: false })
+        .eq('tenant_org_id', tenantId)
+        .eq('user_id', authUserId)
+    },
+
+    async notifyChanged({ authUserId, tenantId, actor }) {
+      await notifyPasswordChanged(emitNotificationEvent, { authUserId, tenantId, actor, changedAt: new Date() })
     },
   }
 }

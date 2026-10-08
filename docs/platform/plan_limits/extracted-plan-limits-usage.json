@@ -1,55 +1,7 @@
 {
-  "extractedAt": "2026-10-08T18:12:26.118Z",
+  "extractedAt": "2026-10-08T22:25:09.789Z",
   "schemaVersion": 1,
   "usages": [
-    {
-      "limitKey": "order",
-      "file": "lib/middleware/plan-limits.middleware.ts",
-      "line": 189,
-      "context": "* export const POST = withLimitCheck('order', async (request, { tenantId }) => {",
-      "surface": "middleware",
-      "pattern": "withLimitCheck"
-    },
-    {
-      "limitKey": "order",
-      "file": "lib/middleware/plan-limits.middleware.ts",
-      "line": 233,
-      "context": "* export const POST = withLimitCheck('order', async (request, { tenantId }) => {",
-      "surface": "middleware",
-      "pattern": "withLimitCheck"
-    },
-    {
-      "limitKey": "user",
-      "file": "lib/middleware/plan-limits.middleware.ts",
-      "line": 252,
-      "context": "* export const POST = withLimitCheck('user', async (request, { tenantId }) => {",
-      "surface": "middleware",
-      "pattern": "withLimitCheck"
-    },
-    {
-      "limitKey": "order",
-      "file": "lib/middleware/plan-limits.middleware.ts",
-      "line": 189,
-      "context": "* export const POST = withLimitCheck('order', async (request, { tenantId }) => {",
-      "surface": "middleware",
-      "pattern": "withLimitCheck"
-    },
-    {
-      "limitKey": "order",
-      "file": "lib/middleware/plan-limits.middleware.ts",
-      "line": 233,
-      "context": "* export const POST = withLimitCheck('order', async (request, { tenantId }) => {",
-      "surface": "middleware",
-      "pattern": "withLimitCheck"
-    },
-    {
-      "limitKey": "user",
-      "file": "lib/middleware/plan-limits.middleware.ts",
-      "line": 252,
-      "context": "* export const POST = withLimitCheck('user', async (request, { tenantId }) => {",
-      "surface": "middleware",
-      "pattern": "withLimitCheck"
-    },
     {
       "limitKey": "sys_plan_limits",
       "file": "lib/services/subscriptions.service.ts",

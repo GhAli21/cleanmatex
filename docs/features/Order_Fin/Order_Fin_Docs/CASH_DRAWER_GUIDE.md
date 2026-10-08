@@ -1,12 +1,12 @@
 # Cash Drawer Guide — Session Lifecycle, Variance, Force-Close
 
-> **2026-09-25 — architecture change approved, not yet implemented.** The cash-drawer model is being replaced by the two-domain cash ledger of [ADR-057](../ADR/ADR-057-Two-Domain-Cash-Ledger.md). Part A below describes the **target architecture**; Part B describes the **current behaviour (until CLF ships)**. Full design, schema and work items: [POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md §4B](../POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_PLAN.md) (package CLF, STATUS rows D29–D31).
+> **2026-10-09 — implemented.** The two-domain cash ledger of [ADR-057](../ADR/ADR-057-Two-Domain-Cash-Ledger.md) shipped (package CLF, 2026-09-26 → 2026-10-03; program COMPLETE, STATUS D67). **Part A describes the cash model as built.** Part B records the pre-CLF behaviour for history only — it is retired. Program docs: [START_HERE](../POS_Session_Cash_Drawer_Hardening/START_HERE.md), [STATUS](../POS_Session_Cash_Drawer_Hardening/STATUS.md), [OPERATOR_GUIDE](../POS_Session_Cash_Drawer_Hardening/OPERATOR_GUIDE.md), [IMPLEMENTATION_REQUIREMENTS](../POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_REQUIREMENTS.md).
 
 ---
 
-# Part A — Target architecture (ADR-057)
+# Part A — Cash model as built (ADR-057)
 
-**Target architecture — approved 2026-09-25 (ADR-057), implementation pending in package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement).** Nothing in Part A exists in code or in the database yet.
+**Implemented — ADR-057, package CLF (releases R1 Ledger → R2 Sessions → R3 Retirement), shipped and applied; see STATUS D39–D57.**
 
 ## A1. Principles
 
@@ -137,17 +137,31 @@ Petty cash does **not** depend on ERP-Lite; linking to an ERP-Lite cashbox is an
 
 ## A11. Settings and approvals
 
-- Drawer policy flags move from `org_cash_drawers_mst` to `org_fin_cash_ctrl_stng_cf` at **DRAWER** scope: new columns `requires_session`, `opening_count_required`, `closing_count_required`. `cash_drop_requires_dest` is retired.
+- Drawer policy flags live in `org_fin_cash_ctrl_stng_cf` at **DRAWER** scope: columns `requires_session`, `opening_count_required`, `closing_count_required`. `cash_drop_requires_dest` is marked deprecated in the database (migration 0528); nothing enforces it — custody transactions always name a destination — but the switch is still shown on Cash Control Settings (open item in REMAINING_WORK).
+- **Two settings pages** edit the tenant defaults through one API: **POS Settings** (`/dashboard/settings/pos-settings`: per-screen POS-session requirement, rollover mode, stale hours, Z-report required) and **Cash Control Settings** (`/dashboard/settings/payments/cash-control-settings`: blind close, variance bands, counting, cash-change rounding, drawer custody, denominations, pending-deposit status).
 - Resolution: DRAWER → USER → BRANCH → TENANT → drawer-type default → constant default. `getCashControlSettingsWithSource` returns each value with its source for the drawer *Policy* tab.
 - **No maker ≠ checker.** Variance approval, recount, force-close and post-close update are gated only by their permission; the same user may perform both steps.
 
-## A12. What gets retired (R3)
+## A12. What was retired (R3 — done, STATUS D55–D57)
 
 `org_cash_drawer_movements_dtl`, `sys_cash_drawer_movement_type_cd`, `cash-drawer-cash-facts.ts`, voucher-line `cash_drawer_mvt_id`, the three mirror wiring handlers (`cash-drawer-wiring.handler.ts`, `stored-value-cash-drawer-wiring.handler.ts`, `order-refund-cash-drawer-wiring.handler.ts`), the session header money columns (moved to `org_cash_drawer_ses_bal_dtl`), `cash_drop_requires_dest`, drawer columns `requires_session` / `opening_float_required`, the manual-movement dialog and `cash-movement` / `close-session` routes, and the planned `org_cash_sess_curr_dtl` (never built).
 
+## A13. Shifts, rollover, reports and in-transit cash (built after CLF)
+
+- **POS session ≠ drawer session.** A POS session is a person's shift (attribution); a drawer session is the till's reconciliation window (custody). Closing one never moves cash or ends the other (ADR-054).
+- **Rollover.** The `pos_session_rollover` job (every 15 min) pauses — or, by policy and only if the drawer holds no cash, force-closes — sessions still open when the branch's business day ends. A rolled-over session cannot be resumed.
+- **Stale sessions** (open longer than the configured hours) get a badge once and notify the owner and the holders of `pos_session:force_close`.
+- **Shift reports.** Live X-report while open; the Z-report is frozen in the closing transaction and immutable (ADR-059). A **Z-report archive** screen lists them (`/dashboard/internal_fin/pos-sessions/z-reports`, `pos_session:report_z`).
+- **Variance** past the approval threshold leaves the session closed but pending; a supervisor approves or rejects it with a reason.
+- **In-transit transfers** (ADR-058): send → receive or cancel, through a per-branch-and-currency holder drawer; settled exactly once.
+- **Labels** of statuses, events and drawer/movement types come from the `sys_*` catalogs, edited in the HQ console.
+- Full lookup: [IMPLEMENTATION_REQUIREMENTS.md](../POS_Session_Cash_Drawer_Hardening/IMPLEMENTATION_REQUIREMENTS.md); day-to-day use: [OPERATOR_GUIDE.md](../POS_Session_Cash_Drawer_Hardening/OPERATOR_GUIDE.md).
+
 ---
 
-# Part B — Current behaviour (until CLF ships)
+# Part B — Pre-CLF behaviour (RETIRED — history only)
+
+> Everything in Part B was replaced by Part A in package CLF. It is kept so old data and old code comments can be understood; do not build on it. `org_cash_drawer_movements_dtl`, the mirror handlers and the single-step close no longer exist.
 
 ## Session Lifecycle
 
@@ -215,4 +229,4 @@ The `cashDrawerSessionId` is passed by the client when creating an order with pa
 
 ## Cash Up module retired (Remediation 2026-07 Phase 5)
 
-The legacy Cash Up screen (`/dashboard/internal_fin/cashup`) computed expected cash from the dropped legacy payments ledger and was removed (nav migration `0394`). Cash truth = drawer sessions + movements on this guide's model, reconciled via the D-09 cash-drawer reconciliation report (`/dashboard/reports/reconciliation`). Target: cash truth = the drawer ledger (Part A3).
+The legacy Cash Up screen (`/dashboard/internal_fin/cashup`) computed expected cash from the dropped legacy payments ledger and was removed (nav migration `0394`). Cash truth = drawer sessions + movements on this guide's model, reconciled via the D-09 cash-drawer reconciliation report (`/dashboard/reports/reconciliation`). Cash truth is the drawer ledger (Part A3).

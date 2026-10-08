@@ -1,4 +1,10 @@
-import type { PageAccessContract } from '@/lib/auth/access-contracts'
+import type { AccessRequirement, PageAccessContract } from '@/lib/auth/access-contracts'
+import { USERS_CREDENTIAL_PERMISSIONS } from '@/lib/constants/permissions/users-perm'
+
+const RESET_PASSWORD_REQUIREMENT: AccessRequirement = {
+  permissions: [USERS_CREDENTIAL_PERMISSIONS.RESET_PASSWORD],
+  requireAllPermissions: true,
+}
 
 const USERS_NOTES = [
   'No explicit UI permission gate; route relies on shell context, navigation visibility, or backend enforcement.',
@@ -106,6 +112,28 @@ export const USERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['users:update'] },
         enforcement: 'permission',
         notes: ['Local web-admin route; requirePermission("users:update"); platform-wide unique code; change audited by DB trigger (USER_CODE_CHANGED).'],
+      },
+      {
+        label: 'Set a user password (admin)',
+        method: 'POST',
+        path: '/api/users/[userId]/password',
+        requirement: RESET_PASSWORD_REQUIREMENT,
+        enforcement: 'permission',
+        notes: ['Local web-admin route; requirePermission("users:reset_password"); ends all sessions of the target; password is never emailed.'],
+      },
+      {
+        label: 'Email a user a password link (admin)',
+        method: 'POST',
+        path: '/api/users/[userId]/password/link',
+        requirement: RESET_PASSWORD_REQUIREMENT,
+        enforcement: 'permission',
+      },
+      {
+        label: 'Unlock a user account (admin)',
+        method: 'POST',
+        path: '/api/users/[userId]/unlock',
+        requirement: RESET_PASSWORD_REQUIREMENT,
+        enforcement: 'permission',
       },
       {
         label: 'Role options',

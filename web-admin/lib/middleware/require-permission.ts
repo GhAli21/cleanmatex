@@ -61,6 +61,11 @@ export async function getAuthContext(): Promise<AuthContext> {
     throw new Error('Unauthorized')
   }
 
+  // A pending forced password change blocks server actions too (pages are blocked by the proxy).
+  if (validation.mustChangePassword) {
+    throw new Error('Password change required')
+  }
+
   return {
     user,
     tenantId: validation.tenantOrgId,

@@ -1,0 +1,18 @@
+{
+  "title": "POS Settings",
+  "description": "Tenant-wide settings for POS sessions (shifts). Drawer and cash-handling policy is under Cash Control Settings. One Save covers every tab.",
+  "discard": "Discard changes",
+  "unsavedChanges": "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+  "tabs": {
+    "requirement": "Session requirement",
+    "lifecycle": "Shift lifecycle"
+  },
+  "requirement": {
+    "title": "Where a POS session is required",
+    "description": "Choose, for each finance screen, whether staff must have an open POS session before taking or paying out money."
+  },
+  "lifecycle": {
+    "title": "Shift lifecycle",
+    "description": "What happens to shifts left open at the business-day rollover, when a shift counts as stale, and whether closing a shift freezes a Z-report."
+  }
+}

@@ -62,7 +62,9 @@ export const AUTH_SESSION_ACCESS_CONTRACTS: PageAccessContract[] = [
       { label: 'List my sessions', method: 'GET', path: '/api/auth/sessions/me', enforcement: 'auth_only' },
       { label: 'Sign out one of my other devices', method: 'DELETE', path: '/api/auth/sessions/me/[id]', enforcement: 'auth_only' },
       { label: 'Sign out all my other devices', method: 'POST', path: '/api/auth/sessions/me/revoke-others', enforcement: 'auth_only' },
+      { label: 'Read my password rules', method: 'GET', path: '/api/auth/password/policy', enforcement: 'auth_only' },
       { label: 'Change my password', method: 'POST', path: '/api/auth/password/change', enforcement: 'auth_only' },
+      { label: 'Email me a password link', method: 'POST', path: '/api/auth/password/link', enforcement: 'auth_only' },
     ],
   },
   {

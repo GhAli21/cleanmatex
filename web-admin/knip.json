@@ -1,0 +1,33 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "next.config.ts",
+    "middleware.ts",
+    "instrumentation.ts",
+    "i18n.ts",
+    "app/**/{page,layout,route,loading,error,not-found,template,default,opengraph-image,twitter-image,icon,apple-icon,sitemap,robots}.{ts,tsx}",
+    "app/**/*.{ts,tsx}!",
+    "scripts/**/*.{js,mjs,ts}",
+    "jest.config.js",
+    "jest.db.config.js",
+    "playwright.config.ts",
+    "e2e/**/*.ts"
+  ],
+  "project": ["**/*.{ts,tsx}"],
+  "ignore": [
+    "**/*.stories.tsx",
+    "**/*.d.ts",
+    ".next/**",
+    "storybook-static/**",
+    "node_modules/**"
+  ],
+  "ignoreDependencies": [
+    "@sentry/nextjs"
+  ],
+  "next": {
+    "entry": [
+      "next.config.ts",
+      "app/**/{page,layout,route,loading,error,not-found,template,default}.{ts,tsx}"
+    ]
+  }
+}
