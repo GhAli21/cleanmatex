@@ -16793,6 +16793,158 @@ export type Database = {
           },
         ]
       }
+      org_ntf_route_assign_cf: {
+        Row: {
+          assignment_version: number
+          channel_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          event_code: string
+          fallback_language: string | null
+          id: string
+          is_active: boolean
+          language_code: string
+          platform_account_id: string
+          platform_sender_id: string | null
+          private_account_id: string | null
+          private_sender_id: string | null
+          provider_revision_id: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          route_owner: string
+          route_state: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          assignment_version?: number
+          channel_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          event_code: string
+          fallback_language?: string | null
+          id?: string
+          is_active?: boolean
+          language_code: string
+          platform_account_id: string
+          platform_sender_id?: string | null
+          private_account_id?: string | null
+          private_sender_id?: string | null
+          provider_revision_id: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          route_owner?: string
+          route_state?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          assignment_version?: number
+          channel_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          event_code?: string
+          fallback_language?: string | null
+          id?: string
+          is_active?: boolean
+          language_code?: string
+          platform_account_id?: string
+          platform_sender_id?: string | null
+          private_account_id?: string | null
+          private_sender_id?: string | null
+          provider_revision_id?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          route_owner?: string
+          route_state?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ntf_route_acct"
+            columns: ["platform_account_id"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_prov_acct_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_chan"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_event"
+            columns: ["event_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_events_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_pacct"
+            columns: ["private_account_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_prov_acct_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_psend"
+            columns: ["private_sender_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_prov_send_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_rev"
+            columns: ["provider_revision_id"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_prov_tmpl_rev_dtl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_send"
+            columns: ["platform_sender_id"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_prov_send_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_ntf_settings_cf: {
         Row: {
           channel_code: string

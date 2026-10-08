@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "node scripts/sync-platform-inventory.mjs && prisma generate && next build --webpack",
+    "build": "node scripts/sync-platform-inventory.mjs && prisma generate && set NODE_OPTIONS=--max-old-space-size=8192&& next build --webpack",
     "build:safe": "npm run build",
+    "build:next-only": "set NODE_OPTIONS=--max-old-space-size=8192&& next build --webpack",
     "typecheck": "tsc --noEmit",
     "typecheck:clean": "rm -rf .next && tsc --noEmit",
     "validate": "rm -rf .next && next typegen && tsc --noEmit",

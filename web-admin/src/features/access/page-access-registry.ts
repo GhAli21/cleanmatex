@@ -62,9 +62,10 @@ export const PAGE_ACCESS_CONTRACTS: PageAccessContract[] = [
   ...REPORTS_ACCESS_CONTRACTS,
   ...SETTINGS_ACCESS_CONTRACTS,
   ...TENANT_ADMIN_ACCESS_CONTRACTS,
+  // Static routes (/dashboard/users/sessions) must be registered before the dynamic /dashboard/users/[userId].
+  ...AUTH_SESSION_ACCESS_CONTRACTS,
   ...USERS_ACCESS_CONTRACTS,
   ...WORKBOARD_ACCESS_CONTRACTS,
-  ...AUTH_SESSION_ACCESS_CONTRACTS,
 ]
 
 /**

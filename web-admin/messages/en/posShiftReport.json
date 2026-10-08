@@ -59,5 +59,30 @@
   "hashVerified": "Integrity verified — the stored report matches its fingerprint",
   "hashMismatch": "WARNING — the stored report does not match its fingerprint",
   "attribution": "Cash by POS session in the drawer session",
-  "unattributed": "No POS session"
+  "unattributed": "No POS session",
+  "archive": {
+    "title": "Z-report archive",
+    "description": "The frozen report of every closed shift. Open one to review or print it.",
+    "reportNo": "Report no.",
+    "sales": "Sales",
+    "drawerVariance": "Drawer variance",
+    "integrity": "Integrity",
+    "verified": "Verified",
+    "altered": "Altered",
+    "autoClosed": "Auto-closed",
+    "variancePending": "Variance pending",
+    "noDrawer": "No drawer",
+    "open": "Open report",
+    "search": "Search",
+    "searchPlaceholder": "Report no., session no. or cashier",
+    "allBranches": "All branches",
+    "fromDate": "From business date",
+    "toDate": "To business date",
+    "clearFilters": "Clear filters",
+    "rangeInvalid": "The start date must be on or before the end date.",
+    "emptyTitle": "No Z-reports found",
+    "emptyDescription": "A Z-report appears here when a shift closes. Widen the filters to see more.",
+    "loadFailed": "Failed to load the Z-report archive.",
+    "retry": "Retry"
+  }
 }

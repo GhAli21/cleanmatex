@@ -12,4 +12,4 @@
 
 ## Owner-only
 
-Commit; restart the dev server; run QA guide §13–§17; force-close the two historical CLOSING sessions.
+Commit; restart the dev server; **apply `0578_rbac_pos_session_least_privilege.sql` (written 2026-10-08, D69 — closes the over-granted `pos_session:*` defaults from 0396)**; run QA guide §13–§18; force-close the two historical CLOSING sessions.

@@ -177,7 +177,21 @@
     "displayName": "Display Name",
     "firstName": "First Name",
     "lastName": "Last Name",
-    "never": "Never"
+    "never": "Never",
+    "sessionsTab": "Sessions",
+    "activityRecent": "Recent activity (last {count})",
+    "activityLoadFailed": "Could not load the activity log.",
+    "activityEmpty": "No activity recorded for this user yet.",
+    "activityColumns": {
+      "event": "Event",
+      "device": "Device",
+      "ip": "IP address",
+      "date": "Date"
+    },
+    "activityOutcome": {
+      "FAILURE": "Failed",
+      "DENIED": "Blocked"
+    }
   },
   "rbac": {
     "tenantRoles": "Tenant-Level Roles",

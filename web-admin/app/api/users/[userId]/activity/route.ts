@@ -71,10 +71,20 @@ export async function GET(
 
     if (error) throw error
 
+    // Bilingual event names come from the catalog (sys_auth_event_cd) so new event codes need no UI change.
+    const { data: events, error: eventsError } = await admin
+      .from('sys_auth_event_cd')
+      .select('code, name, name2')
+      .in('code', Array.from(new Set((data ?? []).map((r) => r.event_code))))
+    if (eventsError) throw eventsError
+    const eventNames = new Map((events ?? []).map((e) => [e.code, e]))
+
     // Shape kept compatible with the Activity tab: action = event code, entity = device.
     const rows = (data ?? []).map((r) => ({
       id: r.id,
       action: r.event_code,
+      action_label: eventNames.get(r.event_code)?.name ?? r.event_code,
+      action_label2: eventNames.get(r.event_code)?.name2 ?? null,
       entity_type: r.device_label,
       created_at: r.created_at,
       ip_address: r.ip_address,

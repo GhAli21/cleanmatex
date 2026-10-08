@@ -34,6 +34,7 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
+import { useSessionLifecycleLabels } from '@/lib/hooks/use-session-lifecycle-labels';
 import { needsDrawerSelection } from '@features/pos-sessions/model/pos-session-drawer-link';
 import { PosSessionAttentionNotice, PosSessionFlagBadges } from '@features/pos-sessions/ui/pos-session-flags';
 import { getPosSessionFlags, posSessionErrorKey } from '@features/pos-sessions/model/pos-session-flags';
@@ -371,6 +372,7 @@ function HubBody({
   onDrawerLinked: () => Promise<void> | void;
 }) {
   const t = useTranslations('posSessions');
+  const lifecycle = useSessionLifecycleLabels();
 
   if (isLoading) {
     return <PanelMessage icon={<CreditCard className="h-5 w-5" aria-hidden />} title={t('banner.loading')} />;
@@ -396,7 +398,7 @@ function HubBody({
           <InfoTile label={t('hub.requestedBranch')} value={queryData.requestedBranchId} />
           <InfoTile label={t('hub.activeBranch')} value={displayBranch(session)} />
           <InfoTile label={t('sessionNo')} value={session.session_no} />
-          <InfoTile label={t('status')} value={session.status} />
+          <InfoTile label={t('status')} value={lifecycle.posStatus(session.status)} />
         </InfoGrid>
       </div>
     );
@@ -426,7 +428,7 @@ function HubBody({
         </CmxCardHeader>
         <CmxCardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <CmxStatusBadge label={session.status} variant={statusVariant(session.status)} size="sm" />
+            <CmxStatusBadge label={lifecycle.posStatus(session.status)} variant={statusVariant(session.status)} size="sm" />
             <Badge variant="outline">{session.session_no}</Badge>
           </div>
           <InfoGrid>
@@ -473,7 +475,10 @@ function HubBody({
               <InfoGrid>
                 <InfoTile label={t('cashDrawer')} value={session.cash_drawer_name ?? t('hub.drawerNotLinked')} />
                 <InfoTile label={t('drawerSession')} value={session.cash_drawer_session_no ?? session.cash_drawer_session_id ?? t('none')} />
-                <InfoTile label={t('status')} value={session.cash_drawer_session_status ?? t('none')} />
+                <InfoTile
+                  label={t('status')}
+                  value={session.cash_drawer_session_status ? lifecycle.drawerStatus(session.cash_drawer_session_status) : t('none')}
+                />
               </InfoGrid>
             )
           ) : (
@@ -529,6 +534,7 @@ function DrawerSessionClosedNotice({
   status: string | null | undefined;
 }) {
   const t = useTranslations('posSessions');
+  const lifecycle = useSessionLifecycleLabels();
   return (
     <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
       <p className="font-medium">{t('drawerSessionClosedTitle')}</p>
@@ -536,7 +542,7 @@ function DrawerSessionClosedNotice({
         {t('drawerSessionClosedDescription', {
           drawer: drawerName ?? t('none'),
           sessionNo: sessionNo ?? t('none'),
-          status: status ?? t('none'),
+          status: status ? lifecycle.drawerStatus(status) : t('none'),
         })}
       </p>
     </div>
@@ -562,6 +568,7 @@ function HubTriggerStatus({
   isError: boolean;
 }) {
   const t = useTranslations('posSessions');
+  const lifecycle = useSessionLifecycleLabels();
   if (isLoading) return <Badge variant="info">{t('hub.checking')}</Badge>;
   if (isError) return <Badge variant="destructive">{t('hub.error')}</Badge>;
   if (queryData?.type === 'BRANCH_CONFLICT') return <Badge variant="destructive">{t('hub.branchConflictBadge')}</Badge>;
@@ -569,7 +576,7 @@ function HubTriggerStatus({
     const tone = queryData.session.status === POS_SESSION_STATUS.PAUSED ? 'warning' : 'success';
     return (
       <>
-        <Badge variant={tone}>{queryData.session.status}</Badge>
+        <Badge variant={tone}>{lifecycle.posStatus(queryData.session.status)}</Badge>
         <PosSessionFlagBadges session={queryData.session} />
       </>
     );
@@ -586,12 +593,17 @@ function HubPanelStatus({
   isLoading: boolean;
   isError: boolean;
 }) {
+  const lifecycle = useSessionLifecycleLabels();
   if (isLoading || isError || !queryData || queryData.type !== 'ACTIVE') {
     return <HubTriggerStatus queryData={queryData} isLoading={isLoading} isError={isError} />;
   }
   return (
     <>
-      <CmxStatusBadge label={queryData.session.status} variant={statusVariant(queryData.session.status)} size="sm" />
+      <CmxStatusBadge
+        label={lifecycle.posStatus(queryData.session.status)}
+        variant={statusVariant(queryData.session.status)}
+        size="sm"
+      />
       <PosSessionFlagBadges session={queryData.session} />
     </>
   );

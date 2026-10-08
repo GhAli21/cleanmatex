@@ -177,7 +177,21 @@
     "displayName": "الاسم المعروض",
     "firstName": "الاسم الأول",
     "lastName": "اسم العائلة",
-    "never": "أبداً"
+    "never": "أبداً",
+    "sessionsTab": "الجلسات",
+    "activityRecent": "النشاط الأخير (آخر {count})",
+    "activityLoadFailed": "تعذر تحميل سجل النشاط.",
+    "activityEmpty": "لا يوجد نشاط مسجّل لهذا المستخدم بعد.",
+    "activityColumns": {
+      "event": "الحدث",
+      "device": "الجهاز",
+      "ip": "عنوان IP",
+      "date": "التاريخ"
+    },
+    "activityOutcome": {
+      "FAILURE": "فشل",
+      "DENIED": "محظور"
+    }
   },
   "rbac": {
     "tenantRoles": "الأدوار على مستوى المستأجر",

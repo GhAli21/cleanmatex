@@ -2,7 +2,11 @@
 
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { POS_SHIFT_REPORT_ERROR } from '@/lib/constants/pos-shift-report';
-import type { PosShiftReportSnapshot, PosShiftZReport } from '@/lib/types/pos-shift-report';
+import type {
+  PosShiftReportSnapshot,
+  PosShiftZArchivePage,
+  PosShiftZReport,
+} from '@/lib/types/pos-shift-report';
 import { PosSessionApiError, type PosSessionApiEnvelope } from '@features/pos-sessions/api/pos-session-api';
 
 /** Query key of a session's live X-report. */
@@ -53,5 +57,32 @@ export async function generatePosShiftZReport(
   });
   const payload = await readEnvelope<PosShiftZReport>(response, 'Failed to generate the Z-report');
   if (!payload.data) throw new PosSessionApiError('Failed to generate the Z-report', undefined, response.status);
+  return payload.data;
+}
+
+/** Filters of the Z-report archive; empty values are omitted from the request. */
+export interface PosShiftZArchiveFilters {
+  page: number;
+  pageSize: number;
+  branchId?: string;
+  businessDateFrom?: string;
+  businessDateTo?: string;
+  query?: string;
+}
+
+/** Query key of the Z-report archive for one filter set. */
+export const posShiftZArchiveKey = (filters: PosShiftZArchiveFilters) =>
+  ['pos-sessions', 'z-archive', filters] as const;
+
+/** One page of the Z-report archive (frozen shift reports, newest business day first). */
+export async function fetchPosShiftZArchive(filters: PosShiftZArchiveFilters): Promise<PosShiftZArchivePage> {
+  const params = new URLSearchParams({ page: String(filters.page), pageSize: String(filters.pageSize) });
+  if (filters.branchId) params.set('branchId', filters.branchId);
+  if (filters.businessDateFrom) params.set('businessDateFrom', filters.businessDateFrom);
+  if (filters.businessDateTo) params.set('businessDateTo', filters.businessDateTo);
+  if (filters.query) params.set('query', filters.query);
+  const response = await fetch(`/api/v1/pos-sessions/z-reports?${params.toString()}`, { credentials: 'include' });
+  const payload = await readEnvelope<PosShiftZArchivePage>(response, 'Failed to load the Z-report archive');
+  if (!payload.data) throw new PosSessionApiError('Failed to load the Z-report archive', undefined, response.status);
   return payload.data;
 }

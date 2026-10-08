@@ -6,17 +6,19 @@
  * Request password reset email
  */
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/auth/auth-context'
 import { validateEmail } from '@/lib/auth/validation'
 import type { FormErrors } from '@/types/auth'
 
-/**
- *
- */
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
   const { resetPassword, isLoading } = useAuth()
+  const tReset = useTranslations('auth.resetPassword')
+  // /auth/callback sends users here with ?error=invalid_link when the emailed link failed to exchange.
+  const invalidLink = useSearchParams().get('error') === 'invalid_link'
 
   const [email, setEmail] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
@@ -162,6 +164,12 @@ export default function ForgotPasswordPage() {
 
         {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {invalidLink && !errors.general && (
+            <div className="rounded-md bg-red-50 p-4" role="alert">
+              <p className="text-sm font-medium text-red-800">{tReset('linkError')}</p>
+            </div>
+          )}
+
           {/* General Error */}
           {errors.general && (
             <div className="rounded-md bg-red-50 p-4">
@@ -285,5 +293,16 @@ export default function ForgotPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * Forgot password page (Suspense boundary required by useSearchParams).
+ */
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ForgotPasswordForm />
+    </Suspense>
   )
 }

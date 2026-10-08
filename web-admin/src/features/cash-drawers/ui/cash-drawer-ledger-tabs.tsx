@@ -22,6 +22,7 @@ import {
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
 import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
+import { useCashDrawerCatalogLabels } from '@features/cash-drawers/hooks/use-cash-drawer-catalog-labels'
 import { cmxMessage } from '@ui/feedback'
 import { CmxDataTable, CmxMoneyVariance } from '@ui/data-display'
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
@@ -123,6 +124,7 @@ export function CashDrawerLedgerTab({ drawerId }: { drawerId: string }) {
 export function CashDrawerTransactionsTab({ drawerId }: { drawerId: string }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
+  const catalogLabels = useCashDrawerCatalogLabels()
   const money = useCashDrawerMoneyFormatter()
   const fmtDateTime = useCashDrawerDateFormatter()
   const { page, setPage, query } = usePagedTab<DrawerTrxEntry>('trx', drawerId, fetchDrawerTransactions)
@@ -141,7 +143,7 @@ export function CashDrawerTransactionsTab({ drawerId }: { drawerId: string }) {
           header: t('tabs.trx.type'),
           render: (r: DrawerTrxEntry) => (
             <div className="flex items-center gap-2">
-              <span>{t(`tabs.trx.types.${r.trxTypeCode}` as Parameters<typeof t>[0])}</span>
+              <span>{catalogLabels.trxType(r.trxTypeCode)}</span>
               {r.reversesTrxId ? <Badge variant="outline">{t('tabs.trx.reversal')}</Badge> : null}
             </div>
           ),

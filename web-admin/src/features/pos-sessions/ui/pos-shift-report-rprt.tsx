@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
+import { useSessionLifecycleLabels } from '@/lib/hooks/use-session-lifecycle-labels';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { POS_SHIFT_REPORT_KIND } from '@/lib/constants/pos-shift-report';
 import type { PosShiftReportSnapshot, PosShiftZReport } from '@/lib/types/pos-shift-report';
@@ -20,6 +21,7 @@ interface PosShiftReportRprtProps {
 /** Printable X / Z shift report of one POS session (80mm thermal or A4). Money strings are shown exactly as stored. */
 export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: PosShiftReportRprtProps) {
   const t = useTranslations('posShiftReport');
+  const lifecycle = useSessionLifecycleLabels();
   const isRTL = useRTL();
   const locale = useLocale();
   const { formatMoneyWithCode } = useTenantCurrency();
@@ -64,7 +66,7 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
         <Fact label={t('businessDate')} value={`${session.businessDate} (${session.businessTimezone})`} />
         <Fact label={t('openedAt')} value={formatDateTime(session.openedAt)} />
         <Fact label={t('closedAt')} value={formatDateTime(session.closedAt)} />
-        <Fact label={t('status')} value={session.status} />
+        <Fact label={t('status')} value={lifecycle.posStatus(session.status)} />
         {session.autoCloseReason ? <Fact label={t('autoClosed')} value={t('autoClosedRollover')} /> : null}
       </dl>
 
@@ -136,7 +138,7 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
         <Section title={t('drawerSession')} thermal={thermal}>
           <p className="mb-1">
             <span className="font-mono">{snapshot.drawer.sessionNo}</span>
-            {snapshot.drawer.drawerName ? ` — ${snapshot.drawer.drawerName}` : ''} ({snapshot.drawer.status})
+            {snapshot.drawer.drawerName ? ` — ${snapshot.drawer.drawerName}` : ''} ({lifecycle.drawerStatus(snapshot.drawer.status)})
           </p>
           <ReportTable
             head={[t('currency'), t('opening'), t('expected'), t('counted'), t('variance')]}

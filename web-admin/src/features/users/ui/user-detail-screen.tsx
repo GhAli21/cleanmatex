@@ -7,6 +7,7 @@
  *   "Profile"             → <UserProfileTab>
  *   "Roles & Permissions" → <UserRolesTab>
  *   "Activity"            → <UserActivityTab>
+ *   "Sessions"            → <UserSessionsTab> (only with user_sessions:read)
  *
  * Used by app/dashboard/users/[userId]/page.tsx as a 2-line wrapper.
  */
@@ -16,13 +17,15 @@ import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useHasPermission } from '@/lib/hooks/use-has-permission'
+import { UserSessionsTab } from '@features/auth-session/ui/user-sessions-tab'
 import { fetchUser } from '@/lib/api/users'
 import type { TenantUser } from '@/lib/api/users'
 import { UserProfileTab } from './user-profile-tab'
 import { UserRolesTab } from './rbac/user-roles-tab'
 import { UserActivityTab } from './user-activity-tab'
 
-type TabKey = 'profile' | 'roles' | 'activity'
+type TabKey = 'profile' | 'roles' | 'activity' | 'sessions'
 
 /**
  *
@@ -33,6 +36,7 @@ export function UserDetailScreen() {
   const router = useRouter()
   const t = useTranslations('users.detail')
   const tCommon = useTranslations('common')
+  const canViewSessions = useHasPermission('user_sessions', 'read')
 
   const { currentTenant, session } = useAuth()
   const tenantId = currentTenant?.tenant_id ?? ''
@@ -160,6 +164,7 @@ export function UserDetailScreen() {
               { key: 'profile', label: t('profileTab') },
               { key: 'roles', label: t('rolesPermissionsTab') },
               { key: 'activity', label: t('activityTab') },
+              ...(canViewSessions ? [{ key: 'sessions', label: t('sessionsTab') }] : []),
             ] as { key: TabKey; label: string }[]
           ).map(({ key, label }) => (
             <button
@@ -187,6 +192,7 @@ export function UserDetailScreen() {
       {activeTab === 'activity' && (
         <UserActivityTab userId={userId} tenantId={tenantId} />
       )}
+      {activeTab === 'sessions' && canViewSessions && <UserSessionsTab userId={userId} />}
     </div>
   )
 }

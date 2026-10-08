@@ -1,22 +1,23 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-10-03T09:04:51.046Z
-Git SHA: 7daa4ee1
+Generated: 2026-10-08T18:12:27.726Z
+Git SHA: 22926159
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 162 |
-| Permission usages | 400 |
+| Access contracts | 165 |
+| Permission usages | 404 |
 | Feature flag usages | 82 |
 | Setting usages | 29 |
 | Plan limit usages | 8 |
-| Navigation entries | 107 |
+| Navigation entries | 108 |
 | Flag catalog entries | 299 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
 | --- | --- | --- | --- | --- |
 | /dashboard | Dashboard | — | — | 0 |
+| /dashboard/account/security | Account security | — | — | 0 |
 | /dashboard/assembly | Assembly | — | — | 0 |
 | /dashboard/assembly/[id] | Assembly Details | — | — | 0 |
 | /dashboard/b2b/contracts | B2B Contracts | b2b_contracts:view | b2b_contracts | 0 |
@@ -95,6 +96,7 @@ Git SHA: 7daa4ee1
 | /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 11 |
 | /dashboard/internal_fin/pos-sessions/[sessionId]/report | POS Shift Report (X / Z) | pos_session:view | — | 1 |
 | /dashboard/internal_fin/pos-sessions/[sessionId]/report/print | POS Shift Report (print) | pos_session:view | — | 0 |
+| /dashboard/internal_fin/pos-sessions/z-reports | POS Z-Report Archive | pos_session:report_z | — | 1 |
 | /dashboard/internal_fin/reconciliation | Finance Reconciliation | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/reconciliation/[runId] | Finance Reconciliation Details | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/refunds | Refunds | orders:process_refund | — | 0 |
@@ -177,4 +179,5 @@ Git SHA: 7daa4ee1
 | /dashboard/users | Users | — | — | 0 |
 | /dashboard/users/[userId] | User Details | — | — | 0 |
 | /dashboard/users/new | New User | — | — | 0 |
+| /dashboard/users/sessions | Active sessions | user_sessions:read | — | 0 |
 | /dashboard/workboard | Workboard | workboard:read | — | 0 |

@@ -9,7 +9,7 @@
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { ChevronDown, Search, User, LogOut, Settings } from 'lucide-react'
+import { ChevronDown, Search, User, LogOut, Settings, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { getPageAccessContractByPath } from '@features/access/page-access-registry'
 import { CmxLanguageSwitcher } from './cmx-language-switcher'
@@ -116,6 +116,18 @@ export default function CmxTopBar() {
                   >
                     <User className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                     {t('profile')}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false)
+                      router.push('/dashboard/account/security')
+                    }}
+                    className={`flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                  >
+                    <ShieldCheck className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    {t('accountSecurity')}
                   </button>
 
                   <button

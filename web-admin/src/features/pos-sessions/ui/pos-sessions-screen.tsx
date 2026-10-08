@@ -4,7 +4,7 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Check, Copy, CreditCard, RefreshCw, Search, ShieldAlert, UserPlus } from 'lucide-react';
+import { Check, Copy, CreditCard, FileText, RefreshCw, Search, ShieldAlert, UserPlus } from 'lucide-react';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxSelect } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
@@ -24,6 +24,7 @@ import {
 } from '@ui/overlays';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
+import { useSessionLifecycleLabels } from '@/lib/hooks/use-session-lifecycle-labels';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/auth-context';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
@@ -141,10 +142,12 @@ type PosSessionLookupKind = Exclude<PosSessionFilterOptionType, 'cashDrawerSessi
 export function PosSessionsScreen() {
   const t = useTranslations('posSessions');
   const tCommon = useTranslations('common');
+  const lifecycle = useSessionLifecycleLabels();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { token: csrfToken } = useCSRFToken();
   const canViewAll = useHasPermissionCode('pos_session:view_all');
+  const canViewZArchive = useHasPermissionCode('pos_session:report_z');
   const canOpen = useHasPermissionCode('pos_session:open');
   const canPauseResume = useHasPermissionCode('pos_session:pause_resume');
   const canClose = useHasPermissionCode('pos_session:close');
@@ -368,12 +371,7 @@ export function PosSessionsScreen() {
     label: branch.name ?? branch.branch_name ?? branch.id,
   }));
 
-  const statusOptions = [
-    { value: 'OPEN', label: 'OPEN' },
-    { value: 'PAUSED', label: 'PAUSED' },
-    { value: 'CLOSED', label: 'CLOSED' },
-    { value: 'FORCE_CLOSED', label: 'FORCE_CLOSED' },
-  ];
+  const statusOptions = lifecycle.posStatusOptions;
 
   const columns: CmxDataTableSimpleColumn<PosSessionListRow>[] = [
     {
@@ -391,7 +389,7 @@ export function PosSessionsScreen() {
       header: t('status'),
       render: (row) => (
         <>
-          <CmxStatusBadge label={row.status} variant={statusVariant(row.status)} size="sm" />
+          <CmxStatusBadge label={lifecycle.posStatus(row.status)} variant={statusVariant(row.status)} size="sm" />
           <PosSessionFlagBadges session={row} />
         </>
       ),
@@ -449,7 +447,7 @@ export function PosSessionsScreen() {
           <div>{row.cash_drawer_name ?? t('none')}</div>
           {row.cash_drawer_session_no ? (
             <Badge variant={row.cash_drawer_session_status === 'OPEN' ? 'success' : 'secondary'}>
-              {row.cash_drawer_session_no} / {row.cash_drawer_session_status}
+              {row.cash_drawer_session_no} / {lifecycle.drawerStatus(row.cash_drawer_session_status)}
             </Badge>
           ) : null}
         </div>
@@ -510,9 +508,9 @@ export function PosSessionsScreen() {
   ];
 
   const eventColumns: CmxDataTableSimpleColumn<PosSessionEventListRow>[] = [
-    { key: 'event_type', header: t('eventType'), render: (row) => row.event_type },
-    { key: 'previous_status', header: t('previousStatus'), render: (row) => row.previous_status ?? t('none') },
-    { key: 'new_status', header: t('newStatus'), render: (row) => row.new_status ?? t('none') },
+    { key: 'event_type', header: t('eventType'), render: (row) => lifecycle.posEvent(row.event_type) },
+    { key: 'previous_status', header: t('previousStatus'), render: (row) => (row.previous_status ? lifecycle.posStatus(row.previous_status) : t('none')) },
+    { key: 'new_status', header: t('newStatus'), render: (row) => (row.new_status ? lifecycle.posStatus(row.new_status) : t('none')) },
     { key: 'event_at', header: t('eventAt'), render: (row) => formatDateTime(row.event_at) },
     { key: 'performed_by', header: t('performedBy'), render: (row) => <IdentityCell name={row.performed_by_display_name} id={row.performed_by} /> },
     { key: 'reason', header: t('reason'), render: (row) => row.reason ?? t('none') },
@@ -606,6 +604,12 @@ export function PosSessionsScreen() {
               {t('openForUser')}
             </CmxButton>
           ) : null}
+          {canViewZArchive ? (
+            <CmxButton variant="outline" onClick={() => router.push('/dashboard/internal_fin/pos-sessions/z-reports')}>
+              <FileText className="me-2 h-4 w-4" aria-hidden />
+              {t('zArchive')}
+            </CmxButton>
+          ) : null}
           <CmxButton variant="outline" onClick={refreshAll} disabled={sessionsQuery.isFetching || activeQuery.isFetching}>
             <RefreshCw className="me-2 h-4 w-4" aria-hidden />
             {t('refresh')}
@@ -629,7 +633,7 @@ export function PosSessionsScreen() {
                 <dl className="grid max-h-44 overflow-y-auto rounded-lg border sm:grid-cols-2 border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))]">
                   <InfoRow label={t('status')}>
                     <CmxStatusBadge
-                      label={activeSession.status}
+                      label={lifecycle.posStatus(activeSession.status)}
                       variant={statusVariant(activeSession.status)}
                       size="sm"
                     />
@@ -657,7 +661,7 @@ export function PosSessionsScreen() {
                         copyValue={activeSessionContext?.cash_drawer_session_no ?? activeSession.cash_drawer_session_id}
                       >
                         {activeSessionContext?.cash_drawer_session_status ? (
-                          <Badge variant="success">{activeSessionContext.cash_drawer_session_status}</Badge>
+                          <Badge variant="success">{lifecycle.drawerStatus(activeSessionContext.cash_drawer_session_status)}</Badge>
                         ) : null}
                       </InfoRow>
                     </>

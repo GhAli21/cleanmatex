@@ -129,6 +129,12 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'Session lifecycle labels (bilingual POS / drawer session statuses and events)',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/catalogs',
+        requirement: { permissions: ['pos_session:view', 'cash_drawer:view'], requireAllPermissions: false },
+      },
+      {
         label: 'Close wizard denomination catalog from Session Hub (CLF-7, CLF-8-1)',
         method: 'GET',
         path: '/api/v1/currencies/[code]/denominations',

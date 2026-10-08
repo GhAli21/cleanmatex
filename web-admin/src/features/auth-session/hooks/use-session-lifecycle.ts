@@ -26,6 +26,7 @@ import {
   type SessionPhase,
 } from '../model/idle-timer'
 import { openSessionChannel, type SessionChannelHandle } from '../model/session-channel'
+import { installSessionEndedGuard } from '../model/session-ended-guard'
 
 /** DOM events that count as genuine user activity (pointer MOVEMENT deliberately does not). */
 const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const
@@ -133,6 +134,12 @@ export function useSessionLifecycle({ enabled, onSessionEnded }: UseSessionLifec
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [enabled, syncWithServer])
+
+  // ─── Any API answering 401 SESSION_ENDED -> confirm with the server (which then ends the session) ─────
+  useEffect(() => {
+    if (!enabled) return
+    return installSessionEndedGuard(() => void syncWithServer(false))
   }, [enabled, syncWithServer])
 
   // ─── Cross-tab channel ─────────────────────────────────────────────────────

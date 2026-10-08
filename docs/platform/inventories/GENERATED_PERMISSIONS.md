@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-10-03T09:04:51.046Z
+Generated: 2026-10-08T18:12:27.726Z
 
 ## By surface (counts)
 
@@ -11,7 +11,7 @@ Generated: 2026-10-03T09:04:51.046Z
 | --- | --- |
 | api | 307 |
 | middleware | 4 |
-| screen | 88 |
+| screen | 92 |
 | service | 1 |
 
 ## All permission usages
@@ -25,7 +25,7 @@ Generated: 2026-10-03T09:04:51.046Z
 
       return authContext
     } catch (error) {
-      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 165 | lib/middleware/require-permission.ts |
+      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 155 | lib/middleware/require-permission.ts |
 | )}]` },
           { status: 403 }
         )
@@ -33,7 +33,7 @@ Generated: 2026-10-03T09:04:51.046Z
 
       return authContext
     } catch (error) {
-      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 196 | lib/middleware/require-permission.ts |
+      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 186 | lib/middleware/require-permission.ts |
 | )}]`,
             code: | middleware | lib/middleware/tenant-guard.ts | 95 | lib/middleware/tenant-guard.ts |
 | )}]`,
@@ -54,7 +54,7 @@ Generated: 2026-10-03T09:04:51.046Z
 | ar_stmt_cycles:manage | api | app/api/v1/ar/statement-cycles/route.ts | 39 | /api/v1/ar/statement-cycles |
 | ar_stmt_cycles:view | api | app/api/v1/ar/statement-cycles/route.ts | 18 | /api/v1/ar/statement-cycles |
 | ar_stmt_cycles:view | api | app/api/v1/ar/statement-cycles/[id]/preview/route.ts | 17 | /api/v1/ar/statement-cycles/[id]/preview |
-| audit:read | screen | src/features/users/access/users-access.ts | 77 | src/features/users/access/users-access.ts |
+| audit:read | screen | src/features/users/access/users-access.ts | 92 | src/features/users/access/users-access.ts |
 | audit:read | api | app/api/users/[userId]/activity/route.ts | 33 | /api/users/[userId]/activity |
 | auth_config:update | screen | src/features/auth-session/ui/security-settings-screen.tsx | 32 | src/features/auth-session/ui/security-settings-screen.tsx |
 | b2b_contacts:create | api | app/api/v1/b2b-contacts/route.ts | 60 | /api/v1/b2b-contacts |
@@ -85,42 +85,42 @@ Generated: 2026-10-03T09:04:51.046Z
 | cash_control:view | api | app/api/v1/cash-drawers/denominations/route.ts | 33 | /api/v1/cash-drawers/denominations |
 | cash_control:view | api | app/api/v1/cash-drawers/[drawerId]/policy/route.ts | 38 | /api/v1/cash-drawers/[drawerId]/policy |
 | cash_control:view | api | app/api/v1/settings/payments/cash-control/route.ts | 41 | /api/v1/settings/payments/cash-control |
-| cash_drawer:approve_variance | screen | src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx | 51 | src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx |
+| cash_drawer:approve_variance | screen | src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx | 55 | src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx |
 | cash_drawer:approve_variance | screen | src/features/cash-drawers/ui/cash-drawer-session-supervisor-actions.tsx | 48 | src/features/cash-drawers/ui/cash-drawer-session-supervisor-actions.tsx |
 | cash_drawer:approve_variance | screen | src/features/cash-drawers/ui/cash-drawer-variance-queue-screen.tsx | 44 | src/features/cash-drawers/ui/cash-drawer-variance-queue-screen.tsx |
 | cash_drawer:approve_variance | api | app/api/v1/cash-drawers/variance-approvals/route.ts | 24 | /api/v1/cash-drawers/variance-approvals |
 | cash_drawer:approve_variance | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance/route.ts | 54 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance |
 | cash_drawer:approve_variance | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/recount/route.ts | 35 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/recount |
 | cash_drawer:approve_variance | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/reject-variance/route.ts | 48 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/reject-variance |
-| cash_drawer:close_session | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 221 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
-| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 84 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 153 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| cash_drawer:close_session | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 223 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
+| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 85 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| cash_drawer:close_session | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 156 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | cash_drawer:close_session | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count/route.ts | 28 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count |
 | cash_drawer:close_session | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize/route.ts | 28 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize |
 | cash_drawer:close_session | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview/route.ts | 23 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview |
-| cash_drawer:count | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 217 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
+| cash_drawer:count | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 219 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
 | cash_drawer:count | api | app/api/v1/cash-drawers/[drawerId]/counts/route.ts | 30 | /api/v1/cash-drawers/[drawerId]/counts |
 | cash_drawer:count | api | app/api/v1/cash-drawers/[drawerId]/counts/route.ts | 71 | /api/v1/cash-drawers/[drawerId]/counts |
-| cash_drawer:open_session | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 219 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
-| cash_drawer:open_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 83 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| cash_drawer:open_session | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 154 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| cash_drawer:open_session | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 221 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
+| cash_drawer:open_session | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 84 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| cash_drawer:open_session | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 157 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | cash_drawer:open_session | api | app/api/v1/cash-drawers/[drawerId]/open-session-v2/route.ts | 29 | /api/v1/cash-drawers/[drawerId]/open-session-v2 |
 | cash_drawer:post_close_update | screen | src/features/cash-drawers/ui/cash-drawer-follow-up-screen.tsx | 45 | src/features/cash-drawers/ui/cash-drawer-follow-up-screen.tsx |
 | cash_drawer:post_close_update | screen | src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx | 49 | src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx |
 | cash_drawer:post_close_update | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close/route.ts | 27 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close |
 | cash_drawer:receive_transfer | screen | src/features/cash-drawers/ui/cash-transit-screen.tsx | 54 | src/features/cash-drawers/ui/cash-transit-screen.tsx |
 | cash_drawer:receive_transfer | api | app/api/v1/cash-drawers/transit/[transitId]/receive/route.ts | 21 | /api/v1/cash-drawers/transit/[transitId]/receive |
-| cash_drawer:record_movement | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 220 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
+| cash_drawer:record_movement | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 222 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
 | cash_drawer:record_movement | api | app/api/v1/cash-drawers/[drawerId]/cash-in-out/route.ts | 43 | /api/v1/cash-drawers/[drawerId]/cash-in-out |
-| cash_drawer:transfer | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 218 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
+| cash_drawer:transfer | screen | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx | 220 | src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx |
 | cash_drawer:transfer | screen | src/features/cash-drawers/ui/cash-transit-screen.tsx | 53 | src/features/cash-drawers/ui/cash-transit-screen.tsx |
 | cash_drawer:transfer | api | app/api/v1/cash-drawers/transit/route.ts | 22 | /api/v1/cash-drawers/transit |
 | cash_drawer:transfer | api | app/api/v1/cash-drawers/transit/[transitId]/cancel/route.ts | 22 | /api/v1/cash-drawers/transit/[transitId]/cancel |
 | cash_drawer:transfer | api | app/api/v1/cash-drawers/trx/route.ts | 26 | /api/v1/cash-drawers/trx |
 | cash_drawer:transfer | api | app/api/v1/cash-drawers/trx/route.ts | 62 | /api/v1/cash-drawers/trx |
 | cash_drawer:transfer | api | app/api/v1/cash-drawers/trx/[trxId]/reverse/route.ts | 27 | /api/v1/cash-drawers/trx/[trxId]/reverse |
-| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 82 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 152 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 83 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| cash_drawer:view | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 155 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | cash_drawer:view | api | app/api/v1/cash-drawers/catalogs/route.ts | 17 | /api/v1/cash-drawers/catalogs |
 | cash_drawer:view | api | app/api/v1/cash-drawers/overview/route.ts | 21 | /api/v1/cash-drawers/overview |
 | cash_drawer:view | api | app/api/v1/cash-drawers/pending-deposit/status/route.ts | 13 | /api/v1/cash-drawers/pending-deposit/status |
@@ -369,31 +369,32 @@ Generated: 2026-10-03T09:04:51.046Z
 | payment_config:view | api | app/api/v1/settings/payments/card-brands/route.ts | 16 | /api/v1/settings/payments/card-brands |
 | payment_config:view | api | app/api/v1/settings/payments/methods/route.ts | 12 | /api/v1/settings/payments/methods |
 | payment_config:view | api | app/api/v1/settings/payments/terminals/route.ts | 13 | /api/v1/settings/payments/terminals |
-| pos_session:close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 80 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 150 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 81 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| pos_session:close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 153 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:close | api | app/api/v1/pos-sessions/close/route.ts | 12 | /api/v1/pos-sessions/close |
-| pos_session:close_others | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 155 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:close_others | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 158 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:force_close | screen | src/features/cash-drawers/ui/cash-drawer-session-supervisor-actions.tsx | 49 | src/features/cash-drawers/ui/cash-drawer-session-supervisor-actions.tsx |
-| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 81 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 151 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 82 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| pos_session:force_close | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 154 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:force_close | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/force-close/route.ts | 27 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/force-close |
 | pos_session:force_close | api | app/api/v1/pos-sessions/force-close/route.ts | 12 | /api/v1/pos-sessions/force-close |
-| pos_session:full_manage_others | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 157 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
-| pos_session:open | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 78 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:open | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 148 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:full_manage_others | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 160 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:open | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 79 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| pos_session:open | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 151 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:open | api | app/api/v1/pos-sessions/ensure-for-order-entry/route.ts | 13 | /api/v1/pos-sessions/ensure-for-order-entry |
 | pos_session:open | api | app/api/v1/pos-sessions/open/route.ts | 13 | /api/v1/pos-sessions/open |
-| pos_session:open_others | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 156 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
-| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 79 | src/features/pos-sessions/ui/pos-session-hub.tsx |
-| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 149 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:open_others | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 159 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-session-hub.tsx | 80 | src/features/pos-sessions/ui/pos-session-hub.tsx |
+| pos_session:pause_resume | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 152 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:pause_resume | api | app/api/v1/pos-sessions/pause/route.ts | 12 | /api/v1/pos-sessions/pause |
 | pos_session:pause_resume | api | app/api/v1/pos-sessions/resume/route.ts | 12 | /api/v1/pos-sessions/resume |
+| pos_session:report_z | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 150 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | pos_session:view | api | app/api/v1/pos-sessions/filter-options/route.ts | 17 | /api/v1/pos-sessions/filter-options |
 | pos_session:view | api | app/api/v1/pos-sessions/my-active/route.ts | 16 | /api/v1/pos-sessions/my-active |
 | pos_session:view | api | app/api/v1/pos-sessions/route.ts | 20 | /api/v1/pos-sessions |
 | pos_session:view | api | app/api/v1/pos-sessions/[sessionId]/events/route.ts | 22 | /api/v1/pos-sessions/[sessionId]/events |
 | pos_session:view | api | app/api/v1/pos-sessions/[sessionId]/summary/route.ts | 12 | /api/v1/pos-sessions/[sessionId]/summary |
-| pos_session:view_all | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 147 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
+| pos_session:view_all | screen | src/features/pos-sessions/ui/pos-sessions-screen.tsx | 149 | src/features/pos-sessions/ui/pos-sessions-screen.tsx |
 | promotions:manage | api | app/api/v1/marketing/promotions/route.ts | 50 | /api/v1/marketing/promotions |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 61 | /api/v1/marketing/promotions/[promoId] |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 109 | /api/v1/marketing/promotions/[promoId] |
@@ -429,8 +430,11 @@ Generated: 2026-10-03T09:04:51.046Z
 | tax:manage_config | api | app/api/v1/settings/tax/profiles/[profileId]/route.ts | 29 | /api/v1/settings/tax/profiles/[profileId] |
 | tax:view_config | api | app/api/v1/settings/tax/exemptions/route.ts | 13 | /api/v1/settings/tax/exemptions |
 | tax:view_config | api | app/api/v1/settings/tax/profiles/route.ts | 13 | /api/v1/settings/tax/profiles |
-| users:read | screen | src/features/users/access/users-access.ts | 85 | src/features/users/access/users-access.ts |
+| user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 39 | src/features/users/ui/user-detail-screen.tsx |
+| user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 32 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
+| user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 41 | src/features/auth-session/ui/user-sessions-tab.tsx |
+| users:read | screen | src/features/users/access/users-access.ts | 100 | src/features/users/access/users-access.ts |
 | users:read | api | app/api/users/[userId]/user-code/route.ts | 35 | /api/users/[userId]/user-code |
 | users:update | screen | src/features/users/ui/user-code-field.tsx | 34 | src/features/users/ui/user-code-field.tsx |
-| users:update | screen | src/features/users/access/users-access.ts | 93 | src/features/users/access/users-access.ts |
+| users:update | screen | src/features/users/access/users-access.ts | 108 | src/features/users/access/users-access.ts |
 | users:update | api | app/api/users/[userId]/user-code/route.ts | 73 | /api/users/[userId]/user-code |

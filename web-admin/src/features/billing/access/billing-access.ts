@@ -676,6 +676,12 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         enforcement: 'permission',
       },
       {
+        label: 'Session lifecycle labels (bilingual POS / drawer session statuses and events)',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/catalogs',
+        requirement: { permissions: ['pos_session:view', 'cash_drawer:view'], requireAllPermissions: false },
+      },
+      {
         label: 'Post-close status update (CLF-8-9 inline editor)',
         method: 'PUT',
         path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close',
@@ -944,6 +950,12 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/cash-drawers/catalogs',
         requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
         enforcement: 'permission',
+      },
+      {
+        label: 'Session lifecycle labels (bilingual POS / drawer session statuses and events)',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/catalogs',
+        requirement: { permissions: ['pos_session:view', 'cash_drawer:view'], requireAllPermissions: false },
       },
       {
         label: 'Currency denominations (CLF-7, CLF-8-1 CmxDenominationCounter)',

@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import { useSessionLifecycleLabels } from '@/lib/hooks/use-session-lifecycle-labels'
+import { useCashDrawerCatalogLabels } from '@features/cash-drawers/hooks/use-cash-drawer-catalog-labels'
 import { ArrowLeft, Printer, ReceiptText, ShieldAlert, ShieldCheck, WalletCards } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -42,6 +44,8 @@ export function CashDrawerSessionDetailScreen({
 }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
+  const lifecycle = useSessionLifecycleLabels()
+  const catalogLabels = useCashDrawerCatalogLabels()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
@@ -308,9 +312,9 @@ export function CashDrawerSessionDetailScreen({
             <CmxCardTitle>{t('sessionLifecycleTitle')}</CmxCardTitle>
           </CmxCardHeader>
           <CmxCardContent className="grid gap-3 sm:grid-cols-2">
-            <CashDrawerInfoTile label={t('sessionStatus')} value={detail.session.status} />
+            <CashDrawerInfoTile label={t('sessionStatus')} value={lifecycle.drawerStatus(detail.session.status)} />
             <CashDrawerInfoTile label={t('openedAt')} value={fmtDateTime(detail.session.openedAt)} />
-            <CashDrawerInfoTile label={t('drawerType')} value={detail.drawer.drawerType} />
+            <CashDrawerInfoTile label={t('drawerType')} value={catalogLabels.drawerType(detail.drawer.drawerType)} />
             <CashDrawerInfoTile
               label={t('openedBy')}
               value={detail.session.openedBy?.displayName ?? detail.session.openedBy?.id ?? '—'}

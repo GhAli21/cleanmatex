@@ -70,6 +70,20 @@ export const SESSION_ERROR_CODES = {
 
 export type SessionErrorCode = (typeof SESSION_ERROR_CODES)[keyof typeof SESSION_ERROR_CODES]
 
+/** Failure codes of the password flows (change / reset), shared by the API routes and the UI. */
+export const PASSWORD_ERROR_CODES = {
+  WEAK_PASSWORD: 'WEAK_PASSWORD',
+  WRONG_PASSWORD: 'WRONG_PASSWORD',
+  SAME_PASSWORD: 'SAME_PASSWORD',
+  ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
+  UPDATE_FAILED: 'UPDATE_FAILED',
+} as const
+
+export type PasswordErrorCode = (typeof PASSWORD_ERROR_CODES)[keyof typeof PASSWORD_ERROR_CODES]
+
+/** Reset endpoint answer when the request is not backed by an emailed recovery link. */
+export const RECOVERY_REQUIRED_CODE = 'RECOVERY_REQUIRED'
+
 /** BroadcastChannel used to share activity / logout between tabs of one browser. */
 export const AUTH_SESSION_CHANNEL = 'cmx-auth-session'
 
@@ -108,3 +122,6 @@ export function loginReasonForEndReason(reason: string | null | undefined): Logi
       return LOGIN_REASONS.SESSION_EXPIRED
   }
 }
+
+/** Notification Hub event (sys_ntf_events_cd.code) raised when a user signs in from a device not seen before. */
+export const NEW_DEVICE_EVENT_CODE = 'security.login.detected'

@@ -23,6 +23,21 @@ export const USERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Platform API via rbacFetch.'],
       },
       {
+        label: 'User sessions (Sessions tab)',
+        method: 'GET',
+        path: '/api/users/sessions',
+        requirement: { permissions: ['user_sessions:read'] },
+        enforcement: 'permission',
+        notes: ['Sessions tab is shown only with user_sessions:read; filtered by userId; tenant resolved server-side.'],
+      },
+      {
+        label: 'Sign a user out (Sessions tab)',
+        method: 'POST',
+        path: '/api/users/sessions/revoke',
+        requirement: { permissions: ['user_sessions:revoke'] },
+        enforcement: 'permission',
+      },
+      {
         label: 'Role options',
         method: 'GET',
         path: '/tenant-api/roles',

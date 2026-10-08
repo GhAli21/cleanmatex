@@ -3,6 +3,8 @@
 import { useLocale, useTranslations } from 'next-intl'
 
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
+import { useSessionLifecycleLabels } from '@/lib/hooks/use-session-lifecycle-labels'
+import { useCashDrawerCatalogLabels } from '@features/cash-drawers/hooks/use-cash-drawer-catalog-labels'
 import type { MoneyAmountInput } from '@lib/money/format-money'
 import type {
   CashDrawerMovementRow,
@@ -48,19 +50,25 @@ export function CashDrawerInfoTile({
  * @returns Cmx status badge with consistent tone
  */
 export function CashDrawerStatusBadge({ status }: { status: string }) {
+  const lifecycle = useSessionLifecycleLabels()
+  // POS-session statuses (PAUSED) and drawer-session statuses (CLOSING) share this badge, so the
+  // label comes from whichever catalog knows the code; the raw code is the last resort.
+  const known = lifecycle.drawerStatus(status)
+  const label = known !== status ? known : lifecycle.posStatus(status)
+
   if (status === 'OPEN') {
-    return <CmxStatusBadge label={status} variant="success" size="sm" />
+    return <CmxStatusBadge label={label} variant="success" size="sm" />
   }
 
   if (status === 'FORCE_CLOSED') {
-    return <CmxStatusBadge label={status} variant="error" size="sm" />
+    return <CmxStatusBadge label={label} variant="error" size="sm" />
   }
 
-  if (status === 'PAUSED') {
-    return <CmxStatusBadge label={status} variant="warning" size="sm" />
+  if (status === 'PAUSED' || status === 'CLOSING') {
+    return <CmxStatusBadge label={label} variant="warning" size="sm" />
   }
 
-  return <CmxStatusBadge label={status} variant="outline" size="sm" />
+  return <CmxStatusBadge label={label} variant="outline" size="sm" />
 }
 
 /**
@@ -68,7 +76,8 @@ export function CashDrawerStatusBadge({ status }: { status: string }) {
  * treatment for drawer taxonomy.
  */
 export function CashDrawerTypeBadge({ drawerType }: { drawerType: string }) {
-  return <Badge variant="outline">{drawerType}</Badge>
+  const catalogLabels = useCashDrawerCatalogLabels()
+  return <Badge variant="outline">{catalogLabels.drawerType(drawerType)}</Badge>
 }
 
 /**

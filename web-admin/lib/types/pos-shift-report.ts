@@ -119,3 +119,45 @@ export interface PosShiftZReport {
   hashVerified: boolean;
   snapshot: PosShiftReportSnapshot;
 }
+
+/** Closing variance of one drawer currency, as frozen in a Z-report. */
+export interface PosShiftZArchiveVariance {
+  currencyCode: string;
+  /** Counted minus expected at close, exact fixed-point string; null when no closing count was frozen. */
+  variance: string | null;
+}
+
+/** One line of the Z-report archive: the headline figures of a frozen shift, without the full snapshot. */
+export interface PosShiftZArchiveRow {
+  id: string;
+  reportNo: string;
+  posSessionId: string;
+  sessionNo: string | null;
+  branchId: string;
+  branchName: string | null;
+  operatorUserId: string;
+  operatorName: string | null;
+  businessDate: string;
+  businessTimezone: string;
+  openedAt: string;
+  closedAt: string;
+  generatedAt: string;
+  /** True when the session was closed by the rollover job rather than a person. */
+  autoClosed: boolean;
+  /** Payments taken, one entry per currency. */
+  sales: PosSessionCurrencyTotal[];
+  /** Linked drawer-session closing variance per currency (empty when the shift had no drawer). */
+  drawerVariance: PosShiftZArchiveVariance[];
+  /** True when a drawer variance tripped its threshold and still has no approval or rejection. */
+  variancePending: boolean;
+  /** Stored hash still equals the SHA-256 of the stored snapshot (false = the report was altered). */
+  hashVerified: boolean;
+}
+
+/** A page of the Z-report archive. */
+export interface PosShiftZArchivePage {
+  items: PosShiftZArchiveRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

@@ -1,8 +1,9 @@
 # User Session Lifecycle — STATUS
 
 **Authoritative plan:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) (copy of the approved plan; update both when scope changes)
-**Last updated:** 2026-10-03 (Phases 1-3 code complete; Phase 4 revocation APIs/screens next)
-**Next migration number:** 0576+ (others use 0562, 0564, 0566, 0567, 0569, 0571, 0572, 0574; ours: 0561 hardening, 0563 user_code, 0568 audit append-only, 0570 auth config, 0573 permissions+nav, 0575 session registry — ALWAYS re-list the folder before numbering)
+**Last updated:** 2026-10-08 (all phases code complete; 0576 applied local+remote; 0577 applied; HQ follow-ups implemented; owner QA pending)
+**Docs:** all feature docs live in this folder, including `session-management-guide.md` (moved from `docs/dev/`).
+**Next migration number:** 0578+ (ours: 0561, 0563, 0568, 0570, 0573, 0575, 0576, 0577 — ALWAYS re-list the folder before numbering)
 
 ## Decisions (user-confirmed)
 - One auth account per tenant membership; session bound to one tenant at sign-in; **no tenant switching** (sign out → sign in to the other tenant).
@@ -39,13 +40,27 @@
 | 1 | Session TS: `lib/constants/auth-session.ts`, `lib/types/auth-session.ts`, `lib/services/auth/session/{auth-session.repository,request-meta,domain/device,use-cases/session-lifecycle}.ts`, `lib/auth/{session-guard,jwt-claims}.ts`, `lib/security/safe-redirect.ts`; guard wired into `proxy.ts`, `validateJWTWithTenant` (all `requirePermission` routes), both `getAuthContext`s and `getTenantIdFromSession` (fail closed; 5 s ACTIVE cache; lazy registration of pre-registry sessions) | ✅ Code done; unit tests: session-guard 12, session-helpers 19, tenant-context 21 ✅; db-integration `auth-session-registry` 21/21 ✅ (local) |
 | 2 | Login registers the session (device cookie `cmx-did`, policy snapshot, BLOCK_NEW → 409), logout ends it server-side (single API call, local-scope sign-out), login page: safe `?redirect=`, reason banners (`idle_timeout`, `session_expired`, `revoked`, `password_changed`, `session_limit`, `deactivated`), session-limit message; sign-out clears all caches and notifies other tabs | ✅ Code done |
 | 3 | `POST /api/auth/session/activity` (heartbeat/status), pure idle state machine (14 tests ✅), `use-session-lifecycle` (heartbeat only after real input, cross-tab sync, visibility re-check, server-confirmed expiry), idle-warning dialog (Escape = stay signed in), absolute-expiry heads-up, `SessionLifecycleProvider` in dashboard layout, EN/AR | ✅ Code done; `npm run build` ✅ (exit 0) with phases 1-3 in place; manual QA pending |
-| 4 | Revocation APIs, account/security page, tenant sessions screen, security policy screen, password reset fix, permissions + nav migration, deactivation trigger | ⏳ |
-| 5 | Concurrent session limit + new-device alert | ⏳ |
-| 6 | pg_cron sweep/purge, tests, docs, inventories refresh, HQ follow-ups | ⏳ |
+| 4 | APIs: own sessions (list/revoke one/revoke others), tenant sessions (list/revoke ids or all), password change/reset, `/auth/callback` recovery exchange (httpOnly recovery cookie), reset redirect fix; `PASSWORD_ERROR_CODES` moved to `lib/constants/auth-session.ts` | ✅ Code done |
+| 4 | UI: `/dashboard/account/security` (my sessions + change password, user-menu link), `/dashboard/users/sessions` (CmxDataTable server paging, status filter, row sign-out, emergency sign-out-everyone with double confirm), `/reset-password` rewritten (Cmx + i18n, invalid-link state, hard redirect to `/login?reason=password_changed`), forgot-password `?error=invalid_link` banner; EN/AR i18n; access contracts (static route registered before `/dashboard/users/[userId]`); nav entry in `navigation.ts` | ✅ Code done; eslint ✅, tsc ✅ (own files), i18n ✅, jest auth 149/150 (1 pre-existing nav-drift), `check:ui-access-contract --wire` clean for our routes (3 pre-existing FAILs), sync ✅ |
+| 4/6 | Migration `0576_auth_session_screens_nav_cron.sql`: nav `users_sessions` (creates parent `users` node only if missing — local DB lacked it), pg_cron `auth-session-sweep` every 5 min | ✍️ Written — **waiting for owner to review/apply (local + remote)**. First local run failed on the parent lookup; file fixed (never applied) |
+| 4 | User detail "Sessions" tab (`UserSessionsTab`, shown with `user_sessions:read`, sign out one/all with `user_sessions:revoke`) + Activity tab: bilingual event names from `sys_auth_event_cd`, i18n column headers, error/empty states | ✅ Code done |
+| 5 | Concurrent session limit (done in 0575 + login 409) and new-device alert: `notifyNewDeviceSignIn` → Notification Hub `security.login.detected`; migration `0577_ntf_new_device_login_template.sql` (template v2 with device/IP/time, EN/AR, IN_APP/EMAIL/PUSH) | ✅ Code done; 0577 ✅ applied local + remote (verified on remote: template v2 APPROVED with IN_APP/EMAIL/PUSH) |
+| 5 | Global `SESSION_ENDED` handling: fetch guard → server-confirmed sign-out (`installSessionEndedGuard`) | ✅ Code done |
+| 6 | pg_cron sweep/purge (0576 ✅ applied; verified on remote: job `*/5 * * * *`, nav row present), tests (route tests `session-routes.route.test.ts`, `new-device-alert`, `session-ended-guard`, `session-ui-model`, db `auth-session-screens`), ADR, `docs/features/User_Session_Lifecycle/session-management-guide.md` rewritten, `AUTH_SYSTEM_EVALUATION.md` ticked, `integration-contracts.md` §18, inventories refreshed | ✅ Done (+ component tests `session-screens.test.tsx`) |
+| HQ | cleanmatexsaas: optional `user_code`/email on user creation (synthetic `<code>@users.invalid`), admin password reset revokes sessions, `/auth-config` catalog + `/tenants/[id]/auth-config` screens + API, audit, tests — see `cleanmatexsaas/docs/features/Auth_Session_Config/progress_status.md` | ✅ Code done (platform-api tests 25, platform-web 8; platform-web build ✅; platform-api `nest build` ✅ after repointing the retired cash-drawer movement-type catalog to `sys_cash_drawer_trx_type_cd`) |
 
-## Plan deviations\n- Dropped the redundant `is_platform_only` column from the config catalog: "platform-managed" is simply `is_allow_tenant_change = false`.\n\n## Open items\n- **Remote DB:** on 2026-10-03 the remote migration list ended at 0574 — 0575 (session registry) was NOT on remote although reported applied. Local has it (21/21 db tests). Remote must have 0575 before running the app against it, otherwise sign-in fails (session registration).\n- Pre-existing, unrelated: `platform-inventories` nav-drift test reports `/dashboard/settings/permissions`.\n\n## Known follow-ups / flags
+## Plan deviations
+- Dropped the redundant `is_platform_only` column from the config catalog: "platform-managed" is simply `is_allow_tenant_change = false`.
+
+## Open items
+- **Remote DB:** verified 2026-10-08 — 0575 and 0576 are applied on remote (sessions table, sweep cron job, nav row present). 0577 verified too (template v2 on remote).
+- **Ops (owner):** on the hosted Supabase project set JWT expiry to 600 s and enable Secure password change (local `supabase/config.toml` already updated). See `docs/features/User_Session_Lifecycle/session-management-guide.md` → Operations.
+- **Not wired on purpose:** clearing tenant overrides automatically on plan downgrade (HQ billing code needs explicit approval); HQ has an explicit action instead.
+- Pre-existing, unrelated: `platform-inventories` nav-drift test reports `/dashboard/settings/permissions`.
+
+## Known follow-ups / flags
 - Routes reading `user.user_metadata.role` for authorization (e.g. `app/api/v1/customers/export/route.ts`) trust a user-editable field — outside this program, needs a separate fix.
-- HQ (`cleanmatexsaas`) follow-ups: pass `user_code` through user creation, synthetic login email for users without email, call session revoke on admin password reset, HQ screen for auth config catalog/overrides.
+- HQ (`cleanmatexsaas`): follow-ups implemented 2026-10-08 (see HQ row above). Remaining HQ-side decisions: grant `auth_config.view/manage` to HQ roles before enabling RBAC enforcement; whether plan downgrade should auto-clear overrides (needs billing approval).
 - Pre-existing: `npx tsc --noEmit` reports TS2737 BigInt errors in `lib/services/fx/*` (target < ES2020).
 
 ## Docs/tasks still owed per phase

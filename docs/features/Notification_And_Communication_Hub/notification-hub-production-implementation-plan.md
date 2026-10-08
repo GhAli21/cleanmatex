@@ -1,10 +1,10 @@
 # Notification Hub — Production Implementation Plan
 
-**Status:** DRAFT FOR IMPLEMENTATION REVIEW — documentation created; implementation not started.  
-**Date:** 2026-10-03 (Asia/Muscat).  
-**Scope:** CleanMateX tenant app, Platform HQ API/UI, platform workers, shared notification schema.  
-**Canonical planning authority:** this document in docs/plan/.  
-**Detailed specification:** [Schema and contracts](./notification-hub-schema-and-contracts.md).  
+**Status:** P1 safety and P2 provider/template data foundations applied; provider registration, APIs, UI and runtime cutover remain planned.
+**Date:** 2026-10-08 (Asia/Muscat).
+**Scope:** CleanMateX tenant app, Platform HQ API/UI, platform workers, shared notification schema.
+**Canonical planning authority:** this document in docs/plan/.
+**Detailed specification:** [Schema and contracts](./notification-hub-schema-and-contracts.md).
 **Existing operator runbook:** [Direct Twilio order-created setup](./Setup_And_Config/14_twilio_production_order_created.md).
 
 Approval to create this plan is not approval to apply migrations, deploy, change billing, or send production messages. Every proposed identifier, endpoint and service below is a design target unless explicitly marked existing. No promise of zero defects replaces the acceptance tests and release gates in this plan.
@@ -727,3 +727,47 @@ Primary provider/database guidance was checked on 2026-10-03; revalidate when im
 - [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
 
 Supabase changelog review identified the September 2026 Postgres minor-upgrade notice involving ltree, pgcrypto and btree_gist. No dependency upgrade or DB maintenance is performed by this plan; verify actual engine/extensions/cipher usage before related schema/credential work. [Upgrade notice](https://supabase.com/changelog/postgres-15-19-17-11-breaking-changes).
+
+
+## 26. Provider-neutral coverage and delivery completion map
+
+The notification platform is deliberately provider-neutral. A channel adapter is selected only after a validated account, sender, registration revision and variable binding have been resolved. A provider catalog row alone never enables sending.
+
+| Channel | Provider examples | Sender model | External-template model | Delivery/receipt requirement |
+|---|---|---|---|---|
+| WHATSAPP | Twilio, Meta Cloud API, approved BSPs | WhatsApp sender / phone-number identity, optionally restricted by account | Approved provider template name, provider language, Content SID or Meta template identifier, components and parameter slots | Authenticated provider receipt, account-bound correlation, delivered/read only when verified |
+| SMS | Twilio, MessageBird, local GCC aggregators | E.164 originator, alphanumeric sender or messaging service | Optional text policy; provider-specific registered sender/template where required | Provider message ID and delivery receipt where supported; segment/Unicode policy |
+| EMAIL | Resend, SendGrid, SES | Verified From domain/address and reply-to identity | Subject/body/HTML revision; no provider template assumption unless connector supports it | Provider message ID, bounce/complaint/suppression intake |
+| PUSH | FCM, APNs, Web Push | Application/project identity and device subscription | Local title/body/data contract; provider payload limits | Per-device acceptance/error result; never claim handset delivery without provider evidence |
+| IN_APP / REALTIME | Internal inbox, Supabase Realtime | Internal application identity | Localized inbox content | Persist inbox fact first; realtime is a transport update, not a second delivery |
+
+### 26.1 Applied and pending data foundations
+
+| Slice | Shared migration / status | Responsibility |
+|---|---|---|
+| Safe claim and acceptance handling | `0556` applied | Lease, claim token, uncertain-acceptance hold and protected payload/recipient diagnostics. |
+| Attempt and verified receipt evidence | `0564` applied | Attempt identity, acceptance evidence, receipt facts and provider-message correlation. |
+| Provider accounts and senders | `0571` applied | Typed platform/tenant account and sender identity, verification state, opaque credential references and tenant RLS. |
+| Localized contract and variables | `0572` applied | Explicit language rows, ordered typed scalar/derived/collection variables and repeated-row fields. |
+| Provider registrations and bindings | `0574` applied | Provider template name/ID or Content SID, approval observation, immutable snapshot and ordered component-slot bindings. |
+
+`0569` must be treated as a historical no-op migration only; it does not establish provider resources. Do not build runtime behavior against it.
+
+### 26.2 Required application layers after the schema
+
+1. **HQ APIs and services:** provider-account/sender verification; provider-template import/sync; approval refresh; locale/variable validation; preview; activation; account health; secret-vault resolution. Every request validates ownership, expected revision and provider/channel compatibility.
+2. **Tenant APIs and services:** tenant-owned account/sender administration, consent-aware route assignment, approved template selection, redacted preview/test request and delivery timeline. Every `org_*` access visibly filters by `tenant_org_id`.
+3. **Transport adapters:** Twilio WhatsApp Content API, Meta Cloud API templates, SMS, email and push adapters conform to one normalized result contract. They never free-text-fallback from an approved-template failure, never switch accounts/senders silently, and never carry credentials in an outbox payload.
+4. **HQ UI:** provider catalog; account/sender details; provider-template import and approval status; immutable revision viewer; variable-slot mapper; operational health and webhook/reconciliation views.
+5. **Tenant UI:** channel route setup wizard; private sender/account onboarding; language/template selection; variable preview with collection samples; test-request flow; timeline and actionable configuration diagnostics.
+6. **Shared UI requirements:** Cmx components only, EN/AR keys, RTL layout, accessible keyboard behavior, server-side permission gates, loading/empty/error states and no secret/raw-payload rendering.
+7. **Operations:** provider credential rotation, sender verification, template approval refresh, callback verification, reconciliation, suppression/consent, queue drain, rollback and pilot runbooks.
+
+### 26.3 Non-negotiable provider rules
+
+- A Twilio `ContentSid` is valid only for its provider account, language, approved content revision and compatible sender; it is never a global event-level setting.
+- Meta and Twilio registrations use the same logical template contract but retain separate provider snapshots, external IDs, approval evidence and slot bindings.
+- Static variable count, occurrence count and serialized provider parameter count are separate values. Repeated item-row count is runtime data, not a template variable count.
+- Derived values use an allowlisted declarative operation model. SQL, JavaScript, arbitrary JSONPath execution and browser-supplied computations are forbidden.
+- A test/preview validates and renders but does not send. An authorized test send is an explicitly separate audited action.
+- Approval expiry, sender suspension, missing consent, unknown acceptance and failed validation block future send selection with an actionable result; none trigger cross-provider fallback.

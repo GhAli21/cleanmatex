@@ -168,6 +168,12 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
       },
       {
+        label: 'Session lifecycle labels (bilingual POS / drawer session statuses and events)',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/catalogs',
+        requirement: { permissions: ['pos_session:view', 'cash_drawer:view'], requireAllPermissions: false },
+      },
+      {
         label: 'Close wizard destination-drawer options (CLF-7)',
         method: 'GET',
         path: '/api/v1/cash-drawers',
@@ -227,6 +233,12 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['pos_session:report_z'], requireAllPermissions: true },
       },
       {
+        label: 'Session lifecycle labels (bilingual POS / drawer session statuses and events)',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/catalogs',
+        requirement: { permissions: ['pos_session:view', 'cash_drawer:view'], requireAllPermissions: false },
+      },,
+      {
         label: 'Generate the Z-report of a closed POS session (idempotent)',
         method: 'POST',
         path: '/api/v1/pos-sessions/[sessionId]/z-report',
@@ -236,6 +248,42 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: [
       'D2: the X-report is computed on demand and never stored; the Z-report is an immutable snapshot (org_pos_shift_z_rpt_tr, migration 0559) frozen in the session-close transaction when the tenant setting shift_z_report_required is on.',
     ],
+  },
+  {
+    routePattern: '/dashboard/internal_fin/pos-sessions/z-reports',
+    label: 'POS Z-Report Archive',
+    page: {
+      permissions: ['pos_session:report_z'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      viewAllOperatorsZReports: {
+        label: 'See Z-reports of other operators',
+        requirement: { permissions: ['pos_session:view_all'], requireAllPermissions: true },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Z-report archive (frozen shift reports)',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/z-reports',
+        requirement: { permissions: ['pos_session:report_z'], requireAllPermissions: true },
+        notes: ['Own shifts always; shifts of other operators need pos_session:view_all and are limited to the caller branch scope.'],
+      },
+      {
+        label: 'V1 Branches',
+        method: 'GET',
+        path: '/api/v1/branches',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Session lifecycle labels (bilingual POS / drawer session statuses and events)',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/catalogs',
+        requirement: { permissions: ['pos_session:view', 'cash_drawer:view'], requireAllPermissions: false },
+      },
+    ],
+    notes: ['Read-only index of org_pos_shift_z_rpt_tr; opening a row goes to the shift report screen.'],
   },
   {
     routePattern: '/dashboard/internal_fin/pos-sessions/[sessionId]/report/print',

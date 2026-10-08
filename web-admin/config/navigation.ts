@@ -256,6 +256,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/users',
         roles: ['admin', 'super_admin', 'tenant_admin'],
       },
+      {
+        key: 'users_sessions',
+        label: 'Active Sessions',
+        label2: 'الجلسات النشطة',
+        path: '/dashboard/users/sessions',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['user_sessions:read'],
+      },
     ],
   },
   {

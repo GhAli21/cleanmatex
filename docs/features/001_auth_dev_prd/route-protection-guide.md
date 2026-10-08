@@ -29,7 +29,7 @@ web-admin/
 
 ### 1. Next.js Proxy (`proxy.ts`)
 
-**Note:** Next.js 16 uses `proxy.ts` (not `middleware.ts`) for the network boundary. Route protection is enforced here and in the dashboard layout; see [Session Management Guide](/docs/dev/session-management-guide.md) for the full session lifecycle.
+**Note:** Next.js 16 uses `proxy.ts` (not `middleware.ts`) for the network boundary. Route protection is enforced here and in the dashboard layout; see [Session Management Guide](/docs/features/User_Session_Lifecycle/session-management-guide.md) for the full session lifecycle.
 
 **Capabilities:**
 - ✅ Automatic authentication checks on all routes

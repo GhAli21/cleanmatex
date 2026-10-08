@@ -13,22 +13,15 @@
  */
 
 import { validatePassword } from '@/lib/auth/validation'
-import { SESSION_END_REASONS } from '@/lib/constants/auth-session'
+import { PASSWORD_ERROR_CODES, SESSION_END_REASONS, type PasswordErrorCode } from '@/lib/constants/auth-session'
 import { endSession, logAuthEvent, revokeUserSessions } from '../auth-session.repository'
 import type { createAdminSupabaseClient } from '@/lib/supabase/server'
 
 type AdminClient = ReturnType<typeof createAdminSupabaseClient>
 
-/** Failure codes returned to the API layer. */
-export const PASSWORD_ERROR_CODES = {
-  WEAK_PASSWORD: 'WEAK_PASSWORD',
-  WRONG_PASSWORD: 'WRONG_PASSWORD',
-  SAME_PASSWORD: 'SAME_PASSWORD',
-  ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
-  UPDATE_FAILED: 'UPDATE_FAILED',
-} as const
-
-export type PasswordErrorCode = (typeof PASSWORD_ERROR_CODES)[keyof typeof PASSWORD_ERROR_CODES]
+/** Failure codes returned to the API layer (single source: lib/constants/auth-session.ts). */
+export { PASSWORD_ERROR_CODES }
+export type { PasswordErrorCode }
 
 /** Business-rule failure for the password flows. */
 export class PasswordError extends Error {

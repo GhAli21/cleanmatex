@@ -109,3 +109,20 @@ export const posSessionEventsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(10_000).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(50),
 });
+
+/** Business dates are calendar days (`YYYY-MM-DD`), compared as text so no timezone shifts them. */
+const businessDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD');
+
+/** Bounded, server-paged filters for the Z-report archive. */
+export const posShiftZArchiveQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+  branchId: zUuidIfEnabled().optional(),
+  operatorUserId: zUuidIfEnabled().optional(),
+  businessDateFrom: businessDay.optional(),
+  businessDateTo: businessDay.optional(),
+  query: z.string().trim().min(1).max(120).optional(),
+}).refine(
+  (value) => !value.businessDateFrom || !value.businessDateTo || value.businessDateFrom <= value.businessDateTo,
+  { message: 'businessDateFrom must be before or equal to businessDateTo', path: ['businessDateTo'] }
+);

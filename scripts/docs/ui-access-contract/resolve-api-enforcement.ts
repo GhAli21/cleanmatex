@@ -67,6 +67,7 @@ export function routeContentSatisfiesEnforcement(
     content.includes('requireAuth') ||
     content.includes('getAuthContext') ||
     content.includes('getTenantIdFromSession') ||
+    content.includes('validateJWTWithTenant') ||
     content.includes('validateCSRF');
 
   if (enforcement === 'permission') {

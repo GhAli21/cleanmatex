@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState, useTransition } from 'react'
+import { useSessionLifecycleLabels } from '@/lib/hooks/use-session-lifecycle-labels'
 import { useTranslations } from 'next-intl'
 import { ArrowLeft, ArrowLeftRight, CircleDollarSign, WalletCards } from 'lucide-react'
 
@@ -69,6 +70,7 @@ export function CashDrawerOverviewScreen({
 }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
+  const lifecycle = useSessionLifecycleLabels()
   const tLedger = useTranslations('cashControl.ledgerErrors')
   const tTrx = useTranslations('billing.cashDrawers.trxDialog')
   const router = useRouter()
@@ -319,7 +321,7 @@ export function CashDrawerOverviewScreen({
             {currentSession ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <CashDrawerInfoTile label={t('sessionNo')} value={currentSession.sessionNo} />
-                <CashDrawerInfoTile label={t('sessionStatus')} value={currentSession.status} />
+                <CashDrawerInfoTile label={t('sessionStatus')} value={lifecycle.drawerStatus(currentSession.status)} />
                 <CashDrawerInfoTile label={t('openedAt')} value={fmtDateTime(currentSession.openedAt)} />
                 <CashDrawerInfoTile
                   label={t('openingBalance')}
@@ -341,7 +343,7 @@ export function CashDrawerOverviewScreen({
             ) : latestSession ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <CashDrawerInfoTile label={t('lastSessionNo')} value={latestSession.sessionNo} />
-                <CashDrawerInfoTile label={t('sessionStatus')} value={latestSession.status} />
+                <CashDrawerInfoTile label={t('sessionStatus')} value={lifecycle.drawerStatus(latestSession.status)} />
                 <CashDrawerInfoTile label={t('closedAt')} value={fmtDateTime(latestSession.closedAt)} />
                 <CashDrawerInfoTile
                   label={t('expectedCash')}

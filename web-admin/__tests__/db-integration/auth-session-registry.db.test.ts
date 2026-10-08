@@ -99,7 +99,10 @@ beforeAll(async () => {
       SELECT user_id, id, tenant_org_id FROM public.org_users_mst WHERE is_active = true ORDER BY created_at`;
     if (members.length === 0) return;
     a = { userId: members[0].user_id, orgUserId: members[0].id, tenantId: members[0].tenant_org_id };
-    if (members[1]) b = { userId: members[1].user_id, orgUserId: members[1].id, tenantId: members[1].tenant_org_id };
+    // b must belong to ANOTHER tenant: tenant admins legitimately read the sessions of their own tenant (policy
+    // auth_sess_read_tenant_admin), so a same-tenant peer would not prove own-rows isolation.
+    const foreign = members.find((m) => m.tenant_org_id !== members[0].tenant_org_id);
+    if (foreign) b = { userId: foreign.user_id, orgUserId: foreign.id, tenantId: foreign.tenant_org_id };
     ready = true;
   } catch {
     ready = false;

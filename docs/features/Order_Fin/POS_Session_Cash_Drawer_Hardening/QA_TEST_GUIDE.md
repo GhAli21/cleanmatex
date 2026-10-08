@@ -216,6 +216,26 @@ Needs migration `0562` applied. Use a branch with a counter drawer and a safe in
 
 ---
 
+## 18. Labels, Z-report archive, POS-session permissions (D69)
+
+> Apply migration **0578** first for 18.8–18.10. Everything else works without it.
+
+| # | Do this | Expect |
+|---|---|---|
+| 18.1 | Switch the UI to **Arabic**. Open **Finance → POS Sessions**, the events dialog of a session that went through a rollover. | Event, status and drawer-status columns show Arabic names (e.g. an event for the rollover pause), never `ROLLOVER_PAUSE` / `FORCE_CLOSED`. English shows English names. |
+| 18.2 | POS Sessions → filter **Status**. | The options are the catalog names (Open / Paused / Closed / Force-closed), in your language. |
+| 18.3 | **Cash drawers** → any drawer → a **Pending deposit** or **In-transit** drawer. | The type badge reads its catalog name, not the raw code. |
+| 18.4 | A drawer session in **Closing** state (close wizard started, not finished). | The status chip reads "Closing" (amber), not a raw code. |
+| 18.5 | Send an in-transit transfer, then open the source drawer → **Transactions** tab. | The leg shows "Transit send" (catalog name) — no `billing.cashDrawers.tabs.trx.types…` key text. |
+| 18.6 | **HQ console → System Codes → Cash & POS Catalogs** → Drawer Types → COUNTER → change the English name → Save. Reload web-admin (or wait 10 min). | The new name appears on the drawer type badge. Restore it afterwards. |
+| 18.7 | POS Sessions → **Z-report archive** button (needs `pos_session:report_z`). | Lists closed shifts, newest business day first: report no., business date, branch, cashier, sales per currency, drawer variance (red when non-zero, "Variance pending" while undecided), closed time, **Verified**. A rollover-closed shift carries "Auto-closed". |
+| 18.8 | Archive filters: search a report no. / cashier name; pick a branch; set a date range with *from* later than *to*. | List narrows; the invalid range shows an inline error and does not query. **Clear filters** resets. Click a report no. → opens that shift's report. |
+| 18.9 | As a **cashier** (no `pos_session:view_all`): open the archive. | Only the cashier's own shifts. As a branch manager: every cashier's shifts in the branch scope. |
+| 18.10 | After applying **0578**, sign in as **viewer**, **driver**, **laundry worker** and **B2B customer**. | No POS Sessions menu item; the page and its APIs answer "permission denied". **Cashier / operator** can still open, pause, close their own shift but cannot force-close or see other cashiers; **branch manager / supervisor / finance manager** can force-close and see all. |
+| 18.11 | Rollover job raises a stale-session notice. | Only supervisors / managers (holders of `pos_session:force_close`) and the session owner are notified — not every user. |
+
+---
+
 ## Report back
 
 For any ❌ that was accepted, or ✅ that failed: scenario number, the drawer/session id, a screenshot, and the browser console / dev-server log line. The ledger tab's sequence numbers are the quickest way to show what was booked.

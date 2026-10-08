@@ -18,6 +18,7 @@ import {
   getShiftZReport,
 } from '@/lib/services/pos-shift-report.service';
 import { runPosSessionRolloverSweep } from '@/lib/services/pos-session-rollover.service';
+import { listShiftZReports } from '@/lib/services/pos-shift-z-archive.service';
 import { POS_SHIFT_REPORT_ERROR } from '@/lib/constants/pos-shift-report';
 import {
   cleanupTestDrawers,
@@ -172,6 +173,16 @@ describe('POS shift X/Z reports (D2)', () => {
       expect(z!.snapshot.drawer?.balances[0]).toMatchObject({ closingExpected: '7.5000', closingCounted: '7.5000', closingVariance: '0.0000' });
       expect(z!.snapshot.drawer?.variancePending).toBe(false);
 
+      // The archive projects the frozen drawer variance straight from the snapshot.
+      const archived = await listShiftZReports({
+        tenantId: scope!.tenantId, page: 1, pageSize: 25, userId: shift.userId, canViewAll: false,
+      });
+      expect(archived.items.find((r) => r.id === z!.id)).toMatchObject({
+        drawerVariance: [{ currencyCode: 'OMR', variance: '0.0000' }],
+        variancePending: false,
+        hashVerified: true,
+      });
+
       // Immutable: the database refuses edits and deletes.
       await expect(
         prisma.$executeRaw`UPDATE public.org_pos_shift_z_rpt_tr SET report_no = 'tampered' WHERE tenant_org_id = ${scope!.tenantId}::uuid AND id = ${z!.id}::uuid`,
@@ -229,6 +240,69 @@ describe('POS shift X/Z reports (D2)', () => {
       const z = await getShiftZReport({ tenantId: scope!.tenantId, userId: shift.userId, posSessionId: shift.posSessionId });
       expect(z).toMatchObject({ sessionStatus: 'FORCE_CLOSED', generatedBy: 'system', hashVerified: true });
       expect(z!.snapshot.session.autoCloseReason).toBe('ROLLOVER');
+    } finally {
+      await cleanup([shift]);
+    }
+  });
+});
+
+describe('Z-report archive', () => {
+  dbit('lists a frozen Z with its headline figures, own shifts only without view-all, and honours the filters', async () => {
+    const mine = await createShift({ withDrawer: false, zRequired: true, businessDate: '2001-02-03' });
+    const other = await createShift({ withDrawer: false, zRequired: true, businessDate: '2001-02-04' });
+    try {
+      await closePosSession({ tenantId: scope!.tenantId, userId: mine.userId });
+      await closePosSession({ tenantId: scope!.tenantId, userId: other.userId });
+      const zMine = (await getShiftZReport({ tenantId: scope!.tenantId, userId: mine.userId, posSessionId: mine.posSessionId }))!;
+      const base = { tenantId: scope!.tenantId, page: 1, pageSize: 25 };
+
+      // Without view-all: only the caller's own frozen report, with its integrity verified.
+      const own = await listShiftZReports({ ...base, userId: mine.userId, canViewAll: false, businessDateFrom: '2001-01-01', businessDateTo: '2001-12-31' });
+      expect(own.total).toBe(1);
+      expect(own.items[0]).toMatchObject({
+        id: zMine.id,
+        posSessionId: mine.posSessionId,
+        reportNo: zMine.reportNo,
+        businessDate: '2001-02-03',
+        hashVerified: true,
+        autoClosed: false,
+        drawerVariance: [],
+        variancePending: false,
+      });
+
+      // With view-all and an unrestricted branch scope: both shifts, newest business day first.
+      const all = await listShiftZReports({ ...base, userId: randomUUID(), canViewAll: true, businessDateFrom: '2001-01-01', businessDateTo: '2001-12-31' });
+      expect(all.items.map((r) => r.posSessionId)).toEqual([other.posSessionId, mine.posSessionId]);
+
+      // An empty branch scope hides other operators' shifts but never the caller's own.
+      const scopedOut = await listShiftZReports({ ...base, userId: mine.userId, canViewAll: true, branchIds: [], businessDateFrom: '2001-01-01', businessDateTo: '2001-12-31' });
+      expect(scopedOut.items.map((r) => r.posSessionId)).toEqual([mine.posSessionId]);
+
+      // Filters: report number search, date range, branch, paging.
+      const byNo = await listShiftZReports({ ...base, userId: randomUUID(), canViewAll: true, query: zMine.reportNo });
+      expect(byNo.items.map((r) => r.posSessionId)).toEqual([mine.posSessionId]);
+      const outOfRange = await listShiftZReports({ ...base, userId: randomUUID(), canViewAll: true, businessDateFrom: '2001-02-05', businessDateTo: '2001-12-31' });
+      expect(outOfRange.items.some((r) => r.posSessionId === mine.posSessionId)).toBe(false);
+      const otherBranch = await listShiftZReports({ ...base, userId: randomUUID(), canViewAll: true, branchId: randomUUID(), businessDateFrom: '2001-01-01', businessDateTo: '2001-12-31' });
+      expect(otherBranch.total).toBe(0);
+      const paged = await listShiftZReports({ ...base, pageSize: 1, userId: randomUUID(), canViewAll: true, businessDateFrom: '2001-01-01', businessDateTo: '2001-12-31' });
+      expect(paged).toMatchObject({ total: 2, pageSize: 1 });
+      expect(paged.items).toHaveLength(1);
+
+      // Another tenant sees nothing of this tenant's reports.
+      const foreign = await listShiftZReports({ ...base, tenantId: randomUUID(), userId: randomUUID(), canViewAll: true, query: zMine.reportNo });
+      expect(foreign.total).toBe(0);
+    } finally {
+      await cleanup([mine, other]);
+    }
+  });
+
+  dbit('treats LIKE wildcards in the search term literally', async () => {
+    const shift = await createShift({ withDrawer: false, zRequired: true, businessDate: '2001-03-03' });
+    try {
+      await closePosSession({ tenantId: scope!.tenantId, userId: shift.userId });
+      const page = await listShiftZReports({ tenantId: scope!.tenantId, page: 1, pageSize: 25, userId: shift.userId, canViewAll: true, query: '%' });
+      expect(page.items.some((r) => r.posSessionId === shift.posSessionId)).toBe(false);
     } finally {
       await cleanup([shift]);
     }

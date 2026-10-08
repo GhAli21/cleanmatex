@@ -197,9 +197,8 @@ This document provides a comprehensive evaluation of the CleanMateX authenticati
    - **Risk Level:** Medium
 
 2. **Session Timeout**
-   - **Current:** Token expiry (1 hour) but no idle timeout
-   - **Recommendation:** Consider implementing idle session timeout
-   - **Risk Level:** Low
+   - **Current:** RESOLVED (2026-10): server-side session registry with policy-driven idle and absolute timeouts, warning dialog, revocation on logout/password change/deactivation (see docs/features/User_Session_Lifecycle and docs/features/User_Session_Lifecycle/session-management-guide.md)
+   - **Risk Level:** Low (mitigated)
 
 ---
 
@@ -374,7 +373,7 @@ This document provides a comprehensive evaluation of the CleanMateX authenticati
 6. **Session Timeout**
 
    - **Impact:** Long-lived sessions if device is compromised
-   - **Recommendation:** Implement idle timeout
+   - **Status:** DONE (2026-10) — idle/absolute timeout, session revocation and concurrent-session limit implemented
    - **Priority:** Low
 
 7. **Security Monitoring**
@@ -464,8 +463,8 @@ This document provides a comprehensive evaluation of the CleanMateX authenticati
 
 7. **Session Management Enhancements**
 
-   - Implement idle timeout
-   - Add session activity tracking
+   - ~~Implement idle timeout~~ done (2026-10)
+   - ~~Add session activity tracking~~ done (session registry)
 
 8. **Security Testing**
    - Add integration tests for authentication flows
@@ -501,8 +500,9 @@ This document provides a comprehensive evaluation of the CleanMateX authenticati
 - [x] Token expiration
 - [x] Token refresh mechanism
 - [x] Session invalidation on logout
-- [ ] Idle session timeout
-- [ ] Session activity tracking
+- [x] Idle session timeout (server-authoritative, 2026-10; see docs/features/User_Session_Lifecycle)
+- [x] Session activity tracking (session registry + heartbeat on real input)
+- [x] Session listing and revocation (self-service and administrators), concurrent-session limit, new-device alert
 
 ### API Security
 

@@ -125,7 +125,7 @@ isProject: false
 
 **7.1 Create or update: Session management guide**
 
-- **Location**: [docs/dev/session-management-guide.md](docs/dev/session-management-guide.md) (create) or extend [docs/security/AUTH_SECURITY_IMPLEMENTATION.md](docs/security/AUTH_SECURITY_IMPLEMENTATION.md) / [docs/features/001_auth_dev_prd/route-protection-guide.md](docs/features/001_auth_dev_prd/route-protection-guide.md).
+- **Location**: [docs/features/User_Session_Lifecycle/session-management-guide.md](docs/features/User_Session_Lifecycle/session-management-guide.md) (create) or extend [docs/security/AUTH_SECURITY_IMPLEMENTATION.md](docs/security/AUTH_SECURITY_IMPLEMENTATION.md) / [docs/features/001_auth_dev_prd/route-protection-guide.md](docs/features/001_auth_dev_prd/route-protection-guide.md).
 - **Content**:
   - **Session lifecycle**: Login (API + setSession), token refresh (Supabase + onAuthStateChange), session expiry (SIGNED_OUT → redirect with reason), logout (API + signOut + cache invalidation).
   - **Route protection**: Root middleware (protected paths, public paths, redirect to `/login?redirect=...`); dashboard layout guard as defence in depth.
@@ -142,7 +142,7 @@ isProject: false
 
 **7.3 Optional**
 
-- **README or CLAUDE.md**: One-line pointer to session/auth docs (e.g. “Session lifecycle and route protection: docs/dev/session-management-guide.md”) so AI and new contributors find it.
+- **README or CLAUDE.md**: One-line pointer to session/auth docs (e.g. “Session lifecycle and route protection: docs/features/User_Session_Lifecycle/session-management-guide.md”) so AI and new contributors find it.
 
 **7.4 Implementation order**
 

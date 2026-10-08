@@ -19,6 +19,9 @@ interface UserActivityTabProps {
 interface AuditEntry {
   id: string
   action: string
+  action_label?: string
+  action_label2?: string | null
+  outcome?: string
   entity_type: string | null
   created_at: string
   ip_address: string | null
@@ -45,86 +48,95 @@ interface UserAuditLogTableProps {
   userId: string
   tenantId: string
   formatDate: (date: string) => string
-  emptyLabel: string
 }
 
-function UserAuditLogTable({ userId, tenantId, formatDate, emptyLabel }: UserAuditLogTableProps) {
-  const [auditLog, setAuditLog] = useState<AuditEntry[] | null>(null)
+type AuditLoad = { state: 'loading' } | { state: 'error' } | { state: 'ready'; rows: AuditEntry[] }
+
+function UserAuditLogTable({ userId, tenantId, formatDate }: UserAuditLogTableProps) {
+  const t = useTranslations('users.detail')
+  const locale = useLocale()
+  const [load, setLoad] = useState<AuditLoad>({ state: 'loading' })
 
   useEffect(() => {
     let cancelled = false
-    // sys_audit_log is service-role only; the API route enforces audit:read + tenant membership.
+    // The auth audit trail is service-role only; the API route enforces audit:read + tenant membership.
     fetch(`/api/users/${encodeURIComponent(userId)}/activity`, { credentials: 'same-origin' })
-      .then(async (res) => {
-        if (!res.ok) return [] as AuditEntry[]
+      .then(async (res): Promise<AuditLoad> => {
+        if (!res.ok) return { state: 'error' }
         const body = (await res.json()) as { data?: AuditEntry[] }
-        return body.data ?? []
+        return { state: 'ready', rows: body.data ?? [] }
       })
-      .catch(() => [] as AuditEntry[])
-      .then((rows) => {
-        if (!cancelled) setAuditLog(rows)
+      .catch((): AuditLoad => ({ state: 'error' }))
+      .then((result) => {
+        if (!cancelled) setLoad(result)
       })
     return () => {
       cancelled = true
     }
   }, [userId, tenantId])
 
-  const auditLoading = auditLog === null
-
-  if (auditLoading) {
+  if (load.state === 'loading') {
     return (
-      <div className="flex items-center justify-center h-24">
+      <div className="flex items-center justify-center h-24" aria-busy="true">
         <div className="animate-spin h-6 w-6 rounded-full border-2 border-[rgb(var(--cmx-primary-rgb,14_165_233))] border-t-transparent" />
       </div>
     )
   }
 
-  if (auditLog.length === 0) {
+  if (load.state === 'error') {
     return (
-      <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-8 text-center">
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{emptyLabel}</p>
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+        {t('activityLoadFailed')}
       </div>
     )
   }
 
+  if (load.rows.length === 0) {
+    return (
+      <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-8 text-center">
+        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('activityEmpty')}</p>
+      </div>
+    )
+  }
+
+  const headerClass =
+    'px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider'
+
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-hidden">
+    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-x-auto">
       <table className="min-w-full divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
         <thead className="bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
           <tr>
-            <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
-              Action
-            </th>
-            <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
-              Entity
-            </th>
-            <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
-              IP
-            </th>
-            <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
-              Date
-            </th>
+            <th className={headerClass}>{t('activityColumns.event')}</th>
+            <th className={headerClass}>{t('activityColumns.device')}</th>
+            <th className={headerClass}>{t('activityColumns.ip')}</th>
+            <th className={headerClass}>{t('activityColumns.date')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
-          {auditLog.map((entry) => (
-            <tr key={entry.id} className="hover:bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
-              <td className="px-4 py-3">
-                <span className="text-xs font-mono bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] px-1.5 py-0.5 rounded text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-                  {entry.action}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                {entry.entity_type ?? '—'}
-              </td>
-              <td className="px-4 py-3 text-xs font-mono text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                {entry.ip_address ?? '—'}
-              </td>
-              <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                {formatDate(entry.created_at)}
-              </td>
-            </tr>
-          ))}
+          {load.rows.map((entry) => {
+            const label = (locale === 'ar' && entry.action_label2) || entry.action_label || entry.action
+            const flagged = entry.outcome && entry.outcome !== 'SUCCESS' ? entry.outcome : null
+            return (
+              <tr key={entry.id} className="hover:bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
+                <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  <span>{label}</span>
+                  {flagged ? (
+                    <span className="ms-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">{t(`activityOutcome.${flagged}`)}</span>
+                  ) : null}
+                </td>
+                <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  {entry.entity_type ?? '—'}
+                </td>
+                <td className="px-4 py-3 text-xs font-mono text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  {entry.ip_address ?? '—'}
+                </td>
+                <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  {formatDate(entry.created_at)}
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -139,7 +151,6 @@ function UserAuditLogTable({ userId, tenantId, formatDate, emptyLabel }: UserAud
  */
 export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
   const t = useTranslations('users.detail')
-  const tCommon = useTranslations('common')
   const locale = useLocale()
 
   const { permissions, loading: permsLoading } = useEffectivePermissions(userId)
@@ -222,7 +233,7 @@ export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
         <div className="flex items-center gap-2 mb-3">
           <Activity className="h-4 w-4 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" />
           <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-            {t('activityTab')} (last 20)
+            {t('activityRecent', { count: 20 })}
           </h3>
         </div>
 
@@ -232,7 +243,6 @@ export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
             userId={userId}
             tenantId={tenantId}
             formatDate={formatDate}
-            emptyLabel={tCommon('loading')}
           />
         ) : null}
       </div>

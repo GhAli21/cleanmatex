@@ -28,6 +28,9 @@ import { getSessionIdFromToken } from '@/lib/auth/jwt-claims';
 import { generateDeviceId, isValidDeviceId } from '@/lib/services/auth/session/domain/device';
 import { deviceCookieOptions, type RequestMeta } from '@/lib/services/auth/session/request-meta';
 import { startSession } from '@/lib/services/auth/session/use-cases/session-lifecycle';
+import { notifyNewDeviceSignIn } from '@/lib/services/auth/session/use-cases/new-device-alert';
+import { parseDeviceLabel } from '@/lib/services/auth/session/domain/device';
+import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { getSessionLifetime } from '@/lib/services/auth/session/auth-session.repository';
 
 /**
@@ -216,6 +219,18 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    // New-device alert (best effort — never blocks the sign-in). The DB already applied the tenant policy.
+    await notifyNewDeviceSignIn(
+      registration,
+      {
+        authUserId: data.user.id,
+        deviceLabel: parseDeviceLabel(userAgent),
+        ipAddress: clientIp,
+        signedInAt: new Date(),
+      },
+      emitNotificationEvent
+    );
 
     // Parallel: record successful login + fetch tenants (both are independent of each other)
     const ipAddress = clientIp;

@@ -5,6 +5,16 @@ import { render, screen } from '@testing-library/react';
 jest.mock('next-intl', () => ({
   useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
 }));
+jest.mock('@/lib/hooks/use-session-lifecycle-labels', () => ({
+  useSessionLifecycleLabels: () => ({
+    posStatus: (code: string | null | undefined) => code ?? '',
+    posEvent: (code: string | null | undefined) => code ?? '',
+    drawerStatus: (code: string | null | undefined) => code ?? '',
+    posStatusOptions: [],
+    isLoading: false,
+  }),
+}));
+
 jest.mock('@/lib/hooks/useRTL', () => ({ useRTL: () => false }));
 jest.mock('@/lib/hooks/useLocale', () => ({ useLocale: () => 'en' }));
 jest.mock('@/lib/context/tenant-currency-context', () => ({

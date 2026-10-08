@@ -133,7 +133,7 @@ This document summarizes the implementation of security hardening measures for t
 
 ### Session management (post-hardening)
 
-**Reference:** [Session Management Guide](../dev/session-management-guide.md)
+**Reference:** [Session Management Guide](../features/User_Session_Lifecycle/session-management-guide.md)
 
 - **Proxy** (`web-admin/proxy.ts`): Session refresh, protected-path redirect, CSRF cookie set for all page requests (including login). Next.js 16 uses `proxy.ts` (not `middleware.ts`).
 - **CSRF on auth endpoints**: Login, register, and reset-password APIs validate `X-CSRF-Token`; auth context sends the token from `getCSRFToken()`.

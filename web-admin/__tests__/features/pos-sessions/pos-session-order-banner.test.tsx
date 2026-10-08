@@ -10,6 +10,16 @@ jest.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>,
 }));
 
+jest.mock('@/lib/hooks/use-session-lifecycle-labels', () => ({
+  useSessionLifecycleLabels: () => ({
+    posStatus: (code: string | null | undefined) => code ?? '',
+    posEvent: (code: string | null | undefined) => code ?? '',
+    drawerStatus: (code: string | null | undefined) => code ?? '',
+    posStatusOptions: [],
+    isLoading: false,
+  }),
+}));
+
 jest.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, string>) => {
     if (key === 'banner.paused') return `Paused ${values?.sessionNo}`;

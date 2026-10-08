@@ -15,7 +15,7 @@ import { getCurrentAuthSessionId } from '@/lib/auth/current-session'
 import { createAdminSupabaseClient, createClient } from '@/lib/supabase/server'
 import { createPasswordDeps } from '@/lib/services/auth/session/password-deps'
 import { readRequestMeta } from '@/lib/services/auth/session/request-meta'
-import { DEVICE_COOKIE_NAME, RECOVERY_COOKIE_NAME } from '@/lib/constants/auth-session'
+import { DEVICE_COOKIE_NAME, RECOVERY_COOKIE_NAME, RECOVERY_REQUIRED_CODE } from '@/lib/constants/auth-session'
 import { PASSWORD_ERROR_CODES, PasswordError, completePasswordReset } from '@/lib/services/auth/session/use-cases/password'
 import { logger } from '@/lib/utils/logger'
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   // ─── The recovery marker must be present (set only by /auth/callback) ──────
   if (request.cookies.get(RECOVERY_COOKIE_NAME)?.value !== '1') {
     return NextResponse.json(
-      { success: false, error: 'Recovery link required', code: 'RECOVERY_REQUIRED' },
+      { success: false, error: 'Recovery link required', code: RECOVERY_REQUIRED_CODE },
       { status: 403 }
     )
   }

@@ -55,5 +55,111 @@
       "range": "Enter a whole number between {min} and {max}.",
       "serverInvalid": "One of the values is not allowed. Check the highlighted fields."
     }
+  },
+  "password": {
+    "title": "Change password",
+    "changeHint": "Enter your current password, then choose a new one. You will stay signed in on this device; all your other devices will be signed out.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "showPasswords": "Show passwords",
+    "policyHint": "At least 8 characters, with an uppercase letter, a lowercase letter and a number.",
+    "submitChange": "Change password",
+    "changed": "{count, plural, =0 {Password changed.} one {Password changed. 1 other device was signed out.} other {Password changed. # other devices were signed out.}}",
+    "errors": {
+      "currentRequired": "Enter your current password.",
+      "wrongPassword": "The current password is incorrect.",
+      "weak": "Choose a stronger password: at least 8 characters with an uppercase letter, a lowercase letter and a number.",
+      "mismatch": "The two passwords do not match.",
+      "same": "The new password must be different from the current one.",
+      "locked": "Too many failed attempts. The account is temporarily locked; try again later.",
+      "failed": "Could not change the password. Please try again."
+    }
+  },
+  "sessions": {
+    "title": "Where you are signed in",
+    "hint": "These are the devices currently signed in to your account. Sign out any device you do not recognize, then change your password.",
+    "loadFailed": "Could not load your sessions.",
+    "empty": "No active sessions.",
+    "unknownDevice": "Unknown device",
+    "thisDevice": "This device",
+    "rememberMe": "Remember me",
+    "ip": "IP {ip}",
+    "signedIn": "Signed in {when}",
+    "lastActive": "Last active {when}",
+    "signOut": "Sign out",
+    "signOutDevice": "Sign out {device}",
+    "signOutOthers": "Sign out all other devices",
+    "confirmOneTitle": "Sign out this device?",
+    "confirmOneDescription": "{device} will be signed out and will need to sign in again.",
+    "confirmOthersTitle": "Sign out all other devices?",
+    "confirmOthersDescription": "{count, plural, one {# other device will be signed out.} other {# other devices will be signed out.}} This device stays signed in.",
+    "revoked": "Device signed out.",
+    "revokedOthers": "{count, plural, =0 {No other devices were signed in.} one {# device signed out.} other {# devices signed out.}}",
+    "alreadyEnded": "That session had already ended.",
+    "revokeFailed": "Could not sign out. Please try again."
+  },
+  "account": {
+    "title": "Account security",
+    "subtitle": "Manage your password and the devices signed in to your account."
+  },
+  "tenantSessions": {
+    "title": "Active sessions",
+    "subtitle": "See who is signed in, on which device, and sign people out when needed.",
+    "columns": {
+      "user": "User",
+      "device": "Device",
+      "ip": "IP address",
+      "signedIn": "Signed in",
+      "lastActive": "Last active",
+      "status": "Status"
+    },
+    "filters": {
+      "status": "Show",
+      "active": "Active sessions",
+      "ended": "Ended sessions"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "ENDED": "Ended"
+    },
+    "endReasons": {
+      "USER_LOGOUT": "Signed out",
+      "IDLE_TIMEOUT": "Inactivity",
+      "ABSOLUTE_TIMEOUT": "Session expired",
+      "USER_REVOKED": "Signed out by user",
+      "ADMIN_REVOKED": "Signed out by admin",
+      "PASSWORD_CHANGED": "Password changed",
+      "USER_DEACTIVATED": "User deactivated",
+      "MEMBERSHIP_REMOVED": "Access removed",
+      "SESSION_LIMIT": "Session limit",
+      "SECURITY": "Security"
+    },
+    "empty": "No sessions to show.",
+    "loadFailed": "Could not load the sessions.",
+    "confirmOneTitle": "Sign this user out?",
+    "confirmOneDescription": "{user} will be signed out of {device} and will need to sign in again.",
+    "confirmAllTitle": "Sign everyone out?",
+    "confirmAllDescription": "This ends every active session in your organization except yours. Use it in an emergency only.",
+    "confirmAllFinalTitle": "Are you absolutely sure?",
+    "confirmAllFinalDescription": "{count, plural, one {# session} other {# sessions}} will be ended right away and people may lose unsaved work.",
+    "continue": "Continue",
+    "signOutEveryone": "Sign out everyone",
+    "revoked": "{count, plural, =0 {No sessions were ended.} one {# session ended.} other {# sessions ended.}}",
+    "currentSkipped": "Your own session was left signed in.",
+    "revokeFailed": "Could not sign users out. Please try again."
+  },
+  "userSessions": {
+    "title": "Signed-in devices",
+    "hint": "Devices this user is signed in on right now. Signing a device out ends that session immediately.",
+    "loadFailed": "Could not load the sessions.",
+    "empty": "This user has no active sessions.",
+    "signOutAll": "Sign out all devices",
+    "confirmOneTitle": "Sign this device out?",
+    "confirmOneDescription": "{device} will be signed out and the user will need to sign in again.",
+    "confirmAllTitle": "Sign out all devices?",
+    "confirmAllDescription": "{count, plural, one {# device will be signed out.} other {# devices will be signed out.}} The user will need to sign in again.",
+    "revoked": "{count, plural, =0 {No sessions were ended.} one {# session ended.} other {# sessions ended.}}",
+    "revokeFailed": "Could not sign the user out. Please try again."
   }
 }

@@ -203,5 +203,6 @@
     "rolledOver": "This session was paused because the business day changed. Close it and open a new session.",
     "timezoneNotConfigured": "No timezone is set for this branch or organization. Ask an administrator to set one before opening a session.",
     "drawerSessionExclusive": "This cash drawer session is already in use by another POS session, and sharing a drawer session is turned off for it."
-  }
+  },
+  "zArchive": "Z-report archive"
 }

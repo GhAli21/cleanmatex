@@ -8,10 +8,12 @@ import { AlertCircle, CreditCard } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxStatusBadge } from '@ui/feedback';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
+import { useSessionLifecycleLabels } from '@/lib/hooks/use-session-lifecycle-labels';
 import { fetchMyActivePosSession, posSessionActiveQueryKey } from '@features/pos-sessions/api/pos-session-api';
 
 export function PosSessionOrderBanner({ branchId }: { branchId: string | null }) {
   const t = useTranslations('posSessions');
+  const lifecycle = useSessionLifecycleLabels();
   const query = useQuery({
     queryKey: posSessionActiveQueryKey(branchId, true),
     enabled: !!branchId,
@@ -58,7 +60,7 @@ export function PosSessionOrderBanner({ branchId }: { branchId: string | null })
           {t('banner.paused', { sessionNo: session.session_no })}
         </span>
         <CmxStatusBadge
-          label={session.status}
+          label={lifecycle.posStatus(session.status)}
           variant="warning"
           size="sm"
         />
