@@ -47,6 +47,15 @@ const nextConfig: NextConfig = {
     root: path.join(__dirname), // => F:\jhapp\cleanmatex\web-admin (same as outputFileTracingRoot)
   },
 
+  // The production builder is 2 cores / 8 GB. A custom webpack() function
+  // disables Next's compile worker, so one process holds the whole graph and
+  // the container is SIGKILL'd once RAM is full.
+  experimental: {
+    webpackBuildWorker: true,
+    webpackMemoryOptimizations: true,
+    cpus: 1,
+  },
+
   // Use webpack instead of Turbopack for more stable builds
   webpack: (config, { isServer }) => {
     // Configure server-side externals to prevent Prisma bundling issues
