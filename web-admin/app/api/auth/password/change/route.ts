@@ -1,7 +1,7 @@
 /**
  * POST /api/auth/password/change — change the signed-in user's password.
  *
- * Body: { currentPassword?, newPassword }
+ * Body: { currentPassword?, newPassword, skipBreachCheck? }
  * Verification depends on tenant policy (AUTH_PWD_REQUIRE_CURRENT) and account state — see changeOwnPassword:
  * current password (wrong attempts count toward the account lockout), a fresh sign-in (two-field form), or a
  * pending forced change. Ends all the user's OTHER sessions afterwards. Identity, tenant, the current session and
@@ -24,6 +24,8 @@ const bodySchema = z
   .object({
     currentPassword: z.string().min(1).max(256).optional(),
     newPassword: z.string().min(1).max(256),
+    /** True only after the user saw the breach warning and pressed Skip on that rule. */
+    skipBreachCheck: z.boolean().optional(),
   })
   .strict()
 

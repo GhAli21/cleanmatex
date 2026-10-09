@@ -30,12 +30,14 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { Check, GitBranch } from 'lucide-react';
-import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
+import { cmxMessage, CmxAlertDialog, CmxSummaryMessage } from '@ui/feedback';
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import type { ServicePreferenceCode } from '@/lib/types/service-preferences';
 import type { BranchOption } from '@/lib/services/inventory-service';
 import { NewOrderTopBar } from './new-order-top-bar';
+import { useNewOrderDispatch } from './context/new-order-context';
+import { useNewOrderPosSessionGate } from '../hooks/use-new-order-pos-session';
 import { ProductGrid } from './product-grid';
 import { OrderSummaryPanel } from './order-summary-panel';
 import { OrderSummaryBottomSheet } from './OrderSummaryBottomSheet';
@@ -63,12 +65,22 @@ import { useBilingual } from '@/lib/utils/bilingual';
  */
 export function NewOrderContent() {
     const t = useTranslations('newOrder');
+    const tPos = useTranslations('posSessions');
     const tWorkflow = useTranslations('workflow');
     const tCommon = useTranslations('common');
     const router = useRouter();
     const isRTL = useRTL();
     const { currentTenant } = useAuth();
     const state = useNewOrderStateWithDispatch();
+    const dispatch = useNewOrderDispatch();
+    const posGate = useNewOrderPosSessionGate({
+        isEditMode: state.state.isEditMode,
+        dispatch,
+    });
+    const orderEntryLocked = !state.state.isEditMode && posGate.mode !== 'open';
+    const posGuide = posGate.mode === 'none' || posGate.mode === 'paused' || posGate.mode === 'error'
+        ? posGate.mode
+        : null;
     const { trackByPiece, packingPerPieceEnabled, enforcePrefCompatibility } = useTenantSettingsWithDefaults(
         currentTenant?.tenant_id || ''
     );
@@ -417,6 +429,11 @@ export function NewOrderContent() {
     );
 
     const handleSubmitOrderClick = useCallback(() => {
+        if (orderEntryLocked) {
+            cmxMessage.warning(tPos(`newOrderGate.${posGuide ?? 'none'}Body`));
+            document.getElementById('pos-session-hub-trigger')?.focus();
+            return;
+        }
         if (hasErrors) {
             const errorWarnings = warnings.filter((w) => w.severity === 'error');
             if (errorWarnings.length > 0) { cmxMessage.error(errorWarnings[0].message); return; }
@@ -424,7 +441,7 @@ export function NewOrderContent() {
         if (!state.state.customer) { cmxMessage.error(t('errors.selectCustomer')); return; }
         if (state.state.items.length === 0) { cmxMessage.error(t('errors.addItems')); return; }
         state.openModal('payment');
-    }, [state, t, hasErrors, warnings]);
+    }, [state, t, tPos, hasErrors, warnings, orderEntryLocked, posGuide]);
 
     const handleNavigateToOrder = useCallback(() => {
         if (!state.state.createdOrderId) return;
@@ -529,13 +546,13 @@ export function NewOrderContent() {
 
     const isSubmitDisabled = useMemo(() => {
         if (state.state.isEditMode) return !isDirty || isSubmitting || state.state.loading || hasErrors;
-        if (state.state.loading || isSubmitting || !state.state.customerName || state.state.items.length === 0 || !state.state.readyByAt) return true;
+        if (orderEntryLocked || state.state.loading || isSubmitting || !state.state.customerName || state.state.items.length === 0 || !state.state.readyByAt) return true;
         const readyByDate = new Date(state.state.readyByAt);
         const now = new Date();
         const threshold = isRetailOnlyOrder ? now.getTime() - 60000 : now.getTime();
         const isFuture = isRetailOnlyOrder ? readyByDate.getTime() >= threshold : readyByDate > now;
         return !isFuture;
-    }, [state.state.isEditMode, isDirty, isSubmitting, state.state.loading, hasErrors, state.state.customerName, state.state.items.length, state.state.readyByAt, isRetailOnlyOrder]);
+    }, [state.state.isEditMode, isDirty, isSubmitting, state.state.loading, hasErrors, state.state.customerName, state.state.items.length, state.state.readyByAt, isRetailOnlyOrder, orderEntryLocked]);
 
     const canSubmit = useMemo(() => !isSubmitDisabled, [isSubmitDisabled]);
 
@@ -665,10 +682,14 @@ export function NewOrderContent() {
                 categoriesLoading={state.state.categoriesLoading}
                 showCategories={activeTab === 'select'}
                 hasBranchDependentData={hasBranchDependentData}
+                branchLocked={!state.state.isEditMode && posGate.lockBranchId != null}
                 orderPrefsCount={state.state.orderServicePrefs?.length ?? 0}
                 onOpenOrderPreferences={hasServicePrefs ? () => setOrderPrefsDialogOpen(true) : undefined}
                 sessionSlot={!state.state.isEditMode ? (
-                    <PosSessionHub branchId={state.state.branchId} />
+                    <PosSessionHub
+                      branchId={posGate.lockBranchId ?? state.state.branchId}
+                      guide={posGuide}
+                    />
                 ) : null}
             />
 
@@ -677,6 +698,16 @@ export function NewOrderContent() {
                 onOpenChange={setOrderPrefsDialogOpen}
                 enforcePrefCompatibility={enforcePrefCompatibility}
             />
+
+            {!state.state.isEditMode && posGuide ? (
+                <div className="px-4 pt-3">
+                    <CmxSummaryMessage
+                        type={posGuide === 'error' ? 'error' : 'warning'}
+                        title={tPos(`newOrderGate.${posGuide}Title`)}
+                        items={[tPos(`newOrderGate.${posGuide}Body`)]}
+                    />
+                </div>
+            ) : null}
 
             {!state.state.isEditMode && (
                 <PosSessionOrderBanner branchId={state.state.branchId} />
@@ -694,7 +725,7 @@ export function NewOrderContent() {
                 />
             )}
 
-            <div className={`flex-1 min-h-0 flex ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex-1 min-h-0 flex ${isRTL ? 'flex-row-reverse' : ''}`} inert={orderEntryLocked ? true : undefined}>
                 {/* Left/Center Panel */}
                 <div className="flex-1 min-w-0 min-h-0 flex flex-col">
                     {/* Branch Required Gate */}

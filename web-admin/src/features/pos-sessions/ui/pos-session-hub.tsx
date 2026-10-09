@@ -20,8 +20,7 @@ import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { Badge } from '@ui/primitives/badge';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
-import { CmxStatusBadge } from '@ui/feedback';
-import { cmxMessage } from '@ui/feedback';
+import { CmxStatusBadge, CmxSummaryMessage, cmxMessage } from '@ui/feedback';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -61,6 +60,8 @@ interface ActionDialogState {
 
 interface PosSessionHubProps {
   branchId: string | null;
+  /** New-order lock: keep the cashier in this hub until an open session exists. */
+  guide?: 'none' | 'paused' | 'error' | null;
 }
 
 /**
@@ -69,7 +70,7 @@ interface PosSessionHubProps {
  * The Hub keeps healthy POS state out of a wide banner while preserving fast
  * access to session lineage, drawer context, and safe lifecycle actions.
  */
-export function PosSessionHub({ branchId }: PosSessionHubProps) {
+export function PosSessionHub({ branchId, guide = null }: PosSessionHubProps) {
   const t = useTranslations('posSessions');
   const queryClient = useQueryClient();
   const { token: csrfToken } = useCSRFToken();
@@ -82,6 +83,11 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
   const canCloseCashDrawer = useHasPermissionCode('cash_drawer:close_session');
 
   const [hubOpen, setHubOpen] = useState(false);
+  const [prevGuide, setPrevGuide] = useState(guide);
+  if (guide !== prevGuide) {
+    setPrevGuide(guide);
+    setHubOpen(guide != null);
+  }
   const [actionDialog, setActionDialog] = useState<ActionDialogState>({ action: null, reason: '' });
   const [drawerDialogOpen, setDrawerDialogOpen] = useState(false);
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -167,8 +173,10 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
     <>
       <CmxButton
         type="button"
+        id="pos-session-hub-trigger"
         variant="outline"
         size="sm"
+        autoFocus={guide != null && !hubOpen}
         className={cn(
           'max-w-full gap-2 rounded-full border-2 bg-white px-3 shadow-sm',
           triggerToneClass(activeQuery.data, activeQuery.isError)
@@ -208,6 +216,14 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
             <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
               {t('hub.description')}
             </p>
+            {guide ? (
+              <CmxSummaryMessage
+                className="mt-3"
+                type={guide === 'error' ? 'error' : 'warning'}
+                title={t(`newOrderGate.${guide}Title`)}
+                items={[t(`newOrderGate.${guide}Body`)]}
+              />
+            ) : null}
           </CmxDialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
@@ -221,6 +237,7 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
               canOpenPosSession={canOpen}
               onRetry={refreshHub}
               onStartPosSession={startPosSession}
+              focusStart={guide === 'none'}
               onDrawerLinked={refreshHub}
             />
           </div>
@@ -251,6 +268,7 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
                 <CmxButton
                   variant="secondary"
                   size="sm"
+                  autoFocus={guide === 'paused'}
                   loading={busyAction === 'resume'}
                   onClick={() => runLifecycleAction('resume', {}, t('messages.resumed'))}
                 >
@@ -341,6 +359,7 @@ function HubBody({
   canOpenPosSession,
   onRetry,
   onStartPosSession,
+  focusStart = false,
   onDrawerLinked,
 }: {
   queryData?: GetMyActivePosSessionResult;
@@ -351,6 +370,7 @@ function HubBody({
   canOpenPosSession: boolean;
   onRetry: () => void;
   onStartPosSession: () => void;
+  focusStart?: boolean;
   onDrawerLinked: () => Promise<void> | void;
 }) {
   const t = useTranslations('posSessions');
@@ -395,6 +415,7 @@ function HubBody({
         description={t('banner.none')}
         actionLabel={canOpenPosSession ? t('hub.startPosSession') : undefined}
         onAction={canOpenPosSession ? onStartPosSession : undefined}
+        autoFocusAction={focusStart}
       />
     );
   }
@@ -419,6 +440,7 @@ function HubBody({
             <InfoTile label={t('businessDate')} value={session.business_date} />
             <InfoTile label={t('hub.timezone')} value={session.business_timezone} />
             <InfoTile label={t('openedAt')} value={formatDateTime(session.opened_at)} />
+            <InfoTile label={t('hub.ordersCreated')} value={String(session.orders_created_count ?? 0)} />
             <InfoTile label={t('terminal')} value={displayTerminal(session, t('none'))} />
           </InfoGrid>
         </CmxCardContent>
@@ -626,12 +648,14 @@ function PanelMessage({
   description,
   actionLabel,
   onAction,
+  autoFocusAction = false,
 }: {
   icon: ReactNode;
   title: string;
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  autoFocusAction?: boolean;
 }) {
   return (
     <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
@@ -641,7 +665,7 @@ function PanelMessage({
         {description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}
       </div>
       {actionLabel && onAction ? (
-        <CmxButton variant="outline" size="sm" onClick={onAction}>
+        <CmxButton variant="outline" size="sm" autoFocus={autoFocusAction} onClick={onAction}>
           {actionLabel}
         </CmxButton>
       ) : null}

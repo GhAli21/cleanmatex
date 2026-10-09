@@ -56,6 +56,8 @@
     "printAndDetails": "Print & details",
     "unknownCustomer": "Customer unavailable",
     "receivedAt": "Received {value}",
+    "createdInSession": "Created in POS session {session}",
+    "createdSessionUnknown": "Creating POS session was not recorded",
     "orderTotal": "Order total",
     "balanceDue": "Balance due: {value}",
     "workflow": "Workflow",

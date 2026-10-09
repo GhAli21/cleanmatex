@@ -27,6 +27,7 @@
   "openedAt": "Opened",
   "closedAt": "Closed",
   "status": "Status",
+  "ordersCreated": "Orders created",
   "autoClosed": "Closed by",
   "autoClosedRollover": "System (business day changed)",
   "salesByTender": "Sales by tender",

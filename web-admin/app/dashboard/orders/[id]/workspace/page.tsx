@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { getOrderByRef } from '@/app/actions/orders/get-order';
+import { prisma } from '@/lib/db/prisma';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import {
   isUuidLike,
@@ -91,6 +92,13 @@ async function OrderWorkspaceContent({
   // The workspace is a client-interactive surface; normalize Date/Decimal
   // values at the server boundary so the App Router receives serializable data.
   const serializedOrder = JSON.parse(JSON.stringify(result.data)) as typeof result.data;
+  const createdPosSessionId = (result.data as { created_pos_session_id?: string | null }).created_pos_session_id ?? null;
+  const createdPosSession = createdPosSessionId
+    ? await prisma.org_pos_sessions_mst.findFirst({
+        where: { tenant_org_id: tenantId, id: createdPosSessionId },
+        select: { session_no: true },
+      })
+    : null;
 
   const locale = await getLocale();
   const workflowJourney = await getOrderWorkspaceWorkflowJourney(
@@ -109,6 +117,7 @@ async function OrderWorkspaceContent({
       returnLabel={searchParams.returnLabel}
       initialSection={normalizeSection(searchParams.section)}
       workflowJourney={workflowJourney}
+      createdPosSessionNo={createdPosSession?.session_no ?? null}
     />
   );
 }

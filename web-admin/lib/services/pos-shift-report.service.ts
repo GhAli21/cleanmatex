@@ -15,7 +15,7 @@ import {
   type PosShiftReportKind,
 } from '@/lib/constants/pos-shift-report';
 import { PosSessionError } from '@/lib/services/pos-session-error';
-import { loadPosSessionRollup } from '@/lib/services/pos-session-rollup';
+import { loadPosSessionOrdersCreated, loadPosSessionRollup } from '@/lib/services/pos-session-rollup';
 import { loadDrawerCashAttribution } from '@/lib/services/cash-drawer-attribution';
 import type {
   PosShiftCashRow,
@@ -256,8 +256,9 @@ export async function buildPosShiftSnapshot(
   input: { tenantId: string; posSessionId: string; kind: PosShiftReportKind; scopeToUserId?: string | null }
 ): Promise<PosShiftReportSnapshot> {
   const facts = await loadSessionFacts(db, input.tenantId, input.posSessionId, input.scopeToUserId ?? null);
-  const [rollup, cash, drawer] = await Promise.all([
+  const [rollup, ordersCreated, cash, drawer] = await Promise.all([
     loadPosSessionRollup(db, input.tenantId, input.posSessionId),
+    loadPosSessionOrdersCreated(db, input.tenantId, input.posSessionId),
     loadCashFigures(db, input.tenantId, input.posSessionId),
     loadDrawerFigures(db, input.tenantId, facts.cash_drawer_session_id),
   ]);
@@ -269,6 +270,7 @@ export async function buildPosShiftSnapshot(
     payments: rollup.payments,
     refunds: rollup.refunds,
     voucherLines: rollup.voucherLines,
+    ordersCreated,
     cash,
     drawer,
   };

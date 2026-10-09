@@ -68,6 +68,9 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
         <Fact label={t('closedAt')} value={formatDateTime(session.closedAt)} />
         <Fact label={t('status')} value={lifecycle.posStatus(session.status)} />
         {session.autoCloseReason ? <Fact label={t('autoClosed')} value={t('autoClosedRollover')} /> : null}
+        {snapshot.ordersCreated ? (
+          <Fact label={t('ordersCreated')} value={String(snapshot.ordersCreated.count)} />
+        ) : null}
       </dl>
 
       <Section title={t('salesByTender')} thermal={thermal}>

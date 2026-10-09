@@ -426,6 +426,11 @@ export function PosSessionsScreen() {
       render: (row) => <AuditValue value={formatDateTime(row.opened_at)} actor={row.opened_by_display_name} />,
     },
     {
+      key: 'orders_created_count',
+      header: t('hub.ordersCreated'),
+      render: (row) => String(row.orders_created_count ?? 0),
+    },
+    {
       key: 'paused_at',
       header: t('pausedAt'),
       render: (row) => <AuditValue value={formatDateTime(row.paused_at)} actor={row.paused_by_display_name} reason={row.pause_reason} />,
@@ -1379,22 +1384,46 @@ function SessionSummaryTotals({ summary }: { summary: PosSessionSummary }) {
     });
   }
 
-  if (tiles.length === 0) {
+  if (tiles.length === 0 && summary.ordersCreated.count === 0) {
     return <div className="py-8 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('none')}</div>;
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-3">
-      {tiles.map((tile) => (
-        <SummaryTile
-          key={tile.key}
-          title={tile.title}
-          amount={tile.amount}
-          currencyCode={tile.currencyCode}
-          count={tile.count}
-          rowsLabel={rowsLabel}
-        />
-      ))}
+    <div className="space-y-3">
+      <OrdersCreatedSummary created={summary.ordersCreated} />
+      <div className="grid gap-3 md:grid-cols-3">
+        {tiles.map((tile) => (
+          <SummaryTile
+            key={tile.key}
+            title={tile.title}
+            amount={tile.amount}
+            currencyCode={tile.currencyCode}
+            count={tile.count}
+            rowsLabel={rowsLabel}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OrdersCreatedSummary({ created }: { created: PosSessionSummary['ordersCreated'] }) {
+  const t = useTranslations('posSessions');
+  const { formatMoneyWithCode: formatMoney } = useTenantCurrency();
+  return (
+    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+      <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('summary.ordersCreated')}</div>
+      <div className="mt-2 text-2xl font-bold">{created.count}</div>
+      {created.totals.length > 0 ? (
+        <div className="mt-2 space-y-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div>{t('summary.ordersCreatedValue')}</div>
+          {created.totals.map((row) => (
+            <div key={row.currencyCode ?? 'unknown'} className="font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+              {formatMoney(row.amount, row.currencyCode)}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

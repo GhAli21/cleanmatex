@@ -86,6 +86,7 @@ export async function loadPasswordPolicy(admin: AdminClient, tenantId: string): 
  * @param authUserId - Account whose history is checked
  * @param newPassword - Candidate password (plaintext)
  * @param breachCheck - Injectable for tests
+ * @param skipBreachCheck - The user already saw the breach warning and chose to keep this password
  * @throws PasswordError WEAK_PASSWORD | REUSED_PASSWORD | BREACHED_PASSWORD | UPDATE_FAILED (history unreadable)
  */
 export async function assertPasswordAcceptable(
@@ -93,7 +94,8 @@ export async function assertPasswordAcceptable(
   policy: PasswordPolicy,
   authUserId: string,
   newPassword: string,
-  breachCheck: (password: string) => Promise<boolean> = isPasswordBreached
+  breachCheck: (password: string) => Promise<boolean> = isPasswordBreached,
+  skipBreachCheck = false
 ): Promise<void> {
   const strength = validatePassword(newPassword)
   if (!strength.isValid) {
@@ -116,7 +118,7 @@ export async function assertPasswordAcceptable(
     }
   }
 
-  if (policy.breachCheck && (await breachCheck(newPassword))) {
+  if (policy.breachCheck && !skipBreachCheck && (await breachCheck(newPassword))) {
     throw new PasswordError(
       PASSWORD_ERROR_CODES.BREACHED_PASSWORD,
       'This password appears in known data breaches. Choose a different one'

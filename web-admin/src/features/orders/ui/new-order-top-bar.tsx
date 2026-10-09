@@ -53,6 +53,8 @@ interface NewOrderTopBarProps {
   categoriesLoading?: boolean;
   showCategories?: boolean;
   hasBranchDependentData?: boolean;
+  /** When a POS session owns the order, the branch follows that session. */
+  branchLocked?: boolean;
   sessionSlot?: ReactNode;
   /** Count of order-wide preferences already applied, shown as a badge. Omit/0 hides the badge. */
   orderPrefsCount?: number;
@@ -87,6 +89,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   categoriesLoading = false,
   showCategories = true,
   hasBranchDependentData = false,
+  branchLocked = false,
   sessionSlot,
   orderPrefsCount = 0,
   onOpenOrderPreferences,
@@ -112,8 +115,10 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
         {branches.length > 1 && (
           <select
             value={branchId ?? ''}
-            autoFocus={!branchId}
+            autoFocus={!branchId && !branchLocked}
+            disabled={branchLocked}
             onChange={(e) => {
+              if (branchLocked) return;
               const newId = e.target.value || null;
               if (hasBranchDependentData && newId && newId !== branchId) {
                 const confirmed = window.confirm(
@@ -123,7 +128,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
               }
               onBranchChange(newId);
             }}
-            className={`max-w-[180px] px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!branchId ? 'border-amber-400 bg-amber-50' : 'border-gray-300'} ${isRTL ? 'text-right' : 'text-left'}`}
+            className={`max-w-[180px] px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${branchLocked ? 'border-gray-200 bg-gray-50 text-gray-700' : !branchId ? 'border-amber-400 bg-amber-50' : 'border-gray-300'} ${isRTL ? 'text-right' : 'text-left'}`}
             dir={isRTL ? 'rtl' : 'ltr'}
             aria-label={tCommon('branch')}
           >

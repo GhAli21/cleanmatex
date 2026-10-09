@@ -334,6 +334,8 @@ export type NewOrderAction =
   | { type: 'SET_PRODUCTS_LOADING'; payload: boolean }
   | { type: 'SET_INITIAL_LOADING'; payload: boolean }
   | { type: 'RESET_ORDER' }
+  /** Locks the draft to the cashier's POS session branch, and clears the draft when that session changes. */
+  | { type: 'ALIGN_CASHIER_SESSION'; payload: { branchId: string | null; reset: boolean } }
   | { type: 'ENTER_EDIT_MODE'; payload: { orderId: string; orderNo: string } }
   | {
       type: 'LOAD_ORDER_FOR_EDIT';

@@ -26,6 +26,7 @@ import {
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
+import { PosSessionError } from '@/lib/services/pos-session-error';
 import { submitOrderRequestSchema } from '@/lib/validations/new-order-payment-schemas';
 import {
   submitOrder,
@@ -461,6 +462,18 @@ export async function POST(request: NextRequest) {
     // posting transaction (W2 removed the planner's pre-check) and throws a
     // typed error whose stable `code` the payment modal translates and routes
     // to the drawer guard (CASH_LEDGER_ERRORS in lib/constants/cash-drawer.ts).
+    if (error instanceof PosSessionError) {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: error.code,
+          error: error.message,
+          ...(error.details ? { details: error.details } : {}),
+        },
+        { status: error.httpStatus },
+      );
+    }
+
     if (error instanceof CashDrawerLedgerError) {
       return NextResponse.json(
         { success: false, errorCode: error.code, error: error.code },

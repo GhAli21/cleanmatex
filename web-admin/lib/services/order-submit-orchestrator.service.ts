@@ -42,7 +42,9 @@ import {
   resolvePosSessionForFinanceTx,
   autoLinkDrawerTx,
 } from '@/lib/services/pos-session.service';
-import { POS_SESSION_SURFACE } from '@/lib/constants/pos-session';
+import { PosSessionError } from '@/lib/services/pos-session-error';
+import { stampCreatedPosSession } from '@/lib/services/order-created-pos-session';
+import { POS_SESSION_STATUS, POS_SESSION_SURFACE } from '@/lib/constants/pos-session';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
 import {
@@ -806,7 +808,27 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           ? financeTenderScopeOf(plan.realPaymentLegs.map((leg) => leg.paymentMethodCode))
           : 'NONE',
       });
-      const effectivePosSessionId = posSession?.id ?? undefined;
+      if (!posSession || posSession.status !== POS_SESSION_STATUS.OPEN) {
+        throw new PosSessionError(
+          'POS_SESSION_REQUIRED',
+          'An open POS session is required to create an order.',
+          409,
+          {
+            surface: POS_SESSION_SURFACE.ORDER_ENTRY,
+            branchId,
+            reason: 'NONE',
+            canOpenInline: true,
+          },
+        );
+      }
+      const effectivePosSessionId = posSession.id;
+      await stampCreatedPosSession(tx, {
+        tenantId,
+        orderId,
+        userId,
+        branchId,
+        posSessionId: effectivePosSessionId ?? null,
+      });
 
       if (plan.shouldCreateReceiptVoucher) {
         const voucher = await createBizVoucher(

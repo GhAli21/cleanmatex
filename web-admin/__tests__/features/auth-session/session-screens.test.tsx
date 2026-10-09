@@ -131,6 +131,11 @@ describe('ChangePasswordCard', () => {
     expect(await screen.findByText('authSession.password.errors.breached')).toBeInTheDocument();
     expect(document.querySelector('[data-rule="breached"]')).toHaveAttribute('data-state', 'unmet');
     expect(mockMessage.error).not.toHaveBeenCalled();
+
+    mockChangePassword.mockResolvedValueOnce(0);
+    fireEvent.click(screen.getByRole('button', { name: 'authSession.password.requirements.skip' }));
+    await waitFor(() => expect(mockChangePassword).toHaveBeenCalledTimes(2));
+    expect(mockChangePassword.mock.calls[1][0]).toEqual(expect.objectContaining({ skipBreachCheck: true, newPassword: 'Str0ngPassw' }));
   });
 
   it('gives each password an eye, and Show passwords reveals all three', async () => {

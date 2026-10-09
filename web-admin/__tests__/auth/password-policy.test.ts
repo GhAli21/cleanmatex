@@ -90,6 +90,13 @@ describe('assertPasswordAcceptable', () => {
     const admin = adminWithReuse({ data: false, error: null });
     await expect(assertPasswordAcceptable(admin, policy, 'u1', STRONG, async () => true)).rejects.toMatchObject({ code: 'BREACHED_PASSWORD' });
   });
+
+  it('allows a breached password when the user skipped that warning', async () => {
+    const admin = adminWithReuse({ data: false, error: null });
+    const breach = jest.fn(async () => true);
+    await expect(assertPasswordAcceptable(admin, policy, 'u1', STRONG, breach, true)).resolves.toBeUndefined();
+    expect(breach).not.toHaveBeenCalled();
+  });
 });
 
 describe('isPasswordBreached (k-anonymity)', () => {
@@ -200,6 +207,8 @@ describe('evaluatePasswordRules', () => {
     const failed = evaluatePasswordRules({ password: 'Admin2009', confirmation: 'Admin2009', serverRule: 'breached' });
     expect(failed.find((rule) => rule.id === 'breached')?.state).toBe('unmet');
     expect(failed.find((rule) => rule.id === 'reused')?.state).toBe('pending');
+    const skipped = evaluatePasswordRules({ password: 'Admin2009', confirmation: 'Admin2009', serverRule: 'breached', breachSkipped: true });
+    expect(skipped.find((rule) => rule.id === 'breached')?.state).toBe('skipped');
   });
 });
 

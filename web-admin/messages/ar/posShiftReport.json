@@ -27,6 +27,7 @@
   "openedAt": "وقت الفتح",
   "closedAt": "وقت الإغلاق",
   "status": "الحالة",
+  "ordersCreated": "الطلبات المُنشأة",
   "autoClosed": "أُغلقت بواسطة",
   "autoClosedRollover": "النظام (تغيّر يوم العمل)",
   "salesByTender": "المبيعات حسب وسيلة الدفع",

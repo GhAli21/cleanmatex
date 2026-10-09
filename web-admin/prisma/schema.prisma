@@ -1180,6 +1180,8 @@ model org_orders_mst {
   edit_block_until                            DateTime?                         @db.Timestamptz(6)
   /// Future STANDARD/EXPRESS commercial speed; NULL is unresolved. Never infer from priority or activate SAME_DAY here.
   service_speed                               String?
+  /// POS session that was open for this user and branch when the order was created. NULL outside an open POS session. Immutable once set.
+  created_pos_session_id                      String?                           @db.Uuid
   org_asm_tasks_mst                           org_asm_tasks_mst?
   org_dlv_stops_dtl                           org_dlv_stops_dtl[]
   org_fin_overpay_disp_dtl                    org_fin_overpay_disp_dtl[]
@@ -1202,6 +1204,7 @@ model org_orders_mst {
   org_order_preferences_dtl                   org_order_preferences_dtl[]
   org_order_status_history                    org_order_status_history[]
   org_order_taxes_dtl                         org_order_taxes_dtl[]
+  org_pos_sessions_mst                        org_pos_sessions_mst?             @relation(fields: [tenant_org_id, created_pos_session_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_ord_crt_pos_ses")
   sys_wf_profile_ver_mst                      sys_wf_profile_ver_mst?           @relation(fields: [wf_profile_version_id, wf_profile_id, wf_version_no], references: [version_id, profile_id, version_no], onDelete: Restrict, onUpdate: NoAction, map: "fk_ord_wf_prof_ver_scope")
   org_orders_mst                              org_orders_mst?                   @relation("org_orders_mstToorg_orders_mst", fields: [parent_order_id], references: [id], onUpdate: NoAction, map: "fk_order_parent_order")
   other_org_orders_mst                        org_orders_mst[]                  @relation("org_orders_mstToorg_orders_mst")
@@ -12422,6 +12425,7 @@ model org_pos_sessions_mst {
   org_fin_voucher_trx_lines_dtl org_fin_voucher_trx_lines_dtl[]
   org_order_payments_dtl        org_order_payments_dtl[]
   org_order_refunds_dtl         org_order_refunds_dtl[]
+  org_orders_mst                org_orders_mst[]
   org_pos_session_events_dtl    org_pos_session_events_dtl[]
   org_branches_mst              org_branches_mst                @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ops_branch")
   org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst?   @relation(fields: [cash_drawer_session_id], references: [id], onUpdate: NoAction, map: "fk_ops_draw_sess")

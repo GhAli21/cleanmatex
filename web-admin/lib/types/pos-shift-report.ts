@@ -1,5 +1,6 @@
 import type {
   PosSessionCurrencyTotal,
+  PosSessionOrdersCreated,
   PosSessionSummaryGroupedAmountRow,
   PosSessionVoucherLineSummaryRow,
 } from '@/lib/types/pos-session';
@@ -100,6 +101,8 @@ export interface PosShiftReportSnapshot {
   payments: { totals: PosSessionCurrencyTotal[]; byMethod: PosSessionSummaryGroupedAmountRow[] };
   refunds: { totals: PosSessionCurrencyTotal[]; byMethod: PosSessionSummaryGroupedAmountRow[] };
   voucherLines: { totals: PosSessionCurrencyTotal[]; byRole: PosSessionVoucherLineSummaryRow[] };
+  /** Present from snapshot version 2. Absent on Z-reports frozen before orders-created was recorded. */
+  ordersCreated?: PosSessionOrdersCreated;
   cash: { byCurrency: PosShiftCashRow[]; changeRounding: PosShiftRoundingRow[] };
   drawer: PosShiftDrawerFigures | null;
 }

@@ -15,8 +15,8 @@ export type PasswordRuleId =
   | 'breached'
   | 'reused'
 
-/** `pending` = not enough input yet, or a server rule that has not been checked for this value. */
-export type PasswordRuleState = 'met' | 'unmet' | 'pending'
+/** `pending` = not enough input yet, or a server rule that has not been checked for this value. `skipped` = the user kept a password the breach check warned about. */
+export type PasswordRuleState = 'met' | 'unmet' | 'pending' | 'skipped'
 
 export interface PasswordRuleResult {
   id: PasswordRuleId
@@ -34,6 +34,8 @@ export interface PasswordRuleInput {
   submitted?: boolean
   /** Server rejection of the password currently in the field. Cleared when that value changes. */
   serverRule?: 'breached' | 'reused' | null
+  /** The user chose to keep this password after the breach warning. */
+  breachSkipped?: boolean
   /** Include the breach row. Off when the tenant policy disables the check. */
   showBreachRule?: boolean
   /** Include the reuse row. Off when password history is disabled. */
@@ -86,7 +88,12 @@ export function evaluatePasswordRules(input: PasswordRuleInput): PasswordRuleRes
   }
 
   if (input.showBreachRule !== false) {
-    rules.push({ id: 'breached', state: input.serverRule === 'breached' ? 'unmet' : 'pending' })
+    const breached = input.breachSkipped
+      ? 'skipped'
+      : input.serverRule === 'breached'
+        ? 'unmet'
+        : 'pending'
+    rules.push({ id: 'breached', state: breached })
   }
   if (input.showReuseRule !== false) {
     rules.push({ id: 'reused', state: input.serverRule === 'reused' ? 'unmet' : 'pending' })

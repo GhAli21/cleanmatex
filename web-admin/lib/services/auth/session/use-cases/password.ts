@@ -47,7 +47,12 @@ export interface PasswordDeps {
   /** Tenant password policy (secure defaults when unreadable). */
   loadPolicy: (tenantId: string) => Promise<PasswordPolicy>
   /** Throws PasswordError when the candidate is weak, reused or breached. */
-  assertAcceptable: (authUserId: string, newPassword: string, policy: PasswordPolicy) => Promise<void>
+  assertAcceptable: (
+    authUserId: string,
+    newPassword: string,
+    policy: PasswordPolicy,
+    options?: { skipBreachCheck?: boolean }
+  ) => Promise<void>
   /** Minutes since the given session was created; null when unknown. */
   getSessionAgeMinutes: (tenantId: string, authSessionId: string | null) => Promise<number | null>
   /** Clear the forced-change flag after the user chose a new password. */
@@ -80,7 +85,7 @@ export async function changeOwnPassword(
   admin: AdminClient,
   deps: PasswordDeps,
   actor: PasswordActor,
-  input: { currentPassword?: string; newPassword: string }
+  input: { currentPassword?: string; newPassword: string; skipBreachCheck?: boolean }
 ): Promise<{ revokedOtherSessions: number; mode: PasswordChangeMode }> {
   const policy = await deps.loadPolicy(actor.tenantId)
   const forced = actor.mustChange === true
@@ -135,7 +140,10 @@ export async function changeOwnPassword(
   }
 
   // ─── Strength / history / breach rules, then the write ────────────────────
-  await deps.assertAcceptable(actor.userId, input.newPassword, policy)
+  // skipBreachCheck is an explicit choice on this request after the warning was shown. Reuse still blocks.
+  await deps.assertAcceptable(actor.userId, input.newPassword, policy, {
+    skipBreachCheck: input.skipBreachCheck === true,
+  })
 
   const { errorMessage } = await deps.updatePassword(input.newPassword)
   if (errorMessage) {
@@ -161,7 +169,12 @@ export async function changeOwnPassword(
     ipAddress: actor.ipAddress,
     userAgent: actor.userAgent,
     reasonCode: 'USER_CHANGE',
-    details: { mode, changed_by: 'SELF', revoked_other_sessions: revoked },
+    details: {
+      mode,
+      changed_by: 'SELF',
+      revoked_other_sessions: revoked,
+      skipped_breach_check: input.skipBreachCheck === true,
+    },
   })
   await deps.notifyChanged({ authUserId: actor.userId, tenantId: actor.tenantId, actor: 'self' })
 

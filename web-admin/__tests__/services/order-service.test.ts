@@ -10,6 +10,11 @@ const mockSupabaseClient = {
   rpc: jest.fn(),
 };
 
+jest.mock('@/lib/services/order-created-pos-session', () => ({
+  findOpenPosSessionIdForOrder: jest.fn().mockResolvedValue(null),
+  stampCreatedPosSession: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
 }));

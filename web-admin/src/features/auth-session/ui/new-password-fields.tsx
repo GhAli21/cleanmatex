@@ -32,6 +32,10 @@ interface NewPasswordFieldsProps {
   compareCurrent?: boolean
   /** Server rejection of the password currently typed. Parent clears it when the value changes. */
   serverRule?: 'breached' | 'reused' | null
+  /** The user pressed Skip on the breach warning for this password. */
+  breachSkipped?: boolean
+  /** Lets the user keep a password the breach check warned about. */
+  onSkipBreach?: () => void
   showBreachRule?: boolean
   showReuseRule?: boolean
   /** Controlled reveal for the new-password field. Omit both callbacks to keep reveal inside this component. */
@@ -60,6 +64,8 @@ export function NewPasswordFields({
   currentPassword,
   compareCurrent,
   serverRule,
+  breachSkipped,
+  onSkipBreach,
   showBreachRule,
   showReuseRule,
   passwordVisible,
@@ -116,6 +122,9 @@ export function NewPasswordFields({
         compareCurrent={compareCurrent}
         submitted={showErrors}
         serverRule={serverRule}
+        breachSkipped={breachSkipped}
+        onSkipBreach={onSkipBreach}
+        disabled={disabled}
         showBreachRule={showBreachRule}
         showReuseRule={showReuseRule}
       />

@@ -20322,6 +20322,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_info: string | null
+          created_pos_session_id: string | null
           credit_limit_override_at: string | null
           credit_limit_override_by: string | null
           credit_reversal_reopens_due_amount: number
@@ -20501,6 +20502,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          created_pos_session_id?: string | null
           credit_limit_override_at?: string | null
           credit_limit_override_by?: string | null
           credit_reversal_reopens_due_amount?: number
@@ -20680,6 +20682,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          created_pos_session_id?: string | null
           credit_limit_override_at?: string | null
           credit_limit_override_by?: string | null
           credit_reversal_reopens_due_amount?: number
@@ -20832,6 +20835,13 @@ export type Database = {
           zero_rated_amount?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_ord_crt_pos_ses"
+            columns: ["tenant_org_id", "created_pos_session_id"]
+            isOneToOne: false
+            referencedRelation: "org_pos_sessions_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
           {
             foreignKeyName: "fk_ord_wf_prof_ver_scope"
             columns: ["wf_profile_version_id", "wf_profile_id", "wf_version_no"]
@@ -41702,6 +41712,48 @@ export type Database = {
       cmx_get_allowed_transitions: {
         Args: { p_from?: string; p_order: string; p_tenant: string }
         Returns: Json
+      }
+      cmx_import_org_ntf_prov_tmpl: {
+        Args: {
+          p_account_id: string
+          p_actor: string
+          p_approval_evidence: Json
+          p_approval_fresh_until: string
+          p_category_code: string
+          p_content_sid: string
+          p_content_type_code: string
+          p_external_name: string
+          p_external_revision_id: string
+          p_external_template_id: string
+          p_locale_id: string
+          p_observation_evidence: Json
+          p_observed_at: string
+          p_observed_status: string
+          p_observed_status_raw: string
+          p_occurrence_count: number
+          p_provenance: string
+          p_provider_content_hash: string
+          p_provider_language_code: string
+          p_provider_param_count: number
+          p_provider_snapshot: Json
+          p_provider_status_at_import: string
+          p_provider_status_raw: string
+          p_registration_key: string
+          p_rejection_code: string
+          p_rejection_evidence: Json
+          p_rejection_reason: string
+          p_sender_id: string
+          p_submitted_at: string
+          p_tenant_org_id: string
+          p_unique_var_count: number
+          p_valid_until_at_import: string
+          p_verified_at: string
+        }
+        Returns: {
+          registration_id: string
+          revision_id: string
+          revision_no: number
+        }[]
       }
       cmx_import_sys_ntf_prov_tmpl: {
         Args: {

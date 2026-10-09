@@ -36,6 +36,8 @@ interface OrderWorkspaceScreenProps {
   locale: string;
   /** Safe legacy-detail destination used when an operator leaves the workspace. */
   returnUrl: string;
+  /** Session number of the POS session that created this order. Null when it was not recorded. */
+  createdPosSessionNo?: string | null;
   /** Optional label that preserves the caller's navigation context. */
   returnLabel?: string;
   /** Section selected when the URL has no valid workspace section. */
@@ -89,6 +91,7 @@ export function OrderWorkspaceScreen({
   locale,
   returnUrl,
   returnLabel,
+  createdPosSessionNo = null,
   initialSection,
   workflowJourney,
 }: OrderWorkspaceScreenProps) {
@@ -176,6 +179,11 @@ export function OrderWorkspaceScreen({
               </div>
               <p className="mt-2 text-base font-medium text-foreground">{customerName}</p>
               {order.received_at ? <p className="mt-1 text-sm text-muted-foreground">{t('receivedAt', { value: new Date(String(order.received_at)).toLocaleString(locale === 'ar' ? 'ar' : 'en') })}</p> : null}
+              <p className="mt-1 text-sm text-muted-foreground">
+                {createdPosSessionNo
+                  ? t('createdInSession', { session: createdPosSessionNo })
+                  : t('createdSessionUnknown')}
+              </p>
             </div>
             <div className={isRTL ? 'text-left' : 'text-right'}>
               <p className="text-xs font-medium text-muted-foreground">{t('orderTotal')}</p>

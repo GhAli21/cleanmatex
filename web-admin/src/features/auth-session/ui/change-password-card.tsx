@@ -41,6 +41,7 @@ export function ChangePasswordCard() {
   const [needsReauth, setNeedsReauth] = useState(false)
   const [revokedOthers, setRevokedOthers] = useState<number | null>(null)
   const [serverRule, setServerRule] = useState<'breached' | 'reused' | null>(null)
+  const [breachSkipped, setBreachSkipped] = useState(false)
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -55,10 +56,12 @@ export function ChangePasswordCard() {
   const showReuseRule = (policy.data?.historyCount ?? 1) > 0
   const allVisible = (requireCurrent ? showCurrent : true) && showNew && showConfirm
 
-  const clearServerRule = () => setServerRule(null)
+  const clearServerRule = () => {
+    setServerRule(null)
+    setBreachSkipped(false)
+  }
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault()
+  const requestChange = (skipBreachCheck: boolean) => {
     if (submitLock.current || mutation.isPending) return
     setSubmitted(true)
     setCurrentError(undefined)
@@ -73,7 +76,11 @@ export function ChangePasswordCard() {
 
     submitLock.current = true
     mutation.mutate(
-      { currentPassword: requireCurrent ? current : undefined, newPassword: password },
+      {
+        currentPassword: requireCurrent ? current : undefined,
+        newPassword: password,
+        skipBreachCheck: skipBreachCheck || undefined,
+      },
       {
         onSuccess: (revoked) => {
           dismissErrorToast.current?.()
@@ -83,6 +90,7 @@ export function ChangePasswordCard() {
           setConfirmation('')
           setSubmitted(false)
           setServerRule(null)
+          setBreachSkipped(false)
           setRevokedOthers(revoked)
         },
         onError: (error) => {
@@ -108,6 +116,16 @@ export function ChangePasswordCard() {
         },
       }
     )
+  }
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    requestChange(breachSkipped)
+  }
+
+  const handleSkipBreach = () => {
+    setBreachSkipped(true)
+    requestChange(true)
   }
 
   return (
@@ -168,6 +186,8 @@ export function ChangePasswordCard() {
             currentPassword={current}
             compareCurrent={requireCurrent}
             serverRule={serverRule}
+            breachSkipped={breachSkipped}
+            onSkipBreach={handleSkipBreach}
             showBreachRule={showBreachRule}
             showReuseRule={showReuseRule}
             passwordVisible={showNew}

@@ -56,6 +56,8 @@
     "printAndDetails": "طباعة وتفاصيل",
     "unknownCustomer": "بيانات العميل غير متاحة",
     "receivedAt": "تم الاستلام {value}",
+    "createdInSession": "أُنشئ في جلسة نقطة البيع {session}",
+    "createdSessionUnknown": "لم تُسجَّل جلسة نقطة البيع التي أنشأت الطلب",
     "orderTotal": "إجمالي الطلب",
     "balanceDue": "الرصيد المستحق: {value}",
     "workflow": "سير العمل",

@@ -90,8 +90,18 @@ jest.mock('@/lib/services/customer-receipt-excess-executor.service', () => ({
 }));
 jest.mock('@/lib/services/payment-config.service', () => ({ listEffectivePaymentMethodConfigs: (...args: unknown[]) => mockMethodConfigs(...args) }));
 jest.mock('@/lib/services/cash-drawer.service', () => ({ resolveCashDrawerSessionId: jest.fn().mockResolvedValue('drawer-1') }));
+jest.mock('@/lib/services/order-created-pos-session', () => ({
+  stampCreatedPosSession: jest.fn().mockResolvedValue(undefined),
+  findOpenPosSessionIdForOrder: jest.fn().mockResolvedValue(null),
+}));
 jest.mock('@/lib/services/pos-session.service', () => ({
-  assertOpenPosSessionForFinanceTx: jest.fn().mockResolvedValue(undefined), resolvePosSessionForFinanceTx: jest.fn().mockResolvedValue(null), autoLinkDrawerTx: jest.fn().mockResolvedValue(undefined),
+  assertOpenPosSessionForFinanceTx: jest.fn().mockResolvedValue(undefined),
+  resolvePosSessionForFinanceTx: jest.fn().mockResolvedValue({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    status: 'OPEN',
+    branch_id: '44444444-4444-4444-8444-444444444444',
+  }),
+  autoLinkDrawerTx: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/lib/utils/logger', () => ({ logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn() } }));
 
@@ -164,6 +174,24 @@ export function resetSubmitHarness(): void {
     total_amount: '20.000', total_paid_amount: '20.000', total_credit_applied_amount: '0.000',
     outstanding_amount: '0.000', payment_status: 'paid', payment_type_code: 'PAY_IN_ADVANCE' });
   mockInitialCommit.mockResolvedValue(1);
+  const posSessionMocks = jest.requireMock('@/lib/services/pos-session.service') as {
+    resolvePosSessionForFinanceTx: jest.Mock;
+    assertOpenPosSessionForFinanceTx: jest.Mock;
+    autoLinkDrawerTx: jest.Mock;
+  };
+  posSessionMocks.resolvePosSessionForFinanceTx.mockResolvedValue({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    status: 'OPEN',
+    branch_id: branchId,
+  });
+  posSessionMocks.assertOpenPosSessionForFinanceTx.mockResolvedValue(undefined);
+  posSessionMocks.autoLinkDrawerTx.mockResolvedValue(undefined);
+  const createdSessionMocks = jest.requireMock('@/lib/services/order-created-pos-session') as {
+    stampCreatedPosSession: jest.Mock;
+    findOpenPosSessionIdForOrder: jest.Mock;
+  };
+  createdSessionMocks.stampCreatedPosSession.mockResolvedValue(undefined);
+  createdSessionMocks.findOpenPosSessionIdForOrder.mockResolvedValue(null);
   mockMethodConfigs.mockImplementation(async ({ methodCodes }: { methodCodes: string[] }) => methodCodes.map((code) => ({
     id: `method-${code}`, payment_method_code: code,
     payment_nature: code === 'GIFT_CARD' ? 'CREDIT_APPLICATION' : 'REAL_PAYMENT',

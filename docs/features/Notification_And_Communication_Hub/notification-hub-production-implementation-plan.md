@@ -1,6 +1,6 @@
 # Notification Hub — Production Implementation Plan
 
-**Status:** P1 safety and P2 provider/template data foundations are applied. HQ route-control, redacted provider-registration discovery, atomic Twilio import, controlled import candidates, and the first bilingual HQ import form are implemented. Registration/revision review, slot mapping, tenant administration, additional provider connectors, and runtime cutover remain planned.
+**Status:** P1 safety and P2 provider/template data foundations are applied. HQ route-control, redacted provider-registration discovery, atomic Twilio import, controlled import candidates, bilingual import, registration/revision review, and immutable slot mapping are implemented. Tenant administration, additional provider connectors, scheduled refresh, and runtime cutover remain planned.
 **Date:** 2026-10-09 (Asia/Muscat).
 **Scope:** CleanMateX tenant app, Platform HQ API/UI, platform workers, shared notification schema.
 **Canonical planning authority:** this document in docs/plan/.
@@ -17,9 +17,12 @@ The account must be an active verified `TWILIO` / `WHATSAPP` platform account wh
 
 The accompanying protected candidate endpoint `GET /notifications/provider-template-registrations/import/twilio/candidates?accountId=` exposes only verified active Twilio WhatsApp accounts, their optional verified senders, and active canonical WhatsApp locales. It intentionally excludes credential references, account configuration, evidence, and provider snapshots so the UI never needs internal identifiers pasted by an operator.
 
-### Pending immutable binding definition
+### Tenant-private import command pending application
 
-Migration `0588_ntf_platform_template_binding_command.sql` drafts `cmx_define_sys_ntf_prov_tmpl_bindings`. It accepts one complete binding array, validates its count and unique ordered positions against the imported provider revision, permits only variables owned by the represented logical template version, and allows first definition only. Corrections require a new imported provider revision. Browser roles are denied function execution; the later HQ command records the operator audit event.
+Migration `0592_ntf_private_template_import_command.sql` is applied and generated database types expose `cmx_import_org_ntf_prov_tmpl`. The command takes an explicit tenant identity, validates the active verified tenant account, optional sender and shared WhatsApp locale with direct tenant predicates, then atomically writes the mutable registration projection, a new immutable tenant revision and current pointer. It is restricted to `service_role`; browser roles cannot fabricate provider evidence. The next dependency is an account-bound tenant credential store/resolver. The existing encrypted BYO configuration is scoped only by tenant, channel, and provider, so it cannot safely resolve credentials for one of several tenant-owned provider accounts. The platform Twilio importer deliberately accepts only deployment-approved platform credentials and must never be reused for a tenant BYO account.
+### Immutable binding definition
+
+Migration `0588_ntf_platform_template_binding_command.sql` is applied and provides `cmx_define_sys_ntf_prov_tmpl_bindings`. It accepts one complete binding array, validates its count and unique ordered positions against the imported provider revision, permits only variables owned by the represented logical template version, and allows first definition only. Corrections require a new imported provider revision. Browser roles are denied function execution; the HQ API records the operator audit event. The Providers screen presents a redacted registration/revision review dialog and requires a variable or declared static value for each connector-derived slot before it submits the command. Revisions imported before connector-derived slot metadata was introduced must be re-imported before mapping. The managed Twilio refresh command is now implemented for a current revision: it reuses only the registration-owned verified account, locale, sender and Content SID, fetches current provider evidence server-side, and records a new immutable revision. Refresh never edits prior approval or binding evidence; the new revision requires review and complete binding definition.
 
 ## 1. Outcome and scope
 

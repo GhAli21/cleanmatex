@@ -132,6 +132,7 @@ function posSessionWithContext(overrides: Partial<PosSessionWithContext> = {}): 
     cash_drawer_name: 'Main Cash Drawer',
     cash_drawer_session_no: 'CDS-001',
     cash_drawer_session_status: 'OPEN',
+    orders_created_count: 0,
     cash_drawer_opening_balance: null,
     cash_drawer_total_in: null,
     cash_drawer_total_out: null,
@@ -464,7 +465,8 @@ describe('pos-session.service', () => {
       .mockResolvedValueOnce([{ currency_code: 'OMR', amount: 25, count: 2 }])
       .mockResolvedValueOnce([
         { line_role: 'ORDER_PAYMENT', payment_method_code: 'CASH', direction: 'DEBIT', currency_code: 'OMR', amount: 15, count: 1 },
-      ]);
+      ])
+      .mockResolvedValueOnce([{ currency_code: 'OMR', amount: '12.5000', count: 3 }]);
 
     const summary = await getPosSessionSummary({
       tenantId,
@@ -495,6 +497,10 @@ describe('pos-session.service', () => {
       },
     ]);
     expect(summary.drawerCash).toBeNull();
+    expect(summary.ordersCreated).toEqual({
+      count: 3,
+      totals: [{ currencyCode: 'OMR', amount: '12.5000', count: 3 }],
+    });
   });
 
   it('starts a linked drawer summary at the opening balance and ends at the live final balance', async () => {
@@ -515,6 +521,7 @@ describe('pos-session.service', () => {
         opening_balance: '62.2500',
         closing_counted: null,
       }])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{
         currency_code: 'OMR',
         fin_in: { toString: () => '2.2100' },
@@ -543,6 +550,7 @@ describe('pos-session.service', () => {
         { currency_code: 'OMR', amount: '25.5000', count: 2 },
         { currency_code: 'USD', amount: '10.0000', count: 1 },
       ])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])

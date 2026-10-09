@@ -61,7 +61,12 @@ export async function fetchPasswordPolicy(): Promise<PasswordPolicyInfo> {
  *
  * @returns How many other sessions were signed out
  */
-export async function changePassword(input: { currentPassword?: string; newPassword: string }): Promise<number> {
+export async function changePassword(input: {
+  currentPassword?: string
+  newPassword: string
+  /** Set after the user skips the breached-password warning for this value. */
+  skipBreachCheck?: boolean
+}): Promise<number> {
   const data = await post<{ revokedOtherSessions: number }>('/api/auth/password/change', input)
   return data?.revokedOtherSessions ?? 0
 }

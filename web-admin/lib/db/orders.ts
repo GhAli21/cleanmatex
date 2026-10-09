@@ -7,6 +7,7 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+import { stampCreatedPosSession } from '@/lib/services/order-created-pos-session';
 import type {
   Order,
   OrderItem,
@@ -83,40 +84,51 @@ export async function createOrder(
     express: 0.5,
   }[input.priority];
 
-  // Create order
-  const order = await prisma.org_orders_mst.create({
-    data: {
-      tenant_org_id: tenantOrgId,
-      customer_id: input.customerId,
-      branch_id: input.branchId,
-      order_no: orderNumber,
-      order_type_id: input.orderType,
-      service_category_code: input.serviceCategory,
-      bag_count: input.bagCount,
-      priority: input.priority,
-      priority_multiplier: priorityMultiplier,
-      preparation_status: 'pending',
-      status: 'intake',
-      customer_notes: input.customerNotes,
-      internal_notes: input.internalNotes,
-      photo_urls: input.photoUrls || [],
-      qr_code: qrCode,
-      barcode: barcode,
-      received_at: new Date(),
-      order_source_code: 'web_admin',
-      physical_intake_status: 'received',
-      total_items: 0,
-      subtotal_amount: 0,
-      items_base_amount: 0,
-      total_discount_amount: 0,
-      total_tax_amount: 0,
-      total_amount: 0,
-      total_paid_amount: 0,
-      outstanding_amount: 0,
-      payment_status: 'pending',
-      created_by: input.createdBy ?? undefined,
-      rec_status: 1,
-    },
+  // Create order and stamp the creating POS session in one transaction.
+  const order = await prisma.$transaction(async (tx) => {
+    const created = await tx.org_orders_mst.create({
+      data: {
+        tenant_org_id: tenantOrgId,
+        customer_id: input.customerId,
+        branch_id: input.branchId,
+        order_no: orderNumber,
+        order_type_id: input.orderType,
+        service_category_code: input.serviceCategory,
+        bag_count: input.bagCount,
+        priority: input.priority,
+        priority_multiplier: priorityMultiplier,
+        preparation_status: 'pending',
+        status: 'intake',
+        customer_notes: input.customerNotes,
+        internal_notes: input.internalNotes,
+        photo_urls: input.photoUrls || [],
+        qr_code: qrCode,
+        barcode: barcode,
+        received_at: new Date(),
+        order_source_code: 'web_admin',
+        physical_intake_status: 'received',
+        total_items: 0,
+        subtotal_amount: 0,
+        items_base_amount: 0,
+        total_discount_amount: 0,
+        total_tax_amount: 0,
+        total_amount: 0,
+        total_paid_amount: 0,
+        outstanding_amount: 0,
+        payment_status: 'pending',
+        created_by: input.createdBy ?? undefined,
+        rec_status: 1,
+      },
+    });
+
+    await stampCreatedPosSession(tx, {
+      tenantId: tenantOrgId,
+      orderId: created.id,
+      userId: input.createdBy,
+      branchId: input.branchId,
+    });
+
+    return created;
   });
 
   return withCanonicalOrderTotalAliases(order as unknown as Record<string, unknown>) as unknown as Order;

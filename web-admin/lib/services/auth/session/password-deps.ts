@@ -62,8 +62,8 @@ export function createPasswordDeps(
 
     loadPolicy: (tenantId) => loadPasswordPolicy(admin, tenantId),
 
-    assertAcceptable: (authUserId, newPassword, policy) =>
-      assertPasswordAcceptable(admin, policy, authUserId, newPassword),
+    assertAcceptable: (authUserId, newPassword, policy, options) =>
+      assertPasswordAcceptable(admin, policy, authUserId, newPassword, undefined, options?.skipBreachCheck === true),
 
     async getSessionAgeMinutes(tenantId, authSessionId) {
       if (!authSessionId) return null

@@ -22,6 +22,8 @@ export interface PosSessionContextFields {
   cash_drawer_name: string | null;
   cash_drawer_session_no: string | null;
   cash_drawer_session_status: string | null;
+  /** Orders whose creating session is this POS session. 0 when the count was not loaded. */
+  orders_created_count: number;
   /** Counted opening cash when a count exists, otherwise the expected carry-forward. */
   cash_drawer_opening_balance: number | null;
   /** Drawer-ledger cash in since this session opened (voucher IN + custody IN). Null when no drawer is linked. */
@@ -218,9 +220,16 @@ export interface PosSessionDrawerCashStatement {
   finalBalance: string | null;
 }
 
+/** Orders inserted while this POS session was the creating session. Value is the orders' current total. */
+export interface PosSessionOrdersCreated {
+  count: number;
+  totals: PosSessionCurrencyTotal[];
+}
+
 /** Financial roll-up for a session without mutating its settled facts. */
 export interface PosSessionSummary {
   session: PosSessionRow;
+  ordersCreated: PosSessionOrdersCreated;
   drawerCash: PosSessionDrawerCashStatement | null;
   payments: {
     totals: PosSessionCurrencyTotal[];

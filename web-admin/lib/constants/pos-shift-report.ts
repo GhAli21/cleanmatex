@@ -12,8 +12,8 @@ export const POS_SHIFT_REPORT_KIND = {
 
 export type PosShiftReportKind = (typeof POS_SHIFT_REPORT_KIND)[keyof typeof POS_SHIFT_REPORT_KIND];
 
-/** Layout version of the snapshot JSON; bump when the shape changes so old Z-reports stay readable. */
-export const POS_SHIFT_SNAPSHOT_VERSION = 1;
+/** Layout version of the snapshot JSON. Version 2 adds ordersCreated. Older stored Z-reports stay version 1 and omit that field. */
+export const POS_SHIFT_SNAPSHOT_VERSION = 2;
 
 /** How a shift ended — mirrors `chk_opszr_status`. */
 export const POS_SHIFT_Z_SESSION_STATUS = {

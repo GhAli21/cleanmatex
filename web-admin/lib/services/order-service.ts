@@ -41,6 +41,7 @@ import { PREFS_LEVEL, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferenc
 import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
+import { findOpenPosSessionIdForOrder } from '@/lib/services/order-created-pos-session';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/lib/services/order-source-policy';
 import { buildDiscountLinesFromOrderInput, insertDiscountLines, insertDiscountLinesTx } from '@/lib/db/order-discounts';
@@ -807,6 +808,14 @@ export class OrderService {
       }
       if (customerDetails != null && Object.keys(customerDetails).length > 0) {
         insertPayload.customer_details = customerDetails;
+      }
+      if (userId && branchId) {
+        const createdPosSessionId = await findOpenPosSessionIdForOrder(prisma, {
+          tenantId,
+          userId,
+          branchId,
+        });
+        if (createdPosSessionId) insertPayload.created_pos_session_id = createdPosSessionId;
       }
 
       // Create order
@@ -1935,11 +1944,20 @@ export class OrderService {
         };
       }
 
+      const createdPosSessionId = userId && parentOrder.branch_id
+        ? await findOpenPosSessionIdForOrder(prisma, {
+            tenantId,
+            userId,
+            branchId: parentOrder.branch_id,
+          })
+        : null;
+
       // Create suborder
       const { data: suborder, error: suborderError } = await supabase
         .from('org_orders_mst')
         .insert({
           tenant_org_id: tenantId,
+          ...(createdPosSessionId ? { created_pos_session_id: createdPosSessionId } : {}),
           branch_id: parentOrder.branch_id,
           customer_id: parentOrder.customer_id,
           order_type_id: parentOrder.order_type_id,
@@ -2808,11 +2826,20 @@ export class OrderService {
       const timestamp = Date.now().toString().slice(-6);
       const newOrderNo = `${originalOrder.order_no}-S${timestamp}`;
 
+      const createdPosSessionId = userId && originalOrder.branch_id
+        ? await findOpenPosSessionIdForOrder(prisma, {
+            tenantId,
+            userId,
+            branchId: originalOrder.branch_id,
+          })
+        : null;
+
       // Create sub-order
       const { data: suborder, error: createError } = await supabase
         .from('org_orders_mst')
         .insert({
           tenant_org_id: tenantId,
+          ...(createdPosSessionId ? { created_pos_session_id: createdPosSessionId } : {}),
           order_no: newOrderNo,
           customer_id: originalOrder.customer_id,
           branch_id: originalOrder.branch_id,

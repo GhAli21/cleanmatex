@@ -106,6 +106,8 @@
     "refunds": "Refunds",
     "voucherLines": "Voucher lines",
     "finalBalance": "Final balance",
+    "ordersCreated": "Orders created",
+    "ordersCreatedValue": "Current value",
     "total": "Total",
     "count": "Count",
     "rows": "rows",
@@ -116,9 +118,17 @@
     "loading": "Checking POS session...",
     "open": "POS session {sessionNo} is active for this branch.",
     "paused": "POS session {sessionNo} is paused. Resume it before posting POS finance rows.",
-    "none": "No POS session is open yet. It will be auto-opened when you submit this POS order.",
+    "none": "No POS session is open. Start one in the Session Hub before creating an order.",
     "branchConflict": "You already have an active POS session in another branch. Close it before starting POS in this branch.",
     "manage": "Manage sessions"
+  },
+  "newOrderGate": {
+    "noneTitle": "Start a POS session first",
+    "noneBody": "Choose the branch, then start a POS session in this hub. The order uses that session's branch, and you can add items after the session is open.",
+    "pausedTitle": "Resume the POS session",
+    "pausedBody": "This POS session is paused. Resume it here before creating an order. The order stays on this session's branch.",
+    "errorTitle": "POS session could not be checked",
+    "errorBody": "Refresh the Session Hub, then start or resume an open POS session before creating an order."
   },
   "hub": {
     "title": "Session Hub",
@@ -152,6 +162,7 @@
     "drawerNoOpenSession": "No open drawer session",
     "useOpenDrawer": "Use open drawer",
     "openingBalance": "Opening balance",
+    "ordersCreated": "Orders created",
     "totalIn": "Total in",
     "totalOut": "Total out",
     "currentBalance": "Current balance",

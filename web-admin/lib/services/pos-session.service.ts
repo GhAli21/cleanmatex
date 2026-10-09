@@ -44,10 +44,10 @@ import type {
 } from '@/lib/types/pos-session';
 
 import { PosSessionError } from '@/lib/services/pos-session-error';
-import { loadPosSessionRollup } from '@/lib/services/pos-session-rollup';
+import { loadPosSessionOrdersCreated, loadPosSessionRollup } from '@/lib/services/pos-session-rollup';
 import { generateShiftZReportTx } from '@/lib/services/pos-shift-report.service';
 
-export { PosSessionError, loadPosSessionRollup };
+export { PosSessionError, loadPosSessionOrdersCreated, loadPosSessionRollup };
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -142,6 +142,11 @@ function normalizeSessionListRow(row: PosSessionListRow): PosSessionListRow {
   return normalizeSessionWithContext(row);
 }
 
+function normalizeCount(value: unknown): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function normalizeOptionalAmount(value: unknown): number | null {
   if (value == null || value === '') return null;
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -152,6 +157,7 @@ function normalizeSessionWithContext(row: PosSessionWithContext): PosSessionWith
   return {
     ...row,
     ...normalizeSession(row),
+    orders_created_count: normalizeCount(row.orders_created_count),
     cash_drawer_opening_balance: normalizeOptionalAmount(row.cash_drawer_opening_balance),
     cash_drawer_total_in: normalizeOptionalAmount(row.cash_drawer_total_in),
     cash_drawer_total_out: normalizeOptionalAmount(row.cash_drawer_total_out),
@@ -268,6 +274,13 @@ async function getActiveSessionForUserWithContext(
       ${drawerSessionStatusSql},
       ${drawerOpeningBalanceSql},
       ${drawerCurrencySql},
+      (
+        SELECT COUNT(*)::int
+        FROM public.org_orders_mst o
+        WHERE o.tenant_org_id = ps.tenant_org_id
+          AND o.created_pos_session_id = ps.id
+          AND COALESCE(o.is_active, TRUE) = TRUE
+      ) AS orders_created_count,
       NULL::text AS user_display_name,
       NULL::text AS opened_by_display_name,
       NULL::text AS paused_by_display_name,
@@ -1010,11 +1023,12 @@ export async function getPosSessionSummary(input: {
       throw new PosSessionError('POS_SESSION_NOT_FOUND', 'POS session was not found.', 404);
     }
 
-    const [rollup, drawerCash] = await Promise.all([
+    const [rollup, drawerCash, ordersCreated] = await Promise.all([
       loadPosSessionRollup(prisma, input.tenantId, input.posSessionId),
       loadPosSessionDrawerCash(prisma, input.tenantId, session),
+      loadPosSessionOrdersCreated(prisma, input.tenantId, input.posSessionId),
     ]);
-    return { session, drawerCash, ...rollup };
+    return { session, drawerCash, ordersCreated, ...rollup };
   });
 }
 
@@ -1450,7 +1464,14 @@ export async function listPosSessions(input: {
           cds.session_no AS cash_drawer_session_no,
           cds.status AS cash_drawer_session_status,
           COALESCE(cdb.opening_counted, cds.opening_float_amount) AS cash_drawer_opening_balance,
-          cd.currency_code AS cash_drawer_currency_code
+          cd.currency_code AS cash_drawer_currency_code,
+          (
+            SELECT COUNT(*)::int
+            FROM public.org_orders_mst o
+            WHERE o.tenant_org_id = ps.tenant_org_id
+              AND o.created_pos_session_id = ps.id
+              AND COALESCE(o.is_active, TRUE) = TRUE
+          ) AS orders_created_count
           , COALESCE(u.display_name, u.name, u.email) AS user_display_name
           , COALESCE(opened_by_user.display_name, opened_by_user.name, opened_by_user.email) AS opened_by_display_name
           , COALESCE(paused_by_user.display_name, paused_by_user.name, paused_by_user.email) AS paused_by_display_name

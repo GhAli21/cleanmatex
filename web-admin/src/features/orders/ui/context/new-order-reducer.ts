@@ -617,6 +617,25 @@ export function newOrderReducer(
         selectedPieceId: null,
       };
 
+    case 'ALIGN_CASHIER_SESSION': {
+      const nextBranch = action.payload.branchId ?? state.branchId;
+      if (action.payload.reset) {
+        return {
+          ...initialState,
+          branchId: nextBranch,
+          categories: state.categories,
+          products: state.products,
+          selectedCategory: state.selectedCategory,
+          isInitialLoading: false,
+          categoriesLoading: false,
+          productsLoading: false,
+          selectedPieceId: null,
+        };
+      }
+      if (state.branchId === nextBranch) return state;
+      return { ...state, branchId: nextBranch };
+    }
+
     case 'ENTER_EDIT_MODE':
       return {
         ...state,

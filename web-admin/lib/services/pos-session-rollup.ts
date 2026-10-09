@@ -3,7 +3,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import type { prisma } from '@/lib/db/prisma';
 import { toMoneyString } from '@/lib/utils/money';
-import type { PosSessionSummary } from '@/lib/types/pos-session';
+import type { PosSessionOrdersCreated, PosSessionSummary } from '@/lib/types/pos-session';
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -41,7 +41,7 @@ export async function loadPosSessionRollup(
   db: Pick<PrismaTx, '$queryRaw'>,
   tenantId: string,
   posSessionId: string
-): Promise<Omit<PosSessionSummary, 'session' | 'drawerCash'>> {
+): Promise<Omit<PosSessionSummary, 'session' | 'drawerCash' | 'ordersCreated'>> {
   const [paymentTotals, paymentGroups, refundTotals, refundGroups, voucherTotals, voucherGroups] =
     await Promise.all([
       // A4-1 — no LIMIT: a mixed-currency session must return one row per
@@ -154,5 +154,33 @@ export async function loadPosSessionRollup(
         count: row.count,
       })),
     },
+  };
+}
+
+/** Orders created in this POS session. Count is stable; amounts are the orders' current totals. */
+export async function loadPosSessionOrdersCreated(
+  db: Pick<PrismaTx, '$queryRaw'>,
+  tenantId: string,
+  posSessionId: string,
+): Promise<PosSessionOrdersCreated> {
+  const rows = await db.$queryRaw<Array<{ currency_code: string | null; amount: string; count: number }>>(Prisma.sql`
+    SELECT currency_code,
+           COALESCE(SUM(total_amount), 0)::text AS amount,
+           COUNT(*)::int AS count
+    FROM public.org_orders_mst
+    WHERE tenant_org_id = ${tenantId}::uuid
+      AND created_pos_session_id = ${posSessionId}::uuid
+      AND COALESCE(is_active, TRUE) = TRUE
+    GROUP BY currency_code
+    ORDER BY currency_code NULLS LAST
+  `);
+  const totals = rows.map((row) => ({
+    currencyCode: row.currency_code,
+    amount: toMoneyString(row.amount),
+    count: Number(row.count) || 0,
+  }));
+  return {
+    count: totals.reduce((sum, row) => sum + row.count, 0),
+    totals,
   };
 }
