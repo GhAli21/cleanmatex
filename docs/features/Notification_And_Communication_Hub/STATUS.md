@@ -7,9 +7,11 @@
 - [x] P1 durable dispatch/receipt safety and P2 platform provider-account, sender, localized-contract, provider-registration, route-assignment, and private-resource foundations are implemented.
 - [x] HQ route administration: tenant-scoped create, optimistic draft edit, activate, suspend, and retire APIs use canonical HQ permissions, audit logs, ownership-branch validation, and approved account/sender/template/locale/binding checks for platform and private routes.
 - [x] HQ provider-template registration discovery APIs expose redacted platform registrations and immutable revision metadata for route configuration.
-- [ ] Migration draft `0586_ntf_platform_template_import_command.sql` adds the service-role-only atomic persistence boundary needed for provider-authenticated platform imports. It is awaiting operator review and application; no API/UI calls it yet.
+- [x] Migration `0586_ntf_platform_template_import_command.sql` is applied. It provides the service-role-only atomic persistence boundary for authenticated platform provider-template imports.
 - [x] HQ can import a selected Twilio WhatsApp Content SID through a server-only authenticated connector. The request contains only resource selectors; the connector fetches the Content and approval records, then persists the redacted observation through `0586`.
-- [ ] Additional provider connectors, scheduled synchronization, tenant-private imports, explicit binding administration, and HQ/tenant configuration UIs remain pending.
+- [x] HQ Providers includes the bilingual controlled Twilio import form, backed by redacted verified account/sender/locale candidates; the platform API module imports `AuditModule` so deployment can resolve its audit dependency.
+- [x] Migration `0588_ntf_platform_template_binding_command.sql` is applied. HQ now exposes revision-scoped binding candidates and a complete immutable binding-definition command; the mapping UI remains pending.
+- [ ] Additional provider connectors, scheduled synchronization, tenant-private imports, explicit binding administration, registration/revision review, and tenant configuration UIs remain pending.
 - [ ] Provider/tenant management APIs, UI workflows, dispatch resolver integration, consent/suppression enforcement, reconciliation, operational runbooks, and pilot evidence remain required before production rollout.
 
 ---

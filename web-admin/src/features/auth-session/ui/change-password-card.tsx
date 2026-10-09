@@ -11,12 +11,12 @@
  * out, and the user chooses whether to sign out of this device now or later.
  */
 
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useTranslations } from 'next-intl'
 import { useMutation } from '@tanstack/react-query'
-import { Alert, AlertDescription, CmxButton, CmxInput } from '@ui/primitives'
+import { Alert, AlertDescription, CmxButton } from '@ui/primitives'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
-import { cmxMessage } from '@ui/feedback'
+import { cmxMessage, type MessageResult } from '@ui/feedback'
 import { useAuth } from '@/lib/auth/auth-context'
 import { PASSWORD_ERROR_CODES } from '@/lib/constants/auth-session'
 import { changePassword, PasswordApiError } from '../api/password-api'
@@ -26,6 +26,7 @@ import { validateNewPassword } from '../model/password-form'
 import { EmailPasswordLinkButton } from './email-password-link-button'
 import { NewPasswordFields } from './new-password-fields'
 import { PasswordChangedDialog } from './password-changed-dialog'
+import { PasswordEyeInput } from './password-eye-input'
 
 /** Change-password form card. */
 export function ChangePasswordCard() {
@@ -39,14 +40,26 @@ export function ChangePasswordCard() {
   const [currentError, setCurrentError] = useState<string | undefined>()
   const [needsReauth, setNeedsReauth] = useState(false)
   const [revokedOthers, setRevokedOthers] = useState<number | null>(null)
+  const [serverRule, setServerRule] = useState<'breached' | 'reused' | null>(null)
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const submitLock = useRef(false)
+  const dismissErrorToast = useRef<(() => void) | null>(null)
 
   const mutation = useMutation({ mutationFn: changePassword })
   const validation = validateNewPassword(password, confirmation)
   // Until the policy is known the safe assumption is the stricter one (current password required).
   const requireCurrent = policy.data?.requireCurrent ?? true
+  const showBreachRule = policy.data?.breachCheck ?? true
+  const showReuseRule = (policy.data?.historyCount ?? 1) > 0
+  const allVisible = (requireCurrent ? showCurrent : true) && showNew && showConfirm
+
+  const clearServerRule = () => setServerRule(null)
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
+    if (submitLock.current || mutation.isPending) return
     setSubmitted(true)
     setCurrentError(undefined)
     setNeedsReauth(false)
@@ -54,23 +67,44 @@ export function ChangePasswordCard() {
       setCurrentError(t('errors.currentRequired'))
       return
     }
+    // Same password and weak/mismatch stay on the checklist; do not call the API.
+    if (requireCurrent && current === password) return
     if (validation) return
 
+    submitLock.current = true
     mutation.mutate(
       { currentPassword: requireCurrent ? current : undefined, newPassword: password },
       {
         onSuccess: (revoked) => {
+          dismissErrorToast.current?.()
+          dismissErrorToast.current = null
           setCurrent('')
           setPassword('')
           setConfirmation('')
           setSubmitted(false)
+          setServerRule(null)
           setRevokedOthers(revoked)
         },
         onError: (error) => {
           const code = error instanceof PasswordApiError ? error.code : undefined
+          // Policy failures belong on the checklist, not a toast that stays after the password changes.
           if (code === PASSWORD_ERROR_CODES.WRONG_PASSWORD) setCurrentError(t('errors.wrongPassword'))
           else if (code === PASSWORD_ERROR_CODES.REAUTH_REQUIRED) setNeedsReauth(true)
-          else cmxMessage.error(t(`errors.${passwordErrorKey(code)}`))
+          else if (code === PASSWORD_ERROR_CODES.BREACHED_PASSWORD) setServerRule('breached')
+          else if (code === PASSWORD_ERROR_CODES.REUSED_PASSWORD) setServerRule('reused')
+          else if (
+            code === PASSWORD_ERROR_CODES.SAME_PASSWORD ||
+            code === PASSWORD_ERROR_CODES.WEAK_PASSWORD
+          ) {
+            setSubmitted(true)
+          } else {
+            const result = cmxMessage.error(t(`errors.${passwordErrorKey(code)}`))
+            const dismiss = result && typeof result === 'object' ? (result as MessageResult).dismiss : undefined
+            if (typeof dismiss === 'function') dismissErrorToast.current = dismiss
+          }
+        },
+        onSettled: () => {
+          submitLock.current = false
         },
       }
     )
@@ -104,14 +138,18 @@ export function ChangePasswordCard() {
           ) : null}
 
           {requireCurrent ? (
-            <CmxInput
+            <PasswordEyeInput
               id="change-password-current"
-              type="password"
               autoComplete="current-password"
               label={t('currentPassword')}
               value={current}
+              visible={showCurrent}
               disabled={mutation.isPending}
-              onChange={(event) => setCurrent(event.target.value)}
+              onVisibleChange={setShowCurrent}
+              onChange={(event) => {
+                setCurrent(event.target.value)
+                clearServerRule()
+              }}
               error={currentError}
             />
           ) : null}
@@ -119,11 +157,29 @@ export function ChangePasswordCard() {
             idPrefix="change-password"
             password={password}
             confirmation={confirmation}
-            onPasswordChange={setPassword}
+            onPasswordChange={(value) => {
+              setPassword(value)
+              clearServerRule()
+            }}
             onConfirmationChange={setConfirmation}
             error={validation}
             showErrors={submitted}
             disabled={mutation.isPending}
+            currentPassword={current}
+            compareCurrent={requireCurrent}
+            serverRule={serverRule}
+            showBreachRule={showBreachRule}
+            showReuseRule={showReuseRule}
+            passwordVisible={showNew}
+            confirmationVisible={showConfirm}
+            onPasswordVisibleChange={setShowNew}
+            onConfirmationVisibleChange={setShowConfirm}
+            revealAllChecked={allVisible}
+            onRevealAllChange={(visible) => {
+              setShowCurrent(visible)
+              setShowNew(visible)
+              setShowConfirm(visible)
+            }}
           />
           <CmxButton type="submit" loading={mutation.isPending} disabled={mutation.isPending}>
             {t('submitChange')}

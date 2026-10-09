@@ -50,6 +50,7 @@ import {
   PaymentQuickTenderChips,
   type PaymentQuickTenderChipItem,
 } from './payment-modal/quick-tender-chips';
+import { resolveSessionOpeningBalance } from '@features/orders/hooks/use-cash-drawer';
 import { PaymentModeToggle } from './payment-modal/payment-mode-toggle';
 import { SummaryRow } from './payment-modal/summary-row';
 import {
@@ -671,6 +672,9 @@ export function PaymentFullView({
   } = engine;
 
   const paymentSurfaceLocked = methodsSurfaceLoading || previewFailed;
+  // Confirm reviews a snapshot, then the parent request is in flight. Either
+  // window must ignore further edits so the screen cannot diverge from the payload.
+  const paymentInteractionLocked = loading || submitConfirmOpen;
 
   // Re-destructure the grouped slices into the modal's local names (JSX unchanged).
   const {
@@ -792,9 +796,9 @@ export function PaymentFullView({
    * (engine state survives) — the modal never refuses the return or locks Simple.
    */
   const handleModeChange = useCallback((nextMode: PaymentModalMode) => {
-    if (methodsSurfaceLoading || previewFailed) return;
+    if (loading || submitConfirmOpen || methodsSurfaceLoading || previewFailed) return;
     setMode(nextMode);
-  }, [methodsSurfaceLoading, previewFailed]);
+  }, [loading, methodsSurfaceLoading, previewFailed, submitConfirmOpen]);
 
   // Preserve focus across face switches: when the previously-focused control
   // unmounted with the old face, land on the shared amount editor (both faces
@@ -2255,12 +2259,13 @@ export function PaymentFullView({
   };
 
   const closeWithGuard = useCallback(() => {
+    if (loading || submitConfirmOpen) return;
     if (!isDirtySinceOpen) {
       onClose();
       return;
     }
     setConfirmCloseOpen(true);
-  }, [isDirtySinceOpen, onClose]);
+  }, [isDirtySinceOpen, loading, onClose, submitConfirmOpen]);
 
   const handleConfirmPaymentSubmit = useCallback(() => {
     if (!pendingSubmission) return;
@@ -2305,7 +2310,12 @@ export function PaymentFullView({
   // ---------------------------------------------------------------------------
   return (
     <>
-      <CmxDialog open={open} onOpenChange={(nextOpen) => !nextOpen && closeWithGuard()}>
+      <CmxDialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) closeWithGuard();
+        }}
+      >
         <CmxDialogContent
           data-testid="payment-modal-v4"
           className="mx-4 h-[94vh] w-[calc(100vw-2rem)] max-w-[1900px] overflow-hidden rounded-2xl border border-slate-200/80 p-0 shadow-2xl"
@@ -2329,9 +2339,16 @@ export function PaymentFullView({
                   fullLabel={t('mode.advanced')}
                   groupLabel={t('mode.toggleLabel')}
                   isRTL={isRTL}
-                  disabled={paymentSurfaceLocked}
+                  disabled={paymentSurfaceLocked || paymentInteractionLocked}
                 />
-                <CmxButton type="button" variant="ghost" size="sm" onClick={closeWithGuard} aria-label={tCommon('close')}>
+                <CmxButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={closeWithGuard}
+                  disabled={paymentInteractionLocked}
+                  aria-label={tCommon('close')}
+                >
                   <X className="h-5 w-5" />
                 </CmxButton>
               </div>
@@ -2340,13 +2357,15 @@ export function PaymentFullView({
             <PayExtraTopStrip
               checked={payExtraIntent}
               onAttemptChange={handlePayExtraIntentAttempt}
-              disabled={paymentSurfaceLocked || !canEnablePayExtra}
+              disabled={paymentSurfaceLocked || paymentInteractionLocked || !canEnablePayExtra}
               disabledReason={
-                paymentSurfaceLocked
-                  ? t('messages.calculating')
-                  : !checkoutMethodsLoading && !canEnablePayExtra
-                    ? t('payExtraIntent.disabledNoMethods')
-                    : undefined
+                paymentInteractionLocked
+                  ? undefined
+                  : paymentSurfaceLocked
+                    ? t('messages.calculating')
+                    : !checkoutMethodsLoading && !canEnablePayExtra
+                      ? t('payExtraIntent.disabledNoMethods')
+                      : undefined
               }
               ariaDisabled={payExtraStripAriaDisabled}
               isRTL={isRTL}
@@ -2369,7 +2388,7 @@ export function PaymentFullView({
                 type="warning"
                 title={t('payExtraIntent.newLegRejectedAlertTitle')}
                 items={[newLegRejectAlert]}
-                onDismiss={clearNewLegRejectAlert}
+                onDismiss={paymentInteractionLocked ? undefined : clearNewLegRejectAlert}
               />
             ) : null}
 
@@ -2389,6 +2408,7 @@ export function PaymentFullView({
                 onAccept={() => handleModeChange(PAYMENT_MODAL_MODE.FULL)}
                 dismissLabel={t('mode.suggestDismiss')}
                 onDismiss={() => setSuggestionDismissed(true)}
+                disabled={paymentInteractionLocked}
                 isRTL={isRTL}
               />
             ) : null}
@@ -2523,12 +2543,14 @@ export function PaymentFullView({
             <form
               onSubmit={(event) => event.preventDefault()}
               className="flex min-h-0 flex-1 flex-col"
-              aria-busy={paymentSurfaceLocked || submitBusy}
+              aria-busy={paymentSurfaceLocked || submitBusy || paymentInteractionLocked}
             >
               <div className="relative flex min-h-0 flex-1 flex-col">
               <div
-                className="flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4"
-                inert={paymentSurfaceLocked || undefined}
+                className={`flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4${
+                  paymentInteractionLocked ? ' pointer-events-none' : ''
+                }`}
+                inert={paymentSurfaceLocked || paymentInteractionLocked || undefined}
               >
               {mode === PAYMENT_MODAL_MODE.SIMPLE ? (
                 <PaymentSimpleView
@@ -2634,7 +2656,7 @@ export function PaymentFullView({
                             actionVariant="tile"
                             actionLayout="stack"
                             className="min-h-0 flex-1"
-                            actionsDisabled={paymentSurfaceLocked}
+                            actionsDisabled={paymentSurfaceLocked || paymentInteractionLocked}
                             renderInline={() => null}
                             dialogButtonLabel={(slot) => t(`capabilities.${slot.key}.action`)}
                             dialogButtonIcon={(slot) => {
@@ -3989,7 +4011,7 @@ export function PaymentFullView({
                                         </div>
                                         <div>
                                           <p className="font-medium text-slate-500">{t('cashDrawer.openingBalance')}</p>
-                                          <p>{`${selectedCashDrawerChoice.drawer.currency_code} ${formatAmount(selectedCashDrawerChoice.session.opening_float_amount)}`}</p>
+                                          <p>{`${selectedCashDrawerChoice.drawer.currency_code} ${formatAmount(resolveSessionOpeningBalance(selectedCashDrawerChoice.session))}`}</p>
                                         </div>
                                       </div>
                                     </div>
@@ -4021,17 +4043,18 @@ export function PaymentFullView({
                                       )}
                                       {t('cashDrawer.refresh')}
                                     </CmxButton>
-                                    <CmxButton
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={handleOpenCashDrawerDialog}
-                                      disabled={!canOpenNewCashDrawerSession}
-                                      className="rounded-xl"
-                                    >
-                                      <Plus className="me-1 h-4 w-4" />
-                                      {t('cashDrawer.openSession')}
-                                    </CmxButton>
+                                    {canOpenNewCashDrawerSession ? (
+                                      <CmxButton
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleOpenCashDrawerDialog}
+                                        className="rounded-xl"
+                                      >
+                                        <Plus className="me-1 h-4 w-4" />
+                                        {t('cashDrawer.openSession')}
+                                      </CmxButton>
+                                    ) : null}
                                   </div>
                                 </div>
 
@@ -4649,6 +4672,15 @@ export function PaymentFullView({
                   )}
                 </div>
               ) : null}
+              {loading && !paymentSurfaceLocked ? (
+                <div
+                  data-testid="payment-submitting-lock"
+                  className="absolute inset-0 z-20 cursor-wait bg-[rgb(var(--cmx-background-rgb,248_250_252))]/45"
+                  role="status"
+                  aria-live="polite"
+                  aria-label={t('messages.processing')}
+                />
+              ) : null}
               </div>
 
               <CmxDialogFooter className="flex-col items-stretch gap-2 border-t border-slate-200 bg-white">
@@ -4671,7 +4703,7 @@ export function PaymentFullView({
                       size="sm"
                       data-testid="payment-rail-toggle"
                       onClick={() => setRailOpen(true)}
-                      disabled={paymentSurfaceLocked}
+                      disabled={paymentSurfaceLocked || paymentInteractionLocked}
                       className="min-h-[44px] shrink-0 rounded-xl border-slate-300 text-slate-700"
                     >
                       {t('sections.receiptBrain')}
@@ -4686,7 +4718,11 @@ export function PaymentFullView({
                     reason={serverGuard.reason}
                     message={serverGuard.message}
                     actionLabel={serverGuardActionLabel}
-                    onAction={showServerGuardAction ? handleServerGuardAction : undefined}
+                    onAction={
+                      showServerGuardAction && !paymentInteractionLocked
+                        ? handleServerGuardAction
+                        : undefined
+                    }
                     isRTL={isRTL}
                   />
                 ) : b2bCreditClientGuard ? (
@@ -4694,7 +4730,9 @@ export function PaymentFullView({
                     reason="B2B_CREDIT_EXCEEDED"
                     message={t('b2b.creditExceeded')}
                     actionLabel={t('capabilities.B2B_ACCOUNT_BILLING.action')}
-                    onAction={() => setB2bDialogOpen(true)}
+                    onAction={
+                      paymentInteractionLocked ? undefined : () => setB2bDialogOpen(true)
+                    }
                     isRTL={isRTL}
                   />
                 ) : null}
@@ -4711,7 +4749,13 @@ export function PaymentFullView({
                     isRTL ? 'md:flex-row-reverse' : 'md:flex-row'
                   }`}
                 >
-                  <CmxButton type="button" variant="outline" onClick={closeWithGuard} className="flex-1 rounded-2xl border-slate-300">
+                  <CmxButton
+                    type="button"
+                    variant="outline"
+                    onClick={closeWithGuard}
+                    disabled={paymentInteractionLocked}
+                    className="flex-1 rounded-2xl border-slate-300"
+                  >
                     {tCommon('cancel')}
                   </CmxButton>
                   {payExtraIntent &&
@@ -4719,7 +4763,7 @@ export function PaymentFullView({
                   !overpaymentResolutionPayload ? (
                     <PaymentValidateButton
                       onClick={runValidatePayment}
-                      disabled={paymentSurfaceLocked || !canEnablePayExtra}
+                      disabled={paymentSurfaceLocked || paymentInteractionLocked || !canEnablePayExtra}
                       isRTL={isRTL}
                       className="flex-1"
                     />
@@ -4728,8 +4772,8 @@ export function PaymentFullView({
                     type="button"
                     data-testid="payment-submit-button"
                     loading={loading}
-                    disabled={submitBusy}
-                    aria-disabled={submitHasBlockingIssues || submitBusy}
+                    disabled={submitBusy || submitConfirmOpen}
+                    aria-disabled={submitHasBlockingIssues || submitBusy || submitConfirmOpen}
                     onClick={
                       submitHasBlockingIssues
                         ? mode === PAYMENT_MODAL_MODE.SIMPLE

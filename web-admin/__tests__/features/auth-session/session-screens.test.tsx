@@ -120,8 +120,36 @@ describe('ChangePasswordCard', () => {
     fill('', 'Str0ngPassw', 'Str0ngPassw');
     fill('Old1password', 'weak', 'weak');
     fill('Old1password', 'Str0ngPassw', 'Different1x');
-    await waitFor(() => expect(screen.getByText('authSession.password.errors.mismatch')).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-rule="match"]')).toHaveAttribute('data-state', 'unmet'));
     expect(mockChangePassword).not.toHaveBeenCalled();
+  });
+
+  it('shows a breached password on the requirements list and does not raise a toast', async () => {
+    mockChangePassword.mockRejectedValue(new PasswordApiError('bad', 'BREACHED_PASSWORD', 422));
+    mount(<ChangePasswordCard />);
+    fill('Old1password', 'Str0ngPassw', 'Str0ngPassw');
+    expect(await screen.findByText('authSession.password.errors.breached')).toBeInTheDocument();
+    expect(document.querySelector('[data-rule="breached"]')).toHaveAttribute('data-state', 'unmet');
+    expect(mockMessage.error).not.toHaveBeenCalled();
+  });
+
+  it('gives each password an eye, and Show passwords reveals all three', async () => {
+    mount(<ChangePasswordCard />);
+    const current = document.getElementById('change-password-current') as HTMLInputElement;
+    const next = document.getElementById('change-password-new') as HTMLInputElement;
+    const confirm = document.getElementById('change-password-confirm') as HTMLInputElement;
+    expect(current.type).toBe('password');
+    expect(screen.getAllByRole('button', { name: 'auth.login.showPassword' })).toHaveLength(3);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'auth.login.showPassword' })[0]);
+    expect(current.type).toBe('text');
+    expect(next.type).toBe('password');
+    expect(confirm.type).toBe('password');
+
+    fireEvent.click(screen.getByRole('switch', { name: 'authSession.password.showPasswords' }));
+    expect(current.type).toBe('text');
+    expect(next.type).toBe('text');
+    expect(confirm.type).toBe('text');
   });
 
   it('shows a wrong current password inline (not as a toast)', async () => {

@@ -1410,17 +1410,18 @@ export function OrderCollectPaymentModal({
                             )}
                             {tPayment('cashDrawer.refresh')}
                           </CmxButton>
-                          <CmxButton
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleOpenCashDrawerDialog}
-                            disabled={!canOpenNewCashDrawerSession}
-                            className="rounded-lg"
-                          >
-                            <Plus className="me-1 h-4 w-4" />
-                            {tPayment('cashDrawer.openSession')}
-                          </CmxButton>
+                          {canOpenNewCashDrawerSession ? (
+                            <CmxButton
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleOpenCashDrawerDialog}
+                              className="rounded-lg"
+                            >
+                              <Plus className="me-1 h-4 w-4" />
+                              {tPayment('cashDrawer.openSession')}
+                            </CmxButton>
+                          ) : null}
                         </div>
                       </>
                     )}

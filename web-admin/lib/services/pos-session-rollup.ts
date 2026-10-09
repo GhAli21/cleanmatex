@@ -41,7 +41,7 @@ export async function loadPosSessionRollup(
   db: Pick<PrismaTx, '$queryRaw'>,
   tenantId: string,
   posSessionId: string
-): Promise<Omit<PosSessionSummary, 'session'>> {
+): Promise<Omit<PosSessionSummary, 'session' | 'drawerCash'>> {
   const [paymentTotals, paymentGroups, refundTotals, refundGroups, voucherTotals, voucherGroups] =
     await Promise.all([
       // A4-1 — no LIMIT: a mixed-currency session must return one row per

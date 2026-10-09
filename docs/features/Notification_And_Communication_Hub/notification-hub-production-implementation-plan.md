@@ -1,6 +1,6 @@
 # Notification Hub — Production Implementation Plan
 
-**Status:** P1 safety and P2 provider/template data foundations are applied. HQ route list/create/edit/activate/suspend/retire APIs and redacted provider-registration discovery are implemented. An atomic platform-import command is drafted as migration `0586`; authenticated connector, administration UI, and runtime cutover remain planned.
+**Status:** P1 safety and P2 provider/template data foundations are applied. HQ route-control, redacted provider-registration discovery, atomic Twilio import, controlled import candidates, and the first bilingual HQ import form are implemented. Registration/revision review, slot mapping, tenant administration, additional provider connectors, and runtime cutover remain planned.
 **Date:** 2026-10-09 (Asia/Muscat).
 **Scope:** CleanMateX tenant app, Platform HQ API/UI, platform workers, shared notification schema.
 **Canonical planning authority:** this document in docs/plan/.
@@ -16,6 +16,10 @@ The implemented HQ command `POST /notifications/provider-template-registrations/
 The account must be an active verified `TWILIO` / `WHATSAPP` platform account whose opaque `credential_ref` exactly equals deployment setting `NTF_TWILIO_CONTENT_CREDENTIAL_REF`. Production secret injection supplies the existing `HQ_TWILIO_ACCOUNT_SID` and `HQ_TWILIO_AUTH_TOKEN`; optional `NTF_TWILIO_CONTENT_CREDENTIAL_VERSION` must match the account version when set. Any missing/mismatched binding fails closed. The first imported revision deliberately has no logical variable bindings, so a route stays non-activatable until an administrator maps every required provider parameter to an approved typed variable or explicit static value.
 
 The accompanying protected candidate endpoint `GET /notifications/provider-template-registrations/import/twilio/candidates?accountId=` exposes only verified active Twilio WhatsApp accounts, their optional verified senders, and active canonical WhatsApp locales. It intentionally excludes credential references, account configuration, evidence, and provider snapshots so the UI never needs internal identifiers pasted by an operator.
+
+### Pending immutable binding definition
+
+Migration `0588_ntf_platform_template_binding_command.sql` drafts `cmx_define_sys_ntf_prov_tmpl_bindings`. It accepts one complete binding array, validates its count and unique ordered positions against the imported provider revision, permits only variables owned by the represented logical template version, and allows first definition only. Corrections require a new imported provider revision. Browser roles are denied function execution; the later HQ command records the operator audit event.
 
 ## 1. Outcome and scope
 

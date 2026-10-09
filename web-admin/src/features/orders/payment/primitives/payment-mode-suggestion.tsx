@@ -29,6 +29,8 @@ export interface PaymentModeSuggestionProps {
   /** Resolved accessible label for the dismiss control. */
   dismissLabel: string;
   onDismiss: () => void;
+  /** Blocks accept and dismiss while submit is confirming or in flight. */
+  disabled?: boolean;
   isRTL?: boolean;
 }
 
@@ -45,6 +47,7 @@ export function PaymentModeSuggestion({
   onAccept,
   dismissLabel,
   onDismiss,
+  disabled = false,
   isRTL = false,
 }: PaymentModeSuggestionProps) {
   return (
@@ -71,6 +74,7 @@ export function PaymentModeSuggestion({
         variant="outline"
         size="sm"
         onClick={onAccept}
+        disabled={disabled}
         data-testid="payment-mode-suggestion-accept"
         className="h-7 shrink-0 rounded-md px-2 text-[11px]"
       >
@@ -81,6 +85,7 @@ export function PaymentModeSuggestion({
         variant="ghost"
         size="sm"
         onClick={onDismiss}
+        disabled={disabled}
         aria-label={dismissLabel}
         data-testid="payment-mode-suggestion-dismiss"
         className="h-7 w-7 shrink-0 rounded-md p-0 text-amber-700"

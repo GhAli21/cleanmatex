@@ -26,6 +26,7 @@ import {
 import { notifyPasswordChanged } from '@/lib/services/auth/password/password-notify';
 import { generateTemporaryPassword } from '@features/auth-session/model/password-generator';
 import { passwordErrorKey } from '@features/auth-session/model/password-errors';
+import { evaluatePasswordRules } from '@features/auth-session/model/password-rules';
 import { validatePassword } from '@/lib/auth/validation';
 
 const STRONG = 'N3w-Str0ng-Passw0rd!';
@@ -176,6 +177,29 @@ describe('generateTemporaryPassword', () => {
 
   it('avoids look-alike characters', () => {
     for (let i = 0; i < 50; i++) expect(generateTemporaryPassword(40)).not.toMatch(/[0OIl1]/);
+  });
+});
+
+describe('evaluatePasswordRules', () => {
+  it('marks composition rules as they are fulfilled and keeps breach pending until the server says so', () => {
+    const pending = evaluatePasswordRules({ password: '', confirmation: '' });
+    expect(pending.find((rule) => rule.id === 'length')?.state).toBe('pending');
+    expect(pending.find((rule) => rule.id === 'breached')?.state).toBe('pending');
+
+    const met = evaluatePasswordRules({
+      password: 'Admin2009',
+      confirmation: 'Admin2009',
+      currentPassword: 'Old1password',
+      compareCurrent: true,
+    });
+    expect(met.filter((rule) => ['length', 'upper', 'lower', 'number', 'match', 'different'].includes(rule.id)).every((rule) => rule.state === 'met')).toBe(true);
+    expect(met.find((rule) => rule.id === 'breached')?.state).toBe('pending');
+  });
+
+  it('turns the breach row into a failure only for the password the server rejected', () => {
+    const failed = evaluatePasswordRules({ password: 'Admin2009', confirmation: 'Admin2009', serverRule: 'breached' });
+    expect(failed.find((rule) => rule.id === 'breached')?.state).toBe('unmet');
+    expect(failed.find((rule) => rule.id === 'reused')?.state).toBe('pending');
   });
 });
 

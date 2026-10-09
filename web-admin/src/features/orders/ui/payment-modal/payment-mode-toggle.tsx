@@ -19,16 +19,18 @@ export interface PaymentModeToggleProps {
   groupLabel: string;
   isRTL?: boolean;
   className?: string;
-  /** Disables both segments while the payment surface is still hydrating. */
+  /** Disables both segments while the surface is hydrating or submit has frozen the modal. */
   disabled?: boolean;
 }
 
 /**
  * Simple ⇄ Advanced segmented control for Payment Modal v4 (single engine, two
  * faces). Purely presentational: the caller owns the mode state and every
- * label. After hydrate, both segments stay clickable (amended ADR: the modal
- * never locks Simple or drops engine state). `disabled` only covers the initial
- * load so a fast click cannot switch faces against an incomplete catalog.
+ * label. After hydrate, both segments stay clickable unless submit has frozen
+ * the modal (amended ADR: the modal never locks Simple or drops engine state
+ * as a mode policy). `disabled` covers the initial load and an in-flight
+ * submit so a click cannot switch faces against an incomplete catalog or a
+ * payment already being sent.
  *
  * @param root0 Toggle props.
  * @param root0.mode Active face.
@@ -38,7 +40,7 @@ export interface PaymentModeToggleProps {
  * @param root0.groupLabel Accessible group label.
  * @param root0.isRTL
  * @param root0.className
- * @param root0.disabled Hydrate lock — both segments inert until the surface is ready.
+ * @param root0.disabled Hydrate or submit lock — both segments stay inert.
  */
 export function PaymentModeToggle({
   mode,

@@ -105,6 +105,7 @@
     "payments": "Payments",
     "refunds": "Refunds",
     "voucherLines": "Voucher lines",
+    "finalBalance": "Final balance",
     "total": "Total",
     "count": "Count",
     "rows": "rows",
@@ -151,6 +152,9 @@
     "drawerNoOpenSession": "No open drawer session",
     "useOpenDrawer": "Use open drawer",
     "openingBalance": "Opening balance",
+    "totalIn": "Total in",
+    "totalOut": "Total out",
+    "currentBalance": "Current balance",
     "openAndLinkDrawer": "Open and link drawer",
     "drawerOpenPermissionRequired": "Drawer open permission required",
     "resumeBeforeDrawerLink": "Resume the POS session before linking a cash drawer."

@@ -49,6 +49,7 @@ const mockDrawerFindMany          = jest.fn();
 const mockDrawerFindFirstOrThrow  = jest.fn();
 const mockSessionFindFirst        = jest.fn();
 const mockSessionFindMany         = jest.fn();
+const mockSessionBalanceFindMany  = jest.fn().mockResolvedValue([]);
 const mockSessionFindFirstOrThrow = jest.fn();
 const mockSessionCreate           = jest.fn();
 const mockSessionUpdate           = jest.fn();
@@ -102,6 +103,9 @@ jest.mock('@/lib/db/prisma', () => {
         findMany:         (...a: unknown[]) => mockDrawerFindMany(...a),
         findFirst:        (...a: unknown[]) => mockDrawerFindFirst(...a),
         findFirstOrThrow: (...a: unknown[]) => mockDrawerFindFirstOrThrow(...a),
+      },
+      org_cash_drawer_ses_bal_dtl: {
+        findMany: (...a: unknown[]) => mockSessionBalanceFindMany(...a),
       },
       org_cash_drawer_sessions_mst: {
         findFirst:         (...a: unknown[]) => mockSessionFindFirst(...a),
@@ -213,7 +217,40 @@ describe('cash-drawer.service — getDrawersWithCurrentSession', () => {
       session_no: 'SES-000001',
       opened_at: '2026-05-29T10:00:00.000Z',
       opening_float_amount: 25,
+      opening_counted_amount: null,
     });
+  });
+
+  it('uses the counted opening cash instead of a zero expected float', async () => {
+    mockDrawerFindMany.mockResolvedValue([makeDrawer()]);
+    mockSessionFindMany.mockResolvedValue([
+      {
+        id: SESSION,
+        cash_drawer_id: DRAWER,
+        session_no: 'SES-000001',
+        opened_at: new Date('2026-05-29T10:00:00.000Z'),
+        opening_float_amount: new Decimal('0'),
+      },
+    ]);
+    mockSessionBalanceFindMany.mockResolvedValue([
+      {
+        cash_drawer_session_id: SESSION,
+        currency_code: 'OMR',
+        opening_counted: new Decimal('62.25'),
+      },
+    ]);
+
+    const result = await getDrawersWithCurrentSession(TENANT, 'branch-1');
+
+    expect(result[0].currentSession?.opening_counted_amount).toBe(62.25);
+    expect(mockSessionBalanceFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenant_org_id: TENANT,
+          cash_drawer_session_id: { in: [SESSION] },
+        }),
+      })
+    );
   });
 });
 

@@ -20,7 +20,7 @@ import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { Badge } from '@ui/primitives/badge';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
-import { CmxStatusBadge, CmxSummaryMessage } from '@ui/feedback';
+import { CmxStatusBadge } from '@ui/feedback';
 import { cmxMessage } from '@ui/feedback';
 import {
   CmxDialog,
@@ -40,7 +40,6 @@ import { PosSessionAttentionNotice, PosSessionFlagBadges } from '@features/pos-s
 import { getPosSessionFlags, posSessionErrorKey } from '@features/pos-sessions/model/pos-session-flags';
 import {
   fetchMyActivePosSession,
-  fetchPosSessionSummary,
   posSessionActiveQueryKey,
   PosSessionApiError,
   postPosSessionLifecycleAction,
@@ -50,8 +49,6 @@ import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-clo
 import { PosSessionDrawerLinker } from '@features/pos-sessions/ui/pos-session-drawer-linker';
 import type {
   GetMyActivePosSessionResult,
-  PosSessionCurrencyTotal,
-  PosSessionSummary,
   PosSessionWithContext,
 } from '@/lib/types/pos-session';
 
@@ -98,17 +95,11 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
 
   const activeSession = getActiveSession(activeQuery.data);
   const activeSessionContext = activeSession as PosSessionWithContext | null;
-  const summaryQuery = useQuery({
-    queryKey: ['pos-sessions', 'summary', activeSession?.id ?? 'none', 'hub'],
-    enabled: hubOpen && !!activeSession?.id,
-    queryFn: () => fetchPosSessionSummary(activeSession!.id),
-  });
 
   const refreshHub = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: posSessionActiveQueryKey(branchId, true) }),
       queryClient.invalidateQueries({ queryKey: ['pos-sessions', 'my-active'] }),
-      queryClient.invalidateQueries({ queryKey: ['pos-sessions', 'summary'] }),
     ]);
   };
 
@@ -228,9 +219,6 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
               canViewCashDrawer={canViewCashDrawer}
               canOpenCashDrawer={canOpenCashDrawer}
               canOpenPosSession={canOpen}
-              summary={summaryQuery.data}
-              summaryLoading={summaryQuery.isLoading}
-              summaryError={summaryQuery.isError}
               onRetry={refreshHub}
               onStartPosSession={startPosSession}
               onDrawerLinked={refreshHub}
@@ -351,9 +339,6 @@ function HubBody({
   canViewCashDrawer,
   canOpenCashDrawer,
   canOpenPosSession,
-  summary,
-  summaryLoading,
-  summaryError,
   onRetry,
   onStartPosSession,
   onDrawerLinked,
@@ -364,15 +349,13 @@ function HubBody({
   canViewCashDrawer: boolean;
   canOpenCashDrawer: boolean;
   canOpenPosSession: boolean;
-  summary?: PosSessionSummary;
-  summaryLoading: boolean;
-  summaryError: boolean;
   onRetry: () => void;
   onStartPosSession: () => void;
   onDrawerLinked: () => Promise<void> | void;
 }) {
   const t = useTranslations('posSessions');
   const lifecycle = useSessionLifecycleLabels();
+  const { formatMoneyWithCode: formatMoney } = useTenantCurrency();
 
   if (isLoading) {
     return <PanelMessage icon={<CreditCard className="h-5 w-5" aria-hidden />} title={t('banner.loading')} />;
@@ -495,28 +478,31 @@ function HubBody({
           <CmxCardTitle className="text-base">{t('hub.financeSummary')}</CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent>
-          {summaryLoading ? (
-            <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('hub.summaryLoading')}</div>
-          ) : summaryError ? (
-            <div className="text-sm text-red-700">{t('hub.summaryError')}</div>
-          ) : summary ? (
-            <>
-              {hasMultipleCurrencies(summary) && (
-                <CmxSummaryMessage
-                  type="info"
-                  title={t('summary.multipleCurrenciesTitle')}
-                  items={[t('summary.multipleCurrencies')]}
-                  className="mb-3"
+          {canViewCashDrawer && session.cash_drawer_current_balance != null ? (
+            <InfoGrid>
+              {session.cash_drawer_opening_balance != null ? (
+                <InfoTile
+                  label={t('hub.openingBalance')}
+                  value={formatMoney(session.cash_drawer_opening_balance, session.cash_drawer_currency_code)}
                 />
-              )}
-              <InfoGrid>
-                <CategoryTotals label={t('summary.payments')} totals={summary.payments.totals} />
-                <CategoryTotals label={t('summary.refunds')} totals={summary.refunds.totals} />
-                <CategoryTotals label={t('summary.voucherLines')} totals={summary.voucherLines.totals} />
-              </InfoGrid>
-            </>
+              ) : null}
+              <InfoTile
+                label={t('hub.totalIn')}
+                value={formatMoney(session.cash_drawer_total_in ?? 0, session.cash_drawer_currency_code)}
+              />
+              <InfoTile
+                label={t('hub.totalOut')}
+                value={formatMoney(session.cash_drawer_total_out ?? 0, session.cash_drawer_currency_code)}
+              />
+              <InfoTile
+                label={t('hub.currentBalance')}
+                value={formatMoney(session.cash_drawer_current_balance, session.cash_drawer_currency_code)}
+              />
+            </InfoGrid>
+          ) : canViewCashDrawer ? (
+            <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('hub.drawerNotLinked')}</div>
           ) : (
-            <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('hub.openToLoadSummary')}</div>
+            <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('hub.drawerRestricted')}</div>
           )}
         </CmxCardContent>
       </CmxCard>
@@ -611,44 +597,6 @@ function HubPanelStatus({
 
 function InfoGrid({ children }: { children: ReactNode }) {
   return <div className="grid gap-3 sm:grid-cols-2">{children}</div>;
-}
-
-/** A4-1/A4-2 — true once any finance-summary category actually mixed currencies. */
-function hasMultipleCurrencies(summary: PosSessionSummary): boolean {
-  return (
-    summary.payments.totals.length > 1 ||
-    summary.refunds.totals.length > 1 ||
-    summary.voucherLines.totals.length > 1
-  );
-}
-
-/**
- * A4-1/A4-2 — renders one tile per currency for a category. A single-
- * currency session (the common case, D14) renders exactly like before: one
- * tile, no currency suffix on the label. A genuinely mixed-currency session
- * renders one tile per currency instead of silently keeping only the
- * alphabetically-first one, which is what the previous `GROUP BY ... LIMIT 1`
- * query did.
- */
-function CategoryTotals({ label, totals }: { label: string; totals: PosSessionCurrencyTotal[] }) {
-  const { formatMoneyWithCode: formatMoney } = useTenantCurrency();
-  if (totals.length === 0) {
-    return <InfoTile label={label} value={formatMoney(0, null)} />;
-  }
-  if (totals.length === 1) {
-    return <InfoTile label={label} value={formatMoney(totals[0].amount, totals[0].currencyCode)} />;
-  }
-  return (
-    <>
-      {totals.map((row) => (
-        <InfoTile
-          key={row.currencyCode ?? 'unknown'}
-          label={`${label} (${row.currencyCode ?? '—'})`}
-          value={formatMoney(row.amount, row.currencyCode)}
-        />
-      ))}
-    </>
-  );
 }
 
 function InfoTile({ label, value }: { label: string; value: string }) {

@@ -48,6 +48,16 @@ describe('PaymentModeSuggestion', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  it('ignores accept and dismiss while submit has the payment surface locked', () => {
+    const { onAccept, onDismiss } = renderSuggestion({ disabled: true });
+    fireEvent.click(screen.getByTestId('payment-mode-suggestion-accept'));
+    fireEvent.click(screen.getByTestId('payment-mode-suggestion-dismiss'));
+    expect(onAccept).not.toHaveBeenCalled();
+    expect(onDismiss).not.toHaveBeenCalled();
+    expect(screen.getByTestId('payment-mode-suggestion-accept')).toBeDisabled();
+    expect(screen.getByTestId('payment-mode-suggestion-dismiss')).toBeDisabled();
+  });
+
   it('exposes an accessible dismiss label', () => {
     renderSuggestion();
     expect(screen.getByLabelText('Dismiss suggestion')).toBeInTheDocument();

@@ -2,10 +2,13 @@ import 'server-only';
 
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { toMoneyString } from '@/lib/utils/money';
 import { getCashControlSettings } from '@/lib/services/cash-control-settings.service';
+import { sumLedgerWindow } from '@/lib/services/cash-drawer-ledger/cash-drawer-ledger.repository';
 import { CASH_DRAWER_TERMINAL_SESSION_STATUSES } from '@/lib/constants/cash-drawer';
 import {
   POS_SESSION_EVENT_TYPE,
@@ -35,6 +38,7 @@ import type {
   PosSessionMetadata,
   PosSessionRecordState,
   PosSessionRow,
+  PosSessionDrawerCashStatement,
   PosSessionSummary,
   PosSessionWithContext,
 } from '@/lib/types/pos-session';
@@ -135,16 +139,70 @@ function normalizeSession(row: PosSessionRow): PosSessionRow {
 }
 
 function normalizeSessionListRow(row: PosSessionListRow): PosSessionListRow {
-  return {
-    ...row,
-    ...normalizeSession(row),
-  };
+  return normalizeSessionWithContext(row);
+}
+
+function normalizeOptionalAmount(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function normalizeSessionWithContext(row: PosSessionWithContext): PosSessionWithContext {
   return {
     ...row,
     ...normalizeSession(row),
+    cash_drawer_opening_balance: normalizeOptionalAmount(row.cash_drawer_opening_balance),
+    cash_drawer_total_in: normalizeOptionalAmount(row.cash_drawer_total_in),
+    cash_drawer_total_out: normalizeOptionalAmount(row.cash_drawer_total_out),
+    cash_drawer_current_balance: normalizeOptionalAmount(row.cash_drawer_current_balance),
+  };
+}
+
+/** Live drawer cash since open. Stored balance columns stay 0 until the session is closed. */
+async function attachDrawerCashPosition(
+  db: Pick<typeof prisma, '$queryRaw'>,
+  tenantId: string,
+  session: PosSessionWithContext,
+): Promise<PosSessionWithContext> {
+  const empty = {
+    cash_drawer_total_in: null,
+    cash_drawer_total_out: null,
+    cash_drawer_current_balance: null,
+  };
+  if (!session.cash_drawer_id || !session.cash_drawer_session_id) {
+    return { ...session, ...empty };
+  }
+
+  const seqRows = await db.$queryRaw<Array<{ open_ledger_seq: bigint | number | string | null }>>(Prisma.sql`
+    SELECT open_ledger_seq
+    FROM public.org_cash_drawer_sessions_mst
+    WHERE tenant_org_id = ${tenantId}::uuid
+      AND id = ${session.cash_drawer_session_id}::uuid
+      AND cash_drawer_id = ${session.cash_drawer_id}::uuid
+    LIMIT 1
+  `);
+  const rawSeq = seqRows[0]?.open_ledger_seq;
+  if (rawSeq == null) return { ...session, ...empty };
+
+  const windows = await sumLedgerWindow(
+    db as Prisma.TransactionClient,
+    tenantId,
+    session.cash_drawer_id,
+    BigInt(rawSeq),
+    null,
+  );
+  const currency = session.cash_drawer_currency_code;
+  const match = currency ? windows.find((window) => window.currencyCode === currency) : undefined;
+  const totalIn = (match?.finIn ?? new Decimal(0)).plus(match?.trxIn ?? 0);
+  const totalOut = (match?.finOut ?? new Decimal(0)).plus(match?.trxOut ?? 0);
+  const current = new Decimal(session.cash_drawer_opening_balance ?? 0).plus(totalIn).minus(totalOut);
+
+  return {
+    ...session,
+    cash_drawer_total_in: totalIn.toNumber(),
+    cash_drawer_total_out: totalOut.toNumber(),
+    cash_drawer_current_balance: current.toNumber(),
   };
 }
 
@@ -191,6 +249,12 @@ async function getActiveSessionForUserWithContext(
   const drawerSessionStatusSql = includeDrawerContext
     ? Prisma.sql`cds.status AS cash_drawer_session_status`
     : Prisma.sql`NULL::text AS cash_drawer_session_status`;
+  const drawerOpeningBalanceSql = includeDrawerContext
+    ? Prisma.sql`COALESCE(cdb.opening_counted, cds.opening_float_amount) AS cash_drawer_opening_balance`
+    : Prisma.sql`NULL::numeric AS cash_drawer_opening_balance`;
+  const drawerCurrencySql = includeDrawerContext
+    ? Prisma.sql`cd.currency_code AS cash_drawer_currency_code`
+    : Prisma.sql`NULL::text AS cash_drawer_currency_code`;
 
   const rows = await db.$queryRaw<PosSessionWithContext[]>(Prisma.sql`
     SELECT
@@ -202,6 +266,8 @@ async function getActiveSessionForUserWithContext(
       ${drawerNameSql},
       ${drawerSessionNoSql},
       ${drawerSessionStatusSql},
+      ${drawerOpeningBalanceSql},
+      ${drawerCurrencySql},
       NULL::text AS user_display_name,
       NULL::text AS opened_by_display_name,
       NULL::text AS paused_by_display_name,
@@ -222,6 +288,11 @@ async function getActiveSessionForUserWithContext(
     LEFT JOIN public.org_cash_drawer_sessions_mst cds
       ON cds.tenant_org_id = ps.tenant_org_id
      AND cds.id = ps.cash_drawer_session_id
+    LEFT JOIN public.org_cash_drawer_ses_bal_dtl cdb
+      ON cdb.tenant_org_id = cds.tenant_org_id
+     AND cdb.cash_drawer_session_id = cds.id
+     AND cdb.currency_code = cd.currency_code
+     AND cdb.is_active = TRUE
     WHERE ps.tenant_org_id = ${tenantId}::uuid
       AND ps.user_id = ${userId}::uuid
       AND ps.status IN (${Prisma.join([...ACTIVE_STATUSES])})
@@ -229,7 +300,9 @@ async function getActiveSessionForUserWithContext(
     ORDER BY ps.opened_at DESC
     LIMIT 1
   `);
-  return rows[0] ? normalizeSessionWithContext(rows[0]) : null;
+  const row = rows[0] ? normalizeSessionWithContext(rows[0]) : null;
+  if (!row || !includeDrawerContext) return row;
+  return attachDrawerCashPosition(db, tenantId, row);
 }
 
 async function getActiveSessionForUserForUpdate(
@@ -937,8 +1010,86 @@ export async function getPosSessionSummary(input: {
       throw new PosSessionError('POS_SESSION_NOT_FOUND', 'POS session was not found.', 404);
     }
 
-    return { session, ...(await loadPosSessionRollup(prisma, input.tenantId, input.posSessionId)) };
+    const [rollup, drawerCash] = await Promise.all([
+      loadPosSessionRollup(prisma, input.tenantId, input.posSessionId),
+      loadPosSessionDrawerCash(prisma, input.tenantId, session),
+    ]);
+    return { session, drawerCash, ...rollup };
   });
+}
+
+/**
+ * Opening and final drawer cash for the session linked to this POS session.
+ * Final is the counted close when one exists; otherwise opening plus the live ledger window.
+ */
+async function loadPosSessionDrawerCash(
+  db: Pick<typeof prisma, '$queryRaw'>,
+  tenantId: string,
+  session: PosSessionRow,
+): Promise<PosSessionDrawerCashStatement | null> {
+  if (!session.cash_drawer_id || !session.cash_drawer_session_id) return null;
+
+  const rows = await db.$queryRaw<Array<{
+    currency_code: string | null;
+    open_ledger_seq: bigint | number | string | null;
+    close_ledger_seq: bigint | number | string | null;
+    opening_balance: string | null;
+    closing_counted: string | null;
+  }>>(Prisma.sql`
+    SELECT
+      cd.currency_code,
+      cds.open_ledger_seq,
+      cds.close_ledger_seq,
+      COALESCE(cdb.opening_counted, cds.opening_float_amount)::text AS opening_balance,
+      cdb.closing_counted::text AS closing_counted
+    FROM public.org_cash_drawer_sessions_mst cds
+    JOIN public.org_cash_drawers_mst cd
+      ON cd.tenant_org_id = cds.tenant_org_id
+     AND cd.id = cds.cash_drawer_id
+    LEFT JOIN public.org_cash_drawer_ses_bal_dtl cdb
+      ON cdb.tenant_org_id = cds.tenant_org_id
+     AND cdb.cash_drawer_session_id = cds.id
+     AND cdb.currency_code = cd.currency_code
+     AND cdb.is_active = TRUE
+    WHERE cds.tenant_org_id = ${tenantId}::uuid
+      AND cds.id = ${session.cash_drawer_session_id}::uuid
+      AND cds.cash_drawer_id = ${session.cash_drawer_id}::uuid
+    LIMIT 1
+  `);
+  const row = rows[0];
+  if (!row) return null;
+
+  const openingBalance = row.opening_balance == null ? null : toMoneyString(row.opening_balance);
+  if (row.closing_counted != null) {
+    return {
+      currencyCode: row.currency_code,
+      openingBalance,
+      finalBalance: toMoneyString(row.closing_counted),
+    };
+  }
+  if (row.open_ledger_seq == null) {
+    return { currencyCode: row.currency_code, openingBalance, finalBalance: openingBalance };
+  }
+
+  const windows = await sumLedgerWindow(
+    db as Prisma.TransactionClient,
+    tenantId,
+    session.cash_drawer_id,
+    BigInt(row.open_ledger_seq),
+    row.close_ledger_seq == null ? null : BigInt(row.close_ledger_seq),
+  );
+  const match = row.currency_code
+    ? windows.find((window) => window.currencyCode === row.currency_code)
+    : undefined;
+  const totalIn = (match?.finIn ?? new Decimal(0)).plus(match?.trxIn ?? 0);
+  const totalOut = (match?.finOut ?? new Decimal(0)).plus(match?.trxOut ?? 0);
+  const finalBalance = new Decimal(openingBalance ?? 0).plus(totalIn).minus(totalOut);
+
+  return {
+    currencyCode: row.currency_code,
+    openingBalance,
+    finalBalance: toMoneyString(finalBalance.toString()),
+  };
 }
 
 /**
@@ -1297,7 +1448,9 @@ export async function listPosSessions(input: {
           pt.terminal_code,
           cd.drawer_name AS cash_drawer_name,
           cds.session_no AS cash_drawer_session_no,
-          cds.status AS cash_drawer_session_status
+          cds.status AS cash_drawer_session_status,
+          COALESCE(cdb.opening_counted, cds.opening_float_amount) AS cash_drawer_opening_balance,
+          cd.currency_code AS cash_drawer_currency_code
           , COALESCE(u.display_name, u.name, u.email) AS user_display_name
           , COALESCE(opened_by_user.display_name, opened_by_user.name, opened_by_user.email) AS opened_by_display_name
           , COALESCE(paused_by_user.display_name, paused_by_user.name, paused_by_user.email) AS paused_by_display_name
@@ -1318,6 +1471,11 @@ export async function listPosSessions(input: {
         LEFT JOIN public.org_cash_drawer_sessions_mst cds
           ON cds.tenant_org_id = ps.tenant_org_id
          AND cds.id = ps.cash_drawer_session_id
+        LEFT JOIN public.org_cash_drawer_ses_bal_dtl cdb
+          ON cdb.tenant_org_id = cds.tenant_org_id
+         AND cdb.cash_drawer_session_id = cds.id
+         AND cdb.currency_code = cd.currency_code
+         AND cdb.is_active = TRUE
         LEFT JOIN public.org_users_mst u ON u.tenant_org_id = ps.tenant_org_id AND u.user_id = ps.user_id
         LEFT JOIN public.org_users_mst opened_by_user ON opened_by_user.tenant_org_id = ps.tenant_org_id AND opened_by_user.user_id = ps.opened_by
         LEFT JOIN public.org_users_mst paused_by_user ON paused_by_user.tenant_org_id = ps.tenant_org_id AND paused_by_user.user_id = ps.paused_by

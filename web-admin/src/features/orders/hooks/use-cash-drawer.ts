@@ -55,8 +55,22 @@ export type CashDrawerSessionOption = {
   id: string;
   session_no: string;
   opened_at: string | null;
+  /** Expected carry-forward. Zero on a first session even when cash was counted. */
   opening_float_amount: number;
+  /** Cash counted when the session was opened, in the drawer currency. */
+  opening_counted_amount?: number | null;
 };
+
+/**
+ * Opening balance the cashier sees: the counted cash when a count exists,
+ * otherwise the expected carry-forward.
+ *
+ * @param session - Open session snapshot from the checkout drawer list.
+ * @returns Amount to show as the opening balance.
+ */
+export function resolveSessionOpeningBalance(session: CashDrawerSessionOption): number {
+  return session.opening_counted_amount ?? session.opening_float_amount;
+}
 
 /**
  * A cash drawer configured for the branch, with its current open session (if any).
@@ -236,8 +250,12 @@ export function useCashDrawer({
     [preferredCashDrawerStorageKey]
   );
 
+  // Checkout may open the first session only. Once any drawer already has one,
+  // another session must not be started from payment.
   const canOpenNewCashDrawerSession = useMemo(
-    () => cashDrawers.some((drawer) => !drawer.currentSession),
+    () =>
+      cashDrawers.length > 0 &&
+      cashDrawers.every((drawer) => !drawer.currentSession),
     [cashDrawers]
   );
 
@@ -332,6 +350,7 @@ export function useCashDrawer({
   }, [cashDrawerRequired, cashDrawerSessionChoices, readPreferredCashDrawerId, selectedCashDrawerSessionId]);
 
   const handleOpenCashDrawerDialog = useCallback(() => {
+    if (!canOpenNewCashDrawerSession) return;
     const savedPreferredDrawerId = readPreferredCashDrawerId();
     const savedPreferredDrawer = cashDrawers.find(
       (drawer) => drawer.id === savedPreferredDrawerId
@@ -347,9 +366,17 @@ export function useCashDrawer({
     setOpeningBalanceValue(0);
     setCashDrawerRequestError(null);
     setCashDrawerDialogOpen(true);
-  }, [cashDrawers, readPreferredCashDrawerId, selectedCashDrawerChoice]);
+  }, [canOpenNewCashDrawerSession, cashDrawers, readPreferredCashDrawerId, selectedCashDrawerChoice]);
 
   const handleCreateCashDrawerSession = useCallback(async () => {
+    if (cashDrawers.some((drawer) => drawer.currentSession)) {
+      const message = t('cashDrawer.messages.alreadyOpen');
+      setCashDrawerRequestError(message);
+      cmxMessage.error(message);
+      setCashDrawerDialogOpen(false);
+      return;
+    }
+
     if (!cashDrawerToOpenId) {
       const message = t('cashDrawer.messages.selectDrawer');
       setCashDrawerRequestError(message);
@@ -405,7 +432,7 @@ export function useCashDrawer({
     } finally {
       setOpeningDrawerSession(false);
     }
-  }, [cashDrawerToOpenId, csrfToken, openingBalanceValue, persistPreferredCashDrawerId, refetchCashDrawers, t]);
+  }, [cashDrawerToOpenId, cashDrawers, csrfToken, openingBalanceValue, persistPreferredCashDrawerId, refetchCashDrawers, t]);
 
   return {
     // query

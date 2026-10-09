@@ -132,6 +132,11 @@ function posSessionWithContext(overrides: Partial<PosSessionWithContext> = {}): 
     cash_drawer_name: 'Main Cash Drawer',
     cash_drawer_session_no: 'CDS-001',
     cash_drawer_session_status: 'OPEN',
+    cash_drawer_opening_balance: null,
+    cash_drawer_total_in: null,
+    cash_drawer_total_out: null,
+    cash_drawer_current_balance: null,
+    cash_drawer_currency_code: 'OMR',
     ...overrides,
   };
 }
@@ -188,8 +193,50 @@ describe('pos-session.service', () => {
         terminal_name: 'Front terminal',
         cash_drawer_name: 'Main Cash Drawer',
         cash_drawer_session_status: 'OPEN',
+        cash_drawer_total_in: null,
+        cash_drawer_current_balance: null,
       },
     });
+  });
+
+  it('adds live drawer total in, total out, and current balance when a drawer session is linked', async () => {
+    const drawerId = '972290b3-18c6-41cb-bfad-33bfd76f6e5c';
+    const drawerSessionId = '11111111-1111-4111-8111-111111111111';
+    db.$queryRaw
+      .mockResolvedValueOnce([
+        posSessionWithContext({
+          cash_drawer_id: drawerId,
+          cash_drawer_session_id: drawerSessionId,
+          cash_drawer_opening_balance: 62.25,
+          cash_drawer_currency_code: 'OMR',
+        }),
+      ])
+      .mockResolvedValueOnce([{ open_ledger_seq: 7 }])
+      .mockResolvedValueOnce([
+        {
+          currency_code: 'OMR',
+          fin_in: { toString: () => '2.2100' },
+          fin_out: { toString: () => '0.0000' },
+          trx_in: { toString: () => '1.0000' },
+          trx_out: { toString: () => '0.5000' },
+          entry_count: 2n,
+        },
+      ]);
+
+    const result = await getMyActivePosSession({
+      tenantId,
+      userId,
+      branchId: branchA,
+      includeContext: true,
+      includeDrawerContext: true,
+    });
+
+    expect(result.type).toBe('ACTIVE');
+    if (result.type !== 'ACTIVE') return;
+    const session = result.session as PosSessionWithContext;
+    expect(session.cash_drawer_total_in).toBeCloseTo(3.21, 4);
+    expect(session.cash_drawer_total_out).toBeCloseTo(0.5, 4);
+    expect(session.cash_drawer_current_balance).toBeCloseTo(64.96, 4);
   });
 
   it('resuming an already-open session is an idempotent no-op', async () => {
@@ -447,6 +494,43 @@ describe('pos-session.service', () => {
         count: 1,
       },
     ]);
+    expect(summary.drawerCash).toBeNull();
+  });
+
+  it('starts a linked drawer summary at the opening balance and ends at the live final balance', async () => {
+    const drawerId = '972290b3-18c6-41cb-bfad-33bfd76f6e5c';
+    const drawerSessionId = '11111111-1111-4111-8111-111111111111';
+    db.$queryRaw
+      .mockResolvedValueOnce([posSession({ cash_drawer_id: drawerId, cash_drawer_session_id: drawerSessionId })])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{
+        currency_code: 'OMR',
+        open_ledger_seq: 7,
+        close_ledger_seq: null,
+        opening_balance: '62.2500',
+        closing_counted: null,
+      }])
+      .mockResolvedValueOnce([{
+        currency_code: 'OMR',
+        fin_in: { toString: () => '2.2100' },
+        fin_out: { toString: () => '0.5000' },
+        trx_in: { toString: () => '0.0000' },
+        trx_out: { toString: () => '0.0000' },
+        entry_count: 2n,
+      }]);
+
+    const summary = await getPosSessionSummary({ tenantId, userId, posSessionId: sessionId });
+
+    expect(summary.drawerCash).toEqual({
+      currencyCode: 'OMR',
+      openingBalance: '62.2500',
+      finalBalance: '63.9600',
+    });
   });
 
   it('A4-1: a mixed-currency session returns one total row per currency, not just the first', async () => {

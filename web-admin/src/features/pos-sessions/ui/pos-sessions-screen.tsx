@@ -54,6 +54,7 @@ import type {
   PosSessionFilterOptionType,
   PosSessionFilterOptionsResult,
   PosSessionRow,
+  PosSessionSummary,
   PosSessionWithContext,
 } from '@/lib/types/pos-session';
 
@@ -1156,11 +1157,7 @@ export function PosSessionsScreen() {
           {summaryQuery.isLoading ? (
             <div className="py-8 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('banner.loading')}</div>
           ) : summaryQuery.data ? (
-            <div className="grid gap-3 md:grid-cols-3">
-              <SummaryTile title={t('summary.payments')} totals={summaryQuery.data.payments.totals} rowsLabel={t('summary.rows')} />
-              <SummaryTile title={t('summary.refunds')} totals={summaryQuery.data.refunds.totals} rowsLabel={t('summary.rows')} />
-              <SummaryTile title={t('summary.voucherLines')} totals={summaryQuery.data.voucherLines.totals} rowsLabel={t('summary.rows')} />
-            </div>
+            <SessionSummaryTotals summary={summaryQuery.data} />
           ) : (
             <div className="py-8 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
               {t('messages.loadFailed')}
@@ -1314,35 +1311,125 @@ function CopyValueButton({ value, label }: { value: string; label: string }) {
   );
 }
 
+interface SummaryTileModel {
+  key: string;
+  title: string;
+  amount: string;
+  currencyCode: string | null;
+  count?: number;
+}
+
 /**
- * A4-1 (POS Session & Cash Drawer Hardening) — `totals` is one row per
- * currency, not a single ambiguous figure (the previous `GROUP BY
- * currency_code ... LIMIT 1` query silently dropped every currency but
- * one). A single-currency session (the common case, D14) renders exactly
- * as before: one amount, one count. A genuinely mixed-currency session
- * lists each currency's amount and count as its own line within the same
- * tile, so the categories stay aligned in the surrounding 3-column grid.
+ * Opening balance, then one total per payment, refund, and voucher type, then final balance.
  */
+function SessionSummaryTotals({ summary }: { summary: PosSessionSummary }) {
+  const t = useTranslations('posSessions');
+  const tVoucher = useTranslations('finance.vouchers');
+  const rowsLabel = t('summary.rows');
+  const tiles: SummaryTileModel[] = [];
+
+  if (summary.drawerCash?.openingBalance != null) {
+    tiles.push({
+      key: 'opening',
+      title: t('hub.openingBalance'),
+      amount: summary.drawerCash.openingBalance,
+      currencyCode: summary.drawerCash.currencyCode,
+    });
+  }
+
+  summary.payments.byMethod.forEach((row, index) => {
+    tiles.push({
+      key: `payment-${index}`,
+      title: [t('summary.payments'), row.groupCode, row.status].filter(Boolean).join(' · '),
+      amount: row.amount,
+      currencyCode: row.currencyCode,
+      count: row.count,
+    });
+  });
+  summary.refunds.byMethod.forEach((row, index) => {
+    tiles.push({
+      key: `refund-${index}`,
+      title: [t('summary.refunds'), row.groupCode, row.status].filter(Boolean).join(' · '),
+      amount: row.amount,
+      currencyCode: row.currencyCode,
+      count: row.count,
+    });
+  });
+  summary.voucherLines.byRole.forEach((row, index) => {
+    tiles.push({
+      key: `voucher-${index}`,
+      title: [
+        t('summary.voucherLines'),
+        catalogLabel(tVoucher, 'lineRoleLabels', row.lineRole),
+        row.paymentMethodCode,
+        catalogLabel(tVoucher, 'directionLabels', row.direction),
+      ].filter(Boolean).join(' · '),
+      amount: row.amount,
+      currencyCode: row.currencyCode,
+      count: row.count,
+    });
+  });
+
+  if (summary.drawerCash?.finalBalance != null) {
+    tiles.push({
+      key: 'final',
+      title: t('summary.finalBalance'),
+      amount: summary.drawerCash.finalBalance,
+      currencyCode: summary.drawerCash.currencyCode,
+    });
+  }
+
+  if (tiles.length === 0) {
+    return <div className="py-8 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('none')}</div>;
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      {tiles.map((tile) => (
+        <SummaryTile
+          key={tile.key}
+          title={tile.title}
+          amount={tile.amount}
+          currencyCode={tile.currencyCode}
+          count={tile.count}
+          rowsLabel={rowsLabel}
+        />
+      ))}
+    </div>
+  );
+}
+
+function catalogLabel(
+  tVoucher: ReturnType<typeof useTranslations<'finance.vouchers'>>,
+  group: 'lineRoleLabels' | 'directionLabels',
+  code: string | null,
+): string | null {
+  if (!code) return null;
+  const key = `${group}.${code}` as Parameters<typeof tVoucher>[0];
+  return tVoucher.has(key) ? tVoucher(key) : code;
+}
+
 function SummaryTile({
   title,
-  totals,
+  amount,
+  currencyCode,
+  count,
   rowsLabel,
 }: {
   title: string;
-  totals: Array<{ amount: string; currencyCode: string | null; count: number }>;
+  amount: string;
+  currencyCode: string | null;
+  count?: number;
   rowsLabel: string;
 }) {
   const { formatMoneyWithCode: formatMoney } = useTenantCurrency();
-  const rows = totals.length > 0 ? totals : [{ amount: 0, currencyCode: null, count: 0 }];
   return (
     <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
       <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{title}</div>
-      {rows.map((row, i) => (
-        <div key={row.currencyCode ?? `unknown-${i}`} className={i > 0 ? 'mt-3 border-t pt-3' : undefined}>
-          <div className="mt-2 text-2xl font-bold">{formatMoney(row.amount, row.currencyCode)}</div>
-          <div className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{row.count} {rowsLabel}</div>
-        </div>
-      ))}
+      <div className="mt-2 text-2xl font-bold">{formatMoney(amount, currencyCode)}</div>
+      {count != null ? (
+        <div className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{count} {rowsLabel}</div>
+      ) : null}
     </div>
   );
 }

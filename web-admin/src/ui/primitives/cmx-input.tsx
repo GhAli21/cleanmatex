@@ -27,6 +27,8 @@ export interface CmxInputProps extends Omit<React.InputHTMLAttributes<HTMLInputE
   leftIcon?: React.ReactNode
   /** Icon or element rendered to the right of the input */
   rightIcon?: React.ReactNode
+  /** Clickable control inside the field end (for example a password eye). Unlike `rightIcon`, it receives pointer events. */
+  trailing?: React.ReactNode
   /** When true (default), input container uses w-full */
   fullWidth?: boolean
 }
@@ -39,6 +41,7 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
       helpText,
       leftIcon,
       rightIcon,
+      trailing,
       fullWidth = true,
       className = '',
       id: idProp,
@@ -55,7 +58,8 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
       inputBaseClasses,
       cmxFieldChrome({ error: hasError }),
       leftIcon && 'pl-10',
-      rightIcon && 'pr-10',
+      rightIcon && !trailing && 'pr-10',
+      trailing && 'pe-10',
       className
     )
 
@@ -91,11 +95,13 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
             aria-invalid={hasError}
           />
 
-          {rightIcon && (
+          {trailing ? (
+            <div className="absolute inset-y-0 end-0 flex items-center pe-1">{trailing}</div>
+          ) : rightIcon ? (
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
               {rightIcon}
             </div>
-          )}
+          ) : null}
         </div>
 
         {error && (

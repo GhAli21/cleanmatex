@@ -41679,6 +41679,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      cmx_define_sys_ntf_prov_tmpl_bindings: {
+        Args: {
+          p_actor: string
+          p_bindings: Json
+          p_provenance: string
+          p_revision_id: string
+        }
+        Returns: {
+          binding_count: number
+        }[]
+      }
       cmx_fix_admin_role_permissions: {
         Args: never
         Returns: {

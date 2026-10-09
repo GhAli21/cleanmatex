@@ -35,6 +35,7 @@ export interface CashDrawerWithCurrentSession {
     session_no: string
     opened_at: string | null
     opening_float_amount: number
+    opening_counted_amount?: number | null
   } | null
 }
 

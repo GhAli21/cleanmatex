@@ -22,6 +22,15 @@ export interface PosSessionContextFields {
   cash_drawer_name: string | null;
   cash_drawer_session_no: string | null;
   cash_drawer_session_status: string | null;
+  /** Counted opening cash when a count exists, otherwise the expected carry-forward. */
+  cash_drawer_opening_balance: number | null;
+  /** Drawer-ledger cash in since this session opened (voucher IN + custody IN). Null when no drawer is linked. */
+  cash_drawer_total_in: number | null;
+  /** Drawer-ledger cash out since this session opened (voucher OUT + custody OUT). Null when no drawer is linked. */
+  cash_drawer_total_out: number | null;
+  /** Opening balance plus total in minus total out, in the drawer currency. Null when no drawer is linked. */
+  cash_drawer_current_balance: number | null;
+  cash_drawer_currency_code: string | null;
   user_display_name: string | null;
   opened_by_display_name: string | null;
   paused_by_display_name: string | null;
@@ -200,9 +209,19 @@ export interface PosSessionVoucherLineSummaryRow extends PosSessionSummaryAmount
   direction: string | null;
 }
 
+/** Linked drawer cash for a POS session summary. Null when no drawer session is linked. */
+export interface PosSessionDrawerCashStatement {
+  currencyCode: string | null;
+  /** Counted opening cash when a count exists, otherwise the expected carry-forward. */
+  openingBalance: string | null;
+  /** Counted cash at close when the drawer was counted, otherwise opening plus live drawer movements. */
+  finalBalance: string | null;
+}
+
 /** Financial roll-up for a session without mutating its settled facts. */
 export interface PosSessionSummary {
   session: PosSessionRow;
+  drawerCash: PosSessionDrawerCashStatement | null;
   payments: {
     totals: PosSessionCurrencyTotal[];
     byMethod: PosSessionSummaryGroupedAmountRow[];

@@ -114,7 +114,10 @@ export interface CashDrawerWithCurrentSession {
     id: string
     session_no: string
     opened_at: string | null
+    /** System expected carry-forward. Not the cash the cashier counted at open. */
     opening_float_amount: number
+    /** Counted opening cash for the drawer currency. Null when no opening count exists. */
+    opening_counted_amount: number | null
   } | null
 }
 
@@ -672,9 +675,37 @@ export async function getDrawersWithCurrentSession(
   )
 
   const sessionMap = new Map(sessions.map((session) => [session.cash_drawer_id, session]))
+  const sessionIds = sessions.map((session) => session.id)
+  // opening_float_amount is the expected carry-forward (often 0 on a first
+  // session). Checkout must show the cash actually counted at open.
+  const openingCounts = sessionIds.length === 0
+    ? []
+    : await withTenantContext(tenantId, () =>
+        prisma.org_cash_drawer_ses_bal_dtl.findMany({
+          where: {
+            tenant_org_id: tenantId,
+            cash_drawer_session_id: { in: sessionIds },
+            is_active: true,
+          },
+          select: {
+            cash_drawer_session_id: true,
+            currency_code: true,
+            opening_counted: true,
+          },
+        }),
+      )
+  const countedBySessionCurrency = new Map(
+    openingCounts.map((row) => [
+      `${row.cash_drawer_session_id}:${row.currency_code}`,
+      row.opening_counted,
+    ]),
+  )
 
   return drawers.map((drawer) => {
     const currentSession = sessionMap.get(drawer.id) ?? null
+    const openingCounted = currentSession
+      ? countedBySessionCurrency.get(`${currentSession.id}:${drawer.currency_code}`)
+      : null
 
     return {
       id: drawer.id,
@@ -695,6 +726,7 @@ export async function getDrawersWithCurrentSession(
             session_no: currentSession.session_no,
             opened_at: currentSession.opened_at?.toISOString() ?? null,
             opening_float_amount: Number(currentSession.opening_float_amount),
+            opening_counted_amount: openingCounted == null ? null : Number(openingCounted),
           }
         : null,
     }
