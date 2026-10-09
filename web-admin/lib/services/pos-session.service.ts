@@ -279,7 +279,7 @@ async function getActiveSessionForUserWithContext(
         FROM public.org_orders_mst o
         WHERE o.tenant_org_id = ps.tenant_org_id
           AND o.created_pos_session_id = ps.id
-          AND COALESCE(o.is_active, TRUE) = TRUE
+          AND COALESCE(o.rec_status, 1) <> 0
       ) AS orders_created_count,
       NULL::text AS user_display_name,
       NULL::text AS opened_by_display_name,
@@ -1470,7 +1470,7 @@ export async function listPosSessions(input: {
             FROM public.org_orders_mst o
             WHERE o.tenant_org_id = ps.tenant_org_id
               AND o.created_pos_session_id = ps.id
-              AND COALESCE(o.is_active, TRUE) = TRUE
+              AND COALESCE(o.rec_status, 1) <> 0
           ) AS orders_created_count
           , COALESCE(u.display_name, u.name, u.email) AS user_display_name
           , COALESCE(opened_by_user.display_name, opened_by_user.name, opened_by_user.email) AS opened_by_display_name
