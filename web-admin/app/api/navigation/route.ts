@@ -65,20 +65,20 @@ export async function GET(request: Request) {
     console.log('Jh In GET() [ 3 ] : userRole', userRole);
     // Get user permissions
     
-    const { data: permissionsData, error: permsError } = await (supabase.rpc as any)('get_role_permissions_jh', {
-      p_role_code: userRole as string,
-    })
-    
-    /*
+    // Effective permissions for this user and tenant, not the profile-role default list.
+    // Resource-scoped grants do not open the tenant-wide menu.
     const { data: permissionsData, error: permsError } = await supabase.rpc('get_user_permissions_jh', {
       p_cur_user_id: userId,
       p_cur_tenant_org_id: tenantId,
     })
-    */
 
     const userPermissions: string[] = permsError
       ? []
-      : (permissionsData || []).map((p: { permission_code: string }) => p.permission_code)
+      : [...new Set(
+          (permissionsData ?? [])
+            .filter((permission) => permission.resource_id == null && permission.permission_code)
+            .map((permission) => permission.permission_code as string),
+        )]
 
       console.log('Jh In GET() [ 4 ] : userPermissions.length', userPermissions?.length);
       //console.log('Jh In GET() [ 5 ] : permsError', permsError);
@@ -116,35 +116,10 @@ export async function GET(request: Request) {
     const duration = Date.now() - startTime
     console.error(`[API] GET /api/navigation - Error after ${duration}ms:`, error)
     
-    // Try to get fallback navigation even on error
-    try {
-      const authContext = await getAuthContext()
-      const userRole = authContext.userRole?.toLowerCase() as UserRole | null
-      if (userRole) {
-        const navService = await import('@/lib/services/navigation.service')
-        const featureFlags = await getFeatureFlags(authContext.tenantId)
-        const fallback = navService.getSystemNavigationFallback(
-          userRole,
-          [],
-          featureFlags as unknown as Record<string, boolean>,
-        )
-
-        return NextResponse.json({
-          sections: fallback,
-          cached: false,
-          source: 'fallback-error',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        })
-      }
-    } catch (fallbackError) {
-      console.error('Error getting fallback navigation:', fallbackError)
-    }
-    
-    // Return empty navigation as last resort
     return NextResponse.json({
       sections: [],
       cached: false,
-      source: 'fallback',
+      source: 'database-error',
       error: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 200 }) // Always return 200 to prevent connection errors
   }

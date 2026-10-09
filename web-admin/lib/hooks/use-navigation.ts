@@ -3,14 +3,12 @@
 /**
  * Navigation Hook
  * 
- * Fetches and caches navigation items from API
- * Falls back to hardcoded navigation if API fails
+ * Fetches and caches navigation items from the database menu API.
  */
 
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { NavigationSection } from '@/config/navigation'
-import { NAVIGATION_SECTIONS } from '@/config/navigation'
 import {
   getCachedNavigation,
   setCachedNavigation,
@@ -196,7 +194,7 @@ function transformNavigationIcons(sections: any[]): NavigationSection[] {
     // Handle icon conversion - could be string, object (from JSON), or already a component
     let icon: any
 
-    // Check if icon is already a valid React component (from hardcoded NAVIGATION_SECTIONS)
+    // Check if icon is already a React component
     if (section.icon && typeof section.icon === 'function') {
       icon = section.icon
     } else if (typeof section.icon === 'string') {

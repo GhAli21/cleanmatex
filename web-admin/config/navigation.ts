@@ -1,10 +1,7 @@
 /**
- * Navigation Configuration
- *
- * Defines the sidebar navigation structure with:
- * - Role-based access control
- * - Feature flag dependencies
- * - Icons and routing
+ * Navigation types and path helpers.
+ * The live sidebar is sys_components_cd, not NAVIGATION_SECTIONS.
+ * A database row shows even when it is absent from this file.
  */
 
 import type { LucideIcon } from 'lucide-react'
@@ -83,8 +80,8 @@ export interface NavigationItem {
 }
 
 /**
- * Main navigation configuration
- * Order is fixed as per PRD-007 specification
+ * Not read by the sidebar. Kept for types and local helpers.
+ * Menu rows live in sys_components_cd.
  */
 export const NAVIGATION_SECTIONS: NavigationSection[] = [
   {
@@ -101,12 +98,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: PackageSearch,
     path: '/dashboard/orders',
     roles: ['super_admin', 'tenant_admin', 'admin', 'operator', 'viewer'],
+    permissions: ['orders:read'],
     children: [
       {
         key: 'orders_list',
         label: 'All Orders',
         path: '/dashboard/orders',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:read'],
       },
       {
         key: 'orders_workboard',
@@ -144,12 +143,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'New Order',
         path: '/dashboard/orders/new',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:create'],
       },
       {
         key: 'orders_preparation',
         label: 'Preparation',
         path: '/dashboard/preparation',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:read'],
       },
       {
         key: 'orders_home_collection',
@@ -163,42 +164,49 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Processing',
         path: '/dashboard/processing',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:read'],
       },
       {
         key: 'orders_issues',
         label: 'Issues',
         path: '/dashboard/issues',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator', 'viewer'],
+        permissions: ['orders:read'],
       },
       {
         key: 'orders_assembly',
         label: 'Assembly',
         path: '/dashboard/assembly',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:read'],
       },
       {
         key: 'orders_qa',
         label: 'Quality Check',
         path: '/dashboard/qa',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:read'],
       },
       {
         key: 'orders_ready',
         label: 'Ready',
         path: '/dashboard/ready',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:read'],
       },
       {
         key: 'orders_packing',
         label: 'Packing',
         path: '/dashboard/packing',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:read'],
       },
       {
         key: 'orders_delivery',
         label: 'Delivery',
         path: '/dashboard/delivery',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:read'],
       },
     ],
   },
@@ -210,6 +218,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard/assembly',
     //roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
     roles: ['none'],
+    permissions: ['orders:read'],
   },
 
   {
@@ -242,6 +251,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Truck,
     path: '/dashboard/delivery',
     roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+    permissions: ['orders:read'],
   },
   {
     key: 'users',
@@ -249,12 +259,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Users,
     path: '/dashboard/users',
     roles: ['admin', 'super_admin', 'tenant_admin'],
+    permissions: ['users:read'],
     children: [
       {
         key: 'users_list',
         label: 'All Users',
         path: '/dashboard/users',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['users:read'],
       },
       {
         key: 'users_sessions',
@@ -272,12 +284,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Users,
     path: '/dashboard/customers',
     roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'viewer'],
+    permissions: ['customers:read'],
     children: [
       {
         key: 'customers_list',
         label: 'All Customers',
         path: '/dashboard/customers',
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'viewer'],
+        permissions: ['customers:read'],
       },
       {
         key: 'customers_stored_value',
@@ -345,24 +359,28 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Services',
         path: '/dashboard/catalog/services',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: [ADMIN_PERMISSIONS.MANAGE],
       },
       {
         key: 'catalog_pricing',
         label: 'Pricing',
         path: '/dashboard/catalog/pricing',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: [ADMIN_PERMISSIONS.MANAGE],
       },
       {
         key: 'catalog_addons',
         label: 'Add-ons',
         path: '/dashboard/catalog/addons',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: [ADMIN_PERMISSIONS.MANAGE],
       },
       {
         key: 'catalog_preferences',
         label: 'Services preferences',
         path: '/dashboard/catalog/preferences',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: ['config:preferences_manage'],
       },
       {
         key: 'catalog_order_sources',
@@ -587,37 +605,41 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: BarChart3,
     path: '/dashboard/reports',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-    //featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
     children: [
       {
         key: 'reports_orders',
         label: 'Orders & Sales',
         path: '/dashboard/reports/orders',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
       },
       {
         key: 'reports_payments',
         label: 'Payments',
         path: '/dashboard/reports/payments',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
       },
       {
         key: 'reports_invoices',
         label: 'Invoices',
         path: '/dashboard/reports/invoices',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
       },
       {
         key: 'reports_revenue',
         label: 'Revenue',
         path: '/dashboard/reports/revenue',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
       },
       {
         key: 'reports_customers',
         label: 'Customers',
         path: '/dashboard/reports/customers',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
       },
       {
         key: 'reports_financial',
@@ -626,6 +648,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/reports/financial',
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'viewer'],
         permissions: ['finance_reports:view'],
+        featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
       },
       {
         key: 'reports_reconciliation',
@@ -634,6 +657,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/reports/reconciliation',
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'viewer'],
         permissions: ['finance_reports:view'],
+        featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
       },
       {
         key: 'reports_cash_variance',
@@ -897,6 +921,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Stock',
         path: '/dashboard/inventory/stock',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: ['inventory:read'],
       },
       {
         key: 'inventory_machines',
@@ -913,18 +938,21 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Settings2,
     path: '/dashboard/settings',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+    permissions: ['settings:read'],
     children: [
       {
         key: 'settings_general',
         label: 'General',
         path: '/dashboard/settings/general',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_all',
         label: 'All Settings',
         path: '/dashboard/settings/allsettings',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_tenant',
@@ -947,24 +975,28 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'User Preferences',
         path: '/dashboard/settings/preferences',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator', 'viewer'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_users',
         label: 'Team Members',
         path: '/dashboard/settings/users',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_roles',
         label: 'Roles & Permissions',
         path: '/dashboard/settings/roles',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_permissions',
         label: 'Permissions',
         path: '/dashboard/settings/permissions',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_security',
@@ -979,18 +1011,21 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Workflow Roles',
         path: '/dashboard/settings/workflow-roles',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:workflow_roles:view'],
       },
       {
         key: 'settings_branding',
         label: 'Branding',
         path: '/dashboard/settings/branding',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_finance',
         label: 'Finance',
         path: '/dashboard/settings/finance',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_currency_fx',
@@ -1005,6 +1040,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Payment Setup',
         path: '/dashboard/settings/payments',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_cash_control',
@@ -1034,6 +1070,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Navigation',
         path: '/dashboard/settings/navigation',
         roles: ['super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
       },
       {
         key: 'settings_tax',
@@ -1052,6 +1089,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Building2,
     path: '/dashboard/tenant-admin/subscription',
     roles: ['admin', 'super_admin', 'tenant_admin'],
+    permissions: ['settings:subscription'],
     children: [
       {
         key: 'tenant_admin_subscription',
@@ -1059,6 +1097,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label2: 'الاشتراك',
         path: '/dashboard/tenant-admin/subscription',
         roles: ['admin', 'super_admin', 'tenant_admin', 'viewer', 'operator'],
+        permissions: ['settings:subscription'],
       },
     ],
   },
@@ -1075,104 +1114,124 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Bug,
     path: '/dashboard/jhtestui',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+    permissions: ['admin:manage'],
   },
 
 ]
 
 /**
- * Get navigation items for a specific role and permissions
- * @param role User role
+ * Permission codes from sys_components_cd.main_permission_code, keyed by comp_code.
+ * Null means every signed-in user. A key present here replaces navigation.ts permissions.
+ */
+export type MainPermissionByKey = Readonly<Record<string, string | null>>
+
+/**
+ * sys_components_cd.main_permission_code wins over the permissions array in navigation.ts.
+ * A missing key keeps the navigation.ts list. Null or blank from the database means every signed-in user.
+ * @param key Menu comp_code
+ * @param navigationPermissions Permissions declared in navigation.ts
+ * @param mainPermissionByKey Database codes for the same keys
+ * @returns The permission list that decides visibility
+ */
+function permissionsForMenuItem(
+  key: string,
+  navigationPermissions: string[] | undefined,
+  mainPermissionByKey?: MainPermissionByKey,
+): string[] | undefined {
+  if (!mainPermissionByKey || !Object.prototype.hasOwnProperty.call(mainPermissionByKey, key)) {
+    return navigationPermissions
+  }
+
+  const databaseCode = mainPermissionByKey[key]?.trim()
+  return databaseCode ? [databaseCode] : undefined
+}
+
+/**
+ * A menu row is visible when the user holds its permission and any required feature flag.
+ * No permission list means every signed-in user. Role lists are not a gate.
+ * @param permissions Permission codes on the row
+ * @param requireAllPermissions When true, every listed permission is required
+ * @param featureFlag Flag key that must be enabled
+ * @param heldPermissions Permissions held by the signed-in user
  * @param featureFlags Enabled feature flags
- * @param permissions User permissions (optional, for granular control)
+ */
+function navigationItemVisible(
+  permissions: string[] | undefined,
+  requireAllPermissions: boolean | undefined,
+  featureFlag: string | undefined,
+  heldPermissions: string[],
+  featureFlags: Record<string, boolean>,
+): boolean {
+  if (featureFlag && !featureFlags[featureFlag]) {
+    return false
+  }
+
+  if (!permissions || permissions.length === 0) {
+    return true
+  }
+
+  return requireAllPermissions
+    ? permissions.every((permission) => heldPermissions.includes(permission))
+    : permissions.some((permission) => heldPermissions.includes(permission))
+}
+
+/**
+ * Fallback menu filtered by permission and feature flag.
+ * When mainPermissionByKey contains a key, that database code replaces navigation.ts permissions.
+ * Rows with no permissions stay visible to every signed-in user.
+ * A parent stays when one of its children is visible, even if the parent permission is missing.
+ * @param _role Unused. Kept so existing callers do not change.
+ * @param featureFlags Enabled feature flags
+ * @param permissions Permissions held by the signed-in user
+ * @param mainPermissionByKey Database main_permission_code by comp_code. Wins over navigation.ts.
  * @returns Filtered navigation sections
  */
 export function getNavigationForRole(
-  role: UserRole | null,
+  _role: UserRole | null,
   featureFlags: Record<string, boolean> = {},
-  permissions: string[] = []
+  permissions: string[] = [],
+  mainPermissionByKey?: MainPermissionByKey,
 ): NavigationSection[] {
-  // If no role provided, return empty array (no default access)
-  if (!role) {
-    return []
-  }
-
-  return NAVIGATION_SECTIONS.filter((section) => {
-    // STRICT FILTERING: Section must have either roles OR permissions defined
-    // If neither is specified, deny access (no fallback to public)
-    const hasRoleRequirement = section.roles && section.roles.length > 0
-    const hasPermissionRequirement = section.permissions && section.permissions.length > 0
-
-    // If section has no role or permission requirements, deny access
-    if (!hasRoleRequirement && !hasPermissionRequirement) {
-      return false
-    }
-
-    // super_admin and tenant_admin: allow all sections that have any role requirement (full menu)
-    // Both have same permissions (126); tenant_admin is tenant-scoped admin
-    const isAdminBypass = role === 'super_admin' || role === 'tenant_admin'
-    // Check role permission (if roles specified); admin roles bypass role check
-    if (hasRoleRequirement && !isAdminBypass && !section.roles!.includes(role)) {
-      return false
-    }
-
-    // Check permissions (if permissions specified)
-    // If both roles and permissions are specified, user must satisfy both
-    if (hasPermissionRequirement) {
-      const hasPermission = section.requireAllPermissions
-        ? section.permissions!.every(p => permissions.includes(p))
-        : section.permissions!.some(p => permissions.includes(p))
-
-      if (!hasPermission) {
-        return false
-      }
-    }
-
-    // Check feature flag if required
+  return NAVIGATION_SECTIONS.flatMap((section) => {
     if (section.featureFlag && !featureFlags[section.featureFlag]) {
-      return false
+      return []
     }
 
-    // Filter children if present
-    if (section.children) {
-      section.children = section.children.filter((child) => {
-        const childHasRoleRequirement = child.roles && child.roles.length > 0
-        const childHasPermissionRequirement = child.permissions && child.permissions.length > 0
+    const sectionPermissions = permissionsForMenuItem(
+      section.key,
+      section.permissions,
+      mainPermissionByKey,
+    )
+    const sectionFromDatabase = !!mainPermissionByKey && Object.prototype.hasOwnProperty.call(mainPermissionByKey, section.key)
 
-        // If child has no role or permission requirements, deny access
-        if (!childHasRoleRequirement && !childHasPermissionRequirement) {
-          return false
-        }
-
-        // Check child role permission; admin roles bypass role check
-        if (childHasRoleRequirement && !isAdminBypass && !child.roles!.includes(role)) {
-          return false
-        }
-
-        // Check child permissions
-        if (childHasPermissionRequirement) {
-          const hasChildPermission = child.requireAllPermissions
-            ? child.permissions!.every(p => permissions.includes(p))
-            : child.permissions!.some(p => permissions.includes(p))
-          if (!hasChildPermission) {
-            return false
-          }
-        }
-
-        // Check child feature flag
-        if (child.featureFlag && !featureFlags[child.featureFlag]) {
-          return false
-        }
-
-        return true
-      })
-
-      // Remove section if it has no valid children after filtering
-      if (section.children.length === 0) {
-        return false
-      }
+    if (!section.children) {
+      return navigationItemVisible(
+        sectionPermissions,
+        sectionFromDatabase ? false : section.requireAllPermissions,
+        undefined,
+        permissions,
+        featureFlags,
+      )
+        ? [section]
+        : []
     }
 
-    return true
+    const children = section.children.filter((child) => {
+      const childFromDatabase = !!mainPermissionByKey && Object.prototype.hasOwnProperty.call(mainPermissionByKey, child.key)
+      return navigationItemVisible(
+        permissionsForMenuItem(child.key, child.permissions, mainPermissionByKey),
+        childFromDatabase ? false : child.requireAllPermissions,
+        child.featureFlag,
+        permissions,
+        featureFlags,
+      )
+    })
+
+    if (children.length === 0) {
+      return []
+    }
+
+    return [{ ...section, children }]
   })
 }
 

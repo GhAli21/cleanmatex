@@ -2,7 +2,7 @@
 
 **Authority:** The dated entries below are historical delivery records. The current implementation authority is [notification-hub-production-implementation-plan.md](./notification-hub-production-implementation-plan.md) and its schema/contract companion.
 
-- [x] Shared schema applied through `0582_ntf_private_template_regs.sql`; the operator regenerated database types and tenant Prisma after each applied migration.
+- [x] Shared schema applied through `0593_ntf_private_account_credentials.sql`; the operator regenerated database types and tenant Prisma after each applied migration.
 - [x] Migration `0583_ntf_route_private_account_nullable.sql` is applied; `platform_account_id` is nullable so valid PRIVATE routes can be created.
 - [x] P1 durable dispatch/receipt safety and P2 platform provider-account, sender, localized-contract, provider-registration, route-assignment, and private-resource foundations are implemented.
 - [x] HQ route administration: tenant-scoped create, optimistic draft edit, activate, suspend, and retire APIs use canonical HQ permissions, audit logs, ownership-branch validation, and approved account/sender/template/locale/binding checks for platform and private routes.
@@ -13,7 +13,10 @@
 - [x] The Twilio importer now preserves connector-derived ordered slot evidence in its JSON snapshot; the generated Supabase JSON boundary compiles cleanly, and focused importer tests cover repeated positional placeholders and slot evidence.
 - [x] Migration `0588_ntf_platform_template_binding_command.sql` is applied. HQ exposes revision-scoped binding candidates and an immutable binding-definition command; the Providers screen now supports registration/revision review and ordered slot mapping before the one-time command is submitted.
 - [x] HQ can refresh the current Twilio provider revision through a managed confirmation flow. The server re-fetches the stored Content SID using the verified account, creates a fresh immutable revision, advances the current pointer atomically, and requires the new revision to be mapped before use.
-- [x] Migration `0592_ntf_private_template_import_command.sql` is applied and generated database types are available. It provides `cmx_import_org_ntf_prov_tmpl`, an atomic service-role-only tenant-private WhatsApp import command with direct tenant predicates and account/sender/locale validation.\n- [ ] Tenant-private Twilio import remains blocked on an account-bound tenant credential resolver. Existing encrypted BYO configuration is only tenant/channel/provider scoped and cannot safely select one of several provider accounts; private imports must not reuse platform deployment secrets.
+- [x] Migration `0592_ntf_private_template_import_command.sql` is applied and generated database types are available. It provides `cmx_import_org_ntf_prov_tmpl`, an atomic service-role-only tenant-private WhatsApp import command with direct tenant predicates and account/sender/locale validation.
+- [x] Migration `0593_ntf_private_account_credentials.sql` is applied. HQ private Twilio import decrypts only the selected tenant account envelope, validates its Account SID against `external_account_id`, and invokes the tenant-scoped 0592 command without exposing credentials.
+- [x] HQ exposes redacted tenant-private registration and revision discovery under the provider-template resource. Both database reads include direct tenant predicates and exclude encrypted envelopes, provider snapshots, and approval evidence.
+- [x] Migration `0596_ntf_private_template_binding_command.sql` is applied and generated types are available. It atomically defines a complete tenant-private immutable binding set with direct tenant predicates and service-role-only execution.
 - [ ] Provider/tenant management APIs, UI workflows, dispatch resolver integration, consent/suppression enforcement, reconciliation, operational runbooks, and pilot evidence remain required before production rollout.
 
 ---

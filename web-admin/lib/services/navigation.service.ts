@@ -6,47 +6,8 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
-import { getIcon, ICON_REGISTRY } from '@/lib/utils/icon-registry'
+import { getIcon } from '@/lib/utils/icon-registry'
 import type { NavigationSection, NavigationItem, UserRole } from '@/config/navigation'
-import { NAVIGATION_SECTIONS, getNavigationForRole } from '@/config/navigation'
-
-/**
- * Get basic navigation for super_admin as last resort
- * This ensures super_admin always has navigation even if everything else fails
- */
-function getBasicNavigationForSuperAdmin(): NavigationSection[] {
-  console.warn('Using basic navigation fallback for super_admin')
-  return [
-    {
-      key: 'home',
-      label: 'Dashboard',
-      icon: 'Home',
-      path: '/dashboard',
-      roles: ['super_admin'],
-    },
-    {
-      key: 'orders',
-      label: 'Orders',
-      icon: 'PackageSearch',
-      path: '/dashboard/orders',
-      roles: ['super_admin'],
-    },
-    {
-      key: 'customers',
-      label: 'Customers',
-      icon: 'Users',
-      path: '/dashboard/customers',
-      roles: ['super_admin'],
-    },
-    {
-      key: 'config_settings',
-      label: 'Config And Settings',
-      icon: 'Settings2',
-      path: '/dashboard/settings',
-      roles: ['super_admin'],
-    },
-  ] as any
-}
 
 /**
  *
@@ -72,6 +33,17 @@ export interface NavigationItemDB {
 }
 
 /**
+ * Menu gate from sys_components_cd.main_permission_code.
+ * Null or blank means every signed-in user. This wins over navigation.ts permissions.
+ * @param mainPermissionCode Value stored on the menu row
+ * @returns One-code list, or undefined when the row is open to every signed-in user
+ */
+function menuPermissionList(mainPermissionCode: string | null | undefined): string[] | undefined {
+  const code = mainPermissionCode?.trim()
+  return code ? [code] : undefined
+}
+
+/**
  * Get navigation items from database filtered by permissions
  * @param userPermissions User's permission codes
  * @param userRole User's role
@@ -84,18 +56,7 @@ export async function getNavigationFromDatabase(
   featureFlags: Record<string, boolean> = {}
 ): Promise<NavigationSection[]> {
   try {
-    // super_admin and tenant_admin: skip DB and use config fallback so they get the full menu.
-    // Both have same permissions (126); tenant_admin is tenant-scoped admin.
-    // The DB (sys_components_cd / get_navigation_with_parents_jh) may return fewer rows
-    // for tenant_admin, so we bypass it and use NAVIGATION_SECTIONS filtering.
-    if (userRole === 'super_admin' || userRole === 'tenant_admin') {
-      const fallback = getSystemNavigationFallback(userRole, userPermissions, featureFlags)
-      if (fallback.length > 0) {
-        return fallback
-      }
-      return getBasicNavigationForSuperAdmin()
-    }
-
+    // Every signed-in role uses the same permission menu. Admins are not a separate path.
     console.log('Jh In getNavigationFromDatabase() [ 3 ] : userRole', userRole);
     console.log('Jh In getNavigationFromDatabase() [ 4 ] : userPermissions length', userPermissions.length);
     console.log('Jh In getNavigationFromDatabase() [ 5 ] : featureFlags length', Object.keys(featureFlags).length);
@@ -136,18 +97,16 @@ export async function getNavigationFromDatabase(
     
     if (error) {
       console.error('Error in Jh In getNavigationFromDatabase() [ 11 ] : Error fetching navigation from database:', error)
-      const fallback = getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
-      return fallback
+      return []
     }
 
     if (!data || data.length === 0) {
-      console.warn('No navigation items found in database for user, using fallback', {
+      // A successful empty result is the database answer. Do not replace it with navigation.ts.
+      console.warn('No navigation items returned for user', {
         userRole,
         permissionsCount: userPermissions.length,
       })
-      const fallback = getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
-      console.log('Fallback navigation returned:', fallback.length, 'sections')
-      return fallback
+      return []
     }
 
     // Transform database records to NavigationSection format
@@ -156,8 +115,7 @@ export async function getNavigationFromDatabase(
     return transformed
   } catch (error) {
     console.error('Error in getNavigationFromDatabase:', error)
-    // Return empty array on error (no default fallback)
-    return getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
+    return []
   }
 }
 
@@ -244,8 +202,9 @@ function transformItemToSection(
     icon: item.comp_icon || 'Home', // Store icon name as string
     path: item.comp_path || `#${item.comp_code}`,
     roles: item.roles && item.roles.length > 0 ? (item.roles as UserRole[]) : undefined,
-    permissions: item.permissions && item.permissions.length > 0 ? item.permissions : undefined,
-    requireAllPermissions: item.require_all_permissions || false,
+    // main_permission_code is the menu gate. The jsonb permissions column is not.
+    permissions: menuPermissionList(item.main_permission_code),
+    requireAllPermissions: false,
     featureFlag: item.feature_flag && item.feature_flag.length > 0 ? item.feature_flag[0] : undefined,
     badge: item.badge || undefined,
     children: navigationChildren.length > 0 ? navigationChildren : undefined,
@@ -261,7 +220,6 @@ function transformItemToNavigationItem(
 ): NavigationItem | null {
   // Parse JSONB arrays
   const rolesArray = Array.isArray(item.roles) ? item.roles : (item.roles ? JSON.parse(JSON.stringify(item.roles)) : [])
-  const permissionsArray = Array.isArray(item.permissions) ? item.permissions : (item.permissions ? JSON.parse(JSON.stringify(item.permissions)) : [])
   const featureFlagArray = Array.isArray(item.feature_flag) ? item.feature_flag : (item.feature_flag ? JSON.parse(JSON.stringify(item.feature_flag)) : [])
 
   return {
@@ -270,131 +228,9 @@ function transformItemToNavigationItem(
     label2: item.label2 || undefined,
     path: item.comp_path || `#${item.comp_code}`,
     roles: rolesArray && rolesArray.length > 0 ? (rolesArray as UserRole[]) : undefined,
-    permissions: permissionsArray && permissionsArray.length > 0 ? permissionsArray : undefined,
-    requireAllPermissions: item.require_all_permissions || false,
+    // main_permission_code wins over the jsonb permissions column and over navigation.ts.
+    permissions: menuPermissionList(item.main_permission_code),
+    requireAllPermissions: false,
     featureFlag: featureFlagArray && featureFlagArray.length > 0 ? featureFlagArray[0] : undefined,
   }
-}
-
-/**
- * Get icon name from LucideIcon component
- * Reverse lookup to convert component to name string for JSON serialization
- * @param iconComponent
- */
-function getIconName(iconComponent: any): string {
-  if (!iconComponent || typeof iconComponent !== 'function') {
-    return 'Home'
-  }
-
-  // Find the icon name by comparing component references
-  const iconNames = Object.keys(ICON_REGISTRY)
-  for (const name of iconNames) {
-    if (ICON_REGISTRY[name] === iconComponent) {
-      return name
-    }
-  }
-
-  return 'Home'
-}
-
-/**
- * Get system navigation fallback (hardcoded)
- * Converts icon components to strings for JSON serialization
- * Filters by role and permissions to ensure security
- * Returns empty array if no role/permissions provided (no default access)
- * @param userRole User's role (null if not authenticated)
- * @param userPermissions User's permissions (empty array if none)
- * @param featureFlags Feature flags (optional)
- * @returns Hardcoded navigation sections with icon names as strings, filtered by permissions
- */
-export function getSystemNavigationFallback(
-  userRole: UserRole | null = null,
-  userPermissions: string[] = [],
-  featureFlags: Record<string, boolean> = {}
-): NavigationSection[] {
-  // If no role provided, return empty array (no default access)
-  if (!userRole) {
-    console.warn('getSystemNavigationFallback: No user role provided')
-    return []
-  }
-
-  console.log('getSystemNavigationFallback called with:', {
-    userRole,
-    permissionsCount: userPermissions.length,
-    featureFlagsCount: Object.keys(featureFlags).length,
-  })
-
-  try {
-  // Get filtered navigation by role/permissions
-  const filtered = getNavigationForRole(userRole, featureFlags, userPermissions)
-    
-    console.log('getNavigationForRole returned:', filtered.length, 'sections')
-  
-  // Convert icon components to strings for JSON serialization
-    const result = filtered.map((section) => {
-      try {
-        return {
-    ...section,
-    icon: getIconName(section.icon), // Convert component to string name
-        }
-      } catch (iconError) {
-        console.error('Error converting icon for section:', section.key, iconError)
-        return {
-          ...section,
-          icon: 'Home', // Fallback icon name
-        }
-      }
-    }) as any // Type assertion needed because icon is string, not LucideIcon
-    
-    console.log('getSystemNavigationFallback returning:', result.length, 'sections')
-    return result
-  } catch (error) {
-    console.error('Error in getSystemNavigationFallback:', error)
-    // Return basic navigation as fallback for super_admin and tenant_admin
-    if (userRole === 'super_admin' || userRole === 'tenant_admin') {
-      return getBasicNavigationForSuperAdmin()
-    }
-    return []
-  }
-}
-
-/**
- * Filter navigation by additional rules (roles, feature flags)
- * This is handled by the database function, but kept for compatibility
- * @param items
- * @param userRole
- * @param featureFlags
- */
-export function filterByAdditionalRules(
-  items: NavigationSection[],
-  userRole: UserRole,
-  featureFlags: Record<string, boolean>
-): NavigationSection[] {
-  const isAdminBypass = userRole === 'super_admin' || userRole === 'tenant_admin'
-  return items.filter((section) => {
-    // Check roles (super_admin and tenant_admin bypass - same permissions)
-    if (!isAdminBypass && section.roles && section.roles.length > 0 && !section.roles.includes(userRole)) {
-      return false
-    }
-
-    // Check feature flags
-    if (section.featureFlag && !featureFlags[section.featureFlag]) {
-      return false
-    }
-
-    // Filter children
-    if (section.children) {
-      section.children = section.children.filter((child) => {
-        if (!isAdminBypass && child.roles && child.roles.length > 0 && !child.roles.includes(userRole)) {
-          return false
-        }
-        if (child.featureFlag && !featureFlags[child.featureFlag]) {
-          return false
-        }
-        return true
-      })
-    }
-
-    return true
-  })
 }

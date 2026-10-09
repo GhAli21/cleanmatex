@@ -16454,6 +16454,80 @@ export type Database = {
           },
         ]
       }
+      org_ntf_prov_cred_mst: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          credential_kind: string
+          credential_version: string
+          encrypted_config: string
+          expires_at: string | null
+          fingerprint: string | null
+          id: string
+          is_active: boolean
+          provider_account_id: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          credential_kind: string
+          credential_version: string
+          encrypted_config: string
+          expires_at?: string | null
+          fingerprint?: string | null
+          id?: string
+          is_active?: boolean
+          provider_account_id: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          credential_kind?: string
+          credential_version?: string
+          encrypted_config?: string
+          expires_at?: string | null
+          fingerprint?: string | null
+          id?: string
+          is_active?: boolean
+          provider_account_id?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ntf_ocred_acct"
+            columns: ["provider_account_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_prov_acct_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
       org_ntf_prov_send_mst: {
         Row: {
           account_id: string
@@ -41689,6 +41763,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      cmx_define_org_ntf_ptmpl_binds: {
+        Args: {
+          p_actor: string
+          p_bindings: Json
+          p_provenance: string
+          p_revision_id: string
+          p_tenant_org_id: string
+        }
+        Returns: {
+          binding_count: number
+        }[]
+      }
       cmx_define_sys_ntf_prov_tmpl_bindings: {
         Args: {
           p_actor: string
@@ -41796,6 +41882,7 @@ export type Database = {
           revision_no: number
         }[]
       }
+      cmx_nav_flag_texts: { Args: { p_flag: Json }; Returns: string[] }
       cmx_ord_assembly_pre_conditions: { Args: never; Returns: Json }
       cmx_ord_assembly_transition: {
         Args: {

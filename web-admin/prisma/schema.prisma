@@ -15186,6 +15186,7 @@ model org_ntf_prov_acct_mst {
   sys_ntf_channel_cd      sys_ntf_channel_cd        @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_oacct_channel")
   sys_ntf_providers_cd    sys_ntf_providers_cd      @relation(fields: [provider_code], references: [code], onUpdate: NoAction, map: "fk_ntf_oacct_provider")
   org_tenants_mst         org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_oacct_tenant")
+  org_ntf_prov_cred_mst   org_ntf_prov_cred_mst?
   org_ntf_prov_send_mst   org_ntf_prov_send_mst[]
   org_ntf_ptreg_mst       org_ntf_ptreg_mst[]
   org_ntf_route_assign_cf org_ntf_route_assign_cf[]
@@ -15769,6 +15770,36 @@ model sys_auth_pwd_history_dtl {
   created_at    DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
 
   @@index([auth_user_id, created_at(sort: Desc)], map: "idx_auth_pwd_hist_user")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_prov_cred_mst {
+  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id         String                @db.Uuid
+  provider_account_id   String                @db.Uuid
+  credential_kind       String
+  credential_version    String
+  encrypted_config      String
+  fingerprint           String?
+  verified_at           DateTime?             @db.Timestamptz(6)
+  expires_at            DateTime?             @db.Timestamptz(6)
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?             @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  rec_status            Int                   @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  is_active             Boolean               @default(true)
+  org_ntf_prov_acct_mst org_ntf_prov_acct_mst @relation(fields: [provider_account_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ntf_ocred_acct")
+
+  @@unique([provider_account_id, tenant_org_id], map: "uq_ntf_ocred_acct")
+  @@index([tenant_org_id, provider_account_id, is_active, rec_status], map: "ix_ntf_ocred_resolve")
   @@schema("public")
 }
 
