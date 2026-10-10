@@ -722,7 +722,7 @@ Everything in this subsection is current as of the date above; re-verify against
 - **A1/C1 pilot tenant:** use a demo/test tenant only — not a real production tenant. Proceed on this basis.
 - **A5(a) reconcile-outbox cron:** approved — add the pg_cron schedule now.
 - **A3/quota reservation policy:** accept the current narrowed-but-not-fully-closed race through the pilot; do not build the full reservation/release ledger now. Revisit before scaling past pilot.
-- **B2/retention policy:** match whatever retention window the rest of CleanMateX already uses for comparable PII — **still needs a one-time lookup of what that existing pattern actually is** before it can be applied here; not yet done.
+- **B2/retention policy:** **closed 2026-10-10** — looked up the existing precedent (`fn_auth_sessions_sweep(180)`, migration 0575/0576) and applied the same 180-day window via new migration `0609_ntf_retention_sweep.sql` (created, not yet applied). See STATUS.md's dated entry for the full table/filter breakdown.
 - **B3 (working-day/SLA)** and **B4 (capacity/SLO thresholds)** were not asked this round — both remain at their recommended default (skip B3 unless told otherwise; wait for pilot traffic before B4).
 
 **Dispatched and in-flight as of this snapshot:** A2 (suppression-list table + email bounce/complaint webhook + SMS/Meta gap investigation), A4(a) (campaign test-send pipeline fix — bypass outbox/consent/quota entirely for test sends, decided design), C3 (full section-20 test-matrix coverage audit, read-only). Check this file's own edit history / `STATUS.md` for whether these have landed by the time you read this.

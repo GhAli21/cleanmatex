@@ -19,6 +19,7 @@ import { logger } from '@lib/utils/logger'
 import { notificationSettingsService } from '@lib/notifications/settings-service'
 import {
   getNtfHqDispatchUrl,
+  getNtfHqRouteDispatchUrl,
   getTwilioWhatsappFrom,
   getTwilioWhatsappSandboxContentSid,
   getTwilioWhatsappSandboxToPhone,
@@ -34,7 +35,9 @@ import {
 import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env'
 import { stripWhatsAppPrefix } from '@lib/notifications/whatsapp-phone'
 import { resolveWhatsAppCustomerEligibility } from '@lib/notifications/whatsapp-customer-eligibility'
-import { runShadowOrderCreatedWhatsAppComparison } from '@lib/notifications/shadow-route-comparison'
+import { resolveNotificationRecipientLanguage } from '@lib/notifications/recipient-language-resolver'
+import { resolveEffectiveNotificationRoute } from '@lib/notifications/route-resolver'
+import type { EffectiveNotificationRouteMatch } from '@lib/types/notification-route'
 
 async function resolveWhatsAppTo(row: OutboxWhatsAppRow, productionTemplate = false): Promise<string | null> {
   // Live templates must use the persisted recipient even when stale sandbox overrides exist.
@@ -374,6 +377,134 @@ async function deliverViaHqProxy(row: OutboxWhatsAppRow): Promise<WhatsAppDelive
 }
 
 /**
+ * Route/binding-aware live dispatch via the HQ route-dispatch endpoint
+ * (production implementation plan sections 4.2, 17.2, 22, 23.1, 26.2.1).
+ * Reuses the exact same consent/eligibility and channel-enablement rechecks
+ * as the production-template legacy branch below (plan invariant 4.1.12:
+ * consent is rechecked again at actual dispatch, regardless of transport) —
+ * a route-aware send is itself always a live approved Content template send
+ * to a real customer, so it is never exempt from that recheck. The freshly
+ * resolved `eligibility.recipientAddress` is used directly as the
+ * destination; `row.recipient_address` is never trusted for this path.
+ *
+ * Never falls back to the legacy Twilio path on any failure — a real
+ * provider send was already attempted through this transport, so falling
+ * back would risk a double real-world WhatsApp message to the customer.
+ * Every failure here (HQ unreachable, non-OK response, FAILED/
+ * PERMANENT_FAILURE status) returns a normal retryable-or-permanent
+ * WhatsAppDeliveryResult instead, exactly like {@link deliverViaHqProxy}'s
+ * own existing failure handling — the standard outbox retry/dead-letter
+ * policy is the safety net, not a same-attempt fallback.
+ * @param row Immutable outbox delivery inputs.
+ * @param effectiveRoute The matched ACTIVE route identity already resolved by the caller.
+ * @param languageCode The recipient language already resolved for this delivery.
+ * @returns The route-dispatch outcome.
+ */
+async function dispatchViaResolvedRoute(
+  row: OutboxWhatsAppRow,
+  effectiveRoute: EffectiveNotificationRouteMatch,
+  languageCode: string,
+): Promise<WhatsAppDeliveryResult> {
+  if (!(await notificationSettingsService.isChannelEnabled(row.tenant_org_id, 'WHATSAPP'))) {
+    return { success: false, skipped: true, errorMessage: 'WhatsApp channel was disabled before delivery' }
+  }
+  const eligibility = await resolveWhatsAppCustomerEligibility(row.tenant_org_id, row.source_entity_type, row.source_entity_id)
+  if (eligibility.allowed === false) {
+    return { success: false, skipped: !eligibility.retryable, permanent: false, errorMessage: eligibility.reason }
+  }
+
+  const hqUrl = await getNtfHqRouteDispatchUrl()
+  const hqKey = process.env.NTF_HQ_SERVICE_ROLE_KEY ?? ''
+  if (!hqKey) {
+    logMissingNotificationEnv({
+      adapter: 'whatsapp-adapter(route)',
+      missing: collectMissingEnv(['NTF_HQ_SERVICE_ROLE_KEY']),
+      outboxId: row.id,
+    })
+    return { success: false, errorMessage: 'NTF_HQ_SERVICE_ROLE_KEY not configured', permanent: true }
+  }
+
+  const variables = (row.metadata?.variables as Record<string, string> | undefined) ?? {}
+  const body = JSON.stringify({
+    idempotencyKey: row.id,
+    tenantOrgId: row.tenant_org_id,
+    channel: 'WHATSAPP',
+    recipient: eligibility.recipientAddress,
+    routeId: effectiveRoute.routeId,
+    routeOwner: effectiveRoute.routeOwner,
+    accountId: effectiveRoute.accountId,
+    senderId: effectiveRoute.senderId ?? undefined,
+    revisionId: effectiveRoute.revisionId,
+    languageCode,
+    variables,
+    requestId: row.id,
+  })
+
+  try {
+    const res = await fetch(hqUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hqKey}` },
+      body,
+      signal: AbortSignal.timeout(25_000),
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      const permanent = res.status >= 400 && res.status < 500 && res.status !== 429
+      logger.warn('whatsapp-adapter: route-dispatch HQ endpoint non-OK', {
+        outboxId: row.id, status: res.status, routeId: effectiveRoute.routeId, feature: 'notifications',
+      })
+      return { success: false, errorMessage: `Route-dispatch HQ HTTP ${res.status}: ${text}`, permanent }
+    }
+
+    const data = await res.json().catch(() => ({})) as { status?: string; providerMessageId?: string }
+    if (data.status === 'PERMANENT_FAILURE') return { success: false, errorMessage: 'Route-dispatch: PERMANENT_FAILURE', permanent: true }
+    if (data.status === 'FAILED') return { success: false, errorMessage: 'Route-dispatch: FAILED (temporary)', permanent: false }
+    return { success: true, providerMessageId: data.providerMessageId }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    logger.error('whatsapp-adapter: route-dispatch HQ fetch threw', err instanceof Error ? err : new Error(msg), {
+      outboxId: row.id, routeId: effectiveRoute.routeId, feature: 'notifications',
+    })
+    return { success: false, errorMessage: msg, permanent: false }
+  }
+}
+
+/** Plan section 23's explicitly decided scope: "First producer scope: order.created pilot, then
+ * approved lifecycle/payment/other event integrations" — a gated sequence, not a one-time opt-in.
+ * Other event codes are not yet approved for route/binding-aware dispatch, even if an operator
+ * mistakenly activates a route for one; mirrors shadow-route-comparison.ts's own
+ * SHADOW_PILOT_EVENT_CODE restriction, which this cutover supersedes for order.created only. */
+const ROUTE_CUTOVER_PILOT_EVENT_CODE = 'order.created'
+
+/**
+ * Checks for an ACTIVE route/binding-aware identity for this exact
+ * tenant/event/channel/language tuple and, when matched, dispatches live
+ * through it via {@link dispatchViaResolvedRoute} — the bounded cutover
+ * (plan sections 4.2, 17.2, 22, 23.1, 26.2.1). A route only ever reaches
+ * `route_state = 'ACTIVE'` through HQ's existing route lifecycle API,
+ * tenant-scoped per event/channel/language — that activation gate already
+ * IS the bounded cutover gate: no tenant's behavior changes merely by this
+ * code shipping, only once an operator explicitly activates a route for a
+ * specific tenant/event/channel/language.
+ *
+ * Returns null, with no side effects, for every outbox row whose
+ * `event_code` is not {@link ROUTE_CUTOVER_PILOT_EVENT_CODE} and for every
+ * `NO_ACTIVE_ROUTE`/`LOOKUP_ERROR` result — the state for every tenant
+ * today — so the caller falls through to the completely unchanged legacy
+ * path below.
+ * @param row Immutable outbox delivery inputs.
+ * @returns A route-dispatch outcome when an ACTIVE route matched, otherwise null.
+ */
+async function tryDispatchViaResolvedRoute(row: OutboxWhatsAppRow): Promise<WhatsAppDeliveryResult | null> {
+  if (row.event_code !== ROUTE_CUTOVER_PILOT_EVENT_CODE) return null
+  const languageCode = await resolveNotificationRecipientLanguage(row.tenant_org_id, row.source_entity_type, row.source_entity_id)
+  const effectiveRoute = await resolveEffectiveNotificationRoute(row.tenant_org_id, row.event_code, 'WHATSAPP', languageCode)
+  if (!effectiveRoute.matched) return null
+  return dispatchViaResolvedRoute(row, effectiveRoute, languageCode)
+}
+
+/**
  * Deliver through the active tenant provider without degrading live templates to
  * free text. HQ's current body-only proxy contract cannot carry Content templates.
  * @param row Immutable outbox delivery inputs, including the owning tenant ID.
@@ -383,15 +514,19 @@ async function deliverViaHqProxy(row: OutboxWhatsAppRow): Promise<WhatsAppDelive
 export async function deliverWhatsAppOutbox(row: OutboxWhatsAppRow): Promise<WhatsAppDeliveryResult> {
   const provider = await notificationSettingsService.getActiveProvider(row.tenant_org_id, 'WHATSAPP')
 
-  // SHADOW-ONLY pilot (plan sections 17.2/22): observes what
-  // ResolveEffectiveNotificationRoute would select for ORDER_CREATED →
-  // WHATSAPP, in addition to this unchanged legacy path. It never sends,
-  // never reserves quota, never touches the outbox claim a second time, and
-  // cannot affect `row`, `provider`, or the result this function returns —
-  // any failure inside it is swallowed. See
-  // lib/notifications/shadow-route-comparison.ts and
-  // docs/features/Notification_And_Communication_Hub/STATUS.md (2026-10-09).
-  await runShadowOrderCreatedWhatsAppComparison(row, provider)
+  // Route/binding-aware cutover (plan 4.2/17.2/22/23.1/26.2.1): when an
+  // operator has explicitly activated a route for this exact
+  // tenant/event/channel/language tuple, dispatch live through that route's
+  // pinned identity instead of the legacy path below. This SUPERSEDES the
+  // former SHADOW-ONLY pilot (lib/notifications/shadow-route-comparison.ts,
+  // runShadowOrderCreatedWhatsAppComparison) for order.created: that module
+  // is now retired from this hot path (STATUS.md 2026-10-10) because the
+  // real resolution below already subsumes its purpose — there is nothing
+  // left to shadow-compare once a real cutover exists. The module and its
+  // own unit tests are left in place (not deleted) as they still exercise
+  // valid, independent behavior; they are simply no longer called here.
+  const routeDispatch = await tryDispatchViaResolvedRoute(row)
+  if (routeDispatch) return routeDispatch
 
   const productionTemplate = provider !== null &&
     isTwilioProductionTemplateProvider(provider.providerCode, provider.config)

@@ -24,6 +24,7 @@ export const NTF_RUNTIME_KEYS = {
   TWILIO_WHATSAPP_FROM: 'twilio_whatsapp_from',
   NTF_DISPATCH_VIA_HQ: 'ntf_dispatch_via_hq',
   NTF_HQ_DISPATCH_URL: 'ntf_hq_dispatch_url',
+  NTF_HQ_ROUTE_DISPATCH_URL: 'ntf_hq_route_dispatch_url',
   RESEND_FROM_EMAIL: 'resend_from_email',
 } as const
 
@@ -38,6 +39,7 @@ const ENV_OVERRIDE: Record<string, string> = {
   [NTF_RUNTIME_KEYS.TWILIO_WHATSAPP_FROM]: 'TWILIO_WHATSAPP_FROM',
   [NTF_RUNTIME_KEYS.NTF_DISPATCH_VIA_HQ]: 'NTF_DISPATCH_VIA_HQ',
   [NTF_RUNTIME_KEYS.NTF_HQ_DISPATCH_URL]: 'NTF_HQ_DISPATCH_URL',
+  [NTF_RUNTIME_KEYS.NTF_HQ_ROUTE_DISPATCH_URL]: 'NTF_HQ_ROUTE_DISPATCH_URL',
   [NTF_RUNTIME_KEYS.RESEND_FROM_EMAIL]: 'RESEND_FROM_EMAIL',
 }
 
@@ -165,6 +167,19 @@ export async function getNtfHqDispatchUrl(): Promise<string> {
   return (
     (await getRuntimeString(NTF_RUNTIME_KEYS.NTF_HQ_DISPATCH_URL)) ??
     'http://localhost:3002/api/hq/v1/notifications/dispatch'
+  )
+}
+
+/**
+ * Route-identity-aware HQ dispatch URL — additive to {@link getNtfHqDispatchUrl}'s generic
+ * body-only proxy, never a replacement. Used only by the bounded WhatsApp route cutover
+ * (plan sections 17.2/22/23.1) once ResolveEffectiveNotificationRoute returns a matched
+ * ACTIVE route; the service-role key stays in NTF_HQ_SERVICE_ROLE_KEY.
+ */
+export async function getNtfHqRouteDispatchUrl(): Promise<string> {
+  return (
+    (await getRuntimeString(NTF_RUNTIME_KEYS.NTF_HQ_ROUTE_DISPATCH_URL)) ??
+    'http://localhost:3002/api/hq/v1/notifications/dispatch/route'
   )
 }
 

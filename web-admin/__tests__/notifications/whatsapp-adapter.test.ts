@@ -6,6 +6,7 @@ import { resolveWhatsAppCustomerEligibility } from '@lib/notifications/whatsapp-
 import { createAdminSupabaseClient } from '@lib/supabase/server'
 import { __clearEffectiveNotificationRouteCacheForTests } from '@lib/notifications/route-resolver'
 import {
+  getNtfHqRouteDispatchUrl,
   getTwilioWhatsappFrom,
   getTwilioWhatsappSandboxContentSid,
   getTwilioWhatsappSandboxToPhone,
@@ -32,6 +33,7 @@ jest.mock('@lib/notifications/config', () => ({
   isNtfDispatchViaHq: jest.fn(),
   isTwilioWhatsappSandboxTemplateEnabled: jest.fn(),
   getNtfHqDispatchUrl: jest.fn(),
+  getNtfHqRouteDispatchUrl: jest.fn(),
 }))
 
 /**
@@ -248,7 +250,7 @@ describe('WhatsApp adapter template dispatch', () => {
     expect(resolveWhatsAppCustomerEligibility).not.toHaveBeenCalled()
   })
 
-  describe('shadow-only route-resolver pilot (never a live cutover)', () => {
+  describe('route/binding-aware live cutover (order.created only, bounded by route activation)', () => {
     const expectedSend = {
       from: 'whatsapp:+96890000000', to: 'whatsapp:+96891234567', contentSid: createdSid,
       contentVariables: JSON.stringify({ order_number: 'ORD-001', estimated_ready_at: '3 October 2026' }),
@@ -261,7 +263,7 @@ describe('WhatsApp adapter template dispatch', () => {
       expect(createMessage).toHaveBeenCalledWith(expectedSend)
     })
 
-    it('leaves the legacy send byte-for-byte unchanged when an ACTIVE route exists for this tenant/event/channel', async () => {
+    it('dispatches live through the HQ route-dispatch endpoint instead of Twilio when an ACTIVE route exists for this tenant/event/channel', async () => {
       configureShadowSupabase({
         languages: ['en'],
         routeRow: {
@@ -270,22 +272,59 @@ describe('WhatsApp adapter template dispatch', () => {
           private_account_id: null, private_sender_id: null, private_revision_id: null,
         },
       })
-      expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'SM-test' })
-      // Exactly the one legacy provider call -- the resolved route is never dispatched through.
-      expect(createMessage).toHaveBeenCalledTimes(1)
-      expect(createMessage).toHaveBeenCalledWith(expectedSend)
+      process.env.NTF_HQ_SERVICE_ROLE_KEY = 'hq-key-test'
+      jest.mocked(getNtfHqRouteDispatchUrl).mockResolvedValue('https://hq.example/api/hq/v1/notifications/dispatch/route')
+      const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true, json: async () => ({ status: 'SENT', providerMessageId: 'WA-route-test' }),
+      } as Response)
+
+      expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'WA-route-test' })
+      // The resolved route is dispatched through directly -- Twilio is never contacted a second time.
+      expect(createMessage).not.toHaveBeenCalled()
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://hq.example/api/hq/v1/notifications/dispatch/route',
+        expect.objectContaining({ method: 'POST', headers: expect.objectContaining({ Authorization: 'Bearer hq-key-test' }) }),
+      )
+      const sentBody = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string)
+      expect(sentBody).toMatchObject({
+        idempotencyKey: 'outbox-1', tenantOrgId: 'tenant-1', channel: 'WHATSAPP', recipient: '+96891234567',
+        routeId: 'route-x', routeOwner: 'PLATFORM', accountId: 'acct-x', revisionId: 'rev-x', languageCode: 'en',
+      })
+      delete process.env.NTF_HQ_SERVICE_ROLE_KEY
+      fetchSpy.mockRestore()
     })
 
-    it('never fails or alters the legacy send when the shadow lookup itself throws', async () => {
+    it('never falls back to Twilio when the route-dispatch endpoint itself fails -- the standard retry/dead-letter policy is the safety net, not a same-attempt fallback', async () => {
+      configureShadowSupabase({
+        languages: ['en'],
+        routeRow: {
+          id: 'route-x', route_owner: 'PLATFORM', assignment_version: 1, language_code: 'en', fallback_language: null,
+          platform_account_id: 'acct-x', platform_sender_id: null, provider_revision_id: 'rev-x',
+          private_account_id: null, private_sender_id: null, private_revision_id: null,
+        },
+      })
+      process.env.NTF_HQ_SERVICE_ROLE_KEY = 'hq-key-test'
+      jest.mocked(getNtfHqRouteDispatchUrl).mockResolvedValue('https://hq.example/api/hq/v1/notifications/dispatch/route')
+      const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 500, text: async () => 'boom' } as Response)
+
+      expect(await deliverWhatsAppOutbox(row)).toEqual({
+        success: false, permanent: false, errorMessage: expect.stringContaining('Route-dispatch HQ HTTP 500'),
+      })
+      expect(createMessage).not.toHaveBeenCalled()
+      delete process.env.NTF_HQ_SERVICE_ROLE_KEY
+      fetchSpy.mockRestore()
+    })
+
+    it('never fails or alters the legacy send when the route-resolution lookup itself throws', async () => {
       jest.mocked(createAdminSupabaseClient).mockImplementation(() => {
-        throw new Error('shadow lookup unavailable')
+        throw new Error('route lookup unavailable')
       })
       expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'SM-test' })
       expect(createMessage).toHaveBeenCalledTimes(1)
       expect(createMessage).toHaveBeenCalledWith(expectedSend)
     })
 
-    it('never runs the shadow comparison for an event outside this pilot scope', async () => {
+    it('never attempts route resolution for an event outside this pilot scope (order.created only)', async () => {
       const { from } = configureShadowSupabase({ languages: ['en'] })
       await deliverWhatsAppOutbox({ ...row, event_code: 'order.ready' })
       expect(from).not.toHaveBeenCalled()

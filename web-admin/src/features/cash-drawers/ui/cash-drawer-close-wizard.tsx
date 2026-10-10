@@ -66,7 +66,6 @@ export function CashDrawerCloseWizard({
   const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency()
 
   const [phase, setPhase] = useState<'count' | 'disposition'>('count')
-  const showingDisposition = resumeClosing || phase === 'disposition'
   const [countNow, setCountNow] = useState(false)
   const [countChoice, setCountMode] = useState<CountMethod>('TOTAL_ONLY')
   const countPolicy = useDrawerCountMethod(drawerId, 'closing', open)
@@ -80,7 +79,16 @@ export function CashDrawerCloseWizard({
     enabled: open && resumeClosing,
     queryFn: () => fetchClosingResume(drawerId, sessionId),
   })
-  const balances = resumeClosing ? (resumeQuery.data?.currencyBalances ?? []) : countedBalances
+  const cutMissing = resumeQuery.data?.cutFrozen === false
+  // A CLOSING session with no saved count goes back through the count step.
+  const showingDisposition =
+    phase === 'disposition' || (resumeClosing && !cutMissing && !resumeQuery.isError)
+  const balances =
+    countedBalances.length > 0
+      ? countedBalances
+      : cutMissing
+        ? []
+        : (resumeQuery.data?.currencyBalances ?? [])
   const [dispositions, setDispositions] = useState<Record<string, DispositionFormRow>>({})
   const dispositionRows = Object.fromEntries(
     balances.map((balance) => [balance.currencyCode, dispositions[balance.currencyCode] ?? { ...EMPTY_DISPOSITION_ROW }]),
@@ -232,7 +240,9 @@ export function CashDrawerCloseWizard({
           />
         ) : !showingDisposition ? (
           <div className="space-y-4">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('closeSessionDesc')}</p>
+            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              {cutMissing ? t('wizard.closingCutMissing') : t('closeSessionDesc')}
+            </p>
 
             <CmxSwitch
               checked={countNow}

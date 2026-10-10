@@ -445,6 +445,16 @@ export interface StartCloseResult {
     closingVariance: string | null;
     varianceReasonRequired: boolean;
   }>;
+  /**
+   * False when the session is already CLOSING but the count step never
+   * stored a closing figure. The wizard must run that step before disposition.
+   */
+  cutFrozen?: boolean;
+}
+
+/** A CLOSING session whose balance rows never received a closing figure cannot be finished as-is. */
+function closingCutMissing(rows: ReadonlyArray<{ closing_expected: Prisma.Decimal | null }>): boolean {
+  return rows.length === 0 || rows.some((row) => row.closing_expected == null);
 }
 
 /**
@@ -457,7 +467,7 @@ export interface StartCloseResult {
 export async function startCloseTx(tx: Tx, ctx: Ctx, input: StartCloseInput): Promise<StartCloseResult> {
   const session = await tx.org_cash_drawer_sessions_mst.findFirst({
     where: { id: input.sessionId, tenant_org_id: ctx.tenantOrgId },
-    select: { id: true, cash_drawer_id: true, branch_id: true, status: true, open_ledger_seq: true },
+    select: { id: true, cash_drawer_id: true, branch_id: true, status: true, open_ledger_seq: true, close_ledger_seq: true },
   });
   if (!session) {
     throw new Error(`startCloseTx: session ${input.sessionId} not found`);
@@ -465,7 +475,22 @@ export async function startCloseTx(tx: Tx, ctx: Ctx, input: StartCloseInput): Pr
   if (session.cash_drawer_id !== input.drawerId) {
     throw new CashDrawerLedgerError(CASH_LEDGER_ERRORS.DRAWER_SESSION_WRONG_DRAWER, 'startCloseTx: session does not belong to this drawer');
   }
-  if (session.status !== CASH_DRAWER_SESSION_STATUSES.OPEN) {
+  // Older closes were marked CLOSING without writing closing_expected. Those must
+  // still be able to take the count step; a cut that is already frozen stays put.
+  let repairingClosingCut = false;
+  if (session.status === CASH_DRAWER_SESSION_STATUSES.CLOSING) {
+    const existingBalances = await tx.org_cash_drawer_ses_bal_dtl.findMany({
+      where: { tenant_org_id: ctx.tenantOrgId, cash_drawer_session_id: session.id },
+      select: { closing_expected: true },
+    });
+    if (!closingCutMissing(existingBalances)) {
+      throw new CashDrawerLedgerError(
+        CASH_LEDGER_ERRORS.CASH_DRAWER_SESSION_NOT_OPEN,
+        'startCloseTx: session is already CLOSING and its cut is frozen',
+      );
+    }
+    repairingClosingCut = true;
+  } else if (session.status !== CASH_DRAWER_SESSION_STATUSES.OPEN) {
     throw new CashDrawerLedgerError(CASH_LEDGER_ERRORS.CASH_DRAWER_SESSION_NOT_OPEN, `startCloseTx: session is ${session.status}, not OPEN`);
   }
 
@@ -475,7 +500,9 @@ export async function startCloseTx(tx: Tx, ctx: Ctx, input: StartCloseInput): Pr
   }
   // B3-1: the count/close step is the assignee's (or a supervisor's) job on an ASSIGNED_ONLY drawer.
   await assertDrawerAssignment({ tenantOrgId: ctx.tenantOrgId, userId: ctx.userId, drawer });
-  const cutSeq = drawer.ledger_seq;
+  // A stored cut above 0 is the original window. 0/null means the cut was never taken.
+  const storedCut = session.close_ledger_seq;
+  const cutSeq = repairingClosingCut && storedCut != null && storedCut > BigInt(0) ? storedCut : drawer.ledger_seq;
 
   const settings = await getCashControlSettings({
     tenantId: ctx.tenantOrgId,
@@ -562,22 +589,35 @@ export async function startCloseTx(tx: Tx, ctx: Ctx, input: StartCloseInput): Pr
     });
   }
 
-  await tx.org_cash_drawer_sessions_mst.update({
-    where: { tenant_org_id: ctx.tenantOrgId, id: session.id },
-    data: {
-      status: CASH_DRAWER_SESSION_STATUSES.CLOSING,
-      close_ledger_seq: cutSeq,
-      closing_started_at: new Date(),
-      closing_started_by: ctx.userId,
-      updated_at: new Date(),
-      updated_by: ctx.userId,
-    },
-  });
+  if (repairingClosingCut) {
+    if (storedCut == null || storedCut <= BigInt(0)) {
+      await tx.org_cash_drawer_sessions_mst.update({
+        where: { tenant_org_id: ctx.tenantOrgId, id: session.id },
+        data: {
+          close_ledger_seq: cutSeq,
+          updated_at: new Date(),
+          updated_by: ctx.userId,
+        },
+      });
+    }
+  } else {
+    await tx.org_cash_drawer_sessions_mst.update({
+      where: { tenant_org_id: ctx.tenantOrgId, id: session.id },
+      data: {
+        status: CASH_DRAWER_SESSION_STATUSES.CLOSING,
+        close_ledger_seq: cutSeq,
+        closing_started_at: new Date(),
+        closing_started_by: ctx.userId,
+        updated_at: new Date(),
+        updated_by: ctx.userId,
+      },
+    });
 
-  await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_SESSION_CLOSING, 'cash_drawer_session', session.id, {
-    session_id: session.id,
-    drawer_id: input.drawerId,
-  });
+    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_SESSION_CLOSING, 'cash_drawer_session', session.id, {
+      session_id: session.id,
+      drawer_id: input.drawerId,
+    });
+  }
 
   return { sessionId: session.id, currencyBalances };
 }
@@ -1457,8 +1497,13 @@ export async function resumeClosing(
       },
     });
 
+    if (closingCutMissing(rows)) {
+      return { sessionId: session.id, currencyBalances: [], cutFrozen: false };
+    }
+
     return {
       sessionId: session.id,
+      cutFrozen: true,
       currencyBalances: rows.map((row) => {
         const variance = row.closing_variance == null ? null : new Decimal(row.closing_variance.toString());
         const tolerance = row.variance_tolerance_snap != null
@@ -1469,9 +1514,10 @@ export async function resumeClosing(
         const varianceReasonRequired = variance != null
           && variance.abs().greaterThan(tolerance)
           && (reasonBand == null || variance.abs().greaterThan(reasonBand));
+        const closingExpected = row.closing_expected == null ? '0.0000' : new Decimal(row.closing_expected.toString()).toFixed(4);
         return {
           currencyCode: row.currency_code,
-          closingExpected: new Decimal(row.closing_expected.toString()).toFixed(4),
+          closingExpected,
           closingCounted: row.closing_counted == null ? null : new Decimal(row.closing_counted.toString()).toFixed(4),
           closingVariance: variance == null ? null : variance.toFixed(4),
           varianceReasonRequired,

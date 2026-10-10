@@ -198,6 +198,7 @@
       "openDescription": "The system computes the opening float from this drawer's history. Count the cash now to verify it, or skip and count later.",
       "countNow": "Count the cash now",
       "countNowDescription": "Optional — compares your count against the system's computed figure.",
+      "closingCutMissing": "This close started before the cash count was saved. Count the cash now, or continue and the system will use its computed figure.",
       "countMethod": "Count method",
       "countMethodTotal": "Total amount",
       "countMethodDenomination": "By denomination",

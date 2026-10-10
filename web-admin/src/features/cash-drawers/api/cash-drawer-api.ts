@@ -153,6 +153,8 @@ export async function fetchCashDrawerClosePreviewV2(drawerId: string, sessionId:
 export interface StartCloseResult {
   sessionId: string
   currencyBalances: CurrencyBalancePreview[]
+  /** False when a CLOSING session never saved its closing figure. The count step still has to run. */
+  cutFrozen?: boolean
 }
 
 /** Frozen closing balances for a session that is already CLOSING. */
