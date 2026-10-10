@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 
-import { cmxMessage } from '@ui/feedback'
+import { cmxMessage, CmxSummaryMessage } from '@ui/feedback'
 import { CmxButton, CmxInput, CmxSelect, CmxSwitch, CmxTextarea, Label } from '@ui/primitives'
 import { CmxDenominationCounter } from '@ui/patterns'
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
@@ -15,6 +15,7 @@ import { useDrawerCountMethod, type CountMethod } from '@features/cash-drawers/h
 import { CashCountMethodField } from '@features/cash-drawers/ui/cash-count-method-field'
 import {
   startCashDrawerClose,
+  fetchClosingResume,
   finalizeCashDrawerClose,
   fetchCashDrawerCatalogs,
   fetchCurrencyDenominations,
@@ -35,6 +36,8 @@ interface CashDrawerCloseWizardProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onFinalized: (result: FinalizeCloseResultV2) => void
+  /** Session is already CLOSING. Skip the count step and finish disposition. */
+  resumeClosing?: boolean
 }
 
 /**
@@ -54,6 +57,7 @@ export function CashDrawerCloseWizard({
   open,
   onOpenChange,
   onFinalized,
+  resumeClosing = false,
 }: CashDrawerCloseWizardProps) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
@@ -62,6 +66,7 @@ export function CashDrawerCloseWizard({
   const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency()
 
   const [phase, setPhase] = useState<'count' | 'disposition'>('count')
+  const showingDisposition = resumeClosing || phase === 'disposition'
   const [countNow, setCountNow] = useState(false)
   const [countChoice, setCountMode] = useState<CountMethod>('TOTAL_ONLY')
   const countPolicy = useDrawerCountMethod(drawerId, 'closing', open)
@@ -69,8 +74,17 @@ export function CashDrawerCloseWizard({
   const [totalAmount, setTotalAmount] = useState('')
   const [denomQuantities, setDenomQuantities] = useState<Record<string, number>>({})
   const [countNotes, setCountNotes] = useState('')
-  const [balances, setBalances] = useState<CurrencyBalancePreview[]>([])
+  const [countedBalances, setCountedBalances] = useState<CurrencyBalancePreview[]>([])
+  const resumeQuery = useQuery({
+    queryKey: ['cash-drawers', drawerId, sessionId, 'close-resume'],
+    enabled: open && resumeClosing,
+    queryFn: () => fetchClosingResume(drawerId, sessionId),
+  })
+  const balances = resumeClosing ? (resumeQuery.data?.currencyBalances ?? []) : countedBalances
   const [dispositions, setDispositions] = useState<Record<string, DispositionFormRow>>({})
+  const dispositionRows = Object.fromEntries(
+    balances.map((balance) => [balance.currencyCode, dispositions[balance.currencyCode] ?? { ...EMPTY_DISPOSITION_ROW }]),
+  )
   const [varianceReason, setVarianceReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -97,7 +111,7 @@ export function CashDrawerCloseWizard({
     setTotalAmount('')
     setDenomQuantities({})
     setCountNotes('')
-    setBalances([])
+    setCountedBalances([])
     setDispositions({})
     setVarianceReason('')
   }
@@ -134,7 +148,7 @@ export function CashDrawerCloseWizard({
         csrfToken,
       })
 
-      setBalances(result.currencyBalances)
+      setCountedBalances(result.currencyBalances)
       setDispositions(
         Object.fromEntries(
           result.currencyBalances.map((b) => [
@@ -160,7 +174,7 @@ export function CashDrawerCloseWizard({
   const handleFinalize = async () => {
     const { payload, error } = buildDispositionPayload(
       balances.map((b) => b.currencyCode),
-      dispositions,
+      dispositionRows,
       catalogsQuery.data?.dispositions ?? [],
     )
     if (error) {
@@ -205,10 +219,18 @@ export function CashDrawerCloseWizard({
     >
       <CmxDialogContent className="max-w-2xl">
         <CmxDialogHeader>
-          <CmxDialogTitle>{phase === 'count' ? t('closeSessionConfirm') : t('wizard.resultAndDisposition')}</CmxDialogTitle>
+          <CmxDialogTitle>{showingDisposition ? t('wizard.resultAndDisposition') : t('closeSessionConfirm')}</CmxDialogTitle>
         </CmxDialogHeader>
 
-        {phase === 'count' ? (
+        {resumeClosing && resumeQuery.isLoading ? (
+          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tCommon('loading')}</p>
+        ) : resumeClosing && resumeQuery.isError ? (
+          <CmxSummaryMessage
+            type="error"
+            title={t('messages.closeFailed')}
+            items={[errorMessage(resumeQuery.error, t('messages.closeFailed'))]}
+          />
+        ) : !showingDisposition ? (
           <div className="space-y-4">
             <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('closeSessionDesc')}</p>
 
@@ -261,7 +283,7 @@ export function CashDrawerCloseWizard({
               drawerId={drawerId}
               branchId={branchId}
               balances={balances}
-              rows={dispositions}
+              rows={dispositionRows}
               onRowChange={updateDisposition}
             />
 
@@ -275,7 +297,7 @@ export function CashDrawerCloseWizard({
         )}
 
         <CmxDialogFooter>
-          {phase === 'disposition' ? (
+          {showingDisposition && !resumeClosing ? (
             <CmxButton variant="outline" onClick={() => setPhase('count')} disabled={submitting}>
               {tCommon('back')}
             </CmxButton>
@@ -284,12 +306,17 @@ export function CashDrawerCloseWizard({
               {tCommon('cancel')}
             </CmxButton>
           )}
-          {phase === 'count' ? (
+          {!showingDisposition ? (
             <CmxButton loading={submitting} onClick={handleStartClose}>
               {tCommon('next')}
             </CmxButton>
           ) : (
-            <CmxButton variant="destructive" loading={submitting} onClick={handleFinalize}>
+            <CmxButton
+              variant="destructive"
+              loading={submitting}
+              disabled={resumeClosing && (resumeQuery.isLoading || resumeQuery.isError || balances.length === 0)}
+              onClick={handleFinalize}
+            >
               {t('confirmClose')}
             </CmxButton>
           )}

@@ -33,6 +33,7 @@ type Campaign = {
   completed_at:    string | null
   cancelled_at:    string | null
   total_targets:   number
+  queued_count:    number
   sent_count:      number
   failed_count:    number
   skip_count:      number
@@ -252,8 +253,9 @@ export function CampaignDetailPage({ id }: Props) {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard label={t('campaigns.detail.total')}   value={campaign.total_targets} />
+        <StatCard label={t('campaigns.detail.queued')}  value={campaign.queued_count}  color="text-blue-600" />
         <StatCard label={t('campaigns.detail.sent')}    value={campaign.sent_count}    color="text-emerald-600" />
         <StatCard label={t('campaigns.detail.skipped')} value={campaign.skip_count}    color="text-amber-600" />
         <StatCard label={t('campaigns.detail.failed')}  value={campaign.failed_count}  color="text-red-600" />

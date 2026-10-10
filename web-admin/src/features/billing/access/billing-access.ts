@@ -873,6 +873,13 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         enforcement: 'permission',
       },
       {
+        label: 'Resume a closing drawer and finish disposition',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/resume',
+        requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
         label: 'Cash rounding policy for the drawer currency (A6-1b)',
         method: 'GET',
         path: '/api/v1/cash-drawers/rounding-policy',
@@ -1042,6 +1049,13 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Close wizard — finalize (CLF-7, CLF-8-5)',
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize',
+        requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Resume a closing drawer and finish disposition',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/resume',
         requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
         enforcement: 'permission',
       },

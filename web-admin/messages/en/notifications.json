@@ -148,6 +148,7 @@
     },
     "detail": {
       "total": "Total Targets",
+      "queued": "Queued",
       "sent": "Sent",
       "skipped": "Skipped",
       "failed": "Failed",

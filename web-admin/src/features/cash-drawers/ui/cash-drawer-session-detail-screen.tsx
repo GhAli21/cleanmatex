@@ -18,6 +18,7 @@ import {
 } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
 import { CashDrawerSessionClosureSection } from '@features/cash-drawers/ui/cash-drawer-session-closure-section'
 import { CashDrawerSessionSupervisorActions } from '@features/cash-drawers/ui/cash-drawer-session-supervisor-actions'
+import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-close-wizard'
 import { CashDrawerVarianceApprovalDialog } from '@features/cash-drawers/ui/cash-drawer-variance-approval-dialog'
 import type { CashDrawerSessionDetail } from '@lib/types/cash-drawer'
 import { CmxDataTable } from '@ui/data-display'
@@ -53,7 +54,14 @@ export function CashDrawerSessionDetailScreen({
   const money = useCashDrawerMoneyFormatter()
   const fmtDateTime = useCashDrawerDateFormatter()
   const canApproveVariance = useHasPermissionCode('cash_drawer:approve_variance')
+  const canCloseSession = useHasPermissionCode('cash_drawer:close_session')
   const [decisionMode, setDecisionMode] = useState<'approve' | 'reject' | null>(null)
+  const [closeWizardOpen, setCloseWizardOpen] = useState(false)
+  const paymentStatusLabel = (status: string | null) => {
+    if (!status) return '—'
+    const key = `paymentStatuses.${status}` as 'paymentStatuses.COMPLETED'
+    return t.has(key) ? t(key) : status
+  }
 
   const varianceApproval = detail.session.varianceApproval
 
@@ -83,7 +91,8 @@ export function CashDrawerSessionDetailScreen({
     {
       key: 'direction',
       header: t('direction'),
-      render: (row: CashDrawerSessionDetail['movements']['items'][number]) => row.direction,
+      render: (row: CashDrawerSessionDetail['movements']['items'][number]) =>
+        row.direction === 'IN' ? t('cashIn') : t('cashOut'),
     },
     {
       key: 'amount',
@@ -102,19 +111,14 @@ export function CashDrawerSessionDetailScreen({
       render: (row: CashDrawerSessionDetail['movements']['items'][number]) => row.referenceNo ?? '—',
     },
     {
-      key: 'orderId',
-      header: t('orderId'),
-      render: (row: CashDrawerSessionDetail['movements']['items'][number]) => row.orderId ?? '—',
+      key: 'orderNo',
+      header: t('orderNo'),
+      render: (row: CashDrawerSessionDetail['movements']['items'][number]) => row.orderNo ?? '—',
     },
     {
-      key: 'orderPaymentId',
-      header: t('orderPaymentId'),
-      render: (row: CashDrawerSessionDetail['movements']['items'][number]) => row.orderPaymentId ?? '—',
-    },
-    {
-      key: 'refundId',
-      header: t('refundId'),
-      render: (row: CashDrawerSessionDetail['movements']['items'][number]) => row.refundId ?? '—',
+      key: 'refundNo',
+      header: t('refundNo'),
+      render: (row: CashDrawerSessionDetail['movements']['items'][number]) => row.refundNo ?? '—',
     },
     {
       key: 'performedBy',
@@ -131,11 +135,9 @@ export function CashDrawerSessionDetailScreen({
       render: (row: CashDrawerSessionDetail['linkedPayments']['items'][number]) => fmtDateTime(row.paidAt),
     },
     {
-      key: 'orderId',
-      header: t('orderId'),
-      render: (row: CashDrawerSessionDetail['linkedPayments']['items'][number]) => (
-        <span className="font-mono text-xs">{row.orderId}</span>
-      ),
+      key: 'orderNo',
+      header: t('orderNo'),
+      render: (row: CashDrawerSessionDetail['linkedPayments']['items'][number]) => row.orderNo ?? '—',
     },
     {
       key: 'paymentMethodCode',
@@ -146,7 +148,8 @@ export function CashDrawerSessionDetailScreen({
     {
       key: 'paymentStatus',
       header: t('paymentStatus'),
-      render: (row: CashDrawerSessionDetail['linkedPayments']['items'][number]) => row.paymentStatus ?? '—',
+      render: (row: CashDrawerSessionDetail['linkedPayments']['items'][number]) =>
+        paymentStatusLabel(row.paymentStatus),
     },
     {
       key: 'amount',
@@ -217,6 +220,11 @@ export function CashDrawerSessionDetailScreen({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {detail.session.status === 'CLOSING' && canCloseSession ? (
+            <CmxButton size="sm" variant="destructive" onClick={() => setCloseWizardOpen(true)}>
+              {t('finishClose')}
+            </CmxButton>
+          ) : null}
           <CashDrawerSessionSupervisorActions
             drawerId={drawerId}
             sessionId={sessionId}
@@ -319,6 +327,10 @@ export function CashDrawerSessionDetailScreen({
               label={t('openedBy')}
               value={detail.session.openedBy?.displayName ?? detail.session.openedBy?.id ?? '—'}
             />
+            <CashDrawerInfoTile
+              label={t('sessionUser')}
+              value={detail.session.sessionUser?.displayName ?? '—'}
+            />
             <CashDrawerInfoTile label={t('closedAt')} value={fmtDateTime(detail.session.closedAt)} />
             <CashDrawerInfoTile
               label={t('closedBy')}
@@ -333,7 +345,7 @@ export function CashDrawerSessionDetailScreen({
               value={money(detail.session.expectedCashAmount, detail.session.currencyCode)}
             />
             <CashDrawerInfoTile
-              label={t('physicalCount')}
+              label={t('closingCount')}
               value={money(detail.session.countedCashAmount, detail.session.currencyCode)}
             />
             <CashDrawerInfoTile
@@ -387,7 +399,7 @@ export function CashDrawerSessionDetailScreen({
               value={money(detail.reconciliation.expectedCash, detail.reconciliation.currencyCode)}
             />
             <CashDrawerInfoTile
-              label={t('physicalCount')}
+              label={t('closingCount')}
               value={money(detail.reconciliation.countedCash, detail.reconciliation.currencyCode)}
             />
             <CashDrawerInfoTile
@@ -463,6 +475,18 @@ export function CashDrawerSessionDetailScreen({
           />
         </CmxCardContent>
       </CmxCard>
+
+      {detail.session.status === 'CLOSING' ? (
+        <CashDrawerCloseWizard
+          drawerId={drawerId}
+          sessionId={sessionId}
+          branchId={detail.drawer.branchId ?? null}
+          open={closeWizardOpen}
+          onOpenChange={setCloseWizardOpen}
+          resumeClosing
+          onFinalized={() => router.refresh()}
+        />
+      ) : null}
 
       <CashDrawerVarianceApprovalDialog
         open={decisionMode !== null}

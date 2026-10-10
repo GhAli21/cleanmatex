@@ -9,8 +9,11 @@ import { CmxButton, CmxInput, CmxSelect, CmxSwitch, CmxTextarea, Label } from '@
 import { CmxDenominationCounter } from '@ui/patterns'
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
+import { useHasAnyPermission } from '@/lib/hooks/usePermissions'
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
+import { POS_SESSION_PERMISSIONS } from '@/lib/constants/permissions/pos-session-perm'
 import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
+import { fetchPosSessionUsers } from '@features/pos-sessions/api/pos-session-api'
 import { useDrawerCountMethod, type CountMethod } from '@features/cash-drawers/hooks/use-drawer-count-method'
 import { CashCountMethodField } from '@features/cash-drawers/ui/cash-count-method-field'
 import {
@@ -18,6 +21,11 @@ import {
   fetchCurrencyDenominations,
   type OpenCashDrawerSessionV2Result,
 } from '@features/cash-drawers/api/cash-drawer-api'
+
+const ASSIGN_SESSION_USER_PERMISSIONS = [
+  POS_SESSION_PERMISSIONS.OPEN_OTHERS,
+  POS_SESSION_PERMISSIONS.FULL_MANAGE_OTHERS,
+]
 
 interface CashDrawerOpenSessionDialogProps {
   drawerId: string
@@ -60,7 +68,16 @@ export function CashDrawerOpenSessionDialog({
   const [totalAmount, setTotalAmount] = useState('')
   const [denomQuantities, setDenomQuantities] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState('')
+  const [sessionUserId, setSessionUserId] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const canAssignUser = useHasAnyPermission(ASSIGN_SESSION_USER_PERMISSIONS)
+
+  const usersQuery = useQuery({
+    queryKey: ['pos-sessions', 'users', 'drawer-open'],
+    enabled: open && canAssignUser,
+    queryFn: () => fetchPosSessionUsers(),
+  })
+  const sessionUsers = usersQuery.data?.items ?? []
 
   const denominationsQuery = useQuery({
     queryKey: ['cash-drawers', 'currencies', currencyCode, 'denominations'],
@@ -75,6 +92,7 @@ export function CashDrawerOpenSessionDialog({
     setTotalAmount('')
     setDenomQuantities({})
     setNotes('')
+    setSessionUserId('')
   }
 
   const handleSubmit = async () => {
@@ -111,6 +129,7 @@ export function CashDrawerOpenSessionDialog({
             }
           : undefined,
         notes: notes.trim() || undefined,
+        sessionUserId: sessionUserId || undefined,
         csrfToken,
       })
 
@@ -151,6 +170,26 @@ export function CashDrawerOpenSessionDialog({
           <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
             {t('wizard.openDescription')}
           </p>
+
+          {canAssignUser ? (
+            <div className="space-y-2">
+              <CmxSelect
+                label={t('sessionUserOptional')}
+                value={sessionUserId}
+                onChange={(event) => setSessionUserId(event.target.value)}
+                options={[
+                  { value: '', label: t('sessionUserNone') },
+                  ...sessionUsers.map((user) => ({
+                    value: user.id,
+                    label: user.secondaryLabel ? `${user.label} (${user.secondaryLabel})` : user.label,
+                  })),
+                ]}
+              />
+              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                {t('sessionUserHint')}
+              </p>
+            </div>
+          ) : null}
 
           <CmxSwitch
             checked={countNow}

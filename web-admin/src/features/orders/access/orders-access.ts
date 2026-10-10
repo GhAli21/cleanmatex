@@ -120,6 +120,15 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'Resume a closing drawer from Session Hub',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/resume',
+        requirement: {
+          permissions: ['cash_drawer:close_session'],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'Close wizard catalogs from Session Hub (CLF-7)',
         method: 'GET',
         path: '/api/v1/cash-drawers/catalogs',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
 
@@ -16,11 +16,10 @@ import {
   useCashDrawerMoneyFormatter,
 } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
-import { useTenantCurrency } from '@lib/context/tenant-currency-context'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import { cmxMessage } from '@ui/feedback'
-import { CmxMoneyVariance } from '@ui/data-display'
+import { CmxDataTable, CmxMoneyVariance } from '@ui/data-display'
 import { CmxButton, CmxSelect, CmxSkeleton, CmxTextarea, Label } from '@ui/primitives'
 import { Badge } from '@ui/primitives/badge'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
@@ -45,7 +44,6 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
   const fmtDateTime = useCashDrawerDateFormatter()
   const queryClient = useQueryClient()
   const { token: csrfToken } = useCSRFToken()
-  const { decimalPlaces } = useTenantCurrency()
   const canUpdatePostClose = useHasPermissionCode('cash_drawer:post_close_update')
 
   const queryKey = ['cash-drawers', drawerId, 'session', sessionId, 'closure']
@@ -145,6 +143,16 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
             <CmxCardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <CashDrawerInfoTile label={t('openingExpected')} value={money(b.openingExpected, b.currencyCode)} />
+                <CashDrawerInfoTile
+                  label={t('openingCounted')}
+                  value={b.openingCounted !== null ? money(b.openingCounted, b.currencyCode) : '—'}
+                />
+                <VarianceTile
+                  label={t('openingVariance')}
+                  amount={b.openingVariance}
+                  currency={b.currencyCode}
+                  badge={varianceBadge}
+                />
                 <CashDrawerInfoTile label={t('financeIn')} value={money(b.finIn, b.currencyCode)} />
                 <CashDrawerInfoTile label={t('financeOut')} value={money(b.finOut, b.currencyCode)} />
                 {Number(b.changeRounding) !== 0 ? (
@@ -160,9 +168,12 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                   label={t('closingCounted')}
                   value={b.closingCounted !== null ? money(b.closingCounted, b.currencyCode) : '—'}
                 />
-                <div className="flex items-center rounded-lg border p-4">
-                  {b.closingVariance !== null ? varianceBadge(b.closingVariance, b.currencyCode) : '—'}
-                </div>
+                <VarianceTile
+                  label={tDrawers('variance')}
+                  amount={b.closingVariance}
+                  currency={b.currencyCode}
+                  badge={varianceBadge}
+                />
               </div>
 
               {b.dispositionCode ? (
@@ -184,11 +195,11 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
               ) : null}
 
               {countsByCurrency(b.currencyCode).length > 0 ? (
-                <div className="space-y-2">
-                  <div className="text-sm font-semibold">{t('countHistory')}</div>
+                <section className="space-y-3" aria-label={t('countHistory')}>
+                  <h3 className="text-sm font-semibold">{t('countHistory')}</h3>
                   {countsByCurrency(b.currencyCode).map((c) => (
-                    <details key={c.countId} className="rounded-lg border p-3 text-sm">
-                      <summary className="flex cursor-pointer flex-wrap items-center gap-3">
+                    <div key={c.countId} className="space-y-3 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
                         <Badge variant="outline">{tDrawers(`tabs.counts.types.${c.countType}` as Parameters<typeof tDrawers>[0])}</Badge>
                         <span>{fmtDateTime(c.countedAt)}</span>
                         <span>
@@ -198,25 +209,31 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                           })}
                         </span>
                         {varianceBadge(c.varianceAmount, c.currencyCode)}
-                      </summary>
-                      <div className="mt-3 space-y-1">
-                        {c.denominations.length > 0 ? (
-                          c.denominations.map((d, i) => (
-                            <div key={`${c.countId}-${i}`} className="flex justify-between gap-4">
-                              <span>
-                                {money(d.valueMinor / 10 ** decimalPlaces, c.currencyCode)} × {d.quantity}
-                              </span>
-                              <span>{money(d.lineAmount, c.currencyCode)}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('totalOnlyCount')}</p>
-                        )}
-                        {c.notes ? <p className="italic">{c.notes}</p> : null}
                       </div>
-                    </details>
+                      {c.denominations.length > 0 ? (
+                        <ul className="flex flex-wrap gap-2">
+                          {c.denominations.map((d) => (
+                            <li
+                              key={`${c.countId}-${d.denominationId}`}
+                              className="min-w-[8.5rem] rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] px-3 py-2"
+                            >
+                              <div className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                                {locale === 'ar' && d.name2 ? d.name2 : d.name}
+                              </div>
+                              <div className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                                {t('denominationQuantity', { quantity: d.quantity })}
+                              </div>
+                              <div className="mt-1 text-sm tabular-nums">{money(d.lineAmount, c.currencyCode)}</div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('totalOnlyCount')}</p>
+                      )}
+                      {c.notes ? <p className="text-sm italic text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{c.notes}</p> : null}
+                    </div>
                   ))}
-                </div>
+                </section>
               ) : null}
             </CmxCardContent>
           </CmxCard>
@@ -229,33 +246,48 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
             <CmxCardTitle>{t('attribution.title')}</CmxCardTitle>
             <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('attribution.description')}</p>
           </CmxCardHeader>
-          <CmxCardContent className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b text-start text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                  <th className="py-1 text-start font-medium">{t('attribution.posSession')}</th>
-                  <th className="py-1 text-start font-medium">{t('attribution.cashier')}</th>
-                  <th className="py-1 text-end font-medium">{t('attribution.cashIn')}</th>
-                  <th className="py-1 text-end font-medium">{t('attribution.cashOut')}</th>
-                  <th className="py-1 text-end font-medium">{t('attribution.net')}</th>
-                  <th className="py-1 text-end font-medium">{t('attribution.lines')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {view.attribution.map((a) => (
-                  <tr key={`${a.posSessionId ?? 'none'}-${a.currencyCode}`} className="border-b border-gray-100">
-                    <td className="py-1 font-mono text-xs">
-                      {a.posSessionNo ?? <Badge variant="warning">{t('attribution.unattributed')}</Badge>}
-                    </td>
-                    <td className="py-1">{a.operatorName ?? '—'}</td>
-                    <td className="py-1 text-end tabular-nums">{money(a.cashIn, a.currencyCode)}</td>
-                    <td className="py-1 text-end tabular-nums">{money(a.cashOut, a.currencyCode)}</td>
-                    <td className="py-1 text-end font-semibold tabular-nums">{money(a.net, a.currencyCode)}</td>
-                    <td className="py-1 text-end tabular-nums">{a.lineCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <CmxCardContent>
+            <CmxDataTable
+              columns={[
+                {
+                  key: 'posSession',
+                  header: t('attribution.posSession'),
+                  render: (row: (typeof view.attribution)[number]) =>
+                    row.posSessionNo ?? <Badge variant="warning">{t('attribution.unattributed')}</Badge>,
+                },
+                {
+                  key: 'cashier',
+                  header: t('attribution.cashier'),
+                  render: (row: (typeof view.attribution)[number]) => row.operatorName ?? '—',
+                },
+                {
+                  key: 'cashIn',
+                  header: t('attribution.cashIn'),
+                  align: 'right' as const,
+                  render: (row: (typeof view.attribution)[number]) => money(row.cashIn, row.currencyCode),
+                },
+                {
+                  key: 'cashOut',
+                  header: t('attribution.cashOut'),
+                  align: 'right' as const,
+                  render: (row: (typeof view.attribution)[number]) => money(row.cashOut, row.currencyCode),
+                },
+                {
+                  key: 'net',
+                  header: t('attribution.net'),
+                  align: 'right' as const,
+                  render: (row: (typeof view.attribution)[number]) => money(row.net, row.currencyCode),
+                },
+                {
+                  key: 'lines',
+                  header: t('attribution.lines'),
+                  align: 'right' as const,
+                  render: (row: (typeof view.attribution)[number]) => String(row.lineCount),
+                },
+              ]}
+              data={view.attribution}
+              showPageSizeSelector={false}
+            />
           </CmxCardContent>
         </CmxCard>
       ) : null}
@@ -317,5 +349,28 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
         </CmxCard>
       ) : null}
     </div>
+  )
+}
+
+function VarianceTile({
+  label,
+  amount,
+  currency,
+  badge,
+}: {
+  label: string
+  amount: string | null
+  currency: string
+  badge: (amount: string, currency: string) => ReactNode
+}) {
+  return (
+    <CmxCard className="shadow-none">
+      <CmxCardContent className="space-y-1 p-4">
+        <div className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          {label}
+        </div>
+        <div className="text-sm font-semibold">{amount !== null ? badge(amount, currency) : '—'}</div>
+      </CmxCardContent>
+    </CmxCard>
   )
 }

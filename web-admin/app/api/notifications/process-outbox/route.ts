@@ -16,6 +16,7 @@ import { deliverSmsOutbox } from '@lib/notifications/adapters/sms';
 import { deliverWhatsAppOutbox } from '@lib/notifications/adapters/whatsapp';
 import { deliverPushOutbox } from '@lib/notifications/adapters/push';
 import { enqueueEmailFallbackFromWhatsApp } from '@lib/notifications/adapters/outbox';
+import { mapOutboxStatusToCampaignTargetStatus, resolveCampaignTargetForOutbox } from '@lib/notifications/campaign-target-sync';
 
 const BATCH_SIZE = 50;
 const RETRY_BATCH_SIZE = 25;
@@ -55,6 +56,8 @@ type DeliveryResult = {
   errorMessage?: string;
   permanent?: boolean;
   skipped?: boolean;
+  /** Provider message identity, when the provider returned one (see whatsapp.ts WhatsAppDeliveryResult). */
+  providerMessageId?: string;
 };
 
 /**
@@ -144,6 +147,7 @@ async function claimRow(
  * @param attemptNumber Monotonic attempt number derived from the outbox row.
  * @param status Outcome recorded for audit and support.
  * @param errorMessage Safe provider or reconciliation diagnostic, if any.
+ * @param providerMessageId Provider message identity, when the provider returned one.
  */
 async function writeDeliveryLog(
   supabase: ReturnType<typeof createAdminSupabaseClient>,
@@ -152,6 +156,7 @@ async function writeDeliveryLog(
   attemptNumber: number,
   status: string,
   errorMessage?: string,
+  providerMessageId?: string,
 ): Promise<void> {
   const { error } = await supabase
     .from('org_ntf_delivery_log_dtl')
@@ -160,6 +165,7 @@ async function writeDeliveryLog(
       outbox_id: outboxId,
       attempt_number: attemptNumber,
       status,
+      provider_message_id: providerMessageId ?? null,
       error_message: errorMessage ?? null,
       logged_at: new Date().toISOString(),
       rec_status: 1,
@@ -240,6 +246,7 @@ async function markAcceptanceUncertain(
  * @param claim Active claim that must match to write an outcome.
  * @param finalStatus Existing outbox status selected from a resolved provider result.
  * @param errorMessage Safe provider diagnostic, if any.
+ * @param providerMessageId Provider message identity, when the provider returned one.
  * @returns Whether the conditional finalization succeeded.
  */
 async function finalizeClaim(
@@ -248,6 +255,7 @@ async function finalizeClaim(
   claim: OutboxClaim,
   finalStatus: string,
   errorMessage?: string,
+  providerMessageId?: string,
 ): Promise<boolean> {
   const finalizedAt = new Date().toISOString();
   const updatePayload: Record<string, unknown> = {
@@ -263,6 +271,7 @@ async function finalizeClaim(
     reconcile_state: null,
     next_retry_at: null,
     updated_at: finalizedAt,
+    ...(providerMessageId ? { provider_message_id: providerMessageId } : {}),
   };
 
   if (finalStatus === OUTBOX_STATUS.SENT) {
@@ -302,6 +311,18 @@ async function finalizeClaim(
     return false;
   }
 
+  // Campaign-sourced rows (source_entity_type === 'campaign', set by
+  // POST /api/notifications/process-campaigns) need their matching
+  // org_ntf_camp_targets_dtl row advanced past QUEUED once this outbox row
+  // reaches a terminal state, and the owning campaign's sent_count/
+  // failed_count incremented accordingly. No-op for every other row.
+  if (row.source_entity_type === 'campaign' && row.source_entity_id) {
+    const campaignTargetStatus = mapOutboxStatusToCampaignTargetStatus(finalStatus);
+    if (campaignTargetStatus) {
+      await resolveCampaignTargetForOutbox(row.tenant_org_id, row.id, campaignTargetStatus, errorMessage ?? null);
+    }
+  }
+
   await writeDeliveryLog(
     supabase,
     row.tenant_org_id,
@@ -309,6 +330,7 @@ async function finalizeClaim(
     row.retry_count + 1,
     finalStatus,
     errorMessage,
+    providerMessageId,
   );
   return true;
 }
@@ -394,7 +416,7 @@ async function processRow(
     }
   }
 
-  const finalized = await finalizeClaim(supabase, row, claim, finalStatus!, errorMessage);
+  const finalized = await finalizeClaim(supabase, row, claim, finalStatus!, errorMessage, result?.providerMessageId);
   if (!finalized) return false;
 
   if (row.channel_code === 'WHATSAPP' && finalStatus === OUTBOX_STATUS.FAILED_PERMANENT) {

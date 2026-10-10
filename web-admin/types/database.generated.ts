@@ -4417,6 +4417,7 @@ export type Database = {
           rec_order: number | null
           rec_status: number
           session_no: string
+          session_user_id: string | null
           status: string
           tenant_org_id: string
           updated_at: string | null
@@ -4459,6 +4460,7 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           session_no: string
+          session_user_id?: string | null
           status?: string
           tenant_org_id: string
           updated_at?: string | null
@@ -4501,6 +4503,7 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           session_no?: string
+          session_user_id?: string | null
           status?: string
           tenant_org_id?: string
           updated_at?: string | null
@@ -4521,6 +4524,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_cash_drawer_ses_post_cd"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ocds_session_user"
+            columns: ["session_user_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_users_mst"
+            referencedColumns: ["user_id", "tenant_org_id"]
           },
           {
             foreignKeyName: "fk_org_cds_sessions_currency"
@@ -15637,6 +15647,7 @@ export type Database = {
           created_by: string | null
           created_info: string | null
           id: string
+          inbox_id: string | null
           is_active: boolean
           outbox_id: string | null
           processed_at: string | null
@@ -15658,6 +15669,7 @@ export type Database = {
           created_by?: string | null
           created_info?: string | null
           id?: string
+          inbox_id?: string | null
           is_active?: boolean
           outbox_id?: string | null
           processed_at?: string | null
@@ -15679,6 +15691,7 @@ export type Database = {
           created_by?: string | null
           created_info?: string | null
           id?: string
+          inbox_id?: string | null
           is_active?: boolean
           outbox_id?: string | null
           processed_at?: string | null
@@ -15730,6 +15743,13 @@ export type Database = {
             referencedRelation: "vw_fin_tenant_readiness"
             referencedColumns: ["tenant_org_id"]
           },
+          {
+            foreignKeyName: "org_ntf_camp_targets_dtl_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_inbox_mst"
+            referencedColumns: ["id"]
+          },
         ]
       }
       org_ntf_campaigns_mst: {
@@ -15751,6 +15771,7 @@ export type Database = {
           name: string
           name2: string | null
           paused_at: string | null
+          queued_count: number
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
@@ -15785,6 +15806,7 @@ export type Database = {
           name: string
           name2?: string | null
           paused_at?: string | null
+          queued_count?: number
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -15819,6 +15841,7 @@ export type Database = {
           name?: string
           name2?: string | null
           paused_at?: string | null
+          queued_count?: number
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -17395,6 +17418,114 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_ntf_channel_cd"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      org_ntf_usage_apply_evt: {
+        Row: {
+          channel_code: string
+          cost_delta: number
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          failed_delta: number
+          id: string
+          idempotency_key: string
+          is_active: boolean
+          provider_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          sent_delta: number
+          status: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          usage_date: string
+        }
+        Insert: {
+          channel_code: string
+          cost_delta?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          failed_delta?: number
+          id?: string
+          idempotency_key: string
+          is_active?: boolean
+          provider_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sent_delta?: number
+          status: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          usage_date: string
+        }
+        Update: {
+          channel_code?: string
+          cost_delta?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          failed_delta?: number
+          id?: string
+          idempotency_key?: string
+          is_active?: boolean
+          provider_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sent_delta?: number
+          status?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          usage_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_ntf_usage_apply_evt_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_ntf_usage_apply_evt_idempotency_key_fkey"
+            columns: ["idempotency_key"]
+            isOneToOne: false
+            referencedRelation: "hq_ntf_dispatch_log"
+            referencedColumns: ["idempotency_key"]
+          },
+          {
+            foreignKeyName: "org_ntf_usage_apply_evt_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_ntf_usage_apply_evt_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_ntf_usage_apply_evt_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
           },
         ]
       }
@@ -25727,6 +25858,86 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_customer_wallets_mst"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_wf_edit_policy_asg_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          edit_policy_id: string
+          id: string
+          is_active: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          workflow_profile_version_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          edit_policy_id: string
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          workflow_profile_version_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          edit_policy_id?: string
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          workflow_profile_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wf_edit_asg_policy"
+            columns: ["edit_policy_id", "workflow_profile_version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_edit_policy_mst"
+            referencedColumns: ["id", "workflow_profile_version_id"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_asg_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_asg_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_asg_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
           },
         ]
       }
@@ -39585,6 +39796,227 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_wf_edit_policy_mst: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          id: string
+          is_active: boolean
+          lifecycle_status: string
+          name: string
+          name2: string
+          pilot_started_at: string | null
+          pilot_started_by: string | null
+          policy_code: string
+          policy_revision: number
+          published_at: string | null
+          published_by: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          retired_at: string | null
+          retired_by: string | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          workflow_profile_version_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          id?: string
+          is_active?: boolean
+          lifecycle_status?: string
+          name: string
+          name2: string
+          pilot_started_at?: string | null
+          pilot_started_by?: string | null
+          policy_code: string
+          policy_revision?: number
+          published_at?: string | null
+          published_by?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          retired_at?: string | null
+          retired_by?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          workflow_profile_version_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          id?: string
+          is_active?: boolean
+          lifecycle_status?: string
+          name?: string
+          name2?: string
+          pilot_started_at?: string | null
+          pilot_started_by?: string | null
+          policy_code?: string
+          policy_revision?: number
+          published_at?: string | null
+          published_by?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          retired_at?: string | null
+          retired_by?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          workflow_profile_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wf_edit_pol_pilot_by"
+            columns: ["pilot_started_by"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_pol_profile"
+            columns: ["workflow_profile_version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_pol_pub_by"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_pol_ret_by"
+            columns: ["retired_by"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      sys_wf_edit_policy_rule_dtl: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          decision: string
+          edit_policy_id: string
+          id: string
+          is_active: boolean
+          message_key: string
+          operation_code: string
+          override_permission_code: string | null
+          reason_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          required_permission_code: string | null
+          requires_reason: boolean
+          target_type: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          workflow_status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          decision: string
+          edit_policy_id: string
+          id?: string
+          is_active?: boolean
+          message_key: string
+          operation_code: string
+          override_permission_code?: string | null
+          reason_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          required_permission_code?: string | null
+          requires_reason?: boolean
+          target_type: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          workflow_status: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          decision?: string
+          edit_policy_id?: string
+          id?: string
+          is_active?: boolean
+          message_key?: string
+          operation_code?: string
+          override_permission_code?: string | null
+          reason_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          required_permission_code?: string | null
+          requires_reason?: boolean
+          target_type?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          workflow_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wf_edit_rule_op_tgt"
+            columns: ["operation_code", "target_type"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_order_edit_op_tgt_cd"
+            referencedColumns: ["operation_code", "target_type"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_rule_ovr_perm"
+            columns: ["override_permission_code"]
+            isOneToOne: false
+            referencedRelation: "sys_auth_permissions"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_rule_policy"
+            columns: ["edit_policy_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_edit_policy_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_rule_req_perm"
+            columns: ["required_permission_code"]
+            isOneToOne: false
+            referencedRelation: "sys_auth_permissions"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_rule_status"
+            columns: ["workflow_status"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+        ]
+      }
       sys_wf_gate_defs_cd: {
         Row: {
           created_at: string
@@ -39847,6 +40279,116 @@ export type Database = {
             referencedColumns: ["status_code"]
           },
         ]
+      }
+      sys_wf_order_edit_op_tgt_cd: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          is_active: boolean
+          operation_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          target_type: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          is_active?: boolean
+          operation_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          target_type: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          is_active?: boolean
+          operation_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          target_type?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wf_edit_op_tgt_op"
+            columns: ["operation_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_order_edit_ops_cd"
+            referencedColumns: ["operation_code"]
+          },
+        ]
+      }
+      sys_wf_order_edit_ops_cd: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string
+          description2: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          name2: string
+          operation_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description: string
+          description2: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          name2: string
+          operation_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string
+          description2?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          name2?: string
+          operation_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
       }
       sys_wf_prof_ver_evidence_cf: {
         Row: {
@@ -42329,6 +42871,44 @@ export type Database = {
         Args: { p_order: string; p_tenant: string }
         Returns: string
       }
+      fn_ntf_camp_target_resolve: {
+        Args: {
+          p_outbox_id: string
+          p_skip_reason: string
+          p_target_status: string
+          p_tenant_org_id: string
+        }
+        Returns: boolean
+      }
+      fn_ntf_meter_usage_atomic: {
+        Args: {
+          p_channel_code: string
+          p_cost_delta: number
+          p_currency_code: string
+          p_failed_delta: number
+          p_idempotency_key: string
+          p_provider_code: string
+          p_sent_delta: number
+          p_status: string
+          p_tenant_org_id: string
+          p_usage_date: string
+        }
+        Returns: {
+          applied: boolean
+          cost_amount: number
+          failed_count: number
+          sent_count: number
+        }[]
+      }
+      fn_ntf_quota_usage_locked: {
+        Args: {
+          p_from_date: string
+          p_metric: string
+          p_tenant_org_id: string
+          p_to_date: string
+        }
+        Returns: number
+      }
       fn_org_user_code_next: { Args: never; Returns: string }
       fn_recalc_order_totals: {
         Args: { p_order: string; p_tenant: string }
@@ -42980,6 +43560,23 @@ export type Database = {
       }
       sys_bill_generate_invoice_number: { Args: never; Returns: string }
       sys_bill_get_default_payment_method: { Args: never; Returns: string }
+      sys_wf_edit_policy_save: {
+        Args: {
+          p_actor_id: string
+          p_description: string
+          p_description2: string
+          p_edit_policy_id: string
+          p_expected_revision: number
+          p_name: string
+          p_name2: string
+          p_rules: Json
+        }
+        Returns: {
+          edit_policy_id: string
+          lifecycle_status: string
+          policy_revision: number
+        }[]
+      }
       sys_wf_prof_ver_clone_sem: {
         Args: {
           p_actor_id?: string

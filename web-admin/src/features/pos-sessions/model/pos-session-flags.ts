@@ -57,9 +57,10 @@ export function getPosSessionFlags(facts: PosSessionFlagFacts): PosSessionFlags 
  */
 export function posSessionErrorKey(
   errorCode: string | null | undefined
-): 'rolledOver' | 'timezoneNotConfigured' | 'drawerSessionExclusive' | null {
+): 'rolledOver' | 'timezoneNotConfigured' | 'drawerSessionExclusive' | 'drawerUserConflict' | null {
   if (errorCode === POS_SESSION_ROLLOVER_ERROR.ROLLED_OVER) return 'rolledOver';
   if (errorCode === POS_SESSION_ROLLOVER_ERROR.TENANT_TIMEZONE_NOT_CONFIGURED) return 'timezoneNotConfigured';
   if (errorCode === POS_SESSION_SHARING_ERROR.DRAWER_SESSION_EXCLUSIVE) return 'drawerSessionExclusive';
+  if (errorCode === 'POS_SESSION_DRAWER_USER_CONFLICT') return 'drawerUserConflict';
   return null;
 }

@@ -34,6 +34,7 @@ import {
 import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env'
 import { stripWhatsAppPrefix } from '@lib/notifications/whatsapp-phone'
 import { resolveWhatsAppCustomerEligibility } from '@lib/notifications/whatsapp-customer-eligibility'
+import { runShadowOrderCreatedWhatsAppComparison } from '@lib/notifications/shadow-route-comparison'
 
 async function resolveWhatsAppTo(row: OutboxWhatsAppRow, productionTemplate = false): Promise<string | null> {
   // Live templates must use the persisted recipient even when stale sandbox overrides exist.
@@ -69,11 +70,34 @@ export interface WhatsAppDeliveryResult {
   permanent?: boolean
   /** Policy blocks must not retry or trigger the transport-failure email fallback. */
   skipped?: boolean
+  /**
+   * Twilio message SID, captured whenever Twilio returned a Message resource
+   * (accepted or rejected-with-response). Absent when the provider call threw
+   * before any resource was returned — reconciliation cannot look up a SID
+   * that was never issued and must dead-letter that case instead of guessing.
+   */
+  providerMessageId?: string
 }
 
 
 function isTwilioContentVariablesError(code: number | undefined): boolean {
   return code === 21656 || code === 92007 || code === 50529 || code === 50541
+}
+
+/**
+ * Classifies a Twilio error/status code shared by the live adapter and the
+ * reconciliation pass so permanent-vs-retryable judgment never diverges
+ * between "send" time and "reconcile" time.
+ * @param code Twilio numeric error code, when known.
+ * @returns Whether retrying this exact send is pointless.
+ */
+export function isTwilioMessagePermanentFailure(code: number | undefined): boolean {
+  return (
+    code === 21211 || // invalid 'To' number
+    code === 21614 || // not SMS/WhatsApp-capable
+    code === 63055 || // outside approved template window
+    isTwilioContentVariablesError(code)
+  )
 }
 
 async function resolveSandboxContentSid(providerConfig?: Record<string, unknown>): Promise<string | undefined> {
@@ -198,22 +222,24 @@ async function sendViaTwilio(
       return {
         success: false,
         errorMessage: msg,
-        permanent: isTwilioContentVariablesError(message.errorCode ?? undefined) || message.errorCode === 63055,
+        permanent: isTwilioMessagePermanentFailure(message.errorCode ?? undefined),
+        // Twilio still returned a Message resource (with a SID) even though it was rejected;
+        // persist it so a later reconciliation pass can look up the authoritative final status.
+        providerMessageId: message.sid,
       }
     }
 
-    return { success: true }
+    return { success: true, providerMessageId: message.sid }
   } catch (err) {
     const error = err as { code?: number; message?: string }
     const msg   = error.message ?? 'Unknown Twilio error'
-    const permanent =
-      error.code === 21211 ||
-      error.code === 21614 ||
-      error.code === 63055 ||
-      isTwilioContentVariablesError(error.code)
+    const permanent = isTwilioMessagePermanentFailure(error.code)
     logger.error('whatsapp-adapter(twilio): failed', new Error(msg), {
       outboxId: row.id, code: error.code, permanent, feature: 'notifications',
     })
+    // No Message resource was returned by this throw, so no SID is available to persist.
+    // Reconciliation cannot look up a message that never received a provider identity;
+    // it must rely on bounded-age dead-letter handling for this attempt instead.
     return { success: false, errorMessage: msg, permanent }
   }
 }
@@ -356,6 +382,16 @@ async function deliverViaHqProxy(row: OutboxWhatsAppRow): Promise<WhatsAppDelive
  */
 export async function deliverWhatsAppOutbox(row: OutboxWhatsAppRow): Promise<WhatsAppDeliveryResult> {
   const provider = await notificationSettingsService.getActiveProvider(row.tenant_org_id, 'WHATSAPP')
+
+  // SHADOW-ONLY pilot (plan sections 17.2/22): observes what
+  // ResolveEffectiveNotificationRoute would select for ORDER_CREATED →
+  // WHATSAPP, in addition to this unchanged legacy path. It never sends,
+  // never reserves quota, never touches the outbox claim a second time, and
+  // cannot affect `row`, `provider`, or the result this function returns —
+  // any failure inside it is swallowed. See
+  // lib/notifications/shadow-route-comparison.ts and
+  // docs/features/Notification_And_Communication_Hub/STATUS.md (2026-10-09).
+  await runShadowOrderCreatedWhatsAppComparison(row, provider)
 
   const productionTemplate = provider !== null &&
     isTwilioProductionTemplateProvider(provider.providerCode, provider.config)

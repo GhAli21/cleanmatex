@@ -11,6 +11,7 @@ import twilio from 'twilio'
 import { logger } from '@lib/utils/logger'
 import { getNtfHqDispatchUrl, getTwilioSmsFrom, isNtfDispatchViaHq } from '@lib/notifications/config'
 import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env'
+import { resolveCustomerDispatchConsent } from '@lib/notifications/customer-dispatch-consent'
 
 /**
  *
@@ -22,6 +23,9 @@ export interface OutboxSmsRow {
   rendered_body: string
   event_code: string | null
   retry_count: number
+  /** Enables a fresh tenant-customer SMS consent recheck before every send. */
+  source_entity_type?: string | null
+  source_entity_id?: string | null
 }
 
 /**
@@ -31,6 +35,8 @@ export interface SmsDeliveryResult {
   success: boolean
   errorMessage?: string
   permanent?: boolean
+  /** Policy blocks must not retry and must not count as a provider failure. */
+  skipped?: boolean
 }
 
 async function deliverViaHqProxy(row: OutboxSmsRow): Promise<SmsDeliveryResult> {
@@ -92,6 +98,21 @@ async function deliverViaHqProxy(row: OutboxSmsRow): Promise<SmsDeliveryResult> 
 export async function deliverSmsOutbox(row: OutboxSmsRow): Promise<SmsDeliveryResult> {
   if (!row.recipient_address) {
     return { success: false, errorMessage: 'No recipient phone number', permanent: true }
+  }
+
+  // Recheck tenant-customer SMS consent fresh at dispatch so a queued notification
+  // respects an opt-out recorded after it was enqueued (plan invariant 4.1.12). Rows
+  // with no resolvable customer (e.g. staff notifications) are unaffected.
+  const consent = await resolveCustomerDispatchConsent(
+    row.tenant_org_id, 'sms', row.source_entity_type, row.source_entity_id,
+  )
+  if (consent.applicable && !consent.allowed) {
+    logger.info('sms-adapter: dispatch consent check blocked send', {
+      outboxId: row.id, tenantOrgId: row.tenant_org_id, reason: consent.reason, feature: 'notifications',
+    })
+    return consent.retryable
+      ? { success: false, errorMessage: consent.reason, permanent: false }
+      : { success: false, skipped: true, errorMessage: consent.reason }
   }
 
   if (await isNtfDispatchViaHq()) {

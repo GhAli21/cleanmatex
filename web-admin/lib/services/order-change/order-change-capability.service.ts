@@ -26,6 +26,8 @@ export type OrderChangeCapabilityDecisionKind = (typeof ORDER_CHANGE_CAPABILITY_
 
 /** A profile-owned, stage-specific authorization rule for exactly one Change operation domain. */
 export interface OrderChangeCapabilityBinding {
+  /** Exact Edit Policy selected by the trusted tenant/profile resolver. */
+  editPolicyId: string;
   /** Immutable workflow profile version that supplied this binding. */
   profileVersionId: string;
   /** Published policy revision used to invalidate a stale review. */
@@ -80,6 +82,8 @@ export interface OrderChangeCapabilityActor {
 export interface OrderChangeCapabilityOperation {
   /** Frozen V1 operation code. */
   code: OrderChangeOperationCode;
+  /** Server-derived parent scope for ADD_PREFERENCE; never browser-authored policy input. */
+  preferenceParentTargetType?: Extract<OrderChangeCapabilityTargetType, 'ORDER' | 'ITEM' | 'PIECE'>;
   /** Sequence is retained so a result cannot be reused for a different submitted operation. */
   seq: number;
   /** Whether a reason was supplied in the request or operation payload. */
@@ -109,7 +113,7 @@ export interface OrderChangeCapabilityResult {
   /** Present only when a configured override is possible. */
   overridePermissionCode: string | null;
   /** Policy identity used by the Preview/Apply proof contract. */
-  policyIdentity: { profileVersionId: string; policyRevision: number } | null;
+  policyIdentity: { editPolicyId: string; profileVersionId: string; policyRevision: number } | null;
 }
 
 /** Error codes for invalid review-proof material without revealing key or payload internals. */
@@ -149,7 +153,7 @@ export interface OrderChangeReviewProofBinding {
   canonicalIntent: unknown;
   changeReason: string | null;
   gateDecisions: unknown;
-  policyIdentity: { profileVersionId: string; policyRevision: number };
+  policyIdentity: { editPolicyId: string; profileVersionId: string; policyRevision: number };
   policyFacts: unknown;
   calculationFingerprint: string;
   settlementSourceFingerprint: string;
@@ -167,6 +171,7 @@ type OrderChangeReviewProofPayload = {
   intentDigest: string;
   reasonDigest: string;
   decisionsDigest: string;
+  editPolicyId: string;
   profileVersionId: string;
   policyRevision: number;
   policyFactsDigest: string;
@@ -184,10 +189,17 @@ const ORDER_CHANGE_REVIEW_PROOF_DOMAIN = 'cleanmatex.order-change.review-proof.v
  */
 export function resolveOrderChangeCapabilityTarget(
   operationCode: OrderChangeOperationCode,
+  preferenceParentTargetType?: Extract<OrderChangeCapabilityTargetType, 'ORDER' | 'ITEM' | 'PIECE'>,
 ): OrderChangeCapabilityTargetType {
-  if (operationCode === 'ADD_ITEM' || operationCode === 'REMOVE_ITEM' || operationCode === 'CHANGE_ITEM_QUANTITY') return 'ITEM';
-  if (operationCode === 'ADD_PIECE' || operationCode === 'REMOVE_PIECE') return 'PIECE';
-  if (operationCode === 'ADD_PREFERENCE' || operationCode === 'CHANGE_PREFERENCE' || operationCode === 'REMOVE_PREFERENCE') return 'PREFERENCE';
+  if (operationCode === 'ADD_ITEM') return 'ORDER';
+  if (operationCode === 'REMOVE_ITEM' || operationCode === 'CHANGE_ITEM_QUANTITY') return 'ITEM';
+  if (operationCode === 'ADD_PIECE') return 'ITEM';
+  if (operationCode === 'REMOVE_PIECE') return 'PIECE';
+  if (operationCode === 'ADD_PREFERENCE') {
+    if (!preferenceParentTargetType) throw new Error('Preference parent scope is required.');
+    return preferenceParentTargetType;
+  }
+  if (operationCode === 'CHANGE_PREFERENCE' || operationCode === 'REMOVE_PREFERENCE') return 'PREFERENCE';
   return 'ORDER';
 }
 
@@ -203,7 +215,26 @@ export async function evaluateOrderChangeCapability(input: {
   bindings: readonly OrderChangeCapabilityBinding[];
   now?: Date;
 }): Promise<OrderChangeCapabilityResult> {
-  const targetType = resolveOrderChangeCapabilityTarget(input.operation.code);
+  let targetType: OrderChangeCapabilityTargetType;
+  try {
+    targetType = resolveOrderChangeCapabilityTarget(
+      input.operation.code,
+      input.operation.preferenceParentTargetType,
+    );
+  } catch {
+    return {
+      seq: input.operation.seq,
+      operationCode: input.operation.code,
+      targetType: 'PREFERENCE',
+      decision: 'DENY',
+      reasonCode: 'CAPABILITY_TARGET_UNAVAILABLE',
+      messageKey: 'orderChange.capability.targetUnavailable',
+      requiresAcknowledgement: false,
+      requiresReason: false,
+      overridePermissionCode: null,
+      policyIdentity: null,
+    };
+  }
   const denial = (reasonCode: string, messageKey: string): OrderChangeCapabilityResult => ({
     seq: input.operation.seq,
     operationCode: input.operation.code,
@@ -253,7 +284,7 @@ export async function evaluateOrderChangeCapability(input: {
     requiresAcknowledgement: binding.decision === 'ALLOW_WITH_WARNING',
     requiresReason: Boolean(binding.requiresReason) || binding.decision === 'REQUIRE_OVERRIDE',
     overridePermissionCode: binding.decision === 'REQUIRE_OVERRIDE' ? overridePermissionCode : null,
-    policyIdentity: { profileVersionId: binding.profileVersionId, policyRevision: binding.policyRevision },
+    policyIdentity: { editPolicyId: binding.editPolicyId, profileVersionId: binding.profileVersionId, policyRevision: binding.policyRevision },
   };
 }
 
@@ -279,6 +310,7 @@ export function issueOrderChangeReviewProof(input: {
     intentDigest: digestCanonical(input.binding.canonicalIntent),
     reasonDigest: digestCanonical(input.binding.changeReason),
     decisionsDigest: digestCanonical(input.binding.gateDecisions),
+    editPolicyId: input.binding.policyIdentity.editPolicyId,
     profileVersionId: input.binding.policyIdentity.profileVersionId,
     policyRevision: input.binding.policyIdentity.policyRevision,
     policyFactsDigest: digestCanonical(input.binding.policyFacts),
@@ -322,7 +354,7 @@ export function verifyOrderChangeReviewProof(input: {
   const expected = toProofPayload(input.expected, payload.kid, payload.exp);
   const comparisonKeys: Array<keyof OrderChangeReviewProofPayload> = [
     'v', 'kid', 'tenantId', 'orderId', 'actorUserId', 'expectedEditStateVersion', 'expectedWfStateVersion',
-    'sourceContext', 'intentDigest', 'reasonDigest', 'decisionsDigest', 'profileVersionId', 'policyRevision',
+    'sourceContext', 'intentDigest', 'reasonDigest', 'decisionsDigest', 'editPolicyId', 'profileVersionId', 'policyRevision',
     'policyFactsDigest', 'calculationFingerprint', 'settlementSourceFingerprint',
   ];
   if (comparisonKeys.some((field) => payload[field] !== expected[field])) {
@@ -363,7 +395,7 @@ function parseProofPayload(encoded: string): OrderChangeReviewProofPayload {
       || !Number.isInteger(payload.expectedEditStateVersion) || !Number.isInteger(payload.expectedWfStateVersion)
       || typeof payload.sourceContext !== 'string' || typeof payload.intentDigest !== 'string'
       || typeof payload.reasonDigest !== 'string' || typeof payload.decisionsDigest !== 'string'
-      || typeof payload.profileVersionId !== 'string' || !Number.isInteger(payload.policyRevision)
+      || typeof payload.editPolicyId !== 'string' || typeof payload.profileVersionId !== 'string' || !Number.isInteger(payload.policyRevision)
       || typeof payload.policyFactsDigest !== 'string' || typeof payload.calculationFingerprint !== 'string'
       || typeof payload.settlementSourceFingerprint !== 'string' || !Number.isInteger(payload.exp)
     ) throw new Error('invalid payload');
@@ -386,6 +418,7 @@ function toProofPayload(binding: OrderChangeReviewProofBinding, keyId: string, e
     intentDigest: digestCanonical(binding.canonicalIntent),
     reasonDigest: digestCanonical(binding.changeReason),
     decisionsDigest: digestCanonical(binding.gateDecisions),
+    editPolicyId: binding.policyIdentity.editPolicyId,
     profileVersionId: binding.policyIdentity.profileVersionId,
     policyRevision: binding.policyIdentity.policyRevision,
     policyFactsDigest: digestCanonical(binding.policyFacts),

@@ -8,6 +8,9 @@ import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxSelect } from '@ui/primitives/cmx-select';
 import { Badge } from '@ui/primitives/badge';
 import { cmxMessage } from '@ui/feedback';
+import { DRAWER_TYPES } from '@/lib/constants/payment';
+import { useAuth } from '@/lib/auth/auth-context';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import {
   fetchCashDrawersWithCurrentSession,
@@ -15,8 +18,10 @@ import {
   type OpenCashDrawerSessionV2Result,
 } from '@features/cash-drawers/api/cash-drawer-api';
 import { CashDrawerOpenSessionDialog } from '@features/cash-drawers/ui/cash-drawer-open-session-dialog';
+import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-close-wizard';
 import { PosSessionApiError, postPosSessionAutoLinkDrawer } from '@features/pos-sessions/api/pos-session-api';
 import { posSessionErrorKey } from '@features/pos-sessions/model/pos-session-flags';
+import { PosSessionConnectDrawerDialog } from '@features/pos-sessions/ui/pos-session-connect-drawer-dialog';
 
 interface PosSessionDrawerLinkerProps {
   branchId: string | null;
@@ -40,9 +45,13 @@ export function PosSessionDrawerLinker({
   onLinked,
 }: PosSessionDrawerLinkerProps) {
   const t = useTranslations('posSessions');
+  const { user } = useAuth();
   const { token: csrfToken } = useCSRFToken();
   const [selectedDrawerId, setSelectedDrawerId] = useState('');
   const [openDialogOpen, setOpenDialogOpen] = useState(false);
+  const [connectDialogOpen, setConnectDialogOpen] = useState(false);
+  const [closeWizardOpen, setCloseWizardOpen] = useState(false);
+  const canCloseCashDrawer = useHasPermissionCode('cash_drawer:close_session');
   const [busy, setBusy] = useState<'link' | 'open-link' | null>(null);
 
   // A known business rule reads in the cashier's language; anything else keeps the server text.
@@ -61,15 +70,29 @@ export function PosSessionDrawerLinker({
     return <DrawerLinkNotice>{t('hub.drawerLinkNoViewPermission')}</DrawerLinkNotice>;
   }
 
-  const drawers = drawersQuery.data ?? [];
-  const effectiveDrawerId = selectedDrawerId || drawers[0]?.id || '';
+  const drawers = (drawersQuery.data ?? []).filter((drawer) =>
+    isPosDrawerChoice(drawer, branchId, user?.id),
+  );
+  const effectiveDrawerId = drawers.some((drawer) => drawer.id === selectedDrawerId)
+    ? selectedDrawerId
+    : drawers[0]?.id || '';
   const selectedDrawer = drawers.find((drawer) => drawer.id === effectiveDrawerId) ?? null;
-  const canUseSelectedOpenSession = !!selectedDrawer?.currentSession;
+  const ownOpenSession = selectedDrawer?.currentSession ?? null;
+  const sessionOwnerId = ownOpenSession ? (ownOpenSession.session_user_id || ownOpenSession.opened_by) : null;
+  const canConnectOwnSession = Boolean(
+    ownOpenSession
+    && user?.id
+    && sessionOwnerId
+    && sessionOwnerId === user.id
+    && branchId
+    && selectedDrawer?.branch_id === branchId,
+  );
+  const canUseSelectedOpenSession = !!ownOpenSession && !canConnectOwnSession;
 
-  const linkDrawerSession = async (drawerSessionId: string) => {
+  const linkDrawerSession = async (drawerSessionId: string): Promise<boolean> => {
     if (!branchId) {
       cmxMessage.error(t('messages.selectBranch'));
-      return;
+      return false;
     }
     setBusy('link');
     try {
@@ -82,8 +105,10 @@ export function PosSessionDrawerLinker({
       });
       cmxMessage.success(t('messages.drawerLinked'));
       await onLinked();
+      return true;
     } catch (error) {
       cmxMessage.error(linkErrorMessage(error));
+      return false;
     } finally {
       setBusy(null);
     }
@@ -129,7 +154,12 @@ export function PosSessionDrawerLinker({
   }
 
   if (drawers.length === 0) {
-    return <DrawerLinkNotice>{t('hub.noDrawersForBranch')}</DrawerLinkNotice>;
+    const rawCount = drawersQuery.data?.length ?? 0;
+    return (
+      <DrawerLinkNotice>
+        {rawCount > 0 ? t('hub.noEligibleDrawers') : t('hub.noDrawersForBranch')}
+      </DrawerLinkNotice>
+    );
   }
 
   return (
@@ -158,24 +188,78 @@ export function PosSessionDrawerLinker({
 
       {selectedDrawer ? (
         <div className="flex flex-wrap gap-2 text-xs">
-          <Badge variant={selectedDrawer.currentSession ? 'success' : 'secondary'}>
-            {selectedDrawer.currentSession ? t('hub.drawerHasOpenSession') : t('hub.drawerNoOpenSession')}
+          <Badge variant={selectedDrawer.currentSession ? 'success' : selectedDrawer.blockingSession ? 'warning' : 'secondary'}>
+            {selectedDrawer.currentSession
+              ? t('hub.drawerHasOpenSession')
+              : selectedDrawer.blockingSession
+                ? t('hub.drawerSessionClosing')
+                : t('hub.drawerNoOpenSession')}
           </Badge>
           <Badge variant="outline">{selectedDrawer.currency_code}</Badge>
-          {selectedDrawer.currentSession ? <Badge variant="outline">{selectedDrawer.currentSession.session_no}</Badge> : null}
+          {selectedDrawer.currentSession || selectedDrawer.blockingSession ? (
+            <Badge variant="outline">
+              {(selectedDrawer.currentSession ?? selectedDrawer.blockingSession)?.session_no}
+            </Badge>
+          ) : null}
         </div>
       ) : null}
 
-      {canUseSelectedOpenSession ? (
+      {canConnectOwnSession && ownOpenSession && selectedDrawer ? (
+        <>
+          <CmxButton type="button" size="sm" onClick={() => setConnectDialogOpen(true)}>
+            <Link2 className="me-2 h-4 w-4" aria-hidden />
+            {t('hub.connectOpenDrawer')}
+          </CmxButton>
+          <PosSessionConnectDrawerDialog
+            open={connectDialogOpen}
+            onOpenChange={setConnectDialogOpen}
+            drawerId={selectedDrawer.id}
+            sessionId={ownOpenSession.id}
+            sessionNo={ownOpenSession.session_no}
+            currencyCode={selectedDrawer.currency_code}
+            openingCountedAmount={ownOpenSession.opening_counted_amount ?? null}
+            denominations={ownOpenSession.opening_denominations ?? []}
+            onConnected={async () => {
+              const linked = await linkDrawerSession(ownOpenSession.id);
+              if (linked) await drawersQuery.refetch();
+              return linked;
+            }}
+          />
+        </>
+      ) : canUseSelectedOpenSession ? (
         <CmxButton
           type="button"
           size="sm"
           loading={busy === 'link'}
-          onClick={() => selectedDrawer.currentSession && linkDrawerSession(selectedDrawer.currentSession.id)}
+          onClick={() => selectedDrawer?.currentSession && linkDrawerSession(selectedDrawer.currentSession.id)}
         >
           <Link2 className="me-2 h-4 w-4" aria-hidden />
           {t('hub.useOpenDrawer')}
         </CmxButton>
+      ) : selectedDrawer?.blockingSession ? (
+        <div className="space-y-3">
+          <DrawerLinkNotice>
+            {t('hub.drawerSessionStillClosing', { sessionNo: selectedDrawer.blockingSession.session_no })}
+          </DrawerLinkNotice>
+          {canCloseCashDrawer ? (
+            <CmxButton type="button" size="sm" variant="destructive" onClick={() => setCloseWizardOpen(true)}>
+              {t('hub.finishClose')}
+            </CmxButton>
+          ) : (
+            <DrawerLinkNotice>{t('hub.drawerClosePermissionRequired')}</DrawerLinkNotice>
+          )}
+          <CashDrawerCloseWizard
+            drawerId={selectedDrawer.id}
+            sessionId={selectedDrawer.blockingSession.id}
+            branchId={branchId}
+            open={closeWizardOpen}
+            onOpenChange={setCloseWizardOpen}
+            resumeClosing
+            onFinalized={() => {
+              void drawersQuery.refetch();
+            }}
+          />
+        </div>
       ) : (
         <div className="space-y-3">
           <CmxButton
@@ -209,6 +293,28 @@ function DrawerLinkNotice({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
+}
+
+/**
+ * POS hub drawer choices: counter drawers on this branch only.
+ * An OPEN session for another user or another branch is omitted.
+ * A CLOSING session stays listed. The action finishes that close; a second live session is not opened.
+ */
+function isPosDrawerChoice(
+  drawer: CashDrawerWithCurrentSession,
+  branchId: string | null,
+  userId: string | undefined,
+): boolean {
+  if (drawer.drawer_type !== DRAWER_TYPES.COUNTER) return false;
+  if (!branchId || drawer.branch_id !== branchId) return false;
+
+  const openSession = drawer.currentSession;
+  if (!openSession) return true;
+  if (openSession.branch_id && openSession.branch_id !== branchId) return false;
+
+  const ownerId = openSession.session_user_id || openSession.opened_by;
+  if (ownerId && userId && ownerId !== userId) return false;
+  return true;
 }
 
 function drawerLabel(drawer: CashDrawerWithCurrentSession): string {

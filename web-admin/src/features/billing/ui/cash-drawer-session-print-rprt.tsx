@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
@@ -18,6 +19,7 @@ interface SessionData {
   opened_at: string | null;
   closed_at: string | null;
   opened_by: string | null;
+  session_user: string | null;
   closed_by: string | null;
   notes: string | null;
 }
@@ -85,6 +87,7 @@ export function CashDrawerSessionPrintRprt({
   closure,
 }: CashDrawerSessionPrintRprtProps) {
   const t = useTranslations('billing.cashDrawers.print');
+  const tDrawers = useTranslations('billing.cashDrawers');
   const tClosure = useTranslations('billing.cashDrawers.closure');
   const tCounts = useTranslations('billing.cashDrawers.tabs.counts.types');
   const isRTL = useRTL();
@@ -145,6 +148,7 @@ export function CashDrawerSessionPrintRprt({
           <InfoRow label={t('status')} value={session.status} isRTL={isRTL} />
           <InfoRow label={t('currency')} value={session.currency_code} isRTL={isRTL} />
           <InfoRow label={t('openedBy')} value={session.opened_by ?? '—'} isRTL={isRTL} />
+          <InfoRow label={t('sessionUser')} value={session.session_user ?? '—'} isRTL={isRTL} />
           <InfoRow label={t('openedAt')} value={formatDate(session.opened_at, locale)} isRTL={isRTL} />
           <InfoRow label={t('closedBy')} value={session.closed_by ?? '—'} isRTL={isRTL} />
           <InfoRow label={t('closedAt')} value={formatDate(session.closed_at, locale)} isRTL={isRTL} />
@@ -170,7 +174,7 @@ export function CashDrawerSessionPrintRprt({
             </div>
             {session.physical_count > 0 && (
               <>
-                <SummaryRow label={t('physicalCount')} value={fmt(session.physical_count)} isRTL={isRTL} />
+                <SummaryRow label={t('closingCount')} value={fmt(session.physical_count)} isRTL={isRTL} />
                 <SummaryRow
                   label={t('variance')}
                   value={totals.variance !== null ? fmt(Math.abs(totals.variance)) : '—'}
@@ -197,6 +201,12 @@ export function CashDrawerSessionPrintRprt({
                   </h3>
                   <div className="space-y-2 text-sm">
                     <SummaryRow label={tClosure('openingExpected')} value={bfmt(b.openingExpected)} isRTL={isRTL} />
+                    {b.openingCounted !== null ? (
+                      <SummaryRow label={tClosure('openingCounted')} value={bfmt(b.openingCounted)} isRTL={isRTL} />
+                    ) : null}
+                    {b.openingVariance !== null ? (
+                      <SummaryRow label={tClosure('openingVariance')} value={bfmt(b.openingVariance)} isRTL={isRTL} />
+                    ) : null}
                     <SummaryRow label={tClosure('financeIn')} value={bfmt(b.finIn)} isRTL={isRTL} valueClass="text-green-700" />
                     <SummaryRow label={tClosure('financeOut')} value={`−${bfmt(b.finOut)}`} isRTL={isRTL} valueClass="text-red-600" />
                     {Number(b.changeRounding) !== 0 ? (
@@ -235,12 +245,34 @@ export function CashDrawerSessionPrintRprt({
                       </thead>
                       <tbody>
                         {counts.map((c) => (
-                          <tr key={c.countId} className="border-b border-gray-100">
-                            <Td isRTL={isRTL}>{formatDate(c.countedAt, locale)}</Td>
-                            <Td isRTL={isRTL}>{tCounts(c.countType as Parameters<typeof tCounts>[0])}</Td>
-                            <Td isRTL={isRTL} right>{bfmt(c.expectedAmount)}</Td>
-                            <Td isRTL={isRTL} right>{bfmt(c.countedAmount)}</Td>
-                          </tr>
+                          <Fragment key={c.countId}>
+                            <tr className="border-b border-gray-100">
+                              <Td isRTL={isRTL}>{formatDate(c.countedAt, locale)}</Td>
+                              <Td isRTL={isRTL}>{tCounts(c.countType as Parameters<typeof tCounts>[0])}</Td>
+                              <Td isRTL={isRTL} right>{bfmt(c.expectedAmount)}</Td>
+                              <Td isRTL={isRTL} right>{bfmt(c.countedAmount)}</Td>
+                            </tr>
+                            {c.denominations.length > 0 ? (
+                              <tr className="border-b border-gray-100">
+                                <td colSpan={4} className="px-2 py-2">
+                                  <div className="flex flex-wrap gap-2">
+                                    {c.denominations.map((d) => (
+                                      <span
+                                        key={`${c.countId}-${d.denominationId}`}
+                                        className="rounded border border-gray-200 px-2 py-1 text-xs"
+                                      >
+                                        {locale === 'ar' && d.name2 ? d.name2 : d.name}
+                                        {' · '}
+                                        {tClosure('denominationQuantity', { quantity: d.quantity })}
+                                        {' · '}
+                                        {bfmt(d.lineAmount)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            ) : null}
+                          </Fragment>
                         ))}
                       </tbody>
                     </table>
@@ -275,7 +307,9 @@ export function CashDrawerSessionPrintRprt({
                     <Td isRTL={isRTL}>{formatDate(m.performed_at, locale)}</Td>
                     <Td isRTL={isRTL}>{m.movement_type}</Td>
                     <Td isRTL={isRTL}>
-                      <span className={m.direction === 'IN' ? 'text-green-700' : 'text-red-600'}>{m.direction}</span>
+                      <span className={m.direction === 'IN' ? 'text-green-700' : 'text-red-600'}>
+                        {m.direction === 'IN' ? tDrawers('cashIn') : m.direction === 'OUT' ? tDrawers('cashOut') : m.direction}
+                      </span>
                     </Td>
                     <Td isRTL={isRTL}>{m.reason ?? '—'}</Td>
                     <Td isRTL={isRTL} right>{fmt(m.amount)}</Td>

@@ -2,14 +2,72 @@
 /**
  * Full Prisma introspect: db pull → post-pull patch → validate.
  *
+ * Source: --source=local (default; uses DATABASE_URL as already set in .env/.env.local)
+ *         --source=remote (overrides DATABASE_URL with REMOTE_DATABASE_URL for this run only)
+ *
  * If validate still fails after the patch: STOP. Print the errors and
  * the next-step policy. Do not retry this script in a loop.
  */
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
+
+// Plain `node scripts/prisma-pull.mjs` does not auto-load .env files the way
+// `next dev`/`next build` or the `prisma` CLI do, so this script loads them
+// itself. Precedence matches Next.js: .env.local overrides .env; an already-set
+// process env var always wins over either file.
+function loadEnvFile(filePath, target) {
+  let contents
+  try {
+    contents = readFileSync(filePath, 'utf8')
+  } catch {
+    return
+  }
+  for (const line of contents.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const match = trimmed.match(/^([\w.-]+)\s*=\s*(.*)$/)
+    if (!match) continue
+    const [, key, rawValue] = match
+    let value = rawValue.trim()
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    if (!(key in target)) target[key] = value
+  }
+}
+
+const sourceArg = process.argv.find((arg) => arg.startsWith('--source='))
+const source = sourceArg ? sourceArg.slice('--source='.length) : 'local'
+
+if (source !== 'local' && source !== 'remote') {
+  console.error(`prisma-pull: invalid --source "${source}". Use --source=local or --source=remote.`)
+  process.exit(1)
+}
+
+const env = { ...process.env }
+loadEnvFile(path.join(root, '.env.local'), env)
+loadEnvFile(path.join(root, '.env'), env)
+
+if (source === 'remote') {
+  if (!env.REMOTE_DATABASE_URL) {
+    console.error(
+      'prisma-pull: --source=remote requires REMOTE_DATABASE_URL to be set (in web-admin/.env.local, gitignored). ' +
+        'See the commented remote DATABASE_URL example in .env / .env.local.',
+    )
+    process.exit(1)
+  }
+  env.DATABASE_URL = env.REMOTE_DATABASE_URL
+  console.log('prisma-pull: source=remote (DATABASE_URL overridden from REMOTE_DATABASE_URL for this run)')
+} else {
+  console.log('prisma-pull: source=local (using DATABASE_URL as set in .env/.env.local)')
+}
 
 function spawnPrisma(args, { inherit } = { inherit: false }) {
   const result = spawnSync('npx', ['prisma', ...args], {
@@ -17,7 +75,7 @@ function spawnPrisma(args, { inherit } = { inherit: false }) {
     encoding: 'utf8',
     stdio: inherit ? 'inherit' : undefined,
     shell: process.platform === 'win32',
-    env: process.env,
+    env,
   })
 
   if (result.error) {
@@ -43,7 +101,7 @@ const patched = spawnSync(process.execPath, ['scripts/prisma-patch-after-pull.mj
   cwd: root,
   encoding: 'utf8',
   stdio: 'inherit',
-  env: process.env,
+  env,
 })
 if (patched.error) {
   console.error(`prisma-pull: failed to start post-pull patch: ${patched.error.message}`)

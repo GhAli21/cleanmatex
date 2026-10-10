@@ -43,6 +43,14 @@ export const countInputSchema = z
 export const openSessionRequestSchema = z.object({
   openingCount: countInputSchema.optional(),
   notes: z.string().trim().max(1000).optional(),
+  /** Optional cashier the session is opened for. Empty until a POS session connects. */
+  sessionUserId: z.string().uuid().optional(),
+});
+
+/** Opening count added later, when a session was opened without one. */
+export const recordMissingOpeningCountSchema = z.object({
+  openingCount: countInputSchema,
+  notes: z.string().trim().max(1000).optional(),
 });
 
 export const startCloseRequestSchema = z.object({

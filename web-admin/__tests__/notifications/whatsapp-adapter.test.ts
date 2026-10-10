@@ -3,6 +3,8 @@ import twilio from 'twilio'
 import { deliverWhatsAppOutbox, type OutboxWhatsAppRow } from '@lib/notifications/adapters/whatsapp'
 import { notificationSettingsService } from '@lib/notifications/settings-service'
 import { resolveWhatsAppCustomerEligibility } from '@lib/notifications/whatsapp-customer-eligibility'
+import { createAdminSupabaseClient } from '@lib/supabase/server'
+import { __clearEffectiveNotificationRouteCacheForTests } from '@lib/notifications/route-resolver'
 import {
   getTwilioWhatsappFrom,
   getTwilioWhatsappSandboxContentSid,
@@ -16,6 +18,13 @@ jest.mock('@lib/utils/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn
 jest.mock('@lib/notifications/settings-service', () => ({ notificationSettingsService: { getActiveProvider: jest.fn(), isChannelEnabled: jest.fn() } }))
 jest.mock('@lib/notifications/whatsapp-customer-eligibility', () => ({ resolveWhatsAppCustomerEligibility: jest.fn() }))
 jest.mock('@lib/notifications/log-missing-env', () => ({ collectMissingEnv: jest.fn(() => []), logMissingNotificationEnv: jest.fn() }))
+// SHADOW-ONLY pilot (plan 17.2/22): deliverWhatsAppOutbox now also calls
+// ResolveEffectiveNotificationRoute via shadow-route-comparison.ts, which
+// reads org_ntf_route_assign_cf through this same admin client. It is
+// mocked here (default: no ACTIVE route) so every pre-existing legacy-path
+// assertion below runs with the real shadow code in the loop and keeps
+// passing unchanged -- proving the shadow addition is a no-op for real sends.
+jest.mock('@lib/supabase/server', () => ({ createAdminSupabaseClient: jest.fn() }))
 jest.mock('@lib/notifications/config', () => ({
   getTwilioWhatsappFrom: jest.fn(),
   getTwilioWhatsappSandboxContentSid: jest.fn(),
@@ -24,6 +33,36 @@ jest.mock('@lib/notifications/config', () => ({
   isTwilioWhatsappSandboxTemplateEnabled: jest.fn(),
   getNtfHqDispatchUrl: jest.fn(),
 }))
+
+/**
+ * Configures the shared admin-client mock used by the shadow route-comparison
+ * path. `languages` simulates which languages (if any) currently have an
+ * ACTIVE org_ntf_route_assign_cf row for (tenant, order.created, WHATSAPP);
+ * `routeRow` simulates that row's content for resolveEffectiveNotificationRoute.
+ */
+function configureShadowSupabase(options: { languages?: string[]; routeRow?: Record<string, unknown> | null } = {}) {
+  const languages = options.languages ?? []
+  const routeRow = options.routeRow ?? null
+  const from = jest.fn((table: string) => {
+    const query = {
+      select: jest.fn(() => query),
+      eq: jest.fn(() => query),
+      order: jest.fn(() => query),
+      maybeSingle: jest.fn(async () => ({ data: routeRow, error: null })),
+      then: (resolve: (value: unknown) => unknown) =>
+        Promise.resolve(
+          resolve(
+            table === 'org_ntf_route_assign_cf'
+              ? { data: languages.map((languageCode) => ({ language_code: languageCode })), error: null }
+              : { data: [], error: null },
+          ),
+        ),
+    }
+    return query
+  })
+  jest.mocked(createAdminSupabaseClient).mockReturnValue({ from } as unknown as ReturnType<typeof createAdminSupabaseClient>)
+  return { from }
+}
 
 const createdSid = `HX${'1'.repeat(32)}`
 const readySid = `HX${'2'.repeat(32)}`
@@ -64,6 +103,8 @@ describe('WhatsApp adapter template dispatch', () => {
     jest.mocked(getTwilioWhatsappSandboxContentSid).mockResolvedValue(sandboxSid)
     jest.mocked(isTwilioWhatsappSandboxTemplateEnabled).mockResolvedValue(true)
     jest.mocked(isNtfDispatchViaHq).mockResolvedValue(false)
+    __clearEffectiveNotificationRouteCacheForTests()
+    configureShadowSupabase({ languages: [] })
   })
 
   afterAll(() => {
@@ -74,7 +115,7 @@ describe('WhatsApp adapter template dispatch', () => {
   })
 
   it('sends the exact event ContentSid and variables without Body, ignoring sandbox flags and recipient', async () => {
-    expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true })
+    expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'SM-test' })
     expect(createMessage).toHaveBeenCalledWith({
       from: 'whatsapp:+96890000000', to: 'whatsapp:+96891234567', contentSid: createdSid,
       contentVariables: JSON.stringify({ order_number: 'ORD-001', estimated_ready_at: '3 October 2026' }),
@@ -110,7 +151,7 @@ describe('WhatsApp adapter template dispatch', () => {
 
   it('keeps legacy sandbox behavior for a provider without an event catalog', async () => {
     jest.mocked(notificationSettingsService.getActiveProvider).mockResolvedValue({ providerCode: 'TWILIO_WHATSAPP', config: {} })
-    expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true })
+    expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'SM-test' })
     expect(createMessage).toHaveBeenCalledWith(expect.objectContaining({ to: 'whatsapp:+96899999999', contentSid: sandboxSid }))
   })
 
@@ -118,7 +159,7 @@ describe('WhatsApp adapter template dispatch', () => {
     jest.mocked(notificationSettingsService.getActiveProvider).mockResolvedValue({
       providerCode: 'TWILIO_WHATSAPP', config: { use_sandbox_template: false },
     })
-    expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true })
+    expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'SM-test' })
     expect(createMessage).toHaveBeenCalledWith({ from: 'whatsapp:+96890000000', to: 'whatsapp:+96899999999', body: 'Legacy body' })
     expect(isTwilioWhatsappSandboxTemplateEnabled).not.toHaveBeenCalled()
   })
@@ -175,7 +216,7 @@ describe('WhatsApp adapter template dispatch', () => {
     expect(await deliverWhatsAppOutbox({
       ...row, recipient_address: null,
       metadata: { ...row.metadata, whatsapp_eligibility_pending: true },
-    })).toEqual({ success: true })
+    })).toEqual({ success: true, providerMessageId: 'SM-test' })
     expect(createMessage).toHaveBeenCalledWith(expect.objectContaining({ to: 'whatsapp:+96891234567', contentSid: createdSid }))
   })
 
@@ -201,8 +242,52 @@ describe('WhatsApp adapter template dispatch', () => {
 
   it('preserves legacy providers without imposing the production customer gate', async () => {
     jest.mocked(notificationSettingsService.getActiveProvider).mockResolvedValue({ providerCode: 'TWILIO_WHATSAPP', config: {} })
-    expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true })
+    expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'SM-test' })
     expect(notificationSettingsService.isChannelEnabled).not.toHaveBeenCalled()
     expect(resolveWhatsAppCustomerEligibility).not.toHaveBeenCalled()
+  })
+
+  describe('shadow-only route-resolver pilot (never a live cutover)', () => {
+    const expectedSend = {
+      from: 'whatsapp:+96890000000', to: 'whatsapp:+96891234567', contentSid: createdSid,
+      contentVariables: JSON.stringify({ order_number: 'ORD-001', estimated_ready_at: '3 October 2026' }),
+    }
+
+    it('is a no-op for the legacy send when no ACTIVE route is configured', async () => {
+      configureShadowSupabase({ languages: [] })
+      expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'SM-test' })
+      expect(createMessage).toHaveBeenCalledTimes(1)
+      expect(createMessage).toHaveBeenCalledWith(expectedSend)
+    })
+
+    it('leaves the legacy send byte-for-byte unchanged when an ACTIVE route exists for this tenant/event/channel', async () => {
+      configureShadowSupabase({
+        languages: ['en'],
+        routeRow: {
+          id: 'route-x', route_owner: 'PLATFORM', assignment_version: 1, language_code: 'en', fallback_language: null,
+          platform_account_id: 'acct-x', platform_sender_id: null, provider_revision_id: 'rev-x',
+          private_account_id: null, private_sender_id: null, private_revision_id: null,
+        },
+      })
+      expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'SM-test' })
+      // Exactly the one legacy provider call -- the resolved route is never dispatched through.
+      expect(createMessage).toHaveBeenCalledTimes(1)
+      expect(createMessage).toHaveBeenCalledWith(expectedSend)
+    })
+
+    it('never fails or alters the legacy send when the shadow lookup itself throws', async () => {
+      jest.mocked(createAdminSupabaseClient).mockImplementation(() => {
+        throw new Error('shadow lookup unavailable')
+      })
+      expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'SM-test' })
+      expect(createMessage).toHaveBeenCalledTimes(1)
+      expect(createMessage).toHaveBeenCalledWith(expectedSend)
+    })
+
+    it('never runs the shadow comparison for an event outside this pilot scope', async () => {
+      const { from } = configureShadowSupabase({ languages: ['en'] })
+      await deliverWhatsAppOutbox({ ...row, event_code: 'order.ready' })
+      expect(from).not.toHaveBeenCalled()
+    })
   })
 })

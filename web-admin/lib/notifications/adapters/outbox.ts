@@ -181,6 +181,7 @@ async function dispatchWhatsAppInline(row: {
       claimed_by: null,
       lease_expires_at: null,
       reconcile_state: null,
+      ...(result.providerMessageId ? { provider_message_id: result.providerMessageId } : {}),
       ...(finalStatus === OUTBOX_STATUS.FAILED_TEMPORARY ? {
         retry_count: 1,
         // Match the processor's first retry backoff so inline transport failures remain dispatchable.
@@ -205,6 +206,7 @@ async function dispatchWhatsAppInline(row: {
       outbox_id: row.id,
       attempt_number: 1,
       status: finalStatus,
+      provider_message_id: result.providerMessageId ?? null,
       error_message: result.errorMessage ?? null,
       logged_at: finalizedAt,
       rec_status: 1,

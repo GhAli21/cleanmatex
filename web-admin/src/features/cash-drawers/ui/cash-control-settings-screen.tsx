@@ -317,12 +317,7 @@ export function CashControlSettingsScreen() {
             optionLabel={(v) => t(`enums.maxCashEnforceMode.${v}` as never)}
             onChange={(v) => form.setValue('maxCashEnforceMode', v as never, { shouldDirty: true })}
           />
-          <SwitchField
-            label={t('settings.cashDropRequiresDest.label')}
-            description={t('settings.cashDropRequiresDest.description')}
-            checked={!!form.watch('cashDropRequiresDest')}
-            onCheckedChange={(v) => form.setValue('cashDropRequiresDest', v, { shouldDirty: true })}
-          />
+          {/* cashDropRequiresDest stays in the saved payload. No service reads it, so the switch is not shown. */}
         </CmxCardContent>
       </CmxCard>
 

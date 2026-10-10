@@ -16,6 +16,7 @@ const ACTOR = '33333333-3333-4333-8333-333333333333';
 const NOW = new Date('2026-10-03T10:00:00.000Z');
 
 const baseBinding: OrderChangeCapabilityBinding = {
+  editPolicyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   profileVersionId: '44444444-4444-4444-8444-444444444444',
   policyRevision: 8,
   workflowStatus: 'PROCESSING',
@@ -36,7 +37,7 @@ const reviewBinding: OrderChangeReviewProofBinding = {
   canonicalIntent: [{ seq: 1, code: 'REMOVE_PIECE', target: ORDER }],
   changeReason: 'Customer requested removal.',
   gateDecisions: [{ seq: 1, gateCode: 'PROCESSING_WARNING' }],
-  policyIdentity: { profileVersionId: baseBinding.profileVersionId, policyRevision: baseBinding.policyRevision },
+  policyIdentity: { editPolicyId: baseBinding.editPolicyId, profileVersionId: baseBinding.profileVersionId, policyRevision: baseBinding.policyRevision },
   policyFacts: { status: 'PROCESSING', fiscalMode: 'UNISSUED' },
   calculationFingerprint: 'calculation-fingerprint',
   settlementSourceFingerprint: 'settlement-source-fingerprint',
@@ -63,7 +64,11 @@ function capabilityInput(overrides: Partial<Parameters<typeof evaluateOrderChang
 
 describe('order change capability policy', () => {
   it('derives policy target classes from frozen operations', () => {
-    expect(resolveOrderChangeCapabilityTarget('ADD_ITEM')).toBe('ITEM');
+    expect(resolveOrderChangeCapabilityTarget('ADD_ITEM')).toBe('ORDER');
+    expect(resolveOrderChangeCapabilityTarget('ADD_PIECE')).toBe('ITEM');
+    expect(resolveOrderChangeCapabilityTarget('ADD_PREFERENCE', 'ORDER')).toBe('ORDER');
+    expect(resolveOrderChangeCapabilityTarget('ADD_PREFERENCE', 'ITEM')).toBe('ITEM');
+    expect(resolveOrderChangeCapabilityTarget('ADD_PREFERENCE', 'PIECE')).toBe('PIECE');
     expect(resolveOrderChangeCapabilityTarget('REMOVE_PIECE')).toBe('PIECE');
     expect(resolveOrderChangeCapabilityTarget('CHANGE_PREFERENCE')).toBe('PREFERENCE');
     expect(resolveOrderChangeCapabilityTarget('CHANGE_PRIORITY')).toBe('ORDER');
@@ -75,6 +80,12 @@ describe('order change capability policy', () => {
 
   it('fails closed when a profile does not bind the operation', async () => {
     await expect(evaluateOrderChangeCapability(capabilityInput({ bindings: [] }))).resolves.toMatchObject({ decision: 'DENY', reasonCode: 'CAPABILITY_POLICY_BINDING_MISSING' });
+  });
+
+  it('fails closed when an added preference has no server-derived parent scope', async () => {
+    await expect(evaluateOrderChangeCapability(capabilityInput({
+      operation: { seq: 1, code: 'ADD_PREFERENCE', hasReason: true },
+    }))).resolves.toMatchObject({ decision: 'DENY', reasonCode: 'CAPABILITY_TARGET_UNAVAILABLE' });
   });
 
   it('does not treat an enabled-looking policy binding as feature authorization', async () => {
@@ -133,6 +144,7 @@ describe('order change review proof', () => {
     ['actor', { ...reviewBinding, actorUserId: '55555555-5555-4555-8555-555555555555' }],
     ['edit revision', { ...reviewBinding, expectedEditStateVersion: 4 }],
     ['policy facts', { ...reviewBinding, policyFacts: { status: 'READY' } }],
+    ['Edit Policy identity', { ...reviewBinding, policyIdentity: { ...reviewBinding.policyIdentity, editPolicyId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } }],
   ])('rejects a changed %s review binding', (_name, expected) => {
     const proof = issueOrderChangeReviewProof({ key, binding: reviewBinding, now: NOW });
     expect(() => verifyOrderChangeReviewProof({ proof, keys: [key], expected, now: NOW })).toThrow(expect.objectContaining({ code: 'ORDER_CHANGE_REVIEW_PROOF_STALE' }));

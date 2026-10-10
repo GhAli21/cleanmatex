@@ -158,15 +158,27 @@
     "drawerListLoading": "جاري تحميل أدراج النقد المتاحة...",
     "drawerListError": "تعذر تحميل أدراج النقد لهذا الفرع.",
     "noDrawersForBranch": "لا توجد أدراج نقد نشطة مهيأة لهذا الفرع.",
+    "noEligibleDrawers": "لا يوجد درج كاشير في هذا الفرع متاح لك. لا يُعرض درج لديه جلسة مفتوحة لمستخدم آخر أو لفرع آخر.",
     "drawerHasOpenSession": "جلسة درج مفتوحة",
     "drawerNoOpenSession": "لا توجد جلسة درج مفتوحة",
+    "drawerSessionClosing": "جلسة الدرج قيد الإغلاق",
     "useOpenDrawer": "استخدام الدرج المفتوح",
+    "connectOpenDrawer": "الربط بجلسة الدرج المفتوحة",
+    "connectOpenDrawerTitle": "الربط بجلسة الدرج المفتوحة",
+    "connectOpenDrawerDescription": "الجلسة {sessionNo} مفتوحة لك في هذا الفرع. راجع العدّ ثم أكّد لربطها بجلسة نقطة البيع هذه.",
+    "noDenominationYet": "لا يوجد عدّ بالفئات لهذه الجلسة بعد. يمكنك عدّ النقد الآن، أو التأكيد للربط دون عدّ جديد.",
+    "registeredCount": "العدّ المسجّل",
+    "registeredCountLine": "{quantity} × {amount}",
+    "registeredCountTotal": "المبلغ المعدود",
+    "drawerSessionStillClosing": "الجلسة {sessionNo} ما زالت قيد الإغلاق على هذا الدرج. أتمّ الإغلاق قبل فتح جلسة أخرى.",
     "openingBalance": "رصيد الفتح",
     "ordersCreated": "الطلبات المُنشأة",
     "totalIn": "إجمالي الداخل",
     "totalOut": "إجمالي الخارج",
     "currentBalance": "الرصيد الحالي",
     "openAndLinkDrawer": "فتح وربط الدرج",
+    "finishClose": "إتمام الإغلاق",
+    "drawerClosePermissionRequired": "صلاحية إغلاق درج النقد مطلوبة لإتمام هذه الجلسة.",
     "drawerOpenPermissionRequired": "صلاحية فتح الدرج مطلوبة",
     "resumeBeforeDrawerLink": "استأنف جلسة نقطة البيع قبل ربط درج النقد."
   },
@@ -217,7 +229,8 @@
   "errors": {
     "rolledOver": "أُوقفت هذه الجلسة مؤقتاً لأن يوم العمل تغيّر. أغلقها وافتح جلسة جديدة.",
     "timezoneNotConfigured": "لم يتم تحديد منطقة زمنية لهذا الفرع أو المنشأة. اطلب من المسؤول تحديدها قبل فتح الجلسة.",
-    "drawerSessionExclusive": "جلسة درج النقد هذه مستخدمة حالياً من جلسة نقطة بيع أخرى، ومشاركة جلسة الدرج موقوفة لها."
+    "drawerSessionExclusive": "جلسة درج النقد هذه مستخدمة حالياً من جلسة نقطة بيع أخرى، ومشاركة جلسة الدرج موقوفة لها.",
+    "drawerUserConflict": "جلسة درج النقد هذه معيّنة لمستخدم آخر."
   },
   "zArchive": "أرشيف تقارير Z"
 }

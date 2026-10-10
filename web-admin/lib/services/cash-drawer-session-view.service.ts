@@ -46,7 +46,14 @@ export interface SessionClosureCount {
   countedAt: Date;
   notes: string | null;
   supersedesCountId: string | null;
-  denominations: Array<{ valueMinor: number; quantity: number; lineAmount: string }>;
+  denominations: Array<{
+    denominationId: string;
+    name: string;
+    name2: string | null;
+    valueMinor: number;
+    quantity: number;
+    lineAmount: string;
+  }>;
 }
 
 export interface SessionClosureView {
@@ -139,7 +146,14 @@ export async function getSessionClosureView(
         ? prisma.org_cash_drawer_cnt_denom_dtl.findMany({
             where: { tenant_org_id: tenantOrgId, count_id: { in: countIds } },
             orderBy: { denom_value_minor_snap: 'desc' },
-            select: { count_id: true, denom_value_minor_snap: true, quantity: true, line_amount: true },
+            select: {
+              count_id: true,
+              denomination_id: true,
+              denom_value_minor_snap: true,
+              quantity: true,
+              line_amount: true,
+              sys_currency_denominations_cd: { select: { name: true, name2: true } },
+            },
           })
         : Promise.resolve([]),
     ]);
@@ -182,7 +196,14 @@ export async function getSessionClosureView(
         supersedesCountId: c.supersedes_count_id,
         denominations: denomRows
           .filter((d) => d.count_id === c.id)
-          .map((d) => ({ valueMinor: d.denom_value_minor_snap, quantity: d.quantity, lineAmount: dec(d.line_amount) })),
+          .map((d) => ({
+            denominationId: d.denomination_id,
+            name: d.sys_currency_denominations_cd.name,
+            name2: d.sys_currency_denominations_cd.name2,
+            valueMinor: d.denom_value_minor_snap,
+            quantity: d.quantity,
+            lineAmount: dec(d.line_amount),
+          })),
       })),
       postClose: {
         statusCode: session.post_close_status_code,

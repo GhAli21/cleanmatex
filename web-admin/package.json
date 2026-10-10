@@ -30,6 +30,8 @@
     "prisma:generate": "prisma generate",
     "prisma:patch-after-pull": "node scripts/prisma-patch-after-pull.mjs",
     "prisma:pull": "node scripts/prisma-pull.mjs",
+    "prisma:pull:local": "node scripts/prisma-pull.mjs --source=local",
+    "prisma:pull:remote": "node scripts/prisma-pull.mjs --source=remote",
     "prisma:studio": "prisma studio",
     "prisma:generate:safe": "./scripts/generate-prisma.sh",
     "check:i18n": "node scripts/check-i18n-parity.js",

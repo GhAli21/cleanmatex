@@ -150,6 +150,12 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['The API applies authenticated tenant and own-versus-all session scope server-side.'],
       },
       {
+        label: 'Record a missing opening count before connecting the POS session',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/opening-count',
+        requirement: { permissions: ['cash_drawer:open_session'], requireAllPermissions: true },
+      },
+      {
         label: 'Close wizard — count step for the linked cash drawer (CLF-7, CLF-8 slice A)',
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count',
@@ -159,6 +165,12 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Close wizard — finalize the linked cash drawer (CLF-7, CLF-8 slice A)',
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize',
+        requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
+      },
+      {
+        label: 'Resume a closing drawer so the cashier can finish disposition',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/resume',
         requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
       },
       {

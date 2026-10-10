@@ -14,6 +14,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { collapseUserPrefRows } from '@lib/notifications/user-prefs'
 import { logger } from '@/lib/utils/logger'
+import { notificationSettingsService } from '@lib/notifications/settings-service'
+import { renderTemplateByCode, type RenderedContent } from '@lib/notifications/template-renderer'
+import type { Json } from '@/types/database'
 
 const ACTIVATE_BATCH   = 10  // campaigns to activate per run
 const DISPATCH_BATCH   = 50  // targets to process per running campaign per run
@@ -29,12 +32,15 @@ type Campaign = {
   id:             string
   tenant_org_id:  string
   name:           string
+  name2:          string | null
   description:    string | null
+  description2:   string | null
   channel_code:   string
   template_code:  string | null
   target_segment: Record<string, unknown> | null
   skip_count:     number
   sent_count:     number
+  queued_count:   number
 }
 
 type TargetRow = {
@@ -44,6 +50,9 @@ type TargetRow = {
   recipient_user_id:  string | null
   recipient_address:  string | null
 }
+
+const CAMPAIGN_SELECT_COLUMNS =
+  'id, tenant_org_id, name, name2, description, description2, channel_code, template_code, target_segment, skip_count, sent_count, queued_count'
 
 // ---------------------------------------------------------------------------
 // Phase A helpers
@@ -95,9 +104,13 @@ async function activateCampaign(
     created_by:       'system',
   }))
 
+  // upsert(ignoreDuplicates) makes this idempotent against a pg_cron retry or
+  // overlapping invocation re-activating the same APPROVED/SCHEDULED campaign:
+  // migration 0601's UNIQUE(campaign_id, recipient_user_id) constraint lets a
+  // duplicate recipient row silently no-op instead of erroring or duplicating.
   const { error: insertErr } = await supabase
     .from('org_ntf_camp_targets_dtl')
-    .insert(targetRows)
+    .upsert(targetRows, { onConflict: 'campaign_id,recipient_user_id', ignoreDuplicates: true })
 
   if (insertErr) {
     logger.error('process-campaigns: failed to insert targets', new Error(insertErr.message), {
@@ -149,7 +162,24 @@ async function dispatchTargets(
   supabase: ReturnType<typeof createAdminSupabaseClient>,
   campaign: Campaign,
   now: string
-): Promise<{ queued: number; skipped: number; done: boolean }> {
+): Promise<{ queued: number; sentNow: number; skipped: number; done: boolean }> {
+  // Tenant-level channel kill-switch (org_ntf_settings_cf), reused from the
+  // same shared service orchestrator.ts checks before any send. A disabled
+  // channel defers the whole batch — targets stay PENDING and are retried on
+  // a later run once the tenant re-enables the channel — rather than being
+  // dispatched anyway or permanently skipped.
+  const channelEnabled = await notificationSettingsService.isChannelEnabled(
+    campaign.tenant_org_id,
+    campaign.channel_code,
+  )
+  if (!channelEnabled) {
+    logger.info('process-campaigns: channel disabled for tenant — deferring batch', {
+      campaignId: campaign.id, tenantId: campaign.tenant_org_id, channel: campaign.channel_code,
+      feature: 'notifications-campaigns',
+    })
+    return { queued: 0, sentNow: 0, skipped: 0, done: false }
+  }
+
   // Fetch a batch of PENDING targets for this campaign
   const { data: targets, error: fetchErr } = await supabase
     .from('org_ntf_camp_targets_dtl')
@@ -163,7 +193,7 @@ async function dispatchTargets(
     logger.error('process-campaigns: failed to fetch PENDING targets', new Error(fetchErr.message), {
       campaignId: campaign.id, tenantId: campaign.tenant_org_id, feature: 'notifications-campaigns',
     })
-    return { queued: 0, skipped: 0, done: false }
+    return { queued: 0, sentNow: 0, skipped: 0, done: false }
   }
 
   // No PENDING targets in this batch — campaign may be complete
@@ -177,9 +207,9 @@ async function dispatchTargets(
 
     if ((count ?? 0) === 0) {
       await completeCampaign(supabase, campaign, now)
-      return { queued: 0, skipped: 0, done: true }
+      return { queued: 0, sentNow: 0, skipped: 0, done: true }
     }
-    return { queued: 0, skipped: 0, done: false }
+    return { queued: 0, sentNow: 0, skipped: 0, done: false }
   }
 
   const rows = targets as TargetRow[]
@@ -199,78 +229,160 @@ async function dispatchTargets(
     collapseUserPrefRows(prefs ?? []).map(p => [p.user_id as string, Boolean(p.marketing_consent) && Boolean(p.is_enabled)])
   )
 
-  let queued   = 0
+  // Render the campaign's message ONCE per batch — content does not vary per
+  // recipient. Routes through the real template pipeline (reusing the same
+  // APPROVED-version-selection + {{variable}} substitution core
+  // renderChannelTemplate uses) when the campaign has a template_code;
+  // otherwise falls back to the campaign's own bilingual name/description —
+  // in both cases title2/body2 are now actually populated (previously never
+  // set at all, so Arabic recipients got no localized content from
+  // campaigns regardless of template).
+  const rendered: RenderedContent = campaign.template_code
+    ? await renderTemplateByCode(campaign.template_code, campaign.channel_code, {
+        campaign_name:          campaign.name,
+        campaign_name2:         campaign.name2 ?? '',
+        campaign_description:   campaign.description ?? '',
+        campaign_description2:  campaign.description2 ?? '',
+      })
+    : {
+        title:    campaign.name,
+        title2:   campaign.name2 ?? null,
+        body:     campaign.description ?? campaign.name,
+        body2:    campaign.description2 ?? null,
+        metadata: {},
+      }
+
+  let queued   = 0   // enqueued into outbox this batch (EMAIL/SMS/WHATSAPP/PUSH) — awaiting terminal resolution
+  let sentNow  = 0   // delivered immediately this batch (IN_APP — synchronous, no further async step)
   let skipped  = 0
 
   for (const target of rows) {
     const uid        = target.recipient_user_id
     const hasConsent = uid ? (consentMap.get(uid) ?? false) : false
+    const idempotencyKey = `campaign:${campaign.id}:target:${target.id}`
 
     if (!hasConsent) {
       await supabase
         .from('org_ntf_camp_targets_dtl')
         .update({ status: 'SKIPPED', skip_reason: 'NO_MARKETING_CONSENT', processed_at: now, updated_at: now })
         .eq('id', target.id)
+        .eq('tenant_org_id', target.tenant_org_id)
       skipped++
       continue
     }
 
     try {
-      let outboxId: string | null = null
-
       if (campaign.channel_code === 'IN_APP') {
-        // IN_APP: write directly to inbox (outbox processor skips IN_APP rows)
+        // IN_APP: write directly to inbox (outbox processor skips IN_APP rows).
+        // This write IS the delivery — there is no further async step like
+        // process-outbox for the other channels — so the target goes
+        // straight to the terminal SENT status below, not QUEUED.
         const { data: inboxRow, error: inboxErr } = await supabase
           .from('org_ntf_inbox_mst')
           .insert({
             tenant_org_id:      campaign.tenant_org_id,
             recipient_user_id:  uid,
             event_code:         'campaign.send',
-            title:              campaign.name,
-            body:               campaign.description ?? campaign.name,
+            title:              rendered.title,
+            title2:             rendered.title2,
+            body:               rendered.body,
+            body2:              rendered.body2,
             channel_code:       'IN_APP',
             priority:           'NORMAL',
             source_entity_type: 'campaign',
             source_entity_id:   campaign.id,
-            idempotency_key:    `campaign:${campaign.id}:target:${target.id}`,
+            idempotency_key:    idempotencyKey,
             rec_status:         1,
           })
           .select('id')
           .single()
 
-        if (inboxErr) throw new Error(inboxErr.message)
-        outboxId = inboxRow?.id ?? null
+        let inboxId = inboxRow?.id ?? null
+        if (inboxErr) {
+          if (inboxErr.code === '23505') {
+            // Already written by a previous (possibly overlapping) invocation
+            // for this exact idempotency key — reconcile from the existing
+            // row instead of treating this as a new failure.
+            const { data: existing } = await supabase
+              .from('org_ntf_inbox_mst')
+              .select('id')
+              .eq('tenant_org_id', campaign.tenant_org_id)
+              .eq('idempotency_key', idempotencyKey)
+              .maybeSingle()
+            inboxId = existing?.id ?? null
+            logger.warn('process-campaigns: IN_APP idempotency conflict — reconciling from existing row', {
+              targetId: target.id, campaignId: campaign.id, feature: 'notifications-campaigns',
+            })
+          } else {
+            throw new Error(inboxErr.message)
+          }
+        }
+
+        await supabase
+          .from('org_ntf_camp_targets_dtl')
+          .update({ status: 'SENT', inbox_id: inboxId, outbox_id: null, processed_at: now, updated_at: now })
+          .eq('id', target.id)
+          .eq('tenant_org_id', target.tenant_org_id)
+
+        sentNow++
       } else {
-        // EMAIL / SMS / WHATSAPP / PUSH: write to outbox
+        // EMAIL / SMS / WHATSAPP / PUSH: write to outbox. source_entity_type/
+        // source_entity_id let POST /api/notifications/process-outbox's
+        // finalizeClaim() find this exact outbox row's campaign back-reference
+        // once its delivery resolves (see campaign-target-sync.ts).
         const { data: outboxRow, error: outboxErr } = await supabase
           .from('org_ntf_outbox_dtl')
           .insert({
-            tenant_org_id:     campaign.tenant_org_id,
-            recipient_user_id: uid,
-            channel_code:      campaign.channel_code,
-            event_code:        'campaign.send',
-            rendered_body:     campaign.description ?? campaign.name,
-            rendered_subject:  campaign.name,
-            status:            'QUEUED',
-            scheduled_at:      now,
-            retry_count:       0,
-            max_retries:       3,
-            rec_status:        1,
-            idempotency_key:   `campaign:${campaign.id}:target:${target.id}`,
+            tenant_org_id:      campaign.tenant_org_id,
+            recipient_user_id:  uid,
+            channel_code:       campaign.channel_code,
+            event_code:         'campaign.send',
+            source_entity_type: 'campaign',
+            source_entity_id:   campaign.id,
+            rendered_subject:   rendered.title,
+            rendered_subject2:  rendered.title2,
+            rendered_body:      rendered.body,
+            rendered_body2:     rendered.body2,
+            metadata:           rendered.metadata as unknown as Json,
+            status:             'QUEUED',
+            scheduled_at:       now,
+            retry_count:        0,
+            max_retries:        3,
+            rec_status:         1,
+            idempotency_key:    idempotencyKey,
           })
           .select('id')
           .single()
 
-        if (outboxErr) throw new Error(outboxErr.message)
-        outboxId = outboxRow?.id ?? null
+        let outboxId = outboxRow?.id ?? null
+        if (outboxErr) {
+          if (outboxErr.code === '23505') {
+            // Already queued by a previous (possibly overlapping) invocation
+            // for this exact idempotency key — reconcile from the existing
+            // row instead of treating this as a new failure.
+            const { data: existing } = await supabase
+              .from('org_ntf_outbox_dtl')
+              .select('id')
+              .eq('tenant_org_id', campaign.tenant_org_id)
+              .eq('idempotency_key', idempotencyKey)
+              .maybeSingle()
+            outboxId = existing?.id ?? null
+            logger.warn('process-campaigns: outbox idempotency conflict — reconciling from existing row', {
+              targetId: target.id, campaignId: campaign.id, feature: 'notifications-campaigns',
+            })
+          } else {
+            throw new Error(outboxErr.message)
+          }
+        }
+
+        await supabase
+          .from('org_ntf_camp_targets_dtl')
+          .update({ status: 'QUEUED', outbox_id: outboxId, processed_at: now, updated_at: now })
+          .eq('id', target.id)
+          .eq('tenant_org_id', target.tenant_org_id)
+
+        queued++
       }
-
-      await supabase
-        .from('org_ntf_camp_targets_dtl')
-        .update({ status: 'QUEUED', outbox_id: outboxId, processed_at: now, updated_at: now })
-        .eq('id', target.id)
-
-      queued++
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       logger.error('process-campaigns: target dispatch failed', err instanceof Error ? err : new Error(msg), {
@@ -280,17 +392,23 @@ async function dispatchTargets(
         .from('org_ntf_camp_targets_dtl')
         .update({ status: 'FAILED', skip_reason: msg, processed_at: now, updated_at: now })
         .eq('id', target.id)
+        .eq('tenant_org_id', target.tenant_org_id)
     }
   }
 
-  // Update campaign counters
-  if (queued > 0 || skipped > 0) {
+  // Update campaign counters. queued_count = enqueued-awaiting-resolution
+  // (EMAIL/SMS/WHATSAPP/PUSH); sent_count = confirmed sent — IN_APP only
+  // here, since the inbox write is synchronous delivery; external channels'
+  // sent_count/failed_count are incremented later, atomically, by
+  // fn_ntf_camp_target_resolve once process-outbox resolves each row.
+  if (queued > 0 || skipped > 0 || sentNow > 0) {
     await supabase
       .from('org_ntf_campaigns_mst')
       .update({
-        sent_count:  campaign.sent_count  + queued,
-        skip_count:  campaign.skip_count  + skipped,
-        updated_at:  now,
+        queued_count: campaign.queued_count + queued,
+        sent_count:   campaign.sent_count   + sentNow,
+        skip_count:   campaign.skip_count   + skipped,
+        updated_at:   now,
       })
       .eq('id', campaign.id)
       .eq('tenant_org_id', campaign.tenant_org_id)
@@ -307,7 +425,7 @@ async function dispatchTargets(
   const done = (remaining ?? 0) === 0
   if (done) await completeCampaign(supabase, campaign, now)
 
-  return { queued, skipped, done }
+  return { queued, sentNow, skipped, done }
 }
 
 async function completeCampaign(
@@ -359,6 +477,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     activated:         0,
     activationFailed:  0,
     targetsQueued:     0,
+    targetsSentNow:    0,
     targetsSkipped:    0,
     campaignsCompleted: 0,
     errors:            0,
@@ -379,7 +498,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const { data: campaignsToActivate, error: activateErr } = await supabase
     .from('org_ntf_campaigns_mst')
-    .select('id, tenant_org_id, name, description, channel_code, template_code, target_segment, skip_count, sent_count')
+    .select(CAMPAIGN_SELECT_COLUMNS)
     .or(orFilter)
     .eq('is_active', true)
     .limit(ACTIVATE_BATCH)
@@ -412,7 +531,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const { data: runningCampaigns, error: runningErr } = await supabase
     .from('org_ntf_campaigns_mst')
-    .select('id, tenant_org_id, name, description, channel_code, template_code, target_segment, skip_count, sent_count')
+    .select(CAMPAIGN_SELECT_COLUMNS)
     .eq('status', 'RUNNING')
     .eq('is_active', true)
     .limit(ACTIVATE_BATCH)  // process up to same batch size of concurrent campaigns
@@ -426,6 +545,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       try {
         const result = await dispatchTargets(supabase, campaign as Campaign, now)
         stats.targetsQueued    += result.queued
+        stats.targetsSentNow   += result.sentNow
         stats.targetsSkipped   += result.skipped
         if (result.done) stats.campaignsCompleted++
       } catch (err) {

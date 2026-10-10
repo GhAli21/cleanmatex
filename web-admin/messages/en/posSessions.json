@@ -158,15 +158,27 @@
     "drawerListLoading": "Loading available cash drawers...",
     "drawerListError": "Unable to load cash drawers for this branch.",
     "noDrawersForBranch": "No active cash drawers are configured for this branch.",
+    "noEligibleDrawers": "No counter drawer on this branch is free for you. A drawer with an open session for another user or another branch is not listed.",
     "drawerHasOpenSession": "Open drawer session",
     "drawerNoOpenSession": "No open drawer session",
+    "drawerSessionClosing": "Drawer session is closing",
     "useOpenDrawer": "Use open drawer",
+    "connectOpenDrawer": "Connect to that open drawer session",
+    "connectOpenDrawerTitle": "Connect to the open drawer session",
+    "connectOpenDrawerDescription": "Session {sessionNo} is already open for you at this branch. Check the count, then confirm to connect it to this POS session.",
+    "noDenominationYet": "This session has no denomination count yet. Count the cash now, or confirm to connect without a new count.",
+    "registeredCount": "Registered count",
+    "registeredCountLine": "{quantity} × {amount}",
+    "registeredCountTotal": "Counted amount",
+    "drawerSessionStillClosing": "Session {sessionNo} is still closing on this drawer. Finish that close before opening another session.",
     "openingBalance": "Opening balance",
     "ordersCreated": "Orders created",
     "totalIn": "Total in",
     "totalOut": "Total out",
     "currentBalance": "Current balance",
     "openAndLinkDrawer": "Open and link drawer",
+    "finishClose": "Finish close",
+    "drawerClosePermissionRequired": "Cash drawer close permission is required to finish this session.",
     "drawerOpenPermissionRequired": "Drawer open permission required",
     "resumeBeforeDrawerLink": "Resume the POS session before linking a cash drawer."
   },
@@ -217,7 +229,8 @@
   "errors": {
     "rolledOver": "This session was paused because the business day changed. Close it and open a new session.",
     "timezoneNotConfigured": "No timezone is set for this branch or organization. Ask an administrator to set one before opening a session.",
-    "drawerSessionExclusive": "This cash drawer session is already in use by another POS session, and sharing a drawer session is turned off for it."
+    "drawerSessionExclusive": "This cash drawer session is already in use by another POS session, and sharing a drawer session is turned off for it.",
+    "drawerUserConflict": "This cash drawer session is assigned to a different user."
   },
   "zArchive": "Z-report archive"
 }

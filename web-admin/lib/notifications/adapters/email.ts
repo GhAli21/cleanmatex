@@ -12,6 +12,7 @@
 import { sendEmail } from '@lib/notifications/email-sender';
 import { logger } from '@lib/utils/logger';
 import { getNtfHqDispatchUrl, isNtfDispatchViaHq } from '@lib/notifications/config';
+import { resolveCustomerDispatchConsent } from '@lib/notifications/customer-dispatch-consent';
 
 /**
  *
@@ -25,6 +26,9 @@ export interface OutboxEmailRow {
   rendered_body: string;
   event_code: string | null;
   retry_count: number;
+  /** Enables a fresh tenant-customer EMAIL consent recheck before every send. */
+  source_entity_type?: string | null;
+  source_entity_id?: string | null;
 }
 
 /**
@@ -34,6 +38,8 @@ export interface EmailDeliveryResult {
   success: boolean;
   errorMessage?: string;
   permanent?: boolean;
+  /** Policy blocks must not retry and must not count as a provider failure. */
+  skipped?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +122,21 @@ export async function deliverEmailOutbox(row: OutboxEmailRow): Promise<EmailDeli
       feature: 'notifications',
     });
     return { success: false, errorMessage: 'No recipient email address', permanent: true };
+  }
+
+  // Recheck tenant-customer EMAIL consent fresh at dispatch so a queued notification
+  // respects an opt-out recorded after it was enqueued (plan invariant 4.1.12). Rows
+  // with no resolvable customer (e.g. staff notifications) are unaffected.
+  const consent = await resolveCustomerDispatchConsent(
+    row.tenant_org_id, 'email', row.source_entity_type, row.source_entity_id,
+  );
+  if (consent.applicable && !consent.allowed) {
+    logger.info('email adapter: dispatch consent check blocked send', {
+      outboxId: row.id, tenantOrgId: row.tenant_org_id, reason: consent.reason, feature: 'notifications',
+    });
+    return consent.retryable
+      ? { success: false, errorMessage: consent.reason, permanent: false }
+      : { success: false, skipped: true, errorMessage: consent.reason };
   }
 
   const subject = row.rendered_subject ?? row.event_code ?? 'CleanMateX Notification';

@@ -44,6 +44,7 @@ export async function POST(
       drawerId,
       openingCount: parsed.data.openingCount,
       notes: parsed.data.notes,
+      sessionUserId: parsed.data.sessionUserId,
     });
     return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {

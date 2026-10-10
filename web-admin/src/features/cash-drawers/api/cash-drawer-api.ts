@@ -34,9 +34,28 @@ export interface CashDrawerWithCurrentSession {
     id: string
     session_no: string
     opened_at: string | null
+    opened_by?: string | null
+    session_user_id?: string | null
+    branch_id?: string | null
     opening_float_amount: number
     opening_counted_amount?: number | null
+    opening_denominations?: CashDrawerOpeningDenomination[]
   } | null
+  blockingSession?: {
+    id: string
+    session_no: string
+    status: 'CLOSING'
+    opened_by: string | null
+    session_user_id?: string | null
+    branch_id?: string | null
+  } | null
+}
+
+export interface CashDrawerOpeningDenomination {
+  name: string
+  valueMinor: number
+  quantity: number
+  lineAmount: number
 }
 
 // -----------------------------------------------------------------------------
@@ -77,17 +96,42 @@ export interface OpenCashDrawerSessionV2Result {
  * computed by the server from drawer history — this only ever carries an
  * optional physical count taken against it, never a manually declared float.
  */
+/** Books the opening count when the session was opened without one. */
+export async function recordMissingOpeningCount(input: {
+  drawerId: string
+  sessionId: string
+  openingCount: OpeningCountInput
+  notes?: string
+  csrfToken: string | null
+}): Promise<{ sessionId: string; countedAmount: string }> {
+  const response = await fetch(
+    `/api/v1/cash-drawers/${input.drawerId}/session/${input.sessionId}/opening-count`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
+      body: JSON.stringify({ openingCount: input.openingCount, notes: input.notes || undefined }),
+    },
+  )
+  return parseCashDrawerResponse<{ sessionId: string; countedAmount: string }>(response)
+}
+
 export async function openCashDrawerSessionV2(input: {
   drawerId: string
   openingCount?: OpeningCountInput
   notes?: string
+  sessionUserId?: string
   csrfToken: string | null
 }): Promise<OpenCashDrawerSessionV2Result> {
   const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/open-session-v2`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...getCSRFHeader(input.csrfToken) },
-    body: JSON.stringify({ openingCount: input.openingCount, notes: input.notes || undefined }),
+    body: JSON.stringify({
+      openingCount: input.openingCount,
+      notes: input.notes || undefined,
+      sessionUserId: input.sessionUserId || undefined,
+    }),
   })
   return parseCashDrawerResponse<OpenCashDrawerSessionV2Result>(response)
 }
@@ -106,6 +150,13 @@ export async function fetchCashDrawerClosePreviewV2(drawerId: string, sessionId:
 export interface StartCloseResult {
   sessionId: string
   currencyBalances: CurrencyBalancePreview[]
+}
+
+/** Frozen closing balances for a session that is already CLOSING. */
+export async function fetchClosingResume(drawerId: string, sessionId: string): Promise<StartCloseResult> {
+  return fetchCashDrawerJson<StartCloseResult>(
+    `/api/v1/cash-drawers/${drawerId}/session/${sessionId}/close/resume`,
+  )
 }
 
 /** The close wizard's count step — freezes the cut and moves the session to CLOSING (CLF-7 `close/count`). */
@@ -702,7 +753,14 @@ export interface SessionClosureCountView {
   countedAt: string
   notes: string | null
   supersedesCountId: string | null
-  denominations: Array<{ valueMinor: number; quantity: number; lineAmount: string }>
+  denominations: Array<{
+    denominationId: string
+    name: string
+    name2: string | null
+    valueMinor: number
+    quantity: number
+    lineAmount: string
+  }>
 }
 
 /** Cash taken and paid out by one POS session (cashier) inside a drawer session; `posSessionId = null` is unattributed cash (E2). */

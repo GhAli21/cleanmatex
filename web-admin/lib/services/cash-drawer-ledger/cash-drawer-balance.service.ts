@@ -305,7 +305,12 @@ export interface DrawerLedgerMovementRow {
   currencyCode: string;
   orderId: string | null;
   orderPaymentId: string | null;
-  /** Human-readable reference: FIN has none readily joinable here; TRX carries its own `trx_no`. */
+  /** `org_orders_mst.order_no` for a finance line. Null on custody movements. */
+  orderNo: string | null;
+  /** `org_order_refunds_dtl` linked by `fin_voucher_trx_line_id`. Null when the line is not a refund. */
+  refundId: string | null;
+  refundNo: string | null;
+  /** Human-readable reference: finance lines use the order or refund number; custody movements use `trx_no`. */
   referenceNo: string | null;
   reason: string | null;
   occurredAt: Date;
@@ -321,6 +326,9 @@ interface LedgerMovementQueryRow {
   currency_code: string;
   order_id: string | null;
   order_payment_id: string | null;
+  order_no: string | null;
+  refund_id: string | null;
+  refund_no: string | null;
   reference_no: string | null;
   reason: string | null;
   occurred_at: Date;
@@ -367,12 +375,27 @@ export async function getDrawerLedgerMovementsPage(
                  l.currency_code,
                  l.order_id,
                  l.order_payment_id,
+                 o.order_no,
+                 rf.id AS refund_id,
+                 rf.refund_no,
                  NULL::text AS reference_no,
                  COALESCE(l.description, l.notes, l.party_name) AS reason,
                  l.cash_recognized_at AS occurred_at,
                  l.cash_recognized_by AS performed_by,
                  l.cash_drawer_session_id AS session_id
             FROM org_fin_voucher_trx_lines_dtl l
+            LEFT JOIN org_orders_mst o
+              ON o.id = l.order_id
+             AND o.tenant_org_id = l.tenant_org_id
+            LEFT JOIN LATERAL (
+              SELECT rf.id, rf.refund_no
+                FROM org_order_refunds_dtl rf
+               WHERE rf.fin_voucher_trx_line_id = l.id
+                 AND rf.tenant_org_id = l.tenant_org_id
+                 AND rf.is_active = true
+               ORDER BY rf.created_at DESC NULLS LAST
+               LIMIT 1
+            ) rf ON true
            WHERE l.tenant_org_id = ${tenantOrgId}::uuid
              AND l.cash_drawer_id = ${drawerId}::uuid
              AND l.cash_effect_code = 'DRAWER'
@@ -385,18 +408,24 @@ export async function getDrawerLedgerMovementsPage(
                  d.currency_code,
                  NULL::uuid AS order_id,
                  NULL::uuid AS order_payment_id,
+                 NULL::text AS order_no,
+                 NULL::uuid AS refund_id,
+                 NULL::text AS refund_no,
                  h.trx_no AS reference_no,
                  COALESCE(h.reason_code, h.notes) AS reason,
                  h.occurred_at,
                  h.performed_by,
                  d.cash_drawer_session_id AS session_id
             FROM org_cash_drawer_trx_dtl d
-            JOIN org_cash_drawer_trx_mst h ON h.id = d.trx_id
+            JOIN org_cash_drawer_trx_mst h
+              ON h.id = d.trx_id
+             AND h.tenant_org_id = d.tenant_org_id
            WHERE d.tenant_org_id = ${tenantOrgId}::uuid
              AND d.cash_drawer_id = ${drawerId}::uuid
         )
         SELECT id, domain, movement_type, direction, amount, currency_code,
-               order_id, order_payment_id, reference_no, reason, occurred_at, performed_by
+               order_id, order_payment_id, order_no, refund_id, refund_no,
+               reference_no, reason, occurred_at, performed_by
           FROM entries
          WHERE ${sessionFilter === null ? Prisma.sql`TRUE` : Prisma.sql`session_id = ${sessionFilter}::uuid`}
          ORDER BY occurred_at DESC
@@ -426,6 +455,9 @@ export async function getDrawerLedgerMovementsPage(
       currencyCode: r.currency_code,
       orderId: r.order_id,
       orderPaymentId: r.order_payment_id,
+      orderNo: r.order_no,
+      refundId: r.refund_id,
+      refundNo: r.refund_no,
       referenceNo: r.reference_no,
       reason: r.reason,
       occurredAt: r.occurred_at,

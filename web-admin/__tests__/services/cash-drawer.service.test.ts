@@ -50,6 +50,7 @@ const mockDrawerFindFirstOrThrow  = jest.fn();
 const mockSessionFindFirst        = jest.fn();
 const mockSessionFindMany         = jest.fn();
 const mockSessionBalanceFindMany  = jest.fn().mockResolvedValue([]);
+const mockOpeningCountFindMany    = jest.fn().mockResolvedValue([]);
 const mockSessionFindFirstOrThrow = jest.fn();
 const mockSessionCreate           = jest.fn();
 const mockSessionUpdate           = jest.fn();
@@ -106,6 +107,9 @@ jest.mock('@/lib/db/prisma', () => {
       },
       org_cash_drawer_ses_bal_dtl: {
         findMany: (...a: unknown[]) => mockSessionBalanceFindMany(...a),
+      },
+      org_cash_drawer_cnt_mst: {
+        findMany: (...a: unknown[]) => mockOpeningCountFindMany(...a),
       },
       org_cash_drawer_sessions_mst: {
         findFirst:         (...a: unknown[]) => mockSessionFindFirst(...a),
@@ -216,9 +220,14 @@ describe('cash-drawer.service — getDrawersWithCurrentSession', () => {
       id: SESSION,
       session_no: 'SES-000001',
       opened_at: '2026-05-29T10:00:00.000Z',
+      opened_by: null,
+      session_user_id: null,
+      branch_id: null,
       opening_float_amount: 25,
       opening_counted_amount: null,
+      opening_denominations: [],
     });
+    expect(result[0].blockingSession).toBeNull();
   });
 
   it('uses the counted opening cash instead of a zero expected float', async () => {

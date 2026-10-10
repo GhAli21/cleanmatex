@@ -52,7 +52,7 @@ describe('useCashDrawerErrorMessage', () => {
   });
 
   it('has an English and Arabic sentence for every ledger error code plus the session codes the API can return', () => {
-    const codes = [...Object.values(CASH_LEDGER_ERRORS), 'DRAWER_SESSION_ALREADY_OPEN'];
+    const codes = [...Object.values(CASH_LEDGER_ERRORS), 'DRAWER_SESSION_ALREADY_OPEN', 'OPENING_COUNT_ALREADY_RECORDED', 'SESSION_USER_NOT_FOUND'];
     for (const code of codes) {
       expect({ code, en: Boolean(messages.en[code]) }).toEqual({ code, en: true });
       expect({ code, ar: Boolean(messages.ar[code]) }).toEqual({ code, ar: true });

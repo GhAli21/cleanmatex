@@ -1,11 +1,12 @@
 # Notification Hub — Production Implementation Plan
 
-**Status:** P1 safety and P2 provider/template data foundations are applied. HQ route-control, redacted provider-registration discovery, atomic Twilio import, controlled import candidates, bilingual import, registration/revision review, and immutable slot mapping are implemented. Tenant administration, additional provider connectors, scheduled refresh, and runtime cutover remain planned.
-**Date:** 2026-10-09 (Asia/Muscat).
+**Status:** P1 safety and P2 provider/template data foundations are applied. HQ route-control, redacted provider-registration discovery, atomic Twilio import, controlled import candidates, bilingual import, registration/revision review, immutable slot mapping, provider/account/sender administration, outbox reconciliation (WhatsApp/Twilio only), dispatch-time consent/suppression (WhatsApp opt-in, Email/SMS opt-out), quota/usage concurrency+idempotency (migration `0598`, applied), the campaign engine's correctness fixes (migration `0601`, applied), and the 12-topic operational runbook set are implemented. The route resolver and `order.created→WHATSAPP` shadow comparison are implemented but wired SHADOW-ONLY — **no tenant has been cut over to live HQ-routed sending; every tenant still sends through the legacy direct-Twilio path.** See section 23 for the open governance gates (quota-reservation policy, retention/residency, load-test thresholds) and the "Remaining work and sequencing" section below for the full outstanding list.
+**Date:** 2026-10-10 (Asia/Muscat).
 **Scope:** CleanMateX tenant app, Platform HQ API/UI, platform workers, shared notification schema.
 **Canonical planning authority:** this document in docs/plan/.
 **Detailed specification:** [Schema and contracts](./notification-hub-schema-and-contracts.md).
 **Existing operator runbook:** [Direct Twilio order-created setup](./Setup_And_Config/14_twilio_production_order_created.md).
+**Operational runbooks (12 topics, 2026-10-10):** [Runbooks index](./Runbooks/index.md).
 
 Approval to create this plan is not approval to apply migrations, deploy, change billing, or send production messages. Every proposed identifier, endpoint and service below is a design target unless explicitly marked existing. No promise of zero defects replaces the acceptance tests and release gates in this plan.
 
@@ -267,6 +268,8 @@ Resolve recipients in bounded batches. Create independent per-channel results so
 5. Persist provider acceptance/result with conditional finalization using the claim token. Ignore stale worker finalization.
 6. Recover expired leases. Retry only proven unsubmitted/retryable attempts; reconcile any attempt that might have been accepted.
 
+**Implemented 2026-10-09 (see STATUS.md):** `lib/notifications/reconciliation-service.ts` + `POST /api/notifications/reconcile-outbox` perform step 6 for `ACCEPTANCE_UNCERTAIN` and crashed-lease rows, but only `WHATSAPP`/`TWILIO_WHATSAPP` rows with a captured provider message SID get a real authoritative Twilio status lookup (including treating a Twilio 404 as proof of non-submission, per "retry only proven unsubmitted"). Every other row (no captured SID, `META_WHATSAPP`, or any other channel) dead-letters to `FAILED_PERMANENT` for operator review rather than guessing — extending real reconciliation to those paths remains pending.
+
 Do not assume arbitrary providers support exactly-once submission. Use provider idempotency where supported, with stable keys and documented retention; otherwise use acceptance reconciliation and explicit operator controls.
 
 Due-work discovery is deterministic using the existing scheduled_at/next_retry_at fields, priority and stable ID, with fair tenant batching. TTL expiry precedes delivery. Queue delays obey quiet hours and the explicit effective recipient/tenant timezone. Repeated consent revocation or channel disablement produces a recorded skip, not a new fallback channel.
@@ -408,7 +411,7 @@ All new permissions need dedicated reviewed seed migration(s), matching constant
 - Provider URLs, links/media fetches and callbacks use approved destinations and bounded redirects; prevent SSRF, private-network access and arbitrary secret exfiltration.
 - Escape HTML/text/URL/component values in the correct context; forbid executable template helpers and prototype/path injection.
 - Track consent purpose, channel, actor/source, time and revocation history without claiming a boolean alone establishes every jurisdiction's legal basis.
-- Apply email bounce/complaint, SMS opt-out and WhatsApp revocation suppression consistently at dispatch.
+- Apply email bounce/complaint, SMS opt-out and WhatsApp revocation suppression consistently at dispatch. **Partially implemented 2026-10-09 (see STATUS.md):** `lib/notifications/customer-dispatch-consent.ts` rechecks the existing `org_customers_mst.preferences.notifications.{email,sms}` opt-out flag at EMAIL/SMS dispatch (WhatsApp already rechecked its own opt-in flag at dispatch). **Confirmed schema gap:** no bounce/complaint/opted-out-number suppression-*list* table exists under `supabase/migrations` as of `0596`; that part of this line remains pending future schema work and is not yet enforced.
 - Establish approved retention windows for event data, recipient addresses, payloads, receipts, usage and audit metadata. Minimize PII snapshots; encrypt sensitive storage where the classification requires it.
 - Restrict raw provider payloads and recipient reveals; audited support access is distinct from routine tenant delivery logs.
 - Define data residency, subprocessors, permitted sender countries and jurisdiction review per deployment. Do not invent local regulatory requirements or bypass sender registration.
@@ -513,6 +516,8 @@ Separate estimated provider cost, actual reconciled provider charge and tenant s
 
 Existing commercial policies remain unchanged during transport hardening. Moving accounting to a ledger is a correctness change with a reviewed conversion/reconciliation plan; changing prices, charge timing or plan quotas needs separate approval.
 
+> **2026-10-09 — Partial, approved-scope implementation.** The "atomic increment" and "idempotent usage events" halves of this section's first two paragraphs are implemented: `fn_ntf_meter_usage_atomic` (atomic `INSERT ... ON CONFLICT DO UPDATE` increment + an `org_ntf_usage_apply_evt` idempotency ledger keyed by `idempotency_key`) and `fn_ntf_quota_usage_locked` (advisory-lock-serialized usage read), both in migration `0598_ntf_usage_metering_atomic_idempotent.sql` (**applied by the user to both local and remote databases, 2026-10-09**; types/Prisma regenerated). See `STATUS.md`'s 2026-10-09 "HQ notification usage-metering and quota-check concurrency fix" entry for full detail. **Explicitly NOT implemented, by this increment's approved scope:** "Reserve quota atomically against a delivery identity before the billable action" and "Model reservation expiry, release, finalization and reconciliation" (paragraph 1) — a true pre-send reservation released on send failure was intentionally declined as out of scope (bigger M6 work); today's fix narrows the read-then-send race (no more lost updates, consistent locked reads) but does not fully close it for two different concurrent commands racing past the hard cap. No quota value, price, plan default, or override changed — this was a pure concurrency-correctness fix per explicit user instruction.
+
 ## 17. Configuration, feature flags and infrastructure
 
 ### 17.1 Existing environment/configuration integration
@@ -590,7 +595,7 @@ All tasks below are pending. Complete and document one reviewed slice at a time;
 | P0 — Baseline/contracts | Scope exact files, read-only schema comparison, ADR decisions where required, permission/secret/config inventory, event and provider contract fixtures | Plan review | Ownership, identifiers, existing/live differences and acceptance criteria recorded. |
 | P1 — Safety/legacy transport | Invalid webhook rejection/official verification; durable pre-send claim; BYO worker parity; correct transient/permanent retry; tenant predicates; lease recovery design | P0; M1 if required | Forgery, race, crash, credential and retry tests pass; working direct Twilio stays compatible. |
 | P2 — Accounts/templates | M2/M3 drafts and review; accounts/senders/grants; localized content; typed variable contract; provider registration/revisions/import/sync | P1; user-applied schema | Matching account/language/sender and immutable publication validated. |
-| P3 — Durable runtime | M4; event capture/intents; outbox pins/leases; attempt result normalization; DB/queue bridge; receipt correlation/reconciliation | P2; approved producer integration | No duplicate under tested races; unknown acceptance blocked; event recovery and callback-before-finalization pass. |
+| P3 — Durable runtime | M4; event capture/intents; outbox pins/leases; attempt result normalization; DB/queue bridge; receipt correlation/reconciliation | P2; approved producer integration | No duplicate under tested races; unknown acceptance blocked; event recovery and callback-before-finalization pass. **Reconciliation partially implemented 2026-10-09 (see STATUS.md): Twilio WhatsApp authoritative lookup + receipt correlation shipped; other channels/providers dead-letter only.** |
 | P4 — APIs/UI | Administrative and tenant APIs; structured HQ editor/onboarding; tenant settings/preview/test/delivery timeline; access/i18n/stories | P2/P3; M5 where needed | EN/AR/RTL and denied-action browser flows pass; side-effect boundaries verified. |
 | P5 — Producers/campaigns | First order event pilot; audit all approved producer call sites; campaign/broadcast canonical builder; preference precedence and cancellation | P3/P4 | Staff/customer identity and queued-versus-delivered counters correct; transactional work not starved. |
 | P6 — Usage/resilience | M6; atomic reservation/ledger; fair scheduling, limits, circuit breakers, account health, monitoring and privacy retention | P3/P5; accounting policy review | Concurrent cap tests, exact replay accounting and reconciliation report pass. |
@@ -638,7 +643,7 @@ All tasks below are pending. Complete and document one reviewed slice at a time;
 | Push partly invalid/no subscriptions | Per-device result, tenant-safe retirement, no fake sent count. |
 | Email bounced/complained; inbound opt-out | Suppression prevents subsequent disallowed send. |
 | Campaign paused/cancelled during batch | Unstarted targets stop; accepted attempts remain accounted honestly. |
-| Parallel quota reservations and repeated receipts | Hard-cap enforcement and one ledger effect per charge/usage event. |
+| Parallel quota reservations and repeated receipts | Hard-cap enforcement and one ledger effect per charge/usage event. **2026-10-09: "one ledger effect per usage event" (idempotency) and lost-update-free atomic increments are implemented and covered by Jest** (`fn_ntf_meter_usage_atomic` + `org_ntf_usage_apply_evt`, migration `0598`, applied — see STATUS.md). "Hard-cap enforcement" under concurrency is improved (advisory-lock-serialized reads via `fn_ntf_quota_usage_locked`) but not fully closed for two different concurrent commands racing the pre-send check against the post-send record — that requires the reservation/release model explicitly deferred to future M6 scope, not covered by any test here. |
 | Preview/verify/save on UI | No provider message sent; dirty data retained after errors. |
 | Unauthorized test/export/replay or HQ tenant JWT | Action denied on server and disabled/hidden correctly in UI. |
 | EN/AR, RTL, keyboard and narrow viewport | Readable codes, correct focus, accessible errors and responsive forms. |
@@ -708,6 +713,44 @@ Restore from backup can replay old queue/acceptance state; use provider reconcil
 | Shared implementation package | Not required initially; use generated contracts/fixtures | User-written Approved_By_Jh ADR marker if later proposed. |
 
 Each unresolved item has a phase gate. Implementation may proceed on independent work, but no dependent production activation is allowed while its gate remains unresolved.
+
+### 23.1 Remaining work and sequencing (snapshot 2026-10-10)
+
+Everything in this subsection is current as of the date above; re-verify against `STATUS.md`'s dated entries before acting on it, since this list decays as increments land. Items are grouped by what actually blocks them, not by effort.
+
+**Core functional gaps (code; no governance gate required unless noted):**
+
+| # | Gap | Plan |
+|---|---|---|
+| A1 | No live cutover anywhere — every tenant still sends through the legacy direct-Twilio path; the new HQ-routed architecture carries zero real traffic | Pilot `order.created→WHATSAPP` for exactly one tenant (shadow comparison already built for this exact case). Steps: pick the pilot tenant; add the missing recipient-language signal to the legacy event-emitter contract (invariant 4.1.16 — no silent default locale); build a bounded cutover gate (tenant allowlist swapping shadow-only for live dispatch); activate that tenant's route; run for a fixed window with close monitoring; record evidence per sections 20/22. **Blocked on:** tenant choice + go-ahead (business decision, not engineering). |
+| A2 | Reconciliation/suppression only cover WhatsApp/Twilio + Email/SMS opt-out flag; no suppression-list table (bounce/complaint/SMS carrier opt-out); no Meta WhatsApp reconciliation | New migration for a tenant-scoped suppression-list table; new provider webhook endpoints (Resend/SendGrid have none today — net-new, not just wiring); extend `reconciliation-service.ts` with a Meta Cloud API status lookup parallel to the existing Twilio one. Independent of A1 — can run in parallel, no blocker. |
+| A3 | Quota hard-cap race between two different concurrent commands still open (narrowed, not closed, by migration `0598`) | **Blocked entirely on the quota/charge-timing governance gate already listed in the table above** ("Accounting policy review before M6/pilot metering"). Do not build a reservation/release ledger until that's answered. |
+| A4 | Campaign test-send route (`campaigns/[id]/test`) emits `campaign.test_send`, which does not exist in `sys_ntf_events_cd` — silently no-ops, no error shown. Separately, no generic per-template preview/test-send API exists despite the plan assuming `notifications:send_test` | (a) Design decision needed first: should a test send bypass the outbox/consent/quota pipeline entirely (it's an authorized staff action, not a real customer send — the more correct fix), or just get proper event-catalog mapping and flow through the normal pipeline? (b) The generic preview/test API is separate, larger section 10.2/12.1 scope — its own future work package. |
+| A5 | `reconcile-outbox` has no cron schedule (manual-only); no sender-level live verification exists for any provider | (a) Cron: trivial additive migration mirroring `0350`'s pattern, but changes production job scheduling — needs explicit go-ahead before writing it. (b) Sender verification: needs per-provider API research (Twilio Messaging Service, Resend domain verification, etc.) — lower priority, own connector work package. |
+| A6 | No account-health/circuit-breaker/failover, no incident pause/drain control, no restore drill, no retention/cleanup job, no billing/invoice reconciliation tooling | **Deliberately deferred until after A1's pilot produces real traffic.** Section 21 itself warns against setting SLO/monitoring targets from invented guarantees rather than measured throughput — building this tooling before real load exists means designing against guesses. |
+| A7 | NTF-06 (one canonical builder for events, campaigns, test sends) still not unified — campaigns render through a parallel `template_code`-keyed path (`renderTemplateByCode`) alongside the event-keyed `renderChannelTemplate` | Consolidate into one shared rendering/policy path. Meaningful refactor touching every send path — schedule after cutover decisions settle, with full regression coverage before/after. |
+| A8 | Second-provider connectors (Meta Cloud API WhatsApp, additional SMS/email/push providers) don't exist | No plan needed yet — explicitly deferred scope (section 1.2) until a real business need appears. Not on the critical path to closing this phase. |
+| A9 | Local dev DB was found (while building migration `0601`) to already contain matching campaign-table schema objects outside any tracked migration, before `0601` existed; origin unresolved | Quick, read-only investigation — check local migration-history state against the tracked migrations list and ask the user whether a direct Studio/psql change happened. Did not block `0601`'s application; low risk, but worth closing out before more local testing. |
+
+**Release-readiness (section 24 definition-of-done items):**
+
+| # | Item | Plan |
+|---|---|---|
+| C1 | No real pilot sends/receipt correlation exist for any controlled cohort — same action as A1 | See A1. |
+| C2 | Runbooks (`Runbooks/`) are authored but not drilled, and have no assigned human owners | People/scheduling task, not code. Draft a dry-run script per "Partial"/"Implemented" runbook (skip "Not implemented" ones until the underlying capability is built); user assigns owner names. |
+| C3 | Section 20's full test/acceptance matrix (~30 scenarios) has not been audited end-to-end against existing Jest coverage | Dispatch an agent to map every section-20 scenario against existing tests and report exact gaps; write the missing tests incrementally. No blocker. |
+| C4 | Baseline unrelated typecheck blockers (FX BigInt / tenant-subscription-currency errors, per section 20.1) not yet reconfirmed under default heap | Reproduce on default heap, isolate whether still present, then either fix or formally record as an accepted release-disposition item. No blocker. |
+
+**Governance gates (user decision required — see the table above; restated here with a recommended default for a quick answer):**
+
+| Gate | Recommended default if the user wants one |
+|---|---|
+| Quota reservation/ledger policy (affects A3) | Accept today's narrowed-but-not-fully-closed race through the pilot — the window is narrow and unlikely to collide at pilot scale; revisit before scaling past it. |
+| Retention/residency/compliance policy (affects A6, production cohort expansion) | Match whatever retention window the rest of CleanMateX already uses for comparable PII, pending explicit confirmation — not yet checked against this plan. |
+| Working-day/SLA calculation owner approval | Likely N/A unless business-day-aware campaign scheduling is wanted beyond what exists — skip unless told otherwise. |
+| Capacity/SLO thresholds (affects A6) | Wait for A1's pilot to generate real traffic before measuring — testing against invented throughput numbers is low-value per section 21's own guidance. |
+
+What can start without waiting on any answer: A2, A4(a) investigation, A5(b) research, A9, C3, C4. What's actually stuck until a decision lands: A1/C1 (pilot tenant), A3 (governance gate), A5(a) (cron go-ahead), and the four governance gates generally.
 
 ## 24. Documentation deliverables and definition of done
 
@@ -785,16 +828,21 @@ The notification platform is deliberately provider-neutral. A channel adapter is
 
 The implemented HQ catalog-discovery endpoints expose only registration/revision selection metadata. They never return credential references, account configuration, provider snapshots, or approval-evidence JSON. Platform discovery is available through `GET /notifications/provider-template-registrations` and `GET /notifications/provider-template-registrations/:registrationId/revisions`; private discovery is tenant-scoped through `GET /notifications/provider-template-registrations/tenants/:tenantOrgId/private` and `GET /notifications/provider-template-registrations/tenants/:tenantOrgId/private/:registrationId/revisions`. Provider import/synchronization remains a server-side connector responsibility.
 
-The private Twilio import command is implemented at `POST /notifications/provider-template-registrations/tenants/:tenantOrgId/private/import/twilio`. It resolves only the selected active verified tenant account and its account-bound `TWILIO_ACCOUNT_AUTH` envelope, decrypts it server-side, requires its Account SID to equal the account's external identifier, and invokes `cmx_import_org_ntf_prov_tmpl`. The browser cannot send credentials, provider approval facts, snapshots, or evidence. Private refresh, immutable private-slot binding, provider-account/sender management UI, and tenant configuration UI remain pending.
+The private Twilio import command is implemented at `POST /notifications/provider-template-registrations/tenants/:tenantOrgId/private/import/twilio`. It resolves only the selected active verified tenant account and its account-bound `TWILIO_ACCOUNT_AUTH` envelope, decrypts it server-side, requires its Account SID to equal the account's external identifier, and invokes `cmx_import_org_ntf_prov_tmpl`. The browser cannot send credentials, provider approval facts, snapshots, or evidence. The HQ API exposes private revision binding candidates, the one-time immutable private binding command, and current-revision Twilio refresh. The browser workflow for this slice is implemented: the Tenant Configuration screen sequences a controlled private Twilio import dialog (`private-twilio-import-dialog.tsx`, selectors only) into the existing private revision review dialog, which exposes the immutable binding dialog and a refresh action, for eligible BYO Twilio WhatsApp rows.
+
+Platform and tenant-private provider-account/sender administration is implemented (2026-10-09). HQ exposes `GET/POST /notifications/connections` (platform accounts), `PATCH/POST .../:id` and `.../:id/verify`, plus tenant-scoped `GET/POST /notifications/connections/tenants/:tenantOrgId`, `.../:id`, `.../:id/credential` (write-only; the encrypted envelope is never read back), and `.../:id/verify`; senders use the parallel `GET/POST /notifications/senders` and tenant-scoped shape. Verification performs a real Twilio Account API authentication check (TWILIO only in this increment) and marks an account `VERIFIED` only when Twilio reports an `active` status; other provider codes cannot be verified from this surface yet, and no badge is shown without that live check. Rotating a tenant-private credential resets its account to `PENDING` until re-verified. The HQ Providers screen gained a "Manage connections" dialog for platform accounts/senders; the Tenant Configuration screen gained per-tenant "Private connections" and "Routes" row actions. Sender-level live verification has no connector yet; sender `verification_state` is never operator-settable through these DTOs.
 
 ### 26.2.1 Implemented HQ route-control API slice
 
 - `GET /notifications/tenants/:tenantOrgId/routes` lists routes under `hq_notifications:read`.
 - `POST /notifications/tenants/:tenantOrgId/routes` creates a complete `DRAFT` route under `hq_notifications:manage`; mixed platform/private resource selections are rejected before persistence.
+- `PATCH /notifications/tenants/:tenantOrgId/routes/:id` replaces a `DRAFT` route's configuration using optimistic version checking.
 - `POST /notifications/tenants/:tenantOrgId/routes/:id/activate` uses optimistic version checking, immutable provider evidence, sender compatibility, template locale/event/channel/language agreement, and binding-count agreement before it can set `ACTIVE`.
-- Every route mutation is audit logged. Every `org_*` read/write includes an explicit `tenant_org_id` predicate.
+- `PATCH /notifications/tenants/:tenantOrgId/routes/:id/suspend` and `.../retire` complete the lifecycle; every route mutation is audit logged and every `org_*` read/write includes an explicit `tenant_org_id` predicate.
 
-Pending route operations: optimistic draft edit, suspend, retire, UI wiring, preview/test rendering, and dispatch resolver adoption.
+UI wiring for the full lifecycle (create DRAFT, edit DRAFT, activate, suspend, retire) is implemented (2026-10-09) as a tenant-scoped "Routes" dialog reachable from the Tenant Configuration screen's row actions; it reuses the existing provider-template registration/revision discovery hooks for revision selection and enforces the platform/private mutual-exclusivity guard client-side in addition to the server-side check.
+
+`ResolveEffectiveNotificationRoute` (tenant-side, section 4.2) is implemented at `web-admin/lib/notifications/route-resolver.ts`: given an explicit tenant/event/channel/language tuple it returns the single ACTIVE route's pinned account/sender/revision/binding identity, or a distinct `NO_ACTIVE_ROUTE`/`LOOKUP_ERROR` result, with a bounded invalidatable cache. It is wired SHADOW-ONLY (2026-10-09) for `order.created` → WHATSAPP: `web-admin/lib/notifications/shadow-route-comparison.ts` calls it in addition to the existing direct-Twilio `deliverWhatsAppOutbox` path and logs a structured comparison, with no provider send, quota reservation, or outbox claim/lease effect for any tenant. Pending before any live cutover: preview/test rendering, an explicit recipient-language signal on the legacy event-emitter/outbox contract (none exists today), recorded pilot evidence, and the dispatch resolver's actual adoption as a live send path for a controlled cohort (section 22 step 5).
 ### 26.3 Non-negotiable provider rules
 
 - A Twilio `ContentSid` is valid only for its provider account, language, approved content revision and compatible sender; it is never a global event-level setting.

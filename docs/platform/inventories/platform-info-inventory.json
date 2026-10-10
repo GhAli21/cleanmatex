@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-08T22:25:11.561Z",
-  "gitSha": "e13d94c2",
+  "generatedAt": "2026-10-09T22:38:53.068Z",
+  "gitSha": "0ee91494",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -13672,7 +13672,9 @@
       "label": "Orders",
       "path": "/dashboard/orders",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13739,7 +13741,9 @@
       "label": "All Orders TEST3",
       "path": "/dashboard/orders",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:create"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13760,7 +13764,9 @@
       "label": "Preparation",
       "path": "/dashboard/preparation",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13804,7 +13810,9 @@
       "label": "Processing",
       "path": "/dashboard/processing",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13825,7 +13833,9 @@
       "label": "Issues",
       "path": "/dashboard/issues",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13847,7 +13857,9 @@
       "label": "Assembly",
       "path": "/dashboard/assembly",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13868,7 +13880,9 @@
       "label": "Quality Check",
       "path": "/dashboard/qa",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13889,7 +13903,9 @@
       "label": "Ready",
       "path": "/dashboard/ready",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13910,7 +13926,9 @@
       "label": "Packing",
       "path": "/dashboard/packing",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13931,7 +13949,9 @@
       "label": "Delivery",
       "path": "/dashboard/delivery",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -13952,7 +13972,9 @@
       "label": "AssemblyJh",
       "path": "/dashboard/assembly",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -14020,7 +14042,9 @@
       "label": "Delivery",
       "path": "/dashboard/delivery",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "orders:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -14041,7 +14065,9 @@
       "label": "Team Members",
       "path": "/dashboard/users",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "users:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -14083,7 +14109,9 @@
       "label": "Customer Management",
       "path": "/dashboard/customers",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "customers:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -14246,7 +14274,9 @@
       "label": "Pricing",
       "path": "/dashboard/catalog/pricing",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "admin:manage"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -14267,7 +14297,9 @@
       "label": "Add-ons",
       "path": "/dashboard/catalog/addons",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "admin:manage"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -14288,7 +14320,9 @@
       "label": "Services preferences",
       "path": "/dashboard/catalog/preferences",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "config:preferences_manage"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -14900,6 +14934,7 @@
       "path": "/dashboard/reports/payments",
       "depth": "section",
       "permissions": [],
+      "featureFlag": "advanced_analytics",
       "roles": [
         "admin",
         "super_admin",
@@ -14921,6 +14956,7 @@
       "path": "/dashboard/reports/invoices",
       "depth": "section",
       "permissions": [],
+      "featureFlag": "advanced_analytics",
       "roles": [
         "admin",
         "super_admin",
@@ -14942,6 +14978,7 @@
       "path": "/dashboard/reports/revenue",
       "depth": "section",
       "permissions": [],
+      "featureFlag": "advanced_analytics",
       "roles": [
         "admin",
         "super_admin",
@@ -14963,6 +15000,7 @@
       "path": "/dashboard/reports/customers",
       "depth": "section",
       "permissions": [],
+      "featureFlag": "advanced_analytics",
       "roles": [
         "admin",
         "super_admin",
@@ -14986,6 +15024,7 @@
       "permissions": [
         "finance_reports:view"
       ],
+      "featureFlag": "advanced_analytics",
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -15010,6 +15049,7 @@
       "permissions": [
         "finance_reports:view"
       ],
+      "featureFlag": "advanced_analytics",
       "roles": [
         "super_admin",
         "tenant_admin",
@@ -15630,7 +15670,9 @@
       "label": "Inventory & Machines",
       "path": "/dashboard/inventory",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "inventory:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15674,7 +15716,9 @@
       "label": "Config And Settings",
       "path": "/dashboard/settings",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15695,7 +15739,9 @@
       "label": "All Settings",
       "path": "/dashboard/settings/allsettings",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15759,7 +15805,9 @@
       "label": "User Preferences",
       "path": "/dashboard/settings/preferences",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15781,7 +15829,9 @@
       "label": "Team Members",
       "path": "/dashboard/settings/users",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15801,7 +15851,9 @@
       "label": "Roles & Permissions",
       "path": "/dashboard/settings/roles",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15821,7 +15873,9 @@
       "label": "Permissions",
       "path": "/dashboard/settings/permissions",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15863,7 +15917,9 @@
       "label": "Workflow Roles",
       "path": "/dashboard/settings/workflow-roles",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:workflow_roles:view"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15883,7 +15939,9 @@
       "label": "Branding",
       "path": "/dashboard/settings/branding",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15903,7 +15961,9 @@
       "label": "Finance",
       "path": "/dashboard/settings/finance",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -15946,7 +16006,9 @@
       "label": "Payment Setup",
       "path": "/dashboard/settings/payments",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -16038,7 +16100,9 @@
       "label": "Navigation",
       "path": "/dashboard/settings/navigation",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:read"
+      ],
       "roles": [
         "super_admin",
         "tenant_admin"
@@ -16079,7 +16143,9 @@
       "label": "Tenant Admin",
       "path": "/dashboard/tenant-admin/subscription",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:subscription"
+      ],
       "roles": [
         "admin",
         "super_admin",
@@ -20898,11 +20964,60 @@
       ]
     }
   ],
-  "driftItems": [],
+  "driftItems": [
+    {
+      "id": "nav_contract_permission_mismatch:/dashboard/delivery",
+      "kind": "nav_contract_permission_mismatch",
+      "severity": "warn",
+      "message": "Navigation permissions differ from contract for /dashboard/delivery",
+      "path": "/dashboard/delivery",
+      "isKnownException": false
+    },
+    {
+      "id": "nav_contract_permission_mismatch:/dashboard/delivery",
+      "kind": "nav_contract_permission_mismatch",
+      "severity": "warn",
+      "message": "Navigation permissions differ from contract for /dashboard/delivery",
+      "path": "/dashboard/delivery",
+      "isKnownException": false
+    },
+    {
+      "id": "nav_contract_permission_mismatch:/dashboard/catalog/preferences",
+      "kind": "nav_contract_permission_mismatch",
+      "severity": "warn",
+      "message": "Navigation permissions differ from contract for /dashboard/catalog/preferences",
+      "path": "/dashboard/catalog/preferences",
+      "isKnownException": false
+    },
+    {
+      "id": "nav_contract_permission_mismatch:/dashboard/settings/roles",
+      "kind": "nav_contract_permission_mismatch",
+      "severity": "warn",
+      "message": "Navigation permissions differ from contract for /dashboard/settings/roles",
+      "path": "/dashboard/settings/roles",
+      "isKnownException": false
+    },
+    {
+      "id": "nav_contract_permission_mismatch:/dashboard/settings/permissions",
+      "kind": "nav_contract_permission_mismatch",
+      "severity": "warn",
+      "message": "Navigation permissions differ from contract for /dashboard/settings/permissions",
+      "path": "/dashboard/settings/permissions",
+      "isKnownException": false
+    },
+    {
+      "id": "nav_contract_permission_mismatch:/dashboard/settings/payments",
+      "kind": "nav_contract_permission_mismatch",
+      "severity": "warn",
+      "message": "Navigation permissions differ from contract for /dashboard/settings/payments",
+      "path": "/dashboard/settings/payments",
+      "isKnownException": false
+    }
+  ],
   "driftCounts": {
     "errors": 0,
-    "warnings": 0,
-    "total": 0,
-    "newDrift": 0
+    "warnings": 6,
+    "total": 6,
+    "newDrift": 6
   }
 }

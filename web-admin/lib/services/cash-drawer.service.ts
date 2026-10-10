@@ -40,6 +40,10 @@ export type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
 export const CASH_DRAWER_SESSION_ERRORS = {
   /** Another session is already open for this drawer (uq_open_cash_drawer_session). */
   ALREADY_OPEN: 'DRAWER_SESSION_ALREADY_OPEN',
+  /** An opening count is already stored, so a second one must not be booked. */
+  OPENING_COUNT_ALREADY_RECORDED: 'OPENING_COUNT_ALREADY_RECORDED',
+  /** The chosen session user is not an active member of this tenant. */
+  SESSION_USER_NOT_FOUND: 'SESSION_USER_NOT_FOUND',
 } as const
 
 export type CashDrawerSessionErrorCode =
@@ -114,11 +118,32 @@ export interface CashDrawerWithCurrentSession {
     id: string
     session_no: string
     opened_at: string | null
+    /** User who opened the session. Null on rows written before the actor was stored. */
+    opened_by: string | null
     /** System expected carry-forward. Not the cash the cashier counted at open. */
     opening_float_amount: number
     /** Counted opening cash for the drawer currency. Null when no opening count exists. */
     opening_counted_amount: number | null
+    /** Opening denomination lines, empty when the session was opened without a denomination count. */
+    opening_denominations: CashDrawerOpeningDenomination[]
   } | null
+  /**
+   * A CLOSING session still occupies the drawer, so a new open is refused.
+   * Null when an OPEN session is current, or when the drawer is free.
+   */
+  blockingSession: {
+    id: string
+    session_no: string
+    status: 'CLOSING'
+    opened_by: string | null
+  } | null
+}
+
+export interface CashDrawerOpeningDenomination {
+  name: string
+  valueMinor: number
+  quantity: number
+  lineAmount: number
 }
 
 interface DrawerBranchInfo {
@@ -463,11 +488,8 @@ function buildDrawerContext(
 }
 
 /**
- * CLF-6-1: adapts a unified-ledger entry into the pre-CLF `CashDrawerMovementRow`
- * screen contract. `refundId` has no direct equivalent on a voucher trx line
- * (refunds are identified by `line_role`/`orderId`, not a dedicated FK like the
- * retired movements table had) — left `null`; CLF-8-7/8-8's native Ledger tab
- * is the real fix, this adapter only keeps today's screens working unchanged.
+ * Adapts a unified-ledger entry into the session-detail movement row.
+ * Order and refund numbers come from tenant-scoped joins in the ledger query.
  */
 function mapLedgerMovementRow(
   movement: DrawerLedgerMovementRow,
@@ -480,8 +502,10 @@ function mapLedgerMovementRow(
     amount: toMoneyString(movement.amount),
     currencyCode: movement.currencyCode,
     orderId: movement.orderId,
+    orderNo: movement.orderNo,
     orderPaymentId: movement.orderPaymentId,
-    refundId: null,
+    refundId: movement.refundId,
+    refundNo: movement.refundNo,
     referenceNo: movement.referenceNo,
     reason: movement.reason,
     performedAt: toIsoString(movement.occurredAt),
@@ -489,13 +513,28 @@ function mapLedgerMovementRow(
   }
 }
 
+async function loadOrderNumbers(tenantId: string, orderIds: string[]): Promise<Map<string, string>> {
+  const uniqueIds = [...new Set(orderIds.filter((id) => id.length > 0))]
+  if (uniqueIds.length === 0) return new Map()
+
+  const orders = await withTenantContext(tenantId, () =>
+    prisma.org_orders_mst.findMany({
+      where: { tenant_org_id: tenantId, id: { in: uniqueIds } },
+      select: { id: true, order_no: true },
+    }),
+  )
+  return new Map(orders.map((order) => [order.id, order.order_no]))
+}
+
 function mapPaymentRow(
   payment: CashDrawerPaymentRowSelection,
   actorMap: Map<string, CashDrawerActorSummary>,
+  orderNo: string | null,
 ): CashDrawerLinkedPaymentRow {
   return {
     id: payment.id,
     orderId: payment.order_id,
+    orderNo,
     paymentMethodCode: payment.payment_method_code,
     paymentMethodNameSnapshot: payment.payment_method_name_snapshot,
     paymentStatus: payment.payment_status,
@@ -661,21 +700,32 @@ export async function getDrawersWithCurrentSession(
       where: {
         tenant_org_id: tenantId,
         cash_drawer_id: { in: drawers.map((drawer) => drawer.id) },
-        status: 'OPEN',
+        // CLOSING still occupies the drawer (a new open is refused) even though it is not the current OPEN session.
+        status: { in: ['OPEN', 'CLOSING'] },
         is_active: true,
       },
       select: {
         id: true,
         cash_drawer_id: true,
         session_no: true,
+        status: true,
+        opened_by: true,
+        session_user_id: true,
+        branch_id: true,
         opened_at: true,
         opening_float_amount: true,
       },
     }),
   )
 
-  const sessionMap = new Map(sessions.map((session) => [session.cash_drawer_id, session]))
-  const sessionIds = sessions.map((session) => session.id)
+  const sessionsByDrawer = new Map<string, typeof sessions>()
+  for (const session of sessions) {
+    const list = sessionsByDrawer.get(session.cash_drawer_id) ?? []
+    list.push(session)
+    sessionsByDrawer.set(session.cash_drawer_id, list)
+  }
+  const openSessions = sessions.filter((session) => (session.status ?? 'OPEN') === 'OPEN')
+  const sessionIds = openSessions.map((session) => session.id)
   // opening_float_amount is the expected carry-forward (often 0 on a first
   // session). Checkout must show the cash actually counted at open.
   const openingCounts = sessionIds.length === 0
@@ -700,9 +750,12 @@ export async function getDrawersWithCurrentSession(
       row.opening_counted,
     ]),
   )
+  const denominationsBySession = await loadOpeningDenominations(tenantId, sessionIds)
 
   return drawers.map((drawer) => {
-    const currentSession = sessionMap.get(drawer.id) ?? null
+    const drawerSessions = sessionsByDrawer.get(drawer.id) ?? []
+    const currentSession = drawerSessions.find((session) => (session.status ?? 'OPEN') === 'OPEN') ?? null
+    const closingSession = drawerSessions.find((session) => session.status === 'CLOSING') ?? null
     const openingCounted = currentSession
       ? countedBySessionCurrency.get(`${currentSession.id}:${drawer.currency_code}`)
       : null
@@ -725,12 +778,81 @@ export async function getDrawersWithCurrentSession(
             id: currentSession.id,
             session_no: currentSession.session_no,
             opened_at: currentSession.opened_at?.toISOString() ?? null,
+            opened_by: currentSession.opened_by ?? null,
+            session_user_id: currentSession.session_user_id ?? null,
+            branch_id: currentSession.branch_id ?? null,
             opening_float_amount: Number(currentSession.opening_float_amount),
             opening_counted_amount: openingCounted == null ? null : Number(openingCounted),
+            opening_denominations: denominationsBySession.get(currentSession.id) ?? [],
+          }
+        : null,
+      blockingSession: !currentSession && closingSession
+        ? {
+            id: closingSession.id,
+            session_no: closingSession.session_no,
+            status: 'CLOSING',
+            opened_by: closingSession.opened_by ?? null,
+            session_user_id: closingSession.session_user_id ?? null,
+            branch_id: closingSession.branch_id ?? null,
           }
         : null,
     }
   })
+}
+
+/**
+ * Opening denomination lines for the given open sessions, newest opening count per session.
+ * A session opened with a total only, or with no count, returns no lines.
+ */
+async function loadOpeningDenominations(
+  tenantId: string,
+  sessionIds: string[],
+): Promise<Map<string, CashDrawerOpeningDenomination[]>> {
+  const bySession = new Map<string, CashDrawerOpeningDenomination[]>()
+  if (sessionIds.length === 0) return bySession
+
+  const counts = await withTenantContext(tenantId, () =>
+    prisma.org_cash_drawer_cnt_mst.findMany({
+      where: {
+        tenant_org_id: tenantId,
+        cash_drawer_session_id: { in: sessionIds },
+        count_type: 'OPENING',
+        count_method: 'DENOMINATION',
+        is_active: true,
+      },
+      orderBy: { counted_at: 'desc' },
+      select: {
+        id: true,
+        cash_drawer_session_id: true,
+        org_cash_drawer_cnt_denom_dtl: {
+          where: { tenant_org_id: tenantId, is_active: true },
+          orderBy: { denom_value_minor_snap: 'desc' },
+          select: {
+            denom_value_minor_snap: true,
+            quantity: true,
+            line_amount: true,
+            sys_currency_denominations_cd: { select: { name: true } },
+          },
+        },
+      },
+    }),
+  )
+
+  for (const count of counts) {
+    const sessionId = count.cash_drawer_session_id
+    if (!sessionId || bySession.has(sessionId)) continue
+    bySession.set(
+      sessionId,
+      count.org_cash_drawer_cnt_denom_dtl.map((line) => ({
+        name: line.sys_currency_denominations_cd.name,
+        valueMinor: line.denom_value_minor_snap,
+        quantity: line.quantity,
+        lineAmount: Number(line.line_amount),
+      })),
+    )
+  }
+
+  return bySession
 }
 
 /**
@@ -960,7 +1082,7 @@ export async function getCashDrawerSessionsPage(
     loadSessionClosingFigures(tenantId, sessions),
     resolveActorMap(
       tenantId,
-      sessions.flatMap((session) => [session.opened_by, session.closed_by]),
+      sessions.flatMap((session) => [session.opened_by, session.session_user_id, session.closed_by]),
     ),
   ])
   const emptyTotals: SessionLedgerTotals = {
@@ -987,6 +1109,7 @@ export async function getCashDrawerSessionsPage(
       paymentCount: totals.finCount,
       movementCount: totals.trxCount,
       openedBy: getActorSummary(actorMap, session.opened_by),
+      sessionUser: getActorSummary(actorMap, session.session_user_id),
       closedBy: getActorSummary(actorMap, session.closed_by),
     }
   })
@@ -1060,7 +1183,7 @@ export async function getCashDrawerOverviewDetail(
     resolveActorMap(
       tenantId,
       [
-        ...sessions.flatMap((session) => [session.opened_by, session.closed_by]),
+        ...sessions.flatMap((session) => [session.opened_by, session.session_user_id, session.closed_by]),
         ...recentMovements.map((movement) => movement.performedBy),
       ],
     ),
@@ -1089,6 +1212,7 @@ export async function getCashDrawerOverviewDetail(
       paymentCount: totals.finCount,
       movementCount: totals.trxCount,
       openedBy: getActorSummary(actorMap, session.opened_by),
+      sessionUser: getActorSummary(actorMap, session.session_user_id),
       closedBy: getActorSummary(actorMap, session.closed_by),
     }
   })
@@ -1228,6 +1352,7 @@ export async function getCashDrawerSessionDetail(
     tenantId,
     [
       summaryData.session.opened_by,
+      summaryData.session.session_user_id,
       summaryData.session.closed_by,
       summaryData.session.variance_approved_by,
       ...pagedMovements.map((movement) => movement.performedBy),
@@ -1244,6 +1369,10 @@ export async function getCashDrawerSessionDetail(
     ledgerTotals.get(sessionId) ?? emptyTotals,
     closingBySession.get(sessionId),
   )
+  const orderNumbers = await loadOrderNumbers(
+    tenantId,
+    pagedPayments.map((payment) => payment.order_id),
+  )
 
   const sessionLifecycle: CashDrawerSessionLifecycleDetail = {
     id: summaryData.session.id,
@@ -1252,6 +1381,7 @@ export async function getCashDrawerSessionDetail(
     status: summaryData.session.status,
     openedAt: toIsoString(summaryData.session.opened_at),
     openedBy: getActorSummary(actorMap, summaryData.session.opened_by),
+    sessionUser: getActorSummary(actorMap, summaryData.session.session_user_id),
     openingFloatAmount: toMoneyString(summaryData.session.opening_float_amount),
     currencyCode: summaryData.session.currency_code,
     expectedCashAmount: reconciliation.expectedCash,
@@ -1275,7 +1405,9 @@ export async function getCashDrawerSessionDetail(
       pageSize: movementPageSize,
     },
     linkedPayments: {
-      items: pagedPayments.map((payment) => mapPaymentRow(payment, actorMap)),
+      items: pagedPayments.map((payment) =>
+        mapPaymentRow(payment, actorMap, orderNumbers.get(payment.order_id) ?? null),
+      ),
       total: paymentTotal,
       page: paymentPage,
       pageSize: paymentPageSize,
@@ -1365,6 +1497,11 @@ export async function getSessionSummary(tenantId: string, sessionId: string) {
     ledgerTotalsBySession.get(sessionId) ?? emptyTotals,
     closingBySession.get(sessionId),
   )
+  const sessionUserMap = await resolveActorMap(tenantId, [
+    session.opened_by,
+    session.session_user_id,
+    session.closed_by,
+  ])
   // Legacy-shaped rows for `movements` (print-page + action consumers read
   // snake_case `direction`/`movement_type`/`amount`/`performed_by`/
   // `performed_at` directly off the retired movements-table row shape) — adapted from the unified ledger (CLF-8-12 gives these
@@ -1381,6 +1518,9 @@ export async function getSessionSummary(tenantId: string, sessionId: string) {
 
   return {
     session,
+    sessionUser: getActorSummary(sessionUserMap, session.session_user_id),
+    openedBy: getActorSummary(sessionUserMap, session.opened_by),
+    closedBy: getActorSummary(sessionUserMap, session.closed_by),
     movements,
     payments,
     totalCashIn: reconciliation.movementCashIn,

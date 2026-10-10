@@ -96,6 +96,8 @@ export interface CashDrawerSessionListRow {
   paymentCount: number
   movementCount: number
   openedBy: CashDrawerActorSummary | null
+  /** Cashier the session is for. Null until chosen at open or filled by a POS connect. */
+  sessionUser: CashDrawerActorSummary | null
   closedBy: CashDrawerActorSummary | null
 }
 
@@ -143,8 +145,12 @@ export interface CashDrawerMovementRow {
   amount: string
   currencyCode: string
   orderId: string | null
+  /** Human order number. The screen shows this instead of `orderId`. */
+  orderNo: string | null
   orderPaymentId: string | null
   refundId: string | null
+  /** Human refund number when the movement is a refund. */
+  refundNo: string | null
   referenceNo: string | null
   reason: string | null
   performedAt: string | null
@@ -157,6 +163,8 @@ export interface CashDrawerMovementRow {
 export interface CashDrawerLinkedPaymentRow {
   id: string
   orderId: string
+  /** Human order number. The screen shows this instead of `orderId`. */
+  orderNo: string | null
   paymentMethodCode: string
   paymentMethodNameSnapshot: string | null
   paymentStatus: string | null
@@ -198,6 +206,8 @@ export interface CashDrawerSessionLifecycleDetail {
   status: string
   openedAt: string | null
   openedBy: CashDrawerActorSummary | null
+  /** Cashier the session is for. Null until chosen at open or filled by a POS connect. */
+  sessionUser: CashDrawerActorSummary | null
   openingFloatAmount: string
   currencyCode: string
   expectedCashAmount: string

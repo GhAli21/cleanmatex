@@ -256,3 +256,76 @@ Needs migration `0562` applied. Use a branch with a counter drawer and a safe in
 ## Report back
 
 For any ❌ that was accepted, or ✅ that failed: scenario number, the drawer/session id, a screenshot, and the browser console / dev-server log line. The ledger tab's sequence numbers are the quickest way to show what was booked.
+
+---
+
+## Financial_Expert_Tester Results — Preview manual QA, 2026-10-09 (Asia/Muscat)
+
+Context: manual QA on Preview as Demo Laundry `super_admin` (U000003) via the UI only; tenant currency OMR with 3 decimals. Run 10:05–~10:45 (Asia/Muscat) in batches A–C; the owner stopped the run at ~10:45 while batch C (create QA drawers) was mid-way, so many scenarios were not reached. Root causes below come from a separate read-only code/DB diagnosis (`/workspace/pos/diagnosis-1.txt`). The guide has no Result columns, so results are listed here by scenario id. Legend: PASS / FAIL / PARTIAL / BLOCKED / NOT RUN.
+
+| # | Result | Evidence |
+|---|---|---|
+| 19.1 | PASS | POS Settings page loads. |
+| 19.2 | PASS | Six selectors present; lifecycle shows PAUSE_AT_ROLLOVER, stale 12 h, Z-report required ON. |
+| 19.3 | PASS | Footer shows "1 unsaved change" / "2 unsaved changes"; Discard restores saved values. |
+| 19.4 | PASS | Behaves as the guide expects. |
+| 19.7 | PARTIAL | Page content is Arabic and RTL, but the top-bar title and the browser document title stay English (FET-POS-S10). |
+| 1.1 | PASS | DRIVER-01, Count now toggled OFF, SES-20261009-0003 opened (opening 0.000); "Session opened successfully." A stale "Enter the counted amount." toast lingered beside it (FET-POS-S8). The guide says Count now OFF, but the dialog defaults to ON (FET-POS-S9). No TEMPORARY Till existed at the time, so DRIVER-01 was used as the stand-in (FET-POS-S12). |
+| 1.2 | PASS | Substitute on DRIVER-01: denominations 2 x 5 OMR + 3 x 0.100 = 10.300 OMR; toast "Session opened. Opening count variance: 10.300 OMR."; Counts tab Opening Expected 0.000, Counted 10.300, badge "Over +10.300 OMR". |
+| 1.3 | PARTIAL | Empty counted amount gives the toast "Enter the counted amount." instead of an inline field error, and not the guide's wording (FET-POS-S8). |
+| 1.4 | PASS (by absence) | With a session open, the Open button is replaced by Cash In/Out + Close; a second open cannot be started. |
+| 1.5 | PASS | 3-decimal sum = 10.300 OMR; verified only on the DRIVER-01 substitute because DRW-BR2-002 fails to load (see 5). |
+| 4.1 / 4.3 | FAIL | Cash drop DRAWER-01 -> SAFE-01, 0.500: "Failed to post the transfer", twice, nothing posted. Likely cause: SAFE-01 has a stuck CLOSING session (SES-000018) and/or the broken drawer data (FET-POS-S2, S6). The UI gives no specific reason (FET-POS-S3). |
+| 4.2 | PASS (by absence) | The same drawer is not offered as a destination. |
+| 4.4 / 4.7 | BLOCKED | DRIVER-01 offers only Float issue / Driver handover; Branch-2 drawers are not offered as destinations. |
+| 4.6 | PARTIAL | Amount 0 -> toast "Amount must be greater than zero"; amount -1 keeps the dialog open; amount above balance (5) -> the same generic "Failed to post the transfer", no balance-specific message (FET-POS-S3). |
+| 5 | BLOCKED | SAFE-01 detail: "Failed to load cash drawer data." 4 of 4 tries (DRW-BR2-001/002 intermittently). Root cause: ledger rows from migration 0549 have performer `'migration_0549'` (not a UUID); `audit-actor.service.ts` L49-53 / L74-78 pass it into UUID `.in()` filters and throw (FET-POS-S2). Pages also take 12-15 s (FET-POS-S11). |
+| 6.1 | PASS | Count OFF + "Left in drawer": DRIVER-01 SES-20261009-0003 closed 10:23; expected 0.000; no custody transaction. A stale "Failed to close session." toast was visible (FET-POS-S8). |
+| 6.2 - 6.4 | BLOCKED | Transfers to SAFE-01 fail and there is no safe in Branch 2. |
+| 6.5 | BLOCKED | Depends on a working transfer destination. |
+| 6.6 | PASS | "Notes are required for this disposition." and "Select a destination drawer for this disposition." (not fully confirmed). |
+| 6.7 | PASS | Uncounted close = the 6.1 run. |
+| 6.9 | PASS | Double-click Confirm gave one record, SES-20261009-0004, closed 10:31, expected 10.300. The second click showed an extra "Failed to close session." toast (FET-POS-S8). |
+| 6 (count ON) / 17.10 / 17.11 | FAIL | DRIVER-01 close with denomination counting required: "Your organization requires counting by denomination. No denomination catalog is configured for this currency — use the total amount instead." No amount field is shown; Next -> "Failed to close session." Yet the Open dialog for the same currency lists 11 denominations (FET-POS-S4). |
+| 1.1 after close (reopen basis) | PARTIAL / FAIL (owner to confirm) | After the uncounted close of SES-0004 (expected 10.300), SES-20261009-0005 reopened with opening 0.000. The guide says opening = previous close basis + cash since. DB check: SES-0005 ses_bal opening_expected 0.0000 (FET-POS-S5). |
+| 9, 13.x, 2.x (POS Sessions) | BLOCKED + FAIL | `/api/v1/pos-sessions` and `/my-active` return HTTP 422; the list is empty with no error shown. "POS session opened." toast, yet "My active POS session" says none and the Session Hub shows "Failed to load POS sessions". New Order: "POS session could not be checked", "+ Add" adds no items, Submit disabled. Root cause: `pos-session.service.ts` L282 and L1473 filter `o.is_active`, a column that does not exist on `org_orders_mst` (FET-POS-S1). |
+| 15.3 / 15.4 | NOT RUN | DRAWER-01 SES-20261009-0001 went to CLOSING when Next was clicked on the close wizard; its expected moved 1.000 -> 63.250 with no ledger line to explain it (FET-POS-S6). |
+| §3, §7, §8, §9-§12 (other than above), §14, §16, §17 (other than 17.10/17.11), §18 | NOT RUN / BLOCKED | Run stopped by the owner at ~10:45; several are also blocked by the POS Sessions 422 and SAFE-01 load failure. One summary row per section, not detailed. |
+
+Row count: 25 scenario rows. Tally: PASS 13 (11 PASS + 2 PASS by absence), PARTIAL 4 (including the reopen-basis row, which may be FAIL pending owner confirmation), FAIL 2, BLOCKED 4, BLOCKED + FAIL 1 (POS Sessions), NOT RUN 2 (15.3/15.4 and the summary row).
+
+### Test data left behind (read-only DB check at ~10:47, Asia/Muscat)
+
+QA drawers created by the tester in Demo Laundry (Batch C), none existed before 10:35:
+- `QA-TILL-1` (TEMPORARY, id f051e006) created 10:35:34. Sessions: SES-20261009-0006 FORCE_CLOSED 10:37 -> 10:44; SES-20261009-0007 opened 10:45:42, status CLOSING (updated 10:47:09), opening counted 6.055.
+- `QA-SAFE-1` (SAFE, id 28520137) created 10:35:58. No sessions.
+- `QA-TILL-2` (TEMPORARY, id bd051b01) created 10:36:07. No sessions.
+- Transactions since 10:38: CDT-20261009-0001 FLOAT_ISSUE 20.000 QA-SAFE-1 -> QA-TILL-1 (10:38:34); -0002 CASH_DROP 5.000 TILL-1 -> SAFE-1 (10:38:56); -0003 DRAWER_TO_DRAWER 3.000 TILL-1 -> TILL-2 (10:39:14); -0004 DRAWER_TO_DRAWER 999.000 TILL-1 -> TILL-2 (10:39:36); -0005 DRAWER_TO_DRAWER 999.000 TILL-2 -> TILL-1 (10:40:06); -0006 CLOSE_DISPOSITION 13.000 TILL-1 -> SAFE-1 (10:44:43); -0007 FLOAT_ISSUE 10.000 SAFE-1 -> TILL-1 (10:46:08). One ledger line: CASH_PAY_IN 1.000 on QA-TILL-1 (10:42:34). Note the two 999.000 transfers posted, which looks unusual when the till's balance was far lower: verify whether over-balance transfers between counters are meant to be allowed (FET-POS-S3).
+- Orders created since 10:30: 0.
+- Drawer sessions from the earlier batches: DRIVER-01 SES-20261009-0003 CLOSED (10:23), -0004 CLOSED (10:31), -0005 OPEN (opened 10:31:31, left open).
+
+Final state of all Demo drawers and live sessions: DRAWER-01 SES-20261009-0001 CLOSING (stuck since 10:25 via the wizard); DRW-BR2-001 SES-20261009-0002 OPEN; DRW-BR2-002 none; DRIVER-01 SES-20261009-0005 OPEN; SAFE-01 SES-000018 CLOSING (stuck since 2026-09-17); PD-22222222 / PD-597139C9 none; QA-TILL-1 SES-20261009-0007 CLOSING; QA-SAFE-1 and QA-TILL-2 none.
+
+POS session opened by the tester at ~10:3x: no new `org_pos_sessions_mst` row exists after 07:43 (the only OPEN rows are POS-20261009-7C9F8D81, admin, opened 04:38, and POS-20261009-0034595A, ahmed, opened 07:43). The "POS session opened." toast for Main Branch Name most likely returned the admin's existing OPEN session POS-20261009-7C9F8D81, whose linked drawer session (DRAWER-01 SES-20261009-0001) is now CLOSING.
+
+### Tester suggestions — Financial_Expert_Tester (FET-POS)
+
+P0
+1. **FET-POS-S1 (P0)** Financial_Expert_Tester / FET-POS-S1: POS Sessions list and my-active always return 422 and the New Order screen cannot use a session. Delete `AND COALESCE(o.is_active, TRUE) = TRUE` at `lib/services/pos-session.service.ts` L282 and L1473 (`org_orders_mst` has no `is_active`; regression from commit 723fed47) and add a DB-backed test that runs both queries. Evidence: sections 9/13/2 above, `column o.is_active does not exist`.
+
+P1
+2. **FET-POS-S2 (P1)** Financial_Expert_Tester / FET-POS-S2: drawer detail fails for SAFE-01 and intermittently DRW-BR2-001/002 because ledger performers from migration 0549 are the text `'migration_0549'`. Filter actor ids to UUIDs before the `.in()` calls at `lib/services/audit-actor.service.ts` L49-53 and L74-78 (show the raw string for non-UUIDs), or data-fix the rows. Also log the error in the `catch` of `app/dashboard/internal_fin/cash-drawers/[drawerId]/page.tsx` (L39-55) instead of showing only the generic "Failed to load cash drawer data." (scenario 5).
+3. **FET-POS-S3 (P1)** Financial_Expert_Tester / FET-POS-S3: a failed transfer must say why, in a translated message (e.g. "destination drawer has a session in CLOSING / is not open", "amount exceeds the available balance"). Today DRAWER-01 -> SAFE-01 0.500 and an over-balance 5 both give the generic "Failed to post the transfer" (4.1/4.3/4.6). Also confirm whether the two 999.000 counter-to-counter transfers (CDT-0004/0005) should have been allowed.
+4. **FET-POS-S4 (P1)** Financial_Expert_Tester / FET-POS-S4: closing count says "No denomination catalog is configured for this currency" while the Open dialog shows 11 denominations for the same OMR currency, and the wizard then offers no amount field. Fix the catalog lookup in the close flow, or fall back to the total-amount field as the message itself promises (guide 17.11).
+5. **FET-POS-S5 (P1)** Financial_Expert_Tester / FET-POS-S5: reopening after an uncounted close gives opening 0.000 although the previous session's expected was 10.300 (DRIVER-01 SES-0004 -> SES-0005). Confirm the intended opening basis (guide 1.1: previous close basis + cash since) and fix or update the guide. Needs owner confirmation.
+
+P2
+6. **FET-POS-S6 (P2)** Financial_Expert_Tester / FET-POS-S6: stuck CLOSING sessions (SAFE-01 SES-000018 since 2026-09-17; DRAWER-01 SES-20261009-0001; later QA-TILL-1 SES-20261009-0007) need a recount / force-close path that works even when the drawer page fails to load. Clicking Next in the close wizard puts the session in CLOSING with no way back; add an explicit warning and a Cancel-close action. Also explain DRAWER-01's expected jumping 1.000 -> 63.250 with no ledger line, and the inconsistency that POS session POS-20261009-7C9F8D81 is OPEN while its drawer session is CLOSING.
+7. **FET-POS-S7 (P2)** Financial_Expert_Tester / FET-POS-S7: unexpected errors should return HTTP 500 and must not leak raw SQL text (`app/api/v1/pos-sessions/_response.ts` L31-32). The POS Sessions page shows an empty table with no error message when the API fails; show an error state.
+8. **FET-POS-S8 (P2)** Financial_Expert_Tester / FET-POS-S8: validation is toast-only and stale toasts linger ("Enter the counted amount." beside "Session opened successfully."; "Failed to close session." after a successful double-click close). Make validation inline and clear toasts on new actions; guard against double-submit.
+9. **FET-POS-S9 (P2)** Financial_Expert_Tester / FET-POS-S9: "Count now" defaults ON while guide 1.1 implies a default of off; confirm the intended default. Cash In/Out opens with the Amount prefilled "0".
+10. **FET-POS-S10 (P2)** Financial_Expert_Tester / FET-POS-S10: in Arabic, the top-bar title and the browser document title on POS Settings stay English (19.7).
+11. **FET-POS-S11 (P2)** Financial_Expert_Tester / FET-POS-S11: drawer detail pages take 12-15 s to load. The SQL itself runs in milliseconds; investigate the sequential Prisma/Supabase round-trips, cold starts and the connection pool.
+
+P3
+12. **FET-POS-S12 (P3)** Financial_Expert_Tester / FET-POS-S12: the Demo tenant had no TEMPORARY "Till"; add seed data. Add to "Before you start" that a Till is created under Settings -> Payments -> Cash Drawers -> Add (type Temporary). Clarify guide line 17: drawers ac312993 and 65546cc7 are in different tenants (65546cc7 = Demo SAFE-01, ac312993 = Saudi tenant DRAWER-01).

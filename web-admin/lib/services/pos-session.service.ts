@@ -744,8 +744,9 @@ export async function autoLinkDrawerTx(
     id: string;
     cash_drawer_id: string;
     branch_id: string | null;
+    session_user_id: string | null;
   }>>(Prisma.sql`
-    SELECT id, cash_drawer_id, branch_id
+    SELECT id, cash_drawer_id, branch_id, session_user_id
     FROM public.org_cash_drawer_sessions_mst
     WHERE tenant_org_id = ${input.tenantId}::uuid
       AND id = ${input.cashDrawerSessionId}::uuid
@@ -769,6 +770,28 @@ export async function autoLinkDrawerTx(
       'Cash drawer session branch does not match the current finance write branch.',
       409
     );
+  }
+
+  // A session opened for a named cashier stays with that cashier. An empty
+  // session_user_id is claimed by the POS session being connected.
+  if (drawerSession.session_user_id && drawerSession.session_user_id !== session.user_id) {
+    throw new PosSessionError(
+      'POS_SESSION_DRAWER_USER_CONFLICT',
+      'This cash drawer session is assigned to a different user.',
+      409
+    );
+  }
+
+  if (!drawerSession.session_user_id) {
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE public.org_cash_drawer_sessions_mst
+      SET session_user_id = ${session.user_id}::uuid,
+          updated_at = NOW(),
+          updated_by = ${input.userId}
+      WHERE tenant_org_id = ${input.tenantId}::uuid
+        AND id = ${input.cashDrawerSessionId}::uuid
+        AND session_user_id IS NULL
+    `);
   }
 
   if (session.cash_drawer_session_id) {

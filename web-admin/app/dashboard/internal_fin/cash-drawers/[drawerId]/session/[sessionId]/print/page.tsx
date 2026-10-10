@@ -42,7 +42,7 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
     notFound();
   }
 
-  const { session, movements, payments, reconciliation } = summary;
+  const { session, sessionUser, openedBy, closedBy, movements, payments, reconciliation } = summary;
 
   // CLF per-currency snapshot; a failure here must not block the legacy report.
   const closureView = await getSessionClosureView(tenantId, drawerId, sessionId).catch(() => null);
@@ -73,8 +73,9 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
     physical_count:  physicalCount,
     opened_at:       session.opened_at?.toISOString() ?? null,
     closed_at:       session.closed_at?.toISOString() ?? null,
-    opened_by:       session.opened_by ?? null,
-    closed_by:       session.closed_by ?? null,
+    opened_by:       openedBy?.displayName ?? null,
+    session_user:    sessionUser?.displayName ?? null,
+    closed_by:       closedBy?.displayName ?? null,
     notes:           session.close_notes ?? null,
   };
 

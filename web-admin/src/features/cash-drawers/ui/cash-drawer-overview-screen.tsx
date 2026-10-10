@@ -177,6 +177,11 @@ export function CashDrawerOverviewScreen({
       render: (row: CashDrawerSessionListRow) => fmtDateTime(row.openedAt),
     },
     {
+      key: 'sessionUser',
+      header: t('sessionUser'),
+      render: (row: CashDrawerSessionListRow) => row.sessionUser?.displayName ?? '—',
+    },
+    {
       key: 'closedAt',
       header: t('closedAt'),
       render: (row: CashDrawerSessionListRow) => fmtDateTime(row.closedAt),
@@ -223,6 +228,9 @@ export function CashDrawerOverviewScreen({
   const canCloseSession = useHasPermissionCode('cash_drawer:close_session')
   const currentSession = overview.currentSession
   const latestSession = overview.latestSession
+  const closingSession = !currentSession && latestSession?.status === 'CLOSING' ? latestSession : null
+  const sessionToClose = currentSession ?? closingSession
+  const drawerLiveStatus = currentSession ? 'OPEN' : closingSession ? 'CLOSING' : 'CLOSED'
 
   return (
     <div className="space-y-6 p-6">
@@ -239,7 +247,7 @@ export function CashDrawerOverviewScreen({
               {overview.drawer.drawerName}
             </h1>
             <CashDrawerTypeBadge drawerType={overview.drawer.drawerType} />
-            <CashDrawerStatusBadge status={currentSession ? 'OPEN' : 'CLOSED'} />
+            <CashDrawerStatusBadge status={drawerLiveStatus} />
             <Badge variant="outline" className="font-mono">
               {overview.drawer.drawerCode}
             </Badge>
@@ -258,11 +266,16 @@ export function CashDrawerOverviewScreen({
               {tTrx('openButton')}
             </CmxButton>
           ) : null}
-          {!currentSession && canOpenSession ? (
+          {!sessionToClose && canOpenSession ? (
             <CmxButton onClick={() => setOpenDialogOpen(true)} disabled={isPending}>
               <WalletCards className="me-2 h-4 w-4" aria-hidden />
               {t('openSession')}
             </CmxButton>
+          ) : null}
+          {closingSession ? (
+            <p className="w-full text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              {t('finishCloseHint', { sessionNo: closingSession.sessionNo })}
+            </p>
           ) : null}
           {currentSession ? (
             <>
@@ -278,6 +291,16 @@ export function CashDrawerOverviewScreen({
                 </CmxButton>
               ) : null}
             </>
+          ) : null}
+          {closingSession && canCloseSession ? (
+            <CmxButton variant="destructive" onClick={() => setCloseDialogOpen(true)} disabled={isPending}>
+              {t('finishClose')}
+            </CmxButton>
+          ) : null}
+          {closingSession && !canCloseSession ? (
+            <p className="w-full text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              {t('finishClosePermission')}
+            </p>
           ) : null}
         </div>
       </div>
@@ -323,6 +346,10 @@ export function CashDrawerOverviewScreen({
                 <CashDrawerInfoTile label={t('sessionNo')} value={currentSession.sessionNo} />
                 <CashDrawerInfoTile label={t('sessionStatus')} value={lifecycle.drawerStatus(currentSession.status)} />
                 <CashDrawerInfoTile label={t('openedAt')} value={fmtDateTime(currentSession.openedAt)} />
+                <CashDrawerInfoTile
+                  label={t('sessionUser')}
+                  value={currentSession.sessionUser?.displayName ?? '—'}
+                />
                 <CashDrawerInfoTile
                   label={t('openingBalance')}
                   value={money(currentSession.openingFloatAmount, overview.drawer.currencyCode)}
@@ -511,13 +538,14 @@ export function CashDrawerOverviewScreen({
         </CmxDialogContent>
       </CmxDialog>
 
-      {currentSession ? (
+      {sessionToClose ? (
         <CashDrawerCloseWizard
           drawerId={drawerId}
-          sessionId={currentSession.id}
+          sessionId={sessionToClose.id}
           branchId={overview.drawer.branchId}
           open={closeDialogOpen}
           onOpenChange={setCloseDialogOpen}
+          resumeClosing={!!closingSession}
           onFinalized={() => router.refresh()}
         />
       ) : null}

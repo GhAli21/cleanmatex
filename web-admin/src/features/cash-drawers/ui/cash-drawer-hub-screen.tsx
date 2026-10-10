@@ -278,6 +278,11 @@ export function CashDrawerHubScreen() {
       render: (row: CashDrawerSessionListRow) => fmtDateTime(row.openedAt),
     },
     {
+      key: 'sessionUser',
+      header: t('sessionUser'),
+      render: (row: CashDrawerSessionListRow) => row.sessionUser?.displayName ?? '—',
+    },
+    {
       key: 'closedAt',
       header: t('closedAt'),
       render: (row: CashDrawerSessionListRow) => fmtDateTime(row.closedAt),
@@ -298,7 +303,7 @@ export function CashDrawerHubScreen() {
     },
     {
       key: 'countedCashAmount',
-      header: t('physicalCount'),
+      header: t('closingCount'),
       render: (row: CashDrawerSessionListRow) =>
         money(row.countedCashAmount, selectedDrawer?.currencyCode ?? null),
       align: 'right' as const,

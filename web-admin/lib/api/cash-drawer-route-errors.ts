@@ -35,6 +35,8 @@ const LEDGER_ERROR_STATUS: Partial<Record<CashLedgerErrorCode, number>> = {
 
 const SESSION_ERROR_STATUS: Record<string, number> = {
   DRAWER_SESSION_ALREADY_OPEN: 409,
+  OPENING_COUNT_ALREADY_RECORDED: 409,
+  SESSION_USER_NOT_FOUND: 400,
 };
 
 const VARIANCE_ERROR_STATUS: Record<string, number> = {

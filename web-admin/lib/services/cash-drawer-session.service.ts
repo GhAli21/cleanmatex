@@ -115,6 +115,8 @@ export interface OpenSessionInput {
   drawerId: string;
   openingCount?: OpeningCountInput;
   notes?: string;
+  /** Cashier the session is for. Empty leaves it for a later POS connect. */
+  sessionUserId?: string;
 }
 
 export interface OpenSessionResult {
@@ -172,6 +174,24 @@ export async function openSessionTx(tx: Tx, ctx: Ctx, input: OpenSessionInput): 
     await assertCountMethodAllowedTx(tx, ctx.tenantOrgId, input.drawerId, settings.openingCountMode, input.openingCount.countMode);
   }
 
+  const sessionUserId = input.sessionUserId?.trim() || null;
+  if (sessionUserId) {
+    const member = await tx.org_users_mst.findFirst({
+      where: {
+        tenant_org_id: ctx.tenantOrgId,
+        user_id: sessionUserId,
+        is_active: true,
+      },
+      select: { user_id: true },
+    });
+    if (!member) {
+      throw new CashDrawerSessionError(
+        CASH_DRAWER_SESSION_ERRORS.SESSION_USER_NOT_FOUND,
+        'The selected session user is not an active member of this organization',
+      );
+    }
+  }
+
   const [{ session_no: sessionNo }] = await tx.$queryRaw<{ session_no: string }[]>(
     Prisma.sql`SELECT generate_cash_drawer_sess_no(${ctx.tenantOrgId}::uuid) AS session_no`,
   );
@@ -190,6 +210,7 @@ export async function openSessionTx(tx: Tx, ctx: Ctx, input: OpenSessionInput): 
       currency_code: drawer.currency_code,
       opening_float_amount: primaryRow.openingExpected,
       opened_by: ctx.userId,
+      session_user_id: sessionUserId,
       opened_at: new Date(),
       open_ledger_seq: openLedgerSeq,
       is_active: true,
@@ -1188,12 +1209,236 @@ export async function listPostCloseHistory(tenantOrgId: string, sessionId: strin
   });
 }
 
+export interface RecordMissingOpeningCountInput {
+  drawerId: string;
+  sessionId: string;
+  openingCount: OpeningCountInput;
+  notes?: string;
+}
+
+/**
+ * Books the opening count on a session that was opened without one.
+ *
+ * The POS connect step uses this when the cashier's own open session on this
+ * branch has no denomination count yet. A session that already has an opening
+ * count is refused so the stored count stays the one they verify.
+ */
+export async function recordMissingOpeningCountTx(
+  tx: Tx,
+  ctx: Ctx,
+  input: RecordMissingOpeningCountInput,
+): Promise<{ sessionId: string; countedAmount: string }> {
+  const [drawer] = await lockDrawersTx(tx, ctx.tenantOrgId, [input.drawerId]);
+  if (!drawer) {
+    throw new Error(`recordMissingOpeningCountTx: drawer ${input.drawerId} not found for tenant ${ctx.tenantOrgId}`);
+  }
+
+  const session = await tx.org_cash_drawer_sessions_mst.findFirst({
+    where: {
+      id: input.sessionId,
+      tenant_org_id: ctx.tenantOrgId,
+      cash_drawer_id: input.drawerId,
+      is_active: true,
+    },
+    select: {
+      id: true,
+      status: true,
+      opened_by: true,
+      branch_id: true,
+    },
+  });
+  if (!session || session.status !== CASH_DRAWER_SESSION_STATUSES.OPEN) {
+    throw new CashDrawerLedgerError(
+      CASH_LEDGER_ERRORS.CASH_DRAWER_SESSION_NOT_OPEN,
+      `recordMissingOpeningCountTx: session ${input.sessionId} is not an open session of this drawer`,
+    );
+  }
+  if (session.opened_by !== ctx.userId) {
+    throw new CashDrawerLedgerError(
+      CASH_LEDGER_ERRORS.DRAWER_NOT_ASSIGNED_TO_USER,
+      'recordMissingOpeningCountTx: only the user who opened the session can add its opening count',
+    );
+  }
+
+  const balance = await tx.org_cash_drawer_ses_bal_dtl.findFirst({
+    where: {
+      tenant_org_id: ctx.tenantOrgId,
+      cash_drawer_session_id: session.id,
+      currency_code: drawer.currency_code,
+    },
+    select: { id: true, opening_expected: true, opening_counted: true, opening_count_id: true },
+  });
+  if (!balance) {
+    throw new Error(`recordMissingOpeningCountTx: opening balance missing for session ${session.id}`);
+  }
+  if (balance.opening_counted != null || balance.opening_count_id != null) {
+    throw new CashDrawerSessionError(
+      CASH_DRAWER_SESSION_ERRORS.OPENING_COUNT_ALREADY_RECORDED,
+      'recordMissingOpeningCountTx: this session already has an opening count',
+    );
+  }
+
+  const settings = await getCashControlSettings({
+    tenantId: ctx.tenantOrgId,
+    branchId: session.branch_id,
+    userId: ctx.userId,
+    drawerId: input.drawerId,
+  });
+  await assertCountMethodAllowedTx(
+    tx,
+    ctx.tenantOrgId,
+    input.drawerId,
+    settings.openingCountMode,
+    input.openingCount.countMode,
+  );
+
+  const branchId = session.branch_id ?? drawer.branch_id;
+  if (!branchId) {
+    throw new Error(`recordMissingOpeningCountTx: session ${session.id} has no branch`);
+  }
+
+  const countResult = await recordCountTx(tx, ctx, {
+    drawerId: input.drawerId,
+    branchId,
+    cashDrawerSessionId: session.id,
+    countType: CASH_DRAWER_COUNT_TYPES.OPENING,
+    currencyCode: drawer.currency_code,
+    expectedAmount: balance.opening_expected,
+    countMode: input.openingCount.countMode === 'DENOMINATION' ? CASH_CONTROL_COUNT_MODE.DENOMINATION : CASH_CONTROL_COUNT_MODE.TOTAL_ONLY,
+    totalAmount: input.openingCount.totalAmount,
+    denominations: input.openingCount.denominations,
+    notes: input.notes,
+  });
+
+  await tx.org_cash_drawer_ses_bal_dtl.updateMany({
+    where: {
+      id: balance.id,
+      tenant_org_id: ctx.tenantOrgId,
+      cash_drawer_session_id: session.id,
+    },
+    data: {
+      opening_counted: countResult.countedAmount,
+      opening_variance: countResult.varianceAmount,
+      opening_count_id: countResult.countId,
+      updated_by: ctx.userId,
+      updated_at: new Date(),
+    },
+  });
+
+  const minorUnit = (await tx.sys_currency_cd.findUnique({ where: { code: drawer.currency_code }, select: { minor_unit: true } }))?.minor_unit ?? 2;
+  const tolerance = settings.varianceToleranceAmount != null ? new Decimal(settings.varianceToleranceAmount) : new Decimal(varianceToleranceFor(minorUnit));
+  if (countResult.varianceAmount.abs().greaterThan(tolerance)) {
+    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_OVER_SHORT, 'cash_drawer_session', session.id, {
+      session_id: session.id,
+      drawer_id: input.drawerId,
+      branch_id: session.branch_id,
+      phase: 'OPENING',
+      variances: [{ currencyCode: drawer.currency_code, varianceAmount: countResult.varianceAmount.toFixed(4) }],
+    });
+  }
+
+  return { sessionId: session.id, countedAmount: countResult.countedAmount.toFixed(4) };
+}
+
+/**
+ * Reads the frozen closing balances for a session that is already `CLOSING`.
+ * The count step already ran, so the cashier finishes disposition without
+ * opening a second live session on the same drawer.
+ */
+export async function resumeClosing(
+  tenantOrgId: string,
+  userId: string,
+  input: { sessionId: string; drawerId: string },
+): Promise<StartCloseResult> {
+  return withTenantContext(tenantOrgId, async () => {
+    const session = await prisma.org_cash_drawer_sessions_mst.findFirst({
+      where: { id: input.sessionId, tenant_org_id: tenantOrgId },
+      select: { id: true, cash_drawer_id: true, branch_id: true, status: true },
+    });
+    if (!session) {
+      throw new Error(`resumeClosing: session ${input.sessionId} not found`);
+    }
+    if (session.cash_drawer_id !== input.drawerId) {
+      throw new CashDrawerLedgerError(
+        CASH_LEDGER_ERRORS.DRAWER_SESSION_WRONG_DRAWER,
+        'resumeClosing: session does not belong to this drawer',
+      );
+    }
+    if (session.status !== CASH_DRAWER_SESSION_STATUSES.CLOSING) {
+      throw new CashDrawerLedgerError(
+        CASH_LEDGER_ERRORS.DRAWER_SESSION_NOT_CLOSING,
+        `resumeClosing: session is ${session.status}, not CLOSING`,
+      );
+    }
+
+    const drawer = await prisma.org_cash_drawers_mst.findFirst({
+      where: { id: input.drawerId, tenant_org_id: tenantOrgId },
+      select: { id: true, branch_id: true, assigned_user_id: true },
+    });
+    if (!drawer) {
+      throw new Error(`resumeClosing: drawer ${input.drawerId} not found`);
+    }
+    await assertDrawerAssignment({ tenantOrgId, userId, drawer });
+
+    const settings = await getCashControlSettings({
+      tenantId: tenantOrgId,
+      branchId: session.branch_id,
+      userId,
+      drawerId: input.drawerId,
+    });
+    const reasonBand = settings.varianceReasonAmount != null ? new Decimal(settings.varianceReasonAmount) : null;
+
+    const rows = await prisma.org_cash_drawer_ses_bal_dtl.findMany({
+      where: { tenant_org_id: tenantOrgId, cash_drawer_session_id: session.id },
+      select: {
+        currency_code: true,
+        closing_expected: true,
+        closing_counted: true,
+        closing_variance: true,
+        variance_tolerance_snap: true,
+      },
+    });
+
+    return {
+      sessionId: session.id,
+      currencyBalances: rows.map((row) => {
+        const variance = row.closing_variance == null ? null : new Decimal(row.closing_variance.toString());
+        const tolerance = row.variance_tolerance_snap != null
+          ? new Decimal(row.variance_tolerance_snap.toString())
+          : settings.varianceToleranceAmount != null
+            ? new Decimal(settings.varianceToleranceAmount)
+            : new Decimal(varianceToleranceFor(2));
+        const varianceReasonRequired = variance != null
+          && variance.abs().greaterThan(tolerance)
+          && (reasonBand == null || variance.abs().greaterThan(reasonBand));
+        return {
+          currencyCode: row.currency_code,
+          closingExpected: new Decimal(row.closing_expected.toString()).toFixed(4),
+          closingCounted: row.closing_counted == null ? null : new Decimal(row.closing_counted.toString()).toFixed(4),
+          closingVariance: variance == null ? null : variance.toFixed(4),
+          varianceReasonRequired,
+        };
+      }),
+    };
+  });
+}
+
 // -----------------------------------------------------------------------------
 // Public (non-Tx) entry points
 // -----------------------------------------------------------------------------
 
 export async function openSession(tenantOrgId: string, userId: string, input: OpenSessionInput): Promise<OpenSessionResult> {
   return withTenantContext(tenantOrgId, () => prisma.$transaction((tx) => openSessionTx(tx, { tenantOrgId, userId }, input)));
+}
+
+export async function recordMissingOpeningCount(
+  tenantOrgId: string,
+  userId: string,
+  input: RecordMissingOpeningCountInput,
+): Promise<{ sessionId: string; countedAmount: string }> {
+  return withTenantContext(tenantOrgId, () =>
+    prisma.$transaction((tx) => recordMissingOpeningCountTx(tx, { tenantOrgId, userId }, input)),
+  );
 }
 
 export async function startClose(tenantOrgId: string, userId: string, input: StartCloseInput): Promise<StartCloseResult> {

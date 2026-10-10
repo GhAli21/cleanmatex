@@ -97,6 +97,80 @@ export async function renderChannelTemplate(
 }
 
 /**
+ * Fetch the APPROVED template for a specific template_code on a given channel
+ * and render it. Reuses the same APPROVED-version-selection query shape and
+ * the same {{variable}} substitution core (`interpolate`) as
+ * `renderChannelTemplate` — the only difference is the lookup key (a direct
+ * template_code instead of resolving one via an event_code join), because
+ * org_ntf_campaigns_mst references a template by template_code directly.
+ * For EMAIL/SMS/WHATSAPP/PUSH: falls back to the template's IN_APP rendering
+ * when no channel-specific row exists. Falls back to plain text when the
+ * template_code itself has no APPROVED version at all (e.g. a campaign saved
+ * before a template was attached).
+ * @param templateCode sys_ntf_templates_mst.template_code referenced by the campaign.
+ * @param channelCode Delivery channel being rendered for.
+ * @param variables Caller-supplied {{key}} substitution values.
+ */
+export async function renderTemplateByCode(
+  templateCode: string,
+  channelCode: string,
+  variables: Record<string, string>
+): Promise<RenderedContent> {
+  const supabase = createAdminSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('sys_ntf_template_chan_dtl')
+    .select(`
+      rendered_body,
+      rendered_body2,
+      metadata,
+      sys_ntf_template_ver_dtl!inner (
+        subject,
+        subject2,
+        status,
+        template_code
+      )
+    `)
+    .eq('channel_code', channelCode)
+    .eq('sys_ntf_template_ver_dtl.status', 'APPROVED')
+    .eq('sys_ntf_template_ver_dtl.template_code', templateCode)
+    .eq('sys_ntf_template_ver_dtl.is_active', true)
+    .order('sys_ntf_template_ver_dtl(version_number)', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    logger.warn('renderTemplateByCode: DB error fetching template', {
+      templateCode, channelCode, error: error.message, feature: 'notifications',
+    });
+  }
+
+  if (!data && channelCode !== 'IN_APP') {
+    // Fallback: use the same template's IN_APP rendering when no channel-specific row exists.
+    return renderTemplateByCode(templateCode, 'IN_APP', variables);
+  }
+
+  if (!data) {
+    return {
+      title:    interpolate('New notification: {{template_code}}', { template_code: templateCode, ...variables }),
+      title2:   null,
+      body:     interpolate('You have a new notification for {{template_code}}.', { template_code: templateCode, ...variables }),
+      body2:    null,
+      metadata: {},
+    };
+  }
+
+  const ver = data.sys_ntf_template_ver_dtl as { subject: string | null; subject2: string | null };
+  return {
+    title:    interpolate(ver.subject  ?? templateCode, variables),
+    title2:   ver.subject2 ? interpolate(ver.subject2, variables) : null,
+    body:     interpolate(data.rendered_body, variables),
+    body2:    data.rendered_body2 ? interpolate(data.rendered_body2, variables) : null,
+    metadata: (data.metadata as Record<string, unknown>) ?? {},
+  };
+}
+
+/**
  * Fetch the APPROVED IN_APP template for an event and render it with variables.
  * Falls back to a plain text notification when no template is found.
  * @param eventCode
