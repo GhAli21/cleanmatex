@@ -26,6 +26,9 @@ import { PosSessionConnectDrawerDialog } from '@features/pos-sessions/ui/pos-ses
 interface PosSessionDrawerLinkerProps {
   branchId: string | null;
   posSessionId: string;
+  /** Operator of the POS session. Opening a drawer from here assigns this user and locks the field. */
+  posSessionUserId: string;
+  posSessionUserLabel: string;
   canViewCashDrawer: boolean;
   canOpenCashDrawer: boolean;
   onLinked: () => Promise<void> | void;
@@ -40,6 +43,8 @@ interface PosSessionDrawerLinkerProps {
 export function PosSessionDrawerLinker({
   branchId,
   posSessionId,
+  posSessionUserId,
+  posSessionUserLabel,
   canViewCashDrawer,
   canOpenCashDrawer,
   onLinked,
@@ -279,6 +284,12 @@ export function PosSessionDrawerLinker({
               open={openDialogOpen}
               onOpenChange={setOpenDialogOpen}
               onOpened={handleDrawerOpened}
+              posSessionId={posSessionId}
+              lockedSessionUser={
+                posSessionUserId
+                  ? { id: posSessionUserId, label: posSessionUserLabel || posSessionUserId }
+                  : null
+              }
             />
           ) : null}
         </div>

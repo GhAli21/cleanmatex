@@ -190,6 +190,7 @@
     "sessionUserOptional": "Session user (optional)",
     "sessionUserNone": "Not assigned yet",
     "sessionUserHint": "Leave this empty to assign the user when a POS session connects.",
+    "sessionUserLockedHint": "Taken from the POS session operator. It cannot be changed here.",
     "closeSessionConfirm": "Close Session",
     "closeSessionDesc": "Enter the physical cash count to reconcile this session.",
     "confirmClose": "Confirm Close",

@@ -45,6 +45,11 @@ export const openSessionRequestSchema = z.object({
   notes: z.string().trim().max(1000).optional(),
   /** Optional cashier the session is opened for. Empty until a POS session connects. */
   sessionUserId: z.string().uuid().optional(),
+  /**
+   * When present, the server sets the drawer session user from this POS session
+   * and ignores `sessionUserId`. Used by the POS Sessions page so the cashier cannot drift.
+   */
+  posSessionId: z.string().uuid().optional(),
 });
 
 /** Opening count added later, when a session was opened without one. */

@@ -44,6 +44,14 @@ export const CASH_DRAWER_SESSION_ERRORS = {
   OPENING_COUNT_ALREADY_RECORDED: 'OPENING_COUNT_ALREADY_RECORDED',
   /** The chosen session user is not an active member of this tenant. */
   SESSION_USER_NOT_FOUND: 'SESSION_USER_NOT_FOUND',
+  /** Opening from a POS session, but that session does not exist for this tenant. */
+  POS_BOUND_SESSION_NOT_FOUND: 'POS_BOUND_SESSION_NOT_FOUND',
+  /** A drawer opened for a POS session requires that POS session to be open. */
+  POS_BOUND_SESSION_NOT_OPEN: 'POS_BOUND_SESSION_NOT_OPEN',
+  /** The drawer and the POS session are not on the same branch. */
+  POS_BOUND_SESSION_BRANCH_MISMATCH: 'POS_BOUND_SESSION_BRANCH_MISMATCH',
+  /** The actor may not open a drawer for another operator's POS session. */
+  POS_BOUND_SESSION_FORBIDDEN: 'POS_BOUND_SESSION_FORBIDDEN',
 } as const
 
 export type CashDrawerSessionErrorCode =

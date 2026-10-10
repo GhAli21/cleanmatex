@@ -190,6 +190,7 @@
     "sessionUserOptional": "مستخدم الجلسة (اختياري)",
     "sessionUserNone": "غير معيّن بعد",
     "sessionUserHint": "اتركه فارغاً ليُعيَّن المستخدم عند ربط جلسة نقطة البيع.",
+    "sessionUserLockedHint": "مأخوذ من مشغّل جلسة نقطة البيع ولا يمكن تغييره هنا.",
     "closeSessionConfirm": "إغلاق الجلسة",
     "closeSessionDesc": "أدخل العد الفعلي للنقد لإتمام تسوية الجلسة.",
     "confirmClose": "تأكيد الإغلاق",

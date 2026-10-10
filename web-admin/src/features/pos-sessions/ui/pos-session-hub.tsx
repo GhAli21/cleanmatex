@@ -493,6 +493,8 @@ function HubBody({
                   <PosSessionDrawerLinker
                     branchId={session.branch_id}
                     posSessionId={session.id}
+                    posSessionUserId={session.user_id}
+                    posSessionUserLabel={session.user_display_name || session.user_id}
                     canViewCashDrawer={canViewCashDrawer}
                     canOpenCashDrawer={canOpenCashDrawer}
                     onLinked={onDrawerLinked}

@@ -281,7 +281,7 @@ async function getActiveSessionForUserWithContext(
           AND o.created_pos_session_id = ps.id
           AND COALESCE(o.rec_status, 1) <> 0
       ) AS orders_created_count,
-      NULL::text AS user_display_name,
+      COALESCE(u.display_name, u.name, u.email) AS user_display_name,
       NULL::text AS opened_by_display_name,
       NULL::text AS paused_by_display_name,
       NULL::text AS closed_by_display_name,
@@ -306,6 +306,9 @@ async function getActiveSessionForUserWithContext(
      AND cdb.cash_drawer_session_id = cds.id
      AND cdb.currency_code = cd.currency_code
      AND cdb.is_active = TRUE
+    LEFT JOIN public.org_users_mst u
+      ON u.tenant_org_id = ps.tenant_org_id
+     AND u.user_id = ps.user_id
     WHERE ps.tenant_org_id = ${tenantId}::uuid
       AND ps.user_id = ${userId}::uuid
       AND ps.status IN (${Prisma.join([...ACTIVE_STATUSES])})

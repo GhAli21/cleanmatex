@@ -121,6 +121,8 @@ export async function openCashDrawerSessionV2(input: {
   openingCount?: OpeningCountInput
   notes?: string
   sessionUserId?: string
+  /** When set, the server stores this POS session's operator as the drawer user. */
+  posSessionId?: string
   csrfToken: string | null
 }): Promise<OpenCashDrawerSessionV2Result> {
   const response = await fetch(`/api/v1/cash-drawers/${input.drawerId}/open-session-v2`, {
@@ -131,6 +133,7 @@ export async function openCashDrawerSessionV2(input: {
       openingCount: input.openingCount,
       notes: input.notes || undefined,
       sessionUserId: input.sessionUserId || undefined,
+      posSessionId: input.posSessionId || undefined,
     }),
   })
   return parseCashDrawerResponse<OpenCashDrawerSessionV2Result>(response)

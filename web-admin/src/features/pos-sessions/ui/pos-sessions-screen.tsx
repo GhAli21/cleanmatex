@@ -708,6 +708,8 @@ export function PosSessionsScreen() {
                       <PosSessionDrawerLinker
                         branchId={activeSession.branch_id}
                         posSessionId={activeSession.id}
+                        posSessionUserId={activeSession.user_id}
+                        posSessionUserLabel={activeSessionContext?.user_display_name || activeSession.user_id}
                         canViewCashDrawer={canViewCashDrawer}
                         canOpenCashDrawer={canOpenCashDrawer}
                         onLinked={refreshAll}
@@ -1109,6 +1111,8 @@ export function PosSessionsScreen() {
               <PosSessionDrawerLinker
                 branchId={openForUserDialog.branchId}
                 posSessionId={openForUserDialog.createdSessionId}
+                posSessionUserId={openForUserDialog.userId}
+                posSessionUserLabel={openForUserDialog.userLabel || openForUserDialog.userId}
                 canViewCashDrawer={canViewCashDrawer}
                 canOpenCashDrawer={canOpenCashDrawer}
                 onLinked={refreshAll}

@@ -733,11 +733,11 @@ Everything in this subsection is current as of the date above; re-verify against
 
 | # | Gap | Plan |
 |---|---|---|
-| A1 | No live cutover anywhere — every tenant still sends through the legacy direct-Twilio path | **Decided: pilot on a demo/test tenant only.** Steps: add the missing recipient-language signal to the legacy event-emitter contract (invariant 4.1.16); build a bounded cutover gate (tenant allowlist swapping shadow-only for live dispatch); activate the demo tenant's route; run for a fixed window; record evidence per sections 20/22. Ready to start — no further decision needed, only implementation. |
-| A2 | Reconciliation/suppression gaps (suppression-list table, email bounce/complaint, SMS carrier opt-out, Meta WhatsApp) | **In flight** — see above. |
+| A1 | No live cutover anywhere — every tenant still sends through the legacy direct-Twilio path | **Partially exercised 2026-10-10 — see STATUS.md "First real pilot send through HQ's generic dispatch proxy."** The already-built generic `isNtfDispatchViaHq()` proxy was confirmed end-to-end for SMS on the demo tenant (`hq_ntf_dispatch_log` row with a real Twilio SID, SMS physically received). This is **not** the route/binding-aware cutover this row originally describes — that part is unchanged and not started: add the missing recipient-language signal to the legacy event-emitter contract (invariant 4.1.16); build a bounded cutover gate; activate the demo tenant's route via `ResolveEffectiveNotificationRoute`; run for a fixed window; record evidence per sections 20/22. Also open: WhatsApp (opted in, not yet test-fired), and a decision on the 3 disabled cron jobs found during this test. |
+| A2 | Reconciliation/suppression gaps (suppression-list table, email bounce/complaint, SMS carrier opt-out, Meta WhatsApp) | **Suppression-list table + EMAIL bounce/complaint webhook closed** — migration `0603` applied both DBs 2026-10-10, type bridge removed. Residuals unchanged: `RESEND_WEBHOOK_SECRET`/dashboard subscription not configured (operator action), soft-bounce threshold tracking not implemented, SMS inbound carrier opt-out not built, Meta WhatsApp provider-message-id capture not built. |
 | A3 | Quota hard-cap race between two different concurrent commands | **Decided: deferred, accept current state through pilot.** No action until revisited post-pilot. |
 | A4 | Campaign test-send pipeline bug; separately, no generic preview/test-send API | (a) **In flight** — see above. (b) Generic preview/test API remains separate, larger section 10.2/12.1 scope — own future work package. |
-| A5 | `reconcile-outbox` cron; sender-level live verification | (a) **Decided: approved, build the cron migration.** Not yet built as of this snapshot. (b) Sender verification remains lower-priority, own connector work package. |
+| A5 | `reconcile-outbox` cron; sender-level live verification | (a) **Closed** — migration `0604` applied both DBs 2026-10-10; `ntf-reconcile-outbox` confirmed `active: true` on `*/5 * * * *` in `cron.job`. (b) Sender verification remains lower-priority, own connector work package. |
 | A6 | No account-health/circuit-breaker/failover/pause-drain/restore/retention-cleanup/billing-reconciliation tooling | Deliberately deferred until after A1's pilot produces real traffic — unchanged. |
 | A7 | NTF-06 canonical builder still not unified | Unchanged — schedule after cutover settles. |
 | A8 | Second-provider connectors don't exist | Unchanged — explicitly deferred scope. |
@@ -746,7 +746,7 @@ Everything in this subsection is current as of the date above; re-verify against
 
 | # | Item | Plan |
 |---|---|---|
-| C1 | No real pilot evidence exists | Same action as A1 — demo/test tenant, ready to start. |
+| C1 | No real pilot evidence exists | **Partial evidence recorded 2026-10-10** — one real SMS send/receipt through the HQ generic proxy, logged in `hq_ntf_dispatch_log` and confirmed received (see STATUS.md). This is a single manual/one-off test, not the repeatable/automated evidence capture section 20/22 call for, and not evidence of the route/binding-aware cutover (still A1's open item). |
 | C2 | Runbooks not drilled, no assigned owners | Unchanged — people/scheduling task. |
 | C3 | Test-matrix coverage audit | **In flight** — see above. |
 

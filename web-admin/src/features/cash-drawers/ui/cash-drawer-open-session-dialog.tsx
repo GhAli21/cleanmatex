@@ -27,12 +27,23 @@ const ASSIGN_SESSION_USER_PERMISSIONS = [
   POS_SESSION_PERMISSIONS.FULL_MANAGE_OTHERS,
 ]
 
+interface LockedSessionUser {
+  id: string
+  label: string
+}
+
 interface CashDrawerOpenSessionDialogProps {
   drawerId: string
   currencyCode: string
   open: boolean
   onOpenChange: (open: boolean) => void
   onOpened: (result: OpenCashDrawerSessionV2Result) => void
+  /**
+   * POS Sessions page: the drawer user is this POS operator and cannot be changed.
+   * The server also reads `posSessionId` and stores that operator.
+   */
+  lockedSessionUser?: LockedSessionUser | null
+  posSessionId?: string | null
 }
 
 /**
@@ -54,6 +65,8 @@ export function CashDrawerOpenSessionDialog({
   open,
   onOpenChange,
   onOpened,
+  lockedSessionUser = null,
+  posSessionId = null,
 }: CashDrawerOpenSessionDialogProps) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
@@ -129,7 +142,8 @@ export function CashDrawerOpenSessionDialog({
             }
           : undefined,
         notes: notes.trim() || undefined,
-        sessionUserId: sessionUserId || undefined,
+        sessionUserId: lockedSessionUser?.id || sessionUserId || undefined,
+        posSessionId: posSessionId || undefined,
         csrfToken,
       })
 
@@ -171,7 +185,20 @@ export function CashDrawerOpenSessionDialog({
             {t('wizard.openDescription')}
           </p>
 
-          {canAssignUser ? (
+          {lockedSessionUser ? (
+            <div className="space-y-2">
+              <CmxSelect
+                label={t('sessionUser')}
+                value={lockedSessionUser.id}
+                disabled
+                onChange={() => undefined}
+                options={[{ value: lockedSessionUser.id, label: lockedSessionUser.label }]}
+              />
+              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                {t('sessionUserLockedHint')}
+              </p>
+            </div>
+          ) : canAssignUser ? (
             <div className="space-y-2">
               <CmxSelect
                 label={t('sessionUserOptional')}

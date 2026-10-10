@@ -17,6 +17,9 @@ import { CASH_CONTROL_COUNT_MODE as COUNT_MODE, allowedCountMethods, type CashCo
 import { countEnabledDenominationsTx } from '@/lib/services/cash-denomination-control.service';
 import { postDrawerTrxTx } from '@/lib/services/cash-drawer-trx.service';
 import { getCashControlSettings } from '@/lib/services/cash-control-settings.service';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import { POS_SESSION_PERMISSIONS } from '@/lib/constants/permissions/pos-session-perm';
+import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
 import { emitEventTx } from '@/lib/services/outbox.service';
 import {
   CashDrawerSessionError,
@@ -115,8 +118,10 @@ export interface OpenSessionInput {
   drawerId: string;
   openingCount?: OpeningCountInput;
   notes?: string;
-  /** Cashier the session is for. Empty leaves it for a later POS connect. */
+  /** Cashier the session is for. Empty leaves it for a later POS connect. Ignored when `posSessionId` is set. */
   sessionUserId?: string;
+  /** POS session this drawer is being opened for. The drawer user is that session's operator. */
+  posSessionId?: string;
 }
 
 export interface OpenSessionResult {
@@ -128,6 +133,57 @@ export interface OpenSessionResult {
     openingCounted: string | null;
     openingVariance: string | null;
   }>;
+}
+
+/**
+ * The drawer session user is the POS session operator, not a value the client picks.
+ * Another operator's session requires open-others or full-manage permission.
+ */
+async function sessionUserIdForPosDrawerOpen(
+  tx: Tx,
+  ctx: Ctx,
+  posSessionId: string,
+  drawerBranchId: string | null,
+): Promise<string> {
+  const pos = await tx.org_pos_sessions_mst.findFirst({
+    where: {
+      tenant_org_id: ctx.tenantOrgId,
+      id: posSessionId,
+      is_active: true,
+    },
+    select: { user_id: true, branch_id: true, status: true },
+  });
+  if (!pos) {
+    throw new CashDrawerSessionError(
+      CASH_DRAWER_SESSION_ERRORS.POS_BOUND_SESSION_NOT_FOUND,
+      'POS session was not found for this organization',
+    );
+  }
+  if (pos.status !== POS_SESSION_STATUS.OPEN) {
+    throw new CashDrawerSessionError(
+      CASH_DRAWER_SESSION_ERRORS.POS_BOUND_SESSION_NOT_OPEN,
+      'The POS session must be open before its cash drawer is opened',
+    );
+  }
+  if (drawerBranchId && pos.branch_id !== drawerBranchId) {
+    throw new CashDrawerSessionError(
+      CASH_DRAWER_SESSION_ERRORS.POS_BOUND_SESSION_BRANCH_MISMATCH,
+      'The cash drawer belongs to a different branch than the POS session',
+    );
+  }
+  if (pos.user_id !== ctx.userId) {
+    const [canOpenOthers, canManageOthers] = await Promise.all([
+      hasPermissionServer(POS_SESSION_PERMISSIONS.OPEN_OTHERS),
+      hasPermissionServer(POS_SESSION_PERMISSIONS.FULL_MANAGE_OTHERS),
+    ]);
+    if (!canOpenOthers && !canManageOthers) {
+      throw new CashDrawerSessionError(
+        CASH_DRAWER_SESSION_ERRORS.POS_BOUND_SESSION_FORBIDDEN,
+        'Opening a cash drawer for another operator requires permission to manage their POS session',
+      );
+    }
+  }
+  return pos.user_id;
 }
 
 /**
@@ -174,7 +230,9 @@ export async function openSessionTx(tx: Tx, ctx: Ctx, input: OpenSessionInput): 
     await assertCountMethodAllowedTx(tx, ctx.tenantOrgId, input.drawerId, settings.openingCountMode, input.openingCount.countMode);
   }
 
-  const sessionUserId = input.sessionUserId?.trim() || null;
+  const sessionUserId = input.posSessionId
+    ? await sessionUserIdForPosDrawerOpen(tx, ctx, input.posSessionId, drawer.branch_id)
+    : input.sessionUserId?.trim() || null;
   if (sessionUserId) {
     const member = await tx.org_users_mst.findFirst({
       where: {

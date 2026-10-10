@@ -45,6 +45,7 @@ export async function POST(
       openingCount: parsed.data.openingCount,
       notes: parsed.data.notes,
       sessionUserId: parsed.data.sessionUserId,
+      posSessionId: parsed.data.posSessionId,
     });
     return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {

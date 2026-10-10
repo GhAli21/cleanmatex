@@ -45,49 +45,6 @@ function normalizeForChannel(channel: SuppressionChannel, addressOrNumber: strin
 }
 
 /**
- * Narrow table bridge for `org_ntf_suppression_lst` (migration
- * 0603_ntf_suppression_list.sql, created by this change and explicitly NOT
- * applied per CRITICAL RULE #3 — the user applies it and regenerates
- * `database.generated.ts`/Prisma). Until that regeneration happens, the
- * generated `Database['public']['Tables']` union has no entry for this
- * table, so calling `.from('org_ntf_suppression_lst')` on the fully-typed
- * client does not type-check. This mirrors the same narrow-bridge pattern
- * already established in campaign-target-sync.ts for an equivalent
- * not-yet-regenerated-types situation: a minimal interface describing only
- * the exact chain this module calls, cast once at the client boundary,
- * instead of widening to `any`. Remove this bridge once the migration is
- * applied and types/Prisma are regenerated to include the table.
- */
-interface SuppressionListRow {
-  tenant_org_id: string;
-  channel_code: SuppressionChannel;
-  address_or_number: string;
-  reason_code: SuppressionReasonCode;
-  source: string;
-  detail: string | null;
-  suppressed_at: string;
-  updated_at: string;
-  updated_by: string;
-  rec_status: number;
-  is_active: boolean;
-}
-
-interface SuppressionListSelectResult {
-  eq(field: string, value: string | number): SuppressionListSelectResult;
-  maybeSingle(): Promise<{ data: { reason_code: string } | null; error: { message: string } | null }>;
-}
-
-interface SuppressionListTableClient {
-  from(table: 'org_ntf_suppression_lst'): {
-    select(columns: string): SuppressionListSelectResult;
-    upsert(
-      row: Partial<SuppressionListRow>,
-      options: { onConflict: string },
-    ): Promise<{ error: { message: string } | null }>;
-  };
-}
-
-/**
  * Checks whether a recipient address/number is currently suppressed for a
  * channel. Called at dispatch time, in addition to (never instead of) the
  * existing customer opt-out preference check.
@@ -110,7 +67,7 @@ export async function checkSuppression(
   }
 
   try {
-    const supabase = createAdminSupabaseClient() as unknown as SuppressionListTableClient;
+    const supabase = createAdminSupabaseClient();
     const normalized = normalizeForChannel(channel, addressOrNumber);
 
     const { data, error } = await supabase
@@ -166,7 +123,7 @@ export async function recordSuppression(
   }
 
   try {
-    const supabase = createAdminSupabaseClient() as unknown as SuppressionListTableClient;
+    const supabase = createAdminSupabaseClient();
     const nowIso = new Date().toISOString();
 
     const { error } = await supabase
