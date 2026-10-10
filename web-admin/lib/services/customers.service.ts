@@ -70,6 +70,7 @@ function mapFromOrgRow(row: Record<string, unknown>, tenantId: string): Customer
     ) as ProfileStatus,
     avatarUrl: null,
     preferences: (row.preferences as CustomerPreferences) ?? {},
+    preferredLanguage: (row.preferred_language as string) ?? null,
     address: (row.address as string) ?? null,
     area: (row.area as string) ?? null,
     building: (row.building as string) ?? null,
@@ -1361,6 +1362,34 @@ export async function updateCustomer(
     return mapFromOrgRow(updated as Record<string, unknown>, tenantId);
   }
 
+  // Preferred-language-only requests stay tenant-local for the same reason preferences do:
+  // a notification-dispatch signal must never ride along with and risk rewriting profile fields.
+  if (updates.preferredLanguage !== undefined && Object.keys(updates).every((key) => key === 'preferredLanguage')) {
+    const preferredLanguage = updates.preferredLanguage;
+    if (preferredLanguage !== null && (typeof preferredLanguage !== 'string' || !preferredLanguage.trim())) {
+      throw new Error('Customer preferred language must be a non-blank code or null');
+    }
+    // sys_language_cd(code) FK (migration 0608) is the actual validity check; this call surfaces
+    // that as a clear error rather than a raw constraint-violation message.
+    const { data: updated, error: updateError } = await supabase
+      .from('org_customers_mst')
+      .update({
+        preferred_language: preferredLanguage ? preferredLanguage.trim() : null,
+        updated_at: new Date().toISOString(),
+        updated_by: curUserId,
+      })
+      .eq('id', customerId)
+      .eq('tenant_org_id', tenantId)
+      .select()
+      .single();
+    if (updateError) {
+      if (updateError.code === '23503') throw new Error('Unknown language code');
+      throw new Error('Customer not found or access denied');
+    }
+    if (!updated) throw new Error('Customer not found or access denied');
+    return mapFromOrgRow(updated as Record<string, unknown>, tenantId);
+  }
+
   if (!shouldUseSysCustomers()) {
     const updatePayload: Record<string, unknown> = {
       first_name: updates.firstName,
@@ -1800,6 +1829,8 @@ function mapToCustomer(row: any): Customer {
     profileStatus: row.profile_status,
     avatarUrl: row.avatar_url,
     preferences: row.preferences || {},
+    // sys_customers_mst (legacy path) has no preferred_language column -- migration 0608 only added it to org_customers_mst.
+    preferredLanguage: row.preferred_language ?? null,
     address: row.address,
     area: row.area,
     building: row.building,

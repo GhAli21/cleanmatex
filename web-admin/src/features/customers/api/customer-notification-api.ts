@@ -6,6 +6,8 @@ export interface CustomerNotificationConsent {
   optedIn: boolean
   phone: string | null
   updatedAt: string
+  /** Explicit recipient-language override (e.g. 'en'/'ar'); null means no explicit preference. */
+  preferredLanguage: string | null
 }
 
 /**
@@ -32,6 +34,7 @@ export async function fetchCustomerNotificationConsent(tenantId: string, custome
     optedIn: customer.preferences?.notifications?.whatsapp === true,
     phone: customer.phone,
     updatedAt: customer.updatedAt,
+    preferredLanguage: customer.preferredLanguage,
   }
 }
 
@@ -58,5 +61,30 @@ export async function saveCustomerWhatsAppConsent(tenantId: string, customerId: 
   })
   const result = await response.json() as { success?: boolean }
   if (!response.ok || !result.success) throw new Error('Could not save customer notification consent')
+  return fetchCustomerNotificationConsent(tenantId, customerId)
+}
+
+/**
+ * Save the customer's explicit recipient-language preference through a dedicated,
+ * preferences-adjacent patch that retains unrelated customer values. Both the preflight
+ * read and the write verify the expected authenticated organization.
+ *
+ * @param tenantId - Expected authenticated organization for the customer record
+ * @param customerId - Customer whose preferred language was explicitly confirmed by the operator
+ * @param preferredLanguage - ISO 639-1 code (e.g. 'en'/'ar'), or null to clear an existing preference
+ * @returns Consent freshly read from the customer record after a successful update
+ * @throws Error when CSRF protection, organization verification, saving, or reload fails
+ */
+export async function saveCustomerPreferredLanguage(tenantId: string, customerId: string, preferredLanguage: string | null): Promise<CustomerNotificationConsent> {
+  const token = await getCSRFToken()
+  if (!token) throw new Error('Could not establish secure customer update')
+  await fetchCustomerNotificationConsent(tenantId, customerId)
+  const response = await fetch(`/api/v1/customers/${encodeURIComponent(customerId)}`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token, 'X-Tenant-Id': tenantId },
+    body: JSON.stringify({ preferredLanguage }),
+  })
+  const result = await response.json() as { success?: boolean }
+  if (!response.ok || !result.success) throw new Error('Could not save customer preferred language')
   return fetchCustomerNotificationConsent(tenantId, customerId)
 }

@@ -24,6 +24,7 @@
     "noDrawersConfigured": "No cash drawers are configured for this branch yet.",
     "noOpenSession": "Open a cash drawer session before taking cash for this order.",
     "sessionRequired": "Select the cash drawer session that should receive this payment.",
+    "linkedSessionUnavailable": "This POS session is already linked to a cash drawer session that is not open. Finish that drawer before taking cash. Another open drawer cannot receive this payment.",
     "selectionRequired": "More than one cash drawer session is open. Choose the correct session before submitting.",
     "sessionClosed": "The selected cash drawer session is no longer open. Refresh and choose another session.",
     "sessionOpened": "Cash drawer session opened successfully.",

@@ -76,6 +76,9 @@ export interface Customer {
 
   // Preferences
   preferences: CustomerPreferences;
+  /** Explicit recipient-language override (ISO 639-1, e.g. 'en'/'ar') consumed by the Notification
+   * Hub's route/binding-aware WhatsApp dispatch; null means no explicit preference set. */
+  preferredLanguage: string | null;
 
   // Legacy Address Fields (from sys_customers_mst)
   address: string | null;
@@ -286,6 +289,8 @@ export interface CustomerUpdateRequest {
   building?: string;
   floor?: string;
   preferences?: CustomerPreferences;
+  /** Explicit recipient-language override; set to null to clear an existing preference. */
+  preferredLanguage?: string | null;
   // B2B fields
   companyName?: string;
   companyName2?: string;

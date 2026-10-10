@@ -112,7 +112,8 @@ export async function GET(
  *   area?: string,
  *   building?: string,
  *   floor?: string,
- *   preferences?: object
+ *   preferences?: object,
+ *   preferredLanguage?: string | null
  * }
  *
  * Response: { success: true, data: Customer }

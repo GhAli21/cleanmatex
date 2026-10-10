@@ -332,6 +332,14 @@
     "consentHint": "Enable this only after the customer explicitly agrees. Uncheck and save if they withdraw consent. Approved templates and an enabled WhatsApp channel are also required for delivery.",
     "saved": "Customer WhatsApp consent saved",
     "saveFailed": "Could not save customer WhatsApp consent. Your choice remains available to retry.",
-    "loadFailed": "Could not load customer WhatsApp consent. Retry after checking the selected organization."
+    "loadFailed": "Could not load customer WhatsApp consent. Retry after checking the selected organization.",
+    "languageTitle": "Notification language",
+    "languageDescription": "Choose the language this customer's order notifications are sent in. Leave on the default to follow your organization's own configured language.",
+    "languageLabel": "Preferred language",
+    "languageUseDefault": "Use organization default",
+    "languageEnglish": "English",
+    "languageArabic": "Arabic",
+    "languageSaved": "Customer notification language saved",
+    "languageSaveFailed": "Could not save the customer's notification language. Your choice remains available to retry."
   }
 }

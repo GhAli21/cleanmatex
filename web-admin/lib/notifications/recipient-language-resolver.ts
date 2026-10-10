@@ -20,48 +20,16 @@
  * lib/notifications/customer-dispatch-consent.ts and
  * lib/notifications/whatsapp-customer-eligibility.ts.
  *
- * Type-bridge note: `org_customers_mst.preferred_language` is added by
- * migration 0608, which is drafted but NOT YET APPLIED — it is therefore
- * absent from the generated `Database` types in types/database.ts. This
- * module reads it through a narrow, explicit interface cast at the client
- * boundary (`CustomerLanguageQueryClient` below), the same established
- * pattern used elsewhere in this directory for an unapplied-migration column
- * or function (see lib/notifications/campaign-target-sync.ts's
- * `CampTargetResolveRpcClient`). Remove `CustomerLanguageQueryClient` once
- * migration 0608 is applied and `npm run prisma:pull` / the Supabase type
- * generator has regenerated `Database` to include the column — at that point
- * select it directly through the normally-typed `createAdminSupabaseClient()`
- * return value instead.
+ * Migration 0608 is applied and types/Prisma have been regenerated
+ * (confirmed: `preferred_language` is present in the generated `Database`
+ * type for `org_customers_mst`) — this module reads it directly through the
+ * normally-typed `createAdminSupabaseClient()` return value, no type bridge.
  */
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { logger } from '@lib/utils/logger';
 
 /** Hard fallback when no customer preference and no tenant default can be resolved. */
 const HARD_FALLBACK_LANGUAGE = 'en';
-
-interface CustomerPreferredLanguageRow {
-  id: string;
-  is_active: boolean | null;
-  rec_status: number | null;
-  preferred_language: string | null;
-}
-
-/**
- * Narrow bridge for the one additional column (`preferred_language`) this
- * module needs from `org_customers_mst` ahead of migration 0608 being
- * applied and types regenerated — see the module-level type-bridge note.
- */
-interface CustomerLanguageQueryClient {
-  from(table: 'org_customers_mst'): {
-    select(columns: string): {
-      eq(column: string, value: string): {
-        eq(column: string, value: string): {
-          maybeSingle(): Promise<{ data: CustomerPreferredLanguageRow | null; error: { message: string } | null }>;
-        };
-      };
-    };
-  };
-}
 
 function isNonBlank(value: string | null | undefined): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -123,8 +91,7 @@ async function resolveCustomerPreferredLanguage(
 
     if (orderError || !order?.customer_id) return null;
 
-    const customerClient = supabase as unknown as CustomerLanguageQueryClient;
-    const { data: customer, error: customerError } = await customerClient
+    const { data: customer, error: customerError } = await supabase
       .from('org_customers_mst')
       .select('id, is_active, rec_status, preferred_language')
       .eq('tenant_org_id', tenantOrgId)

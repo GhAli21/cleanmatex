@@ -34,7 +34,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
+import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
 import { cmxMessage } from '@ui/feedback';
+import {
+  fetchMyActivePosSession,
+  posSessionActiveQueryKey,
+} from '@features/pos-sessions/api/pos-session-api';
+import { cashDrawerChoicesForPosSession } from '@features/orders/model/cash-drawer-pos-link';
 import {
   getPreferredCashDrawerStorageKey,
   resolvePreferredCashDrawerSessionId,
@@ -71,6 +77,7 @@ export type CashDrawerSessionOption = {
 export function resolveSessionOpeningBalance(session: CashDrawerSessionOption): number {
   return session.opening_counted_amount ?? session.opening_float_amount;
 }
+
 
 /**
  * A cash drawer configured for the branch, with its current open session (if any).
@@ -204,15 +211,34 @@ export function useCashDrawer({
     [isRTL]
   );
 
-  const cashDrawerSessionChoices = useMemo(
-    () =>
-      cashDrawers.flatMap((drawer) =>
-        drawer.currentSession
-          ? [{ drawer, session: drawer.currentSession }]
-          : []
-      ),
-    [cashDrawers]
-  );
+  const posSessionQuery = useQuery({
+    queryKey: posSessionActiveQueryKey('cashier-entry', true),
+    enabled: open && cashDrawerRequired,
+    queryFn: () => fetchMyActivePosSession({ includeContext: true }),
+    staleTime: 15_000,
+  });
+  const linkedCashDrawerSessionId = useMemo(() => {
+    const result = posSessionQuery.data;
+    if (result?.type !== 'ACTIVE' || result.session.status !== POS_SESSION_STATUS.OPEN) return null;
+    return result.session.cash_drawer_session_id ?? null;
+  }, [posSessionQuery.data]);
+
+  const cashDrawerSessionChoices = useMemo(() => {
+    const openSessions = cashDrawers.flatMap((drawer) =>
+      drawer.currentSession ? [{ drawer, session: drawer.currentSession }] : [],
+    );
+    // Wait for the POS session before listing drawers, so a linked session is not
+    // briefly offered alongside every other open drawer.
+    if (cashDrawerRequired && posSessionQuery.isLoading && !posSessionQuery.data) return [];
+    return cashDrawerChoicesForPosSession(openSessions, linkedCashDrawerSessionId).choices;
+  }, [cashDrawerRequired, cashDrawers, linkedCashDrawerSessionId, posSessionQuery.data, posSessionQuery.isLoading]);
+  const linkedDrawerMissing = useMemo(() => {
+    if (!linkedCashDrawerSessionId) return false;
+    const openSessions = cashDrawers.flatMap((drawer) =>
+      drawer.currentSession ? [{ drawer, session: drawer.currentSession }] : [],
+    );
+    return cashDrawerChoicesForPosSession(openSessions, linkedCashDrawerSessionId).linkedMissing;
+  }, [cashDrawers, linkedCashDrawerSessionId]);
   const preferredCashDrawerStorageKey = useMemo(
     () => getPreferredCashDrawerStorageKey({ tenantOrgId, branchId, userId }),
     [branchId, tenantOrgId, userId]
@@ -272,7 +298,7 @@ export function useCashDrawer({
       return null;
     }
 
-    if (cashDrawersLoading || cashDrawersFetching) {
+    if (cashDrawersLoading || cashDrawersFetching || (posSessionQuery.isLoading && !posSessionQuery.data)) {
       return t('cashDrawer.messages.loading');
     }
 
@@ -286,6 +312,10 @@ export function useCashDrawer({
 
     if (cashDrawers.length === 0) {
       return t('cashDrawer.messages.noDrawersConfigured');
+    }
+
+    if (linkedDrawerMissing) {
+      return t('cashDrawer.messages.linkedSessionUnavailable');
     }
 
     if (cashDrawerSessionChoices.length === 0) {
@@ -305,6 +335,9 @@ export function useCashDrawer({
     cashDrawersError,
     cashDrawers.length,
     cashDrawerSessionChoices.length,
+    linkedDrawerMissing,
+    posSessionQuery.data,
+    posSessionQuery.isLoading,
     selectedCashDrawerSessionId,
     t,
   ]);

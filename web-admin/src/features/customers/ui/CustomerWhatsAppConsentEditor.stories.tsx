@@ -19,7 +19,15 @@ const englishCustomers = {
     "consentHint": "Enable this only after the customer explicitly agrees. Uncheck and save if they withdraw consent. Approved templates and an enabled WhatsApp channel are also required for delivery.",
     "saved": "Customer WhatsApp consent saved",
     "saveFailed": "Could not save customer WhatsApp consent. Your choice remains available to retry.",
-    "loadFailed": "Could not load customer WhatsApp consent. Retry after checking the selected organization."
+    "loadFailed": "Could not load customer WhatsApp consent. Retry after checking the selected organization.",
+    "languageTitle": "Notification language",
+    "languageDescription": "Choose the language this customer's order notifications are sent in. Leave on the default to follow your organization's own configured language.",
+    "languageLabel": "Preferred language",
+    "languageUseDefault": "Use organization default",
+    "languageEnglish": "English",
+    "languageArabic": "Arabic",
+    "languageSaved": "Customer notification language saved",
+    "languageSaveFailed": "Could not save the customer's notification language. Your choice remains available to retry."
   }
 }
 const arabicCustomers = {
@@ -34,7 +42,15 @@ const arabicCustomers = {
     "consentHint": "فعّل هذا الخيار فقط بعد موافقة العميل الصريحة. ألغِ التحديد واحفظ إذا سحب العميل موافقته. يتطلب التسليم أيضاً قوالب معتمدة وقناة واتساب مفعّلة.",
     "saved": "تم حفظ موافقة العميل على واتساب",
     "saveFailed": "تعذر حفظ موافقة العميل على واتساب. ما زال اختيارك متاحاً لإعادة المحاولة.",
-    "loadFailed": "تعذر تحميل موافقة العميل على واتساب. أعد المحاولة بعد التحقق من المنشأة المحددة."
+    "loadFailed": "تعذر تحميل موافقة العميل على واتساب. أعد المحاولة بعد التحقق من المنشأة المحددة.",
+    "languageTitle": "لغة الإشعارات",
+    "languageDescription": "اختر اللغة التي تُرسل بها إشعارات طلبات هذا العميل. اترك الإعداد الافتراضي لاستخدام اللغة المضبوطة في منشأتك.",
+    "languageLabel": "اللغة المفضلة",
+    "languageUseDefault": "استخدام لغة المنشأة الافتراضية",
+    "languageEnglish": "الإنجليزية",
+    "languageArabic": "العربية",
+    "languageSaved": "تم حفظ لغة إشعارات العميل",
+    "languageSaveFailed": "تعذر حفظ لغة إشعارات العميل. ما زال اختيارك متاحاً لإعادة المحاولة."
   }
 }
 
@@ -59,10 +75,13 @@ const meta = {
     canEdit: { control: 'boolean' },
     pending: { control: 'boolean' },
     onSave: { control: false },
+    languagePending: { control: 'boolean' },
+    onSaveLanguage: { control: false },
   },
   args: {
-    consent: { optedIn: false, phone: '+96890123456', updatedAt: '2026-10-02' },
+    consent: { optedIn: false, phone: '+96890123456', updatedAt: '2026-10-02', preferredLanguage: null },
     canEdit: true, pending: false, onSave: fn().mockResolvedValue(undefined),
+    languagePending: false, onSaveLanguage: fn().mockResolvedValue(undefined),
   },
 } satisfies Meta<typeof CustomerWhatsAppConsentEditor>
 
@@ -86,7 +105,7 @@ export const RevocationWithoutPhone: Story = {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole('checkbox'))
     await expect(args.onSave).not.toHaveBeenCalled()
-    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Save' })[0])
     await expect(args.onSave).toHaveBeenCalledWith(false)
   },
 }
@@ -96,7 +115,7 @@ export const ExplicitSave: Story = {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole('checkbox'))
     await expect(args.onSave).not.toHaveBeenCalled()
-    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Save' })[0])
     await expect(args.onSave).toHaveBeenCalledWith(true)
   },
 }
