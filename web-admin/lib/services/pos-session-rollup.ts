@@ -170,7 +170,8 @@ export async function loadPosSessionOrdersCreated(
     FROM public.org_orders_mst
     WHERE tenant_org_id = ${tenantId}::uuid
       AND created_pos_session_id = ${posSessionId}::uuid
-      AND COALESCE(is_active, TRUE) = TRUE
+      -- org_orders_mst has rec_status, not is_active. rec_status 0 is the soft delete.
+      AND COALESCE(rec_status, 1) <> 0
     GROUP BY currency_code
     ORDER BY currency_code NULLS LAST
   `);
