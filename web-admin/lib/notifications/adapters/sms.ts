@@ -39,6 +39,8 @@ export interface SmsDeliveryResult {
   permanent?: boolean
   /** Policy blocks must not retry and must not count as a provider failure. */
   skipped?: boolean
+  /** Provider (Twilio SID, direct or via the HQ proxy) message id, persisted for reconciliation. */
+  providerMessageId?: string
 }
 
 async function deliverViaHqProxy(row: OutboxSmsRow): Promise<SmsDeliveryResult> {
@@ -80,10 +82,10 @@ async function deliverViaHqProxy(row: OutboxSmsRow): Promise<SmsDeliveryResult> 
       return { success: false, errorMessage: `HQ proxy HTTP ${res.status}: ${text}`, permanent }
     }
 
-    const data = await res.json().catch(() => ({})) as { status?: string }
+    const data = await res.json().catch(() => ({})) as { status?: string; providerMessageId?: string }
     if (data.status === 'PERMANENT_FAILURE') return { success: false, errorMessage: 'HQ: PERMANENT_FAILURE', permanent: true }
     if (data.status === 'FAILED') return { success: false, errorMessage: 'HQ: FAILED (temporary)', permanent: false }
-    return { success: true }
+    return { success: true, providerMessageId: data.providerMessageId }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     logger.error('sms-adapter: HQ proxy fetch threw', err instanceof Error ? err : new Error(msg), {
@@ -173,7 +175,7 @@ export async function deliverSmsOutbox(row: OutboxSmsRow): Promise<SmsDeliveryRe
       feature: 'notifications',
     })
 
-    return { success: true }
+    return { success: true, providerMessageId: message.sid }
   } catch (err) {
     const error = err as { code?: number; message?: string; status?: number }
     const msg   = error.message ?? 'Unknown Twilio error'

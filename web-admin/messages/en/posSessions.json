@@ -15,6 +15,7 @@
   "pause": "Pause",
   "resume": "Resume",
   "close": "Close",
+  "goToDrawerClose": "Close cash drawer",
   "forceClose": "Force close",
   "refresh": "Refresh",
   "cancel": "Cancel",

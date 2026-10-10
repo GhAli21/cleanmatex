@@ -120,7 +120,7 @@ describe('SMS dispatch consent recheck', () => {
   it('sends exactly as before for an eligible recipient', async () => {
     jest.mocked(resolveCustomerDispatchConsent).mockResolvedValue({ applicable: true, allowed: true });
     const result = await deliverSmsOutbox(smsRow);
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, providerMessageId: 'SM-sms-test' });
     expect(createMessage).toHaveBeenCalledWith({ from: '+96890000000', to: '+96891234567', body: 'Ready' });
   });
 

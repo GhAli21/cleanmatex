@@ -100,7 +100,7 @@ async function deliverViaHqProxy(row: OutboxEmailRow, subject: string): Promise<
       return { success: false, errorMessage: 'HQ proxy: FAILED (temporary)', permanent: false };
     }
 
-    return { success: true };
+    return { success: true, providerMessageId: data.providerMessageId };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error('email adapter: HQ proxy fetch threw', err instanceof Error ? err : new Error(msg), {

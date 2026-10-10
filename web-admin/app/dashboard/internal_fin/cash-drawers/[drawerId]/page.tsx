@@ -14,6 +14,7 @@ import { getCashDrawerOverviewDetail } from '@lib/services/cash-drawer.service'
 
 interface CashDrawerDetailPageProps {
   params: Promise<{ drawerId: string }>
+  searchParams: Promise<{ closeSession?: string | string[] }>
 }
 
 /**
@@ -28,9 +29,12 @@ interface CashDrawerDetailPageProps {
  */
 export default async function CashDrawerDetailPage({
   params,
+  searchParams,
 }: CashDrawerDetailPageProps) {
   const t = await getTranslations('billing.cashDrawers')
   const { drawerId } = await params
+  const { closeSession } = await searchParams
+  const initialCloseSessionId = Array.isArray(closeSession) ? closeSession[0] ?? null : closeSession ?? null
   let overview: Awaited<ReturnType<typeof getCashDrawerOverviewDetail>> | null = null
 
   try {
@@ -62,7 +66,11 @@ export default async function CashDrawerDetailPage({
 
   return (
     <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS.page.permissions ?? []}>
-      <CashDrawerOverviewScreen drawerId={drawerId} overview={overview} />
+      <CashDrawerOverviewScreen
+        drawerId={drawerId}
+        overview={overview}
+        initialCloseSessionId={initialCloseSessionId}
+      />
     </RequireAnyPermission>
   )
 }

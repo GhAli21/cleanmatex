@@ -360,10 +360,10 @@ async function deliverViaHqProxy(row: OutboxWhatsAppRow): Promise<WhatsAppDelive
       return { success: false, errorMessage: `HQ proxy HTTP ${res.status}: ${text}`, permanent }
     }
 
-    const data = await res.json().catch(() => ({})) as { status?: string }
+    const data = await res.json().catch(() => ({})) as { status?: string; providerMessageId?: string }
     if (data.status === 'PERMANENT_FAILURE') return { success: false, errorMessage: 'HQ: PERMANENT_FAILURE', permanent: true }
     if (data.status === 'FAILED') return { success: false, errorMessage: 'HQ: FAILED (temporary)', permanent: false }
-    return { success: true }
+    return { success: true, providerMessageId: data.providerMessageId }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     logger.error('whatsapp-adapter: HQ proxy fetch threw', err instanceof Error ? err : new Error(msg), {

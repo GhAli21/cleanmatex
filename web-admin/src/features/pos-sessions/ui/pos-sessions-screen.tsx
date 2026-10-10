@@ -43,7 +43,8 @@ import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-clo
 import { PosSessionDrawerLinker } from '@features/pos-sessions/ui/pos-session-drawer-linker';
 import { PosSessionAttentionNotice, PosSessionFlagBadges } from '@features/pos-sessions/ui/pos-session-flags';
 import { getPosSessionFlags, posSessionErrorKey } from '@features/pos-sessions/model/pos-session-flags';
-import { needsDrawerSelection } from '@features/pos-sessions/model/pos-session-drawer-link';
+import { linkedDrawerCloseHref, needsDrawerSelection } from '@features/pos-sessions/model/pos-session-drawer-link';
+import { PosSessionDrawerCloseLink } from '@features/pos-sessions/ui/pos-session-drawer-close-link';
 import type {
   GetMyActivePosSessionResult,
   PosSessionListResult,
@@ -186,6 +187,8 @@ export function PosSessionsScreen() {
   const [openForUserDialog, setOpenForUserDialog] = useState<OpenForUserDialogState>(EMPTY_OPEN_FOR_USER_DIALOG);
   const [userPickerOpen, setUserPickerOpen] = useState(false);
   const [drawerDialogOpen, setDrawerDialogOpen] = useState(false);
+  const [ownDrawerCloseNeeded, setOwnDrawerCloseNeeded] = useState(false);
+  const [rowDrawerCloseNeeded, setRowDrawerCloseNeeded] = useState(false);
   const [summarySessionId, setSummarySessionId] = useState<string | null>(null);
   const [eventsSession, setEventsSession] = useState<PosSessionListRow | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -281,6 +284,11 @@ export function PosSessionsScreen() {
       return 'ok';
     } catch (error) {
       if (error instanceof PosSessionApiError && error.errorCode === 'POS_SESSION_DRAWER_STILL_OPEN') {
+        setOwnDrawerCloseNeeded(true);
+        if (!canViewCashDrawer || !canCloseCashDrawer) {
+          cmxMessage.error(t('messages.drawerClosePermissionRequired'));
+          return 'error';
+        }
         setDrawerDialogOpen(true);
         cmxMessage.info(t('messages.drawerStillOpen'));
         return 'drawer-open';
@@ -291,7 +299,7 @@ export function PosSessionsScreen() {
     } finally {
       setBusyAction(null);
     }
-  }, [csrfToken, refreshAll, t]);
+  }, [canCloseCashDrawer, canViewCashDrawer, csrfToken, refreshAll, t]);
 
   const openSession = useCallback(async () => {
     if (!openBranchId) {
@@ -318,12 +326,21 @@ export function PosSessionsScreen() {
       await queryClient.invalidateQueries({ queryKey: ['pos-sessions', 'events', row.id] });
       return 'ok';
     } catch (error) {
+      if (error instanceof PosSessionApiError && error.errorCode === 'POS_SESSION_DRAWER_STILL_OPEN') {
+        setRowDrawerCloseNeeded(true);
+        if (!canViewCashDrawer || !canCloseCashDrawer) {
+          cmxMessage.error(t('messages.drawerClosePermissionRequired'));
+        } else {
+          cmxMessage.info(t('messages.drawerStillOpen'));
+        }
+        return 'error';
+      }
       cmxMessage.error(error instanceof Error ? error.message : t('messages.actionFailed'));
       return 'error';
     } finally {
       setBusyAction(null);
     }
-  }, [csrfToken, queryClient, refreshAll, t]);
+  }, [canCloseCashDrawer, canViewCashDrawer, csrfToken, queryClient, refreshAll, t]);
 
   const openSessionForUser = useCallback(async () => {
     if (!openForUserDialog.userId || !openForUserDialog.branchId) {
@@ -948,7 +965,12 @@ export function PosSessionsScreen() {
         </CmxCardContent>
       </CmxCard>
 
-      <CmxDialog open={actionDialog.action !== null} onOpenChange={(open) => !open && setActionDialog({ action: null, reason: '' })}>
+      <CmxDialog open={actionDialog.action !== null} onOpenChange={(open) => {
+        if (!open) {
+          setActionDialog({ action: null, reason: '' });
+          setOwnDrawerCloseNeeded(false);
+        }
+      }}>
         <CmxDialogContent>
           <CmxDialogHeader>
             <CmxDialogTitle>
@@ -969,7 +991,15 @@ export function PosSessionsScreen() {
             />
           </div>
           <CmxDialogFooter>
-            <CmxButton variant="outline" onClick={() => setActionDialog({ action: null, reason: '' })}>
+            <PosSessionDrawerCloseLink
+              session={activeSessionContext}
+              canGo={canViewCashDrawer && canCloseCashDrawer}
+              whenBlocked={ownDrawerCloseNeeded}
+            />
+            <CmxButton variant="outline" onClick={() => {
+              setActionDialog({ action: null, reason: '' });
+              setOwnDrawerCloseNeeded(false);
+            }}>
               {t('cancel')}
             </CmxButton>
             <CmxButton
@@ -995,7 +1025,12 @@ export function PosSessionsScreen() {
         </CmxDialogContent>
       </CmxDialog>
 
-      <CmxDialog open={rowActionDialog.row !== null} onOpenChange={(open) => !open && setRowActionDialog({ row: null, action: null, reason: '' })}>
+      <CmxDialog open={rowActionDialog.row !== null} onOpenChange={(open) => {
+        if (!open) {
+          setRowActionDialog({ row: null, action: null, reason: '' });
+          setRowDrawerCloseNeeded(false);
+        }
+      }}>
         <CmxDialogContent>
           <CmxDialogHeader>
             <CmxDialogTitle>
@@ -1016,6 +1051,14 @@ export function PosSessionsScreen() {
                 {t('forceClose')}
               </div>
             ) : null}
+            {linkedDrawerCloseHref(rowActionDialog.row, { whenBlocked: rowDrawerCloseNeeded }) ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
+                {canViewCashDrawer && canCloseCashDrawer
+                  ? t('messages.drawerStillOpen')
+                  : t('messages.drawerClosePermissionRequired')}
+              </div>
+            ) : null}
             <CmxTextarea
               value={rowActionDialog.reason}
               placeholder={t('reason')}
@@ -1023,7 +1066,15 @@ export function PosSessionsScreen() {
             />
           </div>
           <CmxDialogFooter>
-            <CmxButton variant="outline" onClick={() => setRowActionDialog({ row: null, action: null, reason: '' })}>
+            <PosSessionDrawerCloseLink
+              session={rowActionDialog.row}
+              canGo={canViewCashDrawer && canCloseCashDrawer}
+              whenBlocked={rowDrawerCloseNeeded}
+            />
+            <CmxButton variant="outline" onClick={() => {
+              setRowActionDialog({ row: null, action: null, reason: '' });
+              setRowDrawerCloseNeeded(false);
+            }}>
               {t('cancel')}
             </CmxButton>
             <CmxButton

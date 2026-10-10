@@ -64,9 +64,12 @@ import {
 export function CashDrawerOverviewScreen({
   drawerId,
   overview,
+  initialCloseSessionId = null,
 }: {
   drawerId: string
   overview: CashDrawerOverviewDetail
+  /** Open the close wizard when arriving from a POS session that still needs this drawer closed. */
+  initialCloseSessionId?: string | null
 }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
@@ -83,6 +86,7 @@ export function CashDrawerOverviewScreen({
   const [openDialogOpen, setOpenDialogOpen] = useState(false)
   const [moveDialogOpen, setMoveDialogOpen] = useState(false)
   const [closeDialogOpen, setCloseDialogOpen] = useState(false)
+  const [closeArrivalApplied, setCloseArrivalApplied] = useState(false)
   const [trxDialogOpen, setTrxDialogOpen] = useState(false)
 
   const [lineRole, setLineRole] = useState<DrawerCashMovementRole>(LINE_ROLE.EXPENSE_PAYMENT)
@@ -231,6 +235,15 @@ export function CashDrawerOverviewScreen({
   const closingSession = !currentSession && latestSession?.status === 'CLOSING' ? latestSession : null
   const sessionToClose = currentSession ?? closingSession
   const drawerLiveStatus = currentSession ? 'OPEN' : closingSession ? 'CLOSING' : 'CLOSED'
+  if (
+    !closeArrivalApplied
+    && initialCloseSessionId
+    && sessionToClose?.id === initialCloseSessionId
+    && canCloseSession
+  ) {
+    setCloseArrivalApplied(true)
+    setCloseDialogOpen(true)
+  }
 
   return (
     <div className="space-y-6 p-6">

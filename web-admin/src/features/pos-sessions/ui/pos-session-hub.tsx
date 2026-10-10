@@ -45,6 +45,8 @@ import {
   type PosSessionLifecycleEndpoint,
 } from '@features/pos-sessions/api/pos-session-api';
 import { CashDrawerCloseWizard } from '@features/cash-drawers/ui/cash-drawer-close-wizard';
+import { linkedDrawerCloseHref } from '@features/pos-sessions/model/pos-session-drawer-link';
+import { PosSessionDrawerCloseLink } from '@features/pos-sessions/ui/pos-session-drawer-close-link';
 import { PosSessionDrawerLinker } from '@features/pos-sessions/ui/pos-session-drawer-linker';
 import type {
   GetMyActivePosSessionResult,
@@ -90,6 +92,7 @@ export function PosSessionHub({ branchId, guide = null }: PosSessionHubProps) {
   }
   const [actionDialog, setActionDialog] = useState<ActionDialogState>({ action: null, reason: '' });
   const [drawerDialogOpen, setDrawerDialogOpen] = useState(false);
+  const [drawerCloseNeeded, setDrawerCloseNeeded] = useState(false);
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   const activeQuery = useQuery({
@@ -126,7 +129,8 @@ export function PosSessionHub({ branchId, guide = null }: PosSessionHubProps) {
       return 'ok';
     } catch (error) {
       if (error instanceof PosSessionApiError && error.errorCode === 'POS_SESSION_DRAWER_STILL_OPEN') {
-        if (!canCloseCashDrawer) {
+        setDrawerCloseNeeded(true);
+        if (!canViewCashDrawer || !canCloseCashDrawer) {
           cmxMessage.error(t('messages.drawerClosePermissionRequired'));
           return 'error';
         }
@@ -302,7 +306,12 @@ export function PosSessionHub({ branchId, guide = null }: PosSessionHubProps) {
         </CmxDialogContent>
       </CmxDialog>
 
-      <CmxDialog open={actionDialog.action !== null} onOpenChange={(open) => !open && setActionDialog({ action: null, reason: '' })}>
+      <CmxDialog open={actionDialog.action !== null} onOpenChange={(open) => {
+        if (!open) {
+          setActionDialog({ action: null, reason: '' });
+          setDrawerCloseNeeded(false);
+        }
+      }}>
         <CmxDialogContent className="max-w-md">
           <CmxDialogHeader>
             <CmxDialogTitle>{actionDialog.action === 'force-close' ? t('forceClose') : t('close')}</CmxDialogTitle>
@@ -314,6 +323,14 @@ export function PosSessionHub({ branchId, guide = null }: PosSessionHubProps) {
                 {t('hub.forceCloseWarning')}
               </div>
             ) : null}
+            {linkedDrawerCloseHref(activeSessionContext, { whenBlocked: drawerCloseNeeded }) ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
+                {canViewCashDrawer && canCloseCashDrawer
+                  ? t('messages.drawerStillOpen')
+                  : t('messages.drawerClosePermissionRequired')}
+              </div>
+            ) : null}
             <CmxTextarea
               value={actionDialog.reason}
               placeholder={t('reason')}
@@ -321,7 +338,15 @@ export function PosSessionHub({ branchId, guide = null }: PosSessionHubProps) {
             />
           </div>
           <CmxDialogFooter>
-            <CmxButton variant="outline" onClick={() => setActionDialog({ action: null, reason: '' })}>
+            <PosSessionDrawerCloseLink
+              session={activeSessionContext}
+              canGo={canViewCashDrawer && canCloseCashDrawer}
+              whenBlocked={drawerCloseNeeded}
+            />
+            <CmxButton variant="outline" onClick={() => {
+              setActionDialog({ action: null, reason: '' });
+              setDrawerCloseNeeded(false);
+            }}>
               {t('cancel')}
             </CmxButton>
             <CmxButton
