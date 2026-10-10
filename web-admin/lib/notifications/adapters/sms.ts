@@ -12,6 +12,8 @@ import { logger } from '@lib/utils/logger'
 import { getNtfHqDispatchUrl, getTwilioSmsFrom, isNtfDispatchViaHq } from '@lib/notifications/config'
 import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env'
 import { resolveCustomerDispatchConsent } from '@lib/notifications/customer-dispatch-consent'
+import { checkSuppression } from '@lib/notifications/suppression-list'
+import { notificationSettingsService } from '@lib/notifications/settings-service'
 
 /**
  *
@@ -115,7 +117,20 @@ export async function deliverSmsOutbox(row: OutboxSmsRow): Promise<SmsDeliveryRe
       : { success: false, skipped: true, errorMessage: consent.reason }
   }
 
-  if (await isNtfDispatchViaHq()) {
+  // Provider/carrier-reported suppression (e.g. STOP opt-out) blocks this specific
+  // number regardless of the customer's own preference toggle (migration 0603).
+  const suppression = await checkSuppression(row.tenant_org_id, 'SMS', row.recipient_address)
+  if (suppression.suppressed) {
+    const reason = `SUPPRESSED_${suppression.reasonCode}`
+    logger.info('sms-adapter: recipient number is on the suppression list — skipping', {
+      outboxId: row.id, tenantOrgId: row.tenant_org_id, reasonCode: suppression.reasonCode, feature: 'notifications',
+    })
+    return { success: false, skipped: true, errorMessage: reason }
+  }
+
+  // Global master switch AND a per-tenant/channel opt-in — see the identical
+  // comment in adapters/whatsapp.ts (same 2026-10-10 A1 scoping fix).
+  if (await isNtfDispatchViaHq() && await notificationSettingsService.isHqDispatchEnabledForChannel(row.tenant_org_id, 'SMS')) {
     return deliverViaHqProxy(row)
   }
 

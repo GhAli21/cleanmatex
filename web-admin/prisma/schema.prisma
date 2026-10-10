@@ -1656,6 +1656,7 @@ model org_tenants_mst {
   org_ntf_prov_acct_mst            org_ntf_prov_acct_mst[]
   org_ntf_receipts_tr              org_ntf_receipts_tr[]
   org_ntf_route_assign_cf          org_ntf_route_assign_cf[]
+  org_ntf_suppression_lst          org_ntf_suppression_lst[]
   org_ntf_usage_apply_evt          org_ntf_usage_apply_evt[]
   org_ntf_usage_daily              org_ntf_usage_daily[]
   org_order_adjustments_dtl        org_order_adjustments_dtl[]
@@ -3167,23 +3168,28 @@ model hq_audit_logs {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model hq_roles {
-  role_code           String     @id @db.VarChar(50)
-  role_name           String     @db.VarChar(250)
-  role_name_ar        String?    @db.VarChar(250)
+  role_code           String                @id
+  role_name           String
+  role_name_ar        String?
   role_description    String?
   role_description_ar String?
-  permissions         Json       @default("[]")
-  is_system_role      Boolean?   @default(false)
-  is_active           Boolean?   @default(true)
-  created_at          DateTime?  @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime?  @default(now()) @db.Timestamptz(6)
-  created_by          String?    @db.Uuid
-  updated_by          String?    @db.Uuid
+  permissions         Json                  @default("[]")
+  is_system_role      Boolean?              @default(false)
+  is_active           Boolean?              @default(true)
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  created_by          String?               @db.Uuid
+  updated_by          String?               @db.Uuid
   created_info        String?
   updated_info        String?
-  rec_status          Int?       @default(1) @db.SmallInt
+  rec_status          Int?                  @default(1) @db.SmallInt
   rec_order           Int?
   rec_notes           String?
+  parent_role_code    String?
+  hq_role_permissions hq_role_permissions[]
+  hq_roles            hq_roles?             @relation("hq_rolesTohq_roles", fields: [parent_role_code], references: [role_code], onDelete: Restrict, onUpdate: NoAction)
+  other_hq_roles      hq_roles[]            @relation("hq_rolesTohq_roles")
+  hq_user_roles       hq_user_roles[]
   hq_users            hq_users[]
 
   @@index([is_active], map: "idx_hq_roles_active")
@@ -3194,24 +3200,25 @@ model hq_roles {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model hq_session_tokens {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id            String    @db.Uuid
-  token_hash         String    @unique @db.VarChar(255)
-  refresh_token_hash String?   @db.VarChar(255)
-  ip_address         String?   @db.Inet
-  user_agent         String?
-  expires_at         DateTime  @db.Timestamptz(6)
-  created_at         DateTime? @default(now()) @db.Timestamptz(6)
-  last_used_at       DateTime? @default(now()) @db.Timestamptz(6)
-  created_by         String?
-  created_info       String?
-  updated_at         DateTime? @db.Timestamp(6)
-  updated_by         String?
-  updated_info       String?
-  rec_status         Int?      @default(1) @db.SmallInt
-  rec_order          Int?
-  rec_notes          String?
-  hq_users           hq_users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String    @db.Uuid
+  token_hash            String    @unique
+  refresh_token_hash    String?
+  ip_address            String?   @db.Inet
+  user_agent            String?
+  expires_at            DateTime  @db.Timestamptz(6)
+  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+  last_used_at          DateTime? @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime? @db.Timestamp(6)
+  updated_by            String?
+  updated_info          String?
+  rec_status            Int?      @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  previous_refresh_hash String?
+  hq_users              hq_users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([expires_at], map: "idx_hq_session_expires")
   @@index([token_hash], map: "idx_hq_session_token")
@@ -3251,28 +3258,38 @@ model hq_tenant_status_history {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model hq_users {
-  id                    String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email                 String              @unique @db.VarChar(255)
-  full_name             String?             @db.VarChar(255)
-  full_name_ar          String?             @db.VarChar(255)
-  password_hash         String              @db.VarChar(255)
-  role_code             String              @db.VarChar(50)
-  is_active             Boolean?            @default(true)
-  is_email_verified     Boolean?            @default(false)
-  mfa_enabled           Boolean?            @default(false)
+  id                    String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                 String               @unique
+  full_name             String?
+  full_name_ar          String?
+  password_hash         String
+  role_code             String
+  is_active             Boolean?             @default(true)
+  is_email_verified     Boolean?             @default(false)
+  mfa_enabled           Boolean?             @default(false)
   mfa_secret            String?
-  last_login_at         DateTime?           @db.Timestamptz(6)
-  last_login_ip         String?             @db.Inet
-  password_changed_at   DateTime?           @default(now()) @db.Timestamptz(6)
-  failed_login_attempts Int?                @default(0)
-  locked_until          DateTime?           @db.Timestamptz(6)
-  created_at            DateTime?           @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime?           @default(now()) @db.Timestamptz(6)
-  created_by            String?             @db.Uuid
-  updated_by            String?             @db.Uuid
+  last_login_at         DateTime?            @db.Timestamptz(6)
+  last_login_ip         String?              @db.Inet
+  password_changed_at   DateTime?            @default(now()) @db.Timestamptz(6)
+  failed_login_attempts Int?                 @default(0)
+  locked_until          DateTime?            @db.Timestamptz(6)
+  created_at            DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?            @default(now()) @db.Timestamptz(6)
+  created_by            String?              @db.Uuid
+  updated_by            String?              @db.Uuid
+  username              String?
+  phone                 String?
+  address               String?
+  created_info          String?
+  updated_info          String?
+  rec_notes             String?
+  rec_order             Int?
+  rec_status            Int?                 @default(1) @db.SmallInt
   hq_audit_logs         hq_audit_logs[]
+  hq_password_resets    hq_password_resets[]
   hq_session_tokens     hq_session_tokens[]
-  hq_roles              hq_roles            @relation(fields: [role_code], references: [role_code], onUpdate: NoAction)
+  hq_user_roles         hq_user_roles[]
+  hq_roles              hq_roles             @relation(fields: [role_code], references: [role_code], onUpdate: NoAction)
 
   @@index([is_active], map: "idx_hq_users_active")
   @@index([email], map: "idx_hq_users_email")
@@ -16102,6 +16119,125 @@ model sys_currency_cd_b4 {
   rec_status          Int?      @db.SmallInt
 
   @@ignore
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model hq_password_resets {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String    @db.Uuid
+  token_hash   String    @unique
+  expires_at   DateTime  @db.Timestamptz(6)
+  used_at      DateTime? @db.Timestamptz(6)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  created_by   String?   @db.Uuid
+  created_info String?
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by   String?   @db.Uuid
+  updated_info String?
+  rec_status   Int?      @default(1) @db.SmallInt
+  rec_order    Int?
+  rec_notes    String?
+  hq_users     hq_users  @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([user_id, expires_at(sort: Desc)], map: "idx_hq_password_resets_user")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model hq_permissions {
+  permission_code     String                @id
+  permission_name     String
+  permission_name_ar  String?
+  description         String?
+  description_ar      String?
+  resource_code       String
+  action_code         String
+  is_system           Boolean               @default(true)
+  is_active           Boolean               @default(true)
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  created_by          String?               @db.Uuid
+  created_info        String?
+  updated_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_by          String?               @db.Uuid
+  updated_info        String?
+  rec_status          Int?                  @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  hq_role_permissions hq_role_permissions[]
+
+  @@index([resource_code, action_code], map: "idx_hq_permissions_resource")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model hq_role_permissions {
+  role_code       String
+  permission_code String
+  created_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  created_by      String?        @db.Uuid
+  created_info    String?
+  updated_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_by      String?        @db.Uuid
+  updated_info    String?
+  rec_status      Int?           @default(1) @db.SmallInt
+  rec_order       Int?
+  rec_notes       String?
+  hq_permissions  hq_permissions @relation(fields: [permission_code], references: [permission_code], onUpdate: NoAction)
+  hq_roles        hq_roles       @relation(fields: [role_code], references: [role_code], onUpdate: NoAction)
+
+  @@id([role_code, permission_code])
+  @@index([permission_code], map: "idx_hq_role_permissions_permission")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model hq_user_roles {
+  user_id      String    @db.Uuid
+  role_code    String
+  is_primary   Boolean   @default(false)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  created_by   String?   @db.Uuid
+  created_info String?
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by   String?   @db.Uuid
+  updated_info String?
+  rec_status   Int?      @default(1) @db.SmallInt
+  rec_order    Int?
+  rec_notes    String?
+  hq_roles     hq_roles  @relation(fields: [role_code], references: [role_code], onUpdate: NoAction)
+  hq_users     hq_users  @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@id([user_id, role_code])
+  @@index([role_code], map: "idx_hq_user_roles_role")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_suppression_lst {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String          @db.Uuid
+  channel_code      String
+  address_or_number String
+  reason_code       String
+  source            String
+  detail            String?
+  suppressed_at     DateTime        @default(now()) @db.Timestamptz(6)
+  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  created_info      String?
+  updated_at        DateTime?       @db.Timestamptz(6)
+  updated_by        String?
+  updated_info      String?
+  rec_status        Int             @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?
+  is_active         Boolean         @default(true)
+  org_tenants_mst   org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_suppr_tenant")
+
+  @@unique([tenant_org_id, channel_code, address_or_number], map: "uq_ntf_suppr_addr")
   @@schema("public")
 }
 

@@ -15,7 +15,7 @@ import {
 
 jest.mock('twilio', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@lib/utils/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } }))
-jest.mock('@lib/notifications/settings-service', () => ({ notificationSettingsService: { getActiveProvider: jest.fn(), isChannelEnabled: jest.fn() } }))
+jest.mock('@lib/notifications/settings-service', () => ({ notificationSettingsService: { getActiveProvider: jest.fn(), isChannelEnabled: jest.fn(), isHqDispatchEnabledForChannel: jest.fn() } }))
 jest.mock('@lib/notifications/whatsapp-customer-eligibility', () => ({ resolveWhatsAppCustomerEligibility: jest.fn() }))
 jest.mock('@lib/notifications/log-missing-env', () => ({ collectMissingEnv: jest.fn(() => []), logMissingNotificationEnv: jest.fn() }))
 // SHADOW-ONLY pilot (plan 17.2/22): deliverWhatsAppOutbox now also calls
@@ -166,6 +166,7 @@ describe('WhatsApp adapter template dispatch', () => {
 
   it('refuses HQ body-only dispatch when production templates are configured', async () => {
     jest.mocked(isNtfDispatchViaHq).mockResolvedValue(true)
+    jest.mocked(notificationSettingsService.isHqDispatchEnabledForChannel).mockResolvedValue(true)
     const fetchSpy = jest.spyOn(global, 'fetch')
     expect(await deliverWhatsAppOutbox(row)).toEqual({
       success: false, permanent: true, errorMessage: expect.stringContaining('disable NTF_DISPATCH_VIA_HQ'),

@@ -665,7 +665,7 @@ HQ platform-web: targeted Jest/Playwright; npx eslint . --quiet; confirmed typec
 
 Platform-workers: npm run build. It currently has no test script; add a reviewed lightweight test harness or export deterministic handlers to a verified harness before claiming worker behavior covered.
 
-Prior tenant increment reported passing targeted tests/build/lint/i18n, but standalone typecheck had unrelated FX BigInt/target and tenant subscription-currency errors; build currently skips TypeScript errors. Recheck, isolate and resolve/record these baseline blockers; a build cannot replace typecheck evidence. Prior Storybook build exited natively without a source diagnostic; stories must be compiled/previewed before marking that gate passed.
+Prior tenant increment reported passing targeted tests/build/lint/i18n, but standalone typecheck had unrelated FX BigInt/target and tenant subscription-currency errors; build currently skips TypeScript errors. Recheck, isolate and resolve/record these baseline blockers; a build cannot replace typecheck evidence. Prior Storybook build exited natively without a source diagnostic; stories must be compiled/previewed before marking that gate passed. **Rechecked 2026-10-10 (item C4): `npx tsc --noEmit -p tsconfig.json` on default heap now completes with zero errors** — the FX BigInt/tenant-subscription-currency errors referenced above are no longer present (resolved by an intervening increment this program did not specifically target; not re-investigated further since the symptom is gone). This baseline blocker is closed.
 
 For this documentation task, validate relative links, identifiers, examples, phase/endpoint consistency and git diff --check only. No application build or external send is necessary.
 
@@ -714,43 +714,43 @@ Restore from backup can replay old queue/acceptance state; use provider reconcil
 
 Each unresolved item has a phase gate. Implementation may proceed on independent work, but no dependent production activation is allowed while its gate remains unresolved.
 
-### 23.1 Remaining work and sequencing (snapshot 2026-10-10)
+### 23.1 Remaining work and sequencing (snapshot 2026-10-10, updated same day after user decisions)
 
 Everything in this subsection is current as of the date above; re-verify against `STATUS.md`'s dated entries before acting on it, since this list decays as increments land. Items are grouped by what actually blocks them, not by effort.
 
-**Core functional gaps (code; no governance gate required unless noted):**
+**User decisions received 2026-10-10 (governance gates resolved):**
+- **A1/C1 pilot tenant:** use a demo/test tenant only — not a real production tenant. Proceed on this basis.
+- **A5(a) reconcile-outbox cron:** approved — add the pg_cron schedule now.
+- **A3/quota reservation policy:** accept the current narrowed-but-not-fully-closed race through the pilot; do not build the full reservation/release ledger now. Revisit before scaling past pilot.
+- **B2/retention policy:** match whatever retention window the rest of CleanMateX already uses for comparable PII — **still needs a one-time lookup of what that existing pattern actually is** before it can be applied here; not yet done.
+- **B3 (working-day/SLA)** and **B4 (capacity/SLO thresholds)** were not asked this round — both remain at their recommended default (skip B3 unless told otherwise; wait for pilot traffic before B4).
+
+**Dispatched and in-flight as of this snapshot:** A2 (suppression-list table + email bounce/complaint webhook + SMS/Meta gap investigation), A4(a) (campaign test-send pipeline fix — bypass outbox/consent/quota entirely for test sends, decided design), C3 (full section-20 test-matrix coverage audit, read-only). Check this file's own edit history / `STATUS.md` for whether these have landed by the time you read this.
+
+**Closed this snapshot:** A9 (local DB drift origin — confirmed both `0598` and `0601` cleanly recorded in local `supabase_migrations.schema_migrations`; the forensic question of how local acquired matching objects before `0601` existed is unanswerable after the fact and is not blocking anything — closed as moot). C4 (baseline typecheck blockers — `npx tsc --noEmit -p tsconfig.json` on default heap now completes with zero errors; the previously-flagged FX BigInt/tenant-subscription-currency errors are gone — closed, see section 20.1).
+
+**Core functional gaps still open:**
 
 | # | Gap | Plan |
 |---|---|---|
-| A1 | No live cutover anywhere — every tenant still sends through the legacy direct-Twilio path; the new HQ-routed architecture carries zero real traffic | Pilot `order.created→WHATSAPP` for exactly one tenant (shadow comparison already built for this exact case). Steps: pick the pilot tenant; add the missing recipient-language signal to the legacy event-emitter contract (invariant 4.1.16 — no silent default locale); build a bounded cutover gate (tenant allowlist swapping shadow-only for live dispatch); activate that tenant's route; run for a fixed window with close monitoring; record evidence per sections 20/22. **Blocked on:** tenant choice + go-ahead (business decision, not engineering). |
-| A2 | Reconciliation/suppression only cover WhatsApp/Twilio + Email/SMS opt-out flag; no suppression-list table (bounce/complaint/SMS carrier opt-out); no Meta WhatsApp reconciliation | New migration for a tenant-scoped suppression-list table; new provider webhook endpoints (Resend/SendGrid have none today — net-new, not just wiring); extend `reconciliation-service.ts` with a Meta Cloud API status lookup parallel to the existing Twilio one. Independent of A1 — can run in parallel, no blocker. |
-| A3 | Quota hard-cap race between two different concurrent commands still open (narrowed, not closed, by migration `0598`) | **Blocked entirely on the quota/charge-timing governance gate already listed in the table above** ("Accounting policy review before M6/pilot metering"). Do not build a reservation/release ledger until that's answered. |
-| A4 | Campaign test-send route (`campaigns/[id]/test`) emits `campaign.test_send`, which does not exist in `sys_ntf_events_cd` — silently no-ops, no error shown. Separately, no generic per-template preview/test-send API exists despite the plan assuming `notifications:send_test` | (a) Design decision needed first: should a test send bypass the outbox/consent/quota pipeline entirely (it's an authorized staff action, not a real customer send — the more correct fix), or just get proper event-catalog mapping and flow through the normal pipeline? (b) The generic preview/test API is separate, larger section 10.2/12.1 scope — its own future work package. |
-| A5 | `reconcile-outbox` has no cron schedule (manual-only); no sender-level live verification exists for any provider | (a) Cron: trivial additive migration mirroring `0350`'s pattern, but changes production job scheduling — needs explicit go-ahead before writing it. (b) Sender verification: needs per-provider API research (Twilio Messaging Service, Resend domain verification, etc.) — lower priority, own connector work package. |
-| A6 | No account-health/circuit-breaker/failover, no incident pause/drain control, no restore drill, no retention/cleanup job, no billing/invoice reconciliation tooling | **Deliberately deferred until after A1's pilot produces real traffic.** Section 21 itself warns against setting SLO/monitoring targets from invented guarantees rather than measured throughput — building this tooling before real load exists means designing against guesses. |
-| A7 | NTF-06 (one canonical builder for events, campaigns, test sends) still not unified — campaigns render through a parallel `template_code`-keyed path (`renderTemplateByCode`) alongside the event-keyed `renderChannelTemplate` | Consolidate into one shared rendering/policy path. Meaningful refactor touching every send path — schedule after cutover decisions settle, with full regression coverage before/after. |
-| A8 | Second-provider connectors (Meta Cloud API WhatsApp, additional SMS/email/push providers) don't exist | No plan needed yet — explicitly deferred scope (section 1.2) until a real business need appears. Not on the critical path to closing this phase. |
-| A9 | Local dev DB was found (while building migration `0601`) to already contain matching campaign-table schema objects outside any tracked migration, before `0601` existed; origin unresolved | Quick, read-only investigation — check local migration-history state against the tracked migrations list and ask the user whether a direct Studio/psql change happened. Did not block `0601`'s application; low risk, but worth closing out before more local testing. |
+| A1 | No live cutover anywhere — every tenant still sends through the legacy direct-Twilio path | **Decided: pilot on a demo/test tenant only.** Steps: add the missing recipient-language signal to the legacy event-emitter contract (invariant 4.1.16); build a bounded cutover gate (tenant allowlist swapping shadow-only for live dispatch); activate the demo tenant's route; run for a fixed window; record evidence per sections 20/22. Ready to start — no further decision needed, only implementation. |
+| A2 | Reconciliation/suppression gaps (suppression-list table, email bounce/complaint, SMS carrier opt-out, Meta WhatsApp) | **In flight** — see above. |
+| A3 | Quota hard-cap race between two different concurrent commands | **Decided: deferred, accept current state through pilot.** No action until revisited post-pilot. |
+| A4 | Campaign test-send pipeline bug; separately, no generic preview/test-send API | (a) **In flight** — see above. (b) Generic preview/test API remains separate, larger section 10.2/12.1 scope — own future work package. |
+| A5 | `reconcile-outbox` cron; sender-level live verification | (a) **Decided: approved, build the cron migration.** Not yet built as of this snapshot. (b) Sender verification remains lower-priority, own connector work package. |
+| A6 | No account-health/circuit-breaker/failover/pause-drain/restore/retention-cleanup/billing-reconciliation tooling | Deliberately deferred until after A1's pilot produces real traffic — unchanged. |
+| A7 | NTF-06 canonical builder still not unified | Unchanged — schedule after cutover settles. |
+| A8 | Second-provider connectors don't exist | Unchanged — explicitly deferred scope. |
 
-**Release-readiness (section 24 definition-of-done items):**
+**Release-readiness:**
 
 | # | Item | Plan |
 |---|---|---|
-| C1 | No real pilot sends/receipt correlation exist for any controlled cohort — same action as A1 | See A1. |
-| C2 | Runbooks (`Runbooks/`) are authored but not drilled, and have no assigned human owners | People/scheduling task, not code. Draft a dry-run script per "Partial"/"Implemented" runbook (skip "Not implemented" ones until the underlying capability is built); user assigns owner names. |
-| C3 | Section 20's full test/acceptance matrix (~30 scenarios) has not been audited end-to-end against existing Jest coverage | Dispatch an agent to map every section-20 scenario against existing tests and report exact gaps; write the missing tests incrementally. No blocker. |
-| C4 | Baseline unrelated typecheck blockers (FX BigInt / tenant-subscription-currency errors, per section 20.1) not yet reconfirmed under default heap | Reproduce on default heap, isolate whether still present, then either fix or formally record as an accepted release-disposition item. No blocker. |
+| C1 | No real pilot evidence exists | Same action as A1 — demo/test tenant, ready to start. |
+| C2 | Runbooks not drilled, no assigned owners | Unchanged — people/scheduling task. |
+| C3 | Test-matrix coverage audit | **In flight** — see above. |
 
-**Governance gates (user decision required — see the table above; restated here with a recommended default for a quick answer):**
-
-| Gate | Recommended default if the user wants one |
-|---|---|
-| Quota reservation/ledger policy (affects A3) | Accept today's narrowed-but-not-fully-closed race through the pilot — the window is narrow and unlikely to collide at pilot scale; revisit before scaling past it. |
-| Retention/residency/compliance policy (affects A6, production cohort expansion) | Match whatever retention window the rest of CleanMateX already uses for comparable PII, pending explicit confirmation — not yet checked against this plan. |
-| Working-day/SLA calculation owner approval | Likely N/A unless business-day-aware campaign scheduling is wanted beyond what exists — skip unless told otherwise. |
-| Capacity/SLO thresholds (affects A6) | Wait for A1's pilot to generate real traffic before measuring — testing against invented throughput numbers is low-value per section 21's own guidance. |
-
-What can start without waiting on any answer: A2, A4(a) investigation, A5(b) research, A9, C3, C4. What's actually stuck until a decision lands: A1/C1 (pilot tenant), A3 (governance gate), A5(a) (cron go-ahead), and the four governance gates generally.
+Next concrete step once A1's cutover-gate/language-signal work and A5(a)'s cron migration are built: run the pilot on the demo tenant, record evidence, then revisit A3/A6/B2 with real data in hand.
 
 ## 24. Documentation deliverables and definition of done
 

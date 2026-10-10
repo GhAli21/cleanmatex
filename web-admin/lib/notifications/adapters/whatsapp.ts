@@ -417,7 +417,12 @@ export async function deliverWhatsAppOutbox(row: OutboxWhatsAppRow): Promise<Wha
     row = { ...row, recipient_address: eligibility.recipientAddress }
   }
 
-  if (await isNtfDispatchViaHq()) {
+  // Global master switch (sys_ntf_runtime_cf has no tenant_org_id column —
+  // confirmed via information_schema; it is NOT tenant-scopable on its own)
+  // AND a per-tenant/channel opt-in (org_ntf_settings_cf.metadata, added
+  // 2026-10-10 for plan item A1) — both must be true, so flipping the global
+  // flag alone can never route a tenant that hasn't explicitly opted in.
+  if (await isNtfDispatchViaHq() && await notificationSettingsService.isHqDispatchEnabledForChannel(row.tenant_org_id, 'WHATSAPP')) {
     if (provider && isTwilioProductionTemplateProvider(provider.providerCode, provider.config)) {
       return {
         success: false,

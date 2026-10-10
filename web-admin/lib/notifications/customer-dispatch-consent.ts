@@ -18,14 +18,13 @@
  *   uses an OPT-OUT model: it blocks only a channel the customer has
  *   EXPLICITLY turned off (preferences.notifications.<channel> === false).
  *   Absent, true, or any non-false value keeps sending exactly as before.
- * - There is no bounce/complaint/opted-out-number suppression-LIST table in
- *   the current schema (confirmed: no such table exists under
- *   supabase/migrations as of migration 0596 — only the per-customer
- *   `preferences.notifications.*` boolean on org_customers_mst). This module
- *   therefore enforces only that existing preference flag. Suppression-list
- *   enforcement (email bounce/complaint, SMS carrier opt-out codes) is
- *   reported as pending future schema work in STATUS.md rather than invented
- *   here.
+ * - This module enforces only the customer's own preference flag. A
+ *   separate, provider-reported suppression list (email bounce/complaint,
+ *   SMS carrier opt-out) now also exists — see
+ *   lib/notifications/suppression-list.ts (migration
+ *   0603_ntf_suppression_list.sql) — and is checked independently by
+ *   adapters/email.ts and adapters/sms.ts, in addition to (never instead of)
+ *   this module's customer-preference check.
  * - Only applies when the outbox row is tied to a tenant customer via
  *   source_entity_type === 'order'. Rows with no resolvable customer (e.g.
  *   staff-targeted notifications, or the existing EMAIL fallback-to-auth-user

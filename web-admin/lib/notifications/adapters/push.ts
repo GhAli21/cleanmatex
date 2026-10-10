@@ -169,7 +169,9 @@ async function deliverViaHqProxy(row: OutboxPushRow): Promise<PushDeliveryResult
  * @param row
  */
 export async function deliverPushOutbox(row: OutboxPushRow): Promise<PushDeliveryResult> {
-  if (await isNtfDispatchViaHq()) {
+  // Global master switch AND a per-tenant/channel opt-in — see the identical
+  // comment in adapters/whatsapp.ts (same 2026-10-10 A1 scoping fix).
+  if (await isNtfDispatchViaHq() && await notificationSettingsService.isHqDispatchEnabledForChannel(row.tenant_org_id, 'PUSH')) {
     return deliverViaHqProxy(row)
   }
 

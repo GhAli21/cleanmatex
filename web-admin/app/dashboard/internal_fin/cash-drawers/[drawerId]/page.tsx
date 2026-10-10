@@ -43,6 +43,8 @@ export default async function CashDrawerDetailPage({
       notFound()
     }
 
+    console.error('Cash drawer overview failed to load', { drawerId, message })
+
     return (
       <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS.page.permissions ?? []}>
         <div className="space-y-6 p-6">

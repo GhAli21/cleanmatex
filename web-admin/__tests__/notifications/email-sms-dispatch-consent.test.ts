@@ -1,14 +1,16 @@
 /** @jest-environment node */
 import { deliverEmailOutbox, type OutboxEmailRow } from '@lib/notifications/adapters/email';
 import { deliverSmsOutbox, type OutboxSmsRow } from '@lib/notifications/adapters/sms';
-import { sendEmail } from '@lib/notifications/email-sender';
+import { sendEmailWithId } from '@lib/notifications/email-sender';
 import { resolveCustomerDispatchConsent } from '@lib/notifications/customer-dispatch-consent';
+import { checkSuppression } from '@lib/notifications/suppression-list';
 import { isNtfDispatchViaHq, getTwilioSmsFrom } from '@lib/notifications/config';
 import twilio from 'twilio';
 
 jest.mock('@lib/utils/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } }));
-jest.mock('@lib/notifications/email-sender', () => ({ sendEmail: jest.fn() }));
+jest.mock('@lib/notifications/email-sender', () => ({ sendEmailWithId: jest.fn() }));
 jest.mock('@lib/notifications/customer-dispatch-consent', () => ({ resolveCustomerDispatchConsent: jest.fn() }));
+jest.mock('@lib/notifications/suppression-list', () => ({ checkSuppression: jest.fn() }));
 jest.mock('@lib/notifications/config', () => ({
   isNtfDispatchViaHq: jest.fn(),
   getNtfHqDispatchUrl: jest.fn(),
@@ -38,24 +40,25 @@ describe('EMAIL dispatch consent recheck', () => {
     jest.mocked(getTwilioSmsFrom).mockResolvedValue('+96890000000');
     jest.mocked(twilio).mockReturnValue({ messages: { create: createMessage } } as unknown as ReturnType<typeof twilio>);
     createMessage.mockResolvedValue({ sid: 'SM-sms-test' });
+    jest.mocked(checkSuppression).mockResolvedValue({ suppressed: false });
     process.env.TWILIO_ACCOUNT_SID = 'AC-test';
     process.env.TWILIO_AUTH_TOKEN = 'test-token';
   });
 
   it('sends exactly as before for an eligible recipient (no applicable consent gate)', async () => {
     jest.mocked(resolveCustomerDispatchConsent).mockResolvedValue({ applicable: false, allowed: true });
-    jest.mocked(sendEmail).mockResolvedValue(true);
+    jest.mocked(sendEmailWithId).mockResolvedValue({ success: true, providerMessageId: 'resend-1' });
     const result = await deliverEmailOutbox(emailRow);
-    expect(result).toEqual({ success: true });
-    expect(sendEmail).toHaveBeenCalledWith({ to: 'customer@example.com', subject: 'Order ready', html: '<p>Ready</p>' });
+    expect(result).toEqual({ success: true, providerMessageId: 'resend-1' });
+    expect(sendEmailWithId).toHaveBeenCalledWith({ to: 'customer@example.com', subject: 'Order ready', html: '<p>Ready</p>' });
   });
 
   it('sends exactly as before for a customer who never opted out', async () => {
     jest.mocked(resolveCustomerDispatchConsent).mockResolvedValue({ applicable: true, allowed: true });
-    jest.mocked(sendEmail).mockResolvedValue(true);
+    jest.mocked(sendEmailWithId).mockResolvedValue({ success: true, providerMessageId: 'resend-2' });
     const result = await deliverEmailOutbox(emailRow);
-    expect(result).toEqual({ success: true });
-    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ success: true, providerMessageId: 'resend-2' });
+    expect(sendEmailWithId).toHaveBeenCalledTimes(1);
   });
 
   it('skips (not errors) a customer who explicitly opted out of email, with no provider call', async () => {
@@ -64,7 +67,7 @@ describe('EMAIL dispatch consent recheck', () => {
     });
     const result = await deliverEmailOutbox(emailRow);
     expect(result).toEqual({ success: false, skipped: true, errorMessage: 'Customer has opted out of email notifications' });
-    expect(sendEmail).not.toHaveBeenCalled();
+    expect(sendEmailWithId).not.toHaveBeenCalled();
   });
 
   it('treats a retryable consent lookup failure as a temporary failure, not a skip, with no provider call', async () => {
@@ -73,14 +76,22 @@ describe('EMAIL dispatch consent recheck', () => {
     });
     const result = await deliverEmailOutbox(emailRow);
     expect(result).toEqual({ success: false, permanent: false, errorMessage: 'email customer consent lookup failed for the source order' });
-    expect(sendEmail).not.toHaveBeenCalled();
+    expect(sendEmailWithId).not.toHaveBeenCalled();
   });
 
   it('calls resolveCustomerDispatchConsent with the row tenant/source, not an inferred value', async () => {
     jest.mocked(resolveCustomerDispatchConsent).mockResolvedValue({ applicable: false, allowed: true });
-    jest.mocked(sendEmail).mockResolvedValue(true);
+    jest.mocked(sendEmailWithId).mockResolvedValue({ success: true });
     await deliverEmailOutbox(emailRow);
     expect(resolveCustomerDispatchConsent).toHaveBeenCalledWith('tenant-a', 'email', 'order', 'order-a');
+  });
+
+  it('skips (not errors) an address on the suppression list, with no provider call', async () => {
+    jest.mocked(resolveCustomerDispatchConsent).mockResolvedValue({ applicable: false, allowed: true });
+    jest.mocked(checkSuppression).mockResolvedValue({ suppressed: true, reasonCode: 'BOUNCE_HARD' });
+    const result = await deliverEmailOutbox(emailRow);
+    expect(result).toEqual({ success: false, skipped: true, errorMessage: 'SUPPRESSED_BOUNCE_HARD' });
+    expect(sendEmailWithId).not.toHaveBeenCalled();
   });
 });
 
@@ -93,8 +104,17 @@ describe('SMS dispatch consent recheck', () => {
     jest.mocked(getTwilioSmsFrom).mockResolvedValue('+96890000000');
     jest.mocked(twilio).mockReturnValue({ messages: { create: createMessage } } as unknown as ReturnType<typeof twilio>);
     createMessage.mockResolvedValue({ sid: 'SM-sms-test' });
+    jest.mocked(checkSuppression).mockResolvedValue({ suppressed: false });
     process.env.TWILIO_ACCOUNT_SID = 'AC-test';
     process.env.TWILIO_AUTH_TOKEN = 'test-token';
+  });
+
+  it('skips a number on the suppression list, with no provider call', async () => {
+    jest.mocked(resolveCustomerDispatchConsent).mockResolvedValue({ applicable: true, allowed: true });
+    jest.mocked(checkSuppression).mockResolvedValue({ suppressed: true, reasonCode: 'CARRIER_OPT_OUT' });
+    const result = await deliverSmsOutbox(smsRow);
+    expect(result).toEqual({ success: false, skipped: true, errorMessage: 'SUPPRESSED_CARRIER_OPT_OUT' });
+    expect(createMessage).not.toHaveBeenCalled();
   });
 
   it('sends exactly as before for an eligible recipient', async () => {

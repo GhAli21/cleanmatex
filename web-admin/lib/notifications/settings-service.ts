@@ -39,6 +39,8 @@ export interface ChannelConfig {
   dailyLimit: number | null
   /** Null when no provider has been configured/activated for this channel. */
   activeProvider: ActiveProvider | null
+  /** Free-form per-tenant/channel config. See {@link NotificationSettingsService.isHqDispatchEnabledForChannel}. */
+  metadata: Record<string, unknown> | null
 }
 
 /**
@@ -90,7 +92,7 @@ class NotificationSettingsService {
     const [{ data: settings }, { data: providers }] = await Promise.all([
       supabase
         .from('org_ntf_settings_cf')
-        .select('channel_code, is_enabled, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_tz, daily_limit')
+        .select('channel_code, is_enabled, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_tz, daily_limit, metadata')
         .eq('tenant_org_id', tenantOrgId)
         .eq('is_active', true),
       supabase
@@ -119,6 +121,7 @@ class NotificationSettingsService {
       quietHoursTz:       s.quiet_hours_tz      ?? null,
       dailyLimit:         s.daily_limit         ?? null,
       activeProvider:     providerMap.get(s.channel_code) ?? null,
+      metadata:           (s.metadata as Record<string, unknown> | null) ?? null,
     }))
 
     this.channelCache.set(key, { data: configs, expiresAt: Date.now() + CACHE_TTL_MS })
@@ -153,6 +156,29 @@ class NotificationSettingsService {
   async getActiveProvider(tenantOrgId: string, channelCode: string): Promise<ActiveProvider | null> {
     const cfg = await this.getChannelConfig(tenantOrgId, channelCode)
     return cfg?.activeProvider ?? null
+  }
+
+  /**
+   * Per-tenant/channel opt-in for the HQ dispatch proxy, layered on top of the
+   * platform-wide `ntf_dispatch_via_hq` runtime flag (`sys_ntf_runtime_cf` —
+   * confirmed, via `information_schema.columns`, to have no `tenant_org_id`
+   * column at all; it is a genuine global switch, not tenant-scopable on its
+   * own). Added 2026-10-10 (plan item A1) specifically so a pilot can be
+   * scoped to one tenant/channel instead of flipping the proxy on for every
+   * tenant's traffic simultaneously. Requires BOTH: the global flag true
+   * (master kill switch — `isNtfDispatchViaHq()` in `lib/notifications/config.ts`)
+   * AND this tenant's `org_ntf_settings_cf.metadata.dispatch_via_hq === true`
+   * for the specific channel (no migration needed — `metadata` is an
+   * existing, already-fetched jsonb column on this already tenant+channel
+   * scoped table). Callers must check the global flag themselves first (every
+   * adapter already does, for the pre-existing env-only escape-hatch
+   * behavior) — this method only adds the per-tenant narrowing on top.
+   * @param tenantOrgId Tenant to check the opt-in for.
+   * @param channelCode Channel to check the opt-in for.
+   */
+  async isHqDispatchEnabledForChannel(tenantOrgId: string, channelCode: string): Promise<boolean> {
+    const cfg = await this.getChannelConfig(tenantOrgId, channelCode)
+    return cfg?.metadata?.dispatch_via_hq === true
   }
 
   // -------------------------------------------------------------------------

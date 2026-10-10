@@ -6,6 +6,7 @@
  */
 
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
+import { isValidUUID } from '@/lib/utils/validation-helpers'
 
 /**
  *
@@ -40,8 +41,12 @@ export async function lookupAuditActors(
   actorIds: string[],
 ): Promise<AuditActorLookupResult[]> {
   const uniqueActorIds = [...new Set(actorIds.map((value) => value.trim()).filter(Boolean))]
+  // `cash_recognized_by` / `performed_by` can hold a migration marker such as
+  // `migration_0549`. Both lookup columns are uuid, so one non-uuid value
+  // makes Postgres reject the whole `.in()` and the drawer page cannot load.
+  const queryableIds = uniqueActorIds.filter((actorId) => isValidUUID(actorId))
 
-  if (uniqueActorIds.length === 0) {
+  if (queryableIds.length === 0) {
     return []
   }
 
@@ -50,7 +55,7 @@ export async function lookupAuditActors(
     .from('org_users_mst')
     .select('user_id, display_name, email, phone')
     .eq('tenant_org_id', tenantId)
-    .in('user_id', uniqueActorIds)
+    .in('user_id', queryableIds)
 
   if (error) {
     throw new Error(error.message)
@@ -65,7 +70,7 @@ export async function lookupAuditActors(
   }))
 
   const resolvedIds = new Set(results.map((row) => row.id))
-  const unresolvedIds = uniqueActorIds.filter((actorId) => !resolvedIds.has(actorId))
+  const unresolvedIds = queryableIds.filter((actorId) => !resolvedIds.has(actorId))
 
   if (unresolvedIds.length === 0) {
     return results

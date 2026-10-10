@@ -9,10 +9,12 @@
  * existing local path active (default / fallback).
  */
 
-import { sendEmail } from '@lib/notifications/email-sender';
+import { sendEmailWithId } from '@lib/notifications/email-sender';
 import { logger } from '@lib/utils/logger';
 import { getNtfHqDispatchUrl, isNtfDispatchViaHq } from '@lib/notifications/config';
+import { notificationSettingsService } from '@lib/notifications/settings-service';
 import { resolveCustomerDispatchConsent } from '@lib/notifications/customer-dispatch-consent';
+import { checkSuppression } from '@lib/notifications/suppression-list';
 
 /**
  *
@@ -40,6 +42,8 @@ export interface EmailDeliveryResult {
   permanent?: boolean;
   /** Policy blocks must not retry and must not count as a provider failure. */
   skipped?: boolean;
+  /** Resend's returned email id, persisted by process-outbox for later bounce/complaint webhook correlation. */
+  providerMessageId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -139,26 +143,38 @@ export async function deliverEmailOutbox(row: OutboxEmailRow): Promise<EmailDeli
       : { success: false, skipped: true, errorMessage: consent.reason };
   }
 
+  // Provider-reported suppression (bounce/complaint) blocks this specific address
+  // regardless of the customer's own preference toggle (migration 0603).
+  const suppression = await checkSuppression(row.tenant_org_id, 'EMAIL', row.recipient_address);
+  if (suppression.suppressed) {
+    const reason = `SUPPRESSED_${suppression.reasonCode}`;
+    logger.info('email adapter: recipient address is on the suppression list — skipping', {
+      outboxId: row.id, tenantOrgId: row.tenant_org_id, reasonCode: suppression.reasonCode, feature: 'notifications',
+    });
+    return { success: false, skipped: true, errorMessage: reason };
+  }
+
   const subject = row.rendered_subject ?? row.event_code ?? 'CleanMateX Notification';
 
-  // NTF_DISPATCH_VIA_HQ kill-switch: route through HQ proxy when enabled
-  if (await isNtfDispatchViaHq()) {
+  // Global master switch AND a per-tenant/channel opt-in — see the identical
+  // comment in adapters/whatsapp.ts (same 2026-10-10 A1 scoping fix).
+  if (await isNtfDispatchViaHq() && await notificationSettingsService.isHqDispatchEnabledForChannel(row.tenant_org_id, 'EMAIL')) {
     return deliverViaHqProxy(row, subject);
   }
 
   // Default path: local Resend integration
   try {
-    const sent = await sendEmail({
+    const sent = await sendEmailWithId({
       to:      row.recipient_address,
       subject,
       html:    row.rendered_body,
     });
 
-    if (!sent) {
+    if (!sent.success) {
       return { success: false, errorMessage: 'Email send returned false (check RESEND_API_KEY)', permanent: false };
     }
 
-    return { success: true };
+    return { success: true, providerMessageId: sent.providerMessageId };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error('email adapter: sendEmail threw', err instanceof Error ? err : new Error(msg), {

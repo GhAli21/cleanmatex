@@ -63,14 +63,25 @@ describe('lookupAuditActors', () => {
     )
 
     await expect(
-      lookupAuditActors('tenant_1', ['fallback-row-id']),
+      lookupAuditActors('tenant_1', ['11111111-1111-4111-8111-111111111111']),
     ).resolves.toEqual([
       {
-        id: 'fallback-row-id',
+        id: '11111111-1111-4111-8111-111111111111',
         displayName: 'Aisha Rahman',
         email: 'aisha@cleanmatex.test',
         phone: '+968 9000 1111',
       },
     ])
+  })
+
+  it('skips non-uuid markers such as a migration performer', async () => {
+    const client = createQueryBuilder({})
+    createAdminSupabaseClientMock.mockReturnValue(client)
+
+    await expect(
+      lookupAuditActors('tenant_1', ['migration_0549']),
+    ).resolves.toEqual([])
+
+    expect(client.from).not.toHaveBeenCalled()
   })
 })

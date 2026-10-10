@@ -1410,6 +1410,185 @@ export type Database = {
         }
         Relationships: []
       }
+      hq_password_resets: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          expires_at: string
+          id: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          token_hash: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          expires_at: string
+          id?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          token_hash: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          expires_at?: string
+          id?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          token_hash?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_password_resets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "hq_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_permissions: {
+        Row: {
+          action_code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description_ar: string | null
+          is_active: boolean
+          is_system: boolean
+          permission_code: string
+          permission_name: string
+          permission_name_ar: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          resource_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          action_code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description_ar?: string | null
+          is_active?: boolean
+          is_system?: boolean
+          permission_code: string
+          permission_name: string
+          permission_name_ar?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          resource_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          action_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description_ar?: string | null
+          is_active?: boolean
+          is_system?: boolean
+          permission_code?: string
+          permission_name?: string
+          permission_name_ar?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          resource_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
+      hq_role_permissions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          permission_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          role_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          permission_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          role_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          permission_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          role_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_role_permissions_permission_code_fkey"
+            columns: ["permission_code"]
+            isOneToOne: false
+            referencedRelation: "hq_permissions"
+            referencedColumns: ["permission_code"]
+          },
+          {
+            foreignKeyName: "hq_role_permissions_role_code_fkey"
+            columns: ["role_code"]
+            isOneToOne: false
+            referencedRelation: "hq_roles"
+            referencedColumns: ["role_code"]
+          },
+        ]
+      }
       hq_roles: {
         Row: {
           created_at: string | null
@@ -1417,6 +1596,7 @@ export type Database = {
           created_info: string | null
           is_active: boolean | null
           is_system_role: boolean | null
+          parent_role_code: string | null
           permissions: Json
           rec_notes: string | null
           rec_order: number | null
@@ -1436,6 +1616,7 @@ export type Database = {
           created_info?: string | null
           is_active?: boolean | null
           is_system_role?: boolean | null
+          parent_role_code?: string | null
           permissions?: Json
           rec_notes?: string | null
           rec_order?: number | null
@@ -1455,6 +1636,7 @@ export type Database = {
           created_info?: string | null
           is_active?: boolean | null
           is_system_role?: boolean | null
+          parent_role_code?: string | null
           permissions?: Json
           rec_notes?: string | null
           rec_order?: number | null
@@ -1468,7 +1650,15 @@ export type Database = {
           updated_by?: string | null
           updated_info?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hq_roles_parent_role_code_fkey"
+            columns: ["parent_role_code"]
+            isOneToOne: false
+            referencedRelation: "hq_roles"
+            referencedColumns: ["role_code"]
+          },
+        ]
       }
       hq_session_tokens: {
         Row: {
@@ -1479,6 +1669,7 @@ export type Database = {
           id: string
           ip_address: unknown
           last_used_at: string | null
+          previous_refresh_hash: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
@@ -1498,6 +1689,7 @@ export type Database = {
           id?: string
           ip_address?: unknown
           last_used_at?: string | null
+          previous_refresh_hash?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
@@ -1517,6 +1709,7 @@ export type Database = {
           id?: string
           ip_address?: unknown
           last_used_at?: string | null
+          previous_refresh_hash?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
@@ -1626,10 +1819,72 @@ export type Database = {
           },
         ]
       }
-      hq_users: {
+      hq_user_roles: {
         Row: {
           created_at: string | null
           created_by: string | null
+          created_info: string | null
+          is_primary: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          role_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          is_primary?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          role_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          is_primary?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          role_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_user_roles_role_code_fkey"
+            columns: ["role_code"]
+            isOneToOne: false
+            referencedRelation: "hq_roles"
+            referencedColumns: ["role_code"]
+          },
+          {
+            foreignKeyName: "hq_user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "hq_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_users: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
           email: string
           failed_login_attempts: number | null
           full_name: string | null
@@ -1644,13 +1899,21 @@ export type Database = {
           mfa_secret: string | null
           password_changed_at: string | null
           password_hash: string
+          phone: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
           role_code: string
           updated_at: string | null
           updated_by: string | null
+          updated_info: string | null
+          username: string | null
         }
         Insert: {
+          address?: string | null
           created_at?: string | null
           created_by?: string | null
+          created_info?: string | null
           email: string
           failed_login_attempts?: number | null
           full_name?: string | null
@@ -1665,13 +1928,21 @@ export type Database = {
           mfa_secret?: string | null
           password_changed_at?: string | null
           password_hash: string
+          phone?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
           role_code: string
           updated_at?: string | null
           updated_by?: string | null
+          updated_info?: string | null
+          username?: string | null
         }
         Update: {
+          address?: string | null
           created_at?: string | null
           created_by?: string | null
+          created_info?: string | null
           email?: string
           failed_login_attempts?: number | null
           full_name?: string | null
@@ -1686,9 +1957,15 @@ export type Database = {
           mfa_secret?: string | null
           password_changed_at?: string | null
           password_hash?: string
+          phone?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
           role_code?: string
           updated_at?: string | null
           updated_by?: string | null
+          updated_info?: string | null
+          username?: string | null
         }
         Relationships: [
           {
@@ -17418,6 +17695,91 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_ntf_channel_cd"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      org_ntf_suppression_lst: {
+        Row: {
+          address_or_number: string
+          channel_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          detail: string | null
+          id: string
+          is_active: boolean
+          reason_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          source: string
+          suppressed_at: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          address_or_number: string
+          channel_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          detail?: string | null
+          id?: string
+          is_active?: boolean
+          reason_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          source: string
+          suppressed_at?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          address_or_number?: string
+          channel_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          detail?: string | null
+          id?: string
+          is_active?: boolean
+          reason_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          source?: string
+          suppressed_at?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ntf_suppr_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_suppr_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_suppr_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
           },
         ]
       }
