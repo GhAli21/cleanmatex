@@ -16,6 +16,9 @@
 | Requirement→test traceability | scenario-based only | Requirement Traceability Matrix |
 | Deployment/support/incident procedure | partial | Migration/Cutover/Operations Runbook |
 | Unresolved owner decisions | present but mixed into plan | dedicated Open Decisions & Release Gates |
+| Implementation governance / reuse / domain-boundary DoD | dispersed in plan/package text | dedicated Implementation Governance contract + mandatory WP report review |
+| Detailed executable test catalog | high-level Part 9 matrix only | dedicated Test Guide and Scenario Matrix with scenario IDs, test levels and evidence contract |
+| Manual-only UI testing boundary | mixed with broader UAT expectations | dedicated Manual UI Test Guide with exact page/route/control steps and explicit no-manual-substitute-for-automation rule |
 
 ## Remaining items intentionally not invented
 
@@ -27,3 +30,20 @@ The pack is ready only for bounded work whose documented gates are resolved; fil
 The final review confirmed genuine contract gaps despite the prior closure claims: copied plan/contract authority, missing progress evidence links, untyped API aggregates and optional review proof, piece quantity double counting, current settings ownership, legacy numeric/hierarchy differences, unsafe tenant/RPC authority, Finance source-lock/correction gaps, unregistered outbox consumers and incomplete test traceability. The affected specialized sources now record corrections and explicit dependent-package gates. See [the final validation report](../Edit_Order_V2_v3.0_Final_Validation_Report_Codex.md) for evidence, verdict and files changed. No implementation or database mutation occurred.
 
 Supplied DOCX/ZIP exports remain reference snapshots and must be regenerated before a refreshed pack is distributed.
+
+## Governance reconciliation — 2026-10-14
+
+A dedicated `..._v3.0_Implementation_Governance.md` contract now centralizes reuse-first discovery, canonical domain ownership, domain-agnostic shared-component rules, separation of concerns, legacy Edit migration/deprecation, documentation synchronization, architecture verification, and the WP Definition of Done. This does not create another implementation plan or progress ledger.
+
+WP07–WP09 were implemented before this governance contract and are therefore recorded as PARTIAL pending a retroactive reuse/domain-boundary audit. Their existing focused tests remain valid evidence of the implemented slices; the new status does not claim a defect, only that the newly required architecture/governance evidence has not yet been performed. WP10 must be revalidated if remediation changes any WP07–WP09 output contract.
+
+## Testing-documentation reconciliation — 2026-10-14
+
+The active set now separates three responsibilities cleanly:
+
+1. the living implementation plan defines WP scope/sequence/status and keeps the high-level Part 9 scenario summary;
+2. the Test Guide and Scenario Matrix defines detailed executable automated/API/DB/security/concurrency/E2E coverage and evidence fields;
+3. the Manual UI Test Guide contains only human-judgement UI checks and requires exact navigation/page/route/control instructions before execution.
+
+This closes the documentation gap where future UAT could otherwise become a vague manual checklist or a substitute for missing automated proof.
+

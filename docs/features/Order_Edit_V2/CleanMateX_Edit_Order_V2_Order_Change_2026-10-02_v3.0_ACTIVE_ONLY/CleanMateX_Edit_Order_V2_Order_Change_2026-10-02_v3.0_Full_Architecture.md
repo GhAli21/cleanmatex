@@ -360,12 +360,15 @@ Current code must stop converting committed pieces to synthetic temp IDs during 
 
 For piece-tracked items:
 
-- Adding a piece increases item quantity.
+- On an existing line, adding a piece increases item quantity by one.
+- On a new line, `ADD_ITEM` owns the quantity and `ADD_PIECE` materializes that count. Those pieces do not add a second delta.
 - Removing a piece decreases item quantity.
-- Decreasing committed quantity requires selecting/removing actual eligible piece(s).
+- Decreasing committed quantity requires selecting/removing actual eligible piece(s), once.
 - Never blindly trim committed piece arrays.
 - Removing an existing committed piece keeps historical identity.
 - New piece added and removed before Apply may disappear locally and create no operation.
+
+WP06 implements these rules in memory. See [WP06 report](WP06_Item_Piece_Projection_v3.0.md). Preview and Apply do not exist yet.
 
 Committed item/piece history must not be physically destroyed.
 
@@ -403,7 +406,7 @@ PIECE
 
 For PIECE level, carry and validate `order_id`, `order_item_id`, `order_item_piece_id`.
 
-Existing preference identity must be preserved.
+Existing preference identity must be preserved. WP07 implements content edits on that id and treats a kind change as remove plus add. See [WP07 report](WP07_Preference_Projection_v3.0.md).
 
 Before/after should support `preference_id`, `preference_code`, `preference_content`, `preference_sys_kind`, `preference_category`, `extra_price`.
 
@@ -425,7 +428,7 @@ Rules:
 - Client estimates are non-authoritative.
 - No Edit-specific price-list versioning/pinning in V1.
 
-`price_per_unit` retains the current owning calculator's persisted meaning: a gross selling amount in TAX_INCLUSIVE mode and a pre-tax selling amount in TAX_EXCLUSIVE mode. The projected contract exposes selling amount, taxable base and tax separately; do not relabel historical inclusive amounts as net. Existing item NUMERIC(10,3) storage and piece NUMERIC(19,4) storage require explicit quantization/range checks.
+`price_per_unit` retains the current owning calculator's persisted meaning: a gross selling amount in TAX_INCLUSIVE mode and a pre-tax selling amount in TAX_EXCLUSIVE mode. WP08 applies one supplied rate under that wording and does not relabel historical inclusive amounts as net. Existing item NUMERIC(10,3) storage and piece NUMERIC(19,4) storage still require explicit quantization/range checks before persistence. See [WP08 report](WP08_Calculation_Adapter_v3.0.md).
 
 Preference extras follow the current level-specific accounting contract: ITEM/PIECE extras are already represented in line totals; ORDER PREFERENCE charges are separate addends. Do not sum every preference charge again. Current B18 order-level charges are flat non-taxable addends; taxable-charge expansion requires its owning domain's approved contract.
 
@@ -751,7 +754,7 @@ The implementation must cover unpaid, partially paid, fully paid, upward/downwar
 14. Product identity is not line identity.
 15. Piece sequence is not piece identity.
 16. No product-replacement operation.
-17. Piece add increases quantity.
+17. On an existing tracked line, piece add increases quantity by one. On a new line, pieces materialize the declared quantity.
 18. Piece remove decreases quantity.
 19. Generic preference operations are used for all pref kinds.
 20. PIECE preferences retain item + piece hierarchy.
@@ -770,6 +773,10 @@ The implementation must cover unpaid, partially paid, fully paid, upward/downwar
 33. External calls are outside the core Change transaction.
 34. `org_order_edit_history` is legacy/compatibility, not V2 authority.
 35. New Order remains working throughout migration.
+
+WP09 classifies outstanding and overpayment from the existing finance aggregation and does not rewrite payment, voucher, invoice, or issued fiscal rows. See [WP09 report](WP09_Financial_Result_v3.0.md).
+
+WP10 exposes that classification through a read-only Preview. The preview writes no Change, payment, voucher, invoice, or fiscal row. See [WP10 report](WP10_Preview_v3.0.md).
 
 ---
 

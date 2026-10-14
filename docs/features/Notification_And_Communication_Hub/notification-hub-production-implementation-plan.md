@@ -722,7 +722,7 @@ Everything in this subsection is current as of the date above; re-verify against
 - **A1/C1 pilot tenant:** use a demo/test tenant only — not a real production tenant. Proceed on this basis.
 - **A5(a) reconcile-outbox cron:** approved — add the pg_cron schedule now.
 - **A3/quota reservation policy:** accept the current narrowed-but-not-fully-closed race through the pilot; do not build the full reservation/release ledger now. Revisit before scaling past pilot.
-- **B2/retention policy:** **closed 2026-10-10** — looked up the existing precedent (`fn_auth_sessions_sweep(180)`, migration 0575/0576) and applied the same 180-day window via new migration `0609_ntf_retention_sweep.sql` (created, not yet applied). See STATUS.md's dated entry for the full table/filter breakdown.
+- **B2/retention policy:** **closed 2026-10-10** — looked up the existing precedent (`fn_auth_sessions_sweep(180)`, migration 0575/0576) and applied the same 180-day window via new migration `0609_ntf_retention_sweep.sql`. **Migration applied by the user to both local and remote** (confirmed same day). See STATUS.md's dated entry for the full table/filter breakdown.
 - **B3 (working-day/SLA)** and **B4 (capacity/SLO thresholds)** were not asked this round — both remain at their recommended default (skip B3 unless told otherwise; wait for pilot traffic before B4).
 
 **Dispatched and in-flight as of this snapshot:** A2 (suppression-list table + email bounce/complaint webhook + SMS/Meta gap investigation), A4(a) (campaign test-send pipeline fix — bypass outbox/consent/quota entirely for test sends, decided design), C3 (full section-20 test-matrix coverage audit, read-only). Check this file's own edit history / `STATUS.md` for whether these have landed by the time you read this.
@@ -741,6 +741,7 @@ Everything in this subsection is current as of the date above; re-verify against
 | A6 | No account-health/circuit-breaker/failover/pause-drain/restore/retention-cleanup/billing-reconciliation tooling | Deliberately deferred until after A1's pilot produces real traffic — unchanged. |
 | A7 | NTF-06 canonical builder still not unified | Unchanged — schedule after cutover settles. |
 | A8 | Second-provider connectors don't exist | Unchanged — explicitly deferred scope. |
+| A10 | Operator-only actions (cron state, env/config, SQL, external consoles) are not manageable from HQ screens | **P0–P4 all built and verified 2026-10-14 (jobs, operations catalog, config registry, Setup Health); migrations 0610–0612 applied; not yet browser-tested, HQ code uncommitted** — [Platform Operations Console plan](../Platform_Operations_Console/PLAN.md): job registry/manager, config registry, curated operations catalog, Setup Health + guidance panels. Supersedes the manual [go-live checklist](./Setup_And_Config/15_operator_go_live_checklist.md) as phases land. |
 
 **Release-readiness:**
 
@@ -748,7 +749,7 @@ Everything in this subsection is current as of the date above; re-verify against
 |---|---|---|
 | C1 | No real pilot evidence exists | **Partial evidence recorded 2026-10-10** — one real SMS send/receipt through the HQ generic proxy, logged in `hq_ntf_dispatch_log` and confirmed received (see STATUS.md). This is a single manual/one-off test, not the repeatable/automated evidence capture section 20/22 call for, and not evidence of the route/binding-aware cutover (still A1's open item). |
 | C2 | Runbooks not drilled, no assigned owners | Unchanged — people/scheduling task. |
-| C3 | Test-matrix coverage audit | **In flight** — see above. |
+| C3 | Test-matrix coverage audit | **Audit done; 13/34 rows now Covered, 1/34 re-assessed as not a real gap, 2026-10-10** (was 5/34 at the original read-only audit). Closed today: rows 1 (corrected after an inaccurate same-day "closed" claim), 9, 10, 11, 12, 13, 15, 25, 29. Re-assessed: row 22 (would only duplicate an existing test, declined). See STATUS.md's dated entries and the audit doc's own updated summary. Remaining 20 open rows (10 Partial, 10 Not covered) are tracked in the audit doc — mostly `needs-infra` (deterministic clock, DB-crash harness, HQ controller/guard test harness, or code that doesn't exist yet) rather than quick wins. |
 
 Next concrete step once A1's cutover-gate/language-signal work and A5(a)'s cron migration are built: run the pilot on the demo tenant, record evidence, then revisit A3/A6/B2 with real data in hand.
 

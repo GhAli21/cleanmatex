@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes } from 'react'
-import { CustomerWhatsAppConsentEditor } from '@features/customers/ui/customer-whatsapp-consent-card'
+import { CustomerWhatsAppConsentEditor, type CustomerWhatsAppConsentEditorProps } from '@features/customers/ui/customer-whatsapp-consent-card'
 
 jest.mock('next-intl', () => ({ useTranslations: (namespace: string) => (key: string) => namespace === 'common' && key === 'save' ? 'Save' : key }))
 jest.mock('@lib/hooks/usePermissions', () => ({ useHasPermission: () => true }))
@@ -52,5 +52,27 @@ describe('customer consent editor', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[1])
     await waitFor(() => expect(onSaveLanguage).toHaveBeenCalledWith('ar'))
     expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('retains the dirty, unsaved consent choice when the save fails (matrix row 29: dirty data retained after a failed save)', async () => {
+    // Matches the real contract CustomerWhatsAppConsentCard gives the editor: onSave always
+    // resolves (its own try/catch reports the failure via cmxMessage) -- the editor itself
+    // never sees a rejection. This tests that the editor does not reset `optedIn` on failure,
+    // since nothing in its onSave callback signals success vs. failure back to it.
+    const onSave = jest.fn().mockImplementation(async () => { /* mirrors the Card's own catch -- resolves either way */ })
+    const props: CustomerWhatsAppConsentEditorProps = {
+      consent: { optedIn: true, phone: '+96890123456', updatedAt: '2026-10-02', preferredLanguage: null },
+      canEdit: true, pending: false, onSave,
+      languagePending: false, onSaveLanguage: jest.fn().mockResolvedValue(undefined),
+    }
+    render(<CustomerWhatsAppConsentEditor {...props} />)
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0])
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(false))
+
+    // The editor's own local state never reverts the user's in-progress edit on a failed save --
+    // only a fresh `consent` prop (from a successful write re-fetch) would ever change it back.
+    expect(screen.getByRole('checkbox')).not.toBeChecked()
   })
 })

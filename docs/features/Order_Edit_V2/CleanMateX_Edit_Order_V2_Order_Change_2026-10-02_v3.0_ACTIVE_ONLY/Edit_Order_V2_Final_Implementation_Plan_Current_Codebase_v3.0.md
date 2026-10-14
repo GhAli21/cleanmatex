@@ -26,6 +26,7 @@ Use the following authority order:
    - implementation evidence and blockers
 
 4. Specialized v3.0 contracts
+   - `CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Implementation_Governance.md` — mandatory implementation governance / WP Definition of Done
    - `..._Database_Schema_Blueprint.md`
    - `..._API_Contract_Catalog.md`
    - `..._Configuration_Policy_Matrix.md`
@@ -38,6 +39,8 @@ Use the following authority order:
    - `..._Migration_Cutover_Operations_Runbook.md`
    - `..._Open_Decisions_Release_Gates.md`
    - `..._Frozen_Invariants.md`
+   - `..._Test_Guide_and_Scenario_Matrix.md`
+   - `..._Manual_UI_Test_Guide.md`
 
 5. Current repository + verified database
    - implementation reality
@@ -61,18 +64,24 @@ They may be archived outside the active project if historical trace is desired, 
 For every work package:
 
 1. Read this plan's package section.
-2. Read the relevant v3.0 specialized contracts.
-3. Inspect the current repository/database.
-4. Implement only that package.
-5. Update this living plan immediately with:
+2. Read `CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Implementation_Governance.md`.
+3. Read the relevant v3.0 specialized contracts, including the Test Guide/Scenario Matrix for verification work and the Manual UI Test Guide when human UI judgement is applicable.
+4. Inspect the current repository/database and relevant legacy Edit behavior.
+5. Complete the mandatory reuse/domain-ownership/separation-of-concerns review before implementation.
+6. Implement only that package through the canonical Order Change V2/v3.0 boundaries.
+7. Perform the package's architecture and functional verification.
+8. Update this living plan immediately with:
    - status
    - files changed
    - migrations authored/applied status
    - tests/results
+   - reuse/domain-ownership decisions
+   - legacy migration/deprecation status when affected
    - unresolved issues
+   - documentation synchronized
    - next approved action
 
-Do not create another competing implementation plan.
+Do not create another competing implementation plan. Coding completion alone is not `DONE`; the governance Definition of Done applies.
 
 ---
 
@@ -80,6 +89,16 @@ Do not create another competing implementation plan.
 ## v3.0 completeness integration
 
 The original Codex plan remains valuable for verified repository evidence and WP progress, but the following details are now governed by the dedicated v3.0 contracts and must not be inferred only from older package text:
+
+### Implementation governance
+Use `CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Implementation_Governance.md` for:
+- WP Definition of Done;
+- mandatory codebase/reuse discovery and classification;
+- canonical domain ownership and domain-agnostic shared components;
+- separation of concerns, single-source-of-truth and dependency direction;
+- legacy Edit behavior migration/deprecation;
+- architecture verification and documentation synchronization;
+- retroactive WP07–WP09 governance audit.
 
 ### Database
 Use `CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Database_Schema_Blueprint.md` for:
@@ -147,6 +166,13 @@ Use `..._v3.0_Events_Observability_Performance.md` for:
 - alerts
 - performance/SLO release evidence
 
+### Testing execution
+Use:
+- `..._v3.0_Test_Guide_and_Scenario_Matrix.md` for detailed automated/API/DB/security/concurrency/E2E scenario IDs, execution level and verification-evidence structure;
+- `..._v3.0_Manual_UI_Test_Guide.md` only for human visual/usability/RTL/accessibility/device checks that automation cannot adequately prove.
+
+Manual testing is not a substitute for missing automation. Every applicable WP verification report references the relevant scenario IDs. Manual scenarios must provide exact navigation/page/route/UI-control instructions before execution.
+
 ### Traceability and operations
 Use:
 - `..._v3.0_Requirement_Traceability_Matrix.md`
@@ -159,13 +185,17 @@ No coding agent may silently invent behavior where one of these contracts marks 
 
 ## v3.0 execution governance and inherited progress
 
+`CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Implementation_Governance.md` is the authoritative execution-governance contract. This living plan remains the sole WP sequence/progress authority. All WP01–WP20 work must satisfy that governance contract before `DONE`.
+
+WP07–WP09 predate the governance contract and require the specified one-time retroactive reuse/domain-boundary audit. Their implementation/test evidence is preserved, but their package status is PARTIAL until that audit and any required remediation/revalidation are closed. If outputs change, revalidate WP10 before using it as a WP11+ foundation.
+
 The user authorized the audit, this freeze and WP01. Freeze applies to architecture, package scope and acceptance contracts; progress/evidence/known-gap entries remain maintained after every step. Material changes to the baseline require an explicit v3.0 reconciliation record, impact/dependency review and the applicable approval. A frozen plan is not proof of production readiness or a guarantee of zero defects. Every open decision below gates its dependent implementation or release.
 
 Mandatory tasks for **every WP01–WP20 step**, including resumed sessions and project switches:
 
 1. Read the active repository `CLAUDE.md`, `AGENTS.md`, applicable nested instructions, required skills, agent instructions and linked domain rules before editing. Use scoped agents as required; if unavailable, record that limitation and complete the same bounded review directly. Respect the master plan and cross-project ownership. Do not apply/reset databases or modify existing migrations.
 2. Record owner, intended files and dependencies. Reuse existing services, hooks, domain types, validation, monetary algorithms and Cmx UI. Before UI work, search the relevant Cmx/shared feature exports; document the reuse decision. Create a reusable component only for a concrete shared need; keep generic UI independent of commercial/workflow services, and add documentation, accessible EN/AR/RTL behavior and Storybook coverage where required. Generic infrastructure must not erase domain invariants.
-3. Implement the bounded step; verify tenant predicates, hierarchy, permissions, input/output contracts, failure behavior and relevant checks. Run targeted tests, lint/typecheck and build/i18n checks when applicable. Record failures and environment gaps honestly; mocked transaction callbacks prove composition/failure propagation, not PostgreSQL rollback or concurrency.
+3. Implement the bounded step; verify tenant predicates, hierarchy, permissions, input/output contracts, failure behavior and relevant checks. Use the master Test Guide scenario IDs for applicable verification and the Manual UI Test Guide only for genuinely manual human-judgement checks. Run targeted tests, lint/typecheck and build/i18n checks when applicable. Record failures and environment gaps honestly; mocked transaction callbacks prove composition/failure propagation, not PostgreSQL rollback or concurrency.
 4. **Immediately update plan progress and related documentation after the step**, before starting the next step: status, changed files, validation command/result, unresolved risks/decisions, docs refreshed and next action. Update contracts/guides/runbooks alongside their implementation. Do not label proposed routes/settings/permissions as implemented.
 5. At package exit, reconcile acceptance criteria, writer/readers impacted and documentation coverage. Use the documentation skill to refresh the implemented package's docs. Record DONE only when its required checks pass; otherwise record PARTIAL with concrete outstanding evidence. WP20 additionally invokes the documentation skill for the complete release documentation pack.
 
@@ -195,8 +225,13 @@ This ledger is the plan status authority. The inherited `WP01_Protection_Progres
 | WP02 foundation and migration review | DONE | Operator-applied0547/0548 match both deployed catalogs. Supabase types and scoped Prisma sync are complete:75 fields,2 new models, validated/generated Client6.19.3; existing253 models/scalars preserved,255 models after sync. The final local/hosted data recheck is empty, so no historical cohort remains to classify or backfill; disposable PG17 fixture proved deferred insertion/rollback, guards and history ACL/RLS behavior. Membership/RPC/direct-authority and authenticated application-flow proof remain WP17/WP18 activation gates, not WP02 foundation work. See [WP02 evidence](WP02_Foundation_Preparation_v3.0.md). |
 | WP03 commitment producers and active-reader compatibility | DONE | Canonical submit commits with the database clock, authenticated actor, and revision 1 only after its aggregate settlement; canonical Quick Drop shares that path. Active item/piece/preference projections and governed item/piece workflow facts explicitly use rec_status=1; issue, assembly/QA-task, and release compatibility remain intentionally operational. Failed-Create compensation is authenticated and refuses committed orders. Unqualified legacy/public/remote/Split sources remain uncommitted. See [WP03 evidence](WP03_Commitment_Reader_Compatibility_v3.0.md). |
 | WP04 contracts and canonical edit-context loader | DONE | Typed V1 operation schemas, read-only canonical tenant-scoped context loader, and GET change-context are implemented with stable identities, committed/edit/workflow eligibility, active commercial rows, and deferred WP05 capability state. The frozen shared contract supplies a streamed 128 KiB body ceiling, finite graph/text/proof/key/history bounds, and Preview/Apply rate policy; focused 4-suite/18-test Jest and targeted ESLint pass. The production build did not complete in the bounded validation window and remains an environment-validation limitation, not a missing WP04 contract. No Preview/Apply body endpoint is exposed. See [WP04 evidence](WP04_Contracts_Context_v3.0.md).|
-| WP05 access, capability policy and commercial proof binding | PARTIAL — HQ Edit Policy API and Studio implemented; HQ RBAC proof postponed | WP05-A tenant-side fail-closed evaluator and domain-separated review-proof primitive are implemented and focused-tested. The operator applied `0566_order_change_v2_permissions.sql` and `0567_add_feature_flag_order_edit_v2.sql` locally and remotely, regenerated types/Prisma, and the runtime flag catalog/type key is synchronized default-off. The operator applied `0597_wp05b_order_edit_policy_foundation.sql` and `0599_wp05b_edit_policy_save_command.sql`, and generated types include `sys_wf_edit_policy_save`. HQ authoring now saves a Draft/Pilot matrix through that command, checks coverage before Pilot/Published promotion, and assigns only with an explicit `tenant_org_id`. The Studio Edit Policy tab is bilingual. `HQ_RBAC_ENFORCEMENT_ENABLED` proof is postponed until HQ RBAC is implemented. No Preview/Apply route or default role grant is enabled. See [WP05-A evidence](WP05_Access_Capability_Proof_v3.0.md) and [WP05-B specification](WP05-B_HQ_Order_Edit_Capabilities_v3.0.md).|
-| WP06–WP20 | NOT STARTED | Separate package approval and listed prerequisites required.|
+| WP05 access, capability policy and commercial proof binding | DONE — HQ Edit Policy authoring and tenant missing-tuple proof | WP05-A tenant-side fail-closed evaluator and domain-separated review-proof primitive are implemented and focused-tested. The operator applied `0566_order_change_v2_permissions.sql` and `0567_add_feature_flag_order_edit_v2.sql` locally and remotely, regenerated types/Prisma, and the runtime flag catalog/type key is synchronized default-off. The operator applied `0597`, `0599`, `0605`, `0606`, and `0607`. HQ authoring saves a Draft or Pilot matrix, promotes Pilot by distinct workflow status, and assigns with an explicit `tenant_org_id`. The Studio Edit Policy tab is bilingual. The resolver test proves one live Pilot policy denies a missing operation with `CAPABILITY_POLICY_BINDING_MISSING` and allows a present operation. HQ RBAC is implemented. No Preview/Apply route or default role grant is enabled. See [WP05-A evidence](WP05_Access_Capability_Proof_v3.0.md) and [WP05-B specification](WP05-B_HQ_Order_Edit_Capabilities_v3.0.md).|
+| WP06 item/piece projection | DONE — in-memory contract only | `projectOrderChangeStructure` freezes quantity ownership, stable ids, local add/remove cancellation, and logical parent removal. Focused Jest: 8 passed. Targeted ESLint exited 0. No migration, route, writer, or UI. Public local-remove shape remains a WP10 decision. See [WP06 report](WP06_Item_Piece_Projection_v3.0.md). |
+| WP07 preference projection | PARTIAL — implemented/tested; governance audit pending | `projectOrderChangePreferences` keeps preference ids, rejects kind swap and a child edit after parent removal, and counts ORDER extras once as the order addend. ITEM/PIECE extras stay on the line. Focused Jest: 7 passed. Targeted ESLint exited 0. Selling totals, snapshot persistence, and route replacement remain later packages. See [WP07 report](WP07_Preference_Projection_v3.0.md). Retroactive reuse/domain-boundary audit required before DONE. |
+| WP08 calculation adapter | PARTIAL — implemented/tested; governance audit pending | `calculateOrderChangeTotals` prices new or changed lines from an authorized override or the quote final price, keeps unchanged lines on their stored unit price, and applies a catalog discount once. Create's calculator is unchanged and its existing 23 tests passed. Focused Edit Jest: 6 passed. Targeted ESLint exited 0. Compound tax resolution, currency-increment rounding, and both routes remain later work. See [WP08 report](WP08_Calculation_Adapter_v3.0.md). Retroactive reuse/domain-boundary audit required before DONE. |
+| WP09 financial result | PARTIAL — implemented/tested; governance audit pending | `projectOrderChangeFinancialResult` uses the existing D005 outstanding formula. It classifies overpayment and outstanding, ignores a pending payment, and compares fiscal obligation with the original document plus later corrections. It does not write a payment, invoice, or tax document, and it adds no `order_change_id` column. Focused Jest: 5 passed. Targeted ESLint exited 0. See [WP09 report](WP09_Financial_Result_v3.0.md). Retroactive reuse/domain-boundary audit required before DONE. |
+| WP10 read-only preview | DONE — read-only composition only | `POST /api/v1/orders/[id]/changes/preview` composes capability, projection, calculation, and financial classification. It requires `orders:edit` and CSRF, issues a proof only for an allowed acknowledged batch, and writes no Change. Focused Jest: 11 passed. Targeted ESLint exited 0. See [WP10 report](WP10_Preview_v3.0.md). |
+| WP11–WP20 | NOT STARTED | Separate package approval and listed prerequisites required.|
 
 **Inherited v3.0/Codex change record (preserved evidence):** Audited/froze the existing codebase report; retained approved architecture and 20-package sequence; clarified split-safe history references and evidence limits; added mandatory instruction/reuse/agent/status/documentation tasks and production acceptance gates. No production behavior or schema changed by freeze.
 
@@ -576,6 +611,7 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 - **Tests:** Duplicate product lines, duplicate seq with distinct UUIDs, many additions, new+removed no-op, quantity0/negative, protected operational pieces, parent/child conflicts.
 - **Acceptance:** Deterministic projection and operation explanation; no-op creates no Change/revision; no physical trimming or re-identification.
 - **Dependencies:** WP04–05. **Do not change:** Create product grouping/reducer, workflow state, money engine.
+- **Status:** DONE for the in-memory contract. Evidence, dependencies, and remaining gaps are in [WP06 report](WP06_Item_Piece_Projection_v3.0.md). Focused Jest: 8 passed. No route, migration, or selling-price change.
 
 ### WP07 — Generic preference projection and cache adapters
 
@@ -587,6 +623,7 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 - **Tests:** ORDER/ITEM/PIECE every generic kind, packing/conditions/service notes, stable IDs, source mismatch, parent removed, no double count, unchanged preference preserved.
 - **Acceptance:** Projection/cache/detail totals coherent; generic ops cover current preference routes without parallel model.
 - **Dependencies:** WP06 and reviewed preference-money contract. **Do not change:** global catalogs, operational confirmation behavior, unrelated preference schema.
+- **Status:** PARTIAL — in-memory preference projection/contribution cache implemented and focused-tested; retroactive governance reuse/domain-boundary audit required before DONE. Evidence, dependencies, and remaining gaps are in [WP07 report](WP07_Preference_Projection_v3.0.md). Focused Jest: 7 passed. Order selling totals remain WP08.
 
 ### WP08 — Transaction-compatible pricing, discounts, tax, charge and rounding calculation
 
@@ -598,6 +635,7 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 - **Tests:** Non-zero price-list adjustment, override permission, unchanged lines after catalog change, TAX_INCLUSIVE/EXCLUSIVE, all pref levels, promotion cap/usage, 4-decimal persistence versus currency display precision, charge treatment, rounding boundary and drift requiring re-review.
 - **Acceptance:** Existing Create calculation results stay green; projected stable Edit totals deterministic and server-owned; transaction phase performs no HTTP/global client reads.
 - **Dependencies:** WP06–07, monetary clarifications in Part 10. **Do not change:** approved Finance formulas, payment/gift as settlement semantics, untouched line prices, charge taxability by inference.
+- **Status:** PARTIAL — pure adapter implemented and focused-tested; retroactive governance reuse/domain-boundary audit required before DONE. Evidence and remaining gaps are in [WP08 report](WP08_Calculation_Adapter_v3.0.md). Create calculation tests: 23 passed. Edit adapter tests: 6 passed.
 
 ### WP09 — Finance projection, reconciliation and correction policy
 
@@ -609,6 +647,7 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 - **Tests:** 20paid→15, 10paid→20, 20paid→25, split tender/stored credit, pending gateway excluded, prior refund/disposition offsets, no settlement side effect, linked AR correction and tax composition/precision, no duplicate correction on later refund.
 - **Acceptance:** Preview/active facts/snapshot reconcile; payment/receipt/voucher facts unchanged; supported B2B/fiscal edits coherent or denied explicitly.
 - **Dependencies:** WP08, Finance correction policy reviewed. **Do not change:** historic invoice/receipt/payment, D005 outstanding formula, refund policy silently, cash ledger.
+- **Status:** PARTIAL — in-memory classification implemented and focused-tested; retroactive governance reuse/domain-boundary audit required before DONE. Evidence and remaining gaps are in [WP09 report](WP09_Financial_Result_v3.0.md). Focused Jest: 5 passed. Snapshot equality and fiscal writing remain later packages.
 
 ### WP10 — Read-only Preview API
 
@@ -620,6 +659,7 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 - **Tests:** Successful preview, denied operation, both conflicts, invalid refs, warning/reason, all operation types, zero changes, identity preservation; instrument transaction/client calls and assert zero DML/outbox/idempotency/promo usage/reservations.
 - **Acceptance:** Preview useful for the full V1 batch and provably no-write; no pending Change row; same frozen context produces same result.
 - **Dependencies:** WP04–09. **Do not change:** existing `/orders/preview` Create behavior, Create submit, live commercial records.
+- **Status:** DONE for the read-only composition. Evidence and remaining gaps are in [WP10 report](WP10_Preview_v3.0.md). Focused Jest: 11 passed. Apply, distributed rate limiting, and review-key provisioning remain later gates.
 
 ### WP11 — Stable persistence adapters, transactional idempotency and outbox
 
@@ -630,7 +670,7 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 - **Steps/reuse:** Implement ID-preserving INSERT/UPDATE/logical REMOVE, scoped predicates and sequence allocation; tx detail-fact retirement/replacement; durable key/hash lookup and atomic cached response; audit/outbox insert. Audit event consumers before choosing NEW `order.change_applied` token; preserve all legacy tokens. Unhandled outbox events currently mark processed, so never rely on an unregistered handler.
 - **Tests:** Shared tx identity for every collaborator, inactive descendants, client→persisted mapping, concurrency sequence/number, key/hash scope/expiry/replay, outbox rollback and consumer registration.
 - **Acceptance:** No internal transaction/global Prisma/network call escapes caller boundary; all changed facts rollback together; direct helpers cannot mutate V2 committed rows independently.
-- **Dependencies:** WP06–09, WP02 applied. **Do not change:** existing event token meanings, Create settlement, external notification/payment execution.
+- **Dependencies:** WP06–09, WP02 applied, and the retroactive WP07–WP09 governance reuse/domain-boundary audit closed. If that audit changes WP07–WP09 contracts, revalidate WP10 before WP11. **Do not change:** existing event token meanings, Create settlement, external notification/payment execution.
 
 ### WP12 — Atomic Apply API
 
@@ -701,10 +741,10 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 ### WP18 — Target preflight, backfill and concurrency/security release proof
 
 - **Objective:** Verify actual deployment/schema/data/policy and all pack scenarios before pilot.
-- **Current files:** reviewed migrations/runbook/tests; `web-admin/jest.db.config.js`, `jest.config.js`, `playwright.config.ts`; Playwright specs in Part 9; tenant tests; workflow policy and permission/flag inventories.
+- **Current files:** reviewed migrations/runbook/tests; `web-admin/jest.db.config.js`, `jest.config.js`, `playwright.config.ts`; the v3.0 Test Guide/Scenario Matrix and Manual UI Test Guide; Playwright specs in Part 9; tenant tests; workflow policy and permission/flag inventories.
 - **NEW:** `__tests__/db-integration/order-change-concurrency.db.test.ts`, `order-change-tenant-isolation.db.test.ts`; security/direct-access cases; extend `e2e/edit-order-v2.spec.ts` and existing New Order/payment/preferences/workflow specs.
 - **DB changes:** Operator-applied reviewed backfill/constraint validation, not agent-run migrations. No reset.
-- **Steps/reuse:** Verify target RLS/grants/FKs/functions (including no-op legacy item recalculation definition), source-quality backfill, new producers, policy bindings, actor permission grants, migration order and incompatible clients; run real local/test fixture concurrency then representative UAT.
+- **Steps/reuse:** Verify target RLS/grants/FKs/functions (including no-op legacy item recalculation definition), source-quality backfill, new producers, policy bindings, actor permission grants, migration order and incompatible clients; execute the applicable Test Guide scenario IDs; run real local/test fixture concurrency, Playwright coverage, then only the manual UI scenarios that remain genuinely human-judgement dependent.
 - **Tests:** Full Part 9 matrix with real tx/fault/tenant actors; browser EN/AR; Finance source/caps; load enough contention to prove lock order and duplicate response behavior. Missing DB/seed must be explicit and cannot count as pass.
 - **Acceptance:** No unresolved enabling-scope source/policy/FK or fiscal gap; canonical Create protected; all required V2 integration/concurrency/RLS/E2E results recorded, no placeholder assertions.
 - **Dependencies:** WP01–17. **Do not change:** production data via tests, authorization to apply migrations, deferred branches/currency/SAME_DAY modes without support.
@@ -727,7 +767,7 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 - **NEW:** Only missing approved documentation pages; generated docs through repository documentation workflow.
 - **DB changes:** No historical table drop; optional deprecation migration only by separate review. Physical workflow rename is deferred separate scope, not mandatory cleanup bundled here.
 - **Steps/reuse:** Remove unreachable replacement paths/synthetic IDs/timestamp OCC; retain legacy history readers; document APIs/ops/schema/backfill/RBAC/navigation/settings/flags/plan implications/i18n/currency/Finance correction/env/telemetry/support; record unavailable modes. Regenerate only affected inventories after access changes.
-- **Final documentation task (mandatory):** Invoke `.codex/skills/documentation/SKILL.md` to create/refresh the canonical implemented-feature pack: README/index, development plan, progress summary/current status, changelog/version, developer/technical guide, API/operation/error contracts, schema/ERD and migration/backfill guide, testing evidence, deployment/cutover/rollback runbook, user/admin EN/AR workflow guide, support/troubleshooting and operational ownership. Include permissions, navigation/screens, settings, flags, plan limits, i18n, constants/types, env variables and events/consumers, explicitly marking unchanged/not-applicable/deferred areas. Validate links and reconcile each document with code and release evidence; do not duplicate this plan as a competing authority.
+- **Final documentation task (mandatory):** Invoke `.codex/skills/documentation/SKILL.md` to create/refresh the canonical implemented-feature pack: README/index, development plan, progress summary/current status, changelog/version, developer/technical guide, API/operation/error contracts, schema/ERD and migration/backfill guide, Test Guide/Scenario Matrix, Manual UI Test Guide, testing evidence, deployment/cutover/rollback runbook, user/admin EN/AR workflow guide, support/troubleshooting and operational ownership. Include permissions, navigation/screens, settings, flags, plan limits, i18n, constants/types, env variables and events/consumers, explicitly marking unchanged/not-applicable/deferred areas. Validate links and reconcile each document with code and release evidence; do not duplicate this plan as a competing authority.
 - **Tests:** Targeted retired-path checks, typecheck/lint/build/i18n if frontend touched; bounded regression for remaining contracts; docs links/current status.
 - **Acceptance:** No code/docs describe B12 or full replacement as V2 authority; source inventories and support instructions agree; all unresolved follow-ups owned.
 - **Dependencies:** WP19 and closed rollback window. **Do not change:** old migrations, stored historical records, unrelated module formatting/refactor.
@@ -739,6 +779,8 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 Backfill **design** starts WP02; compatible commitment producers land WP03; actual enabling-scope backfill/preflight is complete before WP19. Contract/projection/Finance adapters precede completed Apply. This removes the pack's unsafe dependency ordering without changing its target architecture.
 
 ## Part 9 — Test matrix and current validation
+
+Detailed test execution is governed by `CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Test_Guide_and_Scenario_Matrix.md`. Human-only visual/usability/RTL/accessibility/device checks are governed by `CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Manual_UI_Test_Guide.md`. Part 9 remains the high-level architecture scenario matrix and current-validation summary; it is not a substitute for those detailed guides.
 
 ### Architecture Scenario Matrix → executable coverage
 
@@ -835,10 +877,10 @@ Existing suites to reuse/extend (presence/content inspected; not all executed he
 |---|---|---|---|
 | Remote schema/privilege verification | Remote catalog preflight passed; broad grants/default ACLs verified, runtime/data proof pending | Review connection role/function authority and tenant-bounded data; design explicit new-object grants/revokes | Remote schema/backfill/cutover approval; **not WP01** |
 | Historical commitment source/timezone | Current producers include drafts/remote/Quick Drop/legacy compensation; created/status/items are not universal proof | Source-quality audit with per-source commitment mapping; unknown cohort remediation; verified timezone and actor lineage | Historical V2 enablement/backfill |
-| Commercial operation-policy binding | WP05 confirms `sys_wf_prof_ver_exec_cf`/gate tables are transition-oriented and `profile_policy_json` is not a live Change-policy projection. The operator applied and type-generated `0597` and `0599`. HQ Studio mutation now uses the atomic save command, audit, and separate HQ capabilities covered by `workflows.*`. | `HQ_RBAC_ENFORCEMENT_ENABLED` proof is postponed until HQ RBAC is implemented. Exercise one Pilot assignment through the tenant resolver and confirm a missing tuple denies. Do not repurpose transition execution configuration. | WP05 capability completion/Apply enablement |
-| Money wording: inclusive unit amounts and preference extras | Current code concretely conflicts with unconditional pre-tax interpretation; level-specific extras are embedded/separate differently | Record accepted current mode/level contract or approve a separate compatibility/conversion design; keep historical facts intact | WP08 calculation contract |
-| Catalog adjustment consumption | Pricing returns adjusted `finalPrice`; calculator uses `basePrice` (or override); RPC may already adjust | Verify RPC/price result semantics with non-zero adjustment fixture, decide exact authoritative selling unit once | Changed/new line pricing readiness |
-| Issued fiscal and linked AR correction | Existing correction prorates original tax and rounds two decimals; snapshot only warns linked AR mismatch | Finite supported correction policy/timing/source lineage, precision/tax-composition proof; deny unsupported issued states until safe | WP09 and affected paid/B2B edit scenarios |
+| Commercial operation-policy binding | WP05 confirms `sys_wf_prof_ver_exec_cf`/gate tables are transition-oriented and `profile_policy_json` is not a live Change-policy projection. The operator applied and type-generated `0597` and `0599`, then applied `0605`, `0606`, and `0607`. HQ Studio mutation uses the atomic save command. One live Pilot policy denies a missing operation and allows a present one. | Do not repurpose transition execution configuration. Preview and Apply remain later increments. | Apply enablement |
+| Money wording: inclusive unit amounts and preference extras | TAX_INCLUSIVE amounts stay gross and TAX_EXCLUSIVE amounts stay pre-tax. WP08 applies one supplied rate and the WP07 level split. Compound profiles and numeric(10,3) storage remain open | Keep historical facts intact. Preview must pass the resolved rate. | Compound tax and persistence, not the pure adapter |
+| Catalog adjustment consumption | CLOSED for Edit new/changed lines: authorized override wins; otherwise `finalPrice` carries a positive catalog discount once, and `basePrice` is used when that discount is zero. Create still consumes `basePrice` and was not changed | Preview must pass the resolved quote. Do not apply the discount again downstream | Create behavior remains its current calculator |
+| Issued fiscal and linked AR correction | WP09 classifies obligation as the original document plus later credit and debit documents, and it denies an unsupported or duplicate correction. It does not issue the document or post AR. Writing and two-decimal legacy correction behavior remain open | Fiscal/AR writer packages; not a reason to compare a delta document with the full order total |
 | Finite V1 Finance resolution eligibility | Current checkout resolver is not a universal post-change resolver; gateway automation/restoration coverage differs | Decide supported original-source dispositions and manual/automatic execution; expose proven actions only | WP16 corresponding modes |
 | Charge/discount correction operation vocabulary | Pack lists representative ops but all committed charge/preference repair paths must converge; not every charge correction is a preference removal | Define typed owning-domain intent within Change for needed charge/discount corrections; mark NEW operation tokens for approval rather than inventing unreviewed enums. Retire/deny unsupported compatibility paths at cutover | WP17 writer closure for those paths |
 
@@ -859,7 +901,7 @@ WP01 protection is substantially complete and is not reset. Authorized WP02 is D
 
 **Overall verdict:** READY WITH REQUIRED CORRECTIONS. Adopt the approved Change architecture and current reusable domains with the composition, money-contract, capability, reader, Finance-follow-up and sequencing adjustments documented above.
 
-**Final work-package sequence:** WP01→WP20 unchanged. WP01.1–.4 DONE/WP01.5 PARTIAL preserved. WP02, WP03 and WP04 are DONE; WP05 is PARTIAL. WP05-A supplies tenant-side default-deny capability/proof infrastructure, operator-applied permission/flag registrations and a synchronized default-off runtime flag catalog. WP05-B foundation 0597 and atomic save command 0599 are operator-applied and type-generated. The tenant resolver binds policy identity and derives the correct ADD_PREFERENCE parent target. HQ authoring API and the Studio Edit Policy tab save Draft/Pilot matrices through `sys_wf_edit_policy_save`. HQ RBAC enforcement proof is postponed until HQ RBAC is implemented. WP05 must still close signer ownership and a focused Pilot-assignment resolver test before a Change can be enabled. After those gates, invoke the documentation skill for the implemented-feature pack. WP06–WP20 remain NOT STARTED. See [WP04 report](WP04_Contracts_Context_v3.0.md), [WP05-A evidence](WP05_Access_Capability_Proof_v3.0.md), and [WP05-B specification](WP05-B_HQ_Order_Edit_Capabilities_v3.0.md).
+**Final work-package sequence:** WP01→WP20 unchanged. WP01.1–.4 DONE/WP01.5 PARTIAL preserved. WP02, WP03, WP04, WP05, WP06, and WP10 retain their recorded statuses. WP07, WP08, and WP09 are PARTIAL under the newly adopted implementation-governance Definition of Done: their implementation/focused-test evidence remains valid, but the required retroactive reuse/domain-boundary audit is pending. WP05-A supplies tenant-side default-deny capability/proof infrastructure. The operator applied `0566`, `0567`, `0597`, `0599`, `0605`, `0606`, and `0607`. HQ Edit Policy authoring and the tenant missing-tuple resolver proof are in place, and HQ RBAC is implemented. WP06 remains DONE for its in-memory projection. WP07 is implemented for its in-memory projection but PARTIAL pending governance audit. WP08 is implemented for the pure calculation adapter but PARTIAL pending governance audit: unchanged lines keep their stored price, and a new or changed line uses an authorized override or the quote final price. WP09 is implemented for in-memory financial classification through the existing D005 formula but PARTIAL pending governance audit. WP10 is DONE only for the read-only Preview route: it composes those adapters, requires `orders:edit` and CSRF, and writes no Change. Compound tax resolution, currency-increment rounding, snapshot writing, fiscal document writing, distributed Preview rate limiting, review-key provisioning, and Apply remain later work. WP11–WP20 remain NOT STARTED. See [WP04 report](WP04_Contracts_Context_v3.0.md), [WP05-A evidence](WP05_Access_Capability_Proof_v3.0.md), [WP05-B specification](WP05-B_HQ_Order_Edit_Capabilities_v3.0.md), [WP06 report](WP06_Item_Piece_Projection_v3.0.md), [WP07 report](WP07_Preference_Projection_v3.0.md), [WP08 report](WP08_Calculation_Adapter_v3.0.md), [WP09 report](WP09_Financial_Result_v3.0.md), and [WP10 report](WP10_Preview_v3.0.md).
 
 **Activation gates:** Operator installation/catalog parity, user-authorized Prisma schema/client sync, historical ineligibility classification, active-only hierarchy/removal-origin disposition and database structural proof have passed. Membership/runtime authority, privileged-RPC closure, real authenticated application-flow and supported Split execution proof remain open in WP17/WP18. Later capability/Finance/fiscal decisions remain unchanged.
 
@@ -901,7 +943,7 @@ Required package impacts:
 
 - WP02/03: verified local/remote schema differences, NULL lifecycle semantics, immutable history versus mutable split hierarchy, lineage keys, numeric storage, source/actor/timezone classification and explicit creation-time grants/revokes.
 - WP04/05/10/12/15: strict typed aggregates and operation payloads, mandatory review proof, bounded requests, no-op/replay ordering, safe uncertain-response retry, policy binding and server-derived identity.
-- WP06/07/08: exactly-once piece/quantity materialization, stable preference IDs, current single-count preference money, inclusive/gross versus exclusive/net storage and legacy quantization.
+- WP08 pure adapter is recorded in its report. Compound tax profiles, currency-increment rounding, and numeric(10,3) item storage remain open.
 - WP09/11/12/16: Finance source-lock coordination, canonical credit/refund/AR formulas, supported source-qualified resolution routes/DTOs and fiscal/AR correction ownership; no historical settlement mutation.
 - WP17/18/19: membership-safe tenant authority, restricted direct DML/privileged RPCs, all writer closure, registered outbox consumers/notification bridge, real security/concurrency/migration/browser proof and support budgets.
 

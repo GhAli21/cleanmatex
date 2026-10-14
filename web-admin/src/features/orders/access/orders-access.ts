@@ -917,6 +917,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {},
     apiDependencies: [
       {
+        label: 'Order Change Preview',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/changes/preview',
+        requirement: {
+          permissions: ['orders:edit'],
+          requireAllPermissions: true,
+        },
+        notes: ['Read-only Edit preview. CSRF and orders:edit are enforced in the route. No Change row is written.'],
+      },
+      {
         label: 'Assembly Dashboard',
         method: 'GET',
         path: '/api/v1/assembly/dashboard',

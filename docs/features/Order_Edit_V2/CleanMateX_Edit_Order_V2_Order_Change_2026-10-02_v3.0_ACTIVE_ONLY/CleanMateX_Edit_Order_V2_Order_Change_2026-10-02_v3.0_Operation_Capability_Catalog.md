@@ -53,7 +53,7 @@ Evidence: `edit-order-schemas.ts:20`, `:41`, `:88` supplies current legacy field
 
 ### Structural quantity gate
 
-`ADD_ITEM(quantity=3)` plus three separate `ADD_PIECE` operations cannot both establish quantity 3 and increment it three more times. The existing catalog did not distinguish initial materialization from quantity growth. Similarly, one `CHANGE_ITEM_QUANTITY` tracked decrease plus its selected `REMOVE_PIECE` operations must not decrement twice. WP06 must freeze one normalized quantity ownership/materialization contract, validate it with new and existing tracked-item examples and keep the frozen +1/-1 piece invariant. Until that contract is approved, tracked new-item/quantity flows are not executable; do not guess a zero-quantity persisted item or introduce an unapproved operation token. ADD_ITEM on non-tracked lines remains unambiguous.
+`ADD_ITEM(quantity=3)` plus three separate `ADD_PIECE` operations cannot both establish quantity 3 and increment it three more times. One `CHANGE_ITEM_QUANTITY` tracked decrease plus its selected `REMOVE_PIECE` operations must not decrement twice. WP06 freezes that contract in `projectOrderChangeStructure`: new-line pieces materialize the declared quantity, an existing tracked increase is owned by the quantity operation, and each selected piece is removed once. The frozen +1 rule remains for an existing tracked `ADD_PIECE` that has no quantity owner. Zero quantity is still `REMOVE_ITEM`, not an active zero line. The contract is in-memory only until Preview and Apply call it. See [WP06 report](WP06_Item_Piece_Projection_v3.0.md).
 
 ### V1 scope and owning-domain closure
 

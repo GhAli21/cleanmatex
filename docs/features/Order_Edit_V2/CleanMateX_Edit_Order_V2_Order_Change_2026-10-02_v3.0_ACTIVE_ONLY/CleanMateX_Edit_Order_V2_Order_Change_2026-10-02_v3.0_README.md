@@ -12,6 +12,9 @@
 
 ## Specialized sources
 
+- [Implementation Governance](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Implementation_Governance.md) — mandatory WP reuse/domain-boundary/legacy-migration/Definition-of-Done rules.
+- [Test Guide and Scenario Matrix](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Test_Guide_and_Scenario_Matrix.md) — detailed automated/API/DB/security/concurrency/E2E scenario catalog and verification-evidence contract.
+- [Manual UI Test Guide](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Manual_UI_Test_Guide.md) — manual-only visual/usability/EN-AR-RTL/accessibility/device tests with exact UI navigation/controls.
 - [Database Schema Blueprint](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Database_Schema_Blueprint.md)
 - [API Contract Catalog](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_API_Contract_Catalog.md)
 - [Operation Capability Catalog](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Operation_Capability_Catalog.md)
@@ -24,6 +27,16 @@
 - [Migration Cutover Operations Runbook](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Migration_Cutover_Operations_Runbook.md)
 - [Open Decisions Release Gates](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Open_Decisions_Release_Gates.md)
 - [Frozen Invariants](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Frozen_Invariants.md)
+
+## Package reports
+
+These reports are evidence for the living plan. They do not replace it. WP07–WP09 remain implemented/tested slices but require the retroactive governance audit defined in Implementation Governance before returning to unqualified DONE status.
+
+- [WP06 item and piece projection](WP06_Item_Piece_Projection_v3.0.md)
+- [WP07 preference projection](WP07_Preference_Projection_v3.0.md)
+- [WP08 calculation adapter](WP08_Calculation_Adapter_v3.0.md)
+- [WP09 financial result](WP09_Financial_Result_v3.0.md)
+- [WP10 read-only preview](WP10_Preview_v3.0.md)
 
 ## Review and export classification
 

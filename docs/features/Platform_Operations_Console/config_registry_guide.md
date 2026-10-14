@@ -1,0 +1,105 @@
+# Config Registry — Operator and Developer Guide (P4)
+
+**Status:** CREATED, migration `0612_ops_config_registry.sql` **NOT APPLIED**. API and screen are built and tested against mocks; nothing here has run against a real database yet.
+**Screen:** HQ `/ops/config` (sidebar: Operations → Configuration Registry). **API:** `GET/PUT/PATCH/DELETE/POST /ops/config…` in HQ platform-api module `ops-config`.
+**Permissions:** `hq_ops:read` (view), `hq_ops:manage_config` (plain keys, Check now), `hq_ops:manage_secrets` (secret or encrypted keys). SUPER_ADMIN already holds `*`.
+
+## 1. What it is
+
+An inventory of configuration keys (environment variables and settings) with, per key:
+
+| Field | Meaning |
+|---|---|
+| `source_policy` | Where the live value may come from (section 2). Column default is `DB_ONLY`. |
+| `env_var_name` | The environment variable that carries the key on its host. |
+| `is_secret` / `is_encrypted` | `is_secret` implies `is_encrypted` (database CHECK). Encrypted values are stored only as an AES-256-GCM envelope and are **write-only**. A non-secret key may still be encrypted. |
+| `is_bootstrap` | Needed before the database is reachable. Forced `ENV_ONLY`, never stored (CHECK). |
+| `is_wired` | `true` only once application code reads the key through `ConfigResolverService`. While `false`, a value stored here is **not consumed** by anything. |
+| `manage_via` | `UI`, `HOSTING_ENV`, `EXTERNAL_CONSOLE`, `MIGRATION`, `GIT`. Non-UI keys show a guidance panel (EN/AR). |
+| `applies_to_app` | `PLATFORM_API`, `PLATFORM_WORKERS`, `TENANT_WEB`, `ALL`. |
+
+Tables: `sys_ops_config_cf` (registry) and `sys_ops_config_chg_log` (history: action, actor, **fingerprints only**).
+
+## 2. Source policies
+
+| Policy | Live value | Notes |
+|---|---|---|
+| `DB_ONLY` | The stored value. Environment ignored. | Default for new keys. Switching to it requires a stored value. |
+| `ENV_ONLY` | The environment variable. | The registry holds no value (CHECK). Switching to it discards any stored value and needs explicit confirmation. |
+| `BOTH_MUST_MATCH` | The value when env and stored value are equal; otherwise **refused** (`ConfigSourceMismatchError`, no value in the message). | Requires a stored value. Compared by SHA-256, so it works for encrypted values without decrypting for the comparison. |
+| `ENV_OVERRIDES_DB` | Env when set, else the stored value. | Today's behaviour for existing keys. **Every seeded key that already works as env-wins uses this**, so applying 0612 changes no behaviour. |
+
+Seeded key defaults: bootstrap keys `ENV_ONLY`; everything else `ENV_OVERRIDES_DB`. Converting a key to `DB_ONLY` is a deliberate per-key decision (section 7).
+
+## 3. Bootstrap limits (honest)
+
+Never storable here: database URL, Supabase URL/keys/JWT secret, `HQ_ENCRYPTION_MASTER_KEY`, `JWT_SECRET`, the inter-app service keys (`HQ_SERVICE_ROLE_KEY`, `NTF_HQ_SERVICE_ROLE_KEY`), `REDIS_URL`. They are needed before the database or the master key is available, so they stay in the hosting environment. The API (`BOOTSTRAP_KEY` → HTTP 409) and the database both refuse to set, clear or re-policy them. Rotate them in the hosting provider and restart.
+
+`HQ_SERVICE_ROLE_KEY` (HQ side) and `NTF_HQ_SERVICE_ROLE_KEY` (tenant side) must be equal; the registry cannot compare them because each lives in a different host environment.
+
+## 4. Secrets handling
+
+- HQ platform-api encrypts with the existing `EncryptionService` (AES-256-GCM, versioned envelope, master key `HQ_ENCRYPTION_MASTER_KEY` read from the environment only). The database receives ciphertext plus a SHA-256 fingerprint and never sees the master key.
+- Nothing returns a secret: `fn_ops_config_list` omits ciphertext and fingerprints and returns `db_value` only for plain non-secret rows; the API echoes metadata only. `fn_ops_config_get_raw` (ciphertext, fingerprint) is service-role-only and used in-process by the resolver and the check; its output never reaches a controller response or a log.
+- Audit and history carry a fingerprint (audit: first 12 hex chars; history table: full digest), never a value or ciphertext. Errors never echo a submitted value.
+- Values are trimmed before fingerprinting/storing; the environment value is trimmed the same way, so a stray newline cannot cause a false mismatch.
+- Residual risks: a fingerprint of a low-entropy value (a short flag, a phone number) can be guessed offline. This is acceptable for non-secrets (they are shown anyway) and for high-entropy secrets; do not store a low-entropy secret. Rotating `HQ_ENCRYPTION_MASTER_KEY` makes every stored envelope undecryptable until values are re-entered (no re-encryption tool exists yet).
+- Do not paste a secret into chat, tickets or a repository file; type it into the write-only field.
+
+## 5. "Check now" and its limit
+
+`POST /ops/config/check` reports, per key: set / not set in the **HQ platform-api process environment**, set / not set in the database, and for `BOTH_MUST_MATCH` MATCH / MISMATCH from fingerprints. Statuses: `OK`, `MISSING`, `MATCH`, `MISMATCH`, `UNCHECKABLE`, persisted to `last_check_status`.
+
+**One process cannot read another host's environment.** Keys that read their environment on another app (`TENANT_WEB`, `PLATFORM_WORKERS`) and need it (every policy except `DB_ONLY`) are reported `UNCHECKABLE`. Real cross-host agreement needs each app to report its own environment (an HQ→tenant call or a heartbeat). That does not exist yet.
+
+## 6. Adding a key through a migration
+
+1. Look up the next migration number (list `supabase/migrations/`) and create a **new** file; never edit an existing one.
+2. Insert the row idempotently: `INSERT INTO public.sys_ops_config_cf (...) VALUES (...) ON CONFLICT (config_key) DO NOTHING;`
+   - `config_key`: lowercase dotted, at most 120 chars (`^[a-z0-9_]+(\.[a-z0-9_]+)*$`).
+   - Secrets: `is_secret = true`, `is_encrypted = true`, `value_type = 'SECRET_STRING'`.
+   - `source_policy`: `ENV_OVERRIDES_DB` for a key that already works as env-wins; `ENV_ONLY` + `is_bootstrap = true` + `manage_via = 'HOSTING_ENV'` for bootstrap keys. Anything except `DB_ONLY` needs `env_var_name`.
+   - `is_wired = false` until the consuming code is converted; set `requires_restart = true` until then.
+   - Provide EN and AR `name`, `description`, `guidance`, `guidance2` for any key not managed from the UI.
+   - Never put a value in the migration. Values are entered through the screen.
+3. Document every column with `COMMENT ON` per the migration standards.
+4. Create the file, **stop**, and have the owner review and apply it.
+
+## 7. Per-key conversion checklist
+
+Convert one key at a time: replace the direct read with `ConfigResolverService.resolve(key, { envFallback: '<ENV_NAME>' })`, flip `is_wired` in a new migration, add a test for the call site, and only then (optionally) change the policy in the UI.
+
+The resolver (`modules/ops-config/config-resolver.service.ts`): short TTL cache (45 s, stale served on a read failure), decrypts in-process only, falls back to `envFallback` when the key is not registered or the registry cannot be read (so a converted call site keeps working before 0612 is applied), refuses `BOTH_MUST_MATCH` disagreement without leaking a value.
+
+**Converted (reference):** `ntf.hq.resend.from_email` (`HQ_RESEND_FROM_EMAIL`) in `EmailResendProvider`. Under `ENV_OVERRIDES_DB` behaviour is unchanged; the default address `noreply@cleanmatex.com` still applies when neither source has a value. A registry rejection (mismatch / undecryptable value) fails closed with `PROVIDER_NOT_CONFIGURED`. Two intentional nuances: an empty or whitespace-only env value is now treated as "not set" (it previously produced the "incomplete credentials" failure), and without the resolver in the Nest context the legacy `process.env` read is used.
+
+**Not yet converted (HQ platform-api; `is_wired = false`):**
+
+- [ ] `ntf.hq.resend.api_key` (`HQ_RESEND_API_KEY`) — `email-resend.provider.ts`, `hq-password-mailer.ts`, `tenant-users.service.ts` message
+- [ ] `ntf.hq.twilio.account_sid` / `auth_token` (`HQ_TWILIO_ACCOUNT_SID` / `HQ_TWILIO_AUTH_TOKEN`) — SMS and WhatsApp providers, `twilio-content-importer.service.ts`, webhook verification
+- [ ] `ntf.hq.twilio.sms_from` / `whatsapp_from` — `sms-twilio.provider.ts`, `whatsapp-meta.provider.ts`, `route-dispatch.service.ts` (`ConfigService.get`)
+- [ ] `ntf.hq.twilio.webhook_url` (`HQ_TWILIO_WEBHOOK_URL`) — signature verification, 11 read sites
+- [ ] `ntf.hq.twilio.content_cred_ref` / `content_cred_ver` — `twilio-content-importer.service.ts`
+- [ ] `ntf.hq.meta.app_secret` / `wa_access_token` / `wa_phone_number_id`
+- [ ] `ntf.hq.fcm.server_key` (`HQ_FCM_SERVER_KEY`)
+- [ ] `ntf.hq.queue_enabled` (`NTF_QUEUE_ENABLED`) — read at module init; needs restart semantics
+- [ ] Bootstrap keys: never convert.
+
+**Not yet converted (tenant `web-admin`; the registry value is not consumed there):** the tenant app has no HQ resolver. Its runtime flags come from `sys_ntf_runtime_cf` (env wins) in `lib/notifications/config.ts`; its secrets come straight from `process.env`. Each is seeded `TENANT_WEB`, `is_wired = false`, `UNCHECKABLE` in the check:
+
+- [ ] Runtime flags: `ntf.app.whatsapp_fallback_email`, `order_transition_notify`, `outbox_inline_dispatch`, `dispatch_via_hq`, `hq_dispatch_url`, `hq_route_dispatch_url`, `resend_from_email`, `twilio_sms_from`, `twilio_whatsapp_from`, `wa_use_sandbox_template`, `wa_sandbox_content_sid`, `wa_sandbox_to_phone`. These duplicate `sys_ntf_runtime_cf`; decide which store is authoritative before converting (do not run two sources of truth), and note that the tenant app must reach the registry through an HQ API.
+- [ ] Secrets: `ntf.app.outbox_secret` (`NOTIFICATIONS_OUTBOX_SECRET`, must equal `sys_ntf_runtime_cf.outbox_secret_key` / `app.outbox_secret_key` used by pg_cron), `ntf.app.resend.webhook_secret`, `ntf.app.resend.api_key`, `ntf.app.twilio.*`, `ntf.app.meta.*`, `ntf.app.vapid.*`, `ntf.app.onesignal.*`, `ntf.app.fcm.*`. The tenant app would need an authenticated S2S route to resolve secrets without holding the HQ master key.
+
+## 8. Operator steps once 0612 is applied
+
+1. Open Operations → Configuration Registry. Every key should show; bootstrap and `ENV_ONLY` keys say "Environment only".
+2. Press **Check now**. `UNCHECKABLE` is expected for tenant-app keys.
+3. Safe first exercise: edit `ntf.hq.resend.from_email` (plain). While `HQ_RESEND_FROM_EMAIL` is set in the HQ environment it still wins (the dialog warns); change its policy to `DB_ONLY` only after storing the value, if you want the screen to be authoritative.
+4. Anything marked "Not wired yet": storing a value is safe but has no effect until that key is converted.
+
+## 9. Not verified yet
+
+- The migration has been syntax-parsed only (114 statements, pglast), never run. Function behaviour (policy matrix inside the database, `fn_ops_config_set` shape rules, `record_check` with the CHECK vocabulary) is unexecuted; the same rules are mirrored and unit-tested in the API.
+- DB types for both apps were not regenerated; the repository uses a narrow typed bridge (as in P1).
+- The screen has not been opened in a browser against a live API.
+- The `hq_ops:manage_config` / `hq_ops:manage_secrets` permissions exist only after 0612 is applied.

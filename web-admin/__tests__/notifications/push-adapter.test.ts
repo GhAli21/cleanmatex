@@ -46,20 +46,19 @@ function makeMockSupabase(subscriptions: unknown[] | null, fetchError: { message
   const updateEqFn = jest.fn().mockResolvedValue({ error: null });
   const updateFn = jest.fn().mockReturnValue({ eq: updateEqFn });
 
-  const selectFn = jest.fn().mockReturnValue({
-    eq: jest.fn().mockImplementation(() => ({
-      eq: jest.fn().mockImplementation(() => ({
-        eq: jest.fn().mockImplementation(() => ({
-          eq: jest.fn().mockResolvedValue({ data: subscriptions, error: fetchError }),
-        })),
-      })),
-    })),
-  });
+  // Named so tests can assert the exact column/value each .eq() call in the
+  // tenant_org_id -> user_id -> provider_code -> is_active chain was given
+  // (matrix row 15: cross-tenant isolation on the subscription-fetch query).
+  const eq4Fn = jest.fn().mockResolvedValue({ data: subscriptions, error: fetchError });
+  const eq3Fn = jest.fn().mockReturnValue({ eq: eq4Fn });
+  const eq2Fn = jest.fn().mockReturnValue({ eq: eq3Fn });
+  const eq1Fn = jest.fn().mockReturnValue({ eq: eq2Fn });
+  const selectFn = jest.fn().mockReturnValue({ eq: eq1Fn });
 
   const fromFn = jest.fn().mockReturnValue({ select: selectFn, update: updateFn });
   const client = { from: fromFn };
   jest.mocked(createAdminSupabaseClient).mockReturnValue(client as unknown as ReturnType<typeof createAdminSupabaseClient>);
-  return { fromFn, selectFn, updateFn, updateEqFn };
+  return { fromFn, selectFn, updateFn, updateEqFn, eq1Fn, eq2Fn, eq3Fn, eq4Fn };
 }
 
 describe('push adapter — deliverPushOutbox', () => {
@@ -99,6 +98,29 @@ describe('push adapter — deliverPushOutbox', () => {
 
       expect(result).toEqual({ success: false, sentCount: 0, skippedCount: 0, errorMessage: 'Failed to load subscriptions: connection reset' });
       expect(sendVapidPush).not.toHaveBeenCalled();
+    });
+
+    it('scopes the subscription-fetch query to this exact tenant, recipient, provider and active flag (matrix row 15: cross-tenant isolation)', async () => {
+      jest.mocked(notificationSettingsService.getActiveProvider).mockResolvedValue({ providerCode: 'VAPID', config: {} });
+      const { eq1Fn, eq2Fn, eq3Fn, eq4Fn } = makeMockSupabase([]);
+
+      await deliverPushOutbox(baseRow);
+
+      expect(eq1Fn).toHaveBeenCalledWith('tenant_org_id', 'tenant-a');
+      expect(eq2Fn).toHaveBeenCalledWith('user_id', 'user-a');
+      expect(eq3Fn).toHaveBeenCalledWith('provider_code', 'VAPID');
+      expect(eq4Fn).toHaveBeenCalledWith('is_active', true);
+    });
+
+    it('never reuses a cross-tenant query shape — a different tenant/recipient on the same row produces a differently-scoped query', async () => {
+      jest.mocked(notificationSettingsService.getActiveProvider).mockResolvedValue({ providerCode: 'VAPID', config: {} });
+      const { eq1Fn, eq2Fn } = makeMockSupabase([]);
+
+      await deliverPushOutbox({ ...baseRow, tenant_org_id: 'tenant-b', recipient_user_id: 'user-b' });
+
+      expect(eq1Fn).toHaveBeenCalledWith('tenant_org_id', 'tenant-b');
+      expect(eq1Fn).not.toHaveBeenCalledWith('tenant_org_id', 'tenant-a');
+      expect(eq2Fn).toHaveBeenCalledWith('user_id', 'user-b');
     });
 
     it('succeeds trivially with zero sent/skipped when the recipient has no active subscriptions', async () => {

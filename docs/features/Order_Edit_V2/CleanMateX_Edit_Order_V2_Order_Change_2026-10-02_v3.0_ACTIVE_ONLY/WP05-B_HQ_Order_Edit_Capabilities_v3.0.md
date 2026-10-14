@@ -1,6 +1,6 @@
 # WP05-B — HQ Order Edit Capabilities
 
-**Status:** HQ authoring API and Studio tab are implemented against the applied 0597 foundation and 0599 atomic save command. `HQ_RBAC_ENFORCEMENT_ENABLED` proof is postponed until HQ RBAC itself is implemented. The tenant resolver still needs one Pilot-assignment check before WP05-B is complete.  
+**Status:** Done. HQ authoring, the Studio Edit Policy tab, and the tenant resolver proof are in place. A Pilot assignment that returns one policy still denies a missing operation with `CAPABILITY_POLICY_BINDING_MISSING`, and no single live policy denies the same way. HQ RBAC is implemented. Preview, Apply, and WP06 are not part of this increment.  
 **Authority:** Active Edit Order V2 v3.0 pack, then verified current repositories  
 **Owning applications:** `cleanmatex` owns shared migrations; `cleanmatexsaas` owns HQ API and UI; `cleanmatex` tenant runtime consumes the shared authoritative rows.  
 **Relationship:** This completes the outstanding HQ-policy part of WP05. It does not start WP06, Preview, Apply, an Edit workspace, or commercial writers.
@@ -251,7 +251,7 @@ Required focused tests cover:
 
 WP05-B is complete only when a tenant order resolves exactly one assigned Pilot/Published Edit Policy for its workflow profile version, every requested frozen operation receives an explicit policy decision, missing state fails closed, Pilot changes invalidate stale review, Published policy is immutable, and HQ permissions/audit/RBAC enforcement are proven.
 
-WP05 becomes `DONE` only after the WP05-A foundation and this WP05-B scope pass their tests and operational deployment gates. The WP01→WP20 order remains unchanged. WP06 remains blocked until WP05-B is complete; this specification does not authorize it.
+WP05 becomes `DONE` only after the WP05-A foundation and this WP05-B scope pass their tests and operational deployment gates. The WP01→WP20 order remains unchanged. This specification does not authorize WP06. Later WP06 and WP07 status is recorded in the living plan and their own reports.
 
 ## 11. Foundation implementation checkpoint
 
@@ -291,7 +291,7 @@ Implemented in `cleanmatexsaas` inside the existing workflow-engine-config modul
 
 Remaining before WP05-B can be marked done:
 
-1. `HQ_RBAC_ENFORCEMENT_ENABLED` proof is postponed. The operator will implement HQ RBAC separately. Until that switch is turned on, Edit Policy routes stay authenticated and the new `workflows.edit_policy*` capabilities are declared but not operationally enforced.
-2. Exercise one Pilot assignment through the tenant resolver and confirm a missing tuple denies. There is no tenant Edit screen for this yet. Use the service check described in the living plan.
-3. Invoke the documentation skill for the full implemented-feature pack after the resolver check passes.
+None. The closing proof is `web-admin/__tests__/services/order-change/order-change-edit-policy-resolver.service.test.ts`. It resolves one Pilot policy for one status with one operation omitted, then confirms that operation denies as `CAPABILITY_POLICY_BINDING_MISSING` while a present operation is allowed. Zero resolver rows deny the same way. The live Pilot matrix was not edited to create a hole.
+
+HQ RBAC is implemented. `workflows.view`, `workflows.edit_policy`, `workflows.edit_policy_promote`, and `workflows.edit_policy_assign` are declared on the Edit Policy routes. Enforcement follows `HQ_RBAC_ENFORCEMENT_ENABLED=true` on the HQ API.
 

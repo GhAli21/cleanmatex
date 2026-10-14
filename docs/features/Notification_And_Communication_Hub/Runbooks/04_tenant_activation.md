@@ -1,6 +1,8 @@
 # Runbook 04 — Tenant Activation (Route Lifecycle)
 
-**Status: Partial — API/UI complete, but SHADOW-ONLY.** The full route lifecycle (create DRAFT → activate → suspend → retire) is implemented end-to-end with UI wiring. Critically, **activating a route today does not change what is actually sent to any customer.** The legacy direct-Twilio path remains the only thing that sends; the new route-based resolver only runs in a shadow comparison that logs, never sends.
+> **UPDATE 2026-10-14 — the SHADOW-ONLY description below is superseded for `order.created` → WHATSAPP.** Activating a route for that exact tenant/language now makes `deliverWhatsAppOutbox` dispatch live through HQ's route-aware endpoint (`POST /api/hq/v1/notifications/dispatch/route`) instead of direct Twilio; every other event/tenant/language still uses the legacy path, and **Suspend** instantly reverts. The recipient-language signal now exists (`org_customers_mst.preferred_language` → tenant language → `en`). See [Setup_And_Config/15_operator_go_live_checklist.md](../Setup_And_Config/15_operator_go_live_checklist.md) for the step-by-step and STATUS.md "A1(b)". The "Known gaps" list at the end is likewise stale for gaps 1 and 3-4 (no pilot evidence has been recorded yet, though).
+
+**Status (historical, as of 2026-10-10): Partial — API/UI complete, but SHADOW-ONLY.** The full route lifecycle (create DRAFT → activate → suspend → retire) is implemented end-to-end with UI wiring. Critically, **activating a route today does not change what is actually sent to any customer.** The legacy direct-Twilio path remains the only thing that sends; the new route-based resolver only runs in a shadow comparison that logs, never sends.
 
 ## Purpose
 

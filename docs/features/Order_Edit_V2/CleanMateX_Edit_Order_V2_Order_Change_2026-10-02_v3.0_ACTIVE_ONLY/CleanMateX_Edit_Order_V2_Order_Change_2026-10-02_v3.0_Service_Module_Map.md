@@ -24,9 +24,11 @@ lib/services/order-change/
   order-change-context.service.ts
   order-change-capability.service.ts
   order-change-projection.ts
+  order-change-preference-projection.ts
   order-change-calculation.service.ts
   order-change-financial-result.service.ts
   order-change-preview.service.ts
+  order-change-preview-reads.ts
   order-change-mutation.service.ts
   order-change-apply.service.ts
 ```
@@ -57,7 +59,7 @@ Uses current immutable settlement components plus projected/new commercial oblig
 
 ### Preview service
 
-Read-only orchestration of context → capabilities → projection → calculation → finance result → review proof. No persistent side effects.
+Read-only orchestration of context → capabilities → projection → calculation → finance result → review proof. The pure function receives already loaded facts. The read module loads those facts and performs no commercial write. No persistent side effects.
 
 ### Mutation service
 
@@ -80,11 +82,11 @@ A helper that opens its own Prisma transaction/global DB read or performs HTTP i
 
 | Existing module | Current evidence | Safe reuse boundary |
 |---|---|---|
-| `order-calculation.service.ts:138` / `pricing.service.ts:123` | Calculator creates Supabase client/settings and uses global Prisma; price lookup uses RPC. Calculator consumes `basePrice` at :196 while pricing also supplies discounted `finalPrice` at :217. | Extract/compose pure algorithms over pre-resolved authoritative inputs and caller-tx readers. Resolve catalog-adjustment semantics with non-zero discount fixture before WP08. Do not call existing network/global wrapper inside Apply. |
-| `order-item-preference.service.ts:56`, `:140`; piece preference counterparts | Supabase writes, hard deletes, subsequent cache recalculation; no caller Prisma transaction boundary. | Reuse catalog resolution/pure rules only; implement stable-ID tx-only logical mutations and cache recalculation under WP07/WP11. Current helper is not an atomic Change adapter. |
-| `order-piece-service.ts:553`, `:1541` | Create has tx helper; deletion uses Supabase soft removal and later readiness synchronization, not commercial quantity -1. | Create's helper requires audit for inherited tenant predicates and Create defaults. Removal needs dedicated tx adapter that owns quantity, history and descendants. Do not reuse deletePiece as a complete REMOVE_PIECE operation. |
+| `order-calculation.service.ts:138` / `pricing.service.ts:123` | Calculator creates Supabase client/settings and uses global Prisma; price lookup uses RPC. Calculator consumes `basePrice` at the subtotal while pricing also supplies discounted `finalPrice`. | WP08 consumes a resolved quote in a pure function. Create still uses `basePrice` and must not be called inside the Apply transaction. Do not call the existing network/global wrapper inside Apply. |
+| `order-item-preference.service.ts:56`, `:140`; piece preference counterparts | Supabase writes, hard deletes, subsequent cache recalculation; no caller Prisma transaction boundary. | WP07 now owns the pure projection and single-count contribution cache. Transactional logical mutation remains WP11. Current helper is not an atomic Change adapter. |
+| `order-piece-service.ts:553`, `:1541` | Create has tx helper; deletion uses Supabase soft removal and later readiness synchronization, not commercial quantity -1. | WP06 owns the in-memory quantity and removal result. Create's helper still requires audit for inherited tenant predicates and Create defaults. The transactional removal adapter remains later work. Do not reuse deletePiece as a complete REMOVE_PIECE operation. |
 | `lib/utils/idempotency.ts:78`, `:139`, `:213` | Find/store/claim use global Prisma; current cache TTL is seven days. Some header comments name a Tx helper that does not exist. | Reuse canonical JSON/hash; add caller-tx command claim/completion and durable Change response lookup. Claim must roll back with Apply; no pre-transaction global mutation. |
-| `order-financial-aggregation.ts:382`, `order-financial-write.service.ts:442` | Pure D005 aggregation exists; snapshot writer accepts caller transaction and derives current active commercial/settlement facts. | Reuse aggregation against projection and writer after detail persistence; require calculation/snapshot equality and source-qualified overpayment. No new settlement ledger or delta-as-payment. |
+| `order-financial-aggregation.ts:382`, `order-financial-write.service.ts:442` | Pure D005 aggregation exists; snapshot writer accepts caller transaction and derives current active commercial/settlement facts. | WP09 calls the pure aggregation for projected outstanding and overpayment. The snapshot writer remains later persistence. No new settlement ledger or delta-as-payment. |
 | `order-settlement.service.ts:418` | Collection locks only `PAY_ON_COLLECTION` orders; separate wrapper owns its transaction. | Payment UI and tx primitives can be reused by a reviewed general receivable adapter; original payment type stays immutable. Adapter is WP16, outside Apply. |
 | `tax-document-issuance.service.ts:233` | Current correction prorates original invoice tax ratio and rounds tax to two decimal places. | Not safe general correction for changed tax composition/OMR precision. Freeze Finance/Fiscal correction and AR linkage policy with source lineage; deny unsupported modes until tests prove it. Prevent a later refund from issuing a second correction for the same obligation change. |
 
