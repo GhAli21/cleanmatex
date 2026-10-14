@@ -132,9 +132,9 @@ The current plan identifies this route as the existing Edit page. If the visible
 ### MAN-UI-001 — Edit Order context bar and workspace clarity
 
 **Owning WP:** WP14  
-**Execution status:** `NOT_EXECUTABLE_YET` until WP14 UI is implemented; then `PARTIALLY_AUTOMATED`.
+**Execution status:** `PARTIALLY_AUTOMATED`. The shared workspace is implemented. A human visual pass is still required because no committed order was opened in the browser.
 
-**Purpose:** Verify a staff user can immediately understand which order and revision is being edited without confusing the Edit workspace with New Order.
+**Purpose:** Verify a staff user can edit through the same New Order workspace, with Edit-only context, and can tell Review from a new-order submit.
 
 **Preconditions:**
 - V2 Edit feature enabled for the test cohort;
@@ -151,26 +151,29 @@ Login -> Dashboard -> Orders -> Open test order -> Order Details -> Actions -> E
 
 **Direct route:** `/dashboard/orders/{orderId}/edit`
 
-**Screen/page:** Edit Order Workspace  
-**UI area:** top context bar/header  
-**Controls/content:** order identifier, workflow status, Revision N, dirty/unsaved indicator, Discard control, primary Review action.
+**Screen/page:** Shared New Order workspace on `/dashboard/orders/{orderId}/edit`  
+**UI area:** Edit context bar above the shared catalog, item, piece, preference, customer, and summary presentation  
+**Controls/content:** order identifier, workflow status, Revision N, unsaved count, Discard, Review. Customer name, mobile, email, branch, and currency are locked. The primary action is Review.
 
 **Steps:**
 1. Open the prepared order from Dashboard -> Orders.  
    **Expected:** Order Details clearly identifies the order used for the test.
-2. Use Actions -> Edit Order.  
-   **Expected:** Edit Order Workspace opens.
-3. Inspect the context/header area before changing anything.  
-   **Expected:** order identity, current workflow state and commercial revision are understandable; unsaved count/state is zero/clean.
-4. Make one harmless supported local change such as Order Notes when allowed.  
-   **Expected:** dirty/unsaved indication changes in an understandable way and the primary action is clearly Review, not a legacy direct Save.
+2. Use Actions -> Edit Order, or open `/dashboard/orders/{orderId}/edit` directly.  
+   **Expected:** The existing New Order workspace opens with the Edit context bar. It is not a second form.
+3. Inspect the context bar before changing anything.  
+   **Expected:** order number, workflow status, and revision are visible; the unsaved count is zero. Catalog, items, pieces, preferences, customer, and summary are the shared New Order components. Two lines for the same product stay separate. Piece and preference rows show their saved identities.
+4. Confirm customer name, mobile, email, and branch cannot be changed.  
+   **Expected:** those identity fields stay locked. There is no currency selector and no second Save button.
+5. Change internal notes when the order is open for edit.  
+   **Expected:** the unsaved count changes. The primary action is Review. Choosing Review does not commit the order.
 
 **Human/visual checks:**
-- visually distinguishable from New Order;
-- no duplicate/conflicting primary actions;
+- same workspace presentation as New Order, with the Edit context bar;
+- no duplicate/conflicting primary actions and no legacy Save;
 - revision/status text is readable;
 - no clipped labels or overlapping controls;
-- user can discover how to discard/review changes.
+- Discard and Review are discoverable;
+- Arabic layout uses the start edge and does not mirror the meaning of Review or Discard.
 
 **EN/AR/RTL:** Repeat in Arabic; confirm correct RTL alignment and icon/action placement without mirrored semantics errors.
 

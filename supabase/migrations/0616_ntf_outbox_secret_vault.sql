@@ -81,11 +81,18 @@ DECLARE
   v_url    TEXT;
   v_secret TEXT;
 BEGIN
-  SELECT value INTO v_url FROM public.sys_ntf_runtime_cf WHERE key = 'base_url';
+  -- base_url: the registry key ntf.app.base_url (authoritative, 0617) wins; the legacy
+  -- sys_ntf_runtime_cf row is only a fallback while that table still exists.
+  SELECT c.db_value INTO v_url
+    FROM public.sys_ops_config_cf c
+   WHERE c.config_key = 'ntf.app.base_url' AND c.rec_status = 1 AND c.is_active AND NOT c.is_encrypted;
+  IF v_url IS NULL OR btrim(v_url) = '' THEN
+    SELECT value INTO v_url FROM public.sys_ntf_runtime_cf WHERE key = 'base_url';
+  END IF;
   v_secret := public.fn_ntf_cron_secret();
 
-  IF v_url IS NULL OR v_secret IS NULL THEN
-    RAISE WARNING '[fn_ntf_cron_post] % skipped: base_url (sys_ntf_runtime_cf) or the vault secret ntf_outbox_secret is missing', p_path;
+  IF v_url IS NULL OR btrim(v_url) = '' OR v_secret IS NULL THEN
+    RAISE WARNING '[fn_ntf_cron_post] % skipped: base_url (registry ntf.app.base_url) or the vault secret ntf_outbox_secret is missing', p_path;
     RETURN;
   END IF;
 
@@ -100,7 +107,7 @@ BEGIN
 END;
 $$;
 COMMENT ON FUNCTION public.fn_ntf_cron_post(TEXT) IS
-  'pg_cron dispatcher: reads base_url from sys_ntf_runtime_cf and the bearer secret from Vault, then POSTs {} to base_url || p_path through pg_net. Warns and skips when either is missing. Internal; revoked from API roles.';
+  'pg_cron dispatcher: reads base_url from the registry (ntf.app.base_url; legacy sys_ntf_runtime_cf as fallback) and the bearer secret from Vault, then POSTs {} to base_url || p_path through pg_net. Warns and skips when either is missing. Internal; revoked from API roles.';
 REVOKE ALL ON FUNCTION public.fn_ntf_cron_post(TEXT) FROM PUBLIC, anon, authenticated, service_role;
 
 -- 4. The three job wrappers keep their names (cron commands do not change) but delegate.

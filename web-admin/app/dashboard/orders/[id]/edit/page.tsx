@@ -1,19 +1,19 @@
 'use client';
 
 import { use } from 'react';
-import { EditOrderWorkspace } from '@features/orders/order-change/edit-order-workspace';
+import { EditSharedWorkspace } from '@features/orders/order-change/edit-shared-workspace';
 
 interface EditOrderPageProps {
   params: Promise<{ id: string }>;
 }
 
 /**
- * Edit Order loads the Change context and reviews through the governed workspace.
- * Commit stays on the Apply route and is not started from this screen.
+ * Edit Order uses the shared New Order workspace.
+ * The Edit session owns review. This page does not submit a new order or call the legacy update.
  * @param root0
  * @param root0.params
  */
 export default function EditOrderPage({ params }: EditOrderPageProps) {
   const { id } = use(params);
-  return <EditOrderWorkspace orderId={id} />;
+  return <EditSharedWorkspace orderId={id} />;
 }

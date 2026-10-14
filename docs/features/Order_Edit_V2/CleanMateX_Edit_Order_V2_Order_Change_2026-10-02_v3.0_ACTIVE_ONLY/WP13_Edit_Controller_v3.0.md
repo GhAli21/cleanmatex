@@ -1,7 +1,7 @@
 # WP13 Shared Edit Controller
 
 **Date:** 2026-10-14 (Asia/Muscat)
-**Status:** DONE for the Edit identity controller. WP14 later mounted this controller on the edit route and stopped using the legacy update from that route. This report records the controller only.
+**Status:** DONE for the Edit identity controller. WP14 supplies this controller to the shared New Order workspace and does not call the legacy update from that route. This report records the controller only. The unused legacy screen still builds temporary piece ids and is not the mounted workspace.
 **Authority:** Living plan WP13. Create grouping and the Create submit route stay where they are.
 
 ## Scope delivered
@@ -14,13 +14,13 @@ The Edit controller keeps one draft keyed by persisted row ids. A new row uses a
 - Order, item, and piece preferences each get their own target.
 - A loaded order without an item id or a revision is rejected. A loaded piece id is kept.
 - Preview and Apply are the only HTTP calls. They go to `/api/v1/orders/[id]/changes/preview` and `/api/v1/orders/[id]/changes`. An unchanged draft does not call Preview.
-- The Edit screen loads this controller once and supplies it to the shared workspace. The form still uses temporary piece ids for the existing selectors, and it now also keeps `persistedItemId`, `persistedId` on pieces, and `persistedId` on preferences.
+- The Edit controller is loaded by the shared workspace. Visual rows keep `persistedItemId`, piece `persistedId`, and preference `persistedId`. The unused legacy screen is not that workspace.
 
 ## Reuse
 
 | Piece | Classification | Boundary |
 |---|---|---|
-| New Order reducer and `use-order-submission` | REUSE_AS_IS | Create still submits through `submit-order`. The legacy Edit button still calls the existing update hook. |
+| New Order reducer and `use-order-submission` | REUSE_AS_IS | Create still submits through `submit-order`. The mounted Edit workspace does not call that hook. |
 | Change request schema | REUSE_AS_IS | Built operations parse through `orderChangeRequestSchema`. |
 | Preview and Apply routes | REUSE_AS_IS | The controller calls them. It does not calculate prices or write rows. |
 | Edit draft and change builder | NEW_REQUIRED | Persisted identity does not fit the Create product grouping. |

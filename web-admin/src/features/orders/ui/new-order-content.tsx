@@ -18,6 +18,8 @@ import { usePlanFlags } from '../hooks/use-plan-flags';
 import { useTenantPreferenceSettings } from '../hooks/use-tenant-preference-settings';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { useOrderSubmission } from '../hooks/use-order-submission';
+import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
+import { EditOrderContextBar } from '../order-change/edit-order-context-bar';
 import { useOrderEditDirty } from '../hooks/use-order-edit-dirty';
 import { useOrderEditCancel } from '../hooks/use-order-edit-cancel';
 import { useOrderWarnings } from '../hooks/use-order-warnings';
@@ -142,7 +144,7 @@ export function NewOrderContent() {
     const [currencyCode, setCurrencyCode] = useState<string>('');
     const {
         submitOrder: _submitOrder,
-        saveOrderUpdate,
+        saveOrderUpdate: _saveOrderUpdate,
         isSubmitting,
         amendmentReasonPromptOpen,
         confirmAmendmentReason,
@@ -272,8 +274,11 @@ export function NewOrderContent() {
         [state]
     );
 
+    const workspace = useOrderWorkspaceSessionOptional();
+
     const handleAddItem = useCallback(
         async (product: Product) => {
+            if (workspace) return;
             const isNewRetail = product.service_category_code === 'RETAIL_ITEMS' || (product as { is_retail_item?: boolean }).is_retail_item;
             const existingItems = state.state.items;
             if (existingItems.length > 0) {
@@ -339,16 +344,20 @@ export function NewOrderContent() {
                 state.setSelectedPiece(null);
             }
         },
-        [state, trackByPiece, trackItemAddition, t, autoApplyCustomerPrefs, servicePrefs]
+        [state, trackByPiece, trackItemAddition, t, autoApplyCustomerPrefs, servicePrefs, workspace]
     );
 
     const handleRemoveItem = useCallback(
-        (productId: string) => { state.removeItem(productId); },
-        [state]
+        (productId: string) => {
+            if (workspace) return;
+            state.removeItem(productId);
+        },
+        [state, workspace]
     );
 
     const handleQuantityChange = useCallback(
         (productId: string, quantity: number) => {
+            if (workspace) return;
             const item = state.state.items.find((i) => i.productId === productId);
             const prevQty = item?.quantity ?? 0;
             state.updateItemQuantity(productId, quantity);
@@ -356,11 +365,12 @@ export function NewOrderContent() {
                 state.setSelectedPiece(`temp-${productId}-${quantity}`);
             }
         },
-        [state, trackByPiece]
+        [state, trackByPiece, workspace]
     );
 
     const handlePiecesChange = useCallback(
         (itemId: string, pieces: PreSubmissionPiece[]) => {
+            if (workspace) return;
             const item = state.state.items.find((i) => i.productId === itemId);
             const prevPieces = item?.pieces ?? [];
             state.updateItemPieces(itemId, pieces);
@@ -375,7 +385,7 @@ export function NewOrderContent() {
                 if (newPiece) state.setSelectedPiece(newPiece.id);
             }
         },
-        [state, packingPriceByCode]
+        [state, packingPriceByCode, workspace]
     );
 
     // Copy piece conditions/notes to all siblings
@@ -488,16 +498,6 @@ export function NewOrderContent() {
 
     const handleConfirmCancelEdit = useCallback(() => { cancelEditOrder(); setShowCancelConfirm(false); }, [cancelEditOrder]);
 
-    const handleSaveEditOrder = useCallback(() => {
-        if (hasErrors) {
-            const errorWarnings = warnings.filter((w) => w.severity === 'error');
-            if (errorWarnings.length > 0) { cmxMessage.error(errorWarnings[0].message); return; }
-        }
-        saveOrderUpdate();
-    }, [hasErrors, warnings, saveOrderUpdate]);
-
-    // Bottom summary panel's primary Save button — the edit-mode top bar's
-    // Save Changes button moves focus here instead of saving directly.
     const saveButtonRef = useRef<HTMLButtonElement>(null);
     const focusSaveButton = useCallback(() => {
         const btn = saveButtonRef.current;
@@ -522,7 +522,7 @@ export function NewOrderContent() {
                     ['button_broken', 'button_missing', 'collar_torn', 'zipper_broken', 'hole', 'tear', 'seam_open'].includes(c.toLowerCase())
                 );
                 return {
-                    id: item.productId,
+                    id: item.persistedItemId ?? item.productId,
                     productId: item.productId,
                     productName: item.productName || 'Unknown Product',
                     productName2: item.productName2 || undefined,
@@ -566,8 +566,8 @@ export function NewOrderContent() {
         onKey: (key, event) => {
             if (key === 's' && (event.ctrlKey || event.metaKey) && !isSubmitting && state.state.items.length > 0) {
                 event.preventDefault();
-                if (state.state.isEditMode) handleSaveEditOrder();
-                else handleSubmitOrderClick();
+                if (workspace) workspace.onReview();
+                else if (!state.state.isEditMode) handleSubmitOrderClick();
                 return;
             }
             if (event.altKey && !event.ctrlKey && !event.metaKey) {
@@ -601,9 +601,14 @@ export function NewOrderContent() {
         readyByAt: state.state.readyByAt,
         total: summaryTotal,
         onSubmit: handleSubmitOrderClick,
+        primaryAction: workspace ? {
+            label: tEdit('workspace.review'),
+            disabled: workspace.accessBlocked || workspace.reviewing,
+            loading: workspace.reviewing,
+            onClick: workspace.onReview,
+        } : undefined,
         isEditMode: state.state.isEditMode,
         isDirty,
-        onSave: handleSaveEditOrder,
         saveButtonRef,
         isSaving: isSubmitting,
         hasErrors,
@@ -664,7 +669,7 @@ export function NewOrderContent() {
             <NewOrderTopBar
                 branches={branches}
                 branchId={state.state.branchId}
-                onBranchChange={state.setBranchId}
+                onBranchChange={workspace ? () => undefined : state.setBranchId}
                 branchesLoading={branchesLoading}
                 orderTypeId={state.state.orderTypeId}
                 onOrderTypeChange={state.setOrderTypeId}
@@ -672,8 +677,8 @@ export function NewOrderContent() {
                 onOrderSourceChange={state.setOrderSourceCode}
                 showOrderContextSelectors={!state.state.isEditMode}
                 customerName={state.state.customerName}
-                onSelectCustomer={() => state.openModal('customerPicker')}
-                onEditCustomer={() => state.openModal('customerEdit')}
+                onSelectCustomer={workspace ? () => undefined : () => state.openModal('customerPicker')}
+                onEditCustomer={workspace ? () => undefined : () => state.openModal('customerEdit')}
                 express={state.state.express}
                 onExpressToggle={state.setExpress}
                 categories={state.state.categories}
@@ -682,7 +687,7 @@ export function NewOrderContent() {
                 categoriesLoading={state.state.categoriesLoading}
                 showCategories={activeTab === 'select'}
                 hasBranchDependentData={hasBranchDependentData}
-                branchLocked={!state.state.isEditMode && posGate.lockBranchId != null}
+                branchLocked={workspace != null || (!state.state.isEditMode && posGate.lockBranchId != null)}
                 orderPrefsCount={state.state.orderServicePrefs?.length ?? 0}
                 onOpenOrderPreferences={hasServicePrefs ? () => setOrderPrefsDialogOpen(true) : undefined}
                 sessionSlot={!state.state.isEditMode ? (
@@ -713,8 +718,8 @@ export function NewOrderContent() {
                 <PosSessionOrderBanner branchId={state.state.branchId} />
             )}
 
-            {/* Edit order bar */}
-            {state.state.isEditMode && (
+            {workspace ? <EditOrderContextBar session={workspace} /> : null}
+            {state.state.isEditMode && !workspace && (
                 <EditOrderBar
                     orderNo={state.state.editingOrderNo}
                     onCancelEdit={handleCancelEdit}
@@ -930,9 +935,9 @@ export function NewOrderContent() {
                         isOpen={bottomSheetOpen}
                         onOpen={() => setBottomSheetOpen(true)}
                         onClose={() => setBottomSheetOpen(false)}
-                        onPrimaryAction={state.state.isEditMode ? handleSaveEditOrder : handleSubmitOrderClick}
-                        primaryDisabled={isSubmitDisabled}
-                        primaryLabel={state.state.isEditMode ? (tEdit('saveChanges') || 'Save changes') : (t('submitOrder') || 'Add Order')}
+                        onPrimaryAction={workspace ? workspace.onReview : handleSubmitOrderClick}
+                        primaryDisabled={workspace ? workspace.accessBlocked || workspace.reviewing : isSubmitDisabled}
+                        primaryLabel={workspace ? tEdit('workspace.review') : (t('submitOrder') || 'Add Order')}
                         loading={state.state.loading || isSubmitting}
                     >
                         {!state.state.createdOrderId && !state.state.isEditMode && (

@@ -88,8 +88,12 @@
 - Added [WP13 report](WP13_Edit_Controller_v3.0.md). The Edit controller builds operations against persisted row ids and calls Preview and Apply.
 - Create submission and the visible legacy Edit save are unchanged. No migration, permission, feature flag, or screen layout was added.
 
+## WP14 shared workspace correction — 2026-10-15
+
+- Replaced the separate Edit form with the existing New Order workspace. `EditOrderController` remains separate and Review calls Preview only. Customer identity, branch, and currency stay locked. Committed item, piece, and preference ids are projected into the shared presentation. Commercial line writes stay closed. See [WP14 report](WP14_Edit_Workspace_v3.0.md).
+
 ## WP14 documentation synchronization — 2026-10-14
 
-- Added [WP14 report](WP14_Edit_Workspace_v3.0.md). The edit route prepares supported order-field changes and reviews them through Preview.
+- Added [WP14 report](WP14_Edit_Workspace_v3.0.md). The first workspace note described a separate form. The 2026-10-15 correction replaces that description.
 - The route no longer acquires the legacy lock or calls the legacy update. Apply, commercial line edits, and the review dialog remain later work. No migration, permission, feature flag, or navigation entry was added.
 

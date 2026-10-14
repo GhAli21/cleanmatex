@@ -69,6 +69,13 @@ interface OrderSummaryPanelProps {
   total: number;
   currencyCode?: string;
   onSubmit: () => void;
+  /** When set, this is the only primary action. The panel does not choose an API from edit mode. */
+  primaryAction?: {
+    label: string;
+    disabled: boolean;
+    loading?: boolean;
+    onClick: () => void;
+  };
   onOpenReadyByModal?: () => void;
   onOpenPaymentModal?: () => void;
   onCalculateReadyBy?: () => Promise<void>;
@@ -122,6 +129,7 @@ function OrderSummaryPanelComponent({
   total,
   currencyCode = '',
   onSubmit,
+  primaryAction,
   onOpenReadyByModal,
   onOpenPaymentModal,
   onCalculateReadyBy,
@@ -130,7 +138,6 @@ function OrderSummaryPanelComponent({
   isRetailOnlyOrder = false,
   isEditMode = false,
   isDirty = false,
-  onSave,
   saveButtonRef,
   isSaving = false,
   hasErrors = false,
@@ -518,16 +525,16 @@ function OrderSummaryPanelComponent({
         <div className="p-3 bg-white border-t border-gray-200">
           <button
             ref={saveButtonRef}
-            onClick={isEditMode ? (onSave ?? (() => {})) : (onOpenPaymentModal || onSubmit)}
-            disabled={isEditMode ? !isDirty || isSaving || loading || hasErrors : loading || !canSubmit}
+            onClick={primaryAction ? primaryAction.onClick : (onOpenPaymentModal || onSubmit)}
+            disabled={primaryAction ? primaryAction.disabled : (loading || !canSubmit)}
             className={`w-full min-h-11 py-2.5 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all shadow-md flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
           >
             <span className="text-base">
-              {loading || isSaving
-                ? (isEditMode ? tEdit('saving') : t('processing'))
-                : isEditMode
-                  ? tEdit('saveChanges')
-                  : tNewOrder('submitOrder')}
+              {primaryAction
+                ? (primaryAction.loading ? tEdit('workspace.reviewing') : primaryAction.label)
+                : ((loading || isSaving)
+                  ? t('processing')
+                  : tNewOrder('submitOrder'))}
             </span>
             <div className={isRTL ? 'text-left' : 'text-right'}>
               <p className="text-xs opacity-90">{t('total')}</p>
@@ -536,7 +543,7 @@ function OrderSummaryPanelComponent({
           </button>
 
           {/* Validation hints */}
-          {isEditMode ? (
+          {isEditMode && !primaryAction ? (
             hasErrors && validationErrors.length > 0 ? (
               <p role="alert" className="text-xs text-center text-red-600 font-medium mt-1">{validationErrors[0]}</p>
             ) : isDirty && !isSaving && !loading ? (

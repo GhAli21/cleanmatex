@@ -1,7 +1,7 @@
 /**
- * Edit Order Screen
- * Loads existing order data into the order form for editing
- * PRD: Edit Order Feature - Phase 2 - Frontend UI
+ * Legacy Edit Order screen.
+ * The V2 route does not mount this screen. It replaces piece ids with temporary product/index ids.
+ * Edit V2 uses EditSharedWorkspace around the shared New Order presentation.
  */
 
 'use client';

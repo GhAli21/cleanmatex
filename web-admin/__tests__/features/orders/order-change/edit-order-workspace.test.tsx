@@ -1,47 +1,27 @@
-import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { OrderChangeContext } from '@/lib/types/order-change';
+/**
+ * @jest-environment node
+ */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { createEditOrderController } from '@features/orders/order-change/edit-order-controller';
+import { applyVisualDraftToController, projectEditVisualOrder, visualHeaderChangeCount } from '@features/orders/order-change/edit-workspace-adapter';
 import { mapChangeContextToEditBaseline } from '@features/orders/order-change/edit-order-view-model';
-import { EditOrderWorkspace } from '@features/orders/order-change/edit-order-workspace';
-
-jest.mock('next/link', () => ({
-  __esModule: true,
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
-}));
-
-jest.mock('next-intl', () => {
-  const translate = (key: string, values?: Record<string, unknown>) => (
-    values ? `${key}:${JSON.stringify(values)}` : key
-  );
-  return { useTranslations: () => translate };
-});
-
-jest.mock('@/lib/hooks/use-csrf-token', () => ({
-  getCSRFHeader: (token: string | null) => (token ? { 'X-CSRF-Token': token } : {}),
-}));
-
-jest.mock('@/lib/utils/csrf-token', () => ({
-  getCSRFToken: async () => 'csrf-test',
-}));
-
-const message = { info: jest.fn(), error: jest.fn() };
-jest.mock('@ui/feedback', () => ({
-  cmxMessage: { info: (...args: unknown[]) => message.info(...args), error: (...args: unknown[]) => message.error(...args) },
-  CmxSummaryMessage: ({ title, items }: { title: string; items?: string[] }) => <div>{title}{(items ?? []).join(' ')}</div>,
-}));
+import type { OrderChangeContext } from '@/lib/types/order-change';
+import type { EditOrderBaseline } from '@features/orders/order-change/edit-order-view-model';
 
 const ORDER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const ITEM_A = '11111111-1111-4111-8111-111111111111';
 const ITEM_B = '22222222-2222-4222-8222-222222222222';
 const PRODUCT = '66666666-6666-4666-8666-666666666666';
+const PIECE_A = '33333333-3333-4333-8333-333333333333';
 
-function context(overrides: Partial<OrderChangeContext> = {}): OrderChangeContext {
+function context(): OrderChangeContext {
   return {
     orderId: ORDER_ID,
     orderNo: '1001',
     committedAt: '2026-10-14T00:00:00.000Z',
-    editStateVersion: 1,
-    wfStateVersion: 1,
+    editStateVersion: 2,
+    wfStateVersion: 3,
     workflow: { currentStatus: 'READY', profileId: null, profileVersionId: null },
     editAccess: { status: 'OPEN', reasonCode: null, reasonText: null, blockedUntil: null },
     permissions: { canEdit: false, canOverride: false, canOverridePrice: false },
@@ -67,7 +47,16 @@ function context(overrides: Partial<OrderChangeContext> = {}): OrderChangeContex
       item(ITEM_A, 1),
       item(ITEM_B, 2),
     ],
-    pieces: [],
+    pieces: [{
+      id: PIECE_A,
+      orderId: ORDER_ID,
+      orderItemId: ITEM_A,
+      pieceSeq: 1,
+      pieceStatus: null,
+      pieceStage: null,
+      scanState: null,
+      active: true,
+    }],
     preferences: [],
     financial: {
       totalAmount: '10.0000',
@@ -76,7 +65,6 @@ function context(overrides: Partial<OrderChangeContext> = {}): OrderChangeContex
       overpaidAmount: '0.0000',
     },
     capabilitySummary: { status: 'DEFERRED', reasonCode: 'CAPABILITY_POLICY_PENDING' },
-    ...overrides,
   };
 }
 
@@ -98,104 +86,77 @@ function item(id: string, quantity: number): OrderChangeContext['items'][number]
   };
 }
 
-function json(body: unknown, status = 200): Response {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => body,
-  } as Response;
+function baseline(): EditOrderBaseline {
+  const mapped = mapChangeContextToEditBaseline(context());
+  if (!mapped.ok) throw new Error('baseline');
+  return mapped.baseline;
 }
 
-describe('mapChangeContextToEditBaseline', () => {
-  it('keeps same-product lines separate and allows an order with no items', () => {
-    const loaded = mapChangeContextToEditBaseline(context());
-    expect(loaded.ok).toBe(true);
-    if (!loaded.ok) return;
-    expect(loaded.baseline.lines.map((line) => line.identity.kind === 'persisted' ? line.identity.id : '')).toEqual([ITEM_A, ITEM_B]);
-    expect(loaded.baseline.lines.every((line) => line.productId === PRODUCT)).toBe(true);
-
-    const empty = mapChangeContextToEditBaseline(context({ items: [] }));
-    expect(empty.ok).toBe(true);
-    if (empty.ok) expect(empty.baseline.lines).toEqual([]);
-  });
-});
-
-describe('EditOrderWorkspace', () => {
-  const fetchMock = jest.fn();
-
-  beforeEach(() => {
-    message.info.mockReset();
-    message.error.mockReset();
-    fetchMock.mockReset();
-    const installed = fetchMock as unknown as typeof fetch;
-    global.fetch = installed;
-    window.fetch = installed;
-  });
-
-  function mockContext(next: OrderChangeContext = context()) {
-    fetchMock.mockImplementation(async (url: string) => {
-      if (String(url).includes('/change-context')) return json({ ok: true, data: next });
-      if (String(url).endsWith('/changes/preview')) {
-        return json({
-          ok: true,
-          data: {
-            status: 'DENIED',
-            originalTotal: '10.0000',
-            projectedTotal: '10.0000',
-            decisions: [{ operationCode: 'CHANGE_ORDER_NOTES', decision: 'DENY', reasonCode: 'CAPABILITY_POLICY_DENIED' }],
-          },
-        });
-      }
-      return json({ ok: false }, 500);
+describe('shared edit workspace adapter', () => {
+  it('keeps same-product lines and the persisted piece id', () => {
+    const mapped = mapChangeContextToEditBaseline(context());
+    expect(mapped.ok).toBe(true);
+    if (!mapped.ok) return;
+    expect(mapped.baseline.lines.map((line) => line.identity.kind === 'persisted' ? line.identity.id : '')).toEqual([ITEM_A, ITEM_B]);
+    expect(mapped.baseline.lines[0]?.pieces[0]?.identity).toEqual({ kind: 'persisted', id: PIECE_A });
+    const visual = projectEditVisualOrder({
+      ...context(),
+      preferences: [{
+        id: '44444444-4444-4444-8444-444444444444',
+        orderId: ORDER_ID,
+        level: 'PIECE',
+        orderItemId: ITEM_A,
+        orderItemPieceId: PIECE_A,
+        preferenceId: '55555555-5555-4555-8555-555555555555',
+        preferenceCode: 'STARCH',
+        preferenceKind: null,
+        preferenceCategory: null,
+        preferenceContent: null,
+        extraPrice: '1.0000',
+        processingConfirmed: false,
+        active: true,
+      }],
     });
-  }
-
-  it('reviews a notes change without calling apply and then disables a denied field', async () => {
-    mockContext();
-    render(<EditOrderWorkspace orderId={ORDER_ID} />);
-    const notes = await screen.findByLabelText('internalNotes');
-    fireEvent.change(notes, { target: { value: 'updated' } });
-    expect(screen.getByText(/workspace\.dirtyCount:\{"count":1\}/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'workspace.review' }));
-    await waitFor(() => expect(screen.getByText(/workspace.deniedReason/)).toBeInTheDocument());
-    expect(screen.getByLabelText('internalNotes')).toBeDisabled();
-
-    const urls = fetchMock.mock.calls.map((call) => String(call[0]));
-    expect(urls.some((url) => url.endsWith('/changes/preview'))).toBe(true);
-    expect(urls.some((url) => url.endsWith('/changes'))).toBe(false);
-    const previewCall = fetchMock.mock.calls.find((call) => String(call[0]).endsWith('/changes/preview'));
-    expect(previewCall?.[1]?.headers['X-CSRF-Token']).toBe('csrf-test');
+    expect(visual.items.map((item) => item.persistedItemId)).toEqual([ITEM_A, ITEM_B]);
+    expect(visual.items[0]?.pieces?.[0]?.id).toBe(PIECE_A);
+    expect(visual.items[0]?.pieces?.[0]?.persistedId).toBe(PIECE_A);
+    expect(visual.items[0]?.pieces?.[0]?.servicePrefs?.[0]?.persistedId).toBe('44444444-4444-4444-8444-444444444444');
+    expect(mapChangeContextToEditBaseline({ ...context(), items: [] }).ok).toBe(true);
   });
 
-  it('discards unsaved notes and reports a blocked order without opening fields', async () => {
-    mockContext(context({
-      editAccess: { status: 'BLOCKED', reasonCode: 'ORDER_LOCKED', reasonText: 'Locked by finance', blockedUntil: null },
-    }));
-    const { unmount } = render(<EditOrderWorkspace orderId={ORDER_ID} />);
-    const blockedNotes = await screen.findByLabelText('internalNotes');
-    expect(blockedNotes).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'workspace.review' })).toBeDisabled();
-    unmount();
-
-    mockContext();
-    render(<EditOrderWorkspace orderId={ORDER_ID} />);
-    const notes = await screen.findByLabelText('internalNotes');
-    fireEvent.change(notes, { target: { value: 'updated' } });
-    fireEvent.click(screen.getByRole('button', { name: 'workspace.discardChanges' }));
-    expect(screen.getByLabelText('internalNotes')).toHaveValue('original');
-    expect(message.info).toHaveBeenCalledWith('workspace.discarded');
+  it('copies a header change into the Edit controller and leaves an unchanged draft empty', () => {
+    const loaded = baseline();
+    const controller = createEditOrderController();
+    const unchanged = {
+      notes: 'original',
+      express: false,
+      customerName: 'Ada',
+      customerMobile: '050',
+      customerEmail: 'ada@example.com',
+    };
+    expect(visualHeaderChangeCount(loaded, unchanged)).toBe(0);
+    applyVisualDraftToController(controller, loaded, unchanged);
+    expect(controller.operationCount()).toBe(0);
+    applyVisualDraftToController(controller, loaded, { ...unchanged, notes: 'updated' });
+    expect(controller.buildOperations().map((operation) => operation.code)).toEqual(['CHANGE_ORDER_NOTES']);
   });
 
-  it('shows repeated products and an empty item list without offering item edits', async () => {
-    mockContext();
-    const { unmount } = render(<EditOrderWorkspace orderId={ORDER_ID} />);
-    expect(await screen.findAllByText('Shirt')).toHaveLength(2);
-    expect(screen.getByText('workspace.commercialUnavailable')).toBeInTheDocument();
-    unmount();
-
-    mockContext(context({ items: [] }));
-    render(<EditOrderWorkspace orderId={ORDER_ID} />);
-    expect(await screen.findByText('workspace.emptyItems')).toBeInTheDocument();
+  it('mounts the shared New Order workspace and does not keep a second edit form', () => {
+    const page = readFileSync(join(process.cwd(), 'app/dashboard/orders/[id]/edit/page.tsx'), 'utf8');
+    const host = readFileSync(join(process.cwd(), 'src/features/orders/order-change/edit-shared-workspace.tsx'), 'utf8');
+    const adapter = readFileSync(join(process.cwd(), 'src/features/orders/order-change/edit-workspace-adapter.ts'), 'utf8');
+    const content = readFileSync(join(process.cwd(), 'src/features/orders/ui/new-order-content.tsx'), 'utf8');
+    expect(page).toContain('EditSharedWorkspace');
+    expect(page).not.toContain('EditOrderWorkspace');
+    expect(host).toContain('NewOrderContent');
+    expect(host).toContain('NewOrderModals');
+    expect(adapter).toContain('id: piece.id');
+    expect(adapter).toContain('persistedId: preference.id');
+    expect(host).not.toContain('temp-');
+    expect(adapter).not.toContain('temp-');
+    expect(host).not.toContain('saveOrderUpdate');
+    expect(host).not.toContain('/update');
+    expect(content).not.toContain('handleSaveEditOrder');
+    expect(content).toContain('useOrderWorkspaceSessionOptional');
   });
 });

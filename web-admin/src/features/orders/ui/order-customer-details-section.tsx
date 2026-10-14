@@ -10,6 +10,7 @@ import { useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
+import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
 import { CmxInput, CmxTextarea } from '@ui/primitives';
 import type { CustomerSnapshotOverride } from '../model/new-order-types';
 
@@ -18,6 +19,7 @@ import type { CustomerSnapshotOverride } from '../model/new-order-types';
  */
 export function OrderCustomerDetailsSection() {
   const { state, setCustomerSnapshotOverride, setCustomerNotes } = useNewOrderStateWithDispatch();
+  const identityLocked = useOrderWorkspaceSessionOptional() != null;
   const isRTL = useRTL();
   const t = useTranslations('newOrder.customerDetails');
   const tCommon = useTranslations('common');
@@ -117,6 +119,7 @@ export function OrderCustomerDetailsSection() {
             id="order-customer-name"
             type="text"
             value={name}
+            readOnly={identityLocked}
             onChange={(e) => handleNameChange(e.target.value)}
             dir={isRTL ? 'rtl' : 'ltr'}
             className="w-full"
@@ -133,6 +136,7 @@ export function OrderCustomerDetailsSection() {
             id="order-customer-phone"
             type="tel"
             value={phone}
+            readOnly={identityLocked}
             onChange={(e) => handlePhoneChange(e.target.value)}
             dir="ltr"
             className="w-full"
@@ -149,6 +153,7 @@ export function OrderCustomerDetailsSection() {
             id="order-customer-email"
             type="email"
             value={email}
+            readOnly={identityLocked}
             onChange={(e) => handleEmailChange(e.target.value)}
             dir="ltr"
             className="w-full"

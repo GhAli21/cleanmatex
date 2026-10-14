@@ -8,6 +8,7 @@ import { useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
 import { useNewOrderStateWithDispatch } from '@/src/features/orders/hooks/use-new-order-state';
+import { useOrderWorkspaceSessionOptional } from '@/src/features/orders/order-change/order-workspace-session';
 import type { PackingPreference, PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import type { OrderItem } from '@/src/features/orders/model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
@@ -59,6 +60,7 @@ export function OrderPiecePreferencesSection({
 }: OrderPiecePreferencesSectionProps) {
   const t = useTranslations('newOrder.piecePreferences');
   const { state, updateItemPieces } = useNewOrderStateWithDispatch();
+  const editSession = useOrderWorkspaceSessionOptional();
   const {
     pieceToSelectedPreferences,
     removePreference,
@@ -69,6 +71,7 @@ export function OrderPiecePreferencesSection({
   const getBilingual = useBilingual();
 
   useEffect(() => {
+    if (editSession) return;
     for (const item of state.items) {
       if (item.quantity <= 0) continue;
       const ok = item.pieces && item.pieces.length === item.quantity;
@@ -76,7 +79,7 @@ export function OrderPiecePreferencesSection({
         updateItemPieces(item.productId, generatePiecesForItem(item.productId, item.quantity));
       }
     }
-  }, [state.items, updateItemPieces]);
+  }, [editSession, state.items, updateItemPieces]);
 
   const itemGroups = useMemo(() => {
     return state.items.map((item: OrderItem) => {

@@ -784,7 +784,7 @@ WP12 opens `POST /api/v1/orders/[id]/changes` for a settled order-field Change w
 
 WP13 keeps Edit identity on the persisted item, piece, and preference ids and builds the Change intent in one controller. Create submission is unchanged. See [WP13 report](WP13_Edit_Controller_v3.0.md).
 
-WP14 places that controller on the existing edit route. The screen loads Change context, keeps customer, branch, and currency locked, and sends Review to Preview. It does not call Apply or the legacy update. Item, piece, and preference rows stay read-only. See [WP14 report](WP14_Edit_Workspace_v3.0.md).
+WP14 places that controller around the existing New Order workspace. The edit route mounts the same layout, catalog, item/piece/preference editors, customer presentation, summary, and modals. The Edit session owns Change context, persisted identities, capabilities, expected versions, Preview, and Review. Shared components do not choose an API. Customer identity, branch, and currency stay locked. Review calls Preview and does not call Apply or the legacy update. Commercial line writes stay closed until Apply accepts them. See [WP14 report](WP14_Edit_Workspace_v3.0.md).
 
 ---
 

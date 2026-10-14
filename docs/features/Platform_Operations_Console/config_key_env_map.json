@@ -1,0 +1,1838 @@
+[
+ {
+  "key": "ntf.app.dispatch_via_hq",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   },
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.fcm.project_id",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.fcm.service_account",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.hq_dispatch_url",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.hq_route_dispatch_url",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.meta.wa_access_token",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.meta.wa_phone_number_id",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.onesignal.app_id",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.onesignal.rest_api_key",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.order_transition_notify",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.outbox_inline_dispatch",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.outbox_secret",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   },
+   {
+    "app": "DATABASE",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.resend_from_email",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.resend.api_key",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.resend.webhook_secret",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.twilio_sms_from",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.twilio_whatsapp_from",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.twilio.account_sid",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.twilio.auth_token",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.vapid.private_key",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.vapid.public_key",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.vapid.subject",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.wa_sandbox_content_sid",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.wa_sandbox_to_phone",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.wa_use_sandbox_template",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.app.whatsapp_fallback_email",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.fcm.server_key",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.meta.app_secret",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.meta.wa_access_token",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.meta.wa_phone_number_id",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.queue_enabled",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.resend.api_key",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.resend.from_email",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.twilio.account_sid",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.twilio.auth_token",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.twilio.content_cred_ref",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.twilio.content_cred_ver",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.twilio.sms_from",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.twilio.webhook_url",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.hq.twilio.whatsapp_from",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.database.url",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.encryption.master_key",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.hq_service_role_key",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.jwt.secret",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "TENANT_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.redis.url",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   },
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.supabase.anon_key",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "TENANT_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.supabase.jwt_secret",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "TENANT_API",
+    "used": true
+   },
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.supabase.service_role",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WEB",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   },
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   },
+   {
+    "app": "TENANT_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.supabase.url",
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   },
+   {
+    "app": "TENANT_API",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.tenant_hq_service_key",
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.api.port",
+  "env": "PORT",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   },
+   {
+    "app": "TENANT_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.api.prefix",
+  "env": "API_PREFIX",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.api.cors_origin",
+  "env": "CORS_ORIGIN",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.api.disable_swagger",
+  "env": "DISABLE_SWAGGER",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.log.level",
+  "env": "LOG_LEVEL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.log.requests",
+  "env": "LOG_REQUESTS",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.jwt.expires_in",
+  "env": "JWT_EXPIRES_IN",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.jwt.issuer",
+  "env": "JWT_ISSUER",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": false
+   },
+   {
+    "app": "TENANT_API",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.jwt.audience_tenant",
+  "env": "JWT_AUDIENCE_TENANT",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.rbac.enforcement_enabled",
+  "env": "HQ_RBAC_ENFORCEMENT_ENABLED",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.rate_limit.max",
+  "env": "RATE_LIMIT_MAX",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": false
+   },
+   {
+    "app": "TENANT_API",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.rate_limit.ttl",
+  "env": "RATE_LIMIT_TTL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": false
+   },
+   {
+    "app": "TENANT_API",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.database.pool_min",
+  "env": "DATABASE_POOL_MIN",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.database.pool_max",
+  "env": "DATABASE_POOL_MAX",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.redis.db",
+  "env": "REDIS_DB",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.hq_app_url",
+  "env": "HQ_APP_URL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.tenant_app_url",
+  "env": "TENANT_APP_URL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.app_url",
+  "env": "APP_URL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.app_port",
+  "env": "APP_PORT",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_API",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "workers.concurrency",
+  "env": "WORKER_CONCURRENCY",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.upstash.rest_url",
+  "env": "UPSTASH_REDIS_REST_URL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "platform.upstash.rest_token",
+  "env": "UPSTASH_REDIS_REST_TOKEN",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.hq_api_url",
+  "env": "HQ_API_URL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.hq_service_token",
+  "env": "HQ_SERVICE_TOKEN",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.cron_secret",
+  "env": "CRON_SECRET",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.nextauth_secret",
+  "env": "NEXTAUTH_SECRET",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.connect_with_sys_customers",
+  "env": "CONNECT_WITH_SYS_CUSTOMERS",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.guard.mode",
+  "env": "TENANT_GUARD_MODE",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.guard.report_file",
+  "env": "TENANT_GUARD_REPORT_FILE",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.sentry_dsn",
+  "env": "NEXT_PUBLIC_SENTRY_DSN",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.order_change_review.proof_key_id",
+  "env": "ORDER_CHANGE_REVIEW_PROOF_KEY_ID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.order_change_review.proof_secret",
+  "env": "ORDER_CHANGE_REVIEW_PROOF_SECRET",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.workflow.engine_v2",
+  "env": "WORKFLOW_ENGINE_V2",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.workflow.gate_challenge_secret",
+  "env": "WORKFLOW_GATE_CHALLENGE_SECRET",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "fin.outbox_secret",
+  "env": "FINANCE_OUTBOX_SECRET",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   },
+   {
+    "app": "DATABASE",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "ntf.app.outbox_worker_id",
+  "env": "NOTIFICATIONS_OUTBOX_WORKER_ID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "ntf.app.twilio.phone_number",
+  "env": "TWILIO_PHONE_NUMBER",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "ntf.app.vapid.public_key_client",
+  "env": "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "ntf.app.base_url",
+  "env": null,
+  "secret": false,
+  "policy": "DB_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "DATABASE",
+    "used": true
+   },
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.app_url",
+  "env": "NEXT_PUBLIC_APP_URL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   },
+   {
+    "app": "HQ_API",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.site_url",
+  "env": "NEXT_PUBLIC_SITE_URL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.api_url",
+  "env": "NEXT_PUBLIC_API_URL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "HQ_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.platform_api_url",
+  "env": "NEXT_PUBLIC_PLATFORM_API_URL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.supabase_url",
+  "env": "NEXT_PUBLIC_SUPABASE_URL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   },
+   {
+    "app": "HQ_WEB",
+    "used": true
+   },
+   {
+    "app": "HQ_WORKERS",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.supabase_anon_key",
+  "env": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   },
+   {
+    "app": "HQ_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.storage_url",
+  "env": "NEXT_PUBLIC_STORAGE_URL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.auth_redirect_url",
+  "env": "NEXT_PUBLIC_AUTH_REDIRECT_URL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.feature_preparation",
+  "env": "NEXT_PUBLIC_FEATURE_PREPARATION",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.use_new_workflow_system",
+  "env": "NEXT_PUBLIC_USE_NEW_WORKFLOW_SYSTEM",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.workflow_engine_v2",
+  "env": "NEXT_PUBLIC_WORKFLOW_ENGINE_V2",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.custom_item_default_product_id",
+  "env": "NEXT_PUBLIC_CUSTOM_ITEM_DEFAULT_PRODUCT_ID",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.custom_item_use_default_or_create",
+  "env": "NEXT_PUBLIC__CUSTOM_IIEM_USE_DEFAULT_ID_OR_CREATE_NEW_PRODUCT",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.allow_custom_item",
+  "env": "NEXT_PUBLIC_ALLOW_CUSTOM_ITEM",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.demo_tenant_id",
+  "env": "NEXT_PUBLIC_DEMO_TENANT_ID",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.contact_email",
+  "env": "NEXT_PUBLIC_EMAIL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "MARKETING_WEB",
+    "used": false
+   },
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "tenant.public.contact_phone",
+  "env": "NEXT_PUBLIC_PHONE",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "MARKETING_WEB",
+    "used": false
+   },
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.minio.endpoint",
+  "env": "MINIO_ENDPOINT",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.minio.port",
+  "env": "MINIO_PORT",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.minio.use_ssl",
+  "env": "MINIO_USE_SSL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.minio.bucket",
+  "env": "MINIO_BUCKET",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.minio.access_key",
+  "env": "MINIO_ACCESS_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.minio.secret_key",
+  "env": "MINIO_SECRET_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.s3.endpoint",
+  "env": "S3_ENDPOINT",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.s3.region",
+  "env": "S3_REGION",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.s3.bucket",
+  "env": "S3_BUCKET",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.s3.access_key",
+  "env": "S3_ACCESS_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "storage.s3.secret_key",
+  "env": "S3_SECRET_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.whatsapp.access_token",
+  "env": "WHATSAPP_ACCESS_TOKEN",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.whatsapp.phone_number_id",
+  "env": "WHATSAPP_PHONE_NUMBER_ID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.whatsapp.api_version",
+  "env": "WHATSAPP_API_VERSION",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.whatsapp.webhook_secret",
+  "env": "WHATSAPP_WEBHOOK_SECRET",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": true
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.whatsapp.api_key",
+  "env": "WHATSAPP_API_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.sendgrid.api_key",
+  "env": "SENDGRID_API_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.stripe.secret_key",
+  "env": "STRIPE_SECRET_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.smtp.host",
+  "env": "SMTP_HOST",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.smtp.port",
+  "env": "SMTP_PORT",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.smtp.secure",
+  "env": "SMTP_SECURE",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.smtp.user",
+  "env": "SMTP_USER",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.smtp.pass",
+  "env": "SMTP_PASS",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "integration.smtp.from_email",
+  "env": "SMTP_FROM_EMAIL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "runtime.enable.ai",
+  "env": "ENABLE_AI_FEATURES",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "runtime.enable.assembly",
+  "env": "ENABLE_ASSEMBLY",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "runtime.enable.marketplace",
+  "env": "ENABLE_MARKETPLACE",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "TENANT_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "marketing.early_access_default",
+  "env": "CMX_MARKETING_IS_EARLY_ACCESS_DEFALUT",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "MARKETING_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "marketing.visit_tracking_trace",
+  "env": "CMX_VIST_TRACKING_TRACE",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "MARKETING_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ },
+ {
+  "key": "marketing.supabase_fetch_timeout_ms",
+  "env": "MARKETING_SUPABASE_FETCH_TIMEOUT_MS",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "apps": [
+   {
+    "app": "MARKETING_WEB",
+    "used": false
+   }
+  ],
+  "existing": false
+ }
+]
