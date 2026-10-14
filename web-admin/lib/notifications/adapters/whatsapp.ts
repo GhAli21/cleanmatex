@@ -26,6 +26,7 @@ import {
   isNtfDispatchViaHq,
   isTwilioWhatsappSandboxTemplateEnabled,
 } from '@lib/notifications/config'
+import { getMetaWhatsappCredentials, getTwilioCredentials } from '@lib/notifications/provider-secrets'
 import { buildTwilioContentVariables } from '@lib/notifications/adapters/whatsapp-content-variables'
 import {
   hasTwilioProductionTemplates,
@@ -127,8 +128,7 @@ async function sendViaTwilio(
     return { success: false, errorMessage: resolution.errorMessage, permanent: true }
   }
   const productionTemplate = resolution && 'contentSid' in resolution ? resolution : null
-  const accountSid = process.env.TWILIO_ACCOUNT_SID
-  const authToken  = process.env.TWILIO_AUTH_TOKEN
+  const { accountSid, authToken } = await getTwilioCredentials()
   const fromConfig = providerConfig?.from_number
   const from       =
     (await getTwilioWhatsappFrom()) ??
@@ -138,7 +138,7 @@ async function sendViaTwilio(
     const missing = [
       ...collectMissingEnv(['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN']),
       ...(!from
-        ? ['TWILIO_WHATSAPP_FROM|sys_ntf_runtime_cf.twilio_whatsapp_from|provider.from_number']
+        ? ['TWILIO_WHATSAPP_FROM|registry:ntf.app.twilio_whatsapp_from|provider.from_number']
         : []),
     ]
     logMissingNotificationEnv({
@@ -166,7 +166,7 @@ async function sendViaTwilio(
   if (useSandbox && !contentSid) {
     logMissingNotificationEnv({
       adapter: 'whatsapp-adapter(twilio)',
-      missing: ['TWILIO_WHATSAPP_SANDBOX_CONTENT_SID|sys_ntf_runtime_cf.wa_sandbox_content_sid|provider.sandbox_content_sid'],
+      missing: ['TWILIO_WHATSAPP_SANDBOX_CONTENT_SID|registry:ntf.app.wa_sandbox_content_sid|provider.sandbox_content_sid'],
       outboxId: row.id,
       extra: { tenantOrgId: row.tenant_org_id, useSandbox: true },
     })
@@ -255,8 +255,7 @@ async function sendViaTwilio(
 // ---------------------------------------------------------------------------
 
 async function sendViaMeta(row: OutboxWhatsAppRow): Promise<WhatsAppDeliveryResult> {
-  const accessToken   = process.env.META_WHATSAPP_ACCESS_TOKEN
-  const phoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID
+  const { accessToken, phoneNumberId } = await getMetaWhatsappCredentials()
 
   if (!accessToken || !phoneNumberId) {
     logMissingNotificationEnv({
@@ -557,7 +556,7 @@ export async function deliverWhatsAppOutbox(row: OutboxWhatsAppRow): Promise<Wha
     row = { ...row, recipient_address: eligibility.recipientAddress }
   }
 
-  // Global master switch (sys_ntf_runtime_cf has no tenant_org_id column —
+  // Global master switch (registry key ntf.app.dispatch_via_hq is platform-wide, not per tenant —
   // confirmed via information_schema; it is NOT tenant-scopable on its own)
   // AND a per-tenant/channel opt-in (org_ntf_settings_cf.metadata, added
   // 2026-10-10 for plan item A1) — both must be true, so flipping the global

@@ -125,19 +125,20 @@ ONESIGNAL_REST_API_KEY=your-onesignal-rest-api-key
 
 ---
 
-## 4. Runtime Config Table
+## 4. Runtime configuration (Config Registry + Vault)
 
-Migration 0355 creates `sys_ntf_runtime_cf` (a key/value store used by pg_cron since `postgres` role cannot set GUCs in Supabase):
+> **Retired (R6b, migration 0618):** `sys_ntf_runtime_cf` no longer exists. Runtime flags live in the Config Registry (`sys_ops_config_cf`, HQ **Operations → Configuration Registry**, keys `ntf.app.*`); the pg_cron base URL is `ntf.app.base_url`; the cron bearer secret is the Vault secret `ntf_outbox_secret` (migration 0616, rotate with `SELECT public.fn_ntf_rotate_outbox_secret(...)`).
+
+After deployment:
+
+1. HQ **Operations → Configuration Registry**: set `ntf.app.base_url` to the deployed tenant app URL (pg_cron posts to `<base_url>/api/notifications/process-outbox`, `/process-campaigns`, `/reconcile-outbox`).
+2. Rotate the cron secret (the old value is committed in migration 0355) and put the SAME value in the tenant host env:
 
 ```sql
--- After deployment, insert/update runtime config
-INSERT INTO sys_ntf_runtime_cf (key, value) VALUES
-  ('next_js_base_url', 'https://your-deployed-domain.com'),
-  ('outbox_secret_key', 'same-value-as-NOTIFICATIONS_OUTBOX_SECRET')
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+SELECT public.fn_ntf_rotate_outbox_secret('<new random 32+ char value>');  -- returns a 12-hex fingerprint only
 ```
 
-> **Important:** `outbox_secret_key` in this table must match `NOTIFICATIONS_OUTBOX_SECRET` in your env vars exactly. The pg_cron job reads from this table to call the outbox processor.
+Then set `NOTIFICATIONS_OUTBOX_SECRET` (or registry key `ntf.app.outbox_secret`) to that value and redeploy.
 
 ---
 
@@ -270,7 +271,7 @@ SELECT comp_code FROM sys_components_cd WHERE comp_code LIKE 'notification%';
 ## 10. Post-Deployment Checklist
 
 - [ ] All 13 migrations applied in sequence (0344–0356)
-- [ ] `sys_ntf_runtime_cf` populated with `next_js_base_url` and `outbox_secret_key`
+- [ ] Registry key `ntf.app.base_url` set; Vault secret `ntf_outbox_secret` rotated and equal to `NOTIFICATIONS_OUTBOX_SECRET`
 - [ ] All required env vars set in deployment secrets
 - [ ] Provider activation SQL run for all active tenants
 - [ ] pg_cron jobs verified: 3 active jobs with `succeeded` status

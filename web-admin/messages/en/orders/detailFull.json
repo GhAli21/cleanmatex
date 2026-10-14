@@ -69,7 +69,19 @@
     "stain": "Has Stain",
     "damage": "Has Damage",
     "stainNotes": "Stain Notes",
-    "damageNotes": "Damage Notes"
+    "damageNotes": "Damage Notes",
+    "statusValues": {
+      "title": "Order Edit Status values",
+      "committedAt": "Committed at",
+      "committedBy": "Committed by",
+      "editStateVersion": "Edit state version",
+      "editAccessStatus": "Edit access status",
+      "editBlockReasonCode": "Edit block reason code",
+      "editBlockReasonText": "Edit block reason text",
+      "editBlockedAt": "Edit blocked at",
+      "editBlockedBy": "Edit blocked by",
+      "editBlockUntil": "Edit block until"
+    }
   },
   "orderSummary": "Order Summary",
   "viewPayments": "View payments",

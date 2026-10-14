@@ -26,6 +26,7 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { Badge } from '@ui/primitives/badge';
+import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import type { ChangeSet, FieldChange, ItemChange } from '@/lib/services/order-audit.service';
 import { preferenceChangeCodes, type PreferenceChange } from '@/lib/utils/order-preference-snapshot';
 import { preferenceChangeCount } from '@/lib/utils/order-preference-snapshot';
@@ -34,9 +35,7 @@ import { pieceChangeCount } from '@/lib/utils/order-piece-snapshot';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-/**
- *
- */
+/** Represents one immutable audit entry captured for a legacy order edit. */
 export interface OrderEditHistoryEntry {
   id: string;
   orderId: string;
@@ -53,9 +52,7 @@ export interface OrderEditHistoryEntry {
   paymentAdjustmentType: string | null;
 }
 
-/**
- *
- */
+/** Provides localized copy used throughout the edit-history surface. */
 export interface EditHistoryTranslations {
   emptyEditHistory: string;
   editHistoryTitle: string;
@@ -111,12 +108,41 @@ export interface EditHistoryTranslations {
   damageNotes: string;
   yes: string;
   no: string;
+  editStatusTitle: string;
+  committedAt: string;
+  committedBy: string;
+  editStateVersion: string;
+  editAccessStatus: string;
+  editBlockReasonCode: string;
+  editBlockReasonText: string;
+  editBlockedAt: string;
+  editBlockedBy: string;
+  editBlockUntil: string;
+}
+
+/**
+ * Narrow, serializable projection of the persisted order-level edit controls.
+ *
+ * Keeping this separate from timeline rows makes the current edit eligibility
+ * visible even before an order has accumulated legacy audit entries.
+ */
+export interface OrderEditStatusValues {
+  committedAt: string | null;
+  committedBy: string | null;
+  editStateVersion: number | null;
+  editAccessStatus: string | null;
+  editBlockReasonCode: string | null;
+  editBlockReasonText: string | null;
+  editBlockedAt: string | null;
+  editBlockedBy: string | null;
+  editBlockUntil: string | null;
 }
 
 interface OrdersEditHistoryTabRprtProps {
   entries: OrderEditHistoryEntry[];
   currencyCode?: string;
   translations: EditHistoryTranslations;
+  editStatus: OrderEditStatusValues;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -128,6 +154,91 @@ function formatVal(val: unknown, isDate?: boolean): string {
   }
   if (typeof val === 'boolean') return val ? '✓' : '✗';
   return String(val);
+}
+
+/**
+ * Produces a safe display projection from the existing order-detail payload.
+ *
+ * @param order Order record already resolved inside the authenticated tenant boundary.
+ * @returns Only the persisted order edit-control fields required by the status panel.
+ */
+export function toOrderEditStatusValues(order: Record<string, unknown>): OrderEditStatusValues {
+  const toNullableString = (value: unknown): string | null => {
+    if (value instanceof Date) return value.toISOString();
+    return typeof value === 'string' ? value : null;
+  };
+
+  return {
+    committedAt: toNullableString(order.committed_at),
+    committedBy: toNullableString(order.committed_by),
+    editStateVersion: typeof order.edit_state_version === 'number' ? order.edit_state_version : null,
+    editAccessStatus: toNullableString(order.edit_access_status),
+    editBlockReasonCode: toNullableString(order.edit_block_reason_code),
+    editBlockReasonText: toNullableString(order.edit_block_reason_text),
+    editBlockedAt: toNullableString(order.edit_blocked_at),
+    editBlockedBy: toNullableString(order.edit_blocked_by),
+    editBlockUntil: toNullableString(order.edit_block_until),
+  };
+}
+
+/** Formats persisted timestamps using the active UI locale while preserving malformed legacy values. */
+function formatEditStatusTimestamp(value: string | null, locale: string): string {
+  if (!value) return '—';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
+/** Renders the current persisted edit-control values independently of audit-history availability. */
+function OrderEditStatusSection({
+  status,
+  t,
+  locale,
+  isRTL,
+}: {
+  status: OrderEditStatusValues;
+  t: EditHistoryTranslations;
+  locale: string;
+  isRTL: boolean;
+}) {
+  const rows = [
+    { label: t.committedAt, value: formatEditStatusTimestamp(status.committedAt, locale) },
+    { label: t.committedBy, value: formatVal(status.committedBy) },
+    { label: t.editStateVersion, value: formatVal(status.editStateVersion) },
+    { label: t.editAccessStatus, value: formatVal(status.editAccessStatus) },
+    { label: t.editBlockReasonCode, value: formatVal(status.editBlockReasonCode) },
+    { label: t.editBlockReasonText, value: formatVal(status.editBlockReasonText) },
+    { label: t.editBlockedAt, value: formatEditStatusTimestamp(status.editBlockedAt, locale) },
+    { label: t.editBlockedBy, value: formatVal(status.editBlockedBy) },
+    { label: t.editBlockUntil, value: formatEditStatusTimestamp(status.editBlockUntil, locale) },
+  ];
+
+  return (
+    <CmxCard className="mb-6">
+      <CmxCardHeader className="pb-3">
+        <CmxCardTitle className={isRTL ? 'text-right' : 'text-left'}>{t.editStatusTitle}</CmxCardTitle>
+      </CmxCardHeader>
+      <CmxCardContent>
+        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {rows.map((row) => (
+            <div key={row.label} className="rounded-md border border-border bg-muted/20 px-3 py-2.5">
+              <dt className={`text-xs font-medium text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                {row.label}
+              </dt>
+              <dd className={`mt-1 break-words font-mono text-sm text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                {row.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </CmxCardContent>
+    </CmxCard>
+  );
 }
 
 const DATE_FIELDS = new Set(['readyByAt']);
@@ -695,6 +806,7 @@ export function OrdersEditHistoryTabRprt({
   entries,
   currencyCode,
   translations: t,
+  editStatus,
 }: OrdersEditHistoryTabRprtProps) {
   const isRTL = useRTL();
   const locale = useLocale();
@@ -710,11 +822,14 @@ export function OrdersEditHistoryTabRprt({
 
   if (!entries || entries.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-          <History className="w-7 h-7 text-gray-300" />
+      <div>
+        <OrderEditStatusSection status={editStatus} t={t} locale={locale} isRTL={isRTL} />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <History className="w-7 h-7 text-gray-300" />
+          </div>
+          <p className="text-sm text-gray-400">{t.emptyEditHistory}</p>
         </div>
-        <p className="text-sm text-gray-400">{t.emptyEditHistory}</p>
       </div>
     );
   }
@@ -727,6 +842,7 @@ export function OrdersEditHistoryTabRprt({
 
   return (
     <div>
+      <OrderEditStatusSection status={editStatus} t={t} locale={locale} isRTL={isRTL} />
       {/* Stats bar */}
       <div className={`flex items-center gap-3 mb-6 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
         <div className="flex items-center gap-2">

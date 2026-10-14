@@ -26,7 +26,7 @@ import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab
 import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
 import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-rprt';
 import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
-import { OrdersEditHistoryTabRprt } from '@features/orders/ui/orders-edit-history-tab-rprt';
+import { OrdersEditHistoryTabRprt, toOrderEditStatusValues } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import type { OrderEditHistoryEntry } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import { isPreparationEnabled } from '@/lib/config/features';
 import type { OrderFinancialData } from '@/app/actions/orders/get-order-financial';
@@ -458,6 +458,7 @@ export function OrderDetailClient({
       content: (
         <OrdersEditHistoryTabRprt
           entries={editHistory}
+          editStatus={toOrderEditStatusValues(order)}
           translations={{
             emptyEditHistory: t.emptyEditHistory ?? tFull('editHistory.empty'),
             editHistoryTitle: t.editHistoryTitle ?? tFull('editHistory.title'),
@@ -513,6 +514,16 @@ export function OrderDetailClient({
             damageNotes: t.damageNotes ?? tFull('editHistory.damageNotes'),
             yes: t.commonYes ?? 'Yes',
             no: t.commonNo ?? 'No',
+            editStatusTitle: tFull('editHistory.statusValues.title'),
+            committedAt: tFull('editHistory.statusValues.committedAt'),
+            committedBy: tFull('editHistory.statusValues.committedBy'),
+            editStateVersion: tFull('editHistory.statusValues.editStateVersion'),
+            editAccessStatus: tFull('editHistory.statusValues.editAccessStatus'),
+            editBlockReasonCode: tFull('editHistory.statusValues.editBlockReasonCode'),
+            editBlockReasonText: tFull('editHistory.statusValues.editBlockReasonText'),
+            editBlockedAt: tFull('editHistory.statusValues.editBlockedAt'),
+            editBlockedBy: tFull('editHistory.statusValues.editBlockedBy'),
+            editBlockUntil: tFull('editHistory.statusValues.editBlockUntil'),
           }}
         />
       ),

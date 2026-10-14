@@ -36,6 +36,7 @@ import { logger } from '@lib/utils/logger'
 import { OUTBOX_STATUS } from '@lib/notifications/types'
 import { notificationSettingsService } from '@lib/notifications/settings-service'
 import { isTwilioMessagePermanentFailure } from '@lib/notifications/adapters/whatsapp'
+import { getTwilioCredentials } from '@lib/notifications/provider-secrets'
 
 const RECONCILE_BATCH_SIZE = 50
 /** Extra buffer beyond the outbox lease (migration 0556: 5 minutes) before an expired PROCESSING claim is treated as crashed rather than merely slow. */
@@ -280,8 +281,7 @@ async function reconcileTwilioWhatsAppRow(
   supabase: ReturnType<typeof createAdminSupabaseClient>,
   row: ReconcileRow,
 ): Promise<ReconciliationRowResult> {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID
-  const authToken = process.env.TWILIO_AUTH_TOKEN
+  const { accountSid, authToken } = await getTwilioCredentials()
   if (!accountSid || !authToken || !row.provider_message_id) {
     return deadLetterRow(supabase, row, 'Twilio credentials or provider_message_id unavailable for reconciliation lookup');
   }

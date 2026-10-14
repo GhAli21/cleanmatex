@@ -192,6 +192,7 @@ function EditSharedWorkspaceBody({
     estimatedTotal,
     reviewStatus,
     reviewing,
+    editPolicy: context.editPolicy,
     onReview: () => { void onReview(); },
     onDiscard,
   }), [baseline, context, estimatedTotal, onDiscard, onReview, reviewStatus, reviewing, visual]);

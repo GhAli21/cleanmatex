@@ -37,7 +37,7 @@ Keep these values in the server's secret/environment configuration:
 | `NOTIFICATIONS_OUTBOX_SECRET` | Existing internal outbox dispatcher authentication |
 
 Restart/redeploy after environment changes. The sender's effective precedence is
-nonempty environment value, then `sys_ntf_runtime_cf.twilio_whatsapp_from`, then provider
+nonempty environment value, then registry `ntf.app.twilio_whatsapp_from`, then provider
 `from_number`. Set a verified live sender instead of inheriting a historical sandbox
 sender. Inspect runtime `ntf_dispatch_via_hq` too; an unset environment value falls back
 to runtime configuration.
@@ -228,8 +228,8 @@ for competing active providers and cache invalidation before treating it as equi
 to the tenant activation API.
 
 HQ `/notifications/templates` manages internal bilingual content/version approvals;
-its APPROVED status does not verify Twilio/Meta approval. `/notifications/runtime-config`
-manages runtime keys with masked secrets, subject to environment precedence. The HQ
+its APPROVED status does not verify Twilio/Meta approval. `/ops/config` (Configuration Registry)
+manages runtime keys with write-only secrets, subject to environment precedence. The HQ
 dispatch adapter and worker currently send plain-text Body payloads and do not consume
 the event SID/map configuration. Keep direct dispatch for this implementation.
 

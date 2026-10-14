@@ -272,15 +272,12 @@ LIMIT 15;
 ### If jobs are failing
 
 **Check `return_message`:**
-- `401 Unauthorized` → `outbox_secret_key` in `sys_ntf_runtime_cf` does not match `NOTIFICATIONS_OUTBOX_SECRET` env var
-- Network error / timeout → `next_js_base_url` in `sys_ntf_runtime_cf` is incorrect or app is down
-- SQL error → check the function definition of `ntf_trigger_outbox_proc()`
+- `401 Unauthorized` → the Vault secret `ntf_outbox_secret` does not match `NOTIFICATIONS_OUTBOX_SECRET` (or registry key `ntf.app.outbox_secret`) on the tenant host
+- Network error / timeout / "skipped" warning → registry key `ntf.app.base_url` is missing or wrong, or the app is down
+- SQL error → check `fn_ntf_cron_post(text)` (all three wrappers call it)
 
-**Update runtime config:**
-```sql
-UPDATE sys_ntf_runtime_cf SET value = 'https://correct-domain.com', updated_at = NOW()
-WHERE key = 'next_js_base_url';
-```
+**Fix the base URL:** HQ **Operations → Configuration Registry** → `ntf.app.base_url` → Set value.
+**Fix the secret:** `SELECT public.fn_ntf_rotate_outbox_secret('<new value>');` then set the same value on the tenant host and redeploy.
 
 ---
 

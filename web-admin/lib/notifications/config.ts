@@ -1,119 +1,57 @@
 /**
- * Notification Hub runtime flags.
- * Source of truth: sys_ntf_runtime_cf (see migration 0502).
- * Explicit env values still override so .env.local works before the
- * migration is applied and as an emergency escape hatch.
- * Secrets (Twilio auth, Resend key, HQ service role) stay in env only.
+ * Notification Hub configuration for the tenant app.
+ *
+ * Source of truth: the Config Registry (`sys_ops_config_cf`, managed on HQ /ops/config), read through
+ * the tenant resolver (lib/ops-config/tenant-config-resolver.ts) which applies each key's source
+ * policy. The seeded policy for every key here is ENV_OVERRIDES_DB, so a set environment variable
+ * still wins (local .env and emergency override keep working) and the stored value is the fallback.
+ * The former store `sys_ntf_runtime_cf` is retired (R6b).
+ *
+ * Provider secrets live in lib/notifications/provider-secrets.ts (same resolver, separate module so
+ * flag consumers never import secret getters). `NTF_HQ_SERVICE_ROLE_KEY` is a bootstrap key and stays
+ * in the host environment.
  */
 
-import { createAdminSupabaseClient } from '@/lib/supabase/server'
-import { logger } from '@lib/utils/logger'
-import { parseRuntimeBool, resolveRuntimeString } from '@lib/notifications/runtime-config-helpers'
+import { resolveTenantConfig } from '@lib/ops-config/tenant-config-resolver'
+import { parseRuntimeBool } from '@lib/notifications/runtime-config-helpers'
 
 export { parseRuntimeBool, resolveRuntimeString } from '@lib/notifications/runtime-config-helpers'
 
-/** Keys stored in sys_ntf_runtime_cf — keep in sync with 0502 / 0503. */
-export const NTF_RUNTIME_KEYS = {
-  WHATSAPP_FALLBACK_EMAIL: 'whatsapp_fallback_email',
-  ORDER_TRANSITION_NOTIFY: 'order_transition_notify',
-  WA_USE_SANDBOX_TEMPLATE: 'wa_use_sandbox_template',
-  WA_SANDBOX_CONTENT_SID: 'wa_sandbox_content_sid',
-  WA_SANDBOX_TO_PHONE: 'wa_sandbox_to_phone',
-  OUTBOX_INLINE_DISPATCH: 'outbox_inline_dispatch',
-  TWILIO_SMS_FROM: 'twilio_sms_from',
-  TWILIO_WHATSAPP_FROM: 'twilio_whatsapp_from',
-  NTF_DISPATCH_VIA_HQ: 'ntf_dispatch_via_hq',
-  NTF_HQ_DISPATCH_URL: 'ntf_hq_dispatch_url',
-  NTF_HQ_ROUTE_DISPATCH_URL: 'ntf_hq_route_dispatch_url',
-  RESEND_FROM_EMAIL: 'resend_from_email',
+/**
+ * Registry keys read by the tenant notification code, with the environment variable each one
+ * used before the registry (also the fallback when the registry is unreadable). Keys mirror
+ * `sys_ops_config_cf.config_key` exactly.
+ */
+export const NTF_CONFIG_KEYS = {
+  WHATSAPP_FALLBACK_EMAIL: { key: 'ntf.app.whatsapp_fallback_email', env: 'NTF_WHATSAPP_FALLBACK_EMAIL' },
+  ORDER_TRANSITION_NOTIFY: { key: 'ntf.app.order_transition_notify', env: 'NTF_ORDER_TRANSITION_NOTIFY' },
+  WA_USE_SANDBOX_TEMPLATE: { key: 'ntf.app.wa_use_sandbox_template', env: 'TWILIO_WHATSAPP_USE_SANDBOX_TEMPLATE' },
+  WA_SANDBOX_CONTENT_SID: { key: 'ntf.app.wa_sandbox_content_sid', env: 'TWILIO_WHATSAPP_SANDBOX_CONTENT_SID' },
+  WA_SANDBOX_TO_PHONE: { key: 'ntf.app.wa_sandbox_to_phone', env: 'TWILIO_WHATSAPP_SANDBOX_TO' },
+  OUTBOX_INLINE_DISPATCH: { key: 'ntf.app.outbox_inline_dispatch', env: 'NTF_OUTBOX_INLINE_DISPATCH' },
+  TWILIO_SMS_FROM: { key: 'ntf.app.twilio_sms_from', env: 'TWILIO_SMS_FROM' },
+  TWILIO_WHATSAPP_FROM: { key: 'ntf.app.twilio_whatsapp_from', env: 'TWILIO_WHATSAPP_FROM' },
+  DISPATCH_VIA_HQ: { key: 'ntf.app.dispatch_via_hq', env: 'NTF_DISPATCH_VIA_HQ' },
+  HQ_DISPATCH_URL: { key: 'ntf.app.hq_dispatch_url', env: 'NTF_HQ_DISPATCH_URL' },
+  HQ_ROUTE_DISPATCH_URL: { key: 'ntf.app.hq_route_dispatch_url', env: 'NTF_HQ_ROUTE_DISPATCH_URL' },
+  RESEND_FROM_EMAIL: { key: 'ntf.app.resend_from_email', env: 'RESEND_FROM_EMAIL' },
 } as const
 
-const ENV_OVERRIDE: Record<string, string> = {
-  [NTF_RUNTIME_KEYS.WHATSAPP_FALLBACK_EMAIL]: 'NTF_WHATSAPP_FALLBACK_EMAIL',
-  [NTF_RUNTIME_KEYS.ORDER_TRANSITION_NOTIFY]: 'NTF_ORDER_TRANSITION_NOTIFY',
-  [NTF_RUNTIME_KEYS.WA_USE_SANDBOX_TEMPLATE]: 'TWILIO_WHATSAPP_USE_SANDBOX_TEMPLATE',
-  [NTF_RUNTIME_KEYS.WA_SANDBOX_CONTENT_SID]: 'TWILIO_WHATSAPP_SANDBOX_CONTENT_SID',
-  [NTF_RUNTIME_KEYS.WA_SANDBOX_TO_PHONE]: 'TWILIO_WHATSAPP_SANDBOX_TO',
-  [NTF_RUNTIME_KEYS.OUTBOX_INLINE_DISPATCH]: 'NTF_OUTBOX_INLINE_DISPATCH',
-  [NTF_RUNTIME_KEYS.TWILIO_SMS_FROM]: 'TWILIO_SMS_FROM',
-  [NTF_RUNTIME_KEYS.TWILIO_WHATSAPP_FROM]: 'TWILIO_WHATSAPP_FROM',
-  [NTF_RUNTIME_KEYS.NTF_DISPATCH_VIA_HQ]: 'NTF_DISPATCH_VIA_HQ',
-  [NTF_RUNTIME_KEYS.NTF_HQ_DISPATCH_URL]: 'NTF_HQ_DISPATCH_URL',
-  [NTF_RUNTIME_KEYS.NTF_HQ_ROUTE_DISPATCH_URL]: 'NTF_HQ_ROUTE_DISPATCH_URL',
-  [NTF_RUNTIME_KEYS.RESEND_FROM_EMAIL]: 'RESEND_FROM_EMAIL',
+/** One entry of {@link NTF_CONFIG_KEYS}. */
+export type NtfConfigKey = (typeof NTF_CONFIG_KEYS)[keyof typeof NTF_CONFIG_KEYS]
+
+/** Resolves one notification key (undefined when unset or refused by its policy). */
+export async function getNtfConfig(entry: NtfConfigKey): Promise<string | undefined> {
+  return resolveTenantConfig(entry.key, entry.env)
 }
 
-const CACHE_TTL_MS = 30_000
-
-interface RuntimeCache {
-  values: Map<string, string>
-  expiresAt: number
-}
-
-let cache: RuntimeCache | null = null
-
-/**
- * Drop the 30s sys_ntf_runtime_cf cache after an operator write.
- */
-export function invalidateNtfRuntimeCache(): void {
-  cache = null
-}
-
-async function loadRuntimeMap(): Promise<Map<string, string>> {
-  const now = Date.now()
-  if (cache && cache.expiresAt > now) return cache.values
-
-  const values = new Map<string, string>()
-  try {
-    const supabase = createAdminSupabaseClient()
-    const { data, error } = await supabase
-      .from('sys_ntf_runtime_cf')
-      .select('key, value')
-      .eq('is_active', true)
-      .eq('rec_status', 1)
-
-    if (error) {
-      logger.warn('ntf-runtime-cf: failed to load hub flags', {
-        error: error.message,
-        feature: 'notifications',
-      })
-    } else {
-      for (const row of data ?? []) {
-        if (row.key && row.value != null) values.set(row.key, row.value)
-      }
-    }
-  } catch (err) {
-    logger.warn('ntf-runtime-cf: load threw', {
-      error: err instanceof Error ? err.message : String(err),
-      feature: 'notifications',
-    })
-  }
-
-  cache = { values, expiresAt: now + CACHE_TTL_MS }
-  return values
-}
-
-async function getRuntimeString(key: string, fallback?: string): Promise<string | undefined> {
-  const envName = ENV_OVERRIDE[key]
-  const dbMap = await loadRuntimeMap()
-  return resolveRuntimeString({
-    envValue: envName ? process.env[envName] : undefined,
-    dbValue: dbMap.get(key),
-    fallback,
-  })
-}
-
-async function getRuntimeBool(key: string, fallback: boolean): Promise<boolean> {
-  const parsed = parseRuntimeBool(await getRuntimeString(key))
-  return parsed ?? fallback
+async function getConfigBool(entry: NtfConfigKey, fallback: boolean): Promise<boolean> {
+  return parseRuntimeBool(await getNtfConfig(entry)) ?? fallback
 }
 
 /** When true, WHATSAPP deliveries fall back to customer EMAIL when WA cannot send. */
 export async function isWhatsappEmailFallbackEnabled(): Promise<boolean> {
-  return getRuntimeBool(
-    NTF_RUNTIME_KEYS.WHATSAPP_FALLBACK_EMAIL,
-    process.env.NODE_ENV !== 'production',
-  )
+  return getConfigBool(NTF_CONFIG_KEYS.WHATSAPP_FALLBACK_EMAIL, process.env.NODE_ENV !== 'production')
 }
 
 /**
@@ -121,17 +59,17 @@ export async function isWhatsappEmailFallbackEnabled(): Promise<boolean> {
  * Default false — the shared event catalog is the durable notify path.
  */
 export async function isOrderTransitionNotifyEnabled(): Promise<boolean> {
-  return getRuntimeBool(NTF_RUNTIME_KEYS.ORDER_TRANSITION_NOTIFY, false)
+  return getConfigBool(NTF_CONFIG_KEYS.ORDER_TRANSITION_NOTIFY, false)
 }
 
 /** When true, Twilio BSP sends via Content API template instead of free-form body. */
 export async function isTwilioWhatsappSandboxTemplateEnabled(): Promise<boolean> {
-  return getRuntimeBool(NTF_RUNTIME_KEYS.WA_USE_SANDBOX_TEMPLATE, false)
+  return getConfigBool(NTF_CONFIG_KEYS.WA_USE_SANDBOX_TEMPLATE, false)
 }
 
 /** Twilio Content SID used when sandbox/template sending is on. */
 export async function getTwilioWhatsappSandboxContentSid(): Promise<string | undefined> {
-  return getRuntimeString(NTF_RUNTIME_KEYS.WA_SANDBOX_CONTENT_SID)
+  return getNtfConfig(NTF_CONFIG_KEYS.WA_SANDBOX_CONTENT_SID)
 }
 
 /**
@@ -139,54 +77,48 @@ export async function getTwilioWhatsappSandboxContentSid(): Promise<string | und
  * Must be a number that has joined the Twilio sandbox.
  */
 export async function getTwilioWhatsappSandboxToPhone(): Promise<string | undefined> {
-  return getRuntimeString(NTF_RUNTIME_KEYS.WA_SANDBOX_TO_PHONE)
+  return getNtfConfig(NTF_CONFIG_KEYS.WA_SANDBOX_TO_PHONE)
 }
 
 /** When true, WhatsApp outbox rows are dispatched in-process instead of waiting for pg_cron. */
 export async function isOutboxInlineDispatchEnabled(): Promise<boolean> {
-  return getRuntimeBool(NTF_RUNTIME_KEYS.OUTBOX_INLINE_DISPATCH, false)
+  return getConfigBool(NTF_CONFIG_KEYS.OUTBOX_INLINE_DISPATCH, false)
 }
 
-/** Twilio SMS From number (E.164). Auth stays in TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN. */
+/** Twilio SMS From number (E.164). */
 export async function getTwilioSmsFrom(): Promise<string | undefined> {
-  return getRuntimeString(NTF_RUNTIME_KEYS.TWILIO_SMS_FROM)
+  return getNtfConfig(NTF_CONFIG_KEYS.TWILIO_SMS_FROM)
 }
 
 /** Twilio WhatsApp From address (`whatsapp:+E.164` or `+E.164`). */
 export async function getTwilioWhatsappFrom(): Promise<string | undefined> {
-  return getRuntimeString(NTF_RUNTIME_KEYS.TWILIO_WHATSAPP_FROM)
+  return getNtfConfig(NTF_CONFIG_KEYS.TWILIO_WHATSAPP_FROM)
 }
 
 /** When true, EMAIL/SMS/WA/PUSH are sent through the HQ dispatch proxy. */
 export async function isNtfDispatchViaHq(): Promise<boolean> {
-  return getRuntimeBool(NTF_RUNTIME_KEYS.NTF_DISPATCH_VIA_HQ, false)
+  return getConfigBool(NTF_CONFIG_KEYS.DISPATCH_VIA_HQ, false)
 }
 
-/** HQ dispatch URL. The service-role key stays in NTF_HQ_SERVICE_ROLE_KEY. */
+/** HQ dispatch URL. The service-role key stays in NTF_HQ_SERVICE_ROLE_KEY (bootstrap, host environment). */
 export async function getNtfHqDispatchUrl(): Promise<string> {
-  return (
-    (await getRuntimeString(NTF_RUNTIME_KEYS.NTF_HQ_DISPATCH_URL)) ??
-    'http://localhost:3002/api/hq/v1/notifications/dispatch'
-  )
+  return (await getNtfConfig(NTF_CONFIG_KEYS.HQ_DISPATCH_URL)) ?? 'http://localhost:3002/api/hq/v1/notifications/dispatch'
 }
 
 /**
  * Route-identity-aware HQ dispatch URL — additive to {@link getNtfHqDispatchUrl}'s generic
  * body-only proxy, never a replacement. Used only by the bounded WhatsApp route cutover
  * (plan sections 17.2/22/23.1) once ResolveEffectiveNotificationRoute returns a matched
- * ACTIVE route; the service-role key stays in NTF_HQ_SERVICE_ROLE_KEY.
+ * ACTIVE route.
  */
 export async function getNtfHqRouteDispatchUrl(): Promise<string> {
   return (
-    (await getRuntimeString(NTF_RUNTIME_KEYS.NTF_HQ_ROUTE_DISPATCH_URL)) ??
+    (await getNtfConfig(NTF_CONFIG_KEYS.HQ_ROUTE_DISPATCH_URL)) ??
     'http://localhost:3002/api/hq/v1/notifications/dispatch/route'
   )
 }
 
-/** Resend From address. RESEND_API_KEY stays in env. */
+/** Resend From address. */
 export async function getResendFromEmail(): Promise<string> {
-  return (
-    (await getRuntimeString(NTF_RUNTIME_KEYS.RESEND_FROM_EMAIL)) ??
-    'noreply@service.cleanmatex.com'
-  )
+  return (await getNtfConfig(NTF_CONFIG_KEYS.RESEND_FROM_EMAIL)) ?? 'noreply@service.cleanmatex.com'
 }

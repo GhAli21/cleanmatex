@@ -126,4 +126,22 @@ export interface OrderChangeContext {
     status: 'DEFERRED';
     reasonCode: string;
   };
+  /** Display copy of the active status matrix. It does not grant an edit. */
+  editPolicy: OrderChangeEditPolicyInfo;
+}
+
+/** One current-status rule prepared for the Edit Policy Info window. */
+export interface OrderChangeEditPolicyRule {
+  operationCode: OrderChangeOperationCode;
+  targetType: 'ORDER' | 'ITEM' | 'PIECE' | 'PREFERENCE';
+  decision: 'ALLOW' | 'ALLOW_WITH_WARNING' | 'REQUIRE_OVERRIDE' | 'DENY';
+  requiresReason: boolean;
+}
+
+/** The single active Edit Policy for this order's workflow status, or a missing result. */
+export interface OrderChangeEditPolicyInfo {
+  status: 'READY' | 'MISSING';
+  workflowStatus: string | null;
+  policyRevision: number | null;
+  rules: OrderChangeEditPolicyRule[];
 }

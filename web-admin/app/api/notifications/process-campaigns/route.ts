@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { isOutboxRequestAuthorized } from '@lib/notifications/outbox-auth';
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { collapseUserPrefRows } from '@lib/notifications/user-prefs'
 import { logger } from '@/lib/utils/logger'
@@ -21,12 +22,6 @@ import type { Json } from '@/types/database'
 const ACTIVATE_BATCH   = 10  // campaigns to activate per run
 const DISPATCH_BATCH   = 50  // targets to process per running campaign per run
 
-function isAuthorized(request: NextRequest): boolean {
-  const secret = process.env.NOTIFICATIONS_OUTBOX_SECRET
-  if (!secret) return false
-  const authHeader = request.headers.get('authorization') ?? ''
-  return authHeader === `Bearer ${secret}`
-}
 
 type Campaign = {
   id:             string
@@ -466,7 +461,7 @@ async function completeCampaign(
  * @param request
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  if (!isAuthorized(request)) {
+  if (!(await isOutboxRequestAuthorized(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

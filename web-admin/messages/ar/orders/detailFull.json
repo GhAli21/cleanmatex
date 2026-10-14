@@ -69,7 +69,19 @@
     "stain": "يوجد بقع",
     "damage": "يوجد تلف",
     "stainNotes": "ملاحظات البقع",
-    "damageNotes": "ملاحظات التلف"
+    "damageNotes": "ملاحظات التلف",
+    "statusValues": {
+      "title": "قيم حالة تعديل الطلب",
+      "committedAt": "تم الاعتماد في",
+      "committedBy": "تم الاعتماد بواسطة",
+      "editStateVersion": "إصدار حالة التعديل",
+      "editAccessStatus": "حالة صلاحية التعديل",
+      "editBlockReasonCode": "رمز سبب حظر التعديل",
+      "editBlockReasonText": "وصف سبب حظر التعديل",
+      "editBlockedAt": "تم حظر التعديل في",
+      "editBlockedBy": "تم حظر التعديل بواسطة",
+      "editBlockUntil": "حظر التعديل حتى"
+    }
   },
   "orderSummary": "ملخص الطلب",
   "viewPayments": "عرض المدفوعات",

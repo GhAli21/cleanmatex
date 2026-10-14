@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, type ReactNode } from 'react';
+import type { OrderChangeEditPolicyInfo } from '@/lib/types/order-change';
 
 /**
  * Edit presentation session.
@@ -17,6 +18,7 @@ export interface OrderWorkspaceSessionValue {
   estimatedTotal: string | null;
   reviewStatus: string | null;
   reviewing: boolean;
+  editPolicy: OrderChangeEditPolicyInfo;
   onReview: () => void;
   onDiscard: () => void;
 }

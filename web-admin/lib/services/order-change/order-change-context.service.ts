@@ -4,7 +4,8 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { getOrderFinancialSummary } from '@/lib/services/order-financial-summary.service';
 import { ORDER_CHANGE_CONTEXT_DEFERRED_REASON } from '@/lib/constants/order-change';
-import type { OrderChangeContext } from '@/lib/types/order-change';
+import type { OrderChangeContext, OrderChangeEditPolicyInfo } from '@/lib/types/order-change';
+import { resolveOrderChangePolicyBindings } from '@/lib/services/order-change/order-change-edit-policy-resolver.service';
 
 /** Typed failure so the HTTP route can preserve the V3 error envelope without exposing internals. */
 export class OrderChangeContextError extends Error {
@@ -44,7 +45,7 @@ function toIso(value: Date | null): string | null {
  * All Prisma queries scoped to tenantOrgId via withTenantContext.
  *
  * @param input - Authenticated tenant and route order identifiers; the tenant ID enforces row-level isolation.
- * @returns Stable-id commercial context with policy execution intentionally deferred to WP05.
+ * @returns Stable-id commercial context. The status matrix is included for display and does not grant an edit.
  * @throws {OrderChangeContextError} When the order is unavailable or V2-ineligible.
  * @example
  * await getOrderChangeContext({ tenantId: 'tenant-uuid', orderId: 'order-uuid' });
@@ -116,6 +117,24 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
     }
 
     const financial = await getOrderFinancialSummary(tenantId, input.orderId);
+    const bindings = await prisma.$transaction((tx) => resolveOrderChangePolicyBindings(tx, {
+      tenantId,
+      profileVersionId: order.wf_profile_version_id,
+      workflowStatus: order.current_status,
+    }));
+    const editPolicy: OrderChangeEditPolicyInfo = bindings.length === 0
+      ? { status: 'MISSING', workflowStatus: order.current_status, policyRevision: null, rules: [] }
+      : {
+        status: 'READY',
+        workflowStatus: order.current_status,
+        policyRevision: bindings[0].policyRevision,
+        rules: bindings.map((binding) => ({
+          operationCode: binding.operationCode,
+          targetType: binding.targetType,
+          decision: binding.decision,
+          requiresReason: binding.requiresReason === true,
+        })),
+      };
     return {
       orderId: order.id,
       orderNo: order.order_no,
@@ -148,6 +167,7 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
         outstandingAmount: decimalText(financial.snapshot.outstandingAmount), overpaidAmount: decimalText(financial.snapshot.overpaidAmount),
       },
       capabilitySummary: { status: 'DEFERRED', reasonCode: ORDER_CHANGE_CONTEXT_DEFERRED_REASON },
+      editPolicy,
     };
   });
 }

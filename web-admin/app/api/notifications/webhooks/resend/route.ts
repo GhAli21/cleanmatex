@@ -37,6 +37,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { logger } from '@lib/utils/logger';
 import { recordSoftBounce, recordSuppression } from '@lib/notifications/suppression-list';
+import { getResendWebhookSecret } from '@lib/notifications/provider-secrets';
 
 interface ResendWebhookPayload {
   type?: string;
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'EMPTY_BODY' }, { status: 400 });
   }
 
-  const secret = process.env.RESEND_WEBHOOK_SECRET ?? '';
+  const secret = (await getResendWebhookSecret()) ?? '';
   if (!secret) {
     logger.error('resend-webhook: RESEND_WEBHOOK_SECRET not configured — rejecting all callbacks', undefined, {
       feature: 'notifications',

@@ -231,7 +231,7 @@ notificationSettingsService.invalidateUserPrefs(tenantOrgId, userId)
 | `sys_ntf_providers_cd` | Provider catalog (RESEND, VAPID, ONESIGNAL, TWILIO_SMS, …) |
 | `sys_notification_templates_mst` | Template definitions (bilingual) |
 | `sys_notif_template_ver_dtl` | Template versions (DRAFT/APPROVED/RETIRED) |
-| `sys_ntf_runtime_cf` | Key/value runtime config (next_js_base_url, outbox_secret_key) |
+| `sys_ops_config_cf` | Config Registry: every runtime flag/secret (`ntf.app.*`, `ntf.hq.*`); tenant app reads it via `lib/ops-config/tenant-config-resolver.ts`, HQ via `ConfigResolverService`. Replaces the retired `sys_ntf_runtime_cf` (0618) |
 
 ### Tenant Runtime (all have tenant_org_id + RLS)
 
@@ -260,7 +260,7 @@ The campaign engine uses the same pg_cron + pg_net SECURITY DEFINER pattern as t
 ```
 pg_cron (every 1 min)
   → ntf_trigger_campaign_proc() [SECURITY DEFINER]
-      → reads sys_ntf_runtime_cf (base_url + outbox_secret_key)
+      → fn_ntf_cron_post: base_url from registry ntf.app.base_url + secret from Vault ntf_outbox_secret
       → POST /api/notifications/process-campaigns  [Bearer-authenticated]
             │
             ├── Phase A: Find APPROVED/SCHEDULED campaigns ready to run
@@ -358,7 +358,7 @@ const channel = supabase
 
 `POST /api/notifications/process-outbox` — secured with `NOTIFICATIONS_OUTBOX_SECRET` bearer token.
 
-**Called by:** Supabase pg_cron via `ntf_trigger_outbox_proc()` SECURITY DEFINER function (reads base_url + secret from `sys_ntf_runtime_cf`).
+**Called by:** Supabase pg_cron via `ntf_trigger_outbox_proc()` SECURITY DEFINER function (delegates to `fn_ntf_cron_post`: base URL from registry key `ntf.app.base_url`, bearer secret from Vault `ntf_outbox_secret`).
 
 **Logic:**
 1. Fetch up to 50 QUEUED rows where `scheduled_at <= NOW()`

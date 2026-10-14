@@ -13,6 +13,7 @@ import { getNtfHqDispatchUrl, getTwilioSmsFrom, isNtfDispatchViaHq } from '@lib/
 import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env'
 import { resolveCustomerDispatchConsent } from '@lib/notifications/customer-dispatch-consent'
 import { checkSuppression } from '@lib/notifications/suppression-list'
+import { getTwilioCredentials } from '@lib/notifications/provider-secrets'
 import { notificationSettingsService } from '@lib/notifications/settings-service'
 
 /**
@@ -136,14 +137,13 @@ export async function deliverSmsOutbox(row: OutboxSmsRow): Promise<SmsDeliveryRe
     return deliverViaHqProxy(row)
   }
 
-  const accountSid = process.env.TWILIO_ACCOUNT_SID
-  const authToken  = process.env.TWILIO_AUTH_TOKEN
+  const { accountSid, authToken } = await getTwilioCredentials()
   const from       = await getTwilioSmsFrom()
 
   if (!accountSid || !authToken || !from) {
     const missing = [
       ...collectMissingEnv(['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN']),
-      ...(!from ? ['TWILIO_SMS_FROM|sys_ntf_runtime_cf.twilio_sms_from'] : []),
+      ...(!from ? ['TWILIO_SMS_FROM|registry:ntf.app.twilio_sms_from'] : []),
     ]
     logMissingNotificationEnv({
       adapter: 'sms-adapter',

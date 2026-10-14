@@ -1,19 +1,20 @@
 /**
  * SMS Sender - Shared module for sending SMS via Twilio
  *
- * When TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER are set,
- * uses real Twilio. Otherwise logs in dev (no-op in production without config).
+ * When the Twilio account SID, auth token and legacy phone number resolve (Config Registry keys
+ * ntf.app.twilio.account_sid / auth_token / phone_number; env vars TWILIO_ACCOUNT_SID /
+ * TWILIO_AUTH_TOKEN / TWILIO_PHONE_NUMBER win under the seeded policy), uses real Twilio.
+ * Otherwise logs in dev (no-op in production without config).
  */
 
 import { logger } from '@/lib/utils/logger';
 import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env';
+import { getLegacyTwilioPhoneNumber, getTwilioCredentials } from '@lib/notifications/provider-secrets';
 
-function isTwilioConfigured(): boolean {
-  return !!(
-    process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_PHONE_NUMBER
-  );
+/** Resolved Twilio identity of the legacy sender, or null when any part is missing. */
+async function resolveTwilioSender(): Promise<{ accountSid: string; authToken: string; from: string } | null> {
+  const [{ accountSid, authToken }, from] = await Promise.all([getTwilioCredentials(), getLegacyTwilioPhoneNumber()]);
+  return accountSid && authToken && from ? { accountSid, authToken, from } : null;
 }
 
 /**
@@ -25,16 +26,14 @@ function isTwilioConfigured(): boolean {
  * @returns true if sent (or dev mock), false on failure
  */
 export async function sendSMS(to: string, message: string): Promise<boolean> {
-  if (isTwilioConfigured()) {
+  const sender = await resolveTwilioSender();
+  if (sender) {
     try {
       const twilio = await import('twilio');
-      const client = twilio.default(
-        process.env.TWILIO_ACCOUNT_SID!,
-        process.env.TWILIO_AUTH_TOKEN!
-      );
+      const client = twilio.default(sender.accountSid, sender.authToken);
       await client.messages.create({
         body: message,
-        from: process.env.TWILIO_PHONE_NUMBER!,
+        from: sender.from,
         to,
       });
       logger.info('SMS sent via Twilio', {

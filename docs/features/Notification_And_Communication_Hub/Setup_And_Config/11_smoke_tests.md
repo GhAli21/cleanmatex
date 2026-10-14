@@ -3,7 +3,7 @@
 **Last Updated:** 2026-06-12  
 **Purpose:** Per-channel smoke test procedure with exact SQL test harness and expected outcomes.
 
-**Prerequisites:** All migrations 0344–0356 applied, `sys_ntf_runtime_cf` populated, at least one channel enabled and its provider activated.
+**Prerequisites:** All migrations 0344–0356 applied, registry key `ntf.app.base_url` set and Vault secret `ntf_outbox_secret` equal to `NOTIFICATIONS_OUTBOX_SECRET`, at least one channel enabled and its provider activated.
 
 > See also: `../testing_scenarios.md` for full QA test matrix including integration and multi-tenant isolation tests.
 
@@ -46,10 +46,10 @@ curl -X POST https://your-domain.com/api/notifications/process-outbox \
   -H "Authorization: Bearer YOUR_NOTIFICATIONS_OUTBOX_SECRET"
 ```
 
-Or call it from the Supabase SQL Editor via the runtime config function (migration 0355 replaced GUCs with `sys_ntf_runtime_cf`):
+Or call it from the Supabase SQL Editor via the cron wrapper (base URL from registry `ntf.app.base_url`, secret from Vault):
 
 ```sql
--- Use the SECURITY DEFINER function that reads base_url + secret from sys_ntf_runtime_cf
+-- SECURITY DEFINER wrapper -> fn_ntf_cron_post (registry base URL + Vault secret)
 SELECT ntf_trigger_outbox_proc();
 ```
 
@@ -230,9 +230,9 @@ Expected: `status = succeeded` for recent runs.
 
 If all runs show `status = failed`:
 1. Check `return_message` — likely contains a `401` or network error
-2. Verify `sys_ntf_runtime_cf` has correct `next_js_base_url` and `outbox_secret_key` values (GUCs replaced in migration 0355)
-3. Ensure `NOTIFICATIONS_OUTBOX_SECRET` env var matches `outbox_secret_key` in `sys_ntf_runtime_cf`
-4. Run: `SELECT key, value FROM sys_ntf_runtime_cf ORDER BY key;` to inspect current values
+2. Verify registry key `ntf.app.base_url` on HQ **Operations → Configuration Registry**
+3. Ensure `NOTIFICATIONS_OUTBOX_SECRET` equals the Vault secret (rotate both with `fn_ntf_rotate_outbox_secret` if unsure)
+4. Look for `[fn_ntf_cron_post] ... skipped` warnings in the database log
 
 ---
 

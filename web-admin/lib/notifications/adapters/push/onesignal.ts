@@ -12,6 +12,7 @@
  */
 
 import { logger } from '@lib/utils/logger'
+import { getOneSignalConfig } from '@lib/notifications/provider-secrets'
 
 /**
  *
@@ -41,8 +42,7 @@ export async function sendOneSignalPush(
   subscriptionData: OneSignalSubscriptionData,
   payload: string,   // JSON string: { title, body, data, ... }
 ): Promise<OneSignalSendResult> {
-  const appId  = process.env.ONESIGNAL_APP_ID
-  const apiKey = process.env.ONESIGNAL_REST_API_KEY
+  const { appId, apiKey } = await getOneSignalConfig()
 
   if (!appId || !apiKey) {
     return {

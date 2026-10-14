@@ -14,6 +14,7 @@
  */
 
 import { logger } from '@lib/utils/logger'
+import { getFcmConfig } from '@lib/notifications/provider-secrets'
 
 /**
  *
@@ -89,8 +90,7 @@ async function getFcmAccessToken(sa: FcmServiceAccount): Promise<string> {
   return cachedToken
 }
 
-function loadServiceAccount(): FcmServiceAccount | null {
-  const raw = process.env.FCM_SERVICE_ACCOUNT_JSON
+function loadServiceAccount(raw: string | undefined): FcmServiceAccount | null {
   if (!raw) return null
 
   try {
@@ -113,8 +113,8 @@ export async function sendFcmPush(
   subscriptionData: FcmSubscriptionData,
   payload: string,   // JSON string: { title, body, data, ... }
 ): Promise<FcmSendResult> {
-  const sa = loadServiceAccount()
-  const projectId = process.env.FCM_PROJECT_ID
+  const { serviceAccountJson, projectId } = await getFcmConfig()
+  const sa = loadServiceAccount(serviceAccountJson)
 
   if (!sa || !projectId) {
     return {

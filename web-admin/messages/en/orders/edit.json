@@ -86,5 +86,49 @@
     "legacyHistory": "Earlier order update",
     "changeNumber": "Change {number}",
     "reviewAgain": "Review again"
+  },
+  "policyInfo": {
+    "button": "Edit Policy Info",
+    "title": "Edit Policy Info",
+    "statusLine": "These rules apply while this order's status is {status}.",
+    "missing": "No edit policy is assigned for this status, so changes stay blocked until an administrator assigns one.",
+    "revisionLine": "Policy revision {revision}",
+    "legend": {
+      "allow": "Allowed",
+      "warning": "Allowed with a warning",
+      "override": "Needs an override",
+      "deny": "Not allowed"
+    },
+    "how": {
+      "allow": "Include it in Review, then save it with Apply.",
+      "warning": "Review asks you to confirm the warning before Apply.",
+      "override": "A person with override permission must approve this before Apply.",
+      "deny": "This change is not allowed at the current status.",
+      "screenClosed": "This screen does not send item, piece, or preference changes yet.",
+      "totalSame": "Apply keeps the order total the same, so a price change is refused.",
+      "identityLocked": "Customer, branch, and currency stay locked on this screen.",
+      "reasonRequired": "Review asks for a reason before Apply."
+    },
+    "targets": {
+      "ORDER": "Whole order",
+      "ITEM": "Item",
+      "PIECE": "Piece",
+      "PREFERENCE": "Preference"
+    },
+    "operations": {
+      "ADD_ITEM": "Add an item",
+      "REMOVE_ITEM": "Remove an item",
+      "CHANGE_ITEM_QUANTITY": "Change item quantity",
+      "ADD_PIECE": "Add a piece",
+      "REMOVE_PIECE": "Remove a piece",
+      "ADD_PREFERENCE": "Add a preference",
+      "CHANGE_PREFERENCE": "Change a preference",
+      "REMOVE_PREFERENCE": "Remove a preference",
+      "CHANGE_PRIORITY": "Change priority",
+      "CHANGE_SERVICE_SPEED": "Change Express",
+      "CHANGE_READY_BY": "Change ready by",
+      "CHANGE_ORDER_NOTES": "Change notes",
+      "CHANGE_CUSTOMER_SNAPSHOT": "Change customer details"
+    }
   }
 }

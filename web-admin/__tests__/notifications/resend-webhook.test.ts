@@ -6,6 +6,11 @@ import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { recordSoftBounce, recordSuppression } from '@lib/notifications/suppression-list';
 
 jest.mock('@lib/supabase/server', () => ({ createAdminSupabaseClient: jest.fn() }));
+// The signing secret comes from the Config Registry getter; here it mirrors the env var so the
+// assertions about outbox lookups stay about the webhook, not about config loading.
+jest.mock('@lib/notifications/provider-secrets', () => ({
+  getResendWebhookSecret: jest.fn(async () => process.env.RESEND_WEBHOOK_SECRET),
+}));
 jest.mock('@lib/notifications/suppression-list', () => ({
   recordSuppression: jest.fn(async () => true),
   recordSoftBounce: jest.fn(async () => ({ recorded: true, bounceCount: 1, suppressed: false, duplicate: false })),

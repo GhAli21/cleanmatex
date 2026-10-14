@@ -7,6 +7,8 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { isOutboxRequestAuthorized } from '@lib/notifications/outbox-auth';
+import { getOutboxWorkerId } from '@lib/notifications/provider-secrets';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
@@ -74,24 +76,13 @@ function nextRetryAt(retryCount: number): string {
  * Produces a non-secret worker identity that helps operators diagnose ownership.
  * @returns Stable configured worker ID or a per-run ID.
  */
-function createWorkerId(): string {
-  const configuredWorkerId = process.env.NOTIFICATIONS_OUTBOX_WORKER_ID?.trim();
+async function createWorkerId(): Promise<string> {
+  const configuredWorkerId = (await getOutboxWorkerId())?.trim();
   return configuredWorkerId && configuredWorkerId.length > 0
     ? configuredWorkerId
     : `notifications-outbox:${randomUUID()}`;
 }
 
-/**
- * Verifies the internal scheduler bearer secret without exposing it to logs.
- * @param request Internal pg_net request.
- * @returns Whether the request may process the outbox.
- */
-function isAuthorized(request: NextRequest): boolean {
-  const secret = process.env.NOTIFICATIONS_OUTBOX_SECRET;
-  if (!secret) return false;
-  const authHeader = request.headers.get('authorization') ?? '';
-  return authHeader === `Bearer ${secret}`;
-}
 
 /**
  * Claims a currently unowned, non-reconciled row before any provider interaction.
@@ -457,13 +448,13 @@ async function processRow(
  * @returns Batch totals or an authorization/discovery failure response.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  if (!isAuthorized(request)) {
+  if (!(await isOutboxRequestAuthorized(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const supabase = createAdminSupabaseClient();
   const now = new Date().toISOString();
-  const workerId = createWorkerId();
+  const workerId = await createWorkerId();
 
   // This authenticated scheduler can dispatch only for active tenant organizations.
   // org_tenants_mst identifies its tenant by id and has no tenant_org_id column.

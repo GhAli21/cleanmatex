@@ -5,6 +5,8 @@
 --     Supabase's postgres role (rolsuper = false) cannot ALTER DATABASE or
 --     ALTER ROLE SET for custom GUC namespaces. Migration 0355 replaces this
 --     with a sys_ntf_runtime_cf config table — no superuser required.
+--   SUPERSEDED (0616/0618): sys_ntf_runtime_cf is retired. Base URL = registry key ntf.app.base_url,
+--     cron secret = Vault ntf_outbox_secret (fn_ntf_rotate_outbox_secret). Do not run this script.
 --     Apply 0355 instead of running this script.
 -- =============================================================================
 -- Original approach (kept for reference — requires true superuser):

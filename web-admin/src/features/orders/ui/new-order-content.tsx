@@ -20,6 +20,7 @@ import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { useOrderSubmission } from '../hooks/use-order-submission';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
 import { EditOrderContextBar } from '../order-change/edit-order-context-bar';
+import { EditPolicyInfoButton } from '../order-change/edit-policy-info-button';
 import { useOrderEditDirty } from '../hooks/use-order-edit-dirty';
 import { useOrderEditCancel } from '../hooks/use-order-edit-cancel';
 import { useOrderWarnings } from '../hooks/use-order-warnings';
@@ -690,7 +691,9 @@ export function NewOrderContent() {
                 branchLocked={workspace != null || (!state.state.isEditMode && posGate.lockBranchId != null)}
                 orderPrefsCount={state.state.orderServicePrefs?.length ?? 0}
                 onOpenOrderPreferences={hasServicePrefs ? () => setOrderPrefsDialogOpen(true) : undefined}
-                sessionSlot={!state.state.isEditMode ? (
+                sessionSlot={workspace ? (
+                    <EditPolicyInfoButton />
+                ) : !state.state.isEditMode ? (
                     <PosSessionHub
                       branchId={posGate.lockBranchId ?? state.state.branchId}
                       guide={posGuide}

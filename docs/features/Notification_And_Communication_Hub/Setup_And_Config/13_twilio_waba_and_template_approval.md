@@ -8,7 +8,7 @@ sandbox flag instructions below describe the earlier configuration.
 **Last updated:** 2026-09-12 (evening operator session)  
 **Account checked:** Twilio `cleanmatex_comm` (Console + Meta Self Sign-up)  
 **Audience:** Platform operator who needs production WhatsApp (business-initiated) and Meta-approved templates  
-**Related:** [09_whatsapp_templates.md](./09_whatsapp_templates.md) (older Meta-direct copy) · [03_env_vars.md](./03_env_vars.md) · HQ Runtime Config (`/notifications/runtime-config`)
+**Related:** [09_whatsapp_templates.md](./09_whatsapp_templates.md) (older Meta-direct copy) · [03_env_vars.md](./03_env_vars.md) · HQ Configuration Registry (`/ops/config`, module `ntf`)
 
 ### Status snapshot (end of 12 Sep 2026 session)
 
@@ -123,11 +123,11 @@ Do not re-implement these. Use them after the WABA exists.
 
 | Area | What it does |
 |---|---|
-| `web-admin/lib/notifications/config.ts` | Reads `sys_ntf_runtime_cf`; env overrides DB if the env value is non-empty; 30s cache |
+| `web-admin/lib/notifications/config.ts` | Reads the Config Registry (`ntf.app.*`) per key policy (seeded: env overrides stored value); 45s cache |
 | WhatsApp adapter | Twilio Content API when sandbox/template flag is on; otherwise free-form `body` (24h window only) |
 | Phone pick | `wa_sandbox_to_phone` if set → customer master phone → `org_orders_mst.customer_mobile_number` |
 | SMS | Not redirected by the sandbox To override |
-| HQ page | `/notifications/runtime-config` lists/edits `sys_ntf_runtime_cf` (secrets masked) |
+| HQ page | `/ops/config` (Configuration Registry) lists/edits every key (secrets write-only) |
 | Migrations | `0502_ntf_runtime_hub_flags.sql`, `0503_ntf_runtime_wa_sandbox_to.sql` (applied local + remote as of 2026-09-12) |
 
 Secrets stay in env only: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `NOTIFICATIONS_OUTBOX_SECRET`, `RESEND_API_KEY`, `NTF_HQ_SERVICE_ROLE_KEY`, Meta access tokens.
@@ -191,8 +191,8 @@ Older catalog names in [09_whatsapp_templates.md](./09_whatsapp_templates.md) (`
 
 ## 8. Runtime flags that control WhatsApp
 
-Table: `sys_ntf_runtime_cf`. HQ: **Notification & Comm Hub → Runtime Config**.  
-Resolution: **env (if non-empty) → DB → code default**. Cache 30 seconds. Restart `web-admin` after env edits.
+Config Registry (`sys_ops_config_cf`), HQ: **Operations → Configuration Registry**; registry key = `ntf.app.<DB key>` (`ntf_dispatch_via_hq` → `ntf.app.dispatch_via_hq`).  
+Resolution under the seeded policy ENV_OVERRIDES_DB: **env (if non-empty) → stored value → code default**. Cache 45 seconds. Restart `web-admin` after env edits.
 
 | DB key | Env override | Current seeded / observed | Production target |
 |---|---|---|---|
@@ -420,7 +420,7 @@ Placeholders must not sit at the very beginning or end of the body.
 
 ## 17. Step 4 — Point CleanMateX at the new sender
 
-Prefer HQ **Runtime Config** so you do not redeploy. Remember: **env wins** if the same key is set and non-empty in `.env.local` / host env. Clear or update those env rows too.
+Prefer HQ **Configuration Registry** so you do not redeploy. Remember: **env wins** if the same key is set and non-empty in `.env.local` / host env. Clear or update those env rows too.
 
 ### Production / remote
 
@@ -536,7 +536,7 @@ The account is healthy for this path.
 | Doc | Role |
 |---|---|
 | [00_INDEX.md](./00_INDEX.md) | Setup reading order |
-| [03_env_vars.md](./03_env_vars.md) | Env catalog (older; some flags now also live in `sys_ntf_runtime_cf`) |
+| [03_env_vars.md](./03_env_vars.md) | Env catalog (older; flags now live in the Config Registry) |
 | [04_provider_activation.md](./04_provider_activation.md) | `TWILIO_WHATSAPP` on `org_ntf_channel_provider_cf` |
 | [09_whatsapp_templates.md](./09_whatsapp_templates.md) | Older Meta-direct template copy (`cmx_order_*`) |
 | [11_smoke_tests.md](./11_smoke_tests.md) | Channel smoke tests |
@@ -552,7 +552,7 @@ The account is healthy for this path.
 - Do not wait for Meta to approve templates while From is still `+14155238886`.
 - Do not set `wa_sandbox_to_phone` on remote / production.
 - Do not leave `outbox_inline_dispatch=true` on remote after go-live.
-- Do not put Twilio Auth Token, Account SID, or Resend keys in `sys_ntf_runtime_cf` or in this doc.
+- Do not put Twilio Auth Token, Account SID, or Resend keys in this doc. (They may be stored in the Config Registry as write-only values.)
 - Do not edit an existing Content template in place and resubmit the same SID.
 - Do not use one giant generated paragraph as a Meta template.
 - Do not select “display name only / 555” during Self Sign-up.

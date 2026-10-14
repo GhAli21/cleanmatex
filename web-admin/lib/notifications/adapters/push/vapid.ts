@@ -14,6 +14,7 @@
 
 import webpush from 'web-push'
 import { logger } from '@lib/utils/logger'
+import { getVapidConfig } from '@lib/notifications/provider-secrets'
 
 /**
  *
@@ -36,19 +37,23 @@ export interface VapidSendResult {
   permanent?: boolean   // true = subscription is invalid, deactivate it
 }
 
-let vapidConfigured = false
+/** Identity of the VAPID details last applied (public key + subject); the private key is never kept here. */
+let appliedVapidIdentity: string | null = null
 
-function ensureVapidConfigured() {
-  if (vapidConfigured) return true
-
-  const publicKey = process.env.VAPID_PUBLIC_KEY
-  const privateKey = process.env.VAPID_PRIVATE_KEY
-  const subject = process.env.VAPID_SUBJECT
-
+/**
+ * Applies the resolved VAPID details to web-push, re-applying when the public key or subject changes
+ * (a rotation in the Config Registry therefore takes effect without a restart).
+ * @returns false when any of the three values is missing.
+ */
+async function ensureVapidConfigured(): Promise<boolean> {
+  const { publicKey, privateKey, subject } = await getVapidConfig()
   if (!publicKey || !privateKey || !subject) return false
 
-  webpush.setVapidDetails(subject, publicKey, privateKey)
-  vapidConfigured = true
+  const identity = `${subject}|${publicKey}`
+  if (appliedVapidIdentity !== identity) {
+    webpush.setVapidDetails(subject, publicKey, privateKey)
+    appliedVapidIdentity = identity
+  }
   return true
 }
 
@@ -63,7 +68,7 @@ export async function sendVapidPush(
   subscriptionData: VapidSubscriptionData,
   payload: string,   // JSON string: { title, body, data, ... }
 ): Promise<VapidSendResult> {
-  if (!ensureVapidConfigured()) {
+  if (!(await ensureVapidConfigured())) {
     return {
       success: false,
       subscriptionId,

@@ -1,5 +1,6 @@
 /**
- * Pure helpers for sys_ntf_runtime_cf / env overlay.
+ * Pure helpers for boolean/string config values (env overlay). The Config Registry resolver
+ * (lib/ops-config/tenant-config-resolver.ts) now decides env vs stored precedence per key.
  * Kept free of Supabase so unit tests do not boot a client.
  */
 

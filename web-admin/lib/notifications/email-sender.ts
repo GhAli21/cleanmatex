@@ -7,6 +7,7 @@
 
 import { logger } from '@/lib/utils/logger';
 import { getResendFromEmail } from '@lib/notifications/config';
+import { getResendApiKey } from '@lib/notifications/provider-secrets';
 import { collectMissingEnv, logMissingNotificationEnv } from '@lib/notifications/log-missing-env';
 
 /**
@@ -20,9 +21,6 @@ export interface SendEmailParams {
   from?: string;
 }
 
-function isResendConfigured(): boolean {
-  return !!process.env.RESEND_API_KEY;
-}
 
 /**
  * Result shape for {@link sendEmailWithId}. Flat (non-discriminated-union)
@@ -56,10 +54,11 @@ export async function sendEmailWithId(params: SendEmailParams): Promise<SendEmai
     from = await getResendFromEmail(),
   } = params;
 
-  if (isResendConfigured()) {
+  const apiKey = await getResendApiKey();
+  if (apiKey) {
     try {
       const { Resend } = await import('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY!);
+      const resend = new Resend(apiKey);
       const { data, error } = await resend.emails.send({
         from,
         to,
@@ -93,7 +92,7 @@ export async function sendEmailWithId(params: SendEmailParams): Promise<SendEmai
   }
 
   const missing = collectMissingEnv(['RESEND_API_KEY']);
-  if (!from) missing.push('RESEND_FROM_EMAIL|sys_ntf_runtime_cf.resend_from_email');
+  if (!from) missing.push('RESEND_FROM_EMAIL|registry:ntf.app.resend_from_email');
 
   if (process.env.NODE_ENV === 'development') {
     logger.warn('Email mock (Resend not configured)', {

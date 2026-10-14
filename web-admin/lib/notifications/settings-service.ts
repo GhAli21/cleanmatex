@@ -160,10 +160,9 @@ class NotificationSettingsService {
 
   /**
    * Per-tenant/channel opt-in for the HQ dispatch proxy, layered on top of the
-   * platform-wide `ntf_dispatch_via_hq` runtime flag (`sys_ntf_runtime_cf` —
-   * confirmed, via `information_schema.columns`, to have no `tenant_org_id`
-   * column at all; it is a genuine global switch, not tenant-scopable on its
-   * own). Added 2026-10-10 (plan item A1) specifically so a pilot can be
+   * platform-wide dispatch-via-HQ flag (Config Registry key
+   * `ntf.app.dispatch_via_hq` — a genuine global switch with no tenant
+   * dimension, not tenant-scopable on its own). Added 2026-10-10 (plan item A1) specifically so a pilot can be
    * scoped to one tenant/channel instead of flipping the proxy on for every
    * tenant's traffic simultaneously. Requires BOTH: the global flag true
    * (master kill switch — `isNtfDispatchViaHq()` in `lib/notifications/config.ts`)

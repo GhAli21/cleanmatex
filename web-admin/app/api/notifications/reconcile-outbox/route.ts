@@ -13,21 +13,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { isOutboxRequestAuthorized } from '@lib/notifications/outbox-auth';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { reconcileTenantOutbox } from '@lib/notifications/reconciliation-service';
 
-/**
- * Verifies the internal scheduler bearer secret without exposing it to logs.
- * @param request Internal pg_net/cron request.
- * @returns Whether the request may run reconciliation.
- */
-function isAuthorized(request: NextRequest): boolean {
-  const secret = process.env.NOTIFICATIONS_OUTBOX_SECRET;
-  if (!secret) return false;
-  const authHeader = request.headers.get('authorization') ?? '';
-  return authHeader === `Bearer ${secret}`;
-}
 
 /**
  * POST /api/notifications/reconcile-outbox
@@ -39,7 +29,7 @@ function isAuthorized(request: NextRequest): boolean {
  * @returns Per-tenant inspected/resolved totals, or an authorization/discovery failure.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  if (!isAuthorized(request)) {
+  if (!(await isOutboxRequestAuthorized(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

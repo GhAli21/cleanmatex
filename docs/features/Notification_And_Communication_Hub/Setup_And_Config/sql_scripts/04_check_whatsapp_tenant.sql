@@ -53,31 +53,28 @@ WHERE channel_code = 'WHATSAPP'
   AND event_code IN ('order.created', 'order.ready', 'order.cancelled', 'order.status_changed')
 ORDER BY event_code;
 
--- 4) Runtime flags that affect WhatsApp (no secret keys)
+-- 4) Runtime flags that affect WhatsApp (Config Registry, migration 0618; secrets never shown)
 SELECT
-  key,
-  CASE
-    WHEN key ILIKE '%secret%' OR key ILIKE '%token%' OR key ILIKE '%password%' OR key ILIKE '%api_key%'
-      THEN '***'
-    ELSE value
-  END AS value,
-  is_active,
-  rec_notes,
-  updated_at
-FROM sys_ntf_runtime_cf
-WHERE key IN (
-  'whatsapp_fallback_email',
-  'order_transition_notify',
-  'wa_use_sandbox_template',
-  'wa_sandbox_content_sid',
-  'wa_sandbox_to_phone',
-  'outbox_inline_dispatch',
-  'twilio_whatsapp_from',
-  'twilio_sms_from',
-  'ntf_dispatch_via_hq',
-  'ntf_hq_dispatch_url'
+  config_key,
+  source_policy,
+  env_var_name,
+  CASE WHEN is_secret OR is_encrypted THEN '***' ELSE db_value END AS stored_value,
+  is_wired,
+  value_updated_at
+FROM sys_ops_config_cf
+WHERE config_key IN (
+  'ntf.app.whatsapp_fallback_email',
+  'ntf.app.order_transition_notify',
+  'ntf.app.wa_use_sandbox_template',
+  'ntf.app.wa_sandbox_content_sid',
+  'ntf.app.wa_sandbox_to_phone',
+  'ntf.app.outbox_inline_dispatch',
+  'ntf.app.twilio_whatsapp_from',
+  'ntf.app.twilio_sms_from',
+  'ntf.app.dispatch_via_hq',
+  'ntf.app.hq_dispatch_url'
 )
-ORDER BY key;
+ORDER BY config_key;
 
 -- 5) Recent outbox: WhatsApp vs email fallback for this tenant
 SELECT

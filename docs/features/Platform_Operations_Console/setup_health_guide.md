@@ -77,7 +77,7 @@ Things that cannot be done from a screen (hosting variables, Resend/Twilio conso
 |---|---|
 | Notifications → Providers | `ntf.twilio_account_verify` |
 | Notifications → Channels | `ntf.resend_webhook_setup` |
-| Notifications → Runtime Config | `ops.set_hq_env_vars` |
+| Operations → Configuration Registry (`/ops/config`; the old Notifications → Runtime Config screen redirects there) | `ops.set_hq_env_vars` |
 | Notifications → Tenant Configuration | `ops.set_hq_env_vars` |
 
 The Operations Catalog screen now preselects an entry from `?code=` so every "Open the operation" link lands on the right entry.

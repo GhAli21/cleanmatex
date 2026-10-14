@@ -26,7 +26,7 @@ import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-r
 import { OrdersPaymentsTabRprt } from '@features/orders/ui/orders-payments-tab-rprt';
 import { OrdersStockTabRprt } from '@features/orders/ui/orders-stock-tab-rprt';
 import { OrdersReceiptsTabRprt } from '@features/orders/ui/orders-receipts-tab-rprt';
-import { OrdersEditHistoryTabRprt } from '@features/orders/ui/orders-edit-history-tab-rprt';
+import { OrdersEditHistoryTabRprt, toOrderEditStatusValues } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import type { OrderEditHistoryEntry } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
 import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab-rprt';
@@ -305,6 +305,16 @@ export function OrderDetailsFullClient({
     damageNotes: t.damageNotes ?? 'Damage Notes',
     yes: t.commonYes ?? 'Yes',
     no: t.commonNo ?? 'No',
+    editStatusTitle: t.editStatusTitle ?? 'Order Edit Status values',
+    committedAt: t.committedAt ?? 'Committed at',
+    committedBy: t.committedBy ?? 'Committed by',
+    editStateVersion: t.editStateVersion ?? 'Edit state version',
+    editAccessStatus: t.editAccessStatus ?? 'Edit access status',
+    editBlockReasonCode: t.editBlockReasonCode ?? 'Edit block reason code',
+    editBlockReasonText: t.editBlockReasonText ?? 'Edit block reason text',
+    editBlockedAt: t.editBlockedAt ?? 'Edit blocked at',
+    editBlockedBy: t.editBlockedBy ?? 'Edit blocked by',
+    editBlockUntil: t.editBlockUntil ?? 'Edit block until',
   };
 
   const tabTranslations = {
@@ -1023,6 +1033,7 @@ export function OrderDetailsFullClient({
           <OrdersEditHistoryTabRprt
             entries={editHistory}
             currencyCode={(order.currency_code as string) ?? ''}
+            editStatus={toOrderEditStatusValues(order)}
             translations={editHistoryTranslations}
           />
         </div>
