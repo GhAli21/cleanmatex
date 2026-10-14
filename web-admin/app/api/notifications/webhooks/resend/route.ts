@@ -36,7 +36,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { logger } from '@lib/utils/logger';
-import { recordSuppression } from '@lib/notifications/suppression-list';
+import { recordSoftBounce, recordSuppression } from '@lib/notifications/suppression-list';
 
 interface ResendWebhookPayload {
   type?: string;
@@ -182,18 +182,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: { status: 'SUPPRESSED_COMPLAINT' } }, { status: 200 });
   }
 
-  // email.bounced: Resend's payload does not always carry a hard/soft
-  // distinction. When it does (data.bounce.type), only a non-'Transient'
-  // bounce is treated as permanent enough to suppress on a single event —
-  // a lone transient/soft bounce is logged but NOT suppressed here (building
-  // repeated-soft-bounce counting/threshold tracking is separate, reported
-  // scope below in STATUS.md, not invented in this route).
+  // email.bounced: a non-'Transient' bounce is permanent and suppresses on one event. A
+  // 'Transient' (soft) bounce is counted; repeated soft bounces inside the rolling window
+  // are promoted to a BOUNCE_SOFT_REPEATED suppression (fn_ntf_soft_bounce_record, 0613).
   const bounceType = payload.data?.bounce?.type;
   if (bounceType && bounceType.toLowerCase() === 'transient') {
-    logger.info('resend-webhook: transient (soft) bounce observed — not suppressing on a single occurrence', {
-      eventType, feature: 'notifications',
+    const soft = await recordSoftBounce(outboxRow.tenant_org_id, 'EMAIL', recipient, svixId ?? emailId, 'RESEND_WEBHOOK');
+    logger.info('resend-webhook: transient (soft) bounce counted', {
+      eventType, bounceCount: soft.bounceCount, suppressed: soft.suppressed, feature: 'notifications',
     });
-    return NextResponse.json({ success: true, data: { status: 'SOFT_BOUNCE_NOT_SUPPRESSED' } }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: { status: soft.suppressed ? 'SUPPRESSED_SOFT_BOUNCE_REPEATED' : 'SOFT_BOUNCE_COUNTED' } },
+      { status: 200 },
+    );
   }
 
   await recordSuppression(

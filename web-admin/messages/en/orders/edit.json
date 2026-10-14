@@ -48,5 +48,29 @@
       "recordedNote": "This change and its reason have been recorded in the order's edit history.",
       "gotIt": "Got it"
     }
+  },
+  "workspace": {
+    "revision": "Revision {version}",
+    "workflowStatus": "Workflow status",
+    "dirtyCount": "{count} unsaved changes",
+    "review": "Review",
+    "reviewing": "Reviewing...",
+    "reviewStatus": "Review result: {status}",
+    "discardChanges": "Discard changes",
+    "discarded": "Changes were discarded.",
+    "currentTotal": "Current total",
+    "estimatedTotal": "Estimated total",
+    "reviewNotCommitted": "Review does not save the order.",
+    "commercialUnavailable": "Item, piece, and preference changes stay closed until the commercial writer is available.",
+    "targetPersisted": "Saved row",
+    "emptyItems": "This order has no items.",
+    "lockedField": "Locked",
+    "deniedReason": "Not allowed: {reason}",
+    "loadFailed": "The order could not be loaded for editing.",
+    "reviewFailed": "The review could not be completed.",
+    "serviceSpeed": "Service speed",
+    "readyBy": "Ready by",
+    "standard": "Standard",
+    "express": "Express"
   }
 }

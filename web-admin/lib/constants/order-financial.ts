@@ -629,6 +629,11 @@ export const OUTBOX_EVENT_TYPES = {
   CASH_DRAWER_OVER_SHORT: 'CASH_DRAWER_OVER_SHORT',
   /** CLF §4B.9 — a custody (drawer) transaction posted. Audit only (Notification Hub, future). */
   CASH_DRAWER_TRX_POSTED: 'CASH_DRAWER_TRX_POSTED',
+  /**
+   * Applied commercial Change. The registered handler only confirms the Change
+   * row exists. It does not collect, refund, or rewrite settlement.
+   */
+  ORDER_CHANGE_APPLIED: 'ORDER_CHANGE_APPLIED',
 } as const;
 /** Derived union for emitted Order Fin outbox events. */
 export type OutboxEventType =
@@ -663,6 +668,10 @@ export const OUTBOX_HANDLER_CATALOG = [
   {
     handler: 'loyalty-earn',
     eventTypes: [OUTBOX_EVENT_TYPES.LOYALTY_EARN],
+  },
+  {
+    handler: 'order-change-applied',
+    eventTypes: [OUTBOX_EVENT_TYPES.ORDER_CHANGE_APPLIED],
   },
 ] as const;
 

@@ -125,6 +125,14 @@ Then `SELECT id,status,provider_message_id,error_message,sent_at FROM org_ntf_ou
 
 ---
 
+## Step 7b — SMS STOP replies (Twilio console)
+
+1. **Twilio console → Phone Numbers → your SMS sender → Messaging configuration → "A message comes in"** → Webhook, HTTP POST, URL = the same value as `HQ_TWILIO_WEBHOOK_URL` (the HQ `/notifications/webhooks/twilio` callback).
+2. Reply `STOP` from a test phone that previously received a notification.
+
+**Confirm:** HQ Setup Health shows `A Twilio inbound SMS reply has been received` = OK, and the number appears in `org_ntf_suppression_lst` (`reason_code = CARRIER_OPT_OUT`, `source = TWILIO_INBOUND_SMS`) for the tenant(s) that messaged it. Reply `START` to lift it.
+
+---
 ## Step 8 — Commit the uncommitted work (your git, both repos)
 
 CleanMateX does not commit on your behalf. Review `git status` in:
@@ -133,6 +141,6 @@ CleanMateX does not commit on your behalf. Review `git status` in:
 
 ---
 
-## Not on this list (deliberately deferred)
+## Not on this list (Claude is building these — no operator action)
 
-SMS inbound STOP opt-out, Meta WhatsApp message-id capture, soft-bounce thresholds, quota reservation, health/failover tooling, second-provider connectors, generic preview/test-send API, runbook drills with named owners. Tracked in [plan §23.1](../notification-hub-production-implementation-plan.md).
+Soft-bounce thresholds, SMS inbound STOP opt-out, Meta WhatsApp message-id capture, sender live verification, quota reservation (A3), generic preview/test-send API (A4b), health/failover tooling (A6), canonical builder (A7), second-provider connectors (A8). All are in scope as of 2026-10-14 — see [RESUME_CONTINUATION.md](../RESUME_CONTINUATION.md) and [plan §23.1](../notification-hub-production-implementation-plan.md). Runbook drills with named owners (C2) remain a people task.

@@ -29,6 +29,7 @@ import {
 import {
   classifyRefunds,
   computeOutstanding,
+  computeOverpaidAmount,
   hasAmbiguousHistoricalPaymentRow,
   isClearlyRealPaymentRow,
   isCompletedPaymentStatus,
@@ -36,6 +37,7 @@ import {
   sumPaymentsByStatuses,
   type RefundFactRow,
 } from '@/lib/services/order-financial-aggregation';
+export { extractTaxFromInclusive } from '@/lib/services/tax-extraction';
 
 // Re-exported so existing consumers/tests keep importing from the writer
 // (the implementation now lives in the D005 aggregation module).
@@ -115,31 +117,6 @@ function sumChangeReturned(rows: PaymentFactRow[]): number {
     if (!isClearlyRealPaymentRow(row)) return sum;
     return sum + toNumber(row.change_returned_amount);
   }, 0);
-}
-
-/**
- * Extract the embedded tax from an inclusive price using the effective tax rate.
- *
- * Why: TAX_INCLUSIVE orders bake tax into item prices. The stored
- * `taxable_amount` and `tax_amount` in org_order_taxes_dtl represent the
- * already-extracted values from the calculation engine. This helper derives
- * the same extraction for validation / bucket purposes when those DB rows
- * are not yet available (e.g. in unit tests or new-order scaffolding).
- *
- * Formula: taxAmount = inclusiveAmount − (inclusiveAmount / (1 + rate))
- * @param inclusiveAmount
- * @param taxRate
- */
-export function extractTaxFromInclusive(
-  inclusiveAmount: number,
-  taxRate: number,
-): { taxableAmount: number; taxAmount: number } {
-  if (taxRate <= 0 || !Number.isFinite(taxRate)) {
-    return { taxableAmount: inclusiveAmount, taxAmount: 0 };
-  }
-  const taxableAmount = round4(inclusiveAmount / (1 + taxRate));
-  const taxAmount = round4(inclusiveAmount - taxableAmount);
-  return { taxableAmount, taxAmount };
 }
 
 /**
@@ -730,10 +707,14 @@ export async function recalculateOrderFinancialSnapshotTx(
     refundReopens: refundReopensDueAmount,
     creditReversalReopens: creditReversalReopensDueAmount,
   });
-  const overpaidAmount = Math.max(
-    0,
-    netCollectedAmount + totalCreditAppliedAmount - totalAmount - changeReturnedAmount - disposedOverpaymentAmount,
-  );
+  const overpaidAmount = computeOverpaidAmount({
+    effectivePayments: totalPaidAmount,
+    realPaymentRefundedAmount,
+    effectiveCredits: totalCreditAppliedAmount,
+    totalAmount,
+    changeReturnedAmount,
+    disposedOverpaymentAmount,
+  });
   const payOnCollectionAmount =
     order.payment_type_code === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION
       ? outstandingAmount

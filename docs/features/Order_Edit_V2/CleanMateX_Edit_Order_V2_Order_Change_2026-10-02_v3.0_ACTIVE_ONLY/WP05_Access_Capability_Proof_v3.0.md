@@ -32,7 +32,7 @@ Key material is an injected server-only interface. The module does not read a ne
 | File | Purpose | Operator-applied result |
 |---|---|---|
 | `supabase/migrations/0566_order_change_v2_permissions.sql` | Adds `orders:edit` and `orders:edit_override` catalog rows. | Applied locally and remotely; no default role grant is inserted. |
-| `supabase/migrations/0567_add_feature_flag_order_edit_v2.sql` | Registers independent sensitive `order_edit_v2`, default `false`. | Applied locally and remotely; the tenant runtime catalog/type key is synchronized and remains default-off. |
+| `supabase/migrations/0567_add_feature_flag_order_edit_v2.sql` | Registers independent sensitive `order_edit_v2`. The stored `default_value` is `true`. | Applied locally and remotely. The tenant catalog now matches that default. A tenant override can still disable it. |
 
 The working tree contained an unrelated `0565_ntf_provider_accounts_senders.sql.draft`, so the newly authored files use `0566` and `0567`. The operator applied both migrations to local and remote databases and regenerated database types/Prisma schema. Read-only `npx supabase migration list` now verifies matching local/remote rows for `0566` and `0567`. The agent did not apply a migration.
 
@@ -56,7 +56,7 @@ The role mapping remains deliberately open. Existing `orders:post_settlement_edi
 1. HQ must define/publish the immutable commercial capability binding and its cache/currentness contract.
 2. The permission pilot matrix must approve actual role mappings; then an additional reviewed migration may add only those grants.
 3. A security owner must approve/provision Change proof key material, rotation and replay behavior.
-4. Operator review/application of `0566` and `0567` must precede any runtime catalog sync; the flag remains default off.
+4. Operator review/application of `0566` and `0567` is complete. The stored flag default is true. A tenant override can still disable it.
 5. WP10 and WP12 own Preview/Apply route integration, CSRF, distributed rate limiting, durable replay, and lock-time re-evaluation.
 
 The repository-wide `npx tsc --noEmit --pretty false` was started twice but did not complete within the bounded validation window and produced no diagnostic output. The focused Jest and ESLint checks above cover the touched modules; a completed project typecheck/build remains a separate environment validation follow-up.

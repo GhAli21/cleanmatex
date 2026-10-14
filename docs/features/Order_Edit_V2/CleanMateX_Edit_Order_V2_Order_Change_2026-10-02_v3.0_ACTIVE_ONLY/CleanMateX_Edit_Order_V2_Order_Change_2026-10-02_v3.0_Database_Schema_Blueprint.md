@@ -3,7 +3,7 @@
 **Version:** 3.0  
 **Status:** Normative blueprint; migration SQL must re-check the live target catalog immediately before authoring/applying.
 
-**Current reconciliation:** 2026-10-02, read-only local and hosted `ndjjycdgtponhosvztdg` catalog inspection after user/operator application.0547/0548 are installed on both targets; later gated hierarchy/backfill design remains proposed. The living implementation plan remains the sole WP authority. WP06, WP07, WP08, WP09, and WP10 add no tables, columns, functions, or grants. Their results stay in memory until a later persistence package. No `order_change_id` backlink was added.
+**Current reconciliation:** 2026-10-02, read-only local and hosted `ndjjycdgtponhosvztdg` catalog inspection after user/operator application.0547/0548 are installed on both targets; later gated hierarchy/backfill design remains proposed. The living implementation plan remains the sole WP authority. WP06 through WP12 add no tables, columns, functions, or grants. WP11 writes the foundation Change tables from inside the caller transaction. WP12 calls that writer for an order-field Change and updates existing order columns in the same transaction. No `order_change_id` column was added outside that foundation.
 
 ## 0. Verified current catalog and reuse boundary
 

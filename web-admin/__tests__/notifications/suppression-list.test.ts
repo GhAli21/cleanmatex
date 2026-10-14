@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { checkSuppression, recordSuppression, normalizeEmailAddress, normalizePhoneNumber } from '@lib/notifications/suppression-list';
+import { checkSuppression, recordSoftBounce, recordSuppression, SOFT_BOUNCE_THRESHOLD, SOFT_BOUNCE_WINDOW_HOURS, normalizeEmailAddress, normalizePhoneNumber } from '@lib/notifications/suppression-list';
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 
 jest.mock('@lib/supabase/server', () => ({ createAdminSupabaseClient: jest.fn() }));
@@ -100,5 +100,36 @@ describe('recordSuppression', () => {
 
     const ok = await recordSuppression('tenant-a', 'SMS', '+96891234567', 'CARRIER_OPT_OUT', 'TWILIO_INBOUND_SMS');
     expect(ok).toBe(false);
+  });
+});
+
+describe('recordSoftBounce', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('calls the atomic function with the normalized address and policy', async () => {
+    const rpc = jest.fn(async () => ({ data: { bounce_count: 2, suppressed: false, duplicate: false }, error: null }));
+    jest.mocked(createAdminSupabaseClient).mockReturnValue({ rpc } as unknown as ReturnType<typeof createAdminSupabaseClient>);
+    const result = await recordSoftBounce('tenant-a', 'EMAIL', ' User@Example.com ', 'evt-1', 'RESEND_WEBHOOK');
+    expect(rpc).toHaveBeenCalledWith('fn_ntf_soft_bounce_record', {
+      p_tenant_org_id: 'tenant-a',
+      p_channel_code: 'EMAIL',
+      p_address: 'user@example.com',
+      p_event_id: 'evt-1',
+      p_threshold: SOFT_BOUNCE_THRESHOLD,
+      p_window_hours: SOFT_BOUNCE_WINDOW_HOURS,
+      p_source: 'RESEND_WEBHOOK',
+    });
+    expect(result).toEqual({ recorded: true, bounceCount: 2, suppressed: false, duplicate: false });
+  });
+
+  it('fails soft (recorded=false) on an RPC error', async () => {
+    const rpc = jest.fn(async () => ({ data: null, error: { message: 'boom' } }));
+    jest.mocked(createAdminSupabaseClient).mockReturnValue({ rpc } as unknown as ReturnType<typeof createAdminSupabaseClient>);
+    expect(await recordSoftBounce('tenant-a', 'EMAIL', 'a@b.com', 'evt-1', 'RESEND_WEBHOOK')).toEqual({ recorded: false });
+  });
+
+  it('ignores a blank address', async () => {
+    expect(await recordSoftBounce('tenant-a', 'EMAIL', '   ', 'evt-1', 'RESEND_WEBHOOK')).toEqual({ recorded: false });
+    expect(createAdminSupabaseClient).not.toHaveBeenCalled();
   });
 });

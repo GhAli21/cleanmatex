@@ -338,6 +338,27 @@ async function reconcileTwilioWhatsAppRow(
 }
 
 /**
+ * Resolves one stuck WhatsApp/Meta row that carries a captured message id (wamid).
+ * The Meta Cloud API has no message-status lookup endpoint (delivery state arrives only by
+ * webhook), but it returns a wamid only for a message it ACCEPTED — so a captured wamid is
+ * itself authoritative proof of acceptance and the row is finalized SENT, never resent.
+ * @param supabase Privileged internal client.
+ * @param row Stuck delivery row (must have a provider_message_id).
+ */
+async function reconcileMetaWhatsAppRow(
+  supabase: ReturnType<typeof createAdminSupabaseClient>,
+  row: ReconcileRow,
+): Promise<ReconciliationRowResult> {
+  const message = 'Reconciliation: Meta returned a message id at send time, which proves acceptance'
+  const attemptId = await finalizeStuckRow(supabase, row, OUTBOX_STATUS.SENT, message, row.provider_message_id ?? undefined)
+  if (!attemptId) return { outboxId: row.id, tenantOrgId: row.tenant_org_id, outcome: 'SKIPPED_STALE_CLAIM' }
+  await recordVerifiedReceipt(
+    supabase, row.tenant_org_id, row.id, attemptId, 'META_WHATSAPP', row.provider_message_id ?? '', 'accepted', 'ACCEPTED',
+  )
+  return { outboxId: row.id, tenantOrgId: row.tenant_org_id, outcome: 'RESOLVED_SENT', detail: message }
+}
+
+/**
  * Terminal operator-review outcome for a row this pass cannot authoritatively resolve.
  * Never silently retried and never silently dropped: it lands in the existing
  * FAILED_PERMANENT vocabulary with an explicit, searchable error message.
@@ -416,6 +437,8 @@ export async function reconcileTenantOutbox(tenantOrgId: string): Promise<Reconc
       const provider = await notificationSettingsService.getActiveProvider(row.tenant_org_id, 'WHATSAPP')
       if (provider?.providerCode === 'TWILIO_WHATSAPP' && row.provider_message_id) {
         results.push(await reconcileTwilioWhatsAppRow(supabase, row));
+      } else if (provider?.providerCode === 'META_WHATSAPP' && row.provider_message_id) {
+        results.push(await reconcileMetaWhatsAppRow(supabase, row));
       } else if (!row.provider_message_id) {
         results.push(await deadLetterRow(
           supabase, row,

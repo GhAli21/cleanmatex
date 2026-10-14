@@ -8,6 +8,8 @@
 
 import {
   aggregateOrderFinancials,
+  classifyRefunds,
+  computeOverpaidAmount,
   hasAmbiguousHistoricalPaymentRow,
   round4,
   type AggregationCreditRow,
@@ -30,8 +32,16 @@ export interface OrderChangeFinancialResultInput {
   projectedTax: string;
   payments: readonly AggregationPaymentRow[];
   credits?: readonly AggregationCreditRow[];
-  refunds?: readonly Array<{ refund_status: string | null; refund_amount: string; reopens_due_amount: string }>;
-  /** Amounts already applied to a prior overpayment. They do not alter payment rows. */
+  refunds?: readonly Array<{
+    refund_status: string | null;
+    refund_amount: string;
+    reopens_due_amount: string;
+    refund_method_code?: string | null;
+    original_payment_id?: string | null;
+    refund_source_type?: string | null;
+  }>;
+  /** Cash returned on the original tender. It reduces overpayment and is not a new payment. */
+  changeReturnedAmount?: string;
   appliedDispositions?: readonly string[];
   fiscalDocuments?: readonly OrderChangeFiscalDocument[];
   requestedChangeRef?: string;
@@ -84,25 +94,40 @@ function signedFiscal(documents: readonly OrderChangeFiscalDocument[], field: 'a
  * The payment and credit arrays are not copied or rewritten.
  */
 export function projectOrderChangeFinancialResult(input: OrderChangeFinancialResultInput): OrderChangeFinancialResult {
+  const refundRows = (input.refunds ?? []).map((refund) => ({
+    refund_status: refund.refund_status,
+    refund_amount: refund.refund_amount,
+    reopens_due_amount: refund.reopens_due_amount,
+    refund_method_code: refund.refund_method_code ?? null,
+    original_payment_id: refund.original_payment_id ?? null,
+    refund_source_type: refund.refund_source_type ?? null,
+    metadata: null,
+  }));
   const aggregated = aggregateOrderFinancials({
     totalAmount: Number(input.projectedTotal),
     payments: [...input.payments],
     credits: [...(input.credits ?? [])],
-    refunds: (input.refunds ?? []).map((refund) => ({
-      refund_status: refund.refund_status,
-      refund_amount: refund.refund_amount,
-      reopens_due_amount: refund.reopens_due_amount,
-    })),
+    refunds: refundRows,
   });
-  const collected = round4(
-    aggregated.effectivePayments
-      + aggregated.effectiveCredits
-      - aggregated.refundReopens
-      - aggregated.creditReversalReopens,
-  );
-  const overpaid = Math.max(0, round4(collected - Number(input.projectedTotal)));
+  const classified = classifyRefunds(refundRows);
   const disposed = round4((input.appliedDispositions ?? []).reduce((sum, amount) => sum + Number(amount), 0));
-  const unresolved = Math.max(0, round4(overpaid - disposed));
+  const changeReturned = round4(Number(input.changeReturnedAmount ?? 0));
+  const overpaid = computeOverpaidAmount({
+    effectivePayments: aggregated.effectivePayments,
+    realPaymentRefundedAmount: classified.realPaymentRefundedAmount,
+    effectiveCredits: aggregated.effectiveCredits,
+    totalAmount: Number(input.projectedTotal),
+    changeReturnedAmount: changeReturned,
+    disposedOverpaymentAmount: 0,
+  });
+  const unresolved = computeOverpaidAmount({
+    effectivePayments: aggregated.effectivePayments,
+    realPaymentRefundedAmount: classified.realPaymentRefundedAmount,
+    effectiveCredits: aggregated.effectiveCredits,
+    totalAmount: Number(input.projectedTotal),
+    changeReturnedAmount: changeReturned,
+    disposedOverpaymentAmount: disposed,
+  });
   const documents = input.fiscalDocuments ?? [];
   const fiscalObligation = documents.length === 0 ? Number(input.projectedTotal) : signedFiscal(documents, 'amount');
   const fiscalTax = documents.length === 0 ? Number(input.projectedTax) : signedFiscal(documents, 'taxAmount');

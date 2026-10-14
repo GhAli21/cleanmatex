@@ -17708,6 +17708,91 @@ export type Database = {
           },
         ]
       }
+      org_ntf_soft_bounce_lst: {
+        Row: {
+          address_or_number: string
+          bounce_count: number
+          channel_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          last_bounce_at: string
+          last_event_id: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          window_started_at: string
+        }
+        Insert: {
+          address_or_number: string
+          bounce_count?: number
+          channel_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          last_bounce_at?: string
+          last_event_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          window_started_at?: string
+        }
+        Update: {
+          address_or_number?: string
+          bounce_count?: number
+          channel_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          last_bounce_at?: string
+          last_event_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          window_started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ntf_sbnc_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_sbnc_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_sbnc_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_ntf_suppression_lst: {
         Row: {
           address_or_number: string
@@ -43717,6 +43802,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      fn_ntf_carrier_opt_apply: {
+        Args: { p_action: string; p_phone: string; p_source: string }
+        Returns: Json
+      }
       fn_ntf_meter_usage_atomic: {
         Args: {
           p_channel_code: string
@@ -43749,6 +43838,18 @@ export type Database = {
       fn_ntf_retention_sweep: {
         Args: { p_retention_days?: number }
         Returns: number
+      }
+      fn_ntf_soft_bounce_record: {
+        Args: {
+          p_address: string
+          p_channel_code: string
+          p_event_id: string
+          p_source: string
+          p_tenant_org_id: string
+          p_threshold: number
+          p_window_hours: number
+        }
+        Returns: Json
       }
       fn_ops_config_clear: {
         Args: { p_actor: string; p_key: string }

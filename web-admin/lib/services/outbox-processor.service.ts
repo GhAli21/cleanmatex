@@ -3,6 +3,7 @@ import 'server-only';
 import { logger } from '@/lib/utils/logger';
 import { claimBatch, markProcessed, markFailed, type OutboxEventRow } from './outbox.service';
 import { consumeOrderHistoryEvent } from './order-history-consumer.service';
+import { confirmOrderChangeApplied } from './order-change/order-change-applied.handler';
 import { processLoyaltyEarnEvent } from './outbox-handlers/loyalty-earn.handler';
 import { processCashOverShortEvent } from './outbox-handlers/cash-over-short.handler';
 
@@ -55,8 +56,20 @@ const cashOverShortHandler: OutboxHandler = {
   handle: processCashOverShortEvent,
 };
 
+/** Confirms the applied Change row. It does not settle the order. */
+const orderChangeAppliedHandler: OutboxHandler = {
+  name: 'order-change-applied',
+  eventTypes: new Set(['ORDER_CHANGE_APPLIED']),
+  handle: confirmOrderChangeApplied,
+};
+
 /** Registered in dispatch order. Add future handlers (e.g. GL fan-out, B6) here. */
-export const OUTBOX_HANDLERS: OutboxHandler[] = [orderHistoryHandler, loyaltyEarnHandler, cashOverShortHandler];
+export const OUTBOX_HANDLERS: OutboxHandler[] = [
+  orderHistoryHandler,
+  loyaltyEarnHandler,
+  cashOverShortHandler,
+  orderChangeAppliedHandler,
+];
 
 export interface ProcessOutboxResult {
   claimed: number;

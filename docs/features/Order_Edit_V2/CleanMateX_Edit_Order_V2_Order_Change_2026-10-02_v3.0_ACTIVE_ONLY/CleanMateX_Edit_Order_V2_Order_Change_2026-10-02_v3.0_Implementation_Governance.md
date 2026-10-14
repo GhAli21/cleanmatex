@@ -367,6 +367,16 @@ Classify each significant item using this document's classification set and prod
 
 Until that audit is completed and any required remediation/revalidation is closed, WP07–WP09 are **implemented/tested slices but not governance-complete DONE packages**. If remediation changes their outputs, revalidate WP10 Preview composition before relying on it for WP11+.
 
+### Closure — 2026-10-14
+
+The audit found three copied rules and closed them without changing the existing fixture results:
+
+- WP07 now asks `sumMoneyAddendCharges` and `isContaminatingPreferenceCharge` for the extra split.
+- Inclusive and exclusive tax live in `tax-extraction.ts`. The snapshot writer re-exports the inclusive helper. Display rounding of a decimal string uses `roundMoneyAmount`.
+- Overpayment lives in `computeOverpaidAmount`. The snapshot writer and WP09 both call it. Outstanding remains D005.
+
+WP10 preview tests passed after those changes. WP07, WP08, and WP09 are DONE for the slices named in their reports. Apply, snapshot equality, compound tax, and currency-increment rounding remain later packages.
+
 ## 21. Final migration goal
 
 ```text

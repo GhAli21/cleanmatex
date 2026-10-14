@@ -62,3 +62,34 @@
 - Strengthened the WP Definition of Done with the explicit statement that coding completion alone is not DONE and synchronized testing/documentation evidence is required.
 - Updated the living plan and active-set indexes to reference the two testing companions. No runtime code, migration, data, permission, feature flag or rollout configuration was changed by this documentation update.
 
+## WP07–WP09 governance remediation — 2026-10-14
+
+- Preference extras now use the existing charge-money helpers. Inclusive and exclusive tax live in `tax-extraction.ts`. Overpayment lives in `computeOverpaidAmount`, which the snapshot writer and the Edit classifier both call.
+- Existing fixture numbers were unchanged. WP10 preview tests were re-run and passed. WP07, WP08, and WP09 are DONE for their in-memory slices. Apply, snapshot writing, compound tax, and currency-increment rounding remain later work.
+- No migration, permission, feature flag, or screen was added. Billing, plans, and tenant role grants were not changed. `order_edit_v2` stays default-off.
+
+## WP11 documentation synchronization — 2026-10-14
+
+- Added [WP11 report](WP11_Persistence_Adapters_v3.0.md). The living plan limits the package to the caller-transaction adapter. Apply remains unbuilt.
+- Recorded that idempotency claim and completion, Change insertion, descendant logical removal, and the registered `ORDER_CHANGE_APPLIED` handler share the caller transaction. No new table or HTTP route was added.
+
+## order_edit_v2 default correction — 2026-10-14
+
+- Local and remote `hq_ff_feature_flags_mst.default_value` for `order_edit_v2` are already `true`. The TypeScript catalog had drifted to `false` and is now `true`.
+- No new migration was added. A tenant override can still disable the flag. The flag still only enables evaluation.
+
+## WP12 documentation synchronization — 2026-10-14
+
+- Added [WP12 report](WP12_Apply_v3.0.md). `POST /api/v1/orders/[id]/changes` commits one settled order-field Change or nothing. Commercial line writes remain rejected.
+- The database test rolls the Change back and leaves no row. No migration, permission, feature flag, or screen was added. Billing, plans, and tenant role grants were not changed.
+
+## WP13 documentation synchronization — 2026-10-14
+
+- Added [WP13 report](WP13_Edit_Controller_v3.0.md). The Edit controller builds operations against persisted row ids and calls Preview and Apply.
+- Create submission and the visible legacy Edit save are unchanged. No migration, permission, feature flag, or screen layout was added.
+
+## WP14 documentation synchronization — 2026-10-14
+
+- Added [WP14 report](WP14_Edit_Workspace_v3.0.md). The edit route prepares supported order-field changes and reviews them through Preview.
+- The route no longer acquires the legacy lock or calls the legacy update. Apply, commercial line edits, and the review dialog remain later work. No migration, permission, feature flag, or navigation entry was added.
+

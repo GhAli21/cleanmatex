@@ -428,7 +428,7 @@ Rules:
 - Client estimates are non-authoritative.
 - No Edit-specific price-list versioning/pinning in V1.
 
-`price_per_unit` retains the current owning calculator's persisted meaning: a gross selling amount in TAX_INCLUSIVE mode and a pre-tax selling amount in TAX_EXCLUSIVE mode. WP08 applies one supplied rate under that wording and does not relabel historical inclusive amounts as net. Existing item NUMERIC(10,3) storage and piece NUMERIC(19,4) storage still require explicit quantization/range checks before persistence. See [WP08 report](WP08_Calculation_Adapter_v3.0.md).
+`price_per_unit` retains the current owning calculator's persisted meaning: a gross selling amount in TAX_INCLUSIVE mode and a pre-tax selling amount in TAX_EXCLUSIVE mode. WP08 applies one supplied rate through the shared tax helpers and does not relabel historical inclusive amounts as net. Existing item NUMERIC(10,3) storage and piece NUMERIC(19,4) storage still require explicit quantization/range checks before persistence. See [WP08 report](WP08_Calculation_Adapter_v3.0.md).
 
 Preference extras follow the current level-specific accounting contract: ITEM/PIECE extras are already represented in line totals; ORDER PREFERENCE charges are separate addends. Do not sum every preference charge again. Current B18 order-level charges are flat non-taxable addends; taxable-charge expansion requires its owning domain's approved contract.
 
@@ -774,9 +774,17 @@ The implementation must cover unpaid, partially paid, fully paid, upward/downwar
 34. `org_order_edit_history` is legacy/compatibility, not V2 authority.
 35. New Order remains working throughout migration.
 
-WP09 classifies outstanding and overpayment from the existing finance aggregation and does not rewrite payment, voucher, invoice, or issued fiscal rows. See [WP09 report](WP09_Financial_Result_v3.0.md).
+WP09 classifies outstanding with `aggregateOrderFinancials` and overpayment with `computeOverpaidAmount`. It does not rewrite payment, voucher, invoice, or issued fiscal rows. See [WP09 report](WP09_Financial_Result_v3.0.md).
 
 WP10 exposes that classification through a read-only Preview. The preview writes no Change, payment, voucher, invoice, or fiscal row. See [WP10 report](WP10_Preview_v3.0.md).
+
+WP11 persists one Change inside the caller's transaction. It does not open an Apply route. See [WP11 report](WP11_Persistence_Adapters_v3.0.md).
+
+WP12 opens `POST /api/v1/orders/[id]/changes` for a settled order-field Change whose total does not change. Pricing and tax run before the transaction. The transaction calls `persistOrderChangeTx` and then updates the existing order columns. Item, piece, and preference writes are rejected. See [WP12 report](WP12_Apply_v3.0.md).
+
+WP13 keeps Edit identity on the persisted item, piece, and preference ids and builds the Change intent in one controller. Create submission is unchanged. See [WP13 report](WP13_Edit_Controller_v3.0.md).
+
+WP14 places that controller on the existing edit route. The screen loads Change context, keeps customer, branch, and currency locked, and sends Review to Preview. It does not call Apply or the legacy update. Item, piece, and preference rows stay read-only. See [WP14 report](WP14_Edit_Workspace_v3.0.md).
 
 ---
 

@@ -294,11 +294,16 @@ async function sendViaMeta(row: OutboxWhatsAppRow): Promise<WhatsAppDeliveryResu
     )
 
     if (res.ok) {
-      const data = await res.json() as { messages?: { id: string }[] }
+      // A 2xx means Meta accepted the message even if the body is unparsable, so a parse
+      // failure must never turn an accepted send into a retry (duplicate-send risk).
+      const data = await res.json().catch(() => ({})) as { messages?: { id?: string }[] }
+      const messageId = data.messages?.[0]?.id
       logger.info('whatsapp-adapter(meta): sent', {
-        outboxId: row.id, messageId: data.messages?.[0]?.id, feature: 'notifications',
+        outboxId: row.id, messageId, feature: 'notifications',
       })
-      return { success: true }
+      // The wamid is persisted on the outbox row + delivery log so Meta status webhooks and
+      // reconciliation can correlate this send (plan A2 / R4).
+      return { success: true, providerMessageId: messageId }
     }
 
     const errBody = await res.json() as { error?: { message?: string; code?: number } }

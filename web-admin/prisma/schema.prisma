@@ -1655,6 +1655,7 @@ model org_tenants_mst {
   org_ntf_prov_acct_mst            org_ntf_prov_acct_mst[]
   org_ntf_receipts_tr              org_ntf_receipts_tr[]
   org_ntf_route_assign_cf          org_ntf_route_assign_cf[]
+  org_ntf_soft_bounce_lst          org_ntf_soft_bounce_lst[]
   org_ntf_suppression_lst          org_ntf_suppression_lst[]
   org_ntf_usage_apply_evt          org_ntf_usage_apply_evt[]
   org_ntf_usage_daily              org_ntf_usage_daily[]
@@ -16431,6 +16432,34 @@ model sys_ops_operation_run_dtl {
   sys_ops_operation_cf sys_ops_operation_cf @relation(fields: [operation_code], references: [operation_code], onUpdate: NoAction, map: "fk_ops_oprun_op")
 
   @@index([operation_code, started_at(sort: Desc)], map: "idx_ops_oprun_op_start")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_soft_bounce_lst {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String          @db.Uuid
+  channel_code      String
+  address_or_number String
+  bounce_count      Int             @default(1)
+  window_started_at DateTime        @default(now()) @db.Timestamptz(6)
+  last_bounce_at    DateTime        @default(now()) @db.Timestamptz(6)
+  last_event_id     String?
+  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  created_info      String?
+  updated_at        DateTime?       @db.Timestamptz(6)
+  updated_by        String?
+  updated_info      String?
+  rec_status        Int             @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?
+  is_active         Boolean         @default(true)
+  org_tenants_mst   org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_sbnc_tenant")
+
+  @@unique([tenant_org_id, channel_code, address_or_number], map: "uq_ntf_sbnc_addr")
   @@schema("public")
 }
 

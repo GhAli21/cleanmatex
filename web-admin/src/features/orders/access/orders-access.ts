@@ -927,6 +927,26 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Read-only Edit preview. CSRF and orders:edit are enforced in the route. No Change row is written.'],
       },
       {
+        label: 'Order Change Context',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/change-context',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['Authoritative Edit facts for the workspace. orders:read is enforced in the route. The deferred feature flag inside the payload is not the live gate.'],
+      },
+      {
+        label: 'Order Change Apply',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/changes',
+        requirement: {
+          permissions: ['orders:edit'],
+          requireAllPermissions: true,
+        },
+        notes: ['Atomic Edit apply. CSRF, Idempotency-Key, and orders:edit are enforced in the route. One Change commits or the transaction rolls back.'],
+      },
+      {
         label: 'Assembly Dashboard',
         method: 'GET',
         path: '/api/v1/assembly/dashboard',

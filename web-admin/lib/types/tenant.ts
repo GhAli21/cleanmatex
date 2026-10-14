@@ -95,7 +95,7 @@ export interface FeatureFlags {
      */
     order_fin_governed_amendments: boolean;
     /**
-     * Edit Order V2 is default-off and only enables capability evaluation.
+     * Edit Order V2 defaults on and only enables capability evaluation.
      * Workflow policy, order access, permissions, and review proof still gate every Change.
      */
     order_edit_v2: boolean;

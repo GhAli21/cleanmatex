@@ -270,3 +270,15 @@ Before pilot/cutover, the release evidence must include all applicable:
 Part 9 of the living implementation plan remains the high-level architecture scenario matrix and current validation summary.
 
 This document is the detailed testing-execution companion. If this file conflicts with a frozen business/technical contract, the frozen/specialized contract wins and this guide must be corrected; do not change product behavior merely to satisfy a stale test description.
+
+## 20. Unit evidence after the WP07–WP09 reuse remediation — 2026-10-14
+
+| Scenario IDs | Automation status | Command | Result |
+|---|---|---|---|
+| OC-PREF-001–008 | Unit slice PASS | `npx jest __tests__/services/order-change/order-change-preference-projection.test.ts --runInBand --forceExit --watchman=false` | 7 passed |
+| OC-CALC-001–009 | Unit slice PASS | Edit adapter plus Create calculation plus `format-money` and inclusive extraction suites | 6 Edit, 23 Create, 8 money, inclusive extraction passed |
+| OC-CALC-010 | AUTOMATION_PLANNED | Currency-increment rounding stays in the server-only helper | Not executed inside the pure adapter |
+| OC-FIN-001–010 | Unit slice PASS | `npx jest __tests__/services/order-change/order-change-financial-result.service.test.ts --runInBand --forceExit --watchman=false` | 5 passed |
+| WP10 preview composition | Revalidated PASS | Preview service and route suites | 11 passed |
+
+These rows are unit evidence only. They do not claim a database, browser, or manual UI pass. Manual UI scenarios remain `NOT_EXECUTABLE_YET`.

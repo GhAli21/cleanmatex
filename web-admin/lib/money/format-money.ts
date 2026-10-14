@@ -50,12 +50,41 @@ function clampDecimalPlaces(decimalPlaces: number): number {
 }
 
 /**
+ * Half-up for an exact decimal string. Number.toFixed is not used here because
+ * binary values such as 1.005 round the wrong way.
+ */
+function roundHalfUpDecimalText(value: string, decimalPlaces: number): number | null {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value.trim());
+  if (!match) return null;
+  const sign = match[1] === '-' ? -1 : 1;
+  const whole = BigInt(match[2]);
+  const fraction = match[3] ?? '';
+  if (decimalPlaces === 0) {
+    const bump = (fraction[0] ?? '0') >= '5' ? 1n : 0n;
+    return sign * Number(whole + bump);
+  }
+  const scale = 10n ** BigInt(decimalPlaces);
+  const digits = (fraction + '0'.repeat(decimalPlaces + 1)).slice(0, decimalPlaces + 1);
+  const keep = BigInt(digits.slice(0, decimalPlaces) || '0');
+  const bump = digits[decimalPlaces] >= '5' ? 1n : 0n;
+  const scaled = whole * scale + keep + bump;
+  const roundedWhole = scaled / scale;
+  const roundedFraction = (scaled % scale).toString().padStart(decimalPlaces, '0');
+  return sign * Number(`${roundedWhole.toString()}.${roundedFraction}`);
+}
+
+/**
  * Round a monetary amount to tenant decimal places (half-up via Number.toFixed).
+ * Exact decimal strings use decimal half-up so a review display does not depend on binary rounding.
  * @param amount
  * @param decimalPlaces
  */
 export function roundMoneyAmount(amount: MoneyAmountInput, decimalPlaces: number): number {
   const dp = clampDecimalPlaces(decimalPlaces);
+  if (typeof amount === 'string') {
+    const exact = roundHalfUpDecimalText(amount, dp);
+    if (exact !== null) return exact;
+  }
   return Number(coerceAmount(amount).toFixed(dp));
 }
 

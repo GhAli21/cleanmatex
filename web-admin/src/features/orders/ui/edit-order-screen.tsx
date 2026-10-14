@@ -6,8 +6,11 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Suspense } from 'react';
+import { createEditOrderController } from '../order-change/edit-order-controller';
+import { EditOrderControllerProvider } from '../order-change/edit-order-controller-context';
+import { mapLoadedOrderToEditBaseline, type LoadedEditOrder } from '../order-change/edit-order-view-model';
 import { useNewOrderDispatch } from './context/new-order-context';
 import { NewOrderLayout } from './new-order-layout';
 import { NewOrderContent } from './new-order-content';
@@ -30,8 +33,11 @@ interface EditOrderScreenProps {
  */
 export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenProps) {
   const dispatch = useNewOrderDispatch();
+  const [controller] = useState(() => createEditOrderController());
 
   useEffect(() => {
+    const baseline = mapLoadedOrderToEditBaseline(initialOrderData as LoadedEditOrder, orderId);
+    if (baseline.ok) controller.load(baseline.baseline);
     // Transform order data to match form state
     const order = initialOrderData;
 
@@ -51,6 +57,7 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
       // Map pieces if they exist
       const pieces: PreSubmissionPiece[] | undefined = item.pieces?.map((piece: any, index: number) => ({
         id: `temp-${item.product_id}-${index + 1}`,
+        persistedId: typeof piece.id === 'string' ? piece.id : undefined,
         itemId: item.product_id,
         pieceSeq: piece.piece_seq ?? index + 1,
         ...normalizePieceColorsFromDb(piece.color),
@@ -62,23 +69,26 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         metadata: piece.metadata || undefined,
         packingPrefCode: piece.packing_pref_code || undefined,
         packingCfId: piece.packing_cf_id ?? piece.packingCfId ?? undefined,
-        servicePrefs: piece.service_prefs?.map((p: { preference_code: string; source?: string; extra_price: number; preference_cf_id?: string; preferenceCfId?: string }) => ({
+        servicePrefs: piece.service_prefs?.map((p: { id?: string; preference_code: string; source?: string; extra_price: number; preference_cf_id?: string; preferenceCfId?: string }) => ({
           preference_code: p.preference_code,
           source: p.source ?? 'manual',
           extra_price: Number(p.extra_price ?? 0),
           preferenceCfId: p.preference_cf_id ?? p.preferenceCfId ?? undefined,
+          persistedId: typeof p.id === 'string' ? p.id : undefined,
         })),
         conditions: piece.conditions,
       }));
 
-      const servicePrefs = item.service_prefs?.map((p: { preference_code: string; source?: string; extra_price: number; preference_cf_id?: string; preferenceCfId?: string }) => ({
+      const servicePrefs = item.service_prefs?.map((p: { id?: string; preference_code: string; source?: string; extra_price: number; preference_cf_id?: string; preferenceCfId?: string }) => ({
         preference_code: p.preference_code,
         source: p.source ?? 'manual',
         extra_price: Number(p.extra_price ?? 0),
         preferenceCfId: p.preference_cf_id ?? p.preferenceCfId ?? undefined,
+        persistedId: typeof p.id === 'string' ? p.id : undefined,
       }));
 
       return {
+        persistedItemId: typeof item.id === 'string' ? item.id : undefined,
         productId: item.product_id,
         productName: item.product_name || null,
         productName2: item.product_name2 || null,
@@ -122,6 +132,7 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         originalData: order,
         expectedUpdatedAt: order.updated_at ? new Date(order.updated_at) : new Date(),
         orderServicePrefs: (order.order_service_prefs ?? []).map((pref: {
+          id?: string;
           preference_code: string;
           source?: string;
           extra_price?: number;
@@ -131,17 +142,20 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
           source: pref.source ?? 'ORDER_CREATE',
           extra_price: Number(pref.extra_price ?? 0),
           preferenceCfId: pref.preferenceCfId ?? undefined,
+          persistedId: typeof pref.id === 'string' ? pref.id : undefined,
         })),
       },
     });
-  }, [orderId, initialOrderData, dispatch]);
+  }, [orderId, initialOrderData, dispatch, controller]);
 
   return (
+    <EditOrderControllerProvider controller={controller}>
     <NewOrderLayout>
       <Suspense fallback={<NewOrderLoadingSkeleton />}>
         <NewOrderContent />
       </Suspense>
       <NewOrderModals />
     </NewOrderLayout>
+    </EditOrderControllerProvider>
   );
 }

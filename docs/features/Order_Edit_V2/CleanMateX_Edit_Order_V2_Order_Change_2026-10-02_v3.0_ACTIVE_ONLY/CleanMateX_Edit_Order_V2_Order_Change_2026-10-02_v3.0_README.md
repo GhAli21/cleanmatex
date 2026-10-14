@@ -37,6 +37,10 @@ These reports are evidence for the living plan. They do not replace it. WP07–W
 - [WP08 calculation adapter](WP08_Calculation_Adapter_v3.0.md)
 - [WP09 financial result](WP09_Financial_Result_v3.0.md)
 - [WP10 read-only preview](WP10_Preview_v3.0.md)
+- [WP11 persistence adapters](WP11_Persistence_Adapters_v3.0.md)
+- [WP12 atomic apply](WP12_Apply_v3.0.md)
+- [WP13 edit controller](WP13_Edit_Controller_v3.0.md)
+- [WP14 edit workspace](WP14_Edit_Workspace_v3.0.md)
 
 ## Review and export classification
 

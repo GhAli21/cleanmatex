@@ -54,7 +54,7 @@ export interface OrderChangeCapabilityBinding {
 
 /** Server-derived order facts that determine whether any operation can be evaluated. */
 export interface OrderChangeCapabilityOrderFacts {
-  /** Resolved from the independent default-off `order_edit_v2` feature flag by a future server boundary. */
+  /** Resolved from the independent `order_edit_v2` feature flag. The catalog and stored default are true. */
   featureEnabled: boolean;
   /** V2 commitment is a prerequisite and is not inferred from workflow status. */
   committedAt: Date | null;

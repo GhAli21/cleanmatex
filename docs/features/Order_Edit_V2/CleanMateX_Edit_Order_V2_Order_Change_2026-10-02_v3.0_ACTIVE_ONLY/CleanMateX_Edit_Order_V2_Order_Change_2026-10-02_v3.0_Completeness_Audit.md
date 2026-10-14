@@ -35,7 +35,7 @@ Supplied DOCX/ZIP exports remain reference snapshots and must be regenerated bef
 
 A dedicated `..._v3.0_Implementation_Governance.md` contract now centralizes reuse-first discovery, canonical domain ownership, domain-agnostic shared-component rules, separation of concerns, legacy Edit migration/deprecation, documentation synchronization, architecture verification, and the WP Definition of Done. This does not create another implementation plan or progress ledger.
 
-WP07–WP09 were implemented before this governance contract and are therefore recorded as PARTIAL pending a retroactive reuse/domain-boundary audit. Their existing focused tests remain valid evidence of the implemented slices; the new status does not claim a defect, only that the newly required architecture/governance evidence has not yet been performed. WP10 must be revalidated if remediation changes any WP07–WP09 output contract.
+WP07–WP09 completed the retroactive reuse/domain-boundary audit on 2026-10-14. Preference extras now use the charge-money helpers, tax extraction lives in one pure module, and overpayment uses `computeOverpaidAmount` from both the snapshot writer and the Edit classifier. Existing fixture results stayed the same. WP10 preview tests were re-run and passed. Their reports record the review tables. Snapshot persistence, compound tax, currency-increment rounding, and fiscal writing remain later packages.
 
 ## Testing-documentation reconciliation — 2026-10-14
 

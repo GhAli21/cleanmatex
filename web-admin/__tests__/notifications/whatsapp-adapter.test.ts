@@ -250,6 +250,37 @@ describe('WhatsApp adapter template dispatch', () => {
     expect(resolveWhatsAppCustomerEligibility).not.toHaveBeenCalled()
   })
 
+  describe('Meta Cloud API send (provider message id capture, R4)', () => {
+    const savedMeta = { token: process.env.META_WHATSAPP_ACCESS_TOKEN, phone: process.env.META_WHATSAPP_PHONE_NUMBER_ID }
+
+    beforeEach(() => {
+      process.env.META_WHATSAPP_ACCESS_TOKEN = 'meta-token'
+      process.env.META_WHATSAPP_PHONE_NUMBER_ID = '12345'
+      jest.mocked(notificationSettingsService.getActiveProvider).mockResolvedValue({ providerCode: 'META_WHATSAPP', config: {} })
+    })
+
+    afterEach(() => {
+      if (savedMeta.token === undefined) delete process.env.META_WHATSAPP_ACCESS_TOKEN
+      else process.env.META_WHATSAPP_ACCESS_TOKEN = savedMeta.token
+      if (savedMeta.phone === undefined) delete process.env.META_WHATSAPP_PHONE_NUMBER_ID
+      else process.env.META_WHATSAPP_PHONE_NUMBER_ID = savedMeta.phone
+    })
+
+    it('returns the wamid so the outbox row and delivery log can correlate Meta status webhooks', async () => {
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true, status: 200, json: async () => ({ messages: [{ id: 'wamid.HBgL123' }] }),
+      } as Response)
+      expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: 'wamid.HBgL123' })
+    })
+
+    it('still reports success (no retry/duplicate send) when Meta accepts but the body is unparsable', async () => {
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true, status: 200, json: async () => { throw new Error('bad json') },
+      } as unknown as Response)
+      expect(await deliverWhatsAppOutbox(row)).toEqual({ success: true, providerMessageId: undefined })
+    })
+  })
+
   describe('route/binding-aware live cutover (order.created only, bounded by route activation)', () => {
     const expectedSend = {
       from: 'whatsapp:+96890000000', to: 'whatsapp:+96891234567', contentSid: createdSid,

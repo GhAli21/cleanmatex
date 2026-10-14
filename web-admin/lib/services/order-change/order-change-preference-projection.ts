@@ -6,6 +6,9 @@
  * embedded on the parent line once. Confirmation state is left unchanged.
  */
 
+import { CHARGE_TYPES } from '@/lib/constants/order-financial';
+import { PREFS_LEVEL } from '@/lib/constants/order-preferences';
+import { round4 } from '@/lib/services/order-financial-aggregation';
 import {
   projectOrderChangeStructure,
   type OrderChangeProjectionBaseline,
@@ -13,6 +16,11 @@ import {
   type OrderChangeProjectionIssueCode,
   type OrderChangeStructuralOperation,
 } from '@/lib/services/order-change/order-change-projection';
+import {
+  isContaminatingPreferenceCharge,
+  sumMoneyAddendCharges,
+  type ChargeMoneyRow,
+} from '@/lib/utils/order-charge-money';
 
 export type OrderChangePreferenceLevel = 'ORDER' | 'ITEM' | 'PIECE';
 
@@ -108,12 +116,6 @@ function toUnits(value: string): bigint | null {
   if (!match) return null;
   const fraction = (match[2] ?? '').padEnd(4, '0');
   return BigInt(match[1]) * 10000n + BigInt(fraction);
-}
-
-function fromUnits(units: bigint): string {
-  const whole = units / 10000n;
-  const fraction = (units % 10000n).toString().padStart(4, '0');
-  return `${whole.toString()}.${fraction}`;
 }
 
 function parentItemId(
@@ -254,21 +256,21 @@ export function projectOrderChangePreferences(input: {
 
   const baselineSignature = input.preferences.map(preferenceSignature).sort().join('|');
   const projectedSignature = projected.map(preferenceSignature).sort().join('|');
-  const lineEmbedded = new Map<string, bigint>();
-  let orderUnits = 0n;
+  const lineEmbedded = new Map<string, number>();
+  const chargeRows: ChargeMoneyRow[] = [];
+  const levels = new Map<string, string>();
   const counted = new Set<string>();
   for (const row of projected) {
     if (!row.active || counted.has(row.id)) continue;
     counted.add(row.id);
-    const units = toUnits(row.extraPrice);
-    if (units === null) return { ok: false, issue: { code: 'PREFERENCE_SOURCE_MISMATCH', seq: 0 } };
-    if (row.level === 'ORDER') {
-      orderUnits += units;
-      continue;
-    }
+    if (toUnits(row.extraPrice) === null) return { ok: false, issue: { code: 'PREFERENCE_SOURCE_MISMATCH', seq: 0 } };
+    chargeRows.push({ amount: row.extraPrice, charge_type: CHARGE_TYPES.PREFERENCE, charge_source_id: row.id });
+    levels.set(row.id, row.level);
+    if (row.level === PREFS_LEVEL.ORDER) continue;
     const itemId = parentItemId(row, pieceItemId);
     if (!itemId) continue;
-    lineEmbedded.set(itemId, (lineEmbedded.get(itemId) ?? 0n) + units);
+    if (!isContaminatingPreferenceCharge({ amount: row.extraPrice, charge_type: CHARGE_TYPES.PREFERENCE, charge_source_id: row.id }, levels)) continue;
+    lineEmbedded.set(itemId, round4((lineEmbedded.get(itemId) ?? 0) + Number(row.extraPrice)));
   }
 
   return {
@@ -276,8 +278,8 @@ export function projectOrderChangePreferences(input: {
     createsChange: structure.createsChange || baselineSignature !== projectedSignature,
     preferences: projected,
     charges: {
-      orderAddend: fromUnits(orderUnits),
-      lineEmbeddedByItemId: Object.fromEntries([...lineEmbedded.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([itemId, units]) => [itemId, fromUnits(units)])),
+      orderAddend: round4(sumMoneyAddendCharges(chargeRows, levels)).toFixed(4),
+      lineEmbeddedByItemId: Object.fromEntries([...lineEmbedded.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([itemId, amount]) => [itemId, round4(amount).toFixed(4)])),
     },
   };
 }

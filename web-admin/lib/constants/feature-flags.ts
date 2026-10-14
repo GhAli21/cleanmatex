@@ -80,7 +80,7 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   { flag_key: 'order_fin_governed_amendments', flag_name: 'Governed Order Amendments', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'experimental', ui_display_order: 13 },
   // Edit Order V2 — registered by migration 0567 and default OFF. This gates
   // capability evaluation only; it does not grant an operation or expose Apply.
-  { flag_key: 'order_edit_v2', flag_name: 'Edit Order V2', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Order Features', governance_category: 'experimental', ui_display_order: 1 },
+  { flag_key: 'order_edit_v2', flag_name: 'Edit Order V2', plan_binding_type: 'independent', data_type: 'boolean', default_value: true, ui_group: 'Order Features', governance_category: 'experimental', ui_display_order: 1 },
   // B13 — voucher reverse operational unwind (ORDER_PAYMENT → B10 VOID/REVERSE).
   // Independent + default OFF until Preview QA; migration 0506.
   { flag_key: 'order_fin_voucher_unwind', flag_name: 'Voucher Reversal Operational Unwind', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 14 },

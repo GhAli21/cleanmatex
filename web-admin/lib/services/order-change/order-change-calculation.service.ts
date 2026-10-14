@@ -8,6 +8,9 @@
  * are added once and are not treated as taxable.
  */
 
+import { roundMoneyAmount } from '@/lib/money/format-money';
+import { round4 } from '@/lib/services/order-financial-aggregation';
+import { applyExclusiveTax, extractTaxFromInclusive } from '@/lib/services/tax-extraction';
 const SCALE = 4;
 const SCALE_FACTOR = 10000n;
 const PRICE_PATTERN = /^(-?)(\d+)(?:\.(\d{1,4}))?$/;
@@ -109,17 +112,6 @@ function formatUnits(units: bigint, places = SCALE): string {
   return `${sign}${whole.toString()}.${fraction}`;
 }
 
-function roundHalfUp(units: bigint, places: number): bigint {
-  if (places >= SCALE) return units;
-  const factor = 10n ** BigInt(SCALE - places);
-  const sign = units < 0n ? -1n : 1n;
-  const abs = units < 0n ? -units : units;
-  const quotient = abs / factor;
-  const remainder = abs % factor;
-  const rounded = remainder * 2n >= factor ? quotient + 1n : quotient;
-  return sign * rounded * factor;
-}
-
 function sellingUnit(line: OrderChangeCalculationLine, overrideAllowed: boolean): { unit: bigint; adjustment: bigint } | OrderChangeCalculationFailure {
   if (!line.repriced) {
     const persisted = parseUnits(line.persistedUnitPrice);
@@ -189,20 +181,14 @@ export function calculateOrderChangeTotals(input: OrderChangeCalculationInput): 
     if (promotion > taxable) promotion = taxable;
   }
   const taxableAfterPromotion = taxable - promotion;
-
-  let tax = 0n;
-  let netCommercial = taxableAfterPromotion;
-  if (input.taxMode === 'TAX_INCLUSIVE') {
-    const gross = taxableAfterPromotion;
-    const rateUnits = taxRate / 100n;
-    const divisor = SCALE_FACTOR + rateUnits;
-    const net = divisor === 0n ? gross : (gross * SCALE_FACTOR) / divisor;
-    tax = gross - net;
-    netCommercial = gross;
-  } else {
-    tax = (taxableAfterPromotion * taxRate) / SCALE_FACTOR / 100n;
-    netCommercial = taxableAfterPromotion + tax;
-  }
+  const taxableAmount = Number(formatUnits(taxableAfterPromotion));
+  const rateFraction = Number(formatUnits(taxRate)) / 100;
+  const taxNumber = input.taxMode === 'TAX_INCLUSIVE'
+    ? extractTaxFromInclusive(taxableAmount, rateFraction).taxAmount
+    : applyExclusiveTax(taxableAmount, rateFraction);
+  const netCommercial = input.taxMode === 'TAX_INCLUSIVE'
+    ? taxableAmount
+    : round4(taxableAmount + taxNumber);
 
   let charges = 0n;
   for (const charge of input.charges ?? []) {
@@ -212,8 +198,9 @@ export function calculateOrderChangeTotals(input: OrderChangeCalculationInput): 
     charges += amount;
   }
 
-  const total = netCommercial + orderAddend + charges;
-  const display = roundHalfUp(total, input.currencyDecimalPlaces);
+  const total = round4(netCommercial + Number(formatUnits(orderAddend)) + Number(formatUnits(charges)));
+  const persistedTotal = total.toFixed(4);
+  const displayTotal = roundMoneyAmount(persistedTotal, input.currencyDecimalPlaces).toFixed(input.currencyDecimalPlaces);
   const fingerprint = [
     input.taxMode,
     formatUnits(taxRate),
@@ -221,19 +208,18 @@ export function calculateOrderChangeTotals(input: OrderChangeCalculationInput): 
     formatUnits(promotion),
     formatUnits(orderAddend),
     formatUnits(charges),
-    formatUnits(total),
+    persistedTotal,
   ].join('|');
-  const displayTotal = formatUnits(display, input.currencyDecimalPlaces);
 
   return {
     ok: true,
     lines: lineResults,
     merchandiseSubtotal: formatUnits(merchandise),
     promotionDiscount: formatUnits(promotion),
-    taxAmount: formatUnits(tax),
+    taxAmount: taxNumber.toFixed(4),
     orderPreferenceAddend: formatUnits(orderAddend),
     chargeTotal: formatUnits(charges),
-    totalAmount: formatUnits(total),
+    totalAmount: persistedTotal,
     displayTotal,
     fingerprint,
     requiresReReview: (input.reviewedFingerprint !== undefined && input.reviewedFingerprint !== fingerprint)

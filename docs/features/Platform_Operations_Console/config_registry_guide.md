@@ -71,24 +71,28 @@ Convert one key at a time: replace the direct read with `ConfigResolverService.r
 
 The resolver (`modules/ops-config/config-resolver.service.ts`): short TTL cache (45 s, stale served on a read failure), decrypts in-process only, falls back to `envFallback` when the key is not registered or the registry cannot be read (so a converted call site keeps working before 0612 is applied), refuses `BOTH_MUST_MATCH` disagreement without leaking a value.
 
-**Converted (reference):** `ntf.hq.resend.from_email` (`HQ_RESEND_FROM_EMAIL`) in `EmailResendProvider`. Under `ENV_OVERRIDES_DB` behaviour is unchanged; the default address `noreply@cleanmatex.com` still applies when neither source has a value. A registry rejection (mismatch / undecryptable value) fails closed with `PROVIDER_NOT_CONFIGURED`. Two intentional nuances: an empty or whitespace-only env value is now treated as "not set" (it previously produced the "incomplete credentials" failure), and without the resolver in the Nest context the legacy `process.env` read is used.
+**Converted (R6, 2026-10-14; migration `0615` flips `is_wired`):** every HQ platform-api call site below reads its key through `ConfigResolverService` via `resolveConfigValue(resolver, key, ENV_NAME)` (`modules/ops-config/config-resolve.util.ts`). Under the seeded `ENV_OVERRIDES_DB` policy behaviour is unchanged while the environment variable is set. A registry refusal (`BOTH_MUST_MATCH` mismatch, undecryptable value) fails closed: providers return `PROVIDER_NOT_CONFIGURED`, webhook signature checks return invalid, the queue flag falls back to direct dispatch, FCM treats the key as unset. Caller-supplied (tenant BYO) credentials never consult the registry. Without a resolver in the Nest context the legacy env read applies (trimmed; empty = not set).
 
-**Not yet converted (HQ platform-api; `is_wired = false`):**
+| Key | Call site |
+|---|---|
+| `ntf.hq.resend.api_key`, `ntf.hq.resend.from_email` | `EmailResendProvider`; sender-verify uses the key via `ProviderAccountsService`; `HqPasswordMailer` no longer pre-checks the env |
+| `ntf.hq.twilio.account_sid` / `auth_token` | `SmsTwilioProvider`, `WhatsAppMetaProvider.sendViaTwilio`, `TwilioContentImporterService.resolveCredentials` (now async), `WebhooksService` (auth token) |
+| `ntf.hq.twilio.sms_from` / `whatsapp_from` | `SmsTwilioProvider`, `WhatsAppMetaProvider`, `RouteDispatchService` |
+| `ntf.hq.twilio.webhook_url` | `WebhooksService` signature verification |
+| `ntf.hq.twilio.content_cred_ref` / `content_cred_ver` | `TwilioContentImporterService.resolveCredentials` (security gate: an operator with `hq_ops:manage_config` can now change the approved credential reference; env still wins under the default policy) |
+| `ntf.hq.meta.app_secret` / `wa_access_token` / `wa_phone_number_id` | `WebhooksService`, `WhatsAppMetaProvider.sendViaMeta` |
+| `ntf.hq.fcm.server_key` | `PushHqProvider.sendFcm` |
+| `ntf.hq.queue_enabled` | `DispatchService.isQueueEnabled()` — evaluated per request, so a change takes effect within 45 s without a restart |
 
-- [ ] `ntf.hq.resend.api_key` (`HQ_RESEND_API_KEY`) — `email-resend.provider.ts`, `hq-password-mailer.ts`, `tenant-users.service.ts` message
-- [ ] `ntf.hq.twilio.account_sid` / `auth_token` (`HQ_TWILIO_ACCOUNT_SID` / `HQ_TWILIO_AUTH_TOKEN`) — SMS and WhatsApp providers, `twilio-content-importer.service.ts`, webhook verification
-- [ ] `ntf.hq.twilio.sms_from` / `whatsapp_from` — `sms-twilio.provider.ts`, `whatsapp-meta.provider.ts`, `route-dispatch.service.ts` (`ConfigService.get`)
-- [ ] `ntf.hq.twilio.webhook_url` (`HQ_TWILIO_WEBHOOK_URL`) — signature verification, 11 read sites
-- [ ] `ntf.hq.twilio.content_cred_ref` / `content_cred_ver` — `twilio-content-importer.service.ts`
-- [ ] `ntf.hq.meta.app_secret` / `wa_access_token` / `wa_phone_number_id`
-- [ ] `ntf.hq.fcm.server_key` (`HQ_FCM_SERVER_KEY`)
-- [ ] `ntf.hq.queue_enabled` (`NTF_QUEUE_ENABLED`) — read at module init; needs restart semantics
-- [ ] Bootstrap keys: never convert.
+Tests: `dispatch/__tests__/config-registry-wiring.spec.ts`, `email-resend.resolver.spec.ts`, `config-resolve.util.spec.ts`.
 
-**Not yet converted (tenant `web-admin`; the registry value is not consumed there):** the tenant app has no HQ resolver. Its runtime flags come from `sys_ntf_runtime_cf` (env wins) in `lib/notifications/config.ts`; its secrets come straight from `process.env`. Each is seeded `TENANT_WEB`, `is_wired = false`, `UNCHECKABLE` in the check:
+**Bootstrap keys** (`HQ_ENCRYPTION_MASTER_KEY`, `HQ_SERVICE_ROLE_KEY`, `JWT_SECRET`, database/Supabase settings, `HQ_RBAC_ENFORCEMENT_ENABLED` and similar): never convert.
 
-- [ ] Runtime flags: `ntf.app.whatsapp_fallback_email`, `order_transition_notify`, `outbox_inline_dispatch`, `dispatch_via_hq`, `hq_dispatch_url`, `hq_route_dispatch_url`, `resend_from_email`, `twilio_sms_from`, `twilio_whatsapp_from`, `wa_use_sandbox_template`, `wa_sandbox_content_sid`, `wa_sandbox_to_phone`. These duplicate `sys_ntf_runtime_cf`; decide which store is authoritative before converting (do not run two sources of truth), and note that the tenant app must reach the registry through an HQ API.
-- [ ] Secrets: `ntf.app.outbox_secret` (`NOTIFICATIONS_OUTBOX_SECRET`, must equal `sys_ntf_runtime_cf.outbox_secret_key` / `app.outbox_secret_key` used by pg_cron), `ntf.app.resend.webhook_secret`, `ntf.app.resend.api_key`, `ntf.app.twilio.*`, `ntf.app.meta.*`, `ntf.app.vapid.*`, `ntf.app.onesignal.*`, `ntf.app.fcm.*`. The tenant app would need an authenticated S2S route to resolve secrets without holding the HQ master key.
+**Tenant `web-admin` — decision (R6): `sys_ntf_runtime_cf` stays the single authority for runtime flags.** The tenant app already reads those twelve flags from `sys_ntf_runtime_cf` (environment wins, then the stored value; `lib/notifications/config.ts`) and the HQ Runtime Config screen manages them. A second copy in this registry would be a second source of truth, so migration `0615` retires the twelve `ntf.app.<flag>` registry rows (soft delete, history kept): `whatsapp_fallback_email`, `order_transition_notify`, `outbox_inline_dispatch`, `dispatch_via_hq`, `hq_dispatch_url`, `hq_route_dispatch_url`, `resend_from_email`, `twilio_sms_from`, `twilio_whatsapp_from`, `wa_use_sandbox_template`, `wa_sandbox_content_sid`, `wa_sandbox_to_phone`. The Setup Health `config.tenant_web_keys` check now confirms the two HQ dispatch URLs from `sys_ntf_runtime_cf` instead of the retired rows.
+
+**Tenant secrets stay in the tenant host environment (deliberate).** `ntf.app.resend.*`, `ntf.app.twilio.*`, `ntf.app.meta.*`, `ntf.app.vapid.*`, `ntf.app.onesignal.*`, `ntf.app.fcm.*` remain inventory + guidance rows (`is_wired = false`). Converting them would require the tenant app to fetch decrypted secrets from HQ over a service-to-service route (the HQ master key must never reach the tenant host). That is a new secret-serving endpoint and attack surface; it is not built, and needs an explicit security decision before it is.
+
+**`ntf.app.outbox_secret` (pg_cron bearer) — migration `0616`:** the secret moves from plain text in `sys_ntf_runtime_cf` to Supabase Vault (`ntf_outbox_secret`). Cron wrappers call `fn_ntf_cron_post`, which reads it inside the database. The plain-text row is deleted. The old value is committed in migration `0355`: treat it as burned and rotate with `SELECT public.fn_ntf_rotate_outbox_secret('<new 32+ char value>')`, then set the same value as `NOTIFICATIONS_OUTBOX_SECRET` on the tenant host and redeploy. Migration `0616` also repairs `ntf-reconcile-outbox`, which read non-persistable GUCs and was a silent no-op.
 
 ## 8. Operator steps once 0612 is applied
 

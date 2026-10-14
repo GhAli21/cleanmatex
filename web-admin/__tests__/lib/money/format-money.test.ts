@@ -11,6 +11,11 @@ describe('roundMoneyAmount', () => {
     expect(roundMoneyAmount(1.2346, 3)).toBe(1.235);
   });
 
+  it('rounds an exact decimal string half-up at the display boundary', () => {
+    expect(roundMoneyAmount('1.0050', 2)).toBe(1.01);
+    expect(roundMoneyAmount('3.0003', 2)).toBe(3);
+  });
+
   it('falls back for invalid decimalPlaces', () => {
     expect(roundMoneyAmount(1.2, NaN as unknown as number)).toBe(1.2);
   });

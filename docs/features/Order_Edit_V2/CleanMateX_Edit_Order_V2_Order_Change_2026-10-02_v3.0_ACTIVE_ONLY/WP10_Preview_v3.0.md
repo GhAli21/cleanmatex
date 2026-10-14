@@ -42,13 +42,13 @@ npx jest __tests__/services/order-change/order-change-preview.service.test.ts __
 npx eslint lib/services/order-change/order-change-preview.service.ts lib/services/order-change/order-change-preview-reads.ts app/api/v1/orders/[id]/changes/preview/route.ts __tests__/services/order-change/order-change-preview.service.test.ts __tests__/api/v1/orders/order-change-preview.route.test.ts src/features/orders/access/orders-access.ts --quiet
 ```
 
-Results: 11 tests passed. ESLint exited 0. No production build, database test, or browser test is claimed. The route test mocks the fact loader. The service test scans the preview module for Prisma, Supabase, execute, outbox, and idempotency, and scans the read module for create, update, delete, and execute.
+Results: 11 tests passed on the original composition, and the same 11 tests passed again on 2026-10-14 after WP07–WP09 began calling the shared charge, tax, and overpayment helpers. ESLint exited 0. No production build, database test, or browser test is claimed. The route test mocks the fact loader. The service test scans the preview module for Prisma, Supabase, execute, outbox, and idempotency, and scans the read module for create, update, delete, and execute.
 
 ## Dependencies
 
 - Uses the WP04 request schema and context loader. Context `featureEnabled: false` stays a deferred placeholder.
 - Uses WP05 capability evaluation and the injected review-proof primitive.
-- Uses WP06, WP07, WP08, and WP09 without changing their formulas.
+- Uses WP06, WP07, WP08, and WP09. Their public result shapes were unchanged by the 2026-10-14 reuse remediation. Preview tests were re-run and passed.
 - Settlement rows, quotes, tax mode, currency decimal places, and the preference catalog are loaded before the pure preview function runs.
 
 ## Gaps left to later packages
@@ -59,7 +59,7 @@ Results: 11 tests passed. ESLint exited 0. No production build, database test, o
 - Organization preference rows do not store a level. The read path uses the server-derived parent level. A conflicting catalog level is still rejected when the caller supplies one.
 - Compound tax profiles and currency-increment rounding stay outside this preview.
 - Snapshot equality, fiscal document writing, and source-qualified follow-up execution remain later packages.
-- `order_edit_v2` remains default-off until an operator enables it.
+- `order_edit_v2` defaults to true. A tenant override can still turn it off. The flag only enables evaluation.
 
 ## Database, API, and UI
 

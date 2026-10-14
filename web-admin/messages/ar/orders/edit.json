@@ -48,5 +48,29 @@
       "recordedNote": "تم تسجيل هذا التغيير وسببه في سجل تعديلات الطلب.",
       "gotIt": "حسنًا"
     }
+  },
+  "workspace": {
+    "revision": "المراجعة {version}",
+    "workflowStatus": "حالة سير العمل",
+    "dirtyCount": "{count} تغييرات غير محفوظة",
+    "review": "مراجعة",
+    "reviewing": "جاري المراجعة...",
+    "reviewStatus": "نتيجة المراجعة: {status}",
+    "discardChanges": "تجاهل التغييرات",
+    "discarded": "تم تجاهل التغييرات.",
+    "currentTotal": "الإجمالي الحالي",
+    "estimatedTotal": "الإجمالي التقديري",
+    "reviewNotCommitted": "المراجعة لا تحفظ الطلب.",
+    "commercialUnavailable": "تبقى تغييرات الصنف والقطعة والتفضيل مغلقة إلى أن يتوفر كاتب البيانات التجارية.",
+    "targetPersisted": "صف محفوظ",
+    "emptyItems": "لا توجد أصناف في هذا الطلب.",
+    "lockedField": "مقفل",
+    "deniedReason": "غير مسموح: {reason}",
+    "loadFailed": "تعذر تحميل الطلب للتعديل.",
+    "reviewFailed": "تعذر إكمال المراجعة.",
+    "serviceSpeed": "سرعة الخدمة",
+    "readyBy": "الجاهزية في",
+    "standard": "عادي",
+    "express": "مستعجل"
   }
 }

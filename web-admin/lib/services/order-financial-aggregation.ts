@@ -370,6 +370,35 @@ export function computeOutstanding(input: OutstandingInput): number {
   );
 }
 
+/** Inputs for the snapshot overpayment complement. Disposition is already applied, not a second payment. */
+export interface OverpaidInput {
+  effectivePayments: number;
+  realPaymentRefundedAmount: number;
+  effectiveCredits: number;
+  totalAmount: number;
+  changeReturnedAmount: number;
+  disposedOverpaymentAmount: number;
+}
+
+/**
+ * overpaid = max(0, netCollected + credits − total − change returned − disposed).
+ * netCollected is completed real payments minus real-payment refunds.
+ * Refund reopens stay in outstanding and are not subtracted here again.
+ */
+export function computeOverpaidAmount(input: OverpaidInput): number {
+  const netCollectedAmount = Math.max(0, round4(input.effectivePayments - input.realPaymentRefundedAmount));
+  return Math.max(
+    0,
+    round4(
+      netCollectedAmount
+        + input.effectiveCredits
+        - input.totalAmount
+        - input.changeReturnedAmount
+        - input.disposedOverpaymentAmount,
+    ),
+  );
+}
+
 /**
  * Convenience: derive every frozen component plus outstanding from raw fact
  * rows in one call (used by reconciliation and the equality regression suite).

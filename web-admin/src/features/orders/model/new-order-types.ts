@@ -83,6 +83,8 @@ export interface OrderItemServicePref {
   extra_price: number;
   /** FK to tenant catalog — `org_service_preference_cf.id` → `org_order_preferences_dtl.preference_id` */
   preferenceCfId?: string | null;
+  /** Persisted preference row. Create leaves this empty; Edit uses it so a later Change targets that row. */
+  persistedId?: string;
 }
 
 /**
@@ -90,6 +92,8 @@ export interface OrderItemServicePref {
  */
 export interface PreSubmissionPiece {
   id: string; // Temporary ID: `temp-${itemId}-${pieceSeq}`
+  /** Database piece id while the shared form still uses a temporary id for Create selectors. */
+  persistedId?: string;
   itemId: string;
   pieceSeq: number;
   /** Primary / first color code (mirror of `colorCodes[0]` for legacy single-select consumers) */
@@ -122,6 +126,8 @@ export interface PreSubmissionPiece {
  * Order Item
  */
 export interface OrderItem {
+  /** Database item id. Absent on a Create line, which is still grouped by product. */
+  persistedItemId?: string;
   productId: string;
   productName: string | null;
   productName2: string | null;

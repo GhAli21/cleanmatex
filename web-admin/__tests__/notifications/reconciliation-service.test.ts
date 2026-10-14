@@ -104,6 +104,22 @@ describe('reconcileTenantOutbox', () => {
     expect(inserts.some((i) => i.table === 'org_ntf_delivery_log_dtl')).toBe(true);
   });
 
+  it('finalizes a stuck Meta row that carries a captured wamid as SENT (a wamid proves acceptance; no status API exists)', async () => {
+    jest.mocked(notificationSettingsService.getActiveProvider).mockResolvedValue({ providerCode: 'META_WHATSAPP', config: {} });
+    uncertainRows = [{ ...baseRow, provider_message_id: 'wamid.HBgL123' }];
+
+    const summary = await reconcileTenantOutbox('tenant-a');
+
+    expect(messagesFn).not.toHaveBeenCalled();
+    expect(summary.results[0]).toMatchObject({ outboxId: 'outbox-1', outcome: 'RESOLVED_SENT' });
+    const outboxUpdate = updates.find((u) => u.table === 'org_ntf_outbox_dtl');
+    expect(outboxUpdate?.payload).toMatchObject({ status: 'SENT', provider_message_id: 'wamid.HBgL123' });
+    const receiptInsert = inserts.find((i) => i.table === 'org_ntf_receipts_tr');
+    expect(receiptInsert?.payload).toMatchObject({
+      tenant_org_id: 'tenant-a', provider_code: 'META_WHATSAPP', receipt_kind: 'ACCEPTED', provider_message_id: 'wamid.HBgL123',
+    });
+  });
+
   it('dead-letters a non-WHATSAPP channel row (no lookup implemented yet)', async () => {
     uncertainRows = [{ ...baseRow, channel_code: 'EMAIL' }];
     const summary = await reconcileTenantOutbox('tenant-a');

@@ -282,3 +282,77 @@ export async function stakeIdempotencyHash(
   }
   return { conflict: false, resourceId: staked.resourceId };
 }
+
+/** Caller transaction surface used by Apply. These methods must not open their own transaction. */
+export interface IdempotencyWriteTx {
+  $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: unknown[]): Promise<T>;
+  $executeRaw(query: TemplateStringsArray, ...values: unknown[]): Promise<number>;
+  org_idempotency_keys: {
+    findFirst(args: {
+      where: { tenant_org_id: string; key: string; resource_type: string };
+      select: { response_cache: true; resource_id: true };
+    }): Promise<{ response_cache: unknown; resource_id: string | null } | null>;
+  };
+}
+
+export const ORDER_CHANGE_IDEMPOTENCY_TYPE = 'order_change';
+
+/**
+ * Claim a key inside the caller's transaction.
+ * A conflicting insert whose row is not yet visible is IN_FLIGHT, so a second
+ * Apply does not start work beside an uncommitted claim.
+ */
+export async function claimIdempotencyKeyTx(
+  tx: IdempotencyWriteTx,
+  tenantId: string,
+  key: string,
+  resourceType: string,
+  payloadHash: string,
+  ttlDays: number = DEFAULT_TTL_DAYS,
+): Promise<IdempotencyClaim> {
+  const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+  const responseCache = JSON.stringify({ payload_hash: payloadHash });
+  const inserted = await tx.$queryRaw<Array<{ id: string }>>`
+    INSERT INTO public.org_idempotency_keys
+      (tenant_org_id, key, resource_type, response_cache, expires_at)
+    VALUES
+      (${tenantId}::uuid, ${key}, ${resourceType}, ${responseCache}::jsonb, ${expiresAt})
+    ON CONFLICT (tenant_org_id, key, resource_type) DO NOTHING
+    RETURNING id`;
+  if (inserted.length > 0) return { status: 'CLAIMED' };
+
+  const existing = await tx.org_idempotency_keys.findFirst({
+    where: { tenant_org_id: tenantId, key, resource_type: resourceType },
+    select: { response_cache: true, resource_id: true },
+  });
+  if (!existing) return { status: 'IN_FLIGHT' };
+  const cache = existing.response_cache as { payload_hash?: string } | null;
+  const hash = cache?.payload_hash ?? null;
+  if (hash && hash !== payloadHash) return { status: 'CONFLICT', existingHash: hash };
+  if (existing.resource_id) return { status: 'COMPLETED', resourceId: existing.resource_id };
+  return { status: 'IN_FLIGHT' };
+}
+
+/** Attach the committed Change id to the claimed key. The hash must still match. */
+export async function completeIdempotencyKeyTx(
+  tx: IdempotencyWriteTx,
+  tenantId: string,
+  key: string,
+  resourceType: string,
+  payloadHash: string,
+  resourceId: string,
+  applyResponse: Record<string, unknown>,
+): Promise<void> {
+  const responseCache = JSON.stringify({ payload_hash: payloadHash, apply_response: applyResponse });
+  const updated = await tx.$executeRaw`
+    UPDATE public.org_idempotency_keys
+    SET resource_id = ${resourceId}::uuid,
+        response_cache = ${responseCache}::jsonb
+    WHERE tenant_org_id = ${tenantId}::uuid
+      AND key = ${key}
+      AND resource_type = ${resourceType}
+      AND response_cache->>'payload_hash' = ${payloadHash}`;
+  if (updated !== 1) {
+    throw new Error('IDEMPOTENCY_COMPLETION_LOST');
+  }
+}

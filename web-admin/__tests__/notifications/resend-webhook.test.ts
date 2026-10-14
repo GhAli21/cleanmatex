@@ -3,10 +3,13 @@ import { createHmac } from 'crypto';
 import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/notifications/webhooks/resend/route';
 import { createAdminSupabaseClient } from '@lib/supabase/server';
-import { recordSuppression } from '@lib/notifications/suppression-list';
+import { recordSoftBounce, recordSuppression } from '@lib/notifications/suppression-list';
 
 jest.mock('@lib/supabase/server', () => ({ createAdminSupabaseClient: jest.fn() }));
-jest.mock('@lib/notifications/suppression-list', () => ({ recordSuppression: jest.fn(async () => true) }));
+jest.mock('@lib/notifications/suppression-list', () => ({
+  recordSuppression: jest.fn(async () => true),
+  recordSoftBounce: jest.fn(async () => ({ recorded: true, bounceCount: 1, suppressed: false, duplicate: false })),
+}));
 
 const SECRET = 'whsec_' + Buffer.from('test-secret-bytes').toString('base64');
 
@@ -100,7 +103,7 @@ describe('POST /api/notifications/webhooks/resend', () => {
     expect(recordSuppression).toHaveBeenCalledWith('tenant-a', 'EMAIL', 'a@b.com', 'BOUNCE_HARD', 'RESEND_WEBHOOK', undefined);
   });
 
-  it('does not suppress a transient (soft) bounce on a single occurrence', async () => {
+  it('counts a transient (soft) bounce without a hard suppression', async () => {
     jest.mocked(createAdminSupabaseClient).mockReturnValue({
       from: () => ({
         select: jest.fn().mockReturnThis(),
@@ -113,7 +116,23 @@ describe('POST /api/notifications/webhooks/resend', () => {
     const res = await POST(makeRequest(body, signedHeaders(body)));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.data.status).toBe('SOFT_BOUNCE_NOT_SUPPRESSED');
+    expect(json.data.status).toBe('SOFT_BOUNCE_COUNTED');
+    expect(recordSoftBounce).toHaveBeenCalledWith('tenant-a', 'EMAIL', 'a@b.com', 'msg_1', 'RESEND_WEBHOOK');
     expect(recordSuppression).not.toHaveBeenCalled();
+  });
+
+  it('reports repeated soft bounces once the threshold promotes the suppression', async () => {
+    jest.mocked(recordSoftBounce).mockResolvedValueOnce({ recorded: true, bounceCount: 3, suppressed: true, duplicate: false });
+    jest.mocked(createAdminSupabaseClient).mockReturnValue({
+      from: () => ({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn(async () => ({ data: { tenant_org_id: 'tenant-a' }, error: null })),
+      }),
+    } as unknown as ReturnType<typeof createAdminSupabaseClient>);
+
+    const body = JSON.stringify({ type: 'email.bounced', data: { email_id: 'e1', to: ['a@b.com'], bounce: { type: 'Transient' } } });
+    const res = await POST(makeRequest(body, signedHeaders(body)));
+    expect((await res.json()).data.status).toBe('SUPPRESSED_SOFT_BOUNCE_REPEATED');
   });
 });

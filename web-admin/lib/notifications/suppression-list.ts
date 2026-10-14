@@ -163,3 +163,74 @@ export async function recordSuppression(
     return false;
   }
 }
+
+/** Soft-bounce policy: this many transient bounces inside the window suppress the address. */
+export const SOFT_BOUNCE_THRESHOLD = 3;
+/** Rolling window (hours) over which soft bounces are counted (7 days). */
+export const SOFT_BOUNCE_WINDOW_HOURS = 168;
+
+/** Result of counting one soft bounce. */
+export type SoftBounceResult = {
+  recorded: boolean;
+  bounceCount?: number;
+  suppressed?: boolean;
+  duplicate?: boolean;
+};
+
+/** Parses the JSON returned by fn_ntf_soft_bounce_record; null when the shape is unexpected. */
+function parseSoftBounceResult(json: unknown): { bounce_count: number; suppressed: boolean; duplicate: boolean } | null {
+  if (typeof json !== 'object' || json === null) return null;
+  const { bounce_count, suppressed, duplicate } = json as Record<string, unknown>;
+  if (typeof bounce_count !== 'number') return null;
+  return { bounce_count, suppressed: suppressed === true, duplicate: duplicate === true };
+}
+
+/**
+ * Counts one transient (soft) bounce atomically and promotes the address to a
+ * BOUNCE_SOFT_REPEATED suppression once {@link SOFT_BOUNCE_THRESHOLD} bounces land
+ * inside {@link SOFT_BOUNCE_WINDOW_HOURS}. Idempotent per `eventId` (provider redelivery
+ * of the same event is not double-counted). Trusted webhook code only.
+ * @param tenantOrgId Tenant owning the address (resolved from the outbox row).
+ * @param channel Channel the bounce applies to.
+ * @param addressOrNumber Raw address/number reported by the provider.
+ * @param eventId Provider event id used for redelivery de-duplication.
+ * @param source Reporting webhook (e.g. 'RESEND_WEBHOOK').
+ * @returns `recorded: false` on failure (logged, never thrown).
+ */
+export async function recordSoftBounce(
+  tenantOrgId: string,
+  channel: SuppressionChannel,
+  addressOrNumber: string,
+  eventId: string,
+  source: string,
+): Promise<SoftBounceResult> {
+  const normalized = normalizeForChannel(channel, addressOrNumber);
+  if (!normalized) {
+    return { recorded: false };
+  }
+  try {
+    const supabase = createAdminSupabaseClient();
+    const { data, error } = await supabase.rpc('fn_ntf_soft_bounce_record', {
+      p_tenant_org_id: tenantOrgId,
+      p_channel_code: channel,
+      p_address: normalized,
+      p_event_id: eventId,
+      p_threshold: SOFT_BOUNCE_THRESHOLD,
+      p_window_hours: SOFT_BOUNCE_WINDOW_HOURS,
+      p_source: source,
+    });
+    const result = error ? null : parseSoftBounceResult(data);
+    if (error || !result) {
+      logger.error('suppression-list: soft-bounce record failed', new Error(error?.message ?? 'unexpected result'), {
+        tenantOrgId, channel, source, feature: 'notifications',
+      });
+      return { recorded: false };
+    }
+    return { recorded: true, bounceCount: result.bounce_count, suppressed: result.suppressed, duplicate: result.duplicate };
+  } catch (err) {
+    logger.error('suppression-list: soft-bounce record threw', err instanceof Error ? err : new Error(String(err)), {
+      tenantOrgId, channel, source, feature: 'notifications',
+    });
+    return { recorded: false };
+  }
+}

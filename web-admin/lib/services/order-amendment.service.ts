@@ -45,6 +45,12 @@ export interface AmendmentDeltaResult {
 }
 
 /**
+ * DEPRECATED FOR COMMITTED ORDER EDITS.
+ * Canonical replacement: Order Change V2 `projectOrderChangeFinancialResult`.
+ * Do not add new committed-order edit behavior here.
+ * Retire after all required V2 WPs, caller migration, E2E/UAT,
+ * cutover verification and rollback-window closure are complete.
+ *
  * Pure calculation — no I/O. A delta is governed only when the flag is on,
  * the order already has real money collected against it, and the delta is
  * outside rounding tolerance. A fully-unpaid order's total simply changes
@@ -55,6 +61,7 @@ export interface AmendmentDeltaResult {
  * @param params.newTotal
  * @param params.totalPaidAmount
  * @param params.governedFlagEnabled
+ * @deprecated Committed-order financial classification belongs to Order Change V2.
  */
 export function computeAmendmentDelta(params: {
   previousTotal: number;
