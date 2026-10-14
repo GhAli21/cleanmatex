@@ -139,3 +139,6 @@ doc/api/
 *.pem
 *.key
 .vercel
+
+# Local, value-bearing config seed output (never commit)
+supabase/seeds/local/

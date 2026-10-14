@@ -41,6 +41,7 @@ These reports are evidence for the living plan. They do not replace it. WP07–W
 - [WP12 atomic apply](WP12_Apply_v3.0.md)
 - [WP13 edit controller](WP13_Edit_Controller_v3.0.md)
 - [WP14 edit workspace](WP14_Edit_Workspace_v3.0.md)
+- [WP15 review, Apply, and history](WP15_Review_Apply_History_v3.0.md)
 
 ## Review and export classification
 

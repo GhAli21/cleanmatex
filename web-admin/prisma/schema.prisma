@@ -16332,7 +16332,7 @@ model sys_ops_config_cf {
   manage_via             String                   @default("UI")
   guidance               String?
   guidance2              String?
-  applies_to_app         String                   @default("ALL")
+  applies_to_app         Json                     @default("[]")
   last_check_status      String?
   last_check_at          DateTime?                @db.Timestamptz(6)
   value_updated_at       DateTime?                @db.Timestamptz(6)
@@ -16347,6 +16347,8 @@ model sys_ops_config_cf {
   rec_status             Int                      @default(1) @db.SmallInt
   rec_order              Int?
   rec_notes              String?
+  env_var_value          String?
+  env_var_scope_val      Json                     @default("[]")
   sys_ops_config_chg_log sys_ops_config_chg_log[]
 
   @@index([module, config_key], map: "idx_sys_ops_config_cf_mod")

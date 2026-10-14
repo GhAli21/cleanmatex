@@ -4,7 +4,7 @@
 
 ## 1. Where things stand
 - Tenant repo `F:\jhapp\cleanmatex` (owns ALL migrations) and HQ repo `F:\jhapp\cleanmatexsaas` (platform-api NestJS, platform-web Next.js, platform-workers).
-- Hub pilot code is complete in both repos. Platform Operations Console (A10) P0–P4 built: migrations 0610/0611/0612 APPLIED to both DBs; DB types regenerated in both HQ apps; next migration seq = **0617** (0613/0614 applied; 0615/0616 written, UNAPPLIED).
+- Hub pilot code is complete in both repos. Platform Operations Console (A10) P0–P4 built: migrations 0610/0611/0612 APPLIED to both DBs; DB types regenerated in both HQ apps; next migration seq = **0618** (0613/0614 applied; 0615/0616/0617 written, UNAPPLIED).
 - 2026-10-14 hardening: central `HqRbacService` (`platform-api/src/common/services/hq-rbac.service.ts`) — HQ RBAC enforced unless `HQ_RBAC_ENFORCEMENT_ENABLED=false`; guard + ops services use it. 153 tests pass.
 - Everything is UNCOMMITTED in both repos (user commits). Unrelated pre-existing failing suites in `platform-api/src/common` (tenant-permission guard/service, tenant-runtime-jwt guard) — not ours.
 
@@ -20,7 +20,7 @@ Fix job drift on `/ops/jobs`; HQ env vars (checklist Step 2); Twilio account/sen
 | R3 ✅ DONE 2026-10-14 (mig 0614 applied both DBs, types regenerated, bridge removed) | SMS inbound carrier opt-out / STOP (A2) | HQ Twilio ingress → `fn_ntf_carrier_opt_apply` → `org_ntf_suppression_lst` |
 | R4 ✅ DONE 2026-10-14 (no migration) | Meta WhatsApp provider-message-id capture (A2) | tenant `sendViaMeta` returns wamid; reconcile META row with wamid => SENT |
 | R5 ✅ DONE 2026-10-14 (no migration) | Sender-level live verification (A5b) | HQ `POST …/senders/:id/verify` (Twilio SMS/WhatsApp, Resend domain) + UI button; operator must click-through once |
-| R6 ✅ code done 2026-10-14 — **migrations 0615 + 0616 UNAPPLIED, owner must apply** | Config keys → `ConfigResolverService`; outbox secret → Vault | HQ 14 keys wired; tenant flags stay in `sys_ntf_runtime_cf` (decision); tenant secrets stay env; after apply: regenerate types, rotate the outbox secret (committed in 0355), tick `/ops/jobs` for `ntf-reconcile-outbox` |
+| R6 ⏸ **STOPPED for migrations 0615 (schema v2) + 0616 (Vault) + 0617 (re-seed) — owner must apply in that order, then regenerate types in all three apps** | Config registry v2 + HQ key wiring done; **R6b still to build after apply**: HQ ops-config v2 code/UI, tenant resolver, switch `config.ts` + tenant secrets, retire Runtime Config screen + `sys_ntf_runtime_cf` (drop migration 0618) | decisions in `Platform_Operations_Console/config_registry_guide.md` §7; value loading via `scripts/ops/seed-config-from-env.mjs`; rotate outbox secret after 0616 |
 | R7 | Ops follow-ups: change-history UI for `sys_ops_config_chg_log`, master-key rotation/re-encryption tool, drift alerting, salted fingerprints | |
 | R8 | C3 test matrix: close every remaining row that is feasible without new infra; list the rest honestly | audit doc `test-matrix-coverage-audit-2026-10-10.md` |
 | R9 | Final: refresh plan §23.1, STATUS.md, QA/runbook docs; mark plan closed with deferrals as post-pilot backlog | `/documentation` skill |

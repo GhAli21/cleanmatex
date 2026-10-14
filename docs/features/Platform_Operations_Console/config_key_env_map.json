@@ -1,584 +1,1139 @@
 [
  {
   "key": "ntf.app.dispatch_via_hq",
-  "apps": [
+  "env": "NTF_DISPATCH_VIA_HQ",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NTF_DISPATCH_VIA_HQ",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "NTF_DISPATCH_VIA_HQ",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.fcm.project_id",
-  "apps": [
+  "env": "FCM_PROJECT_ID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "FCM_PROJECT_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.fcm.service_account",
-  "apps": [
+  "env": "FCM_SERVICE_ACCOUNT_JSON",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "FCM_SERVICE_ACCOUNT_JSON",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.hq_dispatch_url",
-  "apps": [
+  "env": "NTF_HQ_DISPATCH_URL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NTF_HQ_DISPATCH_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.hq_route_dispatch_url",
-  "apps": [
+  "env": "NTF_HQ_ROUTE_DISPATCH_URL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NTF_HQ_ROUTE_DISPATCH_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.meta.wa_access_token",
-  "apps": [
+  "env": "META_WHATSAPP_ACCESS_TOKEN",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "META_WHATSAPP_ACCESS_TOKEN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.meta.wa_phone_number_id",
-  "apps": [
+  "env": "META_WHATSAPP_PHONE_NUMBER_ID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "META_WHATSAPP_PHONE_NUMBER_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.onesignal.app_id",
-  "apps": [
+  "env": "ONESIGNAL_APP_ID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "ONESIGNAL_APP_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.onesignal.rest_api_key",
-  "apps": [
+  "env": "ONESIGNAL_REST_API_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "ONESIGNAL_REST_API_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.order_transition_notify",
-  "apps": [
+  "env": "NTF_ORDER_TRANSITION_NOTIFY",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NTF_ORDER_TRANSITION_NOTIFY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.outbox_inline_dispatch",
-  "apps": [
+  "env": "NTF_OUTBOX_INLINE_DISPATCH",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NTF_OUTBOX_INLINE_DISPATCH",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.outbox_secret",
-  "apps": [
+  "env": "NOTIFICATIONS_OUTBOX_SECRET",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NOTIFICATIONS_OUTBOX_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "DATABASE",
-    "used": true
+    "scope": "DATABASE",
+    "env_var_name": null,
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Held by the database (Vault / registry value) because SQL jobs cannot read host environments.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.resend_from_email",
-  "apps": [
+  "env": "RESEND_FROM_EMAIL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "RESEND_FROM_EMAIL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.resend.api_key",
-  "apps": [
+  "env": "RESEND_API_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "RESEND_API_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.resend.webhook_secret",
-  "apps": [
+  "env": "RESEND_WEBHOOK_SECRET",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "RESEND_WEBHOOK_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.twilio_sms_from",
-  "apps": [
+  "env": "TWILIO_SMS_FROM",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TWILIO_SMS_FROM",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.twilio_whatsapp_from",
-  "apps": [
+  "env": "TWILIO_WHATSAPP_FROM",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TWILIO_WHATSAPP_FROM",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.twilio.account_sid",
-  "apps": [
+  "env": "TWILIO_ACCOUNT_SID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TWILIO_ACCOUNT_SID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.twilio.auth_token",
-  "apps": [
+  "env": "TWILIO_AUTH_TOKEN",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TWILIO_AUTH_TOKEN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.vapid.private_key",
-  "apps": [
+  "env": "VAPID_PRIVATE_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "VAPID_PRIVATE_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.vapid.public_key",
-  "apps": [
+  "env": "VAPID_PUBLIC_KEY",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "VAPID_PUBLIC_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.vapid.subject",
-  "apps": [
+  "env": "VAPID_SUBJECT",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "VAPID_SUBJECT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.wa_sandbox_content_sid",
-  "apps": [
+  "env": "TWILIO_WHATSAPP_SANDBOX_CONTENT_SID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TWILIO_WHATSAPP_SANDBOX_CONTENT_SID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.wa_sandbox_to_phone",
-  "apps": [
+  "env": "TWILIO_WHATSAPP_SANDBOX_TO",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TWILIO_WHATSAPP_SANDBOX_TO",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.wa_use_sandbox_template",
-  "apps": [
+  "env": "TWILIO_WHATSAPP_USE_SANDBOX_TEMPLATE",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TWILIO_WHATSAPP_USE_SANDBOX_TEMPLATE",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.app.whatsapp_fallback_email",
-  "apps": [
+  "env": "NTF_WHATSAPP_FALLBACK_EMAIL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NTF_WHATSAPP_FALLBACK_EMAIL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.fcm.server_key",
-  "apps": [
+  "env": "HQ_FCM_SERVER_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_FCM_SERVER_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "HQ_FCM_SERVER_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.meta.app_secret",
-  "apps": [
+  "env": "HQ_META_APP_SECRET",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_META_APP_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.meta.wa_access_token",
-  "apps": [
+  "env": "HQ_META_WHATSAPP_ACCESS_TOKEN",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_META_WHATSAPP_ACCESS_TOKEN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "HQ_META_WHATSAPP_ACCESS_TOKEN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.meta.wa_phone_number_id",
-  "apps": [
+  "env": "HQ_META_WHATSAPP_PHONE_NUMBER_ID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_META_WHATSAPP_PHONE_NUMBER_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "HQ_META_WHATSAPP_PHONE_NUMBER_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.queue_enabled",
-  "apps": [
+  "env": "NTF_QUEUE_ENABLED",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "NTF_QUEUE_ENABLED",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.resend.api_key",
-  "apps": [
+  "env": "HQ_RESEND_API_KEY",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_RESEND_API_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.resend.from_email",
-  "apps": [
+  "env": "HQ_RESEND_FROM_EMAIL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_RESEND_FROM_EMAIL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.twilio.account_sid",
-  "apps": [
+  "env": "HQ_TWILIO_ACCOUNT_SID",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_TWILIO_ACCOUNT_SID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "HQ_TWILIO_ACCOUNT_SID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.twilio.auth_token",
-  "apps": [
+  "env": "HQ_TWILIO_AUTH_TOKEN",
+  "secret": true,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_TWILIO_AUTH_TOKEN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "HQ_TWILIO_AUTH_TOKEN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.twilio.content_cred_ref",
-  "apps": [
+  "env": "NTF_TWILIO_CONTENT_CREDENTIAL_REF",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "NTF_TWILIO_CONTENT_CREDENTIAL_REF",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.twilio.content_cred_ver",
-  "apps": [
+  "env": "NTF_TWILIO_CONTENT_CREDENTIAL_VERSION",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "NTF_TWILIO_CONTENT_CREDENTIAL_VERSION",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.twilio.sms_from",
-  "apps": [
+  "env": "HQ_TWILIO_SMS_FROM",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_TWILIO_SMS_FROM",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "HQ_TWILIO_SMS_FROM",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.twilio.webhook_url",
-  "apps": [
+  "env": "HQ_TWILIO_WEBHOOK_URL",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_TWILIO_WEBHOOK_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "ntf.hq.twilio.whatsapp_from",
-  "apps": [
+  "env": "HQ_TWILIO_WHATSAPP_FROM",
+  "secret": false,
+  "policy": "ENV_OVERRIDES_DB",
+  "bootstrap": false,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_TWILIO_WHATSAPP_FROM",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "HQ_TWILIO_WHATSAPP_FROM",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.database.url",
-  "apps": [
+  "env": "DATABASE_URL",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "DATABASE_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.encryption.master_key",
-  "apps": [
+  "env": "HQ_ENCRYPTION_MASTER_KEY",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_ENCRYPTION_MASTER_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.hq_service_role_key",
-  "apps": [
+  "env": "HQ_SERVICE_ROLE_KEY",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_SERVICE_ROLE_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.jwt.secret",
-  "apps": [
+  "env": "JWT_SECRET",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "JWT_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_API",
-    "used": true
+    "scope": "TENANT_API",
+    "env_var_name": "JWT_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant cmx-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.redis.url",
-  "apps": [
+  "env": "REDIS_URL",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "REDIS_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "REDIS_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "REDIS_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.supabase.anon_key",
-  "apps": [
+  "env": "SUPABASE_ANON_KEY",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "SUPABASE_ANON_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_API",
-    "used": true
+    "scope": "TENANT_API",
+    "env_var_name": "SUPABASE_ANON_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant cmx-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.supabase.jwt_secret",
-  "apps": [
+  "env": "SUPABASE_JWT_SECRET",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "SUPABASE_JWT_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_API",
-    "used": true
+    "scope": "TENANT_API",
+    "env_var_name": "SUPABASE_JWT_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant cmx-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "SUPABASE_JWT_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.supabase.service_role",
-  "apps": [
+  "env": "SUPABASE_SERVICE_ROLE_KEY",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "SUPABASE_SERVICE_ROLE_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WEB",
-    "used": true
+    "scope": "HQ_WEB",
+    "env_var_name": "SUPABASE_SERVICE_ROLE_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-web from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "SUPABASE_SERVICE_ROLE_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "SUPABASE_SERVICE_ROLE_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_API",
-    "used": true
+    "scope": "TENANT_API",
+    "env_var_name": "SUPABASE_SERVICE_ROLE_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant cmx-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.supabase.url",
-  "apps": [
+  "env": "SUPABASE_URL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "SUPABASE_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "SUPABASE_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_API",
-    "used": true
+    "scope": "TENANT_API",
+    "env_var_name": "SUPABASE_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant cmx-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
  },
  {
   "key": "platform.tenant_hq_service_key",
-  "apps": [
+  "env": "NTF_HQ_SERVICE_ROLE_KEY",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": true,
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NTF_HQ_SERVICE_ROLE_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": true
@@ -589,14 +1144,24 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": true,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "PORT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_API",
-    "used": true
+    "scope": "TENANT_API",
+    "env_var_name": "PORT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant cmx-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -607,10 +1172,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "API_PREFIX",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -621,10 +1191,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "CORS_ORIGIN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -635,10 +1210,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "DISABLE_SWAGGER",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -649,10 +1229,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "LOG_LEVEL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -663,10 +1248,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "LOG_REQUESTS",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -677,10 +1267,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "JWT_EXPIRES_IN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -691,14 +1286,24 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": false
+    "scope": "HQ_API",
+    "env_var_name": "JWT_ISSUER",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of HQ platform-api; no code there reads it.",
+    "is_still_used": false
    },
    {
-    "app": "TENANT_API",
-    "used": false
+    "scope": "TENANT_API",
+    "env_var_name": "JWT_ISSUER",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant cmx-api; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -709,10 +1314,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": false
+    "scope": "HQ_API",
+    "env_var_name": "JWT_AUDIENCE_TENANT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of HQ platform-api; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -723,10 +1333,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": true,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_RBAC_ENFORCEMENT_ENABLED",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -737,14 +1352,24 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": false
+    "scope": "HQ_API",
+    "env_var_name": "RATE_LIMIT_MAX",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of HQ platform-api; no code there reads it.",
+    "is_still_used": false
    },
    {
-    "app": "TENANT_API",
-    "used": false
+    "scope": "TENANT_API",
+    "env_var_name": "RATE_LIMIT_MAX",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant cmx-api; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -755,14 +1380,24 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": false
+    "scope": "HQ_API",
+    "env_var_name": "RATE_LIMIT_TTL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of HQ platform-api; no code there reads it.",
+    "is_still_used": false
    },
    {
-    "app": "TENANT_API",
-    "used": false
+    "scope": "TENANT_API",
+    "env_var_name": "RATE_LIMIT_TTL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant cmx-api; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -773,10 +1408,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": false
+    "scope": "HQ_API",
+    "env_var_name": "DATABASE_POOL_MIN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of HQ platform-api; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -787,10 +1427,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": false
+    "scope": "HQ_API",
+    "env_var_name": "DATABASE_POOL_MAX",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of HQ platform-api; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -801,10 +1446,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": false
+    "scope": "HQ_API",
+    "env_var_name": "REDIS_DB",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of HQ platform-api; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -815,10 +1465,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "HQ_APP_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -829,10 +1484,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "TENANT_APP_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -843,10 +1503,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": false
+    "scope": "HQ_API",
+    "env_var_name": "APP_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of HQ platform-api; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -857,10 +1522,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_API",
-    "used": false
+    "scope": "HQ_API",
+    "env_var_name": "APP_PORT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of HQ platform-api; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -871,10 +1541,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "WORKER_CONCURRENCY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -885,10 +1560,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "UPSTASH_REDIS_REST_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -899,10 +1579,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "UPSTASH_REDIS_REST_TOKEN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -913,10 +1598,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "HQ_API_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -927,10 +1617,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "HQ_SERVICE_TOKEN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -941,10 +1636,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "CRON_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -955,10 +1655,15 @@
   "secret": true,
   "policy": "ENV_ONLY",
   "bootstrap": true,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXTAUTH_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -969,10 +1674,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "CONNECT_WITH_SYS_CUSTOMERS",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -983,10 +1693,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TENANT_GUARD_MODE",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -997,10 +1712,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TENANT_GUARD_REPORT_FILE",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1011,10 +1731,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_SENTRY_DSN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1025,10 +1750,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "ORDER_CHANGE_REVIEW_PROOF_KEY_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1039,10 +1769,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "ORDER_CHANGE_REVIEW_PROOF_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1053,10 +1788,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "WORKFLOW_ENGINE_V2",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1067,10 +1807,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "WORKFLOW_GATE_CHALLENGE_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1081,14 +1826,24 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "FINANCE_OUTBOX_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "DATABASE",
-    "used": true
+    "scope": "DATABASE",
+    "env_var_name": null,
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Held by the database (Vault / registry value) because SQL jobs cannot read host environments.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1099,10 +1854,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NOTIFICATIONS_OUTBOX_WORKER_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1113,10 +1873,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "TWILIO_PHONE_NUMBER",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1127,10 +1892,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1141,14 +1911,24 @@
   "secret": false,
   "policy": "DB_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "DATABASE",
-    "used": true
+    "scope": "DATABASE",
+    "env_var_name": null,
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Held by the database (Vault / registry value) because SQL jobs cannot read host environments.",
+    "is_still_used": true
    },
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": null,
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1159,14 +1939,24 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_APP_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_API",
-    "used": true
+    "scope": "HQ_API",
+    "env_var_name": "NEXT_PUBLIC_APP_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1177,10 +1967,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_SITE_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1191,10 +1986,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "HQ_WEB",
-    "used": true
+    "scope": "HQ_WEB",
+    "env_var_name": "NEXT_PUBLIC_API_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-web from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1205,10 +2005,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_PLATFORM_API_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1219,18 +2024,33 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": true,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_SUPABASE_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WEB",
-    "used": true
+    "scope": "HQ_WEB",
+    "env_var_name": "NEXT_PUBLIC_SUPABASE_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-web from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WORKERS",
-    "used": true
+    "scope": "HQ_WORKERS",
+    "env_var_name": "NEXT_PUBLIC_SUPABASE_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-workers from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1241,14 +2061,24 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": true,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    },
    {
-    "app": "HQ_WEB",
-    "used": true
+    "scope": "HQ_WEB",
+    "env_var_name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-web from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1259,10 +2089,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_STORAGE_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1273,10 +2108,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_AUTH_REDIRECT_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1287,10 +2127,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_FEATURE_PREPARATION",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1301,10 +2146,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_USE_NEW_WORKFLOW_SYSTEM",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1315,10 +2165,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_WORKFLOW_ENGINE_V2",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1329,10 +2184,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_CUSTOM_ITEM_DEFAULT_PRODUCT_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1343,10 +2203,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC__CUSTOM_IIEM_USE_DEFAULT_ID_OR_CREATE_NEW_PRODUCT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1357,10 +2222,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_ALLOW_CUSTOM_ITEM",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1371,10 +2241,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_DEMO_TENANT_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1385,14 +2260,24 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "MARKETING_WEB",
-    "used": false
+    "scope": "MARKETING_WEB",
+    "env_var_name": "NEXT_PUBLIC_EMAIL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of marketing-web; no code there reads it.",
+    "is_still_used": false
    },
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_EMAIL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1403,14 +2288,24 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "MARKETING_WEB",
-    "used": false
+    "scope": "MARKETING_WEB",
+    "env_var_name": "NEXT_PUBLIC_PHONE",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of marketing-web; no code there reads it.",
+    "is_still_used": false
    },
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "NEXT_PUBLIC_PHONE",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1421,10 +2316,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "MINIO_ENDPOINT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1435,10 +2335,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "MINIO_PORT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1449,10 +2354,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "MINIO_USE_SSL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1463,10 +2373,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "MINIO_BUCKET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1477,10 +2392,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "MINIO_ACCESS_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1491,10 +2411,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "MINIO_SECRET_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1505,10 +2430,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "S3_ENDPOINT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1519,10 +2449,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "S3_REGION",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1533,10 +2468,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "S3_BUCKET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1547,10 +2487,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "S3_ACCESS_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1561,10 +2506,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "S3_SECRET_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1575,10 +2525,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "WHATSAPP_ACCESS_TOKEN",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1589,10 +2544,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "WHATSAPP_PHONE_NUMBER_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1603,10 +2563,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "WHATSAPP_API_VERSION",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1617,10 +2582,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": true
+    "scope": "TENANT_WEB",
+    "env_var_name": "WHATSAPP_WEBHOOK_SECRET",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by tenant web-admin from its host environment.",
+    "is_still_used": true
    }
   ],
   "existing": false
@@ -1631,10 +2601,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "WHATSAPP_API_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1645,10 +2620,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "SENDGRID_API_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1659,10 +2639,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "STRIPE_SECRET_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1673,10 +2658,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "SMTP_HOST",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1687,10 +2677,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "SMTP_PORT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1701,10 +2696,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "SMTP_SECURE",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1715,10 +2715,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "SMTP_USER",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1729,10 +2734,15 @@
   "secret": true,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "SMTP_PASS",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1743,10 +2753,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "SMTP_FROM_EMAIL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1757,10 +2772,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "ENABLE_AI_FEATURES",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1771,10 +2791,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "ENABLE_ASSEMBLY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1785,10 +2810,15 @@
   "secret": false,
   "policy": "ENV_OVERRIDES_DB",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "TENANT_WEB",
-    "used": false
+    "scope": "TENANT_WEB",
+    "env_var_name": "ENABLE_MARKETPLACE",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of tenant web-admin; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1799,10 +2829,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "MARKETING_WEB",
-    "used": false
+    "scope": "MARKETING_WEB",
+    "env_var_name": "CMX_MARKETING_IS_EARLY_ACCESS_DEFALUT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of marketing-web; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1813,10 +2848,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "MARKETING_WEB",
-    "used": false
+    "scope": "MARKETING_WEB",
+    "env_var_name": "CMX_VIST_TRACKING_TRACE",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of marketing-web; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false
@@ -1827,10 +2867,15 @@
   "secret": false,
   "policy": "ENV_ONLY",
   "bootstrap": false,
-  "apps": [
+  "scopes": [
    {
-    "app": "MARKETING_WEB",
-    "used": false
+    "scope": "MARKETING_WEB",
+    "env_var_name": "MARKETING_SUPABASE_FETCH_TIMEOUT_MS",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Declared in an env file of marketing-web; no code there reads it.",
+    "is_still_used": false
    }
   ],
   "existing": false

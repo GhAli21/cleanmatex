@@ -146,4 +146,19 @@ describe('edit order controller', () => {
     const source = readFileSync(join(process.cwd(), 'src/features/orders/order-change/edit-order-controller.ts'), 'utf8');
     expect(source).not.toMatch(/submit-order|\/update/);
   });
+
+  it('drops a review when the draft changes and keeps one retry key until then', async () => {
+    const fetchImpl = (async () => new Response(JSON.stringify({
+      ok: true,
+      data: { reviewProof: 'proof-1', calculationFingerprint: 'fingerprint-1', status: 'READY' },
+    }), { status: 200 })) as typeof fetch;
+    const controller = createEditOrderController({ fetchImpl, createId: () => '11111111-1111-4111-8111-111111111111' });
+    controller.load(baseline());
+    controller.setNotes('Leave at desk');
+    await controller.preview(ORDER_ID);
+    expect(controller.commitKey()).toBe(controller.commitKey());
+    controller.setNotes('Changed again');
+    expect(controller.hasReviewProof()).toBe(false);
+    await expect(controller.apply(ORDER_ID, controller.commitKey())).rejects.toThrow('EDIT_REVIEW_REQUIRED');
+  });
 });

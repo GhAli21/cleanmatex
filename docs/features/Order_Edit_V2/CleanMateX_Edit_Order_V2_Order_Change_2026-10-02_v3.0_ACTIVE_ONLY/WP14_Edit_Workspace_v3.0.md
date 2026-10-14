@@ -68,9 +68,8 @@ No migration, permission, feature flag, or navigation entry was added. The separ
 
 ## Gaps
 
-- Review does not save. WP15 owns the commit dialog, acknowledgement, override reason, conflict reload, and Change history.
+- Review on this screen calls Preview. The commit dialog, acknowledgement, reason, conflict reload, and Change history are in [WP15](WP15_Review_Apply_History_v3.0.md).
 - Item, piece, and preference editors are visible and show persisted ids. Their writes are refused on this screen. Apply still rejects those operations.
-- The shared workspace has no priority field.
-- Warning and override decisions are shown as the Preview status. This screen does not collect the acknowledgement or override.
+- The shared workspace has no priority field. Acknowledgement and reason are collected in the WP15 review dialog. That dialog does not grant the override permission.
 - `edit-order-screen.tsx` remains on disk and is not mounted.
 - No browser pass was run against a committed order. The local database has no order to open, and this package does not seed one.

@@ -947,6 +947,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Atomic Edit apply. CSRF, Idempotency-Key, and orders:edit are enforced in the route. One Change commits or the transaction rolls back.'],
       },
       {
+        label: 'Order Change History',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/changes',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['Applied Change labels for this order. orders:read is enforced. Financial snapshots are not returned.'],
+      },
+      {
         label: 'Assembly Dashboard',
         method: 'GET',
         path: '/api/v1/assembly/dashboard',

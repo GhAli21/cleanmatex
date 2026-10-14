@@ -14,8 +14,8 @@
 --
 -- Design
 --   * The secret lives in Supabase Vault (secret name 'ntf_outbox_secret'), encrypted at rest.
---   * One SECURITY DEFINER dispatcher (fn_ntf_cron_post) reads base_url from sys_ntf_runtime_cf and
---     the secret from vault.decrypted_secrets, then posts via pg_net. The three job wrappers call it.
+--   * One SECURITY DEFINER dispatcher (fn_ntf_cron_post) reads base_url from the registry (ntf.app.base_url, legacy
+--     sys_ntf_runtime_cf as fallback) and the secret from vault.decrypted_secrets, then posts via pg_net. The three job wrappers call it.
 --   * Nothing but the function owner can read the vault secret: the helper that decrypts it is
 --     revoked from every API role.
 --   * Cron schedules and active flags are NOT touched (job drift is managed from /ops/jobs);

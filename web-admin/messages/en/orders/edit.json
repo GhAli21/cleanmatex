@@ -71,6 +71,20 @@
     "serviceSpeed": "Service speed",
     "readyBy": "Ready by",
     "standard": "Standard",
-    "express": "Express"
+    "express": "Express",
+    "apply": "Apply",
+    "applying": "Applying...",
+    "applied": "The change was saved.",
+    "applyFailed": "The change could not be saved.",
+    "conflict": "This review is out of date. Reload the order before trying again.",
+    "reload": "Reload",
+    "acknowledge": "I understand this warning.",
+    "reason": "Reason",
+    "outcome": "Financial result",
+    "history": "Change history",
+    "emptyHistory": "No applied changes yet.",
+    "legacyHistory": "Earlier order update",
+    "changeNumber": "Change {number}",
+    "reviewAgain": "Review again"
   }
 }

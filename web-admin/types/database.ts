@@ -36553,7 +36553,7 @@ export type Database = {
       }
       sys_ops_config_cf: {
         Row: {
-          applies_to_app: string
+          applies_to_app: Json
           config_key: string
           created_at: string
           created_by: string | null
@@ -36564,6 +36564,8 @@ export type Database = {
           description: string | null
           description2: string | null
           env_var_name: string | null
+          env_var_scope_val: Json
+          env_var_value: string | null
           guidance: string | null
           guidance2: string | null
           id: string
@@ -36592,7 +36594,7 @@ export type Database = {
           value_updated_by: string | null
         }
         Insert: {
-          applies_to_app?: string
+          applies_to_app?: Json
           config_key: string
           created_at?: string
           created_by?: string | null
@@ -36603,6 +36605,8 @@ export type Database = {
           description?: string | null
           description2?: string | null
           env_var_name?: string | null
+          env_var_scope_val?: Json
+          env_var_value?: string | null
           guidance?: string | null
           guidance2?: string | null
           id?: string
@@ -36631,7 +36635,7 @@ export type Database = {
           value_updated_by?: string | null
         }
         Update: {
-          applies_to_app?: string
+          applies_to_app?: Json
           config_key?: string
           created_at?: string
           created_by?: string | null
@@ -36642,6 +36646,8 @@ export type Database = {
           description?: string | null
           description2?: string | null
           env_var_name?: string | null
+          env_var_scope_val?: Json
+          env_var_value?: string | null
           guidance?: string | null
           guidance2?: string | null
           id?: string
@@ -43806,6 +43812,8 @@ export type Database = {
         Args: { p_action: string; p_phone: string; p_source: string }
         Returns: Json
       }
+      fn_ntf_cron_post: { Args: { p_path: string }; Returns: undefined }
+      fn_ntf_cron_secret: { Args: never; Returns: string }
       fn_ntf_meter_usage_atomic: {
         Args: {
           p_channel_code: string
@@ -43839,6 +43847,10 @@ export type Database = {
         Args: { p_retention_days?: number }
         Returns: number
       }
+      fn_ntf_rotate_outbox_secret: {
+        Args: { p_new_secret: string }
+        Returns: Json
+      }
       fn_ntf_soft_bounce_record: {
         Args: {
           p_address: string
@@ -43851,14 +43863,15 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_ops_config_apps_valid: { Args: { p_apps: Json }; Returns: boolean }
       fn_ops_config_clear: {
         Args: { p_actor: string; p_key: string }
         Returns: Json
       }
       fn_ops_config_get_raw: {
-        Args: { p_key?: string }
+        Args: { p_app?: string; p_key?: string }
         Returns: {
-          applies_to_app: string
+          applies_to_app: Json
           config_key: string
           db_value: string
           db_value_enc: string
@@ -43874,12 +43887,14 @@ export type Database = {
       fn_ops_config_list: {
         Args: never
         Returns: {
-          applies_to_app: string
+          applies_to_app: Json
           config_key: string
           db_value: string
           description: string
           description2: string
           env_var_name: string
+          env_var_scope_val: Json
+          env_var_value: string
           guidance: string
           guidance2: string
           is_bootstrap: boolean
@@ -43902,6 +43917,11 @@ export type Database = {
         }[]
       }
       fn_ops_config_record_check: { Args: { p_results: Json }; Returns: number }
+      fn_ops_config_scopes_have_value: {
+        Args: { p_scopes: Json }
+        Returns: boolean
+      }
+      fn_ops_config_scopes_valid: { Args: { p_scopes: Json }; Returns: boolean }
       fn_ops_config_set: {
         Args: {
           p_actor: string
@@ -43910,6 +43930,10 @@ export type Database = {
           p_value_enc: string
           p_value_plain: string
         }
+        Returns: Json
+      }
+      fn_ops_config_set_encryption: {
+        Args: { p_actor: string; p_is_encrypted: boolean; p_key: string }
         Returns: Json
       }
       fn_ops_config_set_policy: {
@@ -44540,6 +44564,7 @@ export type Database = {
       }
       ntf_trigger_campaign_proc: { Args: never; Returns: undefined }
       ntf_trigger_outbox_proc: { Args: never; Returns: undefined }
+      ntf_trigger_reconcile_proc: { Args: never; Returns: undefined }
       order_has_action: {
         Args: { p_action_type: string; p_order_id: string }
         Returns: boolean

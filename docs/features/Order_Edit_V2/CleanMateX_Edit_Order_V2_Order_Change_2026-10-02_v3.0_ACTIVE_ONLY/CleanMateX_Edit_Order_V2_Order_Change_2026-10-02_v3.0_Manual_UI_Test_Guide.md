@@ -276,14 +276,14 @@ Login -> Dashboard -> Orders -> Open test order -> Order Details -> Actions -> E
 ### MAN-UI-005 — Review Changes dialog tells the complete story
 
 **Owning WP:** WP15  
-**Execution status:** `NOT_EXECUTABLE_YET` until WP15.
+**Execution status:** `PARTIALLY_AUTOMATED`. The Review dialog, proof-bound Apply, and history labels have Jest coverage. A human visual pass was not run because the local database has no committed order to open.
 
 **Purpose:** Verify the final pre-Apply review clearly communicates exactly what will change.
 
-**Navigation:** `Dashboard -> Orders -> Order Details -> Actions -> Edit Order -> make multiple changes -> Review Changes`  
+**Navigation:** Login → Dashboard → Orders → Open the test order → Order Details → Actions → Edit Order → change notes or another supported header field → Review  
 **Route:** `/dashboard/orders/{orderId}/edit`  
-**Screen:** Review Changes dialog/sheet  
-**UI areas:** grouped operations, before/after values, totals, financial outcome, warnings/reason, Apply/Cancel.
+**Screen:** Review dialog on the shared New Order workspace  
+**UI areas:** operation list, current and estimated totals, preview status, acknowledgement checkbox, reason field, history labels, Apply when status is READY, Review again, Reload when the review is stale.
 
 **Steps:**
 1. Make at least two supported changes affecting different target types where possible.
@@ -291,7 +291,7 @@ Login -> Dashboard -> Orders -> Open test order -> Order Details -> Actions -> E
 3. Read the operation groups without referring to backend/debug data.
 4. Inspect before/after values and financial summary.
 
-**Expected:** a staff user can identify what row/target changes, old/new value, total difference and any follow-up requirement before Apply.
+**Expected:** a staff user can identify each operation, the current and estimated totals, and any acknowledgement or reason before Apply. Apply is shown only when the preview status is READY. Before/after money snapshots are not shown.
 
 **Human checks:** grouping, scanability, money readability, no ambiguous product-only identity for duplicate same-product lines, no hidden warnings below unreachable scroll area.
 
@@ -305,14 +305,14 @@ Login -> Dashboard -> Orders -> Open test order -> Order Details -> Actions -> E
 ### MAN-UI-006 — Stale revision/policy/calculation conflict recovery clarity
 
 **Owning WP:** WP15  
-**Execution status:** `NOT_EXECUTABLE_YET` until WP15.
+**Execution status:** `PARTIALLY_AUTOMATED`. Controller tests cover a cleared proof and one retry key. A human visual pass of the conflict message was not run.
 
 **Purpose:** Verify the user understands that reviewed data became stale and that the system did not silently merge/apply new values.
 
-**Navigation:** `Dashboard -> Orders -> Order Details -> Actions -> Edit Order -> Review Changes -> trigger stale condition -> Apply`  
+**Navigation:** Login → Dashboard → Orders → Open the test order → Order Details → Actions → Edit Order → Review → Apply after the order revision changed  
 **Route:** `/dashboard/orders/{orderId}/edit`  
-**Screen:** Review/conflict feedback surface  
-**Controls:** Reload/Refresh/Re-review/Discard options as implemented.
+**Screen:** Review dialog conflict message  
+**Controls:** Reload. Review again stays available. Discard is on the Edit context bar.
 
 **Steps:**
 1. Open Edit and prepare a change.

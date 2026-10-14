@@ -47,6 +47,14 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
   let draft: EditOrderDraft | null = null;
   let reviewProof: string | null = null;
   let calculationFingerprint: string | null = null;
+  let idempotencyKey: string | null = null;
+  let gateDecisions: Array<{ seq: number; gateCode: string; acknowledgementChallenge?: string; overrideReason?: string }> = [];
+
+  function invalidateReview(): void {
+    reviewProof = null;
+    calculationFingerprint = null;
+    idempotencyKey = null;
+  }
 
   function requireDraft(): EditOrderDraft {
     if (!draft || !baseline) throw new Error('EDIT_NOT_LOADED');
@@ -63,6 +71,15 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       draft = clone(next);
       reviewProof = null;
       calculationFingerprint = null;
+      idempotencyKey = null;
+      gateDecisions = [];
+    },
+    commitKey(): string {
+      if (!idempotencyKey) idempotencyKey = createId();
+      return idempotencyKey;
+    },
+    hasReviewProof(): boolean {
+      return reviewProof != null && calculationFingerprint != null;
     },
     isLoaded(): boolean {
       return baseline != null;
@@ -76,24 +93,48 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
     },
     setNotes(notes: string): void {
       requireDraft().notes = notes;
+      invalidateReview();
     },
     setCustomerNotes(notes: string): void {
       requireDraft().customerNotes = notes;
+      invalidateReview();
     },
     setPriority(priority: string): void {
       requireDraft().priority = priority;
+      invalidateReview();
     },
     setServiceSpeed(serviceSpeed: 'STANDARD' | 'EXPRESS'): void {
       requireDraft().serviceSpeed = serviceSpeed;
+      invalidateReview();
     },
     setReadyBy(readyBy: string): void {
       requireDraft().readyBy = readyBy;
+      invalidateReview();
+    },
+    setChangeReason(changeReason: string): void {
+      requireDraft().changeReason = changeReason;
+      invalidateReview();
+    },
+    acknowledge(seq: number, gateCode: string): void {
+      requireDraft();
+      gateDecisions = [...gateDecisions.filter((gate) => gate.seq !== seq), { seq, gateCode, acknowledgementChallenge: 'acknowledged' }];
+      invalidateReview();
+    },
+    setOverrideReason(seq: number, gateCode: string, overrideReason: string): void {
+      requireDraft();
+      const current = gateDecisions.find((gate) => gate.seq === seq);
+      gateDecisions = [
+        ...gateDecisions.filter((gate) => gate.seq !== seq),
+        { seq, gateCode, acknowledgementChallenge: current?.acknowledgementChallenge, overrideReason },
+      ];
+      invalidateReview();
     },
     setCustomerSnapshot(snapshot: { customerName?: string; customerMobile?: string; customerEmail?: string }): void {
       const current = requireDraft();
       if (snapshot.customerName !== undefined) current.customerName = snapshot.customerName;
       if (snapshot.customerMobile !== undefined) current.customerMobile = snapshot.customerMobile;
       if (snapshot.customerEmail !== undefined) current.customerEmail = snapshot.customerEmail;
+      invalidateReview();
     },
     addItem(input: { productId: string; quantity: number; priceOverride?: string; overrideReason?: string }): EditRowIdentity {
       const identity = localRef(createId);
@@ -106,29 +147,34 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
         pieces: [],
         preferences: [],
       });
+      invalidateReview();
       return identity;
     },
     removeLine(identity: EditRowIdentity): void {
       const current = requireDraft();
       current.lines = current.lines.filter((row) => !sameIdentity(row.identity, identity));
+      invalidateReview();
     },
     setQuantity(identity: EditRowIdentity, quantity: number, selectedPieceIds?: string[]): void {
       const current = line(identity);
       if (!current) throw new Error('EDIT_LINE_NOT_FOUND');
       current.quantity = quantity;
       current.selectedPieceIds = selectedPieceIds;
+      invalidateReview();
     },
     addPiece(parent: EditRowIdentity, piece: Omit<EditPieceDraft, 'identity' | 'preferences'> & { preferences?: EditPreferenceDraft[] }): EditRowIdentity {
       const current = line(parent);
       if (!current) throw new Error('EDIT_LINE_NOT_FOUND');
       const identity = localRef(createId);
       current.pieces.push({ ...piece, identity, preferences: piece.preferences ?? [] });
+      invalidateReview();
       return identity;
     },
     removePiece(parent: EditRowIdentity, piece: EditRowIdentity): void {
       const current = line(parent);
       if (!current) throw new Error('EDIT_LINE_NOT_FOUND');
       current.pieces = current.pieces.filter((row) => !sameIdentity(row.identity, piece));
+      invalidateReview();
     },
     addPreference(input: {
       level: 'ORDER' | 'ITEM' | 'PIECE';
@@ -147,6 +193,7 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       };
       if (input.level === 'ORDER') {
         current.preferences.push(preference);
+        invalidateReview();
         return identity;
       }
       if (!input.parent) throw new Error('EDIT_PARENT_REQUIRED');
@@ -154,12 +201,14 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
         const parent = line(input.parent);
         if (!parent) throw new Error('EDIT_LINE_NOT_FOUND');
         parent.preferences.push(preference);
+        invalidateReview();
         return identity;
       }
       const parentLine = current.lines.find((row) => row.pieces.some((piece) => sameIdentity(piece.identity, input.parent as EditRowIdentity)));
       const parentPiece = parentLine?.pieces.find((piece) => sameIdentity(piece.identity, input.parent as EditRowIdentity));
       if (!parentPiece) throw new Error('EDIT_PIECE_NOT_FOUND');
       parentPiece.preferences.push(preference);
+      invalidateReview();
       return identity;
     },
     changePreference(identity: EditRowIdentity, preferenceContent: string): void {
@@ -172,6 +221,7 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       const preference = rows.find((row) => sameIdentity(row.identity, identity));
       if (!preference) throw new Error('EDIT_PREFERENCE_NOT_FOUND');
       preference.preferenceContent = preferenceContent;
+      invalidateReview();
     },
     removePreference(identity: EditRowIdentity): void {
       const current = requireDraft();
@@ -182,6 +232,7 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
           piece.preferences = piece.preferences.filter((preference) => !sameIdentity(preference.identity, identity));
         }
       }
+      invalidateReview();
     },
     async preview(orderId: string): Promise<EditPreviewResult> {
       if (!baseline || !draft) throw new Error('EDIT_NOT_LOADED');
@@ -196,6 +247,7 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
           sourceContext: draft.sourceContext,
           changeReason: draft.changeReason,
           operations,
+          ...(gateDecisions.length > 0 ? { gateDecisions } : {}),
         }),
       });
       const body = await response.json() as { data?: { reviewProof?: string | null; calculationFingerprint?: string | null } };
@@ -203,24 +255,27 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       calculationFingerprint = body.data?.calculationFingerprint ?? null;
       return { ok: response.ok, status: response.status, body };
     },
-    async apply(orderId: string, idempotencyKey: string): Promise<EditPreviewResult> {
+    async apply(orderId: string, suppliedKey: string): Promise<EditPreviewResult> {
       if (!baseline || !draft) throw new Error('EDIT_NOT_LOADED');
       if (!reviewProof || !calculationFingerprint) throw new Error('EDIT_REVIEW_REQUIRED');
       const operations = buildOrderChangeOperations(baseline, draft);
       const response = await fetchImpl()(`/api/v1/orders/${orderId}/changes`, {
         method: 'POST',
-        headers: { ...(await requestHeaders()), 'Idempotency-Key': idempotencyKey },
+        headers: { ...(await requestHeaders()), 'Idempotency-Key': suppliedKey },
         body: JSON.stringify({
           expectedEditStateVersion: draft.expectedEditStateVersion,
           expectedWfStateVersion: draft.expectedWfStateVersion,
           sourceContext: draft.sourceContext,
           changeReason: draft.changeReason,
           operations,
+          ...(gateDecisions.length > 0 ? { gateDecisions } : {}),
           reviewProof,
           calculationFingerprint,
         }),
       });
-      return { ok: response.ok, status: response.status, body: await response.json() };
+      const body = await response.json() as { ok?: boolean; data?: { reviewProof?: string | null; calculationFingerprint?: string | null } };
+      if (response.ok || response.status === 409 || response.status === 422) invalidateReview();
+      return { ok: response.ok, status: response.status, body };
     },
   };
 }

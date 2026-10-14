@@ -4,7 +4,8 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { readBoundedOrderChangeJson, OrderChangeBodyError } from '@/lib/api/order-change-bounded-json';
 import { logger } from '@/lib/utils/logger';
-import { orderChangeApplyRequestSchema, orderChangeContextParamsSchema, orderChangeIdempotencyKeySchema } from '@/lib/validations/order-change/order-change.schemas';
+import { orderChangeApplyRequestSchema, orderChangeContextParamsSchema, orderChangeHistoryQuerySchema, orderChangeIdempotencyKeySchema } from '@/lib/validations/order-change/order-change.schemas';
+import { listOrderChangeHistory } from '@/lib/services/order-change/order-change-history.service';
 import { getOrderChangeContext, OrderChangeContextError } from '@/lib/services/order-change/order-change-context.service';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { loadOrderChangePreviewFacts, OrderChangePreviewReadError } from '@/lib/services/order-change/order-change-preview-reads';
@@ -18,6 +19,37 @@ export const dynamic = 'force-dynamic';
 
 function errorResponse(status: number, code: string, message: string, requestId: string): NextResponse {
   return NextResponse.json({ ok: false, error: { code, message, details: null, requestId } }, { status });
+}
+
+/**
+ * GET /api/v1/orders/[id]/changes
+ *
+ * Returns applied Change labels for one order. Financial snapshots stay on the server.
+ */
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const requestId = request.headers.get('x-request-id') ?? randomUUID();
+  const auth = await requirePermission('orders:read')(request);
+  if (auth instanceof NextResponse) {
+    return errorResponse(auth.status, auth.status === 401 ? 'UNAUTHENTICATED' : 'PERMISSION_DENIED', 'Unable to read order changes', requestId);
+  }
+  const parsedParams = orderChangeContextParamsSchema.safeParse(await params);
+  if (!parsedParams.success) return errorResponse(400, 'VALIDATION_ERROR', 'Invalid order identifier', requestId);
+  const parsedQuery = orderChangeHistoryQuerySchema.safeParse({
+    cursor: request.nextUrl.searchParams.get('cursor') ?? undefined,
+    limit: request.nextUrl.searchParams.get('limit') ?? undefined,
+  });
+  if (!parsedQuery.success) return errorResponse(400, 'VALIDATION_ERROR', 'Invalid history query', requestId);
+  const cursor = parsedQuery.data.cursor ? Number(parsedQuery.data.cursor) : undefined;
+  if (parsedQuery.data.cursor && !Number.isInteger(cursor)) {
+    return errorResponse(400, 'VALIDATION_ERROR', 'Invalid history query', requestId);
+  }
+  const history = await listOrderChangeHistory({
+    tenantId: auth.tenantId,
+    orderId: parsedParams.data.id,
+    limit: parsedQuery.data.limit,
+    cursor,
+  });
+  return NextResponse.json({ ok: true, data: history, requestId });
 }
 
 /**

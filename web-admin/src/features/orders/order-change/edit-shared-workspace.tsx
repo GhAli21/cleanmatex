@@ -14,6 +14,8 @@ import { NewOrderModals } from '@features/orders/ui/new-order-modals';
 import { createEditOrderController, type EditOrderController } from './edit-order-controller';
 import { mapChangeContextToEditBaseline, type EditOrderBaseline } from './edit-order-view-model';
 import { applyVisualDraftToController, projectEditVisualOrder, visualHeaderChangeCount } from './edit-workspace-adapter';
+import { readEditReview, type EditReviewView } from './edit-review-view';
+import { EditReviewDialog, type EditHistoryRow } from './edit-review-dialog';
 import { OrderWorkspaceSessionProvider, type OrderWorkspaceSessionValue } from './order-workspace-session';
 
 interface EditSharedWorkspaceProps {
@@ -38,9 +40,11 @@ function customer(context: OrderChangeContext): MinimalCustomer | null {
 function EditSharedWorkspaceBody({
   context,
   baseline,
+  onCommitted,
 }: {
   context: OrderChangeContext;
   baseline: EditOrderBaseline;
+  onCommitted: () => void;
 }) {
   const t = useTranslations('orders.edit');
   const dispatch = useNewOrderDispatch();
@@ -52,6 +56,11 @@ function EditSharedWorkspaceBody({
   const [reviewing, setReviewing] = useState(false);
   const [reviewStatus, setReviewStatus] = useState<string | null>(null);
   const [estimatedTotal, setEstimatedTotal] = useState<string | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewView, setReviewView] = useState<EditReviewView | null>(null);
+  const [history, setHistory] = useState<EditHistoryRow[]>([]);
+  const [applying, setApplying] = useState(false);
+  const [conflict, setConflict] = useState(false);
 
   useEffect(() => {
     const visualOrder = projectEditVisualOrder(context);
@@ -89,6 +98,42 @@ function EditSharedWorkspaceBody({
     customerEmail: state.customerEmail,
   }), [state.customerEmail, state.customerMobile, state.customerName, state.customerNotes, state.express, state.notes, state.readyByAt]);
 
+  const rememberReview = useCallback((body: unknown) => {
+    const view = readEditReview(body, controller.buildOperations(), context.financial.totalAmount);
+    setReviewView(view);
+    setReviewStatus(view.status);
+    setEstimatedTotal(view.estimatedTotal);
+    setConflict(view.conflict);
+    setReviewOpen(view.status !== 'NO_CHANGE');
+  }, [context.financial.totalAmount, controller]);
+
+  const loadHistory = useCallback(async () => {
+    const response = await fetch(`/api/v1/orders/${context.orderId}/changes?limit=5`);
+    if (!response.ok) return;
+    const body = await response.json() as { data?: { items?: EditHistoryRow[] } };
+    setHistory(body.data?.items ?? []);
+  }, [context.orderId]);
+
+  const previewDraft = useCallback(async () => {
+    const result = await controller.preview(context.orderId);
+    if (!result.ok) {
+      const failed = readEditReview(result.body, controller.buildOperations(), context.financial.totalAmount);
+      setReviewView({ ...failed, conflict: result.status === 409 });
+      setConflict(result.status === 409);
+      setReviewOpen(true);
+      cmxMessage.error(t('workspace.reviewFailed'));
+      return;
+    }
+    const body = result.body as { status?: string };
+    if (body.status === 'NO_CHANGE') {
+      cmxMessage.info(t('noChangesToSave'));
+      setReviewOpen(false);
+      return;
+    }
+    rememberReview(result.body);
+    void loadHistory();
+  }, [context.financial.totalAmount, context.orderId, controller, loadHistory, rememberReview, t]);
+
   const onReview = useCallback(async () => {
     if (context.editAccess.status !== 'OPEN') return;
     applyVisualDraftToController(controller, baseline, visual);
@@ -98,24 +143,40 @@ function EditSharedWorkspaceBody({
     }
     setReviewing(true);
     try {
-      const result = await controller.preview(context.orderId);
-      if (!result.ok) {
-        cmxMessage.error(t('workspace.reviewFailed'));
-        return;
-      }
-      const body = result.body as { status?: string; data?: { status?: string; projectedTotal?: string | null } };
-      setReviewStatus(body.data?.status ?? body.status ?? 'DENIED');
-      setEstimatedTotal(body.data?.projectedTotal ?? null);
+      await previewDraft();
     } catch {
       cmxMessage.error(t('workspace.reviewFailed'));
     } finally {
       setReviewing(false);
     }
-  }, [baseline, context.editAccess.status, context.orderId, controller, t, visual]);
+  }, [baseline, context.editAccess.status, controller, previewDraft, t, visual]);
+
+  const onApply = useCallback(async () => {
+    if (!controller.hasReviewProof()) return;
+    setApplying(true);
+    try {
+      const result = await controller.apply(context.orderId, controller.commitKey());
+      if (!result.ok) {
+        setConflict(result.status === 409);
+        setReviewView((current) => current ? { ...current, status: result.status === 409 ? 'CONFLICT' : current.status, conflict: result.status === 409 } : current);
+        cmxMessage.error(result.status === 409 ? t('workspace.conflict') : t('workspace.applyFailed'));
+        return;
+      }
+      cmxMessage.success(t('workspace.applied'));
+      setReviewOpen(false);
+      onCommitted();
+    } catch {
+      cmxMessage.error(t('workspace.applyFailed'));
+    } finally {
+      setApplying(false);
+    }
+  }, [context.orderId, controller, onCommitted, t]);
 
   const onDiscard = useCallback(() => {
     setReviewStatus(null);
     setEstimatedTotal(null);
+    setReviewOpen(false);
+    setConflict(false);
     setReloadKey((current) => current + 1);
     cmxMessage.info(t('workspace.discarded'));
   }, [t]);
@@ -141,6 +202,29 @@ function EditSharedWorkspaceBody({
         <NewOrderContent />
         <NewOrderModals />
       </NewOrderLayout>
+      <EditReviewDialog
+        open={reviewOpen}
+        review={reviewView}
+        history={history}
+        applying={applying || reviewing}
+        conflict={conflict}
+        onOpenChange={setReviewOpen}
+        onAcknowledge={(seq, gateCode) => {
+          controller.acknowledge(seq, gateCode);
+          setReviewView((current) => current ? { ...current, status: 'STALE' } : current);
+        }}
+        onReason={(reason) => {
+          controller.setChangeReason(reason);
+          setReviewView((current) => current ? { ...current, status: 'STALE' } : current);
+        }}
+        onReviewAgain={() => { void previewDraft(); }}
+        onApply={() => { void onApply(); }}
+        onReload={() => {
+          setReviewOpen(false);
+          setConflict(false);
+          onCommitted();
+        }}
+      />
     </OrderWorkspaceSessionProvider>
   );
 }
@@ -151,6 +235,7 @@ export function EditSharedWorkspace({ orderId }: EditSharedWorkspaceProps) {
   const [context, setContext] = useState<OrderChangeContext | null>(null);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [contextVersion, setContextVersion] = useState(0);
   const mappedBaseline = useMemo(
     () => (context ? mapChangeContextToEditBaseline(context) : null),
     [context],
@@ -181,7 +266,7 @@ export function EditSharedWorkspace({ orderId }: EditSharedWorkspaceProps) {
     }
     void load();
     return () => { active = false; };
-  }, [orderId]);
+  }, [orderId, contextVersion]);
 
   if (loading) return <p className="p-6 text-start">{tCommon('loading')}</p>;
   if (failed || !context) {
@@ -201,7 +286,7 @@ export function EditSharedWorkspace({ orderId }: EditSharedWorkspaceProps) {
 
   return (
     <NewOrderProvider>
-      <EditSharedWorkspaceBody context={context} baseline={mappedBaseline.baseline} />
+      <EditSharedWorkspaceBody context={context} baseline={mappedBaseline.baseline} onCommitted={() => setContextVersion((current) => current + 1)} />
     </NewOrderProvider>
   );
 }
