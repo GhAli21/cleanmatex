@@ -142,6 +142,47 @@ describe('shared edit workspace adapter', () => {
     expect(controller.buildOperations().map((operation) => operation.code)).toEqual(['CHANGE_ORDER_NOTES']);
   });
 
+  it('copies added, removed, and quantity-changed lines into the review', () => {
+    const loaded = baseline();
+    const controller = createEditOrderController({ createId: () => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' });
+    const visual = projectEditVisualOrder(context());
+    const kept = visual.items[0];
+    const added = {
+      productId: '77777777-7777-4777-8777-777777777777',
+      productName: 'New',
+      productName2: null,
+      quantity: 1,
+      pricePerUnit: 3,
+      totalPrice: 3,
+      defaultSellPrice: 3,
+      defaultExpressSellPrice: null,
+    };
+    if (!kept) throw new Error('line');
+    applyVisualDraftToController(controller, loaded, {
+      notes: 'original',
+      express: false,
+      customerName: 'Ada',
+      customerMobile: '050',
+      customerEmail: 'ada@example.com',
+      items: [{ ...kept, quantity: 2, pieces: [...(kept.pieces ?? []), { id: 'temp-new', itemId: kept.productId, pieceSeq: 2 }] }, added],
+    });
+    expect(controller.buildOperations().map((operation) => operation.code)).toEqual([
+      'CHANGE_ITEM_QUANTITY',
+      'ADD_PIECE',
+      'REMOVE_ITEM',
+      'ADD_ITEM',
+    ]);
+    const sameHeader = {
+      notes: 'original',
+      express: false,
+      customerName: 'Ada',
+      customerMobile: '050',
+      customerEmail: 'ada@example.com',
+    };
+    expect(visualHeaderChangeCount(loaded, { ...sameHeader, items: visual.items })).toBe(0);
+    expect(visualHeaderChangeCount(loaded, { ...sameHeader, items: [kept, added] })).toBe(2);
+  });
+
   it('mounts the shared New Order workspace and does not keep a second edit form', () => {
     const page = readFileSync(join(process.cwd(), 'app/dashboard/orders/[id]/edit/page.tsx'), 'utf8');
     const host = readFileSync(join(process.cwd(), 'src/features/orders/order-change/edit-shared-workspace.tsx'), 'utf8');
