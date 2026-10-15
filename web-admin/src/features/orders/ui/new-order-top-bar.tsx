@@ -9,6 +9,7 @@
 import { memo, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useEditControlGroup } from '../order-change/use-edit-control-capability';
 import { CategoryTabs } from './category-tabs';
 import { CategoryTabsSkeleton } from './loading-skeletons';
 import { UserPlus, UserCheck, Edit2, Zap, Settings2 } from 'lucide-react';
@@ -98,6 +99,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   const tCommon = useTranslations('common');
   const tOrders = useTranslations('orders');
   const isRTL = useRTL();
+  const expressCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED']);
   const orderTypeOptions = ORDER_TYPE_ID_VALUES.map((code) => ({
     value: code,
     label: tOrders(ORDER_TYPE_I18N_KEYS[code]),
@@ -171,7 +173,12 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
           type="button"
           role="switch"
           aria-checked={express}
-          onClick={() => onExpressToggle(!express)}
+          onClick={() => {
+            if (!expressCapability.interactive) return;
+            onExpressToggle(!express);
+          }}
+          disabled={!expressCapability.interactive}
+          aria-disabled={!expressCapability.interactive}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 ${isRTL ? 'flex-row-reverse' : ''} ${
             express
               ? 'bg-orange-500 border-orange-500 text-white'

@@ -12,6 +12,7 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
 import { CmxInput, CmxTextarea } from '@ui/primitives';
+import { EditControlNotice } from '../order-change/edit-control-notice';
 import type { CustomerSnapshotOverride } from '../model/new-order-types';
 
 /**
@@ -109,6 +110,7 @@ export function OrderCustomerDetailsSection() {
       <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
         {t('orderOnlyNote') || 'Changes apply to this order only, not to customer profile.'}
       </p>
+      <EditControlNotice identity />
 
       <div className="space-y-4">
         <div>

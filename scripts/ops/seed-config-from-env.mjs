@@ -15,6 +15,7 @@
  *     --out supabase/seeds/local/ops_config_values.cloud.sql
  *   Options: --dry-run (names and counts only, writes nothing)
  *            --include-secrets (also store secret values as PLAIN TEXT in db_value; default: off)
+ *            --no-store k1,k2 (config keys whose VALUE must not be stored; presence is still recorded)
  *
  * What it writes per key (only keys found in at least one file, or all keys when --all-scopes):
  *   - env_var_scope_val: is_it_there yes/no per scope you supplied (unknown otherwise); `value` only
@@ -34,7 +35,7 @@ const repoRoot = resolve(here, '..', '..');
 const mapPath = resolve(repoRoot, 'docs/features/Platform_Operations_Console/config_key_env_map.json');
 
 function parseArgs(argv) {
-  const args = { env: {}, out: null, dryRun: false, includeSecrets: false };
+  const args = { env: {}, out: null, dryRun: false, includeSecrets: false, noStore: new Set() };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--env') {
@@ -44,6 +45,7 @@ function parseArgs(argv) {
     } else if (a === '--out') args.out = argv[++i];
     else if (a === '--dry-run') args.dryRun = true;
     else if (a === '--include-secrets') args.includeSecrets = true;
+    else if (a === '--no-store') String(argv[++i] ?? '').split(',').filter(Boolean).forEach((k) => args.noStore.add(k.trim()));
     else throw new Error(`Unknown argument ${a}`);
   }
   if (Object.keys(args.env).length === 0) throw new Error('Pass at least one --env SCOPE=path');
@@ -114,7 +116,7 @@ function main() {
     if (!k.secret && firstValue !== null) sets.push(`env_var_value = ${lit(firstValue)}`);
 
     // Stored value: only where the policy allows one, never for bootstrap keys.
-    const canStore = !k.bootstrap && k.policy !== 'ENV_ONLY';
+    const canStore = !k.bootstrap && k.policy !== 'ENV_ONLY' && !args.noStore.has(k.key);
     let secretValue = null;
     if (canStore && anyFound) {
       const primary = k.scopes.map((s) => ({ s, file: envs[s.scope] })).find(({ s, file }) => file && s.env_var_name && file.has(s.env_var_name) && file.get(s.env_var_name).trim() !== '');

@@ -36,7 +36,6 @@ export function EditOrderContextBar({ session }: { session: OrderWorkspaceSessio
       {session.accessBlocked ? (
         <CmxSummaryMessage type="warning" title={session.accessReason || t('cannotEdit')} items={[]} />
       ) : null}
-      <CmxSummaryMessage type="info" title={t('workspace.reviewNotCommitted')} items={[t('workspace.commercialUnavailable'), t('workspace.lockedField')]} />
       {session.reviewStatus ? (
         <CmxSummaryMessage
           type={session.reviewStatus === 'READY' ? 'success' : 'warning'}

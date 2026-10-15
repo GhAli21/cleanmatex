@@ -16,6 +16,8 @@ import {
   type PaymentModalVersion,
 } from '../hooks/use-payment-modal-version';
 import { ItemCartList } from './item-cart-list';
+import { EditControlNotice } from '../order-change/edit-control-notice';
+import { useEditControlGroup } from '../order-change/use-edit-control-capability';
 import { Calendar, Calculator, AlertCircle, Clock, User, Pencil, X } from 'lucide-react';
 import {
   CmxSelectDropdown,
@@ -166,6 +168,9 @@ function OrderSummaryPanelComponent({
   const tEdit = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const expressCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED']);
+  const readyByCapability = useEditControlGroup(['CHANGE_READY_BY']);
+  const lineCapability = useEditControlGroup(['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'ADD_PIECE', 'REMOVE_PIECE']);
   const locale = useLocale();
   const { decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
@@ -275,7 +280,12 @@ function OrderSummaryPanelComponent({
           type="button"
           role="switch"
           aria-checked={express}
-          onClick={() => onExpressToggle?.(!express)}
+          onClick={() => {
+            if (!expressCapability.interactive) return;
+            onExpressToggle?.(!express);
+          }}
+          disabled={!expressCapability.interactive}
+          aria-disabled={!expressCapability.interactive}
           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 ${
             express ? 'bg-orange-500' : 'bg-gray-300'
           }`}
@@ -288,9 +298,13 @@ function OrderSummaryPanelComponent({
           />
         </button>
       </div>
+      <div className="px-3 pb-2">
+        <EditControlNotice codes={['CHANGE_SERVICE_SPEED']} />
+      </div>
 
       {/* Item Cart List - Scrollable */}
-      <div className="flex-1 p-3 min-h-0 overflow-y-auto">
+      <div className={`flex-1 p-3 min-h-0 overflow-y-auto ${lineCapability.interactive ? '' : 'pointer-events-none opacity-60'}`}>
+        <EditControlNotice codes={['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'ADD_PIECE', 'REMOVE_PIECE']} />
         <ItemCartList
           items={items}
           onEditItem={onEditItem}
@@ -316,20 +330,27 @@ function OrderSummaryPanelComponent({
           <div className={`flex items-stretch gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             {onCalculateReadyBy && (
               <button
-                onClick={handleCalculateReadyBy}
-                disabled={isCalculating || items.length === 0}
-                className={`px-2 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs rounded transition-colors flex items-center gap-1 shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}
                 type="button"
+                onClick={handleCalculateReadyBy}
+                disabled={!readyByCapability.interactive || isCalculating || items.length === 0}
+                className={`px-2 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs rounded transition-colors flex items-center gap-1 shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}
               >
                 <Calculator className="w-3 h-3" />
               </button>
             )}
             <div
               role="button"
-              tabIndex={0}
-              className={`flex-1 flex items-center gap-1.5 px-2 py-1 border rounded bg-white text-xs ${readyByValidation.isTooFar ? 'border-red-500' : readyByValidation.isValid && readyByAt ? 'border-blue-300' : 'border-gray-300'} ${isRTL ? 'flex-row-reverse' : ''} cursor-pointer hover:border-blue-400 transition-colors min-w-0`}
-              onClick={onOpenReadyByModal}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenReadyByModal?.(); } }}
+              tabIndex={readyByCapability.interactive ? 0 : -1}
+              aria-disabled={!readyByCapability.interactive}
+              className={`flex-1 flex items-center gap-1.5 px-2 py-1 border rounded bg-white text-xs ${readyByValidation.isTooFar ? 'border-red-500' : readyByValidation.isValid && readyByAt ? 'border-blue-300' : 'border-gray-300'} ${isRTL ? 'flex-row-reverse' : ''} ${readyByCapability.interactive ? 'cursor-pointer hover:border-blue-400' : 'cursor-not-allowed opacity-60'} transition-colors min-w-0`}
+              onClick={() => {
+                if (!readyByCapability.interactive) return;
+                onOpenReadyByModal?.();
+              }}
+              onKeyDown={(e) => {
+                if (!readyByCapability.interactive) return;
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenReadyByModal?.(); }
+              }}
             >
               <Calendar className="w-3 h-3 text-gray-500 shrink-0" />
               {readyByAt ? (

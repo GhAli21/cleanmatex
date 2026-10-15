@@ -85,7 +85,17 @@
     "emptyHistory": "No applied changes yet.",
     "legacyHistory": "Earlier order update",
     "changeNumber": "Change {number}",
-    "reviewAgain": "Review again"
+    "reviewAgain": "Review again",
+    "policyChanged": "The edit policy changed. Reload the order and review it again."
+  },
+  "capability": {
+    "deny": "This change is not allowed at the current status.",
+    "missing": "No edit policy is assigned for this status, so this change stays closed.",
+    "warning": "Review will ask you to confirm a warning before this change can be saved.",
+    "override": "This change needs an override before it can be saved.",
+    "notAvailable": "This change is not available in this version.",
+    "locked": "Customer, branch, and currency stay locked on this screen.",
+    "totalSame": "A price change is refused because Apply keeps the order total the same."
   },
   "policyInfo": {
     "button": "Edit Policy Info",
@@ -93,6 +103,23 @@
     "statusLine": "These rules apply while this order's status is {status}.",
     "missing": "No edit policy is assigned for this status, so changes stay blocked until an administrator assigns one.",
     "revisionLine": "Policy revision {revision}",
+    "facts": {
+      "organizationId": "Organization ID",
+      "profileVersion": "Workflow profile version and code",
+      "editPolicy": "Edit policy ID and code",
+      "assignmentId": "Assignment ID",
+      "profileId": "Workflow profile ID",
+      "versionNo": "Workflow profile version number",
+      "versionStatus": "Workflow profile version status",
+      "policyName": "Edit policy name",
+      "lifecycle": "Edit policy lifecycle",
+      "policyRevision": "Edit policy revision",
+      "workflowStatus": "Order workflow status",
+      "copy": "Copy",
+      "copyAll": "Copy all",
+      "copyFailed": "The value could not be copied.",
+      "empty": "Not assigned"
+    },
     "legend": {
       "allow": "Allowed",
       "warning": "Allowed with a warning",

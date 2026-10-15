@@ -3,6 +3,7 @@
  * Create submission stays on the New Order hook.
  */
 
+import type { OrderChangeEditPolicyInfo } from '@/lib/types/order-change';
 import { buildOrderChangeOperations, type EditOrderDraft } from './change-builder';
 import {
   sameIdentity,
@@ -45,6 +46,7 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
   });
   let baseline: EditOrderBaseline | null = null;
   let draft: EditOrderDraft | null = null;
+  let loadedPolicy: { editPolicyId: string | null; policyRevision: number | null } | null = null;
   let reviewProof: string | null = null;
   let calculationFingerprint: string | null = null;
   let idempotencyKey: string | null = null;
@@ -73,6 +75,9 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       calculationFingerprint = null;
       idempotencyKey = null;
       gateDecisions = [];
+    },
+    rememberLoadedPolicy(policy: OrderChangeEditPolicyInfo): void {
+      loadedPolicy = { editPolicyId: policy.editPolicyId, policyRevision: policy.policyRevision };
     },
     commitKey(): string {
       if (!idempotencyKey) idempotencyKey = createId();
@@ -247,6 +252,7 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
           sourceContext: draft.sourceContext,
           changeReason: draft.changeReason,
           operations,
+          ...(loadedPolicy ? { expectedPolicy: loadedPolicy } : {}),
           ...(gateDecisions.length > 0 ? { gateDecisions } : {}),
         }),
       });
@@ -268,6 +274,7 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
           sourceContext: draft.sourceContext,
           changeReason: draft.changeReason,
           operations,
+          ...(loadedPolicy ? { expectedPolicy: loadedPolicy } : {}),
           ...(gateDecisions.length > 0 ? { gateDecisions } : {}),
           reviewProof,
           calculationFingerprint,

@@ -164,6 +164,14 @@ export async function previewOrderChange(input: {
   if (input.request.expectedEditStateVersion !== input.context.editStateVersion) conflicts.push('EDIT_VERSION_CONFLICT');
   if (input.request.expectedWfStateVersion !== input.context.wfStateVersion) conflicts.push('WORKFLOW_VERSION_CONFLICT');
   if (conflicts.length > 0) return { ok: false, status: 409, code: conflicts.length === 1 ? conflicts[0] : 'VERSION_CONFLICT', conflicts };
+  const expectedPolicy = input.request.expectedPolicy;
+  if (expectedPolicy) {
+    const currentId = input.bindings[0]?.editPolicyId ?? null;
+    const currentRevision = input.bindings[0]?.policyRevision ?? null;
+    if (expectedPolicy.editPolicyId !== currentId || expectedPolicy.policyRevision !== currentRevision) {
+      return { ok: false, status: 409, code: 'POLICY_CHANGED_REVIEW_REQUIRED' };
+    }
+  }
 
   const structural = input.request.operations.flatMap((operation) => {
     const mapped = toStructural(operation);

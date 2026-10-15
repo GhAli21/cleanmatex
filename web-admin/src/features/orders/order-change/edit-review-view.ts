@@ -71,6 +71,6 @@ export function readEditReview(body: unknown, operations: readonly EditChangeOpe
       requiresAcknowledgement: decision.requiresAcknowledgement === true,
       requiresReason: decision.requiresReason === true,
     })),
-    conflict: envelope.error?.code === 'REVIEW_CHANGED' || envelope.error?.code === 'VERSION_CONFLICT' || status === '409',
+    conflict: envelope.error?.code === 'REVIEW_CHANGED' || envelope.error?.code === 'VERSION_CONFLICT' || envelope.error?.code === 'POLICY_CHANGED_REVIEW_REQUIRED' || status === '409',
   };
 }

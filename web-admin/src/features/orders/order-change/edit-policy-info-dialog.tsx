@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { cmxMessage } from '@ui/feedback';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
 import type { OrderChangeEditPolicyInfo, OrderChangeEditPolicyRule } from '@/lib/types/order-change';
@@ -79,6 +80,23 @@ export function EditPolicyInfoDialog({
     PREFERENCE: t('policyInfo.targets.PREFERENCE'),
   } as const;
   const rules = sortEditPolicyRules(policy.rules);
+  const identity = policy.assignment;
+  const factRows = [
+    { label: t('policyInfo.facts.organizationId'), values: [identity.tenantOrgId] },
+    { label: t('policyInfo.facts.profileVersion'), values: [identity.profileVersionId, identity.profileCode] },
+    { label: t('policyInfo.facts.editPolicy'), values: [identity.editPolicyId, identity.policyCode] },
+    { label: t('policyInfo.facts.assignmentId'), values: [identity.assignmentId] },
+    { label: t('policyInfo.facts.profileId'), values: [identity.profileId] },
+    { label: t('policyInfo.facts.versionNo'), values: [identity.versionNo == null ? null : String(identity.versionNo)] },
+    { label: t('policyInfo.facts.versionStatus'), values: [identity.versionStatus] },
+    { label: t('policyInfo.facts.policyName'), values: [identity.policyName, identity.policyName2] },
+    { label: t('policyInfo.facts.lifecycle'), values: [identity.lifecycleStatus] },
+    { label: t('policyInfo.facts.policyRevision'), values: [policy.policyRevision == null ? null : String(policy.policyRevision)] },
+    { label: t('policyInfo.facts.workflowStatus'), values: [policy.workflowStatus] },
+  ];
+  const copyAll = factRows
+    .map((row) => `${row.label}: ${row.values.filter((value) => value).join(' | ') || t('policyInfo.facts.empty')}`)
+    .join('\n');
 
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
@@ -87,6 +105,32 @@ export function EditPolicyInfoDialog({
           <CmxDialogTitle>{t('policyInfo.title')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="max-h-[min(70vh,520px)] space-y-3 overflow-y-auto px-4 py-4">
+          <div className="space-y-2">
+            <div className="flex justify-end">
+              <CmxButton type="button" variant="outline" size="xs" onClick={() => { void copyValue(copyAll, tCommon('copied'), t('policyInfo.facts.copyFailed')); }}>
+                {t('policyInfo.facts.copyAll')}
+              </CmxButton>
+            </div>
+            <ul className="space-y-2">
+              {factRows.map((row) => (
+                <li key={row.label} className="text-start">
+                  <p className="text-xs font-medium">{row.label}</p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {row.values.filter((value): value is string => Boolean(value)).length === 0 ? (
+                      <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('policyInfo.facts.empty')}</span>
+                    ) : row.values.filter((value): value is string => Boolean(value)).map((value, index) => (
+                      <span key={`${row.label}-${index}`} className="flex min-w-0 items-start gap-2">
+                        <span className="select-text break-all font-mono text-xs">{value}</span>
+                        <CmxButton type="button" variant="ghost" size="xs" onClick={() => { void copyValue(value, tCommon('copied'), t('policyInfo.facts.copyFailed')); }}>
+                          {t('policyInfo.facts.copy')}
+                        </CmxButton>
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
           <p className="text-sm">
             {t('policyInfo.statusLine', { status: policy.workflowStatus ?? t('workspace.lockedField') })}
           </p>
@@ -123,6 +167,15 @@ export function EditPolicyInfoDialog({
       </CmxDialogContent>
     </CmxDialog>
   );
+}
+
+async function copyValue(value: string, copied: string, failed: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(value);
+    cmxMessage.success(copied);
+  } catch {
+    cmxMessage.error(failed);
+  }
 }
 
 function PolicyRule({

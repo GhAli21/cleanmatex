@@ -92,6 +92,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       context,
       operations: parsedBody.data.operations,
     });
+    // Preview reloads the effective policy and rejects a stale revision before any write.
     const preview = await previewOrderChange({
       tenantId: auth.tenantId,
       actorUserId: auth.userId,

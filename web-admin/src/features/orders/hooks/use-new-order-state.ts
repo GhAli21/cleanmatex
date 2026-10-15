@@ -5,6 +5,8 @@
 
 import { useNewOrderContext } from '../ui/context/new-order-context';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
+import { resolveEditControlCapability, resolveEditControlGroup } from '../order-change/edit-control-capability';
+import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
 import type { NewOrderState, MinimalCustomer, OrderItem, PreSubmissionPiece, OrderItemServicePref, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
 import type { OrderSourceCode } from '@/lib/constants/order-sources';
 import type { OrderTypeId } from '@/lib/constants/order-types';
@@ -87,12 +89,16 @@ export interface UseNewOrderStateWithDispatchReturn {
 export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchReturn {
   const { state, dispatch } = useNewOrderContext();
   const editSession = useOrderWorkspaceSessionOptional();
-  const commercialLocked = editSession != null;
+  const identityLocked = editSession != null;
+  const blocked = (code: OrderChangeOperationCode) =>
+    editSession != null && !resolveEditControlCapability(editSession.editPolicy, code).interactive;
+  const groupBlocked = (codes: readonly OrderChangeOperationCode[]) =>
+    editSession != null && !resolveEditControlGroup(editSession.editPolicy, codes).interactive;
 
   // Helper functions for common actions. An Edit session keeps committed commercial identity here.
   const actions = {
     setCustomer: (customer: typeof state.customer, customerName: string, snapshot?: SetCustomerSnapshot) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({
         type: 'SET_CUSTOMER',
         payload: {
@@ -109,37 +115,37 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     setCustomerSnapshotOverride: (override: CustomerSnapshotOverride | null) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'SET_CUSTOMER_SNAPSHOT_OVERRIDE', payload: override });
     },
 
     setBranchId: (branchId: string | null) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'SET_BRANCH_ID', payload: branchId });
     },
 
     setOrderTypeId: (orderTypeId: OrderTypeId) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'SET_ORDER_TYPE_ID', payload: orderTypeId });
     },
 
     setOrderSourceCode: (orderSourceCode: OrderSourceCode) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'SET_ORDER_SOURCE_CODE', payload: orderSourceCode });
     },
 
     addItem: (item: typeof state.items[0]) => {
-      if (commercialLocked) return;
+      if (blocked('ADD_ITEM')) return;
       dispatch({ type: 'ADD_ITEM', payload: item });
     },
 
     removeItem: (productId: string) => {
-      if (commercialLocked) return;
+      if (blocked('REMOVE_ITEM')) return;
       dispatch({ type: 'REMOVE_ITEM', payload: productId });
     },
 
     updateItemQuantity: (productId: string, quantity: number) => {
-      if (commercialLocked) return;
+      if (blocked('CHANGE_ITEM_QUANTITY')) return;
       dispatch({
         type: 'UPDATE_ITEM_QUANTITY',
         payload: { productId, quantity },
@@ -147,7 +153,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => {
-      if (commercialLocked) return;
+      if (groupBlocked(['ADD_PIECE', 'REMOVE_PIECE'])) return;
       dispatch({
         type: 'UPDATE_ITEM_PIECES',
         payload: { productId, pieces: pieces || [] },
@@ -155,7 +161,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => {
-      if (commercialLocked) return;
+      if (groupBlocked(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE'])) return;
       dispatch({
         type: 'UPDATE_ITEM_SERVICE_PREFS',
         payload: { productId, servicePrefs, servicePrefCharge },
@@ -163,7 +169,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     updateOrderServicePrefs: (servicePrefs: OrderItemServicePref[]) => {
-      if (commercialLocked) return;
+      if (groupBlocked(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE'])) return;
       dispatch({
         type: 'UPDATE_ORDER_SERVICE_PREFS',
         payload: { servicePrefs },
@@ -178,7 +184,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       packingCfId?: string | null,
       packingPrefCharge?: number
     ) => {
-      if (commercialLocked) return;
+      if (groupBlocked(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE'])) return;
       dispatch({
         type: 'UPDATE_ITEM_PACKING_PREF',
         payload: {
@@ -193,7 +199,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     adjustItemPackingCharge: (productId: string, packingPrefCharge: number) => {
-      if (commercialLocked) return;
+      if (groupBlocked(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE'])) return;
       dispatch({
         type: 'ADJUST_ITEM_PACKING_PREF_CHARGE',
         payload: { productId, packingPrefCharge },
@@ -201,7 +207,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     updateItemNotes: (productId: string, notes: string) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({
         type: 'UPDATE_ITEM_NOTES',
         payload: { productId, notes },
@@ -209,7 +215,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({
         type: 'UPDATE_ITEM_PRICE_OVERRIDE',
         payload: { productId, priceOverride, overrideReason, overrideBy },
@@ -217,38 +223,42 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     setQuickDrop: (value: boolean) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'SET_QUICK_DROP', payload: value });
     },
 
     setQuickDropQuantity: (quantity: number) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'SET_QUICK_DROP_QUANTITY', payload: quantity });
     },
 
     setExpress: (value: boolean) => {
+      if (blocked('CHANGE_SERVICE_SPEED')) return;
       dispatch({ type: 'SET_EXPRESS', payload: value });
     },
 
     setBags: (count: number) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'SET_BAGS', payload: count });
     },
 
     setNotes: (notes: string) => {
+      if (blocked('CHANGE_ORDER_NOTES')) return;
       dispatch({ type: 'SET_NOTES', payload: notes });
     },
 
     setCustomerNotes: (notes: string) => {
+      if (blocked('CHANGE_ORDER_NOTES')) return;
       dispatch({ type: 'SET_CUSTOMER_NOTES', payload: notes });
     },
 
     setPaymentNotes: (notes: string) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'SET_PAYMENT_NOTES', payload: notes });
     },
 
     setReadyByAt: (readyByAt: string) => {
+      if (blocked('CHANGE_READY_BY')) return;
       dispatch({ type: 'SET_READY_BY_AT', payload: readyByAt });
     },
 
@@ -273,7 +283,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     openPriceOverrideModal: (productId: string) => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'OPEN_PRICE_OVERRIDE_MODAL', payload: productId });
     },
 
@@ -302,7 +312,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     resetOrder: () => {
-      if (commercialLocked) return;
+      if (identityLocked) return;
       dispatch({ type: 'RESET_ORDER' });
     },
 
@@ -311,12 +321,12 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     updatePieceConditions: (pieceId: string, conditions: string[]) => {
-      if (commercialLocked) return;
+      if (groupBlocked(['ADD_PIECE', 'REMOVE_PIECE'])) return;
       dispatch({ type: 'UPDATE_PIECE_CONDITIONS', payload: { pieceId, conditions } });
     },
 
     updatePieceColor: (pieceId: string, color: string | undefined, colorCodes?: string[], colorCfIds?: (string | null)[]) => {
-      if (commercialLocked) return;
+      if (groupBlocked(['ADD_PIECE', 'REMOVE_PIECE'])) return;
       dispatch({ type: 'UPDATE_PIECE_COLOR', payload: { pieceId, color, colorCodes, colorCfIds } });
     },
   };

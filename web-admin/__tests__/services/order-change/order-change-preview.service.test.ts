@@ -55,6 +55,7 @@ function context(overrides: Partial<OrderChangeContext> = {}): OrderChangeContex
     preferences: [],
     financial: { totalAmount: '10.0000', netCollectedAmount: '0.0000', outstandingAmount: '10.0000', overpaidAmount: '0.0000' },
     capabilitySummary: { status: 'DEFERRED', reasonCode: 'CAPABILITY_POLICY_PENDING' },
+    editPolicy: { status: 'MISSING', workflowStatus: 'PROCESSING', editPolicyId: null, policyRevision: null, assignment: { tenantOrgId: '11111111-1111-1111-1111-111111111111', assignmentId: null, profileId: null, profileCode: null, profileVersionId: null, versionNo: null, versionStatus: null, editPolicyId: null, policyCode: null, policyName: null, policyName2: null, lifecycleStatus: null }, rules: [] },
     ...overrides,
   };
 }
@@ -133,6 +134,16 @@ describe('previewOrderChange', () => {
       bindings: [binding('CHANGE_ORDER_NOTES', 'ORDER', 'DENY')],
     });
     expect(result).toMatchObject({ ok: true, status: 'DENIED', createsChange: false, reviewProof: null, financial: null });
+  });
+
+  it('rejects a review when the loaded policy revision is no longer current', async () => {
+    const result = await preview({
+      request: request([{ seq: 1, code: 'CHANGE_ORDER_NOTES', target: { kind: 'ORDER' }, payload: { notes: 'Updated' } }], {
+        expectedPolicy: { editPolicyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', policyRevision: 2 },
+      }),
+      bindings: [binding('CHANGE_ORDER_NOTES', 'ORDER')],
+    });
+    expect(result).toMatchObject({ ok: false, status: 409, code: 'POLICY_CHANGED_REVIEW_REQUIRED' });
   });
 
   it('reports edit and workflow version conflicts together', async () => {

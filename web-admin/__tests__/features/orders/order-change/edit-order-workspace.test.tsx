@@ -65,6 +65,7 @@ function context(): OrderChangeContext {
       overpaidAmount: '0.0000',
     },
     capabilitySummary: { status: 'DEFERRED', reasonCode: 'CAPABILITY_POLICY_PENDING' },
+    editPolicy: { status: 'MISSING', workflowStatus: 'READY', editPolicyId: null, policyRevision: null, assignment: { tenantOrgId: '11111111-1111-1111-1111-111111111111', assignmentId: null, profileId: null, profileCode: null, profileVersionId: null, versionNo: null, versionStatus: null, editPolicyId: null, policyCode: null, policyName: null, policyName2: null, lifecycleStatus: null }, rules: [] },
   };
 }
 

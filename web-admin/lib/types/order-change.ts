@@ -139,9 +139,26 @@ export interface OrderChangeEditPolicyRule {
 }
 
 /** The single active Edit Policy for this order's workflow status, or a missing result. */
+export interface OrderChangeEditPolicyAssignment {
+  tenantOrgId: string;
+  assignmentId: string | null;
+  profileId: string | null;
+  profileCode: string | null;
+  profileVersionId: string | null;
+  versionNo: number | null;
+  versionStatus: string | null;
+  editPolicyId: string | null;
+  policyCode: string | null;
+  policyName: string | null;
+  policyName2: string | null;
+  lifecycleStatus: string | null;
+}
+
 export interface OrderChangeEditPolicyInfo {
   status: 'READY' | 'MISSING';
   workflowStatus: string | null;
+  editPolicyId: string | null;
   policyRevision: number | null;
+  assignment: OrderChangeEditPolicyAssignment;
   rules: OrderChangeEditPolicyRule[];
 }

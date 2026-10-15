@@ -88,6 +88,10 @@ function EditSharedWorkspaceBody({
     });
   }, [baseline, context, controller, dispatch, reloadKey]);
 
+  useEffect(() => {
+    controller.rememberLoadedPolicy(context.editPolicy);
+  }, [context.editPolicy, controller]);
+
   const visual = useMemo(() => ({
     notes: state.notes,
     customerNotes: state.customerNotes,
@@ -121,7 +125,8 @@ function EditSharedWorkspaceBody({
       setReviewView({ ...failed, conflict: result.status === 409 });
       setConflict(result.status === 409);
       setReviewOpen(true);
-      cmxMessage.error(t('workspace.reviewFailed'));
+      const code = (result.body as { error?: { code?: string } }).error?.code;
+      cmxMessage.error(code === 'POLICY_CHANGED_REVIEW_REQUIRED' ? t('workspace.policyChanged') : t('workspace.reviewFailed'));
       return;
     }
     const body = result.body as { status?: string };
@@ -159,7 +164,7 @@ function EditSharedWorkspaceBody({
       if (!result.ok) {
         setConflict(result.status === 409);
         setReviewView((current) => current ? { ...current, status: result.status === 409 ? 'CONFLICT' : current.status, conflict: result.status === 409 } : current);
-        cmxMessage.error(result.status === 409 ? t('workspace.conflict') : t('workspace.applyFailed'));
+        cmxMessage.error(result.status === 409 && (result.body as { error?: { code?: string } }).error?.code === 'POLICY_CHANGED_REVIEW_REQUIRED' ? t('workspace.policyChanged') : result.status === 409 ? t('workspace.conflict') : t('workspace.applyFailed'));
         return;
       }
       cmxMessage.success(t('workspace.applied'));

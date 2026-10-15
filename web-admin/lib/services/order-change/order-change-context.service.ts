@@ -39,6 +39,20 @@ function toIso(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
 
+type PolicyAssignmentRow = {
+  assignment_id: string | null;
+  profile_version_id: string | null;
+  version_no: number | null;
+  version_status: string | null;
+  profile_id: string | null;
+  profile_code: string | null;
+  edit_policy_id: string | null;
+  policy_code: string | null;
+  policy_name: string | null;
+  policy_name2: string | null;
+  lifecycle_status: string | null;
+};
+
 /**
  * Loads the authoritative read-only Edit V2 aggregate for one committed order.
  *
@@ -117,17 +131,72 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
     }
 
     const financial = await getOrderFinancialSummary(tenantId, input.orderId);
-    const bindings = await prisma.$transaction((tx) => resolveOrderChangePolicyBindings(tx, {
-      tenantId,
-      profileVersionId: order.wf_profile_version_id,
-      workflowStatus: order.current_status,
-    }));
+    const policyRows = await prisma.$transaction(async (tx) => {
+      const bindings = await resolveOrderChangePolicyBindings(tx, {
+        tenantId,
+        profileVersionId: order.wf_profile_version_id,
+        workflowStatus: order.current_status,
+      });
+      const assignment = order.wf_profile_version_id
+        ? await tx.$queryRaw<PolicyAssignmentRow[]>`
+          SELECT
+            assignment.id::text AS assignment_id,
+            version.version_id::text AS profile_version_id,
+            version.version_no,
+            version.version_status,
+            profile.profile_id::text AS profile_id,
+            profile.profile_code,
+            policy.id::text AS edit_policy_id,
+            policy.policy_code,
+            policy.name AS policy_name,
+            policy.name2 AS policy_name2,
+            policy.lifecycle_status
+          FROM public.sys_wf_profile_ver_mst AS version
+          INNER JOIN public.sys_wf_profiles_cd AS profile
+            ON profile.profile_id = version.profile_id
+          LEFT JOIN public.org_wf_edit_policy_asg_cf AS assignment
+            ON assignment.workflow_profile_version_id = version.version_id
+           AND assignment.tenant_org_id = ${tenantId}::uuid
+           AND assignment.rec_status = 1
+           AND assignment.is_active = true
+          LEFT JOIN public.sys_wf_edit_policy_mst AS policy
+            ON policy.id = assignment.edit_policy_id
+           AND policy.workflow_profile_version_id = assignment.workflow_profile_version_id
+           AND policy.lifecycle_status IN ('PILOT', 'PUBLISHED')
+           AND policy.rec_status = 1
+           AND policy.is_active = true
+          WHERE version.version_id = ${order.wf_profile_version_id}::uuid
+            AND profile.rec_status = 1
+        `
+        : [];
+      return { bindings, assignment };
+    });
+    const bindings = policyRows.bindings;
+    const policyIds = new Set(policyRows.assignment.map((row) => row.edit_policy_id).filter((id): id is string => Boolean(id)));
+    const header = policyIds.size === 1 ? policyRows.assignment.find((row) => row.edit_policy_id) ?? policyRows.assignment[0] : policyRows.assignment[0];
+    const assigned = policyIds.size === 1 ? header : undefined;
+    const assignment = {
+      tenantOrgId: tenantId,
+      assignmentId: assigned?.assignment_id ?? null,
+      profileId: header?.profile_id ?? order.wf_profile_id,
+      profileCode: header?.profile_code ?? null,
+      profileVersionId: header?.profile_version_id ?? order.wf_profile_version_id,
+      versionNo: header?.version_no == null ? null : Number(header.version_no),
+      versionStatus: header?.version_status ?? null,
+      editPolicyId: assigned?.edit_policy_id ?? null,
+      policyCode: assigned?.policy_code ?? null,
+      policyName: assigned?.policy_name ?? null,
+      policyName2: assigned?.policy_name2 ?? null,
+      lifecycleStatus: assigned?.lifecycle_status ?? null,
+    };
     const editPolicy: OrderChangeEditPolicyInfo = bindings.length === 0
-      ? { status: 'MISSING', workflowStatus: order.current_status, policyRevision: null, rules: [] }
+      ? { status: 'MISSING', workflowStatus: order.current_status, editPolicyId: null, policyRevision: null, assignment, rules: [] }
       : {
         status: 'READY',
         workflowStatus: order.current_status,
+        editPolicyId: bindings[0].editPolicyId,
         policyRevision: bindings[0].policyRevision,
+        assignment: { ...assignment, editPolicyId: bindings[0].editPolicyId },
         rules: bindings.map((binding) => ({
           operationCode: binding.operationCode,
           targetType: binding.targetType,

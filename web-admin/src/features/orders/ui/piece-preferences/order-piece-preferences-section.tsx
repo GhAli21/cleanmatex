@@ -15,6 +15,8 @@ import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { useNewOrderPiecePreferences } from '@/src/features/orders/hooks/use-new-order-piece-preferences';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { PiecePreferenceCard } from './piece-preference-card';
+import { EditControlNotice } from '@/src/features/orders/order-change/edit-control-notice';
+import { useEditControlGroup } from '@/src/features/orders/order-change/use-edit-control-capability';
 
 interface ConditionCatalog {
   stains: ServicePreference[];
@@ -69,6 +71,7 @@ export function OrderPiecePreferencesSection({
     updatePieceFields,
   } = useNewOrderPiecePreferences(packingPrefs);
   const getBilingual = useBilingual();
+  const preferenceCapability = useEditControlGroup(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE']);
 
   useEffect(() => {
     if (editSession) return;
@@ -101,9 +104,10 @@ export function OrderPiecePreferencesSection({
   return (
     <section aria-label={t('sectionTitle')} className="space-y-3">
       <h2 className="text-base font-semibold text-gray-900">{t('sectionTitle')}</h2>
+      <EditControlNotice codes={['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE']} />
       <p className="text-sm text-gray-600">{t('sectionHint')}</p>
 
-      <div className="space-y-3">
+      <div className={`space-y-3 ${preferenceCapability.interactive ? '' : 'pointer-events-none opacity-60'}`}>
         {itemGroups.map(({ item, pieces, categoryLabel }) => {
           const title = getBilingual(item.productName, item.productName2) || '—';
           const siblingIds = pieces.map((p) => p.id);

@@ -35949,51 +35949,6 @@ export type Database = {
         }
         Relationships: []
       }
-      sys_ntf_runtime_cf: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          created_info: string | null
-          is_active: boolean
-          key: string
-          rec_notes: string | null
-          rec_order: number | null
-          rec_status: number
-          updated_at: string | null
-          updated_by: string | null
-          updated_info: string | null
-          value: string
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          created_info?: string | null
-          is_active?: boolean
-          key: string
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-          value: string
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          created_info?: string | null
-          is_active?: boolean
-          key?: string
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-          value?: string
-        }
-        Relationships: []
-      }
       sys_ntf_template_chan_dtl: {
         Row: {
           channel_code: string

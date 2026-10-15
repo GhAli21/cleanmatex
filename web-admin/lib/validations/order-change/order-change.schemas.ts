@@ -64,6 +64,10 @@ export const orderChangeRequestSchema = z.object({
     }
   }),
   gateDecisions: z.array(z.object({ seq: z.number().int().positive(), gateCode: z.string().min(1).max(120), acknowledgementChallenge: z.string().max(ORDER_CHANGE_LIMITS.MAX_REVIEW_PROOF_LENGTH).optional(), overrideReason: z.string().max(ORDER_CHANGE_LIMITS.MAX_CHANGE_REASON_LENGTH).optional() }).strict()).max(ORDER_CHANGE_LIMITS.MAX_GATE_DECISIONS).optional(),
+  expectedPolicy: z.object({
+    editPolicyId: z.string().uuid().nullable(),
+    policyRevision: z.number().int().nonnegative().nullable(),
+  }).strict().optional(),
 }).strict();
 
 /** Adds the required Preview binding supplied by Apply without widening the shared intent contract. */
