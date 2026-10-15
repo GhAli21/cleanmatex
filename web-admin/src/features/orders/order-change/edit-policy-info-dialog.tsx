@@ -169,6 +169,8 @@ interface PolicyFactRow {
   values: PolicyFactValue[];
   wide: boolean;
   hero: boolean;
+  /** Summary tiles sit above the identifier list that holds codes and ids. */
+  group: 'summary' | 'identifier';
 }
 
 interface PolicyFactLabels {
@@ -195,7 +197,7 @@ function factRow(
   key: string,
   label: string,
   values: Array<PolicyFactValue | null>,
-  layout: { wide?: boolean; hero?: boolean } = {},
+  layout: { wide?: boolean; hero?: boolean; group?: 'summary' | 'identifier' } = {},
 ): PolicyFactRow {
   return {
     key,
@@ -203,6 +205,7 @@ function factRow(
     values: values.filter((value): value is PolicyFactValue => value != null),
     wide: layout.wide === true || layout.hero === true,
     hero: layout.hero === true,
+    group: layout.group ?? 'summary',
   };
 }
 
@@ -225,14 +228,14 @@ function buildPolicyFactRows(
     factRow('profileVersion', labels.profileVersion, [
       textFact(identity.profileCode, 'code'),
       textFact(identity.profileVersionId, 'id'),
-    ], { wide: true }),
+    ], { group: 'identifier' }),
     factRow('editPolicy', labels.editPolicy, [
       textFact(identity.policyCode, 'code'),
       textFact(identity.editPolicyId, 'id'),
-    ], { wide: true }),
-    factRow('assignmentId', labels.assignmentId, [textFact(identity.assignmentId, 'id')], { wide: true }),
-    factRow('profileId', labels.profileId, [textFact(identity.profileId, 'id')], { wide: true }),
-    factRow('organizationId', labels.organizationId, [textFact(identity.tenantOrgId, 'id')], { wide: true }),
+    ], { group: 'identifier' }),
+    factRow('assignmentId', labels.assignmentId, [textFact(identity.assignmentId, 'id')], { group: 'identifier' }),
+    factRow('profileId', labels.profileId, [textFact(identity.profileId, 'id')], { group: 'identifier' }),
+    factRow('organizationId', labels.organizationId, [textFact(identity.tenantOrgId, 'id')], { group: 'identifier' }),
   ];
 }
 
@@ -253,9 +256,11 @@ function PolicyFactCard({
   copyFailedLabel: string;
   copyAll: string;
 }) {
+  const summaryRows = rows.filter((row) => row.group === 'summary');
+  const identifierRows = rows.filter((row) => row.group === 'identifier');
   return (
-    <CmxCard className="shadow-none">
-      <div className="flex justify-end px-3 pt-3">
+    <CmxCard className="overflow-hidden shadow-none">
+      <div className="flex justify-end border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] px-3 py-2">
         <CmxButton
           type="button"
           variant="outline"
@@ -267,9 +272,9 @@ function PolicyFactCard({
           {copyAllLabel}
         </CmxButton>
       </div>
-      <div className="p-3 pt-2">
+      <div className="p-3">
         <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {rows.map((row) => (
+          {summaryRows.map((row) => (
             <PolicyFactTile
               key={row.key}
               row={row}
@@ -281,7 +286,66 @@ function PolicyFactCard({
           ))}
         </dl>
       </div>
+      <dl className="divide-y divide-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
+        {identifierRows.map((row) => (
+          <PolicyIdentifierRow
+            key={row.key}
+            row={row}
+            emptyLabel={emptyLabel}
+            copyLabel={copyLabel}
+            copiedLabel={copiedLabel}
+            copyFailedLabel={copyFailedLabel}
+          />
+        ))}
+      </dl>
     </CmxCard>
+  );
+}
+
+function PolicyIdentifierRow({
+  row,
+  emptyLabel,
+  copyLabel,
+  copiedLabel,
+  copyFailedLabel,
+}: {
+  row: PolicyFactRow;
+  emptyLabel: string;
+  copyLabel: string;
+  copiedLabel: string;
+  copyFailedLabel: string;
+}) {
+  const codes = row.values.filter((value) => value.tone === 'code');
+  const ids = row.values.filter((value) => value.tone !== 'code');
+  return (
+    <div className="px-3 py-2.5">
+      <dt className="text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        {row.label}
+      </dt>
+      {row.values.length === 0 ? (
+        <dd className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{emptyLabel}</dd>
+      ) : (
+        <dd className="mt-1.5 space-y-1.5">
+          {codes.map((value) => (
+            <div key={`${row.key}-code-${value.text}`} className="flex min-w-0 items-center justify-between gap-2">
+              <Badge variant="outline" className="max-w-full whitespace-normal break-all font-mono font-medium">
+                {value.text}
+              </Badge>
+              <CopyFactButton value={value.text} label={copyLabel} copiedLabel={copiedLabel} copyFailedLabel={copyFailedLabel} />
+            </div>
+          ))}
+          {ids.map((value) => (
+            <div
+              key={`${row.key}-id-${value.text}`}
+              className="flex min-w-0 items-center gap-2 rounded-md border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-ghost-hover-bg-rgb,241_245_249))] px-2 py-1"
+            >
+              <span className="min-w-0 flex-1 select-text break-all font-mono text-xs leading-5">{value.text}</span>
+              <CopyFactButton value={value.text} label={copyLabel} copiedLabel={copiedLabel} copyFailedLabel={copyFailedLabel} />
+            </div>
+          ))}
+        </dd>
+      )}
+    </div>
   );
 }
 

@@ -282,7 +282,6 @@ export function NewOrderContent() {
 
     const handleAddItem = useCallback(
         async (product: Product) => {
-            if (workspace) return;
             const isNewRetail = product.service_category_code === 'RETAIL_ITEMS' || (product as { is_retail_item?: boolean }).is_retail_item;
             const existingItems = state.state.items;
             if (existingItems.length > 0) {
@@ -348,20 +347,18 @@ export function NewOrderContent() {
                 state.setSelectedPiece(null);
             }
         },
-        [state, trackByPiece, trackItemAddition, t, autoApplyCustomerPrefs, servicePrefs, workspace]
+        [state, trackByPiece, trackItemAddition, t, autoApplyCustomerPrefs, servicePrefs]
     );
 
     const handleRemoveItem = useCallback(
         (productId: string) => {
-            if (workspace) return;
             state.removeItem(productId);
         },
-        [state, workspace]
+        [state]
     );
 
     const handleQuantityChange = useCallback(
         (productId: string, quantity: number) => {
-            if (workspace) return;
             const item = state.state.items.find((i) => i.productId === productId);
             const prevQty = item?.quantity ?? 0;
             state.updateItemQuantity(productId, quantity);
@@ -369,12 +366,11 @@ export function NewOrderContent() {
                 state.setSelectedPiece(`temp-${productId}-${quantity}`);
             }
         },
-        [state, trackByPiece, workspace]
+        [state, trackByPiece]
     );
 
     const handlePiecesChange = useCallback(
         (itemId: string, pieces: PreSubmissionPiece[]) => {
-            if (workspace) return;
             const item = state.state.items.find((i) => i.productId === itemId);
             const prevPieces = item?.pieces ?? [];
             state.updateItemPieces(itemId, pieces);
@@ -389,7 +385,7 @@ export function NewOrderContent() {
                 if (newPiece) state.setSelectedPiece(newPiece.id);
             }
         },
-        [state, packingPriceByCode, workspace]
+        [state, packingPriceByCode]
     );
 
     // Copy piece conditions/notes to all siblings
