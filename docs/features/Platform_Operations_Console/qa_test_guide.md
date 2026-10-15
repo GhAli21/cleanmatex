@@ -102,7 +102,7 @@ Open HQ → Operations → Setup Health and confirm each row reacts as described
 | ID | Steps | Expect |
 |---|---|---|
 | I1 ⚠ | Generate a **fresh** secret (≥ 32 chars, e.g. `openssl rand -hex 32`); set `NOTIFICATIONS_OUTBOX_SECRET` on the tenant host and redeploy; in the SQL editor run `select public.fn_ntf_rotate_outbox_secret('<same secret>');`. | Returns success; the old value committed in migration 0355 no longer works. |
-| I2 | Wait one minute; HQ → Operations → Jobs: `ntf-process-outbox`, `ntf-process-campaigns`, `ntf-reconcile-outbox`. | Recent runs `DISPATCHED`/`SUCCESS`; no `skipped: secret missing` warning. |
+| I2 | Wait one minute; HQ → Operations → Jobs: `ntf-outbox-processor`, `ntf-campaign-scheduler`, `ntf-reconcile-outbox`. | Recent runs `DISPATCHED`/`SUCCESS`; no `skipped: secret missing` warning. |
 | I3 | Queue a notification (order created) and watch the outbox. | Row goes `QUEUED` → `SENT`. |
 | I4 (negative) | `curl -X POST <tenant>/api/notifications/process-outbox` with no / wrong secret. | 401. |
 
@@ -162,7 +162,7 @@ Open HQ → Operations → Setup Health and confirm each row reacts as described
 | T23 | Audit: HQ audit log for action `notification_template.test_send`. | One entry per send, recipient masked (`o***@example.com`), template, version, status; no credentials. |
 | T24 | SMS test: allow-list your phone (+E.164), channel SMS, send. Then try WhatsApp. | SMS arrives prefixed `[TEST]`; WhatsApp shows "available for email and SMS". |
 
-## W. Operational safety (R14, migrations 0625 + 0626)
+## W. Operational safety (R14, migrations 0625, 0626 + 0628)
 
 Prepare: sandbox connectors are on outside production (or `HQ_NTF_SANDBOX_ENABLED=true`); give a test organization the email provider `RESEND` as usual. All steps in a **test environment**.
 
@@ -179,6 +179,8 @@ Prepare: sandbox connectors are on outside production (or `HQ_NTF_SANDBOX_ENABLE
 | T33 | As a user without `hq_notifications:operate`. | No Pause / Drain / Resume / Reset / Add-rule controls; the API answers 403. |
 | T34 | **Usage reconciliation**: run it for the last 7 days on a database with real sends. | "No differences" when metering works; otherwise rows with a positive difference = sends that were never metered (check `Metering RPC failed` in the API log). Setup Health `usage.reconciliation` mirrors it. |
 | T35 | Workers: with Redis queue enabled, pause WHATSAPP/Twilio, enqueue a WhatsApp message, watch the worker log. | "Job … held (PAUSED)"; after Resume it is sent within a minute; the job did not fail or burn retries. |
+| T36 ⚠ | Breaker does not flap: after T30 and T31 closed the circuit (probe succeeded), keep sending good messages for 5 minutes and watch Operations. | The circuit stays **Closed**; no new alert arrives; the health table still shows the earlier failures (full window) but the circuit does not reopen. (Needs migration 0628.) |
+| T37 | Access boundary: with a **tenant user's** access token call an HQ-only endpoint that used to accept it, for example `GET {HQ_API}/audit-logs`, `GET {HQ_API}/billing/...`, `POST {HQ_API}/feature-flags` and `GET {HQ_API}/tenants`. Then, with the same token, call `GET {HQ_API}/settings/tenants/<another tenant id>/effective`, then the same with your own tenant id. Finally open the tenant web-admin Settings and Users screens as a normal tenant admin. | The first four answer **403** "This endpoint requires an HQ session". The other tenant's settings answer **403** "A tenant session can only access its own tenant"; your own tenant answers 200. The tenant Settings and Users screens keep working. With an HQ operator token every call is allowed. |
 
 ## Q. Automated tests (run before every release)
 

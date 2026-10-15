@@ -1,6 +1,6 @@
 # Runbook 07 — Retry vs. Reconciliation
 
-**Status: Partial.** Automatic retry (for *known*, proven-retryable failures) runs on a cron schedule. Reconciliation (for *uncertain* acceptance) is implemented as code but has **no cron schedule** — it must be invoked manually — and only resolves WhatsApp/Twilio rows authoritatively; every other row dead-letters for manual operator review.
+**Status: Partial.** Automatic retry (for *known*, proven-retryable failures) runs on a cron schedule. Reconciliation (for *uncertain* acceptance) is implemented as code and is scheduled by the pg_cron job `ntf-reconcile-outbox` (repaired by migration 0616; it can also be invoked manually, see Part B) — it only resolves WhatsApp/Twilio rows authoritatively; every other row dead-letters for manual operator review.
 
 ## Purpose
 
@@ -26,7 +26,7 @@ ORDER BY next_retry_at;
 ```
 To confirm the cron jobs are actually scheduled (read-only discovery): `SELECT jobname, schedule, active FROM cron.job WHERE jobname LIKE 'ntf-outbox%';`
 
-## Part B — Reconciliation (implemented, NOT scheduled — manual invocation required)
+## Part B — Reconciliation (implemented; scheduled by `ntf-reconcile-outbox`, manual invocation also possible)
 
 1. A row enters reconciliation scope when either:
    - `reconcile_state = 'ACCEPTANCE_UNCERTAIN'` (set by `process-outbox/route.ts`'s `markAcceptanceUncertain` when a provider call throws mid-flight — the error could mean the message was or wasn't accepted), or

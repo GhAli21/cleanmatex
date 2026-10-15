@@ -44027,6 +44027,17 @@ export type Database = {
         Args: { p_order: string; p_tenant: string }
         Returns: string
       }
+      fn_ntf_breaker_evidence: {
+        Args: { p_window_minutes?: number }
+        Returns: {
+          channel_code: string
+          failed_count: number
+          last_failure_at: string
+          last_success_at: string
+          provider_code: string
+          sent_count: number
+        }[]
+      }
       fn_ntf_camp_target_resolve: {
         Args: {
           p_outbox_id: string

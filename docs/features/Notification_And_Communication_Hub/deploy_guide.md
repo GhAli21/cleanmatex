@@ -134,6 +134,11 @@ After deployment:
 1. HQ **Operations → Configuration Registry**: set `ntf.app.base_url` to the deployed tenant app URL (pg_cron posts to `<base_url>/api/notifications/process-outbox`, `/process-campaigns`, `/reconcile-outbox`).
 2. Rotate the cron secret (the old value is committed in migration 0355) and put the SAME value in the tenant host env:
 
+To create 32 random string:
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+Or :
+openssl rand -hex 32
+
 ```sql
 SELECT public.fn_ntf_rotate_outbox_secret('<new random 32+ char value>');  -- returns a 12-hex fingerprint only
 ```
