@@ -33,6 +33,7 @@ const ORDER_CODES = new Set([
   'CHANGE_READY_BY',
   'CHANGE_ORDER_NOTES',
   'CHANGE_CUSTOMER_SNAPSHOT',
+  'CHANGE_UNLISTED',
 ]);
 
 export type PersistedFinancialOutcome =

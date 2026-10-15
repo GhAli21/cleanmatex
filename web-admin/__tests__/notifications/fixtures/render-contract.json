@@ -1,0 +1,71 @@
+{
+  "description": "Shared render contract. IDENTICAL copy lives in both repos (platform-api templates/preview/__tests__ and web-admin __tests__/notifications/fixtures); change both together.",
+  "cases": [
+    {
+      "name": "replaces a known placeholder",
+      "template": "Order {{order_number}} is ready",
+      "vars": {
+        "order_number": "ORD-1"
+      },
+      "expected": "Order ORD-1 is ready"
+    },
+    {
+      "name": "leaves an unknown placeholder untouched",
+      "template": "Hi {{customer}}, order {{order_number}}",
+      "vars": {
+        "order_number": "ORD-1"
+      },
+      "expected": "Hi {{customer}}, order ORD-1"
+    },
+    {
+      "name": "replaces every occurrence",
+      "template": "{{a}}-{{a}}-{{b}}",
+      "vars": {
+        "a": "x",
+        "b": "y"
+      },
+      "expected": "x-x-y"
+    },
+    {
+      "name": "an empty value replaces the placeholder (only a missing key is left alone)",
+      "template": "Note: {{note}}.",
+      "vars": {
+        "note": ""
+      },
+      "expected": "Note: ."
+    },
+    {
+      "name": "does not match padded or dotted placeholders",
+      "template": "{{ a }} {{a.b}} {{}}",
+      "vars": {
+        "a": "x"
+      },
+      "expected": "{{ a }} {{a.b}} {{}}"
+    },
+    {
+      "name": "keeps Arabic text and replaces inside it",
+      "template": "الطلب {{order_number}} جاهز",
+      "vars": {
+        "order_number": "ORD-9"
+      },
+      "expected": "الطلب ORD-9 جاهز"
+    },
+    {
+      "name": "does not re-interpolate substituted values",
+      "template": "{{a}}",
+      "vars": {
+        "a": "{{b}}",
+        "b": "no"
+      },
+      "expected": "{{b}}"
+    },
+    {
+      "name": "underscore and digits are valid key characters",
+      "template": "{{key_1}}",
+      "vars": {
+        "key_1": "ok"
+      },
+      "expected": "ok"
+    }
+  ]
+}

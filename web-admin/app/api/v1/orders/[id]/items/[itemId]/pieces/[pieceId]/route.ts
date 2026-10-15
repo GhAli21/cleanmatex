@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import {
+  blockCommittedCommercialFields,
+  blockCommittedCommercialWrite,
+} from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { log } from '@/lib/utils/logger';
 
 /**
@@ -140,6 +144,11 @@ export async function PATCH(
       );
     }
 
+    const retiredFields = await blockCommittedCommercialFields(tenantId, orderId, body);
+    if (retiredFields) {
+      return NextResponse.json(retiredFields.body, { status: retiredFields.status });
+    }
+
     // Update piece
     const result = await OrderPieceService.updatePiece({
       pieceId,
@@ -228,6 +237,11 @@ export async function DELETE(
         { success: false, error: 'Piece not found' },
         { status: 404 }
       );
+    }
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
     }
 
     // Delete piece

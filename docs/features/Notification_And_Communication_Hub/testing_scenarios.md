@@ -6,6 +6,8 @@
 
 See also: `Setup_And_Config/11_smoke_tests.md` for SQL-level smoke test harness.
 
+**Config Registry / Operations Console / master-key rotation / drift alerting scenarios:** [../Platform_Operations_Console/qa_test_guide.md](../Platform_Operations_Console/qa_test_guide.md).
+
 ---
 
 ## 1. Unit Test Coverage Areas

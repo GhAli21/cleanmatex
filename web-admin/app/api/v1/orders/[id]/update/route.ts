@@ -11,6 +11,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { updateOrderInputSchema } from '@/lib/validations/edit-order-schemas';
 import { OrderService } from '@/lib/services/order-service';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
 import { logger } from '@/lib/utils/logger';
 
@@ -89,7 +90,13 @@ export async function PATCH(
     );
   }
 
-  // 4. Call updateOrder service
+  // 4. A committed order uses Edit Order review. This route must not delete and recreate its pieces.
+  const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+  if (retiredWrite) {
+    return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
+  }
+
+  // 5. Call updateOrder service
   try {
     const result = await OrderService.updateOrder({
       ...parsed.data,

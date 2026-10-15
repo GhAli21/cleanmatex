@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { OrderItemPreferenceService } from '@/lib/services/order-item-preference.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import {
   addServicePrefSchema,
   type AddServicePrefInput,
@@ -86,6 +87,11 @@ export async function POST(
     const { id: orderId, itemId } = await params;
     const body = await request.json();
 
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
+    }
+
     const parsed = await addServicePrefSchema.safeParseAsync(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -140,7 +146,7 @@ export async function DELETE(
     if (authCheck instanceof NextResponse) return authCheck;
     const { tenantId } = authCheck;
 
-    const { itemId } = await params;
+    const { id: orderId, itemId } = await params;
     const { searchParams } = new URL(request.url);
     const prefId = searchParams.get('prefId');
 
@@ -149,6 +155,11 @@ export async function DELETE(
         { success: false, error: 'prefId is required' },
         { status: 400 }
       );
+    }
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
     }
 
     const supabase = await createClient();

@@ -138,6 +138,13 @@ export async function voidOrderCharge(
   }
 
   return prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        SELECT id
+        FROM public.org_orders_mst
+        WHERE id = ${orderId}::uuid
+          AND tenant_org_id = ${tenantId}::uuid
+        FOR UPDATE
+      `;
       const charge = await tx.org_order_charges_dtl.findFirst({
         where: { id: chargeId, order_id: orderId, tenant_org_id: tenantId },
         select: {

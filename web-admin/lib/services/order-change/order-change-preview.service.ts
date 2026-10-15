@@ -52,6 +52,8 @@ export interface OrderChangePreviewSuccess {
   projectedTax: string | null;
   displayTotal: string | null;
   projectedItemIds: string[];
+  /** Reviewed line prices. Apply writes these amounts and does not price the line again. */
+  lines?: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string }[];
   followUp: string[];
 }
 
@@ -252,7 +254,8 @@ export async function previewOrderChange(input: {
   );
   const header = headerChanged(input.context, input.request.operations);
   const speedChanged = input.request.operations.some((operation) => operation.code === 'CHANGE_SERVICE_SPEED' && operation.payload.serviceSpeed !== input.context.order.serviceSpeed);
-  const createsChange = structure.createsChange || projectedPreferences.createsChange || header;
+  const unlisted = input.request.operations.some((operation) => operation.code === 'CHANGE_UNLISTED');
+  const createsChange = structure.createsChange || projectedPreferences.createsChange || header || unlisted;
   const activeItemIds = structure.items.filter((item) => item.active).map((item) => item.id);
   if (!createsChange || denied) {
     return {
@@ -268,6 +271,7 @@ export async function previewOrderChange(input: {
       projectedTax: null,
       displayTotal: null,
       projectedItemIds: activeItemIds,
+      lines: [],
       followUp: [],
     };
   }
@@ -340,6 +344,7 @@ export async function previewOrderChange(input: {
     projectedTax: calculated.taxAmount,
     displayTotal: calculated.displayTotal,
     projectedItemIds: activeItemIds,
+    lines: calculated.lines,
     followUp: financial.warnings.map((warning) => warning.code),
   };
 }

@@ -1,6 +1,6 @@
 # Runbook 11 — Billing / Usage Reconciliation
 
-**Status: Partial.** Atomic, idempotent usage metering and concurrency-safe quota reads are implemented and (per `STATUS.md`) applied to both local and remote databases. A true pre-send reservation (so two concurrent commands can never both pass a hard cap) and any reconciliation against actual provider-invoiced charges are both explicitly out of scope so far — not bugs, declared scope boundaries.
+**Status: Implemented for metering and hard-cap enforcement (2026-10-15, migration 0623).** Usage metering is atomic and idempotent, and the hard cap is enforced by an atomic reservation (reserve before the send, settle with the usage increment, expire if the sender dies). Provider-invoice reconciliation is still not implemented. **Important correction:** before 0623 the metering function failed on every first-time increment (SQLSTATE 42702, swallowed by the API), so `org_ntf_usage_daily` stayed empty and no cap could ever trigger; queued channels were additionally never counted. Earlier statements in this runbook that metering was "verified" described the code, not observed rows.
 
 **Discrepancy found and reported (not silently corrected):** the plan document's own section 16 callout, dated 2026-10-09, states migration `0598_ntf_usage_metering_atomic_idempotent.sql` is "created, **not yet applied**." `STATUS.md`'s top entry, also dated 2026-10-09, states the opposite: *"Migration status — APPLIED... applied by the user to both local and remote databases (2026-10-09)... database types/Prisma... were regenerated and confirmed to include `fn_ntf_meter_usage_atomic`, `fn_ntf_quota_usage_locked`, and `org_ntf_usage_apply_evt`."* Source-code evidence supports STATUS.md: `metering.service.ts` calls `client.rpc('fn_ntf_meter_usage_atomic', ...)` directly with no bridging type cast (the cast was explicitly removed per STATUS.md once generated types included the function) — a stale bridging cast would be expected if the migration were genuinely unapplied and types were never regenerated against it. This runbook treats the migration as **applied**, per STATUS.md and the code evidence, and flags the plan's own section 16 prose as stale.
 
@@ -15,6 +15,22 @@ Verify usage metering is counting correctly and without double-counting, and und
 3. **Concurrency-safe quota read.** `fn_ntf_quota_usage_locked` (migration `0598`) takes the same per-`(tenant_org_id, channel_code)` Postgres advisory lock as the increment function before summing `sent_count`, so `QuotaRepository.getUsageInPeriod()` can never read a half-applied concurrent increment for the same tenant+channel.
 4. **Worker-side fix.** `platform-workers/src/notifications/dispatch.processor.ts`'s old `onConflict` upsert target had silently stopped matching any real constraint since migration `0366` added `currency_code` to the natural key — every queued-channel metering call had been broken since then. It now calls the same `fn_ntf_meter_usage_atomic` RPC with its result actually checked/logged.
 5. **Redelivery-safe dispatch.** The same increment found a separate bug: the BullMQ worker sent to the provider unconditionally on every job execution with no status check, so a redelivered job for an already-`SENT` command could send to the real customer twice. Fixed by checking `hq_ntf_dispatch_log.status` for `(idempotency_key, tenant_org_id)` before any provider call, returning early when already `SENT`/`PERMANENT_FAILURE` (but not `PENDING`/`FAILED`, which are legitimate in-flight/retrying states).
+
+## Quota reservation (migration 0623)
+
+1. **Reserve.** Before touching the provider, `QuotaService.checkAndReserve` calls `fn_ntf_quota_reserve`: under the per-(tenant, channel) lock it compares `used + in-flight reservations + 1` with the hard cap and, when allowed, inserts a `RESERVED` row in `org_ntf_quota_rsv_dtl` (15 minutes to live). Parallel commands therefore cannot exceed the cap. Same command key twice = one unit.
+2. **Settle.** The command's usage metering (`fn_ntf_meter_usage_atomic`, same lock, same transaction) turns the reservation into `COMMITTED` when the message was sent and `RELEASED` when it was not. A queued command stays `RESERVED` until the worker meters its real outcome.
+3. **Release.** A throwing send, a queue that refuses the command, or a credential failure releases the unit at once.
+4. **Expire.** Job `ntf-quota-rsv-sweep` (every 5 minutes) marks reservations past their expiry `EXPIRED` (they stopped counting the moment they expired) and purges settled rows after 30 days.
+5. **Fail open.** If the reservation call itself fails, the send is allowed and an error is logged (an unavailable ledger must not stop notifications). Watch the HQ API log for "Quota reservation unavailable".
+
+Look at it: HQ → Notifications → Quota → **Tenant position** (used, reserved, cap, remaining per channel).
+
+```sql
+-- reservations by state, and anything stuck
+select status, count(*) from org_ntf_quota_rsv_dtl group by 1;
+select * from org_ntf_quota_rsv_dtl where status = 'RESERVED' and expires_at < now() - interval '1 hour';  -- expect 0 rows
+```
 
 ## Operator steps — verify metering is working correctly for a tenant/channel/day
 

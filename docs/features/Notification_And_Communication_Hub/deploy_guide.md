@@ -140,6 +140,8 @@ SELECT public.fn_ntf_rotate_outbox_secret('<new random 32+ char value>');  -- re
 
 Then set `NOTIFICATIONS_OUTBOX_SECRET` (or registry key `ntf.app.outbox_secret`) to that value and redeploy.
 
+3. HQ API host: `HQ_ENCRYPTION_MASTER_KEY` (base64, 32 bytes) is required for encrypted values; `HQ_ENCRYPTION_MASTER_KEY_PREVIOUS` exists only during a rotation ([runbook 13](./Runbooks/13_master_key_rotation_and_config_drift.md)). Optional automatic drift alerts: registry keys `platform.ops.drift_check_minutes` (default 15, 0 = off) and `platform.ops.alert_webhook_url` (https webhook).
+
 ---
 
 ## 5. pg_cron Job Verification

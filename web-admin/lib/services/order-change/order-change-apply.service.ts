@@ -4,11 +4,36 @@
  * Pricing, tax, settlement, and workflow status stay with their owners.
  */
 
+import {
+  assertCommercialSnapshot,
+  buildCommercialWritePlan,
+  loadCommercialWriteFacts,
+  OrderChangeApplyRejected,
+  preferenceParentIsLocal,
+  PREFERENCE_OPERATION_CODES,
+  writePreferenceCharges,
+  type CommercialWriteFacts,
+  type CommercialWritePlan,
+} from '@/lib/services/order-change/order-change-commercial-write';
+import {
+  buildStructuralWritePlan,
+  loadStructuralWriteFacts,
+  STRUCTURAL_OPERATION_CODES,
+  type StructuralWritePlan,
+} from '@/lib/services/order-change/order-change-structural-write';
 import { mapPersistedFinancialOutcome, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
 import type { OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
 import { round4 } from '@/lib/services/order-financial-aggregation';
 import type { z } from 'zod';
 import type { orderChangeApplyRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
+
+const EMPTY_COMMERCIAL_FACTS: CommercialWriteFacts = {
+  pieceItemIds: new Map(),
+  catalogById: new Map(),
+  nextPrefsNo: 0,
+  branchId: null,
+  orderLevelPreferenceIds: new Set(),
+};
 
 type ApplyRequest = z.infer<typeof orderChangeApplyRequestSchema>;
 
@@ -69,20 +94,40 @@ function orderFields(request: ApplyRequest): Record<string, unknown> {
       if (operation.payload.customerName !== undefined) data.customer_name = operation.payload.customerName;
       if (operation.payload.customerMobile !== undefined) data.customer_mobile_number = operation.payload.customerMobile;
       if (operation.payload.customerEmail !== undefined) data.customer_email = operation.payload.customerEmail;
+    } else if (operation.code === 'CHANGE_UNLISTED' && operation.payload.field === 'order.readyBy' && operation.target.kind === 'ORDER' && operation.payload.value === '') {
+      data.ready_by = null;
     }
   }
   return data;
 }
 
-function persistedOperations(request: ApplyRequest, actorUserId: string): OrderChangePersistedOperation[] {
-  return request.operations.map((operation) => ({
-    seq: operation.seq,
-    code: operation.code,
-    targetType: 'ORDER' as const,
-    beforeValues: {},
-    afterValues: operation.payload,
-    auditSummary: null,
-  }));
+function persistedOperations(
+  request: ApplyRequest,
+  auditBySeq: CommercialWritePlan['auditBySeq'],
+): OrderChangePersistedOperation[] {
+  return request.operations.map((operation) => {
+    const audit = auditBySeq.get(operation.seq);
+    return {
+      seq: operation.seq,
+      code: operation.code,
+      targetType: audit?.targetType ?? 'ORDER',
+      orderItemId: audit?.orderItemId ?? null,
+      orderItemPieceId: audit?.orderItemPieceId ?? null,
+      orderPreferenceId: audit?.orderPreferenceId ?? null,
+      clientRef: audit?.clientRef ?? null,
+      beforeValues: {},
+      afterValues: operation.code === 'CHANGE_UNLISTED'
+        ? {
+            field: operation.payload.field,
+            value: operation.payload.value,
+            targetKind: operation.target.kind,
+            ...('id' in operation.target && operation.target.id ? { targetId: operation.target.id } : {}),
+            ...('clientRef' in operation.target && operation.target.clientRef ? { clientRef: operation.target.clientRef } : {}),
+          }
+        : operation.payload,
+      auditSummary: null,
+    };
+  });
 }
 
 /**
@@ -97,18 +142,45 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
     return { ok: false, status: 409, code: 'REVIEW_CHANGED' };
   }
   if (!input.currencyCode) return { ok: false, status: 422, code: 'CURRENCY_UNRESOLVED' };
-  if (input.request.operations.some((operation) => !ORDER_FIELD_CODES.has(operation.code))) {
+  const hasPreference = input.request.operations.some((operation) => PREFERENCE_OPERATION_CODES.has(operation.code));
+  const hasStructural = input.request.operations.some((operation) => STRUCTURAL_OPERATION_CODES.has(operation.code));
+  if (input.request.operations.some((operation) => (
+    !ORDER_FIELD_CODES.has(operation.code)
+    && operation.code !== 'CHANGE_UNLISTED'
+    && !PREFERENCE_OPERATION_CODES.has(operation.code)
+    && !STRUCTURAL_OPERATION_CODES.has(operation.code)
+  ))) {
     return { ok: false, status: 422, code: 'COMMERCIAL_LINE_UNSUPPORTED' };
   }
-  if (input.preview.projectedTotal !== input.preview.originalTotal) {
+  if (!hasPreference && !hasStructural && input.preview.projectedTotal !== input.preview.originalTotal) {
     return { ok: false, status: 422, code: 'COMMERCIAL_TOTAL_CHANGED' };
+  }
+  if (preferenceParentIsLocal(input.request.operations)) {
+    return { ok: false, status: 422, code: 'PREFERENCE_PARENT_NOT_PERSISTED' };
+  }
+  if (hasStructural && input.request.operations.some((operation) => (
+    operation.code === 'ADD_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY'
+  )) && (input.preview.lines ?? []).length === 0) {
+    return { ok: false, status: 422, code: 'STRUCTURE_PRICE_MISSING' };
   }
   const financialOutcome = mapPersistedFinancialOutcome(input.preview.financial.outcome, null);
   if (!financialOutcome) return { ok: false, status: 422, code: 'COLLECTION_POLICY_UNRESOLVED' };
 
   const delta = round4(Number(input.preview.projectedTotal) - Number(input.preview.originalTotal)).toFixed(4);
   const fields = orderFields(input.request);
-  return input.runInTransaction(async (tx) => {
+  try {
+    return await input.runInTransaction(async (tx) => {
+    const facts = hasPreference
+      ? await loadCommercialWriteFacts(tx, input.tenantId, input.orderId, input.request.operations)
+      : EMPTY_COMMERCIAL_FACTS;
+    const plan = buildCommercialWritePlan(input.request.operations, input.actorUserId, facts);
+    const structuralFacts = hasStructural
+      ? await loadStructuralWriteFacts(tx, input.tenantId, input.orderId, input.request.operations)
+      : null;
+    const structural = structuralFacts
+      ? buildStructuralWritePlan(input.request.operations, input.preview.lines ?? [], structuralFacts, input.actorUserId)
+      : null;
+    const auditBySeq = new Map([...plan.auditBySeq, ...(structural?.auditBySeq ?? [])]);
     const persisted = await persistOrderChangeTx(tx, {
       tenantId: input.tenantId,
       orderId: input.orderId,
@@ -129,10 +201,36 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       idempotencyKey: input.idempotencyKey,
       request: input.request,
       applyResponse: { status: 'APPLIED' },
-      operations: persistedOperations(input.request, input.actorUserId),
+      operations: persistedOperations(input.request, auditBySeq),
+      preferenceInserts: plan.preferenceInserts.length > 0 ? plan.preferenceInserts : undefined,
+      preferenceUpdates: plan.preferenceUpdates.length > 0 ? plan.preferenceUpdates : undefined,
+      removePreferenceIds: plan.removePreferenceIds.length > 0 ? plan.removePreferenceIds : undefined,
+      itemInserts: structural && structural.itemInserts.length > 0 ? structural.itemInserts : undefined,
+      pieceInserts: structural && structural.pieceInserts.length > 0 ? structural.pieceInserts : undefined,
+      itemUpdates: mergedRows(plan.itemUpdates, structural?.itemUpdates ?? []),
+      pieceUpdates: plan.pieceUpdates.length > 0 ? plan.pieceUpdates : undefined,
+      removeItemIds: structural && structural.removeItemIds.length > 0 ? structural.removeItemIds : undefined,
+      removePieceIds: structural && structural.removePieceIds.length > 0 ? structural.removePieceIds : undefined,
       appliedAt: input.appliedAt,
     });
     if (!persisted.ok) return { ok: false as const, status: 409 as const, code: persisted.code };
+    if (!persisted.replayed) {
+      await writePreferenceCharges(tx, {
+        tenantId: input.tenantId,
+        orderId: input.orderId,
+        actorUserId: input.actorUserId,
+        currencyCode: input.currencyCode as string,
+        appliedAt: input.appliedAt,
+        plan,
+      });
+      if (commercialMoneyChanged(plan) || structuralMoneyChanged(structural)) {
+        await assertCommercialSnapshot(tx, {
+          tenantId: input.tenantId,
+          orderId: input.orderId,
+          projectedTotal: input.preview.projectedTotal,
+        });
+      }
+    }
     if (!persisted.replayed && Object.keys(fields).length > 0) {
       const updated = await tx.org_orders_mst.updateMany({
         where: {
@@ -152,5 +250,41 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       editStateVersionAfter: persisted.editStateVersionAfter,
       requestHash: persisted.requestHash,
     };
-  });
+    });
+  } catch (error) {
+    if (error instanceof OrderChangeApplyRejected) return { ok: false, status: error.status, code: error.code };
+    throw error;
+  }
+}
+
+function mergedRows(
+  first: CommercialWritePlan['itemUpdates'],
+  second: StructuralWritePlan['itemUpdates'],
+): CommercialWritePlan['itemUpdates'] | undefined {
+  const byId = new Map<string, Record<string, unknown>>();
+  const ids: string[] = [];
+  for (const row of [...first, ...second]) {
+    if (!byId.has(row.id)) ids.push(row.id);
+    byId.set(row.id, { ...(byId.get(row.id) ?? {}), ...row.data });
+  }
+  if (ids.length === 0) return undefined;
+  return ids.map((id) => ({ id, data: byId.get(id) ?? {} }));
+}
+
+function structuralMoneyChanged(plan: StructuralWritePlan | null): boolean {
+  if (!plan) return false;
+  return plan.itemInserts.length > 0
+    || plan.pieceInserts.length > 0
+    || plan.itemUpdates.length > 0
+    || plan.removeItemIds.length > 0
+    || plan.removePieceIds.length > 0;
+}
+
+function commercialMoneyChanged(plan: CommercialWritePlan): boolean {
+  return plan.preferenceInserts.length > 0
+    || plan.preferenceUpdates.length > 0
+    || plan.removePreferenceIds.length > 0
+    || plan.orderCharges.length > 0
+    || plan.voidChargeSourceIds.length > 0
+    || plan.itemUpdates.some((row) => Object.prototype.hasOwnProperty.call(row.data, 'price_override'));
 }

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { OrderPiecePreferenceService } from '@/lib/services/order-piece-preference.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import {
   addPieceServicePrefSchema,
   type AddPieceServicePrefInput,
@@ -101,6 +102,11 @@ export async function POST(
     const { id: orderId, itemId, pieceId } = await params;
     const body = await request.json();
 
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
+    }
+
     const parsed = await addPieceServicePrefSchema.safeParseAsync(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -156,7 +162,7 @@ export async function DELETE(
     if (authCheck instanceof NextResponse) return authCheck;
     const { tenantId } = authCheck;
 
-    const { itemId, pieceId } = await params;
+    const { id: orderId, itemId, pieceId } = await params;
     const { searchParams } = new URL(request.url);
     const prefId = searchParams.get('prefId');
 
@@ -181,6 +187,11 @@ export async function DELETE(
         { success: false, error: 'Order piece not found' },
         { status: 404 }
       );
+    }
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
     }
 
     const result = await OrderPiecePreferenceService.removePieceServicePref(

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { OrderItemPreferenceService } from '@/lib/services/order-item-preference.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { updatePackingPrefSchema } from '@/lib/validations/service-preferences-schemas';
 import { log } from '@/lib/utils/logger';
 
@@ -53,6 +54,11 @@ export async function PATCH(
         { success: false, error: 'Order item not found' },
         { status: 404 }
       );
+    }
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
     }
 
     const result = await OrderItemPreferenceService.updateItemPackingPref(

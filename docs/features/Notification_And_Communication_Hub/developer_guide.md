@@ -546,7 +546,9 @@ HQ_DISPATCH_API_KEY=<shared service key>
 
 **cleanmatexsaas** (for provider dispatch):
 ```
-HQ_ENCRYPTION_MASTER_KEY=<32-byte hex>
+HQ_ENCRYPTION_MASTER_KEY=<base64-encoded 32-byte key>
+# Only during a key rotation (see Runbooks/13): the OLD key, base64-encoded 32 bytes
+# HQ_ENCRYPTION_MASTER_KEY_PREVIOUS=
 RESEND_API_KEY=...
 TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
@@ -589,3 +591,23 @@ EN/AR keys (`notifications.settings.templates.*`, `customers.whatsappConsent.*`)
 The client re-reads provider config before saving one event. GET/POST/PUT provider and
 GET/PATCH customer endpoints check an optional `X-Tenant-Id` against the authenticated
 tenant to reject stale forms. The access contracts describe existing permission gates.
+
+## Canonical builder (NTF-06)
+
+Every notification — event, campaign or test — is rendered and decided through the same three modules in `web-admin/lib/notifications/`:
+
+| Module | Responsibility |
+|---|---|
+| `template-renderer.ts` | `renderNotificationContent(ref, channel, variables)`: newest APPROVED active template version, IN_APP fallback, plain-text fallback, `{{var}}` interpolation. `ref` is `{kind:'event', eventCode}` or `{kind:'code', templateCode}`. |
+| `delivery-policy.ts` | Pure rules: `decideDelivery` (channel enabled → marketing consent → quiet-hours-aware `scheduledAt`) and `computeScheduledAt`. Injectable clock. |
+| `canonical-builder.ts` | `buildNotification({source, channel, template|inline, variables, policy, testMode})` → `{rendered, decision, isTest}`; `renderBuiltContent` for batch callers (render once, decide per recipient). No writes. |
+
+Rules for new code: never query `sys_ntf_template_*` for rendering outside the renderer; never re-implement consent or quiet hours — call `decideDelivery`; a new entry point (preview, test send) calls `buildNotification` with `source: 'TEST'`. Add a fixture to `__tests__/notifications/canonical-builder-contract.test.ts` when a rendering or policy rule changes. Persistence (inbox, outbox, provider send) stays in the adapters; suppression-list and provider checks are re-done at send time.
+
+## Adding a provider connector (R13)
+
+1. Implement `ProviderConnector` (or extend `HttpProviderConnector`: declare `providerCode`, `channel`, `capabilities`, `requiredCredentialKeys`, `buildRequest`, `readMessageId`, and override `resolveCredentials` to read the Config Registry keys of the provider). Never throw from `send`; never put a credential, the recipient or the body in an error message.
+2. Register it in `buildConnectorRegistry` (`dispatch/dispatch.module.ts`) and add the registry keys for its credentials by migration (secrets encrypted by default for HQ-only keys).
+3. Add a spec that calls `describeConnectorConformance('<Name>', harness)` (see `connectors/__tests__/connectors.spec.ts`): it must pass with no scenario marked n/a unless the reason is structural.
+4. Route a tenant or platform account to it by setting `provider_code` in `org_ntf_channel_provider_cf`; the dispatcher picks the connector by provider code and channel. A provider without a registered connector keeps its legacy path.
+5. Sandbox connectors (`SANDBOX_EMAIL`, `SANDBOX_SMS`, `SANDBOX_WHATSAPP`) let you exercise routing, failover and health without credentials; recipient text selects the outcome (`fail-permanent`, `fail-temp`, `rate-limit`). They are off in production unless `HQ_NTF_SANDBOX_ENABLED=true`.

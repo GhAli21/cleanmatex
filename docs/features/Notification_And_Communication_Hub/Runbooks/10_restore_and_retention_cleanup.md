@@ -1,6 +1,6 @@
 # Runbook 10 — Restore & Retention Cleanup
 
-**Status: Not implemented.** Both topics are combined in this file because neither has any notification-specific tooling today — confirmed by searching both repos for retention/cleanup/purge logic and any backup/restore script scoped to notification tables; none exists. This is an expected, legitimate finding, not an oversight to paper over.
+**Status: Partial — retention cleanup implemented (Part B); restore drill not implemented (Part A).** Retention is implemented (Part B, updated 2026-10-15); restore has no notification-specific drill yet (Part A) — an expected, legitimate gap, not an oversight to paper over.
 
 ## Part A — Restore
 
@@ -21,23 +21,18 @@ Recover notification queue/acceptance state after a database or Redis restore wi
 
 ## Part B — Retention Cleanup
 
-### Purpose (as intended by the plan)
+**Implemented (migrations 0609 and 0623).** Job `ntf-retention-sweep` (daily 04:00, Job Manager) calls `fn_ntf_retention_sweep(180)`: it purges terminal rows older than 180 days from the outbox, delivery log, receipts, in-app inbox, the usage-apply ledger and the HQ dispatch log (never anything pending, queued or unread). 0623 fixed a defect that would have made the sweep fail on its first eligible row (the usage-apply ledger references the dispatch log) and added `ntf-quota-rsv-sweep` (every 5 minutes: expires unsettled quota reservations, purges settled ones after 30 days).
 
-Enforce "approved retention windows for event data, recipient addresses, payloads, receipts, usage and audit metadata. Minimize PII snapshots" (plan section 11.2), and have this "exercised" with an assigned owner per the definition-of-done (section 24).
+### Operator steps
+1. Job Manager: both jobs active, last run SUCCESS; Setup Health `jobs.drift` / `jobs.last_run` OK.
+2. Verify: `select count(*) from hq_ntf_dispatch_log where status in ('SENT','PERMANENT_FAILURE') and created_at < now() - interval '181 days';` → 0 after a run.
+3. Changing the window means a new migration (the 180 days follow the existing session-sweep precedent; the plan leaves the final policy to the owner).
 
-### What exists today
-
-- **No retention/cleanup job of any kind exists for any notification table in either repo.** Confirmed: no migration under `supabase/migrations` with a retention/cleanup/purge pattern scoped to `ntf`/`notification` tables, and no cron job beyond the already-documented dispatch/retry/campaign-scheduler jobs (`0350`, `0353`, `0362`) — none of which delete or archive anything.
-- Rows in `org_ntf_outbox_dtl`, `org_ntf_delivery_log_dtl`, `org_ntf_notifications_mst` (in-app inbox), `org_ntf_receipts_tr`, `org_ntf_audit_dtl`, `org_ntf_usage_daily`, and `org_ntf_usage_apply_evt` **accumulate indefinitely today.** This includes recipient addresses and rendered message bodies stored in the outbox/delivery-log rows.
-
-### NOT YET IMPLEMENTED — what would need to be built
-
-1. An explicit, approved retention policy decision per data class (event/intent data, recipient addresses, rendered payload bodies, receipts, usage records, audit metadata) — the plan flags this as its own unresolved decision gate (section 23: "Retention/residency/compliance... Required before production cohort expansion") and it has not been made yet.
-2. A reviewed migration implementing the actual cleanup (scheduled deletion/archival job, likely pg_cron-based like the existing dispatch jobs) once that policy is approved.
-3. A way to minimize PII snapshots in already-stored rendered payloads (the plan calls this out separately from simple time-based deletion).
+### Still open
+Minimizing PII inside rows younger than the window (the plan lists it separately), and the formal owner sign-off of the retention policy (plan section 23).
 
 ## Why these two are combined in one file
 
 Per the task's own guidance: both topics are, today, "mostly NOT_IMPLEMENTED stubs" with no existing tooling to document — grouping avoids two files that would otherwise each consist of a single "nothing exists yet" statement, while keeping each sub-topic separately headed and findable above.
 
-**Last verified against source:** 2026-10-10 (searched `supabase/migrations` and both repos' notification code for retention/cleanup/purge/restore patterns — none found beyond the dispatch/retry/campaign cron jobs already documented in Runbook 07/08).
+**Last verified against source:** 2026-10-15 (Part B updated; Part A, restore, is still an exercised-drill gap).

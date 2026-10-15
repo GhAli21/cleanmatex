@@ -256,7 +256,23 @@ export async function evaluateOrderChangeCapability(input: {
   if (!input.facts.workflowStatus?.trim()) return denial('WORKFLOW_STATUS_UNAVAILABLE', 'orderChange.capability.workflowStatusUnavailable');
   if (input.operation.hardDenial) return denial(input.operation.hardDenial.code, input.operation.hardDenial.messageKey);
   if (!await input.actor.canUsePermission(ORDERS_PERMISSIONS.EDIT)) return denial('PERMISSION_DENIED', 'orderChange.capability.permissionDenied');
-  if (input.operation.code === 'CHANGE_UNLISTED') return denial('NOT_IN_POLICY', 'orderChange.capability.notInPolicy');
+  if (input.operation.code === 'CHANGE_UNLISTED') {
+    const assigned = input.bindings.find((candidate) => candidate.workflowStatus === input.facts.workflowStatus);
+    return {
+      seq: input.operation.seq,
+      operationCode: input.operation.code,
+      targetType,
+      decision: 'ALLOW',
+      reasonCode: 'NOT_IN_POLICY',
+      messageKey: 'orderChange.capability.notInPolicy',
+      requiresAcknowledgement: false,
+      requiresReason: false,
+      overridePermissionCode: null,
+      policyIdentity: assigned
+        ? { editPolicyId: assigned.editPolicyId, profileVersionId: assigned.profileVersionId, policyRevision: assigned.policyRevision }
+        : null,
+    };
+  }
 
   const binding = input.bindings.find((candidate) =>
     candidate.workflowStatus === input.facts.workflowStatus

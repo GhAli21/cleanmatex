@@ -78,7 +78,7 @@ describe('order change capability policy', () => {
   it('shows an unlisted change in preview even when the policy has no rule for it', async () => {
     await expect(evaluateOrderChangeCapability(capabilityInput({
       operation: { seq: 1, code: 'CHANGE_UNLISTED', hasReason: false },
-    }))).resolves.toMatchObject({ decision: 'DENY', reasonCode: 'NOT_IN_POLICY', operationCode: 'CHANGE_UNLISTED' });
+    }))).resolves.toMatchObject({ decision: 'ALLOW', reasonCode: 'NOT_IN_POLICY', operationCode: 'CHANGE_UNLISTED', requiresAcknowledgement: false });
   });
 
   it('allows only an explicit profile binding after server-side permission validation', async () => {

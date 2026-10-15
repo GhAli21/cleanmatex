@@ -957,6 +957,26 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Applied Change labels for this order. orders:read is enforced. Financial snapshots are not returned.'],
       },
       {
+        label: 'Order Change Follow-up',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/changes/follow-up',
+        requirement: {
+          permissions: ['orders:edit'],
+          requireAllPermissions: true,
+        },
+        notes: ['Read-only follow-up plan after a committed Change. orders:edit is enforced. It does not collect or refund.'],
+      },
+      {
+        label: 'Order Change Stored-value Resolution',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/financial-resolution',
+        requirement: {
+          permissions: ['orders:overpayment_allocate'],
+          requireAllPermissions: true,
+        },
+        notes: ['Moves an existing overpayment to customer advance, credit, or wallet through the disposition owner. CSRF and orders:overpayment_allocate are enforced. Cash and gateway refunds are rejected.'],
+      },
+      {
         label: 'Assembly Dashboard',
         method: 'GET',
         path: '/api/v1/assembly/dashboard',

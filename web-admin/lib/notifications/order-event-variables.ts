@@ -9,10 +9,15 @@ function formatReadyByLabel(readyByAt: string | Date | null | undefined, locale 
   const date = readyByAt instanceof Date ? readyByAt : new Date(readyByAt);
   if (Number.isNaN(date.getTime())) return 'Pending';
 
+  // A date-only value ("2026-10-15") means a calendar day, not an instant: JS parses it as UTC midnight,
+  // so formatting it in the server's zone would show the previous day west of UTC. Format it in UTC.
+  const isCalendarDay = typeof readyByAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(readyByAt.trim());
+
   return date.toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
     year:   'numeric',
     month:  'long',
     day:    'numeric',
+    ...(isCalendarDay ? { timeZone: 'UTC' } : {}),
   });
 }
 

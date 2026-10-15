@@ -10,6 +10,7 @@
 import { revalidatePath } from 'next/cache';
 import { addOrderItemsSchema } from '@/lib/validations/order-schema';
 import { addOrderItems as addOrderItemsDb } from '@/lib/db/orders';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import type { OrderItem, Order } from '@/types/order';
 
 interface AddOrderItemsResult {
@@ -19,6 +20,7 @@ interface AddOrderItemsResult {
     order: Order;
   };
   error?: string;
+  errorCode?: string;
   errors?: Record<string, string[]>;
 }
 
@@ -54,7 +56,9 @@ export async function addOrderItems(
       };
     }
 
-    // Add items to order
+    const retiredWrite = await blockCommittedCommercialWrite(tenantOrgId, orderId);
+    if (retiredWrite) return retiredWrite.body;
+
     const result = await addOrderItemsDb(tenantOrgId, orderId, validation.data);
 
     // Revalidate order pages

@@ -10,6 +10,7 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { isPreparationEnabled } from '@/lib/config/features';
 import { requireTenantAuth } from '@/lib/middleware/tenant-guard';
 import { validateCSRF } from '@/lib/middleware/csrf';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 
 export const runtime = 'nodejs';
 
@@ -43,6 +44,11 @@ export async function PATCH(
     const { tenantId } = auth;
     const { id: orderId, itemId } = await params;
     const data = await request.json();
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
+    }
 
     // Update item - wrap with tenant context so Prisma middleware can access tenant ID
     const updated = await withTenantContext(tenantId, async () => {
@@ -108,6 +114,11 @@ export async function DELETE(
     
     const { id: orderId, itemId } = await params;
     const { tenantId } = auth;
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
+    }
 
     // Delete item - wrap with tenant context so Prisma middleware can access tenant ID
     await withTenantContext(tenantId, async () => {

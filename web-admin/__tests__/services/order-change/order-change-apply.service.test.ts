@@ -57,7 +57,7 @@ function request(): ApplyOrderChangeInput['request'] {
 
 function harness(overrides: Partial<ApplyOrderChangeInput> = {}) {
   const updateMany = jest.fn().mockResolvedValue({ count: 1 });
-  const tx = { org_orders_mst: { updateMany } } as unknown as OrderChangeApplyTx;
+  const tx = { org_orders_mst: { updateMany } } as unknown as OrderChangeApplyTx & { $queryRaw?: unknown };
   let opened = false;
   let committed = false;
   const input: ApplyOrderChangeInput = {
@@ -82,7 +82,7 @@ function harness(overrides: Partial<ApplyOrderChangeInput> = {}) {
     },
     ...overrides,
   };
-  return { input, updateMany, opened: () => opened, committed: () => committed };
+  return { input, updateMany, tx, opened: () => opened, committed: () => committed };
 }
 
 describe('applyOrderChange', () => {
@@ -131,6 +131,133 @@ describe('applyOrderChange', () => {
     expect(persistMock).not.toHaveBeenCalled();
   });
 
+  it('allows a change whose code is not in the policy and records it', async () => {
+    const { input, updateMany, committed } = harness({
+      request: {
+        ...request(),
+        operations: [{ seq: 1, code: 'CHANGE_UNLISTED', target: { kind: 'ORDER' }, payload: { field: 'order.readyBy', value: '' } }],
+      },
+    });
+    const result = await applyOrderChange(input);
+    expect(result.ok).toBe(true);
+    expect(committed()).toBe(true);
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: { ready_by: null },
+    }));
+    const persisted = persistMock.mock.calls[0][1];
+    expect(persisted.operations).toEqual([expect.objectContaining({
+      code: 'CHANGE_UNLISTED',
+      targetType: 'ORDER',
+      afterValues: expect.objectContaining({ field: 'order.readyBy', value: '', targetKind: 'ORDER' }),
+    })]);
+  });
+
+  it('saves a catalog preference and a tracked piece field without recreating the order', async () => {
+    const preferenceId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const pieceId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const query = jest.fn(async (strings: TemplateStringsArray) => {
+      const text = strings.join(' ');
+      if (text.includes('org_service_preference_cf')) {
+        return [{ id: preferenceId, preference_code: 'FOLD', extra_price: '0.0000', preference_sys_kind: 'service_prefs' }];
+      }
+      if (text.includes('org_order_item_pieces_dtl')) {
+        return [{ id: pieceId, order_item_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }];
+      }
+      if (text.includes('MAX(prefs_no)')) return [{ max_no: 4 }];
+      if (text.includes('branch_id')) return [{ branch_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }];
+      return [];
+    });
+    const { input, tx, committed } = harness({
+      request: {
+        ...request(),
+        operations: [
+          {
+            seq: 1,
+            code: 'ADD_PREFERENCE',
+            target: { kind: 'PERSISTED_PIECE', id: pieceId },
+            payload: { clientRef: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', preferenceId, preferenceCode: 'FOLD' },
+          },
+          {
+            seq: 2,
+            code: 'CHANGE_UNLISTED',
+            target: { kind: 'PERSISTED_PIECE', id: pieceId },
+            payload: { field: 'piece.color', value: 'BLUE' },
+          },
+        ],
+      },
+    });
+    tx.$queryRaw = query;
+    const result = await applyOrderChange(input);
+    expect(result.ok).toBe(true);
+    expect(committed()).toBe(true);
+    const persisted = persistMock.mock.calls[0][1];
+    expect(persisted.preferenceInserts).toEqual([expect.objectContaining({
+      data: expect.objectContaining({
+        prefs_level: 'PIECE',
+        preference_code: 'FOLD',
+        preference_id: preferenceId,
+        extra_price: '0.0000',
+        prefs_source: 'ORDER_EDIT',
+        order_item_piece_id: pieceId,
+        order_item_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      }),
+    })]);
+    expect(persisted.pieceUpdates).toEqual([expect.objectContaining({
+      id: pieceId,
+      data: expect.objectContaining({ color: 'BLUE' }),
+    })]);
+    expect(persisted.operations[0]).toEqual(expect.objectContaining({
+      code: 'ADD_PREFERENCE',
+      targetType: 'PREFERENCE',
+      orderPreferenceId: persisted.preferenceInserts?.[0].id,
+    }));
+  });
+
+  it('saves a reviewed item without recreating the order', async () => {
+    const clientRef = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const productId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const { input, tx, committed } = harness({
+      request: {
+        ...request(),
+        operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef, productId, quantity: 1 } }],
+      },
+      preview: preview({
+        projectedTotal: '12.0000',
+        lines: [{ id: clientRef, active: true, unitPrice: '2.0000', merchandiseAmount: '2.0000' }],
+      }),
+    });
+    tx.$queryRaw = jest.fn(async (strings: TemplateStringsArray) => {
+      const text = strings.join(' ');
+      if (text.includes('org_orders_mst')) {
+        return [{ order_no: '100', branch_id: null, current_status: 'processing', item_count: 2 }];
+      }
+      if (text.includes('org_product_data_mst')) {
+        return [{ id: productId, product_name: 'Shirt', product_name2: 'قميص', service_category_code: 'laundry' }];
+      }
+      return [];
+    });
+    const result = await applyOrderChange(input);
+    expect(result.ok).toBe(true);
+    expect(committed()).toBe(true);
+    const persisted = persistMock.mock.calls[0][1];
+    expect(persisted.itemInserts).toEqual([expect.objectContaining({
+      id: clientRef,
+      data: expect.objectContaining({
+        product_id: productId,
+        product_name: 'Shirt',
+        quantity: 1,
+        price_per_unit: '2.0000',
+        total_price: '2.0000',
+        order_item_srno: '100-3',
+      }),
+    })]);
+    expect(persisted.operations[0]).toEqual(expect.objectContaining({
+      code: 'ADD_ITEM',
+      targetType: 'ITEM',
+      orderItemId: clientRef,
+    }));
+  });
+
   it('does not write a commercial line or a changed total', async () => {
     const line = harness({
       request: {
@@ -138,7 +265,7 @@ describe('applyOrderChange', () => {
         operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', productId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', quantity: 1 } }],
       },
     });
-    await expect(applyOrderChange(line.input)).resolves.toEqual({ ok: false, status: 422, code: 'COMMERCIAL_LINE_UNSUPPORTED' });
+    await expect(applyOrderChange(line.input)).resolves.toEqual({ ok: false, status: 422, code: 'STRUCTURE_PRICE_MISSING' });
     expect(line.opened()).toBe(false);
 
     const priced = harness({ preview: preview({ projectedTotal: '12.0000' }) });

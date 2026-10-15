@@ -1653,6 +1653,7 @@ model org_tenants_mst {
   org_ntf_camp_targets_dtl         org_ntf_camp_targets_dtl[]
   org_ntf_campaigns_mst            org_ntf_campaigns_mst[]
   org_ntf_prov_acct_mst            org_ntf_prov_acct_mst[]
+  org_ntf_quota_rsv_dtl            org_ntf_quota_rsv_dtl[]
   org_ntf_receipts_tr              org_ntf_receipts_tr[]
   org_ntf_route_assign_cf          org_ntf_route_assign_cf[]
   org_ntf_soft_bounce_lst          org_ntf_soft_bounce_lst[]
@@ -4613,13 +4614,16 @@ model sys_ntf_channel_cd {
   org_ntf_outbox_dtl          org_ntf_outbox_dtl[]
   org_ntf_prov_acct_mst       org_ntf_prov_acct_mst[]
   org_ntf_prov_send_mst       org_ntf_prov_send_mst[]
+  org_ntf_quota_rsv_dtl       org_ntf_quota_rsv_dtl[]
   org_ntf_route_assign_cf     org_ntf_route_assign_cf[]
   org_ntf_settings_cf         org_ntf_settings_cf[]
   org_ntf_usage_apply_evt     org_ntf_usage_apply_evt[]
   org_ntf_usage_daily         org_ntf_usage_daily[]
   org_ntf_user_prefs_dtl      org_ntf_user_prefs_dtl[]
   sys_ntf_event_chan_map      sys_ntf_event_chan_map[]
+  sys_ntf_failover_cf         sys_ntf_failover_cf[]
   sys_ntf_prov_acct_mst       sys_ntf_prov_acct_mst[]
+  sys_ntf_prov_ctl_cf         sys_ntf_prov_ctl_cf[]
   sys_ntf_prov_send_mst       sys_ntf_prov_send_mst[]
   sys_ntf_providers_cd        sys_ntf_providers_cd[]
   sys_ntf_template_chan_dtl   sys_ntf_template_chan_dtl[]
@@ -9795,6 +9799,7 @@ model hq_ntf_dispatch_log {
   failed_at               DateTime?                @db.Timestamp(6)
   created_at              DateTime                 @default(now()) @db.Timestamp(6)
   updated_at              DateTime?                @db.Timestamp(6)
+  is_test                 Boolean                  @default(false)
   org_ntf_usage_apply_evt org_ntf_usage_apply_evt?
 
   @@index([provider_code, status, created_at(sort: Desc)], map: "idx_hq_ntf_dispatch_provider_status")
@@ -16444,6 +16449,109 @@ model org_ntf_soft_bounce_lst {
   org_tenants_mst   org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_sbnc_tenant")
 
   @@unique([tenant_org_id, channel_code, address_or_number], map: "uq_ntf_sbnc_addr")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_quota_rsv_dtl {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id      String             @db.Uuid
+  channel_code       String
+  idempotency_key    String             @unique(map: "uq_ntf_quota_rsv_key")
+  usage_date         DateTime           @db.Date
+  qty                Int                @default(1)
+  status             String             @default("RESERVED")
+  expires_at         DateTime           @db.Timestamptz(6)
+  settled_at         DateTime?          @db.Timestamptz(6)
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime?          @db.Timestamptz(6)
+  updated_by         String?
+  updated_info       String?
+  rec_status         Int                @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  is_active          Boolean            @default(true)
+  sys_ntf_channel_cd sys_ntf_channel_cd @relation(fields: [channel_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  org_tenants_mst    org_tenants_mst    @relation(fields: [tenant_org_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status, expires_at], map: "idx_ntf_quota_rsv_sweep")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ntf_failover_cf {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  channel_code       String
+  from_provider      String
+  to_provider        String
+  priority           Int                @default(1)
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime?          @db.Timestamptz(6)
+  updated_by         String?
+  updated_info       String?
+  rec_status         Int                @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  is_active          Boolean            @default(true)
+  sys_ntf_channel_cd sys_ntf_channel_cd @relation(fields: [channel_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([channel_code, from_provider, to_provider], map: "uq_ntf_failover")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ntf_prov_ctl_cf {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_code      String
+  channel_code       String
+  control_state      String             @default("ACTIVE")
+  control_reason     String?
+  breaker_state      String             @default("CLOSED")
+  breaker_reason     String?
+  breaker_opened_at  DateTime?          @db.Timestamptz(6)
+  changed_by         String?
+  changed_at         DateTime?          @db.Timestamptz(6)
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime?          @db.Timestamptz(6)
+  updated_by         String?
+  updated_info       String?
+  rec_status         Int                @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  is_active          Boolean            @default(true)
+  sys_ntf_channel_cd sys_ntf_channel_cd @relation(fields: [channel_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([provider_code, channel_code], map: "uq_ntf_prov_ctl")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ntf_prov_ctl_log {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_code String
+  channel_code  String
+  kind          String
+  old_state     String?
+  new_state     String
+  actor         String
+  reason        String?
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([provider_code, channel_code, created_at(sort: Desc)], map: "idx_ntf_prov_ctl_log_prov")
   @@schema("public")
 }
 

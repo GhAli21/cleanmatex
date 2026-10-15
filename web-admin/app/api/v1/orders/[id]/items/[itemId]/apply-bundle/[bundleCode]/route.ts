@@ -9,6 +9,7 @@ import { OrderItemPreferenceService } from '@/lib/services/order-item-preference
 import { PreferenceCatalogService } from '@/lib/services/preference-catalog.service';
 import { checkPlanFlag } from '@/lib/services/plan-flags.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { log } from '@/lib/utils/logger';
 import type { ServicePreferenceCode } from '@/lib/constants/service-preferences';
 import { PREFERENCE_SOURCES } from '@/lib/constants/service-preferences';
@@ -92,6 +93,11 @@ export async function POST(
       itemId
     );
     const existingCodes = new Set(existingPrefs.map((p) => p.preference_code));
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
+    }
 
     for (const code of bundle.preference_codes as string[]) {
       const prefCode = code as ServicePreferenceCode;

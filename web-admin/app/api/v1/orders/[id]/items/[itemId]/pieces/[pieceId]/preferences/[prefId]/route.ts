@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { OrderPieceProcessingPreferenceService } from '@/lib/services/order-piece-processing-preference.service';
 import { setProcessingPrefConfirmedSchema } from '@/lib/validations/processing-piece-preferences-schemas';
 import { PREF_DELETE_NOT_ALLOWED } from '@/lib/constants/order-preferences';
@@ -35,6 +36,11 @@ export async function DELETE(
     if (authCheck instanceof NextResponse) return authCheck;
     const { tenantId, userId } = authCheck;
     const { id: orderId, itemId, pieceId, prefId } = await params;
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
+    }
 
     const supabase = await createClient();
     const { data: piece } = await supabase

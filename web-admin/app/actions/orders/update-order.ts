@@ -9,6 +9,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { OrderService } from '@/lib/services/order-service';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { createClient } from '@/lib/supabase/server';
 import { updateOrderInputSchema } from '@/lib/validations/edit-order-schemas';
@@ -18,6 +19,7 @@ interface UpdateOrderResult {
   success: boolean;
   data?: any;
   error?: string;
+  errorCode?: string;
   errors?: Array<{ path: string[]; message: string }>;
 }
 
@@ -71,7 +73,11 @@ export async function updateOrderAction(input: unknown): Promise<UpdateOrderResu
       };
     }
 
-    // 4. Call updateOrder service
+    // 4. A committed order uses Edit Order review. This action must not delete and recreate its pieces.
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, parsed.data.orderId);
+    if (retiredWrite) return retiredWrite.body;
+
+    // 5. Call updateOrder service
     const result = await OrderService.updateOrder({
       ...parsed.data,
       tenantId,

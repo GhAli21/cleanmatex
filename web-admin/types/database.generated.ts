@@ -1310,6 +1310,7 @@ export type Database = {
           failed_at: string | null
           id: string
           idempotency_key: string
+          is_test: boolean
           provider_code: string
           provider_message_id: string | null
           recipient_hash: string | null
@@ -1331,6 +1332,7 @@ export type Database = {
           failed_at?: string | null
           id?: string
           idempotency_key: string
+          is_test?: boolean
           provider_code: string
           provider_message_id?: string | null
           recipient_hash?: string | null
@@ -1352,6 +1354,7 @@ export type Database = {
           failed_at?: string | null
           id?: string
           idempotency_key?: string
+          is_test?: boolean
           provider_code?: string
           provider_message_id?: string | null
           recipient_hash?: string | null
@@ -17357,6 +17360,101 @@ export type Database = {
           updated_info?: string | null
         }
         Relationships: []
+      }
+      org_ntf_quota_rsv_dtl: {
+        Row: {
+          channel_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          expires_at: string
+          id: string
+          idempotency_key: string
+          is_active: boolean
+          qty: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          settled_at: string | null
+          status: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          usage_date: string
+        }
+        Insert: {
+          channel_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          expires_at: string
+          id?: string
+          idempotency_key: string
+          is_active?: boolean
+          qty?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          settled_at?: string | null
+          status?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          usage_date: string
+        }
+        Update: {
+          channel_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          expires_at?: string
+          id?: string
+          idempotency_key?: string
+          is_active?: boolean
+          qty?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          settled_at?: string | null
+          status?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          usage_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_ntf_quota_rsv_dtl_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_ntf_quota_rsv_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_ntf_quota_rsv_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_ntf_quota_rsv_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
       }
       org_ntf_receipts_tr: {
         Row: {
@@ -35263,6 +35361,68 @@ export type Database = {
           },
         ]
       }
+      sys_ntf_failover_cf: {
+        Row: {
+          channel_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          from_provider: string
+          id: string
+          is_active: boolean
+          priority: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          to_provider: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          channel_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_provider: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          to_provider: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          channel_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_provider?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          to_provider?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_failover_cf_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_channel_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       sys_ntf_pricing_cf: {
         Row: {
           channel_code: string
@@ -35430,6 +35590,119 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      sys_ntf_prov_ctl_cf: {
+        Row: {
+          breaker_opened_at: string | null
+          breaker_reason: string | null
+          breaker_state: string
+          changed_at: string | null
+          changed_by: string | null
+          channel_code: string
+          control_reason: string | null
+          control_state: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          provider_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          breaker_opened_at?: string | null
+          breaker_reason?: string | null
+          breaker_state?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          channel_code: string
+          control_reason?: string | null
+          control_state?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          provider_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          breaker_opened_at?: string | null
+          breaker_reason?: string | null
+          breaker_state?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          channel_code?: string
+          control_reason?: string | null
+          control_state?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          provider_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_prov_ctl_cf_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_channel_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_ntf_prov_ctl_log: {
+        Row: {
+          actor: string
+          channel_code: string
+          created_at: string
+          id: string
+          kind: string
+          new_state: string
+          old_state: string | null
+          provider_code: string
+          reason: string | null
+        }
+        Insert: {
+          actor: string
+          channel_code: string
+          created_at?: string
+          id?: string
+          kind: string
+          new_state: string
+          old_state?: string | null
+          provider_code: string
+          reason?: string | null
+        }
+        Update: {
+          actor?: string
+          channel_code?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          new_state?: string
+          old_state?: string | null
+          provider_code?: string
+          reason?: string | null
+        }
+        Relationships: []
       }
       sys_ntf_prov_send_mst: {
         Row: {
@@ -43789,6 +44062,66 @@ export type Database = {
           sent_count: number
         }[]
       }
+      fn_ntf_prov_ctl_set: {
+        Args: {
+          p_actor: string
+          p_channel: string
+          p_expected?: string
+          p_kind: string
+          p_provider: string
+          p_reason: string
+          p_state: string
+        }
+        Returns: Json
+      }
+      fn_ntf_provider_health: {
+        Args: { p_window_minutes?: number }
+        Returns: {
+          channel_code: string
+          failed_count: number
+          last_failure_at: string
+          last_success_at: string
+          provider_code: string
+          sent_count: number
+        }[]
+      }
+      fn_ntf_quota_release: {
+        Args: { p_idempotency_key: string; p_tenant_org_id: string }
+        Returns: boolean
+      }
+      fn_ntf_quota_reserve: {
+        Args: {
+          p_channel_code: string
+          p_from_date: string
+          p_hard_cap: number
+          p_idempotency_key: string
+          p_overage_allowed: boolean
+          p_qty?: number
+          p_tenant_org_id: string
+          p_to_date: string
+          p_ttl_seconds?: number
+        }
+        Returns: {
+          allowed: boolean
+          reason: string
+          reservation_id: string
+          reserved_qty: number
+          used_qty: number
+        }[]
+      }
+      fn_ntf_quota_reserved_qty: {
+        Args: {
+          p_channel_code: string
+          p_from_date: string
+          p_tenant_org_id: string
+          p_to_date: string
+        }
+        Returns: number
+      }
+      fn_ntf_quota_rsv_sweep: {
+        Args: { p_purge_days?: number }
+        Returns: number
+      }
       fn_ntf_quota_usage_locked: {
         Args: {
           p_from_date: string
@@ -43818,9 +44151,31 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_ntf_usage_reconcile: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          channel_code: string
+          difference: number
+          dispatch_sent: number
+          metered_sent: number
+          tenant_org_id: string
+          usage_date: string
+        }[]
+      }
       fn_ops_config_apps_valid: { Args: { p_apps: Json }; Returns: boolean }
       fn_ops_config_clear: {
         Args: { p_actor: string; p_key: string }
+        Returns: Json
+      }
+      fn_ops_config_convert_encryption: {
+        Args: {
+          p_actor: string
+          p_expected_fingerprint: string
+          p_is_encrypted: boolean
+          p_key: string
+          p_value_enc: string
+          p_value_plain: string
+        }
         Returns: Json
       }
       fn_ops_config_get_raw: {
@@ -43872,6 +44227,15 @@ export type Database = {
         }[]
       }
       fn_ops_config_record_check: { Args: { p_results: Json }; Returns: number }
+      fn_ops_config_reencrypt: {
+        Args: {
+          p_actor: string
+          p_key: string
+          p_new_enc: string
+          p_old_enc: string
+        }
+        Returns: Json
+      }
       fn_ops_config_scopes_have_value: {
         Args: { p_scopes: Json }
         Returns: boolean

@@ -1,40 +1,24 @@
 # Runbook 09 — Provider Outage
 
-**Status: Not implemented.** No automatic failover, account-health dashboard, or circuit breaker exists for any provider. The plan explicitly defers automatic provider failover as out-of-scope (section 1.2: "Automatic provider failover after unknown acceptance... is deliberately deferred scope"). Today there is exactly one live route per channel (the legacy direct-Twilio path) — there is no second provider to fail over *to* even if automatic failover existed.
+**Status: Implemented for platform-managed providers (2026-10-15, R14, migrations 0625 and 0626).** Account health, an automatic circuit breaker, manual pause, failover rules and alerts exist. Cross-provider failover needs a registered second connector (R13 provides the port, the sandbox connectors and the conformance kit; real second providers are chosen by the owner). **Last verified against source:** 2026-10-15.
 
-## Purpose
+## What happens automatically
+1. **Health.** Every minute HQ API reads the rolling window (default 10 minutes) of the dispatch log per provider and channel. Failures are temporary failures and provider-caused permanent failures (rejected credentials or request); our own refusals (quota, not configured, paused, open circuit) and test traffic are ignored.
+2. **Circuit breaker.** CLOSED → **OPEN** when at least `ntf.hq.breaker.min_volume` commands (default 10) were judged and failures reach `ntf.hq.breaker.failure_pct` (default 50). Open circuits refuse commands without calling the provider. After `ntf.hq.breaker.cooldown_seconds` (default 120) it becomes **HALF_OPEN**: a few probe commands go through; a success closes it, a failure reopens it. Every transition is compare-and-set in the database (several API instances cannot fight), logged, audited, and an opening circuit posts to the alert webhook `platform.ops.alert_webhook_url`.
+3. **Failover.** If a rule exists (Operations → Failover rules: channel, from provider, to provider, priority) and the target has a registered connector and is itself available, commands are sent through the target; the dispatch log, metering and response name the provider actually used. Otherwise they are refused with a temporary failure and retried by the caller.
+4. **Workers.** Queued jobs for a paused provider or an open circuit are re-delayed, not failed.
 
-Describe what actually happens, and what an operator can actually do, when a provider (e.g. Twilio) has a live outage or degraded service.
+## Operator steps during an outage
+1. Open Notifications → Operations. A red **Open** circuit or a falling success rate marks the provider. Setup Health `providers.control` is FAIL for an open circuit.
+2. Decide: let the breaker do its work, **Pause** the provider (runbook 08), or add a failover rule to a healthy provider.
+3. Fix the cause with the provider; the breaker probes by itself. If you know it is fixed, **Reset circuit** closes it at once (it reopens if the provider still fails).
+4. Afterwards read the history (`GET /notifications/operations/history`) and run the **Usage reconciliation** report for the outage window.
 
-## What happens automatically today (verified in code, not aspirational)
+## Tuning
+Registry keys under Operations → Config: `ntf.hq.breaker.enabled` (default true), `.window_minutes` (1-60), `.min_volume` (1-1000), `.failure_pct` (1-100), `.cooldown_seconds` (10-3600). Changes apply within a minute.
 
-1. A provider call that **throws** (timeout, connection error, 5xx) during `process-outbox` is caught and the row is held as `ACCEPTANCE_UNCERTAIN` (`markAcceptanceUncertain` in `process-outbox/route.ts`) — it is never blindly retried, because the exception itself proves nothing about whether the provider actually accepted it. This row needs Runbook 07's reconciliation pass to resolve.
-2. A provider call that **returns** a classified transient failure (e.g. Twilio rate limit/429-equivalent, not a hard rejection) becomes `FAILED_TEMPORARY` and is retried automatically on the existing backoff schedule (`[5, 15, 60, 240, 720]` minutes — Runbook 07 Part A) — this is the main thing that naturally absorbs a short outage without any operator action, *as long as the provider's API still responds with a classifiable error rather than hanging/erroring at the transport level*.
-3. If the outage is long enough that a tenant exhausts `max_retries`, the row becomes `FAILED_PERMANENT` — a human must look at it; there is no further automatic recovery for that specific row.
-4. Twilio webhook ingestion (`platform-api/.../webhooks/webhooks.controller.ts`) is **not** JWT-protected (providers call it directly); signature verification happens inside `WebhooksService` and an invalid/forged signature returns `422` **before** any persistence — a provider-side outage or misconfiguration that breaks signature verification will show up as rejected webhooks, which is diagnosable via HQ logs/`get_advisors`/`query_logs` but is not surfaced on any dedicated health page.
-
-## What does NOT exist (confirmed absent)
-
-- No `GET /operations/health` or account/channel-health endpoint (plan section 10.2 proposes this; no `health`/`account.saturation`/`circuit breaker` code exists anywhere under `platform-api/src/modules/notifications-hq/observability`).
-- No automatic "mark this provider account degraded and stop routing to it" mechanism.
-- No multi-provider failover for any channel — WhatsApp has only Twilio wired as a live sender; there is no second WhatsApp provider configured to fail over to even manually today, outside of the BYO tenant-private account mechanism (which is a different tenant's own account, not a failover target for the same tenant).
-
-## Operator steps during a confirmed provider outage
-
-1. Confirm the outage is provider-side, not a CleanMateX credential/config problem: check recent `org_ntf_delivery_log_dtl.error_message` for the affected tenant/channel for a consistent provider-level error pattern (timeouts, 5xx, or a specific Twilio error code) across multiple tenants — a single-tenant-only failure pattern is more likely a credential/config issue (Runbook 01), not a provider outage.
-2. To stop accumulating `ACCEPTANCE_UNCERTAIN`/`FAILED_TEMPORARY` rows against a known-down provider instead of letting them exhaust retries pointlessly, use Runbook 08's manual levers: disable the affected `org_ntf_channel_provider_cf` row (`is_active = false`) or the tenant/channel pair in `org_ntf_settings_cf`.
-3. Once the provider recovers, re-enable the toggles from step 2. Rows left `FAILED_TEMPORARY` within their retry window will resume automatically on the next cron tick (Runbook 07 Part A); rows that reached `FAILED_PERMANENT` or `ACCEPTANCE_UNCERTAIN` need Runbook 07 Part B (manual reconciliation invocation, since no cron schedule exists for it).
-4. There is no step to "switch to a backup provider" — none exists for any tenant/channel today.
-
-## Expected outcome
-
-- Short outages (provider recovers within the retry backoff window): mostly self-healing via the existing `FAILED_TEMPORARY` retry sweep, with some rows landing in `ACCEPTANCE_UNCERTAIN` needing a manual reconciliation pass afterward.
-- Extended outages: accumulating `FAILED_PERMANENT`/`ACCEPTANCE_UNCERTAIN` rows that need Runbook 07's manual, per-row attention; no bulk "replay all of these now that the provider is back" tool exists either — reconciliation/retry both operate per-row on their own schedule.
-
-## What would need to be built
-
-1. A provider/account health signal (error-rate or consecutive-failure tracking) feeding an actual `GET /operations/health`-style endpoint, as the plan proposes.
-2. A real second live route per channel (the route-resolver/route-lifecycle machinery in Runbook 04 already exists structurally) plus an explicit, reviewed cutover decision to make a second provider actually reachable as a fallback — not just configured.
-3. A bulk "re-queue everything dead-lettered during window X for tenant Y now that the provider is confirmed back" operator tool, so recovery doesn't depend on per-row manual review alone.
-
-**Last verified against source:** 2026-10-10 (`process-outbox/route.ts`, `reconciliation-service.ts`, `webhooks.controller.ts`; `notifications-hq/observability` searched for health/circuit-breaker code — none found).
+## Limits (honest)
+- Failover is for platform-managed routes with a registered connector; the existing providers (Resend, Twilio, Meta) have no automatic second provider until the owner chooses and credentials exist. Today the breaker and pause protect them, and sandbox connectors prove the path.
+- Queued jobs are held, not re-routed, while a provider is down.
+- Half-open probe budget and the admission cache are per API instance.
+- The breaker only sees traffic that reached the dispatch log; a provider that fails before a command is logged shows as no traffic.

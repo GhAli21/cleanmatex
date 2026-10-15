@@ -383,6 +383,13 @@ export async function confirmPreferenceChargeRecalc(params: {
   for (const row of preview.eligible) {
     const chargeIds = (contaminatingByOrder.get(row.orderId) ?? []).map((charge) => charge.id);
     const result = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        SELECT id
+        FROM public.org_orders_mst
+        WHERE id = ${row.orderId}::uuid
+          AND tenant_org_id = ${params.tenantId}::uuid
+        FOR UPDATE
+      `;
       const orderBefore = await tx.org_orders_mst.findFirst({
         where: { tenant_org_id: params.tenantId, id: row.orderId },
         select: {

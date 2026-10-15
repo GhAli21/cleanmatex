@@ -16,6 +16,8 @@ import { mapChangeContextToEditBaseline, type EditOrderBaseline } from './edit-o
 import { applyVisualDraftToController, projectEditVisualOrder, visualHeaderChangeCount } from './edit-workspace-adapter';
 import { readEditReview, type EditReviewView } from './edit-review-view';
 import { EditReviewDialog, type EditHistoryRow } from './edit-review-dialog';
+import { OrderChangeFollowUpDialog } from './order-change-follow-up-dialog';
+import type { OrderChangeFollowUpPlan } from '@/lib/services/order-change/order-change-follow-up';
 import { OrderWorkspaceSessionProvider, type OrderWorkspaceSessionValue } from './order-workspace-session';
 
 interface EditSharedWorkspaceProps {
@@ -61,6 +63,8 @@ function EditSharedWorkspaceBody({
   const [history, setHistory] = useState<EditHistoryRow[]>([]);
   const [applying, setApplying] = useState(false);
   const [conflict, setConflict] = useState(false);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [followUpPlan, setFollowUpPlan] = useState<OrderChangeFollowUpPlan | null>(null);
 
   useEffect(() => {
     const visualOrder = projectEditVisualOrder(context);
@@ -171,6 +175,17 @@ function EditSharedWorkspaceBody({
       }
       cmxMessage.success(t('workspace.applied'));
       setReviewOpen(false);
+      const followUp = await fetch(`/api/v1/orders/${context.orderId}/changes/follow-up`, {
+        headers: await getCSRFHeader(await getCSRFToken()),
+      });
+      if (followUp.ok) {
+        const body = await followUp.json() as { data?: OrderChangeFollowUpPlan };
+        const plan = body.data;
+        if (plan && (plan.actions.length > 0 || plan.unavailable.length > 0)) {
+          setFollowUpPlan(plan);
+          setFollowUpOpen(true);
+        }
+      }
       onCommitted();
     } catch {
       cmxMessage.error(t('workspace.applyFailed'));
@@ -232,6 +247,12 @@ function EditSharedWorkspaceBody({
           setConflict(false);
           onCommitted();
         }}
+      />
+      <OrderChangeFollowUpDialog
+        open={followUpOpen}
+        orderId={context.orderId}
+        plan={followUpPlan}
+        onOpenChange={setFollowUpOpen}
       />
     </OrderWorkspaceSessionProvider>
   );

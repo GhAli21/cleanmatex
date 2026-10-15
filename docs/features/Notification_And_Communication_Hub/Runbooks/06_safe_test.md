@@ -1,6 +1,6 @@
 # Runbook 06 — Safe Test
 
-**Status: Partial.** Only a campaign-scoped "send test to myself" route exists. The plan's proposed generic per-event/per-template preview and test-send APIs (`POST /preview`, `POST /test-sends`) are not implemented, and no route in the current tenant codebase enforces the `notifications:send_test` permission the plan describes.
+**Status: Implemented for HQ template preview and test send (2026-10-15, migration 0624); the campaign "send to myself" route also remains.** The generic per-template preview and an allow-listed test send now exist in HQ (Notifications > Templates > a version > **Preview & test**). Tenant-side `notifications:send_test` is still not enforced by any tenant route.
 
 ## Purpose
 
@@ -11,7 +11,15 @@ Send or render a notification in a way that proves rendering/delivery works, wit
 - `notifications:manage` permission (not `notifications:send_test` — see discrepancy below).
 - Campaign must exist and be in `DRAFT`, `APPROVED`, or `PENDING_APPROVAL` status.
 
-## Operator steps — the only implemented safe-test path
+## Operator steps — HQ template preview and test send
+
+1. One-time: Operations > Config > **Test-send recipient allow-list** (`ntf.hq.test_recipients`): list your own team's email addresses and E.164 phone numbers, comma-separated. Optional: `ntf.hq.test_send_per_min` (1-30, default 5).
+2. Notifications > Templates > open a template > on a version press **Preview & test**. Choose the channel, press **Render preview**: English and Arabic appear side by side; fill a sample value for each listed placeholder and render again.
+3. To send (needs `hq_notifications:test_send`; email and SMS only): paste the organization ID (its provider route and suppression list apply), the recipient (must be on the allow-list), the language, tick the confirmation and press **Send test message**. The message is prefixed `[TEST]`.
+4. What is guaranteed: the command is flagged `is_test` (`select * from hq_ntf_dispatch_log where is_test`), is never counted against the organization's quota or usage, and is audited (`notification_template.test_send`, recipient masked). What is NOT bypassed: suppression (a suppressed address is refused), the provider route and credentials of that organization, the per-minute limit, and unresolved placeholders (refused).
+5. Refusals you may see: 403 recipient not on the allow-list; 409 suppressed recipient or unresolved placeholders; 429 rate limit; 400 channel not supported for test sending.
+
+## Operator steps — the campaign safe-test path (tenant app)
 
 1. Identify the campaign ID to test.
 2. `POST /api/v1/notifications/campaigns/[id]/test` (perm: `notifications:manage`).

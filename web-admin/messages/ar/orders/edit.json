@@ -160,5 +160,26 @@
       "CHANGE_CUSTOMER_SNAPSHOT": "تغيير بيانات العميل",
       "CHANGE_UNLISTED": "تغيير آخر متابع"
     }
+  },
+  "followUp": {
+    "title": "الرصيد بعد هذا التغيير",
+    "close": "إغلاق",
+    "collectExisting": "حصّل {amount} {currency} من شاشة التحصيل الحالية. هذه الشاشة لا تستلم دفعة.",
+    "resolve": "انقل {amount} {currency} إلى {destination}",
+    "resolved": "تم نقل المبلغ الزائد.",
+    "resolveFailed": "لم يتم نقل المبلغ الزائد.",
+    "unavailable": {
+      "COLLECTION_UNSUPPORTED_FOR_PAYMENT_TYPE": "لا يمكن تحصيل نوع الدفع الأصلي لهذا الطلب من هنا، ولم يتم تغييره.",
+      "REFUND_LIFECYCLE_SEPARATE": "يبقى استرداد النقد أو طريقة الدفع الأصلية في شاشة الاسترداد الحالية.",
+      "GATEWAY_REFUND_NOT_AUTOMATIC": "الاسترداد الآلي عبر بوابة الدفع غير متاح.",
+      "CUSTOMER_REQUIRED": "القيمة المخزنة تحتاج إلى عميل على الطلب.",
+      "CURRENCY_UNRESOLVED": "الطلب بلا عملة، لذلك لا يمكن تسوية الرصيد من هنا.",
+      "AMBIGUOUS_BALANCE": "الطلب يظهر مبلغاً مستحقاً ومبلغاً زائداً معاً. عالج ذلك قبل المتابعة."
+    },
+    "destinations": {
+      "SAVE_AS_CUSTOMER_ADVANCE": "سلفة العميل",
+      "SAVE_AS_CUSTOMER_CREDIT": "رصيد العميل",
+      "SAVE_TO_CUSTOMER_WALLET": "محفظة العميل"
+    }
   }
 }

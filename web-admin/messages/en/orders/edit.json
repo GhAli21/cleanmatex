@@ -160,5 +160,26 @@
       "CHANGE_CUSTOMER_SNAPSHOT": "Change customer details",
       "CHANGE_UNLISTED": "Other tracked change"
     }
+  },
+  "followUp": {
+    "title": "Balance after this change",
+    "close": "Close",
+    "collectExisting": "Collect {amount} {currency} on the existing collection screen. This screen does not take payment.",
+    "resolve": "Move {amount} {currency} to {destination}",
+    "resolved": "The extra amount was moved.",
+    "resolveFailed": "The extra amount was not moved.",
+    "unavailable": {
+      "COLLECTION_UNSUPPORTED_FOR_PAYMENT_TYPE": "This order's original payment type cannot be collected here, and it was not changed.",
+      "REFUND_LIFECYCLE_SEPARATE": "A cash or original-method refund stays on the existing refund screen.",
+      "GATEWAY_REFUND_NOT_AUTOMATIC": "An automatic gateway refund is not available.",
+      "CUSTOMER_REQUIRED": "Stored value needs a customer on the order.",
+      "CURRENCY_UNRESOLVED": "The order has no currency, so the balance cannot be resolved here.",
+      "AMBIGUOUS_BALANCE": "The order shows both an amount due and an extra amount. Resolve that before continuing."
+    },
+    "destinations": {
+      "SAVE_AS_CUSTOMER_ADVANCE": "customer advance",
+      "SAVE_AS_CUSTOMER_CREDIT": "customer credit",
+      "SAVE_TO_CUSTOMER_WALLET": "customer wallet"
+    }
   }
 }

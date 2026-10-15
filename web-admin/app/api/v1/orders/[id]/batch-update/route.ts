@@ -21,6 +21,7 @@ import {
   listAvailableActions,
 } from '@/lib/services/workflow/workflow-engine.service';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
+import { blockCommittedCommercialWrite, committedCommercialEchoChanged } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 
 /**
  *
@@ -105,6 +106,32 @@ export async function POST(
         { error: 'Order not found or access denied' },
         { status: 404 }
       );
+    }
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      const pieceIds = updates.map((update) => update.pieceId).filter((id): id is string => Boolean(id));
+      if (pieceIds.length > 0) {
+        const { data: currentPieces } = await supabase
+          .from('org_order_item_pieces_dtl')
+          .select('id, notes, has_stain, has_damage')
+          .eq('tenant_org_id', tenantId)
+          .eq('order_id', orderId)
+          .in('id', pieceIds);
+        const byId = new Map((currentPieces ?? []).map((piece) => [piece.id, piece]));
+        for (const update of updates) {
+          const current = byId.get(update.pieceId);
+          if (!current) continue;
+          if (committedCommercialEchoChanged(current, update)) {
+            return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
+          }
+          delete update.notes;
+          delete update.has_stain;
+          delete update.has_damage;
+          delete update.color;
+          delete update.brand;
+        }
+      }
     }
 
     // Pieces are always used; always update piece-level data

@@ -16,7 +16,9 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { collapseUserPrefRows } from '@lib/notifications/user-prefs'
 import { logger } from '@/lib/utils/logger'
 import { notificationSettingsService } from '@lib/notifications/settings-service'
-import { renderTemplateByCode, type RenderedContent } from '@lib/notifications/template-renderer'
+import type { RenderedContent } from '@lib/notifications/template-renderer'
+import { renderBuiltContent } from '@lib/notifications/canonical-builder'
+import { decideDelivery } from '@lib/notifications/delivery-policy'
 import type { Json } from '@/types/database'
 
 const ACTIVATE_BATCH   = 10  // campaigns to activate per run
@@ -153,6 +155,24 @@ async function activateCampaign(
 // Phase B helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * True while the campaign is still RUNNING. Re-read before every target so an administrator's pause or
+ * cancel takes effect inside a batch, not only at the next run. A failed read counts as "not running"
+ * (fail safe: stop sending, targets stay PENDING and resume on a later run).
+ */
+async function isCampaignStillRunning(
+  supabase: ReturnType<typeof createAdminSupabaseClient>,
+  campaign: Campaign,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('org_ntf_campaigns_mst')
+    .select('status')
+    .eq('id', campaign.id)
+    .eq('tenant_org_id', campaign.tenant_org_id)
+    .maybeSingle()
+  return !error && data?.status === 'RUNNING'
+}
+
 async function dispatchTargets(
   supabase: ReturnType<typeof createAdminSupabaseClient>,
   campaign: Campaign,
@@ -163,11 +183,11 @@ async function dispatchTargets(
   // channel defers the whole batch — targets stay PENDING and are retried on
   // a later run once the tenant re-enables the channel — rather than being
   // dispatched anyway or permanently skipped.
-  const channelEnabled = await notificationSettingsService.isChannelEnabled(
+  const channelConfig = await notificationSettingsService.getChannelConfig(
     campaign.tenant_org_id,
     campaign.channel_code,
   )
-  if (!channelEnabled) {
+  if (!channelConfig?.isEnabled) {
     logger.info('process-campaigns: channel disabled for tenant — deferring batch', {
       campaignId: campaign.id, tenantId: campaign.tenant_org_id, channel: campaign.channel_code,
       feature: 'notifications-campaigns',
@@ -232,34 +252,54 @@ async function dispatchTargets(
   // in both cases title2/body2 are now actually populated (previously never
   // set at all, so Arabic recipients got no localized content from
   // campaigns regardless of template).
-  const rendered: RenderedContent = campaign.template_code
-    ? await renderTemplateByCode(campaign.template_code, campaign.channel_code, {
-        campaign_name:          campaign.name,
-        campaign_name2:         campaign.name2 ?? '',
-        campaign_description:   campaign.description ?? '',
-        campaign_description2:  campaign.description2 ?? '',
-      })
-    : {
-        title:    campaign.name,
-        title2:   campaign.name2 ?? null,
-        body:     campaign.description ?? campaign.name,
-        body2:    campaign.description2 ?? null,
-        metadata: {},
-      }
+  // Rendering goes through the canonical builder (shared with events and test sends); the campaign's own
+  // name/description are the inline fallback when no template is attached.
+  const rendered: RenderedContent = await renderBuiltContent({
+    channel:  campaign.channel_code,
+    template: campaign.template_code ? { kind: 'code', templateCode: campaign.template_code } : null,
+    inline: {
+      title:  campaign.name,
+      title2: campaign.name2 ?? null,
+      body:   campaign.description ?? campaign.name,
+      body2:  campaign.description2 ?? null,
+    },
+    variables: {
+      campaign_name:          campaign.name,
+      campaign_name2:         campaign.name2 ?? '',
+      campaign_description:   campaign.description ?? '',
+      campaign_description2:  campaign.description2 ?? '',
+    },
+  })
 
   let queued   = 0   // enqueued into outbox this batch (EMAIL/SMS/WHATSAPP/PUSH) — awaiting terminal resolution
   let sentNow  = 0   // delivered immediately this batch (IN_APP — synchronous, no further async step)
   let skipped  = 0
 
+  let interrupted = false
   for (const target of rows) {
+    if (!(await isCampaignStillRunning(supabase, campaign))) {
+      // Paused, cancelled or unreadable mid-batch: send nothing further. Untouched targets stay PENDING.
+      interrupted = true
+      logger.info('process-campaigns: campaign no longer RUNNING — stopping batch', {
+        campaignId: campaign.id, tenantId: campaign.tenant_org_id, feature: 'notifications-campaigns',
+      })
+      break
+    }
     const uid        = target.recipient_user_id
-    const hasConsent = uid ? (consentMap.get(uid) ?? false) : false
     const idempotencyKey = `campaign:${campaign.id}:target:${target.id}`
 
-    if (!hasConsent) {
+    // Same policy as events and test sends: marketing needs consent, and quiet hours defer the send.
+    const decision = decideDelivery({
+      channelConfig,
+      isTransactional:     false,
+      hasMarketingConsent: uid ? (consentMap.get(uid) ?? false) : false,
+      priority:            'NORMAL',
+    })
+
+    if (decision.action === 'SKIP') {
       await supabase
         .from('org_ntf_camp_targets_dtl')
-        .update({ status: 'SKIPPED', skip_reason: 'NO_MARKETING_CONSENT', processed_at: now, updated_at: now })
+        .update({ status: 'SKIPPED', skip_reason: decision.skipReason, processed_at: now, updated_at: now })
         .eq('id', target.id)
         .eq('tenant_org_id', target.tenant_org_id)
       skipped++
@@ -340,7 +380,8 @@ async function dispatchTargets(
             rendered_body2:     rendered.body2,
             metadata:           rendered.metadata as unknown as Json,
             status:             'QUEUED',
-            scheduled_at:       now,
+            // Quiet hours (policy) may defer marketing to the end of the tenant's quiet window.
+            scheduled_at:       decision.scheduledAt.toISOString(),
             retry_count:        0,
             max_retries:        3,
             rec_status:         1,
@@ -417,7 +458,7 @@ async function dispatchTargets(
     .eq('tenant_org_id', campaign.tenant_org_id)
     .eq('status', 'PENDING')
 
-  const done = (remaining ?? 0) === 0
+  const done = !interrupted && (remaining ?? 0) === 0
   if (done) await completeCampaign(supabase, campaign, now)
 
   return { queued, sentNow, skipped, done }
@@ -428,11 +469,15 @@ async function completeCampaign(
   campaign: Campaign,
   now: string
 ): Promise<void> {
-  await supabase
+  const { data: completed } = await supabase
     .from('org_ntf_campaigns_mst')
     .update({ status: 'COMPLETED', completed_at: now, updated_at: now })
     .eq('id', campaign.id)
     .eq('tenant_org_id', campaign.tenant_org_id)
+    // Only a campaign that is still RUNNING completes: a pause/cancel that landed meanwhile must win.
+    .eq('status', 'RUNNING')
+    .select('id')
+  if (!completed?.length) return
 
   void supabase.from('org_ntf_audit_dtl').insert({
     tenant_org_id: campaign.tenant_org_id,

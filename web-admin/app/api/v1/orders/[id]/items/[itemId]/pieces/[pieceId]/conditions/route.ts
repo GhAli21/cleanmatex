@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { OrderPiecePreferenceService } from '@/lib/services/order-piece-preference.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { log } from '@/lib/utils/logger';
 
 export const runtime = 'nodejs';
@@ -67,6 +68,11 @@ export async function POST(
 
     if (!piece) {
       return NextResponse.json({ success: false, error: 'Order piece not found' }, { status: 404 });
+    }
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
     }
 
     const result = await OrderPiecePreferenceService.replacePieceConditions(

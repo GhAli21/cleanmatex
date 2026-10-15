@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { OrderPieceProcessingPreferenceService } from '@/lib/services/order-piece-processing-preference.service';
 import { addProcessingPiecePrefSchema } from '@/lib/validations/processing-piece-preferences-schemas';
 import { log } from '@/lib/utils/logger';
@@ -104,6 +105,11 @@ export async function POST(
         { success: false, error: 'Order piece not found' },
         { status: 404 }
       );
+    }
+
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
     }
 
     const result = await OrderPieceProcessingPreferenceService.addPref(

@@ -43,6 +43,12 @@ These reports are evidence for the living plan. They do not replace it. WP07–W
 - [WP14 edit workspace](WP14_Edit_Workspace_v3.0.md)
 - [WP15 review, Apply, and history](WP15_Review_Apply_History_v3.0.md)
 
+- [WP16 financial follow-up](WP16_Financial_Follow_Up_v3.0.md)
+- [WP17 committed writer closure](WP17_Committed_Writer_Closure_v3.0.md)
+- [WP17 postponed column guard](WP17_Postponed_Committed_Column_Guard_v3.0.md)
+
+WP17 is closed. The direct-grant column guard is postponed and is not part of WP18. Next package: WP18, target preflight, backfill, and concurrency/security release proof. It is not started.
+
 ## Review and export classification
 
 [Final validation report](../Edit_Order_V2_v3.0_Final_Validation_Report_Codex.md) is temporary review evidence, not another implementation plan. Completeness Audit and Change Log describe this reconciliation; they are not execution authorities.

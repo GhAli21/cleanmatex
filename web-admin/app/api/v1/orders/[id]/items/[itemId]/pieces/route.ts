@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import {
+  blockCommittedCommercialFields,
+  blockCommittedCommercialWrite,
+} from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { log } from '@/lib/utils/logger';
 
 /**
@@ -125,6 +129,11 @@ export async function POST(
       );
     }
 
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
+    if (retiredWrite) {
+      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
+    }
+
     // Create pieces
     const result = await OrderPieceService.createPiecesForItem(
       tenantId,
@@ -221,6 +230,11 @@ export async function PATCH(
         { success: false, error: 'Order item not found' },
         { status: 404 }
       );
+    }
+
+    const retiredFields = await blockCommittedCommercialFields(tenantId, orderId, updates);
+    if (retiredFields) {
+      return NextResponse.json(retiredFields.body, { status: retiredFields.status });
     }
 
     // Add updated_by to each update

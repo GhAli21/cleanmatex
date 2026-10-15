@@ -16,7 +16,8 @@ import { renderInAppTemplate } from '@lib/notifications/template-renderer';
 import { deliverInApp } from '@lib/notifications/adapters/in-app';
 import { enqueueOutbox } from '@lib/notifications/adapters/outbox';
 import { isWhatsappEmailFallbackEnabled } from '@lib/notifications/config';
-import { notificationSettingsService, type ChannelConfig } from '@lib/notifications/settings-service';
+import { notificationSettingsService } from '@lib/notifications/settings-service';
+import { computeScheduledAt, decideDelivery } from '@lib/notifications/delivery-policy';
 
 interface OrchestratorResult {
   eventCode: string;
@@ -60,43 +61,6 @@ async function getEventMeta(
     channels: (chanMap.data ?? []).map((r) => r.channel_code as string),
     categoryCode: (eventRow.data as { category_code?: string | null } | null)?.category_code ?? null,
   };
-}
-
-// ---------------------------------------------------------------------------
-// Quiet hours — timezone-aware scheduled delivery time
-// ---------------------------------------------------------------------------
-
-function computeScheduledAt(
-  config: ChannelConfig,
-  priority: NotificationPriority | undefined,
-  isTransactional = false,
-): Date {
-  const now = new Date();
-  // Order lifecycle WA/SMS must leave immediately; quiet hours are for marketing.
-  if (isTransactional) return now;
-  if (!config.quietHoursEnabled || !config.quietHoursStart || !config.quietHoursEnd) return now;
-  if (priority === NOTIFICATION_PRIORITY.URGENT || priority === NOTIFICATION_PRIORITY.CRITICAL) return now;
-
-  const tz = config.quietHoursTz ?? 'UTC';
-  const nowInTz = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-  const hhmm = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-  const startMins   = hhmm(config.quietHoursStart);
-  const endMins     = hhmm(config.quietHoursEnd);
-  const currentMins = nowInTz.getHours() * 60 + nowInTz.getMinutes();
-
-  const inQuietHours =
-    startMins < endMins
-      ? currentMins >= startMins && currentMins < endMins   // same-day quiet window
-      : currentMins >= startMins || currentMins < endMins;  // overnight quiet window
-
-  if (!inQuietHours) return now;
-
-  const [endH, endM] = config.quietHoursEnd.split(':').map(Number);
-  const endToday = new Date(nowInTz);
-  endToday.setHours(endH, endM, 0, 0);
-  if (endToday <= nowInTz) endToday.setDate(endToday.getDate() + 1);
-  const offsetMs = now.getTime() - nowInTz.getTime();
-  return new Date(endToday.getTime() + offsetMs);
 }
 
 // ---------------------------------------------------------------------------
@@ -231,22 +195,28 @@ export async function orchestrateNotification(
 
     const eligible: string[] = [];
     for (const userId of event.recipientUserIds) {
-      if (!isTransactional) {
-        const consent = await notificationSettingsService.hasMarketingConsent(
-          event.tenantOrgId, userId, deliveryChannel,
+      // Consent is only consulted for marketing (non-transactional) events; the rule itself lives in the
+      // shared delivery policy so campaigns and test sends decide identically.
+      const consent = isTransactional
+        ? null
+        : await notificationSettingsService.hasMarketingConsent(event.tenantOrgId, userId, deliveryChannel);
+      const decision = decideDelivery({
+        channelConfig,
+        isTransactional,
+        hasMarketingConsent: consent,
+        priority: event.priority,
+      });
+      if (decision.action === 'SKIP') {
+        await enqueueOutbox(
+          { ...event, recipientUserIds: [userId] },
+          deliveryChannel,
+          {
+            skipReason: decision.skipReason,
+            scheduledAt,
+            idempotencySuffix: whatsappEmailFallback ? 'wa_fb' : undefined,
+          },
         );
-        if (!consent) {
-          await enqueueOutbox(
-            { ...event, recipientUserIds: [userId] },
-            deliveryChannel,
-            {
-              skipReason: SKIP_REASON.NO_MARKETING_CONSENT,
-              scheduledAt,
-              idempotencySuffix: whatsappEmailFallback ? 'wa_fb' : undefined,
-            },
-          );
-          continue;
-        }
+        continue;
       }
       eligible.push(userId);
     }
