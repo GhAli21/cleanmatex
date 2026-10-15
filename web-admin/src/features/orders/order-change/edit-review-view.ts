@@ -31,6 +31,10 @@ export interface EditReviewView {
 }
 
 function targetLabel(operation: EditChangeOperation): string {
+  if (operation.code === 'CHANGE_UNLISTED') {
+    const value = operation.payload.value.trim();
+    return value ? `${operation.payload.field} · ${value}` : operation.payload.field;
+  }
   if ('id' in operation.target && operation.target.id) return operation.target.id;
   if ('clientRef' in operation.target && operation.target.clientRef) return operation.target.clientRef;
   return operation.target.kind;

@@ -32,6 +32,7 @@ export function EditControlNotice({
     CHANGE_READY_BY: t('policyInfo.operations.CHANGE_READY_BY'),
     CHANGE_ORDER_NOTES: t('policyInfo.operations.CHANGE_ORDER_NOTES'),
     CHANGE_CUSTOMER_SNAPSHOT: t('policyInfo.operations.CHANGE_CUSTOMER_SNAPSHOT'),
+    CHANGE_UNLISTED: t('policyInfo.operations.CHANGE_UNLISTED'),
   };
   if (!session) return null;
   const denied = identity || !codes

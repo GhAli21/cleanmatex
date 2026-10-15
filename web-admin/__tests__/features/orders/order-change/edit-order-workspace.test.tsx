@@ -183,6 +183,43 @@ describe('shared edit workspace adapter', () => {
     expect(visualHeaderChangeCount(loaded, { ...sameHeader, items: [kept, added] })).toBe(2);
   });
 
+  it('tracks preferences and changes that have no policy operation', () => {
+    const loaded = baseline();
+    const controller = createEditOrderController({ createId: () => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' });
+    const visual = projectEditVisualOrder(context());
+    const kept = visual.items[0];
+    const other = visual.items[1];
+    if (!kept?.pieces?.[0] || !other) throw new Error('line');
+    const preferenceId = '55555555-5555-4555-8555-555555555555';
+    applyVisualDraftToController(controller, { ...loaded, readyBy: '2026-10-16T10:00:00.000Z' }, {
+      notes: 'original',
+      readyBy: '',
+      express: false,
+      customerName: 'Ada',
+      customerMobile: '050',
+      customerEmail: 'ada@example.com',
+      orderServicePrefs: [{ preference_code: 'HANG', source: 'manual', extra_price: 0, preferenceCfId: preferenceId }],
+      items: [
+        { ...kept, priceOverride: 9, pieces: [{ ...kept.pieces[0], color: 'BLUE' }] },
+        { ...other, servicePrefs: [{ preference_code: 'FOLD', source: 'manual', extra_price: 0 }] },
+      ],
+    });
+    expect(controller.buildOperations().map((operation) => operation.code)).toEqual([
+      'ADD_PREFERENCE',
+      'CHANGE_UNLISTED',
+      'CHANGE_UNLISTED',
+      'CHANGE_UNLISTED',
+      'CHANGE_UNLISTED',
+    ]);
+    const unlisted = controller.buildOperations().filter((operation) => operation.code === 'CHANGE_UNLISTED');
+    expect(unlisted.map((operation) => operation.payload)).toEqual(expect.arrayContaining([
+      { field: 'order.readyBy', value: '' },
+      { field: 'item.priceOverride', value: '9.0000' },
+      { field: 'piece.color', value: 'BLUE' },
+      { field: 'preference.code', value: 'FOLD' },
+    ]));
+  });
+
   it('mounts the shared New Order workspace and does not keep a second edit form', () => {
     const page = readFileSync(join(process.cwd(), 'app/dashboard/orders/[id]/edit/page.tsx'), 'utf8');
     const host = readFileSync(join(process.cwd(), 'src/features/orders/order-change/edit-shared-workspace.tsx'), 'utf8');

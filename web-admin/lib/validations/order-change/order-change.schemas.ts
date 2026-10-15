@@ -35,6 +35,11 @@ export const orderChangeOperationSchema = z.discriminatedUnion('code', [
   operationBaseSchema.extend({ code: z.literal('CHANGE_READY_BY'), target: orderTargetSchema, payload: z.object({ readyBy: z.string().datetime({ offset: true }) }).strict() }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_ORDER_NOTES'), target: orderTargetSchema, payload: z.object({ notes: z.string().max(ORDER_CHANGE_LIMITS.MAX_ORDER_NOTE_LENGTH).optional(), customerNotes: z.string().max(ORDER_CHANGE_LIMITS.MAX_ORDER_NOTE_LENGTH).optional() }).strict().refine((value) => value.notes !== undefined || value.customerNotes !== undefined, 'At least one note field is required') }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_CUSTOMER_SNAPSHOT'), target: orderTargetSchema, payload: z.object({ customerName: z.string().max(255).optional(), customerMobile: z.string().max(50).optional(), customerEmail: z.string().email().max(255).optional() }).strict().refine((value) => Object.keys(value).length > 0, 'At least one customer snapshot field is required') }),
+  operationBaseSchema.extend({
+    code: z.literal('CHANGE_UNLISTED'),
+    target: z.union([orderTargetSchema, persistedItemTargetSchema, persistedPieceTargetSchema, localItemTargetSchema, localPieceTargetSchema]),
+    payload: z.object({ field: z.string().trim().min(1).max(80), value: z.string().max(1_000) }).strict(),
+  }),
 ]);
 
 /** Validates the common future Change request envelope without accepting unknown fields. */

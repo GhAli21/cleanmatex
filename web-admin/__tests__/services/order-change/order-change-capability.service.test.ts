@@ -72,6 +72,13 @@ describe('order change capability policy', () => {
     expect(resolveOrderChangeCapabilityTarget('REMOVE_PIECE')).toBe('PIECE');
     expect(resolveOrderChangeCapabilityTarget('CHANGE_PREFERENCE')).toBe('PREFERENCE');
     expect(resolveOrderChangeCapabilityTarget('CHANGE_PRIORITY')).toBe('ORDER');
+    expect(resolveOrderChangeCapabilityTarget('CHANGE_UNLISTED')).toBe('ORDER');
+  });
+
+  it('shows an unlisted change in preview even when the policy has no rule for it', async () => {
+    await expect(evaluateOrderChangeCapability(capabilityInput({
+      operation: { seq: 1, code: 'CHANGE_UNLISTED', hasReason: false },
+    }))).resolves.toMatchObject({ decision: 'DENY', reasonCode: 'NOT_IN_POLICY', operationCode: 'CHANGE_UNLISTED' });
   });
 
   it('allows only an explicit profile binding after server-side permission validation', async () => {

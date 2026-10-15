@@ -36,6 +36,7 @@ const SCREEN_LIMIT: Record<OrderChangeOperationCode, EditPolicyScreenLimit> = {
   CHANGE_READY_BY: 'ready',
   CHANGE_ORDER_NOTES: 'ready',
   CHANGE_CUSTOMER_SNAPSHOT: 'identity',
+  CHANGE_UNLISTED: 'hidden',
 };
 
 /**

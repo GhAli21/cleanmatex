@@ -200,6 +200,7 @@ export function resolveOrderChangeCapabilityTarget(
     return preferenceParentTargetType;
   }
   if (operationCode === 'CHANGE_PREFERENCE' || operationCode === 'REMOVE_PREFERENCE') return 'PREFERENCE';
+  if (operationCode === 'CHANGE_UNLISTED') return 'ORDER';
   return 'ORDER';
 }
 
@@ -255,6 +256,7 @@ export async function evaluateOrderChangeCapability(input: {
   if (!input.facts.workflowStatus?.trim()) return denial('WORKFLOW_STATUS_UNAVAILABLE', 'orderChange.capability.workflowStatusUnavailable');
   if (input.operation.hardDenial) return denial(input.operation.hardDenial.code, input.operation.hardDenial.messageKey);
   if (!await input.actor.canUsePermission(ORDERS_PERMISSIONS.EDIT)) return denial('PERMISSION_DENIED', 'orderChange.capability.permissionDenied');
+  if (input.operation.code === 'CHANGE_UNLISTED') return denial('NOT_IN_POLICY', 'orderChange.capability.notInPolicy');
 
   const binding = input.bindings.find((candidate) =>
     candidate.workflowStatus === input.facts.workflowStatus

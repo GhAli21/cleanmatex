@@ -18,6 +18,8 @@ export const ORDER_CHANGE_OPERATION_CODES = [
   'CHANGE_READY_BY',
   'CHANGE_ORDER_NOTES',
   'CHANGE_CUSTOMER_SNAPSHOT',
+  /** Screen change with no policy operation. Preview lists it; the policy catalog does not govern it. */
+  'CHANGE_UNLISTED',
 ] as const;
 
 /**

@@ -43,7 +43,7 @@ Never storable here: database URL, Supabase URL/keys/JWT secret, `HQ_ENCRYPTION_
 - Nothing returns a secret: `fn_ops_config_list` omits ciphertext and fingerprints and returns `db_value` only for plain non-secret rows; the API echoes metadata only. `fn_ops_config_get_raw` (ciphertext, fingerprint) is service-role-only and used in-process by the resolver and the check; its output never reaches a controller response or a log.
 - Audit and history carry a fingerprint (audit: first 12 hex chars; history table: full digest), never a value or ciphertext. Errors never echo a submitted value.
 - Values are trimmed before fingerprinting/storing; the environment value is trimmed the same way, so a stray newline cannot cause a false mismatch.
-- Residual risks: a fingerprint of a low-entropy value (a short flag, a phone number) can be guessed offline. This is acceptable for non-secrets (they are shown anyway) and for high-entropy secrets; do not store a low-entropy secret. Rotating `HQ_ENCRYPTION_MASTER_KEY` makes every stored envelope undecryptable until values are re-entered (no re-encryption tool exists yet).
+- Residual risks: a fingerprint of a low-entropy value (a short flag, a phone number) can be guessed offline. This is acceptable for non-secrets (they are shown anyway) and for high-entropy secrets; do not store a low-entropy secret. Master-key rotation is supported by the re-encryption tool (section 10), so a rotated key no longer strands stored envelopes.
 - Do not paste a secret into chat, tickets or a repository file; type it into the write-only field.
 
 ## 5. "Check now" and its limit
@@ -123,3 +123,18 @@ Tests: `dispatch/__tests__/config-registry-wiring.spec.ts`, `email-resend.resolv
 - DB types for both apps were not regenerated; the repository uses a narrow typed bridge (as in P1).
 - The screen has not been opened in a browser against a live API.
 - The `hq_ops:manage_config` / `hq_ops:manage_secrets` permissions exist only after 0612 is applied.
+
+## 10. Master-key rotation, change history and drift alerting (R7, migration 0621)
+
+**Rotation procedure** (HQ API host; needs `hq_ops:manage_secrets` for the button):
+1. Generate a new key: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+2. Set `HQ_ENCRYPTION_MASTER_KEY` = the NEW key and `HQ_ENCRYPTION_MASTER_KEY_PREVIOUS` = the OLD key. Restart HQ API. Values sealed with either key stay readable.
+3. Open Operations > Config. The "Encryption keys" panel lists, per store (config registry, tenant provider settings, tenant private credentials), how many envelopes are pending. Press **Re-encrypt**; it runs batches (200 values each) until none are pending. Every swap is a compare-and-swap, so a value changed meanwhile is skipped and retried by the next run; each registry value gets a `REENCRYPT` history row (fingerprint unchanged).
+4. When the panel and Setup Health (`config.key_rotation`) report nothing pending, remove `HQ_ENCRYPTION_MASTER_KEY_PREVIOUS` and restart. If any value is **unreadable** (sealed with a key that is no longer configured) Setup Health fails: put that key back as the previous key, or re-enter the value.
+Envelopes now carry a key id (`kid`, first 8 hex of SHA-256 of the key; the key itself is never stored or shown). Envelopes written before this change have no id; they decrypt with the current key and are stamped by the first re-encryption run.
+
+**Change history.** The history icon on each key opens its newest-first change log (`GET /ops/config/:key/history`): action, actor, time and the 12-hex fingerprint (or policy) before and after. Values are never shown. Needs only `hq_ops:read`.
+
+**Drift alerting.** HQ API checks the registry against its own environment every `platform.ops.drift_check_minutes` minutes (default 15; 0 disables; changes apply within a minute). Keys that newly enter `DRIFT` or `MISMATCH` raise an alert once (not at every interval): an audit record (`ops_config.drift_detected`), an application-log error and, if `platform.ops.alert_webhook_url` is set to an https Slack-compatible incoming-webhook URL, a short message naming keys and states (no values). The URL carries a token, so it is a secret key and is never logged. With several API instances an alert may repeat; it is advisory. Only HQ API's own environment is checked (see section 5).
+
+**Salted fingerprints: decided against.** The 64-hex SHA-256 fingerprint is the only thing every app can compute, which is what lets the tenant app compare its environment with an encrypted registry value and lets the database verify plain-to-encrypted conversions (0620). A per-row salt stored beside the fingerprint would not stop offline guessing by anyone who can read the row; a keyed HMAC would stop it but would make the tenant comparison and the database verification impossible, silently falling the tenant app back to its environment. The real protection is the existing rule: store only high-entropy secrets, encrypt the HQ-only ones, and restrict the service role.

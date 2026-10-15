@@ -1,6 +1,7 @@
 import type { OrderChangeContext, OrderChangeContextPreference } from '@/lib/types/order-change';
-import type { OrderItem, OrderItemServicePref } from '@features/orders/model/new-order-types';
-import type { EditOrderBaseline } from './edit-order-view-model';
+import type { OrderItem, OrderItemServicePref, PreSubmissionPiece } from '@features/orders/model/new-order-types';
+import type { EditUnlistedChange } from './change-builder';
+import type { EditOrderBaseline, EditPieceDraft, EditPreferenceDraft, EditRowIdentity } from './edit-order-view-model';
 import type { EditOrderController } from './edit-order-controller';
 
 /** Header fields and the current cart. Review copies both into the Edit controller. */
@@ -13,6 +14,7 @@ export interface VisualEditDraft {
   customerMobile?: string;
   customerEmail?: string;
   items?: OrderItem[];
+  orderServicePrefs?: OrderItemServicePref[];
 }
 
 function text(value: string | undefined): string {
@@ -95,9 +97,16 @@ export function applyVisualDraftToController(
 ): void {
   controller.load(baseline);
   if (visual.items) applyVisualLines(controller, baseline, visual.items);
+  if (visual.orderServicePrefs) {
+    syncPreferences(controller, baseline.preferences, visual.orderServicePrefs, 'ORDER', undefined, { kind: 'ORDER' });
+  }
   if (text(visual.notes) !== text(baseline.notes)) controller.setNotes(text(visual.notes));
   if (text(visual.customerNotes) !== text(baseline.customerNotes)) controller.setCustomerNotes(text(visual.customerNotes));
-  if (visual.readyBy && visual.readyBy !== text(baseline.readyBy)) controller.setReadyBy(visual.readyBy);
+  const nextReadyBy = text(visual.readyBy);
+  if (visual.readyBy !== undefined && nextReadyBy !== text(baseline.readyBy)) {
+    if (nextReadyBy) controller.setReadyBy(nextReadyBy);
+    else controller.recordUnlisted({ target: { kind: 'ORDER' }, field: 'order.readyBy', value: '' });
+  }
   const baselineExpress = baseline.serviceSpeed === 'EXPRESS';
   if (visual.express !== undefined && visual.express !== baselineExpress) {
     controller.setServiceSpeed(visual.express ? 'EXPRESS' : 'STANDARD');
@@ -115,12 +124,13 @@ export function visualHeaderChangeCount(baseline: EditOrderBaseline, visual: Vis
   let count = 0;
   if (text(visual.notes) !== text(baseline.notes)) count += 1;
   if (text(visual.customerNotes) !== text(baseline.customerNotes)) count += 1;
-  if (visual.readyBy && visual.readyBy !== text(baseline.readyBy)) count += 1;
+  if (visual.readyBy !== undefined && text(visual.readyBy) !== text(baseline.readyBy)) count += 1;
   if (visual.express !== undefined && visual.express !== (baseline.serviceSpeed === 'EXPRESS')) count += 1;
   if (text(visual.customerName) !== text(baseline.customerName)) count += 1;
   if (text(visual.customerMobile) !== text(baseline.customerMobile)) count += 1;
   if (text(visual.customerEmail) !== text(baseline.customerEmail)) count += 1;
   if (visual.items) count += visualLineChangeCount(baseline, visual.items);
+  if (visual.orderServicePrefs) count += preferenceChangeCount(baseline.preferences, visual.orderServicePrefs);
   return count;
 }
 
@@ -144,8 +154,12 @@ function applyVisualLines(controller: EditOrderController, baseline: EditOrderBa
       ...(override ? { priceOverride: override } : {}),
       ...(item.overrideReason ? { overrideReason: item.overrideReason } : {}),
     });
+    syncPreferences(controller, [], item.servicePrefs, 'ITEM', identity, localTarget('LOCAL_ITEM', identity));
+    recordUnlisted(controller, itemExtras(item, localTarget('LOCAL_ITEM', identity)));
     for (const piece of localPieces(item, new Set())) {
-      controller.addPiece(identity, pieceFields(piece));
+      const pieceIdentity = controller.addPiece(identity, pieceFields(piece));
+      syncPreferences(controller, [], piece.servicePrefs, 'PIECE', pieceIdentity, localTarget('LOCAL_PIECE', pieceIdentity));
+      recordUnlisted(controller, newPieceExtras(piece, localTarget('LOCAL_PIECE', pieceIdentity)));
     }
   }
 }
@@ -163,14 +177,34 @@ function syncPersistedLine(controller: EditOrderController, line: EditOrderBasel
   }
   if (delta > 0 && known.size > 0) {
     for (const piece of localPieces(item, known).slice(0, delta)) {
-      controller.addPiece(line.identity, pieceFields(piece));
+      const pieceIdentity = controller.addPiece(line.identity, pieceFields(piece));
+      syncPreferences(controller, [], piece.servicePrefs, 'PIECE', pieceIdentity, localTarget('LOCAL_PIECE', pieceIdentity));
+      recordUnlisted(controller, newPieceExtras(piece, localTarget('LOCAL_PIECE', pieceIdentity)));
     }
+  }
+  syncPreferences(controller, line.preferences, item.servicePrefs, 'ITEM', line.identity, persistedTarget('PERSISTED_ITEM', line.identity));
+  recordUnlisted(controller, persistedItemExtras(line, item));
+  for (const piece of item.pieces ?? []) {
+    const id = persistedPieceId(piece, known);
+    if (!id) continue;
+    const current = line.pieces.find((row) => row.identity.kind === 'persisted' && row.identity.id === id);
+    if (!current) continue;
+    syncPreferences(controller, current.preferences, piece.servicePrefs, 'PIECE', current.identity, { kind: 'PERSISTED_PIECE', id });
+    recordUnlisted(controller, persistedPieceExtras(current, piece));
   }
 }
 
 function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly OrderItem[]): number {
   const byPersistedId = new Map(items.flatMap((item) => item.persistedItemId ? [[item.persistedItemId, item] as const] : []));
-  let count = items.filter((item) => !item.persistedItemId).length;
+  let count = 0;
+  for (const item of items) {
+    if (item.persistedItemId) continue;
+    count += 1;
+    count += preferenceChangeCount([], item.servicePrefs) + itemExtras(item).length;
+    for (const piece of item.pieces ?? []) {
+      count += preferenceChangeCount([], piece.servicePrefs) + newPieceExtras(piece).length;
+    }
+  }
   for (const line of baseline.lines) {
     if (line.identity.kind !== 'persisted') continue;
     const current = byPersistedId.get(line.identity.id);
@@ -179,6 +213,22 @@ function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly Orde
       continue;
     }
     if (current.quantity !== line.quantity) count += 1;
+    count += preferenceChangeCount(line.preferences, current.servicePrefs);
+    count += persistedItemExtras(line, current).length;
+    const known = new Set(line.pieces.flatMap((piece) => piece.identity.kind === 'persisted' ? [piece.identity.id] : []));
+    const delta = current.quantity - line.quantity;
+    const addedPieces = delta > 0 && known.size > 0 ? localPieces(current, known).slice(0, delta) : [];
+    for (const piece of addedPieces) {
+      count += preferenceChangeCount([], piece.servicePrefs) + newPieceExtras(piece).length;
+    }
+    for (const piece of current.pieces ?? []) {
+      const id = persistedPieceId(piece, known);
+      if (!id) continue;
+      const baselinePiece = line.pieces.find((row) => row.identity.kind === 'persisted' && row.identity.id === id);
+      if (!baselinePiece) continue;
+      count += preferenceChangeCount(baselinePiece.preferences, piece.servicePrefs);
+      count += persistedPieceExtras(baselinePiece, piece).length;
+    }
   }
   return count;
 }
@@ -205,4 +255,114 @@ function pieceFields(piece: NonNullable<OrderItem['pieces']>[number]): { color?:
 function moneyOverride(value: number | null | undefined): string | undefined {
   if (value == null || !Number.isFinite(value)) return undefined;
   return value.toFixed(4);
+}
+
+const PREFERENCE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function syncPreferences(
+  controller: EditOrderController,
+  baseline: readonly EditPreferenceDraft[],
+  visual: readonly OrderItemServicePref[] | undefined,
+  level: 'ORDER' | 'ITEM' | 'PIECE',
+  parent: EditRowIdentity | undefined,
+  target: EditUnlistedChange['target'],
+): void {
+  const rows = visual ?? [];
+  const kept = new Set(rows.flatMap((row) => row.persistedId ? [row.persistedId] : []));
+  for (const row of baseline) {
+    if (row.identity.kind !== 'persisted' || kept.has(row.identity.id)) continue;
+    controller.removePreference(row.identity);
+  }
+  for (const row of rows) {
+    if (row.persistedId) continue;
+    if (row.preferenceCfId && PREFERENCE_UUID.test(row.preferenceCfId)) {
+      controller.addPreference({
+        level,
+        parent,
+        preferenceId: row.preferenceCfId,
+        preferenceCode: row.preference_code,
+      });
+      continue;
+    }
+    controller.recordUnlisted({ target, field: 'preference.code', value: row.preference_code });
+  }
+}
+
+function preferenceChangeCount(baseline: readonly EditPreferenceDraft[], visual: readonly OrderItemServicePref[] | undefined): number {
+  const rows = visual ?? [];
+  const kept = new Set(rows.flatMap((row) => row.persistedId ? [row.persistedId] : []));
+  const removed = baseline.filter((row) => row.identity.kind === 'persisted' && !kept.has(row.identity.id)).length;
+  return removed + rows.filter((row) => !row.persistedId).length;
+}
+
+function recordUnlisted(controller: EditOrderController, changes: readonly EditUnlistedChange[]): void {
+  for (const change of changes) controller.recordUnlisted(change);
+}
+
+function localTarget(kind: 'LOCAL_ITEM' | 'LOCAL_PIECE', identity: EditRowIdentity): EditUnlistedChange['target'] {
+  if (identity.kind !== 'local') throw new Error('EDIT_TARGET_KIND');
+  return { kind, clientRef: identity.clientRef };
+}
+
+function persistedTarget(kind: 'PERSISTED_ITEM' | 'PERSISTED_PIECE', identity: EditRowIdentity): EditUnlistedChange['target'] {
+  if (identity.kind !== 'persisted') throw new Error('EDIT_TARGET_KIND');
+  return { kind, id: identity.id };
+}
+
+function itemExtras(item: OrderItem, target: EditUnlistedChange['target'] = { kind: 'ORDER' }): EditUnlistedChange[] {
+  return textChanges(target, [
+    ['item.notes', '', text(item.notes)],
+    ['item.packing', '', text(item.packingPrefCode)],
+    ['item.stainNotes', '', text(item.stainNotes)],
+    ['item.damageNotes', '', text(item.damageNotes)],
+    ...flagChange('item.stain', undefined, item.hasStain),
+    ...flagChange('item.damage', undefined, item.hasDamage),
+  ]);
+}
+
+function persistedItemExtras(line: EditOrderBaseline['lines'][number], item: OrderItem): EditUnlistedChange[] {
+  if (line.identity.kind !== 'persisted') return [];
+  const target: EditUnlistedChange['target'] = { kind: 'PERSISTED_ITEM', id: line.identity.id };
+  return textChanges(target, [
+    ['item.priceOverride', line.priceOverride ?? '', moneyOverride(item.priceOverride) ?? ''],
+    ['item.overrideReason', text(line.overrideReason), text(item.overrideReason ?? undefined)],
+    ['item.notes', '', text(item.notes)],
+    ['item.packing', '', text(item.packingPrefCode)],
+    ['item.stainNotes', '', text(item.stainNotes)],
+    ['item.damageNotes', '', text(item.damageNotes)],
+    ...flagChange('item.stain', undefined, item.hasStain),
+    ...flagChange('item.damage', undefined, item.hasDamage),
+  ]);
+}
+
+function persistedPieceExtras(piece: EditPieceDraft, visual: PreSubmissionPiece): EditUnlistedChange[] {
+  if (piece.identity.kind !== 'persisted') return [];
+  const target: EditUnlistedChange['target'] = { kind: 'PERSISTED_PIECE', id: piece.identity.id };
+  return textChanges(target, [
+    ['piece.color', text(piece.color), text(visual.color)],
+    ['piece.brand', text(piece.brand), text(visual.brand)],
+    ['piece.notes', text(piece.notes), text(visual.notes)],
+    ['piece.conditions', '', (visual.conditions ?? []).join(',')],
+    ['piece.packing', '', text(visual.packingPrefCode)],
+    ...flagChange('piece.stain', piece.hasStain, visual.hasStain),
+    ...flagChange('piece.damage', piece.hasDamage, visual.hasDamage),
+  ]);
+}
+
+function newPieceExtras(piece: PreSubmissionPiece, target: EditUnlistedChange['target'] = { kind: 'ORDER' }): EditUnlistedChange[] {
+  return textChanges(target, [
+    ['piece.conditions', '', (piece.conditions ?? []).join(',')],
+    ['piece.packing', '', text(piece.packingPrefCode)],
+  ]);
+}
+
+function textChanges(target: EditUnlistedChange['target'], rows: Array<[string, string, string]>): EditUnlistedChange[] {
+  return rows.flatMap(([field, before, after]) => before === after ? [] : [{ target, field, value: after }]);
+}
+
+function flagChange(field: string, before: boolean | undefined, after: boolean | undefined): Array<[string, string, string]> {
+  const left = before === true;
+  const right = after === true;
+  if (left === right) return [];
+  return [[field, left ? 'true' : '', right ? 'true' : '']];
 }

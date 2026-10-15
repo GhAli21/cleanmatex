@@ -4,7 +4,7 @@
  */
 
 import type { OrderChangeEditPolicyInfo } from '@/lib/types/order-change';
-import { buildOrderChangeOperations, type EditOrderDraft } from './change-builder';
+import { buildOrderChangeOperations, type EditOrderDraft, type EditUnlistedChange } from './change-builder';
 import {
   sameIdentity,
   type EditLineDraft,
@@ -114,6 +114,11 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
     },
     setReadyBy(readyBy: string): void {
       requireDraft().readyBy = readyBy;
+      invalidateReview();
+    },
+    recordUnlisted(change: EditUnlistedChange): void {
+      const current = requireDraft();
+      current.unlisted = [...(current.unlisted ?? []), change];
       invalidateReview();
     },
     setChangeReason(changeReason: string): void {

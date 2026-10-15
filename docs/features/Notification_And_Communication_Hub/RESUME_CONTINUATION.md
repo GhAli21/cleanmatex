@@ -4,7 +4,7 @@
 
 ## 1. Where things stand
 - Tenant repo `F:\jhapp\cleanmatex` (owns ALL migrations) and HQ repo `F:\jhapp\cleanmatexsaas` (platform-api NestJS, platform-web Next.js, platform-workers).
-- Hub pilot code is complete in both repos. Platform Operations Console (A10) P0–P4 built: migrations 0610/0611/0612 APPLIED to both DBs; DB types regenerated in both HQ apps; next migration seq = **0619** (0613–0617 applied; 0618 written, UNAPPLIED).
+- Hub pilot code is complete in both repos. Platform Operations Console (A10) P0–P4 built: migrations 0610/0611/0612 APPLIED to both DBs; DB types regenerated in both HQ apps; next migration seq = **0622** (0613–0620 applied by the owner 2026-10-15; **0621 written, UNAPPLIED** — R7).
 - 2026-10-14 hardening: central `HqRbacService` (`platform-api/src/common/services/hq-rbac.service.ts`) — HQ RBAC enforced unless `HQ_RBAC_ENFORCEMENT_ENABLED=false`; guard + ops services use it. 153 tests pass.
 - Everything is UNCOMMITTED in both repos (user commits). Unrelated pre-existing failing suites in `platform-api/src/common` (tenant-permission guard/service, tenant-runtime-jwt guard) — not ours.
 
@@ -21,7 +21,7 @@ Fix job drift on `/ops/jobs`; HQ env vars (checklist Step 2); Twilio account/sen
 | R4 ✅ DONE 2026-10-14 (no migration) | Meta WhatsApp provider-message-id capture (A2) | tenant `sendViaMeta` returns wamid; reconcile META row with wamid => SENT |
 | R5 ✅ DONE 2026-10-14 (no migration) | Sender-level live verification (A5b) | HQ `POST …/senders/:id/verify` (Twilio SMS/WhatsApp, Resend domain) + UI button; operator must click-through once |
 | R6 ⏸ **R6a+R6b built; STOPPED for migration 0618 (retire sys_ntf_runtime_cf) — owner applies, then regenerates types in all three apps** (0615/0616/0617 applied 2026-10-15) | Config registry v2 end-to-end: HQ + tenant resolvers, encryption toggle, plain-secret health check, runtime screen retired | after 0618: regenerate types, rotate outbox secret, run the seed script per DB, click-through `/ops/config` |
-| R7 | Ops follow-ups: change-history UI for `sys_ops_config_chg_log`, master-key rotation/re-encryption tool, drift alerting, salted fingerprints | |
+| R7 ✅ BUILT 2026-10-15 — **STOPPED for migration 0621 (owner applies, regenerates HQ types)** | Ops follow-ups: change-history UI (done), master-key rotation + re-encryption tool (done), drift alerting (done), salted fingerprints (decided against — rationale in `Platform_Operations_Console/config_registry_guide.md` §10) | after 0621: set `platform.ops.alert_webhook_url` if wanted; try a rotation drill on a test key; click through the history icon and the Encryption keys panel on `/ops/config` |
 | R8 | C3 test matrix: close every remaining row that is feasible without new infra; list the rest honestly | audit doc `test-matrix-coverage-audit-2026-10-10.md` |
 | R9 | Final: refresh plan §23.1, STATUS.md, QA/runbook docs; mark plan closed with deferrals as post-pilot backlog | `/documentation` skill |
 

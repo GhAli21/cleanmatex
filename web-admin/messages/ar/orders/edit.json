@@ -157,7 +157,8 @@
       "CHANGE_SERVICE_SPEED": "تغيير المستعجل",
       "CHANGE_READY_BY": "تغيير موعد الجاهزية",
       "CHANGE_ORDER_NOTES": "تغيير الملاحظات",
-      "CHANGE_CUSTOMER_SNAPSHOT": "تغيير بيانات العميل"
+      "CHANGE_CUSTOMER_SNAPSHOT": "تغيير بيانات العميل",
+      "CHANGE_UNLISTED": "تغيير آخر متابع"
     }
   }
 }

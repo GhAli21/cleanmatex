@@ -157,7 +157,8 @@
       "CHANGE_SERVICE_SPEED": "Change Express",
       "CHANGE_READY_BY": "Change ready by",
       "CHANGE_ORDER_NOTES": "Change notes",
-      "CHANGE_CUSTOMER_SNAPSHOT": "Change customer details"
+      "CHANGE_CUSTOMER_SNAPSHOT": "Change customer details",
+      "CHANGE_UNLISTED": "Other tracked change"
     }
   }
 }

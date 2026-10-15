@@ -15,8 +15,19 @@ import {
 
 export type EditChangeOperation = z.infer<typeof orderChangeRequestSchema>['operations'][number];
 
+export interface EditUnlistedChange {
+  target:
+    | { kind: 'ORDER' }
+    | { kind: 'PERSISTED_ITEM' | 'PERSISTED_PIECE'; id: string }
+    | { kind: 'LOCAL_ITEM' | 'LOCAL_PIECE'; clientRef: string };
+  field: string;
+  value: string;
+}
+
 export interface EditOrderDraft extends EditOrderBaseline {
   changeReason?: string;
+  /** Screen edits that have no policy operation. Preview still lists them. */
+  unlisted?: EditUnlistedChange[];
 }
 
 function text(value: string | undefined): string {
@@ -93,6 +104,9 @@ export function buildOrderChangeOperations(baseline: EditOrderBaseline, draft: E
     appendAddedLine(line, push);
   }
   appendPreferenceChanges(baseline.preferences, draft.preferences, { kind: 'ORDER' }, push);
+  for (const change of draft.unlisted ?? []) {
+    push({ code: 'CHANGE_UNLISTED', target: change.target, payload: { field: change.field, value: change.value } });
+  }
   return operations;
 }
 

@@ -101,7 +101,8 @@ function EditSharedWorkspaceBody({
     customerMobile: state.customerMobile,
     customerEmail: state.customerEmail,
     items: state.items,
-  }), [state.customerEmail, state.customerMobile, state.customerName, state.customerNotes, state.express, state.items, state.notes, state.readyByAt]);
+    orderServicePrefs: state.orderServicePrefs,
+  }), [state.customerEmail, state.customerMobile, state.customerName, state.customerNotes, state.express, state.items, state.notes, state.orderServicePrefs, state.readyByAt]);
 
   const rememberReview = useCallback((body: unknown) => {
     const view = readEditReview(body, controller.buildOperations(), context.financial.totalAmount);
