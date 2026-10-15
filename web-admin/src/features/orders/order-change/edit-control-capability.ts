@@ -48,7 +48,8 @@ const STATE_RANK: Record<EditControlState, number> = {
 const CREATE_CAPABILITY: EditControlCapability = { state: 'CREATE', interactive: true, reasonKey: null };
 
 /**
- * Combines one already-loaded policy with this version's writer availability.
+ * Editing-stage control from the policy already loaded with the order.
+ * A missing writer does not close the draft. Review and Apply remain the server checks.
  * It does not resolve assignments or call the server.
  */
 export function resolveEditControlCapability(
@@ -66,9 +67,6 @@ export function resolveEditControlCapability(
   const decision = strictestDecision(rules);
   if (!decision || decision === 'DENY') {
     return { state: 'DENIED', interactive: false, reasonKey: 'deny' };
-  }
-  if (AVAILABILITY[operationCode] === 'NOT_IMPLEMENTED') {
-    return { state: 'NOT_AVAILABLE_YET', interactive: false, reasonKey: 'notAvailable' };
   }
   if (decision === 'REQUIRE_OVERRIDE') {
     return { state: 'OVERRIDE', interactive: true, reasonKey: 'override' };

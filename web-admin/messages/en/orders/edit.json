@@ -90,6 +90,7 @@
   },
   "capability": {
     "deny": "This change is not allowed at the current status.",
+    "deniedOperation": "{operation} is not allowed at the current status.",
     "missing": "No edit policy is assigned for this status, so this change stays closed.",
     "warning": "Review will ask you to confirm a warning before this change can be saved.",
     "override": "This change needs an override before it can be saved.",
@@ -132,6 +133,7 @@
       "override": "A person with override permission must approve this before Apply.",
       "deny": "This change is not allowed at the current status.",
       "screenClosed": "This screen does not send item, piece, or preference changes yet.",
+      "editLocally": "You can change this while editing. Review checks the current policy before anything is saved.",
       "totalSame": "Apply keeps the order total the same, so a price change is refused.",
       "identityLocked": "Customer, branch, and currency stay locked on this screen.",
       "reasonRequired": "Review asks for a reason before Apply."

@@ -278,7 +278,7 @@ export function NewOrderContent() {
     );
 
     const workspace = useOrderWorkspaceSessionOptional();
-    const itemCapability = useEditControlGroup(['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY']);
+    const itemCapability = useEditControlGroup(['ADD_ITEM']);
 
     const handleAddItem = useCallback(
         async (product: Product) => {
@@ -825,8 +825,9 @@ export function NewOrderContent() {
                     {/* Scrollable Panel Content */}
                     <div className={`flex-1 min-h-0 overflow-y-auto transition-opacity duration-200 ease-out ${!isDesktop && state.state.items.length > 0 ? 'pb-28' : ''}`}>
                         {activeTab === 'select' && (
-                            <div className={`p-4 sm:p-6 pt-2 ${itemCapability.interactive ? '' : 'pointer-events-none opacity-60'}`}>
-                                <EditControlNotice codes={['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY']} />
+                            <div className="space-y-2 p-4 sm:p-6 pt-2">
+                                <EditControlNotice codes={['ADD_ITEM']} />
+                            <div className={itemCapability.interactive ? '' : 'pointer-events-none opacity-60'}>
                                 {productsQuery.isInitialLoading ? (
                                     <ProductGridSkeleton />
                                 ) : (
@@ -860,6 +861,7 @@ export function NewOrderContent() {
                                         onOpenPhotoCapture={() => { state.openModal('photoCapture'); trackModalOpen('photoCapture'); }}
                                     />
                                 )}
+                            </div>
                             </div>
                         )}
                         {activeTab === 'details' && (

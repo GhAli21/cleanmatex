@@ -41,13 +41,15 @@ describe('resolveEditControlCapability', () => {
     expect(resolveEditControlCapability(policy([]), 'CHANGE_ORDER_NOTES')).toMatchObject({ state: 'DENIED', reasonKey: 'deny', interactive: false });
   });
 
-  it('keeps an allowed note open and an allowed preference unavailable', () => {
+  it('keeps an allowed note and an allowed preference open while editing', () => {
     const loaded = policy([
       { operationCode: 'CHANGE_ORDER_NOTES', targetType: 'ORDER', decision: 'ALLOW', requiresReason: false },
       { operationCode: 'ADD_PREFERENCE', targetType: 'PIECE', decision: 'ALLOW', requiresReason: false },
+      { operationCode: 'ADD_ITEM', targetType: 'ORDER', decision: 'ALLOW_WITH_WARNING', requiresReason: false },
     ]);
     expect(resolveEditControlCapability(loaded, 'CHANGE_ORDER_NOTES')).toMatchObject({ state: 'OPEN', interactive: true });
-    expect(resolveEditControlCapability(loaded, 'ADD_PREFERENCE')).toMatchObject({ state: 'NOT_AVAILABLE_YET', interactive: false });
+    expect(resolveEditControlCapability(loaded, 'ADD_PREFERENCE')).toMatchObject({ state: 'OPEN', interactive: true, reasonKey: null });
+    expect(resolveEditControlCapability(loaded, 'ADD_ITEM')).toMatchObject({ state: 'WARNING', interactive: true, reasonKey: 'warning' });
   });
 
   it('uses the strictest decision and locks customer details in this version', () => {

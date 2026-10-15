@@ -11,6 +11,7 @@ export type EditPolicyHowKey =
   | 'override'
   | 'deny'
   | 'screenClosed'
+  | 'editLocally'
   | 'totalSame'
   | 'identityLocked'
   | 'reasonRequired';
@@ -43,11 +44,17 @@ const SCREEN_LIMIT: Record<OrderChangeOperationCode, EditPolicyScreenLimit> = {
  */
 export function editPolicyExplanationKeys(rule: Pick<OrderChangeEditPolicyRule, 'operationCode' | 'decision' | 'requiresReason'>): EditPolicyHowKey[] {
   if (rule.decision === 'DENY') return ['deny'];
+  const limit = SCREEN_LIMIT[rule.operationCode];
+  if (limit === 'hidden') {
+    const keys: EditPolicyHowKey[] = ['editLocally'];
+    if (rule.decision === 'ALLOW_WITH_WARNING') keys.push('warning');
+    if (rule.decision === 'REQUIRE_OVERRIDE') keys.push('override');
+    if (rule.requiresReason) keys.push('reasonRequired');
+    return keys;
+  }
   const keys: EditPolicyHowKey[] = [
     rule.decision === 'ALLOW' ? 'allow' : rule.decision === 'ALLOW_WITH_WARNING' ? 'warning' : 'override',
   ];
-  const limit = SCREEN_LIMIT[rule.operationCode];
-  if (limit === 'hidden') keys.push('screenClosed');
   if (limit === 'total') keys.push('totalSame');
   if (limit === 'identity') keys.push('identityLocked');
   if (rule.requiresReason) keys.push('reasonRequired');

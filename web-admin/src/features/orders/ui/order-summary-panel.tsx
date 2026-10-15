@@ -303,8 +303,10 @@ function OrderSummaryPanelComponent({
       </div>
 
       {/* Item Cart List - Scrollable */}
-      <div className={`flex-1 p-3 min-h-0 overflow-y-auto ${lineCapability.interactive ? '' : 'pointer-events-none opacity-60'}`}>
+      <div className="px-3 pt-2">
         <EditControlNotice codes={['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'ADD_PIECE', 'REMOVE_PIECE']} />
+      </div>
+      <div className={`flex-1 p-3 min-h-0 overflow-y-auto ${lineCapability.interactive ? '' : 'pointer-events-none opacity-60'}`}>
         <ItemCartList
           items={items}
           onEditItem={onEditItem}
@@ -327,6 +329,7 @@ function OrderSummaryPanelComponent({
 
         {/* Ready By Row (compact, above footer grid) */}
         <div className="px-3 pt-2 pb-1 space-y-1">
+          <EditControlNotice codes={['CHANGE_READY_BY']} />
           <div className={`flex items-stretch gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             {onCalculateReadyBy && (
               <button
@@ -417,6 +420,9 @@ function OrderSummaryPanelComponent({
             </div>
           </div>
 
+          <div className="px-3 pt-2">
+            <EditControlNotice codes={['CHANGE_ORDER_NOTES']} />
+          </div>
           {/* Row 2: Notes | Save toggle */}
           <div className={`grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200 ${isRTL ? 'divide-x-reverse' : ''}`}>
             <div className={`flex items-center px-3 py-2 bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}>

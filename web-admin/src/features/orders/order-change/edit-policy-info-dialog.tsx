@@ -1,11 +1,14 @@
 'use client';
 
+import { Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { CmxButton } from '@ui/primitives/cmx-button';
 import { cmxMessage } from '@ui/feedback';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
+import { Badge } from '@ui/primitives/badge';
+import { CmxButton, Tooltip } from '@ui/primitives';
+import { CmxCard } from '@ui/primitives/cmx-card';
 import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
-import type { OrderChangeEditPolicyInfo, OrderChangeEditPolicyRule } from '@/lib/types/order-change';
+import type { OrderChangeEditPolicyAssignment, OrderChangeEditPolicyInfo, OrderChangeEditPolicyRule } from '@/lib/types/order-change';
 import { editPolicyExplanationKeys, sortEditPolicyRules } from './edit-policy-info';
 
 const TONE = {
@@ -69,6 +72,7 @@ export function EditPolicyInfoDialog({
     override: t('policyInfo.how.override'),
     deny: t('policyInfo.how.deny'),
     screenClosed: t('policyInfo.how.screenClosed'),
+    editLocally: t('policyInfo.how.editLocally'),
     totalSame: t('policyInfo.how.totalSame'),
     identityLocked: t('policyInfo.how.identityLocked'),
     reasonRequired: t('policyInfo.how.reasonRequired'),
@@ -80,57 +84,40 @@ export function EditPolicyInfoDialog({
     PREFERENCE: t('policyInfo.targets.PREFERENCE'),
   } as const;
   const rules = sortEditPolicyRules(policy.rules);
-  const identity = policy.assignment;
-  const factRows = [
-    { label: t('policyInfo.facts.organizationId'), values: [identity.tenantOrgId] },
-    { label: t('policyInfo.facts.profileVersion'), values: [identity.profileVersionId, identity.profileCode] },
-    { label: t('policyInfo.facts.editPolicy'), values: [identity.editPolicyId, identity.policyCode] },
-    { label: t('policyInfo.facts.assignmentId'), values: [identity.assignmentId] },
-    { label: t('policyInfo.facts.profileId'), values: [identity.profileId] },
-    { label: t('policyInfo.facts.versionNo'), values: [identity.versionNo == null ? null : String(identity.versionNo)] },
-    { label: t('policyInfo.facts.versionStatus'), values: [identity.versionStatus] },
-    { label: t('policyInfo.facts.policyName'), values: [identity.policyName, identity.policyName2] },
-    { label: t('policyInfo.facts.lifecycle'), values: [identity.lifecycleStatus] },
-    { label: t('policyInfo.facts.policyRevision'), values: [policy.policyRevision == null ? null : String(policy.policyRevision)] },
-    { label: t('policyInfo.facts.workflowStatus'), values: [policy.workflowStatus] },
-  ];
+  const factRows = buildPolicyFactRows(policy.assignment, policy, {
+    organizationId: t('policyInfo.facts.organizationId'),
+    profileVersion: t('policyInfo.facts.profileVersion'),
+    editPolicy: t('policyInfo.facts.editPolicy'),
+    assignmentId: t('policyInfo.facts.assignmentId'),
+    profileId: t('policyInfo.facts.profileId'),
+    versionNo: t('policyInfo.facts.versionNo'),
+    versionStatus: t('policyInfo.facts.versionStatus'),
+    policyName: t('policyInfo.facts.policyName'),
+    lifecycle: t('policyInfo.facts.lifecycle'),
+    policyRevision: t('policyInfo.facts.policyRevision'),
+    workflowStatus: t('policyInfo.facts.workflowStatus'),
+  });
+  const emptyFact = t('policyInfo.facts.empty');
   const copyAll = factRows
-    .map((row) => `${row.label}: ${row.values.filter((value) => value).join(' | ') || t('policyInfo.facts.empty')}`)
+    .map((row) => `${row.label}: ${row.values.map((value) => value.text).join(' | ') || emptyFact}`)
     .join('\n');
 
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
-      <CmxDialogContent className="w-full max-w-lg p-0 text-start sm:max-w-xl">
+      <CmxDialogContent className="w-full max-w-lg p-0 text-start sm:max-w-2xl">
         <CmxDialogHeader className="border-b border-gray-100 px-4 py-3">
           <CmxDialogTitle>{t('policyInfo.title')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="max-h-[min(70vh,520px)] space-y-3 overflow-y-auto px-4 py-4">
-          <div className="space-y-2">
-            <div className="flex justify-end">
-              <CmxButton type="button" variant="outline" size="xs" onClick={() => { void copyValue(copyAll, tCommon('copied'), t('policyInfo.facts.copyFailed')); }}>
-                {t('policyInfo.facts.copyAll')}
-              </CmxButton>
-            </div>
-            <ul className="space-y-2">
-              {factRows.map((row) => (
-                <li key={row.label} className="text-start">
-                  <p className="text-xs font-medium">{row.label}</p>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {row.values.filter((value): value is string => Boolean(value)).length === 0 ? (
-                      <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('policyInfo.facts.empty')}</span>
-                    ) : row.values.filter((value): value is string => Boolean(value)).map((value, index) => (
-                      <span key={`${row.label}-${index}`} className="flex min-w-0 items-start gap-2">
-                        <span className="select-text break-all font-mono text-xs">{value}</span>
-                        <CmxButton type="button" variant="ghost" size="xs" onClick={() => { void copyValue(value, tCommon('copied'), t('policyInfo.facts.copyFailed')); }}>
-                          {t('policyInfo.facts.copy')}
-                        </CmxButton>
-                      </span>
-                    ))}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <PolicyFactCard
+            rows={factRows}
+            emptyLabel={emptyFact}
+            copyLabel={t('policyInfo.facts.copy')}
+            copyAllLabel={t('policyInfo.facts.copyAll')}
+            copiedLabel={tCommon('copied')}
+            copyFailedLabel={t('policyInfo.facts.copyFailed')}
+            copyAll={copyAll}
+          />
           <p className="text-sm">
             {t('policyInfo.statusLine', { status: policy.workflowStatus ?? t('workspace.lockedField') })}
           </p>
@@ -166,6 +153,237 @@ export function EditPolicyInfoDialog({
         </CmxDialogFooter>
       </CmxDialogContent>
     </CmxDialog>
+  );
+}
+
+type PolicyFactTone = 'name' | 'code' | 'status' | 'id' | 'plain';
+
+interface PolicyFactValue {
+  text: string;
+  tone: PolicyFactTone;
+}
+
+interface PolicyFactRow {
+  key: string;
+  label: string;
+  values: PolicyFactValue[];
+  wide: boolean;
+  hero: boolean;
+}
+
+interface PolicyFactLabels {
+  organizationId: string;
+  profileVersion: string;
+  editPolicy: string;
+  assignmentId: string;
+  profileId: string;
+  versionNo: string;
+  versionStatus: string;
+  policyName: string;
+  lifecycle: string;
+  policyRevision: string;
+  workflowStatus: string;
+}
+
+function textFact(value: string | number | null | undefined, tone: PolicyFactTone): PolicyFactValue | null {
+  if (value == null) return null;
+  const text = String(value).trim();
+  return text ? { text, tone } : null;
+}
+
+function factRow(
+  key: string,
+  label: string,
+  values: Array<PolicyFactValue | null>,
+  layout: { wide?: boolean; hero?: boolean } = {},
+): PolicyFactRow {
+  return {
+    key,
+    label,
+    values: values.filter((value): value is PolicyFactValue => value != null),
+    wide: layout.wide === true || layout.hero === true,
+    hero: layout.hero === true,
+  };
+}
+
+/** Readable facts first, then the identifiers staff copy into support notes. */
+function buildPolicyFactRows(
+  identity: OrderChangeEditPolicyAssignment,
+  policy: Pick<OrderChangeEditPolicyInfo, 'policyRevision' | 'workflowStatus'>,
+  labels: PolicyFactLabels,
+): PolicyFactRow[] {
+  return [
+    factRow('policyName', labels.policyName, [
+      textFact(identity.policyName, 'name'),
+      textFact(identity.policyName2, 'name'),
+    ], { hero: true }),
+    factRow('lifecycle', labels.lifecycle, [textFact(identity.lifecycleStatus, 'status')]),
+    factRow('versionStatus', labels.versionStatus, [textFact(identity.versionStatus, 'status')]),
+    factRow('versionNo', labels.versionNo, [textFact(identity.versionNo, 'plain')]),
+    factRow('policyRevision', labels.policyRevision, [textFact(policy.policyRevision, 'plain')]),
+    factRow('workflowStatus', labels.workflowStatus, [textFact(policy.workflowStatus, 'status')], { wide: true }),
+    factRow('profileVersion', labels.profileVersion, [
+      textFact(identity.profileCode, 'code'),
+      textFact(identity.profileVersionId, 'id'),
+    ], { wide: true }),
+    factRow('editPolicy', labels.editPolicy, [
+      textFact(identity.policyCode, 'code'),
+      textFact(identity.editPolicyId, 'id'),
+    ], { wide: true }),
+    factRow('assignmentId', labels.assignmentId, [textFact(identity.assignmentId, 'id')], { wide: true }),
+    factRow('profileId', labels.profileId, [textFact(identity.profileId, 'id')], { wide: true }),
+    factRow('organizationId', labels.organizationId, [textFact(identity.tenantOrgId, 'id')], { wide: true }),
+  ];
+}
+
+function PolicyFactCard({
+  rows,
+  emptyLabel,
+  copyLabel,
+  copyAllLabel,
+  copiedLabel,
+  copyFailedLabel,
+  copyAll,
+}: {
+  rows: PolicyFactRow[];
+  emptyLabel: string;
+  copyLabel: string;
+  copyAllLabel: string;
+  copiedLabel: string;
+  copyFailedLabel: string;
+  copyAll: string;
+}) {
+  return (
+    <CmxCard className="shadow-none">
+      <div className="flex justify-end px-3 pt-3">
+        <CmxButton
+          type="button"
+          variant="outline"
+          size="xs"
+          className="gap-1.5"
+          onClick={() => { void copyValue(copyAll, copiedLabel, copyFailedLabel); }}
+        >
+          <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+          {copyAllLabel}
+        </CmxButton>
+      </div>
+      <div className="p-3 pt-2">
+        <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {rows.map((row) => (
+            <PolicyFactTile
+              key={row.key}
+              row={row}
+              emptyLabel={emptyLabel}
+              copyLabel={copyLabel}
+              copiedLabel={copiedLabel}
+              copyFailedLabel={copyFailedLabel}
+            />
+          ))}
+        </dl>
+      </div>
+    </CmxCard>
+  );
+}
+
+function PolicyFactTile({
+  row,
+  emptyLabel,
+  copyLabel,
+  copiedLabel,
+  copyFailedLabel,
+}: {
+  row: PolicyFactRow;
+  emptyLabel: string;
+  copyLabel: string;
+  copiedLabel: string;
+  copyFailedLabel: string;
+}) {
+  return (
+    <div
+      className={
+        row.hero
+          ? 'rounded-lg border border-[rgb(var(--cmx-info-border-rgb,191_219_254))] bg-[rgb(var(--cmx-info-bg-rgb,239_246_255))] px-3 py-2.5 sm:col-span-2'
+          : `h-full rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-ghost-hover-bg-rgb,241_245_249))] px-3 py-2${row.wide ? ' sm:col-span-2' : ''}`
+      }
+    >
+      <dt className="text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        {row.label}
+      </dt>
+      {row.values.length === 0 ? (
+        <dd className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{emptyLabel}</dd>
+      ) : (
+        <dd className="mt-1.5">
+          <ul className="space-y-1.5">
+            {row.values.map((value) => (
+              <li key={`${row.key}-${value.tone}-${value.text}`} className="flex min-w-0 items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <PolicyFactValueText value={value} prominent={row.hero} />
+                </div>
+                <span className="shrink-0">
+                  <CopyFactButton
+                    value={value.text}
+                    label={copyLabel}
+                    copiedLabel={copiedLabel}
+                    copyFailedLabel={copyFailedLabel}
+                  />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </dd>
+      )}
+    </div>
+  );
+}
+
+function PolicyFactValueText({ value, prominent }: { value: PolicyFactValue; prominent: boolean }) {
+  if (value.tone === 'code') {
+    return (
+      <Badge variant="outline" className="max-w-full whitespace-normal break-all bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] font-mono font-medium">
+        {value.text}
+      </Badge>
+    );
+  }
+  if (value.tone === 'status') {
+    return (
+      <Badge variant="info" className="max-w-full whitespace-normal font-medium">
+        {value.text}
+      </Badge>
+    );
+  }
+  if (value.tone === 'id') {
+    return <span className="min-w-0 select-text break-all font-mono text-xs leading-5">{value.text}</span>;
+  }
+  if (value.tone === 'name') {
+    return <span dir="auto" className={`min-w-0 select-text leading-5 ${prominent ? 'text-sm font-semibold' : 'text-sm'}`}>{value.text}</span>;
+  }
+  return <span className="min-w-0 select-text text-sm font-semibold leading-5">{value.text}</span>;
+}
+
+function CopyFactButton({
+  value,
+  label,
+  copiedLabel,
+  copyFailedLabel,
+}: {
+  value: string;
+  label: string;
+  copiedLabel: string;
+  copyFailedLabel: string;
+}) {
+  return (
+    <Tooltip content={label}>
+      <CmxButton
+        type="button"
+        variant="ghost"
+        size="xs"
+        className="h-7 w-7 shrink-0 bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] px-0"
+        aria-label={label}
+        onClick={() => { void copyValue(value, copiedLabel, copyFailedLabel); }}
+      >
+        <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+      </CmxButton>
+    </Tooltip>
   );
 }
 
