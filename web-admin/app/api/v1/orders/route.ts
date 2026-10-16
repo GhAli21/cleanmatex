@@ -20,6 +20,7 @@ import {
 } from '@/lib/services/workflow/workflow-profile-error-catalog';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
+import { getTenantTimeZone } from '@/lib/utils/tenant-timezone.server';
 import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
 import { listStageWorklistOrderPage } from '@/lib/services/workflow/stage-worklist-query.service';
 import {
@@ -173,6 +174,7 @@ export async function POST(request: NextRequest) {
         variables: buildOrderCreatedNotificationVariables({
           orderNo:   result.order.orderNo,
           readyByAt: result.order.readyByAt,
+          timeZone:  await getTenantTimeZone(),
         }),
       });
     }

@@ -34,6 +34,7 @@
 | 13 | [13_twilio_waba_and_template_approval.md](./13_twilio_waba_and_template_approval.md) | Twilio WABA Self Sign-up, why templates stay unapproved, sandbox vs production, resubmit + HQ flags |
 | 14 | [14_twilio_production_order_created.md](./14_twilio_production_order_created.md) | Approved order-created Content SID, tenant event mapping, customer opt-in, production dispatch and end-to-end test |
 | 15 | [15_operator_go_live_checklist.md](./15_operator_go_live_checklist.md) | **Start here for go-live:** cron restore, HQ env vars, Twilio account verify, template import/bind, route activation, WhatsApp test, Resend webhook, commit |
+| — | [NTF_Create_Platform_Connections_And_Sender_Guide.md](./NTF_Create_Platform_Connections_And_Sender_Guide.md) | **Ultimate guide** to creating Platform Connections + Senders: env secrets, every form field, verify, troubleshooting, API/SQL appendix |
 
 ## Diagnostics
 

@@ -15,6 +15,7 @@ import {
 } from '@tanstack/react-table'
 import { CmxSpinner } from '../primitives/cmx-spinner'
 import { CmxButton } from '../primitives/cmx-button'
+import { CMX_DEFAULT_PAGE_SIZE } from './cmx-table-defaults'
 import { CmxConfirmDialog } from '../feedback/cmx-confirm-dialog'
 import { useMessage } from '../feedback/useMessage'
 import { Edit2, Save, X, Trash2, Plus, RotateCcw } from 'lucide-react'
@@ -84,7 +85,7 @@ export function CmxEditableDataTable<
   newRowPosition = 'top',
   loading = false,
   page = 0,
-  pageSize = 10,
+  pageSize = CMX_DEFAULT_PAGE_SIZE,
   total,
   onPageChange,
   onPageSizeChange,

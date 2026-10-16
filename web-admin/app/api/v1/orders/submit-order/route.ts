@@ -44,6 +44,7 @@ import {
 } from '@/lib/utils/idempotency';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
+import { getTenantTimeZone } from '@/lib/utils/tenant-timezone.server';
 import {
   extractThrownErrorDetails,
   isStableErrorCode,
@@ -318,6 +319,7 @@ export async function POST(request: NextRequest) {
       variables: buildOrderCreatedNotificationVariables({
         orderNo:   result.order.orderNo,
         readyByAt: input.readyByAt,
+        timeZone:  await getTenantTimeZone(),
       }),
     });
 

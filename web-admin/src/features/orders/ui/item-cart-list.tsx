@@ -134,7 +134,7 @@ function ItemCartListComponent({
             packingExtraPriceByCode={packingExtraPriceByCode}
             onEditPrice={onEditItem ? () => onEditItem(item.id) : undefined}
             onEditNotes={onEditItemNotes ? () => onEditItemNotes(item.id) : undefined}
-            onDelete={() => onDeleteItem(item.id)}
+            onDelete={() => onDeleteItem(item.productId)}
           />
         ))}
       </div>

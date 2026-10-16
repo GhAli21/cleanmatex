@@ -36,6 +36,10 @@ interface TeamMember {
   joinedAt: string
 }
 
+/** Rows per request (the platform API accepts at most 100) and the most pages read for one team. */
+const TEAM_PAGE_SIZE = 100
+const TEAM_MAX_PAGES = 20
+
 const ROLE_OPTIONS = [
   { value: 'viewer', labelKey: 'roleViewer' as const },
   { value: 'operator', labelKey: 'roleOperator' as const },
@@ -110,8 +114,14 @@ export default function UsersSettingsPage() {
     setListLoading(true)
     setListError(null)
     try {
-      const res = await fetchUsers(currentTenant.tenant_id, {}, 1, 200, accessToken)
-      setTeam(res.data.map(mapTenantUserToMember))
+      // The platform API caps a page at 100 rows, so the team is read page by page (bounded at 20 pages).
+      const members: TenantUser[] = []
+      for (let page = 1; page <= TEAM_MAX_PAGES; page += 1) {
+        const res = await fetchUsers(currentTenant.tenant_id, {}, page, TEAM_PAGE_SIZE, accessToken)
+        members.push(...res.data)
+        if (res.data.length < TEAM_PAGE_SIZE || members.length >= res.total) break
+      }
+      setTeam(members.map(mapTenantUserToMember))
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'load failed'
       setListError(msg)

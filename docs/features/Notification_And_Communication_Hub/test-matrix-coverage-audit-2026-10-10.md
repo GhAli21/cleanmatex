@@ -44,6 +44,20 @@ Original audit (read-only pass, before any shortlist item was closed): Covered 5
 7. **Row 1 — tenant-side business-event dedup.** `orchestrator.ts` and `event-emitter.ts` have **no test file at all** (confirmed: no test imports either module). The HQ-side idempotency-key cache-hit test (`dispatch.service.spec.ts`) does not substitute for this — it protects the HQ dispatch command, not the tenant event/outbox layer.
 8. **Row 22 — Arabic request with no eligible approved template.** `route-resolver.test.ts` already has the exact harness (tenant/event/channel/language tuple matching, "rejects a blank language" case); adding an AR-language/no-ACTIVE-route case is a direct extension.
 
+## Update 2026-10-16 (after the drills, the access lockdown and the platform-workers test runner)
+
+| Row | Was | Now | Evidence |
+|---|---|---|---|
+| 8 Permanent rejection | Partial | **Covered** | `platform-workers/src/notifications/dispatch.processor.spec.ts`: a permanent provider failure is recorded as PERMANENT_FAILURE and the job RESOLVES (BullMQ cannot replay it); an unsupported channel and a BYO job are permanent; a redelivered job already finalized as SENT or PERMANENT_FAILURE is skipped with no second send. Together with the existing dispatcher tests. |
+| 30 Unauthorized access to HQ | Partial | **Covered for every endpoint that exists** | `common/guards/__tests__/hq-only-controllers.spec.ts` (29 tests): 20 HQ controllers and all admin handlers reject a tenant session; shared endpoints (settings used by the tenant app, tenant-users, role and permission reads) accept a tenant session only for its own tenant; role and permission writes are HQ-only. Export and replay endpoints still do not exist, so there is nothing to protect yet. |
+| 24 SMS Unicode and long text | Not covered | **Partial** | `sms-segments.spec.ts` (7 tests): GSM 7-bit versus Unicode, extension characters, 160/153 and 70/67 limits; the HQ preview shows encoding, length and parts per language. Still open: no length limit is enforced when sending, and parts are not metered separately. |
+| 21 Date-only, timezone boundary, working day | Partial | **Partial (narrower)** | `order-event-variables.test.ts` now covers formatting an instant in the organization's timezone (Muscat versus Los Angeles for the same instant) and an invalid timezone. Still open: DST and working-day SLA calculation. |
+| 34 Restore, drain and rollback | Not covered | **Partial** | `dispatch/operations/__tests__/outage-drill.spec.ts` (14 scenarios) runs the pause, drain, failover and breaker drills of runbooks 08 and 09 against the real services; runbook 10 Part A is written with consistency queries verified read-only. Still open: a restore rehearsal on a staging copy (needs a real backup and Redis). |
+| 3, 7 Crash resume, backoff | Partial | Partial (unchanged status, harness now exists) | `platform-workers` has a jest runner (`npm test`, 28 tests). Fake-time tests for backoff and crash resume can now be added; they are not written yet. |
+
+**Counts after this update:** Covered 22 (rows 1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 23, 25, 26, 27, 28, 29, 30, 33 as classified above), Not a gap 1 (row 22), Partial 7 (rows 3, 7, 18, 21, 24, 32, 34), Not covered 4 (rows 2, 19, 20, 31). Total 34.
+These counts supersede the Summary table at the top of this file; per-row text below keeps the history.
+
 ## Full matrix
 
 | # | Scenario | Status | Evidence | Effort-to-close | Notes |

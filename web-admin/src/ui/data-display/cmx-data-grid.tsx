@@ -15,6 +15,7 @@
  * @module ui/data-display
  */
 
+import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS, cmxPageSizeChoices } from './cmx-table-defaults';
 import * as React from 'react';
 import {
   type Column,
@@ -519,8 +520,8 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
     data,
     columns: columnsProp,
     getRowId,
-    initialPageSize = 10,
-    pageSizeOptions = [10, 25, 50, 100],
+    initialPageSize = CMX_DEFAULT_PAGE_SIZE,
+    pageSizeOptions = [...CMX_PAGE_SIZE_OPTIONS],
     labels: labelsProp,
     className,
     tableWrapperClassName,
@@ -1105,7 +1106,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                 }}
                 aria-label={labels.rowsPerPage}
               >
-                {pageSizeOptions.map((n) => (
+                {cmxPageSizeChoices(pageSizeOptions, pageSize).map((n) => (
                   <option key={n} value={n}>
                     {n}
                   </option>

@@ -352,9 +352,10 @@ export function NewOrderContent() {
 
     const handleRemoveItem = useCallback(
         (productId: string) => {
-            state.removeItem(productId);
+            if (!state.removeItem(productId)) return;
+            cmxMessage.success(t('itemsGrid.itemRemoved'));
         },
-        [state]
+        [state, t]
     );
 
     const handleQuantityChange = useCallback(

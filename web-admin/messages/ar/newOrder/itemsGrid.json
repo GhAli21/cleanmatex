@@ -25,6 +25,7 @@
   "serviceCategory": "فئة الخدمة",
   "actions": "الإجراءات",
   "removeItem": "إزالة العنصر",
+  "itemRemoved": "تمت إزالة العنصر من الطلب.",
   "selectItemsFromGrid": "اختر العناصر من الشبكة للبدء",
   "orderItems": "عناصر الطلب",
   "pieces": "قطع",

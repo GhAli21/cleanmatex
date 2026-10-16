@@ -13,6 +13,9 @@
 
 const HQ_API_BASE = process.env.HQ_API_URL || 'http://localhost:3002/api/hq/v1';
 
+/** A HQ API that never answers must fail the request, not hang the settings screens. */
+const HQ_API_TIMEOUT_MS = 15_000;
+
 /**
  * HQ API Response Types (from platform-api)
  */
@@ -145,6 +148,7 @@ async function callHqApi<T>(
       'Content-Type': 'application/json',
     },
     body: options?.body ? JSON.stringify(options.body) : undefined,
+    signal: AbortSignal.timeout(HQ_API_TIMEOUT_MS),
   });
 
   if (!response.ok) {

@@ -36442,6 +36442,121 @@ export type Database = {
           },
         ]
       }
+      sys_ntf_tenant_pause_cf: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          channel_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          is_paused: boolean
+          reason: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          channel_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          is_paused?: boolean
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          channel_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          is_paused?: boolean
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_tenant_pause_cf_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sys_ntf_tenant_pause_cf_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "sys_ntf_tenant_pause_cf_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      sys_ntf_tenant_pause_log: {
+        Row: {
+          actor: string
+          channel_code: string
+          created_at: string
+          id: string
+          new_paused: boolean
+          old_paused: boolean | null
+          reason: string | null
+          tenant_org_id: string
+        }
+        Insert: {
+          actor: string
+          channel_code: string
+          created_at?: string
+          id?: string
+          new_paused: boolean
+          old_paused?: boolean | null
+          reason?: string | null
+          tenant_org_id: string
+        }
+        Update: {
+          actor?: string
+          channel_code?: string
+          created_at?: string
+          id?: string
+          new_paused?: boolean
+          old_paused?: boolean | null
+          reason?: string | null
+          tenant_org_id?: string
+        }
+        Relationships: []
+      }
       sys_ntf_tpl_locale_dtl: {
         Row: {
           channel_code: string
@@ -44142,6 +44257,7 @@ export type Database = {
         }
         Returns: number
       }
+      fn_ntf_retention_run: { Args: never; Returns: number }
       fn_ntf_retention_sweep: {
         Args: { p_retention_days?: number }
         Returns: number
@@ -44159,6 +44275,31 @@ export type Database = {
           p_tenant_org_id: string
           p_threshold: number
           p_window_hours: number
+        }
+        Returns: Json
+      }
+      fn_ntf_tenant_is_paused: {
+        Args: { p_channel: string; p_tenant_org_id: string }
+        Returns: boolean
+      }
+      fn_ntf_tenant_pause_list: {
+        Args: never
+        Returns: {
+          changed_at: string
+          changed_by: string
+          channel_code: string
+          reason: string
+          tenant_name: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_ntf_tenant_pause_set: {
+        Args: {
+          p_actor: string
+          p_channel: string
+          p_paused: boolean
+          p_reason: string
+          p_tenant_org_id: string
         }
         Returns: Json
       }

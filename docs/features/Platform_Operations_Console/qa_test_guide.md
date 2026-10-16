@@ -181,6 +181,15 @@ Prepare: sandbox connectors are on outside production (or `HQ_NTF_SANDBOX_ENABLE
 | T35 | Workers: with Redis queue enabled, pause WHATSAPP/Twilio, enqueue a WhatsApp message, watch the worker log. | "Job … held (PAUSED)"; after Resume it is sent within a minute; the job did not fail or burn retries. |
 | T36 ⚠ | Breaker does not flap: after T30 and T31 closed the circuit (probe succeeded), keep sending good messages for 5 minutes and watch Operations. | The circuit stays **Closed**; no new alert arrives; the health table still shows the earlier failures (full window) but the circuit does not reopen. (Needs migration 0628.) |
 | T37 | Access boundary: with a **tenant user's** access token call an HQ-only endpoint that used to accept it, for example `GET {HQ_API}/audit-logs`, `GET {HQ_API}/billing/...`, `POST {HQ_API}/feature-flags` and `GET {HQ_API}/tenants`. Then, with the same token, call `GET {HQ_API}/settings/tenants/<another tenant id>/effective`, then the same with your own tenant id. Finally open the tenant web-admin Settings and Users screens as a normal tenant admin. | The first four answer **403** "This endpoint requires an HQ session". The other tenant's settings answer **403** "A tenant session can only access its own tenant"; your own tenant answers 200. The tenant Settings and Users screens keep working. With an HQ operator token every call is allowed. |
+| T38 | Retention window (after migration 0629): HQ > Operations > Config, search `ntf.retention.days`. Open it; the value is 180. Change it to 200 and save; then try 10 and 5000. | 200 saves and the history shows who changed it (no value in the fingerprint column). 10 and 5000 are refused with "Value does not match the required format". SQL: `select public.fn_ntf_retention_run();` is only for a test database (it deletes expired rows). |
+| T39 | SMS parts in the preview: Templates > a template > Preview & test > channel SMS > Render. | Under each language: the encoding, the number of characters and "N parts". An English text of 161 or more characters, or any Arabic text of 71 or more characters, shows a warning that it is sent as several parts. |
+| T40 | Roles read-only: in the tenant app open Settings > Roles and Settings > Permissions as a tenant admin. | The lists load; there are no Create, Edit, Delete or Manage-permissions buttons; a notice says they are managed by the platform team. With a tenant token, `POST {HQ_API}/tenant-api/roles` answers 403. |
+| T41 | Organization timezone: create an order whose ready time is late evening in the organization's timezone (for example 23:30 in Muscat) and read the order-created notification. | The date in the message is the organization's local day, not the server's. |
+| T42 | Pause one organization (migration 0631, applied): HQ > Notifications > Operations > Paused organizations. Enter a test organization id, All channels, reason "QA", Pause, confirm. Then send a test message for that organization (Templates > Preview & test) and open the dispatch log. | The organization appears in the list with its name and reason; the send answers PERMANENT_FAILURE; `select status, error_code from hq_ntf_dispatch_log order by created_at desc limit 1` shows PERMANENT_FAILURE / TENANT_PAUSED; the quota "Tenant position" does not grow; Setup Health `tenants.paused` is WARN. |
+| T43 | Resume: press Resume on that row, send again. | The message is sent; the list is empty; Setup Health `tenants.paused` is OK; audit has `notification_tenant.paused` and `.resumed`. |
+| T44 | One channel only: pause the test organization for SMS only. Send an email and an SMS. | Email is sent, SMS is refused with TENANT_PAUSED. Pausing again returns "already in that state". Pausing without a reason is refused. |
+| T45 | A user without `hq_notifications:operate`. | The Paused organizations list is visible but there are no Pause or Resume controls; the API answers 403. |
+| T46 | Usage back-fill (migration 0630, applied; the remote already shows 0 differences): run the 7-day reconciliation report (Operations > Reconciliation). | "No differences": the three demo sends of 2026-10-10 and 2026-10-14 are now metered. Running the migration a second time changes nothing. |
 
 ## Q. Automated tests (run before every release)
 
@@ -283,44 +292,46 @@ Tester: Financial_Expert_Tester · UI through browser · Asia/Muscat · HQ repo 
 | P2 | NOT RUN | Needs manage_config-only user. |
 | P3 | NOT RUN | Needs DB disconnect / revoke simulation. |
 | P4 | PARTIAL | `/ar/ops/config` RTL OK; **group headers remain English module codes**. `/ar/ops/health` showed "لا يوجد وصول" (No access) while `/en/ops/health` worked — permission-hydration race (`use-permission.ts` empty perms → deny). History/F0 not re-checked in AR (blocked on EN). |
-| T1 | NOT RUN | Campaign pause mid-run not exercised. |
-| T2 | NOT RUN | Campaign cancel not exercised. |
-| T3 | NOT RUN | Needs Redis stop (test env). |
-| T4 | NOT RUN | Date-only ready-by notification text not checked. |
-| T5 | NOT RUN | Tenant token vs HQ endpoint 403 not called. |
-| T6 | NOT RUN | Tenant metadata spoof → 403 not called. |
-| T7 | NOT RUN | Audit scrubbing after credential rotate not checked. |
-| T8 | NOT RUN | Cap race parallel dispatch not run. |
-| T9 | PARTIAL | Quota screen has Plan Defaults + Tenant Overrides only — **no Tenant position tab** on hqsaas. Source has `position` tab (`quota-screen.tsx:41,524-542`) — not deployed. Search Demo org id → No quota records. |
-| T10 | NOT RUN | Provider-reject refund path not run. |
-| T11 | NOT RUN | Needs Redis outage. |
-| T12 | NOT RUN | Needs read-only SQL on quota reservation tables. |
-| T13 | PASS | `ntf-quota-rsv-sweep` present, recent SUCCESS ~8:05 PM (every 5 min). Mid-send kill not done. |
-| T14 | NOT RUN | Create override for every metric not done. |
-| T15 | BLOCKED | No **Preview & test** on Assembly Completed template (only Edit Header / Add Version / Retire). Source has `previewAndTest` (`templates-screen.tsx:641-642`) — not deployed. |
-| T16 | NOT RUN | Depends on Preview dialog. |
-| T17 | NOT RUN | Needs user without `hq_notifications:test_send`. |
-| T18 | NOT RUN | Needs Preview & test + allow-list. |
-| T19 | NOT RUN | Depends on T18. |
-| T20 | NOT RUN | Needs suppression list. |
-| T21 | NOT RUN | Needs Tenant position + test send. |
-| T22 | NOT RUN | Rate limit not exercised. |
-| T23 | NOT RUN | Audit `notification_template.test_send` not checked. |
-| T24 | NOT RUN | SMS/WhatsApp test-send not run. |
-| T25 | BLOCKED | `/en/notifications/operations` → **404**. Sidebar/API exist in source (`app/notifications/operations/page.tsx`, `cmx-sidebar.tsx:205`) — **built, not deployed**. |
-| T26 | NOT RUN | Depends on Operations screen. |
-| T27 | NOT RUN | Depends on T26. |
-| T28 | NOT RUN | Depends on Operations + queue. |
-| T29 | NOT RUN | Failover rule not run. |
-| T30 | NOT RUN | Circuit open drill not run. |
-| T31 | NOT RUN | Probing cool-down not run. |
-| T32 | NOT RUN | Reset circuit not run. |
-| T33 | NOT RUN | Needs user without `hq_notifications:operate`. |
-| T34 | NOT RUN | Usage reconciliation not run. |
-| T35 | NOT RUN | Needs Redis workers + pause WhatsApp. |
+| T1 | BLOCKED | Campaign pause mid-run not exercised.<br>Retest r2 2026-10-16: BLOCKED — Demo tenant: no campaigns; New Campaign dialog only IN_APP + Target User IDs; 4 customers, no consent indicator — cannot get ≥20 consenting targets. |
+| T2 | BLOCKED | Campaign cancel not exercised.<br>Retest r2 2026-10-16: BLOCKED — same as T1 (no campaign Cancel path without a RUNNING campaign). |
+| T3 | NOT RUN | Needs Redis stop (test env).<br>Retest r2 2026-10-16: NOT RUN — needs Redis stop on test env (not on shared Preview). |
+| T4 | PARTIAL | Date-only ready-by notification text not checked.<br>Retest r2 2026-10-16: PARTIAL — tenant Notification Center shows generic "New notification: order.ready" etc.; no ready-by date in text; no comms history screen. |
+| T5 | BLOCKED | Tenant token vs HQ endpoint 403 not called.<br>Retest r2 2026-10-16: BLOCKED — API part needs tenant access token against HQ (UI-only policy; no token extraction). |
+| T6 | BLOCKED | Tenant metadata spoof → 403 not called.<br>Retest r2 2026-10-16: BLOCKED — API part needs tenant token + metadata edit (UI-only). |
+| T7 | NOT RUN | Audit scrubbing after credential rotate not checked.<br>Retest r2 2026-10-16: NOT RUN — credential rotate + HQ audit scrubbing not exercised. |
+| T8 | NOT RUN | Cap race parallel dispatch not run.<br>Retest r2 2026-10-16: NOT RUN — needs parallel dispatch / sandbox on test env (not run on shared HQ). |
+| T9 | PASS | Quota screen has Plan Defaults + Tenant Overrides only — **no Tenant position tab** on hqsaas. Source has `position` tab (`quota-screen.tsx:41,524-542`) — not deployed. Search Demo org id → No quota records.<br>Retest r2 2026-10-16: PASS — Tenant position tab now present. Demo all 0/0 Unlimited; Saudi EMAIL cap200 SMS50 WA50 PUSH1000 CAMPAIGN2 IN_APP unlimited. |
+| T10 | NOT RUN | Provider-reject refund path not run.<br>Retest r2 2026-10-16: NOT RUN — provider-reject refund path not run. |
+| T11 | NOT RUN | Needs Redis outage.<br>Retest r2 2026-10-16: NOT RUN — needs Redis outage (test env). |
+| T12 | NOT RUN | Needs read-only SQL on quota reservation tables.<br>Retest r2 2026-10-16: NOT RUN — needs read-only SQL on org_ntf_quota_rsv_dtl / usage_daily. |
+| T13 | PASS | `ntf-quota-rsv-sweep` present, recent SUCCESS ~8:05 PM (every 5 min). Mid-send kill not done.<br>Retest r2 2026-10-16: PASS — ntf-quota-rsv-sweep */5 Success ~00:55. Still: ntf-outbox-processor drift */30 vs every minute; ntf-campaign-scheduler Disabled + drift (FET-POC-S8). |
+| T14 | PASS | Create override for every metric not done.<br>Retest r2 2026-10-16: PASS — metrics EMAIL SMS WHATSAPP PUSH IN_APP CAMPAIGN all save (Saudi, MONTHLY, hard cap 100000, reason QA retest generous cap). Left 6 overrides on Saudi tenant. |
+| T15 | PASS | No **Preview & test** on Assembly Completed template (only Edit Header / Add Version / Retire). Source has `previewAndTest` (`templates-screen.tsx:641-642`) — not deployed.<br>Retest r2 2026-10-16: PASS — Preview & test now present; EN+AR panes; placeholder order_number filled then rendered; EMAIL badge "In-app text (no text for this channel)". |
+| T16 | PARTIAL | Depends on Preview dialog.<br>Retest r2 2026-10-16: PARTIAL — no draft versions (117/117 approved latest); WHATSAPP shows test-send email/SMS-only message; PUSH renders. |
+| T17 | BLOCKED | Needs user without `hq_notifications:test_send`.<br>Retest r2 2026-10-16: BLOCKED — admin sees test-send block; limited user (without hq_notifications:test_send) unavailable. |
+| T18 | NOT RUN | Needs Preview & test + allow-list.<br>Retest r2 2026-10-16: NOT RUN — allow-list configured on ntf.hq.test_recipients but could not complete Send (blocked by T19 UX). |
+| T19 | FAIL | Depends on T18.<br>Retest r2 2026-10-16: FAIL — Send test message stays disabled with org/recipient/lang/confirmation filled; sendReady requires preview.unresolved.length===0 from last Render (`template-preview-dialog.tsx:67-68`) — filling values without re-Render leaves Send disabled; no placeholder inputs inside send block. |
+| T20 | NOT RUN | Needs suppression list.<br>Retest r2 2026-10-16: NOT RUN — needs suppression list + working test-send. |
+| T21 | NOT RUN | Needs Tenant position + test send.<br>Retest r2 2026-10-16: NOT RUN — needs successful test-send + Tenant position before/after. |
+| T22 | NOT RUN | Rate limit not exercised.<br>Retest r2 2026-10-16: NOT RUN — rate limit not exercised (Send never enabled). |
+| T23 | PARTIAL | Audit `notification_template.test_send` not checked.<br>Retest r2 2026-10-16: PARTIAL — `/en/notifications/audit` 404; `/en/settings/audit` search no ntf rows. Audit is written via `template-preview.service.ts:177-196` action `notification_template.test_send` into HQ audit (no dedicated ntf audit UI). |
+| T24 | PASS | SMS/WhatsApp test-send not run.<br>Retest r2 2026-10-16: PASS (UI) — WHATSAPP: "Test sending is available for email and SMS…"; send control removed for unsupported channel. |
+| T25 | PARTIAL | `/en/notifications/operations` → **404**. Sidebar/API exist in source (`app/notifications/operations/page.tsx`, `cmx-sidebar.tsx:205`) — **built, not deployed**.<br>Retest r2 2026-10-16: PARTIAL — `/en/notifications/operations` loads (was 404). Health table empty ("No provider traffic in this window") for 10m/1h/24h — by design when no rows (`operations-screen.tsx:189`); failover empty; Run report present. |
+| T26 | NOT RUN | Depends on Operations screen.<br>Retest r2 2026-10-16: NOT RUN — Pause provider on shared HQ not exercised. |
+| T27 | NOT RUN | Depends on T26.<br>Retest r2 2026-10-16: NOT RUN — depends on T26. |
+| T28 | NOT RUN | Depends on Operations + queue.<br>Retest r2 2026-10-16: NOT RUN — Drain + queued SMS needs queue/test env. |
+| T29 | NOT RUN | Failover rule not run.<br>Retest r2 2026-10-16: NOT RUN — failover rule not run on shared HQ. |
+| T30 | NOT RUN | Circuit open drill not run.<br>Retest r2 2026-10-16: NOT RUN — circuit-open drill needs forced failures / test env. |
+| T31 | NOT RUN | Probing cool-down not run.<br>Retest r2 2026-10-16: NOT RUN — needs T30 cool-down traffic. |
+| T32 | PARTIAL | Reset circuit not run.<br>Retest r2 2026-10-16: PARTIAL — Operations loads; no open circuit visible → nothing to Reset. |
+| T33 | BLOCKED | Needs user without `hq_notifications:operate`.<br>Retest r2 2026-10-16: BLOCKED — user without hq_notifications:operate unavailable. |
+| T34 | PARTIAL | Usage reconciliation not run.<br>Retest r2 2026-10-16: PARTIAL — 7-day reconciliation runs; 3 unmetered Demo sends (SMS 10-10, SMS+WA 10-14). Likely pre-/early-0623 historical gap (metering added migration 0623); feature works. Confirm with a fresh metered send. |
+| T35 | NOT RUN | Needs Redis workers + pause WhatsApp.<br>Retest r2 2026-10-16: NOT RUN — needs Redis workers + pause WhatsApp on test env. |
+| T36 | NOT RUN | Retest r2 2026-10-16: NOT RUN — needs T30/T31 circuit traffic + migration 0628 (breaker no-flap). |
+| T37 | FAIL | Retest r2 2026-10-16: FAIL — tenant UI broken after HQ identity boundary (commits 106838e/ced5f59/98991ef): `/dashboard/settings/allsettings` stuck "Loading settings…"; `/dashboard/users` intermittent `?error=insufficient_permissions`; `/dashboard/settings/users` HTTP 400 "Could not load team members" (`page.tsx:113` limit=200 vs DTO `@Max(100)`). API 403-matrix half BLOCKED (UI-only, no tenant token). Guide expects Settings/Users to keep working. |
 | Q | NOT RUN | Jest/tsc suites not run this session. |
 
-**Counts:** PASS 12 · FAIL 5 · PARTIAL 7 · BLOCKED 19 · NOT RUN 48 · (total scenario rows 91 including H-* and Q)
+**Counts:** PASS 16 · FAIL 7 · PARTIAL 12 · BLOCKED 23 · NOT RUN 35 · (total scenario rows 93 including H-* , T36/T37 and Q). **Retest r2 2026-10-16 (T1–T37):** see per-row Retest lines; newly deployed: Operations, Preview & test, Tenant position. Master key still missing (banner on Config).
 
 **Test data left behind:** none — four keys touched and restored to original (Not set / plain / ENV_OVERRIDES_DB as applicable):
 1. `ntf.hq.resend.from_email`
@@ -328,17 +339,58 @@ Tester: Financial_Expert_Tester · UI through browser · Asia/Muscat · HQ repo 
 3. `tenant.workflow.gate_challenge_secret`
 4. `tenant.order_change_review.proof_secret`
 
+**Retest r2 test data left behind:** 6 Saudi quota overrides (`c9ac29d1-219c-4a3a-8887-f860550c32be`, MONTHLY, hard cap 100000, reason "QA retest test data - generous cap") for EMAIL, SMS, WHATSAPP, PUSH, IN_APP, CAMPAIGN.
+
 ### Tester suggestions — Financial_Expert_Tester (FET-POC-S#)
 
 - **P0 FET-POC-S1:** Set `HQ_ENCRYPTION_MASTER_KEY` (base64, 32 bytes) on the HQ API host and restart. Unblocks 0.2, C1 convert, F0 panel/`config.key_rotation`, and encrypted value flows. Do **not** set `HQ_ENCRYPTION_MASTER_KEY_PREVIOUS` except during an F1 rotation drill.
-- **P0 FET-POC-S2:** Redeploy `platform-web` (and API if needed) to HEAD `b068ee9`+. Unblocks history icon (E1/E2), Module filter (A2), Notifications Operations (T25), Preview & test (T15), Quota Tenant position (T9) — all present in source, absent/404 on hqsaas.
+- **P0 FET-POC-S2:** Redeploy `platform-web` (and API if needed) to HEAD `b068ee9`+. Unblocks history icon (E1/E2), Module filter (A2), Notifications Operations (T25), Preview & test (T15), Quota Tenant position (T9) — all present in source, absent/404 on hqsaas. **Retest r2: partially fixed** — Operations page, Preview & test, and Tenant position now deployed (HEAD `98991ef`). Module filter / history icon not rechecked this round. T25 still PARTIAL (empty health).
 - **P0 FET-POC-S3:** `ops-key-rotation-panel.tsx:34` — replace `if (isError \|\| !status) return null` with an error/empty state (title + fix link). Missing master key currently hides the Encryption keys panel entirely.
 - **P1 FET-POC-S4:** `ops-health.checks.ts:219-230` — exclude `HQ_ENCRYPTION_MASTER_KEY_PREVIOUS` from bootstrap FAIL when unset (optional except during active rotation). Matches catalog guidance that PREVIOUS is only for rotation.
-- **P1 FET-POC-S5:** Permission hydration race — `use-permission.ts` + `ops-health-screen.tsx:64` / config screen: while `user` is loading, show skeleton; only show "No access" when session is ready and `hq_ops:read` is missing. Fixes transient EN No access and `/ar/ops/health` false deny (P4).
+- **P1 FET-POC-S5:** Permission hydration race — `use-permission.ts` + `ops-health-screen.tsx:64` / config screen: while `user` is loading, show skeleton; only show "No access" when session is ready and `hq_ops:read` is missing. Fixes transient EN No access and `/ar/ops/health` false deny (P4). **Retest r2: still open** — intermittent HQ Config "No access" recurred during T18 prep.
 - **P1 FET-POC-S6:** `ops-health.catalog.ts:114-115` plain_secrets guidance still says clear/switch/re-enter; update to prefer Lock in-place convert (`ops-config.service.ts:227-248`) when master key is present; keep re-enter for STALE_VALUE / missing key.
 - **P1 FET-POC-S7:** Fix `ntf.hq.twilio.content_cred_ref` (config.required_keys FAIL) — store/set the Twilio content credential ref or adjust required-key list if not yet used.
-- **P1 FET-POC-S8:** Jobs — set `ntf-outbox-processor` intended schedule to `* * * * *` (clear `*/30` drift); enable or document `ntf-campaign-scheduler` Disabled state.
-- **P2 FET-POC-S9:** Guide accuracy — key count ~136 → **146**; policy labels are humanized ("Whichever exists…"); job ids `ntf-process-outbox`/`ntf-process-campaigns` → `ntf-outbox-processor`/`ntf-campaign-scheduler`.
+- **P1 FET-POC-S8:** Jobs — set `ntf-outbox-processor` intended schedule to `* * * * *` (clear `*/30` drift); enable or document `ntf-campaign-scheduler` Disabled state. **Retest r2: still open** — same drift after `98991ef` deploy (cron rows not updated by code deploy).
+- **P2 FET-POC-S9:** Guide accuracy — key count ~136 → **146**; policy labels are humanized ("Whichever exists…"); job ids `ntf-process-outbox`/`ntf-process-campaigns` → `ntf-outbox-processor`/`ntf-campaign-scheduler`. **Retest r2: partially fixed** — owner renamed I2 jobs in guide; T36/T37 added.
 - **P2 FET-POC-S10:** Arabic Config — translate module group headers (raw `ntf`/`platform`/… today); fingerprints/key names stay LTR (already).
 - **P2 FET-POC-S11:** Provision a read-only HQ user (`hq_ops:read` only) for P1/E3/F6 and a manage_config-without-secrets user for P2.
 - **P2 FET-POC-S12:** C2 — retest encrypted Set-value after S1; if field still appears stuck, harden `ops-config-value-dialog.tsx` against password-manager autofill (string "[secret value hidden]" is not in repo i18n).
+
+- **P0 FET-POC-S13:** T37 Settings/Users — `web-admin/app/dashboard/settings/users/page.tsx:113` passes `limit=200` but `platform-api/.../query-tenant-users.dto.ts` `@Max(100)` → HTTP 400 "Could not load team members". Fix: use limit ≤100 (or raise Max).
+- **P0 FET-POC-S14:** T37 allsettings hang — `allsettings/page.tsx:56` → HQ `GET /settings/tenants/:id/effective` via `HQ_SERVICE_TOKEN` / forwarded JWT after `HqIdentityGuard` (ced5f59). Ensure Preview service token is a valid HQ JWT; forward Authorization from settings-client; add request timeout + error instead of endless "Loading settings…". Add `@AllowTenantIdentity` on `settings.controller.ts:559` (`…/value/:settingCode`) if tenant calls it.
+- **P0 FET-POC-S15:** T19 — `template-preview-dialog.tsx:67-68` keeps Send disabled until `preview.unresolved.length===0` from last Render; typing placeholder values does not update that array. Fix: treat values as resolving unresolved (or auto re-render) and/or show placeholder inputs in the send block with the blocking reason.
+- **P1 FET-POC-S16:** T23 — `notification_template.test_send` is audited in `template-preview.service.ts:177-196` (HQ audit); no `/notifications/audit` UI (404). Point QA Expected at HQ Audit Trail filter, or add a notifications audit screen.
+- **P1 FET-POC-S17:** T37 `/dashboard/users` intermittent `insufficient_permissions` — `withAdminRole` / `with-role.tsx:102` redirects while role hydrates. Same class as S5: deny only after auth ready.
+- **P2 FET-POC-S18:** T34 — three Demo unmetered rows (10-10 / 10-14) via `fn_ntf_usage_reconcile`; treat as pre-0623 historical unless a fresh send also diffs. Optional backfill; re-check after one live metered SMS.
+- **P2 FET-POC-S19:** T25 empty Operations health is by design (`operations-screen.tsx:189`) with no traffic — not a defect; seed sandbox traffic when demos need Control/Circuit columns.
+
+### Owner response to the tester findings (2026-10-16, after Round 1 and Retest r2)
+
+What changed in code or data, and what still needs a person. "Fixed" means a test covers it; every item marked "Retest" needs the tester to repeat it after deploying HQ API, HQ web and the tenant app.
+
+| Item | Status | What was done or what is needed |
+|---|---|---|
+| **S1** master key missing (P0) | **Owner action** | Generate a key: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. On the HQ API host set `HQ_ENCRYPTION_MASTER_KEY` = that value (store it in your secret manager, never in chat or git) and restart HQ API. Do not set `HQ_ENCRYPTION_MASTER_KEY_PREVIOUS`. Then Retest 0.2, C1, F0, H-key_rotation. |
+| **S2** deploy lag | Mostly deployed | Retest the Module filter (A2) and the history icon (E1/E2) after the next deploy. |
+| **S3** rotation panel hidden when the key is missing (P0) | **Fixed** | The panel now shows an error with the fix ("set HQ_ENCRYPTION_MASTER_KEY and restart") and a Retry button instead of disappearing. Retest F0. |
+| **S4** PREVIOUS key reported missing | **Fixed** | `HQ_ENCRYPTION_MASTER_KEY_PREVIOUS` is optional (only during a rotation) and no longer makes `config.bootstrap_env` FAIL. |
+| **S5** "No access" flash (permissions race) | **Fixed** | Config and Health screens wait for the operator's permissions to load before judging. Retest P4 (/ar/ops/health) and the first load of /ops/config. |
+| **S6** plain-secret guidance | **Fixed** | Setup Health guidance now says: press Encrypt storage when the master key is set; clear and re-enter only if the key is missing or the value cannot be read. |
+| **S7** `ntf.hq.twilio.content_cred_ref` required (FAIL) | **Owner action** | Not a defect: the Twilio Content importer needs it. The value is a label YOU choose (for example `twilio-prod-main`); it only has to be the same in two places: this key (or the host variable `NTF_TWILIO_CONTENT_CREDENTIAL_REF`) and the `credential_ref` of the platform Twilio account you create in HQ > Notifications > Providers > Manage connections. Step-by-step: `Notification_And_Communication_Hub/Setup_And_Config/15_operator_go_live_checklist.md` steps 2 to 5 (also 13 and 14). Until WhatsApp template import is used the FAIL is expected. |
+| **S8** cron drift (P1) | **Owner action** (live data) | Live `cron.job`: `ntf-outbox-processor` runs every **30 minutes** (should be every minute: outbox messages wait up to 30 minutes), `ntf-campaign-scheduler` and `ntf-sweep-stale-push-subs` are **inactive** although registered as enabled. Fix in HQ > Operations > Jobs: open each job, set the schedule to its default (`* * * * *` for the processor) and enable it. No migration needed (the Jobs screen calls `fn_ops_job_set_state`). Then retest T13 and I2. |
+| **S9** guide accuracy | **Fixed** | Job names corrected; key count is 146; policy labels noted. |
+| **S10** Arabic module headers | **Fixed** | Config module headings and the module filter are translated (opsConfig.modules). Retest P4. |
+| **S11** limited HQ users | **Owner action** | Create in the HQ sidebar group "HQ Auth / RBAC": first **HQ Roles** (create a role and tick only the permissions it should have), then **HQ Users** (new user, assign that role). Needed: (a) a user with only `hq_ops:read` (for P1, E3, F6), (b) a user with `hq_ops:manage_config` but not `manage_secrets` (for P2, F6), (c) a user without `hq_notifications:test_send` (T17), (d) a user with `hq_notifications:read` only (T33, T45). Unblocks the BLOCKED rows. |
+| **S12** encrypted Set-value field stuck | **Hardened** | Password-manager autofill is switched off for secret fields. The text "[secret value hidden]" is not in the product; retest C2 after S1 and tell me if it still appears. |
+| **S13** Settings > Users HTTP 400 (P0) | **Fixed** | The Team Members screen asked for 200 rows but the API allows 100 per page; it now reads page by page. Retest T37. |
+| **S14** Settings page hangs (P0) | **Fixed (hang)** | Calls to the HQ API and the platform API now time out (15-30 s) and show an error instead of "Loading settings..." forever. The cause of the slow or missing answer is environmental: check that `HQ_API_URL` and `HQ_SERVICE_TOKEN` of the tenant app point to the deployed HQ API and that the token is a current HQ token (`npm run generate-service-token` in platform-api). Retest T37; if the error message names a 401/403, tell me the message. |
+| **S15** Send button stays disabled (T19, P0) | **Fixed** | Send is enabled as soon as every unresolved placeholder has a typed value (no second Render needed), and the form says which placeholders are still missing. Retest T18-T24. |
+| **S16** no ntf audit screen (T23) | **Doc fixed** | The test-send audit entry is in HQ > Settings > Audit Trail, filter action `notification_template.test_send`. |
+| **S17** `/dashboard/users` intermittent redirect | **Fixed** | The role guard now waits for the organization context (bounded to 10 seconds) instead of denying access while it loads. |
+| **S18** three unmetered demo sends | **Built** | Migration 0630 back-fills them (T46). |
+| **S19** empty Operations table | Not a defect | By design when there is no traffic. Send sandbox traffic to see the columns. |
+| Test data on the Saudi tenant | **Owner action** | Delete the six QA overrides: HQ > Notifications > Quota > Tenant overrides, or SQL: `delete from org_ntf_quota_override_cf where tenant_org_id = 'c9ac29d1-219c-4a3a-8887-f860550c32be' and reason = 'QA retest test data - generous cap';` (this restores the plan limits). |
+| T1, T2 (no campaigns / no consent) | Needs test data | Create 20 test customers with WhatsApp or email consent in the demo tenant, then a campaign of type email to them. |
+| T3, T8, T11, T35 (Redis, parallel dispatch) | Needs a test environment | Run on the staging copy described in runbook 10 (own Redis and sandbox provider); never on the shared HQ. |
+| T5, T6 (tenant token against HQ) | Needs a developer | Use the browser dev tools of the tenant app (Application > Local storage > the Supabase session access_token) and call the HQ endpoint with curl. The automated tests (`hq-only-controllers.spec.ts`) already prove the 403 matrix. |
+

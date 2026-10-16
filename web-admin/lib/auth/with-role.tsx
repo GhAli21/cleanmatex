@@ -34,6 +34,9 @@ interface WithRoleOptions {
  * const StaffPage = withRole(MyPage, { requiredRole: ['admin', 'operator'] })
  * ```
  */
+/** How long to wait for the organization context before denying access. */
+const ORGANIZATION_WAIT_MS = 10_000
+
 export function withRole<P extends object>(
   Component: React.ComponentType<P>,
   options: WithRoleOptions
@@ -55,10 +58,13 @@ export function withRole<P extends object>(
     // Fetch user role
     useEffect(() => {
       const fetchUserRole = async () => {
-        if (!isAuthenticated || !user || !currentTenant) {
+        if (!isAuthenticated || !user) {
           setRoleLoading(false)
           return
         }
+        // Signed in but the organization context is still loading: wait for it instead of denying access
+        // (the effect runs again when currentTenant arrives; the timeout effect below bounds the wait).
+        if (!currentTenant) return
 
         try {
           const { data, error } = await supabase
@@ -88,6 +94,13 @@ export function withRole<P extends object>(
 
       fetchUserRole()
     }, [user, currentTenant, isAuthenticated])
+
+    // A signed-in user whose organization never loads is denied after a bounded wait, not left on a spinner.
+    useEffect(() => {
+      if (!isAuthenticated || !user || currentTenant) return
+      const timer = setTimeout(() => setRoleLoading(false), ORGANIZATION_WAIT_MS)
+      return () => clearTimeout(timer)
+    }, [isAuthenticated, user, currentTenant])
 
     // Handle redirects
     useEffect(() => {

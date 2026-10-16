@@ -16,6 +16,8 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
+import { RBAC_CATALOG_TENANT_WRITABLE } from '@/lib/constants/rbac-catalog'
 import { Plus, Lock, Edit, Trash2, AlertCircle, X, Search } from 'lucide-react'
 import {
   getPermissionsByCategory,
@@ -35,6 +37,7 @@ import { SETTINGS_SETTINGS_PERMISSIONS_ACCESS } from '@features/settings/access/
  *
  */
 export default function PermissionsManagementPage() {
+  const t = useTranslations('settings')
   const { currentTenant, permissions, session } = useAuth()
   const accessToken = session?.access_token ?? ''
 
@@ -248,6 +251,7 @@ export default function PermissionsManagementPage() {
             View and manage permissions for your organization
           </p>
         </div>
+        {RBAC_CATALOG_TENANT_WRITABLE && (
         <button
           onClick={() => {
             setCreateForm({ code: '', name: '', name2: '', category: '', description: '', description2: '' })
@@ -259,6 +263,7 @@ export default function PermissionsManagementPage() {
           <Plus className="h-4 w-4 mr-2" />
           Create Permission
         </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -276,6 +281,12 @@ export default function PermissionsManagementPage() {
           <div className="text-sm text-gray-500">Custom Permissions</div>
         </div>
       </div>
+
+      {!RBAC_CATALOG_TENANT_WRITABLE && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900" role="note">
+          {t('catalogReadOnly')}
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -404,6 +415,7 @@ export default function PermissionsManagementPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {RBAC_CATALOG_TENANT_WRITABLE && (
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleEdit(permission)}
@@ -431,6 +443,7 @@ export default function PermissionsManagementPage() {
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
+                    )}
                   </td>
                 </tr>
               ))

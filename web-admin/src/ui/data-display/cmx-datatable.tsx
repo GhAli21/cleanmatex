@@ -22,6 +22,7 @@ import { CmxCard, CmxCardContent, CmxCardFooter } from '../primitives/cmx-card'
 import { CmxEmptyState } from './cmx-empty-state'
 import { CmxAuditInfoCard } from './cmx-audit-info-card'
 import { CmxPagination } from '../navigation/cmx-pagination'
+import { CMX_DEFAULT_PAGE_SIZE } from './cmx-table-defaults'
 import {
   CmxDialog,
   CmxDialogContent,
@@ -411,7 +412,7 @@ export function CmxDataTable<TData>({
   isLoading,
   page,
   currentPage,
-  pageSize = 25,
+  pageSize = CMX_DEFAULT_PAGE_SIZE,
   total,
   totalCount,
   onPageChange,

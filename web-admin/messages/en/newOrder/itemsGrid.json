@@ -25,6 +25,7 @@
   "serviceCategory": "Service Category",
   "actions": "Actions",
   "removeItem": "Remove item",
+  "itemRemoved": "Item removed from the order.",
   "selectItemsFromGrid": "Select items from the grid to start",
   "orderItems": "Order Items",
   "pieces": "pieces",

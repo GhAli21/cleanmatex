@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
+import { guardedInAppPath } from './guarded-in-app-path';
 
 /**
  * Hook to handle unsaved changes warning
@@ -24,6 +25,7 @@ export function useUnsavedChanges(
   const tCommon = useTranslations('common');
   const isNavigatingRef = useRef(false);
   const allowNextRef = useRef(false);
+  const confirmingRef = useRef(false);
 
   const allowNextNavigation = useCallback(() => {
     allowNextRef.current = true;
@@ -88,6 +90,45 @@ export function useUnsavedChanges(
       router.replace = originalReplace;
     };
   }, [router, warningMessage, hasUnsavedChanges, tCommon]);
+
+  useEffect(() => {
+    const onClickCapture = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const anchor = event.target.closest('a');
+      if (!anchor) return;
+      const next = guardedInAppPath({
+        href: anchor.getAttribute('href'),
+        target: anchor.getAttribute('target'),
+        hasDownload: anchor.hasAttribute('download'),
+        currentHref: window.location.href,
+        primaryUnmodifiedClick: event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey,
+      });
+      if (!next || allowNextRef.current || !hasUnsavedChanges()) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (confirmingRef.current) return;
+      confirmingRef.current = true;
+      void (async () => {
+        try {
+          const confirmed = await cmxMessage.confirm({
+            title: warningMessage || 'You have unsaved changes. Are you sure you want to leave this page?',
+            variant: 'warning',
+            confirmLabel: tCommon('confirm'),
+            cancelLabel: tCommon('cancel'),
+          });
+          if (!confirmed) return;
+          allowNextRef.current = true;
+          router.push(next);
+        } finally {
+          confirmingRef.current = false;
+        }
+      })();
+    };
+
+    document.addEventListener('click', onClickCapture, true);
+    return () => document.removeEventListener('click', onClickCapture, true);
+  }, [hasUnsavedChanges, router, tCommon, warningMessage]);
 
   return {
     hasUnsavedChanges,

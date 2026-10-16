@@ -1732,6 +1732,7 @@ model org_tenants_mst {
   sys_dev_api_keys_mst             sys_dev_api_keys_mst[]
   sys_dev_api_usage_tr             sys_dev_api_usage_tr[]
   sys_fin_tpl_assign_mst           sys_fin_tpl_assign_mst[]
+  sys_ntf_tenant_pause_cf          sys_ntf_tenant_pause_cf[]
   sys_tenant_lifecycle             sys_tenant_lifecycle?
   sys_tenant_metrics_daily         sys_tenant_metrics_daily[]
 
@@ -16552,6 +16553,49 @@ model sys_ntf_prov_ctl_log {
   created_at    DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([provider_code, channel_code, created_at(sort: Desc)], map: "idx_ntf_prov_ctl_log_prov")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ntf_tenant_pause_cf {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id   String          @db.Uuid
+  channel_code    String          @default("ALL")
+  is_paused       Boolean         @default(false)
+  reason          String?
+  changed_by      String?
+  changed_at      DateTime?       @db.Timestamptz(6)
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  created_info    String?
+  updated_at      DateTime?       @db.Timestamptz(6)
+  updated_by      String?
+  updated_info    String?
+  rec_status      Int             @default(1) @db.SmallInt
+  rec_order       Int?
+  rec_notes       String?
+  is_active       Boolean         @default(true)
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([tenant_org_id, channel_code], map: "uq_ntf_tenant_pause")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ntf_tenant_pause_log {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id String   @db.Uuid
+  channel_code  String
+  old_paused    Boolean?
+  new_paused    Boolean
+  actor         String
+  reason        String?
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_ntf_tenant_pause_log_tenant")
   @@schema("public")
 }
 

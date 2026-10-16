@@ -90,3 +90,7 @@
 ## RBAC enforcement hardening (2026-10-14)
 
 Review finding: with `HQ_RBAC_ENFORCEMENT_ENABLED=false` (old default) every `hq_ops:*` guard was a no-op. Fixed centrally: new `HqRbacService` (`platform-api/src/common/services/hq-rbac.service.ts`) is the single place that checks permissions and the switch; **enforcement is now ON unless the variable is explicitly `false`** (`.env.example` set to `true`). `HqPermissionGuard`, `OpsConfigService` and `OpsOperationsService` all call it. 153 tests pass (ops + guard + service). Side effect: other HQ controllers that relied on the old bypass are now enforced too — operators need the matching grants (SUPER_ADMIN `*` is unaffected). The web sidebar already hides the four `/ops/*` entries without `hq_ops:read`.
+
+## Jobs & events reference (2026-10-16)
+
+Full catalog of all 18 jobs, the domain-event and notification outboxes, secrets/config map, environments, 17 findings, architecture options and a per-job decision matrix: [Jobs_Details_And_Events_And_All_Related_Details.md](./Jobs_Details_And_Events_And_All_Related_Details.md). Analysis only — no runtime change was made. Open owner decisions are in its §15 and §17.

@@ -1,0 +1,7 @@
+---
+description: Always reuse shared Cmx components; improve the shared component instead of building one-offs
+globs: web-admin/**/*.tsx
+alwaysApply: true
+---
+
+Apply `docs/dev/rules/cmx-shared-components.md` to every frontend change. Use shared Cmx components only (search `src/ui/` first). If one lacks a feature, extend the shared component (backward compatible) instead of creating a local copy. Paging always uses `CMX_DEFAULT_PAGE_SIZE` / `CMX_PAGE_SIZE_OPTIONS` from `src/ui/data-display/cmx-table-defaults.ts`.

@@ -9,6 +9,7 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { CmxButton } from '../primitives/cmx-button'
 import { CmxSelect } from '../primitives/cmx-select'
+import { CMX_PAGE_SIZE_OPTIONS, cmxPageSizeChoices } from '../data-display/cmx-table-defaults'
 
 interface CmxPaginationLabels {
   rowsPerPage?: string
@@ -41,7 +42,7 @@ export function CmxPagination({
   totalItems,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 25, 50, 100],
+  pageSizeOptions = [...CMX_PAGE_SIZE_OPTIONS],
   showPageSizeSelector = true,
   showInfo = true,
   showWhenSinglePage = false,
@@ -65,7 +66,7 @@ export function CmxPagination({
               fullWidth={false}
               size="sm"
               className="w-16"
-              options={pageSizeOptions.map((size) => ({
+              options={cmxPageSizeChoices(pageSizeOptions, pageSize).map((size) => ({
                 value: String(size),
                 label: String(size),
               }))}
@@ -130,7 +131,7 @@ export function CmxPagination({
             fullWidth={false}
             size="sm"
             className="w-16"
-            options={pageSizeOptions.map((size) => ({
+            options={cmxPageSizeChoices(pageSizeOptions, pageSize).map((size) => ({
               value: String(size),
               label: String(size),
             }))}

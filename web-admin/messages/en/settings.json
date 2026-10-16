@@ -72,6 +72,7 @@
   "systemRoles": "System Roles",
   "customRoles": "Custom Roles",
   "noCustomRoles": "No custom roles created yet",
+  "catalogReadOnly": "Roles and permissions are managed centrally by the platform team. This list is read-only.",
   "roles": {
     "title": "Roles Management",
     "description": "Manage roles and permissions for your organization",

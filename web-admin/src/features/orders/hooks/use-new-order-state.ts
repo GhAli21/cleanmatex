@@ -37,7 +37,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   /** Changes the auditable sales or integration channel before submission. */
   setOrderSourceCode: (orderSourceCode: OrderSourceCode) => void;
   addItem: (item: OrderItem) => void;
-  removeItem: (productId: string) => void;
+  removeItem: (productId: string) => boolean;
   updateItemQuantity: (productId: string, quantity: number) => void;
   updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => void;
   updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => void;
@@ -140,8 +140,10 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     removeItem: (productId: string) => {
-      if (blocked('REMOVE_ITEM')) return;
+      if (blocked('REMOVE_ITEM')) return false;
+      if (!state.items.some((item) => item.productId === productId)) return false;
       dispatch({ type: 'REMOVE_ITEM', payload: productId });
+      return true;
     },
 
     updateItemQuantity: (productId: string, quantity: number) => {

@@ -44,6 +44,7 @@ For menu-visible routes, load the `/navigation` skill before writing route code.
 7. Feature hooks live in `src/features/<feature>/hooks/`.
 8. Feature types/mappers live in `src/features/<feature>/model/`.
 9. Shared infrastructure lives in root `lib/`.
+10. **Always reuse shared Cmx components** (`docs/dev/rules/cmx-shared-components.md`): search `src/ui/` before writing markup; never raw `<input>`/`<select>`/`<label>`/`<table>` in feature code; if a shared component lacks a capability, extend the shared component (backward compatible, with test and story) instead of a feature-local copy; paging uses `cmx-table-defaults.ts`.
 10. Use only these project aliases: `@ui/*`, `@features/*`, `@lib/*`.
 11. Do not invent aliases such as `@/components`, `@/core`, or `@ui/compat`.
 12. Do not import raw shadcn/ui or Radix primitives directly inside feature code. Wrap them in Cmx components first.

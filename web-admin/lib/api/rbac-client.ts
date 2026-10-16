@@ -57,6 +57,9 @@ export interface RbacFetchOptions {
  * @param options - Optional method, body, and query params
  * @throws RbacApiError if response is not 2xx
  */
+/** How long a platform API call may take before the screen shows an error. */
+const PLATFORM_API_TIMEOUT_MS = 20_000
+
 export async function rbacFetch<T>(
   endpoint: string,
   accessToken: string,
@@ -85,6 +88,8 @@ export async function rbacFetch<T>(
   const fetchOptions: RequestInit = {
     method,
     headers,
+    // A platform API that never answers must end in an error the screen can show, not an endless spinner.
+    signal: AbortSignal.timeout(PLATFORM_API_TIMEOUT_MS),
   }
 
   if (body !== undefined && method !== 'GET') {
@@ -95,6 +100,9 @@ export async function rbacFetch<T>(
   try {
     response = await fetch(url.toString(), fetchOptions)
   } catch (networkError) {
+    if (networkError instanceof DOMException && networkError.name === 'TimeoutError') {
+      throw new RbacApiError(0, `The platform API did not answer within ${PLATFORM_API_TIMEOUT_MS / 1000} seconds.`)
+    }
     // Network-level failure (CORS, backend down, DNS)
     throw new RbacApiError(
       0,

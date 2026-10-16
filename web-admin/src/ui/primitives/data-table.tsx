@@ -34,6 +34,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "./button"
+import { CMX_PAGE_SIZE_OPTIONS, cmxPageSizeChoices } from "../data-display/cmx-table-defaults"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -899,7 +900,7 @@ export function DataTable<TData, TValue>({
                 }}
                 aria-label={t("rowsPerPageLabel", "Rows per page")}
               >
-                {[10, 20, 30, 40, 50].map((pageSize) => (
+                {cmxPageSizeChoices(CMX_PAGE_SIZE_OPTIONS, table.getState().pagination.pageSize).map((pageSize) => (
                   <option key={pageSize} value={pageSize}>
                     {pageSize}
                   </option>

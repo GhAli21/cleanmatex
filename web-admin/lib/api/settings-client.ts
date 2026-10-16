@@ -8,6 +8,9 @@
 
 const API_BASE = '/api/settings';
 
+/** A settings request that never answers must end in an error, not an endless spinner. */
+const SETTINGS_REQUEST_TIMEOUT_MS = 30_000;
+
 // ============================================================
 // HELPER FUNCTIONS
 // ============================================================
@@ -23,13 +26,22 @@ export class SettingsApiError extends Error {
 }
 
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${endpoint}`, {
+      signal: AbortSignal.timeout(SETTINGS_REQUEST_TIMEOUT_MS),
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new SettingsApiError('Settings did not load in time. Please try again.', 'TIMEOUT');
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));

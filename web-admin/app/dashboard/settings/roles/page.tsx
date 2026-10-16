@@ -16,6 +16,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { RBAC_CATALOG_TENANT_WRITABLE } from '@/lib/constants/rbac-catalog'
 import { Plus, Shield, Edit, Trash2, Key, AlertCircle, X } from 'lucide-react'
 import {
   getAllRoles,
@@ -221,6 +222,7 @@ export default function RolesManagementPage() {
             {t('roles.description', { defaultValue: 'Manage roles and permissions for your organization' })}
           </p>
         </div>
+        {RBAC_CATALOG_TENANT_WRITABLE && (
         <button
           onClick={() => {
             setFormData({ code: '', name: '', name2: '', description: '' })
@@ -232,6 +234,7 @@ export default function RolesManagementPage() {
           <Plus className="h-4 w-4 mr-2" />
           {t('roles.create', { defaultValue: 'Create Role' })}
         </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -249,6 +252,12 @@ export default function RolesManagementPage() {
           <div className="text-sm text-gray-500">Custom Roles</div>
         </div>
       </div>
+
+      {!RBAC_CATALOG_TENANT_WRITABLE && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900" role="note">
+          {t('catalogReadOnly')}
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -337,6 +346,7 @@ export default function RolesManagementPage() {
                     {role.user_count ?? '—'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {RBAC_CATALOG_TENANT_WRITABLE && (
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleManagePermissions(role)}
@@ -368,6 +378,7 @@ export default function RolesManagementPage() {
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
+                    )}
                   </td>
                 </tr>
               ))

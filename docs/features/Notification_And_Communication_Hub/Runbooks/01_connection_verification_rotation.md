@@ -18,7 +18,7 @@ Verify that a provider account (a "connection") is correctly authenticated again
 2. Create one if needed: `POST /notifications/connections` (perm: `hq_notifications:manage`) with `provider_code`, `channel_code`, `environment_code`, `account_key`, `external_account_id`, `credential_ref`, `credential_version`. The account starts in a non-verified state.
 3. Verify: `POST /notifications/connections/:id/verify` (perm: `hq_notifications:manage`).
    - Implementation: `ProviderAccountsService.verifyPlatformAccount` (`provider-accounts.service.ts:112`) calls `TwilioContentImporterService.verifyPlatformAccountCredentials`, a real Twilio Account API check.
-   - **Only `TWILIO` is supported this increment.** Any other `provider_code` throws before any live check is attempted (fail-closed, not silently marked verified).
+   - **Only the Twilio provider family (`TWILIO_WHATSAPP`, `TWILIO_SMS`, legacy `TWILIO`) is supported this increment.** Any other `provider_code` throws before any live check is attempted (fail-closed, not silently marked verified).
    - On success (`status === 'active'`), the account is set to `VERIFIED` via `repository.setPlatformAccountVerification` and an audit event `notification_connection.verify_platform` is written (`sourceModule: 'notifications-hq'`).
    - On failure, a `ConflictException` is thrown (`Twilio account status is '<status>', not active`) and the account's verification state is left unchanged.
 4. The platform account's actual secret (`HQ_TWILIO_ACCOUNT_SID` / `HQ_TWILIO_AUTH_TOKEN`) is a deployment secret, not stored encrypted per-account in the DB. `credential_ref`/`credential_version` on the account row must match the deployment setting `NTF_TWILIO_CONTENT_CREDENTIAL_REF` (and optionally `NTF_TWILIO_CONTENT_CREDENTIAL_VERSION`) exactly, or imports/dispatch using that account fail closed.
@@ -33,7 +33,7 @@ Verify that a provider account (a "connection") is correctly authenticated again
    - **Every write — including a brand-new credential, not just a rotation — immediately resets the account's verification state to `PENDING`.** The envelope is never echoed back in the response.
 4. Check non-secret credential status (never the secret itself): `GET /notifications/connections/tenants/:tenantOrgId/:id/credential` (perm: `hq_notifications:manage`).
 5. Verify: `POST /notifications/connections/tenants/:tenantOrgId/:id/verify` (perm: `hq_notifications:manage`).
-   - Implementation: `ProviderAccountsService.verifyPrivateAccount` (`provider-accounts.service.ts:348`). Decrypts the stored envelope, rejects if `expires_at` has passed, rejects if `provider_code !== 'TWILIO'` or `credential_kind !== 'TWILIO_ACCOUNT_AUTH'`, then performs a live Twilio Account check and requires the decrypted Account SID to equal the account's `external_account_id` before marking `VERIFIED`.
+   - Implementation: `ProviderAccountsService.verifyPrivateAccount` (`provider-accounts.service.ts:348`). Decrypts the stored envelope, rejects if `expires_at` has passed, rejects if `provider_code` is not in the Twilio family (`TWILIO_WHATSAPP`, `TWILIO_SMS`, legacy `TWILIO`) or `credential_kind !== 'TWILIO_ACCOUNT_AUTH'`, then performs a live Twilio Account check and requires the decrypted Account SID to equal the account's `external_account_id` before marking `VERIFIED`.
    - On success: account → `VERIFIED`, credential marked verified (`repository.markPrivateCredentialVerified`), audit event `notification_connection.verify_private`.
    - On failure: `ConflictException`, account stays `PENDING` (or whatever it already was) — no partial state.
 
@@ -49,7 +49,7 @@ Verify that a provider account (a "connection") is correctly authenticated again
 
 ## Known gaps (explicit, not invented)
 
-- No live verification connector exists for any provider other than `TWILIO` (Meta, SMS aggregators, email, push accounts cannot be verified through this surface).
+- No live verification connector exists for any provider outside the Twilio family (Meta, SMS aggregators, email, push accounts cannot be verified through this surface).
 - No scheduled/automatic re-verification or expiry alerting exists; `expires_at` is checked only at the moment of a manual verify call.
 
 **Last verified against source:** 2026-10-10 (`provider-accounts.controller.ts`, `provider-accounts.service.ts`, `provider-senders.controller.ts`, migrations `0592`/`0593`).

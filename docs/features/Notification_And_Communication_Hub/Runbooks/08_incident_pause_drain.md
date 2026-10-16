@@ -19,6 +19,15 @@ Tenant-owned (BYO) accounts are not governed by these platform controls.
 3. Confirm: a refused command is recorded in `hq_ntf_dispatch_log` with status `FAILED` and error code `PROVIDER_PAUSED` / `PROVIDER_DRAINING`; callers retry with a new key (nothing is lost). Setup Health `providers.control` shows WARN.
 4. When the provider is fixed press **Resume**. Held jobs continue within a minute. The state is cached for at most 5 seconds per API instance.
 
+## Pause one organization (migration 0631, 2026-10-16)
+Provider pause stops a provider for everybody. To stop ONE organization (abuse, billing suspension, a compromised account, a wrong bulk send) use HQ > Notifications > Operations > **Paused organizations**.
+1. Enter the organization id (UUID), choose **All channels** or one channel (email, SMS, WhatsApp, push), write the reason (required) and press **Pause**, then confirm.
+2. From that moment (cached for at most 5 seconds per API instance) every command of that organization on that scope is **refused for good**: the dispatch log row is PERMANENT_FAILURE with error code `TENANT_PAUSED`, the quota unit is given back, no provider is called and nothing is metered. Queued jobs of that organization are closed by the workers the same way. Refusals are not provider failures, so they never open a circuit.
+3. Messages are **not held**: holding them and releasing everything on resume would be a spam burst. The organization's own outbox shows the refusal; after the resume it can resend what still matters.
+4. **Resume** from the same list. A paused scope that is covered by an "All channels" pause stays paused until that one is resumed too.
+5. In-app notifications are created inside the organization's own app and are not affected.
+6. Setup Health `tenants.paused` is WARN while any organization is paused. Every pause and resume is audited (`notification_tenant.paused` / `.resumed`) and kept in `sys_ntf_tenant_pause_log` with actor and reason. Needs `hq_notifications:operate`.
+
 ## What is recorded
 Audit actions `notification_provider.paused`, `.draining`, `.resume`; table `sys_ntf_prov_ctl_log` keeps every transition with actor and reason.
 

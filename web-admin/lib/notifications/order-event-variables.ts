@@ -3,7 +3,13 @@
  * Keys align with sys_ntf_template_ver_dtl placeholders and Twilio Content templates.
  */
 
-function formatReadyByLabel(readyByAt: string | Date | null | undefined, locale = 'en'): string {
+import { isValidTimeZone } from '@/lib/utils/business-date';
+
+function formatReadyByLabel(
+  readyByAt: string | Date | null | undefined,
+  locale = 'en',
+  timeZone?: string,
+): string {
   if (readyByAt == null || readyByAt === '') return 'Pending';
 
   const date = readyByAt instanceof Date ? readyByAt : new Date(readyByAt);
@@ -17,7 +23,10 @@ function formatReadyByLabel(readyByAt: string | Date | null | undefined, locale 
     year:   'numeric',
     month:  'long',
     day:    'numeric',
-    ...(isCalendarDay ? { timeZone: 'UTC' } : {}),
+    // A calendar day is formatted in UTC (see above); an instant in the organization's own timezone, so a
+    // ready time late in the evening does not show the next or previous day. Without a valid timezone the
+    // server's zone applies (never a guessed one).
+    ...(isCalendarDay ? { timeZone: 'UTC' } : isValidTimeZone(timeZone) ? { timeZone } : {}),
   });
 }
 
@@ -29,8 +38,10 @@ export function buildOrderCreatedNotificationVariables(params: {
   orderNo: string;
   readyByAt?: string | Date | null;
   locale?: string;
+  /** The organization's IANA timezone (getTenantTimeZone) used to format the ready time. */
+  timeZone?: string;
 }): Record<string, string> {
-  const estimatedReadyAt = formatReadyByLabel(params.readyByAt, params.locale ?? 'en');
+  const estimatedReadyAt = formatReadyByLabel(params.readyByAt, params.locale ?? 'en', params.timeZone);
 
   return {
     order_number:         params.orderNo,

@@ -53,6 +53,15 @@ Compare the provider logs for `T_restore → now` with the restored outbox: anyt
 4. Send one test message per channel (Templates → Preview & test).
 5. After 15 minutes: Setup Health `providers.control`, `usage.reconciliation` and `jobs.last_run` must be OK.
 
+### How to rehearse this on a staging copy (about 2 hours, once)
+You never rehearse on production. You need a throwaway copy of the database and its own Redis.
+1. **Get a staging copy.** Supabase dashboard > create a new project (name it `cleanmatex-restore-drill`). Restore a backup into it: Database > Backups > pick a daily backup or a point in time > "Restore to a new project" (needs a plan with backups or PITR). If your plan has no PITR, use `supabase db dump` of production and load it into the new project. Use a separate Redis (a free Upstash or a local Redis) and point a staging copy of HQ API, platform-workers and the tenant app at the new project; **use test provider credentials or only the sandbox connectors** (`HQ_NTF_SANDBOX_ENABLED=true`) so nothing reaches a real customer.
+2. **Create the situation.** In staging send 20 messages through the sandbox provider, write down the time `T_restore`, send 20 more, then leave 5 of the second batch queued (pause the provider first so they stay queued).
+3. **Simulate the restore.** Restore the staging database again to `T_restore` (or reload the dump taken before the second batch). Leave Redis as it is: it now holds the second batch's jobs, which is exactly the dangerous state.
+4. **Run Parts 1 to 7 above in order** and write down for each step: the time it took, the query results, and anything that surprised you.
+5. **Pass criteria:** no message of the second batch is sent twice; every check query is healthy at the end; one test message per channel arrives; Setup Health is OK after 15 minutes.
+6. **Record it** in `DRILL_LOG` (new dated file) with the owner's name, then delete the staging project.
+
 ### Rollback / abort
 Nothing in this procedure changes data except the manual `FAILED_PERMANENT` marking in step 6 and the reconciliation pass. If a step goes wrong, leave the jobs disabled and the providers paused: that state is safe and reversible.
 
@@ -68,12 +77,12 @@ Two `WHATSAPP` rows of the demo tenant have been `PROCESSING` for more than 30 d
 
 ## Part B — Retention Cleanup
 
-**Implemented (migrations 0609 and 0623).** Job `ntf-retention-sweep` (daily 04:00, Job Manager) calls `fn_ntf_retention_sweep(180)`: it purges terminal rows older than 180 days from the outbox, delivery log, receipts, in-app inbox, the usage-apply ledger and the HQ dispatch log (never anything pending, queued or unread). 0623 fixed a defect that would have made the sweep fail on its first eligible row (the usage-apply ledger references the dispatch log) and added `ntf-quota-rsv-sweep` (every 5 minutes: expires unsettled quota reservations, purges settled ones after 30 days).
+**Implemented (migrations 0609 and 0623).** Job `ntf-retention-sweep` (daily 04:00, Job Manager) calls `fn_ntf_retention_run()` (migration 0629), which reads the registry key `ntf.retention.days` (default 180, allowed 30-3650) and runs `fn_ntf_retention_sweep(days)`; before 0629 the number 180 was fixed in the job command. It it purges terminal rows older than 180 days from the outbox, delivery log, receipts, in-app inbox, the usage-apply ledger and the HQ dispatch log (never anything pending, queued or unread). 0623 fixed a defect that would have made the sweep fail on its first eligible row (the usage-apply ledger references the dispatch log) and added `ntf-quota-rsv-sweep` (every 5 minutes: expires unsettled quota reservations, purges settled ones after 30 days).
 
 ### Operator steps
 1. Job Manager: both jobs active, last run SUCCESS; Setup Health `jobs.drift` / `jobs.last_run` OK.
 2. Verify: `select count(*) from hq_ntf_dispatch_log where status in ('SENT','PERMANENT_FAILURE') and created_at < now() - interval '181 days';` → 0 after a run.
-3. Changing the window means a new migration (the 180 days follow the existing session-sweep precedent; the plan leaves the final policy to the owner).
+3. Change the window in HQ > Operations > Configuration Registry, key `ntf.retention.days` (30-3650 days; takes effect at the next 04:00 run; an invalid value is ignored and 180 is used). Lowering it makes the next run delete more history, so confirm your retention obligations first; the change is recorded in the key history.
 
 ### Still open
 Minimizing PII inside rows younger than the window (the plan lists it separately), and the formal owner sign-off of the retention policy (plan section 23).

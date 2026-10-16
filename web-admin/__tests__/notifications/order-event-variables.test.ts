@@ -27,6 +27,22 @@ describe('buildOrderCreatedNotificationVariables', () => {
     expect(options.timeZone).toBeUndefined();
   });
 
+  it("formats an instant in the organization's own timezone, so the day matches the clock the customer lives by", () => {
+    const instant = '2026-10-15T21:30:00Z'; // 01:30 on the 16th in Muscat, 14:30 on the 15th in Los Angeles
+    const muscat = buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: instant, locale: 'en', timeZone: 'Asia/Muscat' });
+    const losAngeles = buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: instant, locale: 'en', timeZone: 'America/Los_Angeles' });
+    expect(muscat.estimated_ready_at).toBe('October 16, 2026');
+    expect(losAngeles.estimated_ready_at).toBe('October 15, 2026');
+  });
+
+  it('ignores an invalid timezone instead of failing, and never lets the timezone shift a calendar day', () => {
+    const spy = jest.spyOn(Date.prototype, 'toLocaleDateString');
+    expect(() => buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: '2026-10-15T21:30:00Z', timeZone: 'Not/AZone' })).not.toThrow();
+    expect((spy.mock.calls[0][1] as Intl.DateTimeFormatOptions).timeZone).toBeUndefined();
+    const day = buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: '2026-10-15', locale: 'en', timeZone: 'Pacific/Kiritimati' });
+    expect(day.estimated_ready_at).toBe('October 15, 2026');
+  });
+
   it('renders Arabic with Arabic month names', () => {
     const vars = buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: '2026-10-15', locale: 'ar' });
     expect(vars.estimated_ready_at).not.toBe('October 15, 2026');

@@ -179,6 +179,27 @@ describe('newOrderReducer', () => {
             expect(result.items).toHaveLength(1);
             expect(result.items[0].productId).toBe('product-2');
         });
+
+        it('keeps a saved line when the payload is the saved row id', () => {
+            const saved: OrderItem = {
+                productId: 'product-1',
+                persistedItemId: 'row-uuid',
+                productName: 'Shirt',
+                productName2: null,
+                quantity: 1,
+                pricePerUnit: 10.0,
+                totalPrice: 10.0,
+                defaultSellPrice: 10.0,
+                defaultExpressSellPrice: null,
+            };
+            const stateWithSaved: NewOrderState = { ...initialState, items: [saved] };
+
+            const byRowId = newOrderReducer(stateWithSaved, { type: 'REMOVE_ITEM', payload: 'row-uuid' });
+            const byProductId = newOrderReducer(stateWithSaved, { type: 'REMOVE_ITEM', payload: 'product-1' });
+
+            expect(byRowId.items).toHaveLength(1);
+            expect(byProductId.items).toHaveLength(0);
+        });
     });
 
     describe('UPDATE_ITEM_QUANTITY', () => {

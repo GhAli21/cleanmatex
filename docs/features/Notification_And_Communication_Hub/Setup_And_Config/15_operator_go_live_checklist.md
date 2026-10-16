@@ -53,9 +53,9 @@ Redeploy both apps after changing env vars.
 Prerequisite (outside CleanMateX): a Twilio WhatsApp sender and an **approved** WhatsApp Content template (Content SID `HX…`). See [13](./13_twilio_waba_and_template_approval.md) and [14](./14_twilio_production_order_created.md). The sandbox template you showed earlier counts for testing.
 
 In **HQ platform-web → Notifications → Providers → "Manage connections"**:
-1. Create a platform account: provider `TWILIO`, channel `WHATSAPP`, `external_account_id` = your Account SID, `credential_ref` = exactly the `NTF_TWILIO_CONTENT_CREDENTIAL_REF` from Step 2.
+1. Create a platform account: provider `TWILIO_WHATSAPP` (the catalog code in `sys_ntf_providers_cd`; the legacy family code `TWILIO` is not in the catalog and fails the foreign key), channel `WHATSAPP`, `account_key` = a unique label (e.g. `twilio-whatsapp-prod`), `external_account_id` = your Account SID, `credential_ref` = exactly the `NTF_TWILIO_CONTENT_CREDENTIAL_REF` from Step 2, `credential_version` = e.g. `v1` (must equal `NTF_TWILIO_CONTENT_CREDENTIAL_VERSION` when that is set).
 2. Click **Verify**. It calls Twilio live; success sets `VERIFIED`.
-3. Add a sender under the same dialog (channel `WHATSAPP`, your sender address). Sender verification is informational only (no live check exists yet).
+3. Add a sender under the same dialog (channel `WHATSAPP`, Provider sender ID `+E164`, Sender address `whatsapp:+E164`), then click **Verify live** on the sender (needs the account `VERIFIED`; the sender must be ONLINE in Twilio). Field-by-field detail and troubleshooting: [NTF_Create_Platform_Connections_And_Sender_Guide](./NTF_Create_Platform_Connections_And_Sender_Guide.md).
 
 **Confirm:** the account shows `VERIFIED`. (API equivalents are in Runbooks 01–02.)
 
@@ -64,7 +64,8 @@ In **HQ platform-web → Notifications → Providers → "Manage connections"**:
 ## Step 4 — Import the template and map its variables (HQ web UI)
 
 In **HQ → Notifications → Providers** (Twilio import form):
-1. Pick the verified account, locale (e.g. `en`), sender, and paste the Content SID. Submit — HQ fetches the template and approval status from Twilio server-side.
+0. **No seeding needed:** the import form asks for the **HQ template** and the **language** (EN/AR); HQ creates the template's WhatsApp locale and variables on first import. See the "Import a Twilio template" section of [NTF_Create_Platform_Connections_And_Sender_Guide](./NTF_Create_Platform_Connections_And_Sender_Guide.md).
+1. Pick the verified account, the HQ template (e.g. `order.created.default`), the language (`EN`), sender, and paste the Content SID. Submit — HQ fetches the template and approval status from Twilio server-side.
 2. Open the new revision → **Bindings**: map each ordered Twilio slot (`{{1}}`, `{{2}}`…) to the matching logical variable (e.g. `order_number`, `estimated_ready_at`). **This can be done once per revision** — to correct it, import/refresh a new revision.
 
 **Confirm:** the revision shows complete bindings. Detail: [Runbook 03](../Runbooks/03_template_import_submission_approval.md).
@@ -73,13 +74,14 @@ In **HQ → Notifications → Providers** (Twilio import form):
 
 ## Step 5 — Create and activate the route for the demo tenant (HQ web UI)
 
-In **HQ → Notifications → Tenant Configuration**, find tenant **Demo Laundry LLC** (`11111111-1111-1111-1111-111111111111`) → row action **Routes**:
-1. Create a route: event `order.created`, channel `WHATSAPP`, language `en`, choose the account, sender, and revision from Steps 3–4. Saved as **DRAFT** (no live effect).
+In **HQ → Notifications → Tenant Configuration**, find tenant **Demo Laundry LLC** (`11111111-1111-1111-1111-111111111111`) → click the **"…"** button in the last (Action) column of any of that tenant's rows (scroll the table right if it is cut off) → **Routes**:
+1. Click **Add route**, keep owner **Platform**, and pick the **Approved template** from the list (for the demo: `order.created · WHATSAPP · en — order_created_v4`). Only approved templates are listed. The event, channel, language and account are filled in from that template and cannot be typed, so they cannot be wrong. The sender is filled in when the template is tied to one; otherwise leave "Any compatible sender". The revision is chosen automatically and shows the status Twilio reported at import (`Revision 1 · APPROVED`). Click **Save**: the route is saved as **DRAFT** (no live effect).
+   Activation re-checks everything on the server: account verified, template last observed as approved (no time limit unless you set an "Approval valid until" date on it in the Routes dialog; re-verify in Providers if Twilio changed its status), and the event/channel/language matching the template.
 2. Click **Activate**.
 
 **What changes live:** from this moment, `order.created` WhatsApp messages for **that tenant and language only** go through HQ's route-aware path instead of direct Twilio. Every other tenant/event/language is untouched. Customers with no `preferred_language` fall back to the tenant language, then `en` — so activate the language(s) you need.
 
-**Undo anytime:** Routes dialog → **Suspend** (instantly returns that tenant to the legacy path).
+**Undo anytime:** Routes dialog → **Suspend** (instantly returns that tenant to the legacy path). A suspended route shows **Resume** (it re-checks everything, like Activate). Each route in the list shows its template, revision, account, sender, dates and the optional **Approval valid until** date, which you can set or remove there. A DRAFT route can be edited; to change an active route, Suspend or Retire it and add a new one.
 
 **Confirm:** create a test order for a demo customer whose phone has opted in to WhatsApp (customer card → "Customer WhatsApp notifications"; you can also set "Notification language" there). Then check:
 
