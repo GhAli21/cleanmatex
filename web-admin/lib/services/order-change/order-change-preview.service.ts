@@ -13,6 +13,7 @@ import {
   issueOrderChangeReviewProof,
   type OrderChangeCapabilityBinding,
   type OrderChangeCapabilityResult,
+  type OrderChangeReviewProofBinding,
   type OrderChangeReviewProofKey,
 } from '@/lib/services/order-change/order-change-capability.service';
 import {
@@ -46,6 +47,8 @@ export interface OrderChangePreviewSuccess {
   decisions: OrderChangeCapabilityResult[];
   calculationFingerprint: string | null;
   reviewProof: string | null;
+  /** Server-only binding for the issued proof. The preview HTTP response omits it. */
+  reviewBinding?: OrderChangeReviewProofBinding | null;
   financial: OrderChangeFinancialResult | null;
   originalTotal: string;
   projectedTotal: string | null;
@@ -303,26 +306,25 @@ export async function previewOrderChange(input: {
   });
   const policy = decisions.find((decision) => decision.policyIdentity)?.policyIdentity ?? null;
   const financiallyBlocked = financial.outcome === 'DENIED';
-  const reviewProof = !acknowledgementMissing && !financiallyBlocked && input.proofKey && policy
-    ? issueOrderChangeReviewProof({
-      now: input.now,
-      key: input.proofKey,
-      binding: {
-        tenantId: input.tenantId,
-        orderId: input.context.orderId,
-        actorUserId: input.actorUserId,
-        expectedEditStateVersion: input.request.expectedEditStateVersion,
-        expectedWfStateVersion: input.request.expectedWfStateVersion,
-        sourceContext: input.request.sourceContext,
-        canonicalIntent: input.request.operations,
-        changeReason: input.request.changeReason ?? null,
-        gateDecisions: input.request.gateDecisions ?? [],
-        policyIdentity: policy,
-        policyFacts: decisions,
-        calculationFingerprint: calculated.fingerprint,
-        settlementSourceFingerprint: input.payments.map((row) => `${row.payment_status}:${String(row.amount)}`).join('|'),
-      },
-    })
+  const reviewBinding: OrderChangeReviewProofBinding | null = policy
+    ? {
+      tenantId: input.tenantId,
+      orderId: input.context.orderId,
+      actorUserId: input.actorUserId,
+      expectedEditStateVersion: input.request.expectedEditStateVersion,
+      expectedWfStateVersion: input.request.expectedWfStateVersion,
+      sourceContext: input.request.sourceContext,
+      canonicalIntent: input.request.operations,
+      changeReason: input.request.changeReason ?? null,
+      gateDecisions: input.request.gateDecisions ?? [],
+      policyIdentity: policy,
+      policyFacts: decisions,
+      calculationFingerprint: calculated.fingerprint,
+      settlementSourceFingerprint: input.payments.map((row) => `${row.payment_status}:${String(row.amount)}`).join('|'),
+    }
+    : null;
+  const reviewProof = !acknowledgementMissing && !financiallyBlocked && input.proofKey && reviewBinding
+    ? issueOrderChangeReviewProof({ now: input.now, key: input.proofKey, binding: reviewBinding })
     : null;
 
   return {
@@ -338,6 +340,7 @@ export async function previewOrderChange(input: {
     decisions,
     calculationFingerprint: calculated.fingerprint,
     reviewProof,
+    reviewBinding,
     financial,
     originalTotal: input.context.financial.totalAmount,
     projectedTotal: calculated.totalAmount,

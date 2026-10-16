@@ -4627,6 +4627,7 @@ model sys_ntf_channel_cd {
   sys_ntf_prov_ctl_cf         sys_ntf_prov_ctl_cf[]
   sys_ntf_prov_send_mst       sys_ntf_prov_send_mst[]
   sys_ntf_providers_cd        sys_ntf_providers_cd[]
+  sys_ntf_sender_kind_cd      sys_ntf_sender_kind_cd[]
   sys_ntf_template_chan_dtl   sys_ntf_template_chan_dtl[]
   sys_ntf_tpl_locale_dtl      sys_ntf_tpl_locale_dtl[]
 
@@ -13947,7 +13948,7 @@ model sys_ntf_pricing_cf {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_ntf_providers_cd {
-  code                       String                  @id
+  code                       String                   @id
   channel_code               String
   name                       String
   name2                      String?
@@ -13955,24 +13956,25 @@ model sys_ntf_providers_cd {
   description2               String?
   api_endpoint               String?
   webhook_path               String?
-  supports_delivery_tracking Boolean                 @default(false)
-  supports_read_receipt      Boolean                 @default(false)
+  supports_delivery_tracking Boolean                  @default(false)
+  supports_read_receipt      Boolean                  @default(false)
   max_message_length         Int?
-  display_order              Int?                    @default(0)
-  created_at                 DateTime?               @default(now()) @db.Timestamp(6)
+  display_order              Int?                     @default(0)
+  created_at                 DateTime?                @default(now()) @db.Timestamp(6)
   created_by                 String?
   created_info               String?
-  updated_at                 DateTime?               @db.Timestamp(6)
+  updated_at                 DateTime?                @db.Timestamp(6)
   updated_by                 String?
   updated_info               String?
-  rec_status                 Int?                    @default(1) @db.SmallInt
+  rec_status                 Int?                     @default(1) @db.SmallInt
   rec_order                  Int?
   rec_notes                  String?
-  is_active                  Boolean                 @default(true)
+  is_active                  Boolean                  @default(true)
   org_ntf_outbox_dtl         org_ntf_outbox_dtl[]
   org_ntf_prov_acct_mst      org_ntf_prov_acct_mst[]
   sys_ntf_prov_acct_mst      sys_ntf_prov_acct_mst[]
-  sys_ntf_channel_cd         sys_ntf_channel_cd      @relation(fields: [channel_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  sys_ntf_channel_cd         sys_ntf_channel_cd       @relation(fields: [channel_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  sys_ntf_sender_kind_cd     sys_ntf_sender_kind_cd[]
 
   @@schema("public")
 }
@@ -16596,6 +16598,35 @@ model sys_ntf_tenant_pause_log {
   created_at    DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_ntf_tenant_pause_log_tenant")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ntf_sender_kind_cd {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                 String
+  provider_code        String
+  channel_code         String
+  name_en              String
+  name_ar              String
+  allowed_capabilities Json                 @default("{}")
+  display_order        Int                  @default(0)
+  is_active            Boolean              @default(true)
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
+  created_by           String?
+  created_info         String?
+  updated_at           DateTime?            @db.Timestamptz(6)
+  updated_by           String?
+  updated_info         String?
+  rec_status           Int                  @default(1) @db.SmallInt
+  rec_order            Int?
+  rec_notes            String?
+  sys_ntf_channel_cd   sys_ntf_channel_cd   @relation(fields: [channel_code], references: [code], onUpdate: NoAction)
+  sys_ntf_providers_cd sys_ntf_providers_cd @relation(fields: [provider_code], references: [code], onUpdate: NoAction)
+
+  @@unique([provider_code, code], map: "uq_ntf_sender_kind")
   @@schema("public")
 }
 

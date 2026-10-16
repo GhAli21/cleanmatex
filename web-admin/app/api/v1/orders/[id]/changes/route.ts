@@ -121,6 +121,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       idempotencyKey: idempotencyKey.data,
       request: parsedBody.data,
       preview,
+      proofKey: facts.proofKey,
       appliedAt: new Date(),
       runInTransaction: (fn) => withTenantContext(
         auth.tenantId,

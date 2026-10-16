@@ -82,7 +82,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       proofKey: facts.proofKey,
     });
     if (!preview.ok) return errorResponse(preview.status, preview.code, 'Order change preview was rejected', requestId);
-    return NextResponse.json({ ok: true, data: preview, requestId });
+    const { reviewBinding: _reviewBinding, ...data } = preview;
+    return NextResponse.json({ ok: true, data, requestId });
   } catch (error) {
     if (error instanceof OrderChangeContextError) {
       return errorResponse(error.status, error.code, error.code === 'ORDER_NOT_FOUND' ? 'Order not found' : 'Order is not eligible for Edit V2', requestId);

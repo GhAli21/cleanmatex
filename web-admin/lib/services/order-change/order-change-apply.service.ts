@@ -21,6 +21,11 @@ import {
   STRUCTURAL_OPERATION_CODES,
   type StructuralWritePlan,
 } from '@/lib/services/order-change/order-change-structural-write';
+import {
+  OrderChangeReviewProofError,
+  verifyOrderChangeReviewProof,
+  type OrderChangeReviewProofKey,
+} from '@/lib/services/order-change/order-change-capability.service';
 import { mapPersistedFinancialOutcome, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
 import type { OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
 import { round4 } from '@/lib/services/order-financial-aggregation';
@@ -63,6 +68,8 @@ export interface ApplyOrderChangeInput {
   idempotencyKey: string;
   request: ApplyRequest;
   preview: OrderChangePreviewSuccess;
+  /** Present on the live route. Unit fixtures that omit it keep an exact proof-string check. */
+  proofKey?: OrderChangeReviewProofKey | null;
   appliedAt: Date;
   runInTransaction<T>(fn: (tx: OrderChangeApplyTx) => Promise<T>): Promise<T>;
 }
@@ -99,6 +106,37 @@ function orderFields(request: ApplyRequest): Record<string, unknown> {
     }
   }
   return data;
+}
+
+/**
+ * The re-preview mints a new proof, so its expiry differs from Review.
+ * Verify the original proof against the fresh binding. Expiry and every other binding still apply.
+ */
+function reviewedProofStillMatches(input: ApplyOrderChangeInput): { ok: true } | { ok: false; status: 409 | 422; code: string } {
+  if (input.preview.calculationFingerprint !== input.request.calculationFingerprint) {
+    return { ok: false, status: 409, code: 'REVIEW_CHANGED' };
+  }
+  if (input.proofKey && input.preview.reviewBinding) {
+    try {
+      verifyOrderChangeReviewProof({
+        proof: input.request.reviewProof,
+        keys: [input.proofKey],
+        expected: input.preview.reviewBinding,
+        now: input.appliedAt,
+      });
+      return { ok: true };
+    } catch (error) {
+      if (!(error instanceof OrderChangeReviewProofError)) throw error;
+      if (error.code === 'ORDER_CHANGE_REVIEW_PROOF_SIGNER_UNAVAILABLE') {
+        return { ok: false, status: 422, code: 'REVIEW_NOT_READY' };
+      }
+      return { ok: false, status: 409, code: 'REVIEW_CHANGED' };
+    }
+  }
+  if (input.preview.reviewProof !== input.request.reviewProof) {
+    return { ok: false, status: 409, code: 'REVIEW_CHANGED' };
+  }
+  return { ok: true };
 }
 
 function persistedOperations(
@@ -138,9 +176,8 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
   if (input.preview.status !== 'READY' || !input.preview.createsChange || !input.preview.reviewProof || !input.preview.calculationFingerprint || !input.preview.financial || !input.preview.projectedTotal) {
     return { ok: false, status: 422, code: 'REVIEW_NOT_READY' };
   }
-  if (input.preview.calculationFingerprint !== input.request.calculationFingerprint || input.preview.reviewProof !== input.request.reviewProof) {
-    return { ok: false, status: 409, code: 'REVIEW_CHANGED' };
-  }
+  const proofCheck = reviewedProofStillMatches(input);
+  if (!proofCheck.ok) return proofCheck;
   if (!input.currencyCode) return { ok: false, status: 422, code: 'CURRENCY_UNRESOLVED' };
   const hasPreference = input.request.operations.some((operation) => PREFERENCE_OPERATION_CODES.has(operation.code));
   const hasStructural = input.request.operations.some((operation) => STRUCTURAL_OPERATION_CODES.has(operation.code));

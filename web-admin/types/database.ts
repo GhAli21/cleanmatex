@@ -36222,6 +36222,84 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_ntf_sender_kind_cd: {
+        Row: {
+          allowed_capabilities: Json
+          channel_code: string
+          code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string
+          provider_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          allowed_capabilities?: Json
+          channel_code: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          name_en: string
+          provider_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          allowed_capabilities?: Json
+          channel_code?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          provider_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_sender_kind_cd_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sys_ntf_sender_kind_cd_provider_code_fkey"
+            columns: ["provider_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_providers_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       sys_ntf_template_chan_dtl: {
         Row: {
           channel_code: string

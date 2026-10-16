@@ -154,11 +154,11 @@ Credential version:         v1                   (== NTF_TWILIO_CONTENT_CREDENTI
 | UI label | API field | Required | What it is | Rules |
 |---|---|---|---|---|
 | Sender key | `sender_key` | ✅ | Your stable label, e.g. `whatsapp-main`. | Unique **within the connection**. Immutable. |
-| Sender kind | `sender_kind` | ✅ | Free-text category. | No fixed list, never validated or branched on in code. Use one convention: `WHATSAPP_NUMBER`, `PHONE_NUMBER`, `MESSAGING_SERVICE`, `EMAIL_ADDRESS`. Immutable. |
+| Sender kind | `sender_kind` | ✅ | Category, picked from the lookup `sys_ntf_sender_kind_cd` for the connection's provider (migration 0634). | TWILIO_WHATSAPP / META_WHATSAPP: `WHATSAPP_NUMBER`; TWILIO_SMS: `PHONE_NUMBER`, `MESSAGING_SERVICE`; RESEND: `EMAIL_ADDRESS`. The API rejects other values once the lookup has rows for the provider; before 0634 is applied it is free text. Not branched on in send code. Immutable. |
 | Provider sender ID | `external_sender_id` | ✅ | The provider's identity for the sender. | Unique **within the connection**. Immutable. See §6.2. |
 | Sender address | `sender_address` | optional in the form, **required in practice** | The human-readable "From" actually used at send time. | WhatsApp: `whatsapp:+E164`. Editable later. |
 | Name / Name (Arabic) | `name`, `name2` | name ✅ | Display names. | |
-| Capabilities | `capabilities` | – | Optional JSON object, e.g. `{"message_types":["template","session"]}`. | Must be a JSON object; `{}` or empty is fine. |
+| Capabilities | `capabilities` | – | Optional JSON object, e.g. `{"message_types":["template","session"]}`. For `WHATSAPP_NUMBER` the form shows Message types checkboxes (template, session); other keys go in the advanced JSON field. | Must be a JSON object; `{}` or empty is fine. Values of `message_types` must come from the kind's `allowed_capabilities`. |
 
 The sender's channel is taken from the connection; it must match the connection's channel (`Sender channel must match the owning account channel`).
 

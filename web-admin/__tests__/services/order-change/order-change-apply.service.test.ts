@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+import { issueOrderChangeReviewProof, type OrderChangeReviewProofBinding } from '@/lib/services/order-change/order-change-capability.service';
 import { applyOrderChange, type ApplyOrderChangeInput, type OrderChangeApplyTx } from '@/lib/services/order-change/order-change-apply.service';
 import { persistOrderChangeTx } from '@/lib/services/order-change/order-change-mutation.service';
 import type { OrderChangeFinancialResult } from '@/lib/services/order-change/order-change-financial-result.service';
@@ -120,6 +121,77 @@ describe('applyOrderChange', () => {
     expect(persisted.financialOutcome).toBe('NONE');
     expect(persisted.commercialDelta).toBe('0.0000');
     expect(persisted.itemInserts).toBeUndefined();
+  });
+
+  it('accepts the original review proof when Apply mints a later expiry', async () => {
+    const key = { keyId: 'local-order-change-review-v1', secret: 'test-secret-test-secret-test-secret' };
+    const reviewedAt = new Date('2026-10-16T12:00:00.000Z');
+    const appliedAt = new Date('2026-10-16T12:00:30.000Z');
+    const base = request();
+    const binding: OrderChangeReviewProofBinding = {
+      tenantId: '11111111-1111-4111-8111-111111111111',
+      orderId: '22222222-2222-4222-8222-222222222222',
+      actorUserId: '33333333-3333-4333-8333-333333333333',
+      expectedEditStateVersion: base.expectedEditStateVersion,
+      expectedWfStateVersion: base.expectedWfStateVersion,
+      sourceContext: base.sourceContext,
+      canonicalIntent: base.operations,
+      changeReason: null,
+      gateDecisions: [],
+      policyIdentity: {
+        editPolicyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        profileVersionId: '44444444-4444-4444-8444-444444444444',
+        policyRevision: 5,
+      },
+      policyFacts: [],
+      calculationFingerprint: 'fingerprint-1',
+      settlementSourceFingerprint: 'PAID:10.0000',
+    };
+    const presented = issueOrderChangeReviewProof({ key, binding, now: reviewedAt });
+    const fresh = issueOrderChangeReviewProof({ key, binding, now: appliedAt });
+    expect(presented).not.toBe(fresh);
+    const { input, committed } = harness({
+      appliedAt,
+      proofKey: key,
+      request: { ...base, reviewProof: presented },
+      preview: preview({ reviewProof: fresh, reviewBinding: binding }),
+    });
+    await expect(applyOrderChange(input)).resolves.toMatchObject({ ok: true, replayed: false });
+    expect(committed()).toBe(true);
+  });
+
+  it('rejects a review proof after five minutes even when the rest of the review still matches', async () => {
+    const key = { keyId: 'local-order-change-review-v1', secret: 'test-secret-test-secret-test-secret' };
+    const reviewedAt = new Date('2026-10-16T12:00:00.000Z');
+    const appliedAt = new Date('2026-10-16T12:05:01.000Z');
+    const base = request();
+    const binding: OrderChangeReviewProofBinding = {
+      tenantId: '11111111-1111-4111-8111-111111111111',
+      orderId: '22222222-2222-4222-8222-222222222222',
+      actorUserId: '33333333-3333-4333-8333-333333333333',
+      expectedEditStateVersion: base.expectedEditStateVersion,
+      expectedWfStateVersion: base.expectedWfStateVersion,
+      sourceContext: base.sourceContext,
+      canonicalIntent: base.operations,
+      changeReason: null,
+      gateDecisions: [],
+      policyIdentity: {
+        editPolicyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        profileVersionId: '44444444-4444-4444-8444-444444444444',
+        policyRevision: 5,
+      },
+      policyFacts: [],
+      calculationFingerprint: 'fingerprint-1',
+      settlementSourceFingerprint: 'PAID:10.0000',
+    };
+    const { input, opened } = harness({
+      appliedAt,
+      proofKey: key,
+      request: { ...base, reviewProof: issueOrderChangeReviewProof({ key, binding, now: reviewedAt }) },
+      preview: preview({ reviewBinding: binding }),
+    });
+    await expect(applyOrderChange(input)).resolves.toEqual({ ok: false, status: 409, code: 'REVIEW_CHANGED' });
+    expect(opened()).toBe(false);
   });
 
   it('does not write when the review proof no longer matches the current preview', async () => {

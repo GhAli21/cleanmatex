@@ -568,6 +568,8 @@ Manual UI testing is complete only when every applicable `MANUAL_REQUIRED` or ma
 A WP/release must not be held manual-only for objective behavior that should be automated.
 
 > **P0 for developer (latest = Retest r2, Saudi Demo SAR):** set `ORDER_CHANGE_REVIEW_PROOF_SECRET` + `ORDER_CHANGE_REVIEW_PROOF_KEY_ID` (unblocks **005/006/012**); fix sidebar Link unsaved-nav guard (**008 FAIL**); fix Remove item `productId` mismatch (**003**). Full P0 block at start of Retest r2 section below.
+>
+> **Update Retest r3 2026-10-17 (Saudi, d16ff51e): ** S9 signer FIXED-verified; S10 nav guard FIXED; S11 Remove FIXED-verified. **New P0 S21: every Apply returns CONFLICT (`REVIEW_CHANGED`)** — Apply re-issues the review proof with a new `exp` and string-compares it to the client proof (`order-change-apply.service.ts:141`). See Retest r3 section at end.
 
 ## Financial_Expert_Tester Results — Round 1 (2026-10-16)
 
@@ -803,20 +805,20 @@ Saudi Demo SAR inventory for this run: **only Processing** orders available. Edi
 
 | # | Round-1 | Retest r2 2026-10-16 (Saudi Demo SAR, edit policy assigned) |
 |---|---|---|
-| MAN-UI-001 | PARTIAL (policy MISSING Demo) | **PASS** — context bar, locks, dirty count, Review open, Discard restore, evidence on ORD-20261015-0001. Notes: still no Internal notes field; AR untranslated shell strings (Edit Order, Dashboard/Orders/Help/JWT Test, tenant_admin, Free Trial); org name clipped (`…emo Saudi Riyadh`). Shots `r2_01`–`r2_06`, `r2_16`–`r2_19`. |
+| MAN-UI-001 | PARTIAL (policy MISSING Demo) | **PASS** — context bar, locks, dirty count, Review open, Discard restore, evidence on ORD-20261015-0001. Notes: still no Internal notes field; AR untranslated shell strings (Edit Order, Dashboard/Orders/Help/JWT Test, tenant_admin, Free Trial); org name clipped (`…emo Saudi Riyadh`). Shots `r2_01`–`r2_06`, `r2_16`–`r2_19`.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PASS** — context bar "Revision 1 · Workflow status: processing · 0 unsaved changes"; notes dirty → Review READY. |
 | MAN-UI-002 | NOT RUN | *(unchanged — not retested; only Processing exists — no entry-DENY status sample)* |
-| MAN-UI-003 | NOT RUN | **PARTIAL/FAIL** — Remove item allowed with warning by policy but click has **no effect and no feedback** (persistedItemId vs productId). Shots `r2_09a`/`r2_09b`. Diagnosis **c**. |
-| MAN-UI-004 | NOT RUN | **PARTIAL** — DENY shown red/amber (`CHANGE_REASON_REQUIRED · DENY`) on Express; **no reason field / acknowledgement**; no WARN case seen this run. Shot `r2_15`. Diagnosis **g**. |
-| MAN-UI-005 | BLOCKED | **PARTIAL** — dialog readable (ops, totals, history empty); **no before/after**; **no Apply** (`SIGNER_UNAVAILABLE`); no ack/reason field; est total **4 decimals** (`41.1700`). Shot `r2_07` / AR `r2_18`. Diagnosis **a,b,g,h**. Unblocked when proof env set (see retest plan). |
-| MAN-UI-006 | BLOCKED | **BLOCKED** — Apply unreachable because of `SIGNER_UNAVAILABLE`. Diagnosis **a**. Unblocked when proof env set. |
-| MAN-UI-007 | NOT RUN | **BLOCKED/FAIL** — no persisted multi-piece selection UI; qty decrease silently trims; panel **"No multi-piece items"**. Diagnosis **l**. |
-| MAN-UI-008 | BLOCKED | **FAIL** — in-app sidebar nav loses unsaved edits **silently**; only browser beforeunload **"Leave site?"** on Back. Shot `r2_08`. Diagnosis **d**. Discard also has no confirm (**e**). |
-| MAN-UI-009 | BLOCKED | **PARTIAL** — RTL works; untranslated EN strings listed above; org clipped; Review codes EN. Shots `r2_16`–`r2_18`. Diagnosis **h**. |
-| MAN-UI-010 | NOT RUN | **PARTIAL** — focus ring + trap OK; Escape closes; **focus restore to Review trigger fails** (lands on Add). Shots `r2_10`/`r2_10b`/`r2_10c`/`r2_11`/`r2_11b`. Diagnosis **f**. |
-| MAN-UI-011 | NOT RUN | **PARTIAL** — zoom emulation only; at 250%/css768 **cart off-screen**; dialog footer scrolls. Shots `r2_12`/`r2_12a`/`r2_13`/`r2_14`. Diagnosis **m**. |
-| MAN-UI-012 | NOT RUN | **BLOCKED** — no Apply → follow-up/settlement UI not reachable. Diagnosis **a**. Unblocked when proof env set + Apply path exercised. |
-| MAN-UI-013 | NOT RUN | **NOT RUN** — no same-product duplicate lines on test orders. |
-| MAN-UI-014 | NOT RUN | **PARTIAL** — long/raw codes and DENY banner persist after close; layout mostly holds; clipped org + untranslated codes. Diagnosis **h**. |
+| MAN-UI-003 | NOT RUN | **PARTIAL/FAIL** — Remove item allowed with warning by policy but click has **no effect and no feedback** (persistedItemId vs productId). Shots `r2_09a`/`r2_09b`. Diagnosis **c**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PASS** — toast "Item removed from the order."; counts/total updated; Discard restores (S11 FIXED). |
+| MAN-UI-004 | NOT RUN | **PARTIAL** — DENY shown red/amber (`CHANGE_REASON_REQUIRED · DENY`) on Express; **no reason field / acknowledgement**; no WARN case seen this run. Shot `r2_15`. Diagnosis **g**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — DENY red + `CHANGE_REASON_REQUIRED • DENY`; still no reason field (0 textboxes); no WARN case. |
+| MAN-UI-005 | BLOCKED | **PARTIAL** — dialog readable (ops, totals, history empty); **no before/after**; **no Apply** (`SIGNER_UNAVAILABLE`); no ack/reason field; est total **4 decimals** (`41.1700`). Shot `r2_07` / AR `r2_18`. Diagnosis **a,b,g,h**. Unblocked when proof env set (see retest plan).<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — READY + Apply shown (signer fixed); current 29.67 / est 29.6700 (notes) or 41.1700 (qty), 4 dp; no before/after; Apply → CONFLICT (S21). |
+| MAN-UI-006 | BLOCKED | **BLOCKED** — Apply unreachable because of `SIGNER_UNAVAILABLE`. Diagnosis **a**. Unblocked when proof env set.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **FAIL** — every Apply returns `CONFLICT` "This review is out of date. Reload the order before trying again." ×3 (incl. after Reload and fresh load, notes-only). Two-tab stale test skipped (not meaningful). |
+| MAN-UI-007 | NOT RUN | **BLOCKED/FAIL** — no persisted multi-piece selection UI; qty decrease silently trims; panel **"No multi-piece items"**. Diagnosis **l**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — "Fitness Leggings — Piece 2" piece prefs visible; no piece-selection on decrease. |
+| MAN-UI-008 | BLOCKED | **FAIL** — in-app sidebar nav loses unsaved edits **silently**; only browser beforeunload **"Leave site?"** on Back. Shot `r2_08`. Diagnosis **d**. Discard also has no confirm (**e**).<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PASS (label note)** — "Leave without saving?" Cancel/Confirm; Cancel stays, draft kept. Discard still no confirm. |
+| MAN-UI-009 | BLOCKED | **PARTIAL** — RTL works; untranslated EN strings listed above; org clipped; Review codes EN. Shots `r2_16`–`r2_18`. Diagnosis **h**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — sidebar AR OK; "Edit Order"/"Discard changes"/"Review"/processing EN; Review values READY/OUTSTANDING/CHANGE_* EN; buttons إلغاء / تطبيق; org clipped. |
+| MAN-UI-010 | NOT RUN | **PARTIAL** — focus ring + trap OK; Escape closes; **focus restore to Review trigger fails** (lands on Add). Shots `r2_10`/`r2_10b`/`r2_10c`/`r2_11`/`r2_11b`. Diagnosis **f**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **FAIL** — Escape → focus lost (`:focus` count 0). |
+| MAN-UI-011 | NOT RUN | **PARTIAL** — zoom emulation only; at 250%/css768 **cart off-screen**; dialog footer scrolls. Shots `r2_12`/`r2_12a`/`r2_13`/`r2_14`. Diagnosis **m**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **FAIL/PARTIAL** — 250% horizontal overflow; cart/Review panel off-screen. |
+| MAN-UI-012 | NOT RUN | **BLOCKED** — no Apply → follow-up/settlement UI not reachable. Diagnosis **a**. Unblocked when proof env set + Apply path exercised.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **BLOCKED** — Apply never succeeds (CONFLICT), so no follow-up UI. |
+| MAN-UI-013 | NOT RUN | **NOT RUN** — no same-product duplicate lines on test orders.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **NOT RUN** — no same-product lines. |
+| MAN-UI-014 | NOT RUN | **PARTIAL** — long/raw codes and DENY banner persist after close; layout mostly holds; clipped org + untranslated codes. Diagnosis **h**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — CONFLICT/DENY messages fit; raw codes remain. |
 
 **r2 counts:** PASS **1** · PARTIAL **6** · PARTIAL/FAIL **1** · FAIL **1** · BLOCKED **2** · BLOCKED/FAIL **1** · NOT RUN **1** · (MAN-UI-002 unchanged NOT RUN from Round 1) · executed rows **13**/14
 
@@ -848,19 +850,31 @@ Saudi Demo SAR inventory for this run: **only Processing** orders available. Edi
 ### Tester suggestions — FET-EOV2-S# (extend S9+)
 - **P0 FET-EOV2-S9:** `SIGNER_UNAVAILABLE` blocks Apply (unblocks **005/006/012** when fixed). **Evidence:** Review yellow `SIGNER_UNAVAILABLE`; only Cancel/Review again; Apply absent; env SECRET+KEY_ID absent on Preview. **Where:** `order-change-preview-reads.ts:198-223`, `order-change-preview.service.ts:306-336`, `edit-review-dialog.tsx:51,116-123`. **Fix:** provision `ORDER_CHANGE_REVIEW_PROOF_SECRET` + `ORDER_CHANGE_REVIEW_PROOF_KEY_ID` on Preview/Apply and redeploy.
   - Dev note (2026-10-16): local `web-admin/.env.local` now has both names. Preview and Apply already share that reader. Restart web-admin before Retest r3. The secret stays out of git. A deployed host still needs the same two names set there before a retest on that host.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **FIXED-verified** — Review returns `READY` with **Apply** (notes-only + qty paths); `SIGNER_UNAVAILABLE` not seen in EN or AR. Apply then hits new P0 CONFLICT (S21).
 - **P0 FET-EOV2-S10:** Silent loss of unsaved edits on sidebar Link. **Evidence:** dirty count 2 → **All Orders** → left with no in-app confirm (`r2_08`); Back shows **"Leave site?"**. **Where:** `use-unsaved-changes.ts:49-84` (push/replace only). **Fix:** guard Next Link / soft nav with `cmxMessage.confirm`.
   - Dev note (2026-10-16): an in-app same-origin link click now opens the existing leave confirm before navigation. New-tab, external, and unmodified-click exceptions stay open. Browser Back still uses the existing page-leave prompt.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **FIXED (label note)** — sidebar **All Orders** with unsaved change opens **"Leave without saving?"** with **Cancel** / **Confirm**; Cancel stays on `/edit` with draft kept. Note: no "Stay" label (Cancel = stay); consider "Stay"/"Leave" wording.
 - **P0 FET-EOV2-S11:** Remove item no-op (id mismatch). **Evidence:** Fitness Leggings **Remove item**; cart unchanged (`r2_09a`/`r2_09b`); policy ALLOW_WITH_WARNING. **Where:** `item-cart-list.tsx:137` vs `new-order-reducer.ts:218-221` (+ `new-order-content.tsx:353-355`). **Fix:** delete by `productId` (or map persisted id → productId) + toast.
   - Dev note (2026-10-16): the cart now removes by `productId`. A successful removal shows "Item removed from the order." A blocked or missing line stays silent.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **FIXED-verified** — Remove on Fitness Leggings → toast **"Item removed from the order."**; unsaved 0→1; Order Items (2)→(1); Pieces 2→1; Preferences (2)→(1); total 25.80→15.50; Discard restored.
 - **P1 FET-EOV2-S12:** `CHANGE_REASON_REQUIRED` DENY hides reason field. **Evidence:** Express → amber `Not allowed: CHANGE_REASON_REQUIRED · DENY`; no textarea (`r2_15`). **Where:** `order-change-capability.service.ts:247,287-288` + `edit-review-dialog.tsx:89-90`. **Fix:** set `requiresReason:true` for that denial (or show field when reasonCode matches).
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — Express ON → `DENIED`, `Not allowed: CHANGE_REASON_REQUIRED • DENY`, Review again disabled, **0 textboxes / 0 checkboxes** in dialog. Code unchanged in d16ff51e (`order-change-capability.service.ts:247,287-288`).
 - **P1 FET-EOV2-S13:** Discard without confirm (V2). **Evidence:** Discard restores immediately with no confirm dialog. **Where:** `edit-shared-workspace.tsx:197-205` (wired `edit-order-context-bar.tsx:28`). **Fix:** `cmxMessage.confirm` before `reloadKey++`.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — "Discard changes" discards immediately, no confirm (`edit-shared-workspace.tsx:197-205` unchanged).
 - **P1 FET-EOV2-S14:** Review totals 4-dp + raw codes untranslated. **Evidence:** est `41.1700`; codes `SIGNER_UNAVAILABLE`/`OUTSTANDING`/`CHANGE_*` in EN and AR Review (`r2_07`/`r2_18`). **Where:** `order-change-preview-reads.ts:52-57`, `edit-review-dialog.tsx:66-83`. **Fix:** tenant money format (2 dp SAR) + i18n maps for status/ops/outcome.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — est **41.1700** (4 dp) on qty +1 (29.6700 on notes-only); codes READY/OUTSTANDING/CHANGE_ITEM_QUANTITY/ADD_PIECE untranslated in AR Review.
 - **P1 FET-EOV2-S15:** Draft line total drift after qty +1/−1. **Evidence:** Fitness Leggings **10.30→10.00** while **+0.30** chip stays. **Where:** `edit-workspace-adapter.ts:62-84` missing `servicePrefCharge`; `new-order-reducer.ts:271-275`. **Fix:** hydrate charge from prefs sum; keep charge consistent on qty change.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — qty +1 (10.30→20.00, total 35.50) then −1 → line **10.00** with "+0.30 Eco-Friendly Wash" label still shown; total **25.50** (was 25.80); header **"0 unsaved changes"** (see S23).
 - **P1 FET-EOV2-S16:** Focus not restored after Escape from Review. **Evidence:** Escape closes dialog; focus lands on background **Add** (`r2_10`–`r2_11`). **Where:** `edit-review-dialog.tsx:53`. **Fix:** return focus to Review trigger (`onCloseAutoFocus` / opener ref).
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — Escape closes Review; document `:focus` count **0** (focus lost, not returned to Review).
 - **P2 FET-EOV2-S17:** Qty decrease lacks piece-selection UI. **Evidence:** qty −1 silently removes new piece; panel **"No multi-piece items"**. **Where:** `new-order-reducer.ts:259-264`, `order-pieces-notes-section.tsx:134`. **Fix:** piece picker before trim when `quantity < pieces.length`.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **PARTIAL** — after adding a piece, Preferences header shows **"Fitness Leggings — Piece 2"** (piece-level prefs); decrease still has no piece picker.
 - **P2 FET-EOV2-S18:** Narrow/zoom cart off-screen. **Evidence:** 250%/css768 cart off-screen; dialog footer scrolls (`r2_13`/`r2_14`). **Where:** `new-order-content.tsx:911` `w-[28rem] shrink-0`. **Fix:** reflow/bottom-sheet below breakpoint.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — Chrome 250%: horizontal scrollbar; sidebar → hamburger; Order Items / totals / Review panel pushed off right edge (sliver visible).
 - **P2 FET-EOV2-S19:** Details blank customer vs Edit **"Guest Guest"**; ORD-20261010 **"Unknown Product"** + **"Ready by date must be in the future"**. **Evidence:** `r2_02` blank Name vs Edit chip; secondary order editor. **Where:** snapshot `edit-shared-workspace.tsx:78` / `order-change-context.service.ts:219` vs Details profile; `new-order-content.tsx:527`; `order-summary-panel.tsx:191-208`. **Fix:** unify name source; join product names on context load; soften Edit readyBy future check for committed dates.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **NOT RETESTED** (Guest/Unknown Product not re-checked this run).
 - **P2 FET-EOV2-S20:** AR shell strings + clipped org (still open from S7). **Evidence:** EN **Edit Order**/Dashboard/Orders/Help/JWT Test/`tenant_admin`/Free Trial; org `…emo Saudi Riyadh` (`r2_16`). **Where:** app shell title/metadata; header overflow CSS; `edit-order-context-bar.tsx:22` raw `processing`. **Fix:** complete AR catalogs; localize document title + status; fix header overflow.
+  - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — AR: "Edit Order", "Discard changes", "Review", "Workflow status: processing" English; tenant name clipped ("Demo Saudi Riyadh" visible, "Dry Clean" cut).
 
 ### Retest plan (post-r2)
 1. **P0 env (unblocks MAN-UI-005, MAN-UI-006, MAN-UI-012):** Set Preview `ORDER_CHANGE_REVIEW_PROOF_SECRET` + `ORDER_CHANGE_REVIEW_PROOF_KEY_ID`; redeploy; confirm Review status **READY** and **Apply** visible (no commit in FET unless explicitly authorized). Then complete **005** (before/after, 2-dp money, ack/reason), exercise **006** conflict/recovery with Apply reachable, and **012** follow-up after a controlled Apply.
@@ -868,3 +882,69 @@ Saudi Demo SAR inventory for this run: **only Processing** orders available. Edi
 3. **P0 remove:** Fix productId wiring; retest MAN-UI-003 Remove on Fitness Leggings with WARN policy → line removed in draft + feedback.
 4. Retest **004** WARN path + reason field; **007** with a true multi-piece tracked item; **010** focus restore; **011** real narrow viewport (not zoom-only); **009/014** after i18n; **013** when same-product duplicate lines available; **002** when a non-Processing / entry-DENY status exists (currently **only Processing** on this tenant).
 5. Keep write-back rules: re-pull F: before merge; FET section only; no passwords; verify hash/size/mtime on F:.
+
+## Financial_Expert_Tester Results — Retest r3 (2026-10-17)
+
+### P0 summary for developer (r3)
+1. **P0 FET-EOV2-S21 — Apply always CONFLICT.** `app/api/v1/orders/[id]/changes/route.ts:96-113` re-runs `previewOrderChange` at Apply time. That re-preview calls `issueOrderChangeReviewProof` (`order-change-preview.service.ts:306-326`), whose payload has `exp = now + 300s` (`order-change-capability.service.ts:337`). `applyOrderChange` then rejects when `input.preview.reviewProof !== input.request.reviewProof` with 409 `REVIEW_CHANGED` (`order-change-apply.service.ts:141-142`). Review and Apply happen in different seconds, so `exp` differs, the proof strings never match, and every Apply shows "This review is out of date…". **Fix:** in Apply, replace the proof string equality with `verifyOrderChangeReviewProof({ proof: request.reviewProof, keys: [proofKey], expected: <binding rebuilt from the re-preview>, now })`. That function already compares every binding field except `exp` (`order-change-capability.service.ts:347-381`). Keep the `calculationFingerprint` equality.
+2. S9, S10 and S11 are confirmed fixed on d16ff51e.
+
+### Environment / build (r3)
+| Field | Value |
+|---|---|
+| App | Preview `https://cmx.cleanmatex.com` |
+| Build | **d16ff51eceac1a3559f12c3c3cdf05ec3af847f9** (2026-10-17 00:29 +04) |
+| Tenant | Demo Saudi Riyadh Dry Clean · `c9ac29d1-219c-4a3a-8887-f860550c32be` · tenant admin (1 sign-in, no failures; no password recorded) |
+| Policy | WF_V2_FULL_PATH_EDIT_POLICY PILOT rev 5 |
+| Order | ORD-20261015-0001 `44f5cd1d-2c58-4d2a-80b2-1d887612413b` · item `44ea8124-980a-4c49-9c43-1d965e86724f` (Fitness Leggings) |
+| Window | 2026-10-17 **00:48–00:59** Asia/Muscat (the evidence file header says ~00:50–01:40) |
+| Evidence | `/workspace/oe2/shots/r3_evidence.md` (text record; **no PNGs saved**, because browser screenshots were returned inline only) |
+| Locale | EN, then AR, back to EN |
+| Initial cart | Cotton Pants 1 × 15.50 (Separate Wash +0.50, Hang on Hanger); Fitness Leggings 10.30 (No Bleach, Eco-Friendly Wash +0.30); draft Total 25.80 SAR |
+
+### Diagnosis — Apply CONFLICT (read-only)
+| Check | File:line | Finding |
+|---|---|---|
+| Revision | Apply re-preview `order-change-preview.service.ts:166-167` | Revision 1 and the workflow version did not change between Review and Apply. A mismatch would return `EDIT_VERSION_CONFLICT`, not this. Not the cause. |
+| Policy | `order-change-preview.service.ts:169+` `expectedPolicy` | Both calls used PILOT rev 5. A mismatch returns `POLICY_CHANGED_REVIEW_REQUIRED`, which shows different text. Not the cause. |
+| Calc fingerprint | `order-change-apply.service.ts:141` | Deterministic for the same ops and context, so it is the same in both calls. Not the cause. |
+| **Proof string** | `order-change-capability.service.ts:337` + `order-change-apply.service.ts:141` | **Cause.** Apply mints a new proof with a new `exp`, and the strict string `!==` against the client proof always fails → `REVIEW_CHANGED` (409) → UI conflict text (`edit-review-view.ts:78`). |
+| Totals 29.67 vs 25.80 | Context `financial.totalAmount` vs cart sum | **Not the cause.** 25.80 is the line subtotal (15.50 + 10.30, including the +0.50/+0.30 prefs). 29.67 is the stored order total including tax (25.80 × 1.15 = 29.67). The draft footer labels the subtotal as "Total", which is a UX label issue (S24). |
+| d16ff51e changes | `git diff b7933b0e..d16ff51e` | In the Edit area it touched only `use-unsaved-changes.ts` (+`guarded-in-app-path.ts`), `item-cart-list.tsx`, `use-new-order-state.ts` and `new-order-content.tsx`. The order-change services, `edit-review-dialog.tsx`, `edit-shared-workspace.tsx`, `edit-workspace-adapter.ts` and the reducer qty path are unchanged, so S12–S16, S18 and S20 are still open, matching what the run observed. |
+
+No DB SELECTs were needed, because the cause is deterministic in code.
+
+### Results — Retest r3 lines (also appended per row in the r2 table above)
+| # | Retest r3 2026-10-17 (Saudi, d16ff51e): verdict — evidence |
+|---|---|
+| MAN-UI-001 | PASS — clean context bar; notes dirty; Review READY |
+| MAN-UI-002 | NOT RUN — unchanged |
+| MAN-UI-003 | PASS — "Item removed from the order." toast; totals/counts update |
+| MAN-UI-004 | PARTIAL — DENY `CHANGE_REASON_REQUIRED • DENY`, no reason field |
+| MAN-UI-005 | PARTIAL — READY + Apply shown; 4-dp est; no before/after; Apply CONFLICT |
+| MAN-UI-006 | FAIL — Apply CONFLICT ×3 (notes-only, after Reload, after fresh load) |
+| MAN-UI-007 | PARTIAL — "Fitness Leggings — Piece 2" prefs; no decrease picker |
+| MAN-UI-008 | PASS (label note) — "Leave without saving?" Cancel/Confirm |
+| MAN-UI-009 | PARTIAL — mixed AR; codes EN; org clipped |
+| MAN-UI-010 | FAIL — focus lost after Escape |
+| MAN-UI-011 | FAIL/PARTIAL — 250% cart off-screen |
+| MAN-UI-012 | BLOCKED — no successful Apply |
+| MAN-UI-013 | NOT RUN — no same-product lines |
+| MAN-UI-014 | PARTIAL — messages fit; raw codes |
+
+**r3 counts:** PASS **3** (001, 003, 008) · PARTIAL **5** (004, 005, 007, 009, 014) · FAIL/PARTIAL **1** (011) · FAIL **2** (006, 010) · BLOCKED **1** (012) · NOT RUN **2** (002, 013) · total 14.
+
+**Test data left behind:** **none applied.** Every Apply returned CONFLICT and all drafts were discarded. Final state: Revision 1 · processing · 0 unsaved; Order Total **29.670 SAR**, Paid 11.67 (CARD 1.67 + CASH 10.00), Balance 18.00; customer notes empty; language EN.
+
+### New tester suggestions (S21+)
+- **P0 FET-EOV2-S21:** Apply always returns CONFLICT. **Evidence:** "This review is out of date. Reload the order before trying again." ×3 on a notes-only change, including after Reload and after a fresh load; Revision stays 1. **Where:** `order-change-apply.service.ts:141-142`; `order-change-capability.service.ts:337`; route `app/api/v1/orders/[id]/changes/route.ts:96-116`. **Fix:** verify the client proof with `verifyOrderChangeReviewProof` against the re-preview binding (it ignores `exp`) instead of string-comparing it with a freshly minted proof.
+  - Dev note (2026-10-17): Apply now verifies the Review proof against the fresh binding. A later expiry no longer rejects a matching review. An expired proof, or a review whose amounts or policy changed, still returns 409. Needs a restart and Retest r4. Not on `cmx.cleanmatex.com` until that build is deployed.
+- **P1 FET-EOV2-S22:** The Express toggle reprices draft lines and does not restore them. **Evidence:** Express ON → Cotton Pants 15.00 and Fitness Leggings 10.00 (the +0.50/+0.30 labels still shown), draft total 25.00. Express OFF did not restore 15.50/10.30/25.80; only Discard did. **Where:** `new-order-reducer.ts` express repricing via `itemLineBasePlusPrefCharges` (the pref charge is dropped, same family as S15); `edit-workspace-adapter.ts:62-84` sets no `servicePrefCharge`. **Fix:** keep `servicePrefCharge` when repricing for speed, and recompute it from prefs when Express is toggled back.
+- **P1 FET-EOV2-S23:** The header shows "0 unsaved changes" while the draft total has changed. **Evidence:** qty +1 then −1 → total 25.50 (was 25.80) with header "0 unsaved changes". **Where:** `visualHeaderChangeCount` (`edit-workspace-adapter.ts` ~125-135) counts fields and qty only, not line price drift; root cause is S15. **Fix:** fix the S15 drift and include line total / pref charge in the dirty comparison.
+- **P2 FET-EOV2-S24:** The draft "Total" 25.80 vs the Review current total 29.67 is confusing. **Evidence:** cart Total 25.80 SAR; Review "Current total: 29.67". **Where:** cart total `item-cart-list.tsx:143-151` (sum of lines, no tax) vs `context.financial.totalAmount`. **Fix:** label the cart figure "Subtotal" and show tax and total, or show the same total basis in both places.
+
+### Retest plan (post-r3)
+1. **P0 S21:** ship the proof-verify Apply fix. Retest a notes-only Apply and expect Revision 2, a history entry, and the total unchanged at 29.67. Then test a qty Apply.
+2. Then run MAN-UI-006 (two-tab stale test: expect CONFLICT only for the stale tab) and MAN-UI-012 (follow-up after an Apply that changes the balance).
+3. Retest S12 (reason field), S13 (Discard confirm), S15/S22/S23 (pref charge on qty and Express), S16 (focus), S18 (250%), S20 (AR) and S14 (2-dp money).
+4. Save PNGs to disk next run, or record text evidence as in r3. Re-pull F: before merging; FET section only; no passwords.
