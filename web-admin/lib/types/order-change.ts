@@ -106,6 +106,7 @@ export interface OrderChangeContext {
     customerSnapshot: { name: string | null; mobile: string | null; email: string | null };
     branchId: string | null;
     currencyCode: string | null;
+    paymentTypeCode: string | null;
     priority: string | null;
     serviceSpeed: string | null;
     readyBy: string | null;

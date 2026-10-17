@@ -108,3 +108,8 @@ Mock hooks and `CmxSelect` as in `tenant-routes-dialog.test.tsx`, and prove:
 - Do not redesign unrelated screens.
 - Do not apply migrations or touch the remote database except read-only checks.
 - Do not claim a screen works unless a test or a read-only check proves it; say what you did not verify.
+
+## Tracking
+- P1 (2026-10-17): organization LOV, sender kind lookup (0634 applied, 0635 UNAPPLIED).
+- P2 (PDT-P2 2026-10-17): credential_ref picker (refs in use + configured content ref, format + no-secret validation on web and API); tenant-private providers limited to Twilio (server 400 too); Twilio import languages from sys_language_cd via GET /notifications/languages; channel lists from DB (Operations, Quota metrics, Broadcast, Providers, Observability); Broadcast templates filtered by approved_channel_codes; Ops Config content_cred_ref pick list; GET /tenants verified callable by every HQ role (HQ session only, no permission key; contract test). Typed enums kept on purpose: quota period (DB CHECK), CAMPAIGN metric, preview channels (renderer), test-send channels (EMAIL/SMS). No new migration; next free 0636; 0635 still UNAPPLIED, remote read-only pre-check clean (1 platform WHATSAPP_NUMBER sender, 0 tenant senders).
+- Remaining: owner browser QA PDT10–PDT17; raw <label> in ops dialogs and NtfFormField (cosmetic).

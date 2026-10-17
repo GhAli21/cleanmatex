@@ -64,6 +64,7 @@ describe('order change apply rollback', () => {
         orderId: order[0].id,
         actorUserId: actorId,
         currencyCode: 'OMR',
+        paymentTypeCode: 'PAY_ON_COLLECTION',
         idempotencyKey,
         appliedAt: new Date(),
         request: {

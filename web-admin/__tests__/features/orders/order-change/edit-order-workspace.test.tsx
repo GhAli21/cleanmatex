@@ -37,6 +37,7 @@ function context(): OrderChangeContext {
       customerSnapshot: { name: 'Ada', mobile: '050', email: 'ada@example.com' },
       branchId: 'branch-1',
       currencyCode: 'AED',
+      paymentTypeCode: 'PAY_ON_COLLECTION',
       priority: 'normal',
       serviceSpeed: 'STANDARD',
       readyBy: null,

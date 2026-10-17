@@ -26,7 +26,7 @@ import {
   verifyOrderChangeReviewProof,
   type OrderChangeReviewProofKey,
 } from '@/lib/services/order-change/order-change-capability.service';
-import { mapPersistedFinancialOutcome, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
+import { collectionRequiredForPaymentType, mapPersistedFinancialOutcome, OrderChangeMutationError, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
 import type { OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
 import { round4 } from '@/lib/services/order-financial-aggregation';
 import type { z } from 'zod';
@@ -41,6 +41,26 @@ const EMPTY_COMMERCIAL_FACTS: CommercialWriteFacts = {
 };
 
 type ApplyRequest = z.infer<typeof orderChangeApplyRequestSchema>;
+
+function finiteMoney(value: string | null | undefined): value is string {
+  return value != null && value.trim() !== '' && Number.isFinite(Number(value));
+}
+
+function money4(value: string): string {
+  return round4(Number(value)).toFixed(4);
+}
+
+function sameMoney(left: string, right: string): boolean {
+  return finiteMoney(left) && finiteMoney(right) && money4(left) === money4(right);
+}
+
+const MUTATION_CONFLICTS = new Set([
+  'VERSION_CONFLICT',
+  'ORDER_FIELD_UPDATE_LOST',
+  'UPDATE_NOT_ACTIVE',
+  'REMOVAL_NOT_ACTIVE',
+  'IDEMPOTENCY_TARGET_MISSING',
+]);
 
 const ORDER_FIELD_CODES = new Set([
   'CHANGE_ORDER_NOTES',
@@ -65,6 +85,8 @@ export interface ApplyOrderChangeInput {
   actorUserId: string;
   actorName?: string | null;
   currencyCode: string | null;
+  /** Existing order settlement type. It decides collection; Apply does not collect. */
+  paymentTypeCode: string | null;
   idempotencyKey: string;
   request: ApplyRequest;
   preview: OrderChangePreviewSuccess;
@@ -173,7 +195,17 @@ function persistedOperations(
  * A thrown error inside the transaction rolls every Change write back.
  */
 export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<ApplyOrderChangeResult> {
-  if (input.preview.status !== 'READY' || !input.preview.createsChange || !input.preview.reviewProof || !input.preview.calculationFingerprint || !input.preview.financial || !input.preview.projectedTotal) {
+  if (
+    input.preview.status !== 'READY'
+    || !input.preview.createsChange
+    || !input.preview.reviewProof
+    || !input.preview.calculationFingerprint
+    || !input.preview.financial
+    || input.preview.financial.outcome === 'DENIED'
+    || !finiteMoney(input.preview.originalTotal)
+    || !finiteMoney(input.preview.projectedTotal)
+    || !finiteMoney(input.preview.projectedTax)
+  ) {
     return { ok: false, status: 422, code: 'REVIEW_NOT_READY' };
   }
   const proofCheck = reviewedProofStillMatches(input);
@@ -189,21 +221,24 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
   ))) {
     return { ok: false, status: 422, code: 'COMMERCIAL_LINE_UNSUPPORTED' };
   }
-  if (!hasPreference && !hasStructural && input.preview.projectedTotal !== input.preview.originalTotal) {
+  if (!hasPreference && !hasStructural && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal)) {
     return { ok: false, status: 422, code: 'COMMERCIAL_TOTAL_CHANGED' };
   }
   if (preferenceParentIsLocal(input.request.operations)) {
     return { ok: false, status: 422, code: 'PREFERENCE_PARENT_NOT_PERSISTED' };
   }
-  if (hasStructural && input.request.operations.some((operation) => (
-    operation.code === 'ADD_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY'
-  )) && (input.preview.lines ?? []).length === 0) {
+  if (structuralPriceMissing(input.request, input.preview.lines ?? [])) {
     return { ok: false, status: 422, code: 'STRUCTURE_PRICE_MISSING' };
   }
-  const financialOutcome = mapPersistedFinancialOutcome(input.preview.financial.outcome, null);
+  const financialOutcome = mapPersistedFinancialOutcome(
+    input.preview.financial.outcome,
+    collectionRequiredForPaymentType(input.paymentTypeCode),
+  );
   if (!financialOutcome) return { ok: false, status: 422, code: 'COLLECTION_POLICY_UNRESOLVED' };
 
-  const delta = round4(Number(input.preview.projectedTotal) - Number(input.preview.originalTotal)).toFixed(4);
+  const originalTotal = money4(input.preview.originalTotal);
+  const projectedTotal = money4(input.preview.projectedTotal);
+  const delta = round4(Number(projectedTotal) - Number(originalTotal)).toFixed(4);
   const fields = orderFields(input.request);
   try {
     return await input.runInTransaction(async (tx) => {
@@ -228,10 +263,10 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       actorName: input.actorName ?? null,
       changeReason: input.request.changeReason ?? null,
       currencyCode: input.currencyCode as string,
-      financialBefore: { totalAmount: input.preview.originalTotal },
+      financialBefore: { totalAmount: originalTotal },
       financialAfter: {
-        totalAmount: input.preview.projectedTotal,
-        taxAmount: input.preview.projectedTax,
+        totalAmount: projectedTotal,
+        taxAmount: money4(input.preview.projectedTax),
       },
       commercialDelta: delta,
       financialOutcome,
@@ -264,7 +299,7 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
         await assertCommercialSnapshot(tx, {
           tenantId: input.tenantId,
           orderId: input.orderId,
-          projectedTotal: input.preview.projectedTotal,
+          projectedTotal,
         });
       }
     }
@@ -275,9 +310,13 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
           tenant_org_id: input.tenantId,
           edit_state_version: persisted.editStateVersionAfter,
         },
-        data: fields,
+        data: {
+          ...fields,
+          updated_by: input.actorUserId,
+          updated_at: input.appliedAt,
+        },
       });
-      if (updated.count !== 1) throw new Error('ORDER_FIELD_UPDATE_LOST');
+      if (updated.count !== 1) throw new OrderChangeMutationError('ORDER_FIELD_UPDATE_LOST');
     }
     return {
       ok: true as const,
@@ -290,8 +329,27 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
     });
   } catch (error) {
     if (error instanceof OrderChangeApplyRejected) return { ok: false, status: error.status, code: error.code };
+    if (error instanceof OrderChangeMutationError) {
+      return { ok: false, status: MUTATION_CONFLICTS.has(error.code) ? 409 : 422, code: error.code };
+    }
     throw error;
   }
+}
+
+function structuralPriceMissing(
+  request: ApplyRequest,
+  lines: readonly { id: string; active: boolean }[],
+): boolean {
+  const priced = new Set(lines.filter((line) => line.active).map((line) => line.id.toLowerCase()));
+  return request.operations.some((operation) => {
+    if (operation.code === 'ADD_ITEM') return !priced.has(operation.payload.clientRef.toLowerCase());
+    if (operation.code === 'CHANGE_ITEM_QUANTITY') return !priced.has(operation.target.id.toLowerCase());
+    if (operation.code === 'ADD_PIECE') {
+      const parentId = operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : operation.target.clientRef;
+      return !priced.has(parentId.toLowerCase());
+    }
+    return false;
+  });
 }
 
 function mergedRows(

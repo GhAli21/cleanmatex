@@ -3,7 +3,7 @@ import { join } from 'path';
 
 import { issueOrderChangeReviewProof, type OrderChangeReviewProofBinding } from '@/lib/services/order-change/order-change-capability.service';
 import { applyOrderChange, type ApplyOrderChangeInput, type OrderChangeApplyTx } from '@/lib/services/order-change/order-change-apply.service';
-import { persistOrderChangeTx } from '@/lib/services/order-change/order-change-mutation.service';
+import { persistOrderChangeTx, OrderChangeMutationError } from '@/lib/services/order-change/order-change-mutation.service';
 import type { OrderChangeFinancialResult } from '@/lib/services/order-change/order-change-financial-result.service';
 import type { OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
 
@@ -66,6 +66,7 @@ function harness(overrides: Partial<ApplyOrderChangeInput> = {}) {
     orderId: '22222222-2222-4222-8222-222222222222',
     actorUserId: '33333333-3333-4333-8333-333333333333',
     currencyCode: 'OMR',
+    paymentTypeCode: 'PAY_ON_COLLECTION',
     idempotencyKey: 'key-1',
     request: request(),
     preview: preview(),
@@ -115,7 +116,11 @@ describe('applyOrderChange', () => {
         tenant_org_id: input.tenantId,
         edit_state_version: 4,
       },
-      data: { internal_notes: 'Leave at desk' },
+      data: {
+        internal_notes: 'Leave at desk',
+        updated_by: input.actorUserId,
+        updated_at: input.appliedAt,
+      },
     });
     const persisted = persistMock.mock.calls[0][1];
     expect(persisted.financialOutcome).toBe('NONE');
@@ -214,7 +219,7 @@ describe('applyOrderChange', () => {
     expect(result.ok).toBe(true);
     expect(committed()).toBe(true);
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      data: { ready_by: null },
+      data: expect.objectContaining({ ready_by: null, updated_by: input.actorUserId }),
     }));
     const persisted = persistMock.mock.calls[0][1];
     expect(persisted.operations).toEqual([expect.objectContaining({
@@ -345,8 +350,31 @@ describe('applyOrderChange', () => {
     expect(priced.opened()).toBe(false);
   });
 
-  it('does not guess whether an outstanding balance must be collected', async () => {
+  it('keeps an unchanged outstanding balance on the existing settlement type', async () => {
+    const collected = harness({
+      preview: preview({
+        originalTotal: '29.67',
+        projectedTotal: '29.6700',
+        financial: { ...financial, outcome: 'OUTSTANDING', outstandingAmount: '18.0000' },
+      }),
+    });
+    await expect(applyOrderChange(collected.input)).resolves.toMatchObject({ ok: true });
+    expect(persistMock.mock.calls[0][1].financialOutcome).toBe('OUTSTANDING_REQUIRED');
+    expect(collected.committed()).toBe(true);
+
+    const invoiced = harness({
+      paymentTypeCode: 'CREDIT_INVOICE',
+      preview: preview({
+        financial: { ...financial, outcome: 'OUTSTANDING', outstandingAmount: '18.0000' },
+      }),
+    });
+    await expect(applyOrderChange(invoiced.input)).resolves.toMatchObject({ ok: true });
+    expect(persistMock.mock.calls[1][1].financialOutcome).toBe('OUTSTANDING_OPTIONAL');
+  });
+
+  it('does not guess collection when the settlement type is missing', async () => {
     const { input, opened } = harness({
+      paymentTypeCode: null,
       preview: preview({ financial: { ...financial, outcome: 'OUTSTANDING', outstandingAmount: '10.0000' } }),
     });
     await expect(applyOrderChange(input)).resolves.toEqual({ ok: false, status: 422, code: 'COLLECTION_POLICY_UNRESOLVED' });
@@ -371,11 +399,40 @@ describe('applyOrderChange', () => {
     expect(updateMany).not.toHaveBeenCalled();
   });
 
-  it('rolls the transaction back when the version update is lost', async () => {
+  it('returns a conflict when the version update is lost and rolls the write back', async () => {
     const { input, committed } = harness();
-    persistMock.mockRejectedValueOnce(new Error('VERSION_CONFLICT'));
-    await expect(applyOrderChange(input)).rejects.toThrow('VERSION_CONFLICT');
+    persistMock.mockRejectedValueOnce(new OrderChangeMutationError('VERSION_CONFLICT'));
+    await expect(applyOrderChange(input)).resolves.toEqual({ ok: false, status: 409, code: 'VERSION_CONFLICT' });
     expect(committed()).toBe(false);
+  });
+
+  it('does not commit a note when the order row update misses the new revision', async () => {
+    const { input, updateMany, committed } = harness();
+    updateMany.mockResolvedValueOnce({ count: 0 });
+    await expect(applyOrderChange(input)).resolves.toEqual({ ok: false, status: 409, code: 'ORDER_FIELD_UPDATE_LOST' });
+    expect(committed()).toBe(false);
+  });
+
+  it('refuses a denied financial result and a piece whose parent has no reviewed price', async () => {
+    const denied = harness({
+      preview: preview({ financial: { ...financial, outcome: 'DENIED' } }),
+    });
+    await expect(applyOrderChange(denied.input)).resolves.toEqual({ ok: false, status: 422, code: 'REVIEW_NOT_READY' });
+    expect(denied.opened()).toBe(false);
+
+    const piece = harness({
+      request: {
+        ...request(),
+        operations: [{
+          seq: 1,
+          code: 'ADD_PIECE',
+          target: { kind: 'PERSISTED_ITEM', id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
+          payload: { clientRef: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+        }],
+      },
+    });
+    await expect(applyOrderChange(piece.input)).resolves.toEqual({ ok: false, status: 422, code: 'STRUCTURE_PRICE_MISSING' });
+    expect(piece.opened()).toBe(false);
   });
 
   it('keeps pricing and payment clients out of the apply module', () => {

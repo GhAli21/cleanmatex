@@ -41,7 +41,7 @@ function context() {
     editAccess: { status: 'OPEN', reasonCode: null, reasonText: null, blockedUntil: null },
     permissions: { canEdit: false, canOverride: false, canOverridePrice: false },
     configuration: { featureEnabled: false, newItemPricePolicy: null, existingDiscountPolicy: null, reasonPolicy: null, deferredReason: 'deferred' },
-    order: { customer: { id: null }, customerSnapshot: { name: 'Ada', mobile: null, email: null }, branchId: null, currencyCode: 'OMR', priority: 'NORMAL', serviceSpeed: 'STANDARD', readyBy: null, notes: 'Keep', customerNotes: null },
+    order: { customer: { id: null }, customerSnapshot: { name: 'Ada', mobile: null, email: null }, branchId: null, currencyCode: 'OMR', paymentTypeCode: 'PAY_ON_COLLECTION', priority: 'NORMAL', serviceSpeed: 'STANDARD', readyBy: null, notes: 'Keep', customerNotes: null },
     items: [{ id: ITEM, orderId: ORDER_ID, productId: ITEM, productName: 'Shirt', productName2: null, serviceCategoryCode: null, quantity: 1, pricePerUnit: '10.0000', totalPrice: '10.0000', priceOverride: null, preferenceCharge: '0.0000', packingPreferenceCode: null, active: true }],
     pieces: [],
     preferences: [],

@@ -6,7 +6,7 @@
 
 import { randomUUID } from 'crypto';
 
-import { OUTBOX_EVENT_TYPES, OUTBOX_STATUSES } from '@/lib/constants/order-financial';
+import { OUTBOX_EVENT_TYPES, OUTBOX_STATUSES, SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import {
   claimIdempotencyKeyTx,
   completeIdempotencyKeyTx,
@@ -43,6 +43,22 @@ export type PersistedFinancialOutcome =
   | 'OVERPAYMENT';
 
 export type OrderChangeClassification = 'SETTLED' | 'OUTSTANDING' | 'OVERPAYMENT' | 'DENIED';
+
+/**
+ * Collection policy already stored on the order. Pay-on-collection is the only
+ * type the existing collection route accepts, so that balance is required.
+ * The other known settlement types keep the balance and do not invent a
+ * collection this change cannot perform. An unknown type stays unresolved.
+ */
+export function collectionRequiredForPaymentType(paymentTypeCode: string | null | undefined): boolean | null {
+  if (paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION) return true;
+  if (
+    paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_IN_ADVANCE
+    || paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_DELIVERY
+    || paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE
+  ) return false;
+  return null;
+}
 
 /**
  * Translate a preview classification into the stored follow-up vocabulary.

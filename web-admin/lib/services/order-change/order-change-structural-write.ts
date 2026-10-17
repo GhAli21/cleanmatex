@@ -262,7 +262,7 @@ export function buildStructuralWritePlan(
       const seqKey = keyOf(parentId);
       const seq = pieceSeq.get(seqKey) ?? 1;
       pieceSeq.set(seqKey, seq + 1);
-      const parentLine = lines.find((entry) => keyOf(entry.id) === seqKey);
+      const parentLine = lineFor(lines, parentId);
       plan.pieceInserts.push({
         id: operation.payload.clientRef,
         data: {
@@ -271,8 +271,8 @@ export function buildStructuralWritePlan(
           piece_seq: seq,
           scan_state: 'expected',
           quantity: 1,
-          price_per_unit: parentLine?.unitPrice ?? '0.0000',
-          total_price: parentLine?.unitPrice ?? '0.0000',
+          price_per_unit: parentLine.unitPrice,
+          total_price: parentLine.unitPrice,
           piece_status: facts.itemStatus,
           is_ready: false,
           created_by: actorUserId,

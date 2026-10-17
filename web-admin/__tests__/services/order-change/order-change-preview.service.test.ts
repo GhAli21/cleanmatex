@@ -40,6 +40,7 @@ function context(overrides: Partial<OrderChangeContext> = {}): OrderChangeContex
       customerSnapshot: { name: 'Ada', mobile: null, email: null },
       branchId: null,
       currencyCode: 'OMR',
+      paymentTypeCode: 'PAY_ON_COLLECTION',
       priority: 'NORMAL',
       serviceSpeed: 'STANDARD',
       readyBy: null,

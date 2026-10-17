@@ -5,6 +5,7 @@ import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
 import { OUTBOX_HANDLERS } from '@/lib/services/outbox-processor.service';
 import { confirmOrderChangeApplied } from '@/lib/services/order-change/order-change-applied.handler';
 import {
+  collectionRequiredForPaymentType,
   mapPersistedFinancialOutcome,
   OrderChangeMutationError,
   persistOrderChangeTx,
@@ -241,6 +242,10 @@ describe('financial outcome and applied handler', () => {
     expect(mapPersistedFinancialOutcome('DENIED', false)).toBeNull();
     expect(mapPersistedFinancialOutcome('OUTSTANDING', null)).toBeNull();
     expect(mapPersistedFinancialOutcome('OUTSTANDING', true)).toBe('OUTSTANDING_REQUIRED');
+    expect(collectionRequiredForPaymentType('PAY_ON_COLLECTION')).toBe(true);
+    expect(collectionRequiredForPaymentType('CREDIT_INVOICE')).toBe(false);
+    expect(collectionRequiredForPaymentType('PAY_ON_DELIVERY')).toBe(false);
+    expect(collectionRequiredForPaymentType(null)).toBeNull();
   });
 
   it('retries when the applied change row is missing and is a registered consumer', async () => {
