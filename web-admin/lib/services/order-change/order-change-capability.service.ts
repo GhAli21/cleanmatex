@@ -284,9 +284,6 @@ export async function evaluateOrderChangeCapability(input: {
   if (binding.requiredPermissionCode && !await input.actor.canUsePermission(binding.requiredPermissionCode)) {
     return denial('PERMISSION_DENIED', 'orderChange.capability.permissionDenied');
   }
-  if (binding.requiresReason && !input.operation.hasReason) {
-    return denial('CHANGE_REASON_REQUIRED', 'orderChange.capability.reasonRequired');
-  }
   const overridePermissionCode = binding.overridePermissionCode ?? ORDERS_PERMISSIONS.EDIT_OVERRIDE;
   if (binding.decision === 'REQUIRE_OVERRIDE' && !await input.actor.canUsePermission(overridePermissionCode)) {
     return denial('OVERRIDE_FORBIDDEN', 'orderChange.capability.overrideForbidden');

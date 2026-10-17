@@ -12,6 +12,7 @@ import {
   OrderChangeApplyRejected,
   preferenceParentIsLocal,
   PREFERENCE_OPERATION_CODES,
+  writeOrderSpeedCharge,
   writePreferenceCharges,
   type CommercialWriteFacts,
   type CommercialWritePlan,
@@ -28,7 +29,7 @@ import {
   type OrderChangeReviewProofKey,
 } from '@/lib/services/order-change/order-change-capability.service';
 import { collectionRequiredForPaymentType, mapPersistedFinancialOutcome, OrderChangeMutationError, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
-import type { OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
+import type { OrderChangePreviewSuccess, OrderChangeSpeedAudit } from '@/lib/services/order-change/order-change-preview.service';
 import { round4 } from '@/lib/services/order-financial-aggregation';
 import type { z } from 'zod';
 import type { orderChangeApplyRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
@@ -163,12 +164,557 @@ function reviewedProofStillMatches(input: ApplyOrderChangeInput): { ok: true } |
   return { ok: true };
 }
 
+function speedSnapshot(
+  snapshot: OrderChangeSpeedAudit['before'],
+  order: OrderBeforeRow | null,
+): Record<string, unknown> {
+  return compact({
+    ...(order ? orderSnapshot(order) : {}),
+    service_speed: snapshot.serviceSpeed,
+    total_amount: snapshot.totalAmount,
+    total_tax_amount: snapshot.taxAmount,
+    commercial_delta: snapshot.commercialDelta,
+    items: snapshot.items.map((item) => ({
+      id: item.orderItemId,
+      quantity: item.quantity,
+      price_per_unit: item.pricePerUnit,
+      total_price: item.totalPrice,
+    })),
+  });
+}
+
+/**
+ * Reviewed Express or Standard prices for items that already exist.
+ * The speed audit lists those items. New items keep the structural insert price.
+ */
+function speedPriceUpdates(
+  lines: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string }[],
+  actorUserId: string,
+  insertedIds: ReadonlySet<string>,
+  speedAudit: OrderChangeSpeedAudit,
+): CommercialWritePlan['itemUpdates'] {
+  const auditedIds = new Set(speedAudit.after.items.map((item) => item.orderItemId));
+  return lines.filter((line) => line.active && auditedIds.has(line.id) && !insertedIds.has(line.id)).map((line) => ({
+    id: line.id,
+    data: {
+      price_per_unit: line.unitPrice,
+      total_price: line.merchandiseAmount,
+      updated_by: actorUserId,
+    },
+  }));
+}
+
+interface OperationBeforeFacts {
+  order: OrderBeforeRow | null;
+  items: ReadonlyMap<string, ItemBeforeRow>;
+  pieces: ReadonlyMap<string, PieceBeforeRow>;
+  preferences: ReadonlyMap<string, PreferenceBeforeRow>;
+}
+
+interface OrderBeforeRow {
+  status: string | null;
+  current_status: string | null;
+  current_stage: string | null;
+  priority: string | null;
+  service_speed: string | null;
+  ready_by: Date | string | null;
+  total_items: number | null;
+  internal_notes: string | null;
+  customer_notes: string | null;
+  customer_name: string | null;
+  customer_mobile_number: string | null;
+  customer_email: string | null;
+  currency_code: string | null;
+  tax_rate: string | null;
+  vat_rate: string | null;
+  payment_status: string | null;
+  payment_type_code: string | null;
+  subtotal_amount: string | null;
+  items_base_amount: string | null;
+  total_charges_amount: string | null;
+  total_discount_amount: string | null;
+  piece_extra_price_amount: string | null;
+  preference_extra_price_amount: string | null;
+  service_charge_amount: string | null;
+  delivery_charge_amount: string | null;
+  express_charge_amount: string | null;
+  other_charges_amount: string | null;
+  taxable_amount: string | null;
+  total_tax_amount: string | null;
+  total_amount: string | null;
+  total_paid_amount: string | null;
+  outstanding_amount: string | null;
+}
+
+interface ItemBeforeRow {
+  id: string;
+  branch_id: string | null;
+  order_item_srno: string | null;
+  product_id: string | null;
+  product_name: string | null;
+  product_name2: string | null;
+  barcode: string | null;
+  service_category_code: string | null;
+  quantity: number | null;
+  quantity_ready: number | null;
+  price_per_unit: string | null;
+  total_price: string | null;
+  price_override: string | null;
+  override_reason: string | null;
+  service_pref_charge: string | null;
+  status: string | null;
+  item_status: string | null;
+  item_stage: string | null;
+  item_is_rejected: boolean | null;
+  notes: string | null;
+  stain_notes: string | null;
+  damage_notes: string | null;
+  packing_pref_code: string | null;
+  packing_pref_is_override: boolean | null;
+  packing_pref_source: string | null;
+  has_stain: boolean | null;
+  has_damage: boolean | null;
+  color: string | null;
+  brand: string | null;
+  rec_status: number | null;
+}
+
+interface PieceBeforeRow {
+  id: string;
+  order_item_id: string | null;
+  branch_id: string | null;
+  piece_seq: number | null;
+  piece_code: string | null;
+  service_category_code: string | null;
+  product_id: string | null;
+  barcode: string | null;
+  color: unknown;
+  brand: string | null;
+  notes: string | null;
+  packing_pref_code: string | null;
+  has_stain: boolean | null;
+  has_damage: boolean | null;
+  is_rejected: boolean | null;
+  is_ready: boolean | null;
+  quantity: number | null;
+  price_per_unit: string | null;
+  total_price: string | null;
+  service_pref_charge: string | null;
+  piece_status: string | null;
+  piece_stage: string | null;
+  scan_state: string | null;
+  rec_status: number | null;
+}
+
+interface PreferenceBeforeRow {
+  id: string;
+  branch_id: string | null;
+  prefs_no: number | null;
+  prefs_level: string | null;
+  order_item_id: string | null;
+  order_item_piece_id: string | null;
+  preference_id: string | null;
+  preference_code: string | null;
+  preference_content: string | null;
+  preference_sys_kind: string | null;
+  preference_category: string | null;
+  prefs_owner_type: string | null;
+  prefs_source: string | null;
+  extra_price: string | null;
+  processing_confirmed: boolean | null;
+  confirmed_by: string | null;
+  confirmed_at: Date | string | null;
+  notes_followup: unknown;
+  rec_status: number | null;
+}
+
+function compact(values: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined));
+}
+
+function storedMoney(value: string | null | undefined): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const amount = Number(value);
+  return Number.isFinite(amount) ? round4(amount).toFixed(4) : value;
+}
+
+function storedTime(value: Date | string | null | undefined): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  return value;
+}
+
+const WRITE_ACTOR_KEYS = new Set(['created_by', 'updated_by', 'updated_at', 'created_at']);
+
+function itemSnapshot(row: ItemBeforeRow): Record<string, unknown> {
+  return compact({
+    id: row.id,
+    branch_id: row.branch_id,
+    order_item_srno: row.order_item_srno,
+    product_id: row.product_id,
+    product_name: row.product_name,
+    product_name2: row.product_name2,
+    barcode: row.barcode,
+    service_category_code: row.service_category_code,
+    quantity: row.quantity,
+    quantity_ready: row.quantity_ready,
+    price_per_unit: storedMoney(row.price_per_unit),
+    total_price: storedMoney(row.total_price),
+    price_override: storedMoney(row.price_override),
+    override_reason: row.override_reason,
+    service_pref_charge: storedMoney(row.service_pref_charge),
+    status: row.status,
+    item_status: row.item_status,
+    item_stage: row.item_stage,
+    item_is_rejected: row.item_is_rejected,
+    notes: row.notes,
+    stain_notes: row.stain_notes,
+    damage_notes: row.damage_notes,
+    packing_pref_code: row.packing_pref_code,
+    packing_pref_is_override: row.packing_pref_is_override,
+    packing_pref_source: row.packing_pref_source,
+    has_stain: row.has_stain,
+    has_damage: row.has_damage,
+    color: row.color,
+    brand: row.brand,
+    rec_status: row.rec_status,
+  });
+}
+
+function pieceSnapshot(row: PieceBeforeRow): Record<string, unknown> {
+  return compact({
+    id: row.id,
+    order_item_id: row.order_item_id,
+    branch_id: row.branch_id,
+    piece_seq: row.piece_seq,
+    piece_code: row.piece_code,
+    service_category_code: row.service_category_code,
+    product_id: row.product_id,
+    barcode: row.barcode,
+    color: row.color,
+    brand: row.brand,
+    notes: row.notes,
+    packing_pref_code: row.packing_pref_code,
+    has_stain: row.has_stain,
+    has_damage: row.has_damage,
+    is_rejected: row.is_rejected,
+    is_ready: row.is_ready,
+    quantity: row.quantity,
+    price_per_unit: storedMoney(row.price_per_unit),
+    total_price: storedMoney(row.total_price),
+    service_pref_charge: storedMoney(row.service_pref_charge),
+    piece_status: row.piece_status,
+    piece_stage: row.piece_stage,
+    scan_state: row.scan_state,
+    rec_status: row.rec_status,
+  });
+}
+
+function preferenceSnapshot(row: PreferenceBeforeRow): Record<string, unknown> {
+  return compact({
+    id: row.id,
+    branch_id: row.branch_id,
+    prefs_no: row.prefs_no,
+    prefs_level: row.prefs_level,
+    order_item_id: row.order_item_id,
+    order_item_piece_id: row.order_item_piece_id,
+    preference_id: row.preference_id,
+    preference_code: row.preference_code,
+    preference_content: row.preference_content,
+    preference_sys_kind: row.preference_sys_kind,
+    preference_category: row.preference_category,
+    prefs_owner_type: row.prefs_owner_type,
+    prefs_source: row.prefs_source,
+    extra_price: storedMoney(row.extra_price),
+    processing_confirmed: row.processing_confirmed,
+    confirmed_by: row.confirmed_by,
+    confirmed_at: storedTime(row.confirmed_at),
+    notes_followup: row.notes_followup,
+    rec_status: row.rec_status,
+  });
+}
+
+/** Commercial header stored with every order-level decision, not only the edited column. */
+function orderSnapshot(order: OrderBeforeRow): Record<string, unknown> {
+  return compact({
+    status: order.status,
+    current_status: order.current_status,
+    current_stage: order.current_stage,
+    priority: order.priority,
+    service_speed: order.service_speed,
+    ready_by: storedTime(order.ready_by),
+    total_items: order.total_items,
+    internal_notes: order.internal_notes,
+    customer_notes: order.customer_notes,
+    customer_name: order.customer_name,
+    customer_mobile_number: order.customer_mobile_number,
+    customer_email: order.customer_email,
+    currency_code: order.currency_code,
+    tax_rate: storedMoney(order.tax_rate),
+    vat_rate: storedMoney(order.vat_rate),
+    payment_status: order.payment_status,
+    payment_type_code: order.payment_type_code,
+    subtotal_amount: storedMoney(order.subtotal_amount),
+    items_base_amount: storedMoney(order.items_base_amount),
+    total_charges_amount: storedMoney(order.total_charges_amount),
+    total_discount_amount: storedMoney(order.total_discount_amount),
+    piece_extra_price_amount: storedMoney(order.piece_extra_price_amount),
+    preference_extra_price_amount: storedMoney(order.preference_extra_price_amount),
+    service_charge_amount: storedMoney(order.service_charge_amount),
+    delivery_charge_amount: storedMoney(order.delivery_charge_amount),
+    express_charge_amount: storedMoney(order.express_charge_amount),
+    other_charges_amount: storedMoney(order.other_charges_amount),
+    taxable_amount: storedMoney(order.taxable_amount),
+    total_tax_amount: storedMoney(order.total_tax_amount),
+    total_amount: storedMoney(order.total_amount),
+    total_paid_amount: storedMoney(order.total_paid_amount),
+    outstanding_amount: storedMoney(order.outstanding_amount),
+  });
+}
+
+function writtenFields(data: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!data) return {};
+  return compact(Object.fromEntries(Object.entries(data).filter(([key]) => !WRITE_ACTOR_KEYS.has(key))));
+}
+
+/** A new row's audit is the inserted commercial columns plus the active record flag. */
+function createdRow(id: string | null | undefined, data: Record<string, unknown> | undefined): Record<string, unknown> {
+  return compact({ id, rec_status: 1, ...writtenFields(data) });
+}
+
+/**
+ * A create has no prior row. Every other decision stores the target facts
+ * that were readable for this tenant and order at Apply time.
+ */
+function beforeValuesFor(
+  operation: ApplyRequest['operations'][number],
+  facts: OperationBeforeFacts | null,
+): Record<string, unknown> {
+  if (!facts) return {};
+  const order = facts.order;
+  if (
+    order
+    && (
+      operation.code === 'CHANGE_PRIORITY'
+      || operation.code === 'CHANGE_READY_BY'
+      || operation.code === 'CHANGE_ORDER_NOTES'
+      || operation.code === 'CHANGE_CUSTOMER_SNAPSHOT'
+      || (operation.code === 'CHANGE_UNLISTED' && operation.target.kind === 'ORDER')
+    )
+  ) {
+    return orderSnapshot(order);
+  }
+  if ((operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY') && operation.target.kind === 'PERSISTED_ITEM') {
+    const item = facts.items.get(operation.target.id.toLowerCase());
+    return item ? itemSnapshot(item) : {};
+  }
+  if (operation.code === 'REMOVE_PIECE' && operation.target.kind === 'PERSISTED_PIECE') {
+    const piece = facts.pieces.get(operation.target.id.toLowerCase());
+    return piece ? pieceSnapshot(piece) : {};
+  }
+  if ((operation.code === 'CHANGE_PREFERENCE' || operation.code === 'REMOVE_PREFERENCE') && operation.target.kind === 'PERSISTED_PREFERENCE') {
+    const preference = facts.preferences.get(operation.target.id.toLowerCase());
+    return preference ? preferenceSnapshot(preference) : {};
+  }
+  if (operation.code === 'CHANGE_UNLISTED' && operation.target.kind === 'PERSISTED_ITEM') {
+    const item = facts.items.get(operation.target.id.toLowerCase());
+    return item ? itemSnapshot(item) : {};
+  }
+  if (operation.code === 'CHANGE_UNLISTED' && operation.target.kind === 'PERSISTED_PIECE') {
+    const piece = facts.pieces.get(operation.target.id.toLowerCase());
+    return piece ? pieceSnapshot(piece) : {};
+  }
+  return {};
+}
+
+async function loadOperationBeforeFacts(
+  tx: OrderChangeApplyTx,
+  tenantId: string,
+  orderId: string,
+  operations: ApplyRequest['operations'],
+): Promise<OperationBeforeFacts | null> {
+  const queryable = tx as { $queryRaw?: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T> };
+  if (typeof queryable.$queryRaw !== 'function') return null;
+  const query = queryable.$queryRaw.bind(queryable);
+  const needsOrder = operations.some((operation) => (
+    operation.code === 'CHANGE_PRIORITY'
+    || operation.code === 'CHANGE_READY_BY'
+    || operation.code === 'CHANGE_ORDER_NOTES'
+    || operation.code === 'CHANGE_CUSTOMER_SNAPSHOT'
+    || operation.code === 'CHANGE_SERVICE_SPEED'
+    || (operation.code === 'CHANGE_UNLISTED' && operation.target.kind === 'ORDER')
+  ));
+  const itemIds = operations.flatMap((operation) => (
+    (operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY' || operation.code === 'CHANGE_UNLISTED')
+    && operation.target.kind === 'PERSISTED_ITEM'
+      ? [operation.target.id]
+      : []
+  ));
+  const pieceIds = operations.flatMap((operation) => (
+    (operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_UNLISTED')
+    && operation.target.kind === 'PERSISTED_PIECE'
+      ? [operation.target.id]
+      : []
+  ));
+  const preferenceIds = operations.flatMap((operation) => (
+    (operation.code === 'CHANGE_PREFERENCE' || operation.code === 'REMOVE_PREFERENCE')
+      ? [operation.target.id]
+      : []
+  ));
+  const orderRows = needsOrder
+    ? await query<OrderBeforeRow[]>`
+      SELECT status, current_status, current_stage, priority, service_speed, ready_by, total_items,
+             internal_notes, customer_notes, customer_name, customer_mobile_number, customer_email,
+             currency_code, tax_rate::text AS tax_rate, vat_rate::text AS vat_rate,
+             payment_status, payment_type_code,
+             subtotal_amount::text AS subtotal_amount, items_base_amount::text AS items_base_amount,
+             total_charges_amount::text AS total_charges_amount, total_discount_amount::text AS total_discount_amount,
+             piece_extra_price_amount::text AS piece_extra_price_amount,
+             preference_extra_price_amount::text AS preference_extra_price_amount,
+             service_charge_amount::text AS service_charge_amount, delivery_charge_amount::text AS delivery_charge_amount,
+             express_charge_amount::text AS express_charge_amount, other_charges_amount::text AS other_charges_amount,
+             taxable_amount::text AS taxable_amount, total_tax_amount::text AS total_tax_amount,
+             total_amount::text AS total_amount, total_paid_amount::text AS total_paid_amount,
+             outstanding_amount::text AS outstanding_amount
+      FROM org_orders_mst
+      WHERE id = ${orderId}::uuid
+        AND tenant_org_id = ${tenantId}::uuid
+    `
+    : [];
+  const items = new Map<string, ItemBeforeRow>();
+  for (const itemId of itemIds) {
+    const rows = await query<ItemBeforeRow[]>`
+      SELECT id::text AS id, branch_id::text AS branch_id, order_item_srno,
+             product_id::text AS product_id, product_name, product_name2, barcode, service_category_code,
+             quantity, quantity_ready, color, brand, override_reason,
+             price_per_unit::text AS price_per_unit, total_price::text AS total_price,
+             price_override::text AS price_override, service_pref_charge::text AS service_pref_charge,
+             status, item_status, item_stage, item_is_rejected,
+             notes, stain_notes, damage_notes, packing_pref_code, packing_pref_is_override, packing_pref_source,
+             has_stain, has_damage, rec_status
+      FROM org_order_items_dtl
+      WHERE id = ${itemId}::uuid
+        AND tenant_org_id = ${tenantId}::uuid
+        AND order_id = ${orderId}::uuid
+        AND rec_status = 1
+    `;
+    if (rows[0]) items.set(itemId.toLowerCase(), rows[0]);
+  }
+  const pieces = new Map<string, PieceBeforeRow>();
+  for (const pieceId of pieceIds) {
+    const rows = await query<PieceBeforeRow[]>`
+      SELECT id::text AS id, order_item_id::text AS order_item_id, branch_id::text AS branch_id,
+             piece_seq, piece_code, service_category_code, product_id::text AS product_id, barcode,
+             color, brand, notes, packing_pref_code, has_stain, has_damage, is_rejected, is_ready, quantity,
+             price_per_unit::text AS price_per_unit, total_price::text AS total_price,
+             service_pref_charge::text AS service_pref_charge,
+             piece_status, piece_stage, scan_state, rec_status
+      FROM org_order_item_pieces_dtl
+      WHERE id = ${pieceId}::uuid
+        AND tenant_org_id = ${tenantId}::uuid
+        AND order_id = ${orderId}::uuid
+        AND rec_status = 1
+    `;
+    if (rows[0]) pieces.set(pieceId.toLowerCase(), rows[0]);
+  }
+  const preferences = new Map<string, PreferenceBeforeRow>();
+  for (const preferenceId of preferenceIds) {
+    const rows = await query<PreferenceBeforeRow[]>`
+      SELECT id::text AS id, branch_id::text AS branch_id, prefs_no, prefs_level,
+             order_item_id::text AS order_item_id, order_item_piece_id::text AS order_item_piece_id,
+             preference_id::text AS preference_id, preference_code, preference_content, preference_sys_kind,
+             preference_category, prefs_owner_type, prefs_source, extra_price::text AS extra_price,
+             processing_confirmed, confirmed_by, confirmed_at, notes_followup, rec_status
+      FROM org_order_preferences_dtl
+      WHERE id = ${preferenceId}::uuid
+        AND tenant_org_id = ${tenantId}::uuid
+        AND order_id = ${orderId}::uuid
+        AND rec_status = 1
+    `;
+    if (rows[0]) preferences.set(preferenceId.toLowerCase(), rows[0]);
+  }
+  return { order: orderRows[0] ?? null, items, pieces, preferences };
+}
+
+function rowData(
+  rows: readonly { id: string; data: Record<string, unknown> }[] | undefined,
+  id: string | null | undefined,
+): Record<string, unknown> | undefined {
+  if (!id || !rows) return undefined;
+  return rows.find((row) => row.id.toLowerCase() === id.toLowerCase())?.data;
+}
+
+/**
+ * after_values uses the same columns as before_values.
+ * The overlay is the row Apply writes, so the audit shows the resulting fact.
+ */
+function afterValuesFor(
+  operation: ApplyRequest['operations'][number],
+  before: Record<string, unknown>,
+  audit: CommercialWritePlan['auditBySeq'] extends Map<number, infer V> ? V | undefined : never,
+  plan: CommercialWritePlan,
+  structural: StructuralWritePlan | null,
+): Record<string, unknown> {
+  if (operation.code === 'ADD_ITEM') return createdRow(operation.payload.clientRef, rowData(structural?.itemInserts, operation.payload.clientRef));
+  if (operation.code === 'ADD_PIECE') return createdRow(operation.payload.clientRef, rowData(structural?.pieceInserts, operation.payload.clientRef));
+  if (operation.code === 'ADD_PREFERENCE') return createdRow(audit?.orderPreferenceId, rowData(plan.preferenceInserts, audit?.orderPreferenceId));
+  if (operation.code === 'REMOVE_ITEM' || operation.code === 'REMOVE_PIECE' || operation.code === 'REMOVE_PREFERENCE') {
+    return compact({ ...before, rec_status: 0 });
+  }
+  if (operation.code === 'CHANGE_ITEM_QUANTITY') {
+    return compact({ ...before, ...writtenFields(rowData(structural?.itemUpdates, operation.target.id)) });
+  }
+  if (operation.code === 'CHANGE_PREFERENCE') {
+    return compact({ ...before, ...writtenFields(rowData(plan.preferenceUpdates, operation.target.id)) });
+  }
+  if (operation.code === 'CHANGE_UNLISTED' && operation.target.kind === 'PERSISTED_ITEM') {
+    return compact({ ...before, ...writtenFields(rowData(plan.itemUpdates, operation.target.id)) });
+  }
+  if (operation.code === 'CHANGE_UNLISTED' && operation.target.kind === 'PERSISTED_PIECE') {
+    return compact({ ...before, ...writtenFields(rowData(plan.pieceUpdates, operation.target.id)) });
+  }
+  if (operation.code === 'CHANGE_PRIORITY') return compact({ ...before, priority: operation.payload.priority });
+  if (operation.code === 'CHANGE_READY_BY') return compact({ ...before, ready_by: operation.payload.readyBy });
+  if (operation.code === 'CHANGE_ORDER_NOTES') {
+    return compact({
+      ...before,
+      ...(operation.payload.notes !== undefined ? { internal_notes: operation.payload.notes } : {}),
+      ...(operation.payload.customerNotes !== undefined ? { customer_notes: operation.payload.customerNotes } : {}),
+    });
+  }
+  if (operation.code === 'CHANGE_CUSTOMER_SNAPSHOT') {
+    return compact({
+      ...before,
+      ...(operation.payload.customerName !== undefined ? { customer_name: operation.payload.customerName } : {}),
+      ...(operation.payload.customerMobile !== undefined ? { customer_mobile_number: operation.payload.customerMobile } : {}),
+      ...(operation.payload.customerEmail !== undefined ? { customer_email: operation.payload.customerEmail } : {}),
+    });
+  }
+  if (operation.code === 'CHANGE_UNLISTED' && operation.target.kind === 'ORDER') {
+    if (operation.payload.field === 'order.readyBy') {
+      return compact({ ...before, ready_by: operation.payload.value === '' ? null : operation.payload.value });
+    }
+    return compact({ ...before, requested_field: operation.payload.field, requested_value: operation.payload.value });
+  }
+  return operation.payload;
+}
+
 function persistedOperations(
   request: ApplyRequest,
   auditBySeq: CommercialWritePlan['auditBySeq'],
+  speedAudit: OrderChangeSpeedAudit | undefined,
+  beforeFacts: OperationBeforeFacts | null,
+  plan: CommercialWritePlan,
+  structural: StructuralWritePlan | null,
 ): OrderChangePersistedOperation[] {
   return request.operations.map((operation) => {
     const audit = auditBySeq.get(operation.seq);
+    const speedValues = operation.code === 'CHANGE_SERVICE_SPEED' && speedAudit;
+    const beforeValues = speedValues ? speedSnapshot(speedAudit.before, beforeFacts?.order ?? null) : beforeValuesFor(operation, beforeFacts);
+    const afterSpeed = speedValues ? speedSnapshot(speedAudit.after, beforeFacts?.order ?? null) : null;
+    if (afterSpeed) afterSpeed.express_charge_amount = '0.0000';
     return {
       seq: operation.seq,
       code: operation.code,
@@ -177,16 +723,8 @@ function persistedOperations(
       orderItemPieceId: audit?.orderItemPieceId ?? null,
       orderPreferenceId: audit?.orderPreferenceId ?? null,
       clientRef: audit?.clientRef ?? null,
-      beforeValues: {},
-      afterValues: operation.code === 'CHANGE_UNLISTED'
-        ? {
-            field: operation.payload.field,
-            value: operation.payload.value,
-            targetKind: operation.target.kind,
-            ...('id' in operation.target && operation.target.id ? { targetId: operation.target.id } : {}),
-            ...('clientRef' in operation.target && operation.target.clientRef ? { clientRef: operation.target.clientRef } : {}),
-          }
-        : operation.payload,
+      beforeValues,
+      afterValues: afterSpeed ?? afterValuesFor(operation, beforeValues, audit, plan, structural),
       auditSummary: null,
     };
   });
@@ -223,8 +761,16 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
   ))) {
     return { ok: false, status: 422, code: 'COMMERCIAL_LINE_UNSUPPORTED' };
   }
-  if (!hasPreference && !hasStructural && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal)) {
+  const speedChanged = input.request.operations.some((operation) => operation.code === 'CHANGE_SERVICE_SPEED');
+  if (speedChanged && !input.preview.speedAudit) return { ok: false, status: 422, code: 'REVIEW_NOT_READY' };
+  if (!hasPreference && !hasStructural && !speedChanged && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal)) {
     return { ok: false, status: 422, code: 'COMMERCIAL_TOTAL_CHANGED' };
+  }
+  const speedPrices = input.preview.speedAudit
+    ? speedPriceUpdates(input.preview.lines ?? [], input.actorUserId, new Set(), input.preview.speedAudit)
+    : [];
+  if (speedChanged && !hasStructural && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal) && speedPrices.length === 0) {
+    return { ok: false, status: 422, code: 'STRUCTURE_PRICE_MISSING' };
   }
   if (preferenceParentIsLocal(input.request.operations)) {
     return { ok: false, status: 422, code: 'PREFERENCE_PARENT_NOT_PERSISTED' };
@@ -254,6 +800,11 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
     const structural = structuralFacts
       ? buildStructuralWritePlan(input.request.operations, input.preview.lines ?? [], structuralFacts, input.actorUserId)
       : null;
+    const beforeFacts = await loadOperationBeforeFacts(tx, input.tenantId, input.orderId, input.request.operations);
+    const insertedIds = new Set((structural?.itemInserts ?? []).map((row) => row.id));
+    const speedPricesInTx = input.preview.speedAudit
+      ? speedPriceUpdates(input.preview.lines ?? [], input.actorUserId, insertedIds, input.preview.speedAudit)
+      : [];
     const auditBySeq = new Map([...plan.auditBySeq, ...(structural?.auditBySeq ?? [])]);
     const persisted = await persistOrderChangeTx(tx, {
       tenantId: input.tenantId,
@@ -275,13 +826,13 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       idempotencyKey: input.idempotencyKey,
       request: input.request,
       applyResponse: { status: 'APPLIED' },
-      operations: persistedOperations(input.request, auditBySeq),
+      operations: persistedOperations(input.request, auditBySeq, input.preview.speedAudit, beforeFacts, plan, structural),
       preferenceInserts: plan.preferenceInserts.length > 0 ? plan.preferenceInserts : undefined,
       preferenceUpdates: plan.preferenceUpdates.length > 0 ? plan.preferenceUpdates : undefined,
       removePreferenceIds: plan.removePreferenceIds.length > 0 ? plan.removePreferenceIds : undefined,
       itemInserts: structural && structural.itemInserts.length > 0 ? structural.itemInserts : undefined,
       pieceInserts: structural && structural.pieceInserts.length > 0 ? structural.pieceInserts : undefined,
-      itemUpdates: mergedRows(plan.itemUpdates, structural?.itemUpdates ?? []),
+      itemUpdates: mergedRows(plan.itemUpdates, [...(structural?.itemUpdates ?? []), ...speedPricesInTx]),
       pieceUpdates: plan.pieceUpdates.length > 0 ? plan.pieceUpdates : undefined,
       removeItemIds: structural && structural.removeItemIds.length > 0 ? structural.removeItemIds : undefined,
       removePieceIds: structural && structural.removePieceIds.length > 0 ? structural.removePieceIds : undefined,
@@ -297,7 +848,17 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
         appliedAt: input.appliedAt,
         plan,
       });
-      if (commercialMoneyChanged(plan) || structuralMoneyChanged(structural)) {
+      if (speedChanged) {
+        await writeOrderSpeedCharge(tx, {
+          tenantId: input.tenantId,
+          orderId: input.orderId,
+          actorUserId: input.actorUserId,
+          currencyCode: input.currencyCode as string,
+          appliedAt: input.appliedAt,
+          amount: '0.0000',
+        });
+      }
+      if (commercialMoneyChanged(plan) || structuralMoneyChanged(structural) || (speedChanged && !sameMoney(originalTotal, projectedTotal))) {
         await syncReviewedTaxLine(tx, {
           tenantId: input.tenantId,
           orderId: input.orderId,

@@ -112,6 +112,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       payments: facts.payments,
       credits: facts.credits,
       refunds: facts.refunds,
+      persistedExpressAmount: facts.persistedExpressAmount,
+      persistedTaxAmount: facts.persistedTaxAmount,
+      auditFacts: facts.auditFacts,
       proofKey: facts.proofKey,
     });
     if (!preview.ok) return errorResponse(preview.status, preview.code, 'Order change apply was rejected', requestId);

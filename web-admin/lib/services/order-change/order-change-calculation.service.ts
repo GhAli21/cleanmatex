@@ -4,8 +4,9 @@
  * An unchanged line keeps its stored unit price when the catalog later changes.
  * A new or changed line uses an authorized override, otherwise the quote final price,
  * so a catalog discount is applied once. Create still consumes base price and is not modified here.
- * ITEM and PIECE extras stay inside the line. ORDER extras and non-preference charges
- * are added once and are not treated as taxable.
+ * ITEM and PIECE extras stay inside the line. The service-speed premium is one order
+ * amount and is taxed once. Other ORDER extras and non-preference charges are added
+ * once and are not treated as taxable.
  */
 
 import { roundMoneyAmount } from '@/lib/money/format-money';
@@ -60,6 +61,8 @@ export interface OrderChangeCalculationInput {
   overrideAllowed: boolean;
   /** Active ORDER preference extras from the WP07 cache. */
   orderPreferenceAddend: string;
+  /** One order-level service-speed premium. It is taxed once and is not written onto items. */
+  orderSpeedAddend?: string;
   charges?: readonly OrderChangeCalculationCharge[];
   promotion?: OrderChangePromotionInput;
   reviewedFingerprint?: string;
@@ -142,7 +145,8 @@ function sellingUnit(line: OrderChangeCalculationLine, overrideAllowed: boolean)
 export function calculateOrderChangeTotals(input: OrderChangeCalculationInput): OrderChangeCalculationSuccess | OrderChangeCalculationFailure {
   const taxRate = parseUnits(input.taxRatePercent);
   const orderAddend = parseUnits(input.orderPreferenceAddend);
-  if (taxRate === null || orderAddend === null || input.currencyDecimalPlaces < 0 || input.currencyDecimalPlaces > SCALE) {
+  const speedAddend = parseUnits(input.orderSpeedAddend ?? '0.0000');
+  if (taxRate === null || orderAddend === null || speedAddend === null || input.currencyDecimalPlaces < 0 || input.currencyDecimalPlaces > SCALE) {
     return { ok: false, issue: { code: 'MONEY_INVALID' } };
   }
 
@@ -169,6 +173,7 @@ export function calculateOrderChangeTotals(input: OrderChangeCalculationInput): 
       catalogAdjustment: formatUnits(line.active ? resolved.adjustment : 0n),
     });
   }
+  taxable += speedAddend;
 
   let promotion = 0n;
   if (input.promotion && !input.promotion.alreadyRedeemedOnOrder) {
@@ -207,6 +212,7 @@ export function calculateOrderChangeTotals(input: OrderChangeCalculationInput): 
     ...lineResults.map((line) => [line.id, line.active ? '1' : '0', line.unitPrice, line.merchandiseAmount, line.embeddedExtra].join(':')),
     formatUnits(promotion),
     formatUnits(orderAddend),
+    formatUnits(speedAddend),
     formatUnits(charges),
     persistedTotal,
   ].join('|');

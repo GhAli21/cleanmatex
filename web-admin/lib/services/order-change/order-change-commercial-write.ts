@@ -6,7 +6,7 @@
 import { randomUUID } from 'crypto';
 
 import { CHARGE_TYPES } from '@/lib/constants/order-financial';
-import { PREFS_LEVEL, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
+import { PREFS_LEVEL, PREFS_OWNER_TYPE, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
 import { round4 } from '@/lib/services/order-financial-aggregation';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import type { OrderChangePersistedOperation, OrderChangeRowWrite } from '@/lib/services/order-change/order-change-mutation.service';
@@ -18,7 +18,7 @@ type ApplyOperation = ApplyRequest['operations'][number];
 
 export const PREFERENCE_OPERATION_CODES = new Set(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE']);
 
-const ITEM_FIELDS: Record<string, { column: string; kind: 'text' | 'bool' | 'money' }> = {
+export const ITEM_FIELDS: Record<string, { column: string; kind: 'text' | 'bool' | 'money' }> = {
   'item.notes': { column: 'notes', kind: 'text' },
   'item.stainNotes': { column: 'stain_notes', kind: 'text' },
   'item.damageNotes': { column: 'damage_notes', kind: 'text' },
@@ -29,7 +29,7 @@ const ITEM_FIELDS: Record<string, { column: string; kind: 'text' | 'bool' | 'mon
   'item.damage': { column: 'has_damage', kind: 'bool' },
 };
 
-const PIECE_FIELDS: Record<string, { column: string; kind: 'text' | 'bool' | 'money' }> = {
+export const PIECE_FIELDS: Record<string, { column: string; kind: 'text' | 'bool' | 'money' }> = {
   'piece.color': { column: 'color', kind: 'text' },
   'piece.brand': { column: 'brand', kind: 'text' },
   'piece.notes': { column: 'notes', kind: 'text' },
@@ -49,6 +49,7 @@ export interface PreferenceCatalogFact {
   preferenceCode: string;
   extraPrice: string;
   preferenceSysKind: string;
+  preferenceCategory: string | null;
 }
 
 export interface CommercialWriteFacts {
@@ -122,8 +123,11 @@ export function buildCommercialWritePlan(
           preference_code: catalog.preferenceCode,
           preference_content: operation.payload.preferenceContent ?? catalog.preferenceCode,
           preference_sys_kind: catalog.preferenceSysKind,
+          ...(catalog.preferenceCategory ? { preference_category: catalog.preferenceCategory } : {}),
           preference_id: catalog.id,
+          prefs_owner_type: PREFS_OWNER_TYPE.SYSTEM,
           prefs_source: PREFS_SOURCE_STAGE.ORDER_EDIT,
+          processing_confirmed: false,
           extra_price: catalog.extraPrice,
           branch_id: facts.branchId,
           created_by: actorUserId,
@@ -229,8 +233,8 @@ export async function loadCommercialWriteFacts(
       AND rec_status = 1
       AND id = ${id}::uuid
   `);
-  const catalogRows = await rowsById<{ id: string; preference_code: string; extra_price: string; preference_sys_kind: string }>(tx, catalogIds, (id) => tx.$queryRaw!<Array<{ id: string; preference_code: string; extra_price: string; preference_sys_kind: string }>>`
-    SELECT id::text AS id, preference_code, extra_price::text AS extra_price, preference_sys_kind
+  const catalogRows = await rowsById<{ id: string; preference_code: string; extra_price: string; preference_sys_kind: string; preference_category: string | null }>(tx, catalogIds, (id) => tx.$queryRaw!<Array<{ id: string; preference_code: string; extra_price: string; preference_sys_kind: string; preference_category: string | null }>>`
+    SELECT id::text AS id, preference_code, extra_price::text AS extra_price, preference_sys_kind, preference_category
     FROM org_service_preference_cf
     WHERE tenant_org_id = ${tenantId}::uuid
       AND rec_status = 1
@@ -256,9 +260,61 @@ export async function loadCommercialWriteFacts(
       preferenceCode: row.preference_code,
       extraPrice: Number(row.extra_price ?? 0).toFixed(4),
       preferenceSysKind: row.preference_sys_kind,
+      preferenceCategory: row.preference_category,
     }])),
     orderLevelPreferenceIds: new Set(orderPrefRows.map((row) => row.id.toLowerCase())),
   };
+}
+
+/**
+ * Voids active Express charges for this order.
+ * A zero amount leaves the premium on the item prices and does not insert a charge.
+ */
+export async function writeOrderSpeedCharge(
+  tx: CommercialQueryTx,
+  input: {
+    tenantId: string;
+    orderId: string;
+    actorUserId: string;
+    currencyCode: string;
+    appliedAt: Date;
+    amount: string;
+  },
+): Promise<void> {
+  if (typeof tx.$executeRaw !== 'function') return;
+  await tx.$executeRaw`
+    UPDATE org_order_charges_dtl
+    SET is_voided = true,
+        voided_at = ${input.appliedAt},
+        voided_by = ${input.actorUserId}::uuid,
+        updated_at = ${input.appliedAt},
+        updated_by = ${input.actorUserId}::uuid
+    WHERE tenant_org_id = ${input.tenantId}::uuid
+      AND order_id = ${input.orderId}::uuid
+      AND charge_type IN (${CHARGE_TYPES.EXPRESS}, 'EXPRESS_CHARGE')
+      AND is_voided = false
+  `;
+  if (round4(Number(input.amount)) === 0) return;
+  await tx.$executeRaw`
+    INSERT INTO org_order_charges_dtl (
+      tenant_org_id, order_id, charge_type, label, amount, currency_code, applied_seq, created_by
+    )
+    VALUES (
+      ${input.tenantId}::uuid,
+      ${input.orderId}::uuid,
+      ${CHARGE_TYPES.EXPRESS},
+      'Express',
+      ${input.amount}::numeric,
+      ${input.currencyCode},
+      (
+        SELECT COALESCE(MAX(applied_seq), 0) + 1
+        FROM org_order_charges_dtl
+        WHERE tenant_org_id = ${input.tenantId}::uuid
+          AND order_id = ${input.orderId}::uuid
+      ),
+      ${input.actorUserId}::uuid
+    )
+  `;
 }
 
 export async function writePreferenceCharges(

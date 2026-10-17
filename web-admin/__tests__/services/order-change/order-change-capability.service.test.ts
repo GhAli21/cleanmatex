@@ -105,11 +105,11 @@ describe('order change capability policy', () => {
     }))).resolves.toMatchObject({ decision: 'ALLOW_WITH_WARNING', requiresAcknowledgement: true });
   });
 
-  it('requires a reason where the explicit policy demands one', async () => {
+  it('keeps the policy decision and marks the reason as required', async () => {
     await expect(evaluateOrderChangeCapability(capabilityInput({
       operation: { seq: 1, code: 'REMOVE_PIECE', hasReason: false },
       bindings: [{ ...baseBinding, requiresReason: true }],
-    }))).resolves.toMatchObject({ decision: 'DENY', reasonCode: 'CHANGE_REASON_REQUIRED' });
+    }))).resolves.toMatchObject({ decision: 'ALLOW', requiresReason: true, reasonCode: 'POLICY_ALLOWED' });
   });
 
   it.each([

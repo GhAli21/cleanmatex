@@ -35,14 +35,15 @@ import {
   projectOrderChangeFinancialResult,
   type OrderChangeFinancialResult,
 } from '@/lib/services/order-change/order-change-financial-result.service';
-import type { AggregationCreditRow, AggregationPaymentRow } from '@/lib/services/order-financial-aggregation';
+import { round4, type AggregationCreditRow, type AggregationPaymentRow } from '@/lib/services/order-financial-aggregation';
+import { buildPreviewOperationAudits, type OrderChangeOperationAudit, type OrderChangePreviewAuditFacts } from '@/lib/services/order-change/order-change-review-audit';
 
 type ChangeRequest = z.infer<typeof orderChangeRequestSchema>;
 type ChangeOperation = ChangeRequest['operations'][number];
 
 export interface OrderChangePreviewSuccess {
   ok: true;
-  status: 'NO_CHANGE' | 'READY' | 'DENIED' | 'ACKNOWLEDGEMENT_REQUIRED' | 'SIGNER_UNAVAILABLE';
+  status: 'NO_CHANGE' | 'READY' | 'DENIED' | 'REASON_REQUIRED' | 'ACKNOWLEDGEMENT_REQUIRED' | 'SIGNER_UNAVAILABLE';
   createsChange: boolean;
   decisions: OrderChangeCapabilityResult[];
   calculationFingerprint: string | null;
@@ -55,9 +56,39 @@ export interface OrderChangePreviewSuccess {
   projectedTax: string | null;
   displayTotal: string | null;
   projectedItemIds: string[];
+  /** Frozen facts for the one speed operation. Apply copies these onto that operation row. */
+  speedAudit?: OrderChangeSpeedAudit;
   /** Reviewed line prices. Apply writes these amounts and does not price the line again. */
   lines?: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string }[];
+  /** Before and after facts for each operation, in the same columns Apply stores. */
+  operationAudits: OrderChangeOperationAudit[];
   followUp: string[];
+}
+
+/** One item's selling facts captured for the speed operation audit. */
+export interface OrderChangeSpeedAuditItem {
+  orderItemId: string;
+  quantity: number;
+  pricePerUnit: string;
+  totalPrice: string;
+}
+
+/**
+ * The speed decision's facts in one shape.
+ * `before` is what was stored. `after` is what this review will store.
+ */
+export interface OrderChangeSpeedValueSnapshot {
+  serviceSpeed: string | null;
+  totalAmount: string;
+  taxAmount: string;
+  commercialDelta: string;
+  items: OrderChangeSpeedAuditItem[];
+}
+
+/** Before and after snapshots for the single CHANGE_SERVICE_SPEED operation. */
+export interface OrderChangeSpeedAudit {
+  before: OrderChangeSpeedValueSnapshot;
+  after: OrderChangeSpeedValueSnapshot;
 }
 
 export interface OrderChangePreviewFailure {
@@ -136,6 +167,67 @@ function headerChanged(context: OrderChangeContext, operations: readonly ChangeO
     || email !== context.order.customerSnapshot.email;
 }
 
+function moneyText(value: string | number): string {
+  return round4(Number(value)).toFixed(4);
+}
+
+/**
+ * Freezes the stored speed facts and the reviewed result in the same shape.
+ * Piece rows are omitted because the item quantity already carries their count.
+ */
+function buildSpeedAudit(input: {
+  speedChanged: boolean;
+  serviceSpeed: string | null;
+  nextServiceSpeed: string | null;
+  originalTotal: string;
+  originalTax: string;
+  projectedTotal: string;
+  projectedTax: string;
+  items: OrderChangeContext['items'];
+  projected: readonly { id: string; quantity: number; active: boolean }[];
+  lines: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string }[];
+}): OrderChangeSpeedAudit | undefined {
+  if (!input.speedChanged) return undefined;
+  const projectedById = new Map(input.projected.map((item) => [item.id, item]));
+  const lineById = new Map(input.lines.map((line) => [line.id, line]));
+  const beforeItems: OrderChangeSpeedAuditItem[] = [];
+  const afterItems: OrderChangeSpeedAuditItem[] = [];
+  for (const item of input.items) {
+    const projected = projectedById.get(item.id);
+    const line = lineById.get(item.id);
+    if (!item.active || !projected?.active || !line?.active || item.quantity == null) continue;
+    beforeItems.push({
+      orderItemId: item.id,
+      quantity: item.quantity,
+      pricePerUnit: moneyText(item.pricePerUnit),
+      totalPrice: moneyText(item.totalPrice),
+    });
+    afterItems.push({
+      orderItemId: item.id,
+      quantity: projected.quantity,
+      pricePerUnit: line.unitPrice,
+      totalPrice: line.merchandiseAmount,
+    });
+  }
+  const delta = moneyText(Number(input.projectedTotal) - Number(input.originalTotal));
+  return {
+    before: {
+      serviceSpeed: input.serviceSpeed,
+      totalAmount: moneyText(input.originalTotal),
+      taxAmount: moneyText(input.originalTax),
+      commercialDelta: '0.0000',
+      items: beforeItems,
+    },
+    after: {
+      serviceSpeed: input.nextServiceSpeed,
+      totalAmount: moneyText(input.projectedTotal),
+      taxAmount: moneyText(input.projectedTax),
+      commercialDelta: delta,
+      items: afterItems,
+    },
+  };
+}
+
 function parsedDate(value: string | null): Date | null {
   if (!value) return null;
   const parsed = new Date(value);
@@ -163,6 +255,12 @@ export async function previewOrderChange(input: {
   payments: readonly AggregationPaymentRow[];
   credits: readonly AggregationCreditRow[];
   refunds: readonly Array<{ refund_status: string | null; refund_amount: string; reopens_due_amount: string }>;
+  /** Kept in the total when Express is not part of this change. A speed change replaces it on the items. */
+  persistedExpressAmount?: string;
+  /** Stored order tax at preview time. The speed audit freezes this as the tax before the decision. */
+  persistedTaxAmount?: string;
+  /** Stored commercial rows for the review. Context is used when a row was not loaded. */
+  auditFacts?: OrderChangePreviewAuditFacts;
   proofKey: OrderChangeReviewProofKey | null;
 }): Promise<OrderChangePreviewSuccess | OrderChangePreviewFailure> {
   const conflicts: Array<'EDIT_VERSION_CONFLICT' | 'WORKFLOW_VERSION_CONFLICT'> = [];
@@ -244,13 +342,15 @@ export async function previewOrderChange(input: {
         seq: operation.seq,
         code: operation.code as OrderChangeOperationCode,
         preferenceParentTargetType: preferenceParent(operation),
-        hasReason: Boolean(input.request.changeReason),
+        hasReason: Boolean(input.request.changeReason?.trim()),
       },
       bindings: input.bindings,
     }));
   }
 
   const denied = decisions.some((decision) => decision.decision === 'DENY');
+  const reasonMissing = !input.request.changeReason?.trim()
+    && decisions.some((decision) => decision.requiresReason && decision.decision !== 'DENY');
   const acknowledgementMissing = decisions.some((decision) =>
     decision.requiresAcknowledgement
     && !input.request.gateDecisions?.some((gate) => gate.seq === decision.seq && gate.acknowledgementChallenge),
@@ -275,16 +375,24 @@ export async function previewOrderChange(input: {
       displayTotal: null,
       projectedItemIds: activeItemIds,
       lines: [],
+      operationAudits: buildPreviewOperationAudits({
+        context: input.context,
+        operations: input.request.operations,
+        lines: [],
+        catalog: input.catalog,
+        auditFacts: input.auditFacts,
+      }),
       followUp: [],
     };
   }
 
+  const speedAmount = speedChanged ? '0.0000' : round4(Number(input.persistedExpressAmount ?? '0')).toFixed(4);
   const calculated = calculateOrderChangeTotals({
     lines: structure.items.map((item) => ({
       id: item.id,
       quantity: item.quantity,
       active: item.active,
-      repriced: speedChanged || !input.context.items.some((current) => current.id === item.id),
+      repriced: !input.context.items.some((current) => current.id === item.id) || (speedChanged && Boolean(input.quotesByTargetId[item.id])),
       persistedUnitPrice: input.context.items.find((current) => current.id === item.id)?.pricePerUnit ?? '0.0000',
       quote: input.quotesByTargetId[item.id],
       lineEmbeddedExtra: projectedPreferences.charges.lineEmbeddedByItemId[item.id] ?? '0.0000',
@@ -294,6 +402,7 @@ export async function previewOrderChange(input: {
     currencyDecimalPlaces: input.currencyDecimalPlaces,
     overrideAllowed: await input.canUsePermission('orders:edit_override'),
     orderPreferenceAddend: projectedPreferences.charges.orderAddend,
+    orderSpeedAddend: speedAmount,
   });
   if (!calculated.ok) return { ok: false, status: 422, code: calculated.issue.code };
 
@@ -323,19 +432,35 @@ export async function previewOrderChange(input: {
       settlementSourceFingerprint: input.payments.map((row) => `${row.payment_status}:${String(row.amount)}`).join('|'),
     }
     : null;
-  const reviewProof = !acknowledgementMissing && !financiallyBlocked && input.proofKey && reviewBinding
+  const reviewProof = !reasonMissing && !acknowledgementMissing && !financiallyBlocked && input.proofKey && reviewBinding
     ? issueOrderChangeReviewProof({ now: input.now, key: input.proofKey, binding: reviewBinding })
     : null;
+  const speedAudit = buildSpeedAudit({
+    speedChanged,
+    serviceSpeed: input.context.order.serviceSpeed,
+    nextServiceSpeed: input.request.operations.reduce<string | null>((speed, operation) => (
+      operation.code === 'CHANGE_SERVICE_SPEED' ? operation.payload.serviceSpeed : speed
+    ), null),
+    originalTotal: input.context.financial.totalAmount,
+    originalTax: input.persistedTaxAmount ?? '0.0000',
+    projectedTotal: calculated.totalAmount,
+    projectedTax: calculated.taxAmount,
+    items: input.context.items,
+    projected: structure.items,
+    lines: calculated.lines,
+  });
 
   return {
     ok: true,
     status: financiallyBlocked || denied
       ? 'DENIED'
-      : acknowledgementMissing
-        ? 'ACKNOWLEDGEMENT_REQUIRED'
-        : reviewProof
-          ? 'READY'
-          : 'SIGNER_UNAVAILABLE',
+      : reasonMissing
+        ? 'REASON_REQUIRED'
+        : acknowledgementMissing
+          ? 'ACKNOWLEDGEMENT_REQUIRED'
+          : reviewProof
+            ? 'READY'
+            : 'SIGNER_UNAVAILABLE',
     createsChange: true,
     decisions,
     calculationFingerprint: calculated.fingerprint,
@@ -347,7 +472,16 @@ export async function previewOrderChange(input: {
     projectedTax: calculated.taxAmount,
     displayTotal: calculated.displayTotal,
     projectedItemIds: activeItemIds,
+    speedAudit,
     lines: calculated.lines,
+    operationAudits: buildPreviewOperationAudits({
+      context: input.context,
+      operations: input.request.operations,
+      lines: calculated.lines,
+      catalog: input.catalog,
+      speedAudit,
+      auditFacts: input.auditFacts,
+    }),
     followUp: financial.warnings.map((warning) => warning.code),
   };
 }

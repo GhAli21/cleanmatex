@@ -8,6 +8,7 @@ import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { cmxMessage } from '@ui/feedback';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import type { EditReviewView } from './edit-review-view';
+import { EditReviewChanges } from './edit-review-changes';
 import type { ApplyFailureNotice } from './apply-failure';
 
 export interface EditHistoryRow {
@@ -53,6 +54,13 @@ export function EditReviewDialog({
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const ready = review?.status === 'READY' && !conflict;
+  const awaitingReason = review?.status === 'REASON_REQUIRED';
+  const warningTitle = (decision: string, reasonCode: string) => {
+    if (decision === 'DENY') return t('workspace.deniedReason', { reason: reasonCode });
+    if (decision === 'REQUIRE_OVERRIDE') return t('policyInfo.legend.override');
+    if (decision === 'ALLOW_WITH_WARNING') return t('policyInfo.legend.warning');
+    return decision;
+  };
   const copyFailure = () => {
     if (!applyFailure) return;
     void navigator.clipboard.writeText(applyFailure.copyText).then(
@@ -62,7 +70,7 @@ export function EditReviewDialog({
   };
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
-      <CmxDialogContent className="w-full max-w-lg p-0 text-start sm:max-w-xl">
+      <CmxDialogContent className="w-full max-w-lg p-0 text-start sm:max-w-2xl">
         <CmxDialogHeader className="border-b border-gray-100 px-4 py-3">
           <CmxDialogTitle>{t('workspace.review')}</CmxDialogTitle>
         </CmxDialogHeader>
@@ -79,30 +87,23 @@ export function EditReviewDialog({
             <>
               <CmxSummaryMessage
                 type={ready ? 'success' : review.status === 'DENIED' ? 'error' : 'warning'}
-                title={t('workspace.reviewStatus', { status: review.status })}
+                title={awaitingReason ? t('policyInfo.how.reasonRequired') : t('workspace.reviewStatus', { status: review.status })}
                 items={[
                   `${t('workspace.currentTotal')}: ${review.currentTotal}`,
                   `${t('workspace.estimatedTotal')}: ${review.estimatedTotal ?? review.currentTotal}`,
                   ...(review.financialOutcome ? [`${t('workspace.outcome')}: ${review.financialOutcome}`] : []),
                 ]}
               />
-              <ul className="space-y-2">
-                {review.operations.map((operation) => (
-                  <li key={operation.seq} className="rounded border border-gray-200 px-3 py-2 text-sm">
-                    <span className="font-medium">{operation.code}</span>
-                    <span className="mt-1 block text-xs text-gray-500">{operation.target}</span>
-                  </li>
-                ))}
-              </ul>
+              <EditReviewChanges operations={review.operations} />
               {review.warnings.map((warning) => (
                 <div key={warning.seq} className="space-y-2">
-                  <CmxSummaryMessage type="warning" title={t('workspace.deniedReason', { reason: warning.reasonCode })} items={[warning.decision]} />
+                  <CmxSummaryMessage type="warning" title={warningTitle(warning.decision, warning.reasonCode)} items={[warning.decision === 'DENY' ? warning.decision : warning.reasonCode]} />
                   {warning.requiresAcknowledgement ? (
                     <CmxCheckbox label={t('workspace.acknowledge')} onChange={() => onAcknowledge(warning.seq, warning.gateCode)} />
                   ) : null}
                 </div>
               ))}
-              {review.warnings.some((warning) => warning.requiresReason) ? (
+              {awaitingReason ? (
                 <CmxTextarea aria-label={t('workspace.reason')} placeholder={t('workspace.reason')} onChange={(event) => onReason(event.target.value)} />
               ) : null}
             </>

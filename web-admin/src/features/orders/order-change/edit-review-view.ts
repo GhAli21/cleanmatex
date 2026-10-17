@@ -18,6 +18,8 @@ export interface EditReviewOperation {
   seq: number;
   code: string;
   target: string;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
 }
 
 export interface EditReviewView {
@@ -49,6 +51,7 @@ export function readEditReview(body: unknown, operations: readonly EditChangeOpe
       originalTotal?: string;
       projectedTotal?: string | null;
       financial?: { outcome?: string } | null;
+      operationAudits?: Array<{ seq: number; before?: Record<string, unknown>; after?: Record<string, unknown> }>;
       decisions?: Array<{
         seq: number;
         decision: string;
@@ -61,12 +64,19 @@ export function readEditReview(body: unknown, operations: readonly EditChangeOpe
   };
   const data = envelope.data;
   const status = data?.status ?? envelope.status ?? envelope.error?.code ?? 'DENIED';
+  const audits = new Map((data?.operationAudits ?? []).map((audit) => [audit.seq, audit]));
   return {
     status,
     currentTotal: data?.originalTotal ?? currentTotal,
     estimatedTotal: data?.projectedTotal ?? null,
     financialOutcome: data?.financial?.outcome ?? null,
-    operations: operations.map((operation) => ({ seq: operation.seq, code: operation.code, target: targetLabel(operation) })),
+    operations: operations.map((operation) => ({
+      seq: operation.seq,
+      code: operation.code,
+      target: targetLabel(operation),
+      before: audits.get(operation.seq)?.before ?? {},
+      after: audits.get(operation.seq)?.after ?? {},
+    })),
     warnings: (data?.decisions ?? []).filter((decision) => decision.decision !== 'ALLOW').map((decision) => ({
       seq: decision.seq,
       decision: decision.decision,

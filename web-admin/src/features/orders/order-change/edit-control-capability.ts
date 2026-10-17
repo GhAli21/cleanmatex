@@ -75,11 +75,7 @@ export function resolveEditControlCapability(
   if (decision === 'ALLOW_WITH_WARNING') {
     return { state: 'WARNING', interactive: true, reasonKey: 'warning' };
   }
-  return {
-    state: 'OPEN',
-    interactive: true,
-    reasonKey: operationCode === 'CHANGE_SERVICE_SPEED' ? 'totalSame' : null,
-  };
+  return { state: 'OPEN', interactive: true, reasonKey: null };
 }
 
 /** Uses the strictest control in the group so one disabled operation cannot stay clickable. */

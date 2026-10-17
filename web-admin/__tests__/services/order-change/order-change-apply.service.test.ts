@@ -225,7 +225,7 @@ describe('applyOrderChange', () => {
     expect(persisted.operations).toEqual([expect.objectContaining({
       code: 'CHANGE_UNLISTED',
       targetType: 'ORDER',
-      afterValues: expect.objectContaining({ field: 'order.readyBy', value: '', targetKind: 'ORDER' }),
+      afterValues: expect.objectContaining({ ready_by: null }),
     })]);
   });
 
@@ -332,6 +332,126 @@ describe('applyOrderChange', () => {
       code: 'ADD_ITEM',
       targetType: 'ITEM',
       orderItemId: clientRef,
+      beforeValues: {},
+    }));
+  });
+
+  it('stores the real stored values before every decision that already has a row', async () => {
+    const orderFacts = harness({
+      request: {
+        ...request(),
+        operations: [
+          { seq: 1, code: 'CHANGE_ORDER_NOTES', target: { kind: 'ORDER' }, payload: { notes: 'Updated' } },
+          { seq: 2, code: 'CHANGE_PRIORITY', target: { kind: 'ORDER' }, payload: { priority: 'HIGH' } },
+          { seq: 3, code: 'CHANGE_READY_BY', target: { kind: 'ORDER' }, payload: { readyBy: '2026-10-20T10:00:00.000Z' } },
+          { seq: 4, code: 'CHANGE_CUSTOMER_SNAPSHOT', target: { kind: 'ORDER' }, payload: { customerName: 'New Name' } },
+        ],
+      },
+    });
+    orderFacts.tx.$queryRaw = jest.fn().mockResolvedValue([{
+      priority: 'NORMAL',
+      service_speed: 'STANDARD',
+      ready_by: new Date('2026-10-18T10:00:00.000Z'),
+      internal_notes: 'Keep',
+      customer_notes: null,
+      customer_name: 'Ada',
+      customer_mobile_number: '0500000000',
+      customer_email: null,
+      total_amount: '10.0000',
+      total_tax_amount: '1.5000',
+    }]);
+    await expect(applyOrderChange(orderFacts.input)).resolves.toMatchObject({ ok: true });
+    const orderOps = persistMock.mock.calls.at(-1)?.[1].operations ?? [];
+    const storedOrder = {
+      priority: 'NORMAL',
+      service_speed: 'STANDARD',
+      ready_by: '2026-10-18T10:00:00.000Z',
+      internal_notes: 'Keep',
+      customer_notes: null,
+      customer_name: 'Ada',
+      customer_mobile_number: '0500000000',
+      customer_email: null,
+      total_amount: '10.0000',
+      total_tax_amount: '1.5000',
+    };
+    expect(orderOps.map((operation) => operation.beforeValues)).toEqual([
+      storedOrder,
+      storedOrder,
+      storedOrder,
+      storedOrder,
+    ]);
+    expect(orderOps.map((operation) => operation.afterValues)).toEqual([
+      { ...storedOrder, internal_notes: 'Updated' },
+      { ...storedOrder, priority: 'HIGH' },
+      { ...storedOrder, ready_by: '2026-10-20T10:00:00.000Z' },
+      { ...storedOrder, customer_name: 'New Name' },
+    ]);
+
+    const itemId = '55555555-5555-4555-8555-555555555555';
+    const pieceId = '66666666-6666-4666-8666-666666666666';
+    const preferenceId = '77777777-7777-4777-8777-777777777777';
+    const targets = harness({
+      request: {
+        ...request(),
+        operations: [
+          { seq: 1, code: 'REMOVE_ITEM', target: { kind: 'PERSISTED_ITEM', id: itemId }, payload: {} },
+          { seq: 2, code: 'REMOVE_PIECE', target: { kind: 'PERSISTED_PIECE', id: pieceId }, payload: {} },
+          { seq: 3, code: 'CHANGE_PREFERENCE', target: { kind: 'PERSISTED_PREFERENCE', id: preferenceId }, payload: { preferenceContent: 'Light' } },
+        ],
+      },
+    });
+    targets.tx.$queryRaw = jest.fn(async (strings: TemplateStringsArray) => {
+      const text = strings.join(' ');
+      if (text.includes('product_name')) {
+        return [{
+          id: itemId, product_id: '88888888-8888-4888-8888-888888888888', product_name: 'Shirt', product_name2: null,
+          quantity: 3, price_per_unit: '10.0000', total_price: '30.0000', price_override: null, service_pref_charge: '0.0000',
+          notes: null, stain_notes: null, damage_notes: null, packing_pref_code: null, has_stain: false, has_damage: false,
+        }];
+      }
+      if (text.includes('color')) {
+        return [{
+          id: pieceId, order_item_id: itemId, piece_seq: 2, color: 'Blue', brand: null, notes: null,
+          packing_pref_code: null, has_stain: false, has_damage: true, quantity: 1,
+          price_per_unit: '10.0000', total_price: '10.0000', piece_status: 'processing', piece_stage: null, scan_state: 'expected',
+        }];
+      }
+      if (text.includes('preference_content')) {
+        return [{
+          id: preferenceId, prefs_level: 'ITEM', order_item_id: itemId, order_item_piece_id: null,
+          preference_id: '99999999-9999-4999-8999-999999999999', preference_code: 'STARCH',
+          preference_content: 'Heavy', extra_price: '1.0000', preference_sys_kind: 'service_prefs',
+        }];
+      }
+      if (text.includes('org_orders_mst')) return [{ order_no: '100', branch_id: null, current_status: 'processing', item_count: 1 }];
+      if (text.includes('order_item_id')) return [{ order_item_id: itemId }];
+      if (text.includes('MAX(prefs_no)')) return [{ max_no: 1 }];
+      if (text.includes('branch_id')) return [{ branch_id: null }];
+      return [];
+    });
+    await expect(applyOrderChange(targets.input)).resolves.toMatchObject({ ok: true });
+    const targetOps = persistMock.mock.calls.at(-1)?.[1].operations ?? [];
+    expect(targetOps[0].beforeValues).toEqual(expect.objectContaining({
+      id: itemId, product_name: 'Shirt', quantity: 3, price_per_unit: '10.0000', total_price: '30.0000',
+    }));
+    expect(targetOps[0].afterValues).toEqual(expect.objectContaining({ id: itemId, product_name: 'Shirt', rec_status: 0 }));
+    expect(targetOps[1].beforeValues).toEqual(expect.objectContaining({
+      id: pieceId, order_item_id: itemId, piece_seq: 2, color: 'Blue', has_damage: true,
+    }));
+    expect(targetOps[1].afterValues).toEqual(expect.objectContaining({ id: pieceId, rec_status: 0 }));
+    expect(targetOps[2].beforeValues).toEqual(expect.objectContaining({
+      id: preferenceId,
+      prefs_level: 'ITEM',
+      preference_code: 'STARCH',
+      preference_content: 'Heavy',
+      preference_sys_kind: 'service_prefs',
+      extra_price: '1.0000',
+    }));
+    expect(targetOps[2].afterValues).toEqual(expect.objectContaining({
+      id: preferenceId,
+      preference_code: 'STARCH',
+      preference_sys_kind: 'service_prefs',
+      preference_content: 'Light',
     }));
   });
 
@@ -348,6 +468,74 @@ describe('applyOrderChange', () => {
     const priced = harness({ preview: preview({ projectedTotal: '12.0000' }) });
     await expect(applyOrderChange(priced.input)).resolves.toEqual({ ok: false, status: 422, code: 'COMMERCIAL_TOTAL_CHANGED' });
     expect(priced.opened()).toBe(false);
+  });
+
+  it('reprices each item once and stores the real speed values on the one operation', async () => {
+    const itemId = '55555555-5555-4555-8555-555555555555';
+    const speedAudit = {
+      before: {
+        serviceSpeed: 'STANDARD',
+        totalAmount: '10.0000',
+        taxAmount: '1.5000',
+        commercialDelta: '0.0000',
+        items: [{ orderItemId: itemId, quantity: 1, pricePerUnit: '10.0000', totalPrice: '10.0000' }],
+      },
+      after: {
+        serviceSpeed: 'EXPRESS',
+        totalAmount: '12.0000',
+        taxAmount: '1.8000',
+        commercialDelta: '2.0000',
+        items: [{ orderItemId: itemId, quantity: 1, pricePerUnit: '12.0000', totalPrice: '12.0000' }],
+      },
+    };
+    const { input, committed, tx, updateMany } = harness({
+      request: {
+        ...request(),
+        changeReason: 'Customer asked for express.',
+        operations: [{ seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'ORDER' }, payload: { serviceSpeed: 'EXPRESS' } }],
+      },
+      preview: preview({
+        projectedTotal: '12.0000',
+        projectedTax: '1.8000',
+        speedAudit,
+        lines: [{ id: itemId, active: true, unitPrice: '12.0000', merchandiseAmount: '12.0000' }],
+      }),
+    });
+    const executeRaw = jest.fn().mockResolvedValue(1);
+    (tx as { $executeRaw: jest.Mock }).$executeRaw = executeRaw;
+    await expect(applyOrderChange(input)).resolves.toMatchObject({ ok: true });
+    expect(committed()).toBe(true);
+    expect(persistMock.mock.calls[0][1].changeReason).toBe('Customer asked for express.');
+    expect(persistMock.mock.calls[0][1].operations).toEqual([expect.objectContaining({
+      code: 'CHANGE_SERVICE_SPEED',
+      targetType: 'ORDER',
+      orderItemId: null,
+      beforeValues: {
+        service_speed: 'STANDARD',
+        total_amount: '10.0000',
+        total_tax_amount: '1.5000',
+        commercial_delta: '0.0000',
+        items: [{ id: itemId, quantity: 1, price_per_unit: '10.0000', total_price: '10.0000' }],
+      },
+      afterValues: {
+        service_speed: 'EXPRESS',
+        total_amount: '12.0000',
+        total_tax_amount: '1.8000',
+        commercial_delta: '2.0000',
+        express_charge_amount: '0.0000',
+        items: [{ id: itemId, quantity: 1, price_per_unit: '12.0000', total_price: '12.0000' }],
+      },
+    })]);
+    expect(persistMock.mock.calls[0][1].itemUpdates).toEqual([expect.objectContaining({
+      id: itemId,
+      data: expect.objectContaining({ price_per_unit: '12.0000', total_price: '12.0000' }),
+    })]);
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ service_speed: 'EXPRESS' }),
+    }));
+    const chargeWrites = executeRaw.mock.calls.map((call) => String(call[0]));
+    expect(chargeWrites.some((sql) => sql.includes('is_voided = true'))).toBe(true);
+    expect(chargeWrites.some((sql) => sql.includes('INSERT INTO org_order_charges_dtl'))).toBe(false);
   });
 
   it('keeps an unchanged outstanding balance on the existing settlement type', async () => {

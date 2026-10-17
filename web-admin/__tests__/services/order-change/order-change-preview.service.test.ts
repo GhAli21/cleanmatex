@@ -166,6 +166,55 @@ describe('previewOrderChange', () => {
     expect(result).toMatchObject({ ok: false, status: 422, code: 'UNKNOWN_ITEM', seq: 1 });
   });
 
+  it('prices an express change and waits for the reason before Apply', async () => {
+    const result = await preview({
+      request: request(
+        [{ seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'ORDER' }, payload: { serviceSpeed: 'EXPRESS' } }],
+        { changeReason: undefined },
+      ),
+      bindings: [{ ...binding('CHANGE_SERVICE_SPEED', 'ORDER'), requiresReason: true }],
+      quotes: { [ITEM]: { basePrice: '12.0000', finalPrice: '12.0000', discountPercent: '0.0000' } },
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      status: 'REASON_REQUIRED',
+      reviewProof: null,
+      originalTotal: '10.0000',
+      projectedTotal: '12.0000',
+      lines: [expect.objectContaining({ id: ITEM, unitPrice: '12.0000', merchandiseAmount: '12.0000' })],
+      speedAudit: {
+        before: {
+          serviceSpeed: 'STANDARD',
+          totalAmount: '10.0000',
+          taxAmount: '0.0000',
+          commercialDelta: '0.0000',
+          items: [{ orderItemId: ITEM, quantity: 1, pricePerUnit: '10.0000', totalPrice: '10.0000' }],
+        },
+        after: {
+          serviceSpeed: 'EXPRESS',
+          totalAmount: '12.0000',
+          taxAmount: '0.0000',
+          commercialDelta: '2.0000',
+          items: [{ orderItemId: ITEM, quantity: 1, pricePerUnit: '12.0000', totalPrice: '12.0000' }],
+        },
+      },
+      operationAudits: [expect.objectContaining({
+        seq: 1,
+        before: expect.objectContaining({
+          service_speed: 'STANDARD',
+          total_amount: '10.0000',
+          items: [expect.objectContaining({ id: ITEM, product_name: 'Shirt', price_per_unit: '10.0000' })],
+        }),
+        after: expect.objectContaining({
+          service_speed: 'EXPRESS',
+          total_amount: '12.0000',
+          express_charge_amount: '0.0000',
+          items: [expect.objectContaining({ id: ITEM, product_name: 'Shirt', price_per_unit: '12.0000' })],
+        }),
+      })],
+    });
+  });
+
   it('withholds the proof until a warning is acknowledged', async () => {
     const operation = { seq: 1, code: 'CHANGE_ORDER_NOTES' as const, target: { kind: 'ORDER' as const }, payload: { notes: 'Updated' } };
     const missing = await preview({ request: request([operation]), bindings: [binding('CHANGE_ORDER_NOTES', 'ORDER', 'ALLOW_WITH_WARNING')] });

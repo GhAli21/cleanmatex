@@ -32,7 +32,7 @@ const SCREEN_LIMIT: Record<OrderChangeOperationCode, EditPolicyScreenLimit> = {
   CHANGE_PREFERENCE: 'hidden',
   REMOVE_PREFERENCE: 'hidden',
   CHANGE_PRIORITY: 'hidden',
-  CHANGE_SERVICE_SPEED: 'total',
+  CHANGE_SERVICE_SPEED: 'ready',
   CHANGE_READY_BY: 'ready',
   CHANGE_ORDER_NOTES: 'ready',
   CHANGE_CUSTOMER_SNAPSHOT: 'identity',
