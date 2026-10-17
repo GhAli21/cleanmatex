@@ -66,7 +66,7 @@ describe('POST /api/v1/orders/[id]/changes', () => {
     csrfMock.mockResolvedValue(null);
     permissionMock.mockResolvedValue(true);
     requirePermissionMock.mockReturnValue(async () => ({ tenantId: TENANT_ID, userId: '33333333-3333-4333-8333-333333333333' }));
-    contextMock.mockResolvedValue({ financial: { currencyCode: 'OMR' }, orderId: ORDER_ID });
+    contextMock.mockResolvedValue({ order: { currencyCode: 'OMR' }, financial: { totalAmount: '10.0000' }, orderId: ORDER_ID });
     factsMock.mockResolvedValue({ featureEnabled: true, bindings: [], quotesByTargetId: {}, catalog: [], taxMode: 'TAX_EXCLUSIVE', taxRatePercent: '0.0000', currencyDecimalPlaces: 3, payments: [], credits: [], refunds: [], proofKey: null });
     previewMock.mockResolvedValue({ ok: true, status: 'READY', calculationFingerprint: 'fingerprint-1', reviewProof: 'proof-1' });
     transactionMock.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => fn({}));

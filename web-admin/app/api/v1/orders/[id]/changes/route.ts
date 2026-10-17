@@ -117,7 +117,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       tenantId: auth.tenantId,
       orderId: parsedParams.data.id,
       actorUserId: auth.userId,
-      currencyCode: context.financial.currencyCode,
+      currencyCode: context.order.currencyCode,
       idempotencyKey: idempotencyKey.data,
       request: parsedBody.data,
       preview,

@@ -570,6 +570,8 @@ A WP/release must not be held manual-only for objective behavior that should be 
 > **P0 for developer (latest = Retest r2, Saudi Demo SAR):** set `ORDER_CHANGE_REVIEW_PROOF_SECRET` + `ORDER_CHANGE_REVIEW_PROOF_KEY_ID` (unblocks **005/006/012**); fix sidebar Link unsaved-nav guard (**008 FAIL**); fix Remove item `productId` mismatch (**003**). Full P0 block at start of Retest r2 section below.
 >
 > **Update Retest r3 2026-10-17 (Saudi, d16ff51e): ** S9 signer FIXED-verified; S10 nav guard FIXED; S11 Remove FIXED-verified. **New P0 S21: every Apply returns CONFLICT (`REVIEW_CHANGED`)** — Apply re-issues the review proof with a new `exp` and string-compares it to the client proof (`order-change-apply.service.ts:141`). See Retest r3 section at end.
+>
+> **Update Retest r4 2026-10-17 (Saudi, S21 fix deployed): ** S21 CONFLICT FIXED-verified. **New P0 S25: every notes-only Apply returns 422** — string total compare "29.6700" vs "29.67" (`order-change-apply.service.ts:192-194`), then `mapPersistedFinancialOutcome(..., null)` for OUTSTANDING (`:203-204`). See Retest r4 section at end.
 
 ## Financial_Expert_Tester Results — Round 1 (2026-10-16)
 
@@ -809,14 +811,14 @@ Saudi Demo SAR inventory for this run: **only Processing** orders available. Edi
 | MAN-UI-002 | NOT RUN | *(unchanged — not retested; only Processing exists — no entry-DENY status sample)* |
 | MAN-UI-003 | NOT RUN | **PARTIAL/FAIL** — Remove item allowed with warning by policy but click has **no effect and no feedback** (persistedItemId vs productId). Shots `r2_09a`/`r2_09b`. Diagnosis **c**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PASS** — toast "Item removed from the order."; counts/total updated; Discard restores (S11 FIXED). |
 | MAN-UI-004 | NOT RUN | **PARTIAL** — DENY shown red/amber (`CHANGE_REASON_REQUIRED · DENY`) on Express; **no reason field / acknowledgement**; no WARN case seen this run. Shot `r2_15`. Diagnosis **g**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — DENY red + `CHANGE_REASON_REQUIRED • DENY`; still no reason field (0 textboxes); no WARN case. |
-| MAN-UI-005 | BLOCKED | **PARTIAL** — dialog readable (ops, totals, history empty); **no before/after**; **no Apply** (`SIGNER_UNAVAILABLE`); no ack/reason field; est total **4 decimals** (`41.1700`). Shot `r2_07` / AR `r2_18`. Diagnosis **a,b,g,h**. Unblocked when proof env set (see retest plan).<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — READY + Apply shown (signer fixed); current 29.67 / est 29.6700 (notes) or 41.1700 (qty), 4 dp; no before/after; Apply → CONFLICT (S21). |
-| MAN-UI-006 | BLOCKED | **BLOCKED** — Apply unreachable because of `SIGNER_UNAVAILABLE`. Diagnosis **a**. Unblocked when proof env set.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **FAIL** — every Apply returns `CONFLICT` "This review is out of date. Reload the order before trying again." ×3 (incl. after Reload and fresh load, notes-only). Two-tab stale test skipped (not meaningful). |
+| MAN-UI-005 | BLOCKED | **PARTIAL** — dialog readable (ops, totals, history empty); **no before/after**; **no Apply** (`SIGNER_UNAVAILABLE`); no ack/reason field; est total **4 decimals** (`41.1700`). Shot `r2_07` / AR `r2_18`. Diagnosis **a,b,g,h**. Unblocked when proof env set (see retest plan).<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — READY + Apply shown (signer fixed); current 29.67 / est 29.6700 (notes) or 41.1700 (qty), 4 dp; no before/after; Apply → CONFLICT (S21).<br>**Retest r4 2026-10-17 (Saudi, S21 fix deployed):** **FAIL (Apply)** — READY + Apply; Apply → 422 "The change could not be saved."; Revision 1; est 29.6700 (S25). |
+| MAN-UI-006 | BLOCKED | **BLOCKED** — Apply unreachable because of `SIGNER_UNAVAILABLE`. Diagnosis **a**. Unblocked when proof env set.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **FAIL** — every Apply returns `CONFLICT` "This review is out of date. Reload the order before trying again." ×3 (incl. after Reload and fresh load, notes-only). Two-tab stale test skipped (not meaningful).<br>**Retest r4 2026-10-17 (Saudi, S21 fix deployed):** **FAIL** — tab B Apply 422 (expected success); tab A Apply 422, no stale message/Reload (S25/S26). |
 | MAN-UI-007 | NOT RUN | **BLOCKED/FAIL** — no persisted multi-piece selection UI; qty decrease silently trims; panel **"No multi-piece items"**. Diagnosis **l**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — "Fitness Leggings — Piece 2" piece prefs visible; no piece-selection on decrease. |
 | MAN-UI-008 | BLOCKED | **FAIL** — in-app sidebar nav loses unsaved edits **silently**; only browser beforeunload **"Leave site?"** on Back. Shot `r2_08`. Diagnosis **d**. Discard also has no confirm (**e**).<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PASS (label note)** — "Leave without saving?" Cancel/Confirm; Cancel stays, draft kept. Discard still no confirm. |
 | MAN-UI-009 | BLOCKED | **PARTIAL** — RTL works; untranslated EN strings listed above; org clipped; Review codes EN. Shots `r2_16`–`r2_18`. Diagnosis **h**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — sidebar AR OK; "Edit Order"/"Discard changes"/"Review"/processing EN; Review values READY/OUTSTANDING/CHANGE_* EN; buttons إلغاء / تطبيق; org clipped. |
 | MAN-UI-010 | NOT RUN | **PARTIAL** — focus ring + trap OK; Escape closes; **focus restore to Review trigger fails** (lands on Add). Shots `r2_10`/`r2_10b`/`r2_10c`/`r2_11`/`r2_11b`. Diagnosis **f**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **FAIL** — Escape → focus lost (`:focus` count 0). |
 | MAN-UI-011 | NOT RUN | **PARTIAL** — zoom emulation only; at 250%/css768 **cart off-screen**; dialog footer scrolls. Shots `r2_12`/`r2_12a`/`r2_13`/`r2_14`. Diagnosis **m**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **FAIL/PARTIAL** — 250% horizontal overflow; cart/Review panel off-screen. |
-| MAN-UI-012 | NOT RUN | **BLOCKED** — no Apply → follow-up/settlement UI not reachable. Diagnosis **a**. Unblocked when proof env set + Apply path exercised.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **BLOCKED** — Apply never succeeds (CONFLICT), so no follow-up UI. |
+| MAN-UI-012 | NOT RUN | **BLOCKED** — no Apply → follow-up/settlement UI not reachable. Diagnosis **a**. Unblocked when proof env set + Apply path exercised.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **BLOCKED** — Apply never succeeds (CONFLICT), so no follow-up UI.<br>**Retest r4 2026-10-17 (Saudi, S21 fix deployed):** **PARTIAL (observation)** — REMOVE_ITEM ACKNOWLEDGEMENT_REQUIRED, "Not allowed: CAPABILITY_POLICY_WARNING / ALLOW_WITH_WARNING", checkbox "I understand this warning.", est 17.8250, OUTSTANDING, no refund/settlement wording; Apply-success follow-up not reachable (S27). |
 | MAN-UI-013 | NOT RUN | **NOT RUN** — no same-product duplicate lines on test orders.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **NOT RUN** — no same-product lines. |
 | MAN-UI-014 | NOT RUN | **PARTIAL** — long/raw codes and DENY banner persist after close; layout mostly holds; clipped org + untranslated codes. Diagnosis **h**.<br>**Retest r3 2026-10-17 (Saudi, d16ff51e):** **PARTIAL** — CONFLICT/DENY messages fit; raw codes remain. |
 
@@ -902,6 +904,36 @@ Saudi Demo SAR inventory for this run: **only Processing** orders available. Edi
 | Locale | EN, then AR, back to EN |
 | Initial cart | Cotton Pants 1 × 15.50 (Separate Wash +0.50, Hang on Hanger); Fitness Leggings 10.30 (No Bleach, Eco-Friendly Wash +0.30); draft Total 25.80 SAR |
 
+### Exact texts and step evidence (r3)
+Source: `/workspace/oe2/shots/r3_evidence.md` (no PNGs saved; this text file is the record).
+
+**1. Review signer (CHANGE_ORDER_NOTES):** added " QA-r3" to Customer notes → Review → **"Review result: READY"** (not SIGNER_UNAVAILABLE). Current total **29.67**; Estimated total **29.6700**; Financial result **OUTSTANDING**; ops `CHANGE_ORDER_NOTES (ORDER)`; Change history **"No applied changes yet."**; buttons **Cancel / Apply**; no ack/reason fields.
+
+**2. Apply → CONFLICT:** **"Review result: CONFLICT"** + **"This review is out of date. Reload the order before trying again."** (the toast shows the same text). Buttons **Cancel / Reload**. Nothing applied (still Revision 1, "No applied changes yet."). Reproduced **3 times**:
+- (a) first Apply;
+- (b) after **Reload** + Review + Apply;
+- (c) after **Discard** + fresh page load + Review + Apply (the 2nd Apply in (c) showed **"Applying..."**, then CONFLICT).
+The stale two-tab test was skipped: with a single tab already conflicting, a two-tab result would not be meaningful.
+
+**3. Express ON:** **"Review result: DENIED"**; Current total 29.67; Estimated total 29.67; ops `CHANGE_ORDER_NOTES (ORDER)`, `CHANGE_SERVICE_SPEED (ORDER)`; **"Not allowed: CHANGE_REASON_REQUIRED • DENY"**; "Review again" disabled; **0 textboxes, 0 checkboxes** in the dialog (no reason field). Side effect: the cart showed Cotton Pants **15.00** and Fitness Leggings **10.00** (the +0.50/+0.30 surcharge labels still shown), draft Total **25.00**. Express OFF did not restore 15.50/10.30/25.80; only Discard did.
+
+**4. Nav guard:** with an unsaved change, sidebar "All Orders" opened a modal **"Leave without saving?"** with **Cancel** and **Confirm** (no "Stay" label; Cancel = stay). Cancel kept the `/edit` URL and the draft. **"Discard changes"** gave no confirm and went straight to "0 unsaved changes".
+
+**5. Remove item (Fitness Leggings):** toast **"Item removed from the order."**; unsaved 0 → 1; "Order Items (2)" → "Order Items (1)"; Pieces 2 → 1; Preferences (2) → (1); Total 25.80 → **15.50 SAR**. Discard restored Order Items (2), 25.80, 0 unsaved.
+
+**6. Quantity:** +1 on Fitness Leggings → line 10.30 → **20.00** (qty 2), Total 25.80 → **35.50**, header 1 unsaved. Review showed `CHANGE_ITEM_QUANTITY` + `ADD_PIECE`, Current 29.67, Estimated **41.1700** (item `44ea8124-980a-4c49-9c43-1d965e86724f`). −1 → qty 1 but line **10.00** (the "+0.30 Eco-Friendly Wash" label still shown), Total **25.50** (was 25.80), header **"0 unsaved changes"**. After adding the piece, the Preferences header read **"Fitness Leggings — Piece 2"**.
+
+**7. Focus:** Escape on Review closes the dialog, and then no element holds focus (document `:focus` count 0); focus is not restored to the Review trigger.
+
+**8. Zoom 250% (Chrome):** horizontal scrollbar; sidebar collapsed to a hamburger; the right-hand Order Items / totals / Review panel was pushed to the right edge and clipped (only a sliver visible); header and steps still readable. Zoom was reset to 100% afterwards.
+
+**9. Arabic.** Translated: sidebar **كل الطلبات**, **طلب جديد**, **لوحة العمل**; context bar parts **سريع**, **التفضيلات**, **معلومات سياسة التعديل**; Review title **مراجعة**, **نتيجة المراجعة: READY**, **الإجمالي الحالي: 29.67**, **الإجمالي التقديري: 41.1700**, **النتيجة المالية: OUTSTANDING**, buttons **إلغاء** / **تطبيق**, **سجل التغييرات**, **لا توجد تغييرات مطبقة بعد.**; later step labels **"1) اختر العناصر"**; products **بنطلون قطني** / **ليغينغز (رياضي)**.
+Untranslated (English): heading **"Edit Order"**, **"Discard changes"**, **"Review"**, step labels "1) Select Items"… in one view (mixed), **"Workflow status: processing"**, the "Express" label in places, and the values **READY**, **OUTSTANDING**, `CHANGE_ITEM_QUANTITY`, `ADD_PIECE`. The tenant name is clipped ("Demo Saudi Riyadh" visible, "Dry Clean" cut). "SIGNER_UNAVAILABLE" was not seen. Switched back to English and confirmed after reload ("All Orders", "Select Items", "Discard changes").
+
+**Final state:** all drafts discarded. Edit page: Revision 1 · processing · 0 unsaved changes · draft Total 25.80. Order Details: Order Total **29.670 SAR**, Paid 11.67 (CARD 1.67 + CASH 10.00), Balance 18.00, PARTIALLY PAID / PAY ON COLLECTION; no notes saved; language English.
+
+**Developer follow-up noted:** a dev note dated 2026-10-17 under S21 says Apply now verifies the proof against the fresh binding. That needs a restart and Retest r4, and is not on `cmx.cleanmatex.com` until deployed. r3 results above are for d16ff51e.
+
 ### Diagnosis — Apply CONFLICT (read-only)
 | Check | File:line | Finding |
 |---|---|---|
@@ -939,6 +971,7 @@ No DB SELECTs were needed, because the cause is deterministic in code.
 ### New tester suggestions (S21+)
 - **P0 FET-EOV2-S21:** Apply always returns CONFLICT. **Evidence:** "This review is out of date. Reload the order before trying again." ×3 on a notes-only change, including after Reload and after a fresh load; Revision stays 1. **Where:** `order-change-apply.service.ts:141-142`; `order-change-capability.service.ts:337`; route `app/api/v1/orders/[id]/changes/route.ts:96-116`. **Fix:** verify the client proof with `verifyOrderChangeReviewProof` against the re-preview binding (it ignores `exp`) instead of string-comparing it with a freshly minted proof.
   - Dev note (2026-10-17): Apply now verifies the Review proof against the fresh binding. A later expiry no longer rejects a matching review. An expired proof, or a review whose amounts or policy changed, still returns 409. Needs a restart and Retest r4. Not on `cmx.cleanmatex.com` until that build is deployed.
+  - Retest r4 2026-10-17 (Saudi, S21 fix deployed): **CONFLICT FIXED-verified, superseded by 422.** No "out of date" CONFLICT on 3 Applies; each now returns 422 "The change could not be saved." (see S25).
 - **P1 FET-EOV2-S22:** The Express toggle reprices draft lines and does not restore them. **Evidence:** Express ON → Cotton Pants 15.00 and Fitness Leggings 10.00 (the +0.50/+0.30 labels still shown), draft total 25.00. Express OFF did not restore 15.50/10.30/25.80; only Discard did. **Where:** `new-order-reducer.ts` express repricing via `itemLineBasePlusPrefCharges` (the pref charge is dropped, same family as S15); `edit-workspace-adapter.ts:62-84` sets no `servicePrefCharge`. **Fix:** keep `servicePrefCharge` when repricing for speed, and recompute it from prefs when Express is toggled back.
 - **P1 FET-EOV2-S23:** The header shows "0 unsaved changes" while the draft total has changed. **Evidence:** qty +1 then −1 → total 25.50 (was 25.80) with header "0 unsaved changes". **Where:** `visualHeaderChangeCount` (`edit-workspace-adapter.ts` ~125-135) counts fields and qty only, not line price drift; root cause is S15. **Fix:** fix the S15 drift and include line total / pref charge in the dirty comparison.
 - **P2 FET-EOV2-S24:** The draft "Total" 25.80 vs the Review current total 29.67 is confusing. **Evidence:** cart Total 25.80 SAR; Review "Current total: 29.67". **Where:** cart total `item-cart-list.tsx:143-151` (sum of lines, no tax) vs `context.financial.totalAmount`. **Fix:** label the cart figure "Subtotal" and show tax and total, or show the same total basis in both places.
@@ -948,3 +981,94 @@ No DB SELECTs were needed, because the cause is deterministic in code.
 2. Then run MAN-UI-006 (two-tab stale test: expect CONFLICT only for the stale tab) and MAN-UI-012 (follow-up after an Apply that changes the balance).
 3. Retest S12 (reason field), S13 (Discard confirm), S15/S22/S23 (pref charge on qty and Express), S16 (focus), S18 (250%), S20 (AR) and S14 (2-dp money).
 4. Save PNGs to disk next run, or record text evidence as in r3. Re-pull F: before merging; FET section only; no passwords.
+
+## Financial_Expert_Tester Results — Retest r4 (2026-10-17)
+
+### P0 summary for developer (r4)
+1. **P0 FET-EOV2-S25: Apply returns HTTP 422 on a notes-only change.** S21 is fixed: the proof check now uses `verifyOrderChangeReviewProof` (`order-change-apply.service.ts:115-140`), and no CONFLICT appeared. Apply now stops at one of two gates that come after the proof check:
+   - **Gate 1, most likely the first to fire: `COMMERCIAL_TOTAL_CHANGED`** (`order-change-apply.service.ts:192-194`). For an order-field-only change, Apply requires `preview.projectedTotal !== preview.originalTotal` to be false, and that is a **string** comparison. `projectedTotal` comes from the calculator as a 4-dp string (`order-change-calculation.service.ts:222`, the "29.6700" shown as Estimated total). `originalTotal` comes from `decimalText(financial.snapshot.totalAmount)` (`order-change-context.service.ts:235`), which is the raw Decimal text ("29.67", shown as Current total). The amounts are equal but the strings differ, so Apply returns 422.
+   - **Gate 2, would fire next: `COLLECTION_POLICY_UNRESOLVED`** (`order-change-apply.service.ts:203-204`). Apply calls `mapPersistedFinancialOutcome(outcome, null)`. For `OUTSTANDING` (this order owes a balance of 18.00), `collectionRequired === null` returns `null` (`order-change-mutation.service.ts:59`), so Apply returns 422 for every OUTSTANDING order.
+   - **Fix:** compare totals numerically (or both normalized to 4 dp), for example `round4(Number(projected)) !== round4(Number(original))`. Pass the real collection-required flag from the preview/collection policy into `mapPersistedFinancialOutcome` instead of `null`.
+2. **Ready-by is ruled out as the cause.** The "Change ready by is not allowed at the current status." banner is only the editing-stage capability notice for `CHANGE_READY_BY`. The visual adapter adds a ready-by op only when `readyBy` differs from the baseline (`edit-workspace-adapter.ts:105-108`). Review listed only `CHANGE_ORDER_NOTES`. A denied op would make the preview `DENIED`, not `READY`. Apply re-validates the same operations array the client sends, not the whole draft.
+3. **P1 S26:** the generic toast hides the code. Every 422 shows `workspace.applyFailed` "The change could not be saved." (`edit-shared-workspace.tsx:173`), and the response's `error.code` is discarded.
+
+### Environment / build (r4)
+| Field | Value |
+|---|---|
+| App | Preview `https://cmx.cleanmatex.com` (hard refresh Ctrl+Shift+R on /login) |
+| Build | S21 fix deployed; repo HEAD `7df59c68` (2026-10-17 03:26 +04), which contains `reviewedProofStillMatches` |
+| Tenant / user | Demo Saudi Riyadh Dry Clean (SAR) · tenant_admin · 1 sign-in at 03:59:48, 0 failures (no password recorded) |
+| Order | ORD-20261015-0001 `44f5cd1d-2c58-4d2a-80b2-1d887612413b` · Guest Guest · PAY_ON_COLLECTION |
+| Window | 2026-10-17 **03:59–04:05** Asia/Muscat (source timestamps were UTC; +4h applied) |
+| Language | English |
+| Evidence | `/workspace/oe2/shots/r4_evidence.md`. Screenshots were not copied to `shots/`; they are browser captures under `/home/box/agent-data/agents/996d7a89-9cf3-4f06-a97b-07dd42ecdee7/assets/`: review dialog `78e1d724…`, apply error `5d2cefe8…`, MAN-UI-012 dialog `519da1ee…`, Express DENIED `e54c0e4b…`, Edit History `35c1c371…` |
+
+### Exact texts and timeline (r4, Asia/Muscat)
+- **Baseline 04:00:02:** "Edit Order #ORD-20261015-0001" / "Revision 1 · Workflow status: processing · 0 unsaved changes". Editor cart 25.80 SAR (tax-exclusive); Order Details total 29.67 (tax 3.87; 25.80 × 1.15). Paid 11.67 (CARD 1.67 + CASH 10.00), Credits 0.00, Balance Due 18.00, "PARTIALLY PAID". Notes empty.
+- **Banners present before any edit:** red "Change ready by is not allowed at the current status." (ready-by 17/10/2026 04:22 AM). Under Express: "This change needs an override before it can be saved." / "Review will ask you to confirm a warning before this change can be saved."
+- **005, 04:00:31:** " QA-r4" typed into notes → "1 unsaved changes" → Review: "Review result: READY"; "Current total: 29.67"; "Estimated total: 29.6700"; "Financial result: OUTSTANDING"; row "CHANGE_ORDER_NOTES" / "ORDER"; "Change history: No applied changes yet."; buttons Cancel, Apply. **04:00:38** Apply → **04:00:41** toast **"The change could not be saved."**; console **422 POST /api/v1/orders/44f5cd1d-2c58-4d2a-80b2-1d887612413b/changes**; the dialog stayed open; Revision 1; Edit History "No edit history for this order".
+- **006:** tab B opened 04:01:07. Tab A " QA-r4a" Review at 04:01:21 (READY 29.67 / 29.6700 / OUTSTANDING). Tab B " QA-r4b" Review at 04:01:39 (same). **Tab B Apply 04:01:57** → "The change could not be saved." (422). **Tab A Apply 04:02:12** → the same toast; no stale/conflict message; no Reload button (Cancel / Apply). Reload at 04:02:22: Revision 1, 0 unsaved, notes empty, Total 25.800.
+- **012 observation, 04:03:01:** removed Fitness Leggings → Review: "Review result: ACKNOWLEDGEMENT_REQUIRED"; "Current total: 29.67"; "Estimated total: 17.8250"; "Financial result: OUTSTANDING"; row "REMOVE_ITEM 44ea8124-980a-4c49-9c43-1d965e86724f"; **"Not allowed: CAPABILITY_POLICY_WARNING" / "ALLOW_WITH_WARNING"**; checkbox **"I understand this warning."** (left unchecked); buttons Cancel, "Review again" (no Apply until the box is checked). No refund, settlement or credit wording. Discarded with no confirm.
+- **Optional checks:**
+  - **Express (04:04:00):** "Review result: DENIED", Current/Estimated 29.67, CHANGE_SERVICE_SPEED / ORDER, "Not allowed: CHANGE_REASON_REQUIRED" / "DENY", no reason input.
+  - **Discard:** no confirm (04:03:44, 04:04:12).
+  - **Escape (04:03:29):** closed the dialog; Enter did not reopen Review, so focus restore is not confirmed.
+  - **Estimates:** still 4 dp (29.6700, 17.8250).
+- **Final (04:04:12–04:05):** Revision 1, Edit State version 1, Order Items (2), notes empty, total 29.67, Paid 11.67, Balance 18.00, "No edit history for this order". **Applied: nothing.** No deletes, payments or refunds.
+
+### Additional r4 details (audit)
+- **Correction:** my earlier hypothesis, from the r4 run report, that the pre-existing ready-by banner caused the 422 was **wrong**. The banner "Change ready by is not allowed at the current status." is the editing-stage capability notice for `CHANGE_READY_BY` only. Apply validates only the operations the client sends (`app/api/v1/orders/[id]/changes/route.ts:96-116` re-previews `parsedBody.data.operations`). The adapter emits a ready-by op only when `readyBy` differs from the baseline (`edit-workspace-adapter.ts:105-108`). Review listed only `CHANGE_ORDER_NOTES`. A denied op would yield `DENIED` (`order-change-preview.service.ts:330-336`), not `READY`. The real 422 gates are S25 (`order-change-apply.service.ts:192-194`, then `:203-204`).
+- **005 after-state:** after the 422 the notes stayed unsaved in tab A until the stale test ("Revision 1 · 1 unsaved changes"); Order Details customer notes remained empty.
+- **006:** tab B opened at 04:01:07 on the same edit URL (Revision 1, 0 unsaved). After Reload (04:02:22), tab A's " QA-r4a" and tab B's " QA-r4b" had **not** been applied and **no merge** occurred; server state unchanged. Tab B was then closed.
+- **012:** Paid 11.67 remains; the dialog shows no amount due or owed wording beyond the OUTSTANDING label. Cancel, then Discard changes → 0 unsaved, Order Items (2), no confirm prompt.
+- **Final Order Details (04:04:25–04:05):** ORD-20261015-0001, **PROCESSING**, **Pending Payment**, **PARTIALLY PAID / PAY ON COLLECTION**; Order Total 29.67 SAR; Paid 11.67; Credits 0.00; Balance Due 18.00 SAR; customer notes empty (not shown); Revision 1; Edit State version 1; "No edit history for this order".
+
+### Per-bullet status after r4 (S9–S24)
+| Bullet | Status after Retest r4 2026-10-17 (Saudi, S21 fix deployed) |
+|---|---|
+| S9 signer | FIXED-verified (Review READY, Apply button shown) |
+| S10 nav guard | FIXED in r3; not retested in r4 |
+| S11 Remove | FIXED (remove worked in the 012 observation) |
+| S12 Express reason field | STILL OPEN — Express DENIED "Not allowed: CHANGE_REASON_REQUIRED" / "DENY", no reason input (04:04:00) |
+| S13 Discard confirm | STILL OPEN — no confirm at 04:03:44 and 04:04:12 |
+| S14 4-dp / raw codes | STILL OPEN — estimates 29.6700, 17.8250; raw codes still shown |
+| S15 qty pref-charge drift | Not retested |
+| S16 focus restore | INCONCLUSIVE — Escape closed at 04:03:29; Enter did not reopen Review |
+| S17 piece selection | Not retested |
+| S18 250% layout | Not retested |
+| S19 Guest / Unknown Product | Not retested (customer shown as Guest Guest) |
+| S20 AR | Not retested (English only) |
+| S21 Apply CONFLICT | FIXED-verified, superseded by S25 (422) |
+| S22 Express repricing | Not retested |
+| S23 0-unsaved with changed total | Not retested |
+| S24 subtotal vs total label | Still observed — editor 25.80 (tax-exclusive) vs Order Details 29.67 (tax 3.87) |
+
+### Results — Retest r4 lines
+| # | Retest r4 2026-10-17 (Saudi, S21 fix deployed): verdict — evidence |
+|---|---|
+| MAN-UI-005 | **FAIL (Apply step)**: READY + Apply shown, but Apply → 422 "The change could not be saved."; no revision; est 29.6700 (4 dp) |
+| MAN-UI-006 | **FAIL**: tab B Apply 422 (expected success), tab A Apply 422 (expected stale/Reload); no conflict message or Reload button |
+| MAN-UI-012 | **PARTIAL (observation only)**: REMOVE_ITEM → ACKNOWLEDGEMENT_REQUIRED, checkbox gates Apply, est 17.8250, OUTSTANDING, no refund/settlement wording; label "Not allowed" is wrong for a warning; follow-up after Apply still not reachable |
+| MAN-UI-004 | **PARTIAL (unchanged)**: Express DENY, no reason field; WARN ack checkbox now seen on REMOVE_ITEM |
+| MAN-UI-010 | **INCONCLUSIVE**: focus restore not confirmed |
+| Others | Not retested in r4 |
+
+**r4 counts:** FAIL **2** (005, 006) · PARTIAL **2** (012, 004) · INCONCLUSIVE **1** (010) · not retested **9** · total 14.
+
+**Test data left behind:** **none applied.** Every Apply returned 422. Final state Revision 1 · 29.67 SAR · Paid 11.67 · Balance 18.00 · notes empty · no edit history.
+
+### New tester suggestions (S25+)
+- **P0 FET-EOV2-S25:** Apply returns 422 for a notes-only change. **Evidence:** 3/3 Applies (005, 006 tab B, 006 tab A) → toast "The change could not be saved.", 422 on POST `/changes`, Revision 1, no history. **Where:**
+  - `order-change-apply.service.ts:192-194`: string compare of `projectedTotal` "29.6700" (`order-change-calculation.service.ts:222`) with `originalTotal` "29.67" (`order-change-context.service.ts:235`) → `COMMERCIAL_TOTAL_CHANGED`.
+  - Next gate, `order-change-apply.service.ts:203-204`: `mapPersistedFinancialOutcome(outcome, null)` → `null` for OUTSTANDING (`order-change-mutation.service.ts:59`) → `COLLECTION_POLICY_UNRESOLVED`.
+
+  **Fix:** compare totals numerically or normalized to 4 dp, and pass the real `collectionRequired` instead of `null`. Add a test with an OUTSTANDING order and an unchanged total.
+- **P1 FET-EOV2-S26:** The generic Apply error hides the server code. **Evidence:** 422 shown only as "The change could not be saved."; the stale tab got the same text with no Reload button. **Where:** `edit-shared-workspace.tsx:173,191` (`workspace.applyFailed`); `messages/en/orders/edit.json:78`. **Fix:** map `error.code` (COMMERCIAL_TOTAL_CHANGED, COLLECTION_POLICY_UNRESOLVED, REVIEW_NOT_READY, …) to specific messages, at least showing the code or request id.
+- **P2 FET-EOV2-S27:** The "Not allowed:" label is used for ALLOW_WITH_WARNING. **Evidence:** "Not allowed: CAPABILITY_POLICY_WARNING" / "ALLOW_WITH_WARNING" with the "I understand this warning." checkbox. **Where:** `edit-review-dialog.tsx:83` always uses `workspace.deniedReason` ("Not allowed: {reason}", `messages/en/orders/edit.json:68`) for every non-ALLOW decision. **Fix:** choose the label by decision (Warning / Override required / Not allowed) and translate the reason code.
+
+### Retest plan (post-r4)
+1. Ship the S25 fix (numeric total compare + real `collectionRequired`), then retest MAN-UI-005: a notes-only Apply should give Revision 2, a history entry, and the total unchanged at 29.67.
+2. MAN-UI-006 two-tab: tab B succeeds; tab A gets the stale/CONFLICT message with Reload.
+3. MAN-UI-012: REMOVE_ITEM with the warning checked → Apply → check the follow-up and settlement wording (outstanding balance 18.00 → new balance). Run only if a controlled Apply on test data is authorized.
+4. Recheck S26 messages, S27 label, S12 reason field, S13 Discard confirm, S14 2-dp and S16 focus.
+5. Re-pull F: before merging; FET section only; keep dev notes; no passwords.
