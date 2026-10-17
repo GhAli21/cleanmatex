@@ -76,3 +76,29 @@ Screens: t3_jobs_p1.png, t3_jobs_p2.png
 5. ntf-campaign-scheduler: no override marker; description still says every minute.
 6. Retention sweep last run shows 08:00 vs 04:00 schedule (time zone display).
 7. HQ new-user form has no password field (temp password + forced change).
+
+## Task 4b – Re-run of previously blocked scenarios (2026-10-17 06:07–06:24 Muscat, owner confirmed all tenants are demo)
+
+| Test | Result | Notes |
+|---|---|---|
+| T14 | PASS | 6 overrides (EMAIL, SMS, WHATSAPP, PUSH, IN_APP, CAMPAIGN) saved for Demo Laundry, then deleted; 0 remain. |
+| T38 | PASS | ntf.retention.days 180→200 saved, history row added; 10 and 5000 refused "Value does not match the required format"; restored to 180. |
+| T42 | FAIL | Pause org (All channels and SMS only, reason "QA") → "The pause was not changed. Validation failed." HTTP 400 on /api/hq/v1/notifications/operations/tenant-pauses. |
+| T43 | BLOCKED | Nothing paused (T42 failure). |
+| T44 | PARTIAL | Empty reason correctly blocked (Pause disabled); "already in that state" untestable. |
+| T16 | PASS | New draft v2 on assembly.completed.default shows "Version body" badge; EMAIL/WHATSAPP/PUSH preview; nothing sent. Draft left in place. |
+| T18 | FAIL | Test-send to allow-listed jhtest.dev21@gmail.com → "Validation failed", HTTP 400 on /api/hq/v1/notifications/template-preview/test-send. |
+| T19 | FAIL | Same generic 400; allow-list message never shown. |
+| T22 | BLOCKED | Limit effective 5 (default); 7 sends all 400, no 429. |
+| T23 | FAIL | Audit Trail shows only settings changes; no notification_template.test_send; Filters button opens nothing. |
+| T24 (WhatsApp part) | PASS | "Test sending is available for email and SMS." SMS not sent. |
+| T26, T27, T28, T32 | BLOCKED | Operations shows "No provider traffic" for all windows; no provider rows, so no Pause/Drain/Resume/Reset controls. |
+| T29 | BLOCKED | Failover To list offers only SENDGRID; SANDBOX_EMAIL missing. |
+| T40 | PARTIAL | Tenant Roles read-only with platform-team notice (PASS); Permissions page shows "Access Denied … Admin access required" for super_admin (FAIL). |
+| T41 | PASS (limited) | Notification Center messages contain no dates (generic text); no orders created. |
+| T3, T5, T6, T8, T10–T12, T35, T37 | NOT RUNNABLE IN UI | Need Redis stop, SQL, raw API tokens or a forced provider reject. |
+| T1, T2, T7, T13 kill, T20, T21, T30, T31, T36 | NOT RUN | Need campaign with ≥20 consenting targets, credential rotate, working test-send, or forced failures. |
+
+Final state: no overrides, pauses, rules or config changes left; only the T16 draft version remains.
+
+**Main bug:** both tenant-pauses and template-preview/test-send return a generic HTTP 400 "Validation failed" with no field detail – likely a shared request-validation issue.

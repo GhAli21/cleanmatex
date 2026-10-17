@@ -1,6 +1,5 @@
 -- =============================================================================
 -- 0635_ntf_sender_kind_check_trigger.sql
--- STATUS: UNAPPLIED (written 2026-10-17). Do NOT apply without the owner.
 -- Purpose: DB-level check of sender_kind and capabilities.message_types against
 --          sys_ntf_sender_kind_cd (0634) for the provider of the owning account.
 --          Applies to sys_ntf_prov_send_mst and org_ntf_prov_send_mst.

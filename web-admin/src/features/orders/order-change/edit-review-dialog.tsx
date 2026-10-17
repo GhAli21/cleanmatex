@@ -5,8 +5,10 @@ import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxCheckbox } from '@ui/primitives/cmx-checkbox';
 import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
+import { cmxMessage } from '@ui/feedback';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import type { EditReviewView } from './edit-review-view';
+import type { ApplyFailureNotice } from './apply-failure';
 
 export interface EditHistoryRow {
   changeNo: number;
@@ -27,6 +29,7 @@ export function EditReviewDialog({
   history,
   applying,
   conflict,
+  applyFailure,
   onOpenChange,
   onAcknowledge,
   onReason,
@@ -39,6 +42,7 @@ export function EditReviewDialog({
   history: EditHistoryRow[];
   applying: boolean;
   conflict: boolean;
+  applyFailure: ApplyFailureNotice | null;
   onOpenChange: (open: boolean) => void;
   onAcknowledge: (seq: number, gateCode: string) => void;
   onReason: (reason: string) => void;
@@ -49,6 +53,13 @@ export function EditReviewDialog({
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const ready = review?.status === 'READY' && !conflict;
+  const copyFailure = () => {
+    if (!applyFailure) return;
+    void navigator.clipboard.writeText(applyFailure.copyText).then(
+      () => { cmxMessage.success(tCommon('copied')); },
+      () => { cmxMessage.error(t('policyInfo.copyFailed')); },
+    );
+  };
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
       <CmxDialogContent className="w-full max-w-lg p-0 text-start sm:max-w-xl">
@@ -56,7 +67,12 @@ export function EditReviewDialog({
           <CmxDialogTitle>{t('workspace.review')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="max-h-[min(70vh,520px)] space-y-3 overflow-y-auto px-4 py-4">
-          {conflict ? (
+          {applyFailure ? (
+            <div className="space-y-2">
+              <CmxSummaryMessage type="error" title={applyFailure.title} items={applyFailure.lines} />
+              <CmxButton type="button" variant="outline" onClick={copyFailure}>{t('policyInfo.copy')}</CmxButton>
+            </div>
+          ) : conflict ? (
             <CmxSummaryMessage type="warning" title={t('workspace.conflict')} items={[]} />
           ) : null}
           {review ? (

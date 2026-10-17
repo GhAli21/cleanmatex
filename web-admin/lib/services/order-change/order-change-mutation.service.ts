@@ -361,6 +361,23 @@ export async function persistOrderChangeTx(
     },
   });
 
+  // History rows reference the new item, piece, or preference. Those rows must exist first.
+  for (const row of input.itemInserts ?? []) {
+    await tx.org_order_items_dtl.create({
+      data: { ...guardedData(row), id: row.id, tenant_org_id: input.tenantId, order_id: input.orderId },
+    });
+  }
+  for (const row of input.pieceInserts ?? []) {
+    await tx.org_order_item_pieces_dtl.create({
+      data: { ...guardedData(row), id: row.id, tenant_org_id: input.tenantId, order_id: input.orderId },
+    });
+  }
+  for (const row of input.preferenceInserts ?? []) {
+    await tx.org_order_preferences_dtl.create({
+      data: { ...guardedData(row), id: row.id, tenant_org_id: input.tenantId, order_id: input.orderId },
+    });
+  }
+
   if (input.operations.length > 0) {
     await tx.org_order_change_ops_dtl.createMany({
       data: input.operations.map((operation) => ({
@@ -382,21 +399,6 @@ export async function persistOrderChangeTx(
     });
   }
 
-  for (const row of input.itemInserts ?? []) {
-    await tx.org_order_items_dtl.create({
-      data: { ...guardedData(row), id: row.id, tenant_org_id: input.tenantId, order_id: input.orderId },
-    });
-  }
-  for (const row of input.pieceInserts ?? []) {
-    await tx.org_order_item_pieces_dtl.create({
-      data: { ...guardedData(row), id: row.id, tenant_org_id: input.tenantId, order_id: input.orderId },
-    });
-  }
-  for (const row of input.preferenceInserts ?? []) {
-    await tx.org_order_preferences_dtl.create({
-      data: { ...guardedData(row), id: row.id, tenant_org_id: input.tenantId, order_id: input.orderId },
-    });
-  }
   for (const row of [...(input.itemUpdates ?? [])]) {
     const updated = await tx.org_order_items_dtl.updateMany({
       where: { id: row.id, tenant_org_id: input.tenantId, order_id: input.orderId, rec_status: 1 },

@@ -15,6 +15,7 @@ import { createEditOrderController, type EditOrderController } from './edit-orde
 import { mapChangeContextToEditBaseline, type EditOrderBaseline } from './edit-order-view-model';
 import { applyVisualDraftToController, projectEditVisualOrder, visualHeaderChangeCount } from './edit-workspace-adapter';
 import { readEditReview, type EditReviewView } from './edit-review-view';
+import { readApplyFailure, type ApplyFailureNotice } from './apply-failure';
 import { EditReviewDialog, type EditHistoryRow } from './edit-review-dialog';
 import { OrderChangeFollowUpDialog } from './order-change-follow-up-dialog';
 import type { OrderChangeFollowUpPlan } from '@/lib/services/order-change/order-change-follow-up';
@@ -22,6 +23,65 @@ import { OrderWorkspaceSessionProvider, type OrderWorkspaceSessionValue } from '
 
 interface EditSharedWorkspaceProps {
   orderId: string;
+}
+
+function explainApplyCode(t: ReturnType<typeof useTranslations>, code: string): string {
+  switch (code) {
+    case 'CURRENCY_UNRESOLVED': return t('workspace.applyError.currencyUnresolved');
+    case 'COLLECTION_POLICY_UNRESOLVED': return t('workspace.applyError.collectionUnresolved');
+    case 'COMMERCIAL_TOTAL_CHANGED': return t('workspace.applyError.totalChanged');
+    case 'REVIEW_NOT_READY': return t('workspace.applyError.reviewNotReady');
+    case 'REVIEW_CHANGED': return t('workspace.applyError.reviewChanged');
+    case 'POLICY_CHANGED_REVIEW_REQUIRED': return t('workspace.policyChanged');
+    case 'STRUCTURE_PRICE_MISSING': return t('workspace.applyError.structurePriceMissing');
+    case 'FINANCIAL_SNAPSHOT_MISMATCH': return t('workspace.applyError.snapshotMismatch');
+    case 'COMMERCIAL_LINE_UNSUPPORTED': return t('workspace.applyError.lineUnsupported');
+    case 'PREFERENCE_PARENT_NOT_PERSISTED': return t('workspace.applyError.preferenceParent');
+    case 'VERSION_CONFLICT': return t('workspace.applyError.versionConflict');
+    case 'WORKFLOW_VERSION_CONFLICT': return t('workspace.applyError.workflowConflict');
+    case 'IDEMPOTENCY_CONFLICT': return t('workspace.applyError.idempotencyConflict');
+    case 'IDEMPOTENCY_IN_FLIGHT': return t('workspace.applyError.idempotencyInFlight');
+    case 'REMOVAL_NOT_ACTIVE': return t('workspace.applyError.removalNotActive');
+    case 'UPDATE_NOT_ACTIVE': return t('workspace.applyError.updateNotActive');
+    case 'ORDER_FIELD_UPDATE_LOST': return t('workspace.applyError.fieldUpdateLost');
+    case 'ORDER_NOT_FOUND': return t('workspace.applyError.orderNotFound');
+    case 'INTERNAL_ERROR': return t('workspace.applyError.internal');
+    case 'PERMISSION_DENIED': return t('workspace.applyError.permissionDenied');
+    case 'UNAUTHENTICATED': return t('workspace.applyError.unauthenticated');
+    default: return t('workspace.applyError.unknown', { code });
+  }
+}
+
+function applyFailureNotice(t: ReturnType<typeof useTranslations>, body: unknown): ApplyFailureNotice {
+  const facts = readApplyFailure(body);
+  const title = explainApplyCode(t, facts.code);
+  const lines = [
+    `${t('workspace.applyError.code')}: ${facts.code}`,
+    ...(facts.requestId ? [`${t('workspace.applyError.request')}: ${facts.requestId}`] : []),
+    ...(facts.serverMessage ? [`${t('workspace.applyError.server')}: ${facts.serverMessage}`] : []),
+  ];
+  return { title, lines, copyText: [title, ...lines].join('\n') };
+}
+
+function showApplyFailure(
+  t: ReturnType<typeof useTranslations>,
+  tCommon: ReturnType<typeof useTranslations>,
+  notice: ApplyFailureNotice,
+): void {
+  cmxMessage.error(notice.title, {
+    description: notice.lines.join('\n'),
+    duration: 20000,
+    dismissible: true,
+    action: {
+      label: t('policyInfo.copy'),
+      onClick: () => {
+        void navigator.clipboard.writeText(notice.copyText).then(
+          () => { cmxMessage.success(tCommon('copied')); },
+          () => { cmxMessage.error(t('policyInfo.copyFailed')); },
+        );
+      },
+    },
+  });
 }
 
 function customer(context: OrderChangeContext): MinimalCustomer | null {
@@ -49,6 +109,7 @@ function EditSharedWorkspaceBody({
   onCommitted: () => void;
 }) {
   const t = useTranslations('orders.edit');
+  const tCommon = useTranslations('common');
   const dispatch = useNewOrderDispatch();
   const state = useNewOrderState();
   const [controller] = useState<EditOrderController>(() => createEditOrderController({
@@ -63,6 +124,7 @@ function EditSharedWorkspaceBody({
   const [history, setHistory] = useState<EditHistoryRow[]>([]);
   const [applying, setApplying] = useState(false);
   const [conflict, setConflict] = useState(false);
+  const [applyFailure, setApplyFailure] = useState<ApplyFailureNotice | null>(null);
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [followUpPlan, setFollowUpPlan] = useState<OrderChangeFollowUpPlan | null>(null);
 
@@ -114,6 +176,7 @@ function EditSharedWorkspaceBody({
     setReviewStatus(view.status);
     setEstimatedTotal(view.estimatedTotal);
     setConflict(view.conflict);
+    setApplyFailure(null);
     setReviewOpen(view.status !== 'NO_CHANGE');
   }, [context.financial.totalAmount, controller]);
 
@@ -168,12 +231,15 @@ function EditSharedWorkspaceBody({
     try {
       const result = await controller.apply(context.orderId, controller.commitKey());
       if (!result.ok) {
+        const notice = applyFailureNotice(t, result.body);
+        setApplyFailure(notice);
         setConflict(result.status === 409);
         setReviewView((current) => current ? { ...current, status: result.status === 409 ? 'CONFLICT' : current.status, conflict: result.status === 409 } : current);
-        cmxMessage.error(result.status === 409 && (result.body as { error?: { code?: string } }).error?.code === 'POLICY_CHANGED_REVIEW_REQUIRED' ? t('workspace.policyChanged') : result.status === 409 ? t('workspace.conflict') : t('workspace.applyFailed'));
+        showApplyFailure(t, tCommon, notice);
         return;
       }
       cmxMessage.success(t('workspace.applied'));
+      setApplyFailure(null);
       setReviewOpen(false);
       const followUp = await fetch(`/api/v1/orders/${context.orderId}/changes/follow-up`, {
         headers: await getCSRFHeader(await getCSRFToken()),
@@ -188,17 +254,24 @@ function EditSharedWorkspaceBody({
       }
       onCommitted();
     } catch {
-      cmxMessage.error(t('workspace.applyFailed'));
+      const notice: ApplyFailureNotice = {
+        title: t('workspace.applyFailed'),
+        lines: [t('workspace.applyError.noResponse')],
+        copyText: `${t('workspace.applyFailed')}\n${t('workspace.applyError.noResponse')}`,
+      };
+      setApplyFailure(notice);
+      showApplyFailure(t, tCommon, notice);
     } finally {
       setApplying(false);
     }
-  }, [context.orderId, controller, onCommitted, t]);
+  }, [context.orderId, controller, onCommitted, t, tCommon]);
 
   const onDiscard = useCallback(() => {
     setReviewStatus(null);
     setEstimatedTotal(null);
     setReviewOpen(false);
     setConflict(false);
+    setApplyFailure(null);
     setReloadKey((current) => current + 1);
     cmxMessage.info(t('workspace.discarded'));
   }, [t]);
@@ -231,6 +304,7 @@ function EditSharedWorkspaceBody({
         history={history}
         applying={applying || reviewing}
         conflict={conflict}
+        applyFailure={applyFailure}
         onOpenChange={setReviewOpen}
         onAcknowledge={(seq, gateCode) => {
           controller.acknowledge(seq, gateCode);

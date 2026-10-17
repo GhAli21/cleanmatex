@@ -170,7 +170,7 @@ describe('persistOrderChangeTx', () => {
     expect(tx.change()?.tenant_org_id).toBe('tenant-1');
     expect(tx.outbox()?.aggregate_id).toBe(result.orderChangeId);
     expect(tx.outbox()?.event_type).toBe(OUTBOX_EVENT_TYPES.ORDER_CHANGE_APPLIED);
-    expect(tx.calls).toEqual(['version', 'change', 'ops', 'item-insert', 'outbox', 'sql']);
+    expect(tx.calls).toEqual(['version', 'change', 'item-insert', 'ops', 'outbox', 'sql']);
     expect(tx.retired()).toEqual(['item-old', 'piece-child', 'pref-child']);
   });
 

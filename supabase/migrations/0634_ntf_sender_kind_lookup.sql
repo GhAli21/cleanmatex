@@ -1,4 +1,3 @@
--- 0634_ntf_sender_kind_lookup.sql  --  UNAPPLIED (written 2026-10-17; the owner applies it and regenerates types)
 --
 -- Notification Hub: lookup of allowed sender kinds per provider ("pick, don't type").
 --
