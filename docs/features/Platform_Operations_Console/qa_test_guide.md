@@ -159,7 +159,7 @@ Open HQ → Operations → Setup Health and confirm each row reacts as described
 | T20 ⚠ | Add your address to the organization's suppression list (tenant side), try again. | 409 refused (suppression is never bypassed). Remove it afterwards. |
 | T21 | Check usage: `select sum(sent_count) from org_ntf_usage_daily where tenant_org_id = '<id>'` and the Quota "Tenant position" tab before and after a test send. | Unchanged: test messages are not counted. |
 | T22 | Send more than `ntf.hq.test_send_per_min` tests within a minute. | 429 above the limit; another operator is unaffected. |
-| T23 | Audit: HQ audit log for action `notification_template.test_send`. | One entry per send, recipient masked (`o***@example.com`), template, version, status; no credentials. |
+| T23 | Audit: HQ sidebar > Notification & Comm Hub > **Notification Audit** (`/notifications/audit`), filter Action type `notification_template` (or read the list): action `notification_template.test_send`. | One entry per send, recipient masked (`o***@example.com`), template, version, status; no credentials. |
 | T24 | SMS test: allow-list your phone (+E.164), channel SMS, send. Then try WhatsApp. | SMS arrives prefixed `[TEST]`; WhatsApp shows "available for email and SMS". |
 
 ## W. Operational safety (R14, migrations 0625, 0626 + 0628)
@@ -406,11 +406,13 @@ What changed in code or data, and what still needs a person. "Fixed" means a tes
 | PDT7 | (after 0634 is applied) Notifications > Connections > select a TWILIO_WHATSAPP account > Add sender | Open Sender kind, pick WHATSAPP_NUMBER, tick Template, save | List shows only this provider's kinds as `Label - [code]`; Message types checkboxes appear; saved capabilities = `{"message_types":["template"]}`. |
 | PDT8 | Same, RESEND or TWILIO_SMS account | Pick EMAIL_ADDRESS / PHONE_NUMBER | No message types; advanced JSON field accepts only a JSON object. API with a kind not in the list → 400. Before 0634 is applied the field is free text and any kind is accepted. |
 | PDT9 | (0635 applied 2026-10-17) API or SQL: insert/update a sender on a TWILIO_WHATSAPP account with sender_kind `PHONE_NUMBER`, or capabilities `{"message_types":["bulk"]}` | Save | DB rejects with `ntf_sender_kind: ...` (23514); API answers 400 with that message. A provider without lookup rows still saves. |
-| PDT10 | Connections > Add platform account | Open Credential ref; pick one, then pick "New reference" and type `sk_live_abc...` | Picked ref fills its latest version and lists known versions; a secret-looking or badly formatted value shows an error and Save is disabled; API answers 400 too. <!-- PDT-P2 2026-10-17 -->
-| PDT11 | Tenant Config > Connections > Add private connection | Open Provider | Only Twilio providers; a hint explains why; API with another provider → 400. |
-| PDT12 | Twilio import (platform and private) | Open Language | Languages from the DB, lowercase codes, `Label - [language_code]`; "No language" option. |
+| PDT10 | Connections > Add platform account | Open Credential ref; pick one, then pick "New reference" and type `sk_live_abc...` | Picked ref fills its latest version and lists known versions; a secret-looking (`sk_live_abc123`) or badly formatted (`bad ref!`) value shows an error and Save is disabled; Save is also disabled while Account key, Provider account ID or Name is empty; API answers 400 too. <!-- PDT-P2 2026-10-17 -->
+| PDT11 | Tenant Config > Connections > Add private connection | Open Provider | Only Twilio providers; a hint explains why; the row channel's Twilio provider is preselected (none if no Twilio provider serves it); header shows the organization `name · id` (id only without tenants.view); API with another provider → 400. |
+| PDT12 | Twilio import (platform and private) | Open Language | Languages from the DB as `code · name`, lowercase codes, `Label - [language_code]`. The field is required (no "No language" option); with no active language a hint shows and Import stays disabled. |
 | PDT13 | Quota > Add override | Pick tenant, metric, period that already exist | Metric list = active DB channels + CAMPAIGN; duplicate shows an error and Save is disabled; Save disabled with no tenant. |
 | PDT14 | Broadcast > New campaign | Pick a channel, then a template; change channel | Only templates with an APPROVED version on that channel; a template that no longer fits is cleared. |
 | PDT15 | Observability, Operations, Providers | Open the channel filter | Channels come from the catalog; inactive ones are marked. |
 | PDT16 | Ops Config > ntf.hq.twilio.content_cred_ref > Edit | Open the value | Pick list of TWILIO_WHATSAPP refs plus free entry. |
 | PDT17 | Log in as a non-super-admin HQ role with hq_notifications:read | Open any organization picker | Organizations load (GET /tenants needs only an HQ session). |
+| PDT18 | Quota > Tenant overrides | Delete an override, then add the same organization + metric + period again | The row reappears (soft-deleted row reactivated). |
+| PDT19 | Connections > a sender > Add sender | Type `[1]` or `abc` in the capabilities JSON | Inline "must be a JSON object" error; Save disabled. |

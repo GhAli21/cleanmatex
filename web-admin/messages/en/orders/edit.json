@@ -99,6 +99,7 @@
       "reviewChanged": "The order changed after this review. Reload it and review again.",
       "structurePriceMissing": "A new or changed item has no reviewed price, so the change was not saved.",
       "snapshotMismatch": "The saved total did not match the reviewed total, so the whole change was undone.",
+      "taxLineMissing": "This order has no tax line, so the reviewed tax could not be saved.",
       "lineUnsupported": "This kind of change cannot be saved yet.",
       "preferenceParent": "A preference was added to a row that is not saved on the order yet.",
       "versionConflict": "Someone else saved this order first. Reload it and review again.",

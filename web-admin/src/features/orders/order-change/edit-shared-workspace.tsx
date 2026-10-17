@@ -35,6 +35,7 @@ function explainApplyCode(t: ReturnType<typeof useTranslations>, code: string): 
     case 'POLICY_CHANGED_REVIEW_REQUIRED': return t('workspace.policyChanged');
     case 'STRUCTURE_PRICE_MISSING': return t('workspace.applyError.structurePriceMissing');
     case 'FINANCIAL_SNAPSHOT_MISMATCH': return t('workspace.applyError.snapshotMismatch');
+    case 'TAX_LINE_MISSING': return t('workspace.applyError.taxLineMissing');
     case 'COMMERCIAL_LINE_UNSUPPORTED': return t('workspace.applyError.lineUnsupported');
     case 'PREFERENCE_PARENT_NOT_PERSISTED': return t('workspace.applyError.preferenceParent');
     case 'VERSION_CONFLICT': return t('workspace.applyError.versionConflict');
@@ -73,11 +74,11 @@ function showApplyFailure(
     duration: 20000,
     dismissible: true,
     action: {
-      label: t('policyInfo.copy'),
+      label: t('policyInfo.facts.copy'),
       onClick: () => {
         void navigator.clipboard.writeText(notice.copyText).then(
           () => { cmxMessage.success(tCommon('copied')); },
-          () => { cmxMessage.error(t('policyInfo.copyFailed')); },
+          () => { cmxMessage.error(t('policyInfo.facts.copyFailed')); },
         );
       },
     },

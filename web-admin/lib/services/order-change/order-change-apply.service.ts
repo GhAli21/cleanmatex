@@ -6,6 +6,7 @@
 
 import {
   assertCommercialSnapshot,
+  syncReviewedTaxLine,
   buildCommercialWritePlan,
   loadCommercialWriteFacts,
   OrderChangeApplyRejected,
@@ -297,6 +298,13 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
         plan,
       });
       if (commercialMoneyChanged(plan) || structuralMoneyChanged(structural)) {
+        await syncReviewedTaxLine(tx, {
+          tenantId: input.tenantId,
+          orderId: input.orderId,
+          projectedTax: money4(input.preview.projectedTax),
+          actorUserId: input.actorUserId,
+          appliedAt: input.appliedAt,
+        });
         await assertCommercialSnapshot(tx, {
           tenantId: input.tenantId,
           orderId: input.orderId,

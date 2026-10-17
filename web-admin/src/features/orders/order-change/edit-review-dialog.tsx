@@ -57,7 +57,7 @@ export function EditReviewDialog({
     if (!applyFailure) return;
     void navigator.clipboard.writeText(applyFailure.copyText).then(
       () => { cmxMessage.success(tCommon('copied')); },
-      () => { cmxMessage.error(t('policyInfo.copyFailed')); },
+      () => { cmxMessage.error(t('policyInfo.facts.copyFailed')); },
     );
   };
   return (
@@ -70,7 +70,7 @@ export function EditReviewDialog({
           {applyFailure ? (
             <div className="space-y-2">
               <CmxSummaryMessage type="error" title={applyFailure.title} items={applyFailure.lines} />
-              <CmxButton type="button" variant="outline" onClick={copyFailure}>{t('policyInfo.copy')}</CmxButton>
+              <CmxButton type="button" variant="outline" onClick={copyFailure}>{t('policyInfo.facts.copy')}</CmxButton>
             </div>
           ) : conflict ? (
             <CmxSummaryMessage type="warning" title={t('workspace.conflict')} items={[]} />

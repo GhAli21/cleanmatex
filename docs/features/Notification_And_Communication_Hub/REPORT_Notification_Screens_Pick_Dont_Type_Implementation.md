@@ -178,3 +178,25 @@ Tenant repo:
 - [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md)
 - [QA guide](../Platform_Operations_Console/qa_test_guide.md) (PDT rows)
 - [Audit prompt](PROMPT_Notification_Screens_Pick_Dont_Type_Audit.md) (Tracking section)
+
+## 18. Browser QA round 1 (production, read-only, 2026-10-17)
+| Row | Result | Note / fix |
+|---|---|---|
+| PDT1 | PASS | Failover pickers. Channel list = channels the operations API accepts (no WEB_SOCKET): intended. |
+| PDT2 | PASS | Paused-org scopes exclude IN_APP and WEB_SOCKET by design (not governed by HQ dispatch). Picker search hardened (#9). |
+| PDT3 | PASS | Labels now render " - [column]" (#7). |
+| PDT4 | FAIL → fixed | Platform add started on TWILIO_WHATSAPP; now empty unless only one provider fits (#6). |
+| PDT5 | FAIL → fixed | SMS preview chip "In-app text": correct fallback (version has no SMS text) but unclear; now "No SMS text: the in-app text is used", warning badge (#5). |
+| PDT6 | PASS | Analytics filter layout widened (#10). |
+| PDT7–PDT9 | not run | Writes; not done on production. |
+| PDT10 | FAIL → fixed | `sk_live_abc123` not flagged; Save enabled with invalid ref or empty required fields. Secret check widened (web + API); Save disabled until valid (#3). |
+| PDT11 | FAIL → fixed | Private add preselected TWILIO_WHATSAPP; now the row channel's Twilio provider or none; header shows organization `name · id` (#6). |
+| PDT12 | PASS (guide aligned) | Language is required (import needs language_code), so no "No language" option; QA guide updated (#4). |
+| PDT13 | BLOCKED → explained | 0 overrides: all 12 remote rows are soft-deleted (is_active false, rec_status 0, deleted 2026-10-17 04:47–04:48 UTC+4). Not a list bug. Real bug found: re-saving a soft-deleted combo upserted without reactivating it; upsert now sets is_active true, rec_status 1 (#1). |
+| PDT14 | PASS | — |
+| PDT15 | PASS | Providers search icon fixed (#10). |
+| PDT16 | PASS | — |
+| PDT17 | not run | Needs a QA_NOTIFICATIONS_READ login. |
+
+Other findings: #2 sender capabilities JSON validated live (inline error, Save disabled). #7 CmxFieldLabel and CmxDataTable header text always contain " - ["; Operations "Organization id" → "Organization ID". #8 Tenant Config headers: status → "Active", channelEnabled → "Channel enabled" (EN/AR). #9 organization search keeps previous results while loading (keepPreviousData); the input was never disabled; debounce 300 ms, the rest is API time. #10 shell search wrapper self-start (icon inside the input); analytics toolbar items-start and tenant picker w-full sm:w-80; column names no longer split mid-token. Quota "Reason" clipping is the pinned Actions column over a scrolled table (scroll reveals it): left as is. #11 intended (operations DTO scopes). #12 the 401 on /auth/me is the expired-access-token probe; the API client refreshes and retries: harmless.
+Tests: web 15 suites / 144 passed (new: 7 connections cases, cmx-field-label); API quota/provider-accounts 7 suites / 67 passed (new: reactivation, secret patterns). Note: another session was editing many of the same notifications-hq files at the same time; only the files above were changed in this round.

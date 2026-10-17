@@ -94,3 +94,6 @@ Review finding: with `HQ_RBAC_ENFORCEMENT_ENABLED=false` (old default) every `hq
 ## Jobs & events reference (2026-10-16)
 
 Full catalog of all 18 jobs, the domain-event and notification outboxes, secrets/config map, environments, 17 findings, architecture options and a per-job decision matrix: [Jobs_Details_And_Events_And_All_Related_Details.md](./Jobs_Details_And_Events_And_All_Related_Details.md). Analysis only — no runtime change was made. Open owner decisions are in its §15 and §17.
+
+## Update 2026-10-17 (end of day)
+Browser-bot QA fixes that touch this console: Jobs and Operations catalog screens now wait for the operator's permissions before deciding access (no more "no permission" flash); the pause-organization request accepts the demo organization id (`IsUuidIfEnabled`). Open and not changed: job times are shown in UTC (04:00 UTC = 08:00 Muscat); `ntf-campaign-scheduler` description still says "every minute"; T29 failover needs a second real provider. Remaining rows that need staging or a developer are listed in `Notification_And_Communication_Hub/notification-hub-production-implementation-plan.md` section 23.2.

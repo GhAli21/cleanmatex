@@ -755,6 +755,27 @@ Everything in this subsection is current as of the date above; re-verify against
 
 Next concrete step once A1's cutover-gate/language-signal work and A5(a)'s cron migration are built: run the pilot on the demo tenant, record evidence, then revisit A3/A6/B2 with real data in hand.
 
+### 23.2 Closure snapshot (2026-10-17, end of day) — read this to know exactly what is left
+
+**Built and verified (code + tests + EN/AR + docs):** every item A1–A8, A10 and the pick-don't-type program (PDT P1/P2). Latest verification: HQ platform-web tsc clean, `__tests__/features` 266 tests pass; HQ platform-api notifications-hq 37 suites / 492 tests pass (tsc 63 errors = pre-existing baseline). Migrations 0613–0635 are applied to local and remote (0632/0633/0634/0635 applied by the owner 2026-10-17). **0636** (`0636_ntf_backfill_import_var_labels.sql`, data-only label/sample backfill for auto-imported template variables) is written by the importer-fix session; applied by the owner to both databases 2026-10-17. Next free sequence: **0637**.
+
+**Bugs found by the two browser-bot QA runs and fixed 2026-10-17 (HQ code):** generic HTTP 400 on pause-organization and test send (demo organization id rejected by `@IsUUID`; now `IsUuidIfEnabled`, the project validator controlled by `cmx_p_tmp.chk_isuuid`, which is `false` on the remote); older notification controllers lacked permission checks (now read/manage split, enforced by a test that also caught two new template write endpoints — variable and locale edit — now `manage`); read-only users saw write buttons; Jobs/Operations "no permission" flash; no audit screen (new `/notifications/audit`).
+
+**Still open — owner/operator actions (not code):**
+| # | Item | Notes |
+|---|---|---|
+| O1 | Deploy HQ platform-api and platform-web, commit both repos | Tenant repo: STATUS/RESUME/QA docs + `0636` file. HQ repo: 7 files (IsUuidIfEnabled swap, templates controller manage permission, two test mocks). |
+| O2 | Re-run browser QA after deploy | Bot rows that were blocked or failed: T18, T19, T22, T23 (now `/notifications/audit`), T42; read-only role check (no write buttons); pick-don't-type PDT1–PDT17. |
+| O3 | Rows that need staging/developer | T1–T3, T5–T8, T10–T12, T20–T21, T26–T28, T30–T32, T35–T37 (Redis stop, SQL, raw tokens, forced provider reject, live provider traffic). |
+| O4 | Restore drill on staging; assign runbook owners (C2); close the two stuck demo outbox rows; encrypt plain-text registry secrets once `HQ_ENCRYPTION_MASTER_KEY` is confirmed | |
+| O5 | Optional: fix the Arabic body of `order.created.default` v2 (Add Version + Arabic Twilio template); delete the extra draft version on `assembly.completed.default` from the T16 QA run | |
+
+**Still open — owner decisions:** (D1) T29 failover needs a second real provider (kept for later; `SANDBOX_EMAIL` is not a catalog provider); (D2) who may view the tenant Permissions catalog (`F:\jhapp\cleanmatex\web-admin\app\dashboard\settings\permissions\page.tsx`, route `/dashboard/settings/permissions`, currently shows Access Denied to the tested admin); (D3) HQ Settings > Audit Trail "Filters" button is dead (`F:\jhapp\cleanmatexsaas\platform-web\app\settings\audit\page.tsx`; settings audit, outside this hub); (D4) keep the push-subscription sweep job enabled by a migration or leave it as the live setting (a rebuild from 0632 would bring it back disabled); (D5) minor wording: cron times shown in UTC, campaign scheduler description still says "every minute".
+
+**Not verified here:** no browser click-through of the new/changed screens; `platform-web` `npm run build` not rerun after the 2026-10-17 changes; private-route display lookups are only mock-tested.
+
+**Closing the plans:** mark them closed only when O2 shows no open failure and D1–D5 are decided or explicitly parked in `Skipped_On_Purpose.md`.
+
 ## 24. Documentation deliverables and definition of done
 
 Maintain this plan and its schema/contract companion as planning truth. Update existing feature guides rather than publishing duplicate active manuals.

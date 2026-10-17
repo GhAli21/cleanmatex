@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto';
 
 import { CHARGE_TYPES } from '@/lib/constants/order-financial';
 import { PREFS_LEVEL, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
+import { round4 } from '@/lib/services/order-financial-aggregation';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import type { OrderChangePersistedOperation, OrderChangeRowWrite } from '@/lib/services/order-change/order-change-mutation.service';
 import type { z } from 'zod';
@@ -309,6 +310,106 @@ export async function writePreferenceCharges(
         ${input.actorUserId}::uuid
       )
     `;
+  }
+}
+
+/**
+ * Splits the reviewed tax across the order's current tax lines.
+ * The last line takes the remainder so the stored sum equals the reviewed tax.
+ */
+export function allocateReviewedTax(
+  lines: readonly { id: string; taxAmount: string }[],
+  projectedTax: string,
+): { id: string; taxAmount: string }[] {
+  if (lines.length === 0) return [];
+  const target = round4(Number(projectedTax));
+  if (lines.length === 1) return [{ id: lines[0].id, taxAmount: target.toFixed(4) }];
+  const current = lines.map((line) => {
+    const amount = Number(line.taxAmount);
+    return Number.isFinite(amount) && amount > 0 ? amount : 0;
+  });
+  const sum = current.reduce((total, amount) => total + amount, 0);
+  const shares: number[] = [];
+  if (sum <= 0) {
+    shares.push(target);
+    for (let index = 1; index < lines.length; index += 1) shares.push(0);
+  } else {
+    let used = 0;
+    for (let index = 0; index < lines.length - 1; index += 1) {
+      const share = round4(target * (current[index] / sum));
+      shares.push(share);
+      used = round4(used + share);
+    }
+    shares.push(round4(target - used));
+  }
+  return lines.map((line, index) => ({ id: line.id, taxAmount: shares[index].toFixed(4) }));
+}
+
+/**
+ * The snapshot adds the stored tax lines. A new item changes the base, so those
+ * lines must carry the reviewed tax before the snapshot is compared.
+ */
+export async function syncReviewedTaxLine(
+  tx: CommercialQueryTx & { org_orders_mst?: { findFirstOrThrow?: unknown } },
+  input: {
+    tenantId: string;
+    orderId: string;
+    projectedTax: string;
+    actorUserId: string;
+    appliedAt: Date;
+  },
+): Promise<void> {
+  if (typeof tx.org_orders_mst?.findFirstOrThrow !== 'function') return;
+  if (typeof tx.$queryRaw !== 'function' || typeof tx.$executeRaw !== 'function') return;
+  const query = tx.$queryRaw.bind(tx);
+  const execute = tx.$executeRaw.bind(tx);
+  const lines = await query<Array<{ id: string; tax_amount: string }>>`
+    SELECT id::text AS id, tax_amount::text AS tax_amount
+    FROM org_order_taxes_dtl
+    WHERE tenant_org_id = ${input.tenantId}::uuid
+      AND order_id = ${input.orderId}::uuid
+      AND rec_status = 1
+    ORDER BY applied_seq ASC, id ASC
+  `;
+  if (lines.length === 0) {
+    if (round4(Number(input.projectedTax)) === 0) return;
+    throw new OrderChangeApplyRejected(422, 'TAX_LINE_MISSING');
+  }
+  const allocated = allocateReviewedTax(
+    lines.map((line) => ({ id: line.id, taxAmount: line.tax_amount })),
+    input.projectedTax,
+  );
+  for (const line of allocated) {
+    if (lines.length === 1) {
+      await execute`
+        UPDATE org_order_taxes_dtl AS tax
+        SET tax_amount = ${line.taxAmount}::numeric,
+            taxable_amount = (
+              SELECT COALESCE(SUM(item.total_price), 0)
+              FROM org_order_items_dtl AS item
+              WHERE item.tenant_org_id = tax.tenant_org_id
+                AND item.order_id = tax.order_id
+                AND item.rec_status = 1
+            ),
+            updated_at = ${input.appliedAt},
+            updated_by = ${input.actorUserId}::uuid
+        WHERE tax.id = ${line.id}::uuid
+          AND tax.tenant_org_id = ${input.tenantId}::uuid
+          AND tax.order_id = ${input.orderId}::uuid
+          AND tax.rec_status = 1
+      `;
+    } else {
+      await execute`
+        UPDATE org_order_taxes_dtl
+        SET tax_amount = ${line.taxAmount}::numeric,
+            updated_at = ${input.appliedAt},
+            updated_by = ${input.actorUserId}::uuid
+        WHERE id = ${line.id}::uuid
+          AND tenant_org_id = ${input.tenantId}::uuid
+          AND order_id = ${input.orderId}::uuid
+          AND rec_status = 1
+      `;
+    }
   }
 }
 
