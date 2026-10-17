@@ -7,6 +7,7 @@ import { logger } from '@/lib/utils/logger';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
 import { orderChangeContextParamsSchema, orderChangeIdempotencyKeySchema } from '@/lib/validations/order-change/order-change.schemas';
 import { OrderChangeFollowUpError, executeOrderChangeStoredValueResolution } from '@/lib/services/order-change/order-change-follow-up.service';
+import { enforceOrderEditSession } from '@/lib/api/order-edit-session-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!idempotencyKey.success) return errorResponse(400, 'IDEMPOTENCY_KEY_REQUIRED', 'A valid Idempotency-Key header is required', requestId);
   const parsedParams = orderChangeContextParamsSchema.safeParse(await params);
   if (!parsedParams.success) return errorResponse(400, 'VALIDATION_ERROR', 'Invalid order identifier', requestId);
+  const session = await enforceOrderEditSession(request, auth, parsedParams.data.id, requestId, errorResponse);
+  if (session) return session;
   const body = await request.json().catch(() => null);
   const parsedBody = bodySchema.safeParse(body);
   if (!parsedBody.success) return errorResponse(400, 'VALIDATION_ERROR', 'Invalid financial resolution request', requestId);

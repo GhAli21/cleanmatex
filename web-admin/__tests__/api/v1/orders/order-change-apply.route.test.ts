@@ -32,6 +32,14 @@ jest.mock('@/lib/services/order-change/order-change-apply.service', () => ({
 }));
 jest.mock('@/lib/db/prisma', () => ({ prisma: { $transaction: (...args: unknown[]) => transactionMock(...args) } }));
 jest.mock('@/lib/db/tenant-context', () => ({ withTenantContext: (_tenantId: string, fn: (tenantId: string) => Promise<unknown>) => fn(_tenantId) }));
+const sessionMock = jest.fn();
+jest.mock('@/lib/services/order-edit-session.service', () => ({
+  touchOrderEditSession: (...args: unknown[]) => sessionMock(...args),
+  OrderEditSessionError: class OrderEditSessionError extends Error {
+    code: string;
+    constructor(code: string) { super(code); this.code = code; }
+  },
+}));
 
 import { POST } from '@/app/api/v1/orders/[id]/changes/route';
 
@@ -65,6 +73,7 @@ describe('POST /api/v1/orders/[id]/changes', () => {
     jest.resetAllMocks();
     csrfMock.mockResolvedValue(null);
     permissionMock.mockResolvedValue(true);
+    sessionMock.mockResolvedValue({ expiresAt: '2026-10-17T10:00:00.000Z' });
     requirePermissionMock.mockReturnValue(async () => ({ tenantId: TENANT_ID, userId: '33333333-3333-4333-8333-333333333333' }));
     contextMock.mockResolvedValue({ order: { currencyCode: 'OMR', paymentTypeCode: 'PAY_ON_COLLECTION' }, financial: { totalAmount: '10.0000' }, orderId: ORDER_ID });
     factsMock.mockResolvedValue({ featureEnabled: true, bindings: [], quotesByTargetId: {}, catalog: [], taxMode: 'TAX_EXCLUSIVE', taxRatePercent: '0.0000', currencyDecimalPlaces: 3, payments: [], credits: [], refunds: [], proofKey: null });

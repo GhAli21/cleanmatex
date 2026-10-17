@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { OrderItem, OrderWithDetails } from '@/types/order';
 import { CmxButton } from '@ui/primitives';
+import { StartOrderEditButton } from '@features/orders/order-change/start-order-edit-button';
 import { ItemList } from './ItemList';
 import { PricePreview } from './PricePreview';
 import { PrintItemLabels } from './PrintItemLabels';
@@ -150,16 +151,11 @@ export function FastItemizer({ order, returnUrl = '/dashboard/preparation' }: Fa
               {t('preparation.detail.noItemsYet')}
             </p>
             {canUpdate ? (
-              <CmxButton
-                type="button"
-                variant="outline"
+              <StartOrderEditButton
+                orderId={order.id}
+                label={tOrderActions('buttons.editOrder')}
                 disabled={busy}
-                onClick={() => {
-                  router.push(`/dashboard/orders/${order.id}/edit`);
-                }}
-              >
-                {tOrderActions('buttons.editOrder')}
-              </CmxButton>
+              />
             ) : null}
           </div>
         ) : (

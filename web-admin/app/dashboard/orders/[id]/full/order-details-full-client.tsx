@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, Edit, Clock, Package, Link2, Copy } from 'lucide-react';
+import { ChevronLeft, Clock, Package, Link2, Copy } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -16,6 +16,7 @@ import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderDiscountBreakdown } from '@features/orders/ui/order-discount-breakdown';
 import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
+import { StartOrderEditButton } from '@features/orders/order-change/start-order-edit-button';
 import { CmxTabsPanel } from '@ui/navigation/cmx-tabs-panel';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives/cmx-button';
@@ -28,6 +29,9 @@ import { OrdersStockTabRprt } from '@features/orders/ui/orders-stock-tab-rprt';
 import { OrdersReceiptsTabRprt } from '@features/orders/ui/orders-receipts-tab-rprt';
 import { OrdersEditHistoryTabRprt, toOrderEditStatusValues } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import type { OrderEditHistoryEntry } from '@features/orders/ui/orders-edit-history-tab-rprt';
+import { OrdersChangeHistoryTabRprt } from '@features/orders/ui/orders-change-history-tab-rprt';
+import type { OrderChangeHistoryErrorCode } from '@/app/actions/orders/get-order-change-history';
+import type { OrderChangeHistoryPage } from '@/lib/services/order-change/order-change-history-view';
 import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
 import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab-rprt';
 import type { OrderPreferenceDtlColumn, OrderPreferenceRow } from '@/lib/orders/order-preferences-dtl';
@@ -51,7 +55,7 @@ import type { OrderStatus } from '@/lib/types/workflow';
 import type { PrintLabelOrderInput } from '@features/orders/ui/print-label-button';
 import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
 
-const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts', 'financial', 'customer', 'notes'] as const;
+const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'change_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts', 'financial', 'customer', 'notes'] as const;
 
 interface OrderDetailsFullClientProps {
   order: Record<string, unknown>;
@@ -71,6 +75,8 @@ interface OrderDetailsFullClientProps {
     retryCount: number;
   }>;
   editHistory: OrderEditHistoryEntry[];
+  changeHistory: OrderChangeHistoryPage;
+  changeHistoryError: OrderChangeHistoryErrorCode | null;
   orderPreferences: OrderPreferenceRow[];
   discountLines?: OrderDiscountLine[];
   financialData?: {
@@ -110,6 +116,8 @@ interface OrderDetailsFullClientProps {
  * @param root0.stockTransactions
  * @param root0.receipts
  * @param root0.editHistory
+ * @param root0.changeHistory
+ * @param root0.changeHistoryError
  * @param root0.orderPreferences
  * @param root0.discountLines
  * @param root0.financialData
@@ -133,6 +141,8 @@ export function OrderDetailsFullClient({
   stockTransactions,
   receipts,
   editHistory,
+  changeHistory,
+  changeHistoryError,
   orderPreferences,
   discountLines = [],
   financialData,
@@ -1040,6 +1050,20 @@ export function OrderDetailsFullClient({
       ),
     },
     {
+      id: 'change_history',
+      label: t.tabsChangeHistory ?? 'Change History',
+      content: (
+        <div className="rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] p-6">
+          <OrdersChangeHistoryTabRprt
+            key={String(order.id)}
+            orderId={String(order.id)}
+            initial={changeHistory}
+            initialError={changeHistoryError}
+          />
+        </div>
+      ),
+    },
+    {
       id: 'invoices',
       label: t.tabsInvoices ?? 'Invoices',
       content: (
@@ -1495,13 +1519,7 @@ export function OrderDetailsFullClient({
         <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <PrintLabelButton order={order as unknown as PrintLabelOrderInput} />
           {!isTerminalStatus && (
-            <Link
-              href={`/dashboard/orders/${order.id}/edit`}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}
-            >
-              <Edit className="w-4 h-4" />
-              {t.edit}
-            </Link>
+            <StartOrderEditButton orderId={String(order.id)} label={t.edit} />
           )}
           {publicTrackingPath && (
             <button

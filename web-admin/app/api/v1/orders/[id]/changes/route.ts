@@ -13,6 +13,7 @@ import { previewOrderChange } from '@/lib/services/order-change/order-change-pre
 import { applyOrderChange, type OrderChangeApplyTx } from '@/lib/services/order-change/order-change-apply.service';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { enforceOrderEditSession } from '@/lib/api/order-edit-session-guard';
 
 /** Forces a fresh apply because versions, proof, and settlement are concurrency-sensitive. */
 export const dynamic = 'force-dynamic';
@@ -73,6 +74,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const parsedParams = orderChangeContextParamsSchema.safeParse(await params);
   if (!parsedParams.success) return errorResponse(400, 'VALIDATION_ERROR', 'Invalid order identifier', requestId);
+  const session = await enforceOrderEditSession(request, auth, parsedParams.data.id, requestId, errorResponse);
+  if (session) return session;
 
   let body: unknown;
   try {

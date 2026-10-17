@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { logger } from '@/lib/utils/logger';
 import { orderChangeContextParamsSchema } from '@/lib/validations/order-change/order-change.schemas';
 import { loadOrderChangeFollowUp } from '@/lib/services/order-change/order-change-follow-up.service';
+import { enforceOrderEditSession } from '@/lib/api/order-edit-session-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
   const parsedParams = orderChangeContextParamsSchema.safeParse(await params);
   if (!parsedParams.success) return errorResponse(400, 'VALIDATION_ERROR', 'Invalid order identifier', requestId);
+  const session = await enforceOrderEditSession(request, auth, parsedParams.data.id, requestId, errorResponse);
+  if (session) return session;
   try {
     const plan = await loadOrderChangeFollowUp(auth.tenantId, parsedParams.data.id);
     if (!plan) return errorResponse(404, 'ORDER_NOT_FOUND', 'Order not found', requestId);

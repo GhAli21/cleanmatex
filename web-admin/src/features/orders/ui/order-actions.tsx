@@ -12,12 +12,12 @@ import {
   XCircle,
   Wrench,
   RotateCcw,
-  Edit,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { StartOrderEditButton } from '@features/orders/order-change/start-order-edit-button';
 import { FixOrderDataModal } from './fix-order-data-modal';
 import { CancelOrderDialog } from './cancel-order-dialog';
 import { CustomerReturnOrderDialog } from './customer-return-order-dialog';
@@ -110,15 +110,12 @@ export function OrderActions({ order }: OrderActionsProps) {
         {canUpdate && (['draft', 'intake', 'preparation', 'preparing'] as const).some(
           (status) => status === currentStatus,
         ) && (
-          <CmxButton
-            variant="outline"
-            onClick={() => router.push(`/dashboard/orders/${order.id}/edit`)}
-            className={`w-full border-blue-300 text-blue-700 hover:bg-blue-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+          <StartOrderEditButton
+            orderId={order.id}
+            label={t('buttons.editOrder')}
             size="lg"
-          >
-            <Edit className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t('buttons.editOrder')}
-          </CmxButton>
+            className={`w-full border-blue-300 text-blue-700 hover:bg-blue-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+          />
         )}
 
         {canUpdate ? (

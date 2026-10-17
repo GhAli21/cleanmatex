@@ -19,6 +19,7 @@ import { useTenantPreferenceSettings } from '../hooks/use-tenant-preference-sett
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { useOrderSubmission } from '../hooks/use-order-submission';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
+import { setEditLeaveBypass } from '../order-change/edit-page-session';
 import { EditOrderContextBar } from '../order-change/edit-order-context-bar';
 import { EditPolicyInfoButton } from '../order-change/edit-policy-info-button';
 import { useOrderEditDirty } from '../hooks/use-order-edit-dirty';
@@ -189,6 +190,7 @@ export function NewOrderContent() {
             ? (tEdit('confirmLeave') || 'Leave without saving?')
             : (t('warnings.unsavedChanges') || 'You have unsaved changes. Are you sure you want to leave?')
     );
+
     const { cancelEditOrder, isCancelling } = useOrderEditCancel(
         state.state.editingOrderId,
         allowNextNavigation
@@ -278,6 +280,11 @@ export function NewOrderContent() {
     );
 
     const workspace = useOrderWorkspaceSessionOptional();
+    useEffect(() => {
+        if (!workspace) return;
+        setEditLeaveBypass(allowNextNavigation);
+        return () => setEditLeaveBypass(null);
+    }, [workspace, allowNextNavigation]);
     const itemCapability = useEditControlGroup(['ADD_ITEM']);
 
     const handleAddItem = useCallback(

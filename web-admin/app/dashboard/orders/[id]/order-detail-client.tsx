@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ChevronLeft, Edit, Clock, Package, Link2, Copy, LayoutList } from 'lucide-react';
+import { ChevronLeft, Clock, Package, Link2, Copy, LayoutList } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -21,6 +21,7 @@ import { OrderStatusLifecycleTab } from '@features/orders/ui/order-status-lifecy
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
+import { StartOrderEditButton } from '@features/orders/order-change/start-order-edit-button';
 import { DeliveryProofAuditCard } from '@features/delivery/ui/delivery-proof-audit-card';
 import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab-rprt';
 import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
@@ -28,6 +29,9 @@ import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-r
 import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
 import { OrdersEditHistoryTabRprt, toOrderEditStatusValues } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import type { OrderEditHistoryEntry } from '@features/orders/ui/orders-edit-history-tab-rprt';
+import { OrdersChangeHistoryTabRprt } from '@features/orders/ui/orders-change-history-tab-rprt';
+import type { OrderChangeHistoryErrorCode } from '@/app/actions/orders/get-order-change-history';
+import type { OrderChangeHistoryPage } from '@/lib/services/order-change/order-change-history-view';
 import { isPreparationEnabled } from '@/lib/config/features';
 import type { OrderFinancialData } from '@/app/actions/orders/get-order-financial';
 import type { OrderPreferenceDtlColumn, OrderPreferenceRow } from '@/lib/orders/order-preferences-dtl';
@@ -54,6 +58,7 @@ const TAB_IDS = [
   'history',
   'delivery_proof',
   'edit_history',
+  'change_history',
   'debug',
   'actions',
 ] as const;
@@ -69,6 +74,8 @@ interface OrderDetailClientProps {
   orderInvoices: Invoice[];
   vouchers: VoucherData[];
   editHistory: OrderEditHistoryEntry[];
+  changeHistory: OrderChangeHistoryPage;
+  changeHistoryError: OrderChangeHistoryErrorCode | null;
   tenantOrgId: string;
   userId: string;
   canViewFinancialDebug: boolean;
@@ -89,6 +96,8 @@ interface OrderDetailClientProps {
  * @param root0.orderInvoices
  * @param root0.vouchers
  * @param root0.editHistory
+ * @param root0.changeHistory
+ * @param root0.changeHistoryError
  * @param root0.tenantOrgId
  * @param root0.userId
  * @param root0.canViewFinancialDebug
@@ -106,6 +115,8 @@ export function OrderDetailClient({
   orderInvoices,
   vouchers,
   editHistory,
+  changeHistory,
+  changeHistoryError,
   tenantOrgId,
   userId,
   canViewFinancialDebug,
@@ -528,6 +539,18 @@ export function OrderDetailClient({
         />
       ),
     },
+    {
+      id: 'change_history',
+      label: tFin('tabs.changeHistory'),
+      content: (
+        <OrdersChangeHistoryTabRprt
+          key={String(order.id)}
+          orderId={String(order.id)}
+          initial={changeHistory}
+          initialError={changeHistoryError}
+        />
+      ),
+    },
     ...(canViewFinancialDebug
       ? [
           {
@@ -594,12 +617,7 @@ export function OrderDetailClient({
               {t.orderWorkspace}
             </CmxButton>
           </Link>
-          <Link href={`/dashboard/orders/${order.id}/edit`}>
-            <CmxButton variant="outline" size="sm" className="gap-2">
-              <Edit className="h-4 w-4" />
-              {t.edit}
-            </CmxButton>
-          </Link>
+          <StartOrderEditButton orderId={String(order.id)} label={t.edit} />
           {publicTrackingPath && (
             <CmxButton variant="outline" size="sm" onClick={handleCopyPublicLink} className="gap-2">
               <Link2 className="h-4 w-4" />

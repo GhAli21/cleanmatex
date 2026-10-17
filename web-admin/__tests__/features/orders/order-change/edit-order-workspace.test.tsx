@@ -223,10 +223,12 @@ describe('shared edit workspace adapter', () => {
 
   it('mounts the shared New Order workspace and does not keep a second edit form', () => {
     const page = readFileSync(join(process.cwd(), 'app/dashboard/orders/[id]/edit/page.tsx'), 'utf8');
+    const gate = readFileSync(join(process.cwd(), 'src/features/orders/order-change/edit-order-page-gate.tsx'), 'utf8');
     const host = readFileSync(join(process.cwd(), 'src/features/orders/order-change/edit-shared-workspace.tsx'), 'utf8');
     const adapter = readFileSync(join(process.cwd(), 'src/features/orders/order-change/edit-workspace-adapter.ts'), 'utf8');
     const content = readFileSync(join(process.cwd(), 'src/features/orders/ui/new-order-content.tsx'), 'utf8');
-    expect(page).toContain('EditSharedWorkspace');
+    expect(page).toContain('EditOrderPageGate');
+    expect(gate).toContain('EditSharedWorkspace');
     expect(page).not.toContain('EditOrderWorkspace');
     expect(host).toContain('NewOrderContent');
     expect(host).toContain('NewOrderModals');

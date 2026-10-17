@@ -750,6 +750,18 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
       },
       {
+        label: 'Server action: get-order-change-history',
+        method: 'POST',
+        path: '/app/actions/orders/get-order-change-history',
+        requirement: {
+          permissions: ['orders:read', 'orders:view_financial_breakdown'],
+          requireAllPermissions: false,
+        },
+        notes: [
+          'Order details Change History tab. Returns the change header, operations, and item/piece/preference removal lineage. Replay secrets are not selected.',
+        ],
+      },
+      {
         label: 'Server action: get-order-financial',
         method: 'POST',
         path: '/app/actions/orders/get-order-financial',
@@ -925,6 +937,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
         notes: ['Read-only Edit preview. CSRF and orders:edit are enforced in the route. No Change row is written.'],
+      },
+      {
+        label: 'Order Edit session',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/edit-session',
+        requirement: {
+          permissions: ['orders:edit'],
+          requireAllPermissions: true,
+        },
+        notes: ['Starts, claims, refreshes, or ends the tab edit lock. CSRF and orders:edit are enforced. A copied edit address has no session.'],
       },
       {
         label: 'Order Change Context',
@@ -1387,6 +1409,18 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: '/app/actions/orders/get-order-edit-history',
         notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-order-change-history',
+        method: 'POST',
+        path: '/app/actions/orders/get-order-change-history',
+        requirement: {
+          permissions: ['orders:read', 'orders:view_financial_breakdown'],
+          requireAllPermissions: false,
+        },
+        notes: [
+          'Order details Change History tab. Returns the change header, operations, and item/piece/preference removal lineage. Replay secrets are not selected.',
+        ],
       },
       {
         label: 'Server action: get-order-financial',

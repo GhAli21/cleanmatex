@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { cmxMessage, CmxSummaryMessage } from '@ui/feedback';
+import { CmxButton } from '@ui/primitives/cmx-button';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { getCSRFToken } from '@/lib/utils/csrf-token';
 import type { OrderChangeContext } from '@/lib/types/order-change';
@@ -20,9 +21,17 @@ import { EditReviewDialog, type EditHistoryRow } from './edit-review-dialog';
 import { OrderChangeFollowUpDialog } from './order-change-follow-up-dialog';
 import type { OrderChangeFollowUpPlan } from '@/lib/services/order-change/order-change-follow-up';
 import { OrderWorkspaceSessionProvider, type OrderWorkspaceSessionValue } from './order-workspace-session';
+import { orderEditSessionHeaders, type OrderEditLeaveReason } from './edit-page-session';
+
+interface EditLeaveRequest {
+  reason: Extract<OrderEditLeaveReason, 'user_exit' | 'applied'>;
+  paymentsTab: boolean;
+}
 
 interface EditSharedWorkspaceProps {
   orderId: string;
+  sessionToken: string;
+  onLeave: (request: EditLeaveRequest) => Promise<void> | void;
 }
 
 function explainApplyCode(t: ReturnType<typeof useTranslations>, code: string): string {
@@ -103,18 +112,25 @@ function customer(context: OrderChangeContext): MinimalCustomer | null {
 function EditSharedWorkspaceBody({
   context,
   baseline,
+  sessionToken,
   onCommitted,
+  onLeave,
 }: {
   context: OrderChangeContext;
   baseline: EditOrderBaseline;
+  sessionToken: string;
   onCommitted: () => void;
+  onLeave: (request: EditLeaveRequest) => Promise<void> | void;
 }) {
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const dispatch = useNewOrderDispatch();
   const state = useNewOrderState();
   const [controller] = useState<EditOrderController>(() => createEditOrderController({
-    headers: async () => getCSRFHeader(await getCSRFToken()),
+    headers: async () => ({
+      ...getCSRFHeader(await getCSRFToken()),
+      ...orderEditSessionHeaders(sessionToken),
+    }),
   }));
   const [reloadKey, setReloadKey] = useState(0);
   const [reviewing, setReviewing] = useState(false);
@@ -128,6 +144,10 @@ function EditSharedWorkspaceBody({
   const [applyFailure, setApplyFailure] = useState<ApplyFailureNotice | null>(null);
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [followUpPlan, setFollowUpPlan] = useState<OrderChangeFollowUpPlan | null>(null);
+  const [sealed, setSealed] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const paymentsOnLeaveRef = useRef(false);
+  const exitRef = useRef<() => Promise<void>>(async () => undefined);
 
   useEffect(() => {
     const visualOrder = projectEditVisualOrder(context);
@@ -182,11 +202,13 @@ function EditSharedWorkspaceBody({
   }, [context.financial.totalAmount, controller]);
 
   const loadHistory = useCallback(async () => {
-    const response = await fetch(`/api/v1/orders/${context.orderId}/changes?limit=5`);
+    const response = await fetch(`/api/v1/orders/${context.orderId}/changes?limit=5`, {
+      headers: orderEditSessionHeaders(sessionToken),
+    });
     if (!response.ok) return;
     const body = await response.json() as { data?: { items?: EditHistoryRow[] } };
     setHistory(body.data?.items ?? []);
-  }, [context.orderId]);
+  }, [context.orderId, sessionToken]);
 
   const previewDraft = useCallback(async () => {
     const result = await controller.preview(context.orderId);
@@ -242,18 +264,30 @@ function EditSharedWorkspaceBody({
       cmxMessage.success(t('workspace.applied'));
       setApplyFailure(null);
       setReviewOpen(false);
-      const followUp = await fetch(`/api/v1/orders/${context.orderId}/changes/follow-up`, {
-        headers: await getCSRFHeader(await getCSRFToken()),
-      });
-      if (followUp.ok) {
-        const body = await followUp.json() as { data?: OrderChangeFollowUpPlan };
-        const plan = body.data;
-        if (plan && (plan.actions.length > 0 || plan.unavailable.length > 0)) {
-          setFollowUpPlan(plan);
-          setFollowUpOpen(true);
+      setSealed(true);
+      let paymentsTab = false;
+      try {
+        const followUp = await fetch(`/api/v1/orders/${context.orderId}/changes/follow-up`, {
+          headers: {
+            ...getCSRFHeader(await getCSRFToken()),
+            ...orderEditSessionHeaders(sessionToken),
+          },
+        });
+        if (followUp.ok) {
+          const body = await followUp.json() as { data?: OrderChangeFollowUpPlan };
+          const plan = body.data;
+          if (plan && (plan.actions.length > 0 || plan.unavailable.length > 0)) {
+            paymentsTab = plan.actions.some((action) => !action.executesHere);
+            paymentsOnLeaveRef.current = paymentsTab;
+            setFollowUpPlan(plan);
+            setFollowUpOpen(true);
+            return;
+          }
         }
+      } catch {
+        paymentsTab = false;
       }
-      onCommitted();
+      await onLeave({ reason: 'applied', paymentsTab });
     } catch {
       const notice: ApplyFailureNotice = {
         title: t('workspace.applyFailed'),
@@ -265,9 +299,10 @@ function EditSharedWorkspaceBody({
     } finally {
       setApplying(false);
     }
-  }, [context.orderId, controller, onCommitted, t, tCommon]);
+  }, [context.orderId, controller, onLeave, sessionToken, t, tCommon]);
 
   const onDiscard = useCallback(() => {
+    if (sealed || exiting) return;
     setReviewStatus(null);
     setEstimatedTotal(null);
     setReviewOpen(false);
@@ -275,7 +310,40 @@ function EditSharedWorkspaceBody({
     setApplyFailure(null);
     setReloadKey((current) => current + 1);
     cmxMessage.info(t('workspace.discarded'));
-  }, [t]);
+  }, [exiting, sealed, t]);
+
+  const onExit = useCallback(async () => {
+    if (exiting) return;
+    if (!sealed && visualHeaderChangeCount(baseline, visual) > 0) {
+      const confirmed = await cmxMessage.confirm({
+        title: t('confirmLeave'),
+        message: t('confirmCancelMessage'),
+        variant: 'warning',
+        confirmLabel: tCommon('confirm'),
+        cancelLabel: tCommon('cancel'),
+      });
+      if (!confirmed) return;
+    }
+    setExiting(true);
+    await onLeave({
+      reason: sealed ? 'applied' : 'user_exit',
+      paymentsTab: sealed ? paymentsOnLeaveRef.current : false,
+    });
+  }, [baseline, exiting, onLeave, sealed, t, tCommon, visual]);
+
+  useEffect(() => {
+    exitRef.current = onExit;
+  }, [onExit]);
+
+  useEffect(() => {
+    window.history.pushState({ cmxOrderEdit: context.orderId }, '');
+    const onPop = () => {
+      window.history.pushState({ cmxOrderEdit: context.orderId }, '');
+      void exitRef.current();
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [context.orderId]);
 
   const session = useMemo<OrderWorkspaceSessionValue>(() => ({
     orderNo: context.orderNo,
@@ -291,14 +359,19 @@ function EditSharedWorkspaceBody({
     editPolicy: context.editPolicy,
     onReview: () => { void onReview(); },
     onDiscard,
-  }), [baseline, context, estimatedTotal, onDiscard, onReview, reviewStatus, reviewing, visual]);
+    onExit: () => { void onExit(); },
+    exiting,
+    sealed,
+  }), [baseline, context, estimatedTotal, exiting, onDiscard, onExit, onReview, reviewStatus, reviewing, sealed, visual]);
 
   return (
     <OrderWorkspaceSessionProvider value={session}>
-      <NewOrderLayout>
-        <NewOrderContent />
-        <NewOrderModals />
-      </NewOrderLayout>
+      <div inert={sealed ? true : undefined} className={sealed ? 'pointer-events-none' : undefined}>
+        <NewOrderLayout>
+          <NewOrderContent />
+          <NewOrderModals />
+        </NewOrderLayout>
+      </div>
       <EditReviewDialog
         open={reviewOpen}
         review={reviewView}
@@ -327,13 +400,18 @@ function EditSharedWorkspaceBody({
         open={followUpOpen}
         orderId={context.orderId}
         plan={followUpPlan}
-        onOpenChange={setFollowUpOpen}
+        sessionToken={sessionToken}
+        onOpenChange={(open) => {
+          if (open) return;
+          setFollowUpOpen(false);
+          void onLeave({ reason: 'applied', paymentsTab: paymentsOnLeaveRef.current });
+        }}
       />
     </OrderWorkspaceSessionProvider>
   );
 }
 
-export function EditSharedWorkspace({ orderId }: EditSharedWorkspaceProps) {
+export function EditSharedWorkspace({ orderId, sessionToken, onLeave }: EditSharedWorkspaceProps) {
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const [context, setContext] = useState<OrderChangeContext | null>(null);
@@ -349,7 +427,9 @@ export function EditSharedWorkspace({ orderId }: EditSharedWorkspaceProps) {
     let active = true;
     async function load() {
       try {
-        const response = await fetch(`/api/v1/orders/${orderId}/change-context`);
+        const response = await fetch(`/api/v1/orders/${orderId}/change-context`, {
+          headers: orderEditSessionHeaders(sessionToken),
+        });
         const body = await response.json() as { data?: OrderChangeContext };
         if (!active) return;
         if (!response.ok || !body.data) {
@@ -370,27 +450,47 @@ export function EditSharedWorkspace({ orderId }: EditSharedWorkspaceProps) {
     }
     void load();
     return () => { active = false; };
-  }, [orderId, contextVersion]);
+  }, [orderId, contextVersion, sessionToken]);
+
+  const leaveClosed = () => {
+    void onLeave({ reason: 'user_exit', paymentsTab: false });
+  };
 
   if (loading) return <p className="p-6 text-start">{tCommon('loading')}</p>;
-  if (failed || !context) {
+  if (failed || !context || !mappedBaseline || !mappedBaseline.ok) {
     return (
-      <div className="p-6 text-start">
+      <div className="mx-auto flex max-w-xl flex-col gap-4 p-6 text-start">
         <CmxSummaryMessage type="error" title={t('workspace.loadFailed')} items={[]} />
+        <div>
+          <CmxButton type="button" variant="outline" onClick={leaveClosed}>{t('lifecycle.exit')}</CmxButton>
+        </div>
       </div>
     );
   }
-  if (!mappedBaseline || !mappedBaseline.ok) {
+  if (context.editAccess.status !== 'OPEN') {
     return (
-      <div className="p-6 text-start">
-        <CmxSummaryMessage type="error" title={t('workspace.loadFailed')} items={[]} />
+      <div className="mx-auto flex max-w-xl flex-col gap-4 p-6 text-start">
+        <CmxSummaryMessage
+          type="warning"
+          title={context.editAccess.reasonText || context.editAccess.reasonCode || t('cannotEdit')}
+          items={[t('lifecycle.accessClosedBody')]}
+        />
+        <div>
+          <CmxButton type="button" variant="outline" onClick={leaveClosed}>{t('lifecycle.exit')}</CmxButton>
+        </div>
       </div>
     );
   }
 
   return (
     <NewOrderProvider>
-      <EditSharedWorkspaceBody context={context} baseline={mappedBaseline.baseline} onCommitted={() => setContextVersion((current) => current + 1)} />
+      <EditSharedWorkspaceBody
+        context={context}
+        baseline={mappedBaseline.baseline}
+        sessionToken={sessionToken}
+        onCommitted={() => setContextVersion((current) => current + 1)}
+        onLeave={onLeave}
+      />
     </NewOrderProvider>
   );
 }

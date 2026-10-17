@@ -8,6 +8,7 @@ import { getOrderInvoices } from '@/app/actions/payments/invoice-actions';
 import { getOrderFinancialAction } from '@/app/actions/orders/get-order-financial';
 import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-preferences';
 import { getOrderEditHistoryAction } from '@/app/actions/orders/get-order-edit-history';
+import { getOrderChangeHistoryAction } from '@/app/actions/orders/get-order-change-history';
 import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
@@ -133,6 +134,7 @@ async function OrderDetailContent({
     financialResult,
     preferencesResult,
     editHistoryResult,
+    changeHistoryResult,
     vouchersResult,
     canViewFinancialDebug,
   ] = await Promise.all([
@@ -140,6 +142,7 @@ async function OrderDetailContent({
     getOrderFinancialAction(tenantId, resolvedOrderId),
     getOrderPreferencesAction(resolvedOrderId),
     getOrderEditHistoryAction(resolvedOrderId),
+    getOrderChangeHistoryAction(resolvedOrderId),
     getVouchersForOrder(resolvedOrderId),
     hasPermissionServer('orders:view_financial_breakdown'),
   ]);
@@ -149,6 +152,10 @@ async function OrderDetailContent({
     preferencesResult.success && preferencesResult.data ? preferencesResult.data : [];
   const editHistory =
     editHistoryResult.success && editHistoryResult.data ? editHistoryResult.data : [];
+  const changeHistory = changeHistoryResult.success === true
+    ? changeHistoryResult.data
+    : { items: [], nextCursor: null, totalCount: 0 };
+  const changeHistoryError = changeHistoryResult.success === false ? changeHistoryResult.error : null;
   const vouchers = vouchersResult ?? [];
   const headerFinancialSnapshot = readCanonicalOrderFinancialSnapshot(
     order as unknown as Record<string, unknown>,
@@ -229,6 +236,8 @@ async function OrderDetailContent({
       orderInvoices={orderInvoices}
       vouchers={vouchers}
       editHistory={editHistory}
+      changeHistory={changeHistory}
+      changeHistoryError={changeHistoryError}
       tenantOrgId={tenantId}
       userId={userId ?? ''}
       canViewFinancialDebug={canViewFinancialDebug}

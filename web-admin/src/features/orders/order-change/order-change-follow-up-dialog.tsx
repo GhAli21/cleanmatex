@@ -8,6 +8,7 @@ import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { getCSRFToken } from '@/lib/utils/csrf-token';
+import { orderEditSessionHeaders } from './edit-page-session';
 import type { OrderChangeFollowUpPlan } from '@/lib/services/order-change/order-change-follow-up';
 
 /**
@@ -19,11 +20,13 @@ export function OrderChangeFollowUpDialog({
   open,
   orderId,
   plan,
+  sessionToken,
   onOpenChange,
 }: {
   open: boolean;
   orderId: string;
   plan: OrderChangeFollowUpPlan | null;
+  sessionToken: string;
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations('orders.edit');
@@ -39,6 +42,7 @@ export function OrderChangeFollowUpDialog({
           'Content-Type': 'application/json',
           'Idempotency-Key': idempotencyKey,
           ...getCSRFHeader(await getCSRFToken()),
+          ...orderEditSessionHeaders(sessionToken),
         },
         body: JSON.stringify({ resolutionCode: code, amount }),
       });
@@ -96,7 +100,7 @@ export function OrderChangeFollowUpDialog({
         </div>
         <CmxDialogFooter>
           <CmxButton type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {t('followUp.close')}
+            {t('lifecycle.backToOrder')}
           </CmxButton>
         </CmxDialogFooter>
       </CmxDialogContent>

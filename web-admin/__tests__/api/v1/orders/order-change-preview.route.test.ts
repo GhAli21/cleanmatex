@@ -23,6 +23,14 @@ jest.mock('@/lib/services/order-change/order-change-preview-reads', () => ({
   OrderChangePreviewReadError: class OrderChangePreviewReadError extends Error { code = 'PRICE_UNRESOLVED'; status = 422; },
 }));
 jest.mock('@/lib/services/permission-service-server', () => ({ hasPermissionServer: (...args: unknown[]) => permissionMock(...args) }));
+const sessionMock = jest.fn();
+jest.mock('@/lib/services/order-edit-session.service', () => ({
+  touchOrderEditSession: (...args: unknown[]) => sessionMock(...args),
+  OrderEditSessionError: class OrderEditSessionError extends Error {
+    code: string;
+    constructor(code: string) { super(code); this.code = code; }
+  },
+}));
 
 import { POST } from '@/app/api/v1/orders/[id]/changes/preview/route';
 
@@ -55,6 +63,7 @@ describe('POST /api/v1/orders/[id]/changes/preview', () => {
     jest.resetAllMocks();
     csrfMock.mockResolvedValue(null);
     permissionMock.mockResolvedValue(true);
+    sessionMock.mockResolvedValue({ expiresAt: '2026-10-17T10:00:00.000Z' });
   });
 
   it('requires orders:edit and previews with the authenticated organization', async () => {

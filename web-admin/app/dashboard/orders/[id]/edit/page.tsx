@@ -1,7 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import { EditSharedWorkspace } from '@features/orders/order-change/edit-shared-workspace';
+import { EditOrderPageGate } from '@features/orders/order-change/edit-order-page-gate';
 
 interface EditOrderPageProps {
   params: Promise<{ id: string }>;
@@ -9,11 +9,11 @@ interface EditOrderPageProps {
 
 /**
  * Edit Order uses the shared New Order workspace.
- * The Edit session owns review. This page does not submit a new order or call the legacy update.
+ * The page gate claims a session started by an in-app Edit action before the workspace mounts.
  * @param root0
  * @param root0.params
  */
 export default function EditOrderPage({ params }: EditOrderPageProps) {
   const { id } = use(params);
-  return <EditSharedWorkspace orderId={id} />;
+  return <EditOrderPageGate orderId={id} />;
 }

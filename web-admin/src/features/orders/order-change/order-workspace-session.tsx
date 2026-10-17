@@ -21,6 +21,10 @@ export interface OrderWorkspaceSessionValue {
   editPolicy: OrderChangeEditPolicyInfo;
   onReview: () => void;
   onDiscard: () => void;
+  onExit: () => void;
+  exiting: boolean;
+  /** True after Apply, while the follow-up dialog is the only remaining action. */
+  sealed: boolean;
 }
 
 const OrderWorkspaceSessionContext = createContext<OrderWorkspaceSessionValue | null>(null);

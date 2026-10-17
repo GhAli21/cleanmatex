@@ -9,6 +9,7 @@ import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { getStockTransactionsForOrder } from '@/lib/services/inventory-service';
 import { ReceiptService } from '@/lib/services/receipt-service';
 import { getOrderEditHistoryAction } from '@/app/actions/orders/get-order-edit-history';
+import { getOrderChangeHistoryAction } from '@/app/actions/orders/get-order-change-history';
 import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-preferences';
 import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
@@ -146,6 +147,7 @@ async function OrderDetailsFullContent({
     stockResult,
     receiptsResult,
     editHistoryResult,
+    changeHistoryResult,
     preferencesResult,
     discountLines,
     financialResult,
@@ -155,6 +157,7 @@ async function OrderDetailsFullContent({
     getStockTransactionsForOrder(resolvedOrderId),
     ReceiptService.getReceipts({ orderId: resolvedOrderId, tenantId }),
     getOrderEditHistoryAction(resolvedOrderId),
+    getOrderChangeHistoryAction(resolvedOrderId),
     getOrderPreferencesAction(resolvedOrderId),
     getDiscountLinesForOrder(tenantId, resolvedOrderId).catch(() => [] as OrderDiscountLine[]),
     getOrderFinancialAction(tenantId, resolvedOrderId),
@@ -164,6 +167,10 @@ async function OrderDetailsFullContent({
   const stockTransactions = stockResult ?? [];
   const receipts = receiptsResult ?? [];
   const editHistory = editHistoryResult.success && editHistoryResult.data ? editHistoryResult.data : [];
+  const changeHistory = changeHistoryResult.success === true
+    ? changeHistoryResult.data
+    : { items: [], nextCursor: null, totalCount: 0 };
+  const changeHistoryError = changeHistoryResult.success === false ? changeHistoryResult.error : null;
   const orderPreferences = preferencesResult.success && preferencesResult.data ? preferencesResult.data : [];
   const financialData = financialResult.success ? financialResult.data : undefined;
   const financialSnapshot = financialData?.snapshot;
@@ -258,6 +265,8 @@ async function OrderDetailsFullContent({
       stockTransactions={stockTransactions}
       receipts={receipts}
       editHistory={editHistory}
+      changeHistory={changeHistory}
+      changeHistoryError={changeHistoryError}
       orderPreferences={orderPreferences}
       discountLines={discountLines}
       financialData={financialData}
@@ -330,6 +339,7 @@ async function OrderDetailsFullContent({
         tabsItems: tFull('tabs.items'),
         tabsHistory: tFull('tabs.history'),
         tabsEditHistory: tFull('tabs.editHistory'),
+        tabsChangeHistory: tFull('tabs.changeHistory'),
         tabsInvoices: tFull('tabs.invoices'),
         tabsVouchers: tFull('tabs.vouchers'),
         tabsPayments: tFull('tabs.payments'),

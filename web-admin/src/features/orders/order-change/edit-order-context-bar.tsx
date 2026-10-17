@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { LogOut } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import type { OrderWorkspaceSessionValue } from './order-workspace-session';
@@ -24,11 +25,22 @@ export function EditOrderContextBar({ session }: { session: OrderWorkspaceSessio
             {t('workspace.dirtyCount', { count: session.dirtyCount })}
           </p>
         </div>
-        <div className="flex gap-2">
-          <CmxButton type="button" variant="outline" onClick={session.onDiscard} disabled={session.accessBlocked || session.dirtyCount === 0}>
+        <div className="flex flex-wrap gap-2">
+          <CmxButton
+            type="button"
+            variant="ghost"
+            onClick={session.onExit}
+            className="gap-2"
+            disabled={session.exiting || session.reviewing || session.sealed}
+            loading={session.exiting}
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            {t('lifecycle.exit')}
+          </CmxButton>
+          <CmxButton type="button" variant="outline" onClick={session.onDiscard} disabled={session.accessBlocked || session.dirtyCount === 0 || session.sealed || session.exiting}>
             {t('workspace.discardChanges')}
           </CmxButton>
-          <CmxButton type="button" onClick={session.onReview} disabled={session.accessBlocked || session.reviewing} loading={session.reviewing}>
+          <CmxButton type="button" onClick={session.onReview} disabled={session.accessBlocked || session.reviewing || session.sealed || session.exiting} loading={session.reviewing}>
             {session.reviewing ? t('workspace.reviewing') : t('workspace.review')}
           </CmxButton>
         </div>

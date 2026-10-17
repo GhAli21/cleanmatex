@@ -10,6 +10,14 @@ jest.mock('@/lib/services/order-change/order-change-context.service', () => ({
   getOrderChangeContext: (...args: unknown[]) => getOrderChangeContextMock(...args),
   OrderChangeContextError: class OrderChangeContextError extends Error { code = 'ORDER_NOT_COMMITTED'; status = 422; },
 }));
+const sessionMock = jest.fn();
+jest.mock('@/lib/services/order-edit-session.service', () => ({
+  touchOrderEditSession: (...args: unknown[]) => sessionMock(...args),
+  OrderEditSessionError: class OrderEditSessionError extends Error {
+    code: string;
+    constructor(code: string) { super(code); this.code = code; }
+  },
+}));
 
 import { GET } from '@/app/api/v1/orders/[id]/change-context/route';
 
@@ -17,7 +25,10 @@ const ORDER_ID = '11111111-1111-4111-8111-111111111111';
 const TENANT_ID = '22222222-2222-4222-8222-222222222222';
 
 describe('GET /api/v1/orders/[id]/change-context', () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => {
+    jest.resetAllMocks();
+    sessionMock.mockResolvedValue({ expiresAt: '2026-10-17T10:00:00.000Z' });
+  });
 
   it('uses existing read permission and derives tenant for the context loader', async () => {
     requirePermissionMock.mockReturnValue(async () => ({ tenantId: TENANT_ID, userId: '33333333-3333-3333-3333-333333333333' }));

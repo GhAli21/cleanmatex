@@ -4,13 +4,14 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft, CheckCircle2, ChevronRight, ClipboardCheck, Copy, CreditCard, MapPin, Package, Phone, Printer, UserRound } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, ClipboardCheck, Copy, CreditCard, MapPin, Package, Phone, Printer } from 'lucide-react';
 
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { cmxMessage } from '@ui/feedback';
+import { StartOrderEditButton } from '@features/orders/order-change/start-order-edit-button';
 import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
@@ -162,7 +163,7 @@ export function OrderWorkspaceScreen({
           {returnLabel ?? t('backToOrders')}
         </Link>
         <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <Link href={`/dashboard/orders/${orderId}/edit`}><CmxButton size="sm" variant="outline"><UserRound aria-hidden="true" className="h-4 w-4" />{t('edit')}</CmxButton></Link>
+          <StartOrderEditButton orderId={orderId} label={t('edit')} />
           <Link href={detailHref('items')}><CmxButton size="sm" variant="outline"><Printer aria-hidden="true" className="h-4 w-4" />{t('printAndDetails')}</CmxButton></Link>
         </div>
       </div>

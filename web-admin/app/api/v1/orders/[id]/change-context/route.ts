@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { logger } from '@/lib/utils/logger';
 import { orderChangeContextParamsSchema } from '@/lib/validations/order-change/order-change.schemas';
 import { getOrderChangeContext, OrderChangeContextError } from '@/lib/services/order-change/order-change-context.service';
+import { enforceOrderEditSession } from '@/lib/api/order-edit-session-guard';
 
 /** Forces fresh context reads because editability and workflow versions are concurrency-sensitive. */
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const parsed = orderChangeContextParamsSchema.safeParse(await params);
   if (!parsed.success) return errorResponse(400, 'VALIDATION_ERROR', 'Invalid order identifier', requestId);
+  const session = await enforceOrderEditSession(request, auth, parsed.data.id, requestId, errorResponse);
+  if (session) return session;
 
   try {
     const data = await getOrderChangeContext({ tenantId: auth.tenantId, orderId: parsed.data.id });

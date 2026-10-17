@@ -189,6 +189,21 @@
       "CHANGE_UNLISTED": "Other tracked change"
     }
   },
+  "lifecycle": {
+    "exit": "Exit",
+    "backToOrder": "Back to the order",
+    "startFailed": "Edit could not be opened. Open it again from the order.",
+    "deniedDirectTitle": "Edit was not opened from the order",
+    "deniedDirectBody": "Open Edit from the order screen. A copied address does not start an edit.",
+    "deniedExpiredTitle": "This edit session ended",
+    "deniedExpiredBody": "The edit session expired or was closed. Open Edit again from the order.",
+    "deniedInUseTitle": "This order is already open for editing",
+    "deniedInUseBody": "Close the other edit window before opening this order again.",
+    "deniedHeldTitle": "Someone else is editing this order",
+    "deniedHeldBody": "Wait until they exit, then open Edit from the order.",
+    "accessClosedBody": "This order cannot be edited right now.",
+    "sessionLost": "The edit session ended. Open the order again to continue."
+  },
   "followUp": {
     "title": "Balance after this change",
     "close": "Close",
