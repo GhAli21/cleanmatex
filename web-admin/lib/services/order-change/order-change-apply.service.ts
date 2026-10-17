@@ -56,6 +56,7 @@ function sameMoney(left: string, right: string): boolean {
 
 const MUTATION_CONFLICTS = new Set([
   'VERSION_CONFLICT',
+  'WORKFLOW_VERSION_CONFLICT',
   'ORDER_FIELD_UPDATE_LOST',
   'UPDATE_NOT_ACTIVE',
   'REMOVAL_NOT_ACTIVE',

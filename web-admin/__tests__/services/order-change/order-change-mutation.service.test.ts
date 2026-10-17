@@ -58,6 +58,7 @@ function fakeTx(options: {
     apply_response: unknown;
   } | null;
   activeItemIds?: string[];
+  workflowVersion?: number;
 } = {}) {
   const calls: string[] = [];
   let change: Record<string, unknown> | null = null;
@@ -70,7 +71,11 @@ function fakeTx(options: {
     outbox: () => outbox,
     itemInsert: () => itemInsert,
     retired: () => retired,
-    $queryRaw: async () => options.claim ?? [{ id: 'claim' }],
+    $queryRaw: async (query: TemplateStringsArray | string) => {
+      const text = typeof query === 'string' ? query : Array.from(query ?? []).join(' ');
+      if (text.includes('state_version')) return [{ state_version: options.workflowVersion ?? 4 }];
+      return options.claim ?? [{ id: 'claim' }];
+    },
     $executeRaw: async () => {
       calls.push('sql');
       return 1;
@@ -165,7 +170,7 @@ describe('persistOrderChangeTx', () => {
     expect(tx.change()?.tenant_org_id).toBe('tenant-1');
     expect(tx.outbox()?.aggregate_id).toBe(result.orderChangeId);
     expect(tx.outbox()?.event_type).toBe(OUTBOX_EVENT_TYPES.ORDER_CHANGE_APPLIED);
-    expect(tx.calls).toEqual(['sql', 'version', 'change', 'ops', 'item-insert', 'outbox', 'sql']);
+    expect(tx.calls).toEqual(['version', 'change', 'ops', 'item-insert', 'outbox', 'sql']);
     expect(tx.retired()).toEqual(['item-old', 'piece-child', 'pref-child']);
   });
 
@@ -174,8 +179,15 @@ describe('persistOrderChangeTx', () => {
     await expect(persistOrderChangeTx(tx as unknown as OrderChangeWriteTx, input())).rejects.toMatchObject({
       code: 'VERSION_CONFLICT',
     });
-    expect(tx.change()).toBeNull();
-    expect(tx.outbox()).toBeNull();
+    expect(tx.calls).toEqual(['version']);
+  });
+
+  it('rejects a workflow version that changed after Review and does not increment the edit revision', async () => {
+    const tx = fakeTx({ workflowVersion: 9 });
+    await expect(persistOrderChangeTx(tx as unknown as OrderChangeWriteTx, input())).rejects.toMatchObject({
+      code: 'WORKFLOW_VERSION_CONFLICT',
+    });
+    expect(tx.calls).toEqual([]);
   });
 
   it('replays a completed key without incrementing the revision', async () => {

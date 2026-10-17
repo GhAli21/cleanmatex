@@ -238,8 +238,8 @@ This ledger is the plan status authority. The inherited `WP01_Protection_Progres
 | WP15 review and history | DONE — review dialog, proof-bound Apply, tracked fields | The shared workspace opens a Review dialog. Apply uses the reviewed proof and one retry key. A 409 reloads without merging. History is a read-only label list. Apply also saves catalog preferences and tracked item and piece fields. Structural item and piece writes stay stopped for WP17. See [WP15 report](WP15_Review_Apply_History_v3.0.md). |
 | WP16 financial follow-up | DONE — existing collection route and stored-value resolution | A pay-on-collection balance uses the existing payments route. Other original payment types stay unchanged. Extra amounts can move to customer advance, credit, or wallet. Cash and gateway refunds stay unavailable. See [WP16 report](WP16_Financial_Follow_Up_v3.0.md). |
 | WP17 committed writers | CLOSED — column guard postponed | Route closure, structural Apply, processing echo check, order lock, and applied `0627` are in [WP17 report](WP17_Committed_Writer_Closure_v3.0.md). The direct-grant trigger is postponed in [WP17 postponed](WP17_Postponed_Committed_Column_Guard_v3.0.md). |
-| WP18 release proof | NOT STARTED — next | Target preflight, backfill, and concurrency/security release proof. |
-| WP19–WP20 | NOT STARTED | Separate package approval and listed prerequisites required. |
+| WP18 release proof | PARTIAL | Local Postgres proved OC-CON-001, 002, 003, 004, 007 and OC-SEC-001, 002. Apply now rejects a workflow version that moved after Review, and a missing target is rejected before any Change row. Playwright, payment/split races, direct-grant denial, and backfill remain open. See [WP18 report](WP18_Release_Proof_v3.0.md). |
+| WP19–WP20 | NOT STARTED | WP19 needs this partial proof plus an operator cohort. WP20 waits for a closed rollback window. |
 
 **Inherited v3.0/Codex change record (preserved evidence):** Audited/froze the existing codebase report; retained approved architecture and 20-package sequence; clarified split-safe history references and evidence limits; added mandatory instruction/reuse/agent/status/documentation tasks and production acceptance gates. No production behavior or schema changed by freeze.
 
@@ -763,6 +763,7 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 - **Tests:** Full Part 9 matrix with real tx/fault/tenant actors; browser EN/AR; Finance source/caps; load enough contention to prove lock order and duplicate response behavior. Missing DB/seed must be explicit and cannot count as pass.
 - **Acceptance:** No unresolved enabling-scope source/policy/FK or fiscal gap; canonical Create protected; all required V2 integration/concurrency/RLS/E2E results recorded, no placeholder assertions.
 - **Dependencies:** WP01–17. **Do not change:** production data via tests, authorization to apply migrations, deferred branches/currency/SAME_DAY modes without support.
+- **Status:** PARTIAL. Local concurrency and tenant-isolation proofs passed. Playwright, a payment or split race, direct committed DML denial, and a source backfill remain open. Evidence is in [WP18 report](WP18_Release_Proof_v3.0.md). WP19 is not started.
 
 ### WP19 — Controlled pilot, default cutover and safe rollback
 

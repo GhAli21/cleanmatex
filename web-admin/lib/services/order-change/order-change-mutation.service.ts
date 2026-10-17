@@ -298,12 +298,27 @@ export async function persistOrderChangeTx(
     };
   }
 
-  await tx.$executeRaw`
-    SELECT id
+  const locked = await tx.$queryRaw<Array<{ state_version: number }>>`
+    SELECT state_version
     FROM public.org_orders_mst
     WHERE id = ${input.orderId}::uuid
       AND tenant_org_id = ${input.tenantId}::uuid
     FOR UPDATE`;
+  if (!locked[0]) throw new OrderChangeMutationError('ORDER_NOT_FOUND');
+  if (Number(locked[0].state_version) !== input.expectedWfStateVersion) {
+    throw new OrderChangeMutationError('WORKFLOW_VERSION_CONFLICT');
+  }
+  const requestedRemovals = {
+    items: [...(input.removeItemIds ?? [])],
+    pieces: [...(input.removePieceIds ?? [])],
+    preferences: [...(input.removePreferenceIds ?? [])],
+  };
+  const activeRequestedItems = await activeIds(tx.org_order_items_dtl, input.tenantId, input.orderId, requestedRemovals.items);
+  if (activeRequestedItems.size !== requestedRemovals.items.length) throw new OrderChangeMutationError('REMOVAL_NOT_ACTIVE');
+  const activeRequestedPieces = await activeIds(tx.org_order_item_pieces_dtl, input.tenantId, input.orderId, requestedRemovals.pieces);
+  if (requestedRemovals.pieces.some((id) => !activeRequestedPieces.has(id))) throw new OrderChangeMutationError('REMOVAL_NOT_ACTIVE');
+  const activeRequestedPreferences = await activeIds(tx.org_order_preferences_dtl, input.tenantId, input.orderId, requestedRemovals.preferences);
+  if (requestedRemovals.preferences.some((id) => !activeRequestedPreferences.has(id))) throw new OrderChangeMutationError('REMOVAL_NOT_ACTIVE');
   const version = await tx.org_orders_mst.updateMany({
     where: {
       id: input.orderId,

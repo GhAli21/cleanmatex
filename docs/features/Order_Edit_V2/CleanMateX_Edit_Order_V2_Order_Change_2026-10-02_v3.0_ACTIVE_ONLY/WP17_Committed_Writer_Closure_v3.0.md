@@ -1,7 +1,7 @@
 # WP17 Committed writer closure
 
 **Date:** 2026-10-15 (Asia/Muscat)
-**Status:** CLOSED for the delivered writer scope. The direct-grant column guard is postponed in [WP17 postponed](WP17_Postponed_Committed_Column_Guard_v3.0.md). WP18 is next.
+**Status:** CLOSED for the delivered writer scope. The direct-grant column guard is postponed in [WP17 postponed](WP17_Postponed_Committed_Column_Guard_v3.0.md). WP18 is partial.
 **Authority:** Living plan WP17 and Part 7. Create, workflow readiness, and finance writers stay with their owners.
 
 ## Scope delivered

@@ -4,6 +4,14 @@
 .claude/worktrees/
 .claude/scheduled_tasks.lock
 
+# Ignore all image files under any folder starting with "GrokBot"
+**/GrokBot*/**/*.png
+**/GrokBot*/**/*.jpg
+**/GrokBot*/**/*.jpeg
+**/GrokBot*/**/*.gif
+**/GrokBot*/**/*.bmp
+**/GrokBot*/**/*.svg
+
 # Ignore ghost Windows device file
 web-admin/nul
 web-admin/nul.*
