@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxCheckbox } from '@ui/primitives/cmx-checkbox';
@@ -53,6 +54,7 @@ export function EditReviewDialog({
 }) {
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
+  const [reasonText, setReasonText] = useState('');
   const ready = review?.status === 'READY' && !conflict;
   const awaitingReason = review?.status === 'REASON_REQUIRED';
   const warningTitle = (decision: string, reasonCode: string) => {
@@ -104,7 +106,15 @@ export function EditReviewDialog({
                 </div>
               ))}
               {awaitingReason ? (
-                <CmxTextarea aria-label={t('workspace.reason')} placeholder={t('workspace.reason')} onChange={(event) => onReason(event.target.value)} />
+                <CmxTextarea
+                  aria-label={t('workspace.reason')}
+                  placeholder={t('workspace.reason')}
+                  value={reasonText}
+                  onChange={(event) => {
+                    setReasonText(event.target.value);
+                    onReason(event.target.value);
+                  }}
+                />
               ) : null}
             </>
           ) : null}

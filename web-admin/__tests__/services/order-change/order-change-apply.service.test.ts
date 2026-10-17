@@ -498,7 +498,7 @@ describe('applyOrderChange', () => {
         projectedTotal: '12.0000',
         projectedTax: '1.8000',
         speedAudit,
-        lines: [{ id: itemId, active: true, unitPrice: '12.0000', merchandiseAmount: '12.0000' }],
+        lines: [{ id: itemId, active: true, unitPrice: '12.0000', merchandiseAmount: '12.0000', embeddedExtra: '0.8000' }],
       }),
     });
     const executeRaw = jest.fn().mockResolvedValue(1);
@@ -528,7 +528,7 @@ describe('applyOrderChange', () => {
     })]);
     expect(persistMock.mock.calls[0][1].itemUpdates).toEqual([expect.objectContaining({
       id: itemId,
-      data: expect.objectContaining({ price_per_unit: '12.0000', total_price: '12.0000' }),
+      data: expect.objectContaining({ price_per_unit: '12.0000', total_price: '12.8000' }),
     })]);
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ service_speed: 'EXPRESS' }),

@@ -115,6 +115,17 @@ function formatUnits(units: bigint, places = SCALE): string {
   return `${sign}${whole.toString()}.${fraction}`;
 }
 
+/**
+ * Line total the snapshot sums. Item and piece preference extras already live
+ * inside `total_price`; the unit price stays the product quote.
+ */
+export function reviewedItemTotal(line: { merchandiseAmount: string; embeddedExtra?: string }): string {
+  const merchandise = Number(line.merchandiseAmount);
+  const embedded = Number(line.embeddedExtra ?? '0');
+  if (!Number.isFinite(merchandise) || !Number.isFinite(embedded)) return line.merchandiseAmount;
+  return round4(merchandise + embedded).toFixed(4);
+}
+
 function sellingUnit(line: OrderChangeCalculationLine, overrideAllowed: boolean): { unit: bigint; adjustment: bigint } | OrderChangeCalculationFailure {
   if (!line.repriced) {
     const persisted = parseUnits(line.persistedUnitPrice);

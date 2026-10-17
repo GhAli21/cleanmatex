@@ -29,6 +29,7 @@ import {
   type OrderChangeReviewProofKey,
 } from '@/lib/services/order-change/order-change-capability.service';
 import { collectionRequiredForPaymentType, mapPersistedFinancialOutcome, OrderChangeMutationError, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
+import { reviewedItemTotal } from '@/lib/services/order-change/order-change-calculation.service';
 import type { OrderChangePreviewSuccess, OrderChangeSpeedAudit } from '@/lib/services/order-change/order-change-preview.service';
 import { round4 } from '@/lib/services/order-financial-aggregation';
 import type { z } from 'zod';
@@ -188,7 +189,7 @@ function speedSnapshot(
  * The speed audit lists those items. New items keep the structural insert price.
  */
 function speedPriceUpdates(
-  lines: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string }[],
+  lines: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string; embeddedExtra?: string }[],
   actorUserId: string,
   insertedIds: ReadonlySet<string>,
   speedAudit: OrderChangeSpeedAudit,
@@ -198,7 +199,7 @@ function speedPriceUpdates(
     id: line.id,
     data: {
       price_per_unit: line.unitPrice,
-      total_price: line.merchandiseAmount,
+      total_price: reviewedItemTotal(line),
       updated_by: actorUserId,
     },
   }));

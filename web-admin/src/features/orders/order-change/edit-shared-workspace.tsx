@@ -385,8 +385,8 @@ function EditSharedWorkspaceBody({
           setReviewView((current) => current ? { ...current, status: 'STALE' } : current);
         }}
         onReason={(reason) => {
+          // Keep the review on REASON_REQUIRED. Marking it stale unmounts the reason field after the first character.
           controller.setChangeReason(reason);
-          setReviewView((current) => current ? { ...current, status: 'STALE' } : current);
         }}
         onReviewAgain={() => { void previewDraft(); }}
         onApply={() => { void onApply(); }}

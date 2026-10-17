@@ -28,6 +28,7 @@ import {
 } from '@/lib/services/order-change/order-change-preference-projection';
 import {
   calculateOrderChangeTotals,
+  reviewedItemTotal,
   type OrderChangePriceQuote,
   type OrderChangeTaxMode,
 } from '@/lib/services/order-change/order-change-calculation.service';
@@ -185,7 +186,7 @@ function buildSpeedAudit(input: {
   projectedTax: string;
   items: OrderChangeContext['items'];
   projected: readonly { id: string; quantity: number; active: boolean }[];
-  lines: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string }[];
+  lines: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string; embeddedExtra?: string }[];
 }): OrderChangeSpeedAudit | undefined {
   if (!input.speedChanged) return undefined;
   const projectedById = new Map(input.projected.map((item) => [item.id, item]));
@@ -206,7 +207,7 @@ function buildSpeedAudit(input: {
       orderItemId: item.id,
       quantity: projected.quantity,
       pricePerUnit: line.unitPrice,
-      totalPrice: line.merchandiseAmount,
+      totalPrice: reviewedItemTotal(line),
     });
   }
   const delta = moneyText(Number(input.projectedTotal) - Number(input.originalTotal));

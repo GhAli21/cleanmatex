@@ -4,6 +4,7 @@
  * Prices come from the reviewed calculation lines.
  */
 
+import { reviewedItemTotal } from '@/lib/services/order-change/order-change-calculation.service';
 import type { OrderChangePersistedOperation, OrderChangeRowWrite } from '@/lib/services/order-change/order-change-mutation.service';
 import { OrderChangeApplyRejected } from '@/lib/services/order-change/order-change-commercial-write';
 import type { z } from 'zod';
@@ -25,6 +26,7 @@ export interface StructuralLinePrice {
   active: boolean;
   unitPrice: string;
   merchandiseAmount: string;
+  embeddedExtra?: string;
 }
 
 export interface StructuralProductFact {
@@ -204,7 +206,7 @@ export function buildStructuralWritePlan(
           product_name2: product.productName2,
           quantity: operation.payload.quantity,
           price_per_unit: line.unitPrice,
-          total_price: line.merchandiseAmount,
+          total_price: reviewedItemTotal(line),
           status: facts.itemStatus,
           item_status: facts.itemStatus,
           created_by: actorUserId,
@@ -238,7 +240,7 @@ export function buildStructuralWritePlan(
         data: {
           quantity: operation.payload.quantity,
           price_per_unit: line.unitPrice,
-          total_price: line.merchandiseAmount,
+          total_price: reviewedItemTotal(line),
           updated_by: actorUserId,
         },
       });
