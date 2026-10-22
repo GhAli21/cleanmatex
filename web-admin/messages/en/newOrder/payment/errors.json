@@ -1,6 +1,8 @@
 {
   "invalidAmount": "Invalid amount. Please check the payment total.",
   "productNotFound": "One or more products could not be found. They may have been removed from the catalog. Please remove them from your order.",
+  "currencyConfigurationMissing": "Payment cannot continue because the Organization Base Currency is not configured.",
+  "currencyConfigurationUnavailable": "The Organization currency configuration could not be verified. Please retry.",
   "invoiceCreationFailed": "Invoice could not be created. Fix the error and try again.",
   "paymentRecordingFailed": "Payment could not be recorded. Fix the error and try again.",
   "paymentNotRecordedCompleteOnOrder": "Order created but payment could not be recorded. You can complete payment on the order page.",

@@ -20,5 +20,5 @@
     "customerLimitExceeded": "You have reached the maximum usage limit for this promo code",
     "validationFailed": "Failed to validate promo code"
   },
-  "success": "Promo code applied! You save OMR {amount}"
+  "success": "Promo code applied! You save {currencyCode} {amount}"
 }

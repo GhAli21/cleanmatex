@@ -15,7 +15,10 @@ jest.mock('@/lib/supabase/client', () => {
 });
 
 import { TenantCurrencyProfileService } from '@/lib/services/fx/tenant-currency-profile.service';
-import { CurrencyResolutionError } from '@/lib/money/currency-resolution';
+import {
+  CURRENCY_RESOLUTION_ERRORS,
+  CurrencyResolutionError,
+} from '@/lib/money/currency-resolution';
 
 const { __mockClient: mockClient } = jest.requireMock('@/lib/supabase/client') as unknown as {
   __mockClient: {
@@ -132,10 +135,12 @@ describe('TenantCurrencyProfileService', () => {
     await expect(service.getProfile('t-unconfigured')).rejects.toThrow(CurrencyResolutionError);
   });
 
-  it('fails loudly (MISSING_TENANT_CURRENCY) when the read errors', async () => {
+  it('returns TENANT_CURRENCY_UNAVAILABLE when the currency authority read errors', async () => {
     queueOrgCurrencyResult({ data: null, error: { message: 'boom' } });
 
     const service = new TenantCurrencyProfileService(mockClient as never);
-    await expect(service.getProfile('t1')).rejects.toThrow(CurrencyResolutionError);
+    await expect(service.getProfile('t1')).rejects.toMatchObject({
+      code: CURRENCY_RESOLUTION_ERRORS.TENANT_CURRENCY_UNAVAILABLE,
+    });
   });
 });

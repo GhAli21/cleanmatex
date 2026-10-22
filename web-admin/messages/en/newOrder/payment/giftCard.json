@@ -40,5 +40,5 @@
     "amountRequired": "Enter an amount to apply",
     "maxAmountExceeded": "Amount exceeds available balance"
   },
-  "success": "Gift card applied! Balance: OMR {balance}"
+  "success": "Gift card applied! Balance: {currencyCode} {balance}"
 }

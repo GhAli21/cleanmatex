@@ -32,18 +32,26 @@ type OrderWorkflowProfileLabelRow = {
   workflow_profile_name2: string | null;
 };
 import { generateQRCode, generateBarcode } from '@/lib/utils/barcode-generator';
-import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-calculator';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import {
+  calculateReadyBy,
+  DEFAULT_BUSINESS_HOURS,
+} from '@/lib/utils/ready-by-calculator';
 import { roundMoneyAmount } from '@/lib/money/format-money';
 import { logger } from '@/lib/utils/logger';
-import { calculateItemPrice, calculateOrderTotal } from '@/lib/utils/pricing-calculator';
+import {
+  calculateItemPrice,
+  calculateOrderTotal,
+} from '@/lib/utils/pricing-calculator';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { recalculateOrderFinancialSnapshot } from '@/lib/services/order-financial-write.service';
 import { taxService } from '@/lib/services/tax.service';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function withCanonicalOrderTotalAliases<T extends Record<string, unknown>>(order: T) {
+function withCanonicalOrderTotalAliases<T extends Record<string, unknown>>(
+  order: T,
+) {
   return {
     ...order,
     subtotal: Number(order.subtotal_amount ?? 0),
@@ -63,7 +71,7 @@ function withCanonicalOrderTotalAliases<T extends Record<string, unknown>>(order
  */
 export async function createOrder(
   tenantOrgId: string,
-  input: CreateOrderInput
+  input: CreateOrderInput,
 ): Promise<Order> {
   // Generate unique order number
   const orderNumber = await generateOrderNumber(tenantOrgId);
@@ -131,7 +139,9 @@ export async function createOrder(
     return created;
   });
 
-  return withCanonicalOrderTotalAliases(order as unknown as Record<string, unknown>) as unknown as Order;
+  return withCanonicalOrderTotalAliases(
+    order as unknown as Record<string, unknown>,
+  ) as unknown as Order;
 }
 
 /**
@@ -140,7 +150,7 @@ export async function createOrder(
 export async function addOrderItems(
   tenantOrgId: string,
   orderId: string,
-  input: AddOrderItemsInput
+  input: AddOrderItemsInput,
 ): Promise<{ items: OrderItem[]; order: Order }> {
   // Get products for pricing
   const productIds = input.items.map((item) => item.productId);
@@ -165,18 +175,25 @@ export async function addOrderItems(
 
   // Current user (override audit) + tenant money decimals for tax rounding
   let currentUserId: string | undefined;
-  let tenantMoneyDecimals: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
+  const { createClient } = await import('@/lib/supabase/server');
+  const { createTenantSettingsService } =
+    await import('@/lib/services/tenant-settings.service');
+  const supabase = await createClient();
   try {
-    const { createClient } = await import('@/lib/supabase/server');
-    const { createTenantSettingsService } = await import('@/lib/services/tenant-settings.service');
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     currentUserId = user?.id;
-    const cfg = await createTenantSettingsService(supabase).getCurrencyConfig(tenantOrgId);
-    tenantMoneyDecimals = cfg.decimalPlaces;
   } catch (error) {
-    console.warn('[addOrderItems] Could not resolve auth or currency config:', error);
+    console.warn(
+      '[addOrderItems] Could not resolve authenticated actor:',
+      error,
+    );
   }
+  // Money writes must stop if currency authority is unavailable; a fallback precision would mutate commercial totals.
+  const tenantMoneyDecimals = (
+    await createTenantSettingsService(supabase).getCurrencyConfig(tenantOrgId)
+  ).decimalPlaces;
 
   // Check permission for price override (if any item has override)
   //
@@ -189,18 +206,25 @@ export async function addOrderItems(
   // fixed to fail CLOSED — pricing:override was also unseeded in the DB until
   // this same package (0410), so today's real-world behavior was effectively
   // unenforced regardless of which bug fired first.
-  const hasPriceOverride = input.items.some((item) => item.priceOverride !== undefined);
+  const hasPriceOverride = input.items.some(
+    (item) => item.priceOverride !== undefined,
+  );
   if (hasPriceOverride) {
     if (!currentUserId) {
-      throw new Error('Permission denied: pricing:override requires an authenticated user');
+      throw new Error(
+        'Permission denied: pricing:override requires an authenticated user',
+      );
     }
-    const { hasPermissionServer } = await import('@/lib/services/permission-service-server');
+    const { hasPermissionServer } =
+      await import('@/lib/services/permission-service-server');
     const canOverride = await hasPermissionServer('pricing:override', {
       userId: currentUserId,
       tenantId: tenantOrgId,
     });
     if (!canOverride) {
-      throw new Error('Permission denied: pricing:override required for price overrides');
+      throw new Error(
+        'Permission denied: pricing:override required for price overrides',
+      );
     }
   }
 
@@ -272,7 +296,7 @@ export async function addOrderItems(
         priceResult, // Store full price result for future use
         overrideApplied,
       };
-    })
+    }),
   );
 
   // Create items in database
@@ -302,7 +326,8 @@ export async function addOrderItems(
           // Price override fields
           price_override: item.overrideApplied ? item.priceOverride : null,
           override_reason: item.overrideApplied ? item.overrideReason : null,
-          override_by: item.overrideApplied && currentUserId ? currentUserId : null,
+          override_by:
+            item.overrideApplied && currentUserId ? currentUserId : null,
         },
       });
 
@@ -347,7 +372,7 @@ export async function addOrderItems(
             hasDamage: itemData.hasDamage,
             notes: itemData.notes,
             metadata: {},
-          }
+          },
         );
 
         // If pieces creation failed, collect the error
@@ -363,7 +388,7 @@ export async function addOrderItems(
     // If any pieces creation failed, throw error to prevent partial state
     if (piecesErrors.length > 0) {
       // Delete the items that were just created since pieces failed
-      const itemIds = createdItems.map(item => (item as any).id);
+      const itemIds = createdItems.map((item) => (item as any).id);
       await prisma.org_order_items_dtl.deleteMany({
         where: {
           id: { in: itemIds },
@@ -372,7 +397,7 @@ export async function addOrderItems(
       });
 
       throw new Error(
-        `Failed to create pieces for order items: ${piecesErrors.map(e => e.error).join('; ')}`
+        `Failed to create pieces for order items: ${piecesErrors.map((e) => e.error).join('; ')}`,
       );
     }
   }
@@ -391,7 +416,9 @@ export async function addOrderItems(
       tenant_org_id: tenantOrgId,
     },
     data: {
-      total_items: { increment: input.items.reduce((sum, item) => sum + item.quantity, 0) },
+      total_items: {
+        increment: input.items.reduce((sum, item) => sum + item.quantity, 0),
+      },
       subtotal_amount: orderTotals.subtotalAfterDiscount,
       items_base_amount: orderTotals.subtotalAfterDiscount,
       total_tax_amount: orderTotals.tax,
@@ -405,7 +432,9 @@ export async function addOrderItems(
 
   return {
     items: createdItems as unknown as OrderItem[],
-    order: withCanonicalOrderTotalAliases(updatedOrder as unknown as Record<string, unknown>) as unknown as Order,
+    order: withCanonicalOrderTotalAliases(
+      updatedOrder as unknown as Record<string, unknown>,
+    ) as unknown as Order,
   };
 }
 
@@ -416,7 +445,7 @@ export async function completePreparation(
   tenantOrgId: string,
   orderId: string,
   userId: string,
-  input: CompletePreparationInput
+  input: CompletePreparationInput,
 ): Promise<Order> {
   // Get order with service category info
   const order = await prisma.org_orders_mst.findUnique({
@@ -492,7 +521,7 @@ export async function completePreparation(
  */
 export async function getOrderById(
   tenantOrgId: string,
-  orderId: string
+  orderId: string,
 ): Promise<OrderWithDetails | null> {
   const order = await prisma.org_orders_mst.findUnique({
     where: {
@@ -546,7 +575,9 @@ export async function getOrderById(
     return null;
   }
 
-  const workflowProfileLabel = await prisma.$queryRaw<OrderWorkflowProfileLabelRow[]>`
+  const workflowProfileLabel = await prisma.$queryRaw<
+    OrderWorkflowProfileLabelRow[]
+  >`
     SELECT
       profile_row.name AS workflow_profile_name,
       profile_row.name2 AS workflow_profile_name2
@@ -559,20 +590,26 @@ export async function getOrderById(
   `;
 
   // Get customer data from org_customers_mst, fallback to sys_customers_mst if available
-  const customerData = order.org_customers_mst?.sys_customers_mst || order.org_customers_mst;
+  const customerData =
+    order.org_customers_mst?.sys_customers_mst || order.org_customers_mst;
 
   return {
     ...order,
     // state_version is BIGINT in the DB (workflow-engine optimistic concurrency token);
     // Prisma returns it as a native bigint, which JSON.stringify cannot serialize.
-    state_version: typeof order.state_version === 'bigint' ? Number(order.state_version) : order.state_version,
+    state_version:
+      typeof order.state_version === 'bigint'
+        ? Number(order.state_version)
+        : order.state_version,
     customer: customerData,
     items: order.org_order_items_dtl,
     branch: order.org_branches_mst,
     order_source: order.sys_order_sources_cd,
     // A pinned profile may be retired after ordering; retain its label for operational traceability.
-    workflow_profile_name: workflowProfileLabel[0]?.workflow_profile_name ?? null,
-    workflow_profile_name2: workflowProfileLabel[0]?.workflow_profile_name2 ?? null,
+    workflow_profile_name:
+      workflowProfileLabel[0]?.workflow_profile_name ?? null,
+    workflow_profile_name2:
+      workflowProfileLabel[0]?.workflow_profile_name2 ?? null,
   } as unknown as OrderWithDetails;
 }
 
@@ -630,12 +667,15 @@ export async function getOrderByReference(
  */
 export async function listOrders(
   tenantOrgId: string,
-  filters: OrderFilters
+  filters: OrderFilters,
 ): Promise<OrderListResponse> {
   // Validate tenantOrgId is a valid UUID
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(tenantOrgId)) {
-    throw new Error(`Invalid tenant ID format: ${tenantOrgId}. Expected UUID format.`);
+    throw new Error(
+      `Invalid tenant ID format: ${tenantOrgId}. Expected UUID format.`,
+    );
   }
   const {
     status,
@@ -734,7 +774,7 @@ export async function listOrders(
                   { name: { contains: search, mode: 'insensitive' } },
                   { phone: { contains: search } },
                 ],
-              }
+              },
             },
           ],
         },
@@ -789,51 +829,68 @@ export async function listOrders(
     },
     orderBy:
       sortBy === 'received_at'
-        ? [{ received_at: { sort: sortOrder, nulls: 'last' } }, { created_at: sortOrder }]
+        ? [
+            { received_at: { sort: sortOrder, nulls: 'last' } },
+            { created_at: sortOrder },
+          ]
         : { [sortBy]: sortOrder },
     skip: (page - 1) * limit,
     take: limit,
   });
 
   // Get piece counts for all orders in batch
-  const orderIds = orders.map(o => o.id);
-  const itemIds = orders.flatMap(o => o.org_order_items_dtl.map(item => item.id));
+  const orderIds = orders.map((o) => o.id);
+  const itemIds = orders.flatMap((o) =>
+    o.org_order_items_dtl.map((item) => item.id),
+  );
 
-  const pieceCounts = itemIds.length > 0 ? await prisma.org_order_item_pieces_dtl.groupBy({
-    by: ['order_id'],
-    where: {
-      order_id: { in: orderIds },
-      tenant_org_id: tenantOrgId,
-      rec_status: 1,
-    },
-    _count: {
-      id: true,
-    },
-  }) : [];
+  const pieceCounts =
+    itemIds.length > 0
+      ? await prisma.org_order_item_pieces_dtl.groupBy({
+          by: ['order_id'],
+          where: {
+            order_id: { in: orderIds },
+            tenant_org_id: tenantOrgId,
+            rec_status: 1,
+          },
+          _count: {
+            id: true,
+          },
+        })
+      : [];
 
   const pieceCountMap = new Map(
-    pieceCounts.map(pc => [pc.order_id, pc._count.id])
+    pieceCounts.map((pc) => [pc.order_id, pc._count.id]),
   );
 
   const orderList: OrderListItem[] = orders.map((order) => {
     // The order snapshot preserves who the counter served at the time of sale;
     // master records only fill legacy orders whose snapshot was never written.
-    const customerData = order.org_customers_mst?.sys_customers_mst || order.org_customers_mst;
+    const customerData =
+      order.org_customers_mst?.sys_customers_mst || order.org_customers_mst;
 
     // Ensure customer data is properly formatted (defensive check)
     const customerId = customerData?.id || order.org_customers_mst?.id || '';
     const customerName =
-      order.customer_name?.trim()
-      || order.org_customers_mst?.name?.trim()
-      || order.org_customers_mst?.sys_customers_mst?.name?.trim()
-      || '';
-    const customerPhone = customerData?.phone || order.org_customers_mst?.phone || '';
+      order.customer_name?.trim() ||
+      order.org_customers_mst?.name?.trim() ||
+      order.org_customers_mst?.sys_customers_mst?.name?.trim() ||
+      '';
+    const customerPhone =
+      customerData?.phone || order.org_customers_mst?.phone || '';
 
     // Ensure all values are strings, not objects
     const safeCustomer = {
-      id: typeof customerId === 'string' ? customerId : String(customerId || ''),
-      name: typeof customerName === 'string' ? customerName : String(customerName || ''),
-      phone: typeof customerPhone === 'string' ? customerPhone : String(customerPhone || ''),
+      id:
+        typeof customerId === 'string' ? customerId : String(customerId || ''),
+      name:
+        typeof customerName === 'string'
+          ? customerName
+          : String(customerName || ''),
+      phone:
+        typeof customerPhone === 'string'
+          ? customerPhone
+          : String(customerPhone || ''),
     };
 
     return {
@@ -881,7 +938,7 @@ export async function listOrders(
  */
 export async function getOrderForPreparation(
   tenantOrgId: string,
-  orderId: string
+  orderId: string,
 ) {
   // Get order with details
   const order = await getOrderById(tenantOrgId, orderId);
@@ -928,7 +985,7 @@ export async function updateOrderStatus(
   orderId: string,
   status: string,
   notes?: string,
-  userId?: string
+  userId?: string,
 ): Promise<Order> {
   const updatedOrder = await prisma.org_orders_mst.update({
     where: {
@@ -952,7 +1009,7 @@ export async function updateOrderStatus(
 export async function deleteOrderItem(
   tenantOrgId: string,
   orderId: string,
-  itemId: string
+  itemId: string,
 ): Promise<void> {
   await prisma.org_order_items_dtl.delete({
     where: {
@@ -980,18 +1037,16 @@ export async function deleteOrderItem(
 async function recalculateOrderTotals(
   tenantOrgId: string,
   orderId: string,
-  userId?: string
+  userId?: string,
 ): Promise<void> {
-  let decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
-  try {
-    const { createClient } = await import('@/lib/supabase/server');
-    const { createTenantSettingsService } = await import('@/lib/services/tenant-settings.service');
-    const supabase = await createClient();
-    const cfg = await createTenantSettingsService(supabase).getCurrencyConfig(tenantOrgId);
-    decimalPlaces = cfg.decimalPlaces;
-  } catch (err) {
-    console.warn('[recalculateOrderTotals] Could not load currency config, using defaults:', err);
-  }
+  const { createClient } = await import('@/lib/supabase/server');
+  const { createTenantSettingsService } =
+    await import('@/lib/services/tenant-settings.service');
+  const supabase = await createClient();
+  // Recalculation is a commercial write boundary; never substitute a locale default for tenant precision.
+  const decimalPlaces = (
+    await createTenantSettingsService(supabase).getCurrencyConfig(tenantOrgId)
+  ).decimalPlaces;
   const roundMoney = (n: number) => roundMoneyAmount(n, decimalPlaces);
 
   // Removed item lineage remains auditable but must never affect a current commercial total.
@@ -1023,7 +1078,9 @@ async function recalculateOrderTotals(
   }
 
   // total_price per item is line total (incl. tax) from pricing-calculator; sum = order total
-  const total = roundMoney(items.reduce((sum, item) => sum + Number(item.total_price), 0));
+  const total = roundMoney(
+    items.reduce((sum, item) => sum + Number(item.total_price), 0),
+  );
 
   const order = await prisma.org_orders_mst.findUnique({
     where: { id: orderId, tenant_org_id: tenantOrgId },
@@ -1049,10 +1106,13 @@ async function recalculateOrderTotals(
     // Owner policy (2026-07-18): no header stamp AND no tax lines means the
     // tenant does not use tax — treat the order as zero-rated. Never an
     // error, and never an assumed positive rate. Logged for observability.
-    logger.warn('recalculateOrderTotals: no vat_rate stamp and no tax lines — treating order as zero-rated', {
-      tenantOrgId,
-      orderId,
-    });
+    logger.warn(
+      'recalculateOrderTotals: no vat_rate stamp and no tax lines — treating order as zero-rated',
+      {
+        tenantOrgId,
+        orderId,
+      },
+    );
     vatRate = 0;
   }
 
@@ -1087,9 +1147,12 @@ async function recalculateOrderTotals(
  */
 export async function getOrderStats(tenantOrgId: string) {
   // Validate tenantOrgId is a valid UUID
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(tenantOrgId)) {
-    throw new Error(`Invalid tenant ID format: ${tenantOrgId}. Expected UUID format.`);
+    throw new Error(
+      `Invalid tenant ID format: ${tenantOrgId}. Expected UUID format.`,
+    );
   }
 
   const today = new Date();

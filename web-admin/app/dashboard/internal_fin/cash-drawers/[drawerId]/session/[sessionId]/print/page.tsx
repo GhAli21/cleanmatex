@@ -14,8 +14,8 @@ import { getSessionSummary } from '@/lib/services/cash-drawer.service';
 import { getSessionClosureView } from '@/lib/services/cash-drawer-session-view.service';
 import { CashDrawerSessionPrintRprt } from '@features/billing/ui/cash-drawer-session-print-rprt';
 import { Decimal } from '@prisma/client/runtime/library';
-import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
-import { BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_PRINT_ACCESS } from '@features/billing/access/billing-access'
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
+import { BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_PRINT_ACCESS } from '@features/billing/access/billing-access';
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -30,7 +30,9 @@ interface PageProps {
  * @param root0
  * @param root0.params
  */
-export default async function CashDrawerSessionPrintPage({ params }: PageProps) {
+export default async function CashDrawerSessionPrintPage({
+  params,
+}: PageProps) {
   const { drawerId, sessionId } = await params;
 
   const { tenantId } = await getAuthContext();
@@ -42,10 +44,22 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
     notFound();
   }
 
-  const { session, sessionUser, openedBy, closedBy, movements, payments, reconciliation } = summary;
+  const {
+    session,
+    sessionUser,
+    openedBy,
+    closedBy,
+    movements,
+    payments,
+    reconciliation,
+  } = summary;
 
   // CLF per-currency snapshot; a failure here must not block the legacy report.
-  const closureView = await getSessionClosureView(tenantId, drawerId, sessionId).catch(() => null);
+  const closureView = await getSessionClosureView(
+    tenantId,
+    drawerId,
+    sessionId,
+  ).catch(() => null);
   const closure = closureView ? JSON.parse(JSON.stringify(closureView)) : null;
 
   // A3-4: `reconciliation.expectedCash`/`.variance` are already computed in
@@ -58,60 +72,67 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
   // because it is the terminal print-formatting boundary — nothing
   // downstream computes on these values further.
   const openingBalance = Number(reconciliation.openingFloat);
-  const closingBalance = reconciliation.countedCash != null ? Number(reconciliation.countedCash) : 0;
+  const closingBalance =
+    reconciliation.countedCash != null ? Number(reconciliation.countedCash) : 0;
   const physicalCount = closingBalance;
   const expectedBalance = Number(reconciliation.expectedCash);
-  const variance = reconciliation.variance != null ? Number(reconciliation.variance) : null;
+  const variance =
+    reconciliation.variance != null ? Number(reconciliation.variance) : null;
 
   const serializedSession = {
-    id:              session.id,
-    session_no:      session.session_no ?? '',
-    status:          session.status ?? 'UNKNOWN',
-    currency_code:   session.currency_code ?? 'OMR',
+    id: session.id,
+    session_no: session.session_no ?? '',
+    status: session.status ?? 'UNKNOWN',
+    currency_code: session.currency_code ?? '',
     opening_balance: openingBalance,
     closing_balance: closingBalance,
-    physical_count:  physicalCount,
-    opened_at:       session.opened_at?.toISOString() ?? null,
-    closed_at:       session.closed_at?.toISOString() ?? null,
-    opened_by:       openedBy?.displayName ?? null,
-    session_user:    sessionUser?.displayName ?? null,
-    closed_by:       closedBy?.displayName ?? null,
-    notes:           session.close_notes ?? null,
+    physical_count: physicalCount,
+    opened_at: session.opened_at?.toISOString() ?? null,
+    closed_at: session.closed_at?.toISOString() ?? null,
+    opened_by: openedBy?.displayName ?? null,
+    session_user: sessionUser?.displayName ?? null,
+    closed_by: closedBy?.displayName ?? null,
+    notes: session.close_notes ?? null,
   };
 
   const serializedMovements = movements.map((m) => ({
-    id:           m.id,
-    direction:    m.direction ?? 'IN',
+    id: m.id,
+    direction: m.direction ?? 'IN',
     movement_type: m.movement_type ?? 'MANUAL',
-    amount:       toNumber(m.amount),
-    reason:       m.reason ?? null,
+    amount: toNumber(m.amount),
+    reason: m.reason ?? null,
     performed_by: m.performed_by ?? null,
     performed_at: m.performed_at?.toISOString() ?? new Date().toISOString(),
   }));
 
   const serializedPayments = payments.map((p) => ({
-    id:                     p.id,
-    payment_method_code:    p.payment_method_code ?? 'CASH',
-    amount:                 toNumber(p.amount),
-    payment_status:         p.payment_status ?? null,
-    created_at:             p.created_at?.toISOString() ?? new Date().toISOString(),
+    id: p.id,
+    payment_method_code: p.payment_method_code ?? 'CASH',
+    amount: toNumber(p.amount),
+    payment_status: p.payment_status ?? null,
+    created_at: p.created_at?.toISOString() ?? new Date().toISOString(),
   }));
 
   return (
-    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_PRINT_ACCESS.page.permissions ?? []}>
+    <RequireAnyPermission
+      permissions={
+        BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_PRINT_ACCESS.page
+          .permissions ?? []
+      }
+    >
       <CashDrawerSessionPrintRprt
-      session={serializedSession}
-      movements={serializedMovements}
-      payments={serializedPayments}
-      closure={closure}
-      totals={{
-        totalCashIn: Number(reconciliation.movementCashIn),
-        totalCashOut: Number(reconciliation.movementCashOut),
-        totalPayments: Number(reconciliation.cashCollected),
-        expectedBalance,
-        variance,
-      }}
-    />
+        session={serializedSession}
+        movements={serializedMovements}
+        payments={serializedPayments}
+        closure={closure}
+        totals={{
+          totalCashIn: Number(reconciliation.movementCashIn),
+          totalCashOut: Number(reconciliation.movementCashOut),
+          totalPayments: Number(reconciliation.cashCollected),
+          expectedBalance,
+          variance,
+        }}
+      />
     </RequireAnyPermission>
   );
 }

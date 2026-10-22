@@ -17,9 +17,10 @@ export const SESSION_END_REASONS = {
   MEMBERSHIP_REMOVED: 'MEMBERSHIP_REMOVED',
   SESSION_LIMIT: 'SESSION_LIMIT',
   SECURITY: 'SECURITY',
-} as const
+} as const;
 
-export type SessionEndReason = (typeof SESSION_END_REASONS)[keyof typeof SESSION_END_REASONS]
+export type SessionEndReason =
+  (typeof SESSION_END_REASONS)[keyof typeof SESSION_END_REASONS];
 
 /** Result state of fn_auth_session_validate. */
 export const SESSION_STATES = {
@@ -29,9 +30,9 @@ export const SESSION_STATES = {
   NOT_REGISTERED: 'NOT_REGISTERED',
   /** No authenticated user / no session_id claim. */
   NO_SESSION: 'NO_SESSION',
-} as const
+} as const;
 
-export type SessionState = (typeof SESSION_STATES)[keyof typeof SESSION_STATES]
+export type SessionState = (typeof SESSION_STATES)[keyof typeof SESSION_STATES];
 
 /** Result status of fn_auth_session_register. */
 export const SESSION_REGISTER_STATUS = {
@@ -40,9 +41,10 @@ export const SESSION_REGISTER_STATUS = {
   /** Concurrent-session limit with policy BLOCK_NEW: nothing registered, sign-in must be refused. */
   BLOCKED_SESSION_LIMIT: 'BLOCKED_SESSION_LIMIT',
   NO_MEMBERSHIP: 'NO_MEMBERSHIP',
-} as const
+} as const;
 
-export type SessionRegisterStatus = (typeof SESSION_REGISTER_STATUS)[keyof typeof SESSION_REGISTER_STATUS]
+export type SessionRegisterStatus =
+  (typeof SESSION_REGISTER_STATUS)[keyof typeof SESSION_REGISTER_STATUS];
 
 /** `?reason=` values the login page understands (shown as a banner). */
 export const LOGIN_REASONS = {
@@ -52,9 +54,11 @@ export const LOGIN_REASONS = {
   PASSWORD_CHANGED: 'password_changed',
   SESSION_LIMIT: 'session_limit',
   DEACTIVATED: 'deactivated',
-} as const
+  /** A voluntary refresh is required because a guarded money configuration could not be read. */
+  CURRENCY_CONFIGURATION: 'currency_configuration',
+} as const;
 
-export type LoginReason = (typeof LOGIN_REASONS)[keyof typeof LOGIN_REASONS]
+export type LoginReason = (typeof LOGIN_REASONS)[keyof typeof LOGIN_REASONS];
 
 /** Machine codes returned by session-aware API routes. */
 export const SESSION_ERROR_CODES = {
@@ -66,9 +70,10 @@ export const SESSION_ERROR_CODES = {
   SESSION_NOT_FOUND: 'SESSION_NOT_FOUND',
   /** Attempt to revoke the session being used for the request. */
   CANNOT_REVOKE_CURRENT: 'CANNOT_REVOKE_CURRENT',
-} as const
+} as const;
 
-export type SessionErrorCode = (typeof SESSION_ERROR_CODES)[keyof typeof SESSION_ERROR_CODES]
+export type SessionErrorCode =
+  (typeof SESSION_ERROR_CODES)[keyof typeof SESSION_ERROR_CODES];
 
 /** Failure codes of the password flows (change / reset), shared by the API routes and the UI. */
 export const PASSWORD_ERROR_CODES = {
@@ -93,15 +98,16 @@ export const PASSWORD_ERROR_CODES = {
   SELF_RESET_NOT_ALLOWED: 'SELF_RESET_NOT_ALLOWED',
   /** The email with the reset link could not be sent. */
   EMAIL_FAILED: 'EMAIL_FAILED',
-} as const
+} as const;
 
-export type PasswordErrorCode = (typeof PASSWORD_ERROR_CODES)[keyof typeof PASSWORD_ERROR_CODES]
+export type PasswordErrorCode =
+  (typeof PASSWORD_ERROR_CODES)[keyof typeof PASSWORD_ERROR_CODES];
 
 /** Answer of API routes while the user must set a new password first (admin-set temporary password). */
-export const PASSWORD_CHANGE_REQUIRED_CODE = 'PASSWORD_CHANGE_REQUIRED'
+export const PASSWORD_CHANGE_REQUIRED_CODE = 'PASSWORD_CHANGE_REQUIRED';
 
 /** Page that forces the password change (outside the dashboard so the dashboard shell never renders). */
-export const FORCED_PASSWORD_CHANGE_PATH = '/change-password'
+export const FORCED_PASSWORD_CHANGE_PATH = '/change-password';
 
 /** Authentication audit event codes written by the password flows (sys_auth_event_cd.code, migration 0581). */
 export const PASSWORD_AUDIT_EVENTS = {
@@ -109,55 +115,57 @@ export const PASSWORD_AUDIT_EVENTS = {
   PASSWORD_RESET_BY_ADMIN: 'PASSWORD_RESET_BY_ADMIN',
   PASSWORD_RESET_LINK_SENT: 'PASSWORD_RESET_LINK_SENT',
   ACCOUNT_UNLOCKED: 'ACCOUNT_UNLOCKED',
-} as const
+} as const;
 
 /** Notification Hub event (sys_ntf_events_cd.code) raised after every password change / reset. */
-export const PASSWORD_CHANGED_EVENT_CODE = 'security.password.changed'
+export const PASSWORD_CHANGED_EVENT_CODE = 'security.password.changed';
 
 /** Mail domain of synthetic sign-in addresses (users created without an email): nothing can be delivered there. */
-export const SYNTHETIC_EMAIL_DOMAIN = '@users.invalid'
+export const SYNTHETIC_EMAIL_DOMAIN = '@users.invalid';
 
 /** Reset endpoint answer when the request is not backed by an emailed recovery link. */
-export const RECOVERY_REQUIRED_CODE = 'RECOVERY_REQUIRED'
+export const RECOVERY_REQUIRED_CODE = 'RECOVERY_REQUIRED';
 
 /** BroadcastChannel used to share activity / logout between tabs of one browser. */
-export const AUTH_SESSION_CHANNEL = 'cmx-auth-session'
+export const AUTH_SESSION_CHANNEL = 'cmx-auth-session';
 
 /** Long-lived httpOnly cookie identifying this browser (hashed into the registry for new-device detection). */
-export const DEVICE_COOKIE_NAME = 'cmx-did'
+export const DEVICE_COOKIE_NAME = 'cmx-did';
 
 /** Device cookie lifetime (~400 days — the practical browser maximum). */
-export const DEVICE_COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 400
+export const DEVICE_COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 400;
 
 /** Short-lived httpOnly marker set by /auth/callback after a recovery code was exchanged; authorises the reset endpoint. */
-export const RECOVERY_COOKIE_NAME = 'cmx-recovery'
+export const RECOVERY_COOKIE_NAME = 'cmx-recovery';
 
 /** Lifetime of the recovery marker: the user has 15 minutes to set a new password after clicking the email link. */
-export const RECOVERY_COOKIE_MAX_AGE_SEC = 15 * 60
+export const RECOVERY_COOKIE_MAX_AGE_SEC = 15 * 60;
 
 /**
  * Map a session end reason to the `?reason=` code shown on the login page.
  *
  * @param reason - Registry end reason (null/unknown → generic expired message)
  */
-export function loginReasonForEndReason(reason: string | null | undefined): LoginReason {
+export function loginReasonForEndReason(
+  reason: string | null | undefined,
+): LoginReason {
   switch (reason) {
     case SESSION_END_REASONS.IDLE_TIMEOUT:
-      return LOGIN_REASONS.IDLE_TIMEOUT
+      return LOGIN_REASONS.IDLE_TIMEOUT;
     case SESSION_END_REASONS.USER_REVOKED:
     case SESSION_END_REASONS.ADMIN_REVOKED:
-      return LOGIN_REASONS.REVOKED
+      return LOGIN_REASONS.REVOKED;
     case SESSION_END_REASONS.PASSWORD_CHANGED:
-      return LOGIN_REASONS.PASSWORD_CHANGED
+      return LOGIN_REASONS.PASSWORD_CHANGED;
     case SESSION_END_REASONS.SESSION_LIMIT:
-      return LOGIN_REASONS.SESSION_LIMIT
+      return LOGIN_REASONS.SESSION_LIMIT;
     case SESSION_END_REASONS.USER_DEACTIVATED:
     case SESSION_END_REASONS.MEMBERSHIP_REMOVED:
-      return LOGIN_REASONS.DEACTIVATED
+      return LOGIN_REASONS.DEACTIVATED;
     default:
-      return LOGIN_REASONS.SESSION_EXPIRED
+      return LOGIN_REASONS.SESSION_EXPIRED;
   }
 }
 
 /** Notification Hub event (sys_ntf_events_cd.code) raised when a user signs in from a device not seen before. */
-export const NEW_DEVICE_EVENT_CODE = 'security.login.detected'
+export const NEW_DEVICE_EVENT_CODE = 'security.login.detected';

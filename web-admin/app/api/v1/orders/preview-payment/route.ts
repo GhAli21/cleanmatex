@@ -5,13 +5,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createTenantSettingsService, SETTING_CODES } from '@/lib/services/tenant-settings.service';
+import {
+  createTenantSettingsService,
+  SETTING_CODES,
+} from '@/lib/services/tenant-settings.service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { previewPaymentRequestSchema } from '@/lib/validations/new-order-payment-schemas';
 import { isInvalidDbInputError } from '@/lib/utils/db-input-error';
+import {
+  CURRENCY_RESOLUTION_ERRORS,
+  CurrencyResolutionError,
+} from '@/lib/money/currency-resolution';
 
 /**
  * POST /api/v1/orders/preview-payment
@@ -39,7 +46,7 @@ export async function POST(request: NextRequest) {
         error: 'Invalid request body',
         details: parsed.error.issues,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -75,7 +82,10 @@ export async function POST(request: NextRequest) {
     let creditLimitMode: 'warn' | 'block' = 'block';
     if (parsed.data.customerId && data.saleTotal > 0) {
       try {
-        creditLimit = await checkCreditLimit(parsed.data.customerId, data.saleTotal);
+        creditLimit = await checkCreditLimit(
+          parsed.data.customerId,
+          data.saleTotal,
+        );
         if (creditLimit && creditLimit.creditLimit > 0) {
           const supabase = await createClient();
           const settingsService = createTenantSettingsService(supabase);
@@ -83,10 +93,12 @@ export async function POST(request: NextRequest) {
             tenantId,
             SETTING_CODES.B2B_CREDIT_LIMIT_MODE,
             parsed.data.branchId ?? null,
-            userId
+            userId,
           );
           creditLimitMode =
-            typeof mode === 'string' && (mode === 'warn' || mode === 'block') ? mode : 'block';
+            typeof mode === 'string' && (mode === 'warn' || mode === 'block')
+              ? mode
+              : 'block';
         }
       } catch {
         // Non-fatal; omit credit info
@@ -97,19 +109,36 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         ...data,
-        ...(creditLimit && creditLimit.creditLimit > 0 && {
-          creditLimit: {
-            currentBalance: creditLimit.currentBalance,
-            creditLimit: creditLimit.creditLimit,
-            available: creditLimit.available,
-            wouldExceed: creditLimit.wouldExceed,
-            mode: creditLimitMode,
-          },
-        }),
+        ...(creditLimit &&
+          creditLimit.creditLimit > 0 && {
+            creditLimit: {
+              currentBalance: creditLimit.currentBalance,
+              creditLimit: creditLimit.creditLimit,
+              available: creditLimit.available,
+              wouldExceed: creditLimit.wouldExceed,
+              mode: creditLimitMode,
+            },
+          }),
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Calculation failed';
+    if (error instanceof CurrencyResolutionError) {
+      const isMissingConfig =
+        error.code === CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY;
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: error.code,
+          error: isMissingConfig
+            ? 'The Organization Base Currency is not configured.'
+            : 'The Organization currency configuration could not be verified. Please retry.',
+        },
+        { status: isMissingConfig ? 422 : 503 },
+      );
+    }
+
+    const message =
+      error instanceof Error ? error.message : 'Calculation failed';
     const isProductNotFound = message.startsWith('Product not found:');
 
     if (isProductNotFound) {
@@ -118,10 +147,11 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           errorCode: 'PRODUCT_NOT_FOUND',
-          error: 'One or more products could not be found. They may have been removed from the catalog. Please remove them from your order.',
+          error:
+            'One or more products could not be found. They may have been removed from the catalog. Please remove them from your order.',
           productId,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -130,9 +160,10 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           errorCode: 'INVALID_TAX_PROFILE_SELECTION',
-          error: 'One or more selected tax profiles are invalid or no longer active.',
+          error:
+            'One or more selected tax profiles are invalid or no longer active.',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -141,9 +172,10 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           errorCode: 'INVALID_ID_FORMAT',
-          error: 'One or more ids in the request are not valid. Please reselect and try again.',
+          error:
+            'One or more ids in the request are not valid. Please reselect and try again.',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -153,7 +185,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

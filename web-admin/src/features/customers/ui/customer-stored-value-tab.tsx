@@ -11,7 +11,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { PlusCircle } from 'lucide-react';
-import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxMoneyField } from '@ui/primitives';
+import {
+  CmxButton,
+  CmxCard,
+  CmxCardContent,
+  CmxCardHeader,
+  CmxCardTitle,
+  CmxMoneyField,
+} from '@ui/primitives';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { Badge } from '@ui/primitives/badge';
@@ -35,30 +42,44 @@ import {
 } from '@/app/actions/customers/stored-value-actions';
 import { useFeature } from '@features/auth/ui/RequireFeature';
 import { useAuth } from '@/lib/auth/auth-context';
-import { StoredValueTenderFields, type StoredValueTenderResult } from './stored-value-tender-fields';
+import {
+  StoredValueTenderFields,
+  type StoredValueTenderResult,
+} from './stored-value-tender-fields';
 import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
-import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
+import {
+  readPosSessionRequired,
+  type PosSessionRequiredInfo,
+} from '@features/pos-sessions/model/pos-session-required';
 
 interface CreditNoteRow {
-  id:                string;
-  credit_note_no:    string;
-  original_amount:   number;
+  id: string;
+  credit_note_no: string;
+  original_amount: number;
   remaining_balance: number;
-  currency_code:     string;
-  status:            string;
-  expires_at:        Date | null;
-  reason:            string;
+  currency_code: string;
+  status: string;
+  expires_at: Date | null;
+  reason: string;
 }
 
 interface StoredValueDetail {
-  wallet:      { walletId: string | null; balance: number; currencyCode: string | null };
-  advance:     { advanceId: string | null; balance: number; currencyCode: string | null };
+  wallet: {
+    walletId: string | null;
+    balance: number;
+    currencyCode: string | null;
+  };
+  advance: {
+    advanceId: string | null;
+    balance: number;
+    currencyCode: string | null;
+  };
   creditNotes: CreditNoteRow[];
 }
 
 interface Props {
   customerId: string;
-  tenantId:   string;
+  tenantId: string;
 }
 
 // ── Dialogs ───────────────────────────────────────────────────────────────────
@@ -71,10 +92,11 @@ type DialogType = 'topUp' | 'advance' | 'creditNote' | null;
  * @param root0.customerId
  */
 export function CustomerStoredValueTab({ customerId }: Props) {
-  const t       = useTranslations('customers.storedValue');
+  const t = useTranslations('customers.storedValue');
   const tCommon = useTranslations('common');
   const tLedger = useTranslations('cashControl.ledgerErrors');
-  const [posSessionRequired, setPosSessionRequired] = useState<PosSessionRequiredInfo | null>(null);
+  const [posSessionRequired, setPosSessionRequired] =
+    useState<PosSessionRequiredInfo | null>(null);
   const { decimalPlaces, currencyCode: tenantCurrency } = useTenantCurrency();
   // B3 — governed DIRECT_TENDER top-up/advance (tender step) once enabled;
   // falls back to the existing no-tender topUpWallet/issueAdvance actions
@@ -85,20 +107,24 @@ export function CustomerStoredValueTab({ customerId }: Props) {
   const userId = user?.id;
   const canTopUp = useHasPermissionCode('stored_value:issue_wallet_credit');
   const canIssueAdvance = useHasPermissionCode('stored_value:issue_advance');
-  const canIssueCreditNote = useHasPermissionCode('stored_value:issue_credit_note');
+  const canIssueCreditNote = useHasPermissionCode(
+    'stored_value:issue_credit_note',
+  );
 
-  const [detail, setDetail]       = useState<StoredValueDetail | null>(null);
-  const [isLoading, setLoading]   = useState(true);
-  const [dialog, setDialog]       = useState<DialogType>(null);
-  const [isSaving, setSaving]     = useState(false);
+  const [detail, setDetail] = useState<StoredValueDetail | null>(null);
+  const [isLoading, setLoading] = useState(true);
+  const [dialog, setDialog] = useState<DialogType>(null);
+  const [isSaving, setSaving] = useState(false);
 
   // Form fields
-  const [amount, setAmount]       = useState('');
-  const [notes, setNotes]         = useState('');
-  const [reason, setReason]       = useState('');
-  const [currency, setCurrency]   = useState('OMR');
-  const [tender, setTender]       = useState<StoredValueTenderResult | null>(null);
-  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => crypto.randomUUID());
+  const [amount, setAmount] = useState('');
+  const [notes, setNotes] = useState('');
+  const [reason, setReason] = useState('');
+  const [currency, setCurrency] = useState('');
+  const [tender, setTender] = useState<StoredValueTenderResult | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() =>
+    crypto.randomUUID(),
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,7 +138,9 @@ export function CustomerStoredValueTab({ customerId }: Props) {
     setLoading(false);
   }, [customerId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   function openDialog(type: DialogType) {
     const allowed =
@@ -132,7 +160,7 @@ export function CustomerStoredValueTab({ customerId }: Props) {
     setAmount('');
     setNotes('');
     setReason('');
-    setCurrency('OMR');
+    setCurrency(tenantCurrency);
     setTender(null);
     setIdempotencyKey(crypto.randomUUID());
     setDialog(type);
@@ -169,30 +197,38 @@ export function CustomerStoredValueTab({ customerId }: Props) {
       const payload = {
         customerId,
         amount: numAmount,
-        currencyCode: tenantCurrency || 'OMR',
+        currencyCode: tenantCurrency,
         paymentMethodId: tender.paymentMethodId,
         cashTendered: tender.cashTendered,
         cashDrawerSessionId: tender.cashDrawerSessionId,
         idempotencyKey,
       };
-      const tenderResult = dialog === 'topUp'
-        ? await topUpWalletWithTenderAction(payload)
-        : await issueAdvanceWithTenderAction(payload);
+      const tenderResult =
+        dialog === 'topUp'
+          ? await topUpWalletWithTenderAction(payload)
+          : await issueAdvanceWithTenderAction(payload);
 
       if (tenderResult.success === false) {
         // Stable codes (POS_SESSION_REQUIRED, ledger refusals) get translated text; a POS-session
         // refusal also gets an inline "Open POS session" action in the dialog.
-        setPosSessionRequired(readPosSessionRequired({ code: tenderResult.error, details: tenderResult.errorDetails }));
+        setPosSessionRequired(
+          readPosSessionRequired({
+            code: tenderResult.error,
+            details: tenderResult.errorDetails,
+          }),
+        );
         cmxMessage.error(
           tLedger.has(tenderResult.error as Parameters<typeof tLedger>[0])
             ? tLedger(tenderResult.error as Parameters<typeof tLedger>[0])
-            : tenderResult.error
+            : tenderResult.error,
         );
         setSaving(false);
         return;
       }
       setPosSessionRequired(null);
-      cmxMessage.success(dialog === 'topUp' ? t('topUpSuccess') : t('issueAdvanceSuccess'));
+      cmxMessage.success(
+        dialog === 'topUp' ? t('topUpSuccess') : t('issueAdvanceSuccess'),
+      );
       setSaving(false);
       setDialog(null);
       void load();
@@ -209,8 +245,17 @@ export function CustomerStoredValueTab({ customerId }: Props) {
       result = await issueAdvance(customerId, numAmount, notes || undefined);
       if (result.success) cmxMessage.success(t('issueAdvanceSuccess'));
     } else if (dialog === 'creditNote') {
-      if (!reason.trim()) { cmxMessage.error(t('reasonRequired')); setSaving(false); return; }
-      result = await issueCreditNoteAction(customerId, numAmount, reason, currency);
+      if (!reason.trim()) {
+        cmxMessage.error(t('reasonRequired'));
+        setSaving(false);
+        return;
+      }
+      result = await issueCreditNoteAction(
+        customerId,
+        numAmount,
+        reason,
+        currency,
+      );
       if (result.success) cmxMessage.success(t('issueCreditNoteSuccess'));
     }
 
@@ -225,10 +270,12 @@ export function CustomerStoredValueTab({ customerId }: Props) {
     }
   }
 
-  const statusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
-    if (status === 'ACTIVE')    return 'default';
+  const statusVariant = (
+    status: string,
+  ): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    if (status === 'ACTIVE') return 'default';
     if (status === 'EXHAUSTED') return 'secondary';
-    if (status === 'EXPIRED')   return 'destructive';
+    if (status === 'EXPIRED') return 'destructive';
     return 'outline';
   };
 
@@ -236,16 +283,14 @@ export function CustomerStoredValueTab({ customerId }: Props) {
     return <div className="animate-pulse h-64 rounded-lg bg-muted" />;
   }
 
-  const wallet  = detail?.wallet;
+  const wallet = detail?.wallet;
   const advance = detail?.advance;
-  const cns     = detail?.creditNotes ?? [];
+  const cns = detail?.creditNotes ?? [];
 
   return (
     <div className="flex flex-col gap-6">
-
       {/* Wallet & Advance cards */}
       <div className="grid gap-4 sm:grid-cols-2">
-
         {/* Wallet */}
         <CmxCard>
           <CmxCardHeader className="flex flex-row items-center justify-between pb-2">
@@ -279,7 +324,9 @@ export function CustomerStoredValueTab({ customerId }: Props) {
             <CmxButton
               variant="outline"
               size="sm"
-              className={canIssueAdvance ? undefined : 'cursor-not-allowed opacity-60'}
+              className={
+                canIssueAdvance ? undefined : 'cursor-not-allowed opacity-60'
+              }
               aria-disabled={!canIssueAdvance || undefined}
               onClick={() => openDialog('advance')}
             >
@@ -306,7 +353,9 @@ export function CustomerStoredValueTab({ customerId }: Props) {
           <CmxButton
             variant="outline"
             size="sm"
-            className={canIssueCreditNote ? undefined : 'cursor-not-allowed opacity-60'}
+            className={
+              canIssueCreditNote ? undefined : 'cursor-not-allowed opacity-60'
+            }
             aria-disabled={!canIssueCreditNote || undefined}
             onClick={() => openDialog('creditNote')}
           >
@@ -322,7 +371,9 @@ export function CustomerStoredValueTab({ customerId }: Props) {
                 key: 'credit_note_no',
                 header: t('creditNoteNo'),
                 render: (row: CreditNoteRow) => (
-                  <span className="font-mono text-xs font-medium">{row.credit_note_no}</span>
+                  <span className="font-mono text-xs font-medium">
+                    {row.credit_note_no}
+                  </span>
                 ),
               },
               {
@@ -348,7 +399,11 @@ export function CustomerStoredValueTab({ customerId }: Props) {
                 header: tCommon('status'),
                 render: (row: CreditNoteRow) => (
                   <Badge variant={statusVariant(row.status)}>
-                    {t(`creditNoteStatus.${row.status as 'ACTIVE' | 'EXHAUSTED' | 'EXPIRED' | 'CANCELLED'}`) as string}
+                    {
+                      t(
+                        `creditNoteStatus.${row.status as 'ACTIVE' | 'EXHAUSTED' | 'EXPIRED' | 'CANCELLED'}`,
+                      ) as string
+                    }
                   </Badge>
                 ),
               },
@@ -368,18 +423,25 @@ export function CustomerStoredValueTab({ customerId }: Props) {
             onPageChange={() => undefined}
           />
           {cns.length === 0 && !isLoading && (
-            <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t('noCreditNotes')}</p>
+            <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+              {t('noCreditNotes')}
+            </p>
           )}
         </CmxCardContent>
       </CmxCard>
 
       {/* Top-Up / Advance / Credit Note dialog */}
-      <CmxDialog open={dialog !== null} onOpenChange={(open) => { if (!open) setDialog(null); }}>
+      <CmxDialog
+        open={dialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setDialog(null);
+        }}
+      >
         <CmxDialogContent>
           <CmxDialogHeader>
             <CmxDialogTitle>
-              {dialog === 'topUp'      && t('topUp')}
-              {dialog === 'advance'    && t('issueAdvance')}
+              {dialog === 'topUp' && t('topUp')}
+              {dialog === 'advance' && t('issueAdvance')}
               {dialog === 'creditNote' && t('issueCreditNote')}
             </CmxDialogTitle>
           </CmxDialogHeader>
@@ -400,18 +462,21 @@ export function CustomerStoredValueTab({ customerId }: Props) {
             </div>
 
             {/* B3 — tender step, governed DIRECT_TENDER funding only */}
-            {fundingCaptureEnabled && (dialog === 'topUp' || dialog === 'advance') && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
-                <p className="mb-2 text-sm font-medium">{t('funding.tenderSectionTitle')}</p>
-                <StoredValueTenderFields
-                  amount={parseMoneyDraft(amount) || 0}
-                  currencyCode={tenantCurrency || 'OMR'}
-                  tenantOrgId={tenantOrgId}
-                  userId={userId}
-                  onTenderChange={setTender}
-                />
-              </div>
-            )}
+            {fundingCaptureEnabled &&
+              (dialog === 'topUp' || dialog === 'advance') && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                  <p className="mb-2 text-sm font-medium">
+                    {t('funding.tenderSectionTitle')}
+                  </p>
+                  <StoredValueTenderFields
+                    amount={parseMoneyDraft(amount) || 0}
+                    currencyCode={tenantCurrency}
+                    tenantOrgId={tenantOrgId}
+                    userId={userId}
+                    onTenderChange={setTender}
+                  />
+                </div>
+              )}
 
             {/* Currency — only for credit note */}
             {dialog === 'creditNote' && (
@@ -444,17 +509,23 @@ export function CustomerStoredValueTab({ customerId }: Props) {
 
             {/* Notes — optional for top-up / advance (no-tender path only; the
                 tendered path has no notes field on fundStoredValue) */}
-            {dialog !== 'creditNote' && !(fundingCaptureEnabled && (dialog === 'topUp' || dialog === 'advance')) && (
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">{t('notesOptional')}</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  rows={3}
-                />
-              </div>
-            )}
+            {dialog !== 'creditNote' &&
+              !(
+                fundingCaptureEnabled &&
+                (dialog === 'topUp' || dialog === 'advance')
+              ) && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium">
+                    {t('notesOptional')}
+                  </label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    rows={3}
+                  />
+                </div>
+              )}
           </div>
 
           {posSessionRequired ? (
@@ -467,7 +538,11 @@ export function CustomerStoredValueTab({ customerId }: Props) {
           ) : null}
 
           <CmxDialogFooter>
-            <CmxButton variant="outline" onClick={() => setDialog(null)} disabled={isSaving}>
+            <CmxButton
+              variant="outline"
+              onClick={() => setDialog(null)}
+              disabled={isSaving}
+            >
               {tCommon('cancel')}
             </CmxButton>
             <CmxButton
@@ -475,7 +550,9 @@ export function CustomerStoredValueTab({ customerId }: Props) {
               onClick={handleSubmit}
               disabled={
                 isSaving ||
-                (fundingCaptureEnabled && (dialog === 'topUp' || dialog === 'advance') && !tender)
+                (fundingCaptureEnabled &&
+                  (dialog === 'topUp' || dialog === 'advance') &&
+                  !tender)
               }
             >
               {isSaving ? tCommon('saving') : tCommon('save')}

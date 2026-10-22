@@ -14,12 +14,15 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
-import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
-import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
+import { getCurrencyConfigOutcomeAction } from '@/app/actions/tenant/get-currency-config';
+import {
+  getPaymentFormSchema,
+  type PaymentFormData,
+} from '@features/orders/model/payment-form-schema';
 import {
   type NewOrderPaymentPayload,
   type OutstandingPolicy,
@@ -28,8 +31,15 @@ import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import { type PaymentEngineCurrencyConfig } from '@features/orders/hooks/use-payment-engine';
 import type { OrderItemServicePref } from '@features/orders/model/new-order-types';
 import type { PaymentServerGuard } from '@features/orders/hooks/use-order-submission';
-import { PAYMENT_MODAL_MODE, type PaymentModalMode } from './payment-modal-v4.utils';
+import {
+  PAYMENT_MODAL_MODE,
+  type PaymentModalMode,
+} from './payment-modal-v4.utils';
 import { PaymentFullView } from './payment-full-view';
+import {
+  PaymentCurrencyConfigGate,
+  type PaymentCurrencyConfigLoadState,
+} from '@features/orders/payment/primitives/payment-currency-config-gate';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -37,11 +47,20 @@ import { PaymentFullView } from './payment-full-view';
 interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
+  onSubmit: (
+    paymentData: PaymentFormData,
+    payload: NewOrderPaymentPayload,
+  ) => void;
   total: number;
   /** Order amount for checkout-options eligibility; defaults to preview saleTotal when loaded. */
   checkoutAmount?: number;
-  items: { productId: string; quantity: number; priceOverride?: number | null; servicePrefCharge?: number; packingPrefCharge?: number }[];
+  items: {
+    productId: string;
+    quantity: number;
+    priceOverride?: number | null;
+    servicePrefCharge?: number;
+    packingPrefCharge?: number;
+  }[];
   /** B18 — order-level preferences threaded into the totals preview so the modal total includes their charge. */
   orderServicePrefs?: OrderItemServicePref[];
   isExpress?: boolean;
@@ -128,17 +147,18 @@ export function PaymentModalV4({
     : isB2BCustomer
       ? 'CREDIT_INVOICE'
       : 'PAY_ON_COLLECTION';
-  const defaultPaymentMethod: PaymentFormData['paymentMethod'] = isRetailOnlyOrder
-    ? PAYMENT_METHODS.CASH
-    : isB2BCustomer
-      ? PAYMENT_METHODS.INVOICE
-      : PAYMENT_METHODS.PAY_ON_COLLECTION;
+  const defaultPaymentMethod: PaymentFormData['paymentMethod'] =
+    isRetailOnlyOrder
+      ? PAYMENT_METHODS.CASH
+      : isB2BCustomer
+        ? PAYMENT_METHODS.INVOICE
+        : PAYMENT_METHODS.PAY_ON_COLLECTION;
 
   const { token: csrfToken, loading: csrfLoading } = useCSRFToken();
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(
-      getPaymentFormSchema(total, '')
+      getPaymentFormSchema(total, ''),
     ) as Resolver<PaymentFormData>,
     defaultValues: {
       paymentMethod: defaultPaymentMethod,
@@ -166,18 +186,55 @@ export function PaymentModalV4({
 
   const { reset } = form;
 
-  const [currencyConfig, setCurrencyConfig] = useState<PaymentEngineCurrencyConfig | null>(null);
+  const [currencyConfig, setCurrencyConfig] =
+    useState<PaymentEngineCurrencyConfig | null>(null);
+  const [currencyConfigState, setCurrencyConfigState] = useState<
+    PaymentCurrencyConfigLoadState | { status: 'ready' }
+  >({ status: 'loading' });
 
-  // Load currency config on open.
-  useEffect(() => {
-    if (open && tenantOrgId) {
-      getCurrencyConfigAction(tenantOrgId, branchId, userId).then(config => {
-        setCurrencyConfig(config);
-      }).catch(() => {
-        setCurrencyConfig({ currencyCode: '', decimalPlaces: 3, currencyExRate: 1 });
+  const loadCurrencyConfig = useCallback(async () => {
+    setCurrencyConfig(null);
+    setCurrencyConfigState({ status: 'loading' });
+
+    const outcome = await getCurrencyConfigOutcomeAction(
+      tenantOrgId,
+      branchId,
+      userId,
+    );
+    if ('code' in outcome) {
+      setCurrencyConfigState({
+        status:
+          outcome.code === 'MISSING_TENANT_CURRENCY'
+            ? 'missing-config'
+            : 'unavailable',
       });
+      return;
     }
-  }, [open, tenantOrgId, branchId, userId]);
+
+    const { config } = outcome;
+    if (
+      !config.currencyCode.trim() ||
+      !Number.isInteger(config.decimalPlaces) ||
+      config.decimalPlaces < 0
+    ) {
+      setCurrencyConfigState({ status: 'missing-config' });
+      return;
+    }
+
+    setCurrencyConfig(config);
+    setCurrencyConfigState({ status: 'ready' });
+  }, [branchId, tenantOrgId, userId]);
+
+  // Currency must be refreshed per modal open so a changed organization setup cannot reuse stale money rules.
+  useEffect(() => {
+    if (!open || !tenantOrgId) return;
+
+    // Schedule the request after commit; loading itself owns the asynchronous state transitions.
+    const timer = window.setTimeout(() => {
+      void loadCurrencyConfig();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [open, tenantOrgId, loadCurrencyConfig]);
 
   // Reset the form on open. View-local state resets live in PaymentFullView.
   useEffect(() => {
@@ -203,9 +260,30 @@ export function PaymentModalV4({
         poNumber: '',
       });
     }
-  }, [open, reset, defaultPaymentMethod, defaultOutstandingPolicy, initialPaymentNotes]);
+  }, [
+    open,
+    reset,
+    defaultPaymentMethod,
+    defaultOutstandingPolicy,
+    initialPaymentNotes,
+  ]);
 
   if (!open) return null;
+
+  if (currencyConfigState.status !== 'ready' || !currencyConfig) {
+    return (
+      <PaymentCurrencyConfigGate
+        open={open}
+        state={
+          currencyConfigState.status === 'ready'
+            ? { status: 'loading' }
+            : currencyConfigState
+        }
+        onClose={onClose}
+        onRetry={() => void loadCurrencyConfig()}
+      />
+    );
+  }
 
   return (
     <PaymentFullView

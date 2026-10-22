@@ -20,5 +20,5 @@
     "customerLimitExceeded": "لقد وصلت إلى الحد الأقصى لاستخدام هذا الكود",
     "validationFailed": "فشل التحقق من كود الخصم"
   },
-  "success": "تم تطبيق كود الخصم! وفرت {amount} ريال عماني"
+  "success": "تم تطبيق كود الخصم! وفرت {currencyCode} {amount}"
 }

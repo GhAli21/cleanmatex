@@ -33,7 +33,10 @@ import { taxService } from '@/lib/services/tax.service';
 import { cmxMessage } from '@ui/feedback';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 import { shouldFetchPaymentPreview } from '@features/orders/ui/payment-modal-v4.utils';
-import type { AppliedPromoCode, AppliedGiftCard } from './use-gift-card-and-promo';
+import type {
+  AppliedPromoCode,
+  AppliedGiftCard,
+} from './use-gift-card-and-promo';
 import type { OrderItemServicePref } from '../model/new-order-types';
 
 /**
@@ -41,7 +44,7 @@ import type { OrderItemServicePref } from '../model/new-order-types';
  */
 export type PaymentTotalsTranslate = (
   key: string,
-  params?: Record<string, string | number>
+  params?: Record<string, string | number>,
 ) => string;
 
 /**
@@ -194,7 +197,9 @@ export function usePaymentTotals({
   // B15: no invented tax — 0 until the real rate loads; the server preview
   // (serverTotals) owns tax on every settlement path anyway.
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [taxProfileEntries, setTaxProfileEntries] = useState<TaxProfileEntry[]>([]);
+  const [taxProfileEntries, setTaxProfileEntries] = useState<TaxProfileEntry[]>(
+    [],
+  );
   const [taxProfilesReady, setTaxProfilesReady] = useState(false);
   const [serverTotals, setServerTotals] = useState<ServerTotals | null>(null);
   const [totalsLoading, setTotalsLoading] = useState(false);
@@ -210,7 +215,8 @@ export function usePaymentTotals({
   // we fall back to the client-side validation amount to avoid a 0-flash.
   const lastFetchedPromoCodeRef = useRef<string | null>(null);
 
-  const checkoutEligibilityAmount = serverTotals?.saleTotal ?? checkoutAmount ?? total;
+  const checkoutEligibilityAmount =
+    serverTotals?.saleTotal ?? checkoutAmount ?? total;
 
   // Tax-profile open-reset (render-time Pattern A — the async load below repopulates).
   const [prevOpen, setPrevOpen] = useState(open);
@@ -247,40 +253,49 @@ export function usePaymentTotals({
       }
     };
 
-    taxService.getTaxRate(tenantOrgId, branchId).then(rate => {
-      if (gen !== taxLoadGenRef.current) return;
-      setTaxRate(rate);
-    }).catch(() => {
-      // B15: never assume a rate on failure — keep 0 (server preview wins).
-      if (gen !== taxLoadGenRef.current) return;
-      setTaxRate(0);
-    }).finally(() => {
-      rateDone = true;
-      markReadyIfSettled();
-    });
-    getTaxProfilesAction().then(res => {
-      if (gen !== taxLoadGenRef.current) return;
-      if (res.success && res.data) {
-        const defaultActive = res.data
-          .filter(p => p.is_default && p.is_active)
-          .sort((a, b) => a.tax_type.localeCompare(b.tax_type));
-        setTaxProfileEntries(defaultActive.map(p => ({
-          id: p.id,
-          name: p.name,
-          name2: p.name2,
-          tax_type: p.tax_type,
-          rate: Number(p.rate),
-          is_compound: p.is_compound,
-          enabled: true,
-        })));
-      }
-    }).catch(() => {
-      if (gen !== taxLoadGenRef.current) return;
-      setTaxProfileEntries([]);
-    }).finally(() => {
-      profilesDone = true;
-      markReadyIfSettled();
-    });
+    taxService
+      .getTaxRate(tenantOrgId, branchId)
+      .then((rate) => {
+        if (gen !== taxLoadGenRef.current) return;
+        setTaxRate(rate);
+      })
+      .catch(() => {
+        // B15: never assume a rate on failure — keep 0 (server preview wins).
+        if (gen !== taxLoadGenRef.current) return;
+        setTaxRate(0);
+      })
+      .finally(() => {
+        rateDone = true;
+        markReadyIfSettled();
+      });
+    getTaxProfilesAction()
+      .then((res) => {
+        if (gen !== taxLoadGenRef.current) return;
+        if (res.success && res.data) {
+          const defaultActive = res.data
+            .filter((p) => p.is_default && p.is_active)
+            .sort((a, b) => a.tax_type.localeCompare(b.tax_type));
+          setTaxProfileEntries(
+            defaultActive.map((p) => ({
+              id: p.id,
+              name: p.name,
+              name2: p.name2,
+              tax_type: p.tax_type,
+              rate: Number(p.rate),
+              is_compound: p.is_compound,
+              enabled: true,
+            })),
+          );
+        }
+      })
+      .catch(() => {
+        if (gen !== taxLoadGenRef.current) return;
+        setTaxProfileEntries([]);
+      })
+      .finally(() => {
+        profilesDone = true;
+        markReadyIfSettled();
+      });
   }, [open, tenantOrgId, branchId]);
 
   const previewReady = shouldFetchPaymentPreview({
@@ -293,19 +308,25 @@ export function usePaymentTotals({
 
   // Preview-payment fetch (debounced 300ms after the first hydrated preview)
   const fetchPreview = useCallback(async () => {
-    if (!shouldFetchPaymentPreview({
-      open,
-      itemsCount: items.length,
-      tenantOrgId,
-      taxProfilesReady,
-      csrfReady,
-    })) return;
+    if (
+      !shouldFetchPaymentPreview({
+        open,
+        itemsCount: items.length,
+        tenantOrgId,
+        taxProfilesReady,
+        csrfReady,
+      })
+    )
+      return;
     setPreviewFailed(false);
     setTotalsLoading(true);
     try {
       const res = await fetch('/api/v1/orders/preview-payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getCSRFHeader(csrfTokenRef.current) },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCSRFHeader(csrfTokenRef.current),
+        },
         credentials: 'include',
         body: JSON.stringify({
           items,
@@ -314,11 +335,17 @@ export function usePaymentTotals({
           isExpress,
           percentDiscount: percentDiscount ?? 0,
           amountDiscount: amountDiscount ?? 0,
-          serviceCategories: serviceCategories && serviceCategories.length > 0 ? serviceCategories : undefined,
-          taxProfileIds: taxProfileEntries.filter((entry) => entry.enabled).map((entry) => entry.id),
-          ...(orderServicePrefs && orderServicePrefs.length > 0 && {
-            orderServicePrefs,
-          }),
+          serviceCategories:
+            serviceCategories && serviceCategories.length > 0
+              ? serviceCategories
+              : undefined,
+          taxProfileIds: taxProfileEntries
+            .filter((entry) => entry.enabled)
+            .map((entry) => entry.id),
+          ...(orderServicePrefs &&
+            orderServicePrefs.length > 0 && {
+              orderServicePrefs,
+            }),
           ...(!NEW_ORDER_PROMO_GIFT_DISABLED && {
             promoCode: appliedPromoCode?.code || undefined,
             giftCardNumber: appliedGiftCard?.number || undefined,
@@ -337,7 +364,8 @@ export function usePaymentTotals({
         setServerTotals({
           subtotal: d.subtotal,
           manualDiscount: d.manualDiscount,
-          autoRuleDiscount: typeof d.autoRuleDiscount === 'number' ? d.autoRuleDiscount : 0,
+          autoRuleDiscount:
+            typeof d.autoRuleDiscount === 'number' ? d.autoRuleDiscount : 0,
           promoDiscount: d.promoDiscount,
           afterDiscounts: d.afterDiscounts,
           additionalTaxAmount: d.additionalTaxAmount ?? 0,
@@ -346,8 +374,14 @@ export function usePaymentTotals({
           saleTotal: d.saleTotal,
           vatTaxPercent: d.vatTaxPercent ?? 0,
           taxBreakdown: Array.isArray(d.taxBreakdown) ? d.taxBreakdown : [],
-          taxPricingMode: d.taxPricingMode === 'TAX_INCLUSIVE' ? 'TAX_INCLUSIVE' : 'TAX_EXCLUSIVE',
-          roundingAdjustmentAmount: typeof d.roundingAdjustmentAmount === 'number' ? d.roundingAdjustmentAmount : 0,
+          taxPricingMode:
+            d.taxPricingMode === 'TAX_INCLUSIVE'
+              ? 'TAX_INCLUSIVE'
+              : 'TAX_EXCLUSIVE',
+          roundingAdjustmentAmount:
+            typeof d.roundingAdjustmentAmount === 'number'
+              ? d.roundingAdjustmentAmount
+              : 0,
           chargesTotal: typeof d.chargesTotal === 'number' ? d.chargesTotal : 0,
           ...(d.creditLimit && { creditLimit: d.creditLimit }),
         });
@@ -355,16 +389,29 @@ export function usePaymentTotals({
       } else {
         setServerTotals(null);
         setPreviewFailed(true);
-        if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
+        if (!res.ok && json.errorCode === 'MISSING_TENANT_CURRENCY') {
+          cmxMessage.error(t('errors.currencyConfigurationMissing'));
+        } else if (
+          !res.ok &&
+          json.errorCode === 'TENANT_CURRENCY_UNAVAILABLE'
+        ) {
+          cmxMessage.error(t('errors.currencyConfigurationUnavailable'));
+        } else if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
           cmxMessage.error(json.error ?? t('errors.productNotFound'));
         } else if (!res.ok && json.error) {
-          const details = json.details as Array<{ path?: (string | number)[]; message?: string }> | undefined;
+          const details = json.details as
+            | Array<{ path?: (string | number)[]; message?: string }>
+            | undefined;
           const msg =
             details && Array.isArray(details) && details.length > 0
-              ? details.map((d) => {
-                  const path = (d.path ?? []).join('.');
-                  return path ? `${path}: ${d.message ?? ''}` : (d.message ?? '');
-                }).join('. ')
+              ? details
+                  .map((d) => {
+                    const path = (d.path ?? []).join('.');
+                    return path
+                      ? `${path}: ${d.message ?? ''}`
+                      : (d.message ?? '');
+                  })
+                  .join('. ')
               : (json.error as string);
           cmxMessage.error(msg);
         }
@@ -375,7 +422,26 @@ export function usePaymentTotals({
     } finally {
       setTotalsLoading(false);
     }
-  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, serviceCategories, taxProfileEntries, taxProfilesReady, csrfReady, orderServicePrefs, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, appliedGiftCard?.id, t]);
+  }, [
+    open,
+    items,
+    tenantOrgId,
+    branchId,
+    customerId,
+    isExpress,
+    percentDiscount,
+    amountDiscount,
+    serviceCategories,
+    taxProfileEntries,
+    taxProfilesReady,
+    csrfReady,
+    orderServicePrefs,
+    appliedPromoCode?.code,
+    appliedGiftCard?.number,
+    appliedGiftCard?.amount,
+    appliedGiftCard?.id,
+    t,
+  ]);
 
   useEffect(() => {
     if (!previewReady) {
@@ -401,7 +467,9 @@ export function usePaymentTotals({
       percentDiscount > 0
         ? Math.min((subtotal * percentDiscount) / 100, subtotal)
         : Math.min(amountDiscount, subtotal);
-    const promoDiscount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedPromoCode?.discount || 0);
+    const promoDiscount = NEW_ORDER_PROMO_GIFT_DISABLED
+      ? 0
+      : appliedPromoCode?.discount || 0;
     return Math.max(0, subtotal - manualDiscount - promoDiscount);
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode]);
 
@@ -410,8 +478,12 @@ export function usePaymentTotals({
     if (selectedProfiles.length > 0) {
       let accumulatedPriorTax = 0;
       return selectedProfiles.map((entry) => {
-        const taxableBase = entry.is_compound ? afterDiscountsForTax + accumulatedPriorTax : afterDiscountsForTax;
-        const taxAmount = parseFloat((taxableBase * (entry.rate / 100)).toFixed(decimalPlaces));
+        const taxableBase = entry.is_compound
+          ? afterDiscountsForTax + accumulatedPriorTax
+          : afterDiscountsForTax;
+        const taxAmount = parseFloat(
+          (taxableBase * (entry.rate / 100)).toFixed(decimalPlaces),
+        );
         accumulatedPriorTax += taxAmount;
         return {
           taxType: entry.tax_type as 'VAT' | 'GST' | 'CUSTOM',
@@ -427,29 +499,37 @@ export function usePaymentTotals({
     }
 
     if (taxRate > 0) {
-      return [{
-        taxType: 'VAT',
-        label: 'VAT',
-        label2: 'ضريبة القيمة المضافة',
-        rate: taxRate * 100,
-        isCompound: false,
-        baseAmount: afterDiscountsForTax,
-        taxAmount: parseFloat((afterDiscountsForTax * taxRate).toFixed(decimalPlaces)),
-      }];
+      return [
+        {
+          taxType: 'VAT',
+          label: 'VAT',
+          label2: 'ضريبة القيمة المضافة',
+          rate: taxRate * 100,
+          isCompound: false,
+          baseAmount: afterDiscountsForTax,
+          taxAmount: parseFloat(
+            (afterDiscountsForTax * taxRate).toFixed(decimalPlaces),
+          ),
+        },
+      ];
     }
 
     return [];
   }, [taxProfileEntries, afterDiscountsForTax, decimalPlaces, taxRate]);
 
-  const displayTaxBreakdown =
-    serverTotals?.taxBreakdown?.length
-      ? serverTotals.taxBreakdown
-      : totalsLoading || (items.length > 0 && !serverTotals)
-        ? []
-        : fallbackTaxBreakdown;
+  const displayTaxBreakdown = serverTotals?.taxBreakdown?.length
+    ? serverTotals.taxBreakdown
+    : totalsLoading || (items.length > 0 && !serverTotals)
+      ? []
+      : fallbackTaxBreakdown;
   const profilesTaxAmount = useMemo(
-    () => parseFloat(displayTaxBreakdown.reduce((sum, line) => sum + line.taxAmount, 0).toFixed(decimalPlaces)),
-    [displayTaxBreakdown, decimalPlaces]
+    () =>
+      parseFloat(
+        displayTaxBreakdown
+          .reduce((sum, line) => sum + line.taxAmount, 0)
+          .toFixed(decimalPlaces),
+      ),
+    [displayTaxBreakdown, decimalPlaces],
   );
 
   const totals = useMemo(() => {
@@ -457,18 +537,26 @@ export function usePaymentTotals({
       // If the applied promo code differs from what was used in the last preview fetch,
       // serverTotals.promoDiscount is stale (the debounce hasn't fired yet). Use the
       // client-side validation amount to avoid a zero-flash in the inspector.
-      const currentPromoCode = !NEW_ORDER_PROMO_GIFT_DISABLED ? (appliedPromoCode?.code ?? null) : null;
+      const currentPromoCode = !NEW_ORDER_PROMO_GIFT_DISABLED
+        ? (appliedPromoCode?.code ?? null)
+        : null;
       const promoIsStale = currentPromoCode !== lastFetchedPromoCodeRef.current;
       const effectivePromoDiscount = promoIsStale
-        ? (!NEW_ORDER_PROMO_GIFT_DISABLED ? (appliedPromoCode?.discount ?? 0) : 0)
+        ? !NEW_ORDER_PROMO_GIFT_DISABLED
+          ? (appliedPromoCode?.discount ?? 0)
+          : 0
         : serverTotals.promoDiscount;
-      const serverTaxTotal = serverTotals.taxBreakdown.reduce((sum, line) => sum + line.taxAmount, 0);
+      const serverTaxTotal = serverTotals.taxBreakdown.reduce(
+        (sum, line) => sum + line.taxAmount,
+        0,
+      );
       return {
         ...serverTotals,
         promoDiscount: effectivePromoDiscount,
         taxRate: 0,
         taxAmount: serverTotals.additionalTaxAmount ?? 0,
-        totalSavings: serverTotals.subtotal + serverTaxTotal - serverTotals.saleTotal,
+        totalSavings:
+          serverTotals.subtotal + serverTaxTotal - serverTotals.saleTotal,
       };
     }
     const subtotal = total;
@@ -476,22 +564,29 @@ export function usePaymentTotals({
       percentDiscount > 0
         ? Math.min((subtotal * percentDiscount) / 100, subtotal)
         : Math.min(amountDiscount, subtotal);
-    const promoDiscount  = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedPromoCode?.discount || 0);
-    const afterDiscounts = Math.max(0, subtotal - manualDiscount - promoDiscount);
+    const promoDiscount = NEW_ORDER_PROMO_GIFT_DISABLED
+      ? 0
+      : appliedPromoCode?.discount || 0;
+    const afterDiscounts = Math.max(
+      0,
+      subtotal - manualDiscount - promoDiscount,
+    );
     const vatValue = parseFloat(
       fallbackTaxBreakdown
         .filter((line) => line.taxType === 'VAT' || line.taxType === 'GST')
         .reduce((sum, line) => sum + line.taxAmount, 0)
-        .toFixed(decimalPlaces)
+        .toFixed(decimalPlaces),
     );
     const taxAmount = parseFloat(
       fallbackTaxBreakdown
         .filter((line) => line.taxType === 'CUSTOM')
         .reduce((sum, line) => sum + line.taxAmount, 0)
-        .toFixed(decimalPlaces)
+        .toFixed(decimalPlaces),
     );
-    const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-    const saleTotal      = Math.max(0, afterDiscounts + profilesTaxAmount);
+    const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED
+      ? 0
+      : appliedGiftCard?.amount || 0;
+    const saleTotal = Math.max(0, afterDiscounts + profilesTaxAmount);
     return {
       subtotal,
       manualDiscount,
@@ -500,7 +595,10 @@ export function usePaymentTotals({
       afterDiscounts,
       taxRate: 0,
       taxAmount,
-      vatTaxPercent: fallbackTaxBreakdown.find((line) => line.taxType === 'VAT' || line.taxType === 'GST')?.rate ?? (taxRate * 100),
+      vatTaxPercent:
+        fallbackTaxBreakdown.find(
+          (line) => line.taxType === 'VAT' || line.taxType === 'GST',
+        )?.rate ?? taxRate * 100,
       vatValue,
       giftCardApplied,
       saleTotal,
@@ -508,7 +606,18 @@ export function usePaymentTotals({
       chargesTotal: 0,
       totalSavings: subtotal + taxAmount + vatValue - saleTotal,
     };
-  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces, fallbackTaxBreakdown]);
+  }, [
+    serverTotals,
+    total,
+    percentDiscount,
+    amountDiscount,
+    appliedPromoCode,
+    appliedGiftCard,
+    taxRate,
+    profilesTaxAmount,
+    decimalPlaces,
+    fallbackTaxBreakdown,
+  ]);
 
   const saleTotal = totals.saleTotal;
   // B11: only label "tax included" once the server has actually confirmed it —

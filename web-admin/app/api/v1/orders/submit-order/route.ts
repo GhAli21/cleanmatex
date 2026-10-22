@@ -49,6 +49,10 @@ import {
   extractThrownErrorDetails,
   isStableErrorCode,
 } from '@/lib/utils/business-error';
+import {
+  CURRENCY_RESOLUTION_ERRORS,
+  CurrencyResolutionError,
+} from '@/lib/money/currency-resolution';
 
 const IDEMPOTENCY_RESOURCE = 'submit_order';
 
@@ -93,8 +97,12 @@ export async function POST(request: NextRequest) {
   const parsed = submitOrderRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { success: false, error: 'Invalid request body', details: parsed.error.issues },
-      { status: 400 }
+      {
+        success: false,
+        error: 'Invalid request body',
+        details: parsed.error.issues,
+      },
+      { status: 400 },
     );
   }
 
@@ -115,7 +123,7 @@ export async function POST(request: NextRequest) {
   const idempotencyRecord = await findIdempotencyHash(
     tenantId,
     input.idempotencyKey,
-    IDEMPOTENCY_RESOURCE
+    IDEMPOTENCY_RESOURCE,
   );
 
   if (idempotencyRecord) {
@@ -124,15 +132,16 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           errorCode: 'IDEMPOTENCY_CONFLICT',
-          error: 'Same idempotency key used with a different payload. Use a new key or restore the original payload.',
+          error:
+            'Same idempotency key used with a different payload. Use a new key or restore the original payload.',
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
     // Hash match (or legacy row without hash) → safe to return cached order.
     if (idempotencyRecord.resourceId) {
       const cached = await prisma.org_orders_mst.findFirst({
-        where:  { id: idempotencyRecord.resourceId, tenant_org_id: tenantId },
+        where: { id: idempotencyRecord.resourceId, tenant_org_id: tenantId },
         select: { id: true, order_no: true, current_status: true },
       });
       if (cached) {
@@ -140,8 +149,8 @@ export async function POST(request: NextRequest) {
           success: true,
           data: {
             order: {
-              id:            cached.id,
-              orderNo:       cached.order_no,
+              id: cached.id,
+              orderNo: cached.order_no,
               currentStatus: cached.current_status,
             },
             fromCache: true,
@@ -155,7 +164,9 @@ export async function POST(request: NextRequest) {
     //     success — recoverable via the legacy match-by-key fallback below), or
     // (b) failed before completing. We can't distinguish without checking the
     // order table for a row carrying this idempotency_key.
-    const recoveredOrder = await prisma.$queryRaw<{ id: string; order_no: string; current_status: string }[]>`
+    const recoveredOrder = await prisma.$queryRaw<
+      { id: string; order_no: string; current_status: string }[]
+    >`
       SELECT id, order_no, current_status
       FROM org_orders_mst
       WHERE tenant_org_id   = ${tenantId}::uuid
@@ -165,14 +176,20 @@ export async function POST(request: NextRequest) {
     if (recoveredOrder.length > 0) {
       // Heal the orphaned hash row by attaching the real resource_id.
       await storeIdempotencyHash(
-        tenantId, input.idempotencyKey, IDEMPOTENCY_RESOURCE, currentHash, recoveredOrder[0].id
-      ).catch(() => { /* non-fatal */ });
+        tenantId,
+        input.idempotencyKey,
+        IDEMPOTENCY_RESOURCE,
+        currentHash,
+        recoveredOrder[0].id,
+      ).catch(() => {
+        /* non-fatal */
+      });
       return NextResponse.json({
         success: true,
         data: {
           order: {
-            id:            recoveredOrder[0].id,
-            orderNo:       recoveredOrder[0].order_no,
+            id: recoveredOrder[0].id,
+            orderNo: recoveredOrder[0].order_no,
             currentStatus: recoveredOrder[0].current_status,
           },
           fromCache: true,
@@ -186,15 +203,18 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         errorCode: 'PRIOR_ATTEMPT_FAILED',
-        error: 'A previous submission with this idempotency key did not complete. Refresh and retry with a new key.',
+        error:
+          'A previous submission with this idempotency key did not complete. Refresh and retry with a new key.',
       },
-      { status: 409 }
+      { status: 409 },
     );
   }
 
   // Legacy path: prior submits may have written only org_orders_mst.idempotency_key
   // (before S2 introduced the hash record). Honor those rows as match-by-key only.
-  const existing = await prisma.$queryRaw<{ id: string; order_no: string; current_status: string }[]>`
+  const existing = await prisma.$queryRaw<
+    { id: string; order_no: string; current_status: string }[]
+  >`
     SELECT id, order_no, current_status
     FROM org_orders_mst
     WHERE tenant_org_id    = ${tenantId}::uuid
@@ -206,8 +226,8 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         order: {
-          id:            existing[0].id,
-          orderNo:       existing[0].order_no,
+          id: existing[0].id,
+          orderNo: existing[0].order_no,
           currentStatus: existing[0].current_status,
         },
         fromCache: true,
@@ -233,7 +253,8 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           errorCode: 'IDEMPOTENCY_CONFLICT',
-          error: 'Same idempotency key used with a different payload. Use a new key or restore the original payload.',
+          error:
+            'Same idempotency key used with a different payload. Use a new key or restore the original payload.',
         },
         { status: 409 },
       );
@@ -241,10 +262,11 @@ export async function POST(request: NextRequest) {
     // conflict is already handled above. Narrow via the `in` operator: boolean
     // discriminant narrowing does not engage under this project's non-strict
     // tsconfig, but property-presence narrowing does.
-    const stakedResourceId = 'resourceId' in stakedRecord ? stakedRecord.resourceId : null;
+    const stakedResourceId =
+      'resourceId' in stakedRecord ? stakedRecord.resourceId : null;
     if (stakedResourceId) {
       const stakedOrder = await prisma.org_orders_mst.findFirst({
-        where:  { id: stakedResourceId, tenant_org_id: tenantId },
+        where: { id: stakedResourceId, tenant_org_id: tenantId },
         select: { id: true, order_no: true, current_status: true },
       });
       if (stakedOrder) {
@@ -252,8 +274,8 @@ export async function POST(request: NextRequest) {
           success: true,
           data: {
             order: {
-              id:            stakedOrder.id,
-              orderNo:       stakedOrder.order_no,
+              id: stakedOrder.id,
+              orderNo: stakedOrder.order_no,
               currentStatus: stakedOrder.current_status,
             },
             fromCache: true,
@@ -262,17 +284,26 @@ export async function POST(request: NextRequest) {
       }
     }
   } catch (err) {
-    logger.error('[submit-order] failed to stake idempotency claim — aborting before orchestrator',
+    logger.error(
+      '[submit-order] failed to stake idempotency claim — aborting before orchestrator',
       err instanceof Error ? err : new Error(String(err)),
-      { feature: 'orders', action: 'submit-order' });
+      { feature: 'orders', action: 'submit-order' },
+    );
     return NextResponse.json(
-      { success: false, errorCode: 'IDEMPOTENCY_CLAIM_FAILED', error: 'Could not reserve idempotency key. Please retry.' },
-      { status: 500 }
+      {
+        success: false,
+        errorCode: 'IDEMPOTENCY_CLAIM_FAILED',
+        error: 'Could not reserve idempotency key. Please retry.',
+      },
+      { status: 500 },
     );
   }
 
   // 5. Resolve branch
-  const branchId = await resolveOrderBranch(tenantId, input.branchId ?? undefined);
+  const branchId = await resolveOrderBranch(
+    tenantId,
+    input.branchId ?? undefined,
+  );
 
   // 6. Delegate to orchestrator (idempotency-unaware)
   try {
@@ -291,7 +322,9 @@ export async function POST(request: NextRequest) {
       SET idempotency_key = ${input.idempotencyKey}
       WHERE id           = ${result.order.id}::uuid
         AND tenant_org_id = ${tenantId}::uuid
-    `.catch(() => {/* non-fatal — idempotency key store failure does not fail the request */});
+    `.catch(() => {
+      /* non-fatal — idempotency key store failure does not fail the request */
+    });
 
     // P3: update the pre-orchestrator placeholder hash row with the real
     // resource_id. Failure is non-fatal — the order succeeded, and the
@@ -302,12 +335,16 @@ export async function POST(request: NextRequest) {
       input.idempotencyKey,
       IDEMPOTENCY_RESOURCE,
       currentHash,
-      result.order.id
+      result.order.id,
     ).catch((err: unknown) => {
-      logger.warn?.('[submit-order] failed to update idempotency hash with resource_id', {
-        feature: 'orders', action: 'submit-order',
-        error: err instanceof Error ? err.message : String(err),
-      });
+      logger.warn?.(
+        '[submit-order] failed to update idempotency hash with resource_id',
+        {
+          feature: 'orders',
+          action: 'submit-order',
+          error: err instanceof Error ? err.message : String(err),
+        },
+      );
     });
 
     void emitNotificationEvent({
@@ -317,23 +354,26 @@ export async function POST(request: NextRequest) {
       sourceEntityType: 'order',
       sourceEntityId: result.order.id,
       variables: buildOrderCreatedNotificationVariables({
-        orderNo:   result.order.orderNo,
+        orderNo: result.order.orderNo,
         readyByAt: input.readyByAt,
-        timeZone:  await getTenantTimeZone(),
+        timeZone: await getTenantTimeZone(),
       }),
     });
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    const profileResolutionCode = error instanceof WorkflowProfileResolutionError ? error.code : null;
+    const profileResolutionCode =
+      error instanceof WorkflowProfileResolutionError ? error.code : null;
     const message = error instanceof Error ? error.message : String(error);
-    const committedOrder = await prisma.org_orders_mst.findFirst({
-      where: {
-        tenant_org_id:    tenantId,
-        idempotency_key:  input.idempotencyKey,
-      },
-      select: { id: true, order_no: true, current_status: true },
-    }).catch(() => null);
+    const committedOrder = await prisma.org_orders_mst
+      .findFirst({
+        where: {
+          tenant_org_id: tenantId,
+          idempotency_key: input.idempotencyKey,
+        },
+        select: { id: true, order_no: true, current_status: true },
+      })
+      .catch(() => null);
 
     if (committedOrder) {
       await storeIdempotencyHash(
@@ -342,14 +382,16 @@ export async function POST(request: NextRequest) {
         IDEMPOTENCY_RESOURCE,
         currentHash,
         committedOrder.id,
-      ).catch(() => { /* non-fatal recovery cache write */ });
+      ).catch(() => {
+        /* non-fatal recovery cache write */
+      });
 
       return NextResponse.json({
         success: true,
         data: {
           order: {
-            id:            committedOrder.id,
-            orderNo:       committedOrder.order_no,
+            id: committedOrder.id,
+            orderNo: committedOrder.order_no,
             currentStatus: committedOrder.current_status,
           },
           fromCache: true,
@@ -359,31 +401,60 @@ export async function POST(request: NextRequest) {
 
     // submitOrder is atomic: if no committed order carries this idempotency key,
     // the transaction rolled back and the placeholder can be safely unstaked.
-    const errorCode = message.startsWith('Product not found:') ? 'PRODUCT_NOT_FOUND' : message;
-    await deleteIdempotencyHash(tenantId, input.idempotencyKey, IDEMPOTENCY_RESOURCE)
-      .catch((err: unknown) => {
-        logger.warn?.('[submit-order] failed to unstake idempotency placeholder after rolled-back error', {
-          feature: 'orders', action: 'submit-order',
-          errorCode, error: err instanceof Error ? err.message : String(err),
-        });
-      });
+    const errorCode = message.startsWith('Product not found:')
+      ? 'PRODUCT_NOT_FOUND'
+      : message;
+    await deleteIdempotencyHash(
+      tenantId,
+      input.idempotencyKey,
+      IDEMPOTENCY_RESOURCE,
+    ).catch((err: unknown) => {
+      logger.warn?.(
+        '[submit-order] failed to unstake idempotency placeholder after rolled-back error',
+        {
+          feature: 'orders',
+          action: 'submit-order',
+          errorCode,
+          error: err instanceof Error ? err.message : String(err),
+        },
+      );
+    });
 
     // B1: a mandatory POS session is missing / mismatched — stable code + payload for the inline-open offer.
     const posSessionResponse = posSessionFinanceErrorResponse(error);
     if (posSessionResponse) return posSessionResponse;
 
-    if (error instanceof SemanticInitialStatusResolutionError) {
+    if (error instanceof CurrencyResolutionError) {
+      const isMissingConfig =
+        error.code === CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY;
       return NextResponse.json(
-        workflowProfileCreateErrorPayload(error.code),
-        { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
+        {
+          success: false,
+          errorCode: error.code,
+          error: isMissingConfig
+            ? 'The Organization Base Currency is not configured.'
+            : 'The Organization currency configuration could not be verified. Please retry.',
+        },
+        { status: isMissingConfig ? 422 : 503 },
       );
     }
 
-    if (profileResolutionCode && isWorkflowProfileCreateErrorCode(profileResolutionCode)) {
+    if (error instanceof SemanticInitialStatusResolutionError) {
+      return NextResponse.json(workflowProfileCreateErrorPayload(error.code), {
+        status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS,
+      });
+    }
+
+    if (
+      profileResolutionCode &&
+      isWorkflowProfileCreateErrorCode(profileResolutionCode)
+    ) {
       return NextResponse.json(
         workflowProfileCreateErrorPayload(
           profileResolutionCode,
-          error instanceof WorkflowProfileResolutionError ? error.details : undefined,
+          error instanceof WorkflowProfileResolutionError
+            ? error.details
+            : undefined,
         ),
         { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
       );
@@ -394,40 +465,63 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           errorCode: 'AMOUNT_MISMATCH',
-          error: 'Amount mismatch. Values have changed. Please refresh to get correct amounts.',
+          error:
+            'Amount mismatch. Values have changed. Please refresh to get correct amounts.',
           differences: (error as Error & { differences?: unknown }).differences,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (message === 'B2B_CREDIT_HOLD') {
       return NextResponse.json(
-        { success: false, errorCode: 'B2B_CREDIT_HOLD', error: 'This B2B customer is on credit hold.' },
-        { status: 400 }
+        {
+          success: false,
+          errorCode: 'B2B_CREDIT_HOLD',
+          error: 'This B2B customer is on credit hold.',
+        },
+        { status: 400 },
       );
     }
 
     if (message === 'B2B_CREDIT_EXCEEDED') {
-      const e = error as Error & { creditLimit?: number; currentBalance?: number; available?: number };
+      const e = error as Error & {
+        creditLimit?: number;
+        currentBalance?: number;
+        available?: number;
+      };
       return NextResponse.json(
-        { success: false, errorCode: 'B2B_CREDIT_EXCEEDED', error: 'Credit limit exceeded.',
-          creditLimit: e.creditLimit, currentBalance: e.currentBalance, available: e.available },
-        { status: 400 }
+        {
+          success: false,
+          errorCode: 'B2B_CREDIT_EXCEEDED',
+          error: 'Credit limit exceeded.',
+          creditLimit: e.creditLimit,
+          currentBalance: e.currentBalance,
+          available: e.available,
+        },
+        { status: 400 },
       );
     }
 
     if (message === 'SPLIT_AMOUNT_MISMATCH') {
       return NextResponse.json(
-        { success: false, errorCode: 'SPLIT_AMOUNT_MISMATCH', error: 'Sum of payment legs must equal order total.' },
-        { status: 400 }
+        {
+          success: false,
+          errorCode: 'SPLIT_AMOUNT_MISMATCH',
+          error: 'Sum of payment legs must equal order total.',
+        },
+        { status: 400 },
       );
     }
 
     if (message === 'DEFERRED_LEG_NOT_ALONE') {
       return NextResponse.json(
-        { success: false, errorCode: 'DEFERRED_LEG_NOT_ALONE', error: 'A deferred payment method must be the only payment leg.' },
-        { status: 400 }
+        {
+          success: false,
+          errorCode: 'DEFERRED_LEG_NOT_ALONE',
+          error: 'A deferred payment method must be the only payment leg.',
+        },
+        { status: 400 },
       );
     }
 
@@ -438,14 +532,18 @@ export async function POST(request: NextRequest) {
           errorCode: 'OUTSTANDING_POLICY_REQUIRED',
           error: 'Choose how the remaining balance should be handled.',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (message === 'CHECK_NUMBER_REQUIRED') {
       return NextResponse.json(
-        { success: false, errorCode: 'CHECK_NUMBER_REQUIRED', error: 'Check number is required for check payments.' },
-        { status: 400 }
+        {
+          success: false,
+          errorCode: 'CHECK_NUMBER_REQUIRED',
+          error: 'Check number is required for check payments.',
+        },
+        { status: 400 },
       );
     }
 
@@ -454,9 +552,10 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           errorCode: 'INVALID_TAX_PROFILE_SELECTION',
-          error: 'One or more selected tax profiles are invalid or no longer active.',
+          error:
+            'One or more selected tax profiles are invalid or no longer active.',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -479,20 +578,34 @@ export async function POST(request: NextRequest) {
     if (error instanceof CashDrawerLedgerError) {
       return NextResponse.json(
         { success: false, errorCode: error.code, error: error.code },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
-    if (['CASH_DRAWER_SESSION_REQUIRED', 'CASH_DRAWER_SESSION_SELECTION_REQUIRED', 'CASH_DRAWER_SESSION_CLOSED',
-         'CASH_TENDERED_REQUIRED', 'CASH_TENDERED_LESS_THAN_AMOUNT', 'CASH_CHANGE_NOT_ALLOWED',
-         'METHOD_OVERPAYMENT_NOT_ALLOWED', 'CASH_TENDERED_ONLY_FOR_CASH', 'GATEWAY_NOT_CONFIGURED',
-         'PAYMENT_REFERENCE_REQUIRED', 'PAYMENT_TERMINAL_REQUIRED',
-         'OVERPAYMENT_RESOLUTION_REQUIRED', 'OVERPAYMENT_RESOLUTION_MISMATCH',
-         'OVERPAYMENT_RESOLUTION_NOT_ALLOWED', 'RETURN_CHANGE_EXCEEDS_CAPACITY',
-         'RETURN_CHANGE_LEG_INVALID', 'RECEIPT_ALLOCATION_EXCESS_UNRESOLVED'].includes(message)) {
+    if (
+      [
+        'CASH_DRAWER_SESSION_REQUIRED',
+        'CASH_DRAWER_SESSION_SELECTION_REQUIRED',
+        'CASH_DRAWER_SESSION_CLOSED',
+        'CASH_TENDERED_REQUIRED',
+        'CASH_TENDERED_LESS_THAN_AMOUNT',
+        'CASH_CHANGE_NOT_ALLOWED',
+        'METHOD_OVERPAYMENT_NOT_ALLOWED',
+        'CASH_TENDERED_ONLY_FOR_CASH',
+        'GATEWAY_NOT_CONFIGURED',
+        'PAYMENT_REFERENCE_REQUIRED',
+        'PAYMENT_TERMINAL_REQUIRED',
+        'OVERPAYMENT_RESOLUTION_REQUIRED',
+        'OVERPAYMENT_RESOLUTION_MISMATCH',
+        'OVERPAYMENT_RESOLUTION_NOT_ALLOWED',
+        'RETURN_CHANGE_EXCEEDS_CAPACITY',
+        'RETURN_CHANGE_LEG_INVALID',
+        'RECEIPT_ALLOCATION_EXCESS_UNRESOLVED',
+      ].includes(message)
+    ) {
       return NextResponse.json(
         { success: false, errorCode: message, error: message },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -504,7 +617,7 @@ export async function POST(request: NextRequest) {
           error: 'One or more products could not be found.',
           productId: message.replace('Product not found: ', '').trim(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -530,11 +643,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.error('[submit-order] Unexpected error', error instanceof Error ? error : new Error(message), {
-      feature: 'orders', action: 'submit-order',
-    });
+    logger.error(
+      '[submit-order] Unexpected error',
+      error instanceof Error ? error : new Error(message),
+      {
+        feature: 'orders',
+        action: 'submit-order',
+      },
+    );
     return NextResponse.json(
-      { success: false, errorCode: 'ORDER_SUBMIT_FAILED', error: 'Order submission failed.' },
+      {
+        success: false,
+        errorCode: 'ORDER_SUBMIT_FAILED',
+        error: 'Order submission failed.',
+      },
       { status: 500 },
     );
   }

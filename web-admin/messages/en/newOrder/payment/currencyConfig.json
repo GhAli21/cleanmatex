@@ -1,0 +1,10 @@
+{
+  "title": "Currency configuration required",
+  "loading": "Verifying the Organization currency configuration…",
+  "missingTitle": "Base Currency is not configured",
+  "missingBody": "Payment cannot continue because this Organization has no active Base Currency. Ask an administrator to complete Currency Settings, then retry.",
+  "unavailableTitle": "Currency configuration could not be verified",
+  "unavailableBody": "Payment is paused to protect monetary accuracy. Retry now, or sign out and sign in again to refresh your session.",
+  "retry": "Retry",
+  "signOutAndSignIn": "Sign out and sign in"
+}

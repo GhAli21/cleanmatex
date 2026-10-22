@@ -74,7 +74,7 @@ export interface PaymentSimpleViewProps {
   activeLegIndex: number;
   getOptionDisplayName: (
     option: CheckoutSettlementOption | null | undefined,
-    fallback: string
+    fallback: string,
   ) => string;
   onMethodSelect: (option: CheckoutSettlementOption) => void;
   /** Switches to the Full face (splits, gift cards, B2B/AR, promo…). */
@@ -85,7 +85,10 @@ export interface PaymentSimpleViewProps {
   showDiscounts: boolean;
   discountControl: Control<PaymentFormData>;
   discountSetValue: UseFormSetValue<PaymentFormData>;
-  discountErrors: Pick<FieldErrors<PaymentFormData>, 'amountDiscount' | 'percentDiscount'>;
+  discountErrors: Pick<
+    FieldErrors<PaymentFormData>,
+    'amountDiscount' | 'percentDiscount'
+  >;
   /** Order total the discount is clamped against (pre-discount value). */
   discountTotal: number;
   // ---- amount editor ----
@@ -245,7 +248,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
         <CmxCardContent className="space-y-5 pt-5">
           {/* Method chips */}
           <div>
-            <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p
+              className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+            >
               {t('mode.simpleView.methodLabel')}
             </p>
             {methodsLoading ? (
@@ -257,7 +262,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                 <CmxSkeleton className="h-12 w-28" />
               </div>
             ) : (
-              <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div
+                className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
                 <div
                   role="radiogroup"
                   aria-label={t('mode.simpleView.methodLabel')}
@@ -289,10 +296,14 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                       nextIndex = 0;
                     } else if (event.key === 'End') {
                       nextIndex = buttons.length - 1;
-                    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    } else if (
+                      event.key === 'ArrowDown' ||
+                      event.key === 'ArrowUp'
+                    ) {
                       const delta = event.key === 'ArrowDown' ? 1 : -1;
                       nextIndex =
-                        (currentIndex + delta + buttons.length) % buttons.length;
+                        (currentIndex + delta + buttons.length) %
+                        buttons.length;
                     } else {
                       // ArrowLeft / ArrowRight — flip direction in RTL.
                       const visualNext =
@@ -300,7 +311,8 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                         (event.key === 'ArrowLeft' && isRTL);
                       const delta = visualNext ? 1 : -1;
                       nextIndex =
-                        (currentIndex + delta + buttons.length) % buttons.length;
+                        (currentIndex + delta + buttons.length) %
+                        buttons.length;
                     }
 
                     event.preventDefault();
@@ -313,9 +325,12 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                     const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
                     const isActive =
                       activeLeg != null &&
-                      `${activeLeg.method}::${activeLeg.gateway_code ?? ''}` === methodKey;
+                      `${activeLeg.method}::${activeLeg.gateway_code ?? ''}` ===
+                        methodKey;
                     const hasLeg = paymentLegs.some(
-                      (leg) => `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
+                      (leg) =>
+                        `${leg.method}::${leg.gateway_code ?? ''}` ===
+                        methodKey,
                     );
                     return (
                       <CmxButton
@@ -330,7 +345,10 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                           .replace(/^-|-$/g, '')}`}
                         aria-checked={isActive}
                         tabIndex={
-                          isActive || (!activeLeg && methodOptions[0] === option) ? 0 : -1
+                          isActive ||
+                          (!activeLeg && methodOptions[0] === option)
+                            ? 0
+                            : -1
                         }
                         onClick={() => onMethodSelect(option)}
                         className={`min-h-[48px] rounded-2xl px-4 font-semibold ${
@@ -346,7 +364,10 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                         ) : (
                           <CreditCard className="me-2 h-4 w-4" />
                         )}
-                        {getOptionDisplayName(option, option.payment_method_code)}
+                        {getOptionDisplayName(
+                          option,
+                          option.payment_method_code,
+                        )}
                       </CmxButton>
                     );
                   })}
@@ -377,7 +398,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             </div>
           ) : null}
 
-          {/* Manual discount — same OMR/% fields as the Full workbench (shared
+          {/* Manual discount — same currency/% fields as the Full workbench (shared
               PaymentDiscountFields primitive), so a plain discount no longer
               requires escalating out of Simple. */}
           {showDiscounts ? (
@@ -387,13 +408,16 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               errors={discountErrors}
               total={discountTotal}
               decimalPlaces={decimalPlaces}
+              currencyCode={currencyCode}
               className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
             />
           ) : null}
 
           {/* Amount hero — shared PaymentAmountMoneyField (keypad / Exact) */}
           <div>
-            <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p
+              className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+            >
               {t('mode.simpleView.amountLabel')}
             </p>
             <PaymentAmountMoneyField
@@ -431,14 +455,18 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               testId="payment-amount-editor"
             />
             {!activeLeg ? (
-              <p className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <p
+                className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+              >
                 {t('mode.simpleView.pickMethodHint')}
               </p>
             ) : null}
           </div>
 
           {/* Cash denomination shortcuts only — Exact is on the amount field above. */}
-          <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div
+            className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+          >
             <PaymentQuickTenderChips
               items={quickTenderItems}
               onSelect={onQuickTenderSelect}
@@ -472,7 +500,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               className={`flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               <p className="min-w-0 truncate text-xs text-slate-600">
-                <span className="font-semibold text-slate-700">{t('cashDrawer.title')}</span>
+                <span className="font-semibold text-slate-700">
+                  {t('cashDrawer.title')}
+                </span>
                 {' · '}
                 {cashDrawerDisplay ?? t('cashDrawer.pendingBadge')}
               </p>
@@ -496,7 +526,8 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             >
               <p className="min-w-0 text-xs text-amber-900">
                 <span className="font-semibold">
-                  {t('mode.simpleView.remaining')}: {currencyCode} {formatAmount(remainingBalance)}
+                  {t('mode.simpleView.remaining')}: {currencyCode}{' '}
+                  {formatAmount(remainingBalance)}
                 </span>
                 {' · '}
                 {policyLabel}
@@ -520,7 +551,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
         className={`border-slate-200 bg-white shadow-sm ${hasQuickActions ? 'order-2 h-full md:order-3' : ''}`}
       >
         <CmxCardContent className="space-y-1.5 pt-5">
-          <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <p
+            className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+          >
             {t('mode.simpleView.receiptTitle')}
           </p>
           {/* Full-story breakdown (gross → discounts → tax) — always shown,
@@ -558,7 +591,8 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               noneApplied: t('rightRail.noneApplied'),
               tendersSummary: t('mode.simpleView.settledNowTenders', {
                 count:
-                  realPaymentSummaryItems.length + storedValueSummaryItems.length,
+                  realPaymentSummaryItems.length +
+                  storedValueSummaryItems.length,
               }),
               expand: t('mode.simpleView.settledNowExpand'),
               collapse: t('mode.simpleView.settledNowCollapse'),
@@ -572,7 +606,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               negative
             />
           ) : null}
-          <div className={`mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div
+            className={`mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+          >
             <span className="text-sm font-bold text-slate-900">
               {t('mode.simpleView.change')}
             </span>
@@ -582,14 +618,21 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               <span
                 data-testid="payment-simple-change"
                 className={`text-2xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${
-                  displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'
+                  displayChangeAmount > moneyEpsilon
+                    ? 'text-emerald-600'
+                    : 'text-slate-900'
                 }`}
               >
                 {currencyCode} {formatAmount(displayChangeAmount)}
               </span>
             )}
           </div>
-          <CashChangeRoundingNote rounding={cashChangeRounding} currencyCode={currencyCode} formatAmount={formatAmount} isRTL={isRTL} />
+          <CashChangeRoundingNote
+            rounding={cashChangeRounding}
+            currencyCode={currencyCode}
+            formatAmount={formatAmount}
+            isRTL={isRTL}
+          />
           <p
             data-testid="payment-simple-status"
             className={`mt-1 text-sm font-medium ${settled ? 'text-emerald-700' : 'text-slate-600'} ${isRTL ? 'text-right' : 'text-left'}`}

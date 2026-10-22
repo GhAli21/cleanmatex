@@ -64,7 +64,9 @@ function StatusBadge({ status }: { status: string | null }) {
 
 function SectionTitle({ title, isRTL }: { title: string; isRTL: boolean }) {
   return (
-    <h3 className={`mb-4 text-base font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+    <h3
+      className={`mb-4 text-base font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
+    >
       {title}
     </h3>
   );
@@ -97,14 +99,17 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
   const t = useTranslations('orders.detailFull.financialTab');
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const canVoidCharge = useHasPermission('orders', 'manual_charge');
-  const [voidTarget, setVoidTarget] = useState<{ id: string; label: string } | null>(null);
+  const [voidTarget, setVoidTarget] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
   const emptyValue = '—';
   const tableHead = `text-xs font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`;
   const tableCell = `px-4 py-3 align-top text-sm text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`;
 
   const fmt = (value: number, forcedCurrency?: string | null) =>
     formatMoneyAmountWithCode(value, {
-      currencyCode: forcedCurrency ?? snapshot?.currencyCode ?? currencyCode ?? 'OMR',
+      currencyCode: forcedCurrency ?? snapshot?.currencyCode ?? currencyCode,
       decimalPlaces: decimalPlaces ?? 3,
       locale: isRTL ? 'ar' : 'en',
     });
@@ -150,13 +155,18 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
     currency?: string | null;
     className?: string;
   }) => (
-    <td className={`px-4 py-3 text-sm tabular-nums ${isRTL ? 'text-left' : 'text-right'} ${className}`}>
+    <td
+      className={`px-4 py-3 text-sm tabular-nums ${isRTL ? 'text-left' : 'text-right'} ${className}`}
+    >
       <CopyValue value={fmt(amount, currency)} className="font-medium" />
     </td>
   );
 
   const VoucherLink = ({ voucherId }: { voucherId: string }) => (
-    <Link href={`/dashboard/internal_fin/vouchers/${voucherId}`} className="text-xs font-medium text-primary hover:underline">
+    <Link
+      href={`/dashboard/internal_fin/vouchers/${voucherId}`}
+      className="text-xs font-medium text-primary hover:underline"
+    >
       {t('actions.openVoucher')}
     </Link>
   );
@@ -165,14 +175,39 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: t('summary.total'), value: snapshot?.totalAmount ?? 0, tone: 'text-gray-900' },
-          { label: t('summary.paid'), value: snapshot?.totalPaidAmount ?? 0, tone: 'text-green-700' },
-          { label: t('summary.credits'), value: snapshot?.totalCreditAppliedAmount ?? 0, tone: 'text-blue-700' },
-          { label: t('summary.outstanding'), value: snapshot?.outstandingAmount ?? 0, tone: 'text-orange-700' },
+          {
+            label: t('summary.total'),
+            value: snapshot?.totalAmount ?? 0,
+            tone: 'text-gray-900',
+          },
+          {
+            label: t('summary.paid'),
+            value: snapshot?.totalPaidAmount ?? 0,
+            tone: 'text-green-700',
+          },
+          {
+            label: t('summary.credits'),
+            value: snapshot?.totalCreditAppliedAmount ?? 0,
+            tone: 'text-blue-700',
+          },
+          {
+            label: t('summary.outstanding'),
+            value: snapshot?.outstandingAmount ?? 0,
+            tone: 'text-orange-700',
+          },
         ].map((card) => (
-          <div key={card.label} className="rounded-lg border border-gray-200 bg-white p-5">
-            <p className={`text-sm font-medium text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>{card.label}</p>
-            <p className={`mt-2 text-2xl font-semibold tabular-nums ${card.tone} ${isRTL ? 'text-right' : 'text-left'}`}>
+          <div
+            key={card.label}
+            className="rounded-lg border border-gray-200 bg-white p-5"
+          >
+            <p
+              className={`text-sm font-medium text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}
+            >
+              {card.label}
+            </p>
+            <p
+              className={`mt-2 text-2xl font-semibold tabular-nums ${card.tone} ${isRTL ? 'text-right' : 'text-left'}`}
+            >
               {fmt(card.value)}
             </p>
           </div>
@@ -188,21 +223,45 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.type')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.label')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.currency')}</th>
-                  <th className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.amount')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.status')}</th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.type')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.label')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.currency')}
+                  </th>
+                  <th
+                    className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}
+                  >
+                    {t('columns.amount')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.status')}
+                  </th>
                   {canVoidCharge && <th className={`px-4 py-3 ${tableHead}`} />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {charges.map((row) => (
-                  <tr key={row.id} className={row.is_voided ? 'opacity-60' : undefined}>
+                  <tr
+                    key={row.id}
+                    className={row.is_voided ? 'opacity-60' : undefined}
+                  >
                     <TextCell value={row.charge_type} />
                     <TextCell value={row.label ?? emptyValue} />
-                    <TextCell value={row.currency_code ?? snapshot?.currencyCode ?? emptyValue} />
-                    <MoneyCell amount={row.amount} currency={row.currency_code} />
+                    <TextCell
+                      value={
+                        row.currency_code ??
+                        snapshot?.currencyCode ??
+                        emptyValue
+                      }
+                    />
+                    <MoneyCell
+                      amount={row.amount}
+                      currency={row.currency_code}
+                    />
                     <td className={tableCell}>
                       {row.is_voided ? (
                         <span
@@ -223,7 +282,12 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
                           <CmxButton
                             size="sm"
                             variant="outline"
-                            onClick={() => setVoidTarget({ id: row.id, label: row.label ?? row.charge_type })}
+                            onClick={() =>
+                              setVoidTarget({
+                                id: row.id,
+                                label: row.label ?? row.charge_type,
+                              })
+                            }
                           >
                             {t('actions.voidCharge')}
                           </CmxButton>
@@ -247,10 +311,20 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.source')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.type')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.rate')}</th>
-                  <th className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.amount')}</th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.source')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.type')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.rate')}
+                  </th>
+                  <th
+                    className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}
+                  >
+                    {t('columns.amount')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -258,8 +332,17 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
                   <tr key={row.id}>
                     <TextCell value={row.source_name ?? row.source_type} />
                     <TextCell value={row.discount_type} />
-                    <TextCell value={row.discount_rate != null ? `${row.discount_rate}%` : emptyValue} />
-                    <MoneyCell amount={row.discount_amount} className="text-red-600" />
+                    <TextCell
+                      value={
+                        row.discount_rate != null
+                          ? `${row.discount_rate}%`
+                          : emptyValue
+                      }
+                    />
+                    <MoneyCell
+                      amount={row.discount_amount}
+                      className="text-red-600"
+                    />
                   </tr>
                 ))}
               </tbody>
@@ -277,11 +360,23 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.taxType')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.label')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.rate')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.currency')}</th>
-                  <th className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.amount')}</th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.taxType')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.label')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.rate')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.currency')}
+                  </th>
+                  <th
+                    className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}
+                  >
+                    {t('columns.amount')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -291,7 +386,10 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
                     <TextCell value={row.label} />
                     <TextCell value={`${row.rate}%`} />
                     <TextCell value={row.currency_code} />
-                    <MoneyCell amount={row.tax_amount} currency={row.currency_code} />
+                    <MoneyCell
+                      amount={row.tax_amount}
+                      currency={row.currency_code}
+                    />
                   </tr>
                 ))}
               </tbody>
@@ -309,28 +407,56 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.method')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.nature')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.status')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.receivedBy')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.gateway')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.gatewayReference')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.createdAt')}</th>
-                  <th className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.amount')}</th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.method')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.nature')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.status')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.receivedBy')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.gateway')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.gatewayReference')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.createdAt')}
+                  </th>
+                  <th
+                    className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}
+                  >
+                    {t('columns.amount')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {payments.map((row) => (
                   <tr key={row.id}>
                     <TextCell value={row.payment_method_code ?? emptyValue} />
-                    <TextCell value={row.payment_nature_snapshot ?? emptyValue} />
-                    <td className={tableCell}><StatusBadge status={row.payment_status} /></td>
+                    <TextCell
+                      value={row.payment_nature_snapshot ?? emptyValue}
+                    />
+                    <td className={tableCell}>
+                      <StatusBadge status={row.payment_status} />
+                    </td>
                     <TextCell value={row.received_by ?? emptyValue} />
                     <TextCell value={row.gateway_code ?? emptyValue} />
                     <td className={tableCell}>
                       <div className="space-y-1">
-                        <CopyValue value={row.gateway_reference ?? emptyValue} />
-                        <CopyValue value={row.branch_payment_method_id ?? emptyValue} maxLength={12} className="text-muted-foreground" />
+                        <CopyValue
+                          value={row.gateway_reference ?? emptyValue}
+                        />
+                        <CopyValue
+                          value={row.branch_payment_method_id ?? emptyValue}
+                          maxLength={12}
+                          className="text-muted-foreground"
+                        />
                       </div>
                     </td>
                     <TextCell value={formatDateTime(row.created_at)} />
@@ -346,17 +472,31 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
       <div className="rounded-lg border border-gray-200 bg-white p-6">
         <SectionTitle title={t('sections.creditApplications')} isRTL={isRTL} />
         {creditApplications.length === 0 ? (
-          <p className="text-sm text-gray-500">{t('empty.creditApplications')}</p>
+          <p className="text-sm text-gray-500">
+            {t('empty.creditApplications')}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.type')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.reference')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.appliedBy')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.appliedAt')}</th>
-                  <th className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.amount')}</th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.type')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.reference')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.appliedBy')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.appliedAt')}
+                  </th>
+                  <th
+                    className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}
+                  >
+                    {t('columns.amount')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -365,13 +505,27 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
                     <TextCell value={row.credit_type} />
                     <td className={tableCell}>
                       <div className="space-y-1">
-                        <CopyValue value={row.reference_no ?? row.credit_source_id ?? emptyValue} />
-                        <CopyValue value={row.credit_source_id ?? emptyValue} maxLength={12} className="text-muted-foreground" />
+                        <CopyValue
+                          value={
+                            row.reference_no ??
+                            row.credit_source_id ??
+                            emptyValue
+                          }
+                        />
+                        <CopyValue
+                          value={row.credit_source_id ?? emptyValue}
+                          maxLength={12}
+                          className="text-muted-foreground"
+                        />
                       </div>
                     </td>
                     <TextCell value={row.applied_by ?? emptyValue} />
                     <TextCell value={formatDateTime(row.applied_at)} />
-                    <MoneyCell amount={row.applied_amount} currency={row.currency_code} className="text-blue-700" />
+                    <MoneyCell
+                      amount={row.applied_amount}
+                      currency={row.currency_code}
+                      className="text-blue-700"
+                    />
                   </tr>
                 ))}
               </tbody>
@@ -389,13 +543,29 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.refundNo')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.reason')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.method')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.originalPayment')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.status')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.createdAt')}</th>
-                  <th className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.amount')}</th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.refundNo')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.reason')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.method')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.originalPayment')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.status')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.createdAt')}
+                  </th>
+                  <th
+                    className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}
+                  >
+                    {t('columns.amount')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -406,14 +576,23 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
                     <TextCell value={row.refund_method_code ?? emptyValue} />
                     <td className={tableCell}>
                       {row.original_payment_id ? (
-                        <CopyValue value={row.original_payment_id} maxLength={12} />
+                        <CopyValue
+                          value={row.original_payment_id}
+                          maxLength={12}
+                        />
                       ) : (
                         emptyValue
                       )}
                     </td>
-                    <td className={tableCell}><StatusBadge status={row.refund_status} /></td>
+                    <td className={tableCell}>
+                      <StatusBadge status={row.refund_status} />
+                    </td>
                     <TextCell value={formatDateTime(row.created_at)} />
-                    <MoneyCell amount={row.refund_amount} currency={row.currency_code} className="text-red-600" />
+                    <MoneyCell
+                      amount={row.refund_amount}
+                      currency={row.currency_code}
+                      className="text-red-600"
+                    />
                   </tr>
                 ))}
               </tbody>
@@ -431,13 +610,29 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.type')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.reason')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.status')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.createdBy')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.approvedBy')}</th>
-                  <th className={`px-4 py-3 ${tableHead}`}>{t('columns.createdAt')}</th>
-                  <th className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.amount')}</th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.type')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.reason')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.status')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.createdBy')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.approvedBy')}
+                  </th>
+                  <th className={`px-4 py-3 ${tableHead}`}>
+                    {t('columns.createdAt')}
+                  </th>
+                  <th
+                    className={`px-4 py-3 ${tableHead} ${isRTL ? 'text-left' : 'text-right'}`}
+                  >
+                    {t('columns.amount')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -445,11 +640,16 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
                   <tr key={row.id}>
                     <TextCell value={row.adjustment_type} />
                     <TextCell value={row.reason ?? emptyValue} />
-                    <td className={tableCell}><StatusBadge status={row.status} /></td>
+                    <td className={tableCell}>
+                      <StatusBadge status={row.status} />
+                    </td>
                     <TextCell value={row.created_by ?? emptyValue} />
                     <TextCell value={row.approved_by ?? emptyValue} />
                     <TextCell value={formatDateTime(row.created_at)} />
-                    <MoneyCell amount={row.amount} currency={row.currency_code} />
+                    <MoneyCell
+                      amount={row.amount}
+                      currency={row.currency_code}
+                    />
                   </tr>
                 ))}
               </tbody>
@@ -462,7 +662,9 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <SectionTitle title={t('sections.voucherReferences')} isRTL={isRTL} />
           {voucherReferences.length === 0 ? (
-            <p className="text-sm text-gray-500">{t('empty.voucherReferences')}</p>
+            <p className="text-sm text-gray-500">
+              {t('empty.voucherReferences')}
+            </p>
           ) : (
             <div className="space-y-3">
               {voucherReferences.map((row, index) => (
@@ -470,15 +672,27 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
                   key={`${row.source}-${row.voucherId}-${index}`}
                   className="rounded-md border border-gray-200 bg-gray-50 p-3"
                 >
-                  <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div
+                    className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
                     <div className={isRTL ? 'text-right' : 'text-left'}>
-                      <p className="text-xs font-medium text-gray-500">{row.source}</p>
+                      <p className="text-xs font-medium text-gray-500">
+                        {row.source}
+                      </p>
                       <div className="mt-1">
-                        <CopyValue value={row.voucherId || emptyValue} className="font-medium" />
+                        <CopyValue
+                          value={row.voucherId || emptyValue}
+                          className="font-medium"
+                        />
                       </div>
                       {row.voucherLineId && (
                         <p className="mt-1 text-xs text-gray-600">
-                          {t('misc.line')}: <CopyValue value={row.voucherLineId} maxLength={12} className="inline" />
+                          {t('misc.line')}:{' '}
+                          <CopyValue
+                            value={row.voucherLineId}
+                            maxLength={12}
+                            className="inline"
+                          />
                         </p>
                       )}
                     </div>
@@ -497,20 +711,35 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
           ) : (
             <div className="space-y-3">
               {auditTimeline.map((row) => (
-                <div key={`${row.eventType}-${row.id}`} className="rounded-md border border-gray-200 bg-gray-50 p-3">
-                  <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div
+                  key={`${row.eventType}-${row.id}`}
+                  className="rounded-md border border-gray-200 bg-gray-50 p-3"
+                >
+                  <div
+                    className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
                     <div className={isRTL ? 'text-right' : 'text-left'}>
-                      <p className="text-sm font-medium text-gray-900">{row.eventType}</p>
-                      <p className="text-xs text-gray-500">{row.status ?? emptyValue}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {row.eventType}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {row.status ?? emptyValue}
+                      </p>
                       <div className="mt-1">
-                        <CopyValue value={row.id} maxLength={12} className="text-xs text-muted-foreground" />
+                        <CopyValue
+                          value={row.id}
+                          maxLength={12}
+                          className="text-xs text-muted-foreground"
+                        />
                       </div>
                     </div>
                     <div className={isRTL ? 'text-left' : 'text-right'}>
                       <p className="text-sm font-medium text-gray-900">
                         {row.amount == null ? emptyValue : fmt(row.amount)}
                       </p>
-                      <p className="text-xs text-gray-500">{formatDateTime(row.happenedAt)}</p>
+                      <p className="text-xs text-gray-500">
+                        {formatDateTime(row.happenedAt)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -522,7 +751,9 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
       {voidTarget && (
         <VoidOrderChargeDialog
           open
-          onOpenChange={(open) => { if (!open) setVoidTarget(null); }}
+          onOpenChange={(open) => {
+            if (!open) setVoidTarget(null);
+          }}
           orderId={orderId}
           chargeId={voidTarget.id}
           chargeLabel={voidTarget.label}

@@ -55,7 +55,8 @@ export function ArInvoiceCreateWizard() {
   const t = useTranslations('invoices.ar.create');
   const tCommon = useTranslations('common');
   const router = useRouter();
-  const { decimalPlaces } = useTenantCurrency();
+  const { decimalPlaces, currencyCode: tenantCurrencyCode } =
+    useTenantCurrency();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [mode, setMode] = useState<WizardMode>('MANUAL');
   const [isSaving, setIsSaving] = useState(false);
@@ -63,7 +64,7 @@ export function ArInvoiceCreateWizard() {
 
   const [customerId, setCustomerId] = useState('');
   const [branchId, setBranchId] = useState('');
-  const [currencyCode, setCurrencyCode] = useState('OMR');
+  const [currencyCode, setCurrencyCode] = useState(tenantCurrencyCode);
   const [invoiceDate, setInvoiceDate] = useState(todayDateString());
   const [dueDate, setDueDate] = useState(todayDateString());
   const [paymentTerms, setPaymentTerms] = useState('');
@@ -104,18 +105,29 @@ export function ArInvoiceCreateWizard() {
         acc.total += line.total;
         return acc;
       },
-      { subtotal: 0, discount: 0, tax: 0, total: 0 }
+      { subtotal: 0, discount: 0, tax: 0, total: 0 },
     );
   }, [computedLines]);
 
   const orderIds = useMemo(() => parseOrderIds(orderIdsDraft), [orderIdsDraft]);
   const validationItems = useMemo(() => {
     const issues: string[] = [];
-    if (!customerId.trim() && mode === 'MANUAL') issues.push(t('errors.customerRequired'));
-    if (!currencyCode.trim() || currencyCode.trim().length !== 3) issues.push(t('errors.currencyInvalid'));
-    if (mode === 'FROM_ORDERS' && orderIds.length === 0) issues.push(t('errors.orderIdsRequired'));
-    if (mode === 'MANUAL' && computedLines.some((line) => !line.description.trim())) issues.push(t('errors.lineDescriptionRequired'));
-    if (mode === 'MANUAL' && computedLines.some((line) => line.quantityNumber <= 0)) issues.push(t('errors.quantityInvalid'));
+    if (!customerId.trim() && mode === 'MANUAL')
+      issues.push(t('errors.customerRequired'));
+    if (!currencyCode.trim() || currencyCode.trim().length !== 3)
+      issues.push(t('errors.currencyInvalid'));
+    if (mode === 'FROM_ORDERS' && orderIds.length === 0)
+      issues.push(t('errors.orderIdsRequired'));
+    if (
+      mode === 'MANUAL' &&
+      computedLines.some((line) => !line.description.trim())
+    )
+      issues.push(t('errors.lineDescriptionRequired'));
+    if (
+      mode === 'MANUAL' &&
+      computedLines.some((line) => line.quantityNumber <= 0)
+    )
+      issues.push(t('errors.quantityInvalid'));
     return issues;
   }, [computedLines, currencyCode, customerId, mode, orderIds.length, t]);
 
@@ -126,21 +138,34 @@ export function ArInvoiceCreateWizard() {
     mode === 'FROM_ORDERS'
       ? orderIds.length > 0
       : computedLines.length > 0 &&
-        computedLines.every((line) => line.description.trim().length > 0 && line.quantityNumber > 0);
+        computedLines.every(
+          (line) =>
+            line.description.trim().length > 0 && line.quantityNumber > 0,
+        );
   const canSubmit = validationItems.length === 0 && totals.total >= 0;
 
   const addLine = () => {
     setLines((current) => [...current, createLineDraft(current.length)]);
   };
 
-  const updateLine = (lineId: string, field: keyof ManualLineDraft, value: string) => {
+  const updateLine = (
+    lineId: string,
+    field: keyof ManualLineDraft,
+    value: string,
+  ) => {
     setLines((current) =>
-      current.map((line) => (line.id === lineId ? { ...line, [field]: value } : line))
+      current.map((line) =>
+        line.id === lineId ? { ...line, [field]: value } : line,
+      ),
     );
   };
 
   const removeLine = (lineId: string) => {
-    setLines((current) => (current.length === 1 ? current : current.filter((line) => line.id !== lineId)));
+    setLines((current) =>
+      current.length === 1
+        ? current
+        : current.filter((line) => line.id !== lineId),
+    );
   };
 
   const submit = async () => {
@@ -171,7 +196,9 @@ export function ArInvoiceCreateWizard() {
           data?: { invoice: { id: string } } | { invoice?: { id: string } };
         };
 
-        const invoiceId = (result.data as { invoice?: { id: string } } | undefined)?.invoice?.id;
+        const invoiceId = (
+          result.data as { invoice?: { id: string } } | undefined
+        )?.invoice?.id;
         if (!response.ok || !result.success || !invoiceId) {
           throw new Error(result.error ?? t('errors.createFailed'));
         }
@@ -226,7 +253,11 @@ export function ArInvoiceCreateWizard() {
 
       router.push(`/dashboard/internal_fin/invoices/${result.data.invoice.id}`);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : t('errors.createFailed'));
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : t('errors.createFailed'),
+      );
       setIsSaving(false);
       return;
     }
@@ -236,9 +267,19 @@ export function ArInvoiceCreateWizard() {
 
   return (
     <div className="space-y-6">
-      {error ? <CmxSummaryMessage type="error" title={t('errors.title')} items={[error]} /> : null}
+      {error ? (
+        <CmxSummaryMessage
+          type="error"
+          title={t('errors.title')}
+          items={[error]}
+        />
+      ) : null}
       {validationItems.length > 0 && step === 3 ? (
-        <CmxSummaryMessage type="warning" title={t('validation.title')} items={validationItems} />
+        <CmxSummaryMessage
+          type="warning"
+          title={t('validation.title')}
+          items={validationItems}
+        />
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -246,14 +287,20 @@ export function ArInvoiceCreateWizard() {
           <div
             key={item}
             className={`rounded-2xl border p-4 ${
-              step === item ? 'border-sky-400 bg-sky-50' : 'border-slate-200 bg-white'
+              step === item
+                ? 'border-sky-400 bg-sky-50'
+                : 'border-slate-200 bg-white'
             }`}
           >
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
               {t('steps.stepLabel', { number: item })}
             </p>
             <p className="mt-2 text-sm font-medium text-slate-900">
-              {item === 1 ? t('steps.basics') : item === 2 ? t('steps.source') : t('steps.review')}
+              {item === 1
+                ? t('steps.basics')
+                : item === 2
+                  ? t('steps.source')
+                  : t('steps.review')}
             </p>
           </div>
         ))}
@@ -271,17 +318,57 @@ export function ArInvoiceCreateWizard() {
                 { value: 'FROM_ORDERS', label: t('modeOptions.FROM_ORDERS') },
               ]}
             />
-            <CmxInput label={t('fields.customerId')} value={customerId} onChange={(event) => setCustomerId(event.target.value)} required={mode === 'MANUAL'} />
-            <CmxInput label={t('fields.branchId')} value={branchId} onChange={(event) => setBranchId(event.target.value)} />
-            <CmxInput label={t('fields.currencyCode')} value={currencyCode} onChange={(event) => setCurrencyCode(event.target.value)} maxLength={3} required />
-            <CmxInput label={t('fields.paymentTerms')} value={paymentTerms} onChange={(event) => setPaymentTerms(event.target.value)} />
-            <CmxInput label={t('fields.paymentMethod')} value={paymentMethodCode} onChange={(event) => setPaymentMethodCode(event.target.value)} />
-            <CmxInput label={t('fields.invoiceDate')} type="date" value={invoiceDate} onChange={(event) => setInvoiceDate(event.target.value)} required />
-            <CmxInput label={t('fields.dueDate')} type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} required />
+            <CmxInput
+              label={t('fields.customerId')}
+              value={customerId}
+              onChange={(event) => setCustomerId(event.target.value)}
+              required={mode === 'MANUAL'}
+            />
+            <CmxInput
+              label={t('fields.branchId')}
+              value={branchId}
+              onChange={(event) => setBranchId(event.target.value)}
+            />
+            <CmxInput
+              label={t('fields.currencyCode')}
+              value={currencyCode}
+              onChange={(event) => setCurrencyCode(event.target.value)}
+              maxLength={3}
+              required
+            />
+            <CmxInput
+              label={t('fields.paymentTerms')}
+              value={paymentTerms}
+              onChange={(event) => setPaymentTerms(event.target.value)}
+            />
+            <CmxInput
+              label={t('fields.paymentMethod')}
+              value={paymentMethodCode}
+              onChange={(event) => setPaymentMethodCode(event.target.value)}
+            />
+            <CmxInput
+              label={t('fields.invoiceDate')}
+              type="date"
+              value={invoiceDate}
+              onChange={(event) => setInvoiceDate(event.target.value)}
+              required
+            />
+            <CmxInput
+              label={t('fields.dueDate')}
+              type="date"
+              value={dueDate}
+              onChange={(event) => setDueDate(event.target.value)}
+              required
+            />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-900">{t('fields.notes')}</label>
-            <CmxTextarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+            <label className="mb-1 block text-sm font-medium text-slate-900">
+              {t('fields.notes')}
+            </label>
+            <CmxTextarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+            />
           </div>
         </div>
       ) : null}
@@ -290,8 +377,12 @@ export function ArInvoiceCreateWizard() {
         <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">{t('manualLines.title')}</h2>
-              <p className="text-sm text-slate-600">{t('manualLines.subtitle')}</p>
+              <h2 className="text-lg font-semibold text-slate-950">
+                {t('manualLines.title')}
+              </h2>
+              <p className="text-sm text-slate-600">
+                {t('manualLines.subtitle')}
+              </p>
             </div>
             <CmxButton variant="outline" onClick={addLine}>
               {t('actions.addLine')}
@@ -300,25 +391,54 @@ export function ArInvoiceCreateWizard() {
 
           <div className="space-y-4">
             {computedLines.map((line, index) => (
-              <div key={line.id} className="rounded-2xl border border-slate-200 p-4">
+              <div
+                key={line.id}
+                className="rounded-2xl border border-slate-200 p-4"
+              >
                 <div className="mb-4 flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-900">{t('manualLines.lineLabel', { number: index + 1 })}</p>
-                  <CmxButton variant="ghost" size="sm" onClick={() => removeLine(line.id)} disabled={lines.length === 1}>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {t('manualLines.lineLabel', { number: index + 1 })}
+                  </p>
+                  <CmxButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeLine(line.id)}
+                    disabled={lines.length === 1}
+                  >
                     {t('actions.removeLine')}
                   </CmxButton>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                   <div className="md:col-span-2 xl:col-span-2">
-                    <CmxInput label={t('fields.lineDescription')} value={line.description} onChange={(event) => updateLine(line.id, 'description', event.target.value)} required />
+                    <CmxInput
+                      label={t('fields.lineDescription')}
+                      value={line.description}
+                      onChange={(event) =>
+                        updateLine(line.id, 'description', event.target.value)
+                      }
+                      required
+                    />
                   </div>
-                  <CmxInput label={t('fields.quantity')} type="number" min="0.0001" step="0.0001" value={line.quantity} onChange={(event) => updateLine(line.id, 'quantity', event.target.value)} required />
+                  <CmxInput
+                    label={t('fields.quantity')}
+                    type="number"
+                    min="0.0001"
+                    step="0.0001"
+                    value={line.quantity}
+                    onChange={(event) =>
+                      updateLine(line.id, 'quantity', event.target.value)
+                    }
+                    required
+                  />
                   <CmxMoneyField
                     label={t('fields.unitPrice')}
                     value={draftToValue(line.unitPrice)}
                     draftValue={line.unitPrice}
                     decimalPlaces={decimalPlaces}
                     min={0}
-                    onValueChange={(_, d) => updateLine(line.id, 'unitPrice', d)}
+                    onValueChange={(_, d) =>
+                      updateLine(line.id, 'unitPrice', d)
+                    }
                   />
                   <CmxMoneyField
                     label={t('fields.discount')}
@@ -339,16 +459,28 @@ export function ArInvoiceCreateWizard() {
                 </div>
                 <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-3">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('fields.subtotalPreview')}</p>
-                    <p className="mt-1 text-sm font-medium text-slate-900">{line.subtotal.toFixed(4)}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      {t('fields.subtotalPreview')}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-slate-900">
+                      {line.subtotal.toFixed(4)}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('fields.taxablePreview')}</p>
-                    <p className="mt-1 text-sm font-medium text-slate-900">{line.taxable.toFixed(4)}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      {t('fields.taxablePreview')}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-slate-900">
+                      {line.taxable.toFixed(4)}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('fields.totalPreview')}</p>
-                    <p className="mt-1 text-sm font-medium text-slate-900">{line.total.toFixed(4)}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      {t('fields.totalPreview')}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-slate-900">
+                      {line.total.toFixed(4)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -360,13 +492,22 @@ export function ArInvoiceCreateWizard() {
       {step === 2 && mode === 'FROM_ORDERS' ? (
         <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">{t('orderBatch.title')}</h2>
+            <h2 className="text-lg font-semibold text-slate-950">
+              {t('orderBatch.title')}
+            </h2>
             <p className="text-sm text-slate-600">{t('orderBatch.subtitle')}</p>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-900">{t('fields.orderIds')}</label>
-            <CmxTextarea value={orderIdsDraft} onChange={(event) => setOrderIdsDraft(event.target.value)} />
-            <p className="mt-2 text-xs text-slate-500">{t('orderBatch.hint')}</p>
+            <label className="mb-1 block text-sm font-medium text-slate-900">
+              {t('fields.orderIds')}
+            </label>
+            <CmxTextarea
+              value={orderIdsDraft}
+              onChange={(event) => setOrderIdsDraft(event.target.value)}
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              {t('orderBatch.hint')}
+            </p>
           </div>
           <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
             {t('orderBatch.count', { count: orderIds.length })}
@@ -377,80 +518,143 @@ export function ArInvoiceCreateWizard() {
       {step === 3 ? (
         <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">{t('review.title')}</h2>
+            <h2 className="text-lg font-semibold text-slate-950">
+              {t('review.title')}
+            </h2>
             <p className="text-sm text-slate-600">{t('review.subtitle')}</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('review.mode')}</p>
-              <p className="mt-2 text-sm font-medium text-slate-900">{t(`modeOptions.${mode}`)}</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                {t('review.mode')}
+              </p>
+              <p className="mt-2 text-sm font-medium text-slate-900">
+                {t(`modeOptions.${mode}`)}
+              </p>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('review.currency')}</p>
-              <p className="mt-2 text-sm font-medium text-slate-900">{currencyCode.toUpperCase()}</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                {t('review.currency')}
+              </p>
+              <p className="mt-2 text-sm font-medium text-slate-900">
+                {currencyCode.toUpperCase()}
+              </p>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('review.invoiceDate')}</p>
-              <p className="mt-2 text-sm font-medium text-slate-900">{invoiceDate}</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                {t('review.invoiceDate')}
+              </p>
+              <p className="mt-2 text-sm font-medium text-slate-900">
+                {invoiceDate}
+              </p>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('review.dueDate')}</p>
-              <p className="mt-2 text-sm font-medium text-slate-900">{dueDate}</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                {t('review.dueDate')}
+              </p>
+              <p className="mt-2 text-sm font-medium text-slate-900">
+                {dueDate}
+              </p>
             </div>
           </div>
 
           {mode === 'MANUAL' ? (
             <div className="space-y-3">
               {computedLines.map((line, index) => (
-                <div key={line.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4">
+                <div
+                  key={line.id}
+                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4"
+                >
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{t('manualLines.lineLabel', { number: index + 1 })}</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {t('manualLines.lineLabel', { number: index + 1 })}
+                    </p>
                     <p className="text-sm text-slate-600">{line.description}</p>
                   </div>
-                  <p className="text-sm font-semibold text-slate-900">{line.total.toFixed(4)}</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {line.total.toFixed(4)}
+                  </p>
                 </div>
               ))}
             </div>
           ) : (
             <div className="rounded-xl border border-slate-200 p-4">
-              <p className="text-sm text-slate-600">{t('orderBatch.count', { count: orderIds.length })}</p>
-              <p className="mt-2 break-words text-sm font-medium text-slate-900">{orderIds.join(', ')}</p>
+              <p className="text-sm text-slate-600">
+                {t('orderBatch.count', { count: orderIds.length })}
+              </p>
+              <p className="mt-2 break-words text-sm font-medium text-slate-900">
+                {orderIds.join(', ')}
+              </p>
             </div>
           )}
 
           <div className="grid gap-4 md:grid-cols-4">
             <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('review.subtotal')}</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">{totals.subtotal.toFixed(4)}</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                {t('review.subtotal')}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                {totals.subtotal.toFixed(4)}
+              </p>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('review.discount')}</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">{totals.discount.toFixed(4)}</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                {t('review.discount')}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                {totals.discount.toFixed(4)}
+              </p>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{t('review.tax')}</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">{totals.tax.toFixed(4)}</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                {t('review.tax')}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                {totals.tax.toFixed(4)}
+              </p>
             </div>
             <div className="rounded-xl bg-sky-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-sky-700">{t('review.total')}</p>
-              <p className="mt-2 text-sm font-semibold text-sky-900">{totals.total.toFixed(4)}</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-sky-700">
+                {t('review.total')}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-sky-900">
+                {totals.total.toFixed(4)}
+              </p>
             </div>
           </div>
         </div>
       ) : null}
 
       <div className="flex items-center justify-between gap-3 rtl:flex-row-reverse">
-        <CmxButton variant="ghost" onClick={() => (step === 1 ? router.back() : setStep((current) => (current - 1) as 1 | 2 | 3))}>
+        <CmxButton
+          variant="ghost"
+          onClick={() =>
+            step === 1
+              ? router.back()
+              : setStep((current) => (current - 1) as 1 | 2 | 3)
+          }
+        >
           {step === 1 ? tCommon('cancel') : tCommon('back')}
         </CmxButton>
         <div className="flex items-center gap-2 rtl:flex-row-reverse">
           {step < 3 ? (
-            <CmxButton onClick={() => setStep((current) => (current + 1) as 1 | 2 | 3)} disabled={step === 1 ? !canContinueFromStepOne : !canContinueFromStepTwo}>
+            <CmxButton
+              onClick={() => setStep((current) => (current + 1) as 1 | 2 | 3)}
+              disabled={
+                step === 1 ? !canContinueFromStepOne : !canContinueFromStepTwo
+              }
+            >
               {t('actions.next')}
             </CmxButton>
           ) : (
-            <CmxButton onClick={submit} loading={isSaving} disabled={!canSubmit}>
-              {mode === 'MANUAL' ? t('actions.create') : t('actions.createFromOrders')}
+            <CmxButton
+              onClick={submit}
+              loading={isSaving}
+              disabled={!canSubmit}
+            >
+              {mode === 'MANUAL'
+                ? t('actions.create')
+                : t('actions.createFromOrders')}
             </CmxButton>
           )}
         </div>

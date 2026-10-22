@@ -30,7 +30,7 @@ export function OrderFinancialMoneyValue({
   const isRTL = useRTL();
   const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
   const formatted = formatMoneyAmountWithCode(amount, {
-    currencyCode: currencyCode ?? tenantCurrency ?? 'OMR',
+    currencyCode: currencyCode ?? tenantCurrency,
     decimalPlaces,
     locale: isRTL ? 'ar' : 'en',
   });
@@ -52,7 +52,7 @@ export function OrderFinancialMoneyValue({
         'tabular-nums font-medium',
         isRTL ? 'text-left' : 'text-right',
         tone,
-        className
+        className,
       )}
     >
       {variant === 'credit' && amount > 0 ? `-${formatted}` : formatted}

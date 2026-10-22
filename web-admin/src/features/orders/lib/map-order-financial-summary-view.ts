@@ -17,7 +17,10 @@ function n(value: number | null | undefined): number {
   return Number(value);
 }
 
-function sumChargesByType(charges: MapOrderFinancialSummaryInput['charges'], types: string[]): number {
+function sumChargesByType(
+  charges: MapOrderFinancialSummaryInput['charges'],
+  types: string[],
+): number {
   return charges
     .filter((c) => types.includes(c.charge_type))
     .reduce((sum, c) => sum + n(c.amount), 0);
@@ -33,16 +36,26 @@ function normalizeUpper(value: string | null | undefined): string {
  * @param input
  */
 export function mapOrderFinancialSummaryView(
-  input: MapOrderFinancialSummaryInput
+  input: MapOrderFinancialSummaryInput,
 ): OrderFinancialSummaryViewModel {
   const { snapshot, charges, payments, creditApplications, refunds } = input;
 
-  const itemsBaseAmount = n(snapshot.itemsBaseAmount ?? snapshot.subtotalAmount);
-  const pieceExtraPriceAmount = n(snapshot.pieceExtraPriceAmount ?? input.pieceExtraTotal);
-  const preferenceExtraPriceAmount = n(snapshot.preferenceExtraPriceAmount ?? input.preferenceExtraTotal);
+  const itemsBaseAmount = n(
+    snapshot.itemsBaseAmount ?? snapshot.subtotalAmount,
+  );
+  const pieceExtraPriceAmount = n(
+    snapshot.pieceExtraPriceAmount ?? input.pieceExtraTotal,
+  );
+  const preferenceExtraPriceAmount = n(
+    snapshot.preferenceExtraPriceAmount ?? input.preferenceExtraTotal,
+  );
   const serviceChargeAmount =
-    n(snapshot.serviceChargeAmount) || sumChargesByType(charges, ['SERVICE_CHARGE', 'SERVICE']);
-  const deliveryChargeAmount = sumChargesByType(charges, ['DELIVERY', 'DELIVERY_CHARGE']);
+    n(snapshot.serviceChargeAmount) ||
+    sumChargesByType(charges, ['SERVICE_CHARGE', 'SERVICE']);
+  const deliveryChargeAmount = sumChargesByType(charges, [
+    'DELIVERY',
+    'DELIVERY_CHARGE',
+  ]);
   const expressChargeAmount =
     sumChargesByType(charges, [CHARGE_TYPES.EXPRESS, 'EXPRESS_CHARGE']) || 0;
   const otherChargesFromRows = charges
@@ -57,24 +70,34 @@ export function mapOrderFinancialSummaryView(
           CHARGE_TYPES.EXPRESS,
           'EXPRESS_CHARGE',
           CHARGE_TYPES.PREFERENCE,
-        ].includes(c.charge_type)
+        ].includes(c.charge_type),
     )
     .reduce((sum, c) => sum + n(c.amount), 0);
-  const otherChargesAmount = n(snapshot.otherChargesAmount) || otherChargesFromRows;
+  const otherChargesAmount =
+    n(snapshot.otherChargesAmount) || otherChargesFromRows;
 
-  const totalChargesAmount = n(snapshot.totalChargesAmount) || serviceChargeAmount + deliveryChargeAmount + expressChargeAmount + otherChargesAmount;
+  const totalChargesAmount =
+    n(snapshot.totalChargesAmount) ||
+    serviceChargeAmount +
+      deliveryChargeAmount +
+      expressChargeAmount +
+      otherChargesAmount;
   const subtotalAmount = itemsBaseAmount;
   const grossAmount = Math.max(0, subtotalAmount + totalChargesAmount);
   const discountAmount = n(snapshot.totalDiscountAmount);
   const netBeforeTaxAmount = Math.max(0, grossAmount - discountAmount);
   const taxAmount = n(snapshot.totalTaxAmount);
-  const uniqueTaxableLine = input.taxes.find((row) => {
-    const taxType = (row.tax_type ?? '').trim().toUpperCase();
-    return taxType === 'VAT' || taxType === 'GST';
-  }) ?? input.taxes[0];
-  const taxableAmount = snapshot.taxableAmount != null
-    ? n(snapshot.taxableAmount)
-    : (uniqueTaxableLine ? n(uniqueTaxableLine.taxable_amount) : netBeforeTaxAmount);
+  const uniqueTaxableLine =
+    input.taxes.find((row) => {
+      const taxType = (row.tax_type ?? '').trim().toUpperCase();
+      return taxType === 'VAT' || taxType === 'GST';
+    }) ?? input.taxes[0];
+  const taxableAmount =
+    snapshot.taxableAmount != null
+      ? n(snapshot.taxableAmount)
+      : uniqueTaxableLine
+        ? n(uniqueTaxableLine.taxable_amount)
+        : netBeforeTaxAmount;
   // Tax-base decomposition (v1.1 §8.11). Default 0 today — engine wiring lands
   // in Phase 5. Surfaced now so the view model contract is stable for Phase 8 UI.
   const nonTaxableAmount = n(snapshot.nonTaxableAmount);
@@ -85,13 +108,21 @@ export function mapOrderFinancialSummaryView(
   const totalAmount = n(snapshot.totalAmount);
   const totalPaidAmount = n(snapshot.totalPaidAmount);
   const totalCreditAppliedAmount = n(snapshot.totalCreditAppliedAmount);
-  const pendingCreditApplicationAmount = n(snapshot.pendingCreditApplicationAmount);
-  const failedCreditApplicationAmount = n(snapshot.failedCreditApplicationAmount);
+  const pendingCreditApplicationAmount = n(
+    snapshot.pendingCreditApplicationAmount,
+  );
+  const failedCreditApplicationAmount = n(
+    snapshot.failedCreditApplicationAmount,
+  );
   const refundedAmount = n(snapshot.refundedAmount);
   const realPaymentRefundedAmount = n(snapshot.realPaymentRefundedAmount);
   const netCollectedAmount =
-    n(snapshot.netCollectedAmount) || Math.max(0, totalPaidAmount - realPaymentRefundedAmount);
-  const expectedOutstandingAmount = Math.max(0, totalAmount - totalPaidAmount - totalCreditAppliedAmount);
+    n(snapshot.netCollectedAmount) ||
+    Math.max(0, totalPaidAmount - realPaymentRefundedAmount);
+  const expectedOutstandingAmount = Math.max(
+    0,
+    totalAmount - totalPaidAmount - totalCreditAppliedAmount,
+  );
   const outstandingAmount = n(snapshot.outstandingAmount);
   // Snapshot overpayment already accounts for cash change and dispositions;
   // recomputing from gross payments would resurrect a refunded overpayment.
@@ -99,14 +130,18 @@ export function mapOrderFinancialSummaryView(
 
   const paymentTypeCode = snapshot.paymentTypeCode;
   const payOnCollectionAmount =
-    paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION && outstandingAmount > 0
+    paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION &&
+    outstandingAmount > 0
       ? outstandingAmount
       : 0;
-  const invoiceOutstandingAmount = n(input.arInvoice?.outstandingAmount ?? input.arInvoice?.amount);
+  const invoiceOutstandingAmount = n(
+    input.arInvoice?.outstandingAmount ?? input.arInvoice?.amount,
+  );
   const arReceivableAmount = input.arInvoice
     ? invoiceOutstandingAmount
-    : n(snapshot.arReceivableAmount)
-      || (paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE && outstandingAmount > 0
+    : n(snapshot.arReceivableAmount) ||
+      (paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE &&
+      outstandingAmount > 0
         ? outstandingAmount
         : 0);
   const baseCurrency = {
@@ -120,13 +155,18 @@ export function mapOrderFinancialSummaryView(
     arReceivableAmount: n(snapshot.baseCurArReceivableAmount),
   };
 
-  const giftCardCreditAmount = creditApplications.reduce((sum, creditApplication) => {
-    return normalizeUpper(creditApplication.credit_type) === CREDIT_APPLICATION_TYPES.GIFT_CARD
-      && (normalizeUpper(creditApplication.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED)
-        === CREDIT_APPLICATION_STATUSES.APPLIED
-      ? sum + n(creditApplication.applied_amount)
-      : sum;
-  }, 0);
+  const giftCardCreditAmount = creditApplications.reduce(
+    (sum, creditApplication) => {
+      return normalizeUpper(creditApplication.credit_type) ===
+        CREDIT_APPLICATION_TYPES.GIFT_CARD &&
+        (normalizeUpper(creditApplication.application_status) ||
+          CREDIT_APPLICATION_STATUSES.APPLIED) ===
+          CREDIT_APPLICATION_STATUSES.APPLIED
+        ? sum + n(creditApplication.applied_amount)
+        : sum;
+    },
+    0,
+  );
 
   const warnings = buildWarnings({
     snapshot,
@@ -139,7 +179,9 @@ export function mapOrderFinancialSummaryView(
     expectedOutstandingAmount,
     paymentTypeCode,
     arInvoice: input.arInvoice ?? null,
-    arInvoiceOutstandingAmount: input.arInvoice ? invoiceOutstandingAmount : null,
+    arInvoiceOutstandingAmount: input.arInvoice
+      ? invoiceOutstandingAmount
+      : null,
     giftCardOnOrder: giftCardCreditAmount,
   });
 
@@ -155,7 +197,7 @@ export function mapOrderFinancialSummaryView(
     orderNo: snapshot.orderNo ?? snapshot.orderId,
     customerId: input.order?.customer_id ?? null,
     branchId: input.order?.branch_id ?? null,
-    currencyCode: snapshot.currencyCode ?? 'OMR',
+    currencyCode: snapshot.currencyCode ?? '',
     baseCurrency,
     customerName: input.order?.customer_name ?? undefined,
     branchName: input.order?.branch_name ?? undefined,
@@ -217,8 +259,12 @@ export function mapOrderFinancialSummaryView(
       arReceivableAmount: n(snapshot.arReceivableAmount),
       financialEngineVersion: snapshot.financialEngineVersion ?? null,
       taxPricingModeAtCalculation:
-        (snapshot.financialCalculationSnapshot as Record<string, unknown> | null)
-          ?.taxPricingModeAtCalculation as string | null ?? null,
+        ((
+          snapshot.financialCalculationSnapshot as Record<
+            string,
+            unknown
+          > | null
+        )?.taxPricingModeAtCalculation as string | null) ?? null,
     },
   };
 }
@@ -240,7 +286,9 @@ function buildWarnings(ctx: {
   const warnings: FinancialWarning[] = [];
   const tolerance = 0.001;
 
-  if (Math.abs(ctx.outstandingAmount - ctx.expectedOutstandingAmount) > tolerance) {
+  if (
+    Math.abs(ctx.outstandingAmount - ctx.expectedOutstandingAmount) > tolerance
+  ) {
     warnings.push({
       code: ORDER_FINANCIAL_WARNING_CODES.OUTSTANDING_MISMATCH,
       severity: 'warning',
@@ -257,8 +305,10 @@ function buildWarnings(ctx: {
 
   const pendingPayments = ctx.payments.filter((payment) =>
     ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING.includes(
-      normalizeUpper(payment.payment_status) as (typeof ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING)[number]
-    )
+      normalizeUpper(
+        payment.payment_status,
+      ) as (typeof ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING)[number],
+    ),
   );
   if (pendingPayments.length > 0 && ctx.totalPaidAmount > 0) {
     warnings.push({
@@ -271,8 +321,10 @@ function buildWarnings(ctx: {
 
   const authorizedPayments = ctx.payments.filter((payment) =>
     ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED.includes(
-      normalizeUpper(payment.payment_status) as (typeof ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED)[number]
-    )
+      normalizeUpper(
+        payment.payment_status,
+      ) as (typeof ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED)[number],
+    ),
   );
   if (authorizedPayments.length > 0 && ctx.totalPaidAmount > 0) {
     warnings.push({
@@ -285,11 +337,15 @@ function buildWarnings(ctx: {
 
   const creditSum = ctx.creditApplications.reduce((sum, creditApplication) => {
     const status =
-      normalizeUpper(creditApplication.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED;
+      normalizeUpper(creditApplication.application_status) ||
+      CREDIT_APPLICATION_STATUSES.APPLIED;
     if (status !== CREDIT_APPLICATION_STATUSES.APPLIED) return sum;
     return sum + n(creditApplication.applied_amount);
   }, 0);
-  if (ctx.giftCardOnOrder > 0 && Math.abs(creditSum - ctx.totalCreditAppliedAmount) > tolerance) {
+  if (
+    ctx.giftCardOnOrder > 0 &&
+    Math.abs(creditSum - ctx.totalCreditAppliedAmount) > tolerance
+  ) {
     warnings.push({
       code: ORDER_FINANCIAL_WARNING_CODES.GIFT_CARD_DOUBLE_COUNTED,
       severity: 'warning',
@@ -313,7 +369,10 @@ function buildWarnings(ctx: {
     });
   }
 
-  if (ctx.paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION && ctx.arInvoice) {
+  if (
+    ctx.paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION &&
+    ctx.arInvoice
+  ) {
     warnings.push({
       code: 'POC_WITH_AR_INVOICE',
       severity: 'error',

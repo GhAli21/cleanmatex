@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * PaymentDiscountFields — the manual OMR / % discount editor (L4 primitive;
+ * PaymentDiscountFields — the manual currency / % discount editor (L4 primitive;
  * single source for both the Full workbench and the Simple face).
  *
  * Mirrors the legacy Full-view "Discounts" block field-for-field (draft/focus
@@ -19,7 +19,12 @@
 
 import { useCallback, useState, type RefObject } from 'react';
 import { useTranslations } from 'next-intl';
-import { Controller, type Control, type FieldErrors, type UseFormSetValue } from 'react-hook-form';
+import {
+  Controller,
+  type Control,
+  type FieldErrors,
+  type UseFormSetValue,
+} from 'react-hook-form';
 import { useRTL } from '@/lib/hooks/useRTL';
 import type { PaymentFormData } from '@features/orders/model/payment-form-schema';
 import {
@@ -34,15 +39,20 @@ import { CmxInput } from '@ui/primitives';
 export interface PaymentDiscountFieldsProps {
   /** RHF control for the shared payment form. */
   control: Control<PaymentFormData>;
-  /** RHF setter — used to keep the OMR and % fields in sync. */
+  /** RHF setter — used to keep the currency and % fields in sync. */
   setValue: UseFormSetValue<PaymentFormData>;
   /** Relevant slice of form errors (amount/percent discount only). */
-  errors: Pick<FieldErrors<PaymentFormData>, 'amountDiscount' | 'percentDiscount'>;
+  errors: Pick<
+    FieldErrors<PaymentFormData>,
+    'amountDiscount' | 'percentDiscount'
+  >;
   /** Order total the discount is clamped against. */
   total: number;
   /** Currency decimal places (draft formatting/parsing). */
   decimalPlaces: number;
-  /** Optional external ref for the OMR field (Full-view scroll-to-error). */
+  /** Resolved organization currency code shown in the amount field label. */
+  currencyCode: string;
+  /** Optional external ref for the currency field (Full-view scroll-to-error). */
   amountInputRef?: RefObject<HTMLInputElement | null>;
   /** Optional external ref for the % field (Full-view scroll-to-error). */
   percentInputRef?: RefObject<HTMLInputElement | null>;
@@ -51,7 +61,7 @@ export interface PaymentDiscountFieldsProps {
 }
 
 /**
- * Renders the manual discount editor: an OMR field and a % field that stay in
+ * Renders the manual discount editor: a currency field and a % field that stay in
  * sync, clamped to `[0, total]`, with a shared inline error line.
  *
  * @param props - See {@link PaymentDiscountFieldsProps}.
@@ -63,6 +73,7 @@ export function PaymentDiscountFields({
   errors,
   total,
   decimalPlaces,
+  currencyCode,
   amountInputRef,
   percentInputRef,
   className,
@@ -86,16 +97,20 @@ export function PaymentDiscountFields({
       }
       return s;
     },
-    [decimalPlaces]
+    [decimalPlaces],
   );
 
   return (
     <div className={className}>
       <div>
-        <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <p
+          className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}
+        >
           {t('rightRail.discounts')}
         </p>
-        <p className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <p
+          className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+        >
           {t('rightRail.discountsHelp')}
         </p>
       </div>
@@ -107,28 +122,46 @@ export function PaymentDiscountFields({
             <CmxInput
               ref={amountInputRef}
               data-testid="payment-discount-amount"
-              label={t('manualDiscount.amount')}
-              value={amountFocused ? amountDraft : formatDecimalDraft(field.value ?? 0, decimalPlaces)}
+              label={t('manualDiscount.amount', { currencyCode })}
+              value={
+                amountFocused
+                  ? amountDraft
+                  : formatDecimalDraft(field.value ?? 0, decimalPlaces)
+              }
               dir="ltr"
               placeholder={t('manualDiscount.amountPlaceholder')}
               onFocus={() => {
                 setAmountFocused(true);
-                setAmountDraft(formatDecimalDraft(field.value ?? 0, decimalPlaces));
+                setAmountDraft(
+                  formatDecimalDraft(field.value ?? 0, decimalPlaces),
+                );
               }}
               onBlur={() => {
                 setAmountFocused(false);
                 const raw = sanitizeDraft(amountDraft.trim());
-                const nextAmount = Math.max(0, Math.min(parseDecimalDraft(raw), total));
+                const nextAmount = Math.max(
+                  0,
+                  Math.min(parseDecimalDraft(raw), total),
+                );
                 field.onChange(nextAmount);
-                setValue('percentDiscount', syncDiscountPercentFromAmount(total, nextAmount));
+                setValue(
+                  'percentDiscount',
+                  syncDiscountPercentFromAmount(total, nextAmount),
+                );
                 setAmountDraft('');
               }}
               onChange={(event) => {
                 const nextDraft = sanitizeDraft(event.target.value);
                 setAmountDraft(nextDraft);
-                const nextAmount = Math.max(0, Math.min(parseDecimalDraft(nextDraft), total));
+                const nextAmount = Math.max(
+                  0,
+                  Math.min(parseDecimalDraft(nextDraft), total),
+                );
                 field.onChange(nextAmount);
-                setValue('percentDiscount', syncDiscountPercentFromAmount(total, nextAmount));
+                setValue(
+                  'percentDiscount',
+                  syncDiscountPercentFromAmount(total, nextAmount),
+                );
               }}
             />
           )}
@@ -145,16 +178,25 @@ export function PaymentDiscountFields({
               dir="ltr"
               placeholder={t('manualDiscount.percentPlaceholder')}
               onChange={(event) => {
-                const nextPercent = Math.max(0, Math.min(100, Number.parseFloat(event.target.value) || 0));
+                const nextPercent = Math.max(
+                  0,
+                  Math.min(100, Number.parseFloat(event.target.value) || 0),
+                );
                 field.onChange(nextPercent);
-                setValue('amountDiscount', syncDiscountFromPercent(total, nextPercent, decimalPlaces));
+                setValue(
+                  'amountDiscount',
+                  syncDiscountFromPercent(total, nextPercent, decimalPlaces),
+                );
               }}
             />
           )}
         />
       </div>
-      {(errors.percentDiscount || errors.amountDiscount) ? (
-        <p className={`mt-2 text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`} role="alert">
+      {errors.percentDiscount || errors.amountDiscount ? (
+        <p
+          className={`mt-2 text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}
+          role="alert"
+        >
           {errors.percentDiscount?.message || errors.amountDiscount?.message}
         </p>
       ) : null}

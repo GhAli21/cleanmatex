@@ -7,12 +7,24 @@ interface TaxDocumentPrintRprtProps {
   detail: TaxDocumentPrintDetail;
 }
 
-// Region-neutral locale (FN-11 precedent): the currency code drives the
-// symbol, never a hardcoded region.
-function formatCurrency(amount: number, currencyCode: string | null, locale: string) {
+/**
+ * Formats an amount without inventing a currency when a historical document lacks one.
+ *
+ * @param amount - Monetary amount already stored on the tax document.
+ * @param currencyCode - Stored ISO currency code, if present.
+ * @param locale - Active display locale.
+ * @returns Localized currency output or a plain decimal when the code is absent.
+ */
+function formatCurrency(
+  amount: number,
+  currencyCode: string | null,
+  locale: string,
+) {
+  const resolvedCurrencyCode = currencyCode?.trim();
   return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', {
-    style: 'currency',
-    currency: currencyCode || 'OMR',
+    ...(resolvedCurrencyCode
+      ? { style: 'currency' as const, currency: resolvedCurrencyCode }
+      : { style: 'decimal' as const }),
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
   }).format(amount);
@@ -60,27 +72,46 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
           <div className="space-y-2">
             {detail.seller.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- tenant-supplied external URL, not in next/image's configured domains
-              <img src={detail.seller.logoUrl} alt="" className="h-10 w-auto object-contain" />
+              <img
+                src={detail.seller.logoUrl}
+                alt=""
+                className="h-10 w-auto object-contain"
+              />
             ) : null}
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t('print.documentLabel')}</p>
-            <h1 className="text-3xl font-semibold text-slate-950">{detail.documentNo ?? '—'}</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              {t('print.documentLabel')}
+            </p>
+            <h1 className="text-3xl font-semibold text-slate-950">
+              {detail.documentNo ?? '—'}
+            </h1>
             <p className="text-sm text-slate-600">{typeLabel}</p>
           </div>
           <div className="grid gap-2 text-sm text-slate-600">
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">{t('print.fields.status')}</span>
+              <span className="min-w-28 font-medium text-slate-900">
+                {t('print.fields.status')}
+              </span>
               <span>{statusLabel}</span>
             </div>
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">{t('print.fields.issuedAt')}</span>
+              <span className="min-w-28 font-medium text-slate-900">
+                {t('print.fields.issuedAt')}
+              </span>
               <span>{formatDateTime(detail.issuedAt, locale)}</span>
             </div>
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">{t('sequenceNo')}</span>
-              <span>{detail.fiscalYear} / {String(detail.sequenceNumber).padStart(6, '0')}</span>
+              <span className="min-w-28 font-medium text-slate-900">
+                {t('sequenceNo')}
+              </span>
+              <span>
+                {detail.fiscalYear} /{' '}
+                {String(detail.sequenceNumber).padStart(6, '0')}
+              </span>
             </div>
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">{t('print.orderRef')}</span>
+              <span className="min-w-28 font-medium text-slate-900">
+                {t('print.orderRef')}
+              </span>
               <span>{detail.order.orderNo ?? '—'}</span>
             </div>
           </div>
@@ -94,23 +125,33 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
 
       <div className="grid gap-6 py-6 md:grid-cols-3">
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">{t('print.seller')}</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
+            {t('print.seller')}
+          </h2>
           <div className="rounded-xl border border-slate-200 p-4 text-sm text-slate-700">
-            <p className="font-medium text-slate-900">{detail.seller.name || '—'}</p>
+            <p className="font-medium text-slate-900">
+              {detail.seller.name || '—'}
+            </p>
             {detail.seller.name2 ? <p>{detail.seller.name2}</p> : null}
             <p>{detail.seller.address ?? '—'}</p>
             <p className="mt-2">
-              <span className="font-medium text-slate-900">{t('print.taxRegistrationNo')}: </span>
+              <span className="font-medium text-slate-900">
+                {t('print.taxRegistrationNo')}:{' '}
+              </span>
               {detail.seller.taxRegistrationNo ?? '—'}
             </p>
           </div>
         </div>
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">{t('print.customer')}</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
+            {t('print.customer')}
+          </h2>
           <div className="rounded-xl border border-slate-200 p-4 text-sm text-slate-700">
             {detail.customer ? (
               <>
-                <p className="font-medium text-slate-900">{detail.customer.name ?? detail.customer.name2 ?? '—'}</p>
+                <p className="font-medium text-slate-900">
+                  {detail.customer.name ?? detail.customer.name2 ?? '—'}
+                </p>
                 <p>{detail.customer.phone ?? '—'}</p>
               </>
             ) : (
@@ -122,8 +163,14 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
           {detail.qrCodeDataUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element -- data: URL, next/image cannot optimize it */}
-              <img src={detail.qrCodeDataUrl} alt={t('print.qrHint')} className="h-28 w-28" />
-              <p className="max-w-36 text-xs text-slate-500">{t('print.qrHint')}</p>
+              <img
+                src={detail.qrCodeDataUrl}
+                alt={t('print.qrHint')}
+                className="h-28 w-28"
+              />
+              <p className="max-w-36 text-xs text-slate-500">
+                {t('print.qrHint')}
+              </p>
             </>
           ) : null}
         </div>
@@ -133,17 +180,30 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
-              <th className="px-4 py-3 text-left">{t('print.columns.taxType')}</th>
-              <th className="px-4 py-3 text-left">{t('print.columns.label')}</th>
-              <th className="px-4 py-3 text-right">{t('print.columns.rate')}</th>
-              <th className="px-4 py-3 text-right">{t('print.columns.baseAmount')}</th>
-              <th className="px-4 py-3 text-right">{t('print.columns.taxAmount')}</th>
+              <th className="px-4 py-3 text-left">
+                {t('print.columns.taxType')}
+              </th>
+              <th className="px-4 py-3 text-left">
+                {t('print.columns.label')}
+              </th>
+              <th className="px-4 py-3 text-right">
+                {t('print.columns.rate')}
+              </th>
+              <th className="px-4 py-3 text-right">
+                {t('print.columns.baseAmount')}
+              </th>
+              <th className="px-4 py-3 text-right">
+                {t('print.columns.taxAmount')}
+              </th>
             </tr>
           </thead>
           <tbody>
             {detail.lines.length === 0 ? (
               <tr className="border-t border-slate-200">
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td
+                  colSpan={5}
+                  className="px-4 py-6 text-center text-slate-500"
+                >
                   {t('print.noLines')}
                 </td>
               </tr>
@@ -152,12 +212,22 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
                 <tr key={line.id} className="border-t border-slate-200">
                   <td className="px-4 py-3 text-slate-800">{line.taxType}</td>
                   <td className="px-4 py-3 text-slate-800">{line.label}</td>
-                  <td className="px-4 py-3 text-right text-slate-700">{line.rate != null ? `${line.rate}%` : '—'}</td>
                   <td className="px-4 py-3 text-right text-slate-700">
-                    {formatCurrency(line.baseAmount, detail.currencyCode, locale)}
+                    {line.rate != null ? `${line.rate}%` : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-right text-slate-700">
+                    {formatCurrency(
+                      line.baseAmount,
+                      detail.currencyCode,
+                      locale,
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-slate-900">
-                    {formatCurrency(line.taxAmount, detail.currencyCode, locale)}
+                    {formatCurrency(
+                      line.taxAmount,
+                      detail.currencyCode,
+                      locale,
+                    )}
                   </td>
                 </tr>
               ))
@@ -173,11 +243,15 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
         </div>
         <div className="flex items-center justify-between">
           <span>{t('print.totals.tax')}</span>
-          <span>{formatCurrency(detail.taxAmount, detail.currencyCode, locale)}</span>
+          <span>
+            {formatCurrency(detail.taxAmount, detail.currencyCode, locale)}
+          </span>
         </div>
         <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-950">
           <span>{t('print.totals.total')}</span>
-          <span>{formatCurrency(detail.totalAmount, detail.currencyCode, locale)}</span>
+          <span>
+            {formatCurrency(detail.totalAmount, detail.currencyCode, locale)}
+          </span>
         </div>
       </div>
     </div>

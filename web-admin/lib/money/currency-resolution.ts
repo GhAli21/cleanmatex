@@ -15,8 +15,10 @@ export const CURRENCY_RESOLUTION_ERRORS = {
   MISSING_CURRENCY_CODE: 'MISSING_CURRENCY_CODE',
   /** Supplied currency conflicts with the currency of the target ledger row. */
   CURRENCY_MISMATCH: 'CURRENCY_MISMATCH',
-  /** Tenant has no configured currency setting (TENANT_CURRENCY). */
+  /** Tenant has no configured active base currency. */
   MISSING_TENANT_CURRENCY: 'MISSING_TENANT_CURRENCY',
+  /** Currency authority could not be read, so money work must retry rather than guess. */
+  TENANT_CURRENCY_UNAVAILABLE: 'TENANT_CURRENCY_UNAVAILABLE',
 } as const;
 
 export type CurrencyResolutionErrorCode =
@@ -43,13 +45,13 @@ export class CurrencyResolutionError extends Error {
  */
 export function requireCurrencyCode(
   value: string | null | undefined,
-  context: string
+  context: string,
 ): string {
   const code = value?.trim();
   if (!code) {
     throw new CurrencyResolutionError(
       CURRENCY_RESOLUTION_ERRORS.MISSING_CURRENCY_CODE,
-      context
+      context,
     );
   }
   return code;
@@ -61,7 +63,7 @@ export function requireCurrencyCode(
  * of throwing.
  */
 export function optionalCurrencyCode(
-  value: string | null | undefined
+  value: string | null | undefined,
 ): string | undefined {
   const code = value?.trim();
   return code || undefined;
@@ -75,13 +77,13 @@ export function optionalCurrencyCode(
 export function assertCurrencyMatch(
   rowCurrency: string,
   suppliedCurrency: string | null | undefined,
-  context: string
+  context: string,
 ): void {
   const supplied = suppliedCurrency?.trim();
   if (supplied && supplied !== rowCurrency.trim()) {
     throw new CurrencyResolutionError(
       CURRENCY_RESOLUTION_ERRORS.CURRENCY_MISMATCH,
-      `${context}: row=${rowCurrency} supplied=${supplied}`
+      `${context}: row=${rowCurrency} supplied=${supplied}`,
     );
   }
 }

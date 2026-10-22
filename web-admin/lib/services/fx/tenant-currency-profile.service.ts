@@ -17,7 +17,6 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import {
   CURRENCY_RESOLUTION_ERRORS,
   CurrencyResolutionError,
@@ -72,17 +71,20 @@ export class TenantCurrencyProfileService {
     const { data, error } = await this.supabase
       .from('org_currency_cf')
       .select(
-        'currency_code, is_base_currency, is_reporting_currency, allow_sales, allow_payments, allow_cash, allow_ar'
+        'currency_code, is_base_currency, is_reporting_currency, allow_sales, allow_payments, allow_cash, allow_ar',
       )
       .eq('tenant_org_id', tenantId)
       .eq('rec_status', 1)
       .eq('is_active', true);
 
     if (error) {
-      console.error('[TenantCurrencyProfileService] org_currency_cf read failed:', error);
+      console.error(
+        '[TenantCurrencyProfileService] org_currency_cf read failed:',
+        error,
+      );
       throw new CurrencyResolutionError(
-        CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY,
-        `tenant ${tenantId}`
+        CURRENCY_RESOLUTION_ERRORS.TENANT_CURRENCY_UNAVAILABLE,
+        `tenant ${tenantId}`,
       );
     }
 
@@ -91,14 +93,17 @@ export class TenantCurrencyProfileService {
     if (!baseRow) {
       throw new CurrencyResolutionError(
         CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY,
-        `tenant ${tenantId}`
+        `tenant ${tenantId}`,
       );
     }
 
-    const decimalsByCode = await this.loadDecimalPlaces(rows.map((r) => r.currency_code));
+    const decimalsByCode = await this.loadDecimalPlaces(
+      tenantId,
+      rows.map((r) => r.currency_code),
+    );
     const toEntry = (row: OrgCurrencyRow): TenantCurrencyEntry => ({
       currencyCode: row.currency_code,
-      decimalPlaces: decimalsByCode.get(row.currency_code) ?? ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
+      decimalPlaces: decimalsByCode.get(row.currency_code)!,
       isBaseCurrency: row.is_base_currency,
       isReportingCurrency: row.is_reporting_currency,
       allowSales: row.allow_sales,
@@ -116,7 +121,10 @@ export class TenantCurrencyProfileService {
     };
   }
 
-  private async loadDecimalPlaces(codes: string[]): Promise<Map<string, number>> {
+  private async loadDecimalPlaces(
+    tenantId: string,
+    codes: string[],
+  ): Promise<Map<string, number>> {
     const map = new Map<string, number>();
     if (codes.length === 0) return map;
     const { data, error } = await this.supabase
@@ -124,11 +132,23 @@ export class TenantCurrencyProfileService {
       .select('code, minor_unit')
       .in('code', codes);
     if (error) {
-      console.error('[TenantCurrencyProfileService] sys_currency_cd read failed:', error);
-      return map;
+      console.error(
+        '[TenantCurrencyProfileService] sys_currency_cd read failed:',
+        error,
+      );
+      throw new CurrencyResolutionError(
+        CURRENCY_RESOLUTION_ERRORS.TENANT_CURRENCY_UNAVAILABLE,
+        `tenant ${tenantId}: currency catalog`,
+      );
     }
     for (const row of (data ?? []) as { code: string; minor_unit: number }[]) {
       map.set(row.code, row.minor_unit);
+    }
+    if (codes.some((code) => !map.has(code))) {
+      throw new CurrencyResolutionError(
+        CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY,
+        `tenant ${tenantId}: currency catalog entry missing`,
+      );
     }
     return map;
   }
@@ -142,7 +162,7 @@ export const tenantCurrencyProfileService = new TenantCurrencyProfileService();
  * Use in server actions/API routes: createTenantCurrencyProfileService(await createServerSupabaseClient())
  */
 export function createTenantCurrencyProfileService(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ): TenantCurrencyProfileService {
   return new TenantCurrencyProfileService(supabase);
 }

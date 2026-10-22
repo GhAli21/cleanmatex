@@ -25,7 +25,7 @@ import type {
  * @returns Validation result with available balance or error
  */
 export async function validateGiftCardAction(
-  input: ValidateGiftCardInput
+  input: ValidateGiftCardInput,
 ): Promise<ValidateGiftCardResult> {
   try {
     const result = await validateGiftCard(input);
@@ -37,7 +37,8 @@ export async function validateGiftCardAction(
     });
     return {
       isValid: false,
-      error: error instanceof Error ? error.message : 'Failed to validate gift card',
+      error:
+        error instanceof Error ? error.message : 'Failed to validate gift card',
     };
   }
 }
@@ -52,7 +53,10 @@ export async function checkGiftCardBalance(giftCardCode: string) {
   try {
     const auth = await getAuthContext();
     if (!auth.tenantId) {
-      return { success: false, error: 'Not authenticated or no tenant context' };
+      return {
+        success: false,
+        error: 'Not authenticated or no tenant context',
+      };
     }
     const card = await getGiftCardByCode(giftCardCode, auth.tenantId);
 
@@ -105,12 +109,19 @@ export async function applyGiftCardAction(params: {
   processed_by?: string;
 }): Promise<{ success: boolean; newBalance?: number; error?: string }> {
   try {
-    const { applyGiftCardTx } = await import('@/lib/services/gift-card-service');
+    const { applyGiftCardTx } =
+      await import('@/lib/services/gift-card-service');
     const { prisma } = await import('@/lib/db/prisma');
     const { getTenantIdFromSession } = await import('@/lib/db/tenant-context');
+    const { createClient } = await import('@/lib/supabase/server');
+    const { createTenantSettingsService } =
+      await import('@/lib/services/tenant-settings.service');
 
     const tenantId = await getTenantIdFromSession();
     if (!tenantId) return { success: false, error: 'Unauthorized' };
+    const currencyConfig = await createTenantSettingsService(
+      await createClient(),
+    ).getCurrencyConfig(tenantId);
 
     const result = await prisma.$transaction((tx) =>
       applyGiftCardTx(tx as never, {
@@ -120,9 +131,9 @@ export async function applyGiftCardAction(params: {
         invoiceId: params.invoice_id,
         processedBy: params.processed_by,
         tenantOrgId: tenantId,
-        currencyCode: 'OMR', // resolved from tenant settings when needed
-        decimalPlaces: 3,
-      })
+        currencyCode: currencyConfig.currencyCode,
+        decimalPlaces: currencyConfig.decimalPlaces,
+      }),
     );
 
     return { success: true, newBalance: result.newBalance };
@@ -133,7 +144,8 @@ export async function applyGiftCardAction(params: {
     });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to apply gift card',
+      error:
+        error instanceof Error ? error.message : 'Failed to apply gift card',
     };
   }
 }

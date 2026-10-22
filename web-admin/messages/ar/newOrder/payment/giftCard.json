@@ -40,5 +40,5 @@
     "amountRequired": "أدخل المبلغ المراد تطبيقه",
     "maxAmountExceeded": "المبلغ يتجاوز الرصيد المتاح"
   },
-  "success": "تم تطبيق بطاقة الهدية! الرصيد: {balance} ريال عماني"
+  "success": "تم تطبيق بطاقة الهدية! الرصيد: {currencyCode} {balance}"
 }
