@@ -2,11 +2,197 @@
 
 **Status:** Plan only. Not started. Do not write code, SQL, or translations until this plan is confirmed.
 **Date:** 2026-10-17
-**Authority:** This file is the authority for the Edit Policy resolution extension. The active Edit Order V2 v3.0 pack remains the authority for Order Change behavior this plan does not change.
-**Owning applications:** `cleanmatex` owns the shared migration, the SQL resolver, and the tenant runtime. `cleanmatexsaas` owns the Headquarters API and Studio screens. Headquarters authors the rows. The tenant app only resolves them.
+**Place in the pack:** Additional plan inside the active Edit Order V2 v3.0 pack. It does not replace that pack.
+**Authority of this file:** Edit Policy configuration and resolution, and every Order Change surface this file changes so that resolution is the one Preview and Apply enforce. That includes the SQL resolver, the tenant resolver, order context, capability, Preview, the review-proof digest, the Apply writer’s before and after values, the review screen, the operation catalog, and HQ authoring. Both repositories implement those changes from this file. `WP05-B_HQ_PROGRESS.md` points here for this extension and keeps the completed WP05-B record.
+**Authority of the main plan:** `Edit_Order_V2_Final_Implementation_Plan_Current_Codebase_v3.0.md` remains the living sequence and progress ledger for WP01–WP20. Commitment, calculation, tax, payments, refunds, credits, the 300-second review-proof lifetime, Apply transaction rules this file does not name, and cutover stay with that plan. A change this file makes inside a WP05, WP10, WP11, WP12, WP14, WP15, or WP17 file is specified here and recorded on that package’s ledger row.
 **Product name:** Edit Policy / سياسة التعديل. Screen copy says Organization / المنشأة. The database identifier stays `tenant_org_id`.
+**Names:** HQ is the usual name for the SaaS Backoffice in `cleanmatexsaas`. Platform, platform level, Platform HQ Console, and SaaS Backoffice Admin and Management mean HQ. Organization app means `cleanmatex`. Tenant app, client app, and Tenant-Facing Application mean that app. The customer business is the Organization / المنشأة, and the database identifier stays `tenant_org_id`. Existing file and code identifiers that already contain HQ stay as they are, including `WP05-B_HQ_PROGRESS.md` and `HQ_RBAC_ENFORCEMENT_ENABLED`.
+**Execution status:** `Extend_Order_Edit_policy_STATUS.md` in this folder. Every keep-or-improve decision is recorded there.
 
 ---
+
+## Integration with the main plan
+
+This plan changes the Order Change path where Edit Policy is loaded, checked, shown, and stored. The main plan keeps the package numbers and the behavior this file does not name.
+
+| This plan changes | Main-plan package | What changes |
+|---|---|---|
+| Policy tables, default, override scopes, catalog seed | WP05 | New migration. The current version-only assignment stops being the resolver |
+| Tenant resolver and capability | WP05 | One SQL function. A missing rule denies, including `CHANGE_UNLISTED`. An unshipped writer stays closed |
+| Order context | WP04 loader, WP05 | The edit screen loads the same policy Preview will enforce |
+| Preview | WP10 | Re-resolves. Returns the before and after objects in section 5C. Adds their digest to the review proof |
+| Apply writer | WP11, WP12, WP15, WP17 | Re-resolves immediately before mutation. Stores the before and after objects in section 5B for operations whose writers already exist |
+| Review dialog and policy panel | WP14, WP15 | Same dialog. The operation row shows the name and the before and after line. The panel shows which level won |
+| HQ API and Studio | WP05-B | Defaults, override scopes, and effective preview call the same SQL function |
+
+Phase 2 carries the tenant resolver, Preview, and Apply writer together. A new resolver with the old Preview or the old writer is a gap. Phases 3 and 4 carry HQ. Phase 5 proves the tenant path and the Studio preview return the same level and the same decision.
+
+Closing a phase updates `Extend_Order_Edit_policy_STATUS.md` and the touched rows in `Edit_Order_V2_Final_Implementation_Plan_Current_Codebase_v3.0.md`. The package number stays. This plan does not add WP21, and it does not move WP18, WP19, or WP20.
+
+Calculation, tax, payment, refund, credit, commitment, and cutover stay on their current packages. This plan calls those services. It does not replace them.
+
+---
+
+## Execution rule — existing code
+
+This rule applies to every code change made while executing this plan: UI, UX, frontend, backend, API, service, resolver, writer, preview, database, translation, and tests.
+
+Before replacing an existing implementation with the shape this plan describes, compare them. When the code already in the repository is better, do one of these and do not do both:
+
+1. **Improve it.** Change the existing implementation so the result is better than the current code and better than the plan's suggestion. Keep its structure, names, and behavior that are already right.
+2. **Keep it.** Leave the existing implementation in place. Do not rewrite it to match a weaker suggestion in this plan.
+
+Then update this plan so it describes the chosen result, and add a row to `Extend_Order_Edit_policy_STATUS.md` with the date, the area, which option was chosen, and what changed in the plan.
+
+A suggestion in this plan is not a reason to discard a better screen, service, or query. The locked resolution order, the fail-closed rules, tenant isolation, and the before/after value contract stay in force. This rule chooses the better implementation of those contracts. It does not drop them.
+
+## Implementation rule — complete the feature in every required area
+
+When implementing any feature from this plan, finish every related area that feature needs before calling it done. A database change without the API that writes it, or a screen without the service behind it, is not a finished feature.
+
+Cover each area that applies:
+
+- database: tables, constraints, functions, grants, comments, and the migration
+- backend and services
+- APIs, endpoints, and their request and response contracts
+- frontend, pages, screens, and UI behavior, including loading, empty, error, and success states
+- English and Arabic copy
+- tests for the behavior that changed
+- documentation for the feature, including this plan and `Extend_Order_Edit_policy_STATUS.md`
+
+Do this in both repositories when the feature needs both. `cleanmatex` carries the shared database, the SQL resolver, and the tenant runtime. `cleanmatexsaas` carries HQ authoring. A feature that changes what HQ saves and what the tenant resolves is done only when both sides agree. A feature that belongs in one repository is not copied into the other.
+
+The feature is production-ready only when those areas are present, consistent, and free of a known gap, bug, or missing piece. Record each completed area, and any area verified and left unchanged, in `Extend_Order_Edit_policy_STATUS.md`.
+
+## Implementation rule — project instructions
+
+While implementing this plan, follow the `CLAUDE.md` of the repository being edited. `cleanmatex/CLAUDE.md` governs the shared migration and the tenant app. `cleanmatexsaas/CLAUDE.md` governs HQ. Load every skill that file requires before the first edit in that area, and use the agents, rules, and docs it names. Do not skip them because this plan already describes the change.
+
+## Implementation rule — separation of concerns
+
+Keep Edit Policy resolution apart from Order Change domain logic. Calculation, tax, payment, refund, credit, and workflow movement stay in their own services. This plan calls those services. It does not copy their rules into the policy resolver, the HQ controller, or a screen.
+
+Reusable UI and shared validation stay domain-agnostic. They do not contain Edit Policy decisions, organization names, or order-status lists. The Edit Policy module owns those decisions and passes plain values into the shared piece.
+
+Each module keeps its own services and its own folder. Tenant resolution stays in `web-admin/lib/services/order-change/`. HQ authoring stays in `platform-api/src/modules/workflow-engine-config/edit-policy/` and `platform-web/src/features/workflow-engine-config/`. A route, a page, or another domain calls those services. It does not grow a second copy of the query or the matrix rules.
+
+## Implementation rule — reusable UI and validation
+
+Before adding UI or validation, search the shared components and shared validators. Use the one that already exists. In `web-admin`, use Cmx components from `src/ui/`. In `platform-web`, use Cmx components from `src/ui/`. Use `cmxMessage` or `useMessage()` for applicable feedback.
+
+When the needed piece will be reused and no shared component has it, add that behavior to the shared component, or add a new shared component, and keep the change backward compatible. A control used once on the Edit Policy tab stays in that feature. A control that a second screen will need becomes shared before the second copy is written.
+
+## Tasks after every phase
+
+Close a phase only after these tasks. The status file is `Extend_Order_Edit_policy_STATUS.md`.
+
+1. Update the phase row in that file to the real result: done, partial, or blocked, with the date and what landed.
+2. Update the status line of this plan to the phase just closed. Do not mark a phase done because the code compiled.
+3. Add a row for any keep-or-improve choice made in that phase.
+4. Refresh, create, or update the documentation that phase changed. Leave historical WP reports and tester result rows unchanged. Record the doc files touched in the status file.
+5. Update the touched rows in `Edit_Order_V2_Final_Implementation_Plan_Current_Codebase_v3.0.md`. Phase 1 and Phase 2 update the WP05 row and, when Preview or Apply changed, the WP10, WP11, WP12, WP15, and WP17 rows. Phases 3 and 4 update the WP05-B pointer. Keep each package number.
+
+| Phase | Documentation to refresh before the phase is closed |
+|---|---|
+| 1 Database | This plan's Phase 1 notes, the migration filename, and `WP05-B_HQ_PROGRESS.md` with that filename once the migration file exists |
+| 2 Tenant resolver | This plan's resolver section and the tenant developer notes that describe how an order resolves its Edit Policy |
+| 3 HQ API | This plan's API section and the HQ pointer. Request and response examples match the code |
+| 4 HQ screens | This plan's screen section and the Studio copy keys actually added |
+| 5 Proof | The manual-check result in the status file, then the final documentation task below |
+
+## Final task — generate the extension docs
+
+After Phase 5, and only after the manual check in section 11.4, load the documentation skill and generate or update every doc this extension needs.
+
+- In `cleanmatex`, load `.claude/skills/documentation/SKILL.md`. Update the active Edit Order V2 v3.0 pack for the Edit Policy extension only. Do not replace Order Change documents this plan does not change.
+- In `cleanmatexsaas`, load `.claude/skills/documentation/SKILL.md` and `.claude/skills/create-feature-documentation/SKILL.md`. Update `docs/features/Order_Edit_V2/WP05-B_HQ_PROGRESS.md` and any HQ doc that describes Edit Policy authoring. Do not copy this plan into that repository.
+- Write from the code that shipped. Mark anything not built as pending. Do not invent routes, permissions, or migration names.
+- When the skill's pack list asks for a file the v3.0 pack already has, update that file. Do not create a second folder for the same extension.
+- Record the generated and updated files in `Extend_Order_Edit_policy_STATUS.md`.
+
+## Edit Policy extension across both repositories
+
+This section lists the Edit Policy work in `cleanmatex` and `cleanmatexsaas`. It is not an Order Change plan. A phase of this extension is not finished while any row below is still open. "Open" means the file was neither updated for the Edit Policy change nor recorded in `Extend_Order_Edit_policy_STATUS.md` as verified and left unchanged. Both apps must agree on the same SQL function, the same catalog, and the same policy failure codes before the manual check in section 11.4.
+
+`platform-workers` has no queue, job, or processor in this plan. No new permission, feature flag, navigation row, or billing change. No new tenant page and no new HQ page. The existing screens gain the behavior in the later sections.
+
+### Shared database — `cleanmatex/supabase/migrations/`
+
+| Object | This plan |
+|---|---|
+| New migration after the latest numbered file | Phase 1. Do not edit `0597`, `0599`, `0606`, or `0622` |
+| `sys_wf_edit_policy_def_cf` | One published default per profile version |
+| `org_wf_edit_policy_asg_cf` | Becomes the override table: `ORGANIZATION` or `PROFILE` |
+| `sys_wf_resolve_edit_policy` | The only resolution order. Tenant and HQ both call it |
+| Catalog guard and seed | Section 5A. Grammar freeze is dropped. New pairs are not backfilled as `ALLOW` |
+| Grants and RLS | Section 15. `anon` and `authenticated` stay revoked |
+| Prisma and HQ generated types | The user regenerates both after applying the migration. Section 6.15 |
+
+### Tenant runtime — `cleanmatex/web-admin`
+
+| Area | File | Required result |
+|---|---|---|
+| Resolver | `lib/services/order-change/order-change-edit-policy-resolver.service.ts` | Calls the SQL function. No TypeScript copy of the four levels |
+| Order context | `lib/services/order-change/order-change-context.service.ts` | Same policy Preview will enforce. Passes profile id and version id from the order |
+| Capability | `lib/services/order-change/order-change-capability.service.ts` | Missing rule denies, including `CHANGE_UNLISTED`. Unshipped writer stays closed with `OPERATION_NOT_AVAILABLE` |
+| Local UX | `src/features/orders/order-change/edit-control-capability.ts`, `use-edit-control-capability.ts` | Uses the policy already loaded. Does not call the server on each click |
+| Preview reads | `lib/services/order-change/order-change-preview-reads.ts` | Still the only read path into the resolver |
+| Preview | `lib/services/order-change/order-change-preview.service.ts` | Re-resolves. Returns the same before/after objects Apply will store. Adds the snapshot digest to the review proof |
+| Review proof | `order-change-capability.service.ts` signer | Domain and 300-second lifetime stay. Digest of code, sequence, before, and after is added |
+| Apply | `lib/services/order-change/order-change-apply.service.ts` and `order-change-mutation.service.ts` | Re-resolves immediately before mutation. Writes section 5B before/after for shipped operations |
+| Context route | `app/api/v1/orders/[id]/change-context/route.ts` | Returns `resolutionLevel` and `denyReason` from context. No second policy query |
+| Preview route | `app/api/v1/orders/[id]/changes/preview/route.ts` | Stays a thin route over the preview service |
+| Apply route | `app/api/v1/orders/[id]/changes/route.ts` | Stays a thin route over Apply. No policy logic in the route |
+| Follow-up route | `app/api/v1/orders/[id]/changes/follow-up/route.ts` | Unchanged. Payment, refund, and credit stay outside the matrix |
+| Edit page | `app/dashboard/orders/[id]/edit/page.tsx` through `edit-order-page-gate.tsx` and `edit-shared-workspace.tsx` | Same page. Policy source line and improved review rows only |
+| Policy panel | `edit-policy-info.ts`, `edit-policy-info-button.tsx`, `edit-policy-info-dialog.tsx` | Shows Organization override, profile override, version default, or deny |
+| Control notice | `edit-control-notice.tsx` | Operation names for every seeded code, including codes whose writer is not shipped |
+| Review | `edit-review-dialog.tsx`, `edit-review-view.ts`, `edit-review-changes.tsx` | Keep the dialog. Improve the operation row. Section 5C |
+| Builder | `change-builder.ts`, `edit-workspace-adapter.ts`, `lib/constants/order-change.ts` | A new code is emitted only when its writer is shipped. Until then the control stays closed and the field does not fall through to `CHANGE_UNLISTED` |
+| Types | `lib/types/order-change.ts` | Binding and context types carry the resolution level and deny reason |
+| Copy | `messages/en/orders/edit.json`, `messages/ar/orders/edit.json` | Section 10, both languages, after a search for an existing key |
+| Tests | Resolver, capability, preview, and apply Jest files already beside these services | Section 7.4 and the preview digest. One database test only after the user applies the migration |
+
+### HQ — `cleanmatexsaas`
+
+| Area | File | Required result |
+|---|---|---|
+| Module | `platform-api/.../workflow-engine-config.module.ts` | Same module. No second Edit Policy module |
+| Controller | `edit-policy.controller.ts` | Existing routes stay. Defaults are added under the same controller. Section 8 |
+| Service | `edit-policy.service.ts` | Effective preview calls `sys_wf_resolve_edit_policy`. Promotion no longer requires the authored-against version to be fully covered |
+| Repository | `edit-policy.repository.ts` | Default and override queries. `listLiveAssignmentPolicyIds(tenant, version)` leaves the preview path |
+| DTO and types | `edit-policy.dto.ts`, `edit-policy.types.ts` | Optional authored-against version. Scope, profile id, gap acknowledgement, resolution level |
+| Errors | `edit-policy.errors.ts` | Section 13 HQ codes |
+| Rules | `edit-policy.rules.ts` | Matrix shape stays. Version coverage is required only when saving a default |
+| Permissions | `edit-policy.permissions.ts` | The four existing codes. No new permission |
+| Check | `POST .../edit-policies/:id/check` | A reusable policy with a null authored-against version does not fail because statuses cannot be loaded. When the caller passes `workflow_profile_version_id`, the response is the coverage of that version. Structural problems still fail |
+| Simulate | `POST .../edit-policies/:id/simulate` | One cell on that policy. It is not a second resolver and it does not look at overrides or defaults |
+| Client | `platform-web/lib/api/workflow-engine-config.ts` | `editPolicies` gains defaults, scope on assign, and the new preview fields. Assignment list stops requiring a profile version |
+| Hook | `platform-web/src/features/workflow-engine-config/hooks/use-edit-policy.ts` | Loads defaults and both override scopes for the selected organization |
+| Screens | `wf-edit-policy-panel.tsx`, `wf-edit-policy-matrix.tsx` | Five sections in section 9, on the existing Edit Policy tab |
+| Studio page | `platform-web/app/workflow-engine-config/profiles/[id]/versions/[versionNo]/studio/page.tsx` | Hosts the tab. No new route and no new tab |
+| Smart fill | `edit-policy-smart-fill.ts` and its Jest file | Stays a proposal. It does not write the default table. New money and payment codes are proposed `DENY` |
+| Copy | `platform-web/messages/en.json`, `platform-web/messages/ar.json` | Section 10 under `editPolicy`, both languages |
+| Types | `platform-api/src/database/database.types.ts` and the web generated types | Regenerated by the user after the migration is applied |
+| Tests | `edit-policy.service.spec.ts`, `edit-policy.rules.spec.ts` | Section 8.6 |
+| Progress pointer | `docs/features/Order_Edit_V2/WP05-B_HQ_PROGRESS.md` | Points at this file. It does not grow a second specification |
+
+### Endpoints that must move together
+
+| Caller | Endpoint | Resolver |
+|---|---|---|
+| Edit Order page | `GET /api/v1/orders/:id/change-context` | SQL function, through the context service |
+| Review | `POST /api/v1/orders/:id/changes/preview` | SQL function, through the preview service |
+| Apply | `POST /api/v1/orders/:id/changes` | SQL function again, immediately before mutation |
+| Studio effective preview | `POST /workflow-engine-config/edit-policies/effective-preview` | Same SQL function |
+| Studio defaults | `GET` and `POST /workflow-engine-config/edit-policies/defaults`, `PATCH /workflow-engine-config/edit-policies/defaults/:defaultId` | Writes `sys_wf_edit_policy_def_cf`. Does not resolve an order |
+| Studio overrides | `GET`, `POST`, and `PATCH /workflow-engine-config/edit-policies/assignments` | Writes `org_wf_edit_policy_asg_cf` |
+
+Catalog, get, create, clone, matrix save, lifecycle, audit, check, and simulate stay on `workflow-engine-config/edit-policies`. Their permission gates stay the table in section 8.1.
+
+### Done means both sides
+
+HQ can show a default that the tenant still resolves with the old version join, or the tenant can resolve a default the Studio cannot set. Either state is a gap in this extension. Phase 5 of this plan is the first phase that may be called done, and only after section 11.4 shows the same Edit Policy level and the same decision in both running apps. That does not close an Order Change work package.
 
 ## 1. Goal
 
@@ -47,7 +233,7 @@ Today, from migration `0597` and the tenant resolver:
 - `uq_wf_edit_asg_active` allows one live assignment per organization and profile version.
 - The rule guard rejects a status that is not active on that policy's profile version.
 - The tenant resolver reads only the assignment for the order's profile version. Zero or many policy ids return no bindings. The capability layer then denies a catalog operation with `CAPABILITY_POLICY_BINDING_MISSING`.
-- Headquarters effective preview uses the same one-assignment lookup.
+- HQ effective preview uses the same one-assignment lookup.
 - There is no default. An organization with no assignment is denied.
 - Draft starter policies seeded by `0597` are unassignable. This plan does not publish them and does not turn them into defaults.
 
@@ -55,7 +241,7 @@ That coupling is why one policy row authored for WF1 cannot stay in force when t
 
 ## 3. Locked resolution order
 
-One resolver is used by tenant Preview, tenant Apply, the tenant order context, and the Headquarters effective preview. There is no second copy of the order in TypeScript.
+One resolver is used by tenant Preview, tenant Apply, the tenant order context, and the HQ effective preview. There is no second copy of the order in TypeScript.
 
 1. Exactly one active override for this organization. Use it on every profile.
 2. Otherwise, exactly one active override for this organization and this profile. Use it.
@@ -80,7 +266,7 @@ Usable means:
 | Profile override | `PILOT` or `PUBLISHED`, `rec_status = 1`, `is_active = true` |
 | Version default | `PUBLISHED` only, `rec_status = 1`, `is_active = true` |
 
-`DRAFT` and `RETIRED` are never usable. A live link whose policy has been retired is a broken link. It denies. It does not reveal the next level. Headquarters deactivates that link before the next level can apply.
+`DRAFT` and `RETIRED` are never usable. A live link whose policy has been retired is a broken link. It denies. It does not reveal the next level. HQ deactivates that link before the next level can apply.
 
 A null `profile_id` on the order skips level 2. A null `profile_version_id` skips level 3. Both still allow level 1. If level 1 also misses, the result is deny.
 
@@ -164,7 +350,7 @@ PostgreSQL object names in this repository stay at or under 30 characters.
 - Review proof domain `cleanmatex.order-change.review-proof.v1` and the 300-second lifetime. Policy id and revision stay inside the proof. The value-snapshot digest from section 5C is added to the signed binding. A different winning policy, a new revision, or a different before/after snapshot returns `POLICY_CHANGED_REVIEW_REQUIRED` or `REVIEW_CHANGED`.
 - Historical migrations, including `0597`, `0599`, `0606`, and `0622`.
 - Billing, plans, tenant role grants, feature flags, and navigation.
-- Headquarters permissions: `workflows.view`, `workflows.edit_policy`, `workflows.edit_policy_promote`, `workflows.edit_policy_assign`.
+- HQ permissions: `workflows.view`, `workflows.edit_policy`, `workflows.edit_policy_promote`, `workflows.edit_policy_assign`.
 - Browser and `anon` table grants. They stay revoked.
 - The three-stage Order Change flow: local editing uses the policy already loaded; Preview re-resolves; Apply re-resolves immediately before mutation.
 
@@ -200,7 +386,7 @@ Replace the freeze with `sys_wf_edit_catalog_guard`. It allows a later migration
 - a change of `operation_code` after insert
 - a pair whose operation row does not exist
 
-Headquarters does not invent executable codes from the browser. A new operation still arrives through a reviewed migration, together with its English and Arabic names. The difference is that the database no longer treats the first 13 codes as the permanent grammar.
+HQ does not invent executable codes from the browser. A new operation still arrives through a reviewed migration, together with its English and Arabic names. The difference is that the database no longer treats the first 13 codes as the permanent grammar.
 
 `ck_wf_edit_op_tgt_type` stays limited to `ORDER`, `ITEM`, `PIECE`, and `PREFERENCE`. Every operation below fits one of those four. No fifth target type is added.
 
@@ -212,11 +398,11 @@ Headquarters does not invent executable codes from the browser. A new operation 
 - Every seeded pair is `is_active = true` and `rec_status = 1`.
 - Do not backfill `ALLOW` rules onto existing policies. A policy that has no live rule for a new pair denies that pair. That keeps organizations that are fail-closed today fail-closed for the new operations.
 - A version default still cannot be saved until the published policy has a live decision for every active catalog pair, including the new ones.
-- Smart fill may propose a cell. It does not write the catalog and it does not write a default. For a money or payment operation the proposal is `DENY` until Headquarters chooses otherwise.
+- Smart fill may propose a cell. It does not write the catalog and it does not write a default. For a money or payment operation the proposal is `DENY` until HQ chooses otherwise.
 
 ### 5A.3 Writer versus catalog
 
-Seeding a code lets Headquarters decide it. It does not by itself perform the edit.
+Seeding a code lets HQ decide it. It does not by itself perform the edit.
 
 | Writer state | Runtime |
 |---|---|
@@ -291,7 +477,7 @@ The preference kind travels in the payload as `preference_sys_kind`. It is not a
 | Color | `color` |
 | Preference note | `note` |
 
-`condition_damag` is the stored spelling. A policy cell does not get one row per kind. Headquarters allows or denies `ADD_PREFERENCE` on item or piece, and that decision covers packing, stain, damage, color, condition, and note together.
+`condition_damag` is the stored spelling. A policy cell does not get one row per kind. HQ allows or denies `ADD_PREFERENCE` on item or piece, and that decision covers packing, stain, damage, color, condition, and note together.
 
 Columns such as `packing_pref_code`, piece `color`, and free-text piece or item `notes` are denormalized copies. The edit writes the preference row. It does not also emit `CHANGE_ITEM_PACKING`, `CHANGE_PIECE_COLOR`, `CHANGE_ITEM_STAIN`, or `CHANGE_PIECE_CONDITION`.
 
@@ -356,12 +542,12 @@ Packing, stain, damage, color, condition, and preference notes add no pairs. `sy
 
 Existing Draft starter policies from `0597` stay as they are. They do not gain rows for the new pairs. They remain unassignable Drafts. They are not published and they are not defaults.
 
-### 5A.8 Tenant and Headquarters follow-through
+### 5A.8 Tenant and HQ follow-through
 
 - `ORDER_CHANGE_OPERATION_CODES` gains every code in section 5A.5, including `CHANGE_UNLISTED` which is already in that list.
 - The request schema accepts a new code only when its writer is shipped, or accepts it and Apply returns `OPERATION_NOT_AVAILABLE` before any write. Accept-and-reject is the required behavior so a forged body cannot take the old allow path.
-- `edit-policy-info` and the Headquarters matrix load pairs from the catalog API. They do not keep a handwritten list of 13 codes as the source of the matrix.
-- English and Arabic labels for the new codes go in the tenant `policyInfo.operations` object and in the Headquarters `editPolicy` messages. The database `name` / `name2` remain the source for Headquarters when the screen can read them.
+- `edit-policy-info` and the HQ matrix load pairs from the catalog API. They do not keep a handwritten list of 13 codes as the source of the matrix.
+- English and Arabic labels for the new codes go in the tenant `policyInfo.operations` object and in the HQ `editPolicy` messages. The database `name` / `name2` remain the source for HQ when the screen can read them.
 - `order-change-capability.service.ts` deletes the `CHANGE_UNLISTED` allow-without-a-rule branch.
 - Tests that expect `CHANGE_UNLISTED` to allow with `NOT_IN_POLICY` are updated to expect deny when no rule exists, and allow only when a live rule says allow.
 
@@ -731,7 +917,7 @@ Replace `org_wf_edit_asg_guard` in this migration.
 | A version id | Historical "authored while editing that version" note. The resolver ignores it |
 | NULL | Policy was created as a reusable catalog row |
 
-Existing rows keep their current version id. New Headquarters creates may omit it. Clone copies the rules and leaves the new header's version null. Clone does not make the new policy the default or an override.
+Existing rows keep their current version id. New HQ creates may omit it. Clone copies the rules and leaves the new header's version null. Clone does not make the new policy the default or an override.
 
 `policy_code` stays immutable and globally unique. Names stay bilingual and required.
 
@@ -770,7 +956,7 @@ Replace the function body from `0606` with `CREATE OR REPLACE` in this migration
 | `workflow_profile_version_id` | `UUID NOT NULL` | FK `sys_wf_profile_ver_mst.version_id` `ON DELETE RESTRICT` |
 | `edit_policy_id` | `UUID NOT NULL` | FK `sys_wf_edit_policy_mst.id` `ON DELETE RESTRICT` |
 | `created_at` | `TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP` | |
-| `created_by` | `UUID` | Headquarters actor |
+| `created_by` | `UUID` | HQ actor |
 | `created_info` | `TEXT` | Non-secret provenance |
 | `updated_at` | `TIMESTAMPTZ` | |
 | `updated_by` | `UUID` | |
@@ -811,7 +997,7 @@ Satisfied set: live rules on that policy whose `workflow_status` equals the stat
 
 The helper returns the missing triples. An empty result means coverage is complete. Zero active statuses on the version is a failure of its own, signaled by the guard as `profile version has no active statuses`, not as an empty success.
 
-The Headquarters API calls this helper to render the gap list. The trigger calls it and raises if any row comes back.
+The HQ API calls this helper to render the gap list. The trigger calls it and raises if any row comes back.
 
 ### 6.11 Resolver function
 
@@ -881,7 +1067,7 @@ For each live assignment:
 5. Append `backfill_version_id=<old version uuid>` to `created_info` without erasing the existing provenance text.
 6. Then null `workflow_profile_version_id`.
 
-Do not create organization-scope rows. Do not insert defaults. Do not publish the Draft starter policies from `0597`. An organization that has no live assignment today stays denied until Headquarters later publishes a default or creates an override.
+Do not create organization-scope rows. Do not insert defaults. Do not publish the Draft starter policies from `0597`. An organization that has no live assignment today stays denied until HQ later publishes a default or creates an override.
 
 Inactive assignment rows are left unchanged except `scope` must be filled to satisfy `NOT NULL`. Inactive rows with a resolvable version become `PROFILE` and are not made active. Inactive rows whose version cannot be resolved become `ORGANIZATION` with `gap_acknowledged = false` and stay inactive, so the check constraint's live-row clause does not apply. Record the count of that fallback in the migration comment. Prefer raising if any inactive row cannot resolve, rather than inventing an organization override. Raising is the required behavior when the version join fails for an inactive row too. The operator repairs or the migration skips none of them silently.
 
@@ -895,7 +1081,11 @@ The new migration issues `COMMENT ON` for the changed meaning of:
 
 ### 6.15 After the user applies the migration
 
-From the `cleanmatex` root, the user runs `npm run prisma:pull`. From `cleanmatexsaas`, the user regenerates platform database types. The agent does not pull before the migration is applied. The tenant resolver can be written against `$queryRaw` before the Prisma model exists. Headquarters continues to use its Supabase client, not Prisma.
+From the `cleanmatex` root, the user runs `npm run prisma:pull`. From `cleanmatexsaas`, the user regenerates platform database types. The agent does not pull before the migration is applied. The tenant resolver can be written against `$queryRaw` before the Prisma model exists. HQ continues to use its Supabase client, not Prisma.
+
+### 6.16 Close Phase 1
+
+Run the tasks in "Tasks after every phase" for Phase 1. The phase stays open until the status file names the migration file and says whether the user has applied it.
 
 ## 7. Phase 2 — Tenant resolver
 
@@ -907,6 +1097,11 @@ From the `cleanmatex` root, the user runs `npm run prisma:pull`. From `cleanmate
 | `web-admin/lib/services/order-change/order-change-context.service.ts` | Pass `order.wf_profile_id` and `order.wf_profile_version_id`. Stop joining `org_wf_edit_policy_asg_cf` by version |
 | `web-admin/lib/services/order-change/order-change-capability.service.ts` | No decision-table change. A `DENY` or `STATUS_NOT_COVERED` result yields no operation binding, so catalog operations still return `CAPABILITY_POLICY_BINDING_MISSING` |
 | `web-admin/lib/services/order-change/order-change-preview-reads.ts` | No new call site. It already calls the resolver |
+| `web-admin/lib/services/order-change/order-change-preview.service.ts` | Re-resolves through that resolver. Returns the section 5C before and after objects and adds their digest to the review proof |
+| `web-admin/lib/services/order-change/order-change-apply.service.ts` | Re-resolves immediately before mutation. Writes section 5B before and after for shipped operations |
+| `web-admin/lib/services/order-change/order-change-mutation.service.ts` | Persists those before and after objects on the operation row |
+| `web-admin/src/features/orders/order-change/edit-review-dialog.tsx`, `edit-review-view.ts`, `edit-review-changes.tsx` | Keep the dialog. Show the operation name and the before and after line |
+| `web-admin/src/features/orders/order-change/edit-policy-info-dialog.tsx` | Show the winning level from the context payload |
 | `web-admin/__tests__/services/order-change/order-change-edit-policy-resolver.service.test.ts` | Cases in section 7.4 |
 
 Do not add a TypeScript fallback that re-implements the four levels. If the function is missing, the call fails closed. Do not catch that error and return an empty allow.
@@ -956,11 +1151,15 @@ Use a transaction-shaped fake that returns the function rows. Assert the mapper,
 
 Add one database integration test, beside the existing order-change DB tests, only after the user has applied the migration locally. It inserts two policies, one organization override, one profile override, and one default, then asserts cases B, C, and D from section 3.5. It deletes none of the committed proof orders already in the local database. Its own rows use a dedicated test organization if one already exists, and they are deactivated rather than deleted when the test finishes, because assignment delete is rejected by the guard.
 
-## 8. Phase 3 — Headquarters API
+### 7.5 Close Phase 2
+
+Run the tasks in "Tasks after every phase" for Phase 2.
+
+## 8. Phase 3 — HQ API
 
 Module: `platform-api/src/modules/workflow-engine-config/edit-policy/`.
 
-Files: `edit-policy.controller.ts`, `edit-policy.service.ts`, `edit-policy.repository.ts`, `edit-policy.dto.ts`, `edit-policy.types.ts`, `edit-policy.rules.ts`, and the two existing spec files.
+Files: `edit-policy.controller.ts`, `edit-policy.service.ts`, `edit-policy.repository.ts`, `edit-policy.dto.ts`, `edit-policy.types.ts`, `edit-policy.rules.ts`, `edit-policy.errors.ts`, `edit-policy.permissions.ts`, and the two existing spec files. The Studio client in `platform-web/lib/api/workflow-engine-config.ts` changes in the same phase so the screens are not left calling the old assignment body.
 
 Do not add a second Nest module. Do not re-implement the resolution order in TypeScript. Effective preview calls `sys_wf_resolve_edit_policy` through the server Supabase client.
 
@@ -984,6 +1183,8 @@ Clone no longer copies the source version onto the new header.
 Matrix save stays `PUT` with `expected_revision`. A revision mismatch stays a conflict. The save no longer calls the version-coverage check. It still rejects duplicate tuples, unknown catalog pairs, unknown or inactive statuses, and a bad override shape.
 
 Promotion to Pilot or Published no longer calls version coverage. It still rejects a policy with zero live rules.
+
+`POST /workflow-engine-config/edit-policies/:id/check` no longer loads statuses from a required header version. A reusable policy with a null authored-against version returns structural issues only, unless the query includes `workflow_profile_version_id`. With that id, check returns the missing cells for that version and does not write a default. `POST /workflow-engine-config/edit-policies/:id/simulate` stays a single-cell read of that policy. It does not call `sys_wf_resolve_edit_policy`.
 
 ### 8.3 Defaults
 
@@ -1113,7 +1314,7 @@ Response adds:
 
 The preview still does not evaluate feature flags, actor permissions, or hard domain denials. The audit row `edit_policy_effective_preview` adds `resolution_level`.
 
-Remove the repository lookup `listLiveAssignmentPolicyIds(tenant, version)` from this path so Headquarters cannot drift from the tenant.
+Remove the repository lookup `listLiveAssignmentPolicyIds(tenant, version)` from this path so HQ cannot drift from the tenant.
 
 ### 8.6 API tests
 
@@ -1129,7 +1330,11 @@ Extend `edit-policy.service.spec.ts` and `edit-policy.rules.spec.ts`.
 - Promotion with zero rules fails.
 - Promotion with a partial matrix succeeds.
 
-## 9. Phase 4 — Headquarters screens
+### 8.7 Close Phase 3
+
+Run the tasks in "Tasks after every phase" for Phase 3.
+
+## 9. Phase 4 — HQ screens
 
 Stay on the existing Workflow Profile Version Studio, Edit Policy tab:
 
@@ -1137,6 +1342,8 @@ Stay on the existing Workflow Profile Version Studio, Edit Policy tab:
 `platform-web/src/features/workflow-engine-config/ui/wf-edit-policy-matrix.tsx`
 `platform-web/src/features/workflow-engine-config/hooks/use-edit-policy.ts`
 `platform-web/src/features/workflow-engine-config/model/edit-policy-smart-fill.ts`
+`platform-web/lib/api/workflow-engine-config.ts`
+`platform-web/app/workflow-engine-config/profiles/[id]/versions/[versionNo]/studio/page.tsx` hosts the existing tab and does not gain a route.
 
 No new route. No `navigation.ts` change. No `sys_components_cd` migration.
 
@@ -1222,6 +1429,10 @@ Use Cmx buttons, selects, dialogs, and tables. Do not add a local button, input,
 
 Extend `platform-web/__tests__` only where a pure function is added. The coverage-gap disable rule, the acknowledgement flag, and the shadowed-row flag belong in a small model helper next to `edit-policy-smart-fill.ts` if the panel would otherwise hide that logic. Test that helper. Do not add a browser test in this phase.
 
+### 9.9 Close Phase 4
+
+Run the tasks in "Tasks after every phase" for Phase 4. Shared UI added in this phase is recorded in the status file with its path.
+
 ## 10. Copy
 
 Search existing keys first. Add a key only when none of these meanings already exists.
@@ -1274,7 +1485,9 @@ Do not claim a clean full-project typecheck if the known unrelated web-admin err
 
 ### 11.3 Docs after implementation
 
-- `cleanmatexsaas/docs/features/Order_Edit_V2/WP05-B_HQ_PROGRESS.md`: add a pointer that resolution now follows this plan, with the migration filename once it exists.
+- Run the tasks in "Tasks after every phase" for Phase 5 after the manual check.
+- Then run "Final task — generate the extension docs". Load the documentation skills named there and generate or update the docs this extension needs. This task is last. It is not a substitute for the doc refresh at the end of Phases 1 through 4.
+- `cleanmatexsaas/docs/features/Order_Edit_V2/WP05-B_HQ_PROGRESS.md`: keep the pointer to this file and add the migration filename once it exists. Do not copy this plan into that file.
 - This file's status line moves from "Plan only" to the phase that is done. Do not mark a phase done because the code compiled. Mark it done when its tests passed and the user has applied the migration for any phase that needs the new objects.
 - Do not rewrite historical WP reports, the manual UI test guide's existing result rows, or tester evidence.
 
@@ -1288,11 +1501,11 @@ Use an organization that already has a workflow profile. Do not create a product
 4. Change nothing in the default. Confirm the organization override still wins.
 5. Deactivate the organization override. Reload. The version default wins again.
 6. Add a profile override for the order's profile. Reload. The profile override wins over the default.
-7. Headquarters preview for the same organization, profile, version, status, and operation shows the same level and the same decision as the tenant panel.
+7. HQ preview for the same organization, profile, version, status, and operation shows the same level and the same decision as the tenant panel.
 
 ## 12. Audit
 
-Every mutating Headquarters action already writes an audit row. This plan adds or extends:
+Every mutating HQ action already writes an audit row. This plan adds or extends:
 
 | Action | Metadata |
 |---|---|
@@ -1342,7 +1555,7 @@ Apply does not migrate an open review onto a new policy. The operator runs Previ
 
 - The browser never receives a grant on the policy, rule, default, or assignment tables.
 - The resolver is `SECURITY INVOKER` and takes `tenant_org_id` as an argument. Tenant code passes the order's organization, not a body field.
-- Headquarters uses the service role only on the server. Preview and assignment still require `workflows.view` or `workflows.edit_policy_assign`.
+- HQ uses the service role only on the server. Preview and assignment still require `workflows.view` or `workflows.edit_policy_assign`.
 - Assignment and default identity are immutable. History is deactivated, not deleted.
 - A default cannot be a pilot policy, so a partially reviewed matrix cannot become the floor for every organization on that version.
 - An organization override cannot be saved by accident. The acknowledgement flag is a column, checked by the database, not only by the screen.
@@ -1353,10 +1566,10 @@ Apply does not migrate an open review onto a new policy. The operator runs Previ
 1. Confirm this plan.
 2. Write the migration and stop. The user reviews it.
 3. The user applies it locally. If the collision preflight raises, the user deactivates the extra assignment and applies again.
-4. Regenerate Prisma and Headquarters types.
+4. Regenerate Prisma and HQ types.
 5. Ship the tenant resolver and its tests before the new Studio actions. Backfilled profile overrides keep the current organization behavior for the profile they already used.
-6. Ship the Headquarters API and screens.
-7. Headquarters publishes a strict default per profile version when the matrix is complete. This plan does not seed that default.
+6. Ship the HQ API and screens.
+7. HQ publishes a strict default per profile version when the matrix is complete. This plan does not seed that default.
 8. Run the manual check in section 11.4.
 9. Deploy only when the user asks. Local code does not change `cmx.cleanmatex.com` or `hqsaas.cleanmatex.com` by itself.
 
@@ -1386,7 +1599,7 @@ Phase 3 is accepted when the API tests pass and the service build passes.
 
 Phase 4 is accepted when the Studio build and the touched-file lint pass, both languages contain the new keys, and the five sections render the states in section 9.7.
 
-Phase 5 is accepted when the manual check in section 11.4 matches Headquarters preview, and the docs pointer is updated.
+Phase 5 is accepted when every row in "Edit Policy extension across both repositories" is updated or recorded as verified and unchanged, and the manual check in section 11.4 shows the same Edit Policy level and the same decision in both running apps. Acceptance of this plan does not move an Order Change work package.
 
 ## 18. Risks
 
@@ -1397,7 +1610,7 @@ Phase 5 is accepted when the manual check in section 11.4 matches Headquarters p
 | A later profile version adds a status | Runtime denies that status. Preview lists it. Publishing the workflow version is not blocked |
 | A reusable policy is published with a partial matrix | Allowed. It cannot become a default until coverage is complete |
 | Inactive assignment whose version was removed | Migration raises instead of inventing a scope |
-| Tenant and Headquarters drift | Both call `sys_wf_resolve_edit_policy` |
+| Tenant and HQ drift | Both call `sys_wf_resolve_edit_policy` |
 | A new catalog code is allowed by a cell before its writer exists | Apply returns `OPERATION_NOT_AVAILABLE` and the control stays closed |
 | Existing policies have no cell for the new pairs | Missing cell denies. No `ALLOW` backfill |
 | Open reviews after a default revision | Existing `POLICY_CHANGED_REVIEW_REQUIRED` |
@@ -1408,3 +1621,5 @@ Item money precision, the 300-second review lifetime, direct table grants, and t
 ## 19. Implementation gate
 
 Implementation starts at Phase 1 only after this plan is confirmed. The agent writes the migration and stops for review. The agent does not apply it. Later phases start only after the previous phase is in place.
+
+Every phase follows the rules at the top of this plan: existing code, complete areas, `CLAUDE.md` and its skills, separation of concerns, and reusable UI. When existing code is better, improve that code or keep it, update this plan, and record the choice in `Extend_Order_Edit_policy_STATUS.md`. A feature is not done until every required area is covered in each repository that feature needs. Close each phase with "Tasks after every phase". After Phase 5, run "Final task — generate the extension docs".

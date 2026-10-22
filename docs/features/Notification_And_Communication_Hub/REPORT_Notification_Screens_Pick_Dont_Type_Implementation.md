@@ -200,3 +200,120 @@ Tenant repo:
 
 Other findings: #2 sender capabilities JSON validated live (inline error, Save disabled). #7 CmxFieldLabel and CmxDataTable header text always contain " - ["; Operations "Organization id" → "Organization ID". #8 Tenant Config headers: status → "Active", channelEnabled → "Channel enabled" (EN/AR). #9 organization search keeps previous results while loading (keepPreviousData); the input was never disabled; debounce 300 ms, the rest is API time. #10 shell search wrapper self-start (icon inside the input); analytics toolbar items-start and tenant picker w-full sm:w-80; column names no longer split mid-token. Quota "Reason" clipping is the pinned Actions column over a scrolled table (scroll reveals it): left as is. #11 intended (operations DTO scopes). #12 the 401 on /auth/me is the expired-access-token probe; the API client refreshes and retries: harmless.
 Tests: web 15 suites / 144 passed (new: 7 connections cases, cmx-field-label); API quota/provider-accounts 7 suites / 67 passed (new: reactivation, secret patterns). Note: another session was editing many of the same notifications-hq files at the same time; only the files above were changed in this round.
+
+## 19. Missed fields (2026-10-22)
+Found after round 1: typed lookups the audit missed. A platform-web-wide sweep followed (every `<CmxInput>`/`<input>`/`<textarea>` whose value, id, name or placeholder names an id/code, plus UUID placeholders in en.json).
+
+Fixed in notifications-hq:
+| Screen | Field | Was | Now |
+|---|---|---|---|
+| Quota > Tenant position (`quota-position-panel.tsx`) | Organization - [tenant_org_id] | UUID text box (placeholder 00000000-…) + "Show position" | NtfTenantPicker (search + `name · id`); the position loads as soon as an organization is picked (no button: the pick is the intent; Retry stays on errors). Label "Organization" / "المنشأة". |
+| Pricing > Add (`pricing-screen.tsx`) | Currency - [currency_code] | text box (upper-cased) | CmxSelect from sys_currency_cd (`code · name`); an edited row keeps its own code even if inactive. |
+| Templates > Create (`templates-screen.tsx`) | Event code - [event_code] | text box | CmxSelect from sys_ntf_events_cd (`code · name`, FK target); Create disabled until an event is picked. |
+
+API (platform-api `notifications-hq/provider-accounts`): new read-only `GET /notifications/events` and `GET /notifications/currencies` (`ntf-catalog-lookups.controller.ts`, guard JwtAuthGuard + HqPermissionGuard, `hq_notifications:read`, so pricing operators do not also need `currencies.view`). Both added to the controller-guards spec.
+
+Fixed outside notifications-hq (same picker, simple swaps):
+| File | Field | Now |
+|---|---|---|
+| `src/features/ops-operations/ui/ops-operation-param-form.tsx` | Operations Catalog params `tenant_org_id` (uuid, 6 remote operations) and `channel_code` (text, 2 operations) | NtfTenantPicker and the channel catalog select; every param label is now "Label - [param name]" (CmxFieldLabel). |
+| `src/features/erp-lite-governance/ui/posting-simulation-screen.tsx` | Tenant org (placeholder 00000000-…) | NtfTenantPicker, label "Organization - [tenant_org_id]", Validate disabled until picked. |
+| `src/features/erp-lite-governance/ui/template-detail-page.tsx` (assignment row) | "Tenant org id" | NtfTenantPicker |
+| `src/features/erp-lite-governance/ui/template-studio-workspace.tsx` (assignment row) | "Tenant org id" | NtfTenantPicker |
+
+Not changed (listed for owners; each needs its own lookup source, so not a simple picker swap). Line numbers as of this round:
+- ERP-Lite: `posting-simulation-screen.tsx:97` source event code; `template-detail-page.tsx:449,455,500,869,875,1009,1015` and `template-studio-workspace.tsx:262,272,487,497,559,1078,1089,1222,1233` country / plan / account / operational / target account codes; phase codes `governance-packages-workspace.tsx:178,388`, `package-detail-page.tsx:665`, `packages-list-page.tsx:220`, `templates-list-page.tsx:167`, `template-studio-workspace.tsx:233`, `catalog/events-screen.tsx:80`, `catalog/resolvers-screen.tsx:89`, `catalog/usage-codes-screen.tsx:122`; `governance-packages-workspace.tsx:641` and `package-detail-page.tsx:1662` failure action; `package-detail-page.tsx:1191,1210,1229,1257` amount source / line type / usage code id / resolver id (verify: may be read-only); `catalog/account-group-form-fields.tsx:192` report role code.
+- Billing: `app/billing/plans/[id]/page.tsx:302` currency; `app/billing/subscriptions/new/page.tsx:204,214` and `src/features/tenants/ui/steps/subscription-step.tsx:200,214` discount code / payment method id.
+- Catalog: `app/catalog/items/[code]/edit/page.tsx:183`, `app/catalog/templates/[itemCode]/[serviceCategoryCode]/edit/page.tsx:274` item type code.
+- System codes: `app/system-codes/payment-setup/payment-methods/new/page.tsx:112`, `.../[code]/page.tsx:269,277,354` gateway / replacement / settlement type; `app/system-codes/settlement/overpayment-resolutions/[code]/page.tsx:240` permission code.
+- Workflow engine: permission / gate set / order source codes in `app/workflow-engine-config/actions/new/page.tsx:81`, `actions/[code]/edit/page.tsx:96`, `initial-rules/new/page.tsx:83`, `initial-rules/[code]/edit/page.tsx:100`, `transitions/new/page.tsx:81,85`, `transitions/[code]/edit/page.tsx:98,102`, `src/features/workflow-engine-config/ui/wf-edit-policy-matrix.tsx:219,228`, `wf-semantic-executions-editor.tsx:471`, `wf-tenant-scope-fields.tsx:50` (another session is editing workflow-engine-config: left alone).
+- Other: `components/settings/NavigationItemForm.tsx:217` main permission code; `src/features/tenants/ui/tenant-user-roles/resource-scope-picker.tsx:107` resource id; `src/features/currency-setup/ui/currency-table.tsx:210,211` country / region filters.
+- Kept typed on purpose: new identity codes on create (template_code, plan_code, role/permission codes, ERP-Lite catalog codes, setting codes), provider external ids (Twilio Content SID, external account/sender ids), recipients, free-text searches.
+
+Tests: `quota-position-panel.test.tsx` rewritten (picker, no load before a pick, auto-load, retry); new `catalog-code-pickers.test.tsx` (currency, event + Create gate); `ops-operations-screen.test.tsx` (+1 case; the typed "not-a-uuid" step removed: the picker cannot produce it, `ops-params.test.ts` still covers uuid validation); new `__tests__/features/erp-lite-governance/posting-simulation-tenant-picker.test.tsx`; API `catalog-lookups.spec.ts` + guards spec rows. Unused keys left in place: `quota.position.tenantPlaceholder`, `invalidTenant`, `load`.
+
+
+## 20. Shared organization picker and the §19 fields (2026-10-22, uncommitted, no migration)
+
+### 20.1 What moved
+- `NtfTenantPicker` (notifications-hq) is now the shared **`CmxTenantPicker`** in `platform-web/src/ui/forms/cmx-tenant-picker.tsx`, built on the new shared **`CmxSearchableSelect`** (`src/ui/forms/cmx-searchable-select.tsx`). The search hook moved to `src/ui/forms/use-cmx-tenant-options.ts` (`useCmxTenantOptions`, `CMX_TENANT_OPTIONS_LIMIT` = 50).
+- Chain: `CmxTenantPicker` -> `useCmxTenantOptions` (300 ms debounce) -> `tenantsApi.list` -> `GET /tenants` (HQ session only) -> `org_tenants_mst`. Shows `name · id` (Arabic name in Arabic), marks inactive, keeps a saved id visible, saves the exact `tenant_org_id`.
+- Old files kept as thin re-exports with a full `@deprecated` note: `src/features/notifications-hq/ui/ntf-tenant-picker.tsx` and `hooks/use-ntf-tenant-options.ts` (`useNtfTenantLabel` still lives there).
+- All imports switched to `@ui/forms` (no cross-feature imports left): notifications-hq broadcast-center, notifications-audit, observability-dashboard, operations, quota-position-panel, quota, template-preview-dialog, tenant-config screens; `ops-operations/ui/ops-operation-param-form.tsx`; ERP-Lite posting-simulation-screen, template-detail-page, template-studio-workspace.
+- i18n: `common.lov.*` (search, searchPlaceholder, placeholder, loading, empty, error, inactive, none, any, default) and `common.tenantPicker.*`. `notificationsHq.tenantPicker.*` is now unused and left in place.
+
+### 20.2 New shared LOVs (src/ui/forms, all exported from `@ui/forms`)
+| Component | Saves | Source |
+|---|---|---|
+| `CmxSearchableSelect` | exact value | generic; search box when > 10 options (client) or server search |
+| `CmxCodeTableSelect` | code | `GET /codes/:tableName` (registered code tables, e.g. sys_country_cd, sys_currency_cd) |
+| `CmxPlanSelect` | plan_code | `GET /billing/plans` -> sys_pln_subscription_plans_mst |
+| `CmxTenantPermissionSelect` | permission code | `GET /tenant-api/permissions` -> sys_auth_permissions |
+| `CmxDiscountCodeSelect` | discount code | **new** `GET /billing/lookups/discount-codes` -> sys_bill_discount_codes_mst |
+| `CmxTenantPaymentMethodSelect` | payment method id | **new** `GET /billing/lookups/tenants/:tenantOrgId/payment-methods` -> sys_bill_payment_methods_mst |
+
+Feature-level LOVs (only one feature uses them): `erp-lite-governance/ui/erp-lite-lov.tsx` (`ErpCatalogSelect`, `useErpEnumOptions`, `erpPhaseOptions`), `payment-setup/ui/payment-setup-lov.tsx` (`PaymentGatewaySelect`, `PaymentMethodCodeSelect`, `SettlementTypeSelect`), `catalog/ui/catalog-item-type-select.tsx` (`CatalogItemTypeSelect`).
+
+### 20.3 Fields converted (every label reads "Label - [db_column]")
+| Area | Screen / file | Field | Source |
+|---|---|---|---|
+| ERP-Lite | posting-simulation-screen | source_event_code | ERP-Lite events catalog (evt_code); Run blocked until picked |
+| ERP-Lite | template-detail-page, template-studio-workspace | country_code | sys_country_cd ("Any country") |
+| ERP-Lite | template-detail-page, template-studio-workspace | plan_code | CmxPlanSelect ("Any plan") |
+| ERP-Lite | template-detail-page, template-studio-workspace | target account_code | postable COA lines of the template |
+| ERP-Lite | template-studio (new), templates-list, packages-list, governance-packages-workspace (new/edit), package-detail, catalog events / resolvers / usage-codes | phase_code / phase_scope_code | DB CHECK V1/V2/V3 (+ALL for scope) |
+| ERP-Lite | governance-packages-workspace, package-detail | failure_action_code | DB CHECK BLOCK_TXN / FINANCE_EXCEPTION |
+| ERP-Lite | package-detail rule lines | entry_side, line_type_code | DB CHECK DR/CR; MAIN/VAT/ADJUSTMENT |
+| ERP-Lite | package-detail rule lines | usage_code_id, resolver_id | usage-codes / resolvers catalogs (one of the two, as the CHECK requires) |
+| ERP-Lite | catalog/account-group-form-fields | stmt_section | DB CHECK ASSETS..EXPENSES (the old "CURRENT" placeholder was not a valid value) |
+| Billing | app/billing/plans/[id] (Add price) | currency_code | sys_currency_cd |
+| Billing | app/billing/subscriptions/new | tenant_org_id | CmxTenantPicker (was a `<select>` of the first 100 tenants) |
+| Billing | app/billing/subscriptions/new | discount_code | new discount-codes lookup |
+| Billing | app/billing/subscriptions/new | payment_method_id | new tenant payment-methods lookup; resets when the organization changes |
+| Billing | tenants wizard subscription-step | discount_code | new discount-codes lookup |
+| Catalog | app/catalog/items/[code]/edit, app/catalog/templates/.../edit | item_type_code | `GET /catalog/item-types` -> sys_item_type_cd |
+| System codes | payment-methods/new, payment-methods/[code] | gateway_code | `GET /hq/v1/payment-setup/payment-gateways` -> sys_payment_gateway_cd |
+| System codes | payment-methods/[code] | replacement_code | `GET /hq/v1/payment-setup/payment-methods` (itself left out) |
+| System codes | payment-methods/[code] | settlement_type_code | DB CHECK (migration 0291), 4 values |
+| System codes | overpayment-resolutions/[code] | permission_code | CmxTenantPermissionSelect |
+| Navigation | components/settings/NavigationItemForm | main_permission_code | CmxTenantPermissionSelect ("No permission (always visible)") |
+| Currency setup | currency-table filter | country_code | sys_country_cd ("All") |
+
+### 20.4 Fields skipped, and why
+- **Workflow engine (all §19 rows):** another session has uncommitted work in `src/features/workflow-engine-config` (`model/edit-policy-smart-fill.ts` modified, not committed). Left alone as instructed.
+- Tenants wizard **payment_method_id**: a new organization cannot have saved payment methods yet, so there is nothing to pick. Recommendation: remove the field from the wizard.
+- Currency-table **region** filter: no region lookup table exists.
+- `resource-scope-picker` resource id: already a catalog picker for types that have a catalog; the typed UUID is only the fallback for types without a tenant catalog endpoint.
+- Kept typed on purpose: COA "Account code" (new line identity), operational default "Operational code" (per-template identity, no lookup), `amount_source_code` (free varchar, no lookup), `report_role_code` (no constraint or lookup).
+- Not in §19 but noticed: `payment-setup/ui/payment-method-form-drawer.tsx` still types replacementCode (gateway is already a pick list there). Small follow-up.
+
+### 20.5 Endpoints
+- New, read-only: `GET /billing/lookups/discount-codes` and `GET /billing/lookups/tenants/:tenantOrgId/payment-methods` (`platform-api/src/modules/billing/billing-lookups.controller.ts`, `services/billing-lookups.service.ts`; JwtAuthGuard + HqPermissionGuard, `@RequireHqPermission('billing.view')`; ParseUUIDPipe on the id; payment methods return non-secret columns only). Registered in `billing.module.ts`. Web client `billingApi.lookups` in `platform-web/lib/api/billing.ts`.
+- Reused: `/codes/:tableName`, `/billing/plans`, `/tenant-api/permissions`, `/catalog/item-types`, `/hq/v1/payment-setup/*`, ERP-Lite catalog endpoints, `GET /tenants`.
+- **Migrations: none.** Next free number stays 0637.
+
+### 20.6 Changed files
+- New (platform-web): `src/ui/forms/cmx-searchable-select.tsx`, `cmx-tenant-picker.tsx`, `use-cmx-tenant-options.ts`, `cmx-code-table-select.tsx`, `cmx-plan-select.tsx`, `cmx-tenant-permission-select.tsx`, `cmx-billing-lov.tsx`; `src/features/erp-lite-governance/ui/erp-lite-lov.tsx`; `src/features/payment-setup/ui/payment-setup-lov.tsx`; `src/features/catalog/ui/catalog-item-type-select.tsx`.
+- New (platform-api): `src/modules/billing/billing-lookups.controller.ts`, `src/modules/billing/services/billing-lookups.service.ts`, `src/modules/billing/__tests__/billing-lookups.spec.ts`.
+- Edited (platform-web): `src/ui/forms/index.ts`; `messages/en.json`, `messages/ar.json`; `lib/api/billing.ts`; the two deprecated notifications-hq files; the 12 import-swap files in 20.1; ERP-Lite posting-simulation-screen, template-detail-page, template-studio-workspace, templates-list-page, packages-list-page, governance-packages-workspace, package-detail-page, catalog/events-screen, catalog/resolvers-screen, catalog/usage-codes-screen, catalog/account-group-form-fields; `app/billing/plans/[id]/page.tsx`; `app/billing/subscriptions/new/page.tsx`; `src/features/tenants/ui/steps/subscription-step.tsx`; `app/catalog/items/[code]/edit/page.tsx`; `app/catalog/templates/[itemCode]/[serviceCategoryCode]/edit/page.tsx`; `app/system-codes/payment-setup/payment-methods/new/page.tsx`, `.../[code]/page.tsx`; `app/system-codes/settlement/overpayment-resolutions/[code]/page.tsx`; `components/settings/NavigationItemForm.tsx`; `src/features/currency-setup/ui/currency-table.tsx`.
+- Edited (platform-api): `src/modules/billing/billing.module.ts`.
+- Tests: new `__tests__/ui/forms/cmx-searchable-select.test.tsx`, `cmx-tenant-picker.test.tsx`, `pick-dont-type-lovs.test.tsx`; rewritten `__tests__/features/erp-lite-governance/posting-simulation-tenant-picker.test.tsx` (organization and event both picked; no submit without an event) and `__tests__/features/notifications-hq/ntf-tenant-picker.test.tsx` (re-export identity); mocks switched to `@/src/ui/forms/use-cmx-tenant-options` in 9 notifications-hq / ops suites.
+
+### 20.7 Checks (2026-10-22)
+- platform-web `tsc --noEmit`: 0 errors. platform-api `tsc --noEmit`: 63 errors = the pre-existing baseline (none in billing).
+- Jest web: 25 suites / 204 tests pass (notifications-hq, erp-lite-governance, ops-config, ops-health, ops-operations, ui/forms). Jest API: `billing-lookups.spec.ts` 3/3 pass.
+- ESLint on the 40 changed web files: 0 new errors; 3 pre-existing `no-explicit-any` errors in untouched lines (`NavigationItemForm.tsx:56`, `lib/api/billing.ts` dunning section); JSDoc warnings only.
+- i18n parity: en 5489 keys = ar 5489 keys, no key missing on either side.
+- `next build` (platform-web): compiled successfully.
+
+### 20.8 Risks
+- `billing.view` is not yet enforced anywhere else in billing. A role without it sees "could not load" in the discount / payment-method pickers (both fields are optional; HqPermissionGuard also accepts `billing.*` and `*`).
+- ERP-Lite template pages have no i18n; their new labels are English, like the rest of those pages.
+- Catalog item type: a cleared value is saved as '' exactly as before (unchanged behaviour).
+- CHECK lists (phase, failure action, line type, entry side, statement section, settlement type) are copied from the migrations; if a migration widens a CHECK, the list must be widened too.
+
+### 20.9 What is left
+- Workflow-engine fields from §19 once the other session has committed.
+- Owner decision: drop the wizard payment method field; grant `billing.view` to billing roles.
+- payment-method-form-drawer replacementCode (small follow-up).
+- Browser QA rows PDT24–PDT33 after deploy.

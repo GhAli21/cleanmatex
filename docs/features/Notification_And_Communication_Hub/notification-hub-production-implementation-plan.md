@@ -774,6 +774,8 @@ Next concrete step once A1's cutover-gate/language-signal work and A5(a)'s cron 
 
 **Not verified here:** no browser click-through of the new/changed screens; `platform-web` `npm run build` not rerun after the 2026-10-17 changes; private-route display lookups are only mock-tested.
 
+**Step-by-step guide for all of the above:** [OWNER_REMAINING_WORK_GUIDE.md](./OWNER_REMAINING_WORK_GUIDE.md).
+
 **Closing the plans:** mark them closed only when O2 shows no open failure and D1–D5 are decided or explicitly parked in `Skipped_On_Purpose.md`.
 
 ## 24. Documentation deliverables and definition of done

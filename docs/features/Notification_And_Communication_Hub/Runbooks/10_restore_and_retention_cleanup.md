@@ -67,6 +67,9 @@ Nothing in this procedure changes data except the manual `FAILED_PERMANENT` mark
 
 ### Known data finding (2026-10-15, live database)
 Two `WHATSAPP` rows of the demo tenant have been `PROCESSING` for more than 30 days with **no claim token and no lease** (created before the claim/lease model, migration 0564). No sweep or reconciliation selects them, so they never finish. Because they are demo rows no customer is affected, but the owner should resolve them once (this runbook does not change data on its own):
+To Query those : 
+`Select * from org_ntf_outbox_dtl where status = 'PROCESSING' and lease_expires_at is null and updated_at < now() - interval '7 days' and tenant_org_id = '<tenant id>'; `
+To Fix them:
 `update org_ntf_outbox_dtl set status = 'FAILED_PERMANENT', error_message = 'RECONCILIATION_REQUIRED: legacy row without lease, closed manually', finalized_at = now(), updated_at = now() where status = 'PROCESSING' and lease_expires_at is null and updated_at < now() - interval '7 days' and tenant_org_id = '<tenant id>';`
 (run per tenant; the explicit tenant filter is mandatory).
 

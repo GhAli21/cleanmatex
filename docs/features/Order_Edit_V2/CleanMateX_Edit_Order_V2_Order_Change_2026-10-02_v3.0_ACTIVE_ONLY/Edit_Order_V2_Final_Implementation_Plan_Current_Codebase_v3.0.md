@@ -9,6 +9,8 @@
 
 This file is the **single living implementation plan and progress ledger** for Edit Order V2.
 
+`Extend_Order_Edit_policy_Plan.md` is an additional plan in this pack for the Edit Policy resolution extension. Its progress file is `Extend_Order_Edit_policy_STATUS.md`. That plan changes the resolver, order context, capability, Preview, the Apply writer’s before and after values, the review screen, the operation catalog, and HQ authoring. This ledger keeps the WP01–WP20 numbers. When a phase of that plan changes a package, update that package’s row here. The extension does not add a WP21 and does not move WP18, WP19, or WP20. It is plan only until its status file says a phase is done.
+
 Use the following authority order:
 
 1. `CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Full_Architecture.md`
@@ -240,6 +242,7 @@ This ledger is the plan status authority. The inherited `WP01_Protection_Progres
 | WP17 committed writers | CLOSED — column guard postponed | Route closure, structural Apply, processing echo check, order lock, and applied `0627` are in [WP17 report](WP17_Committed_Writer_Closure_v3.0.md). The direct-grant trigger is postponed in [WP17 postponed](WP17_Postponed_Committed_Column_Guard_v3.0.md). |
 | WP18 release proof | PARTIAL | Local Postgres proved OC-CON-001, 002, 003, 004, 007 and OC-SEC-001, 002. Apply now rejects a workflow version that moved after Review, and a missing target is rejected before any Change row. Playwright, payment/split races, direct-grant denial, and backfill remain open. See [WP18 report](WP18_Release_Proof_v3.0.md). |
 | WP19–WP20 | NOT STARTED | WP19 needs this partial proof plus an operator cohort. WP20 waits for a closed rollback window. |
+| Edit Policy resolution extension | NOT STARTED | Additional plan [Extend Order Edit Policy](Extend_Order_Edit_policy_Plan.md). It changes the resolver, Preview, the Apply writer, the review screen, the operation catalog, and HQ authoring, and it records those changes on the WP05, WP10, WP11, WP12, WP14, WP15, and WP17 rows as each phase lands. Progress: [extension status](Extend_Order_Edit_policy_STATUS.md). |
 
 **Inherited v3.0/Codex change record (preserved evidence):** Audited/froze the existing codebase report; retained approved architecture and 20-package sequence; clarified split-safe history references and evidence limits; added mandatory instruction/reuse/agent/status/documentation tasks and production acceptance gates. No production behavior or schema changed by freeze.
 

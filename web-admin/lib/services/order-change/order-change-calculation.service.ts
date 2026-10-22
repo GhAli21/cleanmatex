@@ -9,9 +9,13 @@
  * once and are not treated as taxable.
  */
 
+import { createHash } from 'node:crypto';
 import { roundMoneyAmount } from '@/lib/money/format-money';
 import { round4 } from '@/lib/services/order-financial-aggregation';
 import { applyExclusiveTax, extractTaxFromInclusive } from '@/lib/services/tax-extraction';
+
+/** Domain for the digest Apply stores. The line list itself grows with every item. */
+const CALCULATION_FINGERPRINT_DOMAIN = 'cleanmatex.order-change.calculation-fingerprint.v1';
 const SCALE = 4;
 const SCALE_FACTOR = 10000n;
 const PRICE_PATTERN = /^(-?)(\d+)(?:\.(\d{1,4}))?$/;
@@ -105,6 +109,14 @@ function parseUnits(value: string): bigint | null {
   const sign = match[1] === '-' ? -1n : 1n;
   const fraction = (match[3] ?? '').padEnd(SCALE, '0');
   return sign * (BigInt(match[2]) * SCALE_FACTOR + BigInt(fraction));
+}
+
+/**
+ * Compact identity of a reviewed calculation. Apply echoes this value, so it
+ * stays inside the 256-character request limit no matter how many lines the order has.
+ */
+export function digestOrderChangeCalculationFingerprint(fingerprint: string): string {
+  return createHash('sha256').update(`${CALCULATION_FINGERPRINT_DOMAIN}.${fingerprint}`).digest('hex');
 }
 
 function formatUnits(units: bigint, places = SCALE): string {

@@ -4,7 +4,8 @@
  * transaction, write a Change, or redeem a promotion.
  */
 
-import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
+import { createHash } from 'node:crypto';
+import { ORDER_CHANGE_LIMITS, type OrderChangeOperationCode } from '@/lib/constants/order-change';
 import type { OrderChangeContext } from '@/lib/types/order-change';
 import type { z } from 'zod';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
@@ -28,6 +29,7 @@ import {
 } from '@/lib/services/order-change/order-change-preference-projection';
 import {
   calculateOrderChangeTotals,
+  digestOrderChangeCalculationFingerprint,
   reviewedItemTotal,
   type OrderChangePriceQuote,
   type OrderChangeTaxMode,
@@ -41,6 +43,12 @@ import { buildPreviewOperationAudits, type OrderChangeOperationAudit, type Order
 
 type ChangeRequest = z.infer<typeof orderChangeRequestSchema>;
 type ChangeOperation = ChangeRequest['operations'][number];
+
+/** Payment rows are bound as a digest so a long settlement history cannot overflow the review proof. */
+function digestSettlementSource(payments: readonly AggregationPaymentRow[]): string {
+  const raw = payments.map((row) => `${row.payment_status ?? ''}:${String(row.amount)}`).join('|');
+  return createHash('sha256').update(`cleanmatex.order-change.settlement-fingerprint.v1.${raw}`).digest('hex');
+}
 
 export interface OrderChangePreviewSuccess {
   ok: true;
@@ -406,6 +414,7 @@ export async function previewOrderChange(input: {
     orderSpeedAddend: speedAmount,
   });
   if (!calculated.ok) return { ok: false, status: 422, code: calculated.issue.code };
+  const calculationFingerprint = digestOrderChangeCalculationFingerprint(calculated.fingerprint);
 
   const financial = projectOrderChangeFinancialResult({
     projectedTotal: calculated.totalAmount,
@@ -429,13 +438,17 @@ export async function previewOrderChange(input: {
       gateDecisions: input.request.gateDecisions ?? [],
       policyIdentity: policy,
       policyFacts: decisions,
-      calculationFingerprint: calculated.fingerprint,
-      settlementSourceFingerprint: input.payments.map((row) => `${row.payment_status}:${String(row.amount)}`).join('|'),
+      calculationFingerprint,
+      settlementSourceFingerprint: digestSettlementSource(input.payments),
     }
     : null;
-  const reviewProof = !reasonMissing && !acknowledgementMissing && !financiallyBlocked && input.proofKey && reviewBinding
+  const issuedProof = !reasonMissing && !acknowledgementMissing && !financiallyBlocked && input.proofKey && reviewBinding
     ? issueOrderChangeReviewProof({ now: input.now, key: input.proofKey, binding: reviewBinding })
     : null;
+  if (issuedProof && issuedProof.length > ORDER_CHANGE_LIMITS.MAX_REVIEW_PROOF_LENGTH) {
+    return { ok: false, status: 422, code: 'REVIEW_PROOF_TOO_LARGE' };
+  }
+  const reviewProof = issuedProof;
   const speedAudit = buildSpeedAudit({
     speedChanged,
     serviceSpeed: input.context.order.serviceSpeed,
@@ -464,7 +477,7 @@ export async function previewOrderChange(input: {
             : 'SIGNER_UNAVAILABLE',
     createsChange: true,
     decisions,
-    calculationFingerprint: calculated.fingerprint,
+    calculationFingerprint,
     reviewProof,
     reviewBinding,
     financial,

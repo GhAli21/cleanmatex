@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
+import { ORDER_CHANGE_LIMITS, type OrderChangeOperationCode } from '@/lib/constants/order-change';
 import type { OrderChangeContext } from '@/lib/types/order-change';
 import type { OrderChangeCapabilityBinding } from '@/lib/services/order-change/order-change-capability.service';
 import { previewOrderChange } from '@/lib/services/order-change/order-change-preview.service';
@@ -93,6 +93,7 @@ function preview(input: {
   quotes?: Record<string, { basePrice: string; finalPrice: string; discountPercent: string }>;
   catalog?: Array<{ id: string; code: string; kind: string; category: string; level: 'ORDER' | 'ITEM' | 'PIECE'; extraPrice: string }>;
   proofKey?: { keyId: string; secret: string } | null;
+  payments?: Array<{ amount: string; payment_status: string; payment_nature_snapshot: string; payment_method_code: string }>;
 }) {
   return previewOrderChange({
     now: NOW,
@@ -108,7 +109,7 @@ function preview(input: {
     taxMode: 'TAX_EXCLUSIVE',
     taxRatePercent: '0.0000',
     currencyDecimalPlaces: 3,
-    payments: [{ amount: '10.0000', payment_status: 'COMPLETED', payment_nature_snapshot: 'REAL_PAYMENT', payment_method_code: 'CASH' }],
+    payments: input.payments ?? [{ amount: '10.0000', payment_status: 'COMPLETED', payment_nature_snapshot: 'REAL_PAYMENT', payment_method_code: 'CASH' }],
     credits: [],
     refunds: [],
     proofKey: input.proofKey === undefined ? KEY : input.proofKey,
@@ -127,6 +128,46 @@ describe('previewOrderChange', () => {
       expect(first.projectedItemIds).toEqual([ITEM]);
       expect(first.financial?.settlementMutated).toBe(false);
     }
+  });
+
+  it('keeps Review and Apply inside the proof limit for a long item list and payment history', async () => {
+    const items = Array.from({ length: 40 }, (_, index) => ({
+      id: `55555555-5555-4555-8555-${String(index + 1).padStart(12, '0')}`,
+      orderId: ORDER,
+      productId: PRODUCT,
+      productName: `Item ${index + 1}`,
+      productName2: null,
+      serviceCategoryCode: null,
+      quantity: 1,
+      pricePerUnit: '10.0000',
+      totalPrice: '10.0000',
+      priceOverride: null,
+      preferenceCharge: '0.0000',
+      packingPreferenceCode: null,
+      active: true,
+    }));
+    const payments = Array.from({ length: 80 }, (_, index) => ({
+      amount: '0.0100',
+      payment_status: 'COMPLETED',
+      payment_nature_snapshot: 'REAL_PAYMENT',
+      payment_method_code: 'CASH',
+    }));
+    const result = await preview({
+      request: request([{ seq: 1, code: 'CHANGE_ORDER_NOTES', target: { kind: 'ORDER' }, payload: { notes: 'Updated' } }]),
+      bindings: [binding('CHANGE_ORDER_NOTES', 'ORDER')],
+      context: context({ items }),
+      payments,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.status).toBe('READY');
+    expect(result.calculationFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.reviewProof).toEqual(expect.any(String));
+    expect(result.reviewProof!.length).toBeLessThanOrEqual(ORDER_CHANGE_LIMITS.MAX_REVIEW_PROOF_LENGTH);
+    expect(result.calculationFingerprint!.length).toBeLessThanOrEqual(ORDER_CHANGE_LIMITS.MAX_CALCULATION_FINGERPRINT_LENGTH);
+    const payload = JSON.parse(Buffer.from(result.reviewProof!.split('.')[0], 'base64url').toString('utf8')) as { calculationFingerprint: string; settlementSourceFingerprint: string };
+    expect(payload.calculationFingerprint).toBe(result.calculationFingerprint);
+    expect(payload.settlementSourceFingerprint).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it('denies a policy denial without a review proof', async () => {
@@ -179,6 +220,7 @@ describe('previewOrderChange', () => {
       ok: true,
       status: 'REASON_REQUIRED',
       reviewProof: null,
+      calculationFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       originalTotal: '10.0000',
       projectedTotal: '12.0000',
       lines: [expect.objectContaining({ id: ITEM, unitPrice: '12.0000', merchandiseAmount: '12.0000' })],

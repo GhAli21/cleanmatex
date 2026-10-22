@@ -102,3 +102,12 @@ Screens: t3_jobs_p1.png, t3_jobs_p2.png
 Final state: no overrides, pauses, rules or config changes left; only the T16 draft version remains.
 
 **Main bug:** both tenant-pauses and template-preview/test-send return a generic HTTP 400 "Validation failed" with no field detail – likely a shared request-validation issue.
+
+## Retest 2026-10-22 18:26-18:32 Muscat
+
+| Test | Result | Notes |
+|---|---|---|
+| T42 / T43 | PASS | Pause Demo Laundry ALL, reason QA -> 200; Setup Health WARN "1 organization scope(s) paused... Demo Laundry LLC/ALL"; Resume -> "The organization is resumed.", list empty, Health OK. "Already in that state" not reachable: paused orgs are removed from the picker. |
+| T18 | FAIL | test-send now returns 200 but status PERMANENT_FAILURE (RESEND, no message id). Setup Health: "A verified email provider account exists: No platform account exists." |
+| T19 | PASS | 403 "This recipient is not on the test-recipient allow-list". |
+| QA Notifications Read write buttons (was FAIL) | PASS | jhtest.dev21+notifread@gmail.com: no write controls on Templates, template detail, Preview & test (no test-send), Quota (all tabs), Operations, Providers, Channels, Tenant Channel Config, Campaigns, Analytics, Pricing, Audit. No Access Denied. |

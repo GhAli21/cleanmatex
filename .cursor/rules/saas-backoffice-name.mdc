@@ -1,0 +1,14 @@
+---
+description: HQ is the usual name for the SaaS Backoffice, not a tenant headquarters
+alwaysApply: true
+---
+
+# HQ is the usual name
+
+**HQ** is the usual name for the SaaS Backoffice Admin and Management application in `cleanmatexsaas` (`platform-web`, `platform-api`, `platform-workers`). Use HQ. These words mean the same application: SaaS Backoffice, platform, platform level, Platform HQ Console, SaaS Backoffice Admin and Management, Headquarters.
+
+HQ is not a tenant organization's headquarters, head office, المقر, or المقر الرئيسي. "Platform level" means data or behavior owned by HQ.
+
+The customer business is the **Organization** / المنشأة. The database identifier stays `tenant_org_id`. The Organization app is `cleanmatex` (`web-admin`, `cmx-api`). Tenant app, client app, and Tenant-Facing Application mean that app.
+
+When a reader could confuse HQ with a tenant headquarters, add the meaning once in that document: HQ (the SaaS Backoffice). Existing code and file identifiers that already contain HQ stay unchanged.

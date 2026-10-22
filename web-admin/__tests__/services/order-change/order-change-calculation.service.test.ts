@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { calculateOrderChangeTotals } from '@/lib/services/order-change/order-change-calculation.service';
+import { calculateOrderChangeTotals, digestOrderChangeCalculationFingerprint } from '@/lib/services/order-change/order-change-calculation.service';
+import { ORDER_CHANGE_LIMITS } from '@/lib/constants/order-change';
 
 const unchanged = {
   id: 'line-old',
@@ -127,6 +128,22 @@ describe('calculateOrderChangeTotals', () => {
     if (!boundary.ok) return;
     expect(boundary.displayTotal).toBe('1.01');
     expect(boundary.requiresReReview).toBe(true);
+  });
+
+  it('returns a digest that stays inside the Apply fingerprint limit', () => {
+    const lineList = [
+      'TAX_EXCLUSIVE|15.0000',
+      '158f7e50-81a5-4b1e-b19d-a21973d5a103:1:10.5000:21.0000:0.0000',
+      '44ea8124-980a-4c49-9c43-1d965e86724f:1:15.0000:30.0000:0.3000',
+      '75a404cd-892f-4ad0-a324-c108d8acf882:1:22.5000:22.5000:0.5000',
+      'b3405ccf-8eb5-4559-929a-46e5e7b9df6e:1:13.5000:13.5000:0.5000',
+      '0.0000|0.0000|0.0000|0.0000|101.5450',
+    ].join('|');
+    expect(lineList.length).toBeGreaterThan(ORDER_CHANGE_LIMITS.MAX_CALCULATION_FINGERPRINT_LENGTH);
+    const digest = digestOrderChangeCalculationFingerprint(lineList);
+    expect(digest).toMatch(/^[a-f0-9]{64}$/);
+    expect(digest.length).toBeLessThanOrEqual(ORDER_CHANGE_LIMITS.MAX_CALCULATION_FINGERPRINT_LENGTH);
+    expect(digestOrderChangeCalculationFingerprint(lineList)).toBe(digest);
   });
 
   it('imports no database or server-only client', () => {

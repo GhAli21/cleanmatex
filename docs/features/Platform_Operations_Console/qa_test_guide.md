@@ -159,7 +159,7 @@ Open HQ → Operations → Setup Health and confirm each row reacts as described
 | T20 ⚠ | Add your address to the organization's suppression list (tenant side), try again. | 409 refused (suppression is never bypassed). Remove it afterwards. |
 | T21 | Check usage: `select sum(sent_count) from org_ntf_usage_daily where tenant_org_id = '<id>'` and the Quota "Tenant position" tab before and after a test send. | Unchanged: test messages are not counted. |
 | T22 | Send more than `ntf.hq.test_send_per_min` tests within a minute. | 429 above the limit; another operator is unaffected. |
-| T23 | Audit: HQ sidebar > Notification & Comm Hub > **Notification Audit** (`/notifications/audit`), filter Action type `notification_template` (or read the list): action `notification_template.test_send`. | One entry per send, recipient masked (`o***@example.com`), template, version, status; no credentials. |
+| T23 | Audit: HQ sidebar > Notification & Comm Hub > **Notification Audit** (`/notifications/audit`, tab Admin actions; the tab Sending log shows each send with its status and provider reason), filter Action type `notification_template` (or read the list): action `notification_template.test_send`. | One entry per send, recipient masked (`o***@example.com`), template, version, status; no credentials. |
 | T24 | SMS test: allow-list your phone (+E.164), channel SMS, send. Then try WhatsApp. | SMS arrives prefixed `[TEST]`; WhatsApp shows "available for email and SMS". |
 
 ## W. Operational safety (R14, migrations 0625, 0626 + 0628)
@@ -416,3 +416,17 @@ What changed in code or data, and what still needs a person. "Fixed" means a tes
 | PDT17 | Log in as a non-super-admin HQ role with hq_notifications:read | Open any organization picker | Organizations load (GET /tenants needs only an HQ session). |
 | PDT18 | Quota > Tenant overrides | Delete an override, then add the same organization + metric + period again | The row reappears (soft-deleted row reactivated). |
 | PDT19 | Connections > a sender > Add sender | Type `[1]` or `abc` in the capabilities JSON | Inline "must be a JSON object" error; Save disabled. |
+| PDT20 | Quota > Tenant position | Open the tab; search and pick an organization | Label reads "Organization - [tenant_org_id]"; no UUID box or Show position button; the position table loads at once after the pick. |
+| PDT21 | Pricing > Add pricing | Open the Currency field | A pick list `code · name` from the currency catalog; no free text. Edit an existing row: its currency is shown (disabled). |
+| PDT22 | Templates > Create template | Open Event code; try Create before picking | Pick list `code · name` of active notification events; Create disabled until an event is picked. |
+| PDT23 | Ops > Operations Catalog > "Notification outbox status summary" | Look at the tenant parameter; for "Pilot test message" also the channel | Organization picker (`name · id`) and a channel pick list; labels end with "- [tenant_org_id]" / "- [channel_code]". |
+| PDT24 | Any notification screen with an organization field (Quota, Broadcast, Operations) | Search and pick an organization | Same picker as before (`name · id`, inactive marked), now the shared CmxTenantPicker; label ends with "- [tenant_org_id]". |
+| PDT25 | ERP-Lite > Posting simulation | Try Run before picking an event; then pick organization and event | Event is a pick list `name · evt_code`; Run disabled/blocked until both are picked. |
+| PDT26 | ERP-Lite > Templates > a template (detail and studio) | Open Country, Plan and Target account | Pick lists ("Any country", "Any plan", postable accounts `name · code`); no free text. |
+| PDT27 | ERP-Lite > Packages > a package > rule lines; Catalog > Account groups | Open phase, failure action, entry side, line type, usage code / resolver, statement section | Pick lists with only the DB-allowed values; usage code and resolver each offer a "none" choice. |
+| PDT28 | Billing > Plans > a plan > Add price | Open Currency | Pick list `name · code` from the currency catalog; price saves with that code. |
+| PDT29 | Billing > Subscriptions > New | Search an organization; open Discount and Payment method; change the organization | Organization picker searches all organizations; discounts list active codes; payment methods list only that organization's methods and reset on change. |
+| PDT30 | Tenants > New tenant wizard > Subscription | Open Discount Code | Pick list of active discount codes ("No discount" allowed). |
+| PDT31 | Catalog > Items > edit; Catalog > Templates > edit | Open Item Type | Pick list `name · item_type_code`; a saved inactive type is marked. |
+| PDT32 | System Codes > Payment methods > new / edit; Settlement > Overpayment resolutions > edit | Open Gateway, Replacement, Settlement type, Permission code | Pick lists; replacement excludes the method itself; settlement type has 4 values; permission is searchable. |
+| PDT33 | Settings > Navigation > edit item; Currency setup list | Open Main Permission Code; open the Country filter | Permission is a searchable pick list; the country filter is a pick list with "All". |

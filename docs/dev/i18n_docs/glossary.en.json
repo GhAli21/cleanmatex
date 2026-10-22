@@ -5,5 +5,7 @@
   "exchange_rate": "Exchange Rate",
   "multi_currency": "Multi-Currency",
   "cash_disposition": "Disposition",
-  "cash_drawer": "Cash Drawer"
+  "cash_drawer": "Cash Drawer",
+  "saas_backoffice": "HQ",
+  "organization_app": "Organization app"
 }

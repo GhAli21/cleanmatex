@@ -5,5 +5,7 @@
   "exchange_rate": "سعر الصرف",
   "multi_currency": "تعدد العملات",
   "cash_disposition": "التصرف بالنقدية",
-  "cash_drawer": "درج النقد"
+  "cash_drawer": "درج النقد",
+  "saas_backoffice": "إدارة المنصة",
+  "organization_app": "تطبيق المنشأة"
 }

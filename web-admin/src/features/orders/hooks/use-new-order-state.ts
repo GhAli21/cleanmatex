@@ -276,7 +276,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     openModal: (modal: keyof typeof state.modals) => {
-      if (commercialLocked && (modal === 'customerPicker' || modal === 'customerEdit' || modal === 'customItem' || modal === 'payment')) return;
+      if (identityLocked && (modal === 'customerPicker' || modal === 'customerEdit' || modal === 'customItem' || modal === 'payment')) return;
       dispatch({ type: 'OPEN_MODAL', payload: modal });
     },
 
