@@ -153,6 +153,28 @@ function fakeTx(options: {
 }
 
 describe('persistOrderChangeTx', () => {
+  it('finalizes stored values after business writes and before inserting immutable history', async () => {
+    const tx = fakeTx();
+    await persistOrderChangeTx(tx as unknown as OrderChangeWriteTx, input({
+      finalizeOperations: async () => {
+        expect(tx.calls).toContain('item-insert');
+        expect(tx.calls).not.toContain('ops');
+        tx.calls.push('snapshots');
+        return input().operations;
+      },
+    }));
+    expect(tx.calls.indexOf('snapshots')).toBeLessThan(tx.calls.indexOf('ops'));
+  });
+
+  it('does not insert history or publish an event when stored snapshots differ from Review', async () => {
+    const tx = fakeTx();
+    await expect(persistOrderChangeTx(tx as unknown as OrderChangeWriteTx, input({
+      finalizeOperations: async () => { throw new OrderChangeMutationError('REVIEW_CHANGED'); },
+    }))).rejects.toMatchObject({ code: 'REVIEW_CHANGED' });
+    expect(tx.calls).not.toContain('ops');
+    expect(tx.outbox()).toBeNull();
+  });
+
   it('writes the change, forced tenant, descendant retirement, and outbox on the same transaction', async () => {
     const tx = fakeTx();
     const result = await persistOrderChangeTx(tx as unknown as OrderChangeWriteTx, input());

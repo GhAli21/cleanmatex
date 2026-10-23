@@ -11,6 +11,8 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton, CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
 import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { useEditControlGroup } from '../order-change/use-edit-control-capability';
+import { EditControlNotice } from '../order-change/edit-control-notice';
 
 /**
  *
@@ -61,10 +63,15 @@ export function PreSubmissionPiecesManager({
 }: PreSubmissionPiecesManagerProps) {
   const t = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
+  // Create has no Edit session and remains interactive; a policy cell cannot
+  // enable a persisted-piece operation whose writer has not shipped.
+  const brandCapability = useEditControlGroup(['CHANGE_PIECE_BRAND']);
+  const rackCapability = useEditControlGroup(['CHANGE_PIECE_RACK']);
   const [expandedPieceIds, setExpandedPieceIds] = useState<Set<string>>(() => new Set());
 
   const handlePieceUpdate = (pieceId: string, updates: Partial<PreSubmissionPiece>) => {
     if (readOnly) return;
+    if (('brand' in updates && !brandCapability.interactive) || ('rackLocation' in updates && !rackCapability.interactive)) return;
     
     const updatedPieces = pieces.map(piece =>
       piece.id === pieceId ? { ...piece, ...updates } : piece
@@ -240,12 +247,15 @@ export function PreSubmissionPiecesManager({
                 ) : (
                   <CmxInput
                     value={piece.brand || ''}
+                    disabled={!brandCapability.interactive}
                     onChange={(e) => handlePieceUpdate(piece.id, { brand: e.target.value })}
                     placeholder={t('brandPlaceholder')}
                     className="h-8 text-sm"
                   />
                 )}
               </div>
+
+              <EditControlNotice codes={['CHANGE_PIECE_BRAND']} />
 
               {/* Has Stain */}
               <div className="flex items-end pb-1">
@@ -303,11 +313,13 @@ export function PreSubmissionPiecesManager({
                 ) : (
                   <CmxInput
                     value={piece.rackLocation || ''}
+                    disabled={!rackCapability.interactive}
                     onChange={(e) => handlePieceUpdate(piece.id, { rackLocation: e.target.value })}
                     placeholder={t('rackLocationPlaceholder')}
                     className="h-8 text-sm"
                   />
                 )}
+                <EditControlNotice codes={['CHANGE_PIECE_RACK']} />
               </div>
             </div>
             )}

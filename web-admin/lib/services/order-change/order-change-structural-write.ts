@@ -207,6 +207,8 @@ export function buildStructuralWritePlan(
           quantity: operation.payload.quantity,
           price_per_unit: line.unitPrice,
           total_price: reviewedItemTotal(line),
+          price_override: operation.payload.priceOverride ?? null,
+          override_reason: operation.payload.overrideReason ?? null,
           status: facts.itemStatus,
           item_status: facts.itemStatus,
           created_by: actorUserId,

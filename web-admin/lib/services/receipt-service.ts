@@ -195,7 +195,6 @@ export class ReceiptService {
       const publicTrackingPath = await getPublicTrackingPathForOrderId({
         tenantId,
         orderId,
-        fallbackOrderNo: typeof order.order_no === 'string' ? order.order_no : null,
       });
       const publicTrackingUrl = buildAbsolutePublicTrackingUrl(
         process.env.NEXT_PUBLIC_APP_URL || 'https://app.cleanmatex.com',

@@ -26422,56 +26422,72 @@ export type Database = {
           created_by: string | null
           created_info: string | null
           edit_policy_id: string
+          gap_acknowledged: boolean
           id: string
           is_active: boolean
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
+          scope: string
           tenant_org_id: string
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
-          workflow_profile_version_id: string
+          workflow_profile_id: string | null
+          workflow_profile_version_id: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           created_info?: string | null
           edit_policy_id: string
+          gap_acknowledged?: boolean
           id?: string
           is_active?: boolean
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
+          scope: string
           tenant_org_id: string
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
-          workflow_profile_version_id: string
+          workflow_profile_id?: string | null
+          workflow_profile_version_id?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           created_info?: string | null
           edit_policy_id?: string
+          gap_acknowledged?: boolean
           id?: string
           is_active?: boolean
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
+          scope?: string
           tenant_org_id?: string
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
-          workflow_profile_version_id?: string
+          workflow_profile_id?: string | null
+          workflow_profile_version_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_wf_edit_asg_policy"
-            columns: ["edit_policy_id", "workflow_profile_version_id"]
+            foreignKeyName: "fk_wf_edit_asg_pol"
+            columns: ["edit_policy_id"]
             isOneToOne: false
             referencedRelation: "sys_wf_edit_policy_mst"
-            referencedColumns: ["id", "workflow_profile_version_id"]
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_asg_prof"
+            columns: ["workflow_profile_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profiles_cd"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "fk_wf_edit_asg_tenant"
@@ -41145,6 +41161,69 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_wf_edit_policy_def_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          edit_policy_id: string
+          id: string
+          is_active: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          workflow_profile_version_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          edit_policy_id: string
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          workflow_profile_version_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          edit_policy_id?: string
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          workflow_profile_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wf_edit_def_pol"
+            columns: ["edit_policy_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_edit_policy_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wf_edit_def_ver"
+            columns: ["workflow_profile_version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
+          },
+        ]
+      }
       sys_wf_edit_policy_mst: {
         Row: {
           created_at: string
@@ -41171,7 +41250,7 @@ export type Database = {
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
-          workflow_profile_version_id: string
+          workflow_profile_version_id: string | null
         }
         Insert: {
           created_at?: string
@@ -41198,7 +41277,7 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
-          workflow_profile_version_id: string
+          workflow_profile_version_id?: string | null
         }
         Update: {
           created_at?: string
@@ -41225,7 +41304,7 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
-          workflow_profile_version_id?: string
+          workflow_profile_version_id?: string | null
         }
         Relationships: [
           {
@@ -45237,6 +45316,14 @@ export type Database = {
       }
       sys_bill_generate_invoice_number: { Args: never; Returns: string }
       sys_bill_get_default_payment_method: { Args: never; Returns: string }
+      sys_wf_edit_cov_status: {
+        Args: { policy_id: string; version_id: string }
+        Returns: {
+          operation_code: string
+          status_code: string
+          target_type: string
+        }[]
+      }
       sys_wf_edit_policy_save: {
         Args: {
           p_actor_id: string
@@ -45340,6 +45427,30 @@ export type Database = {
       sys_wf_prof_ver_validate_live: {
         Args: { p_version_id: string }
         Returns: undefined
+      }
+      sys_wf_resolve_edit_policy: {
+        Args: {
+          p_profile_id: string
+          p_profile_version_id: string
+          p_tenant_org_id: string
+          p_workflow_status: string
+        }
+        Returns: {
+          decision: string
+          deny_reason: string
+          edit_policy_id: string
+          message_key: string
+          operation_code: string
+          override_permission_code: string
+          policy_code: string
+          policy_revision: number
+          reason_code: string
+          required_permission_code: string
+          requires_reason: boolean
+          resolution_level: string
+          target_type: string
+          workflow_status: string
+        }[]
       }
       test_assert: {
         Args: { condition: boolean; message?: string }

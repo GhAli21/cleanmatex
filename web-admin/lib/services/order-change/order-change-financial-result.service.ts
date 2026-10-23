@@ -32,7 +32,7 @@ export interface OrderChangeFinancialResultInput {
   projectedTax: string;
   payments: readonly AggregationPaymentRow[];
   credits?: readonly AggregationCreditRow[];
-  refunds?: readonly Array<{
+  refunds?: ReadonlyArray<{
     refund_status: string | null;
     refund_amount: string;
     reopens_due_amount: string;

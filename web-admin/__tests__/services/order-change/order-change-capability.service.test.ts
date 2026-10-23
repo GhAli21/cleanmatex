@@ -41,6 +41,7 @@ const reviewBinding: OrderChangeReviewProofBinding = {
   policyFacts: { status: 'PROCESSING', fiscalMode: 'UNISSUED' },
   calculationFingerprint: 'calculation-fingerprint',
   settlementSourceFingerprint: 'settlement-source-fingerprint',
+  operationSnapshotDigest: 'operation-snapshot-digest',
 };
 
 function capabilityInput(overrides: Partial<Parameters<typeof evaluateOrderChangeCapability>[0]> = {}) {
@@ -75,10 +76,24 @@ describe('order change capability policy', () => {
     expect(resolveOrderChangeCapabilityTarget('CHANGE_UNLISTED')).toBe('ORDER');
   });
 
-  it('shows an unlisted change in preview even when the policy has no rule for it', async () => {
+  it('denies an unlisted change when the policy has no rule for it', async () => {
     await expect(evaluateOrderChangeCapability(capabilityInput({
       operation: { seq: 1, code: 'CHANGE_UNLISTED', hasReason: false },
-    }))).resolves.toMatchObject({ decision: 'ALLOW', reasonCode: 'NOT_IN_POLICY', operationCode: 'CHANGE_UNLISTED', requiresAcknowledgement: false });
+    }))).resolves.toMatchObject({ decision: 'DENY', reasonCode: 'CAPABILITY_POLICY_BINDING_MISSING', operationCode: 'CHANGE_UNLISTED', requiresAcknowledgement: false });
+  });
+
+  it.each(['ORDER', 'ITEM', 'PIECE', 'PREFERENCE'] as const)('allows an explicit residual rule for %s only', async (targetType) => {
+    await expect(evaluateOrderChangeCapability(capabilityInput({
+      operation: { seq: 1, code: 'CHANGE_UNLISTED', targetType, hasReason: true },
+      bindings: [{ ...baseBinding, operationCode: 'CHANGE_UNLISTED', targetType }],
+    }))).resolves.toMatchObject({ decision: 'ALLOW', targetType });
+  });
+
+  it('keeps a seeded operation closed even when its policy rule allows it', async () => {
+    await expect(evaluateOrderChangeCapability(capabilityInput({
+      operation: { seq: 1, code: 'CHANGE_ITEM_PRICE', hasReason: true },
+      bindings: [{ ...baseBinding, operationCode: 'CHANGE_ITEM_PRICE', targetType: 'ITEM' }],
+    }))).resolves.toMatchObject({ decision: 'DENY', reasonCode: 'OPERATION_NOT_AVAILABLE' });
   });
 
   it('allows only an explicit profile binding after server-side permission validation', async () => {
@@ -151,6 +166,7 @@ describe('order change review proof', () => {
     ['actor', { ...reviewBinding, actorUserId: '55555555-5555-4555-8555-555555555555' }],
     ['edit revision', { ...reviewBinding, expectedEditStateVersion: 4 }],
     ['policy facts', { ...reviewBinding, policyFacts: { status: 'READY' } }],
+    ['operation snapshots', { ...reviewBinding, operationSnapshotDigest: 'changed' }],
     ['Edit Policy identity', { ...reviewBinding, policyIdentity: { ...reviewBinding.policyIdentity, editPolicyId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } }],
   ])('rejects a changed %s review binding', (_name, expected) => {
     const proof = issueOrderChangeReviewProof({ key, binding: reviewBinding, now: NOW });

@@ -349,6 +349,7 @@ export function NewOrderContent() {
     return () => setEditLeaveBypass(null);
   }, [workspace, allowNextNavigation]);
   const itemCapability = useEditControlGroup(['ADD_ITEM']);
+  const priceCapability = useEditControlGroup(['CHANGE_ITEM_PRICE']);
 
   const handleAddItem = useCallback(
     async (product: Product) => {
@@ -796,9 +797,9 @@ export function NewOrderContent() {
 
   const sharedSummaryPanelProps = {
     items: memoizedOrderItems,
-    onEditItem: (itemId: string) => {
+    onEditItem: priceCapability.interactive ? (itemId: string) => {
       state.openPriceOverrideModal(itemId);
-    },
+    } : undefined,
     onDeleteItem: handleRemoveItem,
     onPiecesChange: handlePiecesChange,
     onCopyPieceToAll: handleCopyPieceToAll,
@@ -964,6 +965,7 @@ export function NewOrderContent() {
       )}
 
       {workspace ? <EditOrderContextBar session={workspace} /> : null}
+      {workspace ? <EditControlNotice codes={['CHANGE_ITEM_PRICE']} /> : null}
       {state.state.isEditMode && !workspace && (
         <EditOrderBar
           orderNo={state.state.editingOrderNo}

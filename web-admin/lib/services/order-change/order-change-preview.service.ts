@@ -5,7 +5,9 @@
  */
 
 import { createHash } from 'node:crypto';
-import { ORDER_CHANGE_LIMITS, type OrderChangeOperationCode } from '@/lib/constants/order-change';
+import { subMoney, toMoneyString } from '@/lib/utils/money';
+import { resolveOrderChangeKnownFieldOperation, ORDER_CHANGE_LIMITS, type OrderChangeOperationCode } from '@/lib/constants/order-change';
+import type { OrderChangeEditPolicyResolution } from '@/lib/services/order-change/order-change-edit-policy-resolver.service';
 import type { OrderChangeContext } from '@/lib/types/order-change';
 import type { z } from 'zod';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
@@ -39,7 +41,7 @@ import {
   type OrderChangeFinancialResult,
 } from '@/lib/services/order-change/order-change-financial-result.service';
 import { round4, type AggregationCreditRow, type AggregationPaymentRow } from '@/lib/services/order-financial-aggregation';
-import { buildPreviewOperationAudits, type OrderChangeOperationAudit, type OrderChangePreviewAuditFacts } from '@/lib/services/order-change/order-change-review-audit';
+import { buildPreviewOperationAudits, digestOrderChangeOperationAudits, type OrderChangeOperationAudit, type OrderChangePreviewAuditFacts } from '@/lib/services/order-change/order-change-review-audit';
 
 type ChangeRequest = z.infer<typeof orderChangeRequestSchema>;
 type ChangeOperation = ChangeRequest['operations'][number];
@@ -177,7 +179,7 @@ function headerChanged(context: OrderChangeContext, operations: readonly ChangeO
 }
 
 function moneyText(value: string | number): string {
-  return round4(Number(value)).toFixed(4);
+  return toMoneyString(value);
 }
 
 /**
@@ -218,7 +220,7 @@ function buildSpeedAudit(input: {
       totalPrice: reviewedItemTotal(line),
     });
   }
-  const delta = moneyText(Number(input.projectedTotal) - Number(input.originalTotal));
+  const delta = toMoneyString(subMoney(input.projectedTotal, input.originalTotal));
   return {
     before: {
       serviceSpeed: input.serviceSpeed,
@@ -256,6 +258,8 @@ export async function previewOrderChange(input: {
   context: OrderChangeContext;
   request: ChangeRequest;
   bindings: readonly OrderChangeCapabilityBinding[];
+  /** Keeps the winning identity visible even when the current status has no rules. */
+  policyResolution?: OrderChangeEditPolicyResolution;
   quotesByTargetId: Readonly<Record<string, OrderChangePriceQuote>>;
   catalog: readonly OrderChangePreferenceDefinition[];
   taxMode: OrderChangeTaxMode;
@@ -263,7 +267,7 @@ export async function previewOrderChange(input: {
   currencyDecimalPlaces: number;
   payments: readonly AggregationPaymentRow[];
   credits: readonly AggregationCreditRow[];
-  refunds: readonly Array<{ refund_status: string | null; refund_amount: string; reopens_due_amount: string }>;
+  refunds: ReadonlyArray<{ refund_status: string | null; refund_amount: string; reopens_due_amount: string }>;
   /** Kept in the total when Express is not part of this change. A speed change replaces it on the items. */
   persistedExpressAmount?: string;
   /** Stored order tax at preview time. The speed audit freezes this as the tax before the decision. */
@@ -272,14 +276,17 @@ export async function previewOrderChange(input: {
   auditFacts?: OrderChangePreviewAuditFacts;
   proofKey: OrderChangeReviewProofKey | null;
 }): Promise<OrderChangePreviewSuccess | OrderChangePreviewFailure> {
+  if (input.request.operations.some((operation) => operation.code === 'CHANGE_UNLISTED' && resolveOrderChangeKnownFieldOperation(operation.payload.field))) {
+    return { ok: false, status: 422, code: 'OPERATION_NOT_AVAILABLE' };
+  }
   const conflicts: Array<'EDIT_VERSION_CONFLICT' | 'WORKFLOW_VERSION_CONFLICT'> = [];
   if (input.request.expectedEditStateVersion !== input.context.editStateVersion) conflicts.push('EDIT_VERSION_CONFLICT');
   if (input.request.expectedWfStateVersion !== input.context.wfStateVersion) conflicts.push('WORKFLOW_VERSION_CONFLICT');
   if (conflicts.length > 0) return { ok: false, status: 409, code: conflicts.length === 1 ? conflicts[0] : 'VERSION_CONFLICT', conflicts };
   const expectedPolicy = input.request.expectedPolicy;
   if (expectedPolicy) {
-    const currentId = input.bindings[0]?.editPolicyId ?? null;
-    const currentRevision = input.bindings[0]?.policyRevision ?? null;
+    const currentId = input.policyResolution?.editPolicyId ?? input.bindings[0]?.editPolicyId ?? null;
+    const currentRevision = input.policyResolution?.policyRevision ?? input.bindings[0]?.policyRevision ?? null;
     if (expectedPolicy.editPolicyId !== currentId || expectedPolicy.policyRevision !== currentRevision) {
       return { ok: false, status: 409, code: 'POLICY_CHANGED_REVIEW_REQUIRED' };
     }
@@ -329,9 +336,9 @@ export async function previewOrderChange(input: {
     structuralOperations: structural,
     operations: preferences,
   });
-  if (!projectedPreferences.ok) return { ok: false, status: 422, code: projectedPreferences.issue.code, seq: projectedPreferences.issue.seq };
+  if (projectedPreferences.ok === false) return { ok: false, status: 422, code: projectedPreferences.issue.code, seq: projectedPreferences.issue.seq };
   const structure = projectOrderChangeStructure(baseline, structural);
-  if (!structure.ok) return { ok: false, status: 422, code: structure.issue.code, seq: structure.issue.seq };
+  if (structure.ok === false) return { ok: false, status: 422, code: structure.issue.code, seq: structure.issue.seq };
 
   const decisions: OrderChangeCapabilityResult[] = [];
   for (const operation of input.request.operations) {
@@ -351,6 +358,9 @@ export async function previewOrderChange(input: {
         seq: operation.seq,
         code: operation.code as OrderChangeOperationCode,
         preferenceParentTargetType: preferenceParent(operation),
+        targetType: operation.code === 'CHANGE_UNLISTED'
+          ? operation.target.kind === 'PERSISTED_ITEM' ? 'ITEM' : operation.target.kind === 'PERSISTED_PIECE' ? 'PIECE' : operation.target.kind === 'PERSISTED_PREFERENCE' ? 'PREFERENCE' : 'ORDER'
+          : undefined,
         hasReason: Boolean(input.request.changeReason?.trim()),
       },
       bindings: input.bindings,
@@ -358,6 +368,11 @@ export async function previewOrderChange(input: {
   }
 
   const denied = decisions.some((decision) => decision.decision === 'DENY');
+  // Residual catalog permission is required but supplies no arbitrary-column
+  // writer. Reject an allowed unknown field until its explicit handler ships.
+  if (!denied && input.request.operations.some((operation) => operation.code === 'CHANGE_UNLISTED')) {
+    return { ok: false, status: 422, code: 'OPERATION_NOT_AVAILABLE' };
+  }
   const reasonMissing = !input.request.changeReason?.trim()
     && decisions.some((decision) => decision.requiresReason && decision.decision !== 'DENY');
   const acknowledgementMissing = decisions.some((decision) =>
@@ -413,7 +428,7 @@ export async function previewOrderChange(input: {
     orderPreferenceAddend: projectedPreferences.charges.orderAddend,
     orderSpeedAddend: speedAmount,
   });
-  if (!calculated.ok) return { ok: false, status: 422, code: calculated.issue.code };
+  if (calculated.ok === false) return { ok: false, status: 422, code: calculated.issue.code };
   const calculationFingerprint = digestOrderChangeCalculationFingerprint(calculated.fingerprint);
 
   const financial = projectOrderChangeFinancialResult({
@@ -425,6 +440,31 @@ export async function previewOrderChange(input: {
   });
   const policy = decisions.find((decision) => decision.policyIdentity)?.policyIdentity ?? null;
   const financiallyBlocked = financial.outcome === 'DENIED';
+  const speedAudit = buildSpeedAudit({
+    speedChanged,
+    serviceSpeed: input.context.order.serviceSpeed,
+    nextServiceSpeed: input.request.operations.reduce<string | null>((speed, operation) => (
+      operation.code === 'CHANGE_SERVICE_SPEED' ? operation.payload.serviceSpeed : speed
+    ), null),
+    originalTotal: input.context.financial.totalAmount,
+    originalTax: input.persistedTaxAmount ?? '0.0000',
+    projectedTotal: calculated.totalAmount,
+    projectedTax: calculated.taxAmount,
+    items: input.context.items,
+    projected: structure.items,
+    lines: calculated.lines,
+  });
+  const operationAudits = buildPreviewOperationAudits({
+    context: input.context,
+    operations: input.request.operations,
+    lines: calculated.lines,
+    catalog: input.catalog,
+    speedAudit,
+    auditFacts: input.auditFacts,
+    projectedTotal: calculated.totalAmount,
+    projectedTax: calculated.taxAmount,
+  });
+
   const reviewBinding: OrderChangeReviewProofBinding | null = policy
     ? {
       tenantId: input.tenantId,
@@ -440,6 +480,7 @@ export async function previewOrderChange(input: {
       policyFacts: decisions,
       calculationFingerprint,
       settlementSourceFingerprint: digestSettlementSource(input.payments),
+      operationSnapshotDigest: digestOrderChangeOperationAudits(operationAudits),
     }
     : null;
   const issuedProof = !reasonMissing && !acknowledgementMissing && !financiallyBlocked && input.proofKey && reviewBinding
@@ -449,20 +490,7 @@ export async function previewOrderChange(input: {
     return { ok: false, status: 422, code: 'REVIEW_PROOF_TOO_LARGE' };
   }
   const reviewProof = issuedProof;
-  const speedAudit = buildSpeedAudit({
-    speedChanged,
-    serviceSpeed: input.context.order.serviceSpeed,
-    nextServiceSpeed: input.request.operations.reduce<string | null>((speed, operation) => (
-      operation.code === 'CHANGE_SERVICE_SPEED' ? operation.payload.serviceSpeed : speed
-    ), null),
-    originalTotal: input.context.financial.totalAmount,
-    originalTax: input.persistedTaxAmount ?? '0.0000',
-    projectedTotal: calculated.totalAmount,
-    projectedTax: calculated.taxAmount,
-    items: input.context.items,
-    projected: structure.items,
-    lines: calculated.lines,
-  });
+
 
   return {
     ok: true,
@@ -488,14 +516,7 @@ export async function previewOrderChange(input: {
     projectedItemIds: activeItemIds,
     speedAudit,
     lines: calculated.lines,
-    operationAudits: buildPreviewOperationAudits({
-      context: input.context,
-      operations: input.request.operations,
-      lines: calculated.lines,
-      catalog: input.catalog,
-      speedAudit,
-      auditFacts: input.auditFacts,
-    }),
+    operationAudits,
     followUp: financial.warnings.map((warning) => warning.code),
   };
 }

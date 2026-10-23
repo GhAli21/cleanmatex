@@ -4,7 +4,7 @@
  */
 
 import type { OrderChangeEditPolicyInfo } from '@/lib/types/order-change';
-import { buildOrderChangeOperations, type EditOrderDraft, type EditUnlistedChange } from './change-builder';
+import { EditOperationUnavailableError, buildOrderChangeOperations, type EditOrderDraft, type EditUnlistedChange } from './change-builder';
 import {
   sameIdentity,
   type EditLineDraft,
@@ -90,11 +90,13 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       return baseline != null;
     },
     operationCount(): number {
-      return baseline && draft ? buildOrderChangeOperations(baseline, draft).length : 0;
+      try { return baseline && draft ? buildOrderChangeOperations(baseline, draft).length : 0; }
+      catch (error) { if (error instanceof EditOperationUnavailableError) return 1; throw error; }
     },
     buildOperations() {
       if (!baseline || !draft) return [];
-      return buildOrderChangeOperations(baseline, draft);
+      try { return buildOrderChangeOperations(baseline, draft); }
+      catch (error) { if (error instanceof EditOperationUnavailableError) return []; throw error; }
     },
     setNotes(notes: string): void {
       requireDraft().notes = notes;
@@ -246,7 +248,15 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
     },
     async preview(orderId: string): Promise<EditPreviewResult> {
       if (!baseline || !draft) throw new Error('EDIT_NOT_LOADED');
-      const operations = buildOrderChangeOperations(baseline, draft);
+      let operations: ReturnType<typeof buildOrderChangeOperations>;
+      try { operations = buildOrderChangeOperations(baseline, draft); }
+      catch (error) {
+        if (error instanceof EditOperationUnavailableError) {
+          invalidateReview();
+          return { ok: false, status: 422, body: { error: { code: error.code, field: error.field } } };
+        }
+        throw error;
+      }
       if (operations.length === 0) return { ok: true, status: 200, body: { ok: true, status: 'NO_CHANGE' } };
       const response = await fetchImpl()(`/api/v1/orders/${orderId}/changes/preview`, {
         method: 'POST',
@@ -269,7 +279,15 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
     async apply(orderId: string, suppliedKey: string): Promise<EditPreviewResult> {
       if (!baseline || !draft) throw new Error('EDIT_NOT_LOADED');
       if (!reviewProof || !calculationFingerprint) throw new Error('EDIT_REVIEW_REQUIRED');
-      const operations = buildOrderChangeOperations(baseline, draft);
+      let operations: ReturnType<typeof buildOrderChangeOperations>;
+      try { operations = buildOrderChangeOperations(baseline, draft); }
+      catch (error) {
+        if (error instanceof EditOperationUnavailableError) {
+          invalidateReview();
+          return { ok: false, status: 422, body: { error: { code: error.code, field: error.field } } };
+        }
+        throw error;
+      }
       const response = await fetchImpl()(`/api/v1/orders/${orderId}/changes`, {
         method: 'POST',
         headers: { ...(await requestHeaders()), 'Idempotency-Key': suppliedKey },

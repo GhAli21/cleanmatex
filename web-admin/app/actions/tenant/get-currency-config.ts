@@ -6,6 +6,7 @@
 
 'use server';
 
+import { ACTION_GUARD_ERRORS, resolveActionTenant } from '@/lib/auth/server-action-guard';
 import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import {
@@ -35,23 +36,18 @@ export type CurrencyConfigOutcome =
     };
 
 /**
- * Get currency configuration for a tenant.
- * @param tenantOrgId - Tenant organization ID
- * @param branchId - Optional branch ID for branch-level override
- * @param userId - Optional user ID for user-level override; resolved from auth when not passed
- * @returns Currency code (e.g. OMR), decimal places, and exchange rate
+ * Reads the currency configuration for an already-verified session tenant.
+ * Not exported: every entry point runs the BF-20 guard first.
  */
-export async function getCurrencyConfigAction(
-  tenantOrgId: string,
+async function loadCurrencyConfig(
+  tenantId: string,
+  userId: string,
   branchId?: string,
-  userId?: string,
 ): Promise<CurrencyConfigResult> {
   const supabase = await createClient();
-  const uid =
-    userId ?? (await supabase.auth.getUser()).data?.user?.id ?? undefined;
   const { currencyCode, decimalPlaces } = await createTenantSettingsService(
     supabase,
-  ).getCurrencyConfig(tenantOrgId, branchId, uid);
+  ).getCurrencyConfig(tenantId, branchId, userId);
   return {
     currencyCode,
     decimalPlaces,
@@ -60,22 +56,59 @@ export async function getCurrencyConfigAction(
 }
 
 /**
+ * Get currency configuration for the session tenant.
+ *
+ * Tenant and user come from the session (BF-20). The caller's tenant id must
+ * equal the session tenant; a caller-supplied user id is ignored so one user
+ * cannot read another user's override.
+ *
+ * @param tenantOrgId - Tenant the caller expects; must equal the session tenant
+ * @param branchId - Optional branch ID for branch-level override
+ * @param _userId - Retained for call-site compatibility; the session user is used
+ * @returns Currency code (e.g. OMR), decimal places, and exchange rate
+ * @throws CurrencyResolutionError when the tenant currency is missing or unreadable
+ * @throws Error with the guard code when the session or tenant check fails
+ */
+export async function getCurrencyConfigAction(
+  tenantOrgId: string,
+  branchId?: string,
+  _userId?: string,
+): Promise<CurrencyConfigResult> {
+  const guard = await resolveActionTenant({
+    action: 'tenant.getCurrencyConfigAction',
+    expectedTenantId: tenantOrgId,
+  });
+  if (!guard.ok || !guard.tenantId || !guard.userId) {
+    throw new Error(guard.error ?? ACTION_GUARD_ERRORS.UNAUTHENTICATED);
+  }
+  return loadCurrencyConfig(guard.tenantId, guard.userId, branchId);
+}
+
+/**
  * Resolve currency configuration without serializing service exceptions into a client component.
  *
- * @param tenantOrgId - Organization scope of the authenticated workspace.
+ * @param tenantOrgId - Tenant the caller expects; must equal the session tenant
  * @param branchId - Optional branch context retained for call-site compatibility.
- * @param userId - Optional authenticated user context retained for call-site compatibility.
+ * @param _userId - Retained for call-site compatibility; the session user is used.
  * @returns A verified configuration or a stable resolution code safe for UI handling.
  */
 export async function getCurrencyConfigOutcomeAction(
   tenantOrgId: string,
   branchId?: string,
-  userId?: string,
+  _userId?: string,
 ): Promise<CurrencyConfigOutcome> {
+  const guard = await resolveActionTenant({
+    action: 'tenant.getCurrencyConfigOutcomeAction',
+    expectedTenantId: tenantOrgId,
+  });
+  if (!guard.ok || !guard.tenantId || !guard.userId) {
+    return { ok: false, code: CURRENCY_RESOLUTION_ERRORS.TENANT_CURRENCY_UNAVAILABLE };
+  }
+
   try {
     return {
       ok: true,
-      config: await getCurrencyConfigAction(tenantOrgId, branchId, userId),
+      config: await loadCurrencyConfig(guard.tenantId, guard.userId, branchId),
     };
   } catch (error) {
     if (

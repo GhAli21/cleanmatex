@@ -10,6 +10,7 @@ import { getOrderChangeContext, OrderChangeContextError } from '@/lib/services/o
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { loadOrderChangePreviewFacts, OrderChangePreviewReadError } from '@/lib/services/order-change/order-change-preview-reads';
 import { previewOrderChange } from '@/lib/services/order-change/order-change-preview.service';
+import { revalidateLockedOrderChangePolicy } from '@/lib/services/order-change/order-change-policy-revalidation.service';
 import { applyOrderChange, type OrderChangeApplyTx } from '@/lib/services/order-change/order-change-apply.service';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       context,
       request: parsedBody.data,
       bindings: facts.bindings,
+      policyResolution: facts.policyResolution,
       quotesByTargetId: facts.quotesByTargetId,
       catalog: facts.catalog,
       taxMode: facts.taxMode,
@@ -117,7 +119,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       auditFacts: facts.auditFacts,
       proofKey: facts.proofKey,
     });
-    if (!preview.ok) return errorResponse(preview.status, preview.code, 'Order change apply was rejected', requestId);
+    if (preview.ok === false) return errorResponse(preview.status, preview.code, 'Order change apply was rejected', requestId);
 
     const applied = await applyOrderChange({
       tenantId: auth.tenantId,
@@ -130,12 +132,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       preview,
       proofKey: facts.proofKey,
       appliedAt: new Date(),
+      // Re-resolve inside the order lock; the earlier re-preview alone cannot
+      // protect against a policy replacement between review and mutation.
+      validateLockedPolicy: (tx) => revalidateLockedOrderChangePolicy(tx, {
+        tenantId: auth.tenantId,
+        orderId: parsedParams.data.id,
+        binding: preview.reviewBinding,
+      }),
       runInTransaction: (fn) => withTenantContext(
         auth.tenantId,
         () => prisma.$transaction((tx) => fn(tx as unknown as OrderChangeApplyTx)),
       ),
     });
-    if (!applied.ok) return errorResponse(applied.status, applied.code, 'Order change apply was rejected', requestId);
+    if (applied.ok === false) return errorResponse(applied.status, applied.code, 'Order change apply was rejected', requestId);
     return NextResponse.json({ ok: true, data: applied, requestId });
   } catch (error) {
     if (error instanceof OrderChangeContextError) {

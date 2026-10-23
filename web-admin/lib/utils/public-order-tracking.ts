@@ -2,10 +2,10 @@
  * Public order tracking URL helpers.
  *
  * Why:
- * Public tracking links are customer-facing and should not expose readable
- * tenant/order identifiers by default. These helpers centralize the opaque
- * `/track/{token}` contract while preserving a deliberate legacy fallback
- * path for older links during rollout.
+ * Public tracking links are customer-facing and must not expose readable
+ * tenant/order identifiers. These helpers centralize the opaque
+ * `/track/{token}` contract. The readable `/public/orders/{tenantId}/{orderNo}`
+ * path is retired (BF-16): order numbers are guessable.
  */
 
 const PUBLIC_TRACKING_TOKEN_PATTERN = /^[a-z0-9_-]{16,128}$/i;
@@ -33,17 +33,6 @@ export function normalizePublicTrackingToken(token: string | null | undefined): 
  */
 export function buildPublicTrackingPath(token: string): string {
   return `/track/${encodeURIComponent(token)}`;
-}
-
-/**
- * Build the legacy readable public tracking path.
- *
- * @param tenantId Tenant UUID.
- * @param orderNo Human-readable order number.
- * @returns Relative app path.
- */
-export function buildLegacyPublicTrackingPath(tenantId: string, orderNo: string): string {
-  return `/public/orders/${encodeURIComponent(tenantId)}/${encodeURIComponent(orderNo)}`;
 }
 
 /**

@@ -2,25 +2,27 @@
  * Server Action: Validate Promo Code
  *
  * Validates promo code against order details and returns
- * discount amount if valid.
+ * discount amount if valid. Tenant comes from the session; a caller-supplied
+ * tenant id is only verified (BF-20).
+ *
+ * BF-20 (2026-10-23): the unused `applyPromoCodeAction` (recorded promo usage
+ * with a caller-supplied tenant and user) and `getPromoStatsAction` were
+ * removed. Promo usage is recorded by the order submit path.
  */
 
 'use server';
 
-import {
-  validatePromoCode,
-  applyPromoCode,
-  getPromoCodeStats,
-} from '@/lib/services/discount-service';
+import { resolveActionTenant } from '@/lib/auth/server-action-guard';
+import { validatePromoCode } from '@/lib/services/discount-service';
 import type {
   ValidatePromoCodeInput,
   ValidatePromoCodeResult,
 } from '@/lib/types/payment';
 
 /**
- * Validate a promo code for an order
+ * Validate a promo code for an order of the session tenant.
  *
- * @param tenantOrgId - Tenant organization ID
+ * @param tenantOrgId - Tenant the caller expects; must equal the session tenant
  * @param input - Promo code validation input
  * @returns Validation result with discount amount or error
  */
@@ -28,6 +30,12 @@ export async function validatePromoCodeAction(
   tenantOrgId: string,
   input: ValidatePromoCodeInput
 ): Promise<ValidatePromoCodeResult> {
+  const guard = await resolveActionTenant({
+    action: 'payments.validatePromoCodeAction',
+    expectedTenantId: tenantOrgId,
+  });
+  if (!guard.ok) return { isValid: false, error: guard.error };
+
   try {
     const result = await validatePromoCode(input);
     return result;
@@ -36,74 +44,6 @@ export async function validatePromoCodeAction(
     return {
       isValid: false,
       error: error instanceof Error ? error.message : 'Failed to validate promo code',
-    };
-  }
-}
-
-/**
- * Apply promo code to order (record usage)
- *
- * @param promoCodeId - Promo code ID
- * @param orderId - Order ID
- * @param invoiceId - Invoice ID
- * @param tenantOrgId - Tenant organization ID
- * @param customerId - Customer ID (optional)
- * @param discountAmount - Calculated discount amount
- * @param orderTotalBefore - Order total before discount
- * @param userId - User applying the promo code
- * @returns Success or error
- */
-export async function applyPromoCodeAction(
-  promoCodeId: string,
-  orderId: string,
-  invoiceId: string,
-  tenantOrgId: string,
-  customerId: string | undefined,
-  discountAmount: number,
-  orderTotalBefore: number,
-  userId: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const result = await applyPromoCode(
-      promoCodeId,
-      orderId,
-      invoiceId,
-      tenantOrgId,
-      customerId,
-      discountAmount,
-      orderTotalBefore,
-      userId
-    );
-
-    return result;
-  } catch (error) {
-    console.error('Error applying promo code:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to apply promo code',
-    };
-  }
-}
-
-/**
- * Get promo code statistics
- *
- * @param promoCodeId - Promo code ID
- * @returns Statistics about promo code usage
- */
-export async function getPromoStatsAction(promoCodeId: string) {
-  try {
-    const stats = await getPromoCodeStats(promoCodeId);
-
-    return {
-      success: true,
-      data: stats,
-    };
-  } catch (error) {
-    console.error('Error fetching promo code stats:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch promo code stats',
     };
   }
 }

@@ -1,4 +1,4 @@
-import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
+import { isOrderChangeOperationWriterAvailable, type OrderChangeOperationCode } from '@/lib/constants/order-change';
 import type { OrderChangeEditPolicyInfo, OrderChangeEditPolicyRule } from '@/lib/types/order-change';
 
 /**
@@ -18,7 +18,7 @@ export interface EditControlCapability {
   reasonKey: EditControlReasonKey | null;
 }
 
-const AVAILABILITY: Record<OrderChangeOperationCode, EditImplementationAvailability> = {
+const AVAILABILITY: Partial<Record<OrderChangeOperationCode, EditImplementationAvailability>> = {
   ADD_ITEM: 'SUPPORTED',
   REMOVE_ITEM: 'SUPPORTED',
   CHANGE_ITEM_QUANTITY: 'SUPPORTED',
@@ -50,7 +50,7 @@ const CREATE_CAPABILITY: EditControlCapability = { state: 'CREATE', interactive:
 
 /**
  * Editing-stage control from the policy already loaded with the order.
- * A missing writer does not close the draft. Review and Apply remain the server checks.
+ * A catalog decision never opens a control whose writer has not shipped.
  * It does not resolve assignments or call the server.
  */
 export function resolveEditControlCapability(
@@ -58,6 +58,9 @@ export function resolveEditControlCapability(
   operationCode: OrderChangeOperationCode,
 ): EditControlCapability {
   if (!policy) return CREATE_CAPABILITY;
+  if (!isOrderChangeOperationWriterAvailable(operationCode)) {
+    return { state: 'NOT_AVAILABLE_YET', interactive: false, reasonKey: 'notAvailable' };
+  }
   if (AVAILABILITY[operationCode] === 'LOCKED_BY_V1') {
     return { state: 'LOCKED', interactive: false, reasonKey: 'locked' };
   }

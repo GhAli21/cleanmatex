@@ -1,31 +1,27 @@
 /**
- * Public Order Tracking API
+ * Retired public order lookup (BF-16).
  * GET /api/v1/public/orders/[tenantId]/[orderNo]
  *
- * Fully public, read-only endpoint to fetch limited, customer-facing
- * order details by tenant + order number.
+ * This readable path answered by tenant ID + order number with no second
+ * check. Order numbers are guessable, so anyone could read another customer's
+ * name, phone, email, items and balance. Public tracking now uses only the
+ * opaque `/api/v1/public/track/[token]` route.
  *
- * IMPORTANT:
- * - Still enforces tenant isolation by always filtering with tenant_org_id.
- * - Does NOT require authentication; anyone with the URL can access.
+ * The route stays as a plain 404 so old links fail closed: no database access,
+ * and no response difference between a real and a made-up order (no oracle).
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getPublicOrderTrackingResponse } from '@/lib/services/public-order-tracking.service';
+import { NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 
 /**
- * Returns public order detail payload by tenant and order number.
- *
- * @param _request Incoming HTTP request.
- * @param params Route context object.
- * @param params.params Route params promise containing tenantId and orderNo.
- * @returns JSON response with public order details and timeline.
+ * Always answers 404 without touching the database.
+ * @returns Generic not-found response.
  */
-export async function GET(
-    request: NextRequest,
-    { params }: { params: Promise<{ tenantId: string; orderNo: string }> },
-) {
-    const { tenantId, orderNo } = await params;
-    const result = await getPublicOrderTrackingResponse(request, { tenantId, orderNo });
-    return NextResponse.json(result.body, { status: result.status });
+export async function GET() {
+  logger.warn('Retired legacy public order path requested', {
+    feature: 'public_order_tracking',
+    action: 'legacy_lookup_retired',
+  });
+  return NextResponse.json({ success: false }, { status: 404 });
 }

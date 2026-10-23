@@ -214,11 +214,42 @@
       "CHANGE_PREFERENCE": "تغيير تفضيل",
       "REMOVE_PREFERENCE": "حذف تفضيل",
       "CHANGE_PRIORITY": "تغيير الأولوية",
-      "CHANGE_SERVICE_SPEED": "تغيير المستعجل",
+      "CHANGE_SERVICE_SPEED": "تغيير سرعة الخدمة",
       "CHANGE_READY_BY": "تغيير موعد الجاهزية",
       "CHANGE_ORDER_NOTES": "تغيير الملاحظات",
       "CHANGE_CUSTOMER_SNAPSHOT": "تغيير بيانات العميل",
-      "CHANGE_UNLISTED": "تغيير آخر متابع"
+      "CHANGE_UNLISTED": "تغيير آخر متابع",
+      "CHANGE_CUSTOMER": "تغيير العميل",
+      "CHANGE_BRANCH": "تغيير الفرع",
+      "CHANGE_ORDER_TYPE": "تغيير نوع الطلب",
+      "CHANGE_EXPRESS": "تغيير المستعجل",
+      "CHANGE_QUICK_DROP": "تغيير التسليم السريع",
+      "CHANGE_PAYMENT_NOTES": "تغيير ملاحظات الدفع",
+      "CHANGE_ORDER_SOURCE": "تغيير مصدر الطلب",
+      "CHANGE_PHYSICAL_INTAKE": "تغيير الاستلام الفعلي",
+      "CHANGE_B2B_REFERENCE": "تغيير مرجع المنشأة التجارية",
+      "CHANGE_DISCOUNT": "تغيير الخصم",
+      "CHANGE_PAYMENT_TYPE": "تغيير نوع الدفع",
+      "CHANGE_ITEM_PRODUCT": "تغيير منتج الصنف",
+      "CHANGE_ITEM_SERVICE": "تغيير خدمة الصنف",
+      "CHANGE_ITEM_PRICE": "تغيير سعر الصنف",
+      "CHANGE_PIECE_BRAND": "تغيير ماركة القطعة",
+      "CHANGE_PIECE_RACK": "تغيير رف القطعة"
+    },
+    "resolutionLabel": "مصدر السياسة",
+    "resolutionLevels": {
+      "ORGANIZATION": "تجاوز على مستوى المنشأة",
+      "PROFILE": "تجاوز للمنشأة وملف سير العمل",
+      "VERSION_DEFAULT": "السياسة الافتراضية لإصدار سير العمل المنشور",
+      "DENY": "لا توجد سياسة قابلة للاستخدام"
+    },
+    "denyReasons": {
+      "NO_AUTHORITY": "لا يوجد تجاوز أو سياسة افتراضية منشورة. اطلب من إدارة المنصة إعداد سياسة تعديل.",
+      "AMBIGUOUS_ORGANIZATION": "توجد تجاوزات متعددة مطابقة للمنشأة. يجب على إدارة المنصة معالجة التعيينات المكررة.",
+      "AMBIGUOUS_PROFILE": "توجد تجاوزات متعددة مطابقة للمنشأة وملف سير العمل. يجب على إدارة المنصة معالجة التعيينات المكررة.",
+      "AMBIGUOUS_DEFAULT": "توجد سياسات افتراضية منشورة متعددة ومطابقة. يجب على إدارة المنصة معالجة السياسات الافتراضية المكررة.",
+      "POLICY_NOT_USABLE": "السياسة المختارة غير متاحة أو غير نشطة. يجب على إدارة المنصة إصلاح تعيينها.",
+      "STATUS_NOT_COVERED": "لا توجد قواعد في السياسة المختارة لحالة سير العمل هذه. تبقى التغييرات محظورة."
     }
   },
   "lifecycle": {
@@ -255,6 +286,32 @@
       "SAVE_AS_CUSTOMER_ADVANCE": "سلفة العميل",
       "SAVE_AS_CUSTOMER_CREDIT": "رصيد العميل",
       "SAVE_TO_CUSTOMER_WALLET": "محفظة العميل"
+    }
+  },
+  "review": {
+    "willAdd": "ستتم الإضافة",
+    "willRemove": "ستتم الإزالة",
+    "none": "بدون",
+    "newItem": "صنف جديد",
+    "newPiece": "قطعة جديدة",
+    "kind": {
+      "packing": "التغليف",
+      "stain": "بقعة",
+      "damage": "تلف",
+      "color": "اللون",
+      "condition": "الحالة",
+      "note": "ملاحظة",
+      "service": "تفضيل الخدمة"
+    },
+    "fields": {
+      "priceOverride": "تجاوز السعر",
+      "preferenceCharge": "رسوم التفضيل",
+      "service": "الخدمة",
+      "pieceNumber": "رقم القطعة",
+      "stage": "المرحلة",
+      "scanState": "حالة المسح",
+      "value": "القيمة",
+      "defaultCustomer": "العميل الافتراضي"
     }
   }
 }

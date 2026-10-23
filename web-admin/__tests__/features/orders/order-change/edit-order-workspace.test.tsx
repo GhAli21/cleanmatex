@@ -184,41 +184,35 @@ describe('shared edit workspace adapter', () => {
     expect(visualHeaderChangeCount(loaded, { ...sameHeader, items: [kept, added] })).toBe(2);
   });
 
-  it('tracks preferences and changes that have no policy operation', () => {
+  it('uses canonical operations for ready-by clearing and unavailable price changes', () => {
     const loaded = baseline();
     const controller = createEditOrderController({ createId: () => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' });
     const visual = projectEditVisualOrder(context());
-    const kept = visual.items[0];
-    const other = visual.items[1];
-    if (!kept?.pieces?.[0] || !other) throw new Error('line');
     const preferenceId = '55555555-5555-4555-8555-555555555555';
     applyVisualDraftToController(controller, { ...loaded, readyBy: '2026-10-16T10:00:00.000Z' }, {
-      notes: 'original',
-      readyBy: '',
-      express: false,
-      customerName: 'Ada',
-      customerMobile: '050',
-      customerEmail: 'ada@example.com',
+      notes: 'original', readyBy: '', express: false, customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
       orderServicePrefs: [{ preference_code: 'HANG', source: 'manual', extra_price: 0, preferenceCfId: preferenceId }],
-      items: [
-        { ...kept, priceOverride: 9, pieces: [{ ...kept.pieces[0], color: 'BLUE' }] },
-        { ...other, servicePrefs: [{ preference_code: 'FOLD', source: 'manual', extra_price: 0 }] },
-      ],
+      items: visual.items.map((item, index) => index === 0 ? { ...item, priceOverride: 9 } : item),
     });
-    expect(controller.buildOperations().map((operation) => operation.code)).toEqual([
-      'ADD_PREFERENCE',
-      'CHANGE_UNLISTED',
-      'CHANGE_UNLISTED',
-      'CHANGE_UNLISTED',
-      'CHANGE_UNLISTED',
-    ]);
-    const unlisted = controller.buildOperations().filter((operation) => operation.code === 'CHANGE_UNLISTED');
-    expect(unlisted.map((operation) => operation.payload)).toEqual(expect.arrayContaining([
-      { field: 'order.readyBy', value: '' },
-      { field: 'item.priceOverride', value: '9.0000' },
-      { field: 'piece.color', value: 'BLUE' },
-      { field: 'preference.code', value: 'FOLD' },
-    ]));
+    const operations = controller.buildOperations();
+    expect(operations.map((operation) => operation.code)).toEqual(['CHANGE_READY_BY', 'ADD_PREFERENCE', 'CHANGE_ITEM_PRICE']);
+    expect(operations[0].payload).toEqual({ readyBy: null });
+    expect(operations.some((operation) => operation.code === 'CHANGE_UNLISTED')).toBe(false);
+  });
+
+  it('blocks known preference fields without catalog identity instead of using residual permission', async () => {
+    const loaded = baseline();
+    const fetchImpl = jest.fn();
+    const controller = createEditOrderController({ fetchImpl });
+    const visual = projectEditVisualOrder(context());
+    applyVisualDraftToController(controller, loaded, {
+      notes: 'original', express: false, customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
+      items: visual.items.map((item, index) => index === 0 ? { ...item, pieces: item.pieces?.map((piece) => ({ ...piece, color: 'BLUE' })) } : item),
+    });
+    expect(controller.operationCount()).toBe(1);
+    expect(controller.buildOperations()).toEqual([]);
+    await expect(controller.preview(ORDER_ID)).resolves.toMatchObject({ ok: false, status: 422, body: { error: { code: 'OPERATION_NOT_AVAILABLE', field: 'piece.color' } } });
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('mounts the shared New Order workspace and does not keep a second edit form', () => {

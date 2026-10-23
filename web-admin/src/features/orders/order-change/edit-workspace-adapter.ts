@@ -104,8 +104,7 @@ export function applyVisualDraftToController(
   if (text(visual.customerNotes) !== text(baseline.customerNotes)) controller.setCustomerNotes(text(visual.customerNotes));
   const nextReadyBy = text(visual.readyBy);
   if (visual.readyBy !== undefined && nextReadyBy !== text(baseline.readyBy)) {
-    if (nextReadyBy) controller.setReadyBy(nextReadyBy);
-    else controller.recordUnlisted({ target: { kind: 'ORDER' }, field: 'order.readyBy', value: '' });
+    controller.setReadyBy(nextReadyBy);
   }
   const baselineExpress = baseline.serviceSpeed === 'EXPRESS';
   if (visual.express !== undefined && visual.express !== baselineExpress) {
@@ -324,6 +323,7 @@ function persistedItemExtras(line: EditOrderBaseline['lines'][number], item: Ord
   if (line.identity.kind !== 'persisted') return [];
   const target: EditUnlistedChange['target'] = { kind: 'PERSISTED_ITEM', id: line.identity.id };
   return textChanges(target, [
+    ['item.productId', line.productId, item.productId],
     ['item.priceOverride', line.priceOverride ?? '', moneyOverride(item.priceOverride) ?? ''],
     ['item.overrideReason', text(line.overrideReason), text(item.overrideReason ?? undefined)],
     ['item.notes', '', text(item.notes)],
@@ -341,6 +341,7 @@ function persistedPieceExtras(piece: EditPieceDraft, visual: PreSubmissionPiece)
   return textChanges(target, [
     ['piece.color', text(piece.color), text(visual.color)],
     ['piece.brand', text(piece.brand), text(visual.brand)],
+    ['piece.rackLocation', '', text(visual.rackLocation)],
     ['piece.notes', text(piece.notes), text(visual.notes)],
     ['piece.conditions', '', (visual.conditions ?? []).join(',')],
     ['piece.packing', '', text(visual.packingPrefCode)],

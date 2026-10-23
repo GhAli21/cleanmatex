@@ -3,14 +3,15 @@ import 'server-only';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import {
   ORDER_CHANGE_LIMITS,
+  isOrderChangeOperationWriterAvailable,
   type OrderChangeOperationCode,
 } from '@/lib/constants/order-change';
 import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm';
 
-/** The only policy target domains that V1 Change operations may address. */
+/** The policy target domains stored by the shared Edit Policy catalog. */
 export const ORDER_CHANGE_CAPABILITY_TARGET_TYPES = ['ORDER', 'ITEM', 'PIECE', 'PREFERENCE'] as const;
 
-/** Derives the controlled target-domain union from the frozen policy tokens. */
+/** Derives the controlled target-domain union from persisted policy tokens. */
 export type OrderChangeCapabilityTargetType = (typeof ORDER_CHANGE_CAPABILITY_TARGET_TYPES)[number];
 
 /** The finite outcomes exposed by capability evaluation and bound into review proof. */
@@ -24,17 +25,17 @@ export const ORDER_CHANGE_CAPABILITY_DECISIONS = [
 /** Derives the allowed policy outcome from the persisted profile binding contract. */
 export type OrderChangeCapabilityDecisionKind = (typeof ORDER_CHANGE_CAPABILITY_DECISIONS)[number];
 
-/** A profile-owned, stage-specific authorization rule for exactly one Change operation domain. */
+/** One SQL-selected status rule for exactly one Change operation and target domain. */
 export interface OrderChangeCapabilityBinding {
   /** Exact Edit Policy selected by the trusted tenant/profile resolver. */
   editPolicyId: string;
-  /** Immutable workflow profile version that supplied this binding. */
-  profileVersionId: string;
+  /** The order's stamped workflow version for proof binding; null remains explicit for organization authority. */
+  profileVersionId: string | null;
   /** Published policy revision used to invalidate a stale review. */
   policyRevision: number;
   /** Exact current workflow status; wildcard status bindings are deliberately unsupported. */
   workflowStatus: string;
-  /** Frozen V1 Change operation. */
+  /** Reviewed catalog Change operation. */
   operationCode: OrderChangeOperationCode;
   /** Semantic commercial target derived server-side from the operation code. */
   targetType: OrderChangeCapabilityTargetType;
@@ -80,10 +81,12 @@ export interface OrderChangeCapabilityActor {
 
 /** Candidate operation evaluated after request-shape validation and before projection. */
 export interface OrderChangeCapabilityOperation {
-  /** Frozen V1 operation code. */
+  /** Reviewed catalog operation code. */
   code: OrderChangeOperationCode;
   /** Server-derived parent scope for ADD_PREFERENCE; never browser-authored policy input. */
   preferenceParentTargetType?: Extract<OrderChangeCapabilityTargetType, 'ORDER' | 'ITEM' | 'PIECE'>;
+  /** Persisted hierarchy-derived scope for the residual operation, never a policy target from the body. */
+  targetType?: OrderChangeCapabilityTargetType;
   /** Sequence is retained so a result cannot be reused for a different submitted operation. */
   seq: number;
   /** Whether a reason was supplied in the request or operation payload. */
@@ -96,7 +99,7 @@ export interface OrderChangeCapabilityOperation {
 export interface OrderChangeCapabilityResult {
   /** Original operation sequence. */
   seq: number;
-  /** Original frozen operation code. */
+  /** Original catalog operation code. */
   operationCode: OrderChangeOperationCode;
   /** Server-derived semantic target domain. */
   targetType: OrderChangeCapabilityTargetType;
@@ -113,7 +116,7 @@ export interface OrderChangeCapabilityResult {
   /** Present only when a configured override is possible. */
   overridePermissionCode: string | null;
   /** Policy identity used by the Preview/Apply proof contract. */
-  policyIdentity: { editPolicyId: string; profileVersionId: string; policyRevision: number } | null;
+  policyIdentity: { editPolicyId: string; profileVersionId: string | null; policyRevision: number } | null;
 }
 
 /** Error codes for invalid review-proof material without revealing key or payload internals. */
@@ -153,10 +156,12 @@ export interface OrderChangeReviewProofBinding {
   canonicalIntent: unknown;
   changeReason: string | null;
   gateDecisions: unknown;
-  policyIdentity: { editPolicyId: string; profileVersionId: string; policyRevision: number };
+  policyIdentity: { editPolicyId: string; profileVersionId: string | null; policyRevision: number };
   policyFacts: unknown;
   calculationFingerprint: string;
   settlementSourceFingerprint: string;
+  /** Binds the exact normalized before/after objects reviewed by the operator. */
+  operationSnapshotDigest: string;
 }
 
 type OrderChangeReviewProofPayload = {
@@ -172,11 +177,13 @@ type OrderChangeReviewProofPayload = {
   reasonDigest: string;
   decisionsDigest: string;
   editPolicyId: string;
-  profileVersionId: string;
+  profileVersionId: string | null;
   policyRevision: number;
   policyFactsDigest: string;
   calculationFingerprint: string;
   settlementSourceFingerprint: string;
+  /** Binds the exact normalized before/after objects reviewed by the operator. */
+  operationSnapshotDigest: string;
   exp: number;
 };
 
@@ -190,22 +197,24 @@ const ORDER_CHANGE_REVIEW_PROOF_DOMAIN = 'cleanmatex.order-change.review-proof.v
 export function resolveOrderChangeCapabilityTarget(
   operationCode: OrderChangeOperationCode,
   preferenceParentTargetType?: Extract<OrderChangeCapabilityTargetType, 'ORDER' | 'ITEM' | 'PIECE'>,
+  residualTargetType?: OrderChangeCapabilityTargetType,
 ): OrderChangeCapabilityTargetType {
   if (operationCode === 'ADD_ITEM') return 'ORDER';
-  if (operationCode === 'REMOVE_ITEM' || operationCode === 'CHANGE_ITEM_QUANTITY') return 'ITEM';
+  if (operationCode === 'REMOVE_ITEM' || operationCode === 'CHANGE_ITEM_QUANTITY'
+    || operationCode === 'CHANGE_ITEM_PRODUCT' || operationCode === 'CHANGE_ITEM_SERVICE' || operationCode === 'CHANGE_ITEM_PRICE') return 'ITEM';
   if (operationCode === 'ADD_PIECE') return 'ITEM';
-  if (operationCode === 'REMOVE_PIECE') return 'PIECE';
+  if (operationCode === 'REMOVE_PIECE' || operationCode === 'CHANGE_PIECE_BRAND' || operationCode === 'CHANGE_PIECE_RACK') return 'PIECE';
   if (operationCode === 'ADD_PREFERENCE') {
     if (!preferenceParentTargetType) throw new Error('Preference parent scope is required.');
     return preferenceParentTargetType;
   }
   if (operationCode === 'CHANGE_PREFERENCE' || operationCode === 'REMOVE_PREFERENCE') return 'PREFERENCE';
-  if (operationCode === 'CHANGE_UNLISTED') return 'ORDER';
+  if (operationCode === 'CHANGE_UNLISTED') return residualTargetType ?? 'ORDER';
   return 'ORDER';
 }
 
 /**
- * Evaluates one operation only against an explicit published profile binding.
+ * Evaluates one operation only against the explicit rule selected by the shared SQL resolver.
  * Missing profile data, missing permissions, non-committed orders, and hard
  * domain denials are all fail-closed to prevent legacy editability from becoming authorization.
  */
@@ -221,6 +230,7 @@ export async function evaluateOrderChangeCapability(input: {
     targetType = resolveOrderChangeCapabilityTarget(
       input.operation.code,
       input.operation.preferenceParentTargetType,
+      input.operation.targetType,
     );
   } catch {
     return {
@@ -256,23 +266,6 @@ export async function evaluateOrderChangeCapability(input: {
   if (!input.facts.workflowStatus?.trim()) return denial('WORKFLOW_STATUS_UNAVAILABLE', 'orderChange.capability.workflowStatusUnavailable');
   if (input.operation.hardDenial) return denial(input.operation.hardDenial.code, input.operation.hardDenial.messageKey);
   if (!await input.actor.canUsePermission(ORDERS_PERMISSIONS.EDIT)) return denial('PERMISSION_DENIED', 'orderChange.capability.permissionDenied');
-  if (input.operation.code === 'CHANGE_UNLISTED') {
-    const assigned = input.bindings.find((candidate) => candidate.workflowStatus === input.facts.workflowStatus);
-    return {
-      seq: input.operation.seq,
-      operationCode: input.operation.code,
-      targetType,
-      decision: 'ALLOW',
-      reasonCode: 'NOT_IN_POLICY',
-      messageKey: 'orderChange.capability.notInPolicy',
-      requiresAcknowledgement: false,
-      requiresReason: false,
-      overridePermissionCode: null,
-      policyIdentity: assigned
-        ? { editPolicyId: assigned.editPolicyId, profileVersionId: assigned.profileVersionId, policyRevision: assigned.policyRevision }
-        : null,
-    };
-  }
 
   const binding = input.bindings.find((candidate) =>
     candidate.workflowStatus === input.facts.workflowStatus
@@ -280,6 +273,9 @@ export async function evaluateOrderChangeCapability(input: {
     && candidate.targetType === targetType,
   );
   if (!binding) return denial('CAPABILITY_POLICY_BINDING_MISSING', 'orderChange.capability.policyBindingMissing');
+  if (!isOrderChangeOperationWriterAvailable(input.operation.code)) {
+    return denial('OPERATION_NOT_AVAILABLE', 'orderChange.capability.operationNotAvailable');
+  }
   if (binding.decision === 'DENY') return denial(binding.reasonCode, binding.messageKey);
   if (binding.requiredPermissionCode && !await input.actor.canUsePermission(binding.requiredPermissionCode)) {
     return denial('PERMISSION_DENIED', 'orderChange.capability.permissionDenied');
@@ -331,6 +327,7 @@ export function issueOrderChangeReviewProof(input: {
     policyFactsDigest: digestCanonical(input.binding.policyFacts),
     calculationFingerprint: input.binding.calculationFingerprint,
     settlementSourceFingerprint: input.binding.settlementSourceFingerprint,
+    operationSnapshotDigest: input.binding.operationSnapshotDigest,
     exp: Math.floor((input.now?.getTime() ?? Date.now()) / 1000) + ORDER_CHANGE_REVIEW_PROOF_TTL_SECONDS,
   };
   const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
@@ -370,7 +367,7 @@ export function verifyOrderChangeReviewProof(input: {
   const comparisonKeys: Array<keyof OrderChangeReviewProofPayload> = [
     'v', 'kid', 'tenantId', 'orderId', 'actorUserId', 'expectedEditStateVersion', 'expectedWfStateVersion',
     'sourceContext', 'intentDigest', 'reasonDigest', 'decisionsDigest', 'editPolicyId', 'profileVersionId', 'policyRevision',
-    'policyFactsDigest', 'calculationFingerprint', 'settlementSourceFingerprint',
+    'policyFactsDigest', 'calculationFingerprint', 'settlementSourceFingerprint', 'operationSnapshotDigest',
   ];
   if (comparisonKeys.some((field) => payload[field] !== expected[field])) {
     throw new OrderChangeReviewProofError('ORDER_CHANGE_REVIEW_PROOF_STALE', 'Review proof is no longer valid for this Change.');
@@ -410,9 +407,9 @@ function parseProofPayload(encoded: string): OrderChangeReviewProofPayload {
       || !Number.isInteger(payload.expectedEditStateVersion) || !Number.isInteger(payload.expectedWfStateVersion)
       || typeof payload.sourceContext !== 'string' || typeof payload.intentDigest !== 'string'
       || typeof payload.reasonDigest !== 'string' || typeof payload.decisionsDigest !== 'string'
-      || typeof payload.editPolicyId !== 'string' || typeof payload.profileVersionId !== 'string' || !Number.isInteger(payload.policyRevision)
+      || typeof payload.editPolicyId !== 'string' || (payload.profileVersionId !== null && typeof payload.profileVersionId !== 'string') || !Number.isInteger(payload.policyRevision)
       || typeof payload.policyFactsDigest !== 'string' || typeof payload.calculationFingerprint !== 'string'
-      || typeof payload.settlementSourceFingerprint !== 'string' || !Number.isInteger(payload.exp)
+      || typeof payload.settlementSourceFingerprint !== 'string' || typeof payload.operationSnapshotDigest !== 'string' || !Number.isInteger(payload.exp)
     ) throw new Error('invalid payload');
     return payload as OrderChangeReviewProofPayload;
   } catch {
@@ -439,6 +436,7 @@ function toProofPayload(binding: OrderChangeReviewProofBinding, keyId: string, e
     policyFactsDigest: digestCanonical(binding.policyFacts),
     calculationFingerprint: binding.calculationFingerprint,
     settlementSourceFingerprint: binding.settlementSourceFingerprint,
+    operationSnapshotDigest: binding.operationSnapshotDigest,
     exp,
   };
 }

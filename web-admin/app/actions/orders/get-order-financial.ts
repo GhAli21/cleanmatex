@@ -1,6 +1,8 @@
 'use server';
 
-import { getAuthContext } from '@/lib/auth/server-auth';
+import { resolveActionTenant } from '@/lib/auth/server-action-guard';
+import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm';
+import { logger } from '@/lib/utils/logger';
 import {
   getOrderFinancialSummary,
   type OrderAdjustmentRow,
@@ -45,41 +47,37 @@ export interface OrderFinancialData {
   taxDocuments: TaxDocumentSummaryRow[];
 }
 
+/** Failure code when the summary read itself fails (module-private: a `'use server'` file exports only async functions). */
+const FETCH_FAILED = 'FETCH_FAILED';
+
 /**
+ * Loads the full financial picture of one order for the session's tenant.
  *
- * @param tenantId
- * @param orderId
+ * A `'use server'` export is a callable endpoint, so tenant and permission
+ * come only from the session (BF-09, via the BF-20 guard): the caller passes
+ * the order id, never a tenant id. Requires `orders:read`. Internal error text
+ * is logged, never returned to the caller.
+ * @param orderId - Order id within the session tenant
  */
 export async function getOrderFinancialAction(
-  tenantId: string,
   orderId: string
 ): Promise<{ success: boolean; data?: OrderFinancialData; error?: string }> {
-  try {
-    const summary = await getOrderFinancialSummary(tenantId, orderId);
+  const guard = await resolveActionTenant({
+    action: 'orders.getOrderFinancialAction',
+    permission: ORDERS_PERMISSIONS.READ,
+  });
+  if (!guard.ok || !guard.tenantId) return { success: false, error: guard.error };
 
-    return {
-      success: true,
-      data: summary,
-    };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to fetch financial data';
-    return { success: false, error: message };
-  }
-}
-
-/**
- * Client-callable variant — resolves tenantId from session internally.
- * @param orderId
- */
-export async function getOrderFinancialForReceiptAction(
-  orderId: string
-): Promise<{ success: boolean; data?: OrderFinancialData; error?: string }> {
   try {
-    const { tenantId } = await getAuthContext();
-    if (!tenantId) return { success: false, error: 'Not authenticated' };
-    return getOrderFinancialAction(tenantId, orderId);
+    const summary = await getOrderFinancialSummary(guard.tenantId, orderId);
+    return { success: true, data: summary };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to fetch financial data';
-    return { success: false, error: message };
+    logger.error('getOrderFinancialAction failed', err as Error, {
+      feature: 'order-financial',
+      action: 'getOrderFinancialAction',
+      tenantId: guard.tenantId,
+      orderId,
+    });
+    return { success: false, error: FETCH_FAILED };
   }
 }

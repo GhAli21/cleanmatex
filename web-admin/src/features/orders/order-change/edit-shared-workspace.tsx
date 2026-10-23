@@ -23,11 +23,13 @@ import type { OrderChangeFollowUpPlan } from '@/lib/services/order-change/order-
 import { OrderWorkspaceSessionProvider, type OrderWorkspaceSessionValue } from './order-workspace-session';
 import { orderEditSessionHeaders, type OrderEditLeaveReason } from './edit-page-session';
 
+/** Keeps post-commit payment follow-up available when the edit session closes. */
 interface EditLeaveRequest {
   reason: Extract<OrderEditLeaveReason, 'user_exit' | 'applied'>;
   paymentsTab: boolean;
 }
 
+/** Binds the workspace to the server-issued edit session and its controlled exit flow. */
 interface EditSharedWorkspaceProps {
   orderId: string;
   sessionToken: string;
@@ -80,6 +82,7 @@ function showApplyFailure(
 ): void {
   cmxMessage.error(notice.title, {
     description: notice.lines.join('\n'),
+    // Twenty seconds gives staff time to copy diagnostic facts before the notice expires.
     duration: 20000,
     dismissible: true,
     action: {
@@ -128,6 +131,7 @@ function EditSharedWorkspaceBody({
   const state = useNewOrderState();
   const [controller] = useState<EditOrderController>(() => createEditOrderController({
     headers: async () => ({
+      // Bind mutation requests to the browser session to prevent cross-site request forgery.
       ...getCSRFHeader(await getCSRFToken()),
       ...orderEditSessionHeaders(sessionToken),
     }),
@@ -146,7 +150,9 @@ function EditSharedWorkspaceBody({
   const [followUpPlan, setFollowUpPlan] = useState<OrderChangeFollowUpPlan | null>(null);
   const [sealed, setSealed] = useState(false);
   const [exiting, setExiting] = useState(false);
+  // Preserve payment follow-up routing until the committed session actually leaves.
   const paymentsOnLeaveRef = useRef(false);
+  // The persistent history listener must invoke the latest dirty-state exit guard.
   const exitRef = useRef<() => Promise<void>>(async () => undefined);
 
   useEffect(() => {
@@ -175,6 +181,7 @@ function EditSharedWorkspaceBody({
     });
   }, [baseline, context, controller, dispatch, reloadKey]);
 
+  // Loading a different policy invalidates review proof before the next Preview or Apply.
   useEffect(() => {
     controller.rememberLoadedPolicy(context.editPolicy);
   }, [context.editPolicy, controller]);
@@ -192,16 +199,17 @@ function EditSharedWorkspaceBody({
   }), [state.customerEmail, state.customerMobile, state.customerName, state.customerNotes, state.express, state.items, state.notes, state.orderServicePrefs, state.readyByAt]);
 
   const rememberReview = useCallback((body: unknown) => {
-    const view = readEditReview(body, controller.buildOperations(), context.financial.totalAmount);
+    const view = readEditReview(body, controller.buildOperations(), context.financial.totalAmount, { currencyCode: context.order.currencyCode, timezone: context.order.timezone });
     setReviewView(view);
     setReviewStatus(view.status);
     setEstimatedTotal(view.estimatedTotal);
     setConflict(view.conflict);
     setApplyFailure(null);
     setReviewOpen(view.status !== 'NO_CHANGE');
-  }, [context.financial.totalAmount, controller]);
+  }, [context.financial.totalAmount, context.order.currencyCode, context.order.timezone, controller]);
 
   const loadHistory = useCallback(async () => {
+    // Keep the review compact with the five most recent committed changes.
     const response = await fetch(`/api/v1/orders/${context.orderId}/changes?limit=5`, {
       headers: orderEditSessionHeaders(sessionToken),
     });
@@ -213,7 +221,7 @@ function EditSharedWorkspaceBody({
   const previewDraft = useCallback(async () => {
     const result = await controller.preview(context.orderId);
     if (!result.ok) {
-      const failed = readEditReview(result.body, controller.buildOperations(), context.financial.totalAmount);
+      const failed = readEditReview(result.body, controller.buildOperations(), context.financial.totalAmount, { currencyCode: context.order.currencyCode, timezone: context.order.timezone });
       setReviewView({ ...failed, conflict: result.status === 409 });
       setConflict(result.status === 409);
       setReviewOpen(true);
@@ -229,7 +237,7 @@ function EditSharedWorkspaceBody({
     }
     rememberReview(result.body);
     void loadHistory();
-  }, [context.financial.totalAmount, context.orderId, controller, loadHistory, rememberReview, t]);
+  }, [context.financial.totalAmount, context.order.currencyCode, context.order.timezone, context.orderId, controller, loadHistory, rememberReview, t]);
 
   const onReview = useCallback(async () => {
     if (context.editAccess.status !== 'OPEN') return;
@@ -411,6 +419,11 @@ function EditSharedWorkspaceBody({
   );
 }
 
+/**
+ * Loads authoritative order context before mounting the shared editor.
+ * Requests use the edit-session token; the server resolves the authenticated tenant.
+ * Closed access or an unmappable baseline keeps the mutation workspace unavailable.
+ */
 export function EditSharedWorkspace({ orderId, sessionToken, onLeave }: EditSharedWorkspaceProps) {
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');

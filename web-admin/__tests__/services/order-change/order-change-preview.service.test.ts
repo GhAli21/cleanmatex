@@ -243,15 +243,14 @@ describe('previewOrderChange', () => {
       operationAudits: [expect.objectContaining({
         seq: 1,
         before: expect.objectContaining({
-          service_speed: 'STANDARD',
-          total_amount: '10.0000',
-          items: [expect.objectContaining({ id: ITEM, product_name: 'Shirt', price_per_unit: '10.0000' })],
+          serviceSpeed: 'STANDARD',
+          totalAmount: '10.0000',
+          items: [expect.objectContaining({ orderItemId: ITEM, pricePerUnit: '10.0000' })],
         }),
         after: expect.objectContaining({
-          service_speed: 'EXPRESS',
-          total_amount: '12.0000',
-          express_charge_amount: '0.0000',
-          items: [expect.objectContaining({ id: ITEM, product_name: 'Shirt', price_per_unit: '12.0000' })],
+          serviceSpeed: 'EXPRESS',
+          totalAmount: '12.0000',
+          items: [expect.objectContaining({ orderItemId: ITEM, pricePerUnit: '12.0000' })],
         }),
       })],
     });

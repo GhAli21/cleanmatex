@@ -1,4 +1,4 @@
-import { ORDER_CHANGE_LIMITS, ORDER_CHANGE_RATE_LIMITS } from '@/lib/constants/order-change';
+import { ORDER_CHANGE_LIMITS, ORDER_CHANGE_RATE_LIMITS, ORDER_CHANGE_UNAVAILABLE_OPERATION_CODES } from '@/lib/constants/order-change';
 import {
   orderChangeApplyRequestSchema,
   orderChangeHistoryQuerySchema,
@@ -111,6 +111,15 @@ describe('Order Change V1 request schema', () => {
     expect(orderChangeHistoryQuerySchema.safeParse({ limit: ORDER_CHANGE_LIMITS.HISTORY_MAX_PAGE_SIZE, cursor: 'c'.repeat(ORDER_CHANGE_LIMITS.HISTORY_MAX_CURSOR_LENGTH) }).success).toBe(true);
     expect(orderChangeHistoryQuerySchema.safeParse({ limit: ORDER_CHANGE_LIMITS.HISTORY_MAX_PAGE_SIZE + 1 }).success).toBe(false);
     expect(orderChangeHistoryQuerySchema.safeParse({ cursor: 'c'.repeat(ORDER_CHANGE_LIMITS.HISTORY_MAX_CURSOR_LENGTH + 1) }).success).toBe(false);
+  });
+
+  it.each(ORDER_CHANGE_UNAVAILABLE_OPERATION_CODES)('accepts catalog-only %s for explicit runtime rejection', (code) => {
+    expect(orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code, target: { kind: 'ORDER' }, payload: {} }] }).success).toBe(true);
+  });
+
+  it('accepts clearing ready-by through its governed operation and rejects a fake catalog code', () => {
+    expect(orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code: 'CHANGE_READY_BY', target: { kind: 'ORDER' }, payload: { readyBy: null } }] }).success).toBe(true);
+    expect(orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code: 'CHANGE_FAKE', target: { kind: 'ORDER' }, payload: {} }] }).success).toBe(false);
   });
 
   it('keeps the future Preview/Apply rate policy bounded and distinct', () => {

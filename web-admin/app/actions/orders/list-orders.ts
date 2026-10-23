@@ -2,14 +2,16 @@
  * Server Action: List Orders
  *
  * Fetches paginated list of orders with filters and search.
- * Automatically uses tenant context from session.
+ * Tenant comes from the session; a caller-supplied tenant id is only verified (BF-20).
  */
 
 'use server';
 
+import { resolveActionTenant } from '@/lib/auth/server-action-guard';
+import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm';
 import { listOrders as listOrdersDb, getOrderStats } from '@/lib/db/orders';
 import { orderFiltersSchema } from '@/lib/validations/order-schema';
-import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context';
+import { withTenantContext } from '@/lib/db/tenant-context';
 import type { OrderListResponse, OrderStats } from '@/types/order';
 
 interface ListOrdersResult {
@@ -27,7 +29,7 @@ interface GetOrderStatsResult {
 /**
  * List orders with filters and pagination
  *
- * @param tenantOrgId - Tenant organization ID (from session) - kept for backward compatibility
+ * @param tenantOrgId - Tenant the caller expects; must equal the session tenant
  * @param filters - Filter criteria
  * @returns Paginated list of orders
  */
@@ -35,6 +37,14 @@ export async function listOrders(
   tenantOrgId: string,
   filters: unknown
 ): Promise<ListOrdersResult> {
+  const guard = await resolveActionTenant({
+    action: 'orders.listOrders',
+    expectedTenantId: tenantOrgId,
+    permission: ORDERS_PERMISSIONS.READ,
+  });
+  if (!guard.ok || !guard.tenantId) return { success: false, error: guard.error };
+  const tenantId = guard.tenantId;
+
   try {
     // Validate filters
     const validation = await orderFiltersSchema.safeParseAsync(filters);
@@ -46,9 +56,8 @@ export async function listOrders(
       };
     }
 
-    // Use tenant context - all Prisma queries will automatically filter by tenant_org_id
-    const result = await withTenantContext(tenantOrgId, async () => {
-      return await listOrdersDb(tenantOrgId, validation.data);
+    const result = await withTenantContext(tenantId, async () => {
+      return await listOrdersDb(tenantId, validation.data);
     });
 
     return {
@@ -68,16 +77,23 @@ export async function listOrders(
 /**
  * Get order statistics for dashboard
  *
- * @param tenantOrgId - Tenant organization ID (from session) - kept for backward compatibility
+ * @param tenantOrgId - Tenant the caller expects; must equal the session tenant
  * @returns Order statistics
  */
 export async function getStats(
   tenantOrgId: string
 ): Promise<GetOrderStatsResult> {
+  const guard = await resolveActionTenant({
+    action: 'orders.getStats',
+    expectedTenantId: tenantOrgId,
+    permission: ORDERS_PERMISSIONS.READ,
+  });
+  if (!guard.ok || !guard.tenantId) return { success: false, error: guard.error };
+  const tenantId = guard.tenantId;
+
   try {
-    // Use tenant context - all Prisma queries will automatically filter by tenant_org_id
-    const stats = await withTenantContext(tenantOrgId, async () => {
-      return await getOrderStats(tenantOrgId);
+    const stats = await withTenantContext(tenantId, async () => {
+      return await getOrderStats(tenantId);
     });
 
     return {

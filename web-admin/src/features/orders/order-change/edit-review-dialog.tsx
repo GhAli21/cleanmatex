@@ -12,6 +12,7 @@ import type { EditReviewView } from './edit-review-view';
 import { EditReviewChanges } from './edit-review-changes';
 import type { ApplyFailureNotice } from './apply-failure';
 
+/** Compact applied-history facts shown without changing the review's navigation flow. */
 export interface EditHistoryRow {
   changeNo: number;
   revision: number;
@@ -55,7 +56,8 @@ export function EditReviewDialog({
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const [reasonText, setReasonText] = useState('');
-  const ready = review?.status === 'READY' && !conflict;
+  // Acknowledgements and reasons must produce a fresh READY Preview before Apply is offered.
+  const ready = review?.status === 'READY' && review.operations.length > 0 && !conflict;
   const awaitingReason = review?.status === 'REASON_REQUIRED';
   const warningTitle = (decision: string, reasonCode: string) => {
     if (decision === 'DENY') return t('workspace.deniedReason', { reason: reasonCode });
@@ -96,15 +98,19 @@ export function EditReviewDialog({
                   ...(review.financialOutcome ? [`${t('workspace.outcome')}: ${review.financialOutcome}`] : []),
                 ]}
               />
-              <EditReviewChanges operations={review.operations} />
-              {review.warnings.map((warning) => (
-                <div key={warning.seq} className="space-y-2">
-                  <CmxSummaryMessage type="warning" title={warningTitle(warning.decision, warning.reasonCode)} items={[warning.decision === 'DENY' ? warning.decision : warning.reasonCode]} />
-                  {warning.requiresAcknowledgement ? (
-                    <CmxCheckbox label={t('workspace.acknowledge')} onChange={() => onAcknowledge(warning.seq, warning.gateCode)} />
-                  ) : null}
-                </div>
-              ))}
+              <EditReviewChanges
+                operations={review.operations}
+                currencyCode={review.currencyCode}
+                timezone={review.timezone}
+                renderWarning={(seq) => review.warnings.filter((warning) => warning.seq === seq).map((warning) => (
+                  <div key={`${warning.seq}-${warning.gateCode}`} className="space-y-2">
+                    <CmxSummaryMessage type={warning.decision === 'DENY' ? 'error' : 'warning'} title={warningTitle(warning.decision, warning.reasonCode)} items={[warning.decision === 'DENY' ? warning.decision : warning.reasonCode]} />
+                    {warning.requiresAcknowledgement ? (
+                      <CmxCheckbox label={t('workspace.acknowledge')} onChange={() => onAcknowledge(warning.seq, warning.gateCode)} />
+                    ) : null}
+                  </div>
+                ))}
+              />
               {awaitingReason ? (
                 <CmxTextarea
                   aria-label={t('workspace.reason')}

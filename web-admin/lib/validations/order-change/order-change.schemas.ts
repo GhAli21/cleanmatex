@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ORDER_CHANGE_LIMITS, ORDER_CHANGE_OPERATION_CODES } from '@/lib/constants/order-change';
+import { ORDER_CHANGE_LIMITS, ORDER_CHANGE_OPERATION_CODES, ORDER_CHANGE_UNAVAILABLE_OPERATION_CODES } from '@/lib/constants/order-change';
 
 const uuidSchema = z.string().uuid();
 const clientRefSchema = uuidSchema;
@@ -32,12 +32,18 @@ export const orderChangeOperationSchema = z.discriminatedUnion('code', [
   operationBaseSchema.extend({ code: z.literal('REMOVE_PREFERENCE'), target: persistedPreferenceTargetSchema, payload: optionalReasonSchema }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_PRIORITY'), target: orderTargetSchema, payload: z.object({ priority: z.string().min(1).max(50) }).strict() }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_SERVICE_SPEED'), target: orderTargetSchema, payload: z.object({ serviceSpeed: z.enum(['STANDARD', 'EXPRESS']) }).strict() }),
-  operationBaseSchema.extend({ code: z.literal('CHANGE_READY_BY'), target: orderTargetSchema, payload: z.object({ readyBy: z.string().datetime({ offset: true }) }).strict() }),
+  operationBaseSchema.extend({ code: z.literal('CHANGE_READY_BY'), target: orderTargetSchema, payload: z.object({ readyBy: z.string().datetime({ offset: true }).nullable() }).strict() }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_ORDER_NOTES'), target: orderTargetSchema, payload: z.object({ notes: z.string().max(ORDER_CHANGE_LIMITS.MAX_ORDER_NOTE_LENGTH).optional(), customerNotes: z.string().max(ORDER_CHANGE_LIMITS.MAX_ORDER_NOTE_LENGTH).optional() }).strict().refine((value) => value.notes !== undefined || value.customerNotes !== undefined, 'At least one note field is required') }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_CUSTOMER_SNAPSHOT'), target: orderTargetSchema, payload: z.object({ customerName: z.string().max(255).optional(), customerMobile: z.string().max(50).optional(), customerEmail: z.string().email().max(255).optional() }).strict().refine((value) => Object.keys(value).length > 0, 'At least one customer snapshot field is required') }),
+  // Catalog-only codes are accepted so both endpoints return OPERATION_NOT_AVAILABLE before any write.
+  operationBaseSchema.extend({
+    code: z.enum(ORDER_CHANGE_UNAVAILABLE_OPERATION_CODES),
+    target: z.union([orderTargetSchema, persistedItemTargetSchema, persistedPieceTargetSchema]),
+    payload: z.record(z.string(), z.unknown()),
+  }),
   operationBaseSchema.extend({
     code: z.literal('CHANGE_UNLISTED'),
-    target: z.union([orderTargetSchema, persistedItemTargetSchema, persistedPieceTargetSchema, localItemTargetSchema, localPieceTargetSchema]),
+    target: z.union([orderTargetSchema, persistedItemTargetSchema, persistedPieceTargetSchema, persistedPreferenceTargetSchema, localItemTargetSchema, localPieceTargetSchema]),
     payload: z.object({ field: z.string().trim().min(1).max(80), value: z.string().max(1_000) }).strict(),
   }),
 ]);

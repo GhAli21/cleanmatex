@@ -3,11 +3,14 @@
  *
  * Adds items to an order during the preparation workflow.
  * Automatically calculates pricing, tax, and updates order totals.
+ * Tenant comes from the session; a caller-supplied tenant id is only verified (BF-20).
  */
 
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { resolveActionTenant } from '@/lib/auth/server-action-guard';
+import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm';
 import { addOrderItemsSchema } from '@/lib/validations/order-schema';
 import { addOrderItems as addOrderItemsDb } from '@/lib/db/orders';
 import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
@@ -27,7 +30,7 @@ interface AddOrderItemsResult {
 /**
  * Add items to an order
  *
- * @param tenantOrgId - Tenant organization ID (from session)
+ * @param tenantOrgId - Tenant the caller expects; must equal the session tenant
  * @param orderId - Order ID
  * @param data - Items to add
  * @returns Result with created items and updated order
@@ -37,6 +40,16 @@ export async function addOrderItems(
   orderId: string,
   data: unknown
 ): Promise<AddOrderItemsResult> {
+  const guard = await resolveActionTenant({
+    action: 'orders.addOrderItems',
+    expectedTenantId: tenantOrgId,
+    permission: ORDERS_PERMISSIONS.UPDATE,
+  });
+  if (!guard.ok || !guard.tenantId) {
+    return { success: false, error: guard.error, errorCode: guard.error };
+  }
+  const tenantId = guard.tenantId;
+
   try {
     // Validate input
     const validation = addOrderItemsSchema.safeParse(data);
@@ -56,10 +69,10 @@ export async function addOrderItems(
       };
     }
 
-    const retiredWrite = await blockCommittedCommercialWrite(tenantOrgId, orderId);
+    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
     if (retiredWrite) return retiredWrite.body;
 
-    const result = await addOrderItemsDb(tenantOrgId, orderId, validation.data);
+    const result = await addOrderItemsDb(tenantId, orderId, validation.data);
 
     // Revalidate order pages
     revalidatePath(`/dashboard/orders/${orderId}`);

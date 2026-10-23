@@ -7,7 +7,7 @@ import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialo
 import { Badge } from '@ui/primitives/badge';
 import { CmxButton, Tooltip } from '@ui/primitives';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
+import { ORDER_CHANGE_OPERATION_CODES } from '@/lib/constants/order-change';
 import type { OrderChangeEditPolicyAssignment, OrderChangeEditPolicyInfo, OrderChangeEditPolicyRule } from '@/lib/types/order-change';
 import { editPolicyExplanationKeys, sortEditPolicyRules } from './edit-policy-info';
 
@@ -45,22 +45,8 @@ export function EditPolicyInfoDialog({
 }) {
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
-  const operationLabels: Record<OrderChangeOperationCode, string> = {
-    ADD_ITEM: t('policyInfo.operations.ADD_ITEM'),
-    REMOVE_ITEM: t('policyInfo.operations.REMOVE_ITEM'),
-    CHANGE_ITEM_QUANTITY: t('policyInfo.operations.CHANGE_ITEM_QUANTITY'),
-    ADD_PIECE: t('policyInfo.operations.ADD_PIECE'),
-    REMOVE_PIECE: t('policyInfo.operations.REMOVE_PIECE'),
-    ADD_PREFERENCE: t('policyInfo.operations.ADD_PREFERENCE'),
-    CHANGE_PREFERENCE: t('policyInfo.operations.CHANGE_PREFERENCE'),
-    REMOVE_PREFERENCE: t('policyInfo.operations.REMOVE_PREFERENCE'),
-    CHANGE_PRIORITY: t('policyInfo.operations.CHANGE_PRIORITY'),
-    CHANGE_SERVICE_SPEED: t('policyInfo.operations.CHANGE_SERVICE_SPEED'),
-    CHANGE_READY_BY: t('policyInfo.operations.CHANGE_READY_BY'),
-    CHANGE_ORDER_NOTES: t('policyInfo.operations.CHANGE_ORDER_NOTES'),
-    CHANGE_CUSTOMER_SNAPSHOT: t('policyInfo.operations.CHANGE_CUSTOMER_SNAPSHOT'),
-    CHANGE_UNLISTED: t('policyInfo.operations.CHANGE_UNLISTED'),
-  };
+  // The canonical catalog includes recognizable operations even when their writer is unavailable.
+  const operationLabels = Object.fromEntries(ORDER_CHANGE_OPERATION_CODES.map((code) => [code, t(`policyInfo.operations.${code}`)]));
   const decisionLabels = {
     ALLOW: t('policyInfo.legend.allow'),
     ALLOW_WITH_WARNING: t('policyInfo.legend.warning'),
@@ -77,6 +63,7 @@ export function EditPolicyInfoDialog({
     totalSame: t('policyInfo.how.totalSame'),
     identityLocked: t('policyInfo.how.identityLocked'),
     reasonRequired: t('policyInfo.how.reasonRequired'),
+    notAvailable: t('capability.notAvailable'),
   } as const;
   const targetLabels = {
     ORDER: t('policyInfo.targets.ORDER'),
@@ -122,9 +109,11 @@ export function EditPolicyInfoDialog({
           <p className="text-sm">
             {t('policyInfo.statusLine', { status: policy.workflowStatus ?? t('workspace.lockedField') })}
           </p>
+          {/* Show the resolver's authority level so staff can distinguish overrides from defaults. */}
+          <p className="text-sm">{t('policyInfo.resolutionLabel')}{': '}{t(`policyInfo.resolutionLevels.${policy.resolutionLevel ?? 'DENY'}`)}</p>
           {policy.status === 'MISSING' ? (
             <p className="rounded border border-[rgb(var(--cmx-warning-border-rgb,253_224_71))] bg-[rgb(var(--cmx-warning-bg-rgb,254_252_232))] px-3 py-2 text-sm">
-              {t('policyInfo.missing')}
+              {policy.denyReason && policy.denyReason !== 'NONE' ? t(`policyInfo.denyReasons.${policy.denyReason}`) : t('policyInfo.missing')}
             </p>
           ) : (
             <>

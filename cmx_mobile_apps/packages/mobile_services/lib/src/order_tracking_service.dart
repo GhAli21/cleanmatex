@@ -67,9 +67,14 @@ class OrderTrackingService {
     if (!_useRemoteTracking(session)) return _demoOrderDetail(orderNumber);
 
     try {
+      // Authenticated customer route: the server checks the bearer token
+      // against the tenant and returns the order only if it belongs to this
+      // customer. The readable /api/v1/public/orders/{tenant}/{orderNo} path
+      // was retired (BF-16) because order numbers are guessable.
       final payload = await _httpClient.getJson(
-        '/api/v1/public/orders/${session!.tenantOrgId!}/$orderNumber',
-        headers: {'Authorization': 'Bearer ${session.verificationToken}'},
+        '/api/v1/public/customer/orders/${Uri.encodeComponent(orderNumber)}',
+        headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
+        queryParameters: {'tenantId': session.tenantOrgId!},
       );
 
       final data = payload['data'];

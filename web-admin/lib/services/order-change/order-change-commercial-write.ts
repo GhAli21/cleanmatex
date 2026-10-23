@@ -3,7 +3,6 @@
  * Item and piece identity stays. The legacy editor deleted every piece and recreated it.
  */
 
-import { randomUUID } from 'crypto';
 
 import { CHARGE_TYPES } from '@/lib/constants/order-financial';
 import { PREFS_LEVEL, PREFS_OWNER_TYPE, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
@@ -108,7 +107,8 @@ export function buildCommercialWritePlan(
       if (!catalog || catalog.preferenceCode !== operation.payload.preferenceCode) {
         throw new OrderChangeApplyRejected(422, 'PREFERENCE_CATALOG_MISSING');
       }
-      const id = randomUUID();
+      // Client references are already UUIDs and make the reviewed identity stable at Apply.
+      const id = operation.payload.clientRef;
       const level = preferenceLevel(operation.target.kind);
       const itemId = operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : null;
       const pieceId = operation.target.kind === 'PERSISTED_PIECE' ? operation.target.id : null;
@@ -406,7 +406,7 @@ export function allocateReviewedTax(
  * lines must carry the reviewed tax before the snapshot is compared.
  */
 export async function syncReviewedTaxLine(
-  tx: CommercialQueryTx & { org_orders_mst?: { findFirstOrThrow?: unknown } },
+  tx: CommercialQueryTx & { org_orders_mst?: { findFirstOrThrow?: unknown; updateMany?: unknown } },
   input: {
     tenantId: string;
     orderId: string;
@@ -470,7 +470,7 @@ export async function syncReviewedTaxLine(
 }
 
 export async function assertCommercialSnapshot(
-  tx: CommercialQueryTx & { org_orders_mst?: { findFirstOrThrow?: unknown } },
+  tx: CommercialQueryTx & { org_orders_mst?: { findFirstOrThrow?: unknown; updateMany?: unknown } },
   input: { tenantId: string; orderId: string; projectedTotal: string },
 ): Promise<void> {
   if (typeof tx.org_orders_mst?.findFirstOrThrow !== 'function') return;

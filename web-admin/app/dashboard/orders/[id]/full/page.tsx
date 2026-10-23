@@ -160,7 +160,7 @@ async function OrderDetailsFullContent({
     getOrderChangeHistoryAction(resolvedOrderId),
     getOrderPreferencesAction(resolvedOrderId),
     getDiscountLinesForOrder(tenantId, resolvedOrderId).catch(() => [] as OrderDiscountLine[]),
-    getOrderFinancialAction(tenantId, resolvedOrderId),
+    getOrderFinancialAction(resolvedOrderId),
   ]);
   const orderInvoices = invoicesResult.success && invoicesResult.data ? invoicesResult.data : [];
   const vouchers = vouchersResult ?? [];
@@ -243,7 +243,6 @@ async function OrderDetailsFullContent({
   const publicTrackingPath = await getPublicTrackingPathForOrderId({
     tenantId,
     orderId: resolvedOrderId,
-    fallbackOrderNo: typeof order.order_no === 'string' ? order.order_no : null,
   });
 
   const preferenceDtlColumnLabels = Object.fromEntries(

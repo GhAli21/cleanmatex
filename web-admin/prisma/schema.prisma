@@ -14838,6 +14838,7 @@ model sys_wf_profile_ver_mst {
   org_orders_mst              org_orders_mst[]
   org_wf_gate_decision_mst    org_wf_gate_decision_mst[]
   org_wf_profile_assign_cf    org_wf_profile_assign_cf[]
+  sys_wf_edit_policy_def_cf   sys_wf_edit_policy_def_cf[]
   sys_wf_edit_policy_mst      sys_wf_edit_policy_mst[]
   sys_wf_prof_ver_evidence_cf sys_wf_prof_ver_evidence_cf[]
   sys_wf_prof_ver_init_cf     sys_wf_prof_ver_init_cf[]
@@ -14856,23 +14857,24 @@ model sys_wf_profile_ver_mst {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_wf_profiles_cd {
-  profile_id               String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile_code             String                     @unique(map: "uq_sys_wf_profiles_code")
-  name                     String
-  name2                    String?
-  description              String?
-  description2             String?
-  is_system                Boolean                    @default(false)
-  is_active                Boolean                    @default(true)
-  display_order            Int                        @default(0)
-  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
-  created_by               String?                    @db.Uuid
-  updated_at               DateTime?                  @db.Timestamptz(6)
-  updated_by               String?                    @db.Uuid
-  rec_status               Int                        @default(1) @db.SmallInt
-  rec_notes                String?
-  org_wf_profile_assign_cf org_wf_profile_assign_cf[]
-  sys_wf_profile_ver_mst   sys_wf_profile_ver_mst[]
+  profile_id                String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_code              String                      @unique(map: "uq_sys_wf_profiles_code")
+  name                      String
+  name2                     String?
+  description               String?
+  description2              String?
+  is_system                 Boolean                     @default(false)
+  is_active                 Boolean                     @default(true)
+  display_order             Int                         @default(0)
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?                     @db.Uuid
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?                     @db.Uuid
+  rec_status                Int                         @default(1) @db.SmallInt
+  rec_notes                 String?
+  org_wf_edit_policy_asg_cf org_wf_edit_policy_asg_cf[]
+  org_wf_profile_assign_cf  org_wf_profile_assign_cf[]
+  sys_wf_profile_ver_mst    sys_wf_profile_ver_mst[]
 
   @@schema("public")
 }
@@ -15881,7 +15883,7 @@ model org_ntf_usage_apply_evt {
 model org_wf_edit_policy_asg_cf {
   id                          String                 @id(map: "pk_wf_edit_asg") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id               String                 @db.Uuid
-  workflow_profile_version_id String                 @db.Uuid
+  workflow_profile_version_id String?                @db.Uuid
   edit_policy_id              String                 @db.Uuid
   created_at                  DateTime               @default(now()) @db.Timestamptz(6)
   created_by                  String?                @db.Uuid
@@ -15893,7 +15895,11 @@ model org_wf_edit_policy_asg_cf {
   rec_order                   Int?
   rec_notes                   String?
   is_active                   Boolean                @default(true)
-  sys_wf_edit_policy_mst      sys_wf_edit_policy_mst @relation(fields: [edit_policy_id, workflow_profile_version_id], references: [id, workflow_profile_version_id], onUpdate: Restrict, map: "fk_wf_edit_asg_policy")
+  scope                       String
+  workflow_profile_id         String?                @db.Uuid
+  gap_acknowledged            Boolean                @default(false)
+  sys_wf_edit_policy_mst      sys_wf_edit_policy_mst @relation(fields: [edit_policy_id], references: [id], onUpdate: Restrict, map: "fk_wf_edit_asg_pol")
+  sys_wf_profiles_cd          sys_wf_profiles_cd?    @relation(fields: [workflow_profile_id], references: [profile_id], onDelete: Restrict, onUpdate: Restrict, map: "fk_wf_edit_asg_prof")
   org_tenants_mst             org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onUpdate: Restrict, map: "fk_wf_edit_asg_tenant")
 
   @@schema("public")
@@ -15903,7 +15909,7 @@ model org_wf_edit_policy_asg_cf {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_wf_edit_policy_mst {
   id                                                   String                        @id(map: "pk_wf_edit_policy") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workflow_profile_version_id                          String                        @db.Uuid
+  workflow_profile_version_id                          String?                       @db.Uuid
   policy_code                                          String                        @unique(map: "uq_wf_edit_policy_code")
   name                                                 String
   name2                                                String
@@ -15928,13 +15934,13 @@ model sys_wf_edit_policy_mst {
   rec_notes                                            String?
   is_active                                            Boolean                       @default(true)
   org_wf_edit_policy_asg_cf                            org_wf_edit_policy_asg_cf[]
+  sys_wf_edit_policy_def_cf                            sys_wf_edit_policy_def_cf[]
   users_sys_wf_edit_policy_mst_pilot_started_byTousers hq_users?                     @relation("sys_wf_edit_policy_mst_pilot_started_byTousers", fields: [pilot_started_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_wf_edit_pol_pilot_by")
-  sys_wf_profile_ver_mst                               sys_wf_profile_ver_mst        @relation(fields: [workflow_profile_version_id], references: [version_id], onUpdate: Restrict, map: "fk_wf_edit_pol_profile")
+  sys_wf_profile_ver_mst                               sys_wf_profile_ver_mst?       @relation(fields: [workflow_profile_version_id], references: [version_id], onDelete: Restrict, onUpdate: Restrict, map: "fk_wf_edit_pol_profile")
   users_sys_wf_edit_policy_mst_published_byTousers     hq_users?                     @relation("sys_wf_edit_policy_mst_published_byTousers", fields: [published_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_wf_edit_pol_pub_by")
   users_sys_wf_edit_policy_mst_retired_byTousers       hq_users?                     @relation("sys_wf_edit_policy_mst_retired_byTousers", fields: [retired_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_wf_edit_pol_ret_by")
   sys_wf_edit_policy_rule_dtl                          sys_wf_edit_policy_rule_dtl[]
 
-  @@unique([id, workflow_profile_version_id], map: "uq_wf_edit_policy_ver")
   @@schema("public")
 }
 
@@ -16627,6 +16633,28 @@ model sys_ntf_sender_kind_cd {
   sys_ntf_providers_cd sys_ntf_providers_cd @relation(fields: [provider_code], references: [code], onUpdate: NoAction)
 
   @@unique([provider_code, code], map: "uq_ntf_sender_kind")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_wf_edit_policy_def_cf {
+  id                          String                 @id(map: "pk_wf_edit_def") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workflow_profile_version_id String                 @db.Uuid
+  edit_policy_id              String                 @db.Uuid
+  created_at                  DateTime               @default(now()) @db.Timestamptz(6)
+  created_by                  String?                @db.Uuid
+  created_info                String?
+  updated_at                  DateTime?              @db.Timestamptz(6)
+  updated_by                  String?                @db.Uuid
+  updated_info                String?
+  rec_status                  Int                    @default(1) @db.SmallInt
+  rec_order                   Int?
+  rec_notes                   String?
+  is_active                   Boolean                @default(true)
+  sys_wf_edit_policy_mst      sys_wf_edit_policy_mst @relation(fields: [edit_policy_id], references: [id], onUpdate: Restrict, map: "fk_wf_edit_def_pol")
+  sys_wf_profile_ver_mst      sys_wf_profile_ver_mst @relation(fields: [workflow_profile_version_id], references: [version_id], onUpdate: Restrict, map: "fk_wf_edit_def_ver")
+
   @@schema("public")
 }
 

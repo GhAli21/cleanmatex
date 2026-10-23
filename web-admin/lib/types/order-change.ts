@@ -106,6 +106,8 @@ export interface OrderChangeContext {
     customerSnapshot: { name: string | null; mobile: string | null; email: string | null };
     branchId: string | null;
     currencyCode: string | null;
+    /** Organization-configured timezone for review timestamps; absence never invents a locale default. */
+    timezone?: string | null;
     paymentTypeCode: string | null;
     priority: string | null;
     serviceSpeed: string | null;
@@ -139,6 +141,13 @@ export interface OrderChangeEditPolicyRule {
   requiresReason: boolean;
 }
 
+/** SQL resolver levels, preserved verbatim from the shared database contract. */
+export type OrderChangeEditPolicyResolutionLevel = 'ORGANIZATION' | 'PROFILE' | 'VERSION_DEFAULT' | 'DENY';
+
+/** SQL authority failures are display/proof facts; capability still requires an explicit live rule. */
+export type OrderChangeEditPolicyDenyReason = 'NONE' | 'NO_AUTHORITY' | 'AMBIGUOUS_ORGANIZATION'
+  | 'AMBIGUOUS_PROFILE' | 'AMBIGUOUS_DEFAULT' | 'POLICY_NOT_USABLE' | 'STATUS_NOT_COVERED';
+
 /** The single active Edit Policy for this order's workflow status, or a missing result. */
 export interface OrderChangeEditPolicyAssignment {
   tenantOrgId: string;
@@ -155,7 +164,11 @@ export interface OrderChangeEditPolicyAssignment {
   lifecycleStatus: string | null;
 }
 
+/** Display projection of the one shared resolver result; it never grants permission itself. */
 export interface OrderChangeEditPolicyInfo {
+  /** Optional for older stored/test context snapshots; current server responses always include it. */
+  resolutionLevel?: OrderChangeEditPolicyResolutionLevel;
+  denyReason?: OrderChangeEditPolicyDenyReason;
   status: 'READY' | 'MISSING';
   workflowStatus: string | null;
   editPolicyId: string | null;

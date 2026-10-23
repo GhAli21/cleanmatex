@@ -107,7 +107,6 @@ import {
   confirmPublicOrderReceivedResponse,
   getPublicTrackingPathForOrderId,
   resolvePublicTrackingReferenceByToken,
-  resolvePublicTrackingTokenByOrderRef,
 } from '@/lib/services/public-order-tracking.service';
 
 describe('public-order-tracking service', () => {
@@ -154,39 +153,61 @@ describe('public-order-tracking service', () => {
     });
   });
 
-  describe('resolvePublicTrackingTokenByOrderRef', () => {
-    it('returns the active token for a readable tenant/order reference', async () => {
-      (prisma.$queryRaw as jest.Mock).mockResolvedValueOnce([
-        {
-          id: 'order-1',
-          tenant_org_id: 'tenant-1',
-          order_no: 'ORD-20260725-0004',
-          public_tracking_token: 'opaque-token-123456',
-        },
-      ]);
-
-      await expect(
-        resolvePublicTrackingTokenByOrderRef({
-          tenantId: 'tenant-1',
-          orderNo: 'ORD-20260725-0004',
+  describe('getCustomerOwnedOrderTrackingResponse (BF-16 mobile replacement)', () => {
+    it('returns 404 without loading details when the order is not owned by the session customer', async () => {
+      const eqCalls: Array<[string, unknown]> = [];
+      const query = {
+        select: jest.fn(() => query),
+        eq: jest.fn((column: string, value: unknown) => {
+          eqCalls.push([column, value]);
+          return query;
         }),
-      ).resolves.toBe('opaque-token-123456');
+        maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+      };
+      const { createAdminSupabaseClient } = jest.requireMock('@/lib/supabase/server') as {
+        createAdminSupabaseClient: jest.Mock;
+      };
+      createAdminSupabaseClient.mockReturnValue({ from: jest.fn(() => query) });
+
+      const { getCustomerOwnedOrderTrackingResponse } = await import(
+        '@/lib/services/public-order-tracking.service'
+      );
+      const result = await getCustomerOwnedOrderTrackingResponse(
+        {} as never,
+        { tenantId: 'tenant-1', orderNo: 'ORD-1', customerPhone: '+96890000000' },
+      );
+
+      expect(result.status).toBe(404);
+      expect(eqCalls).toEqual(
+        expect.arrayContaining([
+          ['tenant_org_id', 'tenant-1'],
+          ['order_no', 'ORD-1'],
+          ['org_customers_mst.phone', '+96890000000'],
+        ]),
+      );
     });
 
-    it('returns null when no active token exists', async () => {
-      (prisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
+    it('returns 404 immediately when any input is missing', async () => {
+      const { getCustomerOwnedOrderTrackingResponse } = await import(
+        '@/lib/services/public-order-tracking.service'
+      );
+      const result = await getCustomerOwnedOrderTrackingResponse(
+        {} as never,
+        { tenantId: 'tenant-1', orderNo: 'ORD-1', customerPhone: '' },
+      );
+      expect(result.status).toBe(404);
+    });
+  });
 
-      await expect(
-        resolvePublicTrackingTokenByOrderRef({
-          tenantId: 'tenant-1',
-          orderNo: 'ORD-20260725-0004',
-        }),
-      ).resolves.toBeNull();
+  describe('BF-16: readable tenant/order-number access is retired', () => {
+    it('no longer exports a token lookup by tenant + order number (the token-leak primitive)', async () => {
+      const service = await import('@/lib/services/public-order-tracking.service');
+      expect('resolvePublicTrackingTokenByOrderRef' in service).toBe(false);
     });
   });
 
   describe('getPublicTrackingPathForOrderId', () => {
-    it('prefers the opaque path when a token exists', async () => {
+    it('returns the opaque path when a token exists', async () => {
       (prisma.$queryRaw as jest.Mock).mockResolvedValueOnce([
         {
           id: 'order-1',
@@ -200,24 +221,32 @@ describe('public-order-tracking service', () => {
         getPublicTrackingPathForOrderId({
           tenantId: 'tenant-1',
           orderId: 'order-1',
-          fallbackOrderNo: 'ORD-20260725-0004',
         }),
       ).resolves.toBe('/track/opaque-token-123456');
     });
 
-    it('falls back to the legacy readable path during rollout', async () => {
+    it('BF-16: returns null (never a readable /public/orders path) when no active token exists', async () => {
       (prisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
 
-      await expect(
-        getPublicTrackingPathForOrderId({
-          tenantId: 'tenant-1',
-          orderId: 'order-1',
-          fallbackOrderNo: 'ORD-20260725-0004',
-        }),
-      ).resolves.toBe('/public/orders/tenant-1/ORD-20260725-0004');
+      const path = await getPublicTrackingPathForOrderId({
+        tenantId: 'tenant-1',
+        orderId: 'order-1',
+      });
+
+      expect(path).toBeNull();
     });
 
-    it('returns null when no token or fallback order number exists', async () => {
+    it('filters by tenant and order id in the query', async () => {
+      (prisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
+
+      await getPublicTrackingPathForOrderId({ tenantId: 'tenant-1', orderId: 'order-1' });
+
+      const sql = (prisma.$queryRaw as jest.Mock).mock.calls[0][0] as { strings: string[]; values: unknown[] };
+      expect(sql.strings.join('?')).toContain('tenant_org_id = CAST(');
+      expect(sql.values).toEqual(expect.arrayContaining(['tenant-1', 'order-1']));
+    });
+
+    it('returns null when the token columns are not available', async () => {
       (prisma.$queryRaw as jest.Mock).mockRejectedValueOnce(new Error('column "public_tracking_token" does not exist'));
 
       await expect(

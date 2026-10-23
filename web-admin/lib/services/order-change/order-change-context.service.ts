@@ -39,15 +39,11 @@ function toIso(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
 
-type PolicyAssignmentRow = {
-  assignment_id: string | null;
-  profile_version_id: string | null;
+/** Names and workflow labels enrich the SQL-selected policy; they never select authority. */
+type PolicyDisplayRow = {
   version_no: number | null;
   version_status: string | null;
-  profile_id: string | null;
   profile_code: string | null;
-  edit_policy_id: string | null;
-  policy_code: string | null;
   policy_name: string | null;
   policy_name2: string | null;
   lifecycle_status: string | null;
@@ -131,79 +127,60 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
     }
 
     const financial = await getOrderFinancialSummary(tenantId, input.orderId);
+    // Organization identity is the primary key on this table; it has no tenant_org_id column.
+    const organization = await prisma.org_tenants_mst.findFirst({ where: { id: tenantId }, select: { timezone: true } });
     const policyRows = await prisma.$transaction(async (tx) => {
-      const bindings = await resolveOrderChangePolicyBindings(tx, {
+      const resolution = await resolveOrderChangePolicyBindings(tx, {
         tenantId,
+        profileId: order.wf_profile_id,
         profileVersionId: order.wf_profile_version_id,
         workflowStatus: order.current_status,
       });
-      const assignment = order.wf_profile_version_id
-        ? await tx.$queryRaw<PolicyAssignmentRow[]>`
-          SELECT
-            assignment.id::text AS assignment_id,
-            version.version_id::text AS profile_version_id,
-            version.version_no,
-            version.version_status,
-            profile.profile_id::text AS profile_id,
-            profile.profile_code,
-            policy.id::text AS edit_policy_id,
-            policy.policy_code,
-            policy.name AS policy_name,
-            policy.name2 AS policy_name2,
-            policy.lifecycle_status
-          FROM public.sys_wf_profile_ver_mst AS version
-          INNER JOIN public.sys_wf_profiles_cd AS profile
-            ON profile.profile_id = version.profile_id
-          LEFT JOIN public.org_wf_edit_policy_asg_cf AS assignment
-            ON assignment.workflow_profile_version_id = version.version_id
-           AND assignment.tenant_org_id = ${tenantId}::uuid
-           AND assignment.rec_status = 1
-           AND assignment.is_active = true
-          LEFT JOIN public.sys_wf_edit_policy_mst AS policy
-            ON policy.id = assignment.edit_policy_id
-           AND policy.workflow_profile_version_id = assignment.workflow_profile_version_id
-           AND policy.lifecycle_status IN ('PILOT', 'PUBLISHED')
-           AND policy.rec_status = 1
-           AND policy.is_active = true
-          WHERE version.version_id = ${order.wf_profile_version_id}::uuid
-            AND profile.rec_status = 1
-        `
-        : [];
-      return { bindings, assignment };
+      // Display metadata follows the selected policy ID; no assignment/version join can choose a second authority.
+      const display = await tx.$queryRaw<PolicyDisplayRow[]>`
+        SELECT version.version_no, version.version_status, profile.profile_code,
+          policy.name AS policy_name, policy.name2 AS policy_name2, policy.lifecycle_status
+        FROM (VALUES (1)) AS display_anchor(value)
+        LEFT JOIN public.sys_wf_profile_ver_mst AS version
+          ON version.version_id = ${order.wf_profile_version_id}::uuid
+        LEFT JOIN public.sys_wf_profiles_cd AS profile
+          ON profile.profile_id = ${order.wf_profile_id}::uuid
+        LEFT JOIN public.sys_wf_edit_policy_mst AS policy
+          ON policy.id = ${resolution.editPolicyId}::uuid
+      `;
+      return { resolution, display: display[0] };
     });
-    const bindings = policyRows.bindings;
-    const policyIds = new Set(policyRows.assignment.map((row) => row.edit_policy_id).filter((id): id is string => Boolean(id)));
-    const header = policyIds.size === 1 ? policyRows.assignment.find((row) => row.edit_policy_id) ?? policyRows.assignment[0] : policyRows.assignment[0];
-    const assigned = policyIds.size === 1 ? header : undefined;
+    const { resolution, display } = policyRows;
     const assignment = {
       tenantOrgId: tenantId,
-      assignmentId: assigned?.assignment_id ?? null,
-      profileId: header?.profile_id ?? order.wf_profile_id,
-      profileCode: header?.profile_code ?? null,
-      profileVersionId: header?.profile_version_id ?? order.wf_profile_version_id,
-      versionNo: header?.version_no == null ? null : Number(header.version_no),
-      versionStatus: header?.version_status ?? null,
-      editPolicyId: assigned?.edit_policy_id ?? null,
-      policyCode: assigned?.policy_code ?? null,
-      policyName: assigned?.policy_name ?? null,
-      policyName2: assigned?.policy_name2 ?? null,
-      lifecycleStatus: assigned?.lifecycle_status ?? null,
+      // Authority may come from a default, so an override assignment ID is not implied by the result.
+      assignmentId: null,
+      profileId: order.wf_profile_id,
+      profileCode: display?.profile_code ?? null,
+      profileVersionId: order.wf_profile_version_id,
+      versionNo: display?.version_no == null ? null : Number(display.version_no),
+      versionStatus: display?.version_status ?? null,
+      editPolicyId: resolution.editPolicyId,
+      policyCode: resolution.policyCode,
+      policyName: display?.policy_name ?? null,
+      policyName2: display?.policy_name2 ?? null,
+      lifecycleStatus: display?.lifecycle_status ?? null,
     };
-    const editPolicy: OrderChangeEditPolicyInfo = bindings.length === 0
-      ? { status: 'MISSING', workflowStatus: order.current_status, editPolicyId: null, policyRevision: null, assignment, rules: [] }
-      : {
-        status: 'READY',
-        workflowStatus: order.current_status,
-        editPolicyId: bindings[0].editPolicyId,
-        policyRevision: bindings[0].policyRevision,
-        assignment: { ...assignment, editPolicyId: bindings[0].editPolicyId },
-        rules: bindings.map((binding) => ({
-          operationCode: binding.operationCode,
-          targetType: binding.targetType,
-          decision: binding.decision,
-          requiresReason: binding.requiresReason === true,
-        })),
-      };
+    const editPolicy: OrderChangeEditPolicyInfo = {
+      status: resolution.bindings.length > 0 ? 'READY' : 'MISSING',
+      workflowStatus: order.current_status,
+      resolutionLevel: resolution.resolutionLevel,
+      denyReason: resolution.denyReason,
+      editPolicyId: resolution.editPolicyId,
+      policyRevision: resolution.policyRevision,
+      assignment,
+      rules: resolution.bindings.map((binding) => ({
+        operationCode: binding.operationCode,
+        targetType: binding.targetType,
+        decision: binding.decision,
+        requiresReason: binding.requiresReason === true,
+      })),
+    };
     return {
       orderId: order.id,
       orderNo: order.order_no,
@@ -217,7 +194,7 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
       order: {
         customer: { id: order.customer_id },
         customerSnapshot: { name: order.customer_name, mobile: order.customer_mobile_number, email: order.customer_email },
-        branchId: order.branch_id, currencyCode: order.currency_code, paymentTypeCode: order.payment_type_code, priority: order.priority, serviceSpeed: order.service_speed,
+        branchId: order.branch_id, currencyCode: order.currency_code, timezone: organization?.timezone ?? null, paymentTypeCode: order.payment_type_code, priority: order.priority, serviceSpeed: order.service_speed,
         readyBy: toIso(order.ready_by), notes: order.internal_notes, customerNotes: order.customer_notes,
       },
       items: items.map((item) => ({

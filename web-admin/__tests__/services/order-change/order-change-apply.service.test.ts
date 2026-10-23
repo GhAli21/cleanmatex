@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+import { buildOrderChangeOperationAudit, digestOrderChangeOperationAudits } from '@/lib/services/order-change/order-change-review-audit';
 import { issueOrderChangeReviewProof, type OrderChangeReviewProofBinding } from '@/lib/services/order-change/order-change-capability.service';
 import { applyOrderChange, type ApplyOrderChangeInput, type OrderChangeApplyTx } from '@/lib/services/order-change/order-change-apply.service';
 import { persistOrderChangeTx, OrderChangeMutationError } from '@/lib/services/order-change/order-change-mutation.service';
@@ -40,6 +41,7 @@ function preview(overrides: Partial<OrderChangePreviewSuccess> = {}): OrderChang
     projectedTax: '0.0000',
     displayTotal: '10.000',
     projectedItemIds: [],
+    operationAudits: [],
     followUp: [],
     ...overrides,
   };
@@ -90,7 +92,9 @@ function harness(overrides: Partial<ApplyOrderChangeInput> = {}) {
 describe('applyOrderChange', () => {
   beforeEach(() => {
     persistMock.mockReset();
-    persistMock.mockResolvedValue({
+    persistMock.mockImplementation(async (_tx, input) => {
+      await input.finalizeOperations?.();
+      return {
       ok: true,
       replayed: false,
       orderChangeId: 'change-1',
@@ -101,6 +105,7 @@ describe('applyOrderChange', () => {
       retiredPieceIds: [],
       retiredPreferenceIds: [],
       applyResponse: { status: 'APPLIED' },
+      };
     });
   });
 
@@ -151,6 +156,10 @@ describe('applyOrderChange', () => {
       policyFacts: [],
       calculationFingerprint: 'fingerprint-1',
       settlementSourceFingerprint: 'PAID:10.0000',
+      operationSnapshotDigest: digestOrderChangeOperationAudits([buildOrderChangeOperationAudit({
+        operation: base.operations[0], orderId: '22222222-2222-4222-8222-222222222222',
+        before: {}, after: { internal_notes: 'Leave at desk' }, orderBefore: {}, orderAfter: {},
+      })]),
     };
     const presented = issueOrderChangeReviewProof({ key, binding, now: reviewedAt });
     const fresh = issueOrderChangeReviewProof({ key, binding, now: appliedAt });
@@ -188,6 +197,10 @@ describe('applyOrderChange', () => {
       policyFacts: [],
       calculationFingerprint: 'fingerprint-1',
       settlementSourceFingerprint: 'PAID:10.0000',
+      operationSnapshotDigest: digestOrderChangeOperationAudits([buildOrderChangeOperationAudit({
+        operation: base.operations[0], orderId: '22222222-2222-4222-8222-222222222222',
+        before: {}, after: { internal_notes: 'Leave at desk' }, orderBefore: {}, orderAfter: {},
+      })]),
     };
     const { input, opened } = harness({
       appliedAt,
@@ -208,11 +221,53 @@ describe('applyOrderChange', () => {
     expect(persistMock).not.toHaveBeenCalled();
   });
 
-  it('allows a change whose code is not in the policy and records it', async () => {
+  it('rolls back when the stored after values differ from the signed Review snapshot', async () => {
+    const { input, tx, committed } = harness();
+    const key = { keyId: 'review-v1', secret: 'test-secret-test-secret-test-secret' };
+    const expected = buildOrderChangeOperationAudit({
+      operation: input.request.operations[0], orderId: input.orderId,
+      before: { internal_notes: 'Keep', customer_notes: null },
+      after: { internal_notes: 'Leave at desk', customer_notes: null }, orderBefore: {}, orderAfter: {},
+    });
+    const binding: OrderChangeReviewProofBinding = {
+      tenantId: input.tenantId, orderId: input.orderId, actorUserId: input.actorUserId,
+      expectedEditStateVersion: 3, expectedWfStateVersion: 5, sourceContext: 'order-edit',
+      canonicalIntent: input.request.operations, changeReason: null, gateDecisions: [],
+      policyIdentity: { editPolicyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', profileVersionId: null, policyRevision: 1 },
+      policyFacts: [], calculationFingerprint: 'fingerprint-1', settlementSourceFingerprint: 'settlement',
+      operationSnapshotDigest: digestOrderChangeOperationAudits([expected]),
+    };
+    input.proofKey = key;
+    input.request.reviewProof = issueOrderChangeReviewProof({ key, binding, now: input.appliedAt });
+    input.preview.reviewBinding = binding;
+    let reads = 0;
+    tx.$queryRaw = jest.fn(async (strings: TemplateStringsArray) => {
+      if (strings.join(' ').includes('FOR UPDATE')) return [{ id: input.orderId }];
+      reads += 1;
+      return [{ internal_notes: reads === 1 ? 'Keep' : 'Different stored result', customer_notes: null }];
+    });
+    await expect(applyOrderChange(input)).resolves.toEqual({ ok: false, status: 409, code: 'REVIEW_CHANGED' });
+    expect(persistMock).toHaveBeenCalledTimes(1);
+    expect(committed()).toBe(false);
+  });
+
+  it('rejects an unshipped writer and a known field disguised as residual before starting a transaction', async () => {
+    for (const operation of [
+      { seq: 1, code: 'CHANGE_ITEM_PRICE' as const, target: { kind: 'PERSISTED_ITEM' as const, id: '55555555-5555-4555-8555-555555555555' }, payload: {} },
+      { seq: 1, code: 'CHANGE_UNLISTED' as const, target: { kind: 'PERSISTED_PIECE' as const, id: '66666666-6666-4666-8666-666666666666' }, payload: { field: 'piece.brand', value: 'New brand' } },
+    ]) {
+      const { input, opened } = harness({ request: { ...request(), operations: [operation] } });
+      await expect(applyOrderChange(input)).resolves.toEqual({ ok: false, status: 422, code: 'OPERATION_NOT_AVAILABLE' });
+      expect(opened()).toBe(false);
+    }
+    expect(persistMock).not.toHaveBeenCalled();
+  });
+
+  it('clears ready-by using its shipped operation', async () => {
     const { input, updateMany, committed } = harness({
       request: {
         ...request(),
-        operations: [{ seq: 1, code: 'CHANGE_UNLISTED', target: { kind: 'ORDER' }, payload: { field: 'order.readyBy', value: '' } }],
+        operations: [{ seq: 1, code: 'CHANGE_READY_BY', target: { kind: 'ORDER' }, payload: { readyBy: null } }],
       },
     });
     const result = await applyOrderChange(input);
@@ -223,17 +278,18 @@ describe('applyOrderChange', () => {
     }));
     const persisted = persistMock.mock.calls[0][1];
     expect(persisted.operations).toEqual([expect.objectContaining({
-      code: 'CHANGE_UNLISTED',
+      code: 'CHANGE_READY_BY',
       targetType: 'ORDER',
-      afterValues: expect.objectContaining({ ready_by: null }),
+      afterValues: expect.objectContaining({ readyBy: null }),
     })]);
   });
 
-  it('saves a catalog preference and a tracked piece field without recreating the order', async () => {
+  it('saves a catalog preference on a tracked piece without recreating the order', async () => {
     const preferenceId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const pieceId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
     const query = jest.fn(async (strings: TemplateStringsArray) => {
       const text = strings.join(' ');
+      if (text.includes('FOR UPDATE')) return [{ id: '22222222-2222-4222-8222-222222222222' }];
       if (text.includes('org_service_preference_cf')) {
         return [{ id: preferenceId, preference_code: 'FOLD', extra_price: '0.0000', preference_sys_kind: 'service_prefs' }];
       }
@@ -254,12 +310,6 @@ describe('applyOrderChange', () => {
             target: { kind: 'PERSISTED_PIECE', id: pieceId },
             payload: { clientRef: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', preferenceId, preferenceCode: 'FOLD' },
           },
-          {
-            seq: 2,
-            code: 'CHANGE_UNLISTED',
-            target: { kind: 'PERSISTED_PIECE', id: pieceId },
-            payload: { field: 'piece.color', value: 'BLUE' },
-          },
         ],
       },
     });
@@ -279,10 +329,7 @@ describe('applyOrderChange', () => {
         order_item_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       }),
     })]);
-    expect(persisted.pieceUpdates).toEqual([expect.objectContaining({
-      id: pieceId,
-      data: expect.objectContaining({ color: 'BLUE' }),
-    })]);
+    expect(persisted.pieceUpdates).toBeUndefined();
     expect(persisted.operations[0]).toEqual(expect.objectContaining({
       code: 'ADD_PREFERENCE',
       targetType: 'PREFERENCE',
@@ -357,34 +404,24 @@ describe('applyOrderChange', () => {
       customer_name: 'Ada',
       customer_mobile_number: '0500000000',
       customer_email: null,
+      is_default_customer: false,
       total_amount: '10.0000',
       total_tax_amount: '1.5000',
     }]);
     await expect(applyOrderChange(orderFacts.input)).resolves.toMatchObject({ ok: true });
     const orderOps = persistMock.mock.calls.at(-1)?.[1].operations ?? [];
-    const storedOrder = {
-      priority: 'NORMAL',
-      service_speed: 'STANDARD',
-      ready_by: '2026-10-18T10:00:00.000Z',
-      internal_notes: 'Keep',
-      customer_notes: null,
-      customer_name: 'Ada',
-      customer_mobile_number: '0500000000',
-      customer_email: null,
-      total_amount: '10.0000',
-      total_tax_amount: '1.5000',
-    };
+    const orderId = orderFacts.input.orderId;
     expect(orderOps.map((operation) => operation.beforeValues)).toEqual([
-      storedOrder,
-      storedOrder,
-      storedOrder,
-      storedOrder,
+      { orderId, notes: 'Keep', customerNotes: null },
+      { orderId, priority: 'NORMAL', totalAmount: '10.0000', taxAmount: '1.5000' },
+      { orderId, readyBy: '2026-10-18T10:00:00.000Z' },
+      { orderId, customerName: 'Ada', customerMobile: '0500000000', customerEmail: null, isDefaultCustomer: false },
     ]);
     expect(orderOps.map((operation) => operation.afterValues)).toEqual([
-      { ...storedOrder, internal_notes: 'Updated' },
-      { ...storedOrder, priority: 'HIGH' },
-      { ...storedOrder, ready_by: '2026-10-20T10:00:00.000Z' },
-      { ...storedOrder, customer_name: 'New Name' },
+      { orderId, notes: 'Updated', customerNotes: null },
+      { orderId, priority: 'HIGH', totalAmount: '10.0000', taxAmount: '0.0000' },
+      { orderId, readyBy: '2026-10-20T10:00:00.000Z' },
+      { orderId, customerName: 'New Name', customerMobile: '0500000000', customerEmail: null, isDefaultCustomer: false },
     ]);
 
     const itemId = '55555555-5555-4555-8555-555555555555';
@@ -432,26 +469,26 @@ describe('applyOrderChange', () => {
     await expect(applyOrderChange(targets.input)).resolves.toMatchObject({ ok: true });
     const targetOps = persistMock.mock.calls.at(-1)?.[1].operations ?? [];
     expect(targetOps[0].beforeValues).toEqual(expect.objectContaining({
-      id: itemId, product_name: 'Shirt', quantity: 3, price_per_unit: '10.0000', total_price: '30.0000',
+      orderItemId: itemId, productName: 'Shirt', quantity: 3, pricePerUnit: '10.0000', totalPrice: '30.0000',
     }));
-    expect(targetOps[0].afterValues).toEqual(expect.objectContaining({ id: itemId, product_name: 'Shirt', rec_status: 0 }));
+    expect(targetOps[0].afterValues).toEqual(expect.objectContaining({ orderItemId: itemId, productName: 'Shirt', recStatus: 0 }));
     expect(targetOps[1].beforeValues).toEqual(expect.objectContaining({
-      id: pieceId, order_item_id: itemId, piece_seq: 2, color: 'Blue', has_damage: true,
+      orderItemPieceId: pieceId, orderItemId: itemId, pieceSeq: 2,
     }));
-    expect(targetOps[1].afterValues).toEqual(expect.objectContaining({ id: pieceId, rec_status: 0 }));
+    expect(targetOps[1].afterValues).toEqual(expect.objectContaining({ orderItemPieceId: pieceId, recStatus: 0 }));
     expect(targetOps[2].beforeValues).toEqual(expect.objectContaining({
-      id: preferenceId,
-      prefs_level: 'ITEM',
-      preference_code: 'STARCH',
-      preference_content: 'Heavy',
-      preference_sys_kind: 'service_prefs',
-      extra_price: '1.0000',
+      orderPreferenceId: preferenceId,
+      level: 'ITEM',
+      preferenceCode: 'STARCH',
+      preferenceContent: 'Heavy',
+      preferenceKind: 'service_prefs',
+      extraPrice: '1.0000',
     }));
     expect(targetOps[2].afterValues).toEqual(expect.objectContaining({
-      id: preferenceId,
-      preference_code: 'STARCH',
-      preference_sys_kind: 'service_prefs',
-      preference_content: 'Light',
+      orderPreferenceId: preferenceId,
+      preferenceCode: 'STARCH',
+      preferenceKind: 'service_prefs',
+      preferenceContent: 'Light',
     }));
   });
 
@@ -507,24 +544,9 @@ describe('applyOrderChange', () => {
     expect(committed()).toBe(true);
     expect(persistMock.mock.calls[0][1].changeReason).toBe('Customer asked for express.');
     expect(persistMock.mock.calls[0][1].operations).toEqual([expect.objectContaining({
-      code: 'CHANGE_SERVICE_SPEED',
-      targetType: 'ORDER',
-      orderItemId: null,
-      beforeValues: {
-        service_speed: 'STANDARD',
-        total_amount: '10.0000',
-        total_tax_amount: '1.5000',
-        commercial_delta: '0.0000',
-        items: [{ id: itemId, quantity: 1, price_per_unit: '10.0000', total_price: '10.0000' }],
-      },
-      afterValues: {
-        service_speed: 'EXPRESS',
-        total_amount: '12.0000',
-        total_tax_amount: '1.8000',
-        commercial_delta: '2.0000',
-        express_charge_amount: '0.0000',
-        items: [{ id: itemId, quantity: 1, price_per_unit: '12.0000', total_price: '12.0000' }],
-      },
+      code: 'CHANGE_SERVICE_SPEED', targetType: 'ORDER', orderItemId: null,
+      beforeValues: { orderId: input.orderId, ...speedAudit.before },
+      afterValues: { orderId: input.orderId, ...speedAudit.after },
     })]);
     expect(persistMock.mock.calls[0][1].itemUpdates).toEqual([expect.objectContaining({
       id: itemId,

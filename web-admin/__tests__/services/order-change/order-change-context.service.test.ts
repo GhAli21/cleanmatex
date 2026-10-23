@@ -5,9 +5,14 @@ const mockItemFindMany = jest.fn();
 const mockPieceFindMany = jest.fn();
 const mockPreferenceFindMany = jest.fn();
 const mockFinancialSummary = jest.fn();
+const mockResolve = jest.fn();
+const mockDisplay = jest.fn();
+const mockOrganization = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
+    $transaction: async (fn: (tx: unknown) => unknown) => fn({ $queryRaw: (...args: unknown[]) => mockDisplay(...args) }),
+    org_tenants_mst: { findFirst: (...args: unknown[]) => mockOrganization(...args) },
     org_orders_mst: { findFirst: (...args: unknown[]) => mockFindFirst(...args) },
     org_order_items_dtl: { findMany: (...args: unknown[]) => mockItemFindMany(...args) },
     org_order_item_pieces_dtl: { findMany: (...args: unknown[]) => mockPieceFindMany(...args) },
@@ -16,6 +21,10 @@ jest.mock('@/lib/db/prisma', () => ({
 }));
 jest.mock('@/lib/services/order-financial-summary.service', () => ({
   getOrderFinancialSummary: (...args: unknown[]) => mockFinancialSummary(...args),
+}));
+
+jest.mock('@/lib/services/order-change/order-change-edit-policy-resolver.service', () => ({
+  resolveOrderChangePolicyBindings: (...args: unknown[]) => mockResolve(...args),
 }));
 
 import { getOrderChangeContext, OrderChangeContextError } from '@/lib/services/order-change/order-change-context.service';
@@ -47,6 +56,9 @@ function seedEligibleOrder(overrides: Record<string, unknown> = {}) {
 describe('getOrderChangeContext', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    mockResolve.mockResolvedValue({ resolutionLevel: 'DENY', denyReason: 'NO_AUTHORITY', editPolicyId: null, policyRevision: null, policyCode: null, bindings: [] });
+    mockDisplay.mockResolvedValue([]);
+    mockOrganization.mockResolvedValue({ timezone: 'Asia/Muscat' });
   });
 
   it('preserves stable identities and excludes NULL/0 commercial rows through explicit active queries', async () => {
@@ -72,6 +84,21 @@ describe('getOrderChangeContext', () => {
     expect(mockItemFindMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT_ID, order_id: ORDER_ID, rec_status: 1 });
     expect(mockPieceFindMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT_ID, order_id: ORDER_ID, rec_status: 1 });
     expect(mockPreferenceFindMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT_ID, order_id: ORDER_ID, rec_status: 1 });
+  });
+
+  it('retains the SQL-selected policy identity and status-hole reason without joining an override', async () => {
+    seedEligibleOrder({ wf_profile_id: ITEM_A, wf_profile_version_id: ITEM_B });
+    mockItemFindMany.mockResolvedValue([]);
+    mockPieceFindMany.mockResolvedValue([]);
+    mockPreferenceFindMany.mockResolvedValue([]);
+    mockResolve.mockResolvedValue({ resolutionLevel: 'VERSION_DEFAULT', denyReason: 'STATUS_NOT_COVERED', editPolicyId: PIECE_A, policyRevision: 9, policyCode: 'STRICT', bindings: [] });
+    mockDisplay.mockResolvedValue([{ profile_code: 'STANDARD', version_no: 2, version_status: 'PUBLISHED', policy_name: 'Strict', policy_name2: null, lifecycle_status: 'PUBLISHED' }]);
+    const context = await getOrderChangeContext({ tenantId: TENANT_ID, orderId: ORDER_ID });
+    expect(context.editPolicy).toMatchObject({ status: 'MISSING', resolutionLevel: 'VERSION_DEFAULT', denyReason: 'STATUS_NOT_COVERED', editPolicyId: PIECE_A, policyRevision: 9, rules: [] });
+    expect(mockResolve).toHaveBeenCalledWith(expect.anything(), { tenantId: TENANT_ID, profileId: ITEM_A, profileVersionId: ITEM_B, workflowStatus: 'processing' });
+    const sql = (mockDisplay.mock.calls[0][0] as TemplateStringsArray).join(' ');
+    expect(sql).not.toContain('org_wf_edit_policy_asg_cf');
+    expect(context.order.timezone).toBe('Asia/Muscat');
   });
 
   it.each([

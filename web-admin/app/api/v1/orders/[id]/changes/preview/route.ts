@@ -74,6 +74,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       context,
       request: parsedBody.data,
       bindings: facts.bindings,
+      policyResolution: facts.policyResolution,
       quotesByTargetId: facts.quotesByTargetId,
       catalog: facts.catalog,
       taxMode: facts.taxMode,
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       auditFacts: facts.auditFacts,
       proofKey: facts.proofKey,
     });
-    if (!preview.ok) return errorResponse(preview.status, preview.code, 'Order change preview was rejected', requestId);
+    if (preview.ok === false) return errorResponse(preview.status, preview.code, 'Order change preview was rejected', requestId);
     const { reviewBinding: _reviewBinding, ...data } = preview;
     return NextResponse.json({ ok: true, data, requestId });
   } catch (error) {

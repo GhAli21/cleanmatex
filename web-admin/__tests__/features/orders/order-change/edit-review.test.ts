@@ -33,4 +33,18 @@ describe('edit review and history', () => {
     expect(history[0]?.legacy).toBe(true);
     expect(history[0]?.revision).toBe(3);
   });
+
+  it('uses canonical snapshots and display labels without exposing target ids as fallbacks', () => {
+    const review = readEditReview({ data: {
+      status: 'READY',
+      operationAudits: [{
+        seq: 1, before: { quantity: 99 }, after: { quantity: 99 },
+        beforeValues: { orderId: 'hidden-order', orderItemId: 'hidden-item', quantity: 1 },
+        afterValues: { orderId: 'hidden-order', orderItemId: 'hidden-item', quantity: 2 },
+        targetLabel: 'Shirt', targetLabel2: 'قميص', effect: 'change', changedKeys: ['quantity'],
+      }],
+    } }, [{ seq: 1, code: 'CHANGE_ITEM_QUANTITY', target: { kind: 'PERSISTED_ITEM', id: 'hidden-item' }, payload: { quantity: 2 } }], '10.0000', { currencyCode: 'OMR', timezone: 'Asia/Muscat' });
+    expect(review.operations[0]).toMatchObject({ target: 'PERSISTED_ITEM', targetLabel: 'Shirt', targetLabel2: 'قميص', before: { quantity: 1 }, after: { quantity: 2 }, changedKeys: ['quantity'] });
+    expect(review).toMatchObject({ currencyCode: 'OMR', timezone: 'Asia/Muscat' });
+  });
 });

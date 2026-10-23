@@ -52,6 +52,11 @@ describe('resolveEditControlCapability', () => {
     expect(resolveEditControlCapability(loaded, 'ADD_ITEM')).toMatchObject({ state: 'WARNING', interactive: true, reasonKey: 'warning' });
   });
 
+  it('keeps unshipped catalog controls closed even with ALLOW cells', () => {
+    const loaded = policy([{ operationCode: 'CHANGE_ITEM_PRICE', targetType: 'ITEM', decision: 'ALLOW', requiresReason: false }]);
+    expect(resolveEditControlCapability(loaded, 'CHANGE_ITEM_PRICE')).toEqual({ state: 'NOT_AVAILABLE_YET', interactive: false, reasonKey: 'notAvailable' });
+  });
+
   it('uses the strictest decision and locks customer details in this version', () => {
     const loaded = policy([
       { operationCode: 'CHANGE_ORDER_NOTES', targetType: 'ORDER', decision: 'ALLOW', requiresReason: false },

@@ -129,6 +129,8 @@ export interface PersistOrderChangeInput {
   removePieceIds?: readonly string[];
   removePreferenceIds?: readonly string[];
   appliedAt: Date;
+  /** Finalize domain writes and read their stored snapshots before immutable history is inserted. */
+  finalizeOperations?: () => Promise<readonly OrderChangePersistedOperation[]>;
 }
 
 export interface PersistOrderChangeSuccess {
@@ -378,26 +380,6 @@ export async function persistOrderChangeTx(
     });
   }
 
-  if (input.operations.length > 0) {
-    await tx.org_order_change_ops_dtl.createMany({
-      data: input.operations.map((operation) => ({
-        tenant_org_id: input.tenantId,
-        order_id: input.orderId,
-        order_change_id: orderChangeId,
-        operation_seq: operation.seq,
-        operation_code: operation.code,
-        target_type: operation.targetType,
-        order_item_id: operation.orderItemId ?? null,
-        order_item_piece_id: operation.orderItemPieceId ?? null,
-        order_preference_id: operation.orderPreferenceId ?? null,
-        client_ref: operation.clientRef ?? null,
-        before_values: operation.beforeValues ?? {},
-        after_values: operation.afterValues ?? {},
-        audit_summary: operation.auditSummary ?? null,
-        created_by: input.actorUserId,
-      })),
-    });
-  }
 
   for (const row of [...(input.itemUpdates ?? [])]) {
     const updated = await tx.org_order_items_dtl.updateMany({
@@ -479,6 +461,28 @@ export async function persistOrderChangeTx(
       data: removal,
     });
     if (retired.count !== preferenceIds.length) throw new OrderChangeMutationError('REMOVAL_NOT_ACTIVE');
+  }
+
+  const operations = input.finalizeOperations ? await input.finalizeOperations() : input.operations;
+  if (operations.length > 0) {
+    await tx.org_order_change_ops_dtl.createMany({
+      data: operations.map((operation) => ({
+        tenant_org_id: input.tenantId,
+        order_id: input.orderId,
+        order_change_id: orderChangeId,
+        operation_seq: operation.seq,
+        operation_code: operation.code,
+        target_type: operation.targetType,
+        order_item_id: operation.orderItemId ?? null,
+        order_item_piece_id: operation.orderItemPieceId ?? null,
+        order_preference_id: operation.orderPreferenceId ?? null,
+        client_ref: operation.clientRef ?? null,
+        before_values: operation.beforeValues ?? {},
+        after_values: operation.afterValues ?? {},
+        audit_summary: operation.auditSummary ?? null,
+        created_by: input.actorUserId,
+      })),
+    });
   }
 
   await tx.org_domain_events_outbox.create({

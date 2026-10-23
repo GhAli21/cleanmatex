@@ -18,22 +18,6 @@ export function EditControlNotice({
 }) {
   const t = useTranslations('orders.edit');
   const session = useOrderWorkspaceSessionOptional();
-  const operationLabels: Record<OrderChangeOperationCode, string> = {
-    ADD_ITEM: t('policyInfo.operations.ADD_ITEM'),
-    REMOVE_ITEM: t('policyInfo.operations.REMOVE_ITEM'),
-    CHANGE_ITEM_QUANTITY: t('policyInfo.operations.CHANGE_ITEM_QUANTITY'),
-    ADD_PIECE: t('policyInfo.operations.ADD_PIECE'),
-    REMOVE_PIECE: t('policyInfo.operations.REMOVE_PIECE'),
-    ADD_PREFERENCE: t('policyInfo.operations.ADD_PREFERENCE'),
-    CHANGE_PREFERENCE: t('policyInfo.operations.CHANGE_PREFERENCE'),
-    REMOVE_PREFERENCE: t('policyInfo.operations.REMOVE_PREFERENCE'),
-    CHANGE_PRIORITY: t('policyInfo.operations.CHANGE_PRIORITY'),
-    CHANGE_SERVICE_SPEED: t('policyInfo.operations.CHANGE_SERVICE_SPEED'),
-    CHANGE_READY_BY: t('policyInfo.operations.CHANGE_READY_BY'),
-    CHANGE_ORDER_NOTES: t('policyInfo.operations.CHANGE_ORDER_NOTES'),
-    CHANGE_CUSTOMER_SNAPSHOT: t('policyInfo.operations.CHANGE_CUSTOMER_SNAPSHOT'),
-    CHANGE_UNLISTED: t('policyInfo.operations.CHANGE_UNLISTED'),
-  };
   if (!session) return null;
   const denied = identity || !codes
     ? []
@@ -44,7 +28,7 @@ export function EditControlNotice({
         <ul className="space-y-1">
           {denied.map((code) => (
             <li key={code} className="text-sm">
-              {t('capability.deniedOperation', { operation: operationLabels[code] })}
+              {t('capability.deniedOperation', { operation: t(`policyInfo.operations.${code}`) })}
             </li>
           ))}
         </ul>

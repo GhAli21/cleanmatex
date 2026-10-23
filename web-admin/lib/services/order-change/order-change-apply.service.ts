@@ -4,6 +4,7 @@
  * Pricing, tax, settlement, and workflow status stay with their owners.
  */
 
+import { isOrderChangeOperationWriterAvailable } from '@/lib/constants/order-change';
 import {
   assertCommercialSnapshot,
   syncReviewedTaxLine,
@@ -31,7 +32,8 @@ import {
 import { collectionRequiredForPaymentType, mapPersistedFinancialOutcome, OrderChangeMutationError, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
 import { reviewedItemTotal } from '@/lib/services/order-change/order-change-calculation.service';
 import type { OrderChangePreviewSuccess, OrderChangeSpeedAudit } from '@/lib/services/order-change/order-change-preview.service';
-import { round4 } from '@/lib/services/order-financial-aggregation';
+import { buildOrderChangeOperationAudit, digestOrderChangeOperationAudits } from '@/lib/services/order-change/order-change-review-audit';
+import { subMoney, toMoneyString } from '@/lib/utils/money';
 import type { z } from 'zod';
 import type { orderChangeApplyRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
 
@@ -50,7 +52,7 @@ function finiteMoney(value: string | null | undefined): value is string {
 }
 
 function money4(value: string): string {
-  return round4(Number(value)).toFixed(4);
+  return toMoneyString(value);
 }
 
 function sameMoney(left: string, right: string): boolean {
@@ -58,6 +60,8 @@ function sameMoney(left: string, right: string): boolean {
 }
 
 const MUTATION_CONFLICTS = new Set([
+  'POLICY_CHANGED_REVIEW_REQUIRED',
+  'REVIEW_CHANGED',
   'VERSION_CONFLICT',
   'WORKFLOW_VERSION_CONFLICT',
   'ORDER_FIELD_UPDATE_LOST',
@@ -97,6 +101,8 @@ export interface ApplyOrderChangeInput {
   /** Present on the live route. Unit fixtures that omit it keep an exact proof-string check. */
   proofKey?: OrderChangeReviewProofKey | null;
   appliedAt: Date;
+  /** Production callers re-resolve policy under the same lock immediately before any mutation. */
+  validateLockedPolicy?: (tx: OrderChangeApplyTx) => Promise<void>;
   runInTransaction<T>(fn: (tx: OrderChangeApplyTx) => Promise<T>): Promise<T>;
 }
 
@@ -122,7 +128,7 @@ function orderFields(request: ApplyRequest): Record<string, unknown> {
     } else if (operation.code === 'CHANGE_SERVICE_SPEED') {
       data.service_speed = operation.payload.serviceSpeed;
     } else if (operation.code === 'CHANGE_READY_BY') {
-      data.ready_by = new Date(operation.payload.readyBy);
+      data.ready_by = operation.payload.readyBy == null ? null : new Date(operation.payload.readyBy);
     } else if (operation.code === 'CHANGE_CUSTOMER_SNAPSHOT') {
       if (operation.payload.customerName !== undefined) data.customer_name = operation.payload.customerName;
       if (operation.payload.customerMobile !== undefined) data.customer_mobile_number = operation.payload.customerMobile;
@@ -213,6 +219,8 @@ interface OperationBeforeFacts {
 }
 
 interface OrderBeforeRow {
+  is_default_customer?: boolean | null;
+  customer_details?: unknown;
   status: string | null;
   current_status: string | null;
   current_stage: string | null;
@@ -336,8 +344,7 @@ function compact(values: Record<string, unknown>): Record<string, unknown> {
 function storedMoney(value: string | null | undefined): string | null | undefined {
   if (value === undefined) return undefined;
   if (value === null || value === '') return null;
-  const amount = Number(value);
-  return Number.isFinite(amount) ? round4(amount).toFixed(4) : value;
+  return toMoneyString(value);
 }
 
 function storedTime(value: Date | string | null | undefined): string | null | undefined {
@@ -452,6 +459,8 @@ function orderSnapshot(order: OrderBeforeRow): Record<string, unknown> {
     customer_name: order.customer_name,
     customer_mobile_number: order.customer_mobile_number,
     customer_email: order.customer_email,
+    is_default_customer: order.is_default_customer,
+    customer_details: order.customer_details,
     currency_code: order.currency_code,
     tax_rate: storedMoney(order.tax_rate),
     vat_rate: storedMoney(order.vat_rate),
@@ -535,18 +544,12 @@ async function loadOperationBeforeFacts(
   tenantId: string,
   orderId: string,
   operations: ApplyRequest['operations'],
+  includeRetiredAndCreated = false,
 ): Promise<OperationBeforeFacts | null> {
   const queryable = tx as { $queryRaw?: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T> };
   if (typeof queryable.$queryRaw !== 'function') return null;
   const query = queryable.$queryRaw.bind(queryable);
-  const needsOrder = operations.some((operation) => (
-    operation.code === 'CHANGE_PRIORITY'
-    || operation.code === 'CHANGE_READY_BY'
-    || operation.code === 'CHANGE_ORDER_NOTES'
-    || operation.code === 'CHANGE_CUSTOMER_SNAPSHOT'
-    || operation.code === 'CHANGE_SERVICE_SPEED'
-    || (operation.code === 'CHANGE_UNLISTED' && operation.target.kind === 'ORDER')
-  ));
+  const needsOrder = true;
   const itemIds = operations.flatMap((operation) => (
     (operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY' || operation.code === 'CHANGE_UNLISTED')
     && operation.target.kind === 'PERSISTED_ITEM'
@@ -564,10 +567,23 @@ async function loadOperationBeforeFacts(
       ? [operation.target.id]
       : []
   ));
+  if (operations.some((operation) => operation.code === 'CHANGE_SERVICE_SPEED')) {
+    const speedItems = await query<Array<{ id: string }>>`
+      SELECT id::text AS id FROM org_order_items_dtl
+      WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND rec_status = 1`;
+    itemIds.push(...speedItems.map((row) => row.id));
+  }
+  if (includeRetiredAndCreated) {
+    for (const operation of operations) {
+      if (operation.code === 'ADD_ITEM') itemIds.push(operation.payload.clientRef);
+      if (operation.code === 'ADD_PIECE') pieceIds.push(operation.payload.clientRef);
+      if (operation.code === 'ADD_PREFERENCE') preferenceIds.push(operation.payload.clientRef);
+    }
+  }
   const orderRows = needsOrder
     ? await query<OrderBeforeRow[]>`
       SELECT status, current_status, current_stage, priority, service_speed, ready_by, total_items,
-             internal_notes, customer_notes, customer_name, customer_mobile_number, customer_email,
+             internal_notes, customer_notes, customer_name, customer_mobile_number, customer_email, is_default_customer, customer_details,
              currency_code, tax_rate::text AS tax_rate, vat_rate::text AS vat_rate,
              payment_status, payment_type_code,
              subtotal_amount::text AS subtotal_amount, items_base_amount::text AS items_base_amount,
@@ -599,7 +615,7 @@ async function loadOperationBeforeFacts(
       WHERE id = ${itemId}::uuid
         AND tenant_org_id = ${tenantId}::uuid
         AND order_id = ${orderId}::uuid
-        AND rec_status = 1
+        AND (rec_status = 1 OR ${includeRetiredAndCreated})
     `;
     if (rows[0]) items.set(itemId.toLowerCase(), rows[0]);
   }
@@ -616,7 +632,7 @@ async function loadOperationBeforeFacts(
       WHERE id = ${pieceId}::uuid
         AND tenant_org_id = ${tenantId}::uuid
         AND order_id = ${orderId}::uuid
-        AND rec_status = 1
+        AND (rec_status = 1 OR ${includeRetiredAndCreated})
     `;
     if (rows[0]) pieces.set(pieceId.toLowerCase(), rows[0]);
   }
@@ -632,9 +648,17 @@ async function loadOperationBeforeFacts(
       WHERE id = ${preferenceId}::uuid
         AND tenant_org_id = ${tenantId}::uuid
         AND order_id = ${orderId}::uuid
-        AND rec_status = 1
+        AND (rec_status = 1 OR ${includeRetiredAndCreated})
     `;
     if (rows[0]) preferences.set(preferenceId.toLowerCase(), rows[0]);
+  }
+  if (!includeRetiredAndCreated) {
+    for (const operation of operations) {
+      const missing = operation.target.kind === 'PERSISTED_ITEM' && (operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY' || operation.code === 'CHANGE_UNLISTED') ? !items.has(operation.target.id.toLowerCase())
+        : operation.target.kind === 'PERSISTED_PIECE' && (operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_UNLISTED') ? !pieces.has(operation.target.id.toLowerCase())
+          : operation.target.kind === 'PERSISTED_PREFERENCE' ? !preferences.has(operation.target.id.toLowerCase()) : false;
+      if (missing) throw new OrderChangeMutationError(operation.code.startsWith('REMOVE_') ? 'REMOVAL_NOT_ACTIVE' : 'UPDATE_NOT_ACTIVE');
+    }
   }
   return { order: orderRows[0] ?? null, items, pieces, preferences };
 }
@@ -702,6 +726,19 @@ function afterValuesFor(
   return operation.payload;
 }
 
+/** Read speed facts from the locked/stored rows; only the reviewed delta is derived metadata. */
+function storedSpeedSnapshot(snapshot: OrderChangeSpeedAudit['before'], facts: OperationBeforeFacts | null): Record<string, unknown> {
+  if (!facts?.order) return speedSnapshot(snapshot, null);
+  return {
+    ...orderSnapshot(facts.order),
+    commercial_delta: snapshot.commercialDelta,
+    items: snapshot.items.map((item) => {
+      const row = facts.items.get(item.orderItemId.toLowerCase());
+      return row ? { id: row.id, quantity: row.quantity, price_per_unit: row.price_per_unit, total_price: row.total_price } : { id: item.orderItemId };
+    }),
+  };
+}
+
 function persistedOperations(
   request: ApplyRequest,
   auditBySeq: CommercialWritePlan['auditBySeq'],
@@ -709,13 +746,36 @@ function persistedOperations(
   beforeFacts: OperationBeforeFacts | null,
   plan: CommercialWritePlan,
   structural: StructuralWritePlan | null,
+  orderId: string,
+  preview: OrderChangePreviewSuccess,
+  storedAfter?: OperationBeforeFacts | null,
 ): OrderChangePersistedOperation[] {
   return request.operations.map((operation) => {
     const audit = auditBySeq.get(operation.seq);
     const speedValues = operation.code === 'CHANGE_SERVICE_SPEED' && speedAudit;
-    const beforeValues = speedValues ? speedSnapshot(speedAudit.before, beforeFacts?.order ?? null) : beforeValuesFor(operation, beforeFacts);
+    const beforeValues = speedValues ? storedSpeedSnapshot(speedAudit.before, beforeFacts) : beforeValuesFor(operation, beforeFacts);
     const afterSpeed = speedValues ? speedSnapshot(speedAudit.after, beforeFacts?.order ?? null) : null;
     if (afterSpeed) afterSpeed.express_charge_amount = '0.0000';
+    const rawAfter = storedAfter
+      ? beforeValuesFor(operation, storedAfter)
+      : afterSpeed ?? afterValuesFor(operation, beforeValues, audit, plan, structural);
+    const afterRow = storedAfter && operation.code === 'ADD_ITEM'
+      ? storedAfter.items.get(operation.payload.clientRef.toLowerCase())
+      : storedAfter && operation.code === 'ADD_PIECE'
+        ? storedAfter.pieces.get(operation.payload.clientRef.toLowerCase())
+        : storedAfter && operation.code === 'ADD_PREFERENCE'
+          ? storedAfter.preferences.get(operation.payload.clientRef.toLowerCase())
+          : rawAfter;
+    const orderBefore = beforeFacts?.order ? orderSnapshot(beforeFacts.order) : { total_amount: preview.originalTotal };
+    const orderAfter = storedAfter?.order ? orderSnapshot(storedAfter.order) : { ...orderBefore, total_amount: preview.projectedTotal, total_tax_amount: preview.projectedTax };
+    const canonical = buildOrderChangeOperationAudit({
+      operation,
+      orderId,
+      before: beforeValues,
+      after: operation.code === 'CHANGE_SERVICE_SPEED' ? (storedAfter && speedAudit ? storedSpeedSnapshot(speedAudit.after, storedAfter) : afterSpeed ?? {}) : afterRow ? { ...afterRow } : {},
+      orderBefore,
+      orderAfter,
+    });
     return {
       seq: operation.seq,
       code: operation.code,
@@ -724,8 +784,8 @@ function persistedOperations(
       orderItemPieceId: audit?.orderItemPieceId ?? null,
       orderPreferenceId: audit?.orderPreferenceId ?? null,
       clientRef: audit?.clientRef ?? null,
-      beforeValues,
-      afterValues: afterSpeed ?? afterValuesFor(operation, beforeValues, audit, plan, structural),
+      beforeValues: canonical.beforeValues,
+      afterValues: canonical.afterValues,
       auditSummary: null,
     };
   });
@@ -736,6 +796,9 @@ function persistedOperations(
  * A thrown error inside the transaction rolls every Change write back.
  */
 export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<ApplyOrderChangeResult> {
+  if (input.request.operations.some((operation) => !isOrderChangeOperationWriterAvailable(operation.code) || operation.code === 'CHANGE_UNLISTED')) {
+    return { ok: false, status: 422, code: 'OPERATION_NOT_AVAILABLE' };
+  }
   if (
     input.preview.status !== 'READY'
     || !input.preview.createsChange
@@ -750,7 +813,7 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
     return { ok: false, status: 422, code: 'REVIEW_NOT_READY' };
   }
   const proofCheck = reviewedProofStillMatches(input);
-  if (!proofCheck.ok) return proofCheck;
+  if (proofCheck.ok === false) return proofCheck;
   if (!input.currencyCode) return { ok: false, status: 422, code: 'CURRENCY_UNRESOLVED' };
   const hasPreference = input.request.operations.some((operation) => PREFERENCE_OPERATION_CODES.has(operation.code));
   const hasStructural = input.request.operations.some((operation) => STRUCTURAL_OPERATION_CODES.has(operation.code));
@@ -787,10 +850,17 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
 
   const originalTotal = money4(input.preview.originalTotal);
   const projectedTotal = money4(input.preview.projectedTotal);
-  const delta = round4(Number(projectedTotal) - Number(originalTotal)).toFixed(4);
+  const delta = toMoneyString(subMoney(projectedTotal, originalTotal));
   const fields = orderFields(input.request);
   try {
     return await input.runInTransaction(async (tx) => {
+    if (typeof tx.$queryRaw === 'function') {
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id::text AS id FROM public.org_orders_mst
+        WHERE id = ${input.orderId}::uuid AND tenant_org_id = ${input.tenantId}::uuid
+        FOR UPDATE`;
+      if (!locked[0]) throw new OrderChangeMutationError('ORDER_NOT_FOUND');
+    }
     const facts = hasPreference
       ? await loadCommercialWriteFacts(tx, input.tenantId, input.orderId, input.request.operations)
       : EMPTY_COMMERCIAL_FACTS;
@@ -807,6 +877,14 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       ? speedPriceUpdates(input.preview.lines ?? [], input.actorUserId, insertedIds, input.preview.speedAudit)
       : [];
     const auditBySeq = new Map([...plan.auditBySeq, ...(structural?.auditBySeq ?? [])]);
+    const lockedOperations = persistedOperations(input.request, auditBySeq, input.preview.speedAudit, beforeFacts, plan, structural, input.orderId, input.preview);
+    const digest = (operations: readonly OrderChangePersistedOperation[]) => digestOrderChangeOperationAudits(operations.map((operation) => ({
+      seq: operation.seq, code: operation.code, beforeValues: operation.beforeValues ?? {}, afterValues: operation.afterValues ?? {},
+    })));
+    if (input.preview.reviewBinding && digest(lockedOperations) !== input.preview.reviewBinding.operationSnapshotDigest) {
+      throw new OrderChangeMutationError('REVIEW_CHANGED');
+    }
+    await input.validateLockedPolicy?.(tx);
     const persisted = await persistOrderChangeTx(tx, {
       tenantId: input.tenantId,
       orderId: input.orderId,
@@ -827,7 +905,7 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       idempotencyKey: input.idempotencyKey,
       request: input.request,
       applyResponse: { status: 'APPLIED' },
-      operations: persistedOperations(input.request, auditBySeq, input.preview.speedAudit, beforeFacts, plan, structural),
+      operations: lockedOperations,
       preferenceInserts: plan.preferenceInserts.length > 0 ? plan.preferenceInserts : undefined,
       preferenceUpdates: plan.preferenceUpdates.length > 0 ? plan.preferenceUpdates : undefined,
       removePreferenceIds: plan.removePreferenceIds.length > 0 ? plan.removePreferenceIds : undefined,
@@ -837,10 +915,7 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       pieceUpdates: plan.pieceUpdates.length > 0 ? plan.pieceUpdates : undefined,
       removeItemIds: structural && structural.removeItemIds.length > 0 ? structural.removeItemIds : undefined,
       removePieceIds: structural && structural.removePieceIds.length > 0 ? structural.removePieceIds : undefined,
-      appliedAt: input.appliedAt,
-    });
-    if (!persisted.ok) return { ok: false as const, status: 409 as const, code: persisted.code };
-    if (!persisted.replayed) {
+      finalizeOperations: async () => {
       await writePreferenceCharges(tx, {
         tenantId: input.tenantId,
         orderId: input.orderId,
@@ -873,13 +948,12 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
           projectedTotal,
         });
       }
-    }
-    if (!persisted.replayed && Object.keys(fields).length > 0) {
+    if (Object.keys(fields).length > 0) {
       const updated = await tx.org_orders_mst.updateMany({
         where: {
           id: input.orderId,
           tenant_org_id: input.tenantId,
-          edit_state_version: persisted.editStateVersionAfter,
+          edit_state_version: input.request.expectedEditStateVersion + 1,
         },
         data: {
           ...fields,
@@ -889,6 +963,17 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       });
       if (updated.count !== 1) throw new OrderChangeMutationError('ORDER_FIELD_UPDATE_LOST');
     }
+        if (!beforeFacts) return lockedOperations;
+        const storedAfter = await loadOperationBeforeFacts(tx, input.tenantId, input.orderId, input.request.operations, true);
+        const storedOperations = persistedOperations(input.request, auditBySeq, input.preview.speedAudit, beforeFacts, plan, structural, input.orderId, input.preview, storedAfter);
+        if (input.preview.reviewBinding && digest(storedOperations) !== input.preview.reviewBinding.operationSnapshotDigest) {
+          throw new OrderChangeMutationError('REVIEW_CHANGED');
+        }
+        return storedOperations;
+      },
+      appliedAt: input.appliedAt,
+    });
+    if (persisted.ok === false) return { ok: false as const, status: 409 as const, code: persisted.code };
     return {
       ok: true as const,
       replayed: persisted.replayed,

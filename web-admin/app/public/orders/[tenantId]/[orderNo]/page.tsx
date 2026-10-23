@@ -1,43 +1,28 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import { redirect } from 'next/navigation';
 import { PublicOrderTrackingPage } from '@/src/features/orders/public/order-tracking-page';
-import { resolvePublicTrackingTokenByOrderRef } from '@/lib/services/public-order-tracking.service';
-import { buildPublicTrackingPath } from '@/lib/utils/public-order-tracking';
 
-interface PublicOrderPageProps {
-  params: Promise<{
-    tenantId: string;
-    orderNo: string;
-  }>;
-}
+/** Retired lookup endpoint; it always answers 404 (BF-16). */
+const RETIRED_LOOKUP_PATH = '/api/v1/public/orders/retired/retired';
+const RETIRED_CONFIRM_PATH = '/api/v1/public/orders/retired/retired/confirm-received';
 
 /**
+ * Retired readable public order page (BF-16).
  *
- * @param root0
- * @param root0.params
+ * Old `/public/orders/{tenantId}/{orderNo}` links no longer show an order and
+ * no longer redirect to the opaque token URL, which handed the token to anyone
+ * who guessed an order number. The page renders the standard tracking screen,
+ * whose lookup returns 404, so the customer sees the localized "We could not
+ * find this order. Please check the link with the laundry shop." message
+ * (EN/AR). Route params are deliberately not read.
  */
-export default async function PublicOrderPage({ params }: PublicOrderPageProps) {
-  const { tenantId, orderNo } = await params;
-
-  const publicTrackingToken = await resolvePublicTrackingTokenByOrderRef({
-    tenantId,
-    orderNo,
-  });
-
-  if (publicTrackingToken) {
-    redirect(buildPublicTrackingPath(publicTrackingToken));
-  }
-
-  // Ensure i18n messages are loaded for this page
+export default async function PublicOrderPage() {
   await getTranslations('publicOrderTracking');
   await getLocale();
 
   return (
     <PublicOrderTrackingPage
-      lookupPath={`/api/v1/public/orders/${encodeURIComponent(tenantId)}/${encodeURIComponent(orderNo)}`}
-      confirmPath={`/api/v1/public/orders/${encodeURIComponent(tenantId)}/${encodeURIComponent(orderNo)}/confirm-received`}
+      lookupPath={RETIRED_LOOKUP_PATH}
+      confirmPath={RETIRED_CONFIRM_PATH}
     />
   );
 }
-
-

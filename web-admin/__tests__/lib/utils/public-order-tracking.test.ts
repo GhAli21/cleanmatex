@@ -1,6 +1,5 @@
 import {
   buildAbsolutePublicTrackingUrl,
-  buildLegacyPublicTrackingPath,
   buildPublicTrackingPath,
   normalizePublicTrackingToken,
 } from '@/lib/utils/public-order-tracking';
@@ -23,13 +22,9 @@ describe('public-order-tracking utils', () => {
       expect(buildPublicTrackingPath('abc/123')).toBe('/track/abc%2F123');
     });
 
-    it('builds the legacy readable tracking path', () => {
-      expect(
-        buildLegacyPublicTrackingPath(
-          '11111111-1111-1111-1111-111111111111',
-          'ORD-20260725/0004',
-        ),
-      ).toBe('/public/orders/11111111-1111-1111-1111-111111111111/ORD-20260725%2F0004');
+    it('BF-16: no longer offers a readable /public/orders path builder', async () => {
+      const utils = await import('@/lib/utils/public-order-tracking');
+      expect('buildLegacyPublicTrackingPath' in utils).toBe(false);
     });
 
     it('builds an absolute URL without double slashes', () => {

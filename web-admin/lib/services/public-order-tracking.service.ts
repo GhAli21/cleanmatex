@@ -22,7 +22,6 @@ import { PICKUP_RELEASE_STATES } from '@/lib/types/pickup-release';
 import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
 import { observePublicConfirmRejected } from '@/lib/services/workflow/workflow-observability';
 import {
-  buildLegacyPublicTrackingPath,
   buildPublicTrackingPath,
   normalizePublicTrackingToken,
 } from '@/lib/utils/public-order-tracking';
@@ -210,59 +209,20 @@ export async function resolvePublicTrackingReferenceByToken(
 }
 
 /**
- * Resolve the active public tracking token for a readable tenant/order
- * reference. Returns null when the rollout migration is not yet present.
+ * Resolve the opaque public tracking path (`/track/{token}`) for an order.
  *
- * @param reference Tenant/order reference.
- * @returns Active token or null.
- */
-export async function resolvePublicTrackingTokenByOrderRef(
-  reference: PublicOrderReference,
-): Promise<string | null> {
-  const rows = await queryPublicTrackingRows(
-    Prisma.sql`
-      SELECT
-        id::text AS id,
-        tenant_org_id::text AS tenant_org_id,
-        order_no,
-        public_tracking_token
-      FROM public.org_orders_mst
-      WHERE tenant_org_id = CAST(${reference.tenantId} AS uuid)
-        AND order_no = ${reference.orderNo}
-        AND public_tracking_token IS NOT NULL
-        AND btrim(public_tracking_token) <> ''
-        AND public_tracking_token_revoked_at IS NULL
-        AND (
-          public_tracking_token_expires_at IS NULL
-          OR public_tracking_token_expires_at > CURRENT_TIMESTAMP
-        )
-      LIMIT 1
-    `,
-    {
-      feature: 'public_order_tracking',
-      action: 'resolve_token_by_order_ref',
-      tenantId: reference.tenantId,
-      orderNo: reference.orderNo,
-    },
-  );
-
-  return rows[0]?.public_tracking_token ?? null;
-}
-
-/**
- * Resolve the preferred public tracking path for a dashboard order detail
- * screen. Falls back to the legacy readable path while the token migration is
- * still rolling out.
+ * BF-16: there is no readable fallback. A guessable tenant + order-number path
+ * exposed customer details and money, so it was retired. An order without an
+ * active token (revoked or expired) gets no public link at all.
  *
- * @param input Tenant/order identity and optional fallback order number.
- * @returns Preferred public path or null.
+ * @param input Tenant/order identity.
+ * @returns Opaque public path, or null when the order has no active token.
  */
 export async function getPublicTrackingPathForOrderId(input: {
   tenantId: string;
   orderId: string;
-  fallbackOrderNo?: string | null;
 }): Promise<string | null> {
-  const { tenantId, orderId, fallbackOrderNo } = input;
+  const { tenantId, orderId } = input;
 
   const rows = await queryPublicTrackingRows(
     Prisma.sql`
@@ -292,19 +252,60 @@ export async function getPublicTrackingPathForOrderId(input: {
   );
 
   const token = rows[0]?.public_tracking_token;
-  if (token) {
-    return buildPublicTrackingPath(token);
-  }
-
-  if (fallbackOrderNo) {
-    return buildLegacyPublicTrackingPath(tenantId, fallbackOrderNo);
-  }
-
-  return null;
+  return token ? buildPublicTrackingPath(token) : null;
 }
 
 /**
- * Shared public order detail response for both legacy and token routes.
+ * Order detail for an authenticated customer mobile session.
+ *
+ * Replaces the mobile app's use of the retired readable path (BF-16). The
+ * caller must already have resolved the session (tenant + bearer token). The
+ * order is returned only when it belongs to that session: same tenant **and**
+ * the session customer's phone, which is the ownership rule of
+ * `GET /api/v1/public/customer/orders`, so the detail never shows an order the
+ * list would not. A foreign order answers the same 404 as a missing one.
+ *
+ * @param request Incoming request for logging context.
+ * @param input Tenant, order number and the resolved session's phone.
+ * @returns HTTP-style status/body pair, same payload shape as the token route.
+ */
+export async function getCustomerOwnedOrderTrackingResponse(
+  request: NextRequest,
+  input: { tenantId: string; orderNo: string; customerPhone: string },
+): Promise<PublicApiResult> {
+  const { tenantId, orderNo, customerPhone } = input;
+  if (!tenantId || !orderNo || !customerPhone) {
+    return { status: 404, body: { success: false, error: 'Order not found' } };
+  }
+
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from('org_orders_mst')
+    .select('id, org_customers_mst!inner(phone)')
+    .eq('tenant_org_id', tenantId)
+    .eq('order_no', orderNo)
+    .eq('org_customers_mst.phone', customerPhone)
+    .maybeSingle();
+
+  if (error || !data) {
+    logger.warn('Customer order detail denied: not found or not owned by session', {
+      ...buildPublicApiLogContext(request, {
+        feature: 'customer_orders_public_api',
+        action: 'get_order_detail',
+      }),
+      tenantId,
+      orderNo,
+      error: error?.message,
+    });
+    return { status: 404, body: { success: false, error: 'Order not found' } };
+  }
+
+  return getPublicOrderTrackingResponse(request, { tenantId, orderNo });
+}
+
+/**
+ * Shared public order detail response for the token route and the
+ * authenticated customer route (after its ownership check).
  *
  * @param request Incoming request for logging context.
  * @param reference Tenant/order reference.

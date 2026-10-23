@@ -6,6 +6,7 @@
 import 'server-only';
 
 import { CHARGE_TYPES } from '@/lib/constants/order-financial';
+import { toMoneyString } from '@/lib/utils/money';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { createClient } from '@/lib/supabase/server';
@@ -19,7 +20,7 @@ import type { z } from 'zod';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
 import type { OrderChangeCapabilityBinding, OrderChangeReviewProofKey } from '@/lib/services/order-change/order-change-capability.service';
 import type { OrderChangePriceQuote, OrderChangeTaxMode } from '@/lib/services/order-change/order-change-calculation.service';
-import { resolveOrderChangePolicyBindings } from '@/lib/services/order-change/order-change-edit-policy-resolver.service';
+import { resolveOrderChangePolicyBindings, type OrderChangeEditPolicyResolution } from '@/lib/services/order-change/order-change-edit-policy-resolver.service';
 import type { OrderChangePreferenceDefinition, OrderChangePreferenceLevel } from '@/lib/services/order-change/order-change-preference-projection';
 import type { OrderChangePreviewAuditFacts } from '@/lib/services/order-change/order-change-review-audit';
 import type { AggregationCreditRow, AggregationPaymentRow } from '@/lib/services/order-financial-aggregation';
@@ -40,6 +41,8 @@ export class OrderChangePreviewReadError extends Error {
 export interface OrderChangePreviewFacts {
   featureEnabled: boolean;
   bindings: readonly OrderChangeCapabilityBinding[];
+  /** Retains authority identity when a winning policy has no rule for the current status. */
+  policyResolution: OrderChangeEditPolicyResolution;
   quotesByTargetId: Readonly<Record<string, OrderChangePriceQuote>>;
   catalog: readonly OrderChangePreferenceDefinition[];
   taxMode: OrderChangeTaxMode;
@@ -47,7 +50,7 @@ export interface OrderChangePreviewFacts {
   currencyDecimalPlaces: number;
   payments: readonly AggregationPaymentRow[];
   credits: readonly AggregationCreditRow[];
-  refunds: readonly Array<{ refund_status: string | null; refund_amount: string; reopens_due_amount: string }>;
+  refunds: ReadonlyArray<{ refund_status: string | null; refund_amount: string; reopens_due_amount: string }>;
   /** Active Express charges already stored on the order. A speed change moves that money onto the items and voids the charge. */
   persistedExpressAmount: string;
   /** Order tax stored before this review. The speed audit freezes it as the before tax. */
@@ -68,8 +71,7 @@ function money4(value: number): string {
 function auditMoney(value: { toString(): string } | number | string | null | undefined): string | null | undefined {
   if (value === undefined) return undefined;
   if (value === null) return null;
-  const amount = Number(decimalText(value));
-  return Number.isFinite(amount) ? amount.toFixed(4) : decimalText(value);
+  return toMoneyString(decimalText(value));
 }
 
 function auditTime(value: Date | string | null | undefined): string | null | undefined {
@@ -133,8 +135,9 @@ export async function loadOrderChangePreviewFacts(input: {
     const flags = await getFeatureFlags(tenantId);
     const preferenceIds = [...new Set(input.operations.flatMap((operation) => operation.code === 'ADD_PREFERENCE' ? [operation.payload.preferenceId] : []))];
     const settlement = await prisma.$transaction(async (tx) => {
-      const bindings = await resolveOrderChangePolicyBindings(tx, {
+      const policyResolution = await resolveOrderChangePolicyBindings(tx, {
         tenantId,
+        profileId: input.context.workflow.profileId,
         profileVersionId: input.context.workflow.profileVersionId,
         workflowStatus: input.context.workflow.currentStatus,
       });
@@ -155,7 +158,8 @@ export async function loadOrderChangePreviewFacts(input: {
         select: {
           status: true, current_status: true, current_stage: true, priority: true, service_speed: true,
           ready_by: true, total_items: true, internal_notes: true, customer_notes: true, customer_name: true,
-          customer_mobile_number: true, customer_email: true, currency_code: true, tax_rate: true, vat_rate: true,
+          customer_mobile_number: true, customer_email: true, is_default_customer: true, customer_details: true,
+          currency_code: true, tax_rate: true, vat_rate: true,
           payment_status: true, payment_type_code: true, subtotal_amount: true, items_base_amount: true,
           total_charges_amount: true, total_discount_amount: true, piece_extra_price_amount: true,
           preference_extra_price_amount: true, service_charge_amount: true, delivery_charge_amount: true,
@@ -223,7 +227,7 @@ export async function loadOrderChangePreviewFacts(input: {
           where: { tenant_org_id: tenantId, id: { in: preferenceIds }, is_active: true, rec_status: 1 },
           select: { id: true, preference_code: true, extra_price: true, preference_category: true, preference_sys_kind: true },
         });
-      return { bindings, payments, credits, refunds, preferences, expressCharges, storedOrder, auditItems, auditPieces, auditPreferences, auditProducts };
+      return { policyResolution, payments, credits, refunds, preferences, expressCharges, storedOrder, auditItems, auditPieces, auditPreferences, auditProducts };
     });
 
     const catalog: OrderChangePreferenceDefinition[] = [];
@@ -292,7 +296,8 @@ export async function loadOrderChangePreviewFacts(input: {
     const keyId = process.env.ORDER_CHANGE_REVIEW_PROOF_KEY_ID;
     return {
       featureEnabled: flags.order_edit_v2 === true,
-      bindings: settlement.bindings,
+      bindings: settlement.policyResolution.bindings,
+      policyResolution: settlement.policyResolution,
       quotesByTargetId,
       catalog,
       taxMode,
@@ -329,6 +334,8 @@ export async function loadOrderChangePreviewFacts(input: {
           customer_name: settlement.storedOrder.customer_name,
           customer_mobile_number: settlement.storedOrder.customer_mobile_number,
           customer_email: settlement.storedOrder.customer_email,
+          is_default_customer: settlement.storedOrder.is_default_customer,
+          customer_details: settlement.storedOrder.customer_details,
           currency_code: settlement.storedOrder.currency_code,
           tax_rate: auditMoney(settlement.storedOrder.tax_rate),
           vat_rate: auditMoney(settlement.storedOrder.vat_rate),

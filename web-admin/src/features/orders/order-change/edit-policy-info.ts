@@ -1,4 +1,4 @@
-import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
+import { isOrderChangeOperationWriterAvailable, type OrderChangeOperationCode } from '@/lib/constants/order-change';
 import type { OrderChangeEditPolicyRule } from '@/lib/types/order-change';
 
 /** How this screen can send an operation that the policy already decided. */
@@ -14,7 +14,8 @@ export type EditPolicyHowKey =
   | 'editLocally'
   | 'totalSame'
   | 'identityLocked'
-  | 'reasonRequired';
+  | 'reasonRequired'
+  | 'notAvailable';
 
 const DECISION_ORDER = ['ALLOW', 'ALLOW_WITH_WARNING', 'REQUIRE_OVERRIDE', 'DENY'] as const;
 
@@ -22,7 +23,7 @@ const DECISION_ORDER = ['ALLOW', 'ALLOW_WITH_WARNING', 'REQUIRE_OVERRIDE', 'DENY
  * Screen limits that are independent of the policy matrix.
  * Hidden and identity rows stay visible so a staff user can see why a control does nothing.
  */
-const SCREEN_LIMIT: Record<OrderChangeOperationCode, EditPolicyScreenLimit> = {
+const SCREEN_LIMIT: Partial<Record<OrderChangeOperationCode, EditPolicyScreenLimit>> = {
   ADD_ITEM: 'hidden',
   REMOVE_ITEM: 'hidden',
   CHANGE_ITEM_QUANTITY: 'hidden',
@@ -45,6 +46,8 @@ const SCREEN_LIMIT: Record<OrderChangeOperationCode, EditPolicyScreenLimit> = {
  */
 export function editPolicyExplanationKeys(rule: Pick<OrderChangeEditPolicyRule, 'operationCode' | 'decision' | 'requiresReason'>): EditPolicyHowKey[] {
   if (rule.decision === 'DENY') return ['deny'];
+  // A permissive matrix cell cannot make an unavailable Apply writer executable.
+  if (!isOrderChangeOperationWriterAvailable(rule.operationCode)) return ['notAvailable'];
   const limit = SCREEN_LIMIT[rule.operationCode];
   if (limit === 'hidden') {
     const keys: EditPolicyHowKey[] = ['editLocally'];
@@ -62,7 +65,12 @@ export function editPolicyExplanationKeys(rule: Pick<OrderChangeEditPolicyRule, 
   return keys;
 }
 
-/** Keeps allowed changes above denials so the window can be scanned from top to bottom. */
+/**
+ * Keeps allowed changes above denials so the window can be scanned from top to bottom.
+ *
+ * @param rules - Current policy rules; their original ordering remains unchanged.
+ * @returns A sorted copy for the read-only policy dialog.
+ */
 export function sortEditPolicyRules(rules: readonly OrderChangeEditPolicyRule[]): OrderChangeEditPolicyRule[] {
   return [...rules].sort((left, right) => {
     const decisionDelta = DECISION_ORDER.indexOf(left.decision) - DECISION_ORDER.indexOf(right.decision);

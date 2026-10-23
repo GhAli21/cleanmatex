@@ -3,6 +3,7 @@
  * A local row that is added and removed in the same draft produces no operation.
  */
 
+import { isOrderChangeOperationWriterAvailable, resolveOrderChangeKnownFieldOperation } from '@/lib/constants/order-change';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
 import type { z } from 'zod';
 import {
@@ -26,8 +27,14 @@ export interface EditUnlistedChange {
 
 export interface EditOrderDraft extends EditOrderBaseline {
   changeReason?: string;
-  /** Screen edits that have no policy operation. Preview still lists them. */
+  /** Draft extras are classified into governed operations before any request is built. */
   unlisted?: EditUnlistedChange[];
+}
+
+/** Typed draft blocker prevents known preference fields without a catalog identity from falling into residual authorization. */
+export class EditOperationUnavailableError extends Error {
+  readonly code = 'OPERATION_NOT_AVAILABLE';
+  constructor(readonly field: string) { super('OPERATION_NOT_AVAILABLE'); }
 }
 
 function text(value: string | undefined): string {
@@ -71,8 +78,8 @@ export function buildOrderChangeOperations(baseline: EditOrderBaseline, draft: E
   if (baseline.serviceSpeed !== draft.serviceSpeed && draft.serviceSpeed) {
     push({ code: 'CHANGE_SERVICE_SPEED', target: { kind: 'ORDER' }, payload: { serviceSpeed: draft.serviceSpeed } });
   }
-  if (text(baseline.readyBy) !== text(draft.readyBy) && draft.readyBy) {
-    push({ code: 'CHANGE_READY_BY', target: { kind: 'ORDER' }, payload: { readyBy: draft.readyBy } });
+  if (text(baseline.readyBy) !== text(draft.readyBy)) {
+    push({ code: 'CHANGE_READY_BY', target: { kind: 'ORDER' }, payload: { readyBy: draft.readyBy || null } });
   }
   const customerChanged = text(baseline.customerName) !== text(draft.customerName)
     || text(baseline.customerMobile) !== text(draft.customerMobile)
@@ -105,7 +112,17 @@ export function buildOrderChangeOperations(baseline: EditOrderBaseline, draft: E
   }
   appendPreferenceChanges(baseline.preferences, draft.preferences, { kind: 'ORDER' }, push);
   for (const change of draft.unlisted ?? []) {
-    push({ code: 'CHANGE_UNLISTED', target: change.target, payload: { field: change.field, value: change.value } });
+    const knownCode = resolveOrderChangeKnownFieldOperation(change.field);
+    if (knownCode === 'CHANGE_READY_BY') {
+      push({ code: knownCode, target: { kind: 'ORDER' }, payload: { readyBy: change.value || null } });
+    } else if (knownCode && !isOrderChangeOperationWriterAvailable(knownCode)) {
+      push({ code: knownCode, target: change.target, payload: { field: change.field, value: change.value } });
+    } else if (knownCode) {
+      // A preference requires its real catalog identity; a residual ALLOW cannot supply that missing authority.
+      throw new EditOperationUnavailableError(change.field);
+    } else {
+      push({ code: 'CHANGE_UNLISTED', target: change.target, payload: { field: change.field, value: change.value } });
+    }
   }
   return operations;
 }
@@ -196,7 +213,7 @@ function appendAddedLine(line: EditLineDraft, push: (operation: Omit<EditChangeO
 function appendPreferenceChanges(
   baseline: readonly EditPreferenceDraft[],
   draft: readonly EditPreferenceDraft[],
-  target: EditChangeOperation extends { code: 'ADD_PREFERENCE'; target: infer T } ? T : never,
+  target: Extract<EditChangeOperation, { code: 'ADD_PREFERENCE' }>['target'],
   push: (operation: Omit<EditChangeOperation, 'seq'>) => void,
 ): void {
   const draftPreferences = new Map(draft.map((preference) => [identityKey(preference.identity), preference]));

@@ -214,11 +214,42 @@
       "CHANGE_PREFERENCE": "Change a preference",
       "REMOVE_PREFERENCE": "Remove a preference",
       "CHANGE_PRIORITY": "Change priority",
-      "CHANGE_SERVICE_SPEED": "Change Express",
+      "CHANGE_SERVICE_SPEED": "Change service speed",
       "CHANGE_READY_BY": "Change ready by",
       "CHANGE_ORDER_NOTES": "Change notes",
       "CHANGE_CUSTOMER_SNAPSHOT": "Change customer details",
-      "CHANGE_UNLISTED": "Other tracked change"
+      "CHANGE_UNLISTED": "Other tracked change",
+      "CHANGE_CUSTOMER": "Change Customer",
+      "CHANGE_BRANCH": "Change Branch",
+      "CHANGE_ORDER_TYPE": "Change Order Type",
+      "CHANGE_EXPRESS": "Change Express",
+      "CHANGE_QUICK_DROP": "Change Quick Drop",
+      "CHANGE_PAYMENT_NOTES": "Change Payment Notes",
+      "CHANGE_ORDER_SOURCE": "Change Order Source",
+      "CHANGE_PHYSICAL_INTAKE": "Change Physical Intake",
+      "CHANGE_B2B_REFERENCE": "Change B2B Reference",
+      "CHANGE_DISCOUNT": "Change Discount",
+      "CHANGE_PAYMENT_TYPE": "Change Payment Type",
+      "CHANGE_ITEM_PRODUCT": "Change Item Product",
+      "CHANGE_ITEM_SERVICE": "Change Item Service",
+      "CHANGE_ITEM_PRICE": "Change Item Price",
+      "CHANGE_PIECE_BRAND": "Change Piece Brand",
+      "CHANGE_PIECE_RACK": "Change Piece Rack"
+    },
+    "resolutionLabel": "Policy source",
+    "resolutionLevels": {
+      "ORGANIZATION": "Organization-wide override",
+      "PROFILE": "Organization and workflow profile override",
+      "VERSION_DEFAULT": "Published workflow version default",
+      "DENY": "No usable policy"
+    },
+    "denyReasons": {
+      "NO_AUTHORITY": "No override or published default is configured. Ask HQ to configure an edit policy.",
+      "AMBIGUOUS_ORGANIZATION": "Multiple organization overrides match. HQ must resolve the duplicate assignments.",
+      "AMBIGUOUS_PROFILE": "Multiple organization and profile overrides match. HQ must resolve the duplicate assignments.",
+      "AMBIGUOUS_DEFAULT": "Multiple published defaults match. HQ must resolve the duplicate defaults.",
+      "POLICY_NOT_USABLE": "The selected policy is unavailable or inactive. HQ must repair its assignment.",
+      "STATUS_NOT_COVERED": "The selected policy has no rules for this workflow status. Changes stay blocked."
     }
   },
   "lifecycle": {
@@ -255,6 +286,32 @@
       "SAVE_AS_CUSTOMER_ADVANCE": "customer advance",
       "SAVE_AS_CUSTOMER_CREDIT": "customer credit",
       "SAVE_TO_CUSTOMER_WALLET": "customer wallet"
+    }
+  },
+  "review": {
+    "willAdd": "Will be added",
+    "willRemove": "Will be removed",
+    "none": "None",
+    "newItem": "New item",
+    "newPiece": "New piece",
+    "kind": {
+      "packing": "Packing",
+      "stain": "Stain",
+      "damage": "Damage",
+      "color": "Color",
+      "condition": "Condition",
+      "note": "Note",
+      "service": "Service preference"
+    },
+    "fields": {
+      "priceOverride": "Price override",
+      "preferenceCharge": "Preference charge",
+      "service": "Service",
+      "pieceNumber": "Piece number",
+      "stage": "Stage",
+      "scanState": "Scan state",
+      "value": "Value",
+      "defaultCustomer": "Default customer"
     }
   }
 }

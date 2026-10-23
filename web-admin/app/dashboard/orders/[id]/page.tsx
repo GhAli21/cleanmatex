@@ -139,7 +139,7 @@ async function OrderDetailContent({
     canViewFinancialDebug,
   ] = await Promise.all([
     getOrderInvoices(resolvedOrderId),
-    getOrderFinancialAction(tenantId, resolvedOrderId),
+    getOrderFinancialAction(resolvedOrderId),
     getOrderPreferencesAction(resolvedOrderId),
     getOrderEditHistoryAction(resolvedOrderId),
     getOrderChangeHistoryAction(resolvedOrderId),
@@ -220,7 +220,6 @@ async function OrderDetailContent({
   const publicTrackingPath = await getPublicTrackingPathForOrderId({
     tenantId,
     orderId: resolvedOrderId,
-    fallbackOrderNo: typeof order.order_no === 'string' ? order.order_no : null,
   });
   const preferenceDtlColumnLabels = Object.fromEntries(
     ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => [col, tFull(`preferences.dtlColumns.${col}`)])

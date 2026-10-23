@@ -156,7 +156,7 @@ export function projectOrderChangePreferences(input: {
   operations: readonly OrderChangePreferenceOperation[];
 }): OrderChangePreferenceProjectionSuccess | OrderChangePreferenceProjectionFailure {
   const structure = projectOrderChangeStructure(input.baseline, input.structuralOperations ?? []);
-  if (!structure.ok) return structure;
+  if (structure.ok === false) return structure;
 
   const activeItems = new Set(structure.items.filter((item) => item.active).map((item) => item.id));
   const activePieces = new Map(structure.pieces.filter((piece) => piece.active).map((piece) => [piece.id, piece.itemId]));

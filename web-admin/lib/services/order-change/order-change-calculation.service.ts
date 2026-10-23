@@ -12,6 +12,7 @@
 import { createHash } from 'node:crypto';
 import { roundMoneyAmount } from '@/lib/money/format-money';
 import { round4 } from '@/lib/services/order-financial-aggregation';
+import { addMoney, toMoneyString } from '@/lib/utils/money';
 import { applyExclusiveTax, extractTaxFromInclusive } from '@/lib/services/tax-extraction';
 
 /** Domain for the digest Apply stores. The line list itself grows with every item. */
@@ -132,10 +133,7 @@ function formatUnits(units: bigint, places = SCALE): string {
  * inside `total_price`; the unit price stays the product quote.
  */
 export function reviewedItemTotal(line: { merchandiseAmount: string; embeddedExtra?: string }): string {
-  const merchandise = Number(line.merchandiseAmount);
-  const embedded = Number(line.embeddedExtra ?? '0');
-  if (!Number.isFinite(merchandise) || !Number.isFinite(embedded)) return line.merchandiseAmount;
-  return round4(merchandise + embedded).toFixed(4);
+  return toMoneyString(addMoney(line.merchandiseAmount, line.embeddedExtra ?? '0'));
 }
 
 function sellingUnit(line: OrderChangeCalculationLine, overrideAllowed: boolean): { unit: bigint; adjustment: bigint } | OrderChangeCalculationFailure {

@@ -1,6 +1,6 @@
 # Extend Order Edit Policy — Comprehensive Resolution Plan
 
-**Status:** Plan only. Not started. Do not write code, SQL, or translations until this plan is confirmed.
+**Status:** Confirmed 2026-10-23. Phase 1 migration `0637_edit_policy_resolution_scopes.sql` was applied locally and remotely by the user; both repositories' types were regenerated and Prisma was updated. Phase 2 tenant resolver, context, capability, Preview, Apply snapshots and tenant UI are complete and validated. Phase 1 retains its remaining section 17 acceptance items. Phases 3–5 have not started.
 **Date:** 2026-10-17
 **Place in the pack:** Additional plan inside the active Edit Order V2 v3.0 pack. It does not replace that pack.
 **Authority of this file:** Edit Policy configuration and resolution, and every Order Change surface this file changes so that resolution is the one Preview and Apply enforce. That includes the SQL resolver, the tenant resolver, order context, capability, Preview, the review-proof digest, the Apply writer’s before and after values, the review screen, the operation catalog, and HQ authoring. Both repositories implement those changes from this file. `WP05-B_HQ_PROGRESS.md` points here for this extension and keeps the completed WP05-B record.
@@ -245,7 +245,7 @@ One resolver is used by tenant Preview, tenant Apply, the tenant order context, 
 
 1. Exactly one active override for this organization. Use it on every profile.
 2. Otherwise, exactly one active override for this organization and this profile. Use it.
-3. Otherwise, exactly one published or pilot default for this profile version. Use it.
+3. Otherwise, exactly one live default for this profile version pointing to a published Edit Policy. Use it. The workflow version may be Pilot or Published; the Edit Policy must be Published.
 4. Otherwise, deny.
 
 ### 3.1 Level rules
@@ -358,7 +358,7 @@ No new permission, feature flag, menu entry, or tenant authoring screen.
 
 ## 5A. Operation catalog — nothing is frozen
 
-The V1 catalog is not a closed list. Migration `0597` seeded 13 operations and 16 pairs, then `trg_wf_edit_ops_grammar` and `trg_wf_edit_tgt_grammar` call `sys_wf_edit_grammar_guard`, which rejects every later insert, update, and delete. This plan removes that freeze and seeds every operation that create-order or the old edit-order screen can already express.
+The V1 catalog is not a closed list. Migration `0597` seeded 13 operations and 15 pairs, then `trg_wf_edit_ops_grammar` and `trg_wf_edit_tgt_grammar` call `sys_wf_edit_grammar_guard`, which rejects every later insert, update, and delete. This plan removes that freeze and seeds every operation that create-order or the old edit-order screen can already express. The 15-pair baseline was verified read-only on `supabase_local` on 2026-10-23; no extra pair is invented to satisfy the earlier count of 16.
 
 Sources checked for this list:
 
@@ -384,6 +384,7 @@ Replace the freeze with `sys_wf_edit_catalog_guard`. It allows a later migration
 - a target type outside `ORDER`, `ITEM`, `PIECE`, `PREFERENCE`
 - `DELETE` of an operation or a pair. Deactivate with `is_active = false` and `rec_status = 0`
 - a change of `operation_code` after insert
+- a change of a pair's `target_type` after insert; deactivate the old pair and insert its replacement
 - a pair whose operation row does not exist
 
 HQ does not invent executable codes from the browser. A new operation still arrives through a reviewed migration, together with its English and Arabic names. The difference is that the database no longer treats the first 13 codes as the permanent grammar.
@@ -415,7 +416,7 @@ Seeding a code lets HQ decide it. It does not by itself perform the edit.
 
 ### 5A.4 Operations already seeded
 
-These 13 codes and 16 pairs stay. Their current writers stay.
+These 13 codes and 15 pairs stay. Their current writers stay.
 
 | Code | Target | Create / old edit source |
 |---|---|---|
@@ -536,9 +537,9 @@ After the seed, the live catalog size is:
 - 2 new piece operations: brand, rack
 - `CHANGE_UNLISTED` on 4 targets
 
-Pair count = 16 existing pairs + 11 + 3 + 2 + 4 = 36 live pairs.
+Pair count = 15 existing pairs + 11 + 3 + 2 + 4 = 35 live pairs (30 operations). The earlier 36-pair total was a counting error, corrected against migration `0597` and the read-only local catalog.
 
-Packing, stain, damage, color, condition, and preference notes add no pairs. `sys_wf_edit_cov_status` uses whatever is live in `sys_wf_order_edit_op_tgt_cd` at call time. It does not hard-code 15 or 36. The old `0597` check `status_count * 15` is not repeated.
+Packing, stain, damage, color, condition, and preference notes add no pairs. `sys_wf_edit_cov_status` uses whatever is live in `sys_wf_order_edit_op_tgt_cd` at call time. It does not hard-code 15 or 35. The old `0597` check `status_count * 15` is not repeated.
 
 Existing Draft starter policies from `0597` stay as they are. They do not gain rows for the new pairs. They remain unassignable Drafts. They are not published and they are not defaults.
 
@@ -823,6 +824,10 @@ Create one new migration in `F:\jhapp\cleanmatex\supabase\migrations\`. Take the
 
 Suggested file name: `{next}_edit_policy_resolution_scopes.sql`.
 
+**2026-10-23 Phase 1 authoring:** Created `supabase/migrations/0637_edit_policy_resolution_scopes.sql` after verifying `0636` as the latest numbered migration. Section 6.1 returned zero collisions on `supabase_local`; live assignments = 0, distinct live assigned policies = 0, total assignments = 0, policy headers = 5, unresolved assignment versions = 0, inactive fallbacks = 0. The new default table was absent at authoring time. SQL and PL/pgSQL were parsed offline; the agent did not apply the migration or create fabricated behavioral fixtures. **Subsequent user confirmation:** all migrations applied locally and remotely; both repositories' types regenerated and Prisma schema updated. Local read-only verification found `0637` in migration history, 30 operations / 35 pairs, zero defaults, correct browser-role restrictions and `DENY / NO_AUTHORITY` for the no-authority smoke case. Remote application is user-confirmed, not independently verified. Full section 17 behavioral acceptance remains pending; no later phase has started.
+
+The existing `0606` lifecycle and published-field immutability checks and `0599` atomic-save revision marker are retained. Rule ownership cannot move between policies, preventing a rule from bypassing its old policy's published guard. The trusted tenant Prisma connection uses `postgres`; it needs no new grant beyond its owner privileges. HQ receives only the documented server-role grants.
+
 The migration is one transaction. Every new or replaced object gets a SQL comment and `COMMENT ON`, including columns, constraints, indexes, functions, triggers, and grants.
 
 ### 6.1 Preflight, run read-only before writing the final migration
@@ -848,13 +853,13 @@ Also record, for the implementer, the current live assignment count and the dist
 
 Dependent objects force this order.
 
-1. Drop the grammar triggers and `sys_wf_edit_grammar_guard` as specified in section 5A.1, then create `sys_wf_edit_catalog_guard` and seed section 5A.5.
+1. Lock assignments and repeat collision and unresolved-version preflight in the transaction. Drop the grammar triggers and `sys_wf_edit_grammar_guard` as specified in section 5A.1, then create `sys_wf_edit_catalog_guard`, the new `trg_wf_edit_ops_catalog` / `trg_wf_edit_tgt_catalog` triggers, and seed section 5A.5.
 2. Add nullable columns on `org_wf_edit_policy_asg_cf`: `scope`, `workflow_profile_id`, `gap_acknowledged`.
-3. Backfill `scope` and `workflow_profile_id` from the existing version, or raise on collision.
+3. Drop `trg_org_wf_edit_asg_guard` using `RESTRICT` before backfilling identity columns. Backfill `scope` and `workflow_profile_id` from the existing version, or raise on collision or any unresolved live/inactive version. Keep the trigger absent through old-key clearing, then recreate it at step 14 in this transaction.
 4. Set `scope` to `NOT NULL` after the backfill.
 5. Add `ck_wf_edit_asg_scope` and `fk_wf_edit_asg_prof`.
-6. Drop trigger `trg_org_wf_edit_asg_guard` only long enough to replace the function, then create it again in the same migration. Use `RESTRICT`.
-7. `CREATE OR REPLACE FUNCTION org_wf_edit_asg_guard`.
+6. Keep assignment identity validation suspended only inside this locked transaction; do not expose partially converted rows.
+7. Prepare `CREATE OR REPLACE FUNCTION org_wf_edit_asg_guard`; install it after conversion and before recreating the trigger at step 14.
 8. Drop `fk_wf_edit_asg_policy`.
 9. Drop unique index `uq_wf_edit_asg_active`.
 10. `ALTER COLUMN workflow_profile_version_id DROP NOT NULL` on the assignment table.
@@ -863,7 +868,7 @@ Dependent objects force this order.
 13. Create `uq_wf_edit_asg_org` and `uq_wf_edit_asg_prof`.
 14. Recreate the assignment guard trigger.
 15. `ALTER COLUMN workflow_profile_version_id DROP NOT NULL` on `sys_wf_edit_policy_mst`. The existing foreign key `fk_wf_edit_pol_profile` stays. Null means the policy is not authored against one version.
-16. Drop `uq_wf_edit_policy_ver` after no foreign key depends on it. Policy identity is `id`.
+16. `ALTER TABLE sys_wf_edit_policy_mst DROP CONSTRAINT uq_wf_edit_policy_ver RESTRICT` after no foreign key depends on it. It is a UNIQUE constraint, not a standalone index. Policy identity is `id`.
 17. `CREATE OR REPLACE` `sys_wf_edit_rule_guard` so a rule status no longer has to belong to the header version.
 18. `CREATE OR REPLACE` the publish-time coverage function from `0606` so promotion no longer demands every status of one version.
 19. Create `sys_wf_edit_policy_def_cf`, its indexes, `sys_wf_edit_def_guard`, and `sys_wf_edit_cov_status`.
@@ -1069,7 +1074,7 @@ For each live assignment:
 
 Do not create organization-scope rows. Do not insert defaults. Do not publish the Draft starter policies from `0597`. An organization that has no live assignment today stays denied until HQ later publishes a default or creates an override.
 
-Inactive assignment rows are left unchanged except `scope` must be filled to satisfy `NOT NULL`. Inactive rows with a resolvable version become `PROFILE` and are not made active. Inactive rows whose version cannot be resolved become `ORGANIZATION` with `gap_acknowledged = false` and stay inactive, so the check constraint's live-row clause does not apply. Record the count of that fallback in the migration comment. Prefer raising if any inactive row cannot resolve, rather than inventing an organization override. Raising is the required behavior when the version join fails for an inactive row too. The operator repairs or the migration skips none of them silently.
+Inactive assignment rows acquire `scope = 'PROFILE'`, their resolved profile id, and `gap_acknowledged = false`, without reactivation or clearing their historical version. An unresolved version on any live or inactive row raises and identifies the organization and assignment. No fallback organization override is invented and no row is silently skipped. The preflight fallback count is therefore zero; the operator repairs unresolved history before retrying.
 
 ### 6.14 Comments to replace
 
@@ -1154,6 +1159,8 @@ Add one database integration test, beside the existing order-change DB tests, on
 ### 7.5 Close Phase 2
 
 Run the tasks in "Tasks after every phase" for Phase 2.
+
+**2026-10-23 execution:** Completed Phase 2 in `cleanmatex`. Context and Preview call the SQL-backed resolver; Apply locks the tenant-scoped order and calls the same resolver immediately before mutation. The signed review proof binds the canonical before/after snapshot digest, and persistence compares the locked before and stored after values before committing immutable history. All 30 catalog operations are recognized, while the 16 operations without shipped writers and executable residual changes fail with `OPERATION_NOT_AVAILABLE`. The shared Cmx Edit workspace now shows localized compact operation rows plus policy source/deny information and disables unavailable Edit controls without changing Create. Focused Order Change Jest passed 25 suites / 191 tests; two local PostgreSQL integration tests passed with rollback-only fixtures; full ESLint, typecheck, i18n check and production build passed. See `Extend_Order_Edit_policy_STATUS.md` for exact evidence and remaining boundaries. No HQ API/Studio code, Phase 5 work, WP19 or WP20 was started.
 
 ## 8. Phase 3 — HQ API
 
