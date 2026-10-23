@@ -19,7 +19,7 @@ import {
   evaluateBestAutoApplyPromo,
 } from './discount-service';
 import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
-import { calculateTax } from './tax-engine.service';
+import { calculateTaxDetailed } from './tax-engine.service';
 import { resolveTaxPricingMode } from './pricing-mode-resolver.service';
 import { extractTaxFromInclusive } from './order-financial-write.service';
 import { resolveCurrencyRoundingRule, roundToIncrement } from '@/lib/money/currency-rounding';
@@ -306,7 +306,7 @@ export async function calculateOrderTotals(
     decimalPlaces
   );
 
-  const taxBreakdown = await calculateTax({
+  const { lines: taxBreakdown, exempt: isTaxExemptOrder } = await calculateTaxDetailed({
     tenantId,
     branchId,
     customerId,
@@ -344,7 +344,9 @@ export async function calculateOrderTotals(
   // zero, never an assumed positive rate. `additionalTaxAmount` stays 0 here:
   // it only ever carries CUSTOM-type *profile* lines, which by definition do
   // not exist when taxBreakdown is empty.
-  if (taxBreakdown.length === 0) {
+  // PF-04: an exempt order has no lines BY DESIGN and carries no tax; it must
+  // never fall back to the tenant VAT rate.
+  if (taxBreakdown.length === 0 && !isTaxExemptOrder) {
     const vatRate = await tax.getTaxRate(tenantId, branchId, userId);
     vatTaxPercent = round(vatRate * 100, 2);
     vatValue = isInclusive

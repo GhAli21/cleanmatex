@@ -613,7 +613,7 @@ Legend: (S) STATUS.md, (D) docs, (Q) QA guide. Skills are loaded before each tas
 
 ## 20. Open items for owner
 
-Two items were raised by Phase 0 ([PHASE0_FINDINGS.md](PHASE0_FINDINGS.md) §6):
+**Resolved 2026-10-23 as recommended** (the owner continued after the recommendations; can still be overridden). Two items were raised by Phase 0 ([PHASE0_FINDINGS.md](PHASE0_FINDINGS.md) §6):
 
 1. **Q1:** seed product express turnaround into the speed rules (changes ready-by for about 120 products; recommended), or seed it only where it equals today's category value.
 2. **Q2:** accept that the bug fixes PF-03, PF-04 and PF-08 change figures toward the correct value (recommended, disclosed in the P1-01 sign-off).

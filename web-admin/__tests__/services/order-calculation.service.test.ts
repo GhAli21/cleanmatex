@@ -58,8 +58,14 @@ jest.mock('@/lib/services/tenant-settings.service', () => ({
   })),
 }));
 
+const mockTaxExempt = jest.fn(() => false);
 jest.mock('@/lib/services/tax-engine.service', () => ({
   calculateTax: (...a: unknown[]) => mockCalculateTax(...a),
+  // PF-04: calculateOrderTotals uses the detailed outcome; existing tests keep driving lines via mockCalculateTax.
+  calculateTaxDetailed: async (...a: unknown[]) => ({
+    lines: await mockCalculateTax(...a),
+    exempt: mockTaxExempt(),
+  }),
 }));
 
 jest.mock('@/lib/services/discount-service', () => ({
@@ -123,6 +129,33 @@ describe('order-calculation.service — calculateOrderTotals', () => {
     expect(result.subtotal).toBe(0);
     expect(result.saleTotal).toBe(0);
     expect(result.discountLines).toEqual([]);
+  });
+
+  describe('PF-04: a tax-exempt order is never charged the tenant VAT fallback', () => {
+    it('charges no VAT when an exemption applies, even with a tenant VAT rate set', async () => {
+      mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
+      mockCalculateTax.mockResolvedValueOnce([]);
+      mockTaxExempt.mockReturnValueOnce(true);
+      mockGetVatRate.mockResolvedValue(0.05);
+
+      const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
+
+      expect(result.vatValue).toBe(0);
+      expect(result.vatTaxPercent).toBe(0);
+      expect(result.saleTotal).toBeCloseTo(100);
+      expect(mockGetVatRate).not.toHaveBeenCalled();
+    });
+
+    it('still uses the tenant VAT fallback when the order is not exempt and no profile exists', async () => {
+      mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
+      mockCalculateTax.mockResolvedValueOnce([]);
+      mockGetVatRate.mockResolvedValue(0.05);
+
+      const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
+
+      expect(result.vatValue).toBeCloseTo(5);
+      expect(result.saleTotal).toBeCloseTo(105);
+    });
   });
 
   it('computes subtotal from pricing service', async () => {

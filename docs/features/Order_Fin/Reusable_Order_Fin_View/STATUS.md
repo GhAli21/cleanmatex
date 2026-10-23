@@ -96,6 +96,7 @@
     - a release readiness checklist
   - No code changed.
 
+- **2026-10-23 (P1B-01 done via Line-Level P1-01):** 55 characterization goldens freeze today's Create money (`web-admin/__tests__/characterization/create-money/`). They cover every P1B-01 case: manual percent and fixed, automatic rule, promo, auto-promo, `can_stack_with_promo`, tax profiles and CUSTOM, inclusive and exclusive, charges, cash rounding, gift card. The owner sign-off list is in [P1_01_CHARACTERIZATION.md](../Line_Level_Money_Snapshot/P1_01_CHARACTERIZATION.md). Next in the shared sequence: this plan's Phase 1 bug fixes.
 - **2026-10-23 (dependency):** Phase 1B now depends on the separate plan [Line_Level_Money_Snapshot/PLAN.md](../Line_Level_Money_Snapshot/PLAN.md), which owns P1B-01 and P1B-03 (extended to line-level money for items and pieces). Pointer added in PLAN Phase 1B. No code changed.
 
 - **2026-10-23 (v8):** Plan v5 and DESIGN v2. The owner put the `public` preset and the `edit` source in Release 1 and delegated everything else.

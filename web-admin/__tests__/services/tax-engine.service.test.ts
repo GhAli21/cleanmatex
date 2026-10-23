@@ -36,7 +36,7 @@ jest.mock('@/lib/supabase/server', () => ({
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import { calculateTax, calculateTaxInTx } from '@/lib/services/tax-engine.service';
+import { calculateTax, calculateTaxDetailed, calculateTaxInTx } from '@/lib/services/tax-engine.service';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -114,6 +114,40 @@ describe('tax-engine.service — calculateTax', () => {
     const result = await calculateTax({ tenantId: TENANT, baseAmount: 100, customerId: 'cust-2' });
     expect(result).toHaveLength(1);
     expect(result[0].taxAmount).toBeCloseTo(10);
+  });
+});
+
+describe('tax-engine.service — calculateTaxDetailed (PF-04)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('reports exempt=true and no lines when an exemption applies (profiles never loaded)', async () => {
+    mockTaxExemptionFindFirst.mockResolvedValue({ id: 'ex-1' });
+    mockTaxProfileFindMany.mockResolvedValue([makeProfile(5)]);
+
+    const outcome = await calculateTaxDetailed({ tenantId: TENANT, baseAmount: 100, customerId: 'cust-1' });
+
+    expect(outcome).toEqual({ lines: [], exempt: true });
+    expect(mockTaxProfileFindMany).not.toHaveBeenCalled();
+  });
+
+  it('reports exempt=false and no lines when no profile is configured', async () => {
+    mockTaxExemptionFindFirst.mockResolvedValue(null);
+    mockTaxProfileFindMany.mockResolvedValue([]);
+
+    const outcome = await calculateTaxDetailed({ tenantId: TENANT, baseAmount: 100, customerId: 'cust-1' });
+
+    expect(outcome).toEqual({ lines: [], exempt: false });
+  });
+
+  it('reports exempt=false with lines for a normal taxable order', async () => {
+    mockTaxExemptionFindFirst.mockResolvedValue(null);
+    mockTaxProfileFindMany.mockResolvedValue([makeProfile(5)]);
+
+    const outcome = await calculateTaxDetailed({ tenantId: TENANT, baseAmount: 200, customerId: 'cust-1' });
+
+    expect(outcome.exempt).toBe(false);
+    expect(outcome.lines).toHaveLength(1);
+    expect(outcome.lines[0].taxAmount).toBeCloseTo(10);
   });
 });
 

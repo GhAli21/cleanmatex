@@ -53,6 +53,7 @@ import {
   CURRENCY_RESOLUTION_ERRORS,
   CurrencyResolutionError,
 } from '@/lib/money/currency-resolution';
+import { priceOverrideErrorResponse } from '@/lib/api/price-override-http';
 
 const IDEMPOTENCY_RESOURCE = 'submit_order';
 
@@ -459,6 +460,10 @@ export async function POST(request: NextRequest) {
         { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
       );
     }
+
+    // PF-01: a price override without `pricing:override` (403) or without a reason (400).
+    const priceOverrideResponse = priceOverrideErrorResponse(error);
+    if (priceOverrideResponse) return priceOverrideResponse;
 
     if (message === 'AMOUNT_MISMATCH') {
       return NextResponse.json(

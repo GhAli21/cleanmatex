@@ -79,6 +79,7 @@ import {
   type PlannedCashChangeRounding,
 } from '@/lib/services/cash-change-rounding.service';
 import type { RequestAuditContext } from '@/lib/utils/request-audit';
+import { assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
 
 const TOLERANCE = 0.001;
 
@@ -286,6 +287,11 @@ export async function resolveOrderBranch(
 export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrderResult> {
   const { tenantId, userId, userName, branchId, input, requestAudit } = params;
   const { clientTotals } = input;
+
+  // ── 0. Price override policy (PF-01) ─────────────────────────────────────────
+  // An override needs `pricing:override` and a reason; otherwise the request is
+  // rejected before any pricing. Throws PriceOverrideError (route → 403 / 400).
+  await assertPriceOverridesAllowed(input.items, { requireReason: true });
 
   // ── 1. Server-side totals ────────────────────────────────────────────────────
   const serverTotals = await calculateOrderTotals({

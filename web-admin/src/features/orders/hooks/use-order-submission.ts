@@ -660,9 +660,16 @@ export function useOrderSubmission() {
                             LOYALTY_BELOW_MIN_REDEEM: t('payment.errors.loyaltyBelowMinRedeem'),
                             LOYALTY_NOT_CONFIGURED: t('payment.errors.loyaltyNotConfigured'),
                             LOYALTY_LOT_ALLOCATION_SHORTFALL: t('payment.errors.loyaltyLotAllocationShortfall'),
+                            // PF-01: server-enforced price override policy.
+                            PRICE_OVERRIDE_NOT_PERMITTED: t('payment.errors.priceOverrideNotPermitted'),
+                            PRICE_OVERRIDE_REASON_REQUIRED: t('payment.errors.priceOverrideReasonRequired'),
                     };
 
-                    if (isPermissionError) {
+                    // A 403 with a known stable code (e.g. PF-01) uses its own message,
+                    // not the generic "cannot create orders" permission copy.
+                    if (isPermissionError && translatedByCode[submitErrorCode]) {
+                        errorMessage = translatedByCode[submitErrorCode];
+                    } else if (isPermissionError) {
                         const permissionMatch = errorMessage.match(
                             /Permission denied:\s*([^\s]+)/i
                         );

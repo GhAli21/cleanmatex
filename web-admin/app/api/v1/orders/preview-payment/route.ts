@@ -14,6 +14,8 @@ import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { previewPaymentRequestSchema } from '@/lib/validations/new-order-payment-schemas';
+import { assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
+import { priceOverrideErrorResponse } from '@/lib/api/price-override-http';
 import { isInvalidDbInputError } from '@/lib/utils/db-input-error';
 import {
   CURRENCY_RESOLUTION_ERRORS,
@@ -48,6 +50,15 @@ export async function POST(request: NextRequest) {
       },
       { status: 400 },
     );
+  }
+
+  // PF-01: a previewed override needs `pricing:override`, same as submit.
+  try {
+    await assertPriceOverridesAllowed(parsed.data.items, { requireReason: false });
+  } catch (error) {
+    const priceOverrideResponse = priceOverrideErrorResponse(error);
+    if (priceOverrideResponse) return priceOverrideResponse;
+    throw error;
   }
 
   try {

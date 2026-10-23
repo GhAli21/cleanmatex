@@ -1,0 +1,36 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`P1-01 float -> decimal sign-off list FD-T1 OMR (3 decimals): rate × base for VAT 5%, 15%, 2% and a 10% discount, bases 0.001 … 30.000 1`] = `
+{
+  "differences": 2223,
+  "examples": [
+    "0.030 × 15% -> today 0.004, decimal 0.005",
+    "0.045 × 10% -> today 0.004, decimal 0.005",
+    "0.050 × 15% -> today 0.007, decimal 0.008",
+  ],
+  "maxGapMinorUnits": 1,
+  "total": 120000,
+}
+`;
+
+exports[`P1-01 float -> decimal sign-off list FD-T2 SAR (2 decimals): the same rates, bases 0.01 … 300.00 1`] = `
+{
+  "differences": 2099,
+  "examples": [
+    "0.10 × 15% -> today 0.01, decimal 0.02",
+    "0.15 × 10% -> today 0.01, decimal 0.02",
+    "0.30 × 5% -> today 0.01, decimal 0.02",
+  ],
+  "maxGapMinorUnits": 1,
+  "total": 120000,
+}
+`;
+
+exports[`P1-01 float -> decimal sign-off list FD-T3 piece split at 4 decimals: totals 0.001 … 20.000 over 3, 6 and 7 pieces 1`] = `
+{
+  "differences": 0,
+  "examples": [],
+  "maxGapMinorUnits": 0,
+  "total": 60000,
+}
+`;

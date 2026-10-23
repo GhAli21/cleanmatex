@@ -611,6 +611,7 @@ Each package is separately reviewable and suitable for one coding-agent task. Cu
 - **Tests:** Open/temp/permanent state, expiry, each decision outcome, required reasons/specialized permissions, changed-ops proof rejection, missing bindings, public/auth failures, overrides cannot bypass hard deny.
 - **Acceptance:** No status transition needed to authorize Change; workflow version untouched; permission catalog/constants/guards agree; no broad force-allow.
 - **Dependencies:** WP04; operation policy details in Part 10 resolved before enabling. **Do not change:** operational action behavior, existing event/issue tokens, global grants, navigation.
+- **Extension status (2026-10-23):** The Edit Policy resolution-scopes extension (migration `0637`, organization/profile overrides, version defaults, reusable policies) is specified separately in `Extend_Order_Edit_policy_Plan.md` / `Extend_Order_Edit_policy_STATUS.md` in this folder. Tenant resolver/Preview/Apply (Phase 2) and HQ API/Studio screens (Phases 3–4, plus a new standalone HQ Order Change hub) are DONE; Phase 1's residual acceptance items and Phase 5's cross-app proof remain open. HQ `cleanmatexsaas` pointer: `docs/features/Order_Edit_V2/WP05-B_HQ_PROGRESS.md`.
 
 ### WP06 — Deterministic item/piece projection and normalization
 

@@ -15,5 +15,7 @@
   "outstandingPolicyRequired": "Choose how the remaining balance should be handled.",
   "loyaltyBelowMinRedeem": "Loyalty redemption is below the program minimum redeemable points.",
   "loyaltyNotConfigured": "Loyalty redemption is not configured for this tenant.",
-  "loyaltyLotAllocationShortfall": "Not enough loyalty point lots are available to cover this redemption."
+  "loyaltyLotAllocationShortfall": "Not enough loyalty point lots are available to cover this redemption.",
+  "priceOverrideNotPermitted": "You do not have permission to use a price override. Remove the override or ask a user with the pricing:override permission.",
+  "priceOverrideReasonRequired": "Enter a reason for every price override before submitting."
 }

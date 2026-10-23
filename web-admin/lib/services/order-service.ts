@@ -232,6 +232,10 @@ export interface CreateOrderParams {
     packingPrefCharge?: number;
     /** Aggregated charge from service prefs. Included in order total. */
     servicePrefCharge?: number;
+    /** PF-01: overridden unit price; permission and reason are enforced by the submit orchestrator. */
+    priceOverride?: number | null;
+    /** PF-01: reason recorded with the override (`override_reason`). */
+    overrideReason?: string | null;
   }>;
   /** B18 — order-level preferences (`org_order_preferences_dtl.prefs_level='ORDER'`), independent of any item. */
   orderServicePrefs?: CreateOrderServicePref[];
@@ -1488,6 +1492,21 @@ export class OrderService {
         collectConditionCatalogCodesFromOrderItems(items)
       );
 
+      // PF-01: `override_by` references org_users_mst.id (not the auth user id), so
+      // resolve the session user's membership row once, tenant-scoped.
+      const hasAnyPriceOverride = items.some(
+        (line) => line.priceOverride !== null && line.priceOverride !== undefined,
+      );
+      const overrideActorOrgUserId =
+        hasAnyPriceOverride && userId
+          ? (
+              await tx.org_users_mst.findFirst({
+                where: { tenant_org_id: tenantId, user_id: userId, is_active: true },
+                select: { id: true },
+              })
+            )?.id ?? null
+          : null;
+
       for (let index = 0; index < items.length; index++) {
         const item = items[index];
         const createdItem = await tx.org_order_items_dtl.create({
@@ -1515,6 +1534,14 @@ export class OrderService {
             packing_pref_is_override: item.packingPrefIsOverride ?? false,
             packing_pref_source: item.packingPrefSource ?? null,
             service_pref_charge: persistedServicePrefChargeColumn(item, packingPriceMapPrisma),
+            // PF-01: override audit. The overriding user is the session user, never a client value.
+            ...(item.priceOverride !== null && item.priceOverride !== undefined
+              ? {
+                  price_override: item.priceOverride,
+                  override_reason: item.overrideReason?.trim() || null,
+                  override_by: overrideActorOrgUserId,
+                }
+              : {}),
           },
         });
 

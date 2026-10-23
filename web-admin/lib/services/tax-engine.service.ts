@@ -123,30 +123,56 @@ async function isTaxExempt(
 }
 
 /**
+ * Tax result with the reason when there are no lines (PF-04).
+ * `exempt` true means a customer or service-type exemption applied, so the
+ * order carries no tax and callers must NOT fall back to the tenant VAT rate.
+ * `exempt` false with no lines means no tax profile is configured.
+ */
+export interface TaxCalcOutcome {
+  lines: TaxLineItem[];
+  exempt: boolean;
+}
+
+/**
+ * Like {@link calculateTax}, but reports whether an exemption produced the empty result.
+ * @param params
+ */
+export async function calculateTaxDetailed(params: TaxCalcParams): Promise<TaxCalcOutcome> {
+  const effectiveServiceTypes = Array.from(
+    new Set(
+      [params.serviceType, ...(params.serviceTypes ?? [])].filter(
+        (value): value is string => Boolean(value?.trim()),
+      ),
+    ),
+  );
+  if (await isTaxExempt(params.tenantId, params.customerId, effectiveServiceTypes)) {
+    return { lines: [], exempt: true };
+  }
+  return { lines: await computeTaxLines(params), exempt: false };
+}
+
+/**
  * Load the active tax profile for a tenant + branch + service-type combination,
- * then compute per-line tax breakdown. Falls back to tenant VAT setting if no
- * profile is configured.
+ * then compute per-line tax breakdown. Returns no lines when exempt or when no
+ * profile is configured; use {@link calculateTaxDetailed} to tell them apart.
  * @param params
  */
 export async function calculateTax(params: TaxCalcParams): Promise<TaxLineItem[]> {
+  return (await calculateTaxDetailed(params)).lines;
+}
+
+/**
+ * Computes profile-driven tax lines for a non-exempt order.
+ * @param params
+ */
+async function computeTaxLines(params: TaxCalcParams): Promise<TaxLineItem[]> {
   const {
     tenantId,
-    serviceType,
-    serviceTypes,
-    customerId,
     baseAmount,
     decimalPlaces = 3,
     selectedProfileIds,
     pricingMode = TAX_PRICING_MODES.TAX_EXCLUSIVE,
   } = params;
-
-  const effectiveServiceTypes = Array.from(
-    new Set([serviceType, ...(serviceTypes ?? [])].filter((value): value is string => Boolean(value?.trim())))
-  );
-
-  if (await isTaxExempt(tenantId, customerId, effectiveServiceTypes)) {
-    return [];
-  }
 
   const profiles = await resolveTaxProfiles(tenantId, selectedProfileIds);
   if (profiles.length === 0) {

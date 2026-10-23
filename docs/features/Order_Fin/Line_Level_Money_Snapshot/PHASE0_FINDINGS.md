@@ -31,6 +31,11 @@ Owner: **NOW** = fix immediately as a security or correctness hotfix (execution 
 | PF-18 | L | The snapshot writer compares computed values with themselves (`order-financial-write.service.ts:297-323`), so `ORDER_TOTAL_COMPONENT_MISMATCH`, `DISCOUNT_TOTAL_MISMATCH`, `TAX_TOTAL_MISMATCH` and `OUTSTANDING_MISMATCH` can never fire on a write. Three different outstanding formulas exist (reconciliation, writer, UI mapper). No check compares tax or discount rows with a recomputation. | RV-P1 (BF-14) |
 | PF-19 | L | Order charges: the Create code adds ORDER charges after tax, untaxed (`order-calculation.service.ts:360-366`), while its header comment (`:63-68`) says they "participate in the tax base". | Pin with LL-P1-01 characterization; ADR-060 §6 sets the target |
 | PF-20 | L | `org_order_taxes_dtl.metadata` is never written, and `exchange_rate` is left at 1. `CASH_TENDER` rounding context is defined but unused. | LL-P4/P5 hygiene |
+| PF-21 | M | *(found in P1-01)* Clearing a price override in the New Order cart keeps the overridden unit price (`new-order-reducer.ts` `UPDATE_ITEM_PRICE_OVERRIDE` falls back to the already-overwritten `pricePerUnit`). The server prices the catalog price, so submit fails with `AMOUNT_MISMATCH`. Pinned by cart golden C03. | LL-P5 cart fix |
+| PF-22 | M | *(found in P1-01)* `org_product_data_mst.price_type = 'FIXED'` (8 products on remote) and `min_sell_price` are stored but never read by pricing; a FIXED product is charged unit × quantity. Pinned by totals golden G04. | LL-P4-02; owner confirms FIXED meaning |
+| PF-23 | L | *(found in P1-01)* Item `price_per_unit` / `total_price` are `numeric(10,3)`; pieces and charges are `numeric(19,4)`. Piece price = item total ÷ qty with no remainder, so 10 ÷ 3 stores 3 × 3.3333 = 9.9999 against an item total of 10.000 (FD-02). | LL-P3 M5 (widen) + P4-05 (largest remainder) |
+
+**P1-01 update (2026-10-23):** PF-12 is **confirmed** in both directions (cart goldens C04, C05); the full sign-off list is in [P1_01_CHARACTERIZATION.md](P1_01_CHARACTERIZATION.md).
 
 ## 2. Data and DB facts (remote, 2026-10-23)
 
