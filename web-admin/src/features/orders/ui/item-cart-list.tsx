@@ -45,7 +45,7 @@ interface ColorCatalogEntry {
 interface ItemCartListProps {
   items: CartItem[];
   onEditItem?: (itemId: string) => void;
-  onEditItemNotes?: (itemId: string) => void;
+  onEditItemPreferences?: (itemId: string) => void;
   onDeleteItem: (itemId: string) => void;
   onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
   onCopyPieceToAll?: (itemId: string, pieceId: string) => void;
@@ -62,7 +62,7 @@ interface ItemCartListProps {
 function ItemCartListComponent({
   items,
   onEditItem,
-  onEditItemNotes,
+  onEditItemPreferences,
   onDeleteItem,
   trackByPiece = false,
   currencyCode = '',
@@ -133,7 +133,7 @@ function ItemCartListComponent({
             preferenceLabelByCode={preferenceLabelByCode}
             packingExtraPriceByCode={packingExtraPriceByCode}
             onEditPrice={onEditItem ? () => onEditItem(item.id) : undefined}
-            onEditNotes={onEditItemNotes ? () => onEditItemNotes(item.id) : undefined}
+            onEditPreferences={onEditItemPreferences ? () => onEditItemPreferences(item.id) : undefined}
             onDelete={() => onDeleteItem(item.productId)}
           />
         ))}

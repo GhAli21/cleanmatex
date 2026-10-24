@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page, type Request } from '@playwright/test'
 
 import { gotoProtectedRoute, requireAuthenticatedE2EConfig } from './helpers/auth'
 
@@ -8,6 +8,9 @@ const CUSTOMER_SEARCH_QUERY = process.env.E2E_PAYMENT_CUSTOMER_QUERY ?? '9666262
 const PROMO_CODE = process.env.E2E_PAYMENT_PROMO_CODE ?? 'SMRPROMO1'
 const GIFT_CARD_CODE = process.env.E2E_PAYMENT_GIFT_CARD_CODE ?? 'CMX-71C9-6B00-E43A'
 const GIFT_CARD_PIN = process.env.E2E_PAYMENT_GIFT_CARD_PIN ?? '1234'
+
+/** Observations stay local to each browser page so parallel cashier scenarios cannot mix requests. */
+const paymentOpeningRequests = new WeakMap<Page, { quotes: Request[]; legacy: string[] }>()
 
 function isoDateDaysFromToday(daysFromToday: number): string {
   const date = new Date()
@@ -89,8 +92,24 @@ async function openPaymentModal(page: Page): Promise<void> {
     timeout: 25_000,
   })
 
+  // Read the authoritative fixture state before the asynchronously mounted Session Hub can intercept clicks.
+  const activeSessionResponse = await page.request.get('/api/v1/pos-sessions/my-active')
+  expect(activeSessionResponse.ok()).toBe(true)
+  const activeSession = await activeSessionResponse.json()
+  if (activeSession.data?.type === 'NONE') {
+    test.skip(true, 'Payment UI verification requires an active POS session for this tenant/cashier fixture.')
+  }
+
+  // Respect the operational session gate; a cashier fixture must be provisioned through its normal workflow.
+  if (await page.getByRole('heading', { name: 'Start a POS session first', exact: true }).isVisible().catch(() => false)) {
+    test.skip(true, 'Payment UI verification requires an active POS session for this tenant/cashier fixture.')
+  }
+
   const firstAddButton = page.getByRole('button', { name: /^Add$/ }).first()
   await expect(firstAddButton).toBeVisible({ timeout: 25_000 })
+  if (await page.getByRole('heading', { name: 'Start a POS session first', exact: true }).isVisible().catch(() => false)) {
+    test.skip(true, 'Payment UI verification requires an active POS session for this tenant/cashier fixture.')
+  }
 
   await selectDemoCustomer(page)
   await firstAddButton.click()
@@ -98,6 +117,9 @@ async function openPaymentModal(page: Page): Promise<void> {
 
   const openPaymentButton = page.locator('button').filter({ hasText: 'Submit Order' }).first()
   await expect(openPaymentButton).toBeEnabled({ timeout: 15_000 })
+  // Count the payment opening itself, independently of unrelated page initialization reads.
+  const observed = paymentOpeningRequests.get(page)
+  if (observed) { observed.quotes.length = 0; observed.legacy.length = 0 }
   await openPaymentButton.click()
 
   const paymentModal = page.getByTestId(PAYMENT_MODAL_TEST_ID)
@@ -108,6 +130,9 @@ async function openPaymentModal(page: Page): Promise<void> {
   }
 
   await expect(paymentModal).toBeVisible({ timeout: 25_000 })
+  // These existing workbench scenarios exercise Advanced; switching faces must not reinitialize the quote.
+  await expect(page.getByTestId('payment-mode-full')).toBeEnabled({ timeout: 15_000 })
+  await page.getByTestId('payment-mode-full').click()
   await expect(page.getByTestId('payment-legs-panel')).toBeVisible({ timeout: 15_000 })
 }
 
@@ -151,6 +176,8 @@ async function reopenPaymentModal(page: Page): Promise<void> {
   await expect(openPaymentButton).toBeEnabled({ timeout: 15_000 })
   await openPaymentButton.click()
   await expect(page.getByTestId(PAYMENT_MODAL_TEST_ID)).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByTestId('payment-mode-full')).toBeEnabled({ timeout: 15_000 })
+  await page.getByTestId('payment-mode-full').click()
 }
 
 async function fillVisibleCardMetadata(page: Page): Promise<void> {
@@ -228,8 +255,38 @@ async function submitAndCaptureOrderRequest(page: Page): Promise<Record<string, 
 }
 
 test.describe('Payment Modal V4', () => {
+  test.describe.configure({ timeout: 120_000 })
   test.beforeEach(async ({ page }) => {
+    const observed = { quotes: [] as Request[], legacy: [] as string[] }
+    paymentOpeningRequests.set(page, observed)
+    page.on('request', (request) => {
+      const pathname = new URL(request.url()).pathname
+      if (pathname === '/api/v1/orders/payment-quote') observed.quotes.push(request)
+      if (pathname === '/api/v1/orders/preview-payment' || pathname === '/api/v1/orders/checkout-options' ||
+        /^\/api\/v1\/customers\/[^/]+\/stored-value$/.test(pathname)) observed.legacy.push(pathname)
+    })
     await openPaymentModal(page)
+  })
+
+  test('initializes payment with one authoritative quote and no legacy request waterfall', async ({ page }) => {
+    const observed = paymentOpeningRequests.get(page)!
+    await expect.poll(() => observed.quotes.length).toBe(1)
+    const response = await observed.quotes[0].response()
+    expect(response?.ok()).toBe(true)
+    const body = await response!.json()
+    expect(body.success).toBe(true)
+    expect(body.data.requestId).toBe(observed.quotes[0].postDataJSON().requestId)
+    expect(body.data.saleTotal).toBeGreaterThanOrEqual(0)
+    expect(body.data.checkoutOptions.paymentMethods).toBeInstanceOf(Array)
+    expect(response!.headers()['cache-control']).toContain('no-store')
+    expect(response!.headers()['server-timing']).toContain('financials;dur=')
+    expect(observed.legacy).toEqual([])
+    await response!.finished()
+    // Record request timing without logging order contents, customer identity, or balances.
+    console.info('[payment-v4 quote timing]', {
+      requestDurationMs: observed.quotes[0].timing().responseEnd,
+      serverTiming: response!.headers()['server-timing'],
+    })
   })
 
   test('resets split legs and draft state after close and reopen', async ({ page }) => {

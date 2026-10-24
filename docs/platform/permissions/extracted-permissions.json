@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-08T22:25:06.640Z",
+  "extractedAt": "2026-10-23T17:56:37.271Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -7,7 +7,7 @@
       "route": "/dashboard/delivery",
       "permission": "drivers:read",
       "component": "useHasPermissionCode",
-      "line": 111,
+      "line": 118,
       "surface": "screen"
     },
     {
@@ -15,7 +15,7 @@
       "route": "/dashboard/delivery",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 112,
+      "line": 119,
       "surface": "screen"
     },
     {
@@ -255,7 +255,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:count",
       "component": "useHasPermissionCode",
-      "line": 219,
+      "line": 228,
       "surface": "screen"
     },
     {
@@ -263,7 +263,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:transfer",
       "component": "useHasPermissionCode",
-      "line": 220,
+      "line": 229,
       "surface": "screen"
     },
     {
@@ -271,7 +271,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:open_session",
       "component": "useHasPermissionCode",
-      "line": 221,
+      "line": 230,
       "surface": "screen"
     },
     {
@@ -279,7 +279,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:record_movement",
       "component": "useHasPermissionCode",
-      "line": 222,
+      "line": 231,
       "surface": "screen"
     },
     {
@@ -287,7 +287,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:close_session",
       "component": "useHasPermissionCode",
-      "line": 223,
+      "line": 232,
       "surface": "screen"
     },
     {
@@ -303,7 +303,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx",
       "permission": "cash_drawer:post_close_update",
       "component": "useHasPermissionCode",
-      "line": 49,
+      "line": 47,
       "surface": "screen"
     },
     {
@@ -311,7 +311,15 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx",
       "permission": "cash_drawer:approve_variance",
       "component": "useHasPermissionCode",
-      "line": 55,
+      "line": 56,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx",
+      "route": "src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx",
+      "permission": "cash_drawer:close_session",
+      "component": "useHasPermissionCode",
+      "line": 57,
       "surface": "screen"
     },
     {
@@ -367,7 +375,7 @@
       "route": "src/features/customers/ui/customer-stored-value-tab.tsx",
       "permission": "stored_value:issue_wallet_credit",
       "component": "useHasPermissionCode",
-      "line": 86,
+      "line": 108,
       "surface": "screen"
     },
     {
@@ -375,15 +383,7 @@
       "route": "src/features/customers/ui/customer-stored-value-tab.tsx",
       "permission": "stored_value:issue_advance",
       "component": "useHasPermissionCode",
-      "line": 87,
-      "surface": "screen"
-    },
-    {
-      "file": "src/features/customers/ui/customer-stored-value-tab.tsx",
-      "route": "src/features/customers/ui/customer-stored-value-tab.tsx",
-      "permission": "stored_value:issue_credit_note",
-      "component": "useHasPermissionCode",
-      "line": 88,
+      "line": 109,
       "surface": "screen"
     },
     {
@@ -399,7 +399,7 @@
       "route": "src/features/delivery/ui/delivery-order-detail-screen.tsx",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 40,
+      "line": 46,
       "surface": "screen"
     },
     {
@@ -527,7 +527,7 @@
       "route": "src/features/orders/ui/orders-financial-tab-rprt.tsx",
       "permission": "orders:manual_charge",
       "component": "useHasPermission",
-      "line": 99,
+      "line": 101,
       "surface": "screen"
     },
     {
@@ -535,7 +535,15 @@
       "route": "src/features/orders/ui/payment-full-view.tsx",
       "permission": "orders:apply_credit",
       "component": "useHasPermissionCode",
-      "line": 1420,
+      "line": 1617,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-session-drawer-linker.tsx",
+      "route": "src/features/pos-sessions/ui/pos-session-drawer-linker.tsx",
+      "permission": "cash_drawer:close_session",
+      "component": "useHasPermissionCode",
+      "line": 59,
       "surface": "screen"
     },
     {
@@ -599,7 +607,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:view_all",
       "component": "useHasPermissionCode",
-      "line": 149,
+      "line": 151,
       "surface": "screen"
     },
     {
@@ -607,7 +615,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:report_z",
       "component": "useHasPermissionCode",
-      "line": 150,
+      "line": 152,
       "surface": "screen"
     },
     {
@@ -615,7 +623,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:open",
       "component": "useHasPermissionCode",
-      "line": 151,
+      "line": 153,
       "surface": "screen"
     },
     {
@@ -623,7 +631,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:pause_resume",
       "component": "useHasPermissionCode",
-      "line": 152,
+      "line": 154,
       "surface": "screen"
     },
     {
@@ -631,7 +639,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:close",
       "component": "useHasPermissionCode",
-      "line": 153,
+      "line": 155,
       "surface": "screen"
     },
     {
@@ -639,7 +647,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:force_close",
       "component": "useHasPermissionCode",
-      "line": 154,
+      "line": 156,
       "surface": "screen"
     },
     {
@@ -647,7 +655,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "cash_drawer:view",
       "component": "useHasPermissionCode",
-      "line": 155,
+      "line": 157,
       "surface": "screen"
     },
     {
@@ -655,7 +663,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "cash_drawer:close_session",
       "component": "useHasPermissionCode",
-      "line": 156,
+      "line": 158,
       "surface": "screen"
     },
     {
@@ -663,7 +671,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "cash_drawer:open_session",
       "component": "useHasPermissionCode",
-      "line": 157,
+      "line": 159,
       "surface": "screen"
     },
     {
@@ -671,7 +679,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:close_others",
       "component": "useHasPermissionCode",
-      "line": 158,
+      "line": 160,
       "surface": "screen"
     },
     {
@@ -679,7 +687,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:open_others",
       "component": "useHasPermissionCode",
-      "line": 159,
+      "line": 161,
       "surface": "screen"
     },
     {
@@ -687,7 +695,7 @@
       "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
       "permission": "pos_session:full_manage_others",
       "component": "useHasPermissionCode",
-      "line": 160,
+      "line": 162,
       "surface": "screen"
     },
     {
@@ -719,7 +727,7 @@
       "route": "src/features/workflow/ui/FastItemizer.tsx",
       "permission": "orders:update",
       "component": "useHasPermissionCode",
-      "line": 52,
+      "line": 53,
       "surface": "screen"
     },
     {
@@ -1573,6 +1581,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/resume/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/resume",
+      "permission": "cash_drawer:close_session",
+      "line": 21,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview/route.ts",
       "method": "GET",
       "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview",
@@ -1593,6 +1609,14 @@
       "method": "POST",
       "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/force-close",
       "permission": "pos_session:force_close",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/opening-count/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/opening-count",
+      "permission": "cash_drawer:open_session",
       "line": 27,
       "surface": "api"
     },
@@ -1921,7 +1945,7 @@
       "method": "GET",
       "route": "/api/v1/customers/[id]",
       "permission": "customers:update",
-      "line": 131,
+      "line": 132,
       "surface": "api"
     },
     {
@@ -1929,7 +1953,7 @@
       "method": "GET",
       "route": "/api/v1/customers/[id]",
       "permission": "customers:delete",
-      "line": 228,
+      "line": 229,
       "surface": "api"
     },
     {
@@ -2457,7 +2481,7 @@
       "method": "POST",
       "route": "/api/v1/notifications/campaigns/[id]/test",
       "permission": "notifications:manage",
-      "line": 29,
+      "line": 64,
       "surface": "api"
     },
     {
@@ -2565,6 +2589,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/orders/payment-quote/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/payment-quote",
+      "permission": "orders:create",
+      "line": 56,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/orders/pieces/[pieceId]/history/route.ts",
       "method": "GET",
       "route": "/api/v1/orders/pieces/[pieceId]/history",
@@ -2577,7 +2609,7 @@
       "method": "POST",
       "route": "/api/v1/orders/preview-financials",
       "permission": "orders:create",
-      "line": 23,
+      "line": 25,
       "surface": "api"
     },
     {
@@ -2585,7 +2617,7 @@
       "method": "POST",
       "route": "/api/v1/orders/preview-payment",
       "permission": "orders:create",
-      "line": 27,
+      "line": 36,
       "surface": "api"
     },
     {
@@ -2617,7 +2649,7 @@
       "method": "POST",
       "route": "/api/v1/orders",
       "permission": "orders:create",
-      "line": 46,
+      "line": 47,
       "surface": "api"
     },
     {
@@ -2625,7 +2657,7 @@
       "method": "POST",
       "route": "/api/v1/orders",
       "permission": "orders:read",
-      "line": 210,
+      "line": 212,
       "surface": "api"
     },
     {
@@ -2633,7 +2665,7 @@
       "method": "POST",
       "route": "/api/v1/orders/submit-order",
       "permission": "orders:create",
-      "line": 85,
+      "line": 92,
       "surface": "api"
     },
     {
@@ -2665,7 +2697,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/batch-update",
       "permission": "orders:update",
-      "line": 49,
+      "line": 50,
       "surface": "api"
     },
     {
@@ -2673,7 +2705,39 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/change-context",
       "permission": "orders:read",
+      "line": 34,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/changes/follow-up/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/changes/follow-up",
+      "permission": "orders:edit",
+      "line": 23,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/changes/preview/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/changes/preview",
+      "permission": "orders:edit",
+      "line": 41,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/changes/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/changes",
+      "permission": "orders:read",
       "line": 33,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/changes/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/changes",
+      "permission": "orders:edit",
+      "line": 68,
       "surface": "api"
     },
     {
@@ -2717,6 +2781,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/orders/[id]/edit-session/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/edit-session",
+      "permission": "orders:edit",
+      "line": 54,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/orders/[id]/financial-reconcile/route.ts",
       "method": "POST",
       "route": "/api/v1/orders/[id]/financial-reconcile",
@@ -2733,6 +2805,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/orders/[id]/financial-resolution/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/financial-resolution",
+      "permission": "orders:overpayment_allocate",
+      "line": 39,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/orders/[id]/financial-summary/route.ts",
       "method": "GET",
       "route": "/api/v1/orders/[id]/financial-summary",
@@ -2745,7 +2825,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/fix-order-data",
       "permission": "orders:update",
-      "line": 110,
+      "line": 111,
       "surface": "api"
     },
     {
@@ -2753,7 +2833,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode]",
       "permission": "orders:update",
-      "line": 30,
+      "line": 31,
       "surface": "api"
     },
     {
@@ -2761,7 +2841,7 @@
       "method": "PATCH",
       "route": "/api/v1/orders/[id]/items/[itemId]/packing-pref",
       "permission": "orders:update",
-      "line": 27,
+      "line": 28,
       "surface": "api"
     },
     {
@@ -2769,7 +2849,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces",
       "permission": "orders:read",
-      "line": 27,
+      "line": 31,
       "surface": "api"
     },
     {
@@ -2777,7 +2857,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces",
       "permission": "orders:create",
-      "line": 94,
+      "line": 98,
       "surface": "api"
     },
     {
@@ -2785,7 +2865,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces",
       "permission": "orders:update",
-      "line": 192,
+      "line": 201,
       "surface": "api"
     },
     {
@@ -2809,7 +2889,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions",
       "permission": "orders:update",
-      "line": 31,
+      "line": 32,
       "surface": "api"
     },
     {
@@ -2817,7 +2897,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences",
       "permission": "orders:read",
-      "line": 44,
+      "line": 45,
       "surface": "api"
     },
     {
@@ -2825,7 +2905,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences",
       "permission": "orders:update",
-      "line": 87,
+      "line": 88,
       "surface": "api"
     },
     {
@@ -2841,7 +2921,7 @@
       "method": "DELETE",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/[prefId]",
       "permission": "orders:update",
-      "line": 34,
+      "line": 35,
       "surface": "api"
     },
     {
@@ -2849,7 +2929,7 @@
       "method": "DELETE",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/[prefId]",
       "permission": "orders:update",
-      "line": 112,
+      "line": 118,
       "surface": "api"
     },
     {
@@ -2857,7 +2937,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]",
       "permission": "orders:read",
-      "line": 27,
+      "line": 31,
       "surface": "api"
     },
     {
@@ -2865,7 +2945,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]",
       "permission": "orders:update",
-      "line": 102,
+      "line": 106,
       "surface": "api"
     },
     {
@@ -2873,7 +2953,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]",
       "permission": "orders:delete",
-      "line": 193,
+      "line": 202,
       "surface": "api"
     },
     {
@@ -2889,7 +2969,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs",
       "permission": "orders:read",
-      "line": 30,
+      "line": 31,
       "surface": "api"
     },
     {
@@ -2897,7 +2977,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs",
       "permission": "orders:update",
-      "line": 97,
+      "line": 98,
       "surface": "api"
     },
     {
@@ -2905,7 +2985,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs",
       "permission": "orders:update",
-      "line": 155,
+      "line": 161,
       "surface": "api"
     },
     {
@@ -2913,7 +2993,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/service-prefs",
       "permission": "orders:read",
-      "line": 30,
+      "line": 31,
       "surface": "api"
     },
     {
@@ -2921,7 +3001,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/service-prefs",
       "permission": "orders:update",
-      "line": 82,
+      "line": 83,
       "surface": "api"
     },
     {
@@ -2929,7 +3009,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/service-prefs",
       "permission": "orders:update",
-      "line": 139,
+      "line": 145,
       "surface": "api"
     },
     {
@@ -3025,7 +3105,7 @@
       "method": "PATCH",
       "route": "/api/v1/orders/[id]/update",
       "permission": "orders:update",
-      "line": 37,
+      "line": 38,
       "surface": "api"
     },
     {

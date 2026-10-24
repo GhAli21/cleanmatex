@@ -135,7 +135,7 @@ describe('mapOrderFinancialSummaryView', () => {
     );
   });
 
-  it('uses real-payment refunds instead of total credits to compute net collected', () => {
+  it('BF-11: a stored zero net collected is a real zero, never recomputed', () => {
     const view = mapOrderFinancialSummaryView(
       buildInput({
         snapshot: {
@@ -147,7 +147,21 @@ describe('mapOrderFinancialSummaryView', () => {
       }),
     );
 
-    expect(view.amounts.netCollectedAmount).toBeCloseTo(0.75);
+    expect(view.amounts.netCollectedAmount).toBe(0);
+  });
+
+  it('uses real-payment refunds (not total refunds) when net collected is absent', () => {
+    const snapshot = {
+      ...buildInput().snapshot,
+      refundedAmount: 0.5,
+      realPaymentRefundedAmount: 0.25,
+    } as Partial<MapOrderFinancialSummaryInput['snapshot']>;
+    delete snapshot.netCollectedAmount;
+    const view = mapOrderFinancialSummaryView(
+      buildInput({ snapshot: snapshot as MapOrderFinancialSummaryInput['snapshot'] }),
+    );
+
+    expect(view.amounts.netCollectedAmount).toBe(0.75);
   });
 
   it('keeps a processed overcharge refund settled instead of recreating overpayment from gross paid', () => {
@@ -333,6 +347,130 @@ describe('mapOrderFinancialSummaryView', () => {
 
       expect(view.amounts.pendingCreditApplicationAmount).toBeCloseTo(7);
       expect(view.amounts.failedCreditApplicationAmount).toBeCloseTo(3);
+    });
+  });
+
+  describe('Reusable View Phase 1 regressions', () => {
+    const charge = (
+      charge_type: string,
+      amount: number,
+      is_voided: boolean,
+    ): MapOrderFinancialSummaryInput['charges'][number] =>
+      ({
+        id: `${charge_type}-${amount}`,
+        charge_type,
+        label: null,
+        label2: null,
+        amount,
+        currency_code: 'OMR',
+        is_voided,
+        voided_at: null,
+        voided_by: null,
+        void_reason: null,
+      }) as MapOrderFinancialSummaryInput['charges'][number];
+
+    it('BF-01: delivery and express come from the snapshot, not from rows (voided rows ignored)', () => {
+      const view = mapOrderFinancialSummaryView(
+        buildInput({
+          snapshot: {
+            ...buildInput().snapshot,
+            deliveryChargeAmount: 0.5,
+            expressChargeAmount: 0,
+            totalChargesAmount: 0.5,
+          },
+          charges: [
+            charge('DELIVERY', 0.5, false),
+            charge('DELIVERY', 0.7, true),
+            charge('EXPRESS', 1, true),
+          ],
+        }),
+      );
+
+      expect([
+        view.amounts.deliveryChargeAmount,
+        view.amounts.expressChargeAmount,
+        view.amounts.totalChargesAmount,
+      ]).toEqual([0.5, 0, 0.5]);
+    });
+
+    it('BF-01: the row fallback (field absent) excludes voided rows', () => {
+      const snapshot = { ...buildInput().snapshot } as Partial<
+        MapOrderFinancialSummaryInput['snapshot']
+      >;
+      delete snapshot.deliveryChargeAmount;
+      const view = mapOrderFinancialSummaryView(
+        buildInput({
+          snapshot: snapshot as MapOrderFinancialSummaryInput['snapshot'],
+          charges: [charge('DELIVERY', 0.5, false), charge('DELIVERY', 0.7, true)],
+        }),
+      );
+
+      expect(view.amounts.deliveryChargeAmount).toBe(0.5);
+    });
+
+    it('BF-02: no false mismatch when a refund reopened the balance (server D005 value)', () => {
+      // total 2.14, paid 1, credits 0.15 → naive 0.99; a 0.2 rebill reopen → 1.19.
+      const view = mapOrderFinancialSummaryView(
+        buildInput({
+          snapshot: {
+            ...buildInput().snapshot,
+            outstandingAmount: 1.19,
+            expectedOutstandingAmount: 1.19,
+          },
+        }),
+      );
+
+      expect(view.amounts.expectedOutstandingAmount).toBe(1.19);
+      expect(view.warnings.map((w) => w.code)).not.toContain('OUTSTANDING_MISMATCH');
+    });
+
+    it('BF-05: rounding and pay-on-collection come from the snapshot, not the page prop', () => {
+      const view = mapOrderFinancialSummaryView(
+        buildInput({
+          snapshot: {
+            ...buildInput().snapshot,
+            paymentTypeCode: 'PAY_ON_COLLECTION',
+            roundingAmount: 0.005,
+            payOnCollectionAmount: 0.5,
+          },
+          order: { rounding_adjustment_amount: 9 },
+        }),
+      );
+
+      expect([view.amounts.roundingAmount, view.amounts.payOnCollectionAmount]).toEqual([
+        0.005, 0.5,
+      ]);
+    });
+
+    it('BF-06: snapshot facts and voucher references reach the business view', () => {
+      const view = mapOrderFinancialSummaryView(
+        buildInput({
+          snapshot: {
+            ...buildInput().snapshot,
+            pendingPaymentAmount: 0.1,
+            authorizedPaymentAmount: 0.2,
+            failedPaymentAmount: 0.3,
+            realPaymentRefundedAmount: 0.4,
+            storedValueRestoredAmount: 0.5,
+            customerCreditIssuedAmount: 0.6,
+            changeReturnedAmount: 0.7,
+          },
+          voucherReferences: [{ voucherId: 'v1', voucherLineId: null, source: 'PAYMENT' }],
+        }),
+      );
+
+      expect(view.amounts).toMatchObject({
+        pendingPaymentAmount: 0.1,
+        authorizedPaymentAmount: 0.2,
+        failedPaymentAmount: 0.3,
+        realPaymentRefundedAmount: 0.4,
+        storedValueRestoredAmount: 0.5,
+        customerCreditIssuedAmount: 0.6,
+        changeReturnedAmount: 0.7,
+      });
+      expect(view.voucherReferences).toEqual([
+        { voucherId: 'v1', voucherLineId: null, source: 'PAYMENT' },
+      ]);
     });
   });
 });

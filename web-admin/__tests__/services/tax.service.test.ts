@@ -98,3 +98,21 @@ describe('TaxService.getTaxRate — B15 zero-rate policy (B11 regression)', () =
     expect(getSettingValue).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('TaxService required quote resolution', () => {
+  it('rejects unavailable settings rather than authorizing a zero-tax quote', async () => {
+    const getSettingValueStrict = jest.fn().mockRejectedValueOnce(new Error('FINANCIAL_SETTINGS_UNAVAILABLE')).mockResolvedValueOnce(0.15);
+    const service = new TaxService({ tenantSettings: { getSettingValueStrict } as never, strictResolution: true });
+    await expect(service.getTaxRate('tenant-quote', 'branch-1', 'staff-1')).rejects.toThrow('FINANCIAL_SETTINGS_UNAVAILABLE');
+    // A transient read failure must not poison the cache with a fabricated zero rate.
+    await expect(service.getTaxRate('tenant-quote', 'branch-1', 'staff-1')).resolves.toBe(0.15);
+    expect(getSettingValueStrict).toHaveBeenCalledTimes(2);
+    expect(getSettingValueStrict).toHaveBeenCalledWith('tenant-quote', 'TENANT_VAT_RATE', 'branch-1', 'staff-1');
+  });
+
+  it('retains the verified unset-tax policy in strict mode', async () => {
+    const getSettingValueStrict = jest.fn().mockResolvedValue(null);
+    const service = new TaxService({ tenantSettings: { getSettingValueStrict } as never, strictResolution: true });
+    await expect(service.getTaxRate('tenant-quote')).resolves.toBe(0);
+  });
+});

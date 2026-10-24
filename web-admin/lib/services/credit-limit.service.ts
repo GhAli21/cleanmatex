@@ -54,16 +54,20 @@ export function assertCreditWithinPolicy(creditCheck: CreditLimitResult): void {
 }
 
 /**
- *
- * @param customerId
- * @param additionalAmount
+ * Resolves customer credit exposure, optionally reusing an already authenticated tenant.
+ * @param customerId Customer being checked.
+ * @param additionalAmount Proposed receivable or preview sale amount.
+ * @param context Trusted server-side tenant context; strict reads prevent unavailable exposure appearing as zero.
+ * @returns Current credit policy result; final admission still runs during submission.
  */
 export async function checkCreditLimit(
   customerId: string,
-  additionalAmount: number
+  additionalAmount: number,
+  context?: { tenantId: string; strictReads?: boolean },
 ): Promise<CreditLimitResult> {
   const supabase = await createClient();
-  const tenantId = await getTenantIdFromSession();
+  // The optional context is supplied by authenticated server use-cases, never parsed from a request body.
+  const tenantId = context?.tenantId ?? await getTenantIdFromSession();
   if (!tenantId) throw new Error('Unauthorized: Tenant ID required');
 
   const { data: customer, error: custError } = await supabase
@@ -74,6 +78,7 @@ export async function checkCreditLimit(
     .single();
 
   if (custError || !customer) {
+    if (context?.strictReads) throw new Error('CREDIT_INFORMATION_UNAVAILABLE');
     logger.warn('Customer not found for credit check', {
       feature: 'b2b',
       action: 'checkCreditLimit',
@@ -116,7 +121,7 @@ export async function checkCreditLimit(
     };
   }
 
-  const { data: invoices } = await supabase
+  const { data: invoices, error: invoiceError } = await supabase
     .from('org_invoice_mst')
     .select('total, paid_amount')
     .eq('tenant_org_id', tenantId)
@@ -127,6 +132,8 @@ export async function checkCreditLimit(
       AR_INVOICE_STATUSES.OVERDUE,
       AR_INVOICE_STATUSES.DISPUTED,
     ]);
+
+  if (invoiceError && context?.strictReads) throw new Error('CREDIT_INFORMATION_UNAVAILABLE');
 
   const currentBalance =
     invoices?.reduce((sum, inv) => {

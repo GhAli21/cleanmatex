@@ -19,7 +19,8 @@ setup('bootstrap tenant session for protected E2E smoke', async ({ page }) => {
   }
 
   await page.goto('/login')
-  await page.locator('input[name="email"]').fill(email)
+  // Current login accepts a user code or email; keep compatibility with older deployed login forms.
+  await page.locator('input[name="identifier"], input[name="email"]').first().fill(email)
   await page.locator('input[name="password"]').fill(password)
 
   await Promise.all([

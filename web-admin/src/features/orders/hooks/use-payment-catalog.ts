@@ -1,33 +1,18 @@
 'use client';
 
+import type { CheckoutOptionsResponse, CheckoutSettlementOption } from '@/lib/types/payment-quote';
+
 /**
  * Payment catalog queries for Payment Modal V4.
  *
- * Verbatim extraction of the modal's read-only catalog concern (previously inline
- * in `payment-modal-v4.tsx`): the active card brands, branch payment terminals, and
- * checkout settlement options (real payment methods + customer credits). It also
- * owns the catalog lookup derivations (`realPaymentOptions`, `creditMethodCodes`,
- * `optionByMethodKey`), the `getMethodOption` resolver, and the catalog presentation
- * helpers (`getOptionDisplayName`, `getMethodHint`) that downstream legs, validation,
- * totals, and both views read.
- *
- * Behavior freeze (Phase 2A): queries, query keys, `enabled`, `staleTime`, memo
- * dependency arrays, and the display/hint logic stay byte-equivalent to the original
- * inline code — do not "improve" filtering, caching, or label resolution here. The
- * only additive surface is `checkoutOptionsIsError` + `refetchCheckoutOptions`
- * (finding 1.9), exposed for the Phase 3 method empty/error/loading three-state. The
- * checkout-options query still swallows fetch failures into empty lists exactly as
- * before, so behavior is unchanged; the new fields are plumbing for a later phase.
- *
- * `getPaymentLabel` is duplicated here (it is a translation-driven switch, not an
- * importable helper) so the hook can resolve `getOptionDisplayName` fallbacks; the
- * component keeps its own copy for `summaryMethodLabel`.
- *
- * See `docs/features/Order_Fin/Payment_Modal_Review/`.
+ * Brands and terminals retain their lookup caches. Amount-sensitive settlement
+ * options come only from the same quote as the financial totals, avoiding a
+ * second browser request and placeholder options for a previous amount.
  */
 
+import { fetchPaymentMetadata } from '../api/payment-quote-api';
 import { useCallback, useMemo } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { OrgCardBrandConfig } from '@/lib/types/payment';
 
@@ -66,37 +51,8 @@ export type PaymentCatalogTranslate = (
  * payment method (cash/card/gateway/…) or a customer credit (wallet/advance/credit
  * note/loyalty). Mirrors the shape consumed across Payment Modal V4.
  */
-export type CheckoutSettlementOption = {
-  id: string;
-  payment_method_code: string;
-  payment_nature: string;
-  gateway_code: string | null;
-  display_name: string;
-  display_name2: string | null;
-  description: string | null;
-  description2: string | null;
-  requires_cash_drawer: boolean;
-  requires_terminal: boolean;
-  supports_overpayment: boolean;
-  supports_change_return: boolean;
-  requires_reference: boolean;
-  allowed_in_pos: boolean;
-  allowed_for_pay_now?: boolean | null;
-  allowed_for_pay_on_collection?: boolean | null;
-  allowed_for_invoice_payment?: boolean | null;
-  credit_application_type?: string | null;
-  available_balance?: number | null;
-  requires_credit_reference_selection?: boolean;
-  display_order?: number | null;
-};
+export type { CheckoutSettlementOption, CheckoutOptionsResponse } from '@/lib/types/payment-quote';
 
-/**
- * Envelope returned by `/api/v1/orders/checkout-options`.
- */
-export type CheckoutOptionsResponse = {
-  paymentMethods: CheckoutSettlementOption[];
-  customerCredits: CheckoutSettlementOption[];
-};
 
 /**
  * A payment terminal option for the CARD/gateway leg terminal dropdown.
@@ -115,18 +71,15 @@ export type PaymentTerminalOption = {
  * (and, from Phase 2G, the payment engine) — the hook owns no order context itself.
  */
 export interface UsePaymentCatalogParams {
+  quoteOptions: CheckoutOptionsResponse | null;
+  quotePending: boolean;
+  quoteFailed: boolean;
+  refetchQuote: () => unknown;
   /** Gates every query; matches the modal `open` flag. */
   open: boolean;
-  /**
-   * Hold checkout-options until the server sale total exists. Brands/terminals
-   * still load on `open` so they overlap the preview instead of chaining after it.
-   */
-  checkoutOptionsEnabled?: boolean;
   tenantOrgId: string;
+  userId?: string;
   branchId?: string;
-  customerId?: string;
-  /** Order amount used for checkout-options eligibility. */
-  checkoutEligibilityAmount: number;
   /** Retail-only orders hide INVOICE / PAY_ON_COLLECTION methods. */
   isRetailOnlyOrder: boolean;
   /** Right-to-left locale flag — selects `*_name2`/`description2` display fields. */
@@ -140,52 +93,48 @@ export interface UsePaymentCatalogParams {
  *
  * @param params - {@link UsePaymentCatalogParams}.
  * @param params.open - Gates every query; matches the modal `open` flag.
- * @param params.checkoutOptionsEnabled - Hold checkout-options until the server sale total exists.
  * @param params.tenantOrgId - Active tenant org id.
- * @param params.branchId - Active branch id (filters terminals + checkout options).
- * @param params.customerId - Active customer id (scopes checkout options).
- * @param params.checkoutEligibilityAmount - Order amount for checkout-options eligibility.
+ * @param params.branchId - Active branch id for terminal scoping.
+ * @param params.userId - Authenticated cashier identity for metadata isolation.
+ * @param params.quoteOptions - Amount-matched methods and credits from the coordinated quote.
  * @param params.isRetailOnlyOrder - Hides INVOICE / PAY_ON_COLLECTION when true.
  * @param params.isRTL - Selects RTL display fields for option names/hints.
  * @param params.t - Translate function for fallback method labels.
- * @returns Catalog query data, lookup derivations, and presentation helpers.
+ * @returns Catalog data, explicit failure/retry states, and lookup helpers.
+ * @example usePaymentCatalog({ open, tenantOrgId, userId, branchId, quoteOptions, quotePending, quoteFailed, refetchQuote, isRetailOnlyOrder, isRTL, t });
  */
 export function usePaymentCatalog({
+  quoteOptions,
+  quotePending,
+  quoteFailed,
+  refetchQuote,
   open,
-  checkoutOptionsEnabled = true,
   tenantOrgId,
+  userId,
   branchId,
-  customerId,
-  checkoutEligibilityAmount,
   isRetailOnlyOrder,
   isRTL,
   t,
 }: UsePaymentCatalogParams) {
   // Active card brands for CARD leg dropdown
-  const { data: cardBrands = [] } = useQuery<OrgCardBrandConfig[]>({
-    queryKey: ['card-brands-active', tenantOrgId],
-    queryFn: async () => {
-      const res = await fetch('/api/v1/settings/payments/card-brands');
-      if (!res.ok) return [];
-      const json = await res.json();
-      return ((json.data ?? []) as OrgCardBrandConfig[]).filter((b) => b.is_active);
-    },
-    enabled: open,
+  const brandsQuery = useQuery<OrgCardBrandConfig[]>({
+    queryKey: ['card-brands-active', tenantOrgId, userId ?? ''],
+    queryFn: async ({ signal }) => (await fetchPaymentMetadata<OrgCardBrandConfig>('/api/v1/settings/payments/card-brands', signal)).filter((brand) => brand.is_active),
+    enabled: open && !!tenantOrgId && !!userId,
+    retry: false,
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: paymentTerminals = [] } = useQuery<PaymentTerminalOption[]>({
-    queryKey: ['payment-terminals-checkout', tenantOrgId, branchId ?? ''],
-    queryFn: async () => {
-      const res = await fetch('/api/v1/settings/payments/terminals');
-      if (!res.ok) return [];
-      const json = await res.json();
-      return ((json.data ?? []) as PaymentTerminalOption[]).filter((terminal) => terminal.is_active);
-    },
-    enabled: open,
+  const terminalsQuery = useQuery<PaymentTerminalOption[]>({
+    queryKey: ['payment-terminals-checkout', tenantOrgId, userId ?? '', branchId ?? ''],
+    queryFn: async ({ signal }) => (await fetchPaymentMetadata<PaymentTerminalOption>('/api/v1/settings/payments/terminals', signal)).filter((terminal) => terminal.is_active),
+    enabled: open && !!tenantOrgId && !!userId,
+    retry: false,
     staleTime: 5 * 60 * 1000,
   });
 
+  const cardBrands = brandsQuery.data ?? [];
+  const paymentTerminals = terminalsQuery.data ?? [];
   const branchPaymentTerminals = useMemo(
     () =>
       paymentTerminals.filter(
@@ -194,27 +143,10 @@ export function usePaymentCatalog({
     [branchId, paymentTerminals]
   );
 
-  const {
-    data: checkoutOptions,
-    isLoading: checkoutMethodsLoading,
-    isError: checkoutOptionsIsError,
-    refetch: refetchCheckoutOptions,
-  } = useQuery<CheckoutOptionsResponse>({
-    queryKey: ['checkout-options', tenantOrgId, branchId ?? '', customerId ?? '', checkoutEligibilityAmount],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (branchId) params.set('branchId', branchId);
-      if (customerId) params.set('customerId', customerId);
-      params.set('amount', String(checkoutEligibilityAmount));
-      const res = await fetch(`/api/v1/orders/checkout-options?${params.toString()}`);
-      if (!res.ok) return { paymentMethods: [], customerCredits: [] };
-      const json = await res.json();
-      return (json.data ?? { paymentMethods: [], customerCredits: [] }) as CheckoutOptionsResponse;
-    },
-    enabled: open && checkoutOptionsEnabled,
-    placeholderData: keepPreviousData,
-    staleTime: 60_000,
-  });
+  const checkoutOptions = quoteOptions;
+  const checkoutMethodsLoading = !quoteOptions && quotePending;
+  const checkoutOptionsIsError = quoteFailed;
+  const refetchCheckoutOptions = refetchQuote;
 
   const checkoutMethods = checkoutOptions?.paymentMethods ?? [];
   const customerCreditOptions = checkoutOptions?.customerCredits ?? [];
@@ -290,6 +222,10 @@ export function usePaymentCatalog({
 
   return {
     cardBrands,
+    brandsFailed: brandsQuery.isError,
+    terminalsFailed: terminalsQuery.isError,
+    terminalsPending: terminalsQuery.isFetching || terminalsQuery.isPending,
+    refetchMetadata: () => Promise.all([brandsQuery.refetch(), terminalsQuery.refetch()]),
     paymentTerminals,
     branchPaymentTerminals,
     checkoutMethods,

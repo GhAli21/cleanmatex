@@ -58,24 +58,24 @@ describe('signed operation snapshots on local PostgreSQL', () => {
 
     await expect(prisma.$transaction(async (tx) => {
       const occupied = await tx.$queryRaw<Array<{ id: string }>>`
-        SELECT id FROM public.org_wf_edit_policy_asg_cf
+        SELECT id FROM public.org_oc_edit_policy_asg_cf
         WHERE tenant_org_id = ${tenantId}::uuid AND scope = 'ORGANIZATION' AND rec_status = 1 AND is_active = true`;
       if (occupied.length) throw new Error('Fixture organization already has a broad override; no existing authority was changed');
       await tx.$executeRaw`
-        INSERT INTO public.sys_wf_edit_policy_mst(id, policy_code, name, name2)
+        INSERT INTO public.sys_oc_edit_policy_mst(id, policy_code, name, name2)
         VALUES (${policyId}::uuid, ${`SNAPSHOT_${policyId.replaceAll('-', '')}`}, 'Snapshot proof', 'Snapshot proof')`;
       await tx.$executeRaw`
-        INSERT INTO public.sys_wf_edit_policy_rule_dtl(edit_policy_id, workflow_status, operation_code, target_type, decision, reason_code, message_key)
+        INSERT INTO public.sys_oc_edit_policy_rule_dtl(edit_policy_id, workflow_status, operation_code, target_type, decision, reason_code, message_key)
         VALUES (${policyId}::uuid, 'processing', 'CHANGE_ORDER_NOTES', 'ORDER', 'ALLOW', 'SNAPSHOT_PROOF', 'orders.edit.policyInfo.title'),
                (${policyId}::uuid, 'processing', 'CHANGE_ITEM_QUANTITY', 'ITEM', 'ALLOW', 'SNAPSHOT_PROOF', 'orders.edit.policyInfo.title')`;
       await tx.$executeRaw`
-        UPDATE public.sys_wf_edit_policy_mst SET lifecycle_status = 'PILOT', policy_revision = policy_revision + 1,
+        UPDATE public.sys_oc_edit_policy_mst SET lifecycle_status = 'PILOT', policy_revision = policy_revision + 1,
           pilot_started_at = now(), pilot_started_by = ${hqActorId}::uuid WHERE id = ${policyId}::uuid`;
       await tx.$executeRaw`
-        UPDATE public.sys_wf_edit_policy_mst SET lifecycle_status = 'PUBLISHED', policy_revision = policy_revision + 1,
+        UPDATE public.sys_oc_edit_policy_mst SET lifecycle_status = 'PUBLISHED', policy_revision = policy_revision + 1,
           published_at = now(), published_by = ${hqActorId}::uuid WHERE id = ${policyId}::uuid`;
       await tx.$executeRaw`
-        INSERT INTO public.org_wf_edit_policy_asg_cf(tenant_org_id, scope, edit_policy_id, gap_acknowledged)
+        INSERT INTO public.org_oc_edit_policy_asg_cf(tenant_org_id, scope, edit_policy_id, gap_acknowledged)
         VALUES (${tenantId}::uuid, 'ORGANIZATION', ${policyId}::uuid, true)`;
       await tx.$executeRaw`
         INSERT INTO public.org_customers_mst(id, tenant_org_id, name)
@@ -157,6 +157,6 @@ describe('signed operation snapshots on local PostgreSQL', () => {
       throw new Error(ROLLBACK);
     }, { timeout: 30000 })).rejects.toThrow(ROLLBACK);
     expect(await prisma.org_orders_mst.count({ where: { tenant_org_id: tenantId, id: orderId } })).toBe(0);
-    expect(await prisma.$queryRaw<Array<{ id: string }>>`SELECT id FROM public.sys_wf_edit_policy_mst WHERE id = ${policyId}::uuid`).toEqual([]);
+    expect(await prisma.$queryRaw<Array<{ id: string }>>`SELECT id FROM public.sys_oc_edit_policy_mst WHERE id = ${policyId}::uuid`).toEqual([]);
   });
 });

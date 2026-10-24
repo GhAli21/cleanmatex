@@ -36,7 +36,7 @@ import {
   getDispositionLinesExcludingAllocation,
   resolutionIncludesAllocation,
 } from '@/lib/services/customer-receipt-excess-executor.service';
-import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
+import { isCheckoutPaymentMethodEligible, listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
 import { resolveCashDrawerSessionId } from '@/lib/services/cash-drawer.service';
 import {
   resolvePosSessionForFinanceTx,
@@ -445,6 +445,10 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       return (r.gateway_code ?? null) === (leg.gateway_code ?? null);
     });
     if (!row) throw new Error(`Payment method config not found for code: ${leg.method}`);
+    // Client catalogs are advisory: enforce current effective policy before any write.
+    if (!isCheckoutPaymentMethodEligible(row, serverSaleTotal, leg.amount)) {
+      throw new Error('PAYMENT_METHOD_NOT_AVAILABLE');
+    }
 
     const settlementOption: SettlementOption = {
       id:                    row.id,
@@ -507,6 +511,9 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     const row = gcMethodRows[0];
     if (!row || row.credit_application_type !== CREDIT_APPLICATION_TYPES.GIFT_CARD) {
       throw new Error('GIFT_CARD_PAYMENT_METHOD_NOT_CONFIGURED');
+    }
+    if (!isCheckoutPaymentMethodEligible(row, serverSaleTotal, serverTotals.giftCardApplied)) {
+      throw new Error('PAYMENT_METHOD_NOT_AVAILABLE');
     }
 
     const gcOption: SettlementOption = {

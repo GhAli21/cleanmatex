@@ -97,7 +97,7 @@ describe('getOrderChangeContext', () => {
     expect(context.editPolicy).toMatchObject({ status: 'MISSING', resolutionLevel: 'VERSION_DEFAULT', denyReason: 'STATUS_NOT_COVERED', editPolicyId: PIECE_A, policyRevision: 9, rules: [] });
     expect(mockResolve).toHaveBeenCalledWith(expect.anything(), { tenantId: TENANT_ID, profileId: ITEM_A, profileVersionId: ITEM_B, workflowStatus: 'processing' });
     const sql = (mockDisplay.mock.calls[0][0] as TemplateStringsArray).join(' ');
-    expect(sql).not.toContain('org_wf_edit_policy_asg_cf');
+    expect(sql).not.toContain('org_oc_edit_policy_asg_cf');
     expect(context.order.timezone).toBe('Asia/Muscat');
   });
 

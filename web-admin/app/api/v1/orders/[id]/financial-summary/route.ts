@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { getOrderFinancialSummary } from '@/lib/services/order-financial-summary.service';
+import { NotFoundError } from '@/lib/errors/base-errors';
+import { logger } from '@/lib/utils/logger';
 
 /**
+ * GET /api/v1/orders/[id]/financial-summary — the Order Fin read model of one order.
  *
- * @param request
- * @param root0
- * @param root0.params
+ * Requires `orders:view_financial_breakdown`. A missing order (or one in another
+ * tenant) answers 404; any other failure answers a generic 500 and is logged
+ * server-side, never echoed (BF-10).
+ * @param request incoming request (auth + tenant come from the session)
+ * @param root0 route context
+ * @param root0.params dynamic route params (`id` = order id)
  */
 export async function GET(
   request: NextRequest,
@@ -22,8 +28,20 @@ export async function GET(
     const summary = await getOrderFinancialSummary(tenantId, orderId);
     return NextResponse.json({ success: true, data: summary });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Failed to fetch financial summary';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    if (err instanceof NotFoundError) {
+      return NextResponse.json(
+        { success: false, error: 'Order not found', code: 'ORDER_NOT_FOUND' },
+        { status: 404 },
+      );
+    }
+    logger.error(
+      'GET financial-summary failed',
+      err instanceof Error ? err : new Error('Unknown financial summary error'),
+      { feature: 'order_fin', action: 'financial_summary', tenantId, orderId },
+    );
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch financial summary', code: 'INTERNAL_ERROR' },
+      { status: 500 },
+    );
   }
 }

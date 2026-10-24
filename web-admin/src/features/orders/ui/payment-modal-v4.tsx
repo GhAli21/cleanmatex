@@ -3,7 +3,7 @@
  *
  * Owns only:
  *  - The RHF form + zodResolver
- *  - Currency-config loading
+ *  - One coordinated initial payment quote
  *  - The open-reset form effect (form.reset on open)
  *  - Derived defaults (defaultPaymentMethod, defaultOutstandingPolicy, isB2BCustomer)
  *  - CSRF token
@@ -14,11 +14,17 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuth } from '@/lib/auth/auth-context';
+import { LOGIN_REASONS } from '@/lib/constants/auth-session';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
-import { getCurrencyConfigOutcomeAction } from '@/app/actions/tenant/get-currency-config';
+import { usePaymentQuote } from '@features/orders/hooks/use-payment-quote';
+import { CmxButton, CmxSpinner } from '@ui/primitives';
+import { CmxSummaryMessage } from '@ui/feedback';
+import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import {
   getPaymentFormSchema,
   type PaymentFormData,
@@ -28,7 +34,6 @@ import {
   type OutstandingPolicy,
 } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
-import { type PaymentEngineCurrencyConfig } from '@features/orders/hooks/use-payment-engine';
 import type { OrderItemServicePref } from '@features/orders/model/new-order-types';
 import type { PaymentServerGuard } from '@features/orders/hooks/use-order-submission';
 import {
@@ -38,7 +43,6 @@ import {
 import { PaymentFullView } from './payment-full-view';
 import {
   PaymentCurrencyConfigGate,
-  type PaymentCurrencyConfigLoadState,
 } from '@features/orders/payment/primitives/payment-currency-config-gate';
 
 // ---------------------------------------------------------------------------
@@ -186,55 +190,40 @@ export function PaymentModalV4({
 
   const { reset } = form;
 
-  const [currencyConfig, setCurrencyConfig] =
-    useState<PaymentEngineCurrencyConfig | null>(null);
-  const [currencyConfigState, setCurrencyConfigState] = useState<
-    PaymentCurrencyConfigLoadState | { status: 'ready' }
-  >({ status: 'loading' });
-
-  const loadCurrencyConfig = useCallback(async () => {
-    setCurrencyConfig(null);
-    setCurrencyConfigState({ status: 'loading' });
-
-    const outcome = await getCurrencyConfigOutcomeAction(
-      tenantOrgId,
-      branchId,
-      userId,
-    );
-    if ('code' in outcome) {
-      setCurrencyConfigState({
-        status:
-          outcome.code === 'MISSING_TENANT_CURRENCY'
-            ? 'missing-config'
-            : 'unavailable',
-      });
-      return;
-    }
-
-    const { config } = outcome;
-    if (
-      !config.currencyCode.trim() ||
-      !Number.isInteger(config.decimalPlaces) ||
-      config.decimalPlaces < 0
-    ) {
-      setCurrencyConfigState({ status: 'missing-config' });
-      return;
-    }
-
-    setCurrencyConfig(config);
-    setCurrencyConfigState({ status: 'ready' });
-  }, [branchId, tenantOrgId, userId]);
-
-  // Currency must be refreshed per modal open so a changed organization setup cannot reuse stale money rules.
-  useEffect(() => {
-    if (!open || !tenantOrgId) return;
-
-    // Schedule the request after commit; loading itself owns the asynchronous state transitions.
-    const timer = window.setTimeout(() => {
-      void loadCurrencyConfig();
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [open, tenantOrgId, loadCurrencyConfig]);
+  const { signOut } = useAuth();
+  const t = useTranslations('newOrder.payment');
+  const tCommon = useTranslations('common');
+  const tNewOrderErrors = useTranslations('newOrder.errors');
+  const identity = JSON.stringify([open, tenantOrgId, branchId ?? '', customerId ?? '', userId ?? '']);
+  const initialRequest = {
+    items,
+    branchId: branchId || undefined,
+    customerId: customerId || undefined,
+    isExpress,
+    percentDiscount: 0,
+    amountDiscount: 0,
+    serviceCategories: serviceCategories?.length ? serviceCategories : undefined,
+    orderServicePrefs: orderServicePrefs?.length ? orderServicePrefs : undefined,
+  };
+  // Freeze bootstrap inputs for this opening. After hydration only the engine
+  // refreshes quotes; the shell must not issue a second zero-discount request.
+  const [session, setSession] = useState(() => ({ identity, key: crypto.randomUUID(), request: initialRequest }));
+  const quoteSession = session.identity === identity ? session : { identity, key: crypto.randomUUID(), request: initialRequest };
+  if (quoteSession !== session) setSession(quoteSession);
+  const quote = usePaymentQuote({
+    open,
+    sessionKey: quoteSession.key,
+    tenantOrgId,
+    userId,
+    csrfReady: !csrfLoading,
+    csrfToken,
+    request: quoteSession.request,
+  });
+  const currencyConfig = quote.snapshot ? {
+    currencyCode: quote.snapshot.currencyCode,
+    decimalPlaces: quote.snapshot.decimalPlaces,
+    currencyExRate: quote.snapshot.currencyExRate,
+  } : null;
 
   // Reset the form on open. View-local state resets live in PaymentFullView.
   useEffect(() => {
@@ -270,23 +259,32 @@ export function PaymentModalV4({
 
   if (!open) return null;
 
-  if (currencyConfigState.status !== 'ready' || !currencyConfig) {
+  if (!currencyConfig || items.length === 0) {
+    if (quote.errorCode === 'MISSING_TENANT_CURRENCY' || quote.errorCode === 'TENANT_CURRENCY_UNAVAILABLE') {
+      return <PaymentCurrencyConfigGate open={open}
+        state={{ status: quote.errorCode === 'MISSING_TENANT_CURRENCY' ? 'missing-config' : 'unavailable' }}
+        onClose={onClose} onRetry={() => void quote.refetch()} />;
+    }
     return (
-      <PaymentCurrencyConfigGate
-        open={open}
-        state={
-          currencyConfigState.status === 'ready'
-            ? { status: 'loading' }
-            : currencyConfigState
-        }
-        onClose={onClose}
-        onRetry={() => void loadCurrencyConfig()}
-      />
+      <CmxDialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+        <CmxDialogContent className="max-w-lg" data-testid="payment-initialization-gate">
+          <CmxDialogHeader><CmxDialogTitle>{t('title')}</CmxDialogTitle></CmxDialogHeader>
+          {quote.failed || items.length === 0 ? <CmxSummaryMessage type="error" title={t('messages.loadFailedTitle')}
+            items={[items.length === 0 ? tNewOrderErrors('addItems') : quote.errorCode === 'PAYMENT_CONTEXT_UNAVAILABLE' ? t('messages.sessionUnavailable') : quote.errorCode === 'PAYMENT_QUOTE_TIMEOUT' ? t('messages.loadTimedOut') : t('messages.loadFailedDescription')]} />
+            : <div className="flex items-center gap-3" role="status"><CmxSpinner />{t('messages.preparing')}</div>}
+          <CmxDialogFooter>
+            <CmxButton type="button" variant="outline" onClick={onClose}>{tCommon('cancel')}</CmxButton>
+            {quote.errorCode === 'PAYMENT_CONTEXT_UNAVAILABLE' ? <CmxButton type="button" onClick={() => void signOut('user', { loginReason: LOGIN_REASONS.SESSION_EXPIRED, returnTo: '/dashboard/orders/new' })}>{t('currencyConfig.signOutAndSignIn')}</CmxButton> : null}
+            {quote.failed && items.length > 0 ? <CmxButton type="button" onClick={() => void quote.refetch()}>{tCommon('retry')}</CmxButton> : null}
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
     );
   }
 
   return (
     <PaymentFullView
+      quoteSessionKey={quoteSession.key}
       form={form}
       defaultPaymentMethod={defaultPaymentMethod}
       defaultOutstandingPolicy={defaultOutstandingPolicy}

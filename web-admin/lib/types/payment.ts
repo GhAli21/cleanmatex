@@ -120,6 +120,10 @@ export interface Invoice {
   tax_rate?: number;
   total: number;
   outstanding_amount?: number;
+  /** This order's share of a consolidated invoice (`org_invoice_orders_dtl`); set only by order-scoped reads. */
+  order_invoiced_amount?: number;
+  /** Outstanding of this order's share of a consolidated invoice; set only by order-scoped reads. */
+  order_outstanding_amount?: number;
   vat_rate?: number;
   vat_amount?: number;
   discount_rate?: number;

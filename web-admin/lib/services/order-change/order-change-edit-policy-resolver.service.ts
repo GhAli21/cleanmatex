@@ -47,7 +47,7 @@ export async function resolveOrderChangePolicyBindings(
 ): Promise<OrderChangeEditPolicyResolution> {
   // The function applies tenant_org_id = tenantId to every organization authority query; never use browser claims.
   const rows = await tx.$queryRaw<EditPolicyResolutionRow[]>`
-    SELECT * FROM public.sys_wf_resolve_edit_policy(
+    SELECT * FROM public.sys_oc_resolve_edit_policy(
       ${input.tenantId}::uuid,
       ${input.profileId}::uuid,
       ${input.profileVersionId}::uuid,

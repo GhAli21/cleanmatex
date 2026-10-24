@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { isPaymentQuoteReviewCurrent } from '@features/orders/hooks/use-payment-quote';
+import { useAuth } from '@/lib/auth/auth-context';
+import { LOGIN_REASONS } from '@/lib/constants/auth-session';
 import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import {
   Controller,
+  useWatch,
   type FieldErrors,
   type UseFormReturn,
 } from 'react-hook-form';
@@ -44,6 +48,7 @@ import {
   type OutstandingPolicy,
   type PaymentLeg,
 } from '@/lib/validations/new-order-payment-schemas';
+import { PaymentCurrencyConfigGate } from '@features/orders/payment/primitives/payment-currency-config-gate';
 import { CmxConfirmDialog, CmxSummaryMessage, cmxMessage } from '@ui/feedback';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
@@ -318,7 +323,9 @@ function B2BContractsSelect({
 // ---------------------------------------------------------------------------
 // PaymentFullView props
 // ---------------------------------------------------------------------------
+/** Payment-session form and the identity shared by initialization and financial refreshes. */
 interface PaymentFullViewProps {
+  quoteSessionKey: string;
   /** RHF form owned by the thin shell. */
   form: UseFormReturn<PaymentFormData>;
   /** Shell-computed payment-method default (depends on customer type). */
@@ -379,6 +386,7 @@ interface PaymentFullViewProps {
 // owns the RHF form, currencyConfig loading, and the open-reset form effect.
 // ---------------------------------------------------------------------------
 export function PaymentFullView({
+  quoteSessionKey,
   form,
   defaultPaymentMethod,
   defaultOutstandingPolicy,
@@ -409,6 +417,7 @@ export function PaymentFullView({
   onClose,
   onSubmit,
 }: PaymentFullViewProps) {
+  const { signOut } = useAuth();
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
   const tTopBar = useTranslations('newOrder.topBar');
@@ -425,7 +434,6 @@ export function PaymentFullView({
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = form;
 
   const {
@@ -442,18 +450,18 @@ export function PaymentFullView({
     [t],
   );
 
-  const paymentMethod = watch('paymentMethod');
-  const percentDiscount = watch('percentDiscount');
-  const amountDiscount = watch('amountDiscount');
-  const promoCode = watch('promoCode');
-  const giftCardNumber = watch('giftCardNumber');
-  const giftCardAmount = watch('giftCardAmount');
-  const outstandingPolicy = watch('outstandingPolicy');
+  const paymentMethod = useWatch({ control, name: 'paymentMethod' });
+  const percentDiscount = useWatch({ control, name: 'percentDiscount' });
+  const amountDiscount = useWatch({ control, name: 'amountDiscount' });
+  const promoCode = useWatch({ control, name: 'promoCode' });
+  const giftCardNumber = useWatch({ control, name: 'giftCardNumber' });
+  const giftCardAmount = useWatch({ control, name: 'giftCardAmount' });
+  const outstandingPolicy = useWatch({ control, name: 'outstandingPolicy' });
   // B2B account-billing fields — watched so the RHF-free capability dialog can
   // receive value + setter pairs (same convention as gift card / promo code).
-  const b2bContractId = watch('b2bContractId');
-  const costCenterCode = watch('costCenterCode');
-  const poNumber = watch('poNumber');
+  const b2bContractId = useWatch({ control, name: 'b2bContractId' });
+  const costCenterCode = useWatch({ control, name: 'costCenterCode' });
+  const poNumber = useWatch({ control, name: 'poNumber' });
 
   const [creditLimitOverride, setCreditLimitOverride] = useState(false);
   const [isDirtySinceOpen, setIsDirtySinceOpen] = useState(false);
@@ -462,7 +470,10 @@ export function PaymentFullView({
   const [pendingSubmission, setPendingSubmission] = useState<{
     paymentData: PaymentFormData;
     payload: NewOrderPaymentPayload;
+    quoteAuthorityKey: string;
+    quoteSessionKey: string;
   } | null>(null);
+  const [reviewInvalidated, setReviewInvalidated] = useState(false);
   const [creditNotePickerOpen, setCreditNotePickerOpen] = useState(false);
   const [pendingCreditNoteOption, setPendingCreditNoteOption] =
     useState<CheckoutSettlementOption | null>(null);
@@ -586,6 +597,7 @@ export function PaymentFullView({
   // Composition engine (Phase 2G-1): the 7 concern slices + every cross-slice
   // derivation + the non-DOM handlers + the payExtraIntentRef bridge. Behavior-frozen.
   const engine = usePaymentEngine({
+    quoteSessionKey,
     open,
     items,
     orderServicePrefs,
@@ -740,6 +752,9 @@ export function PaymentFullView({
   // Re-destructure the grouped slices into the modal's local names (JSX unchanged).
   const {
     cardBrands,
+    brandsFailed,
+    terminalsFailed,
+    refetchMetadata,
     branchPaymentTerminals,
     checkoutMethods,
     customerCreditOptions,
@@ -788,7 +803,16 @@ export function PaymentFullView({
     checkoutEligibilityAmount,
     isTaxInclusive,
     roundingAdjustmentAmount,
+    quote,
   } = totalsSlice;
+  // A confirm dialog reviews a financial snapshot, including same-total item or
+  // tax changes. Closing stale review preserves all editable money and legs.
+  if (pendingSubmission && (!isPaymentQuoteReviewCurrent(pendingSubmission.quoteAuthorityKey, quote.authorityKey, quote.ready) || pendingSubmission.quoteSessionKey !== quoteSessionKey)) {
+    setPendingSubmission(null);
+    setSubmitConfirmOpen(false);
+    setReviewInvalidated(true);
+  }
+
   const {
     paymentLegs,
     setPaymentLegs,
@@ -2325,7 +2349,7 @@ export function PaymentFullView({
 
   const onSubmitForm = (data: PaymentFormData) => {
     if (!paymentSurfaceReady) {
-      cmxMessage.info(t('messages.calculating'));
+      cmxMessage.info(t('messages.preparing'));
       return;
     }
 
@@ -2477,7 +2501,11 @@ export function PaymentFullView({
       cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
       return;
     }
+    if (!quote.authorityKey || !quote.ready) return;
+    setReviewInvalidated(false);
     setPendingSubmission({
+      quoteAuthorityKey: quote.authorityKey,
+      quoteSessionKey,
       paymentData: submissionData,
       payload: {
         ...parsed.data,
@@ -2502,11 +2530,17 @@ export function PaymentFullView({
 
   const handleConfirmPaymentSubmit = useCallback(() => {
     if (!pendingSubmission) return;
+    if (!isPaymentQuoteReviewCurrent(pendingSubmission.quoteAuthorityKey, quote.authorityKey, quote.ready) || pendingSubmission.quoteSessionKey !== quoteSessionKey || !paymentSurfaceReady) {
+      setPendingSubmission(null);
+      setSubmitConfirmOpen(false);
+      setReviewInvalidated(true);
+      return;
+    }
     const { paymentData, payload } = pendingSubmission;
     setSubmitConfirmOpen(false);
     setPendingSubmission(null);
     onSubmit(paymentData, payload);
-  }, [onSubmit, pendingSubmission]);
+  }, [onSubmit, pendingSubmission, paymentSurfaceReady, quote.authorityKey, quote.ready, quoteSessionKey]);
 
   // Phase 5 — guardrailed shortcuts (Enter/F2/Ctrl+Enter). Fires the SAME CTA
   // gate; disabled while busy / blocked / any nested dialog is open / focus is
@@ -2609,7 +2643,7 @@ export function PaymentFullView({
                 paymentInteractionLocked
                   ? undefined
                   : paymentSurfaceLocked
-                    ? t('messages.calculating')
+                    ? t('messages.preparing')
                     : !checkoutMethodsLoading && !canEnablePayExtra
                       ? t('payExtraIntent.disabledNoMethods')
                       : undefined
@@ -2631,6 +2665,15 @@ export function PaymentFullView({
               }
             />
 
+            {reviewInvalidated ? <CmxSummaryMessage type="warning" title={t('messages.reviewChangedTitle')}
+              items={[t('messages.reviewChangedDescription')]} onDismiss={() => setReviewInvalidated(false)} /> : null}
+            {brandsFailed || terminalsFailed ? (
+              <div className="space-y-2 px-6 py-3">
+                <CmxSummaryMessage type="warning" title={t('messages.metadataUnavailableTitle')}
+                  items={[brandsFailed ? t('messages.cardBrandsUnavailable') : '', terminalsFailed ? t('messages.terminalsUnavailable') : ''].filter(Boolean)} />
+                <CmxButton type="button" variant="outline" size="sm" onClick={() => void refetchMetadata()}>{tCommon('retry')}</CmxButton>
+              </div>
+            ) : null}
             {newLegRejectAlert ? (
               <CmxSummaryMessage
                 type="warning"
@@ -5956,8 +5999,9 @@ export function PaymentFullView({
                       <CmxEmptyState
                         icon={<CircleAlert className="h-8 w-8 text-rose-500" />}
                         title={t('messages.loadFailedTitle')}
-                        description={t('messages.loadFailedDescription')}
+                        description={quote.errorCode === 'PAYMENT_CURRENCY_CHANGED' ? t('messages.currencyChanged') : quote.errorCode === 'GIFT_CARD_INVALID' ? t('messages.giftCardInvalid') : quote.errorCode === 'PAYMENT_CONTEXT_UNAVAILABLE' ? t('messages.sessionUnavailable') : quote.errorCode === 'PAYMENT_QUOTE_TIMEOUT' ? t('messages.loadTimedOut') : t('messages.loadFailedDescription')}
                         action={
+                          <div className="flex flex-wrap justify-center gap-2">
                           <CmxButton
                             type="button"
                             variant="outline"
@@ -5968,6 +6012,10 @@ export function PaymentFullView({
                             <RefreshCw className="me-2 h-4 w-4" />
                             {tCommon('retry')}
                           </CmxButton>
+                          {quote.errorCode === 'PAYMENT_CURRENCY_CHANGED' ? <CmxButton type="button" variant="outline" onClick={closeWithGuard}>{tCommon('close')}</CmxButton> : null}
+                          {quote.errorCode === 'GIFT_CARD_INVALID' ? <CmxButton type="button" variant="outline" onClick={handleClearGiftCard}>{t('giftCard.remove')}</CmxButton> : null}
+                          {quote.errorCode === 'PAYMENT_CONTEXT_UNAVAILABLE' ? <CmxButton type="button" variant="outline" onClick={() => void signOut('user', { loginReason: LOGIN_REASONS.SESSION_EXPIRED, returnTo: '/dashboard/orders/new' })}>{t('currencyConfig.signOutAndSignIn')}</CmxButton> : null}
+                          </div>
                         }
                       />
                     ) : (
@@ -5978,7 +6026,7 @@ export function PaymentFullView({
                           aria-hidden
                         />
                         <p className="text-sm font-medium text-slate-700">
-                          {t('messages.calculating')}
+                          {t('messages.preparing')}
                         </p>
                       </>
                     )}
@@ -6362,7 +6410,7 @@ export function PaymentFullView({
               type="button"
               data-testid="payment-submit-confirm-button"
               onClick={handleConfirmPaymentSubmit}
-              disabled={!pendingSubmission}
+              disabled={!pendingSubmission || !paymentSurfaceReady || !isPaymentQuoteReviewCurrent(pendingSubmission.quoteAuthorityKey, quote.authorityKey, quote.ready)}
             >
               {t('submitConfirm.confirm')}
             </CmxButton>
@@ -6476,6 +6524,11 @@ export function PaymentFullView({
         isRTL={isRTL}
       />
 
+      {(quote.errorCode === 'MISSING_TENANT_CURRENCY' || quote.errorCode === 'TENANT_CURRENCY_UNAVAILABLE') ? (
+        <PaymentCurrencyConfigGate open={open}
+          state={{ status: quote.errorCode === 'MISSING_TENANT_CURRENCY' ? 'missing-config' : 'unavailable' }}
+          onClose={closeWithGuard} onRetry={() => void refetchPreview()} />
+      ) : null}
       <ManualAllocationDrawer
         open={allocation.manualDrawerOpen}
         onOpenChange={allocation.setManualDrawerOpen}

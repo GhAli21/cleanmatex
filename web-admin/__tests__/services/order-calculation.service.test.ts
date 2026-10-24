@@ -43,6 +43,11 @@ jest.mock('@/lib/supabase/server', () => ({
 jest.mock('@/lib/services/pricing.service', () => ({
   pricingService: {
     getPriceForOrderItem: (...a: unknown[]) => mockGetPriceForOrderItem(...a),
+    getBasePricesForOrder: async (params: { tenantId: string; items: { productId: string; quantity: number }[]; isExpress: boolean; customerId?: string }) =>
+      Promise.all(params.items.map(async (item) => (await mockGetPriceForOrderItem({
+        tenantId: params.tenantId, productId: item.productId, quantity: item.quantity,
+        isExpress: params.isExpress, customerId: params.customerId,
+      })).basePrice)),
   },
 }));
 
@@ -129,6 +134,43 @@ describe('order-calculation.service — calculateOrderTotals', () => {
     expect(result.subtotal).toBe(0);
     expect(result.saleTotal).toBe(0);
     expect(result.discountLines).toEqual([]);
+  });
+
+  it('strict calculations pass authenticated gift-card scope and reject an invalid selected card', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ basePrice: 100 });
+    await expect(calculateOrderTotals({
+      ...defaultParams, giftCardId: 'gc-1', strictFinancialReads: true,
+    })).rejects.toThrow('GIFT_CARD_INVALID');
+    expect(mockValidateGiftCardById).toHaveBeenCalledWith('gc-1', TENANT, { strictResolution: true });
+    await expect(calculateOrderTotals({
+      ...defaultParams, giftCardNumber: 'CARD-NUMBER', strictFinancialReads: true,
+    })).rejects.toThrow('GIFT_CARD_INVALID');
+    expect(mockValidateGiftCard).toHaveBeenCalledWith({ gift_card_code: 'CARD-NUMBER' }, { tenantId: TENANT, strictResolution: true });
+  });
+
+  it('strict calculations propagate gift-card read failures instead of producing a zero credit', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ basePrice: 100 });
+    mockValidateGiftCardById.mockRejectedValueOnce(new Error('database unavailable'));
+    await expect(calculateOrderTotals({
+      ...defaultParams, giftCardId: 'gc-1', strictFinancialReads: true,
+    })).rejects.toThrow('database unavailable');
+  });
+
+  it('exposes independent financial stage measurements without changing monetary output', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ basePrice: 100 });
+    mockValidateGiftCardById.mockResolvedValue({ isValid: true, availableBalance: 20 });
+    const stages: string[] = [];
+    const result = await calculateOrderTotals({
+      ...defaultParams, giftCardId: 'gc-1',
+      measure: async (stage, operation) => {
+        stages.push(stage);
+        return operation();
+      },
+    });
+    expect(stages).toEqual(expect.arrayContaining([
+      'pricing_mode', 'currency', 'pricing', 'discounts', 'promos', 'tax', 'tax_fallback', 'rounding', 'gift_card',
+    ]));
+    expect(result).toMatchObject({ subtotal: 200, saleTotal: 200, giftCardApplied: 20 });
   });
 
   describe('PF-04: a tax-exempt order is never charged the tenant VAT fallback', () => {

@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-08T22:25:08.651Z",
+  "extractedAt": "2026-10-23T17:56:39.303Z",
   "usages": {
     "B2B_DUNNING_LEVELS": [
       {
@@ -16,13 +16,18 @@
     "B2B_CREDIT_LIMIT_MODE": [
       {
         "path": "app\\api\\v1\\orders\\preview-financials\\route.ts",
-        "line": 74,
+        "line": 85,
         "context": "SETTING_CODES.B2B_CREDIT_LIMIT_MODE,"
       },
       {
         "path": "app\\api\\v1\\orders\\preview-payment\\route.ts",
-        "line": 84,
+        "line": 105,
         "context": "SETTING_CODES.B2B_CREDIT_LIMIT_MODE,"
+      },
+      {
+        "path": "lib\\services\\payment-quote.service.ts",
+        "line": 148,
+        "context": "const mode = await settings.getSettingValue(tenantId, SETTING_CODES.B2B_CREDIT_L"
       }
     ],
     "TENANT_VAT_RATE": [
@@ -53,8 +58,13 @@
       },
       {
         "path": "lib\\services\\tax.service.ts",
-        "line": 73,
+        "line": 80,
         "context": "SETTING_CODES.TENANT_VAT_RATE,"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 89,
+        "context": "* @example await service.getSettingValueStrict(tenantId, SETTING_CODES.TENANT_VA"
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
@@ -77,47 +87,47 @@
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 83,
+        "line": 109,
         "context": "* Uses fn_stng_resolve_all_settings (7-layer resolution)."
       },
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 271,
+        "line": 297,
         "context": "/** Parse JSONB value from fn_stng_resolve_all_settings (string, number, boolean"
       }
     ],
     "USING_SPLIT_ORDER": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 186,
+        "line": 212,
         "context": "splitOrderEnabled: toBoolean(map[SETTING_CODES.USING_SPLIT_ORDER], false),"
       }
     ],
     "USE_REJECT_TO_SOLVE": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 187,
+        "line": 213,
         "context": "rejectEnabled: toBoolean(map[SETTING_CODES.USE_REJECT_TO_SOLVE], false),"
       }
     ],
     "USE_TRACK_BY_PIECE": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 188,
+        "line": 214,
         "context": "trackByPiece: toBoolean(map[SETTING_CODES.USE_TRACK_BY_PIECE], false),"
       }
     ],
     "REJECT_ROW_COLOR": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 189,
+        "line": 215,
         "context": "rejectColor: toString(map[SETTING_CODES.REJECT_ROW_COLOR], '#10B981'),"
       }
     ],
     "SERVICE_PREF_PACKING_PER_PIECE_ENABLED": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 190,
+        "line": 216,
         "context": "packingPerPieceEnabled: toBoolean(map[SETTING_CODES.SERVICE_PREF_PACKING_PER_PIE"
       },
       {
@@ -129,7 +139,7 @@
     "SERVICE_PREF_ENFORCE_COMPATIBILITY": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 191,
+        "line": 217,
         "context": "enforcePrefCompatibility: toBoolean(map[SETTING_CODES.SERVICE_PREF_ENFORCE_COMPA"
       },
       {
@@ -141,7 +151,7 @@
     "SERVICE_PREF_PROCESSING_CONFIRMATION": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 192,
+        "line": 218,
         "context": "processingConfirmationEnabled: toBoolean(map[SETTING_CODES.SERVICE_PREF_PROCESSI"
       },
       {
@@ -153,7 +163,7 @@
     "DEFAULT_PHONE_COUNTRY_CODE": [
       {
         "path": "lib\\services\\tenant-settings.service.ts",
-        "line": 253,
+        "line": 279,
         "context": "const v = map[SETTING_CODES.DEFAULT_PHONE_COUNTRY_CODE];"
       },
       {

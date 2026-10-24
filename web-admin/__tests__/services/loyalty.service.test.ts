@@ -673,13 +673,27 @@ describe('loyalty.service — getSpendableLoyaltyPoints', () => {
     });
   });
 
-  it('falls back to the ledger balance when the account has no open lots', async () => {
+  it('uses the current ledger balance for a legacy account without open lots', async () => {
     mockLoyaltyProgramFindFirst.mockResolvedValue({ points_expiry_days: 30 });
     mockLoyaltyTxnFindMany.mockResolvedValue([]);
+    mockLoyaltyAccountFindFirst.mockResolvedValue({ points_balance: 56 });
 
     await expect(getSpendableLoyaltyPoints(TENANT, 'acct-1', 56)).resolves.toEqual({
       spendablePoints: 56,
       expiredUnappliedPoints: 0,
+    });
+  });
+
+  it('does not revive a stale balance after another transaction consumed all lots', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({ points_expiry_days: 30 });
+    mockLoyaltyTxnFindMany.mockResolvedValue([]);
+    mockLoyaltyAccountFindFirst.mockResolvedValue({ points_balance: 0 });
+    await expect(getSpendableLoyaltyPoints(TENANT, 'acct-1', 56)).resolves.toEqual({
+      spendablePoints: 0, expiredUnappliedPoints: 0,
+    });
+    expect(mockLoyaltyAccountFindFirst).toHaveBeenCalledWith({
+      where: { tenant_org_id: TENANT, id: 'acct-1', is_active: true },
+      select: { points_balance: true },
     });
   });
 });
@@ -730,6 +744,26 @@ describe('loyalty.service — syncAvailableLoyaltyPoints', () => {
       expiredNow: 0,
     });
     expect(mockLoyaltyAccountUpdate).not.toHaveBeenCalled();
+  });
+
+  it('returns zero when synchronization expires every remaining lot', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({ points_expiry_days: 30 });
+    queuedAccountRows = [{ id: 'acct-1', points_balance: 56, customer_id: CUST }];
+    queuedExpiredLotRows = [{ id: 'lot-stale', remaining_points: 56 }];
+    mockLoyaltyTxnCreate.mockResolvedValue({ id: 'expire-all' });
+    mockLoyaltyTxnFindMany.mockResolvedValue([]);
+    mockLoyaltyAccountFindFirst.mockResolvedValue({ points_balance: 0 });
+    await expect(syncAvailableLoyaltyPoints(TENANT, 'acct-1', 56)).resolves.toEqual({
+      spendablePoints: 0, expiredUnappliedPoints: 0, expiredNow: 56,
+    });
+  });
+
+  it('reuses a supplied checkout expiry policy without querying it again', async () => {
+    mockLoyaltyTxnFindMany.mockResolvedValue([{ remaining_points: 56, created_at: new Date() }]);
+    await expect(syncAvailableLoyaltyPoints(TENANT, 'acct-1', 56, { pointsExpiryDays: null }))
+      .resolves.toMatchObject({ spendablePoints: 56, expiredNow: 0 });
+    expect(mockLoyaltyProgramFindFirst).not.toHaveBeenCalled();
+    expect(mockTxQueryRaw).not.toHaveBeenCalled();
   });
 });
 

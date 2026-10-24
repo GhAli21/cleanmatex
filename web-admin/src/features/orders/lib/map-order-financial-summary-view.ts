@@ -6,11 +6,16 @@ import {
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
   SETTLEMENT_TYPE_CODES,
 } from '@/lib/constants/order-financial';
+import { MONEY_COMPARISON_TOLERANCE } from '@/lib/constants/financial-tolerances';
 import type {
   MapOrderFinancialSummaryInput,
   FinancialWarning,
+  OrderArInvoiceView,
   OrderFinancialSummaryViewModel,
+  OrderTaxDocumentView,
 } from '@features/orders/model/order-financial-summary-view';
+import type { Invoice } from '@/lib/types/payment';
+import type { TaxDocumentSummaryRow } from '@/app/actions/orders/get-order-financial';
 
 function n(value: number | null | undefined): number {
   if (value == null || Number.isNaN(value)) return 0;
@@ -22,12 +27,69 @@ function sumChargesByType(
   types: string[],
 ): number {
   return charges
-    .filter((c) => types.includes(c.charge_type))
+    .filter((c) => !c.is_voided && types.includes(c.charge_type))
     .reduce((sum, c) => sum + n(c.amount), 0);
 }
 
 function normalizeUpper(value: string | null | undefined): string {
   return value?.trim().toUpperCase() ?? '';
+}
+
+/**
+ * Converts the AR invoices of one order into views and picks the primary one
+ * (BF-07): the first, newest-first, that still has a balance for this order,
+ * otherwise the newest. On a consolidated invoice the order's own share
+ * (`order_invoiced_amount` / `order_outstanding_amount`) is shown, not the
+ * whole invoice.
+ * @param invoices AR invoices of the order, newest first
+ * @returns every invoice view plus the primary one (null when none)
+ */
+export function selectOrderArInvoices(invoices: Invoice[]): {
+  primary: OrderArInvoiceView | null;
+  all: OrderArInvoiceView[];
+} {
+  const all = invoices.map((invoice) => ({
+    id: invoice.id,
+    invoiceNo: invoice.invoice_no,
+    status: invoice.status,
+    amount: n(invoice.order_invoiced_amount ?? invoice.total),
+    dueDate: invoice.due_date,
+    paidAmount: n(invoice.paid_amount),
+    outstandingAmount: n(
+      invoice.order_outstanding_amount ?? invoice.outstanding_amount,
+    ),
+  }));
+  const primary =
+    all.find((view) => (view.outstandingAmount ?? 0) > MONEY_COMPARISON_TOLERANCE) ??
+    all[0] ??
+    null;
+  return { primary, all };
+}
+
+/**
+ * Converts the tax documents of one order into views, newest first, so the
+ * supersede chain (credit and debit notes) is carried in the view (BF-13).
+ * @param rows tax document rows from the read model
+ */
+export function mapOrderTaxDocumentChain(
+  rows: TaxDocumentSummaryRow[],
+): OrderTaxDocumentView[] {
+  return rows.map((doc) => ({
+    id: doc.id,
+    documentNo: doc.document_no ?? undefined,
+    documentType: doc.document_type,
+    status: doc.status,
+    triggerEvent: doc.trigger_event,
+    fiscalYear: doc.fiscal_year,
+    sequenceNumber: doc.sequence_number,
+    totalAmount: doc.total_amount,
+    taxAmount: doc.tax_amount,
+    issuedAt: doc.issued_at ?? undefined,
+    issuedBy: doc.issued_by ?? undefined,
+    cancelledAt: doc.cancelled_at ?? undefined,
+    cancellationReason: doc.cancellation_reason ?? undefined,
+    supersedesId: doc.supersedes_id ?? undefined,
+  }));
 }
 
 /**
@@ -49,15 +111,21 @@ export function mapOrderFinancialSummaryView(
   const preferenceExtraPriceAmount = n(
     snapshot.preferenceExtraPriceAmount ?? input.preferenceExtraTotal,
   );
-  const serviceChargeAmount =
-    n(snapshot.serviceChargeAmount) ||
-    sumChargesByType(charges, ['SERVICE_CHARGE', 'SERVICE']);
-  const deliveryChargeAmount = sumChargesByType(charges, [
-    'DELIVERY',
-    'DELIVERY_CHARGE',
-  ]);
-  const expressChargeAmount =
-    sumChargesByType(charges, [CHARGE_TYPES.EXPRESS, 'EXPRESS_CHARGE']) || 0;
+  // BF-01 / BF-11: the snapshot charge fields are the source (a stored 0 is a
+  // real 0). Rows are a fallback only when a field is absent, and voided rows
+  // never count.
+  const serviceChargeAmount = n(
+    snapshot.serviceChargeAmount ??
+      sumChargesByType(charges, ['SERVICE_CHARGE', 'SERVICE']),
+  );
+  const deliveryChargeAmount = n(
+    snapshot.deliveryChargeAmount ??
+      sumChargesByType(charges, ['DELIVERY', 'DELIVERY_CHARGE']),
+  );
+  const expressChargeAmount = n(
+    snapshot.expressChargeAmount ??
+      sumChargesByType(charges, [CHARGE_TYPES.EXPRESS, 'EXPRESS_CHARGE']),
+  );
   const otherChargesFromRows = charges
     .filter(
       (c) =>
@@ -73,15 +141,17 @@ export function mapOrderFinancialSummaryView(
         ].includes(c.charge_type),
     )
     .reduce((sum, c) => sum + n(c.amount), 0);
-  const otherChargesAmount =
-    n(snapshot.otherChargesAmount) || otherChargesFromRows;
+  const otherChargesAmount = n(
+    snapshot.otherChargesAmount ?? otherChargesFromRows,
+  );
 
-  const totalChargesAmount =
-    n(snapshot.totalChargesAmount) ||
-    serviceChargeAmount +
-      deliveryChargeAmount +
-      expressChargeAmount +
-      otherChargesAmount;
+  const totalChargesAmount = n(
+    snapshot.totalChargesAmount ??
+      serviceChargeAmount +
+        deliveryChargeAmount +
+        expressChargeAmount +
+        otherChargesAmount,
+  );
   const subtotalAmount = itemsBaseAmount;
   const grossAmount = Math.max(0, subtotalAmount + totalChargesAmount);
   const discountAmount = n(snapshot.totalDiscountAmount);
@@ -104,7 +174,10 @@ export function mapOrderFinancialSummaryView(
   const exemptAmount = n(snapshot.exemptAmount);
   const zeroRatedAmount = n(snapshot.zeroRatedAmount);
   const outOfScopeAmount = n(snapshot.outOfScopeAmount);
-  const roundingAmount = n(input.order?.rounding_adjustment_amount);
+  // BF-05: the snapshot is the single source; the page prop is a fallback only.
+  const roundingAmount = n(
+    snapshot.roundingAmount ?? input.order?.rounding_adjustment_amount,
+  );
   const totalAmount = n(snapshot.totalAmount);
   const totalPaidAmount = n(snapshot.totalPaidAmount);
   const totalCreditAppliedAmount = n(snapshot.totalCreditAppliedAmount);
@@ -116,12 +189,14 @@ export function mapOrderFinancialSummaryView(
   );
   const refundedAmount = n(snapshot.refundedAmount);
   const realPaymentRefundedAmount = n(snapshot.realPaymentRefundedAmount);
-  const netCollectedAmount =
-    n(snapshot.netCollectedAmount) ||
-    Math.max(0, totalPaidAmount - realPaymentRefundedAmount);
-  const expectedOutstandingAmount = Math.max(
-    0,
-    totalAmount - totalPaidAmount - totalCreditAppliedAmount,
+  const netCollectedAmount = n(
+    snapshot.netCollectedAmount ??
+      Math.max(0, totalPaidAmount - realPaymentRefundedAmount),
+  );
+  // BF-02: D005 outstanding (with refund reopens) comes from the server read
+  // model. When absent, nothing is compared (no false mismatch warning).
+  const expectedOutstandingAmount = n(
+    snapshot.expectedOutstandingAmount ?? snapshot.outstandingAmount,
   );
   const outstandingAmount = n(snapshot.outstandingAmount);
   // Snapshot overpayment already accounts for cash change and dispositions;
@@ -129,21 +204,25 @@ export function mapOrderFinancialSummaryView(
   const overpaidAmount = n(snapshot.overpaidAmount);
 
   const paymentTypeCode = snapshot.paymentTypeCode;
-  const payOnCollectionAmount =
-    paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION &&
-    outstandingAmount > 0
-      ? outstandingAmount
-      : 0;
+  const payOnCollectionAmount = n(
+    snapshot.payOnCollectionAmount ??
+      (paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION &&
+      outstandingAmount > 0
+        ? outstandingAmount
+        : 0),
+  );
   const invoiceOutstandingAmount = n(
     input.arInvoice?.outstandingAmount ?? input.arInvoice?.amount,
   );
   const arReceivableAmount = input.arInvoice
     ? invoiceOutstandingAmount
-    : n(snapshot.arReceivableAmount) ||
-      (paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE &&
-      outstandingAmount > 0
-        ? outstandingAmount
-        : 0);
+    : n(
+        snapshot.arReceivableAmount ??
+          (paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE &&
+          outstandingAmount > 0
+            ? outstandingAmount
+            : 0),
+      );
   const baseCurrency = {
     currencyCode: snapshot.baseCurCurrencyCode ?? null,
     exchangeRate: n(snapshot.currencyExRate) || 1,
@@ -235,13 +314,23 @@ export function mapOrderFinancialSummaryView(
       overpaidAmount,
       payOnCollectionAmount,
       arReceivableAmount,
+      // BF-06: snapshot facts carried into the business view.
+      pendingPaymentAmount: n(snapshot.pendingPaymentAmount),
+      authorizedPaymentAmount: n(snapshot.authorizedPaymentAmount),
+      failedPaymentAmount: n(snapshot.failedPaymentAmount),
+      realPaymentRefundedAmount,
+      storedValueRestoredAmount: n(snapshot.storedValueRestoredAmount),
+      customerCreditIssuedAmount: n(snapshot.customerCreditIssuedAmount),
+      changeReturnedAmount: n(snapshot.changeReturnedAmount),
     },
     payment: {
       paymentTypeCode,
       paymentStatus: snapshot.paymentStatus,
     },
     arInvoice: input.arInvoice ?? null,
+    arInvoices: input.arInvoices ?? (input.arInvoice ? [input.arInvoice] : []),
     taxDocument: input.taxDocument ?? null,
+    taxDocuments: mapOrderTaxDocumentChain(input.taxDocuments ?? []),
     payments: input.payments,
     creditApplications: input.creditApplications,
     charges: input.charges,
@@ -250,6 +339,7 @@ export function mapOrderFinancialSummaryView(
     refunds: input.refunds,
     adjustments: input.adjustments,
     auditTimeline: input.auditTimeline,
+    voucherReferences: input.voucherReferences ?? [],
     warnings,
     reconciliationStatus,
     rawSnapshot: {
@@ -284,7 +374,7 @@ function buildWarnings(ctx: {
   giftCardOnOrder: number;
 }): FinancialWarning[] {
   const warnings: FinancialWarning[] = [];
-  const tolerance = 0.001;
+  const tolerance = MONEY_COMPARISON_TOLERANCE;
 
   if (
     Math.abs(ctx.outstandingAmount - ctx.expectedOutstandingAmount) > tolerance

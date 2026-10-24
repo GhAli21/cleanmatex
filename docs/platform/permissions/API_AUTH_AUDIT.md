@@ -1,6 +1,6 @@
 # API Auth Audit
 
-Generated: 2026-07-08T21:50:13.473Z
+Generated: 2026-10-23T17:51:42.937Z
 
 | Route | Methods | Auth Type | requirePermission | requireTenantAuth | getAuthContext | Needs Review |
 |-------|---------|-----------|-------------------|------------------|----------------|--------------|
@@ -9,18 +9,30 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/auth/csrf-token | GET | none | false | false | false | true |
 | /api/auth/login | POST | auth_only | false | false | false | true |
 | /api/auth/logout | POST | auth_only | false | false | false | true |
+| /api/auth/password/change | POST | auth_only | false | false | false | true |
+| /api/auth/password/link | POST | none | false | false | false | true |
+| /api/auth/password/policy | GET | none | false | false | false | true |
+| /api/auth/password/reset | POST | auth_only | false | false | false | true |
 | /api/auth/register | POST | auth_only | false | false | false | true |
 | /api/auth/reset-password | POST | auth_only | false | false | false | true |
+| /api/auth/session/activity | POST | auth_only | false | false | false | true |
+| /api/auth/sessions/me | GET | none | false | false | false | true |
+| /api/auth/sessions/me/[id] | DELETE | none | false | false | false | true |
+| /api/auth/sessions/me/revoke-others | POST | none | false | false | false | true |
 | /api/dashboard/workflow-stats | GET | auth_only | false | false | false | true |
 | /api/dev/platform-inventories | GET | permission | true | false | false | false |
 | /api/docs | GET | none | false | false | false | true |
 | /api/feature-flags | GET | auth_only | false | false | true | true |
+| /api/finance/process-jobs | POST | none | false | false | false | true |
+| /api/finance/process-outbox | POST | none | false | false | false | true |
 | /api/navigation | GET | auth_only | false | false | true | true |
 | /api/navigation/components | GET, POST | auth_only | false | false | false | true |
 | /api/navigation/components/[id] | GET, PUT, DELETE | auth_only | false | false | false | true |
 | /api/notifications/process-campaigns | POST | none | false | false | false | true |
 | /api/notifications/process-outbox | POST | none | false | false | false | true |
 | /api/notifications/push-subscription | POST, DELETE | permission | true | false | false | false |
+| /api/notifications/reconcile-outbox | POST | none | false | false | false | true |
+| /api/notifications/webhooks/resend | POST | auth_only | false | false | false | true |
 | /api/orders/[orderId]/status | GET, PATCH | auth_only | false | false | false | true |
 | /api/orders/[orderId]/status-history | GET | auth_only | false | false | false | true |
 | /api/orders/bulk-status | POST | auth_only | false | false | false | true |
@@ -29,6 +41,7 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/roles | GET, POST | auth_only | false | false | false | true |
 | /api/roles/[id] | GET, PATCH, DELETE | auth_only | false | false | false | true |
 | /api/roles/[id]/permissions | PUT | auth_only | false | false | false | true |
+| /api/settings/auth-config | GET, PUT | permission | true | false | false | false |
 | /api/settings/catalog | GET | none | false | false | false | true |
 | /api/settings/categories | GET | none | false | false | false | true |
 | /api/settings/tenants/[tenantId]/effective | GET | auth_only | false | false | false | true |
@@ -38,6 +51,13 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/settings/tenants/[tenantId]/overrides/[settingCode] | DELETE | none | false | false | false | true |
 | /api/settings/tenants/[tenantId]/profile | GET | auth_only | false | false | false | true |
 | /api/settings/tenants/[tenantId]/recompute | POST | none | false | false | false | true |
+| /api/users/[userId]/activity | GET | permission | true | false | false | false |
+| /api/users/[userId]/password | POST | permission | true | false | false | false |
+| /api/users/[userId]/password/link | POST | permission | true | false | false | false |
+| /api/users/[userId]/unlock | POST | permission | true | false | false | false |
+| /api/users/[userId]/user-code | GET, PATCH | permission | true | false | false | false |
+| /api/users/sessions | GET | permission | true | false | false | false |
+| /api/users/sessions/revoke | POST | permission | true | false | false | false |
 | /api/v1/ar/credits | GET | permission | true | false | false | false |
 | /api/v1/ar/credits/applications | POST | permission | true | false | false | false |
 | /api/v1/ar/credits/applications/[id]/reverse | POST | permission | true | false | false | false |
@@ -65,14 +85,17 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/ar/reports/aging | GET | permission | true | false | false | false |
 | /api/v1/ar/statement-cycles | GET, POST | permission | true | false | false | false |
 | /api/v1/ar/statement-cycles/[id]/preview | GET | permission | true | false | false | false |
-| /api/v1/assembly/dashboard | GET | auth_only | false | false | true | true |
-| /api/v1/assembly/exceptions/[id]/resolve | PATCH | auth_only | false | false | true | true |
-| /api/v1/assembly/tasks | POST | auth_only | false | false | true | true |
-| /api/v1/assembly/tasks/[taskId]/exceptions | POST | auth_only | false | false | true | true |
-| /api/v1/assembly/tasks/[taskId]/pack | POST | auth_only | false | false | true | true |
-| /api/v1/assembly/tasks/[taskId]/qa | POST | auth_only | false | false | true | true |
-| /api/v1/assembly/tasks/[taskId]/scan | POST | auth_only | false | false | true | true |
-| /api/v1/assembly/tasks/[taskId]/start | POST | auth_only | false | false | true | true |
+| /api/v1/assembly/[id]/complete | (unknown) | none | false | false | false | true |
+| /api/v1/assembly/dashboard | GET | permission | true | false | false | false |
+| /api/v1/assembly/exceptions/[id]/resolve | PATCH | permission | true | false | false | false |
+| /api/v1/assembly/tasks | POST | permission | true | false | false | false |
+| /api/v1/assembly/tasks/[taskId] | GET | permission | true | false | false | false |
+| /api/v1/assembly/tasks/[taskId]/complete | POST | permission | true | false | false | false |
+| /api/v1/assembly/tasks/[taskId]/exceptions | POST | permission | true | false | false | false |
+| /api/v1/assembly/tasks/[taskId]/pack | POST | permission | true | false | false | false |
+| /api/v1/assembly/tasks/[taskId]/qa | POST | permission | true | false | false | false |
+| /api/v1/assembly/tasks/[taskId]/scan | POST | permission | true | false | false | false |
+| /api/v1/assembly/tasks/[taskId]/start | POST | permission | true | false | false | false |
 | /api/v1/audit/actors | GET | auth_only | false | false | true | true |
 | /api/v1/b2b-contacts | GET, POST | permission | true | false | false | false |
 | /api/v1/b2b-contacts/[id] | GET, PATCH, DELETE | permission | true | false | false | false |
@@ -85,12 +108,44 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/b2b/overdue-statements | GET | permission | true | false | false | false |
 | /api/v1/b2b/run-dunning-actions | POST | permission | true | false | false | false |
 | /api/v1/branches | GET | none | false | false | false | true |
-| /api/v1/branches/[id] | GET, PATCH | none | false | false | false | true |
+| /api/v1/branches/[id] | GET, PATCH | permission | true | false | false | false |
 | /api/v1/cash-drawers | GET | permission | true | false | false | false |
-| /api/v1/cash-drawers/[drawerId]/cash-movement | POST | permission | true | false | false | false |
-| /api/v1/cash-drawers/[drawerId]/close-session | POST | permission | true | false | false | false |
-| /api/v1/cash-drawers/[drawerId]/open-session | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/cash-in-out | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/count-policy | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/counts | GET, POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/ledger | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/open-session-v2 | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/policy | GET, PUT | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId] | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close-preview | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/count | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/finalize | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/recount | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/close/resume | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/closure | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/force-close | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/opening-count | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close | PUT | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/post-close/history | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/session/[sessionId]/reject-variance | POST | permission | true | false | false | false |
 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/[drawerId]/sessions | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/catalogs | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/denominations | GET, PUT | permission | true | false | false | false |
+| /api/v1/cash-drawers/denominations/currencies | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/follow-up | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/overview | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/pending-deposit/ensure | POST | none | false | false | false | true |
+| /api/v1/cash-drawers/pending-deposit/status | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/rounding-policy | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/transit | GET, POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/transit/[transitId]/cancel | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/transit/[transitId]/receive | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/trx | GET, POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/trx/[trxId]/reverse | POST | permission | true | false | false | false |
+| /api/v1/cash-drawers/variance-approvals | GET | permission | true | false | false | false |
+| /api/v1/cash-drawers/variance-report | GET | permission | true | false | false | false |
 | /api/v1/catalog/order-sources | GET, PUT | permission | true | false | false | false |
 | /api/v1/catalog/packing-preferences | GET, POST | permission | true | false | false | false |
 | /api/v1/catalog/packing-preferences/[code] | PUT, DELETE | permission | true | false | false | false |
@@ -103,6 +158,7 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/catalog/service-preferences/[code] | PUT, DELETE | permission | true | false | false | false |
 | /api/v1/catalog/service-preferences/admin | GET | permission | true | false | false | false |
 | /api/v1/categories | GET, POST | auth_only | false | false | true | true |
+| /api/v1/currencies/[code]/denominations | GET | permission | true | false | false | false |
 | /api/v1/customer-categories | GET, POST | permission | true | false | false | false |
 | /api/v1/customer-categories/[code] | GET, PATCH, DELETE | permission | true | false | false | false |
 | /api/v1/customer-categories/check-code | GET | permission | true | false | false | false |
@@ -130,11 +186,28 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/customers/merge | POST | auth_only | false | false | true | true |
 | /api/v1/customers/send-otp | POST | none | false | false | false | true |
 | /api/v1/customers/verify-otp | POST | none | false | false | false | true |
-| /api/v1/delivery/orders/[orderId]/generate-otp | POST | auth_only | false | false | true | true |
-| /api/v1/delivery/orders/[orderId]/verify-otp | POST | auth_only | false | false | true | true |
-| /api/v1/delivery/routes | GET, POST | permission | true | false | true | false |
-| /api/v1/delivery/routes/[id]/assign | POST | auth_only | false | false | true | true |
-| /api/v1/delivery/stops/[stopId]/pod | POST | auth_only | false | false | true | true |
+| /api/v1/delivery/orders/[orderId]/active-stop | GET | permission | true | false | false | false |
+| /api/v1/delivery/orders/[orderId]/complete | POST | none | false | false | false | true |
+| /api/v1/delivery/orders/[orderId]/proof | GET | permission | true | false | false | false |
+| /api/v1/delivery/pod-methods | GET | none | false | false | false | true |
+| /api/v1/delivery/routes | GET, POST | permission | true | false | false | false |
+| /api/v1/delivery/routes/[id] | GET | none | false | false | false | true |
+| /api/v1/delivery/routes/[id]/assign | POST | permission | true | false | false | false |
+| /api/v1/delivery/routes/[id]/cancel | POST | permission | true | false | false | false |
+| /api/v1/delivery/routes/[id]/orders | POST | permission | true | false | false | false |
+| /api/v1/delivery/routes/[id]/stops/[stopId] | DELETE | permission | true | false | false | false |
+| /api/v1/delivery/stops/[stopId] | GET | none | false | false | false | true |
+| /api/v1/delivery/stops/[stopId]/complete | POST | none | false | false | false | true |
+| /api/v1/delivery/stops/[stopId]/evidence | POST | none | false | false | false | true |
+| /api/v1/finance/jobs | GET | permission | true | false | false | false |
+| /api/v1/finance/jobs/[jobCode]/run | POST | permission | true | false | false | false |
+| /api/v1/finance/jobs/[jobCode]/runs | GET | permission | true | false | false | false |
+| /api/v1/finance/outbox | GET | permission | true | false | false | false |
+| /api/v1/finance/outbox/[eventId] | GET | permission | true | false | false | false |
+| /api/v1/finance/outbox/[eventId]/retry | POST | permission | true | false | false | false |
+| /api/v1/finance/outbox/retry-bulk | POST | permission | true | false | false | false |
+| /api/v1/finance/pending-payments | GET | permission | true | false | false | false |
+| /api/v1/finance/pending-payments/[paymentId]/transition | POST | auth_only | false | false | true | true |
 | /api/v1/finance/reconciliation/issues/[issueId] | PATCH | permission | true | false | false | false |
 | /api/v1/finance/reconciliation/runs | GET, POST | permission | true | false | false | false |
 | /api/v1/finance/reconciliation/runs/[runId] | GET | permission | true | false | false | false |
@@ -161,6 +234,12 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/finance/vouchers/lookups/types | GET | permission | true | false | false | false |
 | /api/v1/gift-cards/[cardCode]/balance | GET | permission | true | false | false | false |
 | /api/v1/gift-cards/[cardCode]/ledger | GET | permission | true | false | false | false |
+| /api/v1/home-collection/[id]/assign | (unknown) | none | false | false | false | true |
+| /api/v1/home-collection/[id]/fail | (unknown) | none | false | false | false | true |
+| /api/v1/home-collection/orders/[orderId]/complete | POST | none | false | false | false | true |
+| /api/v1/lookups/issue-types | GET | auth_only | false | false | false | true |
+| /api/v1/lookups/priorities | GET | auth_only | false | false | false | true |
+| /api/v1/lookups/timezones | GET | auth_only | false | false | false | true |
 | /api/v1/loyalty/config | GET, PATCH | permission | true | false | false | false |
 | /api/v1/loyalty/tiers | POST | permission | true | false | false | false |
 | /api/v1/marketing/promotions | GET, POST | permission | true | false | false | false |
@@ -180,25 +259,41 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/notifications/user-prefs | GET, PUT | permission | true | false | false | false |
 | /api/v1/orders | GET, POST | permission | true | false | false | false |
 | /api/v1/orders/[id] | GET | none | false | false | false | true |
+| /api/v1/orders/[id]/actions | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/adjustments | POST | permission | true | false | false | false |
+| /api/v1/orders/[id]/available-actions | GET | permission | true | false | false | false |
 | /api/v1/orders/[id]/batch-update | POST | permission | true | false | false | false |
+| /api/v1/orders/[id]/change-context | GET | permission | true | false | false | false |
+| /api/v1/orders/[id]/changes | GET, POST | permission | true | false | false | false |
+| /api/v1/orders/[id]/changes/follow-up | GET | permission | true | false | false | false |
+| /api/v1/orders/[id]/changes/preview | POST | permission | true | false | false | false |
+| /api/v1/orders/[id]/charges/[chargeId]/void | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/collect-payment | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/confirm-physical-intake | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/credit-applications | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/discounts | GET | auth_only | false | false | true | true |
+| /api/v1/orders/[id]/edit-history/[editHistoryId]/settlement | POST | permission | true | false | false | false |
+| /api/v1/orders/[id]/edit-session | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/editability | GET | none | false | false | false | true |
 | /api/v1/orders/[id]/financial-reconcile | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/financial-reconciliation | GET | permission | true | false | false | false |
+| /api/v1/orders/[id]/financial-resolution | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/financial-summary | GET | permission | true | false | false | false |
-| /api/v1/orders/[id]/fix-order-data | POST | auth_only | false | false | true | true |
+| /api/v1/orders/[id]/fix-order-data | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/history | GET | auth_only | false | false | true | true |
 | /api/v1/orders/[id]/issue | POST | auth_only | false | false | true | true |
+| /api/v1/orders/[id]/issue-summary | GET | auth_only | false | false | true | true |
+| /api/v1/orders/[id]/issue/[issueId] | PATCH | auth_only | false | false | true | true |
+| /api/v1/orders/[id]/issues | GET | auth_only | false | false | true | true |
 | /api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode] | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/items/[itemId]/complete | POST | auth_only | false | false | true | true |
 | /api/v1/orders/[id]/items/[itemId]/packing-pref | PATCH | permission | true | false | false | false |
 | /api/v1/orders/[id]/items/[itemId]/pieces | GET, POST, PATCH | permission | true | false | false | false |
 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId] | GET, PATCH, DELETE | permission | true | false | false | false |
 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions | POST | permission | true | false | false | false |
+| /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences | GET, POST | permission | true | false | false | false |
+| /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/[prefId] | PATCH, DELETE | permission | true | false | false | false |
+| /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/[prefId]/notes | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs | GET, POST, DELETE | permission | true | false | false | false |
 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs/confirm | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/items/[itemId]/pieces/scan | POST | permission | true | false | false | false |
@@ -209,40 +304,60 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/orders/[id]/payments | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/payments/[paymentId]/verify | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/pieces | GET | permission | true | false | false | false |
+| /api/v1/orders/[id]/rack-bags | GET | auth_only | false | false | true | true |
 | /api/v1/orders/[id]/refund | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/refunds | GET, POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/report/invoices-payments-rprt | GET | permission | true | false | false | false |
 | /api/v1/orders/[id]/report/payments-rprt | GET | permission | true | false | false | false |
 | /api/v1/orders/[id]/split | POST | auth_only | false | false | true | true |
 | /api/v1/orders/[id]/state | GET | auth_only | false | false | true | true |
+| /api/v1/orders/[id]/tax-documents/[documentId]/print | GET | permission | true | false | false | false |
+| /api/v1/orders/[id]/tax-documents/issue | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/transition | POST | permission | true | false | false | false |
 | /api/v1/orders/[id]/transitions | GET | auth_only | false | false | true | true |
 | /api/v1/orders/[id]/unlock | POST | auth_only | false | false | false | true |
 | /api/v1/orders/[id]/update | PATCH | permission | true | false | false | false |
-| /api/v1/orders/[id]/workflow-context | GET | permission | true | false | false | false |
+| /api/v1/orders/[id]/workflow-context | GET | auth_only | false | false | true | true |
 | /api/v1/orders/checkout-options | GET | none | false | false | false | true |
 | /api/v1/orders/estimate-ready-by | POST | auth_only | false | false | true | true |
+| /api/v1/orders/issues | GET | auth_only | false | false | true | true |
+| /api/v1/orders/payment-quote | POST | permission | true | false | false | false |
 | /api/v1/orders/pieces/[pieceId]/history | GET | permission | true | false | false | false |
 | /api/v1/orders/preview-financials | POST | permission | true | false | false | false |
 | /api/v1/orders/preview-payment | POST | permission | true | false | false | false |
+| /api/v1/orders/recalc-preference-charges | POST | permission | true | false | false | false |
 | /api/v1/orders/refunds/[refundId]/approve | PATCH | permission | true | false | false | false |
 | /api/v1/orders/refunds/[refundId]/process | PATCH | permission | true | false | false | false |
 | /api/v1/orders/submit-order | POST | permission | true | false | false | false |
+| /api/v1/packing/[id]/complete | (unknown) | none | false | false | false | true |
+| /api/v1/payments/gateway/[gatewayCode]/webhook | POST | auth_only | false | false | false | true |
+| /api/v1/pickup/orders/[orderId]/complete | POST | none | false | false | false | true |
 | /api/v1/plan-flags | GET | auth_only | false | false | false | true |
 | /api/v1/pos-sessions | GET | permission | true | false | false | false |
+| /api/v1/pos-sessions/[sessionId]/close | POST | auth_only | false | false | true | true |
+| /api/v1/pos-sessions/[sessionId]/events | GET | permission | true | false | false | false |
+| /api/v1/pos-sessions/[sessionId]/force-close | POST | auth_only | false | false | true | true |
 | /api/v1/pos-sessions/[sessionId]/summary | GET | permission | true | false | false | false |
+| /api/v1/pos-sessions/[sessionId]/x-report | GET | permission | true | false | false | false |
+| /api/v1/pos-sessions/[sessionId]/z-report | GET, POST | permission | true | false | false | false |
+| /api/v1/pos-sessions/auto-link-drawer | POST | none | false | false | false | true |
+| /api/v1/pos-sessions/catalogs | GET | none | false | false | false | true |
 | /api/v1/pos-sessions/close | POST | permission | true | false | false | false |
 | /api/v1/pos-sessions/ensure-for-order-entry | POST | permission | true | false | false | false |
+| /api/v1/pos-sessions/filter-options | GET | permission | true | false | false | false |
 | /api/v1/pos-sessions/force-close | POST | permission | true | false | false | false |
 | /api/v1/pos-sessions/my-active | GET | permission | true | false | false | false |
 | /api/v1/pos-sessions/open | POST | permission | true | false | false | false |
+| /api/v1/pos-sessions/open-others | POST | auth_only | false | false | false | true |
 | /api/v1/pos-sessions/pause | POST | permission | true | false | false | false |
 | /api/v1/pos-sessions/resume | POST | permission | true | false | false | false |
+| /api/v1/pos-sessions/users | GET | none | false | false | false | true |
+| /api/v1/pos-sessions/z-reports | GET | permission | true | false | false | false |
 | /api/v1/preferences/last-order | GET | permission | true | false | false | false |
 | /api/v1/preferences/resolve | GET | permission | true | false | false | false |
 | /api/v1/preferences/suggest | GET | permission | true | false | false | false |
 | /api/v1/preparation | GET | auth_only | false | false | false | true |
-| /api/v1/preparation/[id]/complete | POST | tenant_auth | false | true | false | false |
+| /api/v1/preparation/[id]/complete | POST | none | false | false | false | true |
 | /api/v1/preparation/[id]/items | POST | auth_only | false | false | false | true |
 | /api/v1/preparation/[id]/items/[itemId] | PATCH, DELETE | tenant_auth | false | true | false | false |
 | /api/v1/preparation/[id]/preview | GET | auth_only | false | false | false | true |
@@ -258,6 +373,7 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/pricing/import-all-products | POST | auth_only | false | false | true | true |
 | /api/v1/pricing/template | GET | auth_only | false | false | true | true |
 | /api/v1/processing-steps/[category] | GET | auth_only | false | false | true | true |
+| /api/v1/processing/[id]/complete | (unknown) | none | false | false | false | true |
 | /api/v1/products | GET, POST | auth_only | false | false | true | true |
 | /api/v1/products/[id] | GET, PATCH, DELETE | auth_only | false | false | true | true |
 | /api/v1/products/[id]/image | POST, DELETE | auth_only | false | false | true | true |
@@ -269,12 +385,19 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/public/customer/booking | GET, POST | none | false | false | false | true |
 | /api/v1/public/customer/login | POST | none | false | false | false | true |
 | /api/v1/public/customer/orders | GET | none | false | false | false | true |
+| /api/v1/public/customer/orders/[orderNo] | GET | none | false | false | false | true |
 | /api/v1/public/customer/password | POST | none | false | false | false | true |
 | /api/v1/public/customer/session | POST | none | false | false | false | true |
 | /api/v1/public/customer/tenants | GET | none | false | false | false | true |
 | /api/v1/public/orders/[tenantId]/[orderNo] | GET | none | false | false | false | true |
-| /api/v1/public/orders/[tenantId]/[orderNo]/confirm-received | POST | auth_only | false | false | false | true |
+| /api/v1/public/orders/[tenantId]/[orderNo]/confirm-received | POST | none | false | false | false | true |
 | /api/v1/public/tenant/resolve | GET | none | false | false | false | true |
+| /api/v1/public/track/[token] | GET | none | false | false | false | true |
+| /api/v1/public/track/[token]/confirm-received | POST | none | false | false | false | true |
+| /api/v1/qa/[id]/fail | (unknown) | none | false | false | false | true |
+| /api/v1/qa/[id]/pass | (unknown) | none | false | false | false | true |
+| /api/v1/ready/[id]/release-delivery | (unknown) | none | false | false | false | true |
+| /api/v1/ready/[id]/release-pickup | (unknown) | none | false | false | false | true |
 | /api/v1/receipts/[id]/resend | POST | auth_only | false | false | true | true |
 | /api/v1/receipts/orders/[orderId] | GET, POST | auth_only | false | false | true | true |
 | /api/v1/receipts/webhooks/whatsapp | GET, POST | auth_only | false | false | false | true |
@@ -283,6 +406,7 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/settings/general | GET, PUT | permission | true | false | false | false |
 | /api/v1/settings/payments/card-brands | GET | permission | true | false | false | false |
 | /api/v1/settings/payments/card-brands/[brandId] | PATCH | permission | true | false | false | false |
+| /api/v1/settings/payments/cash-control | GET, PUT | permission | true | false | false | false |
 | /api/v1/settings/payments/methods | GET | permission | true | false | false | false |
 | /api/v1/settings/payments/methods/[methodId] | PATCH | permission | true | false | false | false |
 | /api/v1/settings/payments/terminals | GET, POST | permission | true | false | false | false |
@@ -298,8 +422,9 @@ Generated: 2026-07-08T21:50:13.473Z
 | /api/v1/tenants/me | GET, PATCH | none | false | false | false | true |
 | /api/v1/tenants/me/logo | POST, DELETE | auth_only | false | false | false | true |
 | /api/v1/tenants/register | POST | none | false | false | false | true |
+| /api/v1/workboard/orders | GET | permission | true | false | false | false |
 | /api/v1/workflows/config | GET, PATCH | auth_only | false | false | true | true |
-| /api/v1/workflows/screens/[screen]/contract | GET | auth_only | false | false | false | true |
+| /api/v1/workflows/screens/[screen]/contract | GET | auth_only | false | false | true | true |
 | /api/workflow-roles | GET, POST | auth_only | false | false | false | true |
 | /api/workflow-roles/[id] | DELETE | auth_only | false | false | false | true |
 | /api/workflow-roles/users | GET | auth_only | false | false | false | true |

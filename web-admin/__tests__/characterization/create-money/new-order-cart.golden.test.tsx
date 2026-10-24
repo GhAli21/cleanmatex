@@ -75,19 +75,27 @@ describe('P1-01 golden — cart line money', () => {
     expect(store.state.items.map((i) => i.pricePerUnit)).toEqual([1.5, 1]);
   });
 
-  it('C03 KNOWN DEFECT (PF-21): clearing a price override keeps the overridden unit price', () => {
+  const override = (priceOverride: number | null) =>
     dispatch({
       type: 'UPDATE_ITEM_PRICE_OVERRIDE',
-      payload: { productId: 'shirt', priceOverride: 1, overrideReason: 'Goodwill gesture', overrideBy: 'u1' },
+      payload: { productId: 'shirt', priceOverride, overrideReason: priceOverride === null ? null : 'Goodwill gesture', overrideBy: 'u1' },
     } as NewOrderAction);
-    expect([item().pricePerUnit, item().totalPrice]).toEqual([1, 2]);
 
-    dispatch({
-      type: 'UPDATE_ITEM_PRICE_OVERRIDE',
-      payload: { productId: 'shirt', priceOverride: null, overrideReason: null, overrideBy: null },
-    } as NewOrderAction);
-    // The catalog price 1.5 is not restored; the server prices 1.5, so submit fails with AMOUNT_MISMATCH.
-    expect([item().priceOverride, item().pricePerUnit, item().totalPrice]).toEqual([null, 1, 2]);
+  it('C03 FIXED (PF-21): clearing a price override restores the price under it', () => {
+    override(1);
+    expect([item().pricePerUnit, item().totalPrice]).toEqual([1, 2]);
+    override(0.9); // a second override still remembers the original price
+    override(null);
+    expect([item().priceOverride, item().pricePerUnit, item().totalPrice, item().pricePerUnitBeforeOverride]).toEqual([null, 1.5, 3, undefined]);
+  });
+
+  it('C03b FIXED (PF-21, rule #15): the express toggle never rewrites a typed override', () => {
+    override(1);
+    dispatch({ type: 'SET_EXPRESS', payload: true } as NewOrderAction);
+    // The server charges the override, so the cart keeps it; only the price under it follows the speed.
+    expect([item().pricePerUnit, item().totalPrice, item().pricePerUnitBeforeOverride]).toEqual([1, 2, 2.5]);
+    override(null);
+    expect([item().pricePerUnit, item().totalPrice]).toEqual([2.5, 5]);
   });
 
   it('C04 KNOWN DEFECT (PF-12): a piece preference REPLACES the item-preference charge instead of adding to it', () => {

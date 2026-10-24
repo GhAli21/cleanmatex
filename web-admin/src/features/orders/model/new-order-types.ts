@@ -148,6 +148,8 @@ export interface OrderItem {
   priceOverride?: number | null;
   overrideReason?: string | null;
   overrideBy?: string | null;
+  /** Cart only: the unit price under an active override, restored when the override is cleared (PF-21). Never submitted. */
+  pricePerUnitBeforeOverride?: number;
   /** Service preferences (starch, perfume, delicate, etc.) */
   servicePrefs?: OrderItemServicePref[];
   /** Packing preference (hang, fold, box, etc.) */

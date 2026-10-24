@@ -519,23 +519,39 @@ export async function listCheckoutEligiblePaymentMethodConfigs(
 ): Promise<EffectivePaymentMethodConfig[]> {
   const methods = await listEffectivePaymentMethodConfigs(filters);
 
-  return methods.filter((method) => {
-    if (!method.is_enabled || !method.allowed_in_pos) {
-      return false;
+  return methods.filter((method) => isCheckoutPaymentMethodEligible(method, filters.amount));
+}
+
+/**
+ * Keeps displayed options and final submission on the same effective eligibility rules.
+ *
+ * @param method Effective tenant/branch configuration, freshly loaded for submission.
+ * @param orderAmount Authoritative sale total; zero preserves free-order checkout.
+ * @param legAmount Optional applied amount for enforcing tender-specific limits at submit.
+ * @returns Whether all enabled/POS/disable and applicable amount constraints allow the method.
+ * @example isCheckoutPaymentMethodEligible(method, 100, 50)
+ */
+export function isCheckoutPaymentMethodEligible(
+  method: EffectivePaymentMethodConfig,
+  orderAmount: number,
+  legAmount?: number,
+): boolean {
+  if (!Number.isFinite(orderAmount) || orderAmount < 0) return false;
+  if (!method.is_enabled || !method.allowed_in_pos || !method.is_active || method.rec_status !== 1) return false;
+  if (method.is_platform_disabled || method.is_globally_disabled || method.gateway_globally_disabled) return false;
+  if (orderAmount > 0) {
+    if (method.min_order_amount != null && orderAmount < method.min_order_amount) return false;
+    if (method.max_order_amount != null && orderAmount > method.max_order_amount) return false;
+  }
+  if (legAmount !== undefined) {
+    if (!Number.isFinite(legAmount) || legAmount < 0) return false;
+    // Deferred zero-value legs describe outstanding policy rather than a money transfer.
+    if (legAmount > 0) {
+      if (method.min_amount != null && legAmount < method.min_amount) return false;
+      if (method.max_amount != null && legAmount > method.max_amount) return false;
     }
-    if (method.is_platform_disabled || method.is_globally_disabled || method.gateway_globally_disabled) {
-      return false;
-    }
-    if (Number.isFinite(filters.amount) && filters.amount > 0) {
-      if (method.min_order_amount != null && filters.amount < method.min_order_amount) {
-        return false;
-      }
-      if (method.max_order_amount != null && filters.amount > method.max_order_amount) {
-        return false;
-      }
-    }
-    return true;
-  });
+  }
+  return true;
 }
 
 /**

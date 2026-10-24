@@ -11,6 +11,12 @@ jest.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useFormatter: () => ({}),
 }));
+// The currency context calls a 'use server' action. In Jest that module would
+// load the real server-action guard (next/server needs a fetch `Request`
+// global that jsdom lacks); with no session it is never called, so stub it.
+jest.mock('@/app/actions/tenant/get-currency-config', () => ({
+  getCurrencyConfigOutcomeAction: jest.fn(),
+}));
 jest.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     auth: {

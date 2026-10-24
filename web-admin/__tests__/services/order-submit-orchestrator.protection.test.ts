@@ -9,6 +9,7 @@ import {
   makeServerTotals, mockCalculate, mockCreate, mockSettle, mockTaxDoc, mockVoucher,
   mockWire, mockLine, mockPromo, mockInvoice, mockTransaction, mockTenantContext,
   mockReadOrder, mockBranchRead, mockEffects, mockTx, mockInitialCommit, tenantId, orderId, branchId,
+  mockMethodConfigs,
 } from '../helpers/order-submit-harness';
 
 describe('WP01 actual canonical Create orchestration', () => {
@@ -51,6 +52,21 @@ describe('WP01 actual canonical Create orchestration', () => {
     mockCalculate.mockResolvedValue(makeServerTotals({ saleTotal: 21 }));
     await expect(submitOrder(submitParams())).rejects.toMatchObject({ message: 'AMOUNT_MISMATCH', differences: expect.any(Object) });
     expect(mockTransaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { is_enabled: false }, { allowed_in_pos: false }, { is_platform_disabled: true },
+    { is_globally_disabled: true }, { gateway_globally_disabled: true },
+    { min_order_amount: 21 }, { max_order_amount: 19 }, { min_amount: 21 }, { max_amount: 19 },
+  ])('rejects current method policy before writing %o', async (override) => {
+    const original = mockMethodConfigs.getMockImplementation()!;
+    mockMethodConfigs.mockImplementation(async (filters) => {
+      const rows = await original(filters);
+      return rows.map((row: Record<string, unknown>) => ({ ...row, ...override }));
+    });
+    await expect(submitOrder(submitParams())).rejects.toThrow('PAYMENT_METHOD_NOT_AVAILABLE');
+    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
   });
   it('preserves split tender as two voucher lines with distinct keys', async () => {
     await submitOrder(submitParams(makeSubmitInput({ paymentLegs: [

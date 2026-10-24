@@ -6,7 +6,7 @@
 | Phase | Title | Status | Notes |
 |---|---|---|---|
 | P0 | Discovery and decision freeze | ✅ Done 2026-10-23 (combined with Line-Level P0) | [PHASE0_FINDINGS.md](../Line_Level_Money_Snapshot/PHASE0_FINDINGS.md), [ADR-060](../ADR/ADR-060-Line-Level-Commercial-Calculation.md). Added BF-21, BF-22. P0-09 coordination agreed (findings §4). The public allowlist freeze (P0-05) is carried into P3-06 with the BF-16 outcome |
-| P1 | Fix existing bugs (BF-01 … BF-20) | In progress | BF-09 ✅, BF-16 ✅, BF-20 ✅ (2026-10-23, security first). BF-19 moves to Line-Level Money P5-03. Must complete before P5 |
+| P1 | Fix existing bugs (BF-01 … BF-22) | ✅ Done 2026-10-23 (code bugs) | BF-01/02/03/04/05/06/07/09/10/11/13/16/20/21/22 ✅. BF-08 shared path ✅ (full page retired in P6-02). BF-12/15/17/18 are closed by the new view (D35). BF-14 decided in P3 (shared rule source). BF-19 → Line-Level P5-03. New BF-23 (tenant from `tenants[0]` in 32 routes) is its own package |
 | P1B | One shared commercial calculator and Order Edit parity (EC-01 … EC-08) | Not started | Owner D25: mandatory. Must complete before P3-08 and P6-13 |
 | P2 | Database (indexes / permission seed, if needed) | Not started | Stop and wait after each migration file |
 | P3 | Backend read model | Not started | |
@@ -18,6 +18,24 @@
 | P9 | Documentation update | Not started | |
 
 ## Log
+
+- **2026-10-23 (exec-3): Phase 1 bug fixes (combined step 4).**
+  - **BF-11 (root cause):** `buildEffectiveOrderFinancialSnapshot` treated a stored 0 as missing and recomputed it from rows. It now takes `snapshotWritten` (`financial_engine_version` set). A written snapshot is the authority, zeros included. Rows are used only for a snapshot the engine never wrote (remote DB: all 11 orders are written). The service's own `||` fallbacks and its duplicate refund classifiers were removed. The unwritten-snapshot overpaid fallback uses `computeOverpaidAmount` (subtracts change returned). A written zero taxable amount stays 0.
+  - **BF-01:** voided charge rows never count, in the effective snapshot and in the mapper. The mapper reads the snapshot charge fields first (`??`).
+  - **BF-02:** the read model carries `expectedOutstandingAmount` (D005 `computeOutstanding` with refund reopens); the mapper no longer re-derives it, so a reopened refund raises no false mismatch.
+  - **BF-03:** already fixed (no `'OMR'` default; the currency stays blank when unknown).
+  - **BF-04:** `MONEY_COMPARISON_TOLERANCE`.
+  - **BF-05:** rounding and pay-on-collection come from the snapshot.
+  - **BF-06:** pending, authorized and failed payments, real-payment refunded, stored-value restored, customer credit issued, change returned and voucher references are in the view model (additive).
+  - **BF-07:** `getInvoicesForOrder` unions `org_invoice_orders_dtl` links with the legacy `order_id` (de-duplicated, tenant-filtered) and carries the order's share (`order_invoiced_amount`, `order_outstanding_amount`). The detail page uses `selectOrderArInvoices`: the primary invoice is the newest one with a balance; all of them are in `arInvoices`. The remote DB has no invoices yet.
+  - **BF-10:** the service throws `NotFoundError`; the route answers 404 `ORDER_NOT_FOUND`, and a generic 500 that is logged and never echoed.
+  - **BF-13:** the full tax-document chain is in `taxDocuments` (`mapOrderTaxDocumentChain`).
+  - **BF-21:** the state route selects `price_per_unit` and `total_price`, so Ready page and prints show line totals.
+  - **BF-22:** the overpayment allocation to another order records the payment, then calls `recalculateOrderFinancialSnapshotTx` (paid, outstanding and payment status from the one writer); the hand-written column update was removed.
+  - **New BF-23:** found in the state route (see PLAN §4); its own package.
+  - **Test-infra fix:** two UI suites failed to load after BF-20, because the currency context's server action now pulls in `next/server` under jsdom. They stub the action, as `cmx-keypad.test.tsx` already does.
+  - **Tests:** new `order-financial-effective-snapshot-bf11` (3), BF regressions in the mapper suite (+6, one test that pinned BF-11 flipped), `order-financial-summary.route` (3), `order-state-line-prices.route` (2), `customer-receipt-excess-order-allocation` (1), `invoice-service-order-invoices` (5).
+  - **Full Jest:** 4373 of 4374 tests pass. The one failure is `platform-inventories`: the pre-existing navigation-vs-contract drift (6 routes, inventory files changed outside this work). ESLint and `tsc` are clean on the changed files.
 
 - **2026-10-23 (P0 done, combined):** Discovery results are in [PHASE0_FINDINGS.md](../Line_Level_Money_Snapshot/PHASE0_FINDINGS.md); commercial-calculator decisions are in [ADR-060](../ADR/ADR-060-Line-Level-Commercial-Calculation.md).
   - **New:** BF-21 (Ready-order page and prints show 0 line totals) and BF-22 (overpayment allocation bypasses the snapshot).

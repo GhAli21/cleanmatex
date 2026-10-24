@@ -21,6 +21,8 @@ import {
 export interface TaxServiceOptions {
   /** Optional TenantSettingsService instance (e.g. server client). Defaults to client singleton. */
   tenantSettings?: TenantSettingsService;
+  /** Financial quotes distinguish a verified unset rate from a failed settings read. */
+  strictResolution?: boolean;
 }
 
 /**
@@ -28,6 +30,7 @@ export interface TaxServiceOptions {
  */
 export class TaxService {
   private readonly tenantSettings: TenantSettingsService;
+  private readonly strictResolution: boolean;
   private readonly taxRateCache = new Map<string, { rate: number; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -37,6 +40,7 @@ export class TaxService {
    */
   constructor(options: TaxServiceOptions = {}) {
     this.tenantSettings = options.tenantSettings ?? tenantSettingsService;
+    this.strictResolution = options.strictResolution ?? false;
   }
 
   /**
@@ -68,7 +72,10 @@ export class TaxService {
     }
 
     try {
-      const value = await this.tenantSettings.getSettingValue(
+      const readSetting = this.strictResolution
+        ? this.tenantSettings.getSettingValueStrict.bind(this.tenantSettings)
+        : this.tenantSettings.getSettingValue.bind(this.tenantSettings);
+      const value = await readSetting(
         tenantId,
         SETTING_CODES.TENANT_VAT_RATE,
         branchId ?? undefined,
@@ -99,6 +106,7 @@ export class TaxService {
       this.taxRateCache.set(key, { rate: taxRate, timestamp: Date.now() });
       return taxRate;
     } catch (error) {
+      if (this.strictResolution) throw error;
       logger.warn('TaxService.getTaxRate: error resolving VAT rate — treating tenant as zero-rated', {
         tenantId,
         branchId,

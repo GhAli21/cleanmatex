@@ -24,6 +24,101 @@ import type {
  */
 export class PricingService {
     /**
+     * Resolve only the rounded authoritative unit prices required by order totals.
+     * Request-local deduplication never reuses a quote across tenants or submissions.
+     * @param params - Authenticated tenant, shared currency precision, and complete quote inputs.
+     * @returns Prices in the original line order, including duplicate lines.
+     * @throws When an authoritative product price cannot be resolved.
+     * @example await pricingService.getBasePricesForOrder({ tenantId, items, decimalPlaces: 2, isExpress: false });
+     */
+    async getBasePricesForOrder(params: {
+        tenantId: string;
+        items: readonly { productId: string; quantity: number }[];
+        decimalPlaces: number;
+        isExpress: boolean;
+        customerId?: string;
+        effectiveDate?: Date;
+        /** New checkout quotes reject unavailable pricing facts; legacy callers preserve their fallback. */
+        strictResolution?: boolean;
+    }): Promise<number[]> {
+        const { tenantId, items, decimalPlaces, isExpress, customerId } = params;
+        const supabase = await createClient();
+        const priceListType = await this.determinePriceListType(tenantId, isExpress, customerId, supabase, params.strictResolution);
+        const effectiveDate = (params.effectiveDate ?? new Date()).toISOString().split('T')[0];
+        const pending = new Map<string, Promise<number>>();
+        const prices = new Array<number>(items.length);
+        let nextIndex = 0;
+        let failed = false;
+
+        // Six concurrent scalar RPCs bound database fanout until a measured bulk RPC is justified.
+        const workers = Array.from({ length: Math.min(6, items.length) }, async () => {
+            while (!failed && nextIndex < items.length) {
+                const index = nextIndex++;
+                const item = items[index];
+                const key = JSON.stringify([tenantId, item.productId, item.quantity, priceListType, isExpress, effectiveDate, decimalPlaces]);
+                let quote = pending.get(key);
+                if (!quote) {
+                    quote = this.resolveBasePrice(supabase, {
+                        tenantId, productId: item.productId, quantity: item.quantity,
+                        priceListType, isExpress, effectiveDate, strictResolution: params.strictResolution,
+                    }).then(({ basePrice }) => roundMoneyAmount(basePrice, decimalPlaces));
+                    pending.set(key, quote);
+                }
+                try {
+                    prices[index] = await quote;
+                } catch (error) {
+                    failed = true;
+                    throw error;
+                }
+            }
+        });
+        await Promise.all(workers);
+        return prices;
+    }
+
+    /**
+     * Keep valid scalar RPC and product fallback semantics identical for both pricing consumers.
+     * @param supabase - Authenticated client bound to the current request.
+     * @param params - Tenant scope and the complete price-list lookup inputs.
+     * @returns The unrounded authoritative unit price and its existing source classification.
+     * @throws When product resolution fails, or strict quotes cannot verify pricing facts.
+     */
+    private async resolveBasePrice(
+        supabase: Awaited<ReturnType<typeof createClient>>,
+        params: { tenantId: string; productId: string; quantity: number; priceListType: PriceListType; isExpress: boolean; effectiveDate: string; strictResolution?: boolean },
+    ): Promise<{ basePrice: number; source: PriceSource }> {
+        const { tenantId, productId, quantity, priceListType, isExpress, effectiveDate } = params;
+        const { data: priceData, error: priceError } = await supabase.rpc('get_product_price', {
+            p_tenant_org_id: tenantId,
+            p_product_id: productId,
+            p_price_list_type: priceListType,
+            p_quantity: quantity,
+            p_effective_date: effectiveDate,
+        });
+        if (priceError && params.strictResolution) throw new Error('PRICING_UNAVAILABLE');
+        if (!priceError && priceData !== null && priceData !== undefined) {
+            return { basePrice: Number(priceData), source: 'price_list' };
+        }
+        console.warn(`[PricingService] Price list lookup failed for product ${productId}, falling back to product default:`, priceError);
+        const { data: product, error: productError } = await supabase
+            .from('org_product_data_mst')
+            .select('default_sell_price, default_express_sell_price')
+            .eq('tenant_org_id', tenantId)
+            .eq('id', productId)
+            .eq('is_active', true)
+            .single();
+        if (productError && params.strictResolution && productError.code !== 'PGRST116') {
+            throw new Error('PRICING_UNAVAILABLE');
+        }
+        if (productError || !product) throw new Error(`Product not found: ${productId}`);
+        return {
+            basePrice: Number(isExpress && product.default_express_sell_price
+                ? product.default_express_sell_price : product.default_sell_price || 0),
+            source: 'product_default',
+        };
+    }
+
+    /**
      * Determine price list type based on order context
      * @param tenantId
      * @param isExpress - Is this an express order?
@@ -35,7 +130,8 @@ export class PricingService {
         tenantId: string,
         isExpress: boolean,
         customerId: string | undefined,
-        supabase: Awaited<ReturnType<typeof createClient>>
+        supabase: Awaited<ReturnType<typeof createClient>>,
+        strictResolution = false,
     ): Promise<PriceListType> {
         // Start with standard or express
         let priceListType: PriceListType = isExpress ? 'express' : 'standard';
@@ -50,6 +146,8 @@ export class PricingService {
                     .eq('id', customerId)
                     .single();
 
+                if (error && strictResolution) throw new Error('CUSTOMER_PRICING_UNAVAILABLE');
+
                 if (!error && customer) {
                     // Check customer type
                     if (customer.type === 'b2b' || customer.type === 'B2B') {
@@ -60,7 +158,7 @@ export class PricingService {
 
                     // Check preferences for pricing tier (overrides type)
                     if (customer.preferences && typeof customer.preferences === 'object') {
-                        const prefs = customer.preferences as Record<string, any>;
+                        const prefs = customer.preferences as Record<string, unknown>;
                         if (prefs.pricing_tier === 'b2b' || prefs.pricing_tier === 'B2B') {
                             priceListType = 'b2b';
                         } else if (prefs.pricing_tier === 'vip' || prefs.pricing_tier === 'VIP') {
@@ -69,6 +167,7 @@ export class PricingService {
                     }
                 }
             } catch (error) {
+                if (strictResolution) throw error;
                 console.warn(`[PricingService] Error checking customer pricing for ${customerId}:`, error);
                 // Fall back to standard/express
             }
@@ -113,55 +212,17 @@ export class PricingService {
                 supabase
             );
 
-            // Call database function to get price
-            const { data: priceData, error: priceError } = await (supabase.rpc as any)(
-                'get_product_price',
-                {
-                    p_tenant_org_id: tenantId,
-                    p_product_id: productId,
-                    p_price_list_type: priceListType,
-                    p_quantity: quantity,
-                    p_effective_date: effectiveDate.toISOString().split('T')[0],
-                }
-            );
-
-            let basePrice: number;
-            let source: PriceSource = 'product_default';
+            const { basePrice, source } = await this.resolveBasePrice(supabase, {
+                tenantId, productId, quantity, priceListType, isExpress,
+                effectiveDate: effectiveDate.toISOString().split('T')[0],
+            });
             let priceListId: string | undefined;
             let priceListItemId: string | undefined;
             let priceListName: string | undefined;
             let discountPercent = 0;
             let quantityTier: { min: number; max: number | null } | undefined;
 
-            if (priceError || priceData === null || priceData === undefined) {
-                console.warn(
-                    `[PricingService] Price list lookup failed for product ${productId}, falling back to product default:`,
-                    priceError
-                );
-
-                // Fallback to product default price
-                const { data: product, error: productError } = await supabase
-                    .from('org_product_data_mst')
-                    .select('default_sell_price, default_express_sell_price')
-                    .eq('tenant_org_id', tenantId)
-                    .eq('id', productId)
-                    .eq('is_active', true)
-                    .single();
-
-                if (productError || !product) {
-                    throw new Error(`Product not found: ${productId}`);
-                }
-
-                basePrice = Number(
-                    isExpress && product.default_express_sell_price
-                        ? product.default_express_sell_price
-                        : product.default_sell_price || 0
-                );
-            } else {
-                // Price from price list
-                basePrice = Number(priceData);
-                source = 'price_list';
-
+            if (source === 'price_list') {
                 // Try to get price list item details for additional info
                 try {
                     const { data: priceListItems } = await supabase
@@ -185,6 +246,7 @@ export class PricingService {
                         .eq('is_active', true)
                         .lte('min_quantity', quantity)
                         .or(`max_quantity.is.null,max_quantity.gte.${quantity}`)
+                        .eq('org_price_lists_mst.tenant_org_id', tenantId)
                         .eq('org_price_lists_mst.price_list_type', priceListType)
                         .eq('org_price_lists_mst.is_active', true)
                         .order('min_quantity', { ascending: false })

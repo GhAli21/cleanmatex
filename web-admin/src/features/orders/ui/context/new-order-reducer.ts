@@ -3,7 +3,7 @@
  * Handles all state mutations for the new order feature
  */
 
-import type { NewOrderState, NewOrderAction, PreSubmissionPiece } from '../../model/new-order-types';
+import type { NewOrderState, NewOrderAction, OrderItem, PreSubmissionPiece } from '../../model/new-order-types';
 import { NEW_ORDER_DEFAULT_SOURCE_CODE } from '@/lib/constants/order-sources';
 import { ORDER_TYPE_IDS } from '@/lib/constants/order-types';
 
@@ -26,6 +26,21 @@ function itemLineBasePlusPrefCharges(item: {
     (item.servicePrefCharge ?? 0) +
     (item.packingPrefCharge ?? 0)
   );
+}
+
+/**
+ * Catalog unit price of a cart line for the given speed: the express price when
+ * express is on and one exists, else the normal price. Falls back to the price
+ * the line had before any override, then to its current price.
+ * @param item
+ * @param express
+ */
+function catalogUnitPrice(
+  item: Pick<OrderItem, 'defaultSellPrice' | 'defaultExpressSellPrice' | 'pricePerUnit' | 'pricePerUnitBeforeOverride'>,
+  express: boolean
+): number {
+  if (express && item.defaultExpressSellPrice) return item.defaultExpressSellPrice;
+  return item.defaultSellPrice || (item.pricePerUnitBeforeOverride ?? item.pricePerUnit);
 }
 
 /**
@@ -420,12 +435,19 @@ export function newOrderReducer(
           if (item.productId !== productId) {
             return item;
           }
-          const effectivePrice = priceOverride !== null ? priceOverride : item.pricePerUnit;
+          // PF-21: remember the price under the override, so clearing it restores that price
+          // instead of keeping the overridden one (which the server would not charge).
+          const hadOverride = item.priceOverride !== null && item.priceOverride !== undefined;
+          const priceUnderOverride = hadOverride
+            ? item.pricePerUnitBeforeOverride ?? catalogUnitPrice(item, state.express)
+            : item.pricePerUnit;
+          const effectivePrice = priceOverride !== null ? priceOverride : priceUnderOverride;
           return {
             ...item,
             priceOverride,
             overrideReason,
             overrideBy,
+            pricePerUnitBeforeOverride: priceOverride !== null ? priceUnderOverride : undefined,
             pricePerUnit: effectivePrice,
             totalPrice: itemLineBasePlusPrefCharges({
               quantity: item.quantity,
@@ -454,15 +476,17 @@ export function newOrderReducer(
       return {
         ...state,
         express: action.payload,
-        // Recalculate prices when express changes
+        // Recalculate catalog prices when express changes. A price override is the
+        // cashier's typed price and the server charges it, so it is never rewritten
+        // by this toggle (rule #15); only the price under it follows the new speed.
         items: state.items.map((item) => {
-          const newPricePerUnit =
-            action.payload && item.defaultExpressSellPrice
-              ? item.defaultExpressSellPrice
-              : item.defaultSellPrice || item.pricePerUnit;
+          const catalogPrice = catalogUnitPrice(item, action.payload);
+          const hasOverride = item.priceOverride !== null && item.priceOverride !== undefined;
+          const newPricePerUnit = hasOverride ? (item.priceOverride as number) : catalogPrice;
 
           return {
             ...item,
+            ...(hasOverride && { pricePerUnitBeforeOverride: catalogPrice }),
             pricePerUnit: newPricePerUnit,
             totalPrice: itemLineBasePlusPrefCharges({
               quantity: item.quantity,

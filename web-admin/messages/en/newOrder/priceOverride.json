@@ -1,0 +1,31 @@
+{
+  "title": "Override Price",
+  "permissionDeniedTitle": "Permission Denied",
+  "accessDenied": "Access Denied",
+  "accessDeniedMessage": "You do not have permission to override prices. Please contact your administrator.",
+  "quantity": "Quantity: {quantity}",
+  "calculatedPrice": "Calculated Price: {price}",
+  "calculatedPriceReadOnly": "Calculated Price (Read-only)",
+  "overridePriceLabel": "Override Price ({currency}) *",
+  "priceIncrease": "{amount} ({percent}%) increase",
+  "priceDecrease": "{amount} ({percent}%) decrease",
+  "reasonLabel": "Reason for Override *",
+  "reasonPlaceholder": "Explain why you are overriding the calculated price...",
+  "reasonHint": "Minimum 10 characters. This will be recorded in the audit trail.",
+  "infoTitle": "Price Override Information",
+  "infoAudit": "Price overrides are logged in the audit trail",
+  "infoScope": "Override applies to this item only",
+  "infoTax": "Tax will be recalculated based on the override price",
+  "infoPermission": "This action requires pricing:override permission",
+  "apply": "Apply Override",
+  "resetToDefault": "Reset to Default Price",
+  "resetHint": "Removes the override price and reason, and restores {price}.",
+  "applied": "Price override applied successfully",
+  "reset": "Price reset to the default price",
+  "applyFailed": "Failed to apply price override",
+  "errors": {
+    "invalidPrice": "Price must be a valid number >= 0",
+    "reasonRequired": "Reason is required for price override",
+    "reasonTooShort": "Reason must be at least 10 characters"
+  }
+}

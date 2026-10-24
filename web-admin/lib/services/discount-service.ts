@@ -25,7 +25,7 @@ import type {
   EvaluatedDiscount,
   PromoDiscountType,
 } from '../types/payment';
-import { tenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { tenantSettingsService, type CurrencyConfig } from '@/lib/services/tenant-settings.service';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 // ============================================================================
@@ -56,11 +56,69 @@ export interface PromoEvaluation {
   discountAmount?: number;
 }
 
+/** Authenticated quote inputs; currency may be supplied by the enclosing calculation. */
 export interface PromoEvalContext {
   tenantId: string;
   orderTotal: number;
   customerId?: string;
   serviceCategories?: string[];
+  currencyConfig?: CurrencyConfig;
+}
+
+/** Request-local promises share facts without retaining customer balances across requests. */
+interface PromoReadContext {
+  currency: () => Promise<CurrencyConfig>;
+  customerTokens: () => Promise<string[]>;
+  usage: (promoId: string) => Promise<number>;
+}
+
+/**
+ * Lazily load shared facts so ineligible promotions do not trigger customer/usage reads.
+ * @param ctx - Authenticated tenant/customer scope and optional resolved calculation currency.
+ * @param candidates - Existing candidate order; enables one grouped usage read for automatic promotions.
+ * @returns Lazy, invocation-local facts; no availability data survives the evaluation.
+ */
+function createPromoReadContext(ctx: PromoEvalContext, candidates?: readonly PromoRow[]): PromoReadContext {
+  let currency: Promise<CurrencyConfig> | undefined;
+  let customerTokens: Promise<string[]> | undefined;
+  let usage: Promise<Map<string, number>> | undefined;
+  return {
+    currency: () => currency ??= ctx.currencyConfig
+      ? Promise.resolve(ctx.currencyConfig)
+      : tenantSettingsService.getCurrencyConfig(ctx.tenantId),
+    customerTokens: () => customerTokens ??= (async () => {
+      if (!ctx.customerId) return [];
+      const customer = await prisma.org_customers_mst.findFirst({
+        where: { id: ctx.customerId, tenant_org_id: ctx.tenantId, is_active: true },
+        select: { type: true, customer_category_id: true },
+      });
+      // A separate scoped category read prevents relying on an unscoped relation include.
+      const category = customer?.customer_category_id
+        ? await prisma.org_customer_category_cf.findFirst({
+          where: { id: customer.customer_category_id, tenant_org_id: ctx.tenantId },
+          select: { code: true },
+        })
+        : null;
+      return normalizeCodeList([customer?.type, category?.code]);
+    })(),
+    usage: async (promoId) => {
+      if (!candidates) {
+        return prisma.org_promotion_usage_dtl.count({
+          where: { tenant_org_id: ctx.tenantId, promo_code_id: promoId, customer_id: ctx.customerId, voided_at: null },
+        });
+      }
+      usage ??= (async () => {
+        const ids = candidates.filter((p) => p.max_uses_per_customer != null).map((p) => p.id);
+        const rows = await prisma.org_promotion_usage_dtl.groupBy({
+          by: ['promo_code_id'],
+          where: { tenant_org_id: ctx.tenantId, customer_id: ctx.customerId, promo_code_id: { in: ids }, voided_at: null },
+          _count: { _all: true },
+        });
+        return new Map(rows.map((row) => [row.promo_code_id, row._count._all]));
+      })();
+      return (await usage).get(promoId) ?? 0;
+    },
+  };
 }
 
 function normalizeCodeList(raw: unknown): string[] {
@@ -76,11 +134,12 @@ function normalizeCodeList(raw: unknown): string[] {
  */
 async function evaluatePromoRow(
   promo: PromoRow,
-  ctx: PromoEvalContext
+  ctx: PromoEvalContext,
+  reads: PromoReadContext = createPromoReadContext(ctx),
 ): Promise<PromoEvaluation> {
-  const { tenantId, orderTotal, customerId, serviceCategories } = ctx;
+  const { orderTotal, customerId, serviceCategories } = ctx;
 
-  const moneyCfg = await tenantSettingsService.getCurrencyConfig(tenantId);
+  const moneyCfg = await reads.currency();
   const fmtMoney = (amount: number) =>
     formatMoneyAmountWithCode(amount, {
       currencyCode: moneyCfg.currencyCode,
@@ -154,17 +213,7 @@ async function evaluatePromoRow(
         promo,
       };
     }
-    const customer = await prisma.org_customers_mst.findFirst({
-      where: { id: customerId, tenant_org_id: tenantId, is_active: true },
-      select: {
-        type: true,
-        org_customer_category_cf: { select: { code: true } },
-      },
-    });
-    const customerTokens = normalizeCodeList([
-      customer?.type,
-      customer?.org_customer_category_cf?.code,
-    ]);
+    const customerTokens = await reads.customerTokens();
     const groupMatch = customerTokens.some((token) => applicableGroups.includes(token));
     if (!groupMatch) {
       return {
@@ -177,14 +226,7 @@ async function evaluatePromoRow(
   }
 
   if (customerId && promo.max_uses_per_customer !== null && promo.max_uses_per_customer !== undefined) {
-    const usedByCustomer = await prisma.org_promotion_usage_dtl.count({
-      where: {
-        tenant_org_id: tenantId,
-        promo_code_id: promo.id,
-        customer_id: customerId,
-        voided_at: null,
-      },
-    });
+    const usedByCustomer = await reads.usage(promo.id);
     if (usedByCustomer >= promo.max_uses_per_customer) {
       return {
         isValid: false,
@@ -222,6 +264,7 @@ export async function evaluatePromoCode(params: {
   orderTotal: number;
   customerId?: string;
   serviceCategories?: string[];
+  currencyConfig?: CurrencyConfig;
 }): Promise<PromoEvaluation> {
   const { tenantId, code, orderTotal, customerId, serviceCategories } = params;
 
@@ -240,7 +283,7 @@ export async function evaluatePromoCode(params: {
       return { isValid: false, errorCode: 'NOT_FOUND', error: 'Promo code not found or is no longer active' };
     }
 
-    return evaluatePromoRow(promo, { tenantId, orderTotal, customerId, serviceCategories });
+    return evaluatePromoRow(promo, { tenantId, orderTotal, customerId, serviceCategories, currencyConfig: params.currencyConfig });
   });
 }
 
@@ -270,9 +313,10 @@ export async function evaluateBestAutoApplyPromo(
       take: 25,
     });
 
+    const reads = createPromoReadContext(ctx, rows);
     let best: PromoEvaluation | null = null;
     for (const promo of rows) {
-      const result = await evaluatePromoRow(promo, ctx);
+      const result = await evaluatePromoRow(promo, ctx, reads);
       if (!result.isValid || result.discountAmount == null) continue;
       if (!best || (result.discountAmount ?? 0) > (best.discountAmount ?? 0)) {
         best = result;
@@ -287,9 +331,11 @@ export async function evaluateBestAutoApplyPromo(
  * Thin adapter over {@link evaluatePromoCode}.
  */
 export async function validatePromoCode(
-  input: ValidatePromoCodeInput
+  input: ValidatePromoCodeInput,
+  context?: { tenantId: string; currencyConfig: CurrencyConfig; strictResolution?: boolean },
 ): Promise<ValidatePromoCodeResult> {
-  const tenantId = await getTenantIdFromSession();
+  // Internal callers already hold authenticated scope; standalone callers resolve the session.
+  const tenantId = context?.tenantId ?? await getTenantIdFromSession();
   if (!tenantId) {
     return { isValid: false, error: 'Unauthorized: Tenant ID required', errorCode: 'UNAUTHORIZED' };
   }
@@ -301,6 +347,7 @@ export async function validatePromoCode(
       orderTotal: input.order_total,
       customerId: input.customer_id,
       serviceCategories: input.service_categories,
+      currencyConfig: context?.currencyConfig,
     });
 
     if (!result.isValid || !result.promo) {
@@ -314,6 +361,7 @@ export async function validatePromoCode(
     }
     return { isValid: true, promoCode: mapPromoCodeToType(result.promo), discountAmount: result.discountAmount };
   } catch (error) {
+    if (context?.strictResolution) throw error;
     logger.error('Error validating promo code', error as Error, { tenantId });
     return { isValid: false, error: 'An error occurred while validating promo code' };
   }

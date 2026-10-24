@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
 import { useNewOrderStateWithDispatch } from '@/src/features/orders/hooks/use-new-order-state';
@@ -36,7 +36,14 @@ export interface OrderPiecePreferencesSectionProps {
   kindsLoading: boolean;
   currencyCode: string;
   enforcePrefCompatibility?: boolean;
+  /** Item to scroll to and highlight (product id or persisted item id), e.g. from the cart pencil. */
+  focusItemId?: string | null;
+  /** Called once the focus request has been applied, so the parent can clear it. */
+  onFocusItemHandled?: () => void;
 }
+
+/** How long the focused item keeps its highlight ring. */
+const FOCUS_HIGHLIGHT_MS = 2000;
 
 /**
  *
@@ -49,6 +56,8 @@ export interface OrderPiecePreferencesSectionProps {
  * @param root0.kindsLoading
  * @param root0.currencyCode
  * @param root0.enforcePrefCompatibility
+ * @param root0.focusItemId
+ * @param root0.onFocusItemHandled
  */
 export function OrderPiecePreferencesSection({
   preferenceKinds,
@@ -59,6 +68,8 @@ export function OrderPiecePreferencesSection({
   kindsLoading,
   currencyCode,
   enforcePrefCompatibility = false,
+  focusItemId,
+  onFocusItemHandled,
 }: OrderPiecePreferencesSectionProps) {
   const t = useTranslations('newOrder.piecePreferences');
   const { state, updateItemPieces } = useNewOrderStateWithDispatch();
@@ -101,6 +112,41 @@ export function OrderPiecePreferencesSection({
     });
   }, [state.items, state.categories, getBilingual]);
 
+  // Focus request (cart pencil): scroll the item into view and briefly highlight it.
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null);
+  const focusProductId = useMemo(() => {
+    if (!focusItemId) return null;
+    const match = state.items.find(
+      (i) => i.productId === focusItemId || i.persistedItemId === focusItemId,
+    );
+    return match?.productId ?? null;
+  }, [focusItemId, state.items]);
+
+  // Parent passes an inline callback; keep it in a ref so re-renders don't restart the timer.
+  const onFocusItemHandledRef = useRef(onFocusItemHandled);
+  useEffect(() => {
+    onFocusItemHandledRef.current = onFocusItemHandled;
+  }, [onFocusItemHandled]);
+
+  useEffect(() => {
+    if (!focusItemId) return;
+    const scrollTimer = setTimeout(() => {
+      if (focusProductId) {
+        itemRefs.current.get(focusProductId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setHighlightedProductId(focusProductId);
+      }
+      onFocusItemHandledRef.current?.();
+    }, 100);
+    return () => clearTimeout(scrollTimer);
+  }, [focusItemId, focusProductId]);
+
+  useEffect(() => {
+    if (!highlightedProductId) return;
+    const clearTimer = setTimeout(() => setHighlightedProductId(null), FOCUS_HIGHLIGHT_MS);
+    return () => clearTimeout(clearTimer);
+  }, [highlightedProductId]);
+
   return (
     <section aria-label={t('sectionTitle')} className="space-y-3">
       <h2 className="text-base font-semibold text-gray-900">{t('sectionTitle')}</h2>
@@ -112,7 +158,16 @@ export function OrderPiecePreferencesSection({
           const title = getBilingual(item.productName, item.productName2) || '—';
           const siblingIds = pieces.map((p) => p.id);
           return (
-            <div key={item.productId} className="space-y-3">
+            <div
+              key={item.productId}
+              ref={(el) => {
+                if (el) itemRefs.current.set(item.productId, el);
+                else itemRefs.current.delete(item.productId);
+              }}
+              className={`space-y-3 scroll-mt-4 rounded-lg transition-shadow duration-300 ${
+                highlightedProductId === item.productId ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+              }`}
+            >
               <div className="text-sm font-medium text-gray-700">{title}</div>
               {pieces.map((piece) => (
                 <PiecePreferenceCard

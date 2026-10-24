@@ -872,10 +872,14 @@ export function NewOrderContent() {
     // Bags
     bags: state.state.bags,
     onBagsChange: state.setBags,
-    // Edit item notes — navigate to pieces tab and focus the item
-    onEditItemNotes: (itemId: string) => {
-      setFocusItemId(itemId);
-      setRequestedActiveTab('pieces');
+    // Edit item preferences — piece-level preferences tab (track-by-piece) or Order Items tab, focused on the item
+    onEditItemPreferences: (itemId: string) => {
+      if (trackByPiece) {
+        setFocusItemId(itemId);
+        setRequestedActiveTab('piecePreferences');
+      } else {
+        setRequestedActiveTab('details');
+      }
     },
     showPaymentModalVersionSelector,
     paymentModalVersion,
@@ -1169,6 +1173,8 @@ export function NewOrderContent() {
                       kindsLoading={kindsLoading}
                       currencyCode={currencyCode}
                       enforcePrefCompatibility={enforcePrefCompatibility}
+                      focusItemId={focusItemId}
+                      onFocusItemHandled={() => setFocusItemId(null)}
                     />
                   </div>
                 )}

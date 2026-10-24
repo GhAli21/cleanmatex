@@ -326,11 +326,25 @@ export function NewOrderModals() {
     [state, user]
   );
 
+  // Handle price override reset — clears override price + reason; reducer restores the pre-override price
+  const handlePriceOverrideReset = useCallback(() => {
+    if (!state.state.priceOverrideItemId) return;
+    state.updateItemPriceOverride(
+      state.state.priceOverrideItemId,
+      null,
+      '',
+      user?.id || 'system'
+    );
+    state.closeModal('priceOverride');
+  }, [state, user]);
+
   // Get current item for price override modal
   const priceOverrideItem = useMemo(() => {
     if (!state.state.priceOverrideItemId) return null;
     const item = state.state.items.find(i => i.productId === state.state.priceOverrideItemId);
     if (!item) return null;
+
+    const hasOverride = item.priceOverride !== null && item.priceOverride !== undefined;
 
     // Calculate the original price (before override)
     const originalPrice = item.defaultSellPrice || item.defaultExpressSellPrice || item.pricePerUnit;
@@ -340,7 +354,8 @@ export function NewOrderModals() {
       productName: item.productName || 'Unknown Product',
       quantity: item.quantity,
       calculatedPrice: originalPrice,
-      currentPrice: item.priceOverride !== null && item.priceOverride !== undefined ? item.priceOverride : item.pricePerUnit,
+      currentPrice: item.priceOverride ?? item.pricePerUnit,
+      hasOverride,
     };
   }, [state.state.priceOverrideItemId, state.state.items]);
 
@@ -452,6 +467,7 @@ export function NewOrderModals() {
           onClose={() => state.closeModal('priceOverride')}
           item={priceOverrideItem}
           onSave={handlePriceOverrideSave}
+          onReset={handlePriceOverrideReset}
           hasPermission={hasPriceOverridePermission}
         />
       )}

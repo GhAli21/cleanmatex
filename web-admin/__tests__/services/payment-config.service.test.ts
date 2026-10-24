@@ -18,6 +18,8 @@ import {
   listBranchPaymentMethodViews,
   listCheckoutEligiblePaymentMethodConfigs,
   listEffectivePaymentMethodConfigs,
+  isCheckoutPaymentMethodEligible,
+  type EffectivePaymentMethodConfig,
 } from '@/lib/services/payment-config.service';
 
 describe('payment-config service', () => {
@@ -80,6 +82,41 @@ describe('payment-config service', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('shared checkout and submit eligibility', () => {
+    const effective = (overrides: Partial<EffectivePaymentMethodConfig> = {}) => ({
+      ...baseTenantRow, is_globally_disabled: false, gateway_globally_disabled: false,
+      ...overrides,
+    } as unknown as EffectivePaymentMethodConfig);
+
+    it.each([
+      { is_enabled: false }, { allowed_in_pos: false }, { is_active: false }, { rec_status: 0 },
+      { is_platform_disabled: true }, { is_globally_disabled: true }, { gateway_globally_disabled: true },
+    ])('rejects disabled effective policy %o', (flags) => {
+      expect(isCheckoutPaymentMethodEligible(effective(flags), 25, 25)).toBe(false);
+    });
+
+    it('enforces inclusive order and tender boundaries independently', () => {
+      const method = effective({ min_order_amount: 10, max_order_amount: 100, min_amount: 5, max_amount: 50 });
+      expect(isCheckoutPaymentMethodEligible(method, 10, 5)).toBe(true);
+      expect(isCheckoutPaymentMethodEligible(method, 100, 50)).toBe(true);
+      expect(isCheckoutPaymentMethodEligible(method, 9, 5)).toBe(false);
+      expect(isCheckoutPaymentMethodEligible(method, 101, 5)).toBe(false);
+      expect(isCheckoutPaymentMethodEligible(method, 25, 4)).toBe(false);
+      expect(isCheckoutPaymentMethodEligible(method, 25, 51)).toBe(false);
+    });
+
+    it.each([NaN, Infinity, -1])('rejects an invalid authoritative amount %s', (amount) => {
+      expect(isCheckoutPaymentMethodEligible(effective(), amount)).toBe(false);
+      expect(isCheckoutPaymentMethodEligible(effective(), 25, amount)).toBe(false);
+    });
+
+    it('preserves free orders and zero-value deferred legs', () => {
+      const method = effective({ min_order_amount: 10, min_amount: 5 });
+      expect(isCheckoutPaymentMethodEligible(method, 0, 0)).toBe(true);
+      expect(isCheckoutPaymentMethodEligible(method, 25, 0)).toBe(true);
+    });
   });
 
   it('applies branch overrides when resolving effective payment methods', async () => {

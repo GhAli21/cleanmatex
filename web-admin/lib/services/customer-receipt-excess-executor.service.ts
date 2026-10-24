@@ -7,6 +7,7 @@ import {
   SETTLEMENT_MONEY_EPSILON,
 } from '@/lib/constants/settlement-catalog';
 import { allocateArPaymentTx } from '@/lib/services/ar-invoice.service';
+import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import { getAllocationPreview } from '@/lib/services/customer-receipt-allocation-preview.service';
 import { allocateB2bStatementPaymentTx } from '@/lib/services/b2b-statement-payment.service';
 import { validateAllocationPreview } from '@/lib/services/customer-receipt-allocation-validator.service';
@@ -81,7 +82,7 @@ async function applyOrderAllocationTx(
 ): Promise<void> {
   const order = await tx.org_orders_mst.findFirst({
     where: { id: params.targetOrderId, tenant_org_id: params.tenantId },
-    select: { id: true, outstanding_amount: true, total_paid_amount: true },
+    select: { id: true, outstanding_amount: true },
   });
   if (!order) {
     throw new Error(RECEIPT_ALLOCATION_WARNING_CODES.TARGET_PAID);
@@ -123,15 +124,12 @@ async function applyOrderAllocationTx(
     },
   });
 
-  const newPaid = Number(order.total_paid_amount ?? 0) + params.amount;
-  const newOutstanding = Math.max(0, outstanding - params.amount);
+  // BF-22: the target order's paid, outstanding and payment status come from
+  // the one snapshot writer (D005), never from a hand-written column update.
+  await recalculateOrderFinancialSnapshotTx(tx, params.tenantId, params.targetOrderId);
   await tx.org_orders_mst.update({
     where: { id: params.targetOrderId, tenant_org_id: params.tenantId },
-    data: {
-      total_paid_amount: newPaid,
-      outstanding_amount: newOutstanding,
-      updated_by: params.userId,
-    },
+    data: { updated_by: params.userId, updated_at: new Date() },
   });
 }
 

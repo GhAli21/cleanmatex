@@ -5,6 +5,7 @@ describe('buildEffectiveOrderFinancialSnapshot', () => {
     const snapshot = buildEffectiveOrderFinancialSnapshot({
       paymentTypeCode: 'PAY_IN_ADVANCE',
       roundingAmount: 0,
+      snapshotWritten: false,
       snapshot: {
         subtotalAmount: 0,
         itemsBaseAmount: 0,
@@ -84,6 +85,7 @@ describe('buildEffectiveOrderFinancialSnapshot', () => {
     const snapshot = buildEffectiveOrderFinancialSnapshot({
       paymentTypeCode: 'CREDIT_INVOICE',
       roundingAmount: 0,
+      snapshotWritten: false,
       snapshot: {
         subtotalAmount: 5,
         itemsBaseAmount: 5,
@@ -146,6 +148,7 @@ describe('buildEffectiveOrderFinancialSnapshot', () => {
     const snapshot = buildEffectiveOrderFinancialSnapshot({
       paymentTypeCode: 'PAY_IN_ADVANCE',
       roundingAmount: 0,
+      snapshotWritten: false,
       snapshot: {
         subtotalAmount: 200,
         itemsBaseAmount: 200,
@@ -208,6 +211,7 @@ describe('buildEffectiveOrderFinancialSnapshot', () => {
     const snapshot = buildEffectiveOrderFinancialSnapshot({
       paymentTypeCode: 'PAY_IN_ADVANCE',
       roundingAmount: 0,
+      snapshotWritten: false,
       snapshot: {
         subtotalAmount: 100,
         itemsBaseAmount: 100,

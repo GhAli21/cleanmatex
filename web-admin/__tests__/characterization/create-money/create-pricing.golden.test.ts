@@ -14,13 +14,14 @@ const mockIsTaxExempt = jest.fn();
 type Row = Record<string, unknown> | null;
 interface FakeDb {
   rpcPrice: number | null;
+  rpcError: { message: string } | null;
   customer: Row;
   product: Row;
   priceListItem: Row;
   rpcCalls: Record<string, unknown>[];
   eqCalls: Array<{ table: string; column: string; value: unknown }>;
 }
-const db: FakeDb = { rpcPrice: null, customer: null, product: null, priceListItem: null, rpcCalls: [], eqCalls: [] };
+const db: FakeDb = { rpcPrice: null, rpcError: null, customer: null, product: null, priceListItem: null, rpcCalls: [], eqCalls: [] };
 
 function query(table: string, data: () => Row) {
   const builder: Record<string, unknown> = {};
@@ -41,7 +42,7 @@ jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(async () => ({
     rpc: async (fn: string, args: Record<string, unknown>) => {
       db.rpcCalls.push({ fn, ...args });
-      return { data: db.rpcPrice, error: null };
+      return { data: db.rpcPrice, error: db.rpcError };
     },
     from: (table: string) => {
       if (table === 'org_customers_mst') return query(table, () => db.customer);
@@ -63,6 +64,7 @@ jest.mock('@/lib/services/tax.service', () => ({
 }));
 
 import { PricingService } from '@/lib/services/pricing.service';
+import { createClient } from '@/lib/supabase/server';
 
 const TENANT = 'tenant-golden-001';
 const service = new PricingService();
@@ -79,10 +81,111 @@ const lookup = (over: Partial<Parameters<PricingService['getPriceForOrderItem']>
 beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-  Object.assign(db, { rpcPrice: null, customer: null, product: null, priceListItem: null, rpcCalls: [], eqCalls: [] });
+  Object.assign(db, { rpcPrice: null, rpcError: null, customer: null, product: null, priceListItem: null, rpcCalls: [], eqCalls: [] });
   mockGetCurrencyConfig.mockResolvedValue({ currencyCode: 'OMR', decimalPlaces: 3 });
   mockGetTaxRate.mockResolvedValue(0);
   mockIsTaxExempt.mockResolvedValue(false);
+});
+
+describe('request-scoped base-price quotes', () => {
+  const quote = (items = [{ productId: 'shirt', quantity: 1 }], tenantId = TENANT) =>
+    service.getBasePricesForOrder({
+      tenantId, items, decimalPlaces: 3, isExpress: false,
+      effectiveDate: new Date('2026-10-23T10:00:00Z'),
+    });
+
+  it.each([0, 9, 3.3335])('matches the full lookup basePrice for RPC price %s without metadata or item tax reads', async (price) => {
+    db.rpcPrice = price;
+    const expected = (await lookup()).basePrice;
+    jest.clearAllMocks();
+    db.eqCalls = [];
+    db.rpcCalls = [];
+    expect(await quote()).toEqual([expected]);
+    expect(db.rpcCalls).toHaveLength(1);
+    expect(db.eqCalls).toEqual([]);
+    expect(mockGetCurrencyConfig).not.toHaveBeenCalled();
+    expect(mockGetTaxRate).not.toHaveBeenCalled();
+    expect(mockIsTaxExempt).not.toHaveBeenCalled();
+  });
+
+  it('keeps express fallback behavior, including a zero express price falling back to normal', async () => {
+    db.product = { default_sell_price: 1.5, default_express_sell_price: 0 };
+    expect(await service.getBasePricesForOrder({
+      tenantId: TENANT, items: [{ productId: 'shirt', quantity: 2 }], decimalPlaces: 3, isExpress: true,
+    })).toEqual([1.5]);
+    expect(db.eqCalls).toContainEqual({ table: 'org_product_data_mst', column: 'tenant_org_id', value: TENANT });
+  });
+
+  it('deduplicates identical lines, preserves quantity tiers and loads customer tier once', async () => {
+    db.rpcPrice = 9;
+    db.customer = { type: 'B2B', preferences: { pricing_tier: 'VIP' } };
+    expect(await service.getBasePricesForOrder({
+      tenantId: TENANT, decimalPlaces: 3, isExpress: true, customerId: 'cust-1',
+      items: [{ productId: 'shirt', quantity: 1 }, { productId: 'shirt', quantity: 1 }, { productId: 'shirt', quantity: 2 }],
+    })).toEqual([9, 9, 9]);
+    expect(db.rpcCalls.map((call) => [call.p_quantity, call.p_price_list_type])).toEqual([[1, 'vip'], [2, 'vip']]);
+    expect(db.eqCalls.filter((call) => call.table === 'org_customers_mst' && call.column === 'id')).toHaveLength(1);
+  });
+
+  it('bounds concurrent scalar RPCs and preserves line order', async () => {
+    const client = await createClient();
+    let active = 0;
+    let maximum = 0;
+    const rpc = jest.fn(async (_fn: string, args: { p_quantity: number }) => {
+      active++;
+      maximum = Math.max(maximum, active);
+      await new Promise<void>((resolve) => setTimeout(resolve, 1));
+      active--;
+      return { data: args.p_quantity, error: null };
+    });
+    jest.mocked(createClient).mockResolvedValueOnce({ ...client, rpc } as unknown as typeof client);
+    const items = Array.from({ length: 13 }, (_, index) => ({ productId: 'shirt', quantity: index + 1 }));
+    expect(await quote(items)).toEqual(items.map((item) => item.quantity));
+    expect(rpc).toHaveBeenCalledTimes(13);
+    expect(maximum).toBe(6);
+  });
+
+  it('does not share request-local quotes across submissions or tenants', async () => {
+    db.rpcPrice = 1;
+    expect(await quote()).toEqual([1]);
+    db.rpcPrice = 2;
+    expect(await quote(undefined, 'another-tenant')).toEqual([2]);
+    db.rpcPrice = 3;
+    expect(await quote()).toEqual([3]);
+    expect(db.rpcCalls.map((call) => call.p_tenant_org_id)).toEqual([TENANT, 'another-tenant', TENANT]);
+  });
+
+  it('fails for an unresolved product instead of emitting a zero quote', async () => {
+    await expect(quote()).rejects.toThrow('Product not found: shirt');
+  });
+
+  it('strict quotes reject RPC errors while legacy quotes retain product fallback', async () => {
+    db.rpcError = { message: 'database unavailable' };
+    db.product = { default_sell_price: 1.5, default_express_sell_price: null };
+    await expect(service.getBasePricesForOrder({
+      tenantId: TENANT, items: [{ productId: 'shirt', quantity: 1 }], decimalPlaces: 3,
+      isExpress: false, strictResolution: true,
+    })).rejects.toThrow('PRICING_UNAVAILABLE');
+    expect(db.eqCalls).toEqual([]);
+    expect(await quote()).toEqual([1.5]);
+  });
+
+  it('strict quotes allow a successful empty list lookup to use the product default', async () => {
+    db.product = { default_sell_price: 1.5, default_express_sell_price: null };
+    expect(await service.getBasePricesForOrder({
+      tenantId: TENANT, items: [{ productId: 'shirt', quantity: 1 }], decimalPlaces: 3,
+      isExpress: false, strictResolution: true,
+    })).toEqual([1.5]);
+  });
+
+  it('strict quotes reject unavailable customer tier before looking up any product', async () => {
+    db.rpcPrice = 9;
+    await expect(service.getBasePricesForOrder({
+      tenantId: TENANT, customerId: 'unavailable-customer', items: [{ productId: 'shirt', quantity: 1 }],
+      decimalPlaces: 3, isExpress: false, strictResolution: true,
+    })).rejects.toThrow('CUSTOMER_PRICING_UNAVAILABLE');
+    expect(db.rpcCalls).toEqual([]);
+  });
 });
 
 describe('P1-01 golden — price lookup', () => {

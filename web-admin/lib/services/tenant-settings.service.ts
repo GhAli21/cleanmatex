@@ -79,6 +79,32 @@ export class TenantSettingsService {
   }
 
   /**
+   * Resolves required financial settings without disguising an unavailable resolver as an unset value.
+   * @param tenantId Authenticated tenant owning the setting scope.
+   * @param settingCode Existing settings-catalog code.
+   * @param branchId Optional branch override scope.
+   * @param userId Authenticated user override scope.
+   * @returns The resolved value, or null when a successful resolver returns no such setting.
+   * @throws When the settings service cannot verify its response.
+   * @example await service.getSettingValueStrict(tenantId, SETTING_CODES.TENANT_VAT_RATE, branchId, userId)
+   */
+  async getSettingValueStrict(
+    tenantId: string,
+    settingCode: string,
+    branchId?: string | null,
+    userId?: string | null,
+  ): Promise<string | number | boolean | null> {
+    const { data, error } = await this.supabase.rpc('fn_stng_resolve_all_settings', {
+      p_tenant_id: tenantId,
+      p_branch_id: branchId ?? null,
+      p_user_id: userId ?? null,
+    });
+    if (error || !Array.isArray(data)) throw new Error('FINANCIAL_SETTINGS_UNAVAILABLE');
+    const row = data.find((entry) => entry.stng_code === settingCode);
+    return row ? parseJsonbValue(row.stng_value_jsonb) : null;
+  }
+
+  /**
    * Get all resolved settings for tenant/branch/user in a single RPC call.
    * Uses fn_stng_resolve_all_settings (7-layer resolution).
    */

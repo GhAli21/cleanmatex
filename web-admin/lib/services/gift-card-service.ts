@@ -476,11 +476,17 @@ export async function adminActivateGiftCard(
  * Validate a gift card by code and optional PIN.
  * Read-only: no balance mutation occurs here. The authoritative debit is in
  * redeemGiftCardTx (which uses SELECT FOR UPDATE).
+ * @param input - Gift card identity and optional PIN; existing PIN protections remain authoritative.
+ * @param context - Optional authenticated server scope; strict quotes propagate unavailable reads.
+ * @returns Existing business validation result, without consuming the stored balance.
+ * @throws On unavailable reads when strict resolution is enabled.
  */
 export async function validateGiftCard(
-  input: ValidateGiftCardInput
+  input: ValidateGiftCardInput,
+  context?: { tenantId: string; strictResolution?: boolean },
 ): Promise<ValidateGiftCardResult> {
-  const tenantId = await getTenantIdFromSession();
+  // Standalone callers resolve the session; internal quotes reuse authenticated tenant scope.
+  const tenantId = context?.tenantId ?? await getTenantIdFromSession();
   if (!tenantId) {
     return { isValid: false, error: 'Unauthorized: Tenant ID required', errorCode: 'UNAUTHORIZED' };
   }
@@ -619,6 +625,7 @@ export async function validateGiftCard(
         availableBalance,
       };
     } catch (error) {
+      if (context?.strictResolution) throw error;
       logger.error('Error validating gift card', error as Error, {
         feature: 'gift-cards',
         action: 'validate',
@@ -633,10 +640,16 @@ export async function validateGiftCard(
  * Validate a gift card by its DB UUID (server-side order calculation path).
  * PIN re-verification is intentionally skipped — the card was pre-authenticated
  * during the validateGiftCard call that produced this ID.
+ * @param id - Pre-authenticated gift card identifier.
+ * @param tenantId - Authenticated tenant scope, explicitly applied to the card query.
+ * @param options - Strict quotes propagate read failures instead of treating the card as invalid.
+ * @returns Existing gift-card validation result and current available balance.
+ * @throws On unavailable reads when strict resolution is enabled.
  */
 export async function validateGiftCardByIdForCalculation(
   id: string,
-  tenantId: string
+  tenantId: string,
+  options?: { strictResolution?: boolean },
 ): Promise<ValidateGiftCardResult> {
   return withTenantContext(tenantId, async () => {
     try {
@@ -668,6 +681,7 @@ export async function validateGiftCardByIdForCalculation(
 
       return { isValid: true, giftCard: mapGiftCardToType(await attachIssuedToCustomer(tenantId, card)), availableBalance };
     } catch (error) {
+      if (options?.strictResolution) throw error;
       logger.error('Error validating gift card by ID', error as Error, {
         feature: 'gift-cards',
         action: 'validate-by-id',

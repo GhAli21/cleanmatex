@@ -10,7 +10,11 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
-import { mapOrderFinancialSummaryView } from '@features/orders/lib/map-order-financial-summary-view';
+import {
+  mapOrderFinancialSummaryView,
+  mapOrderTaxDocumentChain,
+  selectOrderArInvoices,
+} from '@features/orders/lib/map-order-financial-summary-view';
 import { OrderFinancialSummaryCards } from '@features/orders/ui/order-financial/order-financial-summary-cards';
 import { OrderFinancialSummaryTab } from '@features/orders/ui/order-financial/order-financial-summary-tab';
 import { OrderPaymentsCreditsTables } from '@features/orders/ui/order-financial/order-payments-credits-tables';
@@ -160,18 +164,10 @@ export function OrderDetailClient({
     [orderPreferences]
   );
 
-  const primaryArInvoice = orderInvoices[0];
-  const arInvoiceView = primaryArInvoice
-    ? {
-        id: primaryArInvoice.id,
-        invoiceNo: primaryArInvoice.invoice_no,
-        status: primaryArInvoice.status,
-        amount: Number(primaryArInvoice.total ?? 0),
-        dueDate: primaryArInvoice.due_date,
-        paidAmount: Number(primaryArInvoice.paid_amount ?? 0),
-        outstandingAmount: Number(primaryArInvoice.outstanding_amount ?? 0),
-      }
-    : null;
+  const arInvoiceSelection = useMemo(
+    () => selectOrderArInvoices(orderInvoices),
+    [orderInvoices]
+  );
 
   const financialViewModel = useMemo(() => {
     if (!financialData?.snapshot) return null;
@@ -199,27 +195,11 @@ export function OrderDetailClient({
       },
       preferenceExtraTotal,
       pieceExtraTotal: 0,
-      arInvoice: arInvoiceView,
+      arInvoice: arInvoiceSelection.primary,
+      arInvoices: arInvoiceSelection.all,
       taxDocument: (() => {
-        const doc = financialData.taxDocuments?.[0];
-        if (doc) {
-          return {
-            id: doc.id,
-            documentNo: doc.document_no ?? undefined,
-            documentType: doc.document_type,
-            status: doc.status,
-            triggerEvent: doc.trigger_event,
-            fiscalYear: doc.fiscal_year,
-            sequenceNumber: doc.sequence_number,
-            totalAmount: doc.total_amount,
-            taxAmount: doc.tax_amount,
-            issuedAt: doc.issued_at ?? undefined,
-            issuedBy: doc.issued_by ?? undefined,
-            cancelledAt: doc.cancelled_at ?? undefined,
-            cancellationReason: doc.cancellation_reason ?? undefined,
-            supersedesId: doc.supersedes_id ?? undefined,
-          };
-        }
+        const [doc] = mapOrderTaxDocumentChain(financialData.taxDocuments?.slice(0, 1) ?? []);
+        if (doc) return doc;
         // fallback to legacy snapshot header fields
         const snap = financialData.snapshot;
         if (!snap.taxDocumentId && !snap.taxDocumentNo) return null;
@@ -231,7 +211,7 @@ export function OrderDetailClient({
         };
       })(),
     });
-  }, [financialData, order, preferenceExtraTotal, arInvoiceView]);
+  }, [financialData, order, preferenceExtraTotal, arInvoiceSelection]);
 
   const displayOrderTotal = financialViewModel?.amounts.totalAmount ?? Number(order.total ?? 0);
 

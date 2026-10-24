@@ -35,8 +35,8 @@ describe('order change shared Edit Policy resolver mapper', () => {
     expect(resolution).toMatchObject({ resolutionLevel, denyReason: 'NONE', editPolicyId: POLICY, policyRevision: 3 });
     expect(resolution.bindings).toEqual([expect.objectContaining({ editPolicyId: POLICY, profileVersionId: VERSION, operationCode: 'REMOVE_PIECE', policyRevision: 3 })]);
     const sql = (query.mock.calls[0][0] as TemplateStringsArray).join(' ');
-    expect(sql).toContain('public.sys_wf_resolve_edit_policy');
-    expect(sql).not.toContain('org_wf_edit_policy_asg_cf');
+    expect(sql).toContain('public.sys_oc_resolve_edit_policy');
+    expect(sql).not.toContain('org_oc_edit_policy_asg_cf');
     expect(query.mock.calls[0].slice(1)).toEqual([TENANT, PROFILE, VERSION, 'processing']);
   });
   it('retains status-hole identity while capability denies all catalog operations', async () => {

@@ -1,38 +1,15 @@
 'use client';
 
 /**
- * Server-driven payment totals for Payment Modal V4.
- *
- * Verbatim extraction of the modal's totals concern (previously inline in
- * `payment-modal-v4.tsx`, program-plan anchor `:902–1118`): the `preview-payment`
- * fetch (`fetchPreview`) + its debounce, the `serverTotals`/`totalsLoading` state,
- * the tax-rate + default-tax-profile load, the fallback/`display` tax breakdown, and
- * the `totals` memo (server totals when available, otherwise a client-side fallback).
- *
- * Dependency order: this slice is **downstream of gift-card/promo** (its fetch +
- * `totals` read `appliedPromoCode`/`appliedGiftCard`) and **upstream of catalog**
- * (it produces `checkoutEligibilityAmount`, the checkout-options query key). The
- * modal therefore calls gift/promo → totals → catalog; `decimalPlaces`/`currencyCode`
- * (from the component's `currencyConfig`) are threaded in.
- *
- * Behavior freeze: fetch body, query/response mapping, memo dependency arrays, and
- * the tax math stay byte-equivalent to the original inline code. Two deliberate,
- * behavior-equivalent changes to satisfy `react-hooks/set-state-in-effect` cleanly
- * (no disables): (1) the debounce effect no longer clears `serverTotals` in its body
- * — the "nothing to preview" clear is done at render-time; (2) the tax-profile
- * `open`-reset uses render-time Pattern A. The async `setState`s inside `fetchPreview`
- * and the tax load run in promise callbacks, which the rule does not flag.
- *
- * See `docs/features/Order_Fin/Payment_Modal_Review/` and react-effects-patterns §2.
+ * Payment totals presentation backed by a coordinated server quote. Currency,
+ * selected tax profiles, amount eligibility, and totals share one response;
+ * opening no longer waits for independent tax/profile requests.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
-import { getTaxProfilesAction } from '@/app/actions/settings/tax-actions';
-import { taxService } from '@/lib/services/tax.service';
-import { cmxMessage } from '@ui/feedback';
+import { useMemo } from 'react';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
-import { shouldFetchPaymentPreview } from '@features/orders/ui/payment-modal-v4.utils';
+import type { TaxBreakdownLine, TaxProfileEntry } from '@/lib/types/payment-quote';
+import { usePaymentQuote } from './use-payment-quote';
 import type {
   AppliedPromoCode,
   AppliedGiftCard,
@@ -51,59 +28,8 @@ export type PaymentTotalsTranslate = (
  * Normalized tax line used to render cashier-facing totals consistently across
  * preview sources (server breakdown or client fallback).
  */
-export type TaxBreakdownLine = {
-  taxType: 'VAT' | 'GST' | 'CUSTOM';
-  label: string;
-  label2: string | null;
-  rate: number;
-  isCompound: boolean;
-  baseAmount: number;
-  taxAmount: number;
-  profileId?: string;
-};
+export type { TaxBreakdownLine, TaxProfileEntry, ServerTotals } from '@/lib/types/payment-quote';
 
-/**
- * A default tax profile row that feeds the payment preview / client fallback.
- */
-export type TaxProfileEntry = {
-  id: string;
-  name: string;
-  name2: string | null;
-  tax_type: string;
-  rate: number;
-  is_compound: boolean;
-  enabled: boolean;
-};
-
-/**
- * Server-computed totals returned by `/api/v1/orders/preview-payment`.
- */
-export type ServerTotals = {
-  subtotal: number;
-  manualDiscount: number;
-  autoRuleDiscount: number;
-  promoDiscount: number;
-  afterDiscounts: number;
-  additionalTaxAmount: number;
-  vatValue: number;
-  giftCardApplied: number;
-  saleTotal: number;
-  vatTaxPercent: number;
-  taxBreakdown: TaxBreakdownLine[];
-  /** B18 — sum of order-level preference charges (e.g. "Whole Order" prefs). 0 when none applied. */
-  chargesTotal?: number;
-  /** B11 — resolved server-side; drives the "tax included" label. Client never chooses. */
-  taxPricingMode?: 'TAX_EXCLUSIVE' | 'TAX_INCLUSIVE';
-  /** B17 — currency cash-rounding delta applied to saleTotal; 0 when no rule changes it. */
-  roundingAdjustmentAmount?: number;
-  creditLimit?: {
-    currentBalance: number;
-    creditLimit: number;
-    available: number;
-    wouldExceed: boolean;
-    mode?: 'warn' | 'block';
-  };
-};
 
 /**
  * Order line item shape consumed by the preview fetch.
@@ -122,6 +48,8 @@ export type PaymentTotalsItem = {
  * `currencyConfig`. The hook owns the totals state itself.
  */
 export interface UsePaymentTotalsParams {
+  quoteSessionKey: string;
+  userId?: string;
   /** Gates the load/fetch effects; matches the modal `open` flag. */
   open: boolean;
   items: PaymentTotalsItem[];
@@ -175,6 +103,8 @@ export interface UsePaymentTotalsParams {
  *   `checkoutEligibilityAmount` (consumed by the catalog hook).
  */
 export function usePaymentTotals({
+  quoteSessionKey,
+  userId,
   open,
   items,
   tenantOrgId,
@@ -192,273 +122,38 @@ export function usePaymentTotals({
   decimalPlaces,
   csrfToken,
   csrfReady = true,
-  t,
 }: UsePaymentTotalsParams) {
-  // B15: no invented tax — 0 until the real rate loads; the server preview
-  // (serverTotals) owns tax on every settlement path anyway.
-  const [taxRate, setTaxRate] = useState<number>(0);
-  const [taxProfileEntries, setTaxProfileEntries] = useState<TaxProfileEntry[]>(
-    [],
-  );
-  const [taxProfilesReady, setTaxProfilesReady] = useState(false);
-  const [serverTotals, setServerTotals] = useState<ServerTotals | null>(null);
-  const [totalsLoading, setTotalsLoading] = useState(false);
-  const [previewFailed, setPreviewFailed] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const taxLoadGenRef = useRef(0);
-  const csrfTokenRef = useRef(csrfToken);
-  csrfTokenRef.current = csrfToken;
-  const hasServerTotalsRef = useRef(false);
-  hasServerTotalsRef.current = serverTotals != null;
-  // Tracks the promo code that was sent in the last successful preview fetch.
-  // When appliedPromoCode.code differs, serverTotals.promoDiscount is stale and
-  // we fall back to the client-side validation amount to avoid a 0-flash.
-  const lastFetchedPromoCodeRef = useRef<string | null>(null);
-
-  const checkoutEligibilityAmount =
-    serverTotals?.saleTotal ?? checkoutAmount ?? total;
-
-  // Tax-profile open-reset (render-time Pattern A — the async load below repopulates).
-  const [prevOpen, setPrevOpen] = useState(open);
-  if (open !== prevOpen) {
-    setPrevOpen(open);
-    if (open) {
-      setTaxProfileEntries([]);
-      setTaxProfilesReady(false);
-      setPreviewFailed(false);
-    }
-  }
-
-  // Clear stale totals at render-time when there is nothing to preview (was a
-  // synchronous setState in the debounce effect body; moved out to keep that effect
-  // lint-clean). Self-terminating via the `!== null` guard.
-  if ((!open || items.length === 0) && serverTotals !== null) {
-    setServerTotals(null);
-  }
-
-  // Load tax rate + default tax profiles on open. Preview is gated on
-  // `taxProfilesReady` so the first POST includes real profile ids instead of
-  // painting a throwaway total and refreshing when this fetch lands.
-  useEffect(() => {
-    if (!open || !tenantOrgId) {
-      return;
-    }
-    const gen = ++taxLoadGenRef.current;
-    let rateDone = false;
-    let profilesDone = false;
-    const markReadyIfSettled = () => {
-      if (gen !== taxLoadGenRef.current) return;
-      if (rateDone && profilesDone) {
-        setTaxProfilesReady(true);
-      }
-    };
-
-    taxService
-      .getTaxRate(tenantOrgId, branchId)
-      .then((rate) => {
-        if (gen !== taxLoadGenRef.current) return;
-        setTaxRate(rate);
-      })
-      .catch(() => {
-        // B15: never assume a rate on failure — keep 0 (server preview wins).
-        if (gen !== taxLoadGenRef.current) return;
-        setTaxRate(0);
-      })
-      .finally(() => {
-        rateDone = true;
-        markReadyIfSettled();
-      });
-    getTaxProfilesAction()
-      .then((res) => {
-        if (gen !== taxLoadGenRef.current) return;
-        if (res.success && res.data) {
-          const defaultActive = res.data
-            .filter((p) => p.is_default && p.is_active)
-            .sort((a, b) => a.tax_type.localeCompare(b.tax_type));
-          setTaxProfileEntries(
-            defaultActive.map((p) => ({
-              id: p.id,
-              name: p.name,
-              name2: p.name2,
-              tax_type: p.tax_type,
-              rate: Number(p.rate),
-              is_compound: p.is_compound,
-              enabled: true,
-            })),
-          );
-        }
-      })
-      .catch(() => {
-        if (gen !== taxLoadGenRef.current) return;
-        setTaxProfileEntries([]);
-      })
-      .finally(() => {
-        profilesDone = true;
-        markReadyIfSettled();
-      });
-  }, [open, tenantOrgId, branchId]);
-
-  const previewReady = shouldFetchPaymentPreview({
+  const quote = usePaymentQuote({
     open,
-    itemsCount: items.length,
+    sessionKey: quoteSessionKey,
     tenantOrgId,
-    taxProfilesReady,
+    userId,
     csrfReady,
+    csrfToken,
+    request: {
+      items,
+      branchId: branchId || undefined,
+      customerId: customerId || undefined,
+      isExpress,
+      percentDiscount: percentDiscount ?? 0,
+      amountDiscount: amountDiscount ?? 0,
+      serviceCategories: serviceCategories?.length ? serviceCategories : undefined,
+      orderServicePrefs: orderServicePrefs?.length ? orderServicePrefs : undefined,
+      ...(!NEW_ORDER_PROMO_GIFT_DISABLED && {
+        promoCode: appliedPromoCode?.code || undefined,
+        giftCardNumber: appliedGiftCard?.number || undefined,
+        giftCardAmount: appliedGiftCard?.amount || undefined,
+        giftCardId: appliedGiftCard?.id || undefined,
+      }),
+    },
   });
-
-  // Preview-payment fetch (debounced 300ms after the first hydrated preview)
-  const fetchPreview = useCallback(async () => {
-    if (
-      !shouldFetchPaymentPreview({
-        open,
-        itemsCount: items.length,
-        tenantOrgId,
-        taxProfilesReady,
-        csrfReady,
-      })
-    )
-      return;
-    setPreviewFailed(false);
-    setTotalsLoading(true);
-    try {
-      const res = await fetch('/api/v1/orders/preview-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCSRFHeader(csrfTokenRef.current),
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          items,
-          branchId: branchId || undefined,
-          customerId: customerId || undefined,
-          isExpress,
-          percentDiscount: percentDiscount ?? 0,
-          amountDiscount: amountDiscount ?? 0,
-          serviceCategories:
-            serviceCategories && serviceCategories.length > 0
-              ? serviceCategories
-              : undefined,
-          taxProfileIds: taxProfileEntries
-            .filter((entry) => entry.enabled)
-            .map((entry) => entry.id),
-          ...(orderServicePrefs &&
-            orderServicePrefs.length > 0 && {
-              orderServicePrefs,
-            }),
-          ...(!NEW_ORDER_PROMO_GIFT_DISABLED && {
-            promoCode: appliedPromoCode?.code || undefined,
-            giftCardNumber: appliedGiftCard?.number || undefined,
-            giftCardAmount: appliedGiftCard?.amount || undefined,
-            giftCardId: appliedGiftCard?.id || undefined,
-          }),
-        }),
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        const d = json.data;
-        // Record the promo code that was used in this fetch so the totals memo
-        // can detect when serverTotals.promoDiscount is stale (promo changed but
-        // the preview hasn't re-fetched yet).
-        lastFetchedPromoCodeRef.current = appliedPromoCode?.code ?? null;
-        setServerTotals({
-          subtotal: d.subtotal,
-          manualDiscount: d.manualDiscount,
-          autoRuleDiscount:
-            typeof d.autoRuleDiscount === 'number' ? d.autoRuleDiscount : 0,
-          promoDiscount: d.promoDiscount,
-          afterDiscounts: d.afterDiscounts,
-          additionalTaxAmount: d.additionalTaxAmount ?? 0,
-          vatValue: d.vatValue,
-          giftCardApplied: d.giftCardApplied,
-          saleTotal: d.saleTotal,
-          vatTaxPercent: d.vatTaxPercent ?? 0,
-          taxBreakdown: Array.isArray(d.taxBreakdown) ? d.taxBreakdown : [],
-          taxPricingMode:
-            d.taxPricingMode === 'TAX_INCLUSIVE'
-              ? 'TAX_INCLUSIVE'
-              : 'TAX_EXCLUSIVE',
-          roundingAdjustmentAmount:
-            typeof d.roundingAdjustmentAmount === 'number'
-              ? d.roundingAdjustmentAmount
-              : 0,
-          chargesTotal: typeof d.chargesTotal === 'number' ? d.chargesTotal : 0,
-          ...(d.creditLimit && { creditLimit: d.creditLimit }),
-        });
-        setPreviewFailed(false);
-      } else {
-        setServerTotals(null);
-        setPreviewFailed(true);
-        if (!res.ok && json.errorCode === 'MISSING_TENANT_CURRENCY') {
-          cmxMessage.error(t('errors.currencyConfigurationMissing'));
-        } else if (
-          !res.ok &&
-          json.errorCode === 'TENANT_CURRENCY_UNAVAILABLE'
-        ) {
-          cmxMessage.error(t('errors.currencyConfigurationUnavailable'));
-        } else if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
-          cmxMessage.error(json.error ?? t('errors.productNotFound'));
-        } else if (!res.ok && json.error) {
-          const details = json.details as
-            | Array<{ path?: (string | number)[]; message?: string }>
-            | undefined;
-          const msg =
-            details && Array.isArray(details) && details.length > 0
-              ? details
-                  .map((d) => {
-                    const path = (d.path ?? []).join('.');
-                    return path
-                      ? `${path}: ${d.message ?? ''}`
-                      : (d.message ?? '');
-                  })
-                  .join('. ')
-              : (json.error as string);
-          cmxMessage.error(msg);
-        }
-      }
-    } catch {
-      setServerTotals(null);
-      setPreviewFailed(true);
-    } finally {
-      setTotalsLoading(false);
-    }
-  }, [
-    open,
-    items,
-    tenantOrgId,
-    branchId,
-    customerId,
-    isExpress,
-    percentDiscount,
-    amountDiscount,
-    serviceCategories,
-    taxProfileEntries,
-    taxProfilesReady,
-    csrfReady,
-    orderServicePrefs,
-    appliedPromoCode?.code,
-    appliedGiftCard?.number,
-    appliedGiftCard?.amount,
-    appliedGiftCard?.id,
-    t,
-  ]);
-
-  useEffect(() => {
-    if (!previewReady) {
-      return;
-    }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    // Read sale-total presence from a ref so completing the first preview
-    // does not immediately schedule a second one (serverTotals is not a dep).
-    const delayMs = hasServerTotalsRef.current ? 300 : 0;
-    debounceRef.current = setTimeout(() => {
-      fetchPreview();
-      debounceRef.current = null;
-    }, delayMs);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [previewReady, items, fetchPreview]);
+  const serverTotals = quote.snapshot;
+  const totalsLoading = !quote.ready;
+  const previewFailed = quote.failed;
+  const taxProfileEntries: TaxProfileEntry[] = quote.snapshot?.taxProfileEntries ?? [];
+  // Server totals own every money path; no fallback rate blocks initialization.
+  const taxRate = 0;
+  const checkoutEligibilityAmount = serverTotals?.saleTotal ?? checkoutAmount ?? total;
 
   const afterDiscountsForTax = useMemo(() => {
     if (serverTotals) return serverTotals.afterDiscounts;
@@ -534,25 +229,12 @@ export function usePaymentTotals({
 
   const totals = useMemo(() => {
     if (serverTotals) {
-      // If the applied promo code differs from what was used in the last preview fetch,
-      // serverTotals.promoDiscount is stale (the debounce hasn't fired yet). Use the
-      // client-side validation amount to avoid a zero-flash in the inspector.
-      const currentPromoCode = !NEW_ORDER_PROMO_GIFT_DISABLED
-        ? (appliedPromoCode?.code ?? null)
-        : null;
-      const promoIsStale = currentPromoCode !== lastFetchedPromoCodeRef.current;
-      const effectivePromoDiscount = promoIsStale
-        ? !NEW_ORDER_PROMO_GIFT_DISABLED
-          ? (appliedPromoCode?.discount ?? 0)
-          : 0
-        : serverTotals.promoDiscount;
       const serverTaxTotal = serverTotals.taxBreakdown.reduce(
         (sum, line) => sum + line.taxAmount,
         0,
       );
       return {
         ...serverTotals,
-        promoDiscount: effectivePromoDiscount,
         taxRate: 0,
         taxAmount: serverTotals.additionalTaxAmount ?? 0,
         totalSavings:
@@ -639,6 +321,7 @@ export function usePaymentTotals({
     isTaxInclusive,
     roundingAdjustmentAmount,
     previewFailed,
-    refetchPreview: fetchPreview,
+    refetchPreview: quote.refetch,
+    quote,
   };
 }

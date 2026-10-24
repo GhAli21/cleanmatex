@@ -88,6 +88,57 @@ After the Order Change hub landed, the user asked for the HQ API to follow the s
 - `platform-web/lib/api/workflow-engine-config.ts` updated: new `ORDER_CHANGE_CONFIG_BASE = '/order-change-config'` constant; all 17 `editPolicies.*` endpoint calls repointed to it.
 - Validation: `platform-api` — tsc clean, `jest order-change-config` 21/21 (tests run correctly from the new path with no mock/path changes needed), `nest build` ✓. `platform-web` — eslint clean, tsc clean, `jest` (workflow-engine-config + smart-fill) 57/57, `next build` ✓.
 - Every doc reference to the old `workflow-engine-config/edit-policy(ies)` path in this plan and in `WP05-B_HQ_PROGRESS.md` was updated to `order-change-config/edit-policy(ies)`.
+- Added a top-level sidebar entry for `/order-change-config` ("Order Change Config" / "إعداد تغييرات الطلب") in `src/ui/navigation/cmx-sidebar.tsx`, in the CORE DATA group right after "Workflows" — the hub-card link alone left it undiscoverable from the sidebar, which the user caught. Ungated (no `permission` prop), matching its sibling "Workflows" entry, which is also ungated; the API still enforces `workflows.view`. i18n keys added to `messages/{en,ar}/layout.json`. Lint/typecheck/`check:i18n`/build all re-validated clean.
+
+## Order Change Config as a separate domain — 2026-10-23 (user decision)
+
+The user decided Edit Policy is its own domain, separate from workflow: full CRUD for policies, dedicated assignment screens, and no Edit Policy tab inside the Workflow Profile Version Studio.
+
+- **Removed from Studio:** `editPolicy` dropped from `WF_PROFILE_STUDIO_TABS`, its tab label and content block removed from the Studio page, and `wf-edit-policy-panel.tsx` deleted (its logic was ported; a backup is outside the repo). The `studio.tabs.editPolicy` i18n key was removed from both locales.
+- **Policies (no profile/version context required):** `/order-change-config/edit-policies` list (row opens detail) → `/edit-policies/new` (create; code rule mirrors the API's `^[A-Z][A-Z0-9_]{2,63}$`) → `/edit-policies/[id]` via `WfOrderChangePolicyDetail` (header fields, Save, lifecycle Pilot/Publish/Retire, Smart fill, Fill missing as deny, Check, optional "check coverage against a workflow version", single-cell simulate, clone that opens the new draft, audit). Smart fill uses its profile-agnostic branch because a reusable policy has no profile.
+- **Assignment and resolution:** `/assignments` — pick an organization (`TenantSelector`), see its active overrides with shadowing state, add or replace an organization-wide or per-profile override (profile list = profiles actively assigned to that organization; only Pilot/Published policies offered), confirm before assign and before deactivate. `/defaults` — pick profile+version, see the live default, choose a Published candidate, see its coverage gaps, set/replace (disabled until coverage is complete) or deactivate. `/effective-preview` — organization + profile/version + status + operation + target (targets filtered to the operation's catalog pairs) → level, policy, decision, deny reason, uncovered statuses.
+- **Hub:** two sections — Policies (Edit Policies, Operation Catalog) and Assignment and resolution (Assignments, Version Defaults, Effective Preview).
+- **i18n:** all new copy in `workflowEngineConfig/orderChange.json` (EN/AR). Shared labels reuse `studio/editPolicy.json`; no new keys were added to that file because it is already over its plain-key warning threshold.
+- **Validation:** `tsc` clean for every touched file, `eslint` 0 errors / 0 warnings on the new files, `check:i18n` passed (only the 7 pre-existing warnings), `jest` 57/57, `next build` ✓ with all 8 `/order-change-config` routes. No backend change was needed — every screen uses the existing `order-change-config/edit-policies` endpoints.
+- **Override replace made atomic (fixed same day):** replacing an override was two browser calls (deactivate, then assign); a failed second call left the organization without its override. Now `POST /order-change-config/edit-policies/assignments` takes `replace_existing: true`, and the API deactivates the old row and inserts the new one in one SQL statement (`EditPolicyRepository.replaceAssignment`). Without the flag a live slot returns 409; re-assigning the same policy returns the live row unchanged. The audit entry records `replaced_assignment_id` and `replaced_edit_policy_id`. The UI sends one request.
+- **Default replace audit bug (found and fixed):** `replaceDefault` sent the two upsert rows with different key sets, so the old default link's `created_by`/`created_info` were overwritten with NULL on every replace. Both rows now carry identical keys with the old row's original audit values. Setting the policy that is already the default is now a no-op instead of churning a new history row.
+- **Tests:** new `edit-policy.repository.spec.ts` asserts each replace is one upsert, old row first, identical keys, original audit values kept; service spec covers create / 409 / atomic replace + audit / same-policy no-op / default no-op. Backend `jest order-change-config` 29/29 (was 21).
+
+## Phase 5 manual check — runbook (prepared 2026-10-24, NOT YET RUN)
+
+Plan section 11.4, made concrete. Fixture chosen by read-only query on remote:
+
+- Organization **Demo Laundry LLC** (`11111111-1111-1111-1111-111111111111`), `WF_V2_SIMPLE` actively assigned.
+- Order **ORD-20261023-0003** (`bc103f34-cd9f-40d3-b186-1fb4c686c44a`), status `processing`, profile `WF_V2_SIMPLE` v4 (PILOT, version id `a1000000-0000-4000-8000-000000000014`).
+- Starting state: no override, no default; resolver returns `DENY / NO_AUTHORITY`. No PUBLISHED Edit Policy exists yet; the five starter policies are DRAFT and were authored before the catalog grew to 35 pairs, so they are incomplete for v4.
+
+Apps: tenant `http://localhost:3000/dashboard/orders/bc103f34-cd9f-40d3-b186-1fb4c686c44a/edit` (user needs `orders:edit`, organization needs `order_edit_v2` on); HQ `http://localhost:3001/order-change-config`.
+
+| # | Do (HQ) | Expect (tenant Edit Order, after reload) |
+|---|---|---|
+| 0 | Edit Policies → open `ORDER_CHANGE_STANDARD_V1` → Clone as `ORDER_CHANGE_QA_DEFAULT_V1` (keeps the starter untouched; Published is immutable) | — |
+| 1 | Nothing | Policy panel: no Edit Policy in force; catalog actions closed |
+| 2 | In the clone: "Check coverage against a workflow version" = `WF_V2_SIMPLE` v4 → Smart fill → set `ADD_ITEM` / Order at `processing` to Allow → Save → Check (must pass) → Start pilot → Publish. Then Version Defaults → `WF_V2_SIMPLE` v4 → select it → Set default | Panel: profile version default. Add item open at `processing`. Preview still re-resolves |
+| 3 | Clone again as `ORDER_CHANGE_QA_DENY_ADD_V1`; set `ADD_ITEM` / Order at `processing` to Deny → Save → Start pilot. Organization Assignments → Demo Laundry → Organization-wide → this policy → confirm | Panel: organization override. Add item closed although the default allows it |
+| 4 | Change nothing | Organization override still wins |
+| 5 | Organization Assignments → deactivate the organization override | Version default wins again; Add item open |
+| 6 | Organization Assignments → Profile → `WF_V2_SIMPLE` → `ORDER_CHANGE_QA_DENY_ADD_V1` | Panel: profile override; Add item closed |
+| 7 | Effective Preview → Demo Laundry, `WF_V2_SIMPLE` v4, `processing`, `ADD_ITEM`, `ORDER` (run after steps 2, 3, 5 and 6) | Same level and decision as the tenant panel each time |
+
+Clean-up afterwards: deactivate the profile override and the version default (history rows stay, by design). Record each step's result in this section when run.
+
+## Database rename `_wf_` → `_oc_` — 2026-10-23 (APPLIED, code switched)
+
+**Applied and switched:** the user applied 0638 locally and remotely and regenerated types in both repositories plus Prisma. Remote read-only check: 6 `_oc_` tables, 0 surviving `_wf_` Edit Policy objects, 8 functions, 6 triggers, resolver EXECUTE still `postgres` + `service_role` only, 35 live catalog pairs. Code switched with one exact name map in 10 hand-written files (tenant: context + resolver services, their unit tests, two db-integration tests; HQ: repository, service, error mapper, service spec). The HQ error mapper now also recognizes catalog-guard messages (`sys_oc_order_edit_*_cd: …`), which previously fell through to a generic error; two tests cover it. Validation: HQ `jest order-change-config` 31/31, tsc + lint clean; tenant order-change unit 25 suites / 191 tests, **local-DB integration 5 suites / 9 tests** (real resolver, guards and signed Apply on the renamed objects), tsc + lint clean; production builds of web-admin, platform-api and platform-web all succeeded. Re-verified after the user's later type/Prisma regeneration (which also included unrelated migration 0639, Line-Level Money Snapshot): Prisma client regenerated, both HQ apps and web-admin typecheck clean, same test results.
+
+### Original plan
+
+Edit Policy objects carried the workflow prefix from their WP05-B origin (0597). With Edit Policy now its own Order Change domain, migration [0638_order_change_edit_policy_rename.sql](../../../../supabase/migrations/0638_order_change_edit_policy_rename.sql) moves every object to `_oc_`:
+
+- 6 tables (`sys_oc_edit_policy_mst`, `sys_oc_edit_policy_rule_dtl`, `org_oc_edit_policy_asg_cf`, `sys_oc_edit_policy_def_cf`, `sys_oc_order_edit_ops_cd`, `sys_oc_order_edit_op_tgt_cd` — "order" kept in the catalog names per user), 38 constraints, 7 standalone indexes, 1 RLS policy, 6 triggers and 8 functions (`sys_oc_resolve_edit_policy`, `sys_oc_edit_policy_save`, `sys_oc_edit_cov_status`, five guards).
+- Built from the live remote catalog (read-only): every function body is the deployed definition with only names and guard-message prefixes changed. Caught: `sys_oc_edit_catalog_guard` compares `TG_TABLE_NAME` with a string literal, which a plain rename would have broken silently. Function privileges mirror the old ones exactly (owner + `service_role`; PUBLIC/anon/authenticated revoked). Workflow-reference columns (`workflow_status`, `workflow_profile_id`, `workflow_profile_version_id`) keep their names.
+- Locks all six tables for the swap, ends with a self-check that fails the migration if any `_wf_` Edit Policy object survives. Offline parse: 121 SQL statements + 7 PL/pgSQL bodies OK. Not executed by the agent.
+- **Breaking rename, pre-launch:** after the user applies 0638 locally and remotely, regenerate Prisma (`npm run prisma:pull` from repo root) and the types in both repositories, then the agent switches the code. Files that will change: web-admin `order-change-context.service.ts`, `order-change-edit-policy-resolver.service.ts`, their unit tests and the two db-integration tests; platform-api `edit-policy.repository.ts`, `edit-policy.service.ts`, `edit-policy.errors.ts` (guard-prefix regex), service spec; generated types in both repos.
 
 ## Keep-or-improve log — 2026-10-23 (Phase 3/4 audit)
 

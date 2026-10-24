@@ -88,7 +88,10 @@ jest.mock('@/lib/services/customer-receipt-excess-executor.service', () => ({
   executeAllocationPreviewTx: jest.fn(), extractAllocationPreviewId: jest.fn(),
   getDispositionLinesExcludingAllocation: jest.fn(), resolutionIncludesAllocation: jest.fn(),
 }));
-jest.mock('@/lib/services/payment-config.service', () => ({ listEffectivePaymentMethodConfigs: (...args: unknown[]) => mockMethodConfigs(...args) }));
+jest.mock('@/lib/services/payment-config.service', () => ({
+  ...jest.requireActual('@/lib/services/payment-config.service'),
+  listEffectivePaymentMethodConfigs: (...args: unknown[]) => mockMethodConfigs(...args),
+}));
 jest.mock('@/lib/services/cash-drawer.service', () => ({ resolveCashDrawerSessionId: jest.fn().mockResolvedValue('drawer-1') }));
 jest.mock('@/lib/services/order-created-pos-session', () => ({
   stampCreatedPosSession: jest.fn().mockResolvedValue(undefined),
@@ -201,7 +204,8 @@ export function resetSubmitHarness(): void {
     requires_cash_drawer: false, requires_terminal: false, supports_overpayment: false,
     supports_change_return: false, default_creation_status: 'COMPLETED',
     min_amount: null, max_amount: null, min_order_amount: null, max_order_amount: null,
-    is_platform_disabled: false, is_globally_disabled: false,
+    is_platform_disabled: false, is_globally_disabled: false, gateway_globally_disabled: false,
+    is_enabled: true, allowed_in_pos: true, is_active: true, rec_status: 1,
   })));
 }
 

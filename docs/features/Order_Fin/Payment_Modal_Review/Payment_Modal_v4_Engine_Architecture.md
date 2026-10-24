@@ -16,7 +16,7 @@ payment-modal-v4.tsx                      ← thin shell (~190 lines)
         mode state ('simple' | 'full') + auto-escalation + rail slide-over
         │
         ├─ usePaymentEngine()             ← single logic core (hooks/use-payment-engine.ts)
-        │    gift/promo → totals → catalog → stored-value → legs
+        │    gift/promo → coordinated quote (totals + catalog + stored-value) → legs
         │    → money-derivations → pay-extra → cash-drawer
         │    + every cross-slice derivation, validationItems, rightRailState,
         │      needsAdvanced (computeNeedsAdvanced), non-DOM handlers
@@ -36,6 +36,8 @@ Key invariants (locked):
 - **Simple can never fork finance** — it consumes existing engine handlers only (`handleMethodSelect`, shared `handleAmountValueChange` capped write path, `fillLegRemaining`, quick-tender via the same `updateLeg`).
 
 ## 2. Engine slices (hooks/)
+
+Payment preparation now uses one coordinated server quote, shared between the shell and engine. Currency, selected taxes, totals, eligible methods, and permitted balances come from the same request identity. See [Quote performance and readiness](Payment_Modal_v4_Quote_Performance.md) for the request lifecycle, security boundaries, compatibility, and validation requirements.
 
 | Hook | Concern | Notes |
 |---|---|---|

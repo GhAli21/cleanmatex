@@ -7,7 +7,7 @@ import {
   PAYMENT_NATURE,
 } from '@/lib/constants/order-financial';
 import { redeemGiftCardTx } from '@/lib/services/gift-card-service';
-import { getLoyaltyAccount, getLoyaltyConfig, syncAvailableLoyaltyPoints, redeemPointsTx, resolveLoyaltyRedemptionPoints } from '@/lib/services/loyalty.service';
+import { getLoyaltyAccount, getLoyaltyCheckoutConfig, syncAvailableLoyaltyPoints, redeemPointsTx, resolveLoyaltyRedemptionPoints } from '@/lib/services/loyalty.service';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import {
   getAdvanceBalance,
@@ -20,6 +20,7 @@ import {
 import { emitEventTx } from '@/lib/services/outbox.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { requireCurrencyCode } from '@/lib/money/currency-resolution';
+import type { StoredValueSummaryResponse } from '@/lib/types/payment-quote';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -393,7 +394,7 @@ export async function getAvailableStoredValueSummary(
     getWalletBalance(tenantId, customerId),
     getAdvanceBalance(tenantId, customerId),
     getCreditNotes(tenantId, customerId),
-    getLoyaltyConfig(tenantId),
+    getLoyaltyCheckoutConfig(tenantId),
     getLoyaltyAccount(tenantId, customerId),
   ]);
 
@@ -409,6 +410,7 @@ export async function getAvailableStoredValueSummary(
         tenantId,
         loyaltyAccount.id,
         Number(loyaltyAccount.points_balance),
+        { pointsExpiryDays: loyaltyConfig?.points_expiry_days ?? null },
       )
     : { spendablePoints: 0, expiredUnappliedPoints: 0, expiredNow: 0 };
   const loyaltyPointsBalance = spendable.spendablePoints;
@@ -423,5 +425,34 @@ export async function getAvailableStoredValueSummary(
     loyaltyExpiredUnappliedPoints: spendable.expiredUnappliedPoints,
     loyaltyAvailableValue: loyaltyPointsBalance * loyaltyRedeemRatePerPoint,
     loyaltyMinRedeemPoints: loyaltyConfig?.min_redeem_points ?? 0,
+  };
+}
+
+/** Shared request-local availability facts; never cache across customers or requests. */
+export type AvailableStoredValueSummary = Awaited<ReturnType<typeof getAvailableStoredValueSummary>>;
+
+/**
+ * Preserves the balance-view API shape while reusing checkout's already loaded facts.
+ * Callers must enforce stored_value:view_balances before exposing this richer DTO.
+ * @param summary Tenant/customer-scoped availability facts from the current request.
+ * @returns Existing customer stored-value response shape.
+ * @example toStoredValueSummaryDto(summary)
+ */
+export function toStoredValueSummaryDto(summary: AvailableStoredValueSummary): StoredValueSummaryResponse {
+  return {
+    wallet: summary.wallet,
+    advance: summary.advance,
+    creditNoteTotal: summary.creditNoteTotal,
+    creditNotes: summary.creditNotes.map((note) => ({
+      id: note.id,
+      remaining_balance: toNumber(note.remaining_balance),
+      currency_code: note.currency_code,
+    })),
+    loyalty: {
+      pointsBalance: summary.loyaltyPointsBalance,
+      availableValue: summary.loyaltyAvailableValue,
+      expiredUnappliedPoints: summary.loyaltyExpiredUnappliedPoints,
+      redeemRatePerPoint: summary.loyaltyRedeemRatePerPoint,
+    },
   };
 }

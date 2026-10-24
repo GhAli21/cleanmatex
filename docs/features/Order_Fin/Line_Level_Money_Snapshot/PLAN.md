@@ -69,6 +69,8 @@ A tenant setting selects the **commercial level**:
 | L19 | The speed rule fields take the product names with "express" replaced by "speed": `default_speed_sell_price`, `multiplier_speed`, `turnaround_hh_speed`. | 2026-10-23, item 2a |
 | L20 | **Multiplier meaning:** the multiplier is the fraction **added** to the normal price. Speed price = normal + normal × `multiplier_speed`; for example normal 10 and 0.30 gives 13. | 2026-10-23, item 2d |
 | L21 | `disc_alloc_mode` is tenant-only. Fiscal item lines on tax documents ship in Release A. | 2026-10-23, items 2c, 3 |
+| L22 | **Rounding:**<br>(a) The calculator works in exact decimals with **no intermediate rounding**.<br>(b) Every figure that is stored, printed or sent on an e-invoice is rounded **once**, at the end, to the currency decimals (by the tax profile's rounding level and mode). The order total is the sum of those rounded figures, so the invoice always adds up (ZATCA / PINT OM).<br>(c) **Cash rounding** (a coin step such as 0.05) is applied **only to a cash payment** (tender and change, context `CASH_TENDER`) and recorded on the payment. It is never applied to the order or invoice total. Card, wallet and bank payments pay the exact total.<br>No figure changes today, because no seeded currency has a coin step different from its decimals. | 2026-10-23, owner proposal; expert decision delegated |
+| L23 | **Price type and minimum price:**<br>`FIXED` means a fixed catalog price **per unit**, so the charge stays unit × quantity. The FIXED products are suits, tuxedos, sarees and wetsuits, counted per set; a flat price per line would be wrong.<br>`min_sell_price` is a floor on the line's net unit price after the price-list discount and line discounts. Going below it is rejected with `PRICE_BELOW_MINIMUM` (EN/AR, the minimum shown). An explicit price override (permission `pricing:override` plus a reason, audited) may go below it, with an inline notice. The catalog must keep `min_sell_price ≤ default_sell_price` (and ≤ the express price); P7 adds this validation, and the 4 existing rows that break it are listed as PF-24.<br>`price_type` values are normalised to one code set (`per_piece` → `PER_PC`) in M1. | 2026-10-23, expert decision delegated |
 
 ## 3. Facts this plan relies on (verified 2026-10-23, remote DB and code)
 
@@ -185,6 +187,7 @@ Money is `DECIMAL(19,4)`; strings are `TEXT`; names have 30 characters or fewer;
 | `money_basis` | `PRICED` / `ALLOCATED` / `ROLLUP` |
 | `service_speed` | FK → `sys_service_speed_cd` |
 | `ready_by_at` | Promised ready time of the row |
+| `ready_at` *(owner addition, 2026-10-24, not in the original plan text)* | Real ready time of the row. Mirrors `org_orders_mst.ready_by` / `ready_at`, the existing expected/actual pair used for on-time SLA (`workflow-service.ts`). Set by the fulfillment workflow, never by the calculator; wiring that write is outside this plan's phases. |
 | `price_source` | `PRICE_LIST` / `PRODUCT_DEFAULT` / `CUSTOMER_PRICE` / `SPEED_RULE` / `MANUAL` |
 | `price_list_id` | Price list used (composite FK) |
 | `speed_rule_id` | Speed rule used (composite FK, `ON DELETE RESTRICT`) |
@@ -421,15 +424,15 @@ The existing selects stay.
 
 | # | File | Content |
 |---|---|---|
-| M1 | `0638_sys_service_speed_tax_cat.sql` | `sys_service_speed_cd`, `sys_tax_category_cd`, seeds |
-| M2 | `0639_org_speed_price_rules_cf.sql` | Rules table, RLS, indexes, constraints, seed from product fields (§12.1) |
-| M3 | `0640_commercial_settings.sql` | `org_tenants_mst` settings |
-| M4 | `0641_tax_profile_rounding.sql` | Tax profile rounding; product `tax_category_code` backfill; `price_type` fix |
-| M5 | `0642_line_money_items_pieces.sql` | §6.1 (nullable) |
-| M6 | `0643_line_money_prefs_disc_chg.sql` | §6.2–§6.5, header snapshots |
-| M7 | `0644_tax_doc_items_dtl.sql` | §6.7 |
-| M8 | `0645_speed_pricing_permissions.sql` | Only if P0-05 needs new codes; role grants included or separate per `/update-rbac-role` |
-| M9 | `0646_speed_pricing_navigation.sql` | `sys_components_cd` |
+| M1 | `0639_sys_service_speed_tax_cat.sql` (renumbered: `0638` was taken by the in-flight Edit Policy rename) | `sys_service_speed_cd`, `sys_tax_category_cd`, seeds |
+| M2 | `0640_org_speed_price_rules_cf.sql` | Rules table, RLS, indexes, constraints, seed from product fields (§12.1) |
+| M3 | `0641_commercial_settings.sql` | `org_tenants_mst` settings |
+| M4 | `0642_tax_profile_rounding.sql` | Tax profile rounding; product `tax_category_code` backfill; `price_type` fix |
+| M5 | `0643_line_money_items_pieces.sql` | §6.1 (nullable) |
+| M6 | `0644_line_money_prefs_disc_chg.sql` | §6.2–§6.5, header snapshots |
+| M7 | `0645_tax_doc_items_dtl.sql` | §6.7 |
+| M8 | `0646_speed_pricing_permissions.sql` | Only if P0-05 needs new codes; role grants included or separate per `/update-rbac-role` |
+| M9 | `0647_speed_pricing_navigation.sql` | `sys_components_cd` |
 | M10 | later (after P10-02) | NOT NULL + CHECK (I5, code values) on §6.1–§6.5 |
 | M11 | later (after P10) | Drop product `default_express_sell_price`, `multiplier_express`, `turnaround_hh_express`, `is_tax_exempt` (`RESTRICT`) |
 
@@ -617,6 +620,12 @@ Legend: (S) STATUS.md, (D) docs, (Q) QA guide. Skills are loaded before each tas
 
 1. **Q1:** seed product express turnaround into the speed rules (changes ready-by for about 120 products; recommended), or seed it only where it equals today's category value.
 2. **Q2:** accept that the bug fixes PF-03, PF-04 and PF-08 change figures toward the correct value (recommended, disclosed in the P1-01 sign-off).
+3. **P1-01 sign-off** (2026-10-23, delegated by the owner, "decide and do your recommendations"):
+   - all defects in P1_01_CHARACTERIZATION.md §4.1 are fixed as planned
+   - the one-minor-unit float→decimal corrections are accepted
+   - rounding per L22
+   - price type and minimum per L23
+   - PF-21 fixed now as a hotfix
 
 ## 21. Phase 0 outcome (2026-10-23): changes to this plan
 

@@ -45,7 +45,6 @@ import {
   type RefObject,
   type SetStateAction,
 } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import type { FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import { validateGiftCardAction } from '@/app/actions/payments/validate-gift-card';
@@ -74,7 +73,6 @@ import {
   isPaymentSurfaceHydrated,
   isPaymentSurfacePending,
   parseDecimalDraft,
-  shouldEnableCheckoutOptions,
   validateCheckDueDate,
   legHasRequiredPaymentReference,
   wasPaymentLegAmountCapped,
@@ -106,7 +104,6 @@ import {
   resolveNewPaymentLegRejection,
   type PaymentAmountCapReason,
 } from '@/lib/payments/overpayment-policy';
-import { showInfoToast } from '@ui/components/cmx-toast';
 import {
   derivePaymentModalRightRailState,
   type PaymentModalRightRailState,
@@ -146,30 +143,8 @@ export interface PaymentEngineItem {
  * Customer stored-value summary (wallet, advance, credit notes, loyalty)
  * consumed by the leg suggestion + live-balance derivations.
  */
-export type StoredValueSummaryResponse = {
-  wallet: {
-    walletId: string | null;
-    balance: number;
-    currencyCode: string | null;
-  };
-  advance: {
-    advanceId: string | null;
-    balance: number;
-    currencyCode: string | null;
-  };
-  creditNoteTotal: number;
-  creditNotes: Array<{
-    id: string;
-    remaining_balance: number;
-    currency_code: string;
-  }>;
-  loyalty?: {
-    pointsBalance: number;
-    availableValue: number;
-    expiredUnappliedPoints: number;
-    redeemRatePerPoint: number;
-  };
-};
+export type { StoredValueSummaryResponse } from '@/lib/types/payment-quote';
+
 
 /**
  * Inputs threaded from the shell/view. Order context + the RHF form values the
@@ -179,6 +154,7 @@ export type StoredValueSummaryResponse = {
  * (`isDirtySinceOpen`, the credit-note picker).
  */
 export interface UsePaymentEngineParams {
+  quoteSessionKey: string;
   open: boolean;
   items: PaymentEngineItem[];
   /** B18 — order-level preferences threaded into the totals preview so the modal reflects their charge. */
@@ -242,6 +218,7 @@ export interface UsePaymentEngineParams {
  */
 export function usePaymentEngine(params: UsePaymentEngineParams) {
   const {
+    quoteSessionKey,
     open,
     items,
     orderServicePrefs,
@@ -296,9 +273,8 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
   const remainingBalanceRef = useRef(0);
   const moneyEpsilonRef = useRef(0.001);
 
-  // Dependency-ordered slices: gift/promo → totals → catalog. Totals reads the
-  // applied promo/gift; catalog's checkout-options query key reads totals'
-  // checkoutEligibilityAmount; walletCreditOption derives from catalog output.
+  // Gift/promo inputs feed one quote; catalog and totals consume the same
+  // authoritative snapshot before any amount-sensitive payment is confirmed.
 
   // Gift-card + promo state, error mapping, and reset/PIN-focus effects (Phase 2B).
   const giftPromo = useGiftCardAndPromo({
@@ -337,6 +313,8 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
 
   // Server-driven totals + tax breakdown (Phase 2C). Behavior-frozen.
   const totals = usePaymentTotals({
+    quoteSessionKey,
+    userId,
     open,
     items,
     tenantOrgId,
@@ -364,7 +342,6 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     taxProfileEntries,
     displayTaxBreakdown,
     profilesTaxAmount,
-    checkoutEligibilityAmount,
     roundingAdjustmentAmount,
     previewFailed,
     refetchPreview,
@@ -375,15 +352,13 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
   // resolver. Extracted to use-payment-catalog (Phase 2A); behavior-frozen.
   const catalog = usePaymentCatalog({
     open,
-    checkoutOptionsEnabled: shouldEnableCheckoutOptions({
-      open,
-      itemsCount: items.length,
-      hasServerTotals: serverTotals != null,
-    }),
+    quoteOptions: totals.quote.snapshot?.checkoutOptions ?? null,
+    quotePending: totals.quote.pending,
+    quoteFailed: totals.quote.failed,
+    refetchQuote: totals.quote.refetch,
+    userId,
     tenantOrgId,
     branchId,
-    customerId,
-    checkoutEligibilityAmount,
     isRetailOnlyOrder,
     isRTL,
     t,
@@ -403,25 +378,11 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       option.payment_method_code === 'WALLET'
   );
 
-  const {
-    data: storedValueSummary,
-    isLoading: storedValueLoading,
-    isFetching: storedValueFetching,
-    refetch: refetchStoredValueSummary,
-  } = useQuery<StoredValueSummaryResponse | null>({
-    queryKey: ['customer-stored-value-summary', tenantOrgId, customerId ?? ''],
-    queryFn: async () => {
-      if (!customerId) return null;
-      const res = await fetch(`/api/v1/customers/${customerId}/stored-value`);
-      if (!res.ok) {
-        throw new Error('FAILED_TO_FETCH_STORED_VALUE_SUMMARY');
-      }
-      const json = await res.json();
-      return (json.data ?? null) as StoredValueSummaryResponse | null;
-    },
-    enabled: open && !!customerId,
-    staleTime: 15_000,
-  });
+  // The quote includes the same permission-checked balance summary as the old GET.
+  const storedValueSummary = totals.quote.snapshot?.storedValueSummary ?? null;
+  const storedValueLoading = !totals.quote.snapshot && totals.quote.pending;
+  const storedValueFetching = totals.quote.pending;
+  const refetchStoredValueSummary = totals.quote.refetch;
 
   const giftCardSettlementAmount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
 
@@ -520,7 +481,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         rejection === 'method_no_overpayment'
           ? t('payExtraIntent.newLegRejectedMethodNoOverpayment')
           : t('payExtraIntent.newLegRejectedPayExtraOff');
-      showInfoToast(message);
+      cmxMessage.info(message);
       const rejectKey = `${option.payment_method_code}::${option.gateway_code ?? ''}::${rejection}`;
       if (lastNewLegRejectKeyRef.current === rejectKey) {
         setNewLegRejectAlert(message);
@@ -1438,7 +1399,12 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     walletLegExceedsLiveBalance,
   ]);
 
-  const paymentSurfaceReady = isPaymentSurfaceHydrated({
+  // A failed terminal lookup blocks only legs that require that authority; cash stays available.
+  const methodMetadataBlocked = paymentLegs.some((leg) =>
+    (leg.amount ?? 0) > 0 && getMethodOption(leg.method, leg.gateway_code)?.requires_terminal &&
+    (catalog.terminalsPending || catalog.terminalsFailed)
+  );
+  const paymentSurfaceReady = !methodMetadataBlocked && isPaymentSurfaceHydrated({
     parentLoading: loading,
     totalsLoading,
     hasServerTotals: serverTotals != null,
@@ -1698,6 +1664,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     appliedBadgeCount,
     validationItems,
     paymentSurfaceReady,
+    methodMetadataBlocked,
     methodsSurfaceLoading,
     previewFailed,
     refetchPreview,

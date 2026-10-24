@@ -58,11 +58,13 @@ jest.mock('@/lib/utils/logger', () => ({
 // ---------------------------------------------------------------------------
 
 import { prisma } from '@/lib/db/prisma';
+import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import bcrypt from 'bcryptjs';
 import {
   redeemGiftCardTx,
   refundGiftCardTx,
   validateGiftCard,
+  validateGiftCardByIdForCalculation,
   applyGiftCardTx,
   adminActivateGiftCard,
   adminAdjustGiftCard,
@@ -255,6 +257,43 @@ describe('gift-card-service', () => {
       expect(result.errorCode).toBe('EXPIRED');
       // validateGiftCard MUST NOT call update — expiry mutation belongs in redeemGiftCardTx
       expect(mockGcUpdate).not.toHaveBeenCalled();
+    });
+
+    it('strict code validation reuses authenticated scope and keeps PIN requirements', async () => {
+      mockGcFindFirst.mockResolvedValue(makeCard());
+      const result = await validateGiftCard({ gift_card_code: 'CMX-1234-5678-9012' }, {
+        tenantId: 'tenant-xyz', strictResolution: true,
+      });
+      expect(result).toMatchObject({ isValid: false, errorCode: 'INVALID_PIN' });
+      expect(getTenantIdFromSession).not.toHaveBeenCalled();
+      expect(mockGcFindFirst.mock.calls[0][0].where.tenant_org_id).toBe('tenant-xyz');
+      expect(mockGcUpdate).not.toHaveBeenCalled();
+    });
+
+    it('strict validators propagate unavailable reads while legacy validators retain invalid results', async () => {
+      mockGcFindFirst.mockRejectedValue(new Error('database unavailable'));
+      await expect(validateGiftCard({ gift_card_code: 'CMX-1234-5678-9012' }, {
+        tenantId: 'tenant-xyz', strictResolution: true,
+      })).rejects.toThrow('database unavailable');
+      await expect(validateGiftCardByIdForCalculation('gc-pin', 'tenant-xyz', { strictResolution: true }))
+        .rejects.toThrow('database unavailable');
+      await expect(validateGiftCard({ gift_card_code: 'CMX-1234-5678-9012' })).resolves.toMatchObject({ isValid: false });
+      await expect(validateGiftCardByIdForCalculation('gc-pin', 'tenant-xyz')).resolves.toMatchObject({ isValid: false });
+      expect(mockGcUpdate).not.toHaveBeenCalled();
+    });
+
+    it('strict ID calculation keeps pre-authenticated PIN behavior and current balance', async () => {
+      mockGcFindFirst.mockResolvedValue(makeCard());
+      expect(await validateGiftCardByIdForCalculation('gc-pin', 'tenant-xyz', { strictResolution: true }))
+        .toMatchObject({ isValid: true, availableBalance: 50 });
+      expect(mockGcFindFirst).toHaveBeenCalledWith({ where: { id: 'gc-pin', tenant_org_id: 'tenant-xyz', is_active: true } });
+      expect(mockGcUpdate).not.toHaveBeenCalled();
+    });
+
+    it('strict ID validation returns an ordinary business result for an expired card', async () => {
+      mockGcFindFirst.mockResolvedValue(makeCard({ expiry_date: new Date(Date.now() - 86_400_000) }));
+      await expect(validateGiftCardByIdForCalculation('gc-pin', 'tenant-xyz', { strictResolution: true }))
+        .resolves.toMatchObject({ isValid: false, errorCode: 'EXPIRED' });
     });
   });
 

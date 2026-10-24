@@ -8,6 +8,8 @@ import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 import { buildEffectiveOrderFinancialSnapshot } from '@/lib/utils/order-financial-effective-snapshot';
 import { ORDER_FINANCIAL_SNAPSHOT_STATUS } from '@/lib/constants/order-financial';
+import { NotFoundError } from '@/lib/errors/base-errors';
+import { computeOutstanding, sumRefundReopens } from '@/lib/services/order-financial-aggregation';
 
 /**
  * Why:
@@ -87,6 +89,12 @@ export interface OrderFinancialSnapshot {
   financialEngineVersion: number | null;
   changeReturnedAmount: number;
   roundingAmount: number;
+  /**
+   * D005 outstanding recomputed from this snapshot's own components
+   * (total − paid − credits + refund reopens). Readers compare it with
+   * `outstandingAmount` to flag a stale snapshot (BF-02); they never re-derive it.
+   */
+  expectedOutstandingAmount: number;
 }
 
 /**
@@ -357,38 +365,13 @@ export async function getOrderPaymentsCanonical(
   return rows.map(mapOrderPaymentRow);
 }
 
-function sumProcessedRefunds(refunds: Array<{ refund_status: string | null; refund_amount: Decimal }>): number {
-  return refunds.reduce((sum, row) => {
-    return String(row.refund_status ?? '').trim().toUpperCase() === 'PROCESSED'
-      ? sum + toNumber(row.refund_amount)
-      : sum;
-  }, 0);
-}
-
-function sumRealPaymentRefunds(refunds: Array<{
-  refund_status: string | null;
-  refund_amount: Decimal;
-  refund_method_code: string | null;
-  original_payment_id: string | null;
-}>): number {
-  return refunds.reduce((sum, row) => {
-    if (String(row.refund_status ?? '').trim().toUpperCase() !== 'PROCESSED') return sum;
-
-    const method = String(row.refund_method_code ?? '').trim().toUpperCase();
-    if (method === 'CASH' || method === 'ORIGINAL_METHOD' || row.original_payment_id) {
-      return sum + toNumber(row.refund_amount);
-    }
-
-    return sum;
-  }, 0);
-}
-
 /**
  * Read the full Order Fin summary for one order under tenant scope.
  *
  * @param tenantId authenticated tenant identifier
  * @param orderId order header identifier
  * @returns normalized read model used by routes and server actions
+ * @throws NotFoundError when the order does not exist in this tenant
  */
 export async function getOrderFinancialSummary(
   tenantId: string,
@@ -407,7 +390,7 @@ export async function getOrderFinancialSummary(
     taxDocumentRows,
   ] = await Promise.all([
     withTenantContext(tenantId, () =>
-      prisma.org_orders_mst.findFirstOrThrow({
+      prisma.org_orders_mst.findFirst({
         where: { tenant_org_id: tenantId, id: orderId },
         select: {
           id: true,
@@ -513,6 +496,9 @@ export async function getOrderFinancialSummary(
     ),
   ]);
 
+  // BF-10: a missing order is a typed 404, not a Prisma throw that reads as 500.
+  if (!order) throw new NotFoundError('Order', orderId);
+
   try {
     adjustments = await prisma.$queryRaw<OrderAdjustmentRow[]>`
       SELECT
@@ -543,6 +529,8 @@ export async function getOrderFinancialSummary(
   const effectiveSnapshot = buildEffectiveOrderFinancialSnapshot({
     paymentTypeCode: order.payment_type_code ?? null,
     roundingAmount: toNumber(order.rounding_adjustment_amount),
+    snapshotWritten: order.financial_engine_version != null,
+    changeReturnedAmount: toNumber(order.change_returned_amount),
     snapshot: {
       subtotalAmount: toNumber(order.subtotal_amount),
       itemsBaseAmount: toNumber(order.items_base_amount),
@@ -589,6 +577,7 @@ export async function getOrderFinancialSummary(
     charges: charges.map((row) => ({
       charge_type: row.charge_type,
       amount: toNumber(row.amount),
+      is_voided: row.is_voided,
     })),
     discounts: discountLines.map((row) => ({
       discount_amount: row.discount_amount,
@@ -626,9 +615,9 @@ export async function getOrderFinancialSummary(
   const totalAmount = effectiveSnapshot.totalAmount;
   const totalPaidAmount = effectiveSnapshot.totalPaidAmount;
   const totalCreditAppliedAmount = effectiveSnapshot.totalCreditAppliedAmount;
-  const refundedAmount = effectiveSnapshot.refundedAmount || sumProcessedRefunds(refunds);
-  const realPaymentRefundedAmount =
-    effectiveSnapshot.realPaymentRefundedAmount || sumRealPaymentRefunds(refunds);
+  // BF-11: the effective snapshot is the only fallback authority; no `||` here.
+  const refundedAmount = effectiveSnapshot.refundedAmount;
+  const realPaymentRefundedAmount = effectiveSnapshot.realPaymentRefundedAmount;
   const outstandingAmount = effectiveSnapshot.outstandingAmount;
   const payOnCollectionAmount = effectiveSnapshot.payOnCollectionAmount;
 
@@ -681,9 +670,9 @@ export async function getOrderFinancialSummary(
     realPaymentRefundedAmount,
     storedValueRestoredAmount: effectiveSnapshot.storedValueRestoredAmount,
     customerCreditIssuedAmount: effectiveSnapshot.customerCreditIssuedAmount,
-    netCollectedAmount: effectiveSnapshot.netCollectedAmount || Math.max(0, totalPaidAmount - realPaymentRefundedAmount),
+    netCollectedAmount: effectiveSnapshot.netCollectedAmount,
     outstandingAmount,
-    overpaidAmount: effectiveSnapshot.overpaidAmount || Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount),
+    overpaidAmount: effectiveSnapshot.overpaidAmount,
     payOnCollectionAmount,
     arReceivableAmount: effectiveSnapshot.arReceivableAmount,
     baseCurTotalAmount: effectiveSnapshot.baseCurTotalAmount,
@@ -707,6 +696,18 @@ export async function getOrderFinancialSummary(
     financialEngineVersion: order.financial_engine_version ?? null,
     changeReturnedAmount: toNumber(order.change_returned_amount),
     roundingAmount: toNumber(order.rounding_adjustment_amount),
+    expectedOutstandingAmount: computeOutstanding({
+      totalAmount,
+      effectivePayments: totalPaidAmount,
+      effectiveCredits: totalCreditAppliedAmount,
+      refundReopens: sumRefundReopens(
+        refunds.map((row) => ({
+          refund_status: row.refund_status ?? null,
+          reopens_due_amount: toNumber((row as Record<string, unknown>).reopens_due_amount as number | null),
+        })),
+      ),
+      creditReversalReopens: 0,
+    }),
   };
 
   const voucherReferences = [

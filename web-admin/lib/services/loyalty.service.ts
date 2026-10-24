@@ -168,6 +168,31 @@ export async function getLoyaltyConfig(tenantId: string) {
   );
 }
 
+/** Minimal policy needed for checkout availability without loading loyalty tiers. */
+export interface LoyaltyCheckoutConfig {
+  redeem_rate_per_point: Decimal;
+  min_redeem_points: number;
+  points_expiry_days: number | null;
+}
+
+/**
+ * Loads only checkout policy fields once for the tenant-scoped availability request.
+ * @param tenantId Authenticated tenant owning the loyalty policy.
+ * @returns Active policy or null when loyalty is not configured.
+ * @example await getLoyaltyCheckoutConfig(tenantId)
+ */
+export async function getLoyaltyCheckoutConfig(tenantId: string): Promise<LoyaltyCheckoutConfig | null> {
+  return withTenantContext(tenantId, () => prisma.org_loyalty_programs_cf.findFirst({
+    where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
+    select: { redeem_rate_per_point: true, min_redeem_points: true, points_expiry_days: true },
+  }));
+}
+
+/** Request-local expiry policy; an explicit null disables expiry without another read. */
+export interface LoyaltyAvailabilityPolicy {
+  pointsExpiryDays: number | null;
+}
+
 /**
  * B21 — round a fractional points computation to a whole point count per
  * the tenant's configured rounding rule. Points must be an integer;
@@ -690,14 +715,16 @@ export async function syncAvailableLoyaltyPoints(
   tenantId: string,
   accountId: string,
   fallbackLedgerPoints = 0,
+  policy?: LoyaltyAvailabilityPolicy,
 ): Promise<SyncedLoyaltyPoints> {
-  const program = await withTenantContext(tenantId, () =>
+  const program = policy === undefined ? await withTenantContext(tenantId, () =>
     prisma.org_loyalty_programs_cf.findFirst({
       where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
       select: { points_expiry_days: true },
     }),
-  );
-  const cutoff = loyaltyExpiryCutoff(program?.points_expiry_days);
+  ) : null;
+  const effectivePolicy = policy ?? { pointsExpiryDays: program?.points_expiry_days ?? null };
+  const cutoff = loyaltyExpiryCutoff(effectivePolicy.pointsExpiryDays);
   let expiredNow = 0;
   if (cutoff) {
     const expired = await expireLoyaltyPointsForAccount(tenantId, accountId, cutoff);
@@ -712,7 +739,7 @@ export async function syncAvailableLoyaltyPoints(
     }
   }
 
-  const spendable = await getSpendableLoyaltyPoints(tenantId, accountId, fallbackLedgerPoints);
+  const spendable = await getSpendableLoyaltyPoints(tenantId, accountId, fallbackLedgerPoints, effectivePolicy);
   return { ...spendable, expiredNow };
 }
 
@@ -723,23 +750,28 @@ export async function syncAvailableLoyaltyPoints(
 export async function getSpendableLoyaltyPoints(
   tenantId: string,
   accountId: string,
-  fallbackLedgerPoints = 0,
+  _fallbackLedgerPoints = 0,
+  policy?: LoyaltyAvailabilityPolicy,
 ): Promise<SpendableLoyaltyPoints> {
   return withTenantContext(tenantId, async () => {
-    const program = await prisma.org_loyalty_programs_cf.findFirst({
+    const program = policy === undefined ? await prisma.org_loyalty_programs_cf.findFirst({
       where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
       select: { points_expiry_days: true },
-    });
-    const cutoff = loyaltyExpiryCutoff(program?.points_expiry_days);
+    }) : null;
+    const cutoff = loyaltyExpiryCutoff(policy === undefined ? program?.points_expiry_days : policy.pointsExpiryDays);
     const lots = await prisma.org_loyalty_txn_dtl.findMany({
       where: { tenant_org_id: tenantId, account_id: accountId, remaining_points: { gt: 0 } },
       select: { remaining_points: true, created_at: true },
     });
 
     if (lots.length === 0) {
-      // Pre-lot ledger rows have no remaining_points to split — keep the
-      // cached balance rather than showing a false zero.
-      return { spendablePoints: fallbackLedgerPoints, expiredUnappliedPoints: 0 };
+      // A previously read balance can predate full expiry or concurrent redemption.
+      // A fresh account balance also preserves legacy accounts without FIFO lots.
+      const account = await prisma.org_loyalty_accounts_mst.findFirst({
+        where: { tenant_org_id: tenantId, id: accountId, is_active: true },
+        select: { points_balance: true },
+      });
+      return { spendablePoints: Number(account?.points_balance ?? 0), expiredUnappliedPoints: 0 };
     }
 
     if (!cutoff) {

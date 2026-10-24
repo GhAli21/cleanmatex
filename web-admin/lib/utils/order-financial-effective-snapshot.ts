@@ -10,6 +10,7 @@ import {
 import {
   classifyRefunds,
   computeOutstanding,
+  computeOverpaidAmount,
   sumCreditsByStatuses,
   sumPaymentsByStatuses,
   sumRefundReopens,
@@ -28,6 +29,17 @@ const TOLERANCE = 0.0001;
 export interface EffectiveOrderFinancialSnapshotInput {
   paymentTypeCode: string | null;
   roundingAmount: number;
+  /**
+   * True when the financial engine has written this order's snapshot
+   * (`financial_engine_version` is set). Its stored values are then the
+   * authority, zeros included (BF-11): a legitimate 0 (overpayment returned as
+   * change, a charge voided to 0, nothing refunded) must never fall through to
+   * a recomputation from detail rows. Rows are used only for a snapshot the
+   * engine never wrote.
+   */
+  snapshotWritten: boolean;
+  /** Cash change returned on the order; used only by the unwritten-snapshot overpaid fallback. */
+  changeReturnedAmount?: number;
   snapshot: {
     subtotalAmount: number;
     itemsBaseAmount: number;
@@ -79,6 +91,8 @@ export interface EffectiveOrderFinancialSnapshotInput {
   charges: Array<{
     charge_type: string;
     amount: number;
+    /** Voided charge rows never count toward any amount (BF-01). */
+    is_voided?: boolean | null;
   }>;
   discounts: Array<{
     discount_amount: number;
@@ -134,6 +148,7 @@ export function buildEffectiveOrderFinancialSnapshot(
   const isNonZero = (value: number): boolean => Math.abs(value) > TOLERANCE;
 
   const preferStored = (storedValue: number, derivedValue: number): number => {
+    if (input.snapshotWritten) return round4(Number(storedValue ?? 0));
     if (isNonZero(storedValue)) return round4(storedValue);
     if (isNonZero(derivedValue)) {
       usedReadFallback = true;
@@ -159,16 +174,17 @@ export function buildEffectiveOrderFinancialSnapshot(
   const sumPaymentStatusAmount = (allowedStatuses: readonly string[]): number =>
     sumPaymentsByStatuses(input.payments, allowedStatuses);
 
-  const serviceChargeFromRows = input.charges
+  const activeCharges = input.charges.filter((row) => !row.is_voided);
+  const serviceChargeFromRows = activeCharges
     .filter((row) => ['SERVICE', 'SERVICE_CHARGE'].includes(normalizeUpper(row.charge_type)))
     .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
-  const deliveryChargeFromRows = input.charges
+  const deliveryChargeFromRows = activeCharges
     .filter((row) => ['DELIVERY', 'DELIVERY_CHARGE'].includes(normalizeUpper(row.charge_type)))
     .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
-  const expressChargeFromRows = input.charges
+  const expressChargeFromRows = activeCharges
     .filter((row) => ['EXPRESS', 'EXPRESS_CHARGE'].includes(normalizeUpper(row.charge_type)))
     .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
-  const totalChargesFromRows = input.charges
+  const totalChargesFromRows = activeCharges
     .filter((row) => normalizeUpper(row.charge_type) !== 'PREFERENCE')
     .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
   const otherChargesFromRows = Math.max(
@@ -288,9 +304,18 @@ export function buildEffectiveOrderFinancialSnapshot(
       creditReversalReopens: 0,
     }),
   );
+  // Same complement as the snapshot writer, so change returned is not
+  // resurrected as overpayment. Dispositions are not readable here (0).
   const overpaidAmount = preferStored(
     input.snapshot.overpaidAmount,
-    Math.max(0, netCollectedAmount + totalCreditAppliedAmount - totalAmount),
+    computeOverpaidAmount({
+      effectivePayments: totalPaidAmount,
+      realPaymentRefundedAmount,
+      effectiveCredits: totalCreditAppliedAmount,
+      totalAmount,
+      changeReturnedAmount: input.changeReturnedAmount ?? 0,
+      disposedOverpaymentAmount: 0,
+    }),
   );
   const payOnCollectionAmount = preferStored(
     input.snapshot.payOnCollectionAmount,
@@ -315,7 +340,9 @@ export function buildEffectiveOrderFinancialSnapshot(
     otherChargesAmount,
     totalChargesAmount,
     totalDiscountAmount,
-    taxableAmount: round4(taxableAmount || Math.max(0, subtotalAmount + totalChargesAmount - totalDiscountAmount)),
+    taxableAmount: input.snapshotWritten
+      ? taxableAmount
+      : round4(taxableAmount || Math.max(0, subtotalAmount + totalChargesAmount - totalDiscountAmount)),
     // Tax-base buckets pass through the stored snapshot 1:1. Phase 5 will
     // wire engine-emitted values; until then they stay at 0 by default.
     nonTaxableAmount: round4(input.snapshot.nonTaxableAmount ?? 0),

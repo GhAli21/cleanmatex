@@ -41,6 +41,8 @@ Create stores browser-sent line prices (PF-02). Edit discounts twice (PF-03) and
 ### 3. Decimal arithmetic and versioning
 - `Prisma.Decimal` end to end. Outputs are decimal strings, stored as `DECIMAL(19,4)`.
 - The 7 `sys_rounding_mode_cd` modes plus an increment.
+- **Round once (L22, 2026-10-23):** no intermediate rounding. Each stored, printed or e-invoiced figure is rounded once, at the end, to the currency decimals (the tax profile's level and mode). The order total is the sum of those rounded figures.
+- **Cash rounding only on cash (L22):** the coin step (for example 0.05) applies only to a cash tender and its change (`CASH_TENDER` context) and is recorded on the payment. It is never applied to the order total. This replaces today's B17 rounding of `saleTotal`, which is a no-op for every seeded currency, so there is no figure change.
 - `org_orders_mst.commercial_calc_version` records the version that wrote the order. Recompute and reconciliation are aware of it.
 
 ### 4. Line money on items and pieces

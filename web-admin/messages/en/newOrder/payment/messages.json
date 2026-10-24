@@ -14,5 +14,15 @@
   "totalsAdjusted": "Order total changed. Payment leg amounts were adjusted to match.",
   "calculating": "Calculating payment totals...",
   "loadFailedTitle": "Couldn't load payment",
-  "loadFailedDescription": "The payment screen did not finish loading. Retry before collecting payment."
+  "loadFailedDescription": "The payment screen did not finish loading. Retry before collecting payment.",
+  "preparing": "Preparing payment…",
+  "loadTimedOut": "Payment preparation took too long. Retry before collecting payment.",
+  "metadataUnavailableTitle": "Some payment details could not be loaded",
+  "cardBrandsUnavailable": "Card brands are unavailable. Retry to load the available brands.",
+  "terminalsUnavailable": "Payment terminals are unavailable. Methods requiring a terminal cannot be submitted until this is resolved.",
+  "sessionUnavailable": "Your payment session could not be verified. Sign out and sign in again before collecting payment.",
+  "giftCardInvalid": "The applied gift card is no longer valid. Remove it to continue, or retry after checking the card.",
+  "reviewChangedTitle": "Review payment again",
+  "reviewChangedDescription": "Payment details changed or are being refreshed. Your entries are preserved. Review the updated payment before confirming.",
+  "currencyChanged": "Currency settings changed while payment was open. Close and reopen payment to review the new currency rules. Your order is preserved."
 }

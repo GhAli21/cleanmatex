@@ -145,7 +145,7 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
           ON version.version_id = ${order.wf_profile_version_id}::uuid
         LEFT JOIN public.sys_wf_profiles_cd AS profile
           ON profile.profile_id = ${order.wf_profile_id}::uuid
-        LEFT JOIN public.sys_wf_edit_policy_mst AS policy
+        LEFT JOIN public.sys_oc_edit_policy_mst AS policy
           ON policy.id = ${resolution.editPolicyId}::uuid
       `;
       return { resolution, display: display[0] };

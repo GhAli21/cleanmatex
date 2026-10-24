@@ -22,6 +22,8 @@ export interface TaxCalcParams {
   currency?: string;
   decimalPlaces?: number;
   selectedProfileIds?: string[];
+  /** Internal server-loaded facts keep profile DTOs and calculated lines at one effective instant. */
+  resolvedTaxProfiles?: ResolvedTaxProfileSnapshot;
   /**
    * Resolved tax pricing mode (B11). TAX_EXCLUSIVE (default) treats `baseAmount`
    * as the net taxable amount and adds tax on top. TAX_INCLUSIVE treats
@@ -41,6 +43,39 @@ function roundAmount(value: number, decimalPlaces: number): number {
 }
 
 type TaxProfileRow = Awaited<ReturnType<typeof prisma.org_tax_profiles_cf.findFirst>>;
+
+/** Only calculation-relevant columns are carried between the authenticated loader and tax engine. */
+export type TaxProfileFact = Pick<NonNullable<TaxProfileRow>,
+  'id' | 'tenant_org_id' | 'name' | 'name2' | 'tax_type' | 'rate' | 'is_compound'>;
+
+/** Server-only request facts; row scope is revalidated before any injected profile is used. */
+export interface ResolvedTaxProfileSnapshot {
+  readonly tenantId: string;
+  readonly effectiveAt: string;
+  readonly profiles: readonly TaxProfileFact[];
+}
+
+/**
+ * Validate trusted internal facts at the engine boundary, including exempt orders.
+ * @param params - Authenticated calculation scope and optional resolved tax facts.
+ * @returns The validated facts, or undefined for legacy database resolution.
+ * @throws When a snapshot belongs to another tenant, has invalid time, or disagrees with selected IDs.
+ */
+function validateTaxProfileSnapshot(params: TaxCalcParams): ResolvedTaxProfileSnapshot | undefined {
+  const snapshot = params.resolvedTaxProfiles;
+  if (!snapshot) return undefined;
+  const profileIds = snapshot.profiles.map((profile) => profile.id);
+  const selectedIds = [...new Set((params.selectedProfileIds ?? []).map((id) => id.trim()).filter(Boolean))];
+  if (snapshot.tenantId !== params.tenantId
+    || snapshot.profiles.some((profile) => profile.tenant_org_id !== params.tenantId)
+    || !Number.isFinite(new Date(snapshot.effectiveAt).getTime())
+    || new Set(profileIds).size !== profileIds.length
+    || (selectedIds.length > 0 && (selectedIds.length !== profileIds.length
+      || selectedIds.some((id, index) => id !== profileIds[index])))) {
+    throw new Error('INVALID_TAX_PROFILE_SNAPSHOT');
+  }
+  return snapshot;
+}
 
 async function resolveTaxProfiles(
   tenantId: string,
@@ -91,12 +126,13 @@ async function isTaxExempt(
   tenantId: string,
   customerId: string | undefined,
   serviceTypes: string[] | undefined,
+  effectiveAt?: Date,
 ): Promise<boolean> {
   if (!customerId && (!serviceTypes || serviceTypes.length === 0)) {
     return false;
   }
 
-  const effectiveDate = new Date();
+  const effectiveDate = effectiveAt ?? new Date();
 
   return withTenantContext(tenantId, async () => {
     const exemption = await prisma.org_tax_exemptions_cf.findFirst({
@@ -138,6 +174,7 @@ export interface TaxCalcOutcome {
  * @param params
  */
 export async function calculateTaxDetailed(params: TaxCalcParams): Promise<TaxCalcOutcome> {
+  const snapshot = validateTaxProfileSnapshot(params);
   const effectiveServiceTypes = Array.from(
     new Set(
       [params.serviceType, ...(params.serviceTypes ?? [])].filter(
@@ -145,10 +182,11 @@ export async function calculateTaxDetailed(params: TaxCalcParams): Promise<TaxCa
       ),
     ),
   );
-  if (await isTaxExempt(params.tenantId, params.customerId, effectiveServiceTypes)) {
+  if (await isTaxExempt(params.tenantId, params.customerId, effectiveServiceTypes,
+    snapshot ? new Date(snapshot.effectiveAt) : undefined)) {
     return { lines: [], exempt: true };
   }
-  return { lines: await computeTaxLines(params), exempt: false };
+  return { lines: await computeTaxLines(params, snapshot?.profiles), exempt: false };
 }
 
 /**
@@ -165,7 +203,7 @@ export async function calculateTax(params: TaxCalcParams): Promise<TaxLineItem[]
  * Computes profile-driven tax lines for a non-exempt order.
  * @param params
  */
-async function computeTaxLines(params: TaxCalcParams): Promise<TaxLineItem[]> {
+async function computeTaxLines(params: TaxCalcParams, resolvedProfiles?: readonly TaxProfileFact[]): Promise<TaxLineItem[]> {
   const {
     tenantId,
     baseAmount,
@@ -174,7 +212,7 @@ async function computeTaxLines(params: TaxCalcParams): Promise<TaxLineItem[]> {
     pricingMode = TAX_PRICING_MODES.TAX_EXCLUSIVE,
   } = params;
 
-  const profiles = await resolveTaxProfiles(tenantId, selectedProfileIds);
+  const profiles = resolvedProfiles ?? await resolveTaxProfiles(tenantId, selectedProfileIds);
   if (profiles.length === 0) {
     return [];
   }

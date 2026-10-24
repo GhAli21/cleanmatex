@@ -109,7 +109,7 @@ interface OrderSummaryPanelProps {
   bags?: number;
   onBagsChange?: (count: number) => void;
   // Edit item notes (navigates to pieces tab)
-  onEditItemNotes?: (itemId: string) => void;
+  onEditItemPreferences?: (itemId: string) => void;
   showPaymentModalVersionSelector?: boolean;
   paymentModalVersion?: PaymentModalVersion;
   onPaymentModalVersionChange?: (value: PaymentModalVersion) => void;
@@ -158,7 +158,7 @@ function OrderSummaryPanelComponent({
   onExpressToggle,
   bags = 0,
   onBagsChange,
-  onEditItemNotes,
+  onEditItemPreferences,
   showPaymentModalVersionSelector = false,
   paymentModalVersion = PAYMENT_MODAL_VERSIONS.V4,
   onPaymentModalVersionChange,
@@ -310,7 +310,7 @@ function OrderSummaryPanelComponent({
         <ItemCartList
           items={items}
           onEditItem={onEditItem}
-          onEditItemNotes={onEditItemNotes}
+          onEditItemPreferences={onEditItemPreferences}
           onDeleteItem={handleDeleteItem}
           onPiecesChange={onPiecesChange}
           onCopyPieceToAll={onCopyPieceToAll}

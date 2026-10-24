@@ -15,9 +15,10 @@ jest.mock('@/lib/db/prisma', () => ({
     $transaction: jest.fn(),
     $queryRaw: jest.fn(),
     org_promotions_mst: { findFirst: jest.fn(), findMany: jest.fn() },
-    org_promotion_usage_dtl: { count: jest.fn() },
+    org_promotion_usage_dtl: { count: jest.fn(), groupBy: jest.fn() },
     org_discount_rules_cf: { findMany: jest.fn() },
     org_customers_mst: { findFirst: jest.fn() },
+    org_customer_category_cf: { findFirst: jest.fn() },
   },
 }));
 
@@ -45,11 +46,13 @@ jest.mock('@/lib/utils/logger', () => ({
 // ---------------------------------------------------------------------------
 
 import { prisma } from '@/lib/db/prisma';
+import { tenantSettingsService } from '@/lib/services/tenant-settings.service';
 import {
   applyPromoCodeTx,
   getBestDiscount,
   evaluatePromoCode,
   evaluateBestAutoApplyPromo,
+  validatePromoCode,
 } from '@/lib/services/discount-service';
 
 const mockDiscountRulesFindMany = prisma.org_discount_rules_cf.findMany as jest.Mock;
@@ -398,5 +401,66 @@ describe('discount-service — evaluatePromoCode (unified validator)', () => {
     );
     expect(r?.isValid).toBe(true);
     expect(r?.promo?.id).toBe('auto-1');
+  });
+
+  it('shares currency/customer facts and groups usage once while retaining first-candidate ties', async () => {
+    const rows = ['auto-1', 'auto-2', 'auto-3'].map((id) => makePromoRow({
+      id, is_auto_apply: true, applicable_customer_grps: ['VIP'], max_uses_per_customer: 2,
+    }));
+    mockPromoFindMany.mockResolvedValue(rows);
+    jest.mocked(prisma.org_customers_mst.findFirst).mockResolvedValue({ type: 'VIP', customer_category_id: 'category-1' } as never);
+    jest.mocked(prisma.org_customer_category_cf.findFirst).mockResolvedValue({ code: 'GOLD' } as never);
+    jest.mocked(prisma.org_promotion_usage_dtl.groupBy).mockResolvedValue([
+      { promo_code_id: 'auto-1', _count: { _all: 2 } },
+      { promo_code_id: 'auto-2', _count: { _all: 1 } },
+    ] as never);
+    const result = await evaluateBestAutoApplyPromo({ ...base, customerId: 'cust-1' });
+    expect(result?.promo?.id).toBe('auto-2');
+    expect(tenantSettingsService.getCurrencyConfig).toHaveBeenCalledTimes(1);
+    expect(prisma.org_customers_mst.findFirst).toHaveBeenCalledTimes(1);
+    expect(prisma.org_customer_category_cf.findFirst).toHaveBeenCalledWith({
+      where: { id: 'category-1', tenant_org_id: 'tenant-abc' }, select: { code: true },
+    });
+    expect(prisma.org_promotion_usage_dtl.groupBy).toHaveBeenCalledTimes(1);
+    expect(prisma.org_promotion_usage_dtl.groupBy).toHaveBeenCalledWith({
+      by: ['promo_code_id'],
+      where: { tenant_org_id: 'tenant-abc', customer_id: 'cust-1', promo_code_id: { in: ['auto-1', 'auto-2', 'auto-3'] }, voided_at: null },
+      _count: { _all: true },
+    });
+    expect(mockUsageCount).not.toHaveBeenCalled();
+    expect(mockPromoFindMany.mock.calls[0][0]).toMatchObject({ take: 25, orderBy: { discount_value: 'desc' } });
+  });
+
+  it('uses supplied calculation currency and avoids unused customer/usage facts', async () => {
+    mockPromoFindMany.mockResolvedValue([
+      makePromoRow({ id: 'invalid-category', applicable_categories: ['OTHER'], max_uses_per_customer: 1 }),
+      makePromoRow({ id: 'winner' }),
+    ]);
+    const result = await evaluateBestAutoApplyPromo({
+      ...base, customerId: 'cust-1', serviceCategories: ['WASH'],
+      currencyConfig: { currencyCode: 'SAR', decimalPlaces: 2 },
+    });
+    expect(result?.promo?.id).toBe('winner');
+    expect(tenantSettingsService.getCurrencyConfig).not.toHaveBeenCalled();
+    expect(prisma.org_customers_mst.findFirst).not.toHaveBeenCalled();
+    expect(prisma.org_promotion_usage_dtl.groupBy).not.toHaveBeenCalled();
+  });
+
+  it('rechecks grouped usage on each evaluation instead of caching customer availability', async () => {
+    mockPromoFindMany.mockResolvedValue([makePromoRow({ max_uses_per_customer: 1 })]);
+    jest.mocked(prisma.org_promotion_usage_dtl.groupBy)
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([{ promo_code_id: 'promo-1', _count: { _all: 1 } }] as never);
+    expect((await evaluateBestAutoApplyPromo({ ...base, customerId: 'cust-1' }))?.promo?.id).toBe('promo-1');
+    expect(await evaluateBestAutoApplyPromo({ ...base, customerId: 'cust-1' })).toBeNull();
+    expect(prisma.org_promotion_usage_dtl.groupBy).toHaveBeenCalledTimes(2);
+  });
+
+  it('strict typed promo validation propagates read failures while legacy callers retain their response', async () => {
+    mockPromoFindFirst.mockRejectedValue(new Error('database unavailable'));
+    await expect(validatePromoCode({ promo_code: 'SUMMER10', order_total: 100 }, {
+      tenantId: 'tenant-abc', currencyConfig: { currencyCode: 'OMR', decimalPlaces: 3 }, strictResolution: true,
+    })).rejects.toThrow('database unavailable');
+    await expect(validatePromoCode({ promo_code: 'SUMMER10', order_total: 100 })).resolves.toMatchObject({ isValid: false });
   });
 });

@@ -8,7 +8,15 @@ import type {
   OrderPaymentRow,
   OrderRefundRow,
   OrderTaxRow,
+  TaxDocumentSummaryRow,
 } from '@/app/actions/orders/get-order-financial';
+
+/** A finance voucher linked to an order money row. */
+export interface OrderVoucherReference {
+  voucherId: string;
+  voucherLineId: string | null;
+  source: 'PAYMENT' | 'REFUND' | 'CREDIT_APPLICATION';
+}
 
 /**
  *
@@ -122,6 +130,18 @@ export interface OrderFinancialSummaryViewModel {
     overpaidAmount: number;
     payOnCollectionAmount: number;
     arReceivableAmount: number;
+    /** Snapshot facts (BF-06), all from the stored snapshot. */
+    pendingPaymentAmount: number;
+    authorizedPaymentAmount: number;
+    failedPaymentAmount: number;
+    /** Refunds paid back as real money (cash, card, original method). */
+    realPaymentRefundedAmount: number;
+    /** Refunds that restored stored value (wallet, gift card). */
+    storedValueRestoredAmount: number;
+    /** Refunds issued as customer credit. */
+    customerCreditIssuedAmount: number;
+    /** Cash change handed back at payment. */
+    changeReturnedAmount: number;
   };
 
   payment: {
@@ -130,7 +150,11 @@ export interface OrderFinancialSummaryViewModel {
   };
 
   arInvoice: OrderArInvoiceView | null;
+  /** Every AR invoice billing this order, newest first; `arInvoice` is the primary one (BF-07). */
+  arInvoices: OrderArInvoiceView[];
   taxDocument: OrderTaxDocumentView | null;
+  /** The full tax-document chain, newest first, including credit and debit notes (BF-13). */
+  taxDocuments: OrderTaxDocumentView[];
 
   payments: OrderPaymentRow[];
   creditApplications: OrderCreditApplicationRow[];
@@ -140,6 +164,8 @@ export interface OrderFinancialSummaryViewModel {
   refunds: OrderRefundRow[];
   adjustments: OrderAdjustmentRow[];
   auditTimeline: OrderFinancialTimelineRow[];
+  /** Finance voucher links of payments, refunds and credit applications (BF-06). */
+  voucherReferences: OrderVoucherReference[];
 
   warnings: FinancialWarning[];
   reconciliationStatus: 'ok' | 'warning' | 'error';
@@ -168,6 +194,7 @@ export interface MapOrderFinancialSummaryInput {
   refunds: OrderRefundRow[];
   adjustments: OrderAdjustmentRow[];
   auditTimeline: OrderFinancialTimelineRow[];
+  voucherReferences?: OrderVoucherReference[];
   order?: {
     rounding_adjustment_amount?: number | null;
     status?: string | null;
@@ -180,5 +207,7 @@ export interface MapOrderFinancialSummaryInput {
   preferenceExtraTotal?: number;
   pieceExtraTotal?: number;
   arInvoice?: OrderArInvoiceView | null;
+  arInvoices?: OrderArInvoiceView[];
   taxDocument?: OrderTaxDocumentView | null;
+  taxDocuments?: TaxDocumentSummaryRow[];
 }

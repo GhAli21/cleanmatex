@@ -20,9 +20,12 @@ export type ProductUnit = 'piece' | 'kg' | 'item';
  */
 export type CSVTemplateType = 'basic' | 'advanced';
 /**
- *
+ * org_product_data_mst.price_type values (DB-mirror; M4,
+ * 0642_tax_profile_rounding.sql normalizes the DB to this exact set and adds
+ * a CHECK constraint). `per_kg` does not exist in the DB and is not planned;
+ * removed rather than kept as a dead option no CHECK would ever allow.
  */
-export type PriceType = 'fixed' | 'per_piece' | 'per_kg';
+export type PriceType = 'FIXED' | 'PER_PC';
 
 // ==================================================================
 // SERVICE CATEGORIES

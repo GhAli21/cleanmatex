@@ -94,7 +94,14 @@ export async function getInvoiceByNumber(
 }
 
 /**
- * Get all invoices for an order
+ * Get every AR invoice that bills an order, newest first (BF-07).
+ *
+ * An order is billed either by its own invoice (`org_invoice_mst.order_id`) or
+ * as one of several orders on a consolidated invoice (`org_invoice_orders_dtl`).
+ * Both are returned, de-duplicated. When a link row exists, its per-order
+ * `invoiced_amount` / `outstanding_amount` are carried as `order_invoiced_amount`
+ * / `order_outstanding_amount`, so callers show this order's share, not the
+ * whole invoice.
  */
 export async function getInvoicesForOrder(
   orderId: string
@@ -107,17 +114,41 @@ export async function getInvoicesForOrder(
 
   // Tenant context for the guard; every query still filters tenant_org_id explicitly
   return withTenantContext(tenantId, async () => {
-    const invoices = await prisma.org_invoice_mst.findMany({
+    const links = await prisma.org_invoice_orders_dtl.findMany({
       where: {
         tenant_org_id: tenantId,
         order_id: orderId,
+        is_active: true,
+        rec_status: 1,
+      },
+      select: { invoice_id: true, invoiced_amount: true, outstanding_amount: true },
+    });
+    const linkByInvoiceId = new Map(links.map((link) => [link.invoice_id, link]));
+
+    const invoices = await prisma.org_invoice_mst.findMany({
+      where: {
+        tenant_org_id: tenantId,
+        OR: [
+          { order_id: orderId },
+          ...(links.length > 0 ? [{ id: { in: [...linkByInvoiceId.keys()] } }] : []),
+        ],
       },
       orderBy: {
         created_at: 'desc',
       },
     });
 
-    return invoices.map(mapInvoiceToType);
+    return invoices.map((invoice) => {
+      const mapped = mapInvoiceToType(invoice);
+      const link = linkByInvoiceId.get(invoice.id);
+      return link
+        ? {
+            ...mapped,
+            order_invoiced_amount: Number(link.invoiced_amount),
+            order_outstanding_amount: Number(link.outstanding_amount),
+          }
+        : mapped;
+    });
   });
 }
 

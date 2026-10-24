@@ -19,11 +19,10 @@ import {
   evaluateBestAutoApplyPromo,
 } from './discount-service';
 import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
-import { calculateTaxDetailed } from './tax-engine.service';
+import { calculateTaxDetailed, type ResolvedTaxProfileSnapshot } from './tax-engine.service';
 import { resolveTaxPricingMode } from './pricing-mode-resolver.service';
 import { extractTaxFromInclusive } from './order-financial-write.service';
 import { resolveCurrencyRoundingRule, roundToIncrement } from '@/lib/money/currency-rounding';
-import type { PriceResult } from '@/lib/types/pricing';
 import { DISCOUNT_SOURCE_TYPE, DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { TAX_TYPES, TAX_PRICING_MODES } from '@/lib/constants/order-financial';
 import type { DiscountLineInput } from '@/lib/db/order-discounts';
@@ -60,6 +59,12 @@ export interface OrderCalculationParams {
   taxProfileIds?: string[];
   /** User ID for USER_OVERRIDE in 7-layer settings resolution. */
   userId?: string;
+  /** Checkout quotes fail on tax-setting transport errors; legacy callers retain their existing fallback behavior. */
+  strictFinancialReads?: boolean;
+  /** Internal quote facts; never populated from client request JSON. */
+  resolvedTaxProfiles?: ResolvedTaxProfileSnapshot;
+  /** Optional request-local instrumentation preserves each operation's result/error semantics. */
+  measure?: <T>(stage: string, operation: () => Promise<T>) => Promise<T>;
   /**
    * B18 — order-level charge facts (e.g. order-wide preferences selected via
    * `prefs_level=ORDER`), independent of any single item. Not discountable
@@ -135,16 +140,15 @@ export async function calculateOrderTotals(
   } = params;
 
   const supabase = await createClient();
+  const measure: NonNullable<OrderCalculationParams['measure']> = params.measure ?? ((_stage, operation) => operation());
   const tenantSettings = createTenantSettingsService(supabase);
-  const tax = new TaxService({ tenantSettings });
-  const pricingMode = await resolveTaxPricingMode(prisma, tenantId, branchId ?? null);
+  const tax = new TaxService({ tenantSettings, strictResolution: params.strictFinancialReads ?? false });
+  // Both reads are independent; currency remains the sole precision authority for this calculation.
+  const [pricingMode, currencyConfig] = await Promise.all([
+    measure('pricing_mode', () => resolveTaxPricingMode(prisma, tenantId, branchId ?? null)),
+    measure('currency', () => tenantSettings.getCurrencyConfig(tenantId, branchId, userId)),
+  ]);
   const isInclusive = pricingMode === TAX_PRICING_MODES.TAX_INCLUSIVE;
-
-  const currencyConfig = await tenantSettings.getCurrencyConfig(
-    tenantId,
-    branchId,
-    userId
-  );
   const decimalPlaces = currencyConfig.decimalPlaces ?? 3;
   // B15: getCurrencyConfig now fails loudly when the tenant currency is
   // unconfigured, so no fallback exists here.
@@ -178,22 +182,15 @@ export async function calculateOrderTotals(
     };
   }
 
-  const priceResults: PriceResult[] = await Promise.all(
-    items.map((item) =>
-      pricingService.getPriceForOrderItem({
-        tenantId,
-        productId: item.productId,
-        quantity: item.quantity,
-        isExpress,
-        customerId,
-      })
-    )
-  );
+  const basePrices = await measure('pricing', () => pricingService.getBasePricesForOrder({
+    tenantId, items, isExpress, customerId, decimalPlaces,
+    strictResolution: params.strictFinancialReads ?? false,
+  }));
 
-  const subtotal = priceResults.reduce(
-    (sum, result, i) => {
+  const subtotal = basePrices.reduce(
+    (sum, basePrice, i) => {
       const item = items[i];
-      const unitPrice = item.priceOverride ?? result.basePrice;
+      const unitPrice = item.priceOverride ?? basePrice;
 
       return (
         sum +
@@ -227,12 +224,12 @@ export async function calculateOrderTotals(
 
   // Evaluate automatic discount rules — best single rule wins.
   let autoRuleDiscount = 0;
-  const bestRule = await getBestDiscount(tenantId, {
+  const bestRule = await measure('discounts', () => getBestDiscount(tenantId, {
     order_total: afterManualDiscount,
     items_count: items.length,
     service_categories: serviceCategories ?? [],
     order_date: new Date().toISOString(),
-  });
+  }));
   if (bestRule) {
     autoRuleDiscount = round(
       Math.min(bestRule.discount_amount, afterManualDiscount),
@@ -249,14 +246,14 @@ export async function calculateOrderTotals(
   /** Resolved promo id for usage logging (typed code or is_auto_apply promo). */
   let resolvedPromoId: string | undefined = promoCodeId;
 
-  const resolveTypedOrAutoPromo = async (orderBase: number) => {
+  const resolveTypedOrAutoPromo = async (orderBase: number) => measure('promos', async () => {
     if (promoCode?.trim()) {
       const promoResult = await validatePromoCode({
         promo_code: promoCode,
         order_total: orderBase,
         customer_id: customerId,
         service_categories: serviceCategories,
-      });
+      }, { tenantId, currencyConfig, strictResolution: params.strictFinancialReads ?? false });
       if (promoResult.isValid && promoResult.discountAmount != null) {
         return {
           amount: round(Math.min(promoResult.discountAmount, orderBase), decimalPlaces),
@@ -272,6 +269,7 @@ export async function calculateOrderTotals(
       orderTotal: orderBase,
       customerId,
       serviceCategories,
+      currencyConfig,
     });
     if (auto?.isValid && auto.discountAmount != null && auto.promo) {
       return {
@@ -281,7 +279,7 @@ export async function calculateOrderTotals(
       };
     }
     return { amount: 0, promoId: undefined as string | undefined, sourceName: 'Promo Code' };
-  };
+  });
 
   let promoSourceName = 'Promo Code';
   if (bestRule && !bestRule.rule.can_stack_with_promo) {
@@ -306,7 +304,7 @@ export async function calculateOrderTotals(
     decimalPlaces
   );
 
-  const { lines: taxBreakdown, exempt: isTaxExemptOrder } = await calculateTaxDetailed({
+  const { lines: taxBreakdown, exempt: isTaxExemptOrder } = await measure('tax', () => calculateTaxDetailed({
     tenantId,
     branchId,
     customerId,
@@ -315,7 +313,8 @@ export async function calculateOrderTotals(
     decimalPlaces,
     selectedProfileIds: taxProfileIds,
     pricingMode,
-  });
+    ...(params.resolvedTaxProfiles ? { resolvedTaxProfiles: params.resolvedTaxProfiles } : {}),
+  }));
 
   let vatTaxPercent = round(
     taxBreakdown.find((line) => line.taxType === TAX_TYPES.VAT || line.taxType === TAX_TYPES.GST)?.rate ?? 0,
@@ -347,7 +346,7 @@ export async function calculateOrderTotals(
   // PF-04: an exempt order has no lines BY DESIGN and carries no tax; it must
   // never fall back to the tenant VAT rate.
   if (taxBreakdown.length === 0 && !isTaxExemptOrder) {
-    const vatRate = await tax.getTaxRate(tenantId, branchId, userId);
+    const vatRate = await measure('tax_fallback', () => tax.getTaxRate(tenantId, branchId, userId));
     vatTaxPercent = round(vatRate * 100, 2);
     vatValue = isInclusive
       ? round(extractTaxFromInclusive(afterDiscounts, vatRate).taxAmount, decimalPlaces)
@@ -380,7 +379,7 @@ export async function calculateOrderTotals(
   // whenever no active rule exists or the rule's increment equals the
   // currency's native decimal step — true for every currently-seeded row.
   let roundingAdjustmentAmount = 0;
-  const currencyRoundingRule = await resolveCurrencyRoundingRule(currencyCode);
+  const currencyRoundingRule = await measure('rounding', () => resolveCurrencyRoundingRule(currencyCode));
   if (currencyRoundingRule) {
     const roundedTotal = roundToIncrement(
       amountBeforeGiftCard,
@@ -397,9 +396,15 @@ export async function calculateOrderTotals(
   if (resolvedGiftCardId || resolvedGiftCardNumber) {
     // Prefer ID-based lookup: the card was pre-authenticated (PIN verified) during the
     // fetch step. Falling back to number-based lookup handles legacy/direct-number cases.
-    const giftCardResult = resolvedGiftCardId
-      ? await validateGiftCardByIdForCalculation(resolvedGiftCardId, tenantId)
-      : await validateGiftCard({ gift_card_code: resolvedGiftCardNumber! });
+    const giftCardResult = await measure('gift_card', () => resolvedGiftCardId
+      ? params.strictFinancialReads
+        ? validateGiftCardByIdForCalculation(resolvedGiftCardId, tenantId, { strictResolution: true })
+        : validateGiftCardByIdForCalculation(resolvedGiftCardId, tenantId)
+      : params.strictFinancialReads
+        ? validateGiftCard({ gift_card_code: resolvedGiftCardNumber! }, { tenantId, strictResolution: true })
+        : validateGiftCard({ gift_card_code: resolvedGiftCardNumber! }));
+    // Retain the cashier's chosen credit on screen; an invalid quote cannot silently remove it.
+    if (params.strictFinancialReads && !giftCardResult.isValid) throw new Error('GIFT_CARD_INVALID');
     if (
       giftCardResult.isValid &&
       giftCardResult.availableBalance != null &&

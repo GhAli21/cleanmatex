@@ -63,6 +63,8 @@ const ORDER_ITEM_STATE_SELECT = `
   tenant_org_id,
   order_item_srno,
   quantity,
+  price_per_unit,
+  total_price,
   quantity_ready,
   service_category_code,
   item_last_step,

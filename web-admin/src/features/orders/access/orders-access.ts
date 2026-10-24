@@ -93,6 +93,15 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
+        label: 'Orders Payment Quote',
+        method: 'POST',
+        path: '/api/v1/orders/payment-quote',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'Invoices From Orders',
         method: 'POST',
         path: '/api/v1/ar/invoices/from-orders',
@@ -928,6 +937,15 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     label: 'Edit Order',
     page: {},
     apiDependencies: [
+      {
+        label: 'Orders Payment Quote',
+        method: 'POST',
+        path: '/api/v1/orders/payment-quote',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
       {
         label: 'Order Change Preview',
         method: 'POST',

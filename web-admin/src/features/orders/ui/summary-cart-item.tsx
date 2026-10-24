@@ -9,7 +9,7 @@
 'use client';
 
 import { memo, useMemo } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
@@ -97,7 +97,7 @@ interface SummaryCartItemProps {
   /** Packing catalog surcharges by code (aligns with `org_packing_preference_cf.default_extra_price`) */
   packingExtraPriceByCode?: Record<string, number>;
   onEditPrice?: () => void;
-  onEditNotes?: () => void;
+  onEditPreferences?: () => void;
   onDelete: () => void;
 }
 
@@ -117,11 +117,12 @@ function SummaryCartItemComponent({
   preferenceLabelByCode = {},
   packingExtraPriceByCode = {},
   onEditPrice,
-  onEditNotes,
+  onEditPreferences,
   onDelete,
 }: SummaryCartItemProps) {
   const isRTL = useRTL();
   const locale = useLocale();
+  const tPieces = useTranslations('newOrder.pieces');
   const { decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const getBilingual = useBilingual();
@@ -220,13 +221,14 @@ function SummaryCartItemComponent({
           {quantity}
         </span>
 
-        {/* Pen — edit notes/pieces */}
-        {onEditNotes && (
+        {/* Pen — edit item preferences */}
+        {onEditPreferences && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onEditNotes(); }}
+            onClick={(e) => { e.stopPropagation(); onEditPreferences(); }}
             className="shrink-0 p-0.5 text-gray-500 hover:text-purple-600 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-purple-400"
-            title="Edit notes / pieces"
+            title={tPieces('editItemPreferences')}
+            aria-label={tPieces('editItemPreferences')}
           >
             <Pencil className="w-3 h-3" />
           </button>

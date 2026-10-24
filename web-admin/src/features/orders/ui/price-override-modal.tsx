@@ -2,7 +2,8 @@
 
 /**
  * Price Override Modal
- * Allows authorized users to manually override item prices
+ * Allows authorized users to manually override item prices, or reset an
+ * existing override back to the default (calculated) price.
  */
 
 import { useState, useEffect } from 'react'
@@ -15,9 +16,9 @@ import { CmxButton, CmxMoneyField } from '@ui/primitives'
 import { CmxInput } from '@ui/primitives'
 import { CmxTextarea } from '@ui/primitives'
 import { CmxKeypad, KEYPAD_NUMERIC_3COL } from '@ui/utilities'
+import { cmxMessage } from '@ui/feedback'
 import { parseMoneyDraft, applyKeypadInput } from '@/lib/money/money-draft'
-import { AlertCircle, Info } from 'lucide-react'
-import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
+import { AlertCircle, Info, RotateCcw } from 'lucide-react'
 
 interface PriceOverrideModalProps {
     open: boolean
@@ -28,8 +29,12 @@ interface PriceOverrideModalProps {
         quantity: number
         calculatedPrice: number
         currentPrice?: number
+        /** True when the item already carries a price override (enables Reset). */
+        hasOverride?: boolean
     }
     onSave: (override: { price: number; reason: string }) => void
+    /** Clears the override price and reason, restoring the default price. */
+    onReset?: () => void
     hasPermission: boolean
 }
 
@@ -40,6 +45,7 @@ interface PriceOverrideModalProps {
  * @param root0.onClose
  * @param root0.item
  * @param root0.onSave
+ * @param root0.onReset
  * @param root0.hasPermission
  */
 export function PriceOverrideModal({
@@ -47,9 +53,11 @@ export function PriceOverrideModal({
     onClose,
     item,
     onSave,
+    onReset,
     hasPermission,
 }: PriceOverrideModalProps) {
-    const t = useTranslations('newOrder')
+    const t = useTranslations('newOrder.priceOverride')
+    const tCommon = useTranslations('common')
     const isRTL = useRTL()
     const locale = useLocale()
     const { currencyCode, decimalPlaces } = useTenantCurrency()
@@ -79,15 +87,13 @@ export function PriceOverrideModal({
 
         const price = parseMoneyDraft(overridePrice)
         if (price < 0) {
-            newErrors.price = 'Price must be a valid number >= 0'
+            newErrors.price = t('errors.invalidPrice')
         }
 
         if (!reason.trim()) {
-            newErrors.reason = 'Reason is required for price override'
-        }
-
-        if (reason.trim().length < 10) {
-            newErrors.reason = 'Reason must be at least 10 characters'
+            newErrors.reason = t('errors.reasonRequired')
+        } else if (reason.trim().length < 10) {
+            newErrors.reason = t('errors.reasonTooShort')
         }
 
         setErrors(newErrors)
@@ -104,13 +110,20 @@ export function PriceOverrideModal({
                 price,
                 reason: reason.trim(),
             })
-            showSuccessToast('Price override applied successfully')
+            cmxMessage.success(t('applied'))
             onClose()
-        } catch (err: any) {
-            showErrorToast(err.message || 'Failed to apply price override')
+        } catch (err: unknown) {
+            cmxMessage.error(err instanceof Error && err.message ? err.message : t('applyFailed'))
         } finally {
             setSaving(false)
         }
+    }
+
+    function handleReset() {
+        if (!onReset) return
+        onReset()
+        cmxMessage.success(t('reset'))
+        onClose()
     }
 
     if (!hasPermission) {
@@ -118,20 +131,20 @@ export function PriceOverrideModal({
             <CmxDialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
                 <CmxDialogContent>
                     <CmxDialogHeader>
-                        <CmxDialogTitle>Permission Denied</CmxDialogTitle>
+                        <CmxDialogTitle>{t('permissionDeniedTitle')}</CmxDialogTitle>
                     </CmxDialogHeader>
                     <div className={`flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                         <div className="flex-1">
-                            <p className="text-sm font-medium text-red-800">Access Denied</p>
+                            <p className="text-sm font-medium text-red-800">{t('accessDenied')}</p>
                             <p className="text-sm text-red-700 mt-1">
-                                You do not have permission to override prices. Please contact your administrator.
+                                {t('accessDeniedMessage')}
                             </p>
                         </div>
                     </div>
                     <CmxDialogFooter>
                         <CmxButton variant="outline" onClick={onClose}>
-                            Close
+                            {tCommon('close')}
                         </CmxButton>
                     </CmxDialogFooter>
                 </CmxDialogContent>
@@ -143,12 +156,13 @@ export function PriceOverrideModal({
     const priceDiffPercent = item.calculatedPrice > 0
         ? ((priceDiff / item.calculatedPrice) * 100).toFixed(1)
         : '0'
+    const canReset = Boolean(item.hasOverride && onReset)
 
     return (
         <CmxDialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
             <CmxDialogContent className="max-w-2xl">
                 <CmxDialogHeader>
-                    <CmxDialogTitle>Override Price</CmxDialogTitle>
+                    <CmxDialogTitle>{t('title')}</CmxDialogTitle>
                 </CmxDialogHeader>
 
                 <div className="space-y-4">
@@ -156,15 +170,15 @@ export function PriceOverrideModal({
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <p className="text-sm font-medium text-gray-900 mb-2">{item.productName}</p>
                         <div className={`flex items-center gap-4 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <span>Quantity: {item.quantity}</span>
-                            <span>Calculated Price: {fmt(item.calculatedPrice)}</span>
+                            <span>{t('quantity', { quantity: item.quantity })}</span>
+                            <span>{t('calculatedPrice', { price: fmt(item.calculatedPrice) })}</span>
                         </div>
                     </div>
 
                     {/* Current Calculated Price (Read-only) */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Calculated Price (Read-only)
+                            {t('calculatedPriceReadOnly')}
                         </label>
                         <CmxInput
                             value={String(roundMoneyAmount(item.calculatedPrice, decimalPlaces))}
@@ -176,7 +190,7 @@ export function PriceOverrideModal({
                     {/* Override Price */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Override Price ({currencyCode}) *
+                            {t('overridePriceLabel', { currency: currencyCode })}
                         </label>
                         <CmxMoneyField
                             value={parseMoneyDraft(overridePrice) || null}
@@ -192,8 +206,9 @@ export function PriceOverrideModal({
                         )}
                         {!errors.price && priceDiff !== 0 && (
                             <p className={`mt-1 text-sm ${priceDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                {priceDiff > 0 ? '+' : ''}{fmt(priceDiff)} ({priceDiffPercent}%)
-                                {priceDiff > 0 ? ' increase' : ' decrease'}
+                                {priceDiff > 0
+                                    ? t('priceIncrease', { amount: `+${fmt(priceDiff)}`, percent: priceDiffPercent })
+                                    : t('priceDecrease', { amount: fmt(priceDiff), percent: priceDiffPercent })}
                             </p>
                         )}
                         <div className="mt-3">
@@ -214,12 +229,12 @@ export function PriceOverrideModal({
                     {/* Reason */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Reason for Override *
+                            {t('reasonLabel')}
                         </label>
                         <CmxTextarea
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
-                            placeholder="Explain why you are overriding the calculated price..."
+                            placeholder={t('reasonPlaceholder')}
                             rows={4}
                             required
                         />
@@ -227,35 +242,53 @@ export function PriceOverrideModal({
                             <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
                         )}
                         <p className="mt-1 text-xs text-gray-500">
-                            Minimum 10 characters. This will be recorded in the audit trail.
+                            {t('reasonHint')}
                         </p>
                     </div>
 
                     {/* Info Box */}
                     <div className={`bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                         <div className="flex-1 text-sm text-blue-800">
-                            <p className="font-medium mb-1">Price Override Information</p>
+                            <p className="font-medium mb-1">{t('infoTitle')}</p>
                             <ul className={`list-disc list-inside space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                <li>Price overrides are logged in the audit trail</li>
-                                <li>Override applies to this item only</li>
-                                <li>Tax will be recalculated based on the override price</li>
-                                <li>This action requires pricing:override permission</li>
+                                <li>{t('infoAudit')}</li>
+                                <li>{t('infoScope')}</li>
+                                <li>{t('infoTax')}</li>
+                                <li>{t('infoPermission')}</li>
                             </ul>
                         </div>
                     </div>
+
+                    {/* Reset hint — states what the reset restores before the user clicks */}
+                    {canReset && (
+                        <p className="text-xs text-gray-500">
+                            {t('resetHint', { price: fmt(item.calculatedPrice) })}
+                        </p>
+                    )}
                 </div>
 
                 <CmxDialogFooter>
+                    {canReset && (
+                        <CmxButton
+                            type="button"
+                            variant="outline"
+                            onClick={handleReset}
+                            disabled={saving}
+                            className="me-auto"
+                        >
+                            <RotateCcw className="w-4 h-4 me-1.5" aria-hidden="true" />
+                            {t('resetToDefault')}
+                        </CmxButton>
+                    )}
                     <CmxButton type="button" variant="outline" onClick={onClose}>
-                        Cancel
+                        {tCommon('cancel')}
                     </CmxButton>
                     <CmxButton onClick={handleSave} disabled={saving}>
-                        {saving ? 'Saving...' : 'Apply Override'}
+                        {saving ? tCommon('saving') : t('apply')}
                     </CmxButton>
                 </CmxDialogFooter>
             </CmxDialogContent>
         </CmxDialog>
     )
 }
-

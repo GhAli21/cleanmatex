@@ -44,7 +44,14 @@ jest.mock('@/lib/money/currency-rounding', () => ({
   roundToIncrement: jest.requireActual('@/lib/money/currency-rounding').roundToIncrement,
 }));
 jest.mock('@/lib/services/pricing.service', () => ({
-  pricingService: { getPriceForOrderItem: (...a: unknown[]) => mockGetPriceForOrderItem(...a) },
+  pricingService: {
+    getPriceForOrderItem: (...a: unknown[]) => mockGetPriceForOrderItem(...a),
+    getBasePricesForOrder: async (params: { tenantId: string; items: { productId: string; quantity: number }[]; isExpress: boolean; customerId?: string }) =>
+      Promise.all(params.items.map(async (item) => (await mockGetPriceForOrderItem({
+        tenantId: params.tenantId, productId: item.productId, quantity: item.quantity,
+        isExpress: params.isExpress, customerId: params.customerId,
+      })).basePrice)),
+  },
 }));
 jest.mock('@/lib/services/tax.service', () => ({
   TaxService: jest.fn().mockImplementation(() => ({ getTaxRate: (...a: unknown[]) => mockGetTaxRate(...a) })),
@@ -256,7 +263,9 @@ describe('P1-01 golden — discounts', () => {
       items_count: 1,
       service_categories: ['DRY_CLEAN'],
     }));
-    expect(mockValidatePromoCode).toHaveBeenCalledWith(expect.objectContaining({ promo_code: 'save5', order_total: 9 }));
+    expect(mockValidatePromoCode).toHaveBeenCalledWith(expect.objectContaining({ promo_code: 'save5', order_total: 9 }), {
+      tenantId: TENANT, currencyConfig: { currencyCode: 'OMR', decimalPlaces: 3 }, strictResolution: false,
+    });
     expect(r.discountLines).toEqual([
       { sourceType: 'DISCOUNT_RULE', sourceId: 'rule-1', sourceName: 'Ten off', sourceName2: 'خصم', discountType: 'FIXED_AMOUNT', discountAmount: 1 },
       { sourceType: 'PROMO_CODE', sourceId: 'promo-1', sourceName: 'SAVE5', discountType: 'FIXED_AMOUNT', discountAmount: 0.5 },
@@ -274,7 +283,9 @@ describe('P1-01 golden — discounts', () => {
     const r = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'a', quantity: 1 }], promoCode: 'big' });
 
     expect([r.autoRuleDiscount, r.promoDiscount, r.afterDiscounts]).toEqual([0, 2, 8]);
-    expect(mockValidatePromoCode).toHaveBeenCalledWith(expect.objectContaining({ order_total: 10 }));
+    expect(mockValidatePromoCode).toHaveBeenCalledWith(expect.objectContaining({ order_total: 10 }), {
+      tenantId: TENANT, currencyConfig: { currencyCode: 'OMR', decimalPlaces: 3 }, strictResolution: false,
+    });
     expect(r.discountLines.map((l) => l.sourceType)).toEqual(['PROMO_CODE']);
   });
 

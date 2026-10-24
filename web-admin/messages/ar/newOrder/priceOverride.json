@@ -1,0 +1,31 @@
+{
+  "title": "تجاوز السعر",
+  "permissionDeniedTitle": "تم رفض الصلاحية",
+  "accessDenied": "الوصول مرفوض",
+  "accessDeniedMessage": "ليست لديك صلاحية تجاوز الأسعار. يرجى التواصل مع المسؤول.",
+  "quantity": "الكمية: {quantity}",
+  "calculatedPrice": "السعر المحسوب: {price}",
+  "calculatedPriceReadOnly": "السعر المحسوب (للقراءة فقط)",
+  "overridePriceLabel": "سعر التجاوز ({currency}) *",
+  "priceIncrease": "زيادة {amount} ({percent}%)",
+  "priceDecrease": "انخفاض {amount} ({percent}%)",
+  "reasonLabel": "سبب التجاوز *",
+  "reasonPlaceholder": "اشرح سبب تجاوز السعر المحسوب...",
+  "reasonHint": "10 أحرف على الأقل. سيتم تسجيله في سجل التدقيق.",
+  "infoTitle": "معلومات تجاوز السعر",
+  "infoAudit": "يتم تسجيل تجاوزات الأسعار في سجل التدقيق",
+  "infoScope": "ينطبق التجاوز على هذا العنصر فقط",
+  "infoTax": "سيتم إعادة احتساب الضريبة بناءً على سعر التجاوز",
+  "infoPermission": "يتطلب هذا الإجراء صلاحية pricing:override",
+  "apply": "تطبيق التجاوز",
+  "resetToDefault": "إعادة السعر الافتراضي",
+  "resetHint": "يزيل سعر التجاوز وسببه، ويعيد السعر إلى {price}.",
+  "applied": "تم تطبيق تجاوز السعر بنجاح",
+  "reset": "تمت إعادة السعر إلى السعر الافتراضي",
+  "applyFailed": "تعذر تطبيق تجاوز السعر",
+  "errors": {
+    "invalidPrice": "يجب أن يكون السعر رقمًا صالحًا أكبر من أو يساوي 0",
+    "reasonRequired": "السبب مطلوب لتجاوز السعر",
+    "reasonTooShort": "يجب أن يتكون السبب من 10 أحرف على الأقل"
+  }
+}
