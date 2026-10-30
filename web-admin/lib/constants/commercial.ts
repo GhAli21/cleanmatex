@@ -123,3 +123,84 @@ export const DISC_ALLOC_BASIS = {
 } as const;
 /** Derived union for `org_tenants_mst.disc_alloc_basis` values. */
 export type DiscAllocBasis = (typeof DISC_ALLOC_BASIS)[keyof typeof DISC_ALLOC_BASIS];
+
+/**
+ * Where a line's standard unit price came from, persisted in
+ * `org_order_items_dtl.price_source` / `org_order_item_pieces_dtl.price_source`
+ * (M5, `0643_line_money_items_pieces.sql`, CHECK `chk_oid_price_source`).
+ * The speed rule is recorded separately on `speed_rule_id`, so a line priced
+ * from a list plus an express rule still says `PRICE_LIST` (ADR-060 §5).
+ */
+export const PRICE_SOURCES = {
+  /** The tenant's standard price list. */
+  PRICE_LIST: 'PRICE_LIST',
+  /** The product's own default sell price (no list row matched). */
+  PRODUCT_DEFAULT: 'PRODUCT_DEFAULT',
+  /** The customer's own list (b2b / vip). */
+  CUSTOMER_PRICE: 'CUSTOMER_PRICE',
+  /** Reserved by the DB CHECK; not produced, because the speed rule is recorded on `speed_rule_id`. */
+  SPEED_RULE: 'SPEED_RULE',
+  /** A cashier override (`pricing:override`) or a custom item's entered price. */
+  MANUAL: 'MANUAL',
+} as const;
+/** Derived union for the line `price_source` values. */
+export type PriceSourceCode = (typeof PRICE_SOURCES)[keyof typeof PRICE_SOURCES];
+
+/**
+ * Tax rounding level persisted in `org_tax_profiles_cf.rounding_level` (M4,
+ * `0642_tax_profile_rounding.sql`, CHECK `chk_org_tax_prof_rounding_level`).
+ * `DOCUMENT` is the seeded default (today's behaviour, PLAN.md §9).
+ */
+export const TAX_ROUNDING_LEVELS = {
+  /** Round each row's tax; the header is the sum of the rows. */
+  LINE: 'LINE',
+  /** Round once per profile on the document total, then split it to rows exactly. */
+  DOCUMENT: 'DOCUMENT',
+} as const;
+/** Derived union for `org_tax_profiles_cf.rounding_level` values. */
+export type TaxRoundingLevel = (typeof TAX_ROUNDING_LEVELS)[keyof typeof TAX_ROUNDING_LEVELS];
+
+/**
+ * Internal reason codes written to the line `tax_exempt_reason` (M5) when the
+ * calculator, not the catalog, makes a line non-standard (ADR-060 §6, P0-10).
+ * A product's own `tax_exempt_reason` (country codes from
+ * `sys_tax_exempt_reason_cd`) is carried through unchanged instead.
+ */
+export const TAX_EXEMPT_REASONS = {
+  /** The customer holds an active exemption: every line is EXEMPT. */
+  CUSTOMER_EXEMPTION: 'CUSTOMER_EXEMPTION',
+  /** The line's service type holds an active exemption (per line, PF-05). */
+  SERVICE_EXEMPTION: 'SERVICE_EXEMPTION',
+  /** The product is non-standard in the catalog and names no reason of its own. */
+  PRODUCT_EXEMPT: 'PRODUCT_EXEMPT',
+} as const;
+/** Derived union of the internal exempt reason codes. */
+export type TaxExemptReason = (typeof TAX_EXEMPT_REASONS)[keyof typeof TAX_EXEMPT_REASONS];
+
+/**
+ * Which row of an item/piece pair carries the real price, persisted in
+ * `org_order_items_dtl.money_basis` / `org_order_item_pieces_dtl.money_basis`
+ * (M5, CHECK `chk_oid_money_basis`; PLAN.md §5.1).
+ */
+export const MONEY_BASIS = {
+  /** This row is priced by the calculator. */
+  PRICED: 'PRICED',
+  /** This row is an exact share of the item (ITEM level, or the PIECE fallback). */
+  ALLOCATED: 'ALLOCATED',
+  /** This row is the exact sum of its pieces (PIECE level). */
+  ROLLUP: 'ROLLUP',
+} as const;
+/** Derived union for the line `money_basis` values. */
+export type MoneyBasis = (typeof MONEY_BASIS)[keyof typeof MONEY_BASIS];
+
+/**
+ * `org_product_data_mst.price_type` values (M4 CHECK: FIXED / PER_PC / NULL).
+ * `FIXED` is a fixed price per unit, where one unit may be several pieces
+ * (a suit set), so it cannot be priced per piece (L23, PLAN.md §5.1).
+ */
+export const PRODUCT_PRICE_TYPES = {
+  FIXED: 'FIXED',
+  PER_PC: 'PER_PC',
+} as const;
+/** Derived union for `org_product_data_mst.price_type` values. */
+export type ProductPriceType = (typeof PRODUCT_PRICE_TYPES)[keyof typeof PRODUCT_PRICE_TYPES];

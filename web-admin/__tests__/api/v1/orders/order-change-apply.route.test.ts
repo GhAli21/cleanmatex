@@ -76,7 +76,7 @@ describe('POST /api/v1/orders/[id]/changes', () => {
     sessionMock.mockResolvedValue({ expiresAt: '2026-10-17T10:00:00.000Z' });
     requirePermissionMock.mockReturnValue(async () => ({ tenantId: TENANT_ID, userId: '33333333-3333-4333-8333-333333333333' }));
     contextMock.mockResolvedValue({ order: { currencyCode: 'OMR', paymentTypeCode: 'PAY_ON_COLLECTION' }, financial: { totalAmount: '10.0000' }, orderId: ORDER_ID });
-    factsMock.mockResolvedValue({ featureEnabled: true, bindings: [], quotesByTargetId: {}, catalog: [], taxMode: 'TAX_EXCLUSIVE', taxRatePercent: '0.0000', currencyDecimalPlaces: 3, payments: [], credits: [], refunds: [], proofKey: null });
+    factsMock.mockResolvedValue({ featureEnabled: true, bindings: [], priceEdit: jest.fn(), catalog: [], currencyDecimalPlaces: 3, payments: [], credits: [], refunds: [], proofKey: null });
     previewMock.mockResolvedValue({ ok: true, status: 'READY', calculationFingerprint: 'fingerprint-1', reviewProof: 'proof-1' });
     transactionMock.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => fn({}));
     applyMock.mockImplementation(async (input: { runInTransaction: (fn: (tx: unknown) => Promise<unknown>) => Promise<unknown> }) => {

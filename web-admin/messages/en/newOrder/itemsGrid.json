@@ -55,5 +55,6 @@
   "itemsSubtotal": "Items",
   "additionalServices": "Additional Services",
   "item": "Item",
-  "wholeItem": "Whole item"
+  "wholeItem": "Whole item",
+  "addCustomItem": "Custom item"
 }

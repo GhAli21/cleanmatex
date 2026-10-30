@@ -4,7 +4,6 @@
  */
 
 import {
-  createOrder,
   getOrders,
   getOrderState,
   transitionOrder,
@@ -21,66 +20,6 @@ global.fetch = jest.fn();
 describe('Workflow Orders API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  describe('POST /api/v1/orders - Create Order', () => {
-    it('should create order with workflow support', async () => {
-      const mockResponse = {
-        success: true,
-        data: {
-          id: 'order-1',
-          order_no: 'ORD-001-123456',
-          current_status: 'intake',
-          workflow_template_id: 'template-1',
-        },
-      };
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await createOrder({
-        customerId: 'cust-1',
-        items: [
-          { productId: 'prod-1', quantity: 2, pricePerUnit: 5.0 },
-        ],
-        express: false,
-      });
-
-      expect(fetch).toHaveBeenCalledWith('/api/v1/orders', expect.objectContaining({
-        method: 'POST',
-      }));
-      expect(result.id).toBe('order-1');
-      expect(result.current_status).toBe('intake');
-    });
-
-    it('should handle quick drop orders', async () => {
-      const mockResponse = {
-        success: true,
-        data: {
-          id: 'order-2',
-          is_quick_drop: true,
-          quick_drop_quantity: 10,
-          bag_count: 10,
-        },
-      };
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await createOrder({
-        customerId: 'cust-1',
-        isQuickDrop: true,
-        quickDropQuantity: 10,
-        items: [],
-      });
-
-      expect(result.is_quick_drop).toBe(true);
-      expect(result.quick_drop_quantity).toBe(10);
-    });
   });
 
   describe('GET /api/v1/orders - List Orders', () => {

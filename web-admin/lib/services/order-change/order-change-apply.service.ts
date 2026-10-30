@@ -7,17 +7,15 @@
 import { isOrderChangeOperationWriterAvailable } from '@/lib/constants/order-change';
 import {
   assertCommercialSnapshot,
-  syncReviewedTaxLine,
   buildCommercialWritePlan,
   loadCommercialWriteFacts,
   OrderChangeApplyRejected,
   preferenceParentIsLocal,
   PREFERENCE_OPERATION_CODES,
-  writeOrderSpeedCharge,
-  writePreferenceCharges,
   type CommercialWriteFacts,
   type CommercialWritePlan,
 } from '@/lib/services/order-change/order-change-commercial-write';
+import { editMoneyColumns, replaceEditChildRows, type EditChildRowsTx, type EditMoneyColumns } from '@/lib/services/commercial/commercial-edit.writer';
 import {
   buildStructuralWritePlan,
   loadStructuralWriteFacts,
@@ -30,7 +28,6 @@ import {
   type OrderChangeReviewProofKey,
 } from '@/lib/services/order-change/order-change-capability.service';
 import { collectionRequiredForPaymentType, mapPersistedFinancialOutcome, OrderChangeMutationError, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
-import { reviewedItemTotal } from '@/lib/services/order-change/order-change-calculation.service';
 import type { OrderChangePreviewSuccess, OrderChangeSpeedAudit } from '@/lib/services/order-change/order-change-preview.service';
 import { buildOrderChangeOperationAudit, digestOrderChangeOperationAudits } from '@/lib/services/order-change/order-change-review-audit';
 import { subMoney, toMoneyString } from '@/lib/utils/money';
@@ -42,7 +39,6 @@ const EMPTY_COMMERCIAL_FACTS: CommercialWriteFacts = {
   catalogById: new Map(),
   nextPrefsNo: 0,
   branchId: null,
-  orderLevelPreferenceIds: new Set(),
 };
 
 type ApplyRequest = z.infer<typeof orderChangeApplyRequestSchema>;
@@ -188,27 +184,6 @@ function speedSnapshot(
       total_price: item.totalPrice,
     })),
   });
-}
-
-/**
- * Reviewed Express or Standard prices for items that already exist.
- * The speed audit lists those items. New items keep the structural insert price.
- */
-function speedPriceUpdates(
-  lines: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string; embeddedExtra?: string }[],
-  actorUserId: string,
-  insertedIds: ReadonlySet<string>,
-  speedAudit: OrderChangeSpeedAudit,
-): CommercialWritePlan['itemUpdates'] {
-  const auditedIds = new Set(speedAudit.after.items.map((item) => item.orderItemId));
-  return lines.filter((line) => line.active && auditedIds.has(line.id) && !insertedIds.has(line.id)).map((line) => ({
-    id: line.id,
-    data: {
-      price_per_unit: line.unitPrice,
-      total_price: reviewedItemTotal(line),
-      updated_by: actorUserId,
-    },
-  }));
 }
 
 interface OperationBeforeFacts {
@@ -830,12 +805,12 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
   if (!hasPreference && !hasStructural && !speedChanged && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal)) {
     return { ok: false, status: 422, code: 'COMMERCIAL_TOTAL_CHANGED' };
   }
-  const speedPrices = input.preview.speedAudit
-    ? speedPriceUpdates(input.preview.lines ?? [], input.actorUserId, new Set(), input.preview.speedAudit)
-    : [];
-  if (speedChanged && !hasStructural && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal) && speedPrices.length === 0) {
-    return { ok: false, status: 422, code: 'STRUCTURE_PRICE_MISSING' };
+  // P6-01c: a priced edit stores the calculated order the review carried; nothing is priced here.
+  const priced = Boolean(input.preview.commercial);
+  if ((hasPreference || hasStructural || speedChanged) && !priced && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal)) {
+    return { ok: false, status: 422, code: 'REVIEW_NOT_READY' };
   }
+  const money = input.preview.commercial ? editMoneyColumns(input.preview.commercial) : null;
   if (preferenceParentIsLocal(input.request.operations)) {
     return { ok: false, status: 422, code: 'PREFERENCE_PARENT_NOT_PERSISTED' };
   }
@@ -851,7 +826,7 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
   const originalTotal = money4(input.preview.originalTotal);
   const projectedTotal = money4(input.preview.projectedTotal);
   const delta = toMoneyString(subMoney(projectedTotal, originalTotal));
-  const fields = orderFields(input.request);
+  const fields = { ...orderFields(input.request), ...moneyHeaderFields(money, input.request) };
   try {
     return await input.runInTransaction(async (tx) => {
     if (typeof tx.$queryRaw === 'function') {
@@ -872,10 +847,7 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       ? buildStructuralWritePlan(input.request.operations, input.preview.lines ?? [], structuralFacts, input.actorUserId)
       : null;
     const beforeFacts = await loadOperationBeforeFacts(tx, input.tenantId, input.orderId, input.request.operations);
-    const insertedIds = new Set((structural?.itemInserts ?? []).map((row) => row.id));
-    const speedPricesInTx = input.preview.speedAudit
-      ? speedPriceUpdates(input.preview.lines ?? [], input.actorUserId, insertedIds, input.preview.speedAudit)
-      : [];
+    const rows = withLineMoney(money, plan, structural, input.actorUserId);
     const auditBySeq = new Map([...plan.auditBySeq, ...(structural?.auditBySeq ?? [])]);
     const lockedOperations = persistedOperations(input.request, auditBySeq, input.preview.speedAudit, beforeFacts, plan, structural, input.orderId, input.preview);
     const digest = (operations: readonly OrderChangePersistedOperation[]) => digestOrderChangeOperationAudits(operations.map((operation) => ({
@@ -909,39 +881,23 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       preferenceInserts: plan.preferenceInserts.length > 0 ? plan.preferenceInserts : undefined,
       preferenceUpdates: plan.preferenceUpdates.length > 0 ? plan.preferenceUpdates : undefined,
       removePreferenceIds: plan.removePreferenceIds.length > 0 ? plan.removePreferenceIds : undefined,
-      itemInserts: structural && structural.itemInserts.length > 0 ? structural.itemInserts : undefined,
-      pieceInserts: structural && structural.pieceInserts.length > 0 ? structural.pieceInserts : undefined,
-      itemUpdates: mergedRows(plan.itemUpdates, [...(structural?.itemUpdates ?? []), ...speedPricesInTx]),
-      pieceUpdates: plan.pieceUpdates.length > 0 ? plan.pieceUpdates : undefined,
+      itemInserts: rows.itemInserts.length > 0 ? rows.itemInserts : undefined,
+      pieceInserts: rows.pieceInserts.length > 0 ? rows.pieceInserts : undefined,
+      itemUpdates: rows.itemUpdates,
+      pieceUpdates: rows.pieceUpdates,
       removeItemIds: structural && structural.removeItemIds.length > 0 ? structural.removeItemIds : undefined,
       removePieceIds: structural && structural.removePieceIds.length > 0 ? structural.removePieceIds : undefined,
       finalizeOperations: async () => {
-      await writePreferenceCharges(tx, {
-        tenantId: input.tenantId,
-        orderId: input.orderId,
-        actorUserId: input.actorUserId,
-        currencyCode: input.currencyCode as string,
-        appliedAt: input.appliedAt,
-        plan,
-      });
-      if (speedChanged) {
-        await writeOrderSpeedCharge(tx, {
-          tenantId: input.tenantId,
+      if (input.preview.commercial) {
+        await replaceEditChildRows(tx as unknown as EditChildRowsTx, {
+          tenantOrgId: input.tenantId,
           orderId: input.orderId,
-          actorUserId: input.actorUserId,
           currencyCode: input.currencyCode as string,
-          appliedAt: input.appliedAt,
-          amount: '0.0000',
+          userId: input.actorUserId,
+          at: input.appliedAt,
+          edit: input.preview.commercial,
         });
-      }
-      if (commercialMoneyChanged(plan) || structuralMoneyChanged(structural) || (speedChanged && !sameMoney(originalTotal, projectedTotal))) {
-        await syncReviewedTaxLine(tx, {
-          tenantId: input.tenantId,
-          orderId: input.orderId,
-          projectedTax: money4(input.preview.projectedTax),
-          actorUserId: input.actorUserId,
-          appliedAt: input.appliedAt,
-        });
+        // The rollup rebuilds the header from the rows; it must equal the reviewed total (I3).
         await assertCommercialSnapshot(tx, {
           tenantId: input.tenantId,
           orderId: input.orderId,
@@ -1008,6 +964,55 @@ function structuralPriceMissing(
   });
 }
 
+/**
+ * The order header facts that move with the calculated lines: the speed
+ * premium, and the ready-by when a line's time was counted again and the
+ * edit does not set the ready-by itself.
+ */
+function moneyHeaderFields(money: EditMoneyColumns | null, request: ApplyRequest): Record<string, unknown> {
+  if (!money) return {};
+  const readyBySet = request.operations.some((operation) => operation.code === 'CHANGE_READY_BY'
+    || (operation.code === 'CHANGE_UNLISTED' && operation.payload.field === 'order.readyBy'));
+  return {
+    speed_premium_amount: money.speedPremiumAmount,
+    ...(money.readyBy && !readyBySet ? { ready_by: money.readyBy } : {}),
+  };
+}
+
+/**
+ * Puts the calculated §6.1 columns on the rows the plans write: new items and
+ * pieces get them in their insert, every other active row in an update
+ * (an order discount re-split or a piece re-allocation moves untouched rows).
+ */
+function withLineMoney(
+  money: EditMoneyColumns | null,
+  plan: CommercialWritePlan,
+  structural: StructuralWritePlan | null,
+  actorUserId: string,
+): {
+  itemInserts: CommercialWritePlan['itemUpdates'];
+  pieceInserts: CommercialWritePlan['itemUpdates'];
+  itemUpdates: CommercialWritePlan['itemUpdates'] | undefined;
+  pieceUpdates: CommercialWritePlan['itemUpdates'] | undefined;
+} {
+  const itemInserts = (structural?.itemInserts ?? []).map((row) => withColumns(row, money?.items.get(row.id)));
+  const pieceInserts = (structural?.pieceInserts ?? []).map((row) => withColumns(row, money?.pieces.get(row.id)));
+  const inserted = new Set([...itemInserts, ...pieceInserts].map((row) => row.id));
+  const moneyUpdates = (columns: ReadonlyMap<string, object> | undefined) => [...(columns ?? new Map())]
+    .filter(([id]) => !inserted.has(id))
+    .map(([id, data]) => ({ id, data: { ...data, updated_by: actorUserId } }));
+  return {
+    itemInserts,
+    pieceInserts,
+    itemUpdates: mergedRows([...plan.itemUpdates, ...(structural?.itemUpdates ?? [])], moneyUpdates(money?.items)),
+    pieceUpdates: mergedRows(plan.pieceUpdates, moneyUpdates(money?.pieces)),
+  };
+}
+
+function withColumns(row: CommercialWritePlan['itemUpdates'][number], columns: object | undefined) {
+  return columns ? { id: row.id, data: { ...row.data, ...columns } } : row;
+}
+
 function mergedRows(
   first: CommercialWritePlan['itemUpdates'],
   second: StructuralWritePlan['itemUpdates'],
@@ -1020,22 +1025,4 @@ function mergedRows(
   }
   if (ids.length === 0) return undefined;
   return ids.map((id) => ({ id, data: byId.get(id) ?? {} }));
-}
-
-function structuralMoneyChanged(plan: StructuralWritePlan | null): boolean {
-  if (!plan) return false;
-  return plan.itemInserts.length > 0
-    || plan.pieceInserts.length > 0
-    || plan.itemUpdates.length > 0
-    || plan.removeItemIds.length > 0
-    || plan.removePieceIds.length > 0;
-}
-
-function commercialMoneyChanged(plan: CommercialWritePlan): boolean {
-  return plan.preferenceInserts.length > 0
-    || plan.preferenceUpdates.length > 0
-    || plan.removePreferenceIds.length > 0
-    || plan.orderCharges.length > 0
-    || plan.voidChargeSourceIds.length > 0
-    || plan.itemUpdates.some((row) => Object.prototype.hasOwnProperty.call(row.data, 'price_override'));
 }

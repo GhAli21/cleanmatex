@@ -146,6 +146,21 @@
       "permissionDenied": "You do not have permission to edit this order.",
       "unauthenticated": "Your session ended. Sign in again, then review the order.",
       "unknown": "The change could not be saved. The server returned {code}."
+    },
+    "pricingError": {
+      "orderNeedsRecompute": "This order was saved before line-by-line pricing, so its prices cannot be edited yet. Notes, ready-by and priority can still be changed.",
+      "overrideRequired": "A new line has a changed price, which needs the price override permission for Edit Order.",
+      "productNotFound": "An item is no longer in the catalog. Remove it from this change.",
+      "preferenceNotAvailable": "A preference is no longer available for this branch. Remove it from this change.",
+      "serviceSpeedInvalid": "The selected service speed is not available. Choose another speed.",
+      "timezoneNotConfigured": "The branch time zone is not set up, so prices cannot be dated. Ask an administrator to set it.",
+      "priceNotResolved": "A new item has no price set up. Ask an administrator to price it.",
+      "priceBelowMinimum": "A line price is below the item's minimum price.",
+      "lineDiscountExceedsGross": "A line discount is now more than the line price. Change the quantity or the discount.",
+      "documentDiscountExceedsBase": "The order discount is now more than the order amount. Add items back or ask a supervisor to change the discount.",
+      "documentDiscountExceedsLine": "The order discount cannot be shared across the remaining lines. Add items back or ask a supervisor to change the discount.",
+      "invalidAdjustment": "A discount on this order is not valid. Ask a supervisor to check it.",
+      "invariantFailed": "The new amounts did not add up, so nothing was saved. Review the order again, and report it if it happens again."
     }
   },
   "capability": {
@@ -313,5 +328,6 @@
       "value": "Value",
       "defaultCustomer": "Default customer"
     }
-  }
+  },
+  "legacyUpdateRetired": "This order's prices were calculated line by line. Save price, quantity or item changes through Edit Order review."
 }

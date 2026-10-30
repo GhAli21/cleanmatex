@@ -123,10 +123,17 @@ CREATE TABLE org_example_mst (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_by TEXT,
   created_info TEXT,
+  
   updated_at TIMESTAMP,
   updated_by TEXT,
   updated_info TEXT,
-  rec_status SMALLINT DEFAULT 1,
+  updated_count INTEGER DEFAULT 0, -- then on update updated_count=updated_count+1
+  
+  deleted_at TIMESTAMP,
+  deleted_by TEXT,
+  deleted_info TEXT,
+  
+  rec_status SMALLINT DEFAULT 1, -- 0 for soft delete 
   rec_order INTEGER,
   rec_notes TEXT,
   is_active BOOLEAN DEFAULT true
@@ -161,11 +168,22 @@ BEGIN
       tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
       %s,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      created_by VARCHAR(120),
-      updated_at TIMESTAMP,
-      updated_by VARCHAR(120),
-      rec_status SMALLINT DEFAULT 1,
-      is_active BOOLEAN NOT NULL DEFAULT true
+	  created_by TEXT,
+	  created_info TEXT,
+	  
+	  updated_at TIMESTAMP,
+	  updated_by TEXT,
+	  updated_info TEXT,
+	  updated_count INTEGER DEFAULT 0, -- then on update updated_count=updated_count+1
+	  
+	  deleted_at TIMESTAMP,
+	  deleted_by TEXT,
+	  deleted_info TEXT,
+	  
+	  rec_status SMALLINT DEFAULT 1, -- 0 for soft delete 
+	  rec_order INTEGER,
+	  rec_notes TEXT,
+	  is_active BOOLEAN DEFAULT true
     );
   ', table_name, columns);
 END;

@@ -1,0 +1,10 @@
+{
+  "title": "Prices changed",
+  "message": "Some item prices changed after the cart was priced. Nothing was saved.",
+  "item": "Item",
+  "shownPrice": "Shown",
+  "currentPrice": "Now",
+  "hint": "Use the current prices to update the cart and the payment amounts, then submit again. Back keeps everything as it is.",
+  "useCurrentPrices": "Use current prices",
+  "back": "Back"
+}

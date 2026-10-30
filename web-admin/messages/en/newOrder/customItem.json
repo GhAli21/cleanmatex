@@ -8,5 +8,6 @@
   "quantity": "Quantity",
   "notes": "Notes",
   "notesPlaceholder": "Add any special instructions...",
-  "add": "Add Item"
+  "add": "Add Item",
+  "priceHint": "Charged at the price you enter. Speed premiums from the category still apply, and the line is taxed as a standard service."
 }

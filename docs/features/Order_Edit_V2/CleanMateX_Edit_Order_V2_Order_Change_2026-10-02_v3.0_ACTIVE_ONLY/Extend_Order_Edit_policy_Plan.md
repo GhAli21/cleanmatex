@@ -10,6 +10,19 @@
 **Execution status:** `Extend_Order_Edit_policy_STATUS.md` in this folder. Every keep-or-improve decision is recorded there.
 **Object names (2026-10-23):** migration `0638_order_change_edit_policy_rename.sql` moved every Edit Policy object from `_wf_` to the Order Change `_oc_` namespace. This plan was written earlier and still uses the old names; read `sys_wf_edit_*` / `org_wf_edit_*` / `sys_wf_order_edit_*` / `sys_wf_resolve_edit_policy` as `sys_oc_edit_*` / `org_oc_edit_*` / `sys_oc_order_edit_*` / `sys_oc_resolve_edit_policy`. The full map is in the 0638 header.
 
+## Current canonical placement and runtime contract — 2026-10-30
+
+This section supersedes older passages in this plan that describe a per-organization `PROFILE` override or the former organization → profile override → version-default precedence. Those passages remain only as implementation history.
+
+- One Edit Policy remains reusable. `org_oc_edit_policy_asg_cf` links it to one organization regardless of workflow profile or version; `sys_oc_edit_policy_def_cf` links it to one workflow profile version; `sys_oc_edit_policy_profile_def_cf` links it to every active version of one workflow profile for every organization that uses that profile now or later.
+- Resolution is **ORGANIZATION → VERSION_DEFAULT → PROFILE**. A version row beats the profile default for that version, and an organization override beats both.
+- `PROFILE` now means the platform workflow-profile default. A live profile default requires an active Published policy with full coverage of every active Pilot or Published version. The organization assignment screen does not offer a profile scope.
+- Migration `0656_oc_edit_policy_profile_default.sql` deactivates existing live per-organization `PROFILE` rows and does not promote them into the platform profile default, because doing so would apply one organization's choice to every organization.
+- Link selection is separated from status/rule expansion. `sys_oc_resolve_policy_link(tenant, profile, version)` is the reusable selector; the existing `sys_oc_resolve_edit_policy(tenant, profile, version, status)` remains the compatibility facade used by the Organization app and HQ Effective Preview.
+- The Organization app derives profile, version, and status from the exact order loaded with `id + tenant_org_id`. Preview may become stale after that read, but Apply locks the same tenant-scoped order, reloads the tuple, re-resolves, compares policy ID/revision and workflow `state_version`, and only then writes.
+- Two orders in the same organization may carry different workflow profiles or versions and therefore resolve different version/profile policies. Tenant-only resolution and tenant-only caching are invalid. An incomplete or incoherent persisted workflow tuple fails closed; the runtime never guesses from current organization configuration.
+- Migration `0658_oc_policy_link_resolver.sql` is applied locally and remotely, and the tenant and HQ generated types plus tenant Prisma schema are refreshed. Read-only catalog checks verified the resolver signatures, grants, security mode, search path, comments, and invalid-context fail-closed behavior in both databases; one real remote persisted order tuple resolved to an organization override with 15 active rules and no deny reason; and the focused local database integration test verified precedence and distinct profile/version resolution for two orders in one organization. Live tenant/HQ browser parity remains pending, so these checks are not UI deployment evidence.
+
 ---
 
 ## Integration with the main plan

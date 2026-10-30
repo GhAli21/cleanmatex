@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-10-23T17:56:41.210Z
+Generated: 2026-10-28T02:26:55.465Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -26,6 +26,6 @@ Generated: 2026-10-23T17:56:41.210Z
 | pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 672 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
 | tax_inclusive_pricing | src/features/settings/ui/branch-settings-screen.tsx | 40 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
 | tax_inclusive_pricing | src/features/settings/ui/tenant-settings-screen.tsx | 28 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
-| usePlanFlags | src/features/orders/ui/new-order-content.tsx | 103 | usePlanFlags(); |
+| usePlanFlags | src/features/orders/ui/new-order-content.tsx | 109 | usePlanFlags(); |
 | whatsapp_receipts | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 538 | {plan.feature_flags.whatsapp_receipts && ( |
 | whatsapp_receipts | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 673 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |

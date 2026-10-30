@@ -296,3 +296,15 @@ After changing page access contracts (`src/features/*/access/*-access.ts`), navi
 3. Fix new drift in `docs/platform/inventories/DRIFT_REPORT.md`
 
 Do not hand-edit `GENERATED_*.md`.
+
+## Performance-sensitive frontend work
+
+Apply the relevant [performance engineering rules](../../../docs/dev/rules/performance-engineering.md) when changing query lifecycles, caching, asynchronous preparation or expensive rendering. Ordinary copy/styling edits do not require a benchmark project; existing verification rules still apply.
+
+- Share typed query options between early preparation and consumers. Overlap authorized independent reads, and prewarm only deliberately safe work; a read-shaped endpoint may perform maintenance or mutations.
+- Include authenticated tenant/cashier/session context and every relevant input in cache/query identity. Preserve meaningful array order and keep credentials and sensitive payloads out of persisted keys and logs.
+- Separate configuration freshness from current operational or financial authority. A long-lived catalog cache must not authorize an ended session or stale settlement; a cached display is not payment readiness.
+- Consume query-provided `AbortSignal`, bound failures/deadlines, and reject stale scope/revision responses even when cancellation races. Do not claim browser abort cancels database work already executing.
+- Keep loading/errors local to affected controls; optional metadata must not block unrelated valid actions. Preserve accessible focus, cancellation and recovery.
+- Preserve form state, entered money and legs/references during refresh. Invalidate obsolete confirmation when current financial authority is pending, changed or failed, and require explicit fresh review. Never silently rebalance or freeze inputs, or relabel typed money after currency/precision changes.
+- Profile relevant rendering before adding memoization, custom comparators or state stores. Avoid reset/synchronization effects and duplicate initialization requests; do not suppress required financial updates to reduce rerenders.

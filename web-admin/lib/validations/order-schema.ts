@@ -35,34 +35,7 @@ export const preparationStatusSchema = z.enum(['pending', 'in_progress', 'comple
 
 export const prioritySchema = z.enum(['normal', 'urgent', 'express']);
 
-export const orderTypeSchema = z.enum(['quick_drop', 'pickup', 'delivery', 'walk_in']);
-
 export const paymentStatusSchema = z.enum(['pending', 'partial', 'paid', 'refunded', 'failed']);
-
-// ==================================================================
-// CREATE ORDER SCHEMAS
-// ==================================================================
-
-/**
- * Schema for creating a Quick Drop order
- */
-export const createOrderSchema = z.object({
-  customerId: z.string().uuid('Invalid customer ID format'),
-  branchId: zUuidIfEnabled('Invalid branch ID format').optional(),
-  orderType: orderTypeSchema.default('quick_drop'),
-  serviceCategory: z.string().min(1, 'Service category is required'),
-  bagCount: z.number().int().min(1, 'Bag count must be at least 1').max(100, 'Bag count cannot exceed 100'),
-  priority: prioritySchema.default('normal'),
-  customerNotes: z.string().max(1000, 'Customer notes too long').optional(),
-  internalNotes: z.string().max(1000, 'Internal notes too long').optional(),
-  photoUrls: z.array(z.string().url('Invalid photo URL')).max(10, 'Maximum 10 photos allowed').optional(),
-  createdBy: z.string().uuid('Invalid createdBy format').optional(),
-});
-
-/**
- *
- */
-export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
 // ==================================================================
 // ADD ITEMS SCHEMAS

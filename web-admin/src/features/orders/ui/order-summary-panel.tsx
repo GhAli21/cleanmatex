@@ -7,15 +7,18 @@
 'use client';
 
 import { useState, memo, useCallback, useMemo, type Ref } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import {
   PAYMENT_MODAL_VERSIONS,
   type PaymentModalVersion,
 } from '../hooks/use-payment-modal-version';
-import { ItemCartList } from './item-cart-list';
+import { ItemCartList, type ItemCartListQuoteProps } from './item-cart-list';
+import { ServiceSpeedSelect } from './service-speed-select';
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
+import { CmxButton } from '@ui/primitives';
+import { CmxSummaryMessage } from '@ui/feedback';
+import { CartQuoteTotals, type CartQuoteTotalsProps } from './cart-quote-totals';
 import { EditControlNotice } from '../order-change/edit-control-notice';
 import { useEditControlGroup } from '../order-change/use-edit-control-capability';
 import { Calendar, Calculator, AlertCircle, Clock, User, Pencil, X } from 'lucide-react';
@@ -46,6 +49,8 @@ interface CartItem {
   serviceCategoryName2?: string;
   priceOverride?: number | null;
   overrideReason?: string | null;
+  /** The line's own speed; null follows the order speed. */
+  serviceSpeed?: string | null;
 }
 
 interface ColorCatalogEntry {
@@ -68,7 +73,11 @@ interface OrderSummaryPanelProps {
   notes: string;
   onNotesChange: (value: string) => void;
   readyByAt: string;
-  total: number;
+  /**
+   * New Order only: the server quote of the cart (P5-03). Order Edit passes
+   * nothing; its only total is the live edit card (D33).
+   */
+  cartQuote?: Omit<CartQuoteTotalsProps, 'currencyCode'>;
   currencyCode?: string;
   onSubmit: () => void;
   /** When set, this is the only primary action. The panel does not choose an API from edit mode. */
@@ -102,9 +111,16 @@ interface OrderSummaryPanelProps {
   onSelectCustomer?: () => void;
   onEditCustomer?: () => void;
   onClearCustomer?: () => void;
-  // Express toggle
-  express?: boolean;
-  onExpressToggle?: (value: boolean) => void;
+  /** The order speed code (`sys_service_speed_cd`). */
+  serviceSpeed?: string;
+  onServiceSpeedChange?: (serviceSpeed: string) => void;
+  /** Shown only when a line has its own speed. */
+  hasLineSpeedOverrides?: boolean;
+  onApplySpeedToAllLines?: () => void;
+  /** New Order: quoted figures per cart line and the line speed menus (P5-03b). */
+  lineQuote?: ItemCartListQuoteProps;
+  /** Rule #15: the lines a speed change re-priced, until dismissed. */
+  speedChangeNote?: { title: string; items: string[]; onDismiss: () => void } | null;
   // Bags
   bags?: number;
   onBagsChange?: (count: number) => void;
@@ -128,7 +144,7 @@ function OrderSummaryPanelComponent({
   notes,
   onNotesChange,
   readyByAt,
-  total,
+  cartQuote,
   currencyCode = '',
   onSubmit,
   primaryAction,
@@ -154,8 +170,12 @@ function OrderSummaryPanelComponent({
   onSelectCustomer,
   onEditCustomer,
   onClearCustomer,
-  express = false,
-  onExpressToggle,
+  serviceSpeed = SERVICE_SPEEDS.STANDARD,
+  onServiceSpeedChange,
+  hasLineSpeedOverrides = false,
+  onApplySpeedToAllLines,
+  lineQuote,
+  speedChangeNote,
   bags = 0,
   onBagsChange,
   onEditItemPreferences,
@@ -168,18 +188,9 @@ function OrderSummaryPanelComponent({
   const tEdit = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
-  const expressCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED']);
+  const speedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED']);
   const readyByCapability = useEditControlGroup(['CHANGE_READY_BY']);
   const lineCapability = useEditControlGroup(['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'ADD_PIECE', 'REMOVE_PIECE']);
-  const locale = useLocale();
-  const { decimalPlaces } = useTenantCurrency();
-  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
-  const fmtTotal = (n: number) =>
-    formatMoneyAmountWithCode(n, {
-      currencyCode: currencyCode as string,
-      decimalPlaces,
-      locale: moneyLocale,
-    });
   const [isCalculating, setIsCalculating] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   // V02_ENHANCED and V3 variants were retired; V4 is the only maintained modal.
@@ -271,32 +282,28 @@ function OrderSummaryPanelComponent({
         </button>
       </div>
 
-      {/* Express Toggle Row */}
-      <div className={`flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <span className="text-sm font-medium text-gray-700">
-          {tNewOrder('express.label') || t('expressService') || 'Express'}
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={express}
-          onClick={() => {
-            if (!expressCapability.interactive) return;
-            onExpressToggle?.(!express);
-          }}
-          disabled={!expressCapability.interactive}
-          aria-disabled={!expressCapability.interactive}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 ${
-            express ? 'bg-orange-500' : 'bg-gray-300'
-          }`}
-          aria-label={express ? (tNewOrder('topBar.expressOn') || 'Express On') : (tNewOrder('topBar.expressOff') || 'Express Off')}
-        >
-          <span
-            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
-              express ? (isRTL ? '-translate-x-4' : 'translate-x-4') : (isRTL ? '-translate-x-1' : 'translate-x-1')
-            }`}
-          />
-        </button>
+      {/* Order speed (§5.4): new lines follow it; "Apply to all lines" resets line overrides */}
+      <div className={`flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <span className="shrink-0 text-sm font-medium text-gray-700">{tNewOrder('serviceSpeed.label')}</span>
+        <ServiceSpeedSelect
+          className="flex-1 min-w-0"
+          value={serviceSpeed}
+          onChange={(code) => { if (code) onServiceSpeedChange?.(code); }}
+          disabled={!speedCapability.interactive || !onServiceSpeedChange}
+          disabledReason={tNewOrder('serviceSpeed.locked')}
+          ariaLabel={tNewOrder('serviceSpeed.orderAria')}
+        />
+        {hasLineSpeedOverrides && onApplySpeedToAllLines ? (
+          <CmxButton
+            type="button"
+            size="xs"
+            variant="outline"
+            onClick={onApplySpeedToAllLines}
+            disabled={!speedCapability.interactive}
+          >
+            {tNewOrder('serviceSpeed.applyToAll')}
+          </CmxButton>
+        ) : null}
       </div>
       <div className="px-3 pb-2">
         <EditControlNotice codes={['CHANGE_SERVICE_SPEED']} />
@@ -321,8 +328,21 @@ function OrderSummaryPanelComponent({
           colorCatalog={colorCatalog}
           preferenceLabelByCode={preferenceLabelByCode}
           packingExtraPriceByCode={packingExtraPriceByCode}
+          orderSpeed={serviceSpeed}
+          quote={lineQuote}
         />
       </div>
+
+      {speedChangeNote ? (
+        <div className="px-3 pb-2">
+          <CmxSummaryMessage
+            type="info"
+            title={speedChangeNote.title}
+            items={speedChangeNote.items}
+            onDismiss={speedChangeNote.onDismiss}
+          />
+        </div>
+      ) : null}
 
       {/* Footer */}
       <div className="shrink-0 border-t-2 border-gray-200 bg-white">
@@ -548,13 +568,15 @@ function OrderSummaryPanelComponent({
           </div>
         )}
 
-        {/* Submit Button */}
+        {cartQuote ? <CartQuoteTotals {...cartQuote} currencyCode={currencyCode} /> : null}
+
+        {/* Submit Button — carries no money (D33); the only total is the server one above */}
         <div className="p-3 bg-white border-t border-gray-200">
           <button
             ref={saveButtonRef}
             onClick={primaryAction ? primaryAction.onClick : (onOpenPaymentModal || onSubmit)}
             disabled={primaryAction ? primaryAction.disabled : (loading || !canSubmit)}
-            className={`w-full min-h-11 py-2.5 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all shadow-md flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
+            className="w-full min-h-11 py-2.5 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all shadow-md flex items-center justify-center"
           >
             <span className="text-base">
               {primaryAction
@@ -563,10 +585,6 @@ function OrderSummaryPanelComponent({
                   ? t('processing')
                   : tNewOrder('submitOrder'))}
             </span>
-            <div className={isRTL ? 'text-left' : 'text-right'}>
-              <p className="text-xs opacity-90">{t('total')}</p>
-              <p className="text-xl font-bold">{fmtTotal(total)}</p>
-            </div>
           </button>
 
           {/* Validation hints */}

@@ -54,6 +54,7 @@ import {
   CurrencyResolutionError,
 } from '@/lib/money/currency-resolution';
 import { priceOverrideErrorResponse } from '@/lib/api/price-override-http';
+import { PRICE_CHANGED, PriceChangedError } from '@/lib/services/commercial/price-confirmation';
 
 const IDEMPOTENCY_RESOURCE = 'submit_order';
 
@@ -464,6 +465,19 @@ export async function POST(request: NextRequest) {
     // PF-01: a price override without `pricing:override` (403) or without a reason (400).
     const priceOverrideResponse = priceOverrideErrorResponse(error);
     if (priceOverrideResponse) return priceOverrideResponse;
+
+    // D26: nothing was saved; the cashier sees each changed line and chooses.
+    if (error instanceof PriceChangedError) {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: PRICE_CHANGED,
+          error: 'Some item prices changed since the cart was priced. Review them and submit again.',
+          lines: error.lines,
+        },
+        { status: 409 },
+      );
+    }
 
     if (message === 'AMOUNT_MISMATCH') {
       return NextResponse.json(

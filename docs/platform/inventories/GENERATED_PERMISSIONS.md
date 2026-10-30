@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-10-23T17:56:41.210Z
+Generated: 2026-10-28T02:26:55.465Z
 
 ## By surface (counts)
 
@@ -266,7 +266,7 @@ Generated: 2026-10-23T17:56:41.210Z
 | notifications:read | api | app/api/v1/notifications/route.ts | 19 | /api/v1/notifications |
 | notifications:read | api | app/api/v1/notifications/unread-count/route.ts | 19 | /api/v1/notifications/unread-count |
 | notifications:view_log | api | app/api/v1/notifications/delivery-log/route.ts | 19 | /api/v1/notifications/delivery-log |
-| orders:apply_credit | screen | src/features/orders/ui/payment-full-view.tsx | 1617 | src/features/orders/ui/payment-full-view.tsx |
+| orders:apply_credit | screen | src/features/orders/ui/payment-full-view.tsx | 1624 | src/features/orders/ui/payment-full-view.tsx |
 | orders:apply_credit | api | app/api/v1/orders/[id]/credit-applications/route.ts | 35 | /api/v1/orders/[id]/credit-applications |
 | orders:approve_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 164 | src/features/billing/ui/refunds-list-client.tsx |
 | orders:approve_refund | api | app/api/v1/orders/refunds/[refundId]/approve/route.ts | 19 | /api/v1/orders/refunds/[refundId]/approve |
@@ -278,11 +278,11 @@ Generated: 2026-10-23T17:56:41.210Z
 | orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 41 | /api/v1/orders/[id]/collect-payment |
 | orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 45 | /api/v1/orders/[id]/payments |
 | orders:create | screen | src/features/auth/ui/RequirePermission.tsx | 35 | src/features/auth/ui/RequirePermission.tsx |
-| orders:create | api | app/api/v1/orders/payment-quote/route.ts | 56 | /api/v1/orders/payment-quote |
-| orders:create | api | app/api/v1/orders/preview-financials/route.ts | 25 | /api/v1/orders/preview-financials |
-| orders:create | api | app/api/v1/orders/preview-payment/route.ts | 36 | /api/v1/orders/preview-payment |
-| orders:create | api | app/api/v1/orders/route.ts | 47 | /api/v1/orders |
-| orders:create | api | app/api/v1/orders/submit-order/route.ts | 92 | /api/v1/orders/submit-order |
+| orders:create | api | app/api/v1/orders/payment-quote/route.ts | 59 | /api/v1/orders/payment-quote |
+| orders:create | api | app/api/v1/orders/preview-financials/route.ts | 26 | /api/v1/orders/preview-financials |
+| orders:create | api | app/api/v1/orders/preview-payment/route.ts | 32 | /api/v1/orders/preview-payment |
+| orders:create | api | app/api/v1/orders/quote/route.ts | 31 | /api/v1/orders/quote |
+| orders:create | api | app/api/v1/orders/submit-order/route.ts | 93 | /api/v1/orders/submit-order |
 | orders:create | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 98 | /api/v1/orders/[id]/items/[itemId]/pieces |
 | orders:create_adjustment | api | app/api/v1/orders/[id]/adjustments/route.ts | 38 | /api/v1/orders/[id]/adjustments |
 | orders:delete | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/route.ts | 202 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId] |
@@ -314,7 +314,7 @@ Generated: 2026-10-23T17:56:41.210Z
 | orders:read | api | app/api/v1/delivery/orders/[orderId]/active-stop/route.ts | 24 | /api/v1/delivery/orders/[orderId]/active-stop |
 | orders:read | api | app/api/v1/delivery/orders/[orderId]/proof/route.ts | 10 | /api/v1/delivery/orders/[orderId]/proof |
 | orders:read | api | app/api/v1/orders/pieces/[pieceId]/history/route.ts | 36 | /api/v1/orders/pieces/[pieceId]/history |
-| orders:read | api | app/api/v1/orders/route.ts | 212 | /api/v1/orders |
+| orders:read | api | app/api/v1/orders/route.ts | 39 | /api/v1/orders |
 | orders:read | api | app/api/v1/orders/[id]/change-context/route.ts | 34 | /api/v1/orders/[id]/change-context |
 | orders:read | api | app/api/v1/orders/[id]/changes/route.ts | 33 | /api/v1/orders/[id]/changes |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 31 | /api/v1/orders/[id]/items/[itemId]/pieces |
@@ -370,7 +370,7 @@ Generated: 2026-10-23T17:56:41.210Z
 | orders:verify_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 84 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:verify_payment | api | app/api/v1/orders/[id]/payments/[paymentId]/verify/route.ts | 52 | /api/v1/orders/[id]/payments/[paymentId]/verify |
 | orders:view_financial_breakdown | screen | app/dashboard/orders/[id]/tax-documents/[documentId]/print/page.tsx | 42 | /dashboard/orders/[id]/tax-documents/[documentId]/print |
-| orders:view_financial_breakdown | api | app/api/v1/orders/[id]/financial-summary/route.ts | 15 | /api/v1/orders/[id]/financial-summary |
+| orders:view_financial_breakdown | api | app/api/v1/orders/[id]/financial-summary/route.ts | 21 | /api/v1/orders/[id]/financial-summary |
 | orders:view_financial_breakdown | api | app/api/v1/orders/[id]/refunds/route.ts | 72 | /api/v1/orders/[id]/refunds |
 | orders:view_financial_breakdown | api | app/api/v1/orders/[id]/tax-documents/[documentId]/print/route.ts | 20 | /api/v1/orders/[id]/tax-documents/[documentId]/print |
 | orders:void_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 77 | src/features/billing/ui/pending-payments-worklist-page.tsx |

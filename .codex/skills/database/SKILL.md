@@ -6,6 +6,19 @@ user-invocable: true
 
 # Database Conventions
 
+## Database Performance
+
+Apply the relevant [shared performance rules](../../../docs/dev/rules/performance-engineering.md) to data-access or database-performance changes; ordinary documentation/copy edits do not require a benchmark project.
+
+- Revalidate current affected queries, function definitions, schema/types and evidence before optimizing an old plan; preserve ongoing work and select one measured bottleneck at a time.
+- Keep an explicit `tenant_org_id` predicate on every queried/joined `org_*` table; writes assign/filter it. RLS, a parent lookup and request context do not replace those predicates.
+- Select required columns, bound results and paginate collection reads with stable ordering. Avoid N+1 work and record query/RPC growth for representative input sizes; count SQL inside functions separately from transport calls.
+- Inspect actual function definitions and suitable query plans in a controlled environment. Write-capable plan analysis needs an approved isolated fixture; mocked call counts do not establish runtime performance.
+- Reuse compatible in-flight facts within the request. Bulk reads must preserve line mapping, quantity-tier semantics, precision, ordering and tie-breaks; do not aggregate quantities unless the business contract permits it.
+- Bound concurrency and measure pool/lock pressure. Preserve transaction/lock order; concurrent promises on one transaction connection do not imply parallel SQL.
+- Choose indexes from real tenant-scoped predicates/orderings and measured plans, accounting for existing indexes and write cost. Index examples are candidates, not a blanket list to create.
+- Schema/function/index changes require reviewed forward migrations and object documentation. Never edit applied migrations, reset the database or apply migrations; existing review/application boundaries remain in force.
+
 ## Mandatory Migration Object Documentation
 
 **Document every database object in migration files** — add concise English comments explaining purpose and important invariants for every object created, altered, or removed, including all columns (standard audit/identity columns too), tables, constraints/FKs, indexes, functions/procedures, triggers, views, sequences, types, schemas and RLS policies. Include PostgreSQL `COMMENT ON` metadata for every created/altered object that supports it; explain grants/revokes and removal intent beside their statements. See the `code-documentation/sql-migration.md` skill. Never rewrite historical/applied migrations to retrofit comments; deployed catalog-comment changes need a new forward migration. Fully document new unapplied drafts before first application; explicitly authorized documentation passes may complete those drafts.
@@ -50,22 +63,22 @@ Include in EVERY table:
 
 ```sql
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-created_by VARCHAR(120),
+created_by TEXT,
 created_info TEXT,
 updated_at TIMESTAMP,
-updated_by VARCHAR(120),
+updated_by TEXT,
 updated_info TEXT,
 rec_status SMALLINT DEFAULT 1,
 rec_order INTEGER,
-rec_notes VARCHAR(200),
+rec_notes TEXT,
 is_active BOOLEAN NOT NULL DEFAULT true
 ```
 
 ## Bilingual Fields
 
 ```sql
-name VARCHAR(250),       -- English
-name2 VARCHAR(250),      -- Arabic
+name TEXT,       -- English
+name2 TEXT,      -- Arabic
 description TEXT,        -- English
 description2 TEXT        -- Arabic
 ```
@@ -150,7 +163,7 @@ FOREIGN KEY (account_id, tenant_org_id)
 
 ## Standard Indexes
 
-Always add these indexes on `org_*` tables:
+Consider these candidate patterns for `org_*` tables only when their access paths and existing indexes justify them; do not create every pattern by default:
 
 ```sql
 CREATE INDEX idx_{table}_tenant ON {table}(tenant_org_id);
@@ -288,21 +301,21 @@ CREATE TABLE org_example_mst (
   tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
 
   -- Business fields
-  name VARCHAR(250) NOT NULL,
-  name2 VARCHAR(250),           -- Arabic name
+  name TEXT NOT NULL,
+  name2 TEXT,           -- Arabic name
   description TEXT,
   description2 TEXT,             -- Arabic description
 
   -- Audit fields
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  created_by VARCHAR(120),
+  created_by TEXT,
   created_info TEXT,
   updated_at TIMESTAMP,
-  updated_by VARCHAR(120),
+  updated_by TEXT,
   updated_info TEXT,
   rec_status SMALLINT DEFAULT 1,
   rec_order INTEGER,
-  rec_notes VARCHAR(200),
+  rec_notes TEXT,
   is_active BOOLEAN NOT NULL DEFAULT true
 );
 

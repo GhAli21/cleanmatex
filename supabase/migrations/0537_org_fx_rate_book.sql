@@ -41,7 +41,7 @@
 -- org_fx_rate_mst, org_fx_import_batch_mst, org_fx_provider_cf — all
 -- RESTRICT. Lossless only while no tenant rate/import history exists.
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

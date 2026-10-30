@@ -1,0 +1,21 @@
+{
+  "title": "Line discount",
+  "lineGross": "Line price: {amount}",
+  "waitingForPrice": "Waiting for the line price…",
+  "typeLabel": "Discount type",
+  "typePercent": "Percent of the line",
+  "typeAmount": "Amount ({currency})",
+  "percentLabel": "Percent (%)",
+  "amountLabel": "Amount ({currency})",
+  "reasonLabel": "Reason",
+  "reasonPlaceholder": "Why is this line discounted?",
+  "reasonHint": "Required. Saved with the order for the audit trail.",
+  "apply": "Apply discount",
+  "remove": "Remove discount",
+  "errors": {
+    "valueRequired": "Enter a discount greater than zero.",
+    "percentTooHigh": "A percent discount can be at most 100%.",
+    "amountTooHigh": "The discount cannot be more than the line price ({max}).",
+    "reasonRequired": "Enter a reason for the discount."
+  }
+}

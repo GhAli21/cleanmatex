@@ -82,10 +82,8 @@ describe('POST /api/v1/orders/[id]/changes/preview', () => {
         reasonCode: 'CAPABILITY_POLICY_ALLOWED',
         messageKey: 'orderChange.policy.allowed',
       }],
-      quotesByTargetId: {},
+      priceEdit: jest.fn(),
       catalog: [],
-      taxMode: 'TAX_EXCLUSIVE',
-      taxRatePercent: '0.0000',
       currencyDecimalPlaces: 3,
       payments: [{ amount: '10.0000', payment_status: 'COMPLETED', payment_nature_snapshot: 'REAL_PAYMENT', payment_method_code: 'CASH' }],
       credits: [],
@@ -105,7 +103,11 @@ describe('POST /api/v1/orders/[id]/changes/preview', () => {
     expect(requirePermissionMock).toHaveBeenCalledWith('orders:edit');
     expect(contextMock).toHaveBeenCalledWith({ tenantId: TENANT_ID, orderId: ORDER_ID });
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ ok: true, data: { status: 'READY', createsChange: true } });
+    const body = await response.json();
+    expect(body).toMatchObject({ ok: true, data: { status: 'READY', createsChange: true } });
+    // The proof binding and the calculated order never leave the server.
+    expect(body.data).not.toHaveProperty('reviewBinding');
+    expect(body.data).not.toHaveProperty('commercial');
   });
 
   it('does not load facts when permission is denied', async () => {

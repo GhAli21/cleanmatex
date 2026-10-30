@@ -8,7 +8,7 @@
  * too, before any write.
  */
 import { OrderService } from '@/lib/services/order-service';
-import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { PAYMENT_METHODS, PAYMENT_TYPE_IDS } from '@/lib/constants/payment';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
 
 jest.mock('@/lib/supabase/client', () => ({
@@ -31,7 +31,6 @@ jest.mock('@/lib/services/order-source-policy', () => ({
 }));
 
 jest.mock('@/lib/services/workflow/workflow-profile-resolution.service', () => ({
-  resolveWorkflowProfileBindingForOrderWithSupabase: jest.fn().mockResolvedValue({ initialRules: [] }),
   resolveWorkflowProfileBindingForOrderWithPrisma: jest.fn().mockResolvedValue({ initialRules: [] }),
   WorkflowProfileResolutionError: class WorkflowProfileResolutionError extends Error {},
 }));
@@ -56,31 +55,12 @@ jest.mock('@/lib/utils/order-number-generator', () => ({
 }));
 
 describe('OrderService retail PAY_ON_COLLECTION guard (T03)', () => {
-  const mockSupabase = { rpc: jest.fn(), from: jest.fn() } as any;
-
   const retailItems = [
     { productId: 'p1', quantity: 1, pricePerUnit: 10, totalPrice: 10, serviceCategoryCode: 'RETAIL_ITEMS' },
   ];
 
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  it('createOrder rejects a retail-only order paid PAY_ON_COLLECTION before any write', async () => {
-    const result = await OrderService.createOrder({
-      tenantId: 'tenant-1',
-      customerId: 'cust-1',
-      orderTypeId: 'POS',
-      items: retailItems,
-      userId: 'user-1',
-      userName: 'Staff',
-      paymentMethod: PAYMENT_METHODS.PAY_ON_COLLECTION,
-      supabaseClient: mockSupabase,
-    });
-
-    expect(result.success).toBe(false);
-    expect(result.errorCode).toBe('RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED');
-    expect(mockSupabase.rpc).not.toHaveBeenCalled();
   });
 
   it('createOrderInTransaction rejects a retail-only order paid PAY_ON_COLLECTION before any write', async () => {
@@ -98,4 +78,23 @@ describe('OrderService retail PAY_ON_COLLECTION guard (T03)', () => {
     expect(result.errorCode).toBe('RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED');
     expect(generateOrderNumberWithTx).not.toHaveBeenCalled();
   });
+
+  // A channel with no payment step (the customer booking) says when it is paid by the payment type.
+  it.each([PAYMENT_TYPE_IDS.PAY_ON_COLLECTION, PAYMENT_TYPE_IDS.PAY_ON_DELIVERY])(
+    'createOrderInTransaction rejects a retail-only order with payment type %s and no payment method',
+    async (paymentTypeCode) => {
+      const result = await OrderService.createOrderInTransaction({} as any, {
+        tenantId: 'tenant-1',
+        customerId: 'cust-1',
+        orderTypeId: 'PICKUP',
+        items: retailItems,
+        userId: 'cust-1',
+        userName: 'Customer Mobile App',
+        paymentTypeCode,
+      });
+
+      expect(result).toMatchObject({ success: false, errorCode: 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED' });
+      expect(generateOrderNumberWithTx).not.toHaveBeenCalled();
+    },
+  );
 });

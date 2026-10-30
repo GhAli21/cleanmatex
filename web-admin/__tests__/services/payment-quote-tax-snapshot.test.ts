@@ -1,5 +1,8 @@
 /** @jest-environment node */
-/** Real quote/calculation/tax integration with controlled I/O verifies one request-local tax snapshot. */
+/**
+ * Legacy tax engine snapshot guards (still used by Order Edit until P6).
+ * The checkout quote's one-read guarantee is tested in commercial-checkout.service.test.ts (P5-02).
+ */
 
 const mockProfiles = jest.fn();
 const mockExemption = jest.fn();
@@ -30,17 +33,11 @@ jest.mock('@/lib/services/credit-limit.service', () => ({ checkCreditLimit: asyn
 jest.mock('@/lib/services/gift-card-service', () => ({}));
 
 import { Decimal } from '@prisma/client/runtime/library';
-import { quotePayment } from '@/lib/services/payment-quote.service';
 import { calculateTaxDetailed, type ResolvedTaxProfileSnapshot } from '@/lib/services/tax-engine.service';
 
 const profile = {
   id: 'vat', tenant_org_id: 'tenant-A', name: 'VAT', name2: null,
   tax_type: 'VAT', rate: new Decimal(15), is_compound: false,
-};
-const context = { tenantId: 'tenant-A', userId: 'user-A', canViewStoredValueBalances: false };
-const input = {
-  requestId: 'quote-A', customerId: 'customer-A', taxProfileIds: ['vat'],
-  items: [{ productId: 'product-A', quantity: 1 }],
 };
 
 describe('payment quote tax snapshot', () => {
@@ -49,27 +46,6 @@ describe('payment quote tax snapshot', () => {
     mockContextRow.mockResolvedValue({ id: 'customer-A' });
     mockExemption.mockResolvedValue(null);
     mockProfiles.mockResolvedValue([profile]);
-  });
-
-  it('uses one profile read for display and actual tax even if the next database read would change', async () => {
-    mockProfiles.mockResolvedValueOnce([profile]).mockResolvedValue([{ ...profile, rate: new Decimal(99) }]);
-    const quote = await quotePayment(input, context);
-    expect(mockProfiles).toHaveBeenCalledTimes(1);
-    expect(quote.taxProfileEntries).toEqual([expect.objectContaining({ id: 'vat', rate: 15 })]);
-    expect(quote.taxBreakdown).toEqual([expect.objectContaining({ profileId: 'vat', rate: 15, taxAmount: 15 })]);
-    expect(quote.saleTotal).toBe(115);
-    const profileInstant = mockProfiles.mock.calls[0][0].where.effective_from.lte;
-    expect(mockExemption.mock.calls[0][0].where.valid_from.lte).toEqual(profileInstant);
-    expect(mockExemption.mock.calls[0][0].where.AND[0].OR[1].valid_to.gte).toEqual(profileInstant);
-  });
-
-  it('keeps an empty profile snapshot empty rather than rereading newly created defaults', async () => {
-    mockProfiles.mockResolvedValueOnce([]).mockResolvedValue([profile]);
-    const quote = await quotePayment({ ...input, taxProfileIds: undefined }, context);
-    expect(mockProfiles).toHaveBeenCalledTimes(1);
-    expect(quote.taxProfileEntries).toEqual([]);
-    expect(quote.taxBreakdown).toEqual([]);
-    expect(quote.saleTotal).toBe(100);
   });
 
   it.each(['snapshot', 'row'])('rejects foreign tenant %s facts before exemption handling or database reads', async (foreignPart) => {

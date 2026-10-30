@@ -6,13 +6,14 @@
 
 'use client';
 
+import { ServiceSpeedSelect } from './service-speed-select';
 import { memo, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useEditControlGroup } from '../order-change/use-edit-control-capability';
 import { CategoryTabs } from './category-tabs';
 import { CategoryTabsSkeleton } from './loading-skeletons';
-import { UserPlus, UserCheck, Edit2, Zap, Settings2 } from 'lucide-react';
+import { UserPlus, UserCheck, Edit2, Settings2 } from 'lucide-react';
 import type { BranchOption } from '@/lib/services/inventory-service';
 import { CmxSelect } from '@ui/primitives';
 import {
@@ -46,8 +47,9 @@ interface NewOrderTopBarProps {
   customerName: string;
   onSelectCustomer: () => void;
   onEditCustomer?: () => void;
-  express: boolean;
-  onExpressToggle: (value: boolean) => void;
+  /** The order speed code (`sys_service_speed_cd`). */
+  serviceSpeed: string;
+  onServiceSpeedChange: (serviceSpeed: string) => void;
   categories: ServiceCategory[];
   selectedCategory: string;
   onSelectCategory: (code: string) => void;
@@ -82,8 +84,8 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   customerName,
   onSelectCustomer,
   onEditCustomer,
-  express,
-  onExpressToggle,
+  serviceSpeed,
+  onServiceSpeedChange,
   categories,
   selectedCategory,
   onSelectCategory,
@@ -99,7 +101,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   const tCommon = useTranslations('common');
   const tOrders = useTranslations('orders');
   const isRTL = useRTL();
-  const expressCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED']);
+  const speedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED']);
   const orderTypeOptions = ORDER_TYPE_ID_VALUES.map((code) => ({
     value: code,
     label: tOrders(ORDER_TYPE_I18N_KEYS[code]),
@@ -168,27 +170,15 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
           {customerName && <Edit2 className="w-3 h-3 shrink-0 opacity-60" aria-hidden />}
         </button>
 
-        {/* Express pill toggle */}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={express}
-          onClick={() => {
-            if (!expressCapability.interactive) return;
-            onExpressToggle(!express);
-          }}
-          disabled={!expressCapability.interactive}
-          aria-disabled={!expressCapability.interactive}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 ${isRTL ? 'flex-row-reverse' : ''} ${
-            express
-              ? 'bg-orange-500 border-orange-500 text-white'
-              : 'bg-white border-gray-300 text-gray-600 hover:border-orange-300'
-          }`}
-          aria-label={express ? (t('topBar.expressOn') || 'Express On') : (t('topBar.expressOff') || 'Express Off')}
-        >
-          <Zap className="w-4 h-4 shrink-0" aria-hidden />
-          <span>{t('topBar.expressLabel') || t('express.label') || 'Express'}</span>
-        </button>
+        {/* Order speed (§5.4): options from sys_service_speed_cd; new lines follow it */}
+        <ServiceSpeedSelect
+          className="w-40"
+          value={serviceSpeed}
+          onChange={(code) => { if (code) onServiceSpeedChange(code); }}
+          disabled={!speedCapability.interactive}
+          disabledReason={t('serviceSpeed.locked')}
+          ariaLabel={t('serviceSpeed.orderAria')}
+        />
 
         {/* Order-wide preferences pill — always visible on every step, so staff don't
             need to remember which step/tab holds order-level entry (see B18 redesign). */}

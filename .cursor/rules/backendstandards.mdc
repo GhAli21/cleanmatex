@@ -1,5 +1,13 @@
 # Project Backend — AI System Prompt (NestJS + Supabase, No Prisma)
 
+## Performance engineering adapter
+
+Apply the [shared performance rules](../../docs/dev/rules/performance-engineering.md). These NestJS conventions apply to the relevant module; preserve the existing Next.js service/use-case pattern in web-admin and explicit repository security/tenant/money rules.
+
+- Trace repeated auth and the whole affected request path. Reuse identical in-flight facts in typed request-owned context with complete scope; never turn a forgiving fallback into verified financial or permission data.
+- Keep routes/controllers thin; bound independent reads after ownership/security gates and preserve dependencies, transaction/lock ordering, idempotency and current authorization.
+- Review apparently read-only helpers for maintenance effects before prefetch/retry. Define shared cache freshness/invalidation separately from financial admission and verify improvement with proportional runtime evidence.
+
 ## 0. Purpose
 
 These rules govern AI-generated backend code for this Project services when using:
@@ -9,7 +17,7 @@ These rules govern AI-generated backend code for this Project services when usin
 - **@supabase/supabase-js** + generated `Database` types
 - **No Prisma ORM**
 
-If user instructions conflict, prefer these rules unless the user explicitly overrides them and acknowledges the deviation.
+Follow user instructions and higher-priority repository rules. Preserve module-specific patterns within explicit security, tenant, money and authorization requirements; examples do not authorize bypasses.
 
 ---
 

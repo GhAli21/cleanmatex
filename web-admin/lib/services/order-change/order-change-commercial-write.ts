@@ -1,12 +1,10 @@
 /**
  * Maps reviewed preference and screen-field operations onto existing row writes.
  * Item and piece identity stays. The legacy editor deleted every piece and recreated it.
+ * Money is not written here: the Edit writer stores the calculated order (P6-01c).
  */
 
-
-import { CHARGE_TYPES } from '@/lib/constants/order-financial';
 import { PREFS_LEVEL, PREFS_OWNER_TYPE, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
-import { round4 } from '@/lib/services/order-financial-aggregation';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import type { OrderChangePersistedOperation, OrderChangeRowWrite } from '@/lib/services/order-change/order-change-mutation.service';
 import type { z } from 'zod';
@@ -56,7 +54,6 @@ export interface CommercialWriteFacts {
   catalogById: ReadonlyMap<string, PreferenceCatalogFact>;
   nextPrefsNo: number;
   branchId: string | null;
-  orderLevelPreferenceIds: ReadonlySet<string>;
 }
 
 export interface CommercialWritePlan {
@@ -65,8 +62,6 @@ export interface CommercialWritePlan {
   removePreferenceIds: string[];
   itemUpdates: OrderChangeRowWrite[];
   pieceUpdates: OrderChangeRowWrite[];
-  orderCharges: Array<{ preferenceId: string; label: string; amount: string }>;
-  voidChargeSourceIds: string[];
   auditBySeq: Map<number, Pick<OrderChangePersistedOperation, 'targetType' | 'orderItemId' | 'orderItemPieceId' | 'orderPreferenceId' | 'clientRef'>>;
 }
 
@@ -93,8 +88,6 @@ export function buildCommercialWritePlan(
     removePreferenceIds: [],
     itemUpdates: [],
     pieceUpdates: [],
-    orderCharges: [],
-    voidChargeSourceIds: [],
     auditBySeq: new Map(),
   };
   const itemData = new Map<string, Record<string, unknown>>();
@@ -142,9 +135,6 @@ export function buildCommercialWritePlan(
         orderItemPieceId: pieceId,
         clientRef: operation.payload.clientRef,
       });
-      if (level === PREFS_LEVEL.ORDER && Number(catalog.extraPrice) > 0) {
-        plan.orderCharges.push({ preferenceId: id, label: catalog.preferenceCode, amount: catalog.extraPrice });
-      }
     } else if (operation.code === 'CHANGE_PREFERENCE') {
       plan.preferenceUpdates.push({
         id: operation.target.id,
@@ -163,7 +153,6 @@ export function buildCommercialWritePlan(
       });
     } else if (operation.code === 'REMOVE_PREFERENCE') {
       plan.removePreferenceIds.push(operation.target.id);
-      if (facts.orderLevelPreferenceIds.has(operation.target.id.toLowerCase())) plan.voidChargeSourceIds.push(operation.target.id);
       plan.auditBySeq.set(operation.seq, {
         targetType: 'PREFERENCE',
         orderPreferenceId: operation.target.id,
@@ -207,9 +196,6 @@ export async function loadCommercialWriteFacts(
   const catalogIds = operations.flatMap((operation) => (
     operation.code === 'ADD_PREFERENCE' ? [operation.payload.preferenceId] : []
   ));
-  const removeIds = operations.flatMap((operation) => (
-    operation.code === 'REMOVE_PREFERENCE' ? [operation.target.id] : []
-  ));
 
   const [orderRows, prefsRows] = await Promise.all([
     tx.$queryRaw<Array<{ branch_id: string | null }>>`
@@ -241,15 +227,6 @@ export async function loadCommercialWriteFacts(
       AND is_active = true
       AND id = ${id}::uuid
   `);
-  const orderPrefRows = await rowsById<{ id: string }>(tx, removeIds, (id) => tx.$queryRaw!<Array<{ id: string }>>`
-    SELECT id::text AS id
-    FROM org_order_preferences_dtl
-    WHERE tenant_org_id = ${tenantId}::uuid
-      AND order_id = ${orderId}::uuid
-      AND rec_status = 1
-      AND prefs_level = ${PREFS_LEVEL.ORDER}
-      AND id = ${id}::uuid
-  `);
 
   return {
     branchId: orderRows[0]?.branch_id ?? null,
@@ -262,211 +239,7 @@ export async function loadCommercialWriteFacts(
       preferenceSysKind: row.preference_sys_kind,
       preferenceCategory: row.preference_category,
     }])),
-    orderLevelPreferenceIds: new Set(orderPrefRows.map((row) => row.id.toLowerCase())),
   };
-}
-
-/**
- * Voids active Express charges for this order.
- * A zero amount leaves the premium on the item prices and does not insert a charge.
- */
-export async function writeOrderSpeedCharge(
-  tx: CommercialQueryTx,
-  input: {
-    tenantId: string;
-    orderId: string;
-    actorUserId: string;
-    currencyCode: string;
-    appliedAt: Date;
-    amount: string;
-  },
-): Promise<void> {
-  if (typeof tx.$executeRaw !== 'function') return;
-  await tx.$executeRaw`
-    UPDATE org_order_charges_dtl
-    SET is_voided = true,
-        voided_at = ${input.appliedAt},
-        voided_by = ${input.actorUserId}::uuid,
-        updated_at = ${input.appliedAt},
-        updated_by = ${input.actorUserId}::uuid
-    WHERE tenant_org_id = ${input.tenantId}::uuid
-      AND order_id = ${input.orderId}::uuid
-      AND charge_type IN (${CHARGE_TYPES.EXPRESS}, 'EXPRESS_CHARGE')
-      AND is_voided = false
-  `;
-  if (round4(Number(input.amount)) === 0) return;
-  await tx.$executeRaw`
-    INSERT INTO org_order_charges_dtl (
-      tenant_org_id, order_id, charge_type, label, amount, currency_code, applied_seq, created_by
-    )
-    VALUES (
-      ${input.tenantId}::uuid,
-      ${input.orderId}::uuid,
-      ${CHARGE_TYPES.EXPRESS},
-      'Express',
-      ${input.amount}::numeric,
-      ${input.currencyCode},
-      (
-        SELECT COALESCE(MAX(applied_seq), 0) + 1
-        FROM org_order_charges_dtl
-        WHERE tenant_org_id = ${input.tenantId}::uuid
-          AND order_id = ${input.orderId}::uuid
-      ),
-      ${input.actorUserId}::uuid
-    )
-  `;
-}
-
-export async function writePreferenceCharges(
-  tx: CommercialQueryTx,
-  input: {
-    tenantId: string;
-    orderId: string;
-    actorUserId: string;
-    currencyCode: string;
-    appliedAt: Date;
-    plan: CommercialWritePlan;
-  },
-): Promise<void> {
-  if (typeof tx.$executeRaw !== 'function') return;
-  for (const sourceId of input.plan.voidChargeSourceIds) {
-    await tx.$executeRaw`
-      UPDATE org_order_charges_dtl
-      SET is_voided = true,
-          voided_at = ${input.appliedAt},
-          voided_by = ${input.actorUserId}::uuid,
-          updated_at = ${input.appliedAt},
-          updated_by = ${input.actorUserId}::uuid
-      WHERE tenant_org_id = ${input.tenantId}::uuid
-        AND order_id = ${input.orderId}::uuid
-        AND charge_type = ${CHARGE_TYPES.PREFERENCE}
-        AND charge_source_id = ${sourceId}::uuid
-        AND is_voided = false
-    `;
-  }
-  for (const charge of input.plan.orderCharges) {
-    await tx.$executeRaw`
-      INSERT INTO org_order_charges_dtl (
-        tenant_org_id, order_id, charge_type, charge_source_id, label, amount, currency_code, applied_seq, created_by
-      )
-      VALUES (
-        ${input.tenantId}::uuid,
-        ${input.orderId}::uuid,
-        ${CHARGE_TYPES.PREFERENCE},
-        ${charge.preferenceId}::uuid,
-        ${charge.label},
-        ${charge.amount}::numeric,
-        ${input.currencyCode},
-        (
-          SELECT COALESCE(MAX(applied_seq), 0) + 1
-          FROM org_order_charges_dtl
-          WHERE tenant_org_id = ${input.tenantId}::uuid
-            AND order_id = ${input.orderId}::uuid
-        ),
-        ${input.actorUserId}::uuid
-      )
-    `;
-  }
-}
-
-/**
- * Splits the reviewed tax across the order's current tax lines.
- * The last line takes the remainder so the stored sum equals the reviewed tax.
- */
-export function allocateReviewedTax(
-  lines: readonly { id: string; taxAmount: string }[],
-  projectedTax: string,
-): { id: string; taxAmount: string }[] {
-  if (lines.length === 0) return [];
-  const target = round4(Number(projectedTax));
-  if (lines.length === 1) return [{ id: lines[0].id, taxAmount: target.toFixed(4) }];
-  const current = lines.map((line) => {
-    const amount = Number(line.taxAmount);
-    return Number.isFinite(amount) && amount > 0 ? amount : 0;
-  });
-  const sum = current.reduce((total, amount) => total + amount, 0);
-  const shares: number[] = [];
-  if (sum <= 0) {
-    shares.push(target);
-    for (let index = 1; index < lines.length; index += 1) shares.push(0);
-  } else {
-    let used = 0;
-    for (let index = 0; index < lines.length - 1; index += 1) {
-      const share = round4(target * (current[index] / sum));
-      shares.push(share);
-      used = round4(used + share);
-    }
-    shares.push(round4(target - used));
-  }
-  return lines.map((line, index) => ({ id: line.id, taxAmount: shares[index].toFixed(4) }));
-}
-
-/**
- * The snapshot adds the stored tax lines. A new item changes the base, so those
- * lines must carry the reviewed tax before the snapshot is compared.
- */
-export async function syncReviewedTaxLine(
-  tx: CommercialQueryTx & { org_orders_mst?: { findFirstOrThrow?: unknown; updateMany?: unknown } },
-  input: {
-    tenantId: string;
-    orderId: string;
-    projectedTax: string;
-    actorUserId: string;
-    appliedAt: Date;
-  },
-): Promise<void> {
-  if (typeof tx.org_orders_mst?.findFirstOrThrow !== 'function') return;
-  if (typeof tx.$queryRaw !== 'function' || typeof tx.$executeRaw !== 'function') return;
-  const query = tx.$queryRaw.bind(tx);
-  const execute = tx.$executeRaw.bind(tx);
-  const lines = await query<Array<{ id: string; tax_amount: string }>>`
-    SELECT id::text AS id, tax_amount::text AS tax_amount
-    FROM org_order_taxes_dtl
-    WHERE tenant_org_id = ${input.tenantId}::uuid
-      AND order_id = ${input.orderId}::uuid
-      AND rec_status = 1
-    ORDER BY applied_seq ASC, id ASC
-  `;
-  if (lines.length === 0) {
-    if (round4(Number(input.projectedTax)) === 0) return;
-    throw new OrderChangeApplyRejected(422, 'TAX_LINE_MISSING');
-  }
-  const allocated = allocateReviewedTax(
-    lines.map((line) => ({ id: line.id, taxAmount: line.tax_amount })),
-    input.projectedTax,
-  );
-  for (const line of allocated) {
-    if (lines.length === 1) {
-      await execute`
-        UPDATE org_order_taxes_dtl AS tax
-        SET tax_amount = ${line.taxAmount}::numeric,
-            taxable_amount = (
-              SELECT COALESCE(SUM(item.total_price), 0)
-              FROM org_order_items_dtl AS item
-              WHERE item.tenant_org_id = tax.tenant_org_id
-                AND item.order_id = tax.order_id
-                AND item.rec_status = 1
-            ),
-            updated_at = ${input.appliedAt},
-            updated_by = ${input.actorUserId}::uuid
-        WHERE tax.id = ${line.id}::uuid
-          AND tax.tenant_org_id = ${input.tenantId}::uuid
-          AND tax.order_id = ${input.orderId}::uuid
-          AND tax.rec_status = 1
-      `;
-    } else {
-      await execute`
-        UPDATE org_order_taxes_dtl
-        SET tax_amount = ${line.taxAmount}::numeric,
-            updated_at = ${input.appliedAt},
-            updated_by = ${input.actorUserId}::uuid
-        WHERE id = ${line.id}::uuid
-          AND tenant_org_id = ${input.tenantId}::uuid
-          AND order_id = ${input.orderId}::uuid
-          AND rec_status = 1
-      `;
-    }
-  }
 }
 
 export async function assertCommercialSnapshot(

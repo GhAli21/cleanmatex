@@ -18,6 +18,7 @@ interface LockedPolicyOrder {
  *
  * @param tx - Existing Apply transaction; the caller must already hold its order lock.
  * @param input - Trusted tenant/order identity and the freshly verified review binding.
+ * @returns Resolves only after the locked order still matches the reviewed policy authority.
  * @throws {OrderChangeMutationError} When the order or reviewed policy is unavailable or stale.
  * @example
  * await revalidateLockedOrderChangePolicy(tx, { tenantId, orderId, binding });
@@ -34,6 +35,10 @@ export async function revalidateLockedOrderChangePolicy(
   `;
   const order = rows[0];
   if (!order) throw new OrderChangeMutationError('ORDER_NOT_FOUND');
+  // An organization override must not make a legacy order without a complete workflow binding editable.
+  if (!order.wf_profile_id || !order.wf_profile_version_id || !order.current_status) {
+    throw new OrderChangeMutationError('CAPABILITY_POLICY_BINDING_MISSING');
+  }
   const resolution = await resolveOrderChangePolicyBindings(tx, {
     tenantId: input.tenantId,
     profileId: order.wf_profile_id,

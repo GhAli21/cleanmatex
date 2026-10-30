@@ -34,7 +34,7 @@ import {
   Info,
   RefreshCw,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { CashChangeRoundingNote } from '@features/orders/ui/cash-change-rounding-note';
 import Link from 'next/link';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -97,11 +97,14 @@ import {
 import { AutoAllocationPreviewDrawer } from './payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from './payment-modal/allocation/manual-allocation-drawer';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
+import { useServiceSpeeds } from '../hooks/use-service-speeds';
 import { PayExtraTopStrip } from './payment-modal/pay-extra/pay-extra-top-strip';
 import { attemptPayExtraIntentChange } from './payment-modal/pay-extra/attempt-pay-extra-intent-change';
 import { PaymentValidateButton } from './payment-modal/pay-extra/payment-validate-button';
 import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workbench-hint';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
+import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm';
 // Composable payment system (Phase 4 strangler — capability renderer wired in
 // section by section; oracle green each step).
 import { resolvePaymentModalConfig } from '@features/orders/payment/config/payment-modal-config';
@@ -347,7 +350,8 @@ interface PaymentFullViewProps {
   orderServicePrefs?: OrderItemServicePref[];
   total: number;
   checkoutAmount?: number;
-  isExpress: boolean;
+  /** The order speed code (`sys_service_speed_cd`). */
+  serviceSpeed: string;
   tenantOrgId: string;
   customerId?: string;
   customerType?: string;
@@ -399,7 +403,7 @@ export function PaymentFullView({
   orderServicePrefs,
   total,
   checkoutAmount,
-  isExpress = false,
+  serviceSpeed = SERVICE_SPEEDS.STANDARD,
   tenantOrgId,
   customerId,
   customerType,
@@ -420,7 +424,8 @@ export function PaymentFullView({
   const { signOut } = useAuth();
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
-  const tTopBar = useTranslations('newOrder.topBar');
+  const locale = useLocale();
+  const { labelOf: speedLabel } = useServiceSpeeds();
   const tGiftCardErrors = useTranslations('marketing.giftCards.errors');
   const isRTL = useRTL();
   // Uppercase/letter-spacing is meaningless (and harmful) for Arabic script —
@@ -605,7 +610,7 @@ export function PaymentFullView({
     branchId,
     customerId,
     customerType,
-    isExpress,
+    serviceSpeed,
     isRetailOnlyOrder,
     isB2BCustomer,
     total,
@@ -805,6 +810,8 @@ export function PaymentFullView({
     roundingAdjustmentAmount,
     quote,
   } = totalsSlice;
+  // G15: a typed promo code the server dropped because a non-combinable rule gave more.
+  const promoNotice = serverTotals?.promoNotice ?? null;
   // A confirm dialog reviews a financial snapshot, including same-total item or
   // tax changes. Closing stale review preserves all editable money and legs.
   if (pendingSubmission && (!isPaymentQuoteReviewCurrent(pendingSubmission.quoteAuthorityKey, quote.authorityKey, quote.ready) || pendingSubmission.quoteSessionKey !== quoteSessionKey)) {
@@ -1615,6 +1622,9 @@ export function PaymentFullView({
   // ---- Composable capability system (Phase 4 strangler) ----
   // Server still enforces `orders:apply_credit`; this only gates the UI affordance.
   const canApplyCustomerCredit = useHasPermissionCode('orders:apply_credit');
+  // Owner decision 2026-10-28: an order manual discount needs `orders:discount`; the server checks it again.
+  const canGiveOrderDiscount = useHasPermissionCode(ORDERS_PERMISSIONS.DISCOUNT);
+  const discountLockedReason = canGiveOrderDiscount ? null : t('rightRail.discountsLocked');
   // Project the live engine into the pure capability-context facts, classify via
   // the registry, and plan the view. Only the capabilities migrated to the
   // renderer so far are rendered through it (strangler); the rest keep their
@@ -2597,9 +2607,9 @@ export function PaymentFullView({
                 className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
               >
                 <CmxDialogTitle>{t('title')}</CmxDialogTitle>
-                {isExpress && (
+                {serviceSpeed !== SERVICE_SPEEDS.STANDARD && (
                   <Badge variant="secondary" className="text-xs">
-                    {tTopBar('expressLabel')}
+                    {speedLabel(serviceSpeed)}
                   </Badge>
                 )}
                 <Badge variant="secondary" className="text-xs">
@@ -2880,6 +2890,7 @@ export function PaymentFullView({
                       showDiscounts={
                         showDiscountsCreditsSection && !methodsSurfaceLoading
                       }
+                      discountLockedReason={discountLockedReason}
                       discountControl={control}
                       discountSetValue={setValue}
                       discountErrors={errors}
@@ -4381,6 +4392,7 @@ export function PaymentFullView({
                                         percentInputRef={
                                           percentDiscountInputRef
                                         }
+                                        lockedReason={discountLockedReason}
                                         className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
                                       />
 
@@ -4488,6 +4500,18 @@ export function PaymentFullView({
                                               </CmxButton>
                                             </div>
                                           )}
+                                          {/* G15: the server dropped the typed code; say why (rule #15). */}
+                                          {appliedPromoCode && promoNotice ? (
+                                            <p
+                                              role="status"
+                                              className={`rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 ${isRTL ? 'text-right' : 'text-left'}`}
+                                            >
+                                              {t('promoCode.notAppliedRuleWins', {
+                                                code: promoNotice.promoCode,
+                                                rule: locale === 'ar' ? promoNotice.ruleName2 || promoNotice.ruleName : promoNotice.ruleName,
+                                              })}
+                                            </p>
+                                          ) : null}
 
                                           {!appliedGiftCard ? (
                                             <div

@@ -115,11 +115,31 @@ export type ServerTotals = {
   };
 };
 
+/**
+ * A cart line's preference intents (P5-02). The server prices them from its
+ * own catalog; any amount the cart holds is display only.
+ */
+export type CheckoutLineIntentFields = Pick<PreviewPaymentRequest['items'][number], 'servicePrefs' | 'packingPrefCode' | 'pieces' | 'serviceSpeed' | 'lineDiscount'>;
+
 /** Existing preview inputs plus a correlation token; tenant and user come from authentication. */
 export type PaymentQuoteRequest = PreviewPaymentRequest & { requestId: string };
 
+/**
+ * G15 (Line-Level P5-03d): why a promo code the cashier typed and the server
+ * accepted is not on the order. Today: a discount rule that cannot be combined
+ * with promos gave the larger discount, so it won. Rule #15: say so, never drop it silently.
+ */
+export interface PromoNotice {
+  code: 'PROMO_NOT_APPLIED_RULE_WINS';
+  promoCode: string;
+  ruleName: string;
+  ruleName2: string | null;
+}
+
 /** One server-authoritative set of totals, currency rules, selected taxes, and amount eligibility. */
 export type PaymentQuoteData = ServerTotals & {
+  /** Set when a typed, valid promo code lost to a non-combinable discount rule (G15). */
+  promoNotice?: PromoNotice | null;
   /** Echoed input identity lets the browser reject superseded responses; it is not authorization. */
   requestId: string;
   currencyCode: string;

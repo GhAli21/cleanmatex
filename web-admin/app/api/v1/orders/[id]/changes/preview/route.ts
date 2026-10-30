@@ -75,21 +75,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       request: parsedBody.data,
       bindings: facts.bindings,
       policyResolution: facts.policyResolution,
-      quotesByTargetId: facts.quotesByTargetId,
+      priceEdit: facts.priceEdit,
       catalog: facts.catalog,
-      taxMode: facts.taxMode,
-      taxRatePercent: facts.taxRatePercent,
-      currencyDecimalPlaces: facts.currencyDecimalPlaces,
       payments: facts.payments,
       credits: facts.credits,
       refunds: facts.refunds,
-      persistedExpressAmount: facts.persistedExpressAmount,
       persistedTaxAmount: facts.persistedTaxAmount,
       auditFacts: facts.auditFacts,
       proofKey: facts.proofKey,
     });
     if (preview.ok === false) return errorResponse(preview.status, preview.code, 'Order change preview was rejected', requestId);
-    const { reviewBinding: _reviewBinding, ...data } = preview;
+    // The proof binding and the calculated order stay on the server.
+    const { reviewBinding: _reviewBinding, commercial: _commercial, ...data } = preview;
     return NextResponse.json({ ok: true, data, requestId });
   } catch (error) {
     if (error instanceof OrderChangeContextError) {

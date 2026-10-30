@@ -4,6 +4,7 @@
  * Single source of truth for validation and types.
  */
 
+import { DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { z } from 'zod';
 import {
   PAYMENT_METHODS,
@@ -409,18 +410,74 @@ export type NewOrderPaymentPayload = z.infer<typeof newOrderPaymentPayloadSchema
 // Preview Payment API input
 // ---------------------------------------------------------------------------
 
+/** A preference the cart picked: only its code is priced; the server reads the price (P5-02, C2). */
+const checkoutPreferenceCodeSchema = z.object({ preference_code: z.string().min(1) });
+
+/**
+ * A `sys_service_speed_cd.code` (P5-03b). Only the shape is checked here; the
+ * loader rejects a speed that is not active (`SERVICE_SPEED_INVALID`).
+ */
+export const serviceSpeedCodeSchema = z.string().regex(/^[A-Z][A-Z0-9_]{0,29}$/);
+
+/**
+ * A custom item (P5-03e, PLAN §7): a line with no catalog product. The
+ * cashier enters its name and unit price; the server prices it as MANUAL
+ * (needs `pricing:override`), adds category or tenant speed premiums and
+ * taxes it in the standard category.
+ */
+export const customItemSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  name2: z.string().trim().max(200).nullable().optional(),
+  unitPrice: z.number().min(0),
+  serviceCategoryCode: z.string().min(1).nullable().optional(),
+});
+
+/** Exactly one of `productId` and `customItem` per line. */
+const productOrCustom = (line: { productId?: string | null; customItem?: unknown }) =>
+  (line.productId != null) !== (line.customItem != null);
+
+/**
+ * A cashier discount on one line (P5-03c, PLAN §8.3): a percent of the line
+ * (0 < rate <= 100) or an amount. The server needs `orders:discount`, rejects
+ * an amount above the line gross (`LINE_DISCOUNT_EXCEEDS_GROSS`) and, at
+ * submit, requires the reason. Mirrors `DISCOUNT_CALC_TYPE`.
+ */
+export const lineDiscountSchema = z
+  .object({
+    type: z.enum([DISCOUNT_CALC_TYPE.PERCENTAGE, DISCOUNT_CALC_TYPE.FIXED_AMOUNT]),
+    value: z.number().positive(),
+    reason: z.string().trim().max(200).optional(),
+  })
+  .refine((d) => d.type !== DISCOUNT_CALC_TYPE.PERCENTAGE || d.value <= 100, { message: 'A percent discount is at most 100.', path: ['value'] });
+
 export const previewPaymentRequestSchema = z.object({
   items: z.array(
     z.object({
-      productId: z.string().uuid(),
+      /** Absent only for a custom item (`customItem`). */
+      productId: z.string().uuid().optional(),
+      /** A line with no catalog product (P5-03e). */
+      customItem: customItemSchema.nullable().optional(),
       quantity: z.number().positive(),
       /** Optional item-level unit price override used by preview totals. */
       priceOverride: z.number().min(0).nullable().optional(),
-      /** Service preference surcharge for the line. Included in subtotal. */
+      /** @deprecated Ignored since P5-02: the server prices the preferences from `servicePrefs` / `pieces`. */
       servicePrefCharge: z.number().min(0).optional(),
-      /** Packing surcharge for the line (`org_packing_preference_cf.extra_price` roll-up). Included in subtotal. */
+      /** @deprecated Ignored since P5-02: the server prices `packingPrefCode`. */
       packingPrefCharge: z.number().min(0).optional(),
-    })
+      /** Line service preferences (codes), priced by the server. */
+      servicePrefs: z.array(checkoutPreferenceCodeSchema).optional(),
+      /** Line packing preference code, priced by the server. */
+      packingPrefCode: z.string().optional(),
+      /** Piece k's own preferences, in the order Create writes the pieces. */
+      pieces: z.array(z.object({
+        servicePrefs: z.array(checkoutPreferenceCodeSchema).optional(),
+        packingPrefCode: z.string().optional(),
+      })).optional(),
+      /** This line's own speed (§5.4); absent or null follows the order speed. */
+      serviceSpeed: serviceSpeedCodeSchema.nullable().optional(),
+      /** A cashier discount on this line (P5-03c). */
+      lineDiscount: lineDiscountSchema.nullable().optional(),
+    }).refine(productOrCustom, { message: 'A line needs a product or a custom item, not both.', path: ['productId'] })
   ).min(1),
   /** B18 — order-level preferences, independent of any item. Included in preview so the payment modal reflects them before submit. */
   orderServicePrefs: z.array(z.object({
@@ -437,7 +494,8 @@ export const previewPaymentRequestSchema = z.object({
     (val) => (val === '' || val == null ? undefined : val),
     z.string().optional()
   ).optional(),
-  isExpress: z.boolean().optional(),
+  /** The order speed (§5.4, replaces `isExpress`); absent means STANDARD. */
+  serviceSpeed: serviceSpeedCodeSchema.optional(),
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),
   serviceCategories: z.array(z.string()).optional(),
@@ -452,6 +510,18 @@ export const previewPaymentRequestSchema = z.object({
  *
  */
 export type PreviewPaymentRequest = z.infer<typeof previewPaymentRequestSchema>;
+
+/**
+ * New Order cart quote input (P5-03, `POST /api/v1/orders/quote`): the cart only.
+ * Order discounts, promo and gift card belong to the payment step; the
+ * screen's ready-by is not sent, so the answer is always the resolver's.
+ */
+export const cartQuoteRequestSchema = previewPaymentRequestSchema
+  .pick({ items: true, orderServicePrefs: true, branchId: true, customerId: true, serviceSpeed: true, serviceCategories: true })
+  .extend({ requestId: z.string().min(1).max(64) });
+
+/** Cart quote request body. */
+export type CartQuoteRequest = z.infer<typeof cartQuoteRequestSchema>;
 
 // ---------------------------------------------------------------------------
 // Create With Payment API input
@@ -476,7 +546,10 @@ export const createWithPaymentRequestSchema = z.object({
   taxProfileIds: z.array(z.string().uuid()).optional(),
   items: z.array(
     z.object({
-      productId: z.string().uuid(),
+      /** Absent only for a custom item (`customItem`). */
+      productId: z.string().uuid().optional(),
+      /** A line with no catalog product (P5-03e); its name is stored as the line name. */
+      customItem: customItemSchema.nullable().optional(),
       productName: z.string().nullable().optional(),
       productName2: z.string().nullable().optional(),
       quantity: z.number().positive(),
@@ -525,7 +598,16 @@ export const createWithPaymentRequestSchema = z.object({
       overrideBy: z.string().uuid().nullable().optional(),
       servicePrefCharge: z.number().min(0).optional(),
       packingPrefCharge: z.number().min(0).optional(),
-    })
+      /** This line's own speed (§5.4); absent or null follows the order speed. */
+      serviceSpeed: serviceSpeedCodeSchema.nullable().optional(),
+      /** A cashier discount on this line (P5-03c); its reason is required here. */
+      lineDiscount: lineDiscountSchema.nullable().optional(),
+      /**
+       * D26: the unit price the cart showed. Never used to price; the server
+       * compares it and rejects `PRICE_CHANGED` when it no longer holds.
+       */
+      confirmedUnitPrice: z.number().min(0).nullable().optional(),
+    }).refine(productOrCustom, { message: 'A line needs a product or a custom item, not both.', path: ['productId'] })
   ).min(1),
   /** B18 — order-level preferences (`org_order_preferences_dtl.prefs_level='ORDER'`), independent of any item. */
   orderServicePrefs: z.array(z.object({
@@ -536,7 +618,8 @@ export const createWithPaymentRequestSchema = z.object({
   })).optional(),
   isQuickDrop: z.boolean().optional(),
   quickDropQuantity: z.number().positive().optional(),
-  express: z.boolean().optional(),
+  /** The order speed (§5.4, replaces `express`); absent means STANDARD. */
+  serviceSpeed: serviceSpeedCodeSchema.optional(),
   customerNotes: z.string().optional(),
   paymentNotes: z.string().optional(),
   readyByAt: z.string().datetime().optional(),

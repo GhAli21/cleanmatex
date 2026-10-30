@@ -78,7 +78,9 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
     if (!order) throw new OrderChangeContextError('ORDER_NOT_FOUND', 404);
     if (!order.committed_at || order.edit_state_version < 1) throw new OrderChangeContextError('ORDER_NOT_COMMITTED', 422);
     if (order.edit_access_status !== 'OPEN') throw new OrderChangeContextError('EDIT_ACCESS_BLOCKED', 403);
-    if (!Number.isInteger(order.state_version) || order.state_version < 1) {
+    // Organization-wide authority must not make a legacy order without a complete workflow binding editable.
+    if (!order.current_status || !order.wf_profile_id || !order.wf_profile_version_id
+      || !Number.isInteger(order.state_version) || order.state_version < 1) {
       throw new OrderChangeContextError('WORKFLOW_VERSION_UNAVAILABLE', 503);
     }
 

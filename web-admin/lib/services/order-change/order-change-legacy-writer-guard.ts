@@ -1,6 +1,9 @@
 /**
  * Stops the legacy full-replacement save on a committed order while Edit Order V2 is on.
  * Draft and uncommitted orders still use the existing update. Create is not involved.
+ * An order written by the commercial calculator (`commercial_calc_version`) is
+ * always retired here, whatever the flag or state: only Edit V2 can store its
+ * calculated money (Line-Level P6-01d), and the legacy writer would not.
  */
 
 import { prisma } from '@/lib/db/prisma';
@@ -106,7 +109,10 @@ export function legacyCommittedReplacementDecision(input: {
   committedAt: Date | string | null;
   editStateVersion: number | null;
   featureEnabled: boolean;
+  /** `org_orders_mst.commercial_calc_version`; set: the legacy writer may not touch the order's money. */
+  commercialCalcVersion?: number | null;
 }): 'ALLOW' | 'RETIRED' {
+  if (input.commercialCalcVersion != null) return 'RETIRED';
   if (!input.featureEnabled) return 'ALLOW';
   if (!input.committedAt) return 'ALLOW';
   if ((input.editStateVersion ?? 0) < 1) return 'ALLOW';
@@ -124,7 +130,7 @@ export async function legacyCommittedReplacementStatus(
     const [order, flags] = await Promise.all([
       prisma.org_orders_mst.findFirst({
         where: { id: orderId, tenant_org_id: tenantId },
-        select: { committed_at: true, edit_state_version: true },
+        select: { committed_at: true, edit_state_version: true, commercial_calc_version: true },
       }),
       getFeatureFlags(tenantId),
     ]);
@@ -133,6 +139,7 @@ export async function legacyCommittedReplacementStatus(
       committedAt: order.committed_at,
       editStateVersion: order.edit_state_version,
       featureEnabled: flags.order_edit_v2 === true,
+      commercialCalcVersion: order.commercial_calc_version,
     });
   });
 }

@@ -368,23 +368,6 @@ export interface Product {
 // ==================================================================
 
 /**
- * Input for creating a new Quick Drop order
- */
-export interface CreateOrderInput {
-  customerId: string;
-  branchId?: string;
-  orderType: OrderType;
-  serviceCategory: string;
-  bagCount: number;
-  priority: Priority;
-  customerNotes?: string;
-  internalNotes?: string;
-  photoUrls?: string[];
-  /** Auth user id for `created_by` audit when available */
-  createdBy?: string | null;
-}
-
-/**
  * Input for adding items to an order
  */
 export interface AddOrderItemInput {

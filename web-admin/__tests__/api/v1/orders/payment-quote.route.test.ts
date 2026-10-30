@@ -19,7 +19,7 @@ jest.mock('@/lib/services/payment-quote.service', () => ({
     constructor(readonly code: string, readonly status = 503) { super(code); }
   },
 }));
-jest.mock('@/lib/services/price-override-policy.service', () => ({ assertPriceOverridesAllowed: (...args: unknown[]) => mockOverrides(...args) }));
+jest.mock('@/lib/services/price-override-policy.service', () => ({ assertPriceOverridesAllowed: (...args: unknown[]) => mockOverrides(...args), assertOrderDiscountAllowed: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('@/lib/api/price-override-http', () => ({ priceOverrideErrorResponse: () => null }));
 jest.mock('@/lib/services/permission-service-server', () => ({ hasPermissionServer: (...args: unknown[]) => mockPermission(...args) }));
 jest.mock('@/lib/utils/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn() } }));

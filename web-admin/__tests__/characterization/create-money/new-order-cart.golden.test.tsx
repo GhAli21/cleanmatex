@@ -64,15 +64,30 @@ describe('P1-01 golden — cart line money', () => {
     expect([item().servicePrefCharge, item().totalPrice]).toEqual([0.3, 3.3]);
   });
 
-  it('C02 express reprices every line to its express price, or keeps the normal price when there is none', () => {
+  it('C02 CHANGED (P5-03b): the speed is a code; the client never re-prices a line (the server quote does)', () => {
     dispatch({ type: 'ADD_ITEM', payload: line({ productId: 'tie', defaultSellPrice: 1, defaultExpressSellPrice: null, pricePerUnit: 1, totalPrice: 1, quantity: 1, pieces: [] }) } as NewOrderAction);
-    dispatch({ type: 'SET_EXPRESS', payload: true } as NewOrderAction);
+    dispatch({ type: 'SET_SERVICE_SPEED', payload: 'EXPRESS' } as NewOrderAction);
+    expect(store.state.serviceSpeed).toBe('EXPRESS');
+    // The express premium comes from the speed rules on the server; the cart shows the quote.
     expect(store.state.items.map((i) => [i.productId, i.pricePerUnit, i.totalPrice])).toEqual([
-      ['shirt', 2.5, 5],
+      ['shirt', 1.5, 3],
       ['tie', 1, 1],
     ]);
-    dispatch({ type: 'SET_EXPRESS', payload: false } as NewOrderAction);
-    expect(store.state.items.map((i) => i.pricePerUnit)).toEqual([1.5, 1]);
+  });
+
+  it('C02b P5-03b: a line can carry its own speed; "Apply to all lines" makes every line follow the order again', () => {
+    dispatch({ type: 'SET_ITEM_SERVICE_SPEED', payload: { productId: 'shirt', serviceSpeed: 'EXPRESS' } } as NewOrderAction);
+    expect(item().serviceSpeed).toBe('EXPRESS');
+    dispatch({ type: 'APPLY_SPEED_TO_ALL_LINES' } as NewOrderAction);
+    expect(item().serviceSpeed).toBeNull();
+  });
+
+  it('C02c P5-03c: a line discount is stored as typed and removed with null; prices stay server-owned', () => {
+    const lineDiscount = { type: 'PERCENTAGE' as const, value: 10, reason: 'Loyal customer' };
+    dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { productId: 'shirt', lineDiscount } } as NewOrderAction);
+    expect([item().lineDiscount, item().totalPrice]).toEqual([lineDiscount, 3]);
+    dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { productId: 'shirt', lineDiscount: null } } as NewOrderAction);
+    expect(item().lineDiscount).toBeNull();
   });
 
   const override = (priceOverride: number | null) =>
@@ -89,13 +104,12 @@ describe('P1-01 golden — cart line money', () => {
     expect([item().priceOverride, item().pricePerUnit, item().totalPrice, item().pricePerUnitBeforeOverride]).toEqual([null, 1.5, 3, undefined]);
   });
 
-  it('C03b FIXED (PF-21, rule #15): the express toggle never rewrites a typed override', () => {
+  it('C03b FIXED (PF-21, rule #15): a speed change never rewrites a typed override', () => {
     override(1);
-    dispatch({ type: 'SET_EXPRESS', payload: true } as NewOrderAction);
-    // The server charges the override, so the cart keeps it; only the price under it follows the speed.
-    expect([item().pricePerUnit, item().totalPrice, item().pricePerUnitBeforeOverride]).toEqual([1, 2, 2.5]);
+    dispatch({ type: 'SET_SERVICE_SPEED', payload: 'EXPRESS' } as NewOrderAction);
+    expect([item().priceOverride, item().pricePerUnit, item().totalPrice, item().pricePerUnitBeforeOverride]).toEqual([1, 1, 2, 1.5]);
     override(null);
-    expect([item().pricePerUnit, item().totalPrice]).toEqual([2.5, 5]);
+    expect([item().pricePerUnit, item().totalPrice]).toEqual([1.5, 3]);
   });
 
   it('C04 KNOWN DEFECT (PF-12): a piece preference REPLACES the item-preference charge instead of adding to it', () => {

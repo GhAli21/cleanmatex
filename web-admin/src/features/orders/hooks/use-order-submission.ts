@@ -5,6 +5,8 @@
 
 'use client';
 
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
+import type { PriceChangedLine } from '@/lib/services/commercial/price-confirmation';
 import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -194,6 +196,8 @@ export function useOrderSubmission() {
         message?: string;
         differences?: AmountMismatchDifferences;
     }>({ open: false });
+    // D26: the submit was rejected because unit prices the cart showed changed.
+    const [priceChanged, setPriceChanged] = useState<{ open: boolean; lines: PriceChangedLine[] }>({ open: false, lines: [] });
     // Server rejection routed to its owning capability — the payment modal
     // renders it as an in-view guard (cleared on the next attempt / modal open).
     const [serverGuard, setServerGuard] = useState<PaymentServerGuard | null>(null);
@@ -214,7 +218,12 @@ export function useOrderSubmission() {
     } | null>(null);
 
     const submitOrder = useCallback(
-        async (paymentData: PaymentFormData, payload?: NewOrderPaymentPayload) => {
+        async (
+            paymentData: PaymentFormData,
+            payload?: NewOrderPaymentPayload,
+            /** D26: the unit price the cart showed per line (by position); null where none was shown. */
+            options?: { confirmedUnitPrices?: readonly (number | null)[] },
+        ) => {
             setIsSubmitting(true);
             state.setLoading(true);
             setServerGuard(null);
@@ -343,8 +352,18 @@ export function useOrderSubmission() {
                     customerId: state.state.customer?.id || '',
                     orderTypeId: state.state.orderTypeId,
                     orderSourceCode: state.state.orderSourceCode,
-                    items: state.state.items.map((item) => ({
-                        productId: item.productId,
+                    items: state.state.items.map((item, index) => ({
+                        // P5-03e: a custom item has no product id; its cart key is never sent.
+                        ...(item.customItem
+                            ? {
+                                customItem: {
+                                    name: item.customItem.name,
+                                    name2: item.customItem.name2,
+                                    unitPrice: item.customItem.unitPrice,
+                                    serviceCategoryCode: item.serviceCategoryCode ?? null,
+                                },
+                            }
+                            : { productId: item.productId }),
                         productName: item.productName ?? undefined,
                         productName2: item.productName2 ?? undefined,
                         quantity: item.quantity,
@@ -381,6 +400,10 @@ export function useOrderSubmission() {
                         ...(item.servicePrefs && item.servicePrefs.length > 0 && {
                             servicePrefs: item.servicePrefs,
                         }),
+                        serviceSpeed: item.serviceSpeed ?? null,
+                        lineDiscount: item.lineDiscount ?? null,
+                        // D26: compared, never used to price; an override is honoured as entered.
+                        confirmedUnitPrice: item.priceOverride != null ? null : options?.confirmedUnitPrices?.[index] ?? null,
                         servicePrefCharge: item.servicePrefCharge ?? 0,
                         ...(item.packingPrefCharge != null && { packingPrefCharge: item.packingPrefCharge }),
                         ...(item.packingPrefCode && {
@@ -402,7 +425,8 @@ export function useOrderSubmission() {
                     ...(state.state.isQuickDrop && state.state.quickDropQuantity > 0 && {
                         quickDropQuantity: state.state.quickDropQuantity,
                     }),
-                    express: state.state.express || false,
+                    // P5-03b: the order speed code; each line may carry its own (`serviceSpeed` below).
+                    serviceSpeed: state.state.serviceSpeed,
                     customerNotes: sanitizedCustomerNotes,
                     paymentNotes: sanitizedPaymentNotes,
                     readyByAt: state.state.readyByAt,
@@ -527,7 +551,8 @@ export function useOrderSubmission() {
                                 ...(item.packingCfId ? { packingCfId: item.packingCfId } : {}),
                             }),
                         })),
-                        express: state.state.express || false,
+                        // Legacy Edit update API: a boolean until P6-01 moves Edit to the calculator.
+                        express: state.state.serviceSpeed === SERVICE_SPEEDS.EXPRESS,
                         notes: sanitizedNotes,
                         customerNotes: sanitizedCustomerNotes,
                         paymentNotes: sanitizedPaymentNotes,
@@ -573,6 +598,14 @@ export function useOrderSubmission() {
                         }
                     } catch {
                         errorMessage = `Server returned ${res.status} ${res.statusText}`;
+                    }
+
+                    // PRICE_CHANGED (D26): nothing was saved; show each changed line.
+                    if (json.errorCode === 'PRICE_CHANGED' && Array.isArray(json.lines)) {
+                        setPriceChanged({ open: true, lines: json.lines as PriceChangedLine[] });
+                        setIsSubmitting(false);
+                        state.setLoading(false);
+                        return;
                     }
 
                     // AMOUNT_MISMATCH: show dialog, do not persist anything
@@ -663,6 +696,8 @@ export function useOrderSubmission() {
                             // PF-01: server-enforced price override policy.
                             PRICE_OVERRIDE_NOT_PERMITTED: t('payment.errors.priceOverrideNotPermitted'),
                             PRICE_OVERRIDE_REASON_REQUIRED: t('payment.errors.priceOverrideReasonRequired'),
+                            // P6-01d: a calculator order's money is saved through Edit Order review only.
+                            LEGACY_COMMITTED_UPDATE_RETIRED: tEdit('legacyUpdateRetired'),
                     };
 
                     // A 403 with a known stable code (e.g. PF-01) uses its own message,
@@ -962,7 +997,8 @@ export function useOrderSubmission() {
                         ...(item.packingCfId ? { packingCfId: item.packingCfId } : {}),
                     }),
                 })),
-                express: state.state.express || false,
+                // Legacy Edit update API: a boolean until P6-01 moves Edit to the calculator.
+                        express: state.state.serviceSpeed === SERVICE_SPEEDS.EXPRESS,
                 notes: sanitizedNotes,
                 customerNotes: sanitizedCustomerNotes,
                 paymentNotes: sanitizedPaymentNotes,
@@ -1007,7 +1043,10 @@ export function useOrderSubmission() {
                     state.setLoading(false);
                     return;
                 }
-                const errorMessage = formatValidationErrorMessage(json, res.status);
+                // P6-01d: a calculator order's money is saved through Edit Order review only.
+                const errorMessage = json.errorCode === 'LEGACY_COMMITTED_UPDATE_RETIRED'
+                    ? tEdit('legacyUpdateRetired')
+                    : formatValidationErrorMessage(json, res.status);
                 cmxMessage.error(errorMessage);
                 setIsSubmitting(false);
                 state.setLoading(false);
@@ -1072,6 +1111,8 @@ export function useOrderSubmission() {
         isSubmitting,
         amountMismatch,
         setAmountMismatch,
+        priceChanged,
+        setPriceChanged,
         serverGuard,
         clearServerGuard,
         amendmentReasonPromptOpen,

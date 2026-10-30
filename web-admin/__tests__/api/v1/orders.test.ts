@@ -58,7 +58,7 @@ jest.mock('@/lib/db/tenant-context', () => ({
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { NextRequest, NextResponse } from 'next/server';
-import { POST, GET } from '@/app/api/v1/orders/route';
+import { GET } from '@/app/api/v1/orders/route';
 
 const AUTH_CTX = { tenantId: 't1', userId: 'u1', userName: 'Test User' };
 
@@ -77,32 +77,11 @@ describe('Orders API Routes', () => {
   });
 
   describe('POST /api/v1/orders', () => {
-    it('should call requirePermission with orders:create', async () => {
-      const { requirePermission } = require('@/lib/middleware/require-permission');
-
-      const request = new NextRequest('http://localhost/api/v1/orders', {
-        method: 'POST',
-        body: JSON.stringify({ customer_id: 'c1', items: [] }),
-      });
-
-      await POST(request);
-
-      expect(requirePermission).toHaveBeenCalledWith('orders:create');
-    });
-
-    it('should return 403 when user lacks orders:create permission', async () => {
-      const { requirePermission } = require('@/lib/middleware/require-permission');
-      requirePermission.mockImplementation(() =>
-        jest.fn().mockResolvedValue(NextResponse.json({ error: 'Forbidden' }, { status: 403 }))
-      );
-
-      const request = new NextRequest('http://localhost/api/v1/orders', {
-        method: 'POST',
-        body: JSON.stringify({ customer_id: 'c1', items: [] }),
-      });
-
-      const response = await POST(request);
-      expect(response.status).toBe(403);
+    // Orders are created only by submit-order and the customer booking, both on the
+    // calculator; this route stored client prices and was removed (Next.js answers 405).
+    it('is not exported, so a client-priced create cannot reach the old writer', async () => {
+      const route = await import('@/app/api/v1/orders/route');
+      expect('POST' in route).toBe(false);
     });
   });
 

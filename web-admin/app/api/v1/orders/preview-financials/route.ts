@@ -1,3 +1,4 @@
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService, SETTING_CODES } from '@/lib/services/tenant-settings.service';
@@ -6,7 +7,7 @@ import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { previewPaymentRequestSchema } from '@/lib/validations/new-order-payment-schemas';
-import { assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
+import { assertOrderDiscountAllowed, assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
 import { priceOverrideErrorResponse } from '@/lib/api/price-override-http';
 import { isInvalidDbInputError } from '@/lib/utils/db-input-error';
 
@@ -40,6 +41,8 @@ export async function POST(request: NextRequest) {
   // PF-01: a previewed override needs `pricing:override`, same as submit.
   try {
     await assertPriceOverridesAllowed(parsed.data.items, { requireReason: false });
+    // Owner decision 2026-10-28: an order manual discount needs `orders:discount`.
+    await assertOrderDiscountAllowed(parsed.data);
   } catch (error) {
     const priceOverrideResponse = priceOverrideErrorResponse(error);
     if (priceOverrideResponse) return priceOverrideResponse;
@@ -59,7 +62,8 @@ export async function POST(request: NextRequest) {
         packingPrefCharge: item.packingPrefCharge ?? 0,
       })),
       customerId: parsed.data.customerId,
-      isExpress: parsed.data.isExpress ?? false,
+      // Legacy route (P10-01 retirement): the old engine only knows an express flag.
+      isExpress: parsed.data.serviceSpeed === SERVICE_SPEEDS.EXPRESS,
       percentDiscount: parsed.data.percentDiscount ?? 0,
       amountDiscount: parsed.data.amountDiscount ?? 0,
       promoCode: parsed.data.promoCode,

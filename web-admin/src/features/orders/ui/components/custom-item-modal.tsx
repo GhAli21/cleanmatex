@@ -1,6 +1,8 @@
 /**
  * Custom Item Modal
- * Modal for adding catalog-free custom items to the order
+ * Adds a catalog-free line (P5-03e): the cashier enters its name and unit price.
+ * No catalog product is created; the server prices it as MANUAL, which needs
+ * `pricing:override` (the entry point is hidden without it).
  */
 
 'use client';
@@ -18,6 +20,7 @@ import { cmxMessage } from '@ui/feedback';
 import type { OrderItem } from '../../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { CUSTOM_ITEM_KEY_PREFIX } from '../../model/checkout-line-intent';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 /**
@@ -123,92 +126,6 @@ export function CustomItemModal({
     }
   }, [open, handleClose]);
 
-  const resolveCustomProductId = async (
-    name: string,
-    name2: string | null,
-    price: number,
-  ): Promise<string | null> => {
-    // Decide strategy based on env:
-    // - 'use'  -> use NEXT_PUBLIC_CUSTOM_ITEM_DEFAULT_PRODUCT_ID
-    // - 'new'  -> create a fresh product via /api/v1/products (default)
-    const mode =
-      process.env.NEXT_PUBLIC__CUSTOM_IIEM_USE_DEFAULT_ID_OR_CREATE_NEW_PRODUCT ??
-      'new';
-
-    const trimmedMode = mode.toLowerCase();
-
-    // UUID v4 basic validation (must align with backend expectations)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-    if (trimmedMode === 'use') {
-      const rawId = process.env.NEXT_PUBLIC_CUSTOM_ITEM_DEFAULT_PRODUCT_ID ?? '';
-
-      if (!rawId || !uuidRegex.test(rawId)) {
-        cmxMessage.error(
-          'Custom item default product ID is not configured or is invalid. Please contact your administrator.',
-        );
-        return null;
-      }
-
-      return rawId;
-    }
-
-    // Default behaviour: create a product via the Products API and return its UUID
-    if (!serviceCategoryCode) {
-      cmxMessage.error(
-        'Service category is required for custom items. Please select a category first.',
-      );
-      return null;
-    }
-
-    try {
-      const response = await fetch('/api/v1/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          service_category_code: serviceCategoryCode,
-          product_name: name,
-          product_name2: name2,
-          product_unit: 'piece',
-          default_sell_price: price,
-          is_active: true,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        const errorMessage =
-          (errorBody && (errorBody.error as string)) ||
-          'Failed to create custom product. Please try again.';
-        cmxMessage.error(errorMessage);
-        return null;
-      }
-
-      const json = (await response.json()) as {
-        success?: boolean;
-        data?: { id?: string };
-        error?: string;
-      };
-
-      if (!json.success || !json.data?.id || !uuidRegex.test(json.data.id)) {
-        cmxMessage.error(
-          json.error ||
-          'Product was created but a valid product ID was not returned. Please try again.',
-        );
-        return null;
-      }
-
-      return json.data.id;
-    } catch (error) {
-      console.error('Failed to create custom product', error);
-      cmxMessage.error('Failed to create custom product. Please check your connection and try again.');
-      return null;
-    }
-  };
-
   const onSubmit = async (data: CustomItemFormData) => {
     // Validate form data
     const validation = customItemSchema.safeParse(data);
@@ -225,19 +142,14 @@ export function CustomItemModal({
     const sanitizedNotes = data.notes ? sanitizeOrderNotes(data.notes) : undefined;
     setIsSubmitting(true);
 
-    const customProductId = await resolveCustomProductId(
-      sanitizedName,
-      sanitizedName2,
-      data.price,
-    );
-
-    if (!customProductId) {
-      setIsSubmitting(false);
-      return;
-    }
+    // P5-03e: a custom item is a line with no catalog product (PLAN §7). The key
+    // only identifies it in the cart; the server prices the entered unit price as
+    // MANUAL and never creates a catalog product for it.
+    const customProductId = `${CUSTOM_ITEM_KEY_PREFIX}${crypto.randomUUID()}`;
 
     const customItem: OrderItem = {
       productId: customProductId,
+      customItem: { name: sanitizedName, name2: sanitizedName2, unitPrice: data.price },
       productName: sanitizedName,
       productName2: sanitizedName2,
       quantity: data.quantity,
@@ -385,6 +297,7 @@ export function CustomItemModal({
                           {errors.price.message}
                         </p>
                       )}
+                      <p className="mt-1 text-xs text-gray-500">{t('priceHint')}</p>
                     </>
                   )}
                 />

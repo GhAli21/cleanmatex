@@ -10,15 +10,12 @@ import { createClient } from '@/lib/supabase/server';
 import { getOrderById } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
 import { Prisma } from '@prisma/client';
-import { WorkflowService } from './workflow-service';
 import { OrderPieceService, type OrderPreferencesSourceDefault } from './order-piece-service';
-import { createTenantSettingsService } from './tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
-import type { OrderStatus } from '@/lib/types/workflow';
 import { resolveOrderCreateWorkflowState } from '@/lib/services/workflow/order-create-workflow.service';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
 import { isOrderEditable } from '@/lib/utils/order-editability';
-import { checkOrderLock, unlockOrder, lockOrderForEdit } from '@/lib/services/order-lock.service';
+import { checkOrderLock, unlockOrder } from '@/lib/services/order-lock.service';
 import { createEditAudit } from '@/lib/services/order-audit.service';
 import {
   computeAmendmentDelta,
@@ -30,10 +27,9 @@ import {
 } from '@/lib/services/order-amendment.service';
 import { canAccess } from '@/lib/services/feature-flags.service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
-import {
-  recalculateOrderFinancialSnapshot,
-  recalculateOrderFinancialSnapshotTx,
-} from '@/lib/services/order-financial-write.service';
+import type { CheckoutQuote } from '@/lib/services/commercial/commercial-checkout.service';
+import { openCommercialCreateSession } from '@/lib/services/commercial/commercial-create.session';
+import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import { voidPreferenceChargesForOrderRewriteTx } from '@/lib/services/order-charge.service';
 import { customerSnapshotFieldChanged } from '@/lib/utils/order-customer-snapshot';
 import { CHARGE_TYPES } from '@/lib/constants/order-financial';
@@ -42,11 +38,10 @@ import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
 import { findOpenPosSessionIdForOrder } from '@/lib/services/order-created-pos-session';
-import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { PAYMENT_METHODS, PAYMENT_TYPE_IDS } from '@/lib/constants/payment';
 import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/lib/services/order-source-policy';
-import { buildDiscountLinesFromOrderInput, insertDiscountLines, insertDiscountLinesTx } from '@/lib/db/order-discounts';
 import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
-import { fetchOrgPackingExtraPriceByCodesSupabase, fetchOrgPackingExtraPriceByCodesPrismaTx } from '@/lib/utils/org-packing-extra-price';
+import { fetchOrgPackingExtraPriceByCodesPrismaTx } from '@/lib/utils/org-packing-extra-price';
 import { fetchOrgServicePreferenceCfIdsByCodesPrismaTx } from '@/lib/utils/org-service-preference-cf-lookup';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import type { PreferenceSnapshot } from '@/lib/utils/order-preference-snapshot';
@@ -70,7 +65,6 @@ import {
 } from '@/lib/services/lookups';
 import {
   resolveWorkflowProfileBindingForOrderWithPrisma,
-  resolveWorkflowProfileBindingForOrderWithSupabase,
   WorkflowProfileResolutionError,
 } from '@/lib/services/workflow/workflow-profile-resolution.service';
 import { SemanticInitialStatusResolutionError } from '@/lib/services/workflow/initial-status-resolver.service';
@@ -208,7 +202,8 @@ export interface CreateOrderParams {
   branchId?: string;
   orderTypeId: string;
   items: Array<{
-    productId: string;
+    /** Null for a custom item (P5-03e): the line has no catalog product. */
+    productId?: string | null;
     productName?: string | null;
     productName2?: string | null;
     quantity: number;
@@ -239,6 +234,13 @@ export interface CreateOrderParams {
   }>;
   /** B18 — order-level preferences (`org_order_preferences_dtl.prefs_level='ORDER'`), independent of any item. */
   orderServicePrefs?: CreateOrderServicePref[];
+  /**
+   * P5-02: the checkout quote the submit was checked against. When set, every
+   * line-money column, preference price, discount, charge and tax row comes
+   * from it (line `i` = quote line `L{i+1}`); client prices are ignored.
+   * Only `createOrderInTransaction` reads it.
+   */
+  commercial?: CheckoutQuote;
   isQuickDrop?: boolean;
   quickDropQuantity?: number;
   priority?: string;
@@ -259,7 +261,7 @@ export interface CreateOrderParams {
   userId: string;
   userName: string;
   useOldWfCodeOrNew?: boolean;
-  totals?: { subtotal: number; discount?: number; tax?: number; total: number; vatRate?: number; vatAmount?: number; taxRate?: number; roundingAdjustment?: number; chargesTotal?: number };
+  totals?: { subtotal: number; discount?: number; tax?: number; total: number; vatRate?: number; taxRate?: number; roundingAdjustment?: number; chargesTotal?: number };
   discountRate?: number;
   discountType?: string;
   promoCodeId?: string;
@@ -502,7 +504,7 @@ async function loadOrderPieceSnapshots(
 
 export class OrderService {
   /**
-   * Shared workflow + create-hydration resolution for createOrder paths.
+   * Workflow + create-hydration resolution for `createOrderInTransaction`.
    * Initial status and column stamps come from profile Initial rules + presets.
    */
   private static async computeCreateOrderWorkflowState(args: {
@@ -560,707 +562,10 @@ export class OrderService {
   }
 
   /**
-   * Create new order with workflow logic
-   * PRD-010: Quick Drop vs Normal order handling
-   */
-  static async createOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
-    try {
-      const {
-        tenantId,
-        customerId,
-        branchId,
-        orderTypeId,
-        items,
-        isQuickDrop,
-        quickDropQuantity,
-        priority,
-        express,
-        customerNotes,
-        internalNotes,
-        paymentMethod,
-        readyByAt: providedReadyByAt,
-        userId,
-        userName,
-        totals,
-        discountRate,
-        discountType,
-        promoCodeId,
-        giftCardId,
-        promoDiscountAmount,
-        giftCardDiscountAmount,
-        paymentTypeCode,
-        currencyCode: passedCurrencyCode,
-        currencyExRate: passedCurrencyExRate,
-        isDefaultCustomer,
-        customerMobile,
-        customerEmail,
-        customerName,
-        customerDetails,
-        supabaseClient,
-      } = params;
-
-      const supabase = supabaseClient ?? (await createClient());
-
-      const orderSourceCode = (params.orderSourceCode ?? DEFAULT_ORDER_SOURCE_CODE).trim();
-      const sourceValidated = await validateOrderSourceForCreation(tenantId, orderSourceCode);
-      if (sourceValidated.ok === false) {
-        return { success: false, error: sourceValidated.error };
-      }
-
-      const workflowProfileBinding = await resolveWorkflowProfileBindingForOrderWithSupabase(supabase, {
-        tenantId,
-        branchId,
-        serviceCodes: items.flatMap((item) => item.serviceCategoryCode ? [item.serviceCategoryCode] : []),
-      });
-
-      const wf = await this.computeCreateOrderWorkflowState({
-        tenantId,
-        items,
-        isQuickDrop,
-        quickDropQuantity,
-        physicalIntakeStatus: params.physicalIntakeStatus,
-        initialWorkflowScreen: params.initialWorkflowScreen,
-        orderTypeId,
-        sourceRow: sourceValidated.row,
-        semanticInitialRules: workflowProfileBinding.initialRules,
-        userId,
-        physicalIntakeInfo: params.physicalIntakeInfo,
-        receivedInfo: params.receivedInfo,
-      });
-
-      const {
-        v_initialStatus,
-        v_transitionFrom,
-        v_orderStatus,
-        v_current_status,
-        v_current_stage,
-        physicalIntakeStatus,
-        receivedAt,
-        contractScreen,
-        isRetailOnlyOrder,
-        hydrated,
-      } = wf;
-
-      // T03: retail must always pay at POS — the client blocks PAY_ON_COLLECTION
-      // for retail-only orders, but retail lands directly at a terminal status
-      // with no downstream collection gate, so a direct/forged API call must be
-      // rejected here too rather than relying on the UI guard alone.
-      if (isRetailOnlyOrder && paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION) {
-        return {
-          success: false,
-          errorCode: 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED',
-          error: 'Retail orders must be paid at POS. Please select Cash or Card.',
-        };
-      }
-
-      if (isRetailOnlyOrder) {
-        logger.info('Retail order created from workflow initial rules', {
-          tenantId,
-          userId,
-          feature: 'orders',
-          action: 'create_order',
-        });
-      } else {
-        logger.info('Using workflow initial rules for order creation', {
-          tenantId,
-          userId,
-          screen: contractScreen,
-          contractStatus: v_current_status,
-          isQuickDrop,
-          physicalIntakeStatus,
-          feature: 'orders',
-          action: 'create_order',
-        });
-      }
-
-      // Generate order number
-      const { data: orderNoData, error: orderNoError } = await supabase.rpc(
-        'generate_order_number',
-        { p_tenant_org_id: tenantId }
-      );
-
-      if (orderNoError || !orderNoData) {
-        return {
-          success: false,
-          error: 'Failed to generate order number',
-        };
-      }
-
-      const orderNo = orderNoData as string;
-
-      // Calculate totals (use provided totals when present, else from items)
-      const subtotal =
-        totals?.subtotal ??
-        items.reduce(
-          (sum, item) =>
-            sum + item.totalPrice + (item.servicePrefCharge ?? 0),
-          0
-        );
-      const discount = totals?.discount ?? 0;
-      const tax = totals?.tax ?? 0;
-      const total = totals?.total ?? subtotal - discount + tax;
-      const roundingAdjustment = totals?.roundingAdjustment ?? 0;
-      const vatRate = totals?.vatRate;
-
-      // Currency: prefer passed values, else fetch from tenant settings when we have payment-related data
-      const hasPaymentData = !!(
-        totals || paymentMethod || paymentTypeCode ||
-        discountRate != null || promoCodeId || giftCardId ||
-        passedCurrencyCode
-      );
-      let currencyCode = passedCurrencyCode;
-      let currencyExRate = passedCurrencyExRate;
-      if (!currencyCode && hasPaymentData) {
-        const tenantSettingsSvc = createTenantSettingsService(supabase);
-        const config = await tenantSettingsSvc.getCurrencyConfig(tenantId, branchId ?? undefined, userId);
-        currencyCode = config.currencyCode;
-      }
-      if (currencyExRate == null) {
-        currencyExRate = 1;
-      }
-
-      // Get primary service category from first item
-      const primaryServiceCategory = items[0]?.serviceCategoryCode || null;
-
-      const workflowProfile = workflowProfileBinding;
-      const v_workflowTemplateId = workflowProfile.basedOnTemplateId;
-
-      const insertPayload: Record<string, unknown> = {
-        tenant_org_id: tenantId,
-        branch_id: branchId,
-        customer_id: customerId,
-        order_type_id: orderTypeId,
-        order_no: orderNo,
-        status: v_orderStatus,
-        workflow_template_id: v_workflowTemplateId,
-        wf_profile_id: workflowProfile.profileId,
-        wf_version_no: workflowProfile.versionNo,
-        wf_profile_version_id: workflowProfile.versionId,
-        // wf_profile_artifact_id/checksum/schema_version: retired
-        // compiled-artifact fields (Gate 5, ADR-SAAS-MNG-0010) — always null
-        // for new orders. wf_profile_revision is the one field here that
-        // still carries a real, useful value: the live policy_revision at
-        // create time, kept for audit traceability only (nothing re-reads it
-        // to make a decision).
-        wf_profile_artifact_id: null,
-        wf_profile_revision: workflowProfile.policyRevision,
-        wf_profile_checksum: null,
-        wf_profile_schema_version: null,
-        current_status: v_current_status,
-        current_stage: v_current_stage,
-        priority: priority || 'normal',
-        priority_multiplier: express ? 0.5 : 1.0,
-        total_items:
-          items.length > 0
-            ? items.reduce((sum, item) => sum + item.quantity, 0)
-            : quickDropQuantity || 0,
-        subtotal_amount: subtotal,
-        items_base_amount: subtotal,
-        total_discount_amount: discount,
-        total_tax_amount: tax,
-        total_amount: total,
-        rounding_adjustment_amount: roundingAdjustment,
-        payment_status: paymentMethod ? 'partial' : 'pending',
-        payment_method_code: paymentMethod,
-        total_paid_amount: 0,
-        outstanding_amount: total,
-        service_category_code: primaryServiceCategory,
-        is_order_quick_drop: isQuickDrop || false,
-        quick_drop_quantity: quickDropQuantity,
-        is_retail: isRetailOnlyOrder,
-        customer_notes: customerNotes,
-        internal_notes: internalNotes,
-        created_by: userId,
-        created_info: null,
-        rec_status: 1,
-        order_source_code: orderSourceCode,
-        physical_intake_status: physicalIntakeStatus,
-        physical_intake_at: hydrated.physical_intake_at
-          ? hydrated.physical_intake_at.toISOString()
-          : null,
-        physical_intake_by: hydrated.physical_intake_by,
-        physical_intake_info: hydrated.physical_intake_info,
-        received_info: hydrated.received_info,
-        received_at: receivedAt ? receivedAt.toISOString() : null,
-        preparation_status: hydrated.preparation_status,
-        prepared_at: hydrated.prepared_at
-          ? hydrated.prepared_at.toISOString()
-          : null,
-        prepared_by: hydrated.prepared_by,
-      };
-
-      if (currencyCode != null) {
-        insertPayload.currency_code = currencyCode;
-        insertPayload.currency_ex_rate = currencyExRate ?? 1;
-      }
-      if (vatRate != null) insertPayload.vat_rate = vatRate;
-      if (discountRate != null) insertPayload.discount_rate = discountRate;
-      if (discountType != null) insertPayload.discount_type = discountType;
-      if (promoCodeId != null) insertPayload.promo_code_id = promoCodeId;
-      if (giftCardId != null) insertPayload.gift_card_id = giftCardId;
-      if (paymentTypeCode != null) insertPayload.payment_type_code = paymentTypeCode;
-      if (params.paymentNotes != null) insertPayload.payment_notes = params.paymentNotes;
-      if (isDefaultCustomer != null) insertPayload.is_default_customer = isDefaultCustomer;
-      if (customerMobile != null && customerMobile !== '') {
-        insertPayload.customer_mobile_number = customerMobile;
-      }
-      if (customerEmail != null && customerEmail !== '') {
-        insertPayload.customer_email = customerEmail;
-      }
-      if (customerName != null && customerName !== '') {
-        insertPayload.customer_name = customerName;
-      }
-      if (customerDetails != null && Object.keys(customerDetails).length > 0) {
-        insertPayload.customer_details = customerDetails;
-      }
-      if (userId && branchId) {
-        const createdPosSessionId = await findOpenPosSessionIdForOrder(prisma, {
-          tenantId,
-          userId,
-          branchId,
-        });
-        if (createdPosSessionId) insertPayload.created_pos_session_id = createdPosSessionId;
-      }
-
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from('org_orders_mst')
-        .insert(insertPayload as any)
-        .select()
-        .single();
-
-      if (orderError || !order) {
-        return {
-          success: false,
-          error: orderError?.message || 'Failed to create order',
-        };
-      }
-
-      // Create order items (only if not Quick Drop or if items were provided)
-      if (items.length > 0) {
-        const packingPriceMapSb = await fetchOrgPackingExtraPriceByCodesSupabase(
-          supabase,
-          tenantId,
-          collectPackingPrefCodesFromOrderPayload(items)
-        );
-
-        const itemsToInsert = items.map((item, index) => ({
-          order_id: order.id,
-          tenant_org_id: tenantId,
-          branch_id: branchId ?? null,
-          service_category_code: item.serviceCategoryCode,
-          order_item_srno: `${orderNo}-${index + 1}`,
-          product_id: item.productId,
-          quantity: item.quantity,
-          price_per_unit: item.pricePerUnit,
-          total_price: item.totalPrice,
-          status: 'pending',
-          item_status: v_initialStatus,
-          item_stage: v_transitionFrom,
-          notes: item.notes,
-          has_stain: item.hasStain,
-          has_damage: item.hasDamage,
-          stain_notes: item.stainNotes,
-          damage_notes: item.damageNotes,
-          packing_pref_code: item.packingPrefCode ?? null,
-          packing_pref_is_override: item.packingPrefIsOverride ?? false,
-          packing_pref_source: item.packingPrefSource ?? null,
-          service_pref_charge: persistedServicePrefChargeColumn(item, packingPriceMapSb),
-        }));
-
-        const { error: itemsError, data: createdItems } = await supabase
-          .from('org_order_items_dtl')
-          .insert(itemsToInsert)
-          .select();
-
-        if (itemsError) {
-          logger.error('Failed to create order items', new Error(itemsError.message), {
-            tenantId,
-            orderId: order.id,
-            feature: 'orders',
-            action: 'create_order',
-          });
-          await supabase
-            .from('org_orders_mst')
-            .delete()
-            .eq('tenant_org_id', tenantId)
-            .eq('id', order.id);
-          return {
-            success: false,
-            error: 'Failed to create order items',
-          };
-        } else if (createdItems && createdItems.length > 0) {
-          // Insert service preferences for items that have them
-          const servicePrefsToInsert: Array<{
-            tenant_org_id: string;
-            order_id: string;
-            prefs_no: number;
-            prefs_level: string;
-            order_item_id: string;
-            preference_code: string;
-            preference_content: string;
-            preference_sys_kind: string;
-            prefs_source: string;
-            extra_price: number;
-            branch_id: string | null;
-            created_by: string;
-            preference_id?: string;
-          }> = [];
-          for (let i = 0; i < createdItems.length; i++) {
-            const createdItem = createdItems[i];
-            const itemData = items[i];
-            const prefs = itemData?.servicePrefs;
-            if (createdItem && prefs && prefs.length > 0) {
-              prefs.forEach((pref, idx) => {
-                servicePrefsToInsert.push({
-                  tenant_org_id: tenantId,
-                  order_id: order.id,
-                  prefs_no: idx + 1,
-                  prefs_level: 'ITEM',
-                  order_item_id: createdItem.id,
-                  preference_code: pref.preference_code,
-                  preference_content: pref.preference_code,
-                  preference_sys_kind: 'service_prefs',
-                  prefs_source: pref.source ?? 'manual',
-                  extra_price: pref.extra_price ?? 0,
-                  branch_id: branchId ?? null,
-                  created_by: userId,
-                  ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
-                });
-              });
-            }
-          }
-          if (servicePrefsToInsert.length > 0) {
-            const { error: prefsError } = await supabase
-              .from('org_order_preferences_dtl')
-              .insert(servicePrefsToInsert);
-            if (prefsError) {
-              logger.error('Failed to insert service preferences for order items', new Error(prefsError.message), {
-                tenantId,
-                orderId: order.id,
-                feature: 'orders',
-                action: 'create_order',
-              });
-              await supabase
-                .from('org_orders_mst')
-                .delete()
-                .eq('tenant_org_id', tenantId)
-                .eq('id', order.id);
-              return {
-                success: false,
-                error: 'Failed to create order preferences',
-              };
-            }
-          }
-
-          // Insert packing preferences into org_order_preferences_dtl (ITEM level)
-          const packingPrefsToInsert = createdItems
-            .map((createdItem, i) => {
-              const itemData = items[i];
-              if (!createdItem || !itemData?.packingPrefCode) return null;
-              return {
-                tenant_org_id: tenantId,
-                order_id: order.id,
-                prefs_no: 1,
-                prefs_level: 'ITEM',
-                order_item_id: createdItem.id,
-                preference_code: itemData.packingPrefCode,
-                preference_content: itemData.packingPrefCode,
-                preference_sys_kind: 'packing_prefs',
-                prefs_owner_type: itemData.packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
-                prefs_source: itemData.packingPrefSource ?? 'ORDER_CREATE',
-                extra_price: packingPriceMapSb.get(itemData.packingPrefCode) ?? 0,
-                branch_id: branchId ?? null,
-                created_by: userId,
-                ...(itemData.packingCfId ? { preference_id: itemData.packingCfId } : {}),
-              };
-            })
-            .filter((r): r is NonNullable<typeof r> => r !== null);
-
-          if (packingPrefsToInsert.length > 0) {
-            const { error: packingPrefsError } = await supabase
-              .from('org_order_preferences_dtl')
-              .insert(packingPrefsToInsert);
-            if (packingPrefsError) {
-              logger.error('Failed to insert packing preferences for order items', new Error(packingPrefsError.message), {
-                tenantId,
-                orderId: order.id,
-                feature: 'orders',
-                action: 'create_order',
-              });
-              await supabase
-                .from('org_orders_mst')
-                .delete()
-                .eq('tenant_org_id', tenantId)
-                .eq('id', order.id);
-              return {
-                success: false,
-                error: 'Failed to create order packing preferences',
-              };
-            }
-          }
-
-          // Always create pieces for each order item
-          const piecesErrors: Array<{ itemId: string; error: string }> = [];
-
-            for (let i = 0; i < createdItems.length; i++) {
-              const createdItem = createdItems[i];
-              const itemData = items[i];
-
-              if (createdItem && itemData.quantity > 0) {
-                // Use piece-level data if provided, otherwise use item-level data as fallback
-                const piecesData = itemData.pieces && itemData.pieces.length > 0
-                  ? itemData.pieces.map((piece, index) => ({
-                    pieceSeq: piece.pieceSeq || index + 1,
-                    color: piece.color,
-                    colorCodes: piece.colorCodes,
-                    colorCfIds: piece.colorCfIds,
-                    brand: piece.brand,
-                    hasStain: piece.hasStain ?? itemData.hasStain,
-                    hasDamage: piece.hasDamage ?? itemData.hasDamage,
-                    notes: piece.notes || itemData.notes,
-                    rackLocation: piece.rackLocation,
-                    metadata: piece.metadata || {},
-                    packingPrefCode: piece.packingPrefCode,
-                    packingCfId: piece.packingCfId,
-                    servicePrefs: piece.servicePrefs,
-                    conditions: piece.conditions,
-                  }))
-                  : undefined; // Will use baseData fallback
-
-                const piecesResult = await OrderPieceService.createPiecesForItem(
-                  tenantId,
-                  order.id,
-                  createdItem.id,
-                  itemData.quantity,
-                  {
-                    serviceCategoryCode: itemData.serviceCategoryCode,
-                    productId: itemData.productId,
-                    pricePerUnit: itemData.pricePerUnit,
-                    totalPrice: itemData.totalPrice,
-                    color: undefined, // Fallback if no piece data
-                    brand: undefined, // Fallback if no piece data
-                    hasStain: itemData.hasStain,
-                    hasDamage: itemData.hasDamage,
-                    notes: itemData.notes,
-                    metadata: {},
-                  },
-                  piecesData, // Pass piece-level data array
-                  branchId ?? undefined,
-                  supabase,
-                  packingPriceMapSb
-                );
-
-                // If pieces creation failed, collect the error
-                if (!piecesResult.success) {
-                  piecesErrors.push({
-                    itemId: createdItem.id,
-                    error: piecesResult.error || 'Failed to create pieces',
-                  });
-                }
-              }
-            }
-
-          // If any pieces creation failed, rollback order and items
-          if (piecesErrors.length > 0) {
-              const errorMessage = `Failed to create pieces: ${piecesErrors.map(e => e.error).join('; ')}`;
-              logger.error('Failed to create pieces for order items, rolling back order', new Error(errorMessage), {
-                tenantId,
-                orderId: order.id,
-                errors: piecesErrors,
-                feature: 'orders',
-                action: 'create_order',
-              });
-
-              // Delete all created items
-              const itemIds = createdItems.map(item => item.id);
-              await supabase
-                .from('org_order_items_dtl')
-                .delete()
-                .eq('tenant_org_id', tenantId)
-                .eq('order_id', order.id)
-                .in('id', itemIds);
-
-              // Delete the order
-              await supabase
-                .from('org_orders_mst')
-                .delete()
-                .eq('id', order.id)
-                .eq('tenant_org_id', tenantId);
-
-              return {
-                success: false,
-                error: `Failed to create pieces: ${piecesErrors.map(e => e.error).join('; ')}`,
-              };
-            }
-        }
-
-        // Stock deduction for retail items
-        const hasRetailItems = items.some((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
-        if (hasRetailItems) {
-          try {
-            const { error: deductError } = await supabase.rpc('deduct_retail_stock_for_order', {
-              p_order_id: order.id,
-              p_tenant_org_id: tenantId,
-              p_branch_id: order.branch_id ?? null,
-              ...(params.stockDeductionAudit && {
-                p_reference_type: params.stockDeductionAudit.referenceType ?? 'ORDER',
-                p_reference_id: params.stockDeductionAudit.referenceId ?? order.id,
-                p_reference_no: params.stockDeductionAudit.referenceNo,
-                p_user_id: params.stockDeductionAudit.userId ?? params.userId,
-                p_user_name: params.stockDeductionAudit.userName ?? params.userName,
-                p_user_info: params.stockDeductionAudit.userInfo,
-                p_user_agent: params.stockDeductionAudit.userAgent,
-                p_user_device: params.stockDeductionAudit.userDevice,
-                p_user_browser: params.stockDeductionAudit.userBrowser,
-                p_user_os: params.stockDeductionAudit.userOs,
-                p_user_ip: params.stockDeductionAudit.userIp,
-                p_reason: params.stockDeductionAudit.reason,
-              }),
-            });
-            if (deductError) {
-              const errMsg = deductError.message || 'Insufficient stock';
-              logger.error('Stock deduction failed for retail order', new Error(errMsg), {
-                tenantId,
-                orderId: order.id,
-                feature: 'orders',
-                action: 'create_order',
-              });
-              // Rollback: delete items then order
-              await supabase
-                .from('org_order_items_dtl')
-                .delete()
-                .eq('tenant_org_id', tenantId)
-                .eq('order_id', order.id);
-              await supabase
-                .from('org_orders_mst')
-                .delete()
-                .eq('id', order.id)
-                .eq('tenant_org_id', tenantId);
-              return {
-                success: false,
-                error: errMsg.includes('INSUFFICIENT_STOCK') ? errMsg : `Stock deduction failed: ${errMsg}`,
-              };
-            }
-          } catch (deductErr) {
-            const errMsg = deductErr instanceof Error ? deductErr.message : 'Stock deduction failed';
-            logger.error('Stock deduction failed for retail order', deductErr as Error, {
-              tenantId,
-              orderId: order.id,
-              feature: 'orders',
-              action: 'create_order',
-            });
-            await supabase
-              .from('org_order_items_dtl')
-              .delete()
-              .eq('tenant_org_id', tenantId)
-              .eq('order_id', order.id);
-            await supabase
-              .from('org_orders_mst')
-              .delete()
-              .eq('id', order.id)
-              .eq('tenant_org_id', tenantId);
-            return {
-              success: false,
-              error: errMsg.includes('INSUFFICIENT_STOCK') ? errMsg : `Stock deduction failed: ${errMsg}`,
-            };
-          }
-        }
-      }
-
-      // Write discount audit lines (best-effort — does not roll back order on failure)
-      try {
-        const orderDiscountLines = buildDiscountLinesFromOrderInput({
-          discountType:           discountType,
-          discountRate:           discountRate,
-          discountAmount:         totals?.discount,
-          promoCodeId:            promoCodeId,
-          promoDiscountAmount:    promoDiscountAmount,
-          giftCardId:             giftCardId,
-          giftCardDiscountAmount: giftCardDiscountAmount,
-        });
-        if (orderDiscountLines.length > 0) {
-          await insertDiscountLines({
-            orderId:      order.id,
-            tenantOrgId:  tenantId,
-            lines:        orderDiscountLines,
-            createdBy:    userId,
-          });
-        }
-      } catch (discountLineErr) {
-        logger.warn('Failed to write discount audit lines — order was created', {
-          tenantId,
-          orderId: order.id,
-          feature: 'orders',
-          action: 'create_order_discount_lines',
-          error: discountLineErr instanceof Error ? discountLineErr.message : String(discountLineErr),
-        });
-      }
-
-      // Handle ready_by date: use provided value or calculate if null
-      let finalReadyByAt: string | undefined;
-
-      if (providedReadyByAt) {
-        // Use the ready_by date from the screen field
-        finalReadyByAt = providedReadyByAt;
-      } else {
-        // Calculate ready_by date if not provided
-        const readyByAt = await this.estimateReadyBy({
-          items: items.map(item => ({
-            serviceCategoryCode: item.serviceCategoryCode || '',
-            quantity: item.quantity,
-          })),
-          isQuickDrop,
-          express,
-        });
-
-        if (readyByAt.success && readyByAt.readyByAt) {
-          finalReadyByAt = readyByAt.readyByAt;
-        }
-      }
-
-      // Update order with ready_by date if we have one
-      if (finalReadyByAt) {
-        await supabase
-          .from('org_orders_mst')
-          .update({
-            ready_by: finalReadyByAt,
-            ready_by_at_new: finalReadyByAt,
-          })
-          .eq('id', order.id)
-          .eq('tenant_org_id', tenantId);
-      }
-
-      await recalculateOrderFinancialSnapshot(tenantId, order.id);
-
-      return {
-        success: true,
-        order: {
-          id: order.id,
-          orderNo: order.order_no,
-          currentStatus: order.current_status,
-          readyByAt: finalReadyByAt || '',
-        },
-      };
-    } catch (error) {
-      logger.error('OrderService.createOrder error', error as Error, {
-        tenantId: params.tenantId,
-        userId: params.userId,
-        feature: 'orders',
-        action: 'create_order',
-      });
-      const profileFailure = createOrderFailureFromProfileError(error);
-      if (profileFailure) return profileFailure;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  /**
-   * Create order within a Prisma transaction (for atomic create-with-payment flow).
-   * All operations use tx - if any step fails, the whole transaction rolls back.
+   * Create an order within the caller's Prisma transaction: the only order writer.
+   * Callers price it first (`quoteCheckout`) and pass the quote as `commercial`;
+   * see `order-create-from-checkout.service.ts`. All operations use tx, so if any
+   * step fails the whole transaction rolls back.
    */
   static async createOrderInTransaction(
     tx: PrismaTx,
@@ -1305,6 +610,11 @@ export class OrderService {
     if (sourceValidated.ok === false) {
       return { success: false, error: sourceValidated.error };
     }
+    // P5-02: line money comes from the checkout quote.
+    const commercial = params.commercial ? openCommercialCreateSession(params.commercial) : null;
+    /** Server price of a preference row when Create is quote-driven; otherwise the given legacy value. */
+    const prefPrice = (sysKind: string, code: string, legacy: number | Prisma.Decimal | string) =>
+      (commercial ? commercial.preferencePrice(sysKind, code) : null) ?? legacy;
 
     let wf: Awaited<ReturnType<typeof OrderService.computeCreateOrderWorkflowState>>;
     let workflowProfileBinding: Awaited<ReturnType<typeof resolveWorkflowProfileBindingForOrderWithPrisma>>;
@@ -1347,10 +657,12 @@ export class OrderService {
       hydrated,
     } = wf;
 
-    // T03: same server-side guard as createOrder — retail must always pay at
-    // POS; do not rely on the client-side block alone for the transactional
-    // create-with-payment path either.
-    if (isRetailOnlyOrder && paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION) {
+    // T03: retail must always pay at POS; do not rely on the client-side block alone.
+    // Paid later by method (staff) or by payment type (a channel with no payment, e.g. booking).
+    const paidLater = paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION
+      || paymentTypeCode === PAYMENT_TYPE_IDS.PAY_ON_COLLECTION
+      || paymentTypeCode === PAYMENT_TYPE_IDS.PAY_ON_DELIVERY;
+    if (isRetailOnlyOrder && paidLater) {
       return {
         success: false,
         errorCode: 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED',
@@ -1370,7 +682,11 @@ export class OrderService {
         0
       );
     const discount = totals?.discount ?? 0;
-    const tax = totals?.tax ?? 0;
+    // A calculated order stores its whole tax (every tax line), so the header
+    // agrees with org_order_taxes_dtl from the first insert.
+    const tax = params.commercial
+      ? Number(params.commercial.quote.result.totals.taxTotal.toFixed(4))
+      : totals?.tax ?? 0;
     const total = totals?.total ?? subtotal - discount + tax;
     const vatRate = totals?.vatRate;
     const taxRate = totals?.taxRate;
@@ -1476,6 +792,11 @@ export class OrderService {
         ...(customerName != null && customerName !== '' && { customer_name: customerName }),
         ...(customerDetails != null && Object.keys(customerDetails).length > 0 && { customer_details: customerDetails }),
         ...(paymentTypeCode != null && { payment_type_code: paymentTypeCode }),
+        // §5.3 snapshots, commercial_calc_version and the resolved ready-by (P5-02).
+        ...(commercial && (() => {
+          const snapshot = commercial.orderColumns();
+          return { ...snapshot, ready_by_at_new: snapshot.ready_by };
+        })()),
       } as any,
     });
 
@@ -1534,6 +855,8 @@ export class OrderService {
             packing_pref_is_override: item.packingPrefIsOverride ?? false,
             packing_pref_source: item.packingPrefSource ?? null,
             service_pref_charge: persistedServicePrefChargeColumn(item, packingPriceMapPrisma),
+            // P5-02: every §6.1 column from the calculator, replacing the cart's prices above.
+            ...(commercial ? commercial.itemColumns(index) : {}),
             // PF-01: override audit. The overriding user is the session user, never a client value.
             ...(item.priceOverride !== null && item.priceOverride !== undefined
               ? {
@@ -1545,10 +868,13 @@ export class OrderService {
           },
         });
 
+        commercial?.recordItem(index, createdItem.id);
+
         // Insert service preferences for this item (org_order_preferences_dtl, prefs_level=ITEM)
         const prefs = item.servicePrefs;
         if (prefs && prefs.length > 0) {
-          await tx.org_order_preferences_dtl.createMany({
+          const createdPrefs = await tx.org_order_preferences_dtl.createManyAndReturn({
+            select: { id: true, preference_code: true, preference_sys_kind: true },
             data: prefs.map((pref, idx) => ({
               tenant_org_id: tenantId,
               order_id: order.id,
@@ -1559,17 +885,21 @@ export class OrderService {
               preference_content: pref.preference_code,
               preference_sys_kind: 'service_prefs',
               prefs_source: pref.source ?? 'manual',
-              extra_price: pref.extra_price ?? 0,
+              extra_price: prefPrice('service_prefs', pref.preference_code, pref.extra_price ?? 0),
               branch_id: branchId ?? null,
               created_by: userId,
               ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
             })),
           });
+          for (const row of createdPrefs) {
+            commercial?.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index, pieceIndex: null });
+          }
         }
 
         // Insert item packing pref into org_order_preferences_dtl
         if (item.packingPrefCode) {
-          await tx.org_order_preferences_dtl.create({
+          const createdPacking = await tx.org_order_preferences_dtl.create({
+            select: { id: true },
             data: {
               tenant_org_id: tenantId,
               order_id: order.id,
@@ -1581,12 +911,13 @@ export class OrderService {
               preference_sys_kind: 'packing_prefs',
               prefs_owner_type: item.packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
               prefs_source: item.packingPrefSource ?? 'ORDER_CREATE',
-              extra_price: packingPriceMapPrisma.get(item.packingPrefCode) ?? 0,
+              extra_price: prefPrice('packing_prefs', item.packingPrefCode, packingPriceMapPrisma.get(item.packingPrefCode) ?? 0),
               branch_id: branchId ?? null,
               created_by: userId,
               ...(item.packingCfId ? { preference_id: item.packingCfId } : {}),
             },
           });
+          commercial?.recordPreference({ id: createdPacking.id, sysKind: 'packing_prefs', code: item.packingPrefCode, index, pieceIndex: null });
         }
 
         // Always create pieces for each order item
@@ -1631,8 +962,11 @@ export class OrderService {
                 has_damage: pieceInput?.hasDamage ?? false,
                 packing_pref_code: pieceInput?.packingPrefCode ?? null,
                 service_pref_charge: servicePrefChargePiece + packingChargePiece,
+                // P5-02: the piece's own §6.1 columns (allocated from its item, or priced).
+                ...(commercial ? commercial.pieceColumns(index, i) : {}),
               },
             });
+            commercial?.recordPiece(index, i, createdPiece.id);
 
             // Save piece conditions to org_order_preferences_dtl
             const conditions = pieceInput?.conditions ?? [];
@@ -1663,7 +997,8 @@ export class OrderService {
 
             // Save piece-level service prefs to org_order_preferences_dtl
             if (piecePrefs.length > 0) {
-              await tx.org_order_preferences_dtl.createMany({
+              const createdPiecePrefs = await tx.org_order_preferences_dtl.createManyAndReturn({
+                select: { id: true, preference_code: true, preference_sys_kind: true },
                 data: piecePrefs.map((pref, pidx) => ({
                   tenant_org_id: tenantId,
                   order_id: order.id,
@@ -1675,17 +1010,21 @@ export class OrderService {
                   preference_content: pref.preference_code,
                   preference_sys_kind: 'service_prefs',
                   prefs_source: pref.source ?? 'manual',
-                  extra_price: pref.extra_price ?? 0,
+                  extra_price: prefPrice('service_prefs', pref.preference_code, pref.extra_price ?? 0),
                   branch_id: branchId ?? null,
                   created_by: userId,
                   ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
                 })),
               });
+              for (const row of createdPiecePrefs) {
+                commercial?.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index, pieceIndex: i });
+              }
             }
 
             // Save piece packing pref to org_order_preferences_dtl (PIECE level)
             if (pieceInput?.packingPrefCode) {
-              await tx.org_order_preferences_dtl.create({
+              const createdPiecePacking = await tx.org_order_preferences_dtl.create({
+                select: { id: true },
                 data: {
                   tenant_org_id: tenantId,
                   order_id: order.id,
@@ -1698,12 +1037,13 @@ export class OrderService {
                   preference_sys_kind: 'packing_prefs',
                   prefs_owner_type: 'SYSTEM',
                   prefs_source: prefsSourceOnCreate,
-                  extra_price: packingChargePiece,
+                  extra_price: prefPrice('packing_prefs', pieceInput.packingPrefCode, packingChargePiece),
                   branch_id: branchId ?? null,
                   created_by: userId,
                   ...(pieceInput.packingCfId ? { preference_id: pieceInput.packingCfId } : {}),
                 },
               });
+              commercial?.recordPreference({ id: createdPiecePacking.id, sysKind: 'packing_prefs', code: pieceInput.packingPrefCode, index, pieceIndex: i });
             }
 
             const packingOffset = pieceInput?.packingPrefCode ? 1 : 0;
@@ -1762,7 +1102,8 @@ export class OrderService {
       // Item/piece extras stay inside line totals. Only prefs_level=ORDER extras
       // add as PREFERENCE charge facts (money addends for the snapshot).
       if (orderServicePrefs && orderServicePrefs.length > 0) {
-        await tx.org_order_preferences_dtl.createMany({
+        const createdOrderPrefs = await tx.org_order_preferences_dtl.createManyAndReturn({
+          select: { id: true, preference_code: true, preference_sys_kind: true },
           data: orderServicePrefs.map((pref, idx) => ({
             tenant_org_id: tenantId,
             order_id: order.id,
@@ -1772,15 +1113,30 @@ export class OrderService {
             preference_content: pref.preference_code,
             preference_sys_kind: 'service_prefs',
             prefs_source: pref.source ?? 'ORDER_CREATE',
-            extra_price: pref.extra_price ?? 0,
+            extra_price: prefPrice('service_prefs', pref.preference_code, pref.extra_price ?? 0),
             branch_id: branchId ?? null,
             created_by: userId,
             ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
           })),
         });
+        for (const row of createdOrderPrefs) {
+          commercial?.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index: null, pieceIndex: null });
+        }
       }
 
-      const chargeablePreferences = await tx.org_order_preferences_dtl.findMany({
+      if (commercial) {
+        // P5-02: discount, charge and tax rows from the calculated order (the only writer of §6).
+        // Charges carry their own tax (L25); the rollup rebuilds the header totals from these rows.
+        const childRows = commercial.childRows({
+          tenantOrgId: tenantId, orderId: order.id, currencyCode: order.currency_code ?? currencyCode ?? '', userId,
+        });
+        if (childRows.discounts.length > 0) await tx.org_order_discounts_dtl.createMany({ data: childRows.discounts });
+        if (childRows.charges.length > 0) await tx.org_order_charges_dtl.createMany({ data: childRows.charges });
+        if (childRows.taxes.length > 0) await tx.org_order_taxes_dtl.createMany({ data: childRows.taxes });
+      }
+
+      // Legacy path only: the quote-driven path wrote its charges above.
+      const chargeablePreferences = commercial ? [] : await tx.org_order_preferences_dtl.findMany({
         where: {
           tenant_org_id: tenantId,
           order_id: order.id,

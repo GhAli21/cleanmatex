@@ -2,8 +2,8 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import type { PaymentQuoteData, PaymentQuoteRequest, TaxProfileEntry } from '@/lib/types/payment-quote';
-import { calculateOrderTotals } from './order-calculation.service';
+import type { PaymentQuoteData, PaymentQuoteRequest } from '@/lib/types/payment-quote';
+import { quoteCheckout } from './commercial/commercial-checkout.service';
 import { listEffectivePaymentMethodConfigs } from './payment-config.service';
 import { getAvailableStoredValueSummary } from './order-credit-application.service';
 import { composeCheckoutOptions } from './checkout-options.service';
@@ -11,7 +11,6 @@ import { checkCreditLimit } from './credit-limit.service';
 import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService, SETTING_CODES } from './tenant-settings.service';
 import { PaymentQuoteTiming } from './payment-quote-timing';
-import type { ResolvedTaxProfileSnapshot } from './tax-engine.service';
 
 /** Authenticated scope is injected by the route and is never accepted from quote JSON. */
 export interface PaymentQuoteContext {
@@ -61,50 +60,6 @@ async function assertQuoteContext(input: PaymentQuoteRequest, tenantId: string):
 }
 
 /**
- * Resolves effective taxes inside the quote so defaults and compound ordering match its totals.
- * @param input Validated explicit tax selection, or no selection to use active defaults.
- * @param tenantId Authenticated Organization scope for every tax-profile read.
- * @returns Effective display entries plus the identical scoped facts for the tax calculation.
- * @throws PaymentQuoteError when any explicitly selected profile is unavailable.
- */
-async function loadQuoteTaxProfiles(input: PaymentQuoteRequest, tenantId: string): Promise<{
-  entries: TaxProfileEntry[];
-  snapshot: ResolvedTaxProfileSnapshot;
-}> {
-  const selectedIds = [...new Set(input.taxProfileIds ?? [])];
-  const effectiveAt = new Date();
-  const profiles = await withTenantContext(tenantId, async () => await prisma.org_tax_profiles_cf.findMany({
-    where: {
-      tenant_org_id: tenantId,
-      ...(selectedIds.length ? { id: { in: selectedIds } } : { is_default: true }),
-      is_active: true,
-      rec_status: 1,
-      effective_from: { lte: effectiveAt },
-      OR: [{ effective_to: null }, { effective_to: { gte: effectiveAt } }],
-    },
-    select: { id: true, tenant_org_id: true, name: true, name2: true, tax_type: true, rate: true, is_compound: true },
-    orderBy: { created_at: 'asc' },
-  }));
-  if (selectedIds.length && profiles.length !== selectedIds.length) {
-    throw new PaymentQuoteError('INVALID_TAX_PROFILE_SELECTION', 400);
-  }
-  // Preserve the cashier default ordering and explicit selected ordering, including compound-tax precedence.
-  const ordered = selectedIds.length
-    ? selectedIds.map((id) => profiles.find((profile) => profile.id === id)!)
-    : [...profiles].sort((a, b) => a.tax_type.localeCompare(b.tax_type));
-  const entries = ordered.map((profile) => ({
-    id: profile.id,
-    name: profile.name,
-    name2: profile.name2,
-    tax_type: profile.tax_type,
-    rate: Number(profile.rate),
-    is_compound: profile.is_compound ?? false,
-    enabled: true,
-  }));
-  return { entries, snapshot: { tenantId, effectiveAt: effectiveAt.toISOString(), profiles: ordered } };
-}
-
-/**
  * Coordinates one consistent quote without serial browser currency/tax/options requests.
  * @param input Validated commercial inputs; requestId is correlation only, never authorization.
  * @param context Tenant/user resolved server-side from the authenticated session.
@@ -130,20 +85,16 @@ export async function quotePayment(
   await timing.measure('context', () => assertQuoteContext(input, tenantId));
 
   const financialsPromise = timing.measure('financials', async () => {
-    const { entries: taxProfileEntries, snapshot: resolvedTaxProfiles } =
-      await timing.measure('tax_profiles', () => loadQuoteTaxProfiles(input, tenantId));
-    const totals = await calculateOrderTotals({
+    // P5-02: priced by the commercial calculator, the same call submit makes. The tax
+    // panel's profiles come from the same read the tax used (one request-local snapshot).
+    const { totals, taxProfileEntries, promoNotice } = await quoteCheckout({
       ...input,
       tenantId,
       userId,
       strictFinancialReads: true,
-      resolvedTaxProfiles,
       measure: (stage, operation) => timing.measure(stage, operation),
-      taxProfileIds: taxProfileEntries.map((profile) => profile.id),
-      orderCharges: (input.orderServicePrefs ?? []).map((preference) => ({
-        label: preference.preference_code,
-        amount: preference.extra_price,
-      })),
+      // Only an explicit cashier selection replaces the defaults (the loader validates it).
+      taxProfileIds: input.taxProfileIds,
     });
     let creditLimit: PaymentQuoteData['creditLimit'];
     if (input.customerId && totals.saleTotal > 0) {
@@ -163,7 +114,7 @@ export async function quotePayment(
         };
       }
     }
-    return { totals, taxProfileEntries, creditLimit };
+    return { totals, taxProfileEntries, creditLimit, promoNotice };
   });
 
   const [financials, effectiveMethods, storedValueSummary] = await Promise.all([
@@ -189,6 +140,7 @@ export async function quotePayment(
     // This quote uses the Organization's base currency; its functional exchange rate is exactly one.
     currencyExRate: 1,
     taxProfileEntries: financials.taxProfileEntries,
+    promoNotice: financials.promoNotice,
     checkoutOptions: { paymentMethods: options.paymentMethods, customerCredits: options.customerCredits },
     storedValueSummary: options.storedValueSummary,
   };

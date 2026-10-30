@@ -9,25 +9,6 @@ import type {
 } from '@/types/order';
 
 /**
- * Create a new order
- */
-export async function createOrder(data: any): Promise<Order> {
-  const response = await fetch('/api/v1/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to create order' }));
-    throw new Error(error.error || 'Failed to create order');
-  }
-
-  const result = await response.json();
-  return result.data;
-}
-
-/**
  * Get orders list with filters
  */
 export async function getOrders(filters?: {

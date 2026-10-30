@@ -9,18 +9,14 @@ import {
   createTenantSettingsService,
   SETTING_CODES,
 } from '@/lib/services/tenant-settings.service';
-import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
+import { quoteCheckout } from '@/lib/services/commercial/commercial-checkout.service';
+import { checkoutQuoteErrorResponse } from '@/lib/api/commercial-http';
 import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { previewPaymentRequestSchema } from '@/lib/validations/new-order-payment-schemas';
-import { assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
+import { assertOrderDiscountAllowed, assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
 import { priceOverrideErrorResponse } from '@/lib/api/price-override-http';
-import { isInvalidDbInputError } from '@/lib/utils/db-input-error';
-import {
-  CURRENCY_RESOLUTION_ERRORS,
-  CurrencyResolutionError,
-} from '@/lib/money/currency-resolution';
 
 /**
  * POST /api/v1/orders/preview-payment
@@ -55,6 +51,8 @@ export async function POST(request: NextRequest) {
   // PF-01: a previewed override needs `pricing:override`, same as submit.
   try {
     await assertPriceOverridesAllowed(parsed.data.items, { requireReason: false });
+    // Owner decision 2026-10-28: an order manual discount needs `orders:discount`.
+    await assertOrderDiscountAllowed(parsed.data);
   } catch (error) {
     const priceOverrideResponse = priceOverrideErrorResponse(error);
     if (priceOverrideResponse) return priceOverrideResponse;
@@ -62,19 +60,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const data = await calculateOrderTotals({
+    // P5-02: the same checkout quote as the payment quote and submit (server prices only).
+    const { totals: data } = await quoteCheckout({
       tenantId,
       branchId: parsed.data.branchId,
       userId,
-      items: parsed.data.items.map((i) => ({
-        productId: i.productId,
-        quantity: i.quantity,
-        priceOverride: i.priceOverride ?? null,
-        servicePrefCharge: i.servicePrefCharge ?? 0,
-        packingPrefCharge: i.packingPrefCharge ?? 0,
-      })),
+      items: parsed.data.items,
+      orderServicePrefs: parsed.data.orderServicePrefs,
       customerId: parsed.data.customerId,
-      isExpress: parsed.data.isExpress ?? false,
+      serviceSpeed: parsed.data.serviceSpeed,
       percentDiscount: parsed.data.percentDiscount ?? 0,
       amountDiscount: parsed.data.amountDiscount ?? 0,
       serviceCategories: parsed.data.serviceCategories,
@@ -83,10 +77,6 @@ export async function POST(request: NextRequest) {
       giftCardNumber: parsed.data.giftCardNumber,
       giftCardAmount: parsed.data.giftCardAmount,
       giftCardId: parsed.data.giftCardId,
-      orderCharges: (parsed.data.orderServicePrefs ?? []).map((p) => ({
-        label: p.preference_code,
-        amount: p.extra_price,
-      })),
     });
 
     let creditLimit: Awaited<ReturnType<typeof checkCreditLimit>> | undefined;
@@ -133,63 +123,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    if (error instanceof CurrencyResolutionError) {
-      const isMissingConfig =
-        error.code === CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY;
-      return NextResponse.json(
-        {
-          success: false,
-          errorCode: error.code,
-          error: isMissingConfig
-            ? 'The Organization Base Currency is not configured.'
-            : 'The Organization currency configuration could not be verified. Please retry.',
-        },
-        { status: isMissingConfig ? 422 : 503 },
-      );
-    }
+    const checkoutResponse = checkoutQuoteErrorResponse(error, { tenantId, route: 'preview_payment' });
+    if (checkoutResponse) return checkoutResponse;
 
-    const message =
-      error instanceof Error ? error.message : 'Calculation failed';
-    const isProductNotFound = message.startsWith('Product not found:');
-
-    if (isProductNotFound) {
-      const productId = message.replace('Product not found: ', '').trim();
-      return NextResponse.json(
-        {
-          success: false,
-          errorCode: 'PRODUCT_NOT_FOUND',
-          error:
-            'One or more products could not be found. They may have been removed from the catalog. Please remove them from your order.',
-          productId,
-        },
-        { status: 400 },
-      );
-    }
-
-    if (message === 'INVALID_TAX_PROFILE_SELECTION') {
-      return NextResponse.json(
-        {
-          success: false,
-          errorCode: 'INVALID_TAX_PROFILE_SELECTION',
-          error:
-            'One or more selected tax profiles are invalid or no longer active.',
-        },
-        { status: 400 },
-      );
-    }
-
-    if (isInvalidDbInputError(error)) {
-      return NextResponse.json(
-        {
-          success: false,
-          errorCode: 'INVALID_ID_FORMAT',
-          error:
-            'One or more ids in the request are not valid. Please reselect and try again.',
-        },
-        { status: 400 },
-      );
-    }
-
+    const message = error instanceof Error ? error.message : 'Calculation failed';
     console.error('[preview-payment] Error:', error);
     return NextResponse.json(
       {

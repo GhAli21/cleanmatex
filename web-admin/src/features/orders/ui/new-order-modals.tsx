@@ -10,8 +10,14 @@ import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
 import { useOrderSubmission, type PaymentServerGuard } from '../hooks/use-order-submission';
 import { AmountMismatchDialog } from './amount-mismatch-dialog';
+import { PriceChangedDialog } from './price-changed-dialog';
+import { useNewOrderCartQuote } from '../hooks/use-new-order-cart-quote';
+import { useQueryClient } from '@tanstack/react-query';
+import { useBilingual } from '@/lib/utils/bilingual';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import type { CheckoutLineIntentFields } from '@/lib/types/payment-quote';
+import { checkoutLineOf } from '@features/orders/model/checkout-line-intent';
 import { useTenantPreferenceSettings } from '../hooks/use-tenant-preference-settings';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { useHasAnyPermission } from '@/lib/hooks/usePermissions';
@@ -35,8 +41,15 @@ type PaymentModalComponentProps = {
   onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
   total: number;
   checkoutAmount?: number;
-  items: { productId: string; quantity: number; servicePrefCharge?: number; packingPrefCharge?: number }[];
-  isExpress?: boolean;
+  items: (CheckoutLineIntentFields & {
+    productId: string;
+    quantity: number;
+    priceOverride?: number | null;
+    servicePrefCharge?: number;
+    packingPrefCharge?: number;
+  })[];
+  /** The order speed code (`sys_service_speed_cd`). */
+  serviceSpeed?: string;
   tenantOrgId: string;
   customerId?: string;
   customerType?: string;
@@ -102,9 +115,18 @@ export function NewOrderModals() {
   const { currentTenant, user } = useAuth();
   const state = useNewOrderStateWithDispatch();
   const totals = useOrderTotals();
-  const { submitOrder, amountMismatch, setAmountMismatch, serverGuard, clearServerGuard } =
+  const { submitOrder, amountMismatch, setAmountMismatch, priceChanged, setPriceChanged, serverGuard, clearServerGuard } =
     useOrderSubmission();
-  const { trackByPiece } = useTenantSettingsWithDefaults(
+  // D26: the same cart quote the cart shows; submit confirms each line's unit price against it.
+  const cartQuote = useNewOrderCartQuote();
+  const queryClient = useQueryClient();
+  const getBilingual = useBilingual();
+  /** Re-prices the cart and the payment window in place; the cart is kept and the cashier submits again. */
+  const requoteInPlace = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['order-cart-quote'] });
+    void queryClient.invalidateQueries({ queryKey: ['order-payment-quote'] });
+  }, [queryClient]);
+  const { trackByPiece, packingPerPieceEnabled } = useTenantSettingsWithDefaults(
     currentTenant?.tenant_id || ''
   );
   const { autoApplyCustomerPrefs } = useTenantPreferenceSettings({
@@ -133,13 +155,13 @@ export function NewOrderModals() {
   const paymentItems = useMemo(
     () =>
       state.state.items.map((i) => ({
-        productId: i.productId,
-        quantity: i.quantity,
-        priceOverride: i.priceOverride ?? null,
+        // P5-02: the server prices these codes; they match what submit sends.
+        // P5-03e: a custom item sends `customItem` instead of a product id.
+        ...checkoutLineOf(i, { trackByPiece, packingPerPieceEnabled }),
         servicePrefCharge: i.servicePrefCharge ?? 0,
         packingPrefCharge: i.packingPrefCharge ?? 0,
       })),
-    [state.state.items]
+    [state.state.items, trackByPiece, packingPerPieceEnabled]
   );
 
   // B18 — sum of order-level preference charges (independent of any item), added to the
@@ -221,9 +243,15 @@ export function NewOrderModals() {
   // Handle payment submit (extended payload: amountToCharge, totals for invoice/payment flow)
   const handlePaymentSubmit = useCallback(
     async (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => {
-      await submitOrder(paymentData, payload);
+      // Only prices the cashier is looking at are confirmed; while the cart is being
+      // re-priced none are sent, and the totals guard still protects the submit.
+      const lines = cartQuote.current ? cartQuote.data?.lines : undefined;
+      const confirmedUnitPrices = lines
+        ? state.state.items.map((_, index) => lines.find((line) => line.index === index)?.unitPrice ?? null)
+        : undefined;
+      await submitOrder(paymentData, payload, { confirmedUnitPrices });
     },
-    [submitOrder]
+    [submitOrder, cartQuote.current, cartQuote.data, state.state.items]
   );
 
   // Handle custom item add (retail vs services: cannot mix)
@@ -373,9 +401,28 @@ export function NewOrderModals() {
       <AmountMismatchDialog
         open={amountMismatch.open}
         onClose={() => setAmountMismatch((prev) => ({ ...prev, open: false }))}
-        onRefresh={() => window.location.reload()}
+        onRefresh={() => {
+          // Re-price in place instead of reloading the page, which lost the whole cart.
+          requoteInPlace();
+          setAmountMismatch((prev) => ({ ...prev, open: false }));
+        }}
         message={amountMismatch.message}
         differences={amountMismatch.differences}
+      />
+
+      {/* D26: unit prices changed between the cart and submit */}
+      <PriceChangedDialog
+        open={priceChanged.open}
+        lines={priceChanged.lines}
+        itemName={(index) => {
+          const item = state.state.items[index];
+          return item ? getBilingual(item.productName, item.productName2) || item.productId : '';
+        }}
+        onUseCurrentPrices={() => {
+          requoteInPlace();
+          setPriceChanged({ open: false, lines: [] });
+        }}
+        onBack={() => setPriceChanged({ open: false, lines: [] })}
       />
 
       {/* Customer Picker Modal */}
@@ -404,7 +451,7 @@ export function NewOrderModals() {
           checkoutAmount={totals.subtotal + orderChargesTotal}
           items={paymentItems}
           orderServicePrefs={state.state.orderServicePrefs}
-          isExpress={state.state.express}
+          serviceSpeed={state.state.serviceSpeed}
           tenantOrgId={currentTenant.tenant_id}
           customerId={state.state.customer?.id || ''}
           customerType={state.state.customer?.type}

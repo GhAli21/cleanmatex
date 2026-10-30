@@ -7,13 +7,27 @@
 'use client';
 
 import { memo } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { SummaryCartItem } from './summary-cart-item';
 import { ShoppingCart } from 'lucide-react';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
+import type { CartQuoteLine } from '@/lib/types/cart-quote';
+
+/**
+ * New Order only (P5-03b): the server's figures per cart line and the line
+ * speed menus. Order Edit passes nothing and keeps its own line prices (P6-02).
+ */
+export interface ItemCartListQuoteProps {
+  /** Quoted lines by cart position; null before the first answer. */
+  lines: CartQuoteLine[] | null;
+  /** A changed cart is being priced: the figures shown are not final. */
+  pending: boolean;
+  onLineSpeedChange?: (productId: string, serviceSpeed: string | null) => void;
+  lineSpeedDisabled?: boolean;
+  /** Opens the line discount dialog; absent when the user lacks `orders:discount` (P5-03c). */
+  onEditLineDiscount?: (productId: string) => void;
+}
 
 interface CartItem {
   id: string;
@@ -33,6 +47,7 @@ interface CartItem {
   serviceCategoryName2?: string;
   priceOverride?: number | null;
   overrideReason?: string | null;
+  serviceSpeed?: string | null;
 }
 
 interface ColorCatalogEntry {
@@ -57,6 +72,9 @@ interface ItemCartListProps {
   preferenceLabelByCode?: Record<string, string>;
   /** Packing surcharge by code — same catalog as packing chips (`default_extra_price`) */
   packingExtraPriceByCode?: Record<string, number>;
+  /** The order speed lines follow when they have none of their own. */
+  orderSpeed?: string;
+  quote?: ItemCartListQuoteProps;
 }
 
 function ItemCartListComponent({
@@ -69,13 +87,12 @@ function ItemCartListComponent({
   colorCatalog,
   preferenceLabelByCode,
   packingExtraPriceByCode,
+  orderSpeed,
+  quote,
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
-  const locale = useLocale();
-  const { decimalPlaces } = useTenantCurrency();
-  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   const totalPieces = trackByPiece && items.length > 0
     ? items.reduce((sum, item) => sum + (item.pieces?.length || item.quantity), 0)
@@ -135,21 +152,23 @@ function ItemCartListComponent({
             onEditPrice={onEditItem ? () => onEditItem(item.id) : undefined}
             onEditPreferences={onEditItemPreferences ? () => onEditItemPreferences(item.id) : undefined}
             onDelete={() => onDeleteItem(item.productId)}
+            quote={quote ? {
+              line: quote.lines?.find((line) => line.index === index) ?? null,
+              pending: quote.pending,
+              orderSpeed: orderSpeed ?? '',
+              lineSpeed: item.serviceSpeed ?? null,
+              onLineSpeedChange: quote.onLineSpeedChange
+                ? (code: string | null) => quote.onLineSpeedChange?.(item.productId, code)
+                : undefined,
+              lineSpeedDisabled: quote.lineSpeedDisabled,
+              onEditLineDiscount: quote.onEditLineDiscount
+                ? () => quote.onEditLineDiscount?.(item.productId)
+                : undefined,
+            } : undefined}
           />
         ))}
       </div>
-
-      {/* Total row */}
-      <div className={`flex items-center justify-between pt-2 mt-1 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <span className="text-xs text-gray-500">{t('total') || 'Total'}</span>
-        <span className="text-sm font-semibold text-gray-900 tabular-nums">
-          {formatMoneyAmountWithCode(items.reduce((sum, item) => sum + item.totalPrice, 0), {
-            currencyCode: currencyCode as string,
-            decimalPlaces,
-            locale: moneyLocale,
-          })}
-        </span>
-      </div>
+      {/* No client-summed total here (BF-19): the summary rail shows the server's figures. */}
     </div>
   );
 }

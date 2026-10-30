@@ -2,6 +2,10 @@
 
 # System Architecture
 
+## Performance engineering adapter
+
+Apply the [shared performance rules](../../docs/dev/rules/performance-engineering.md). Revalidate affected source/contracts before applying an old plan and trace the full dependency path. Keep policy ownership explicit and separate verified fact loading from pure evaluation. Define cache identity/freshness/invalidation without treating cached data as current financial or permission authority. Preserve tenant, auth/session, money and idempotency invariants; use proportional baseline, correctness and runtime evidence.
+
 ## Dual-Layer Data Model
 
 ```
@@ -71,16 +75,12 @@ Core entities use composite keys like `(tenant_org_id, entity_id)` to enforce is
 - Defense-in-depth security model
 - Works even if application layer bypassed
 
-**Example - Automatic Tenant Filtering:**
+**Example - Explicit Tenant Filtering:**
 ```typescript
 const orders = await prisma.org_orders_mst.findMany({
   where: { tenant_org_id: tenantId },
-  include: {
-    customer: true,
-    items: true,
-  }
 })
-// ✅ tenant_org_id is explicit in the query
+// Related org_* reads also require their own explicit tenant predicates.
 ```
 
 ### Type Safety Benefits

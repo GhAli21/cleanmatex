@@ -297,8 +297,8 @@ describe('newOrderReducer', () => {
         });
     });
 
-    describe('SET_EXPRESS', () => {
-        it('should update express flag and recalculate prices', () => {
+    describe('SET_SERVICE_SPEED (P5-03b)', () => {
+        it('sets the order speed code and leaves line prices to the server quote', () => {
             const item: OrderItem = {
                 productId: 'product-1',
                 productName: 'Shirt',
@@ -309,23 +309,9 @@ describe('newOrderReducer', () => {
                 defaultSellPrice: 10.0,
                 defaultExpressSellPrice: 15.0,
             };
-
-            const stateWithItem: NewOrderState = {
-                ...initialState,
-                items: [item],
-                express: false,
-            };
-
-            const action: NewOrderAction = {
-                type: 'SET_EXPRESS',
-                payload: true,
-            };
-
-            const result = newOrderReducer(stateWithItem, action);
-
-            expect(result.express).toBe(true);
-            expect(result.items[0].pricePerUnit).toBe(15.0);
-            expect(result.items[0].totalPrice).toBe(30.0);
+            const result = newOrderReducer({ ...initialState, items: [item] }, { type: 'SET_SERVICE_SPEED', payload: 'EXPRESS' });
+            expect(result.serviceSpeed).toBe('EXPRESS');
+            expect([result.items[0].pricePerUnit, result.items[0].totalPrice]).toEqual([10.0, 20.0]);
         });
     });
 

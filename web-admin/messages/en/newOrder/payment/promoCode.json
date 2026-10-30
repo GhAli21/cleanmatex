@@ -20,5 +20,6 @@
     "customerLimitExceeded": "You have reached the maximum usage limit for this promo code",
     "validationFailed": "Failed to validate promo code"
   },
-  "success": "Promo code applied! You save {currencyCode} {amount}"
+  "success": "Promo code applied! You save {currencyCode} {amount}",
+  "notAppliedRuleWins": "Promo code {code} was not applied: the automatic discount \"{rule}\" gives more and cannot be combined with promo codes."
 }

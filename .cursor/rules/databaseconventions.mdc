@@ -1,5 +1,9 @@
 # Database Conventions
 
+## Database Performance
+
+For data-access/performance changes, apply [shared performance rules](../../docs/dev/rules/performance-engineering.md): revalidate affected queries/schema/evidence; retain explicit tenant predicates on every joined/read/written `org_*` table; select required fields and paginate bounded collections. Measure RPC/query growth and SQL inside actual function definitions/plans separately. Bulk work preserves line mapping, quantity tiers, precision, ordering and tie-breaks. Bound concurrency and inspect pool/lock pressure without changing transaction lock order. Choose indexes from measured access paths and existing coverage, not blanket templates. Database changes use reviewed forward migrations with object documentation; never reset or apply migrations. Trivial unrelated edits do not require benchmarks.
+
 ## Naming
 
 - table names should not exceed 30 characters
@@ -12,14 +16,14 @@ Include for every table:
 
 ```
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-created_by VARCHAR(120),
+created_by TEXT,
 created_info TEXT,
 updated_at TIMESTAMP,
-updated_by VARCHAR(120),
+updated_by TEXT,
 updated_info TEXT,
 rec_status SMALLINT DEFAULT 1,
 rec_order INTEGER,
-rec_notes VARCHAR(200),
+rec_notes TEXT,
 is_active BOOLEAN NOT NULL DEFAULT true
 ```
 
@@ -87,6 +91,8 @@ CONSTRAINT chk_<tbl>_fx_same_ccy CHECK (
 Tenant isolation via composite references on `(tenant_org_id, ...)`.
 
 ## Indexing
+
+Candidate access-path patterns, not a required index set; check existing coverage and measured plans first:
 
 - `tenant_org_id`, `tenant_org_id, rec_status`
 - Full-text search GIN on name
@@ -238,7 +244,7 @@ CREATE TABLE org_stng_business_hours_cf (...); -- Business hours settings
 
 ```sql
 -- ✅ NEW: Feature-grouped functions
-CREATE FUNCTION sys_auth_validate_token(token VARCHAR) ...
+CREATE FUNCTION sys_auth_validate_token(token TEXT) ...
 CREATE FUNCTION org_auth_validate_user(user_id UUID, tenant_id UUID) ...
 CREATE FUNCTION sys_pln_get_plan_features(plan_id UUID) ...
 CREATE FUNCTION org_ord_calculate_total(order_id UUID) ...
@@ -329,16 +335,16 @@ Or
 ```sql
 -- Audit fields (standard pattern)
 created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-created_by      VARCHAR(120), -- current user or system_admin
+created_by      TEXT, -- current user or system_admin
 created_info    TEXT,
 updated_at      TIMESTAMP,
-updated_by      VARCHAR(120),
+updated_by      TEXT,
 updated_info    TEXT,
 
 -- Soft delete & status
 rec_status      SMALLINT DEFAULT 1, -- record status 0=deleted, then depend on each case
 rec_order       INTEGER,
-rec_notes       VARCHAR(200),
+rec_notes       TEXT,
 is_active       BOOLEAN NOT NULL DEFAULT true
 ```
 
@@ -346,8 +352,8 @@ is_active       BOOLEAN NOT NULL DEFAULT true
 
 ```sql
 -- Bilingual fields pattern
-name            VARCHAR(250),      -- English
-name2           VARCHAR(250),      -- Arabic
+name            TEXT,      -- English
+name2           TEXT,      -- Arabic
 description     TEXT,              -- English
 description2    TEXT               -- Arabic
 ```
@@ -356,11 +362,11 @@ description2    TEXT               -- Arabic
 
 ```sql
 -- Branding fields
-{entity}_color1  VARCHAR(60),      -- Primary color
-{entity}_color2  VARCHAR(60),      -- Secondary color
-{entity}_color3  VARCHAR(60),      -- Accent color
-{entity}_icon    VARCHAR(120),     -- Icon reference
-{entity}_image   VARCHAR(120)      -- Image URL/path
+{entity}_color1  TEXT,      -- Primary color
+{entity}_color2  TEXT,      -- Secondary color
+{entity}_color3  TEXT,      -- Accent color
+{entity}_icon    TEXT,     -- Icon reference
+{entity}_image   TEXT      -- Image URL/path
 ```
 
 ---
@@ -401,7 +407,7 @@ List indexes stay tenant-first. Full rule: `/database` skill.
 
 ## Indexes
 
-**ALWAYS add these indexes**:
+**Candidate index patterns** — add only those justified by actual predicates/orderings and existing index coverage:
 
 ```sql
 -- On tenant tables
@@ -426,20 +432,20 @@ CREATE TABLE org_example_mst (
   tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
 
   -- Business fields
-  name VARCHAR(250) NOT NULL,
-  name2 VARCHAR(250),           -- Arabic name
+  name TEXT NOT NULL,
+  name2 TEXT,           -- Arabic name
   description TEXT,
   description2 TEXT,             -- Arabic description
 
   -- Metadata
-  example_color1 VARCHAR(60),
-  example_icon VARCHAR(120),
+  example_color1 TEXT,
+  example_icon TEXT,
 
   -- Audit fields
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  created_by VARCHAR(120),
+  created_by TEXT,
   updated_at TIMESTAMP,
-  updated_by VARCHAR(120),
+  updated_by TEXT,
   rec_status SMALLINT DEFAULT 1,
   is_active BOOLEAN DEFAULT true
 );
@@ -477,9 +483,9 @@ BEGIN
       tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
       %s,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      created_by VARCHAR(120),
+      created_by TEXT,
       updated_at TIMESTAMP,
-      updated_by VARCHAR(120),
+      updated_by TEXT,
       rec_status SMALLINT DEFAULT 1,
       is_active BOOLEAN NOT NULL DEFAULT true
     );
@@ -495,15 +501,17 @@ $$ LANGUAGE plpgsql;
 --   -- Business columns here
 --   -- Standard audit fields below
 --   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---   created_by VARCHAR(120),
+--   created_by TEXT,
 --   updated_at TIMESTAMP,
---   updated_by VARCHAR(120),
+--   updated_by TEXT,
 --   rec_status SMALLINT DEFAULT 1,
 --   is_active BOOLEAN NOT NULL DEFAULT true
 -- );
 ```
 
 ### 2. Extract Common Index Patterns
+
+The helper below illustrates reusable mechanics only; do not execute it to create a blanket index set. Select reviewed indexes from measured access paths and account for write/storage cost first.
 
 ```sql
 -- ✅ Good: Create reusable index creation function
@@ -590,7 +598,7 @@ CREATE TRIGGER update_customers_updated_at
 CREATE OR REPLACE FUNCTION get_active_records(
   table_name TEXT,
   tenant_id UUID
-) RETURNS TABLE(id UUID, name VARCHAR) AS $$
+) RETURNS TABLE(id UUID, name TEXT) AS $$
 BEGIN
   RETURN QUERY EXECUTE format('
     SELECT id, name
@@ -618,14 +626,14 @@ SELECT * FROM get_active_records('org_orders_mst', 'tenant-uuid');
 
 ```sql
 -- ✅ Good: Reusable validation functions
-CREATE OR REPLACE FUNCTION validate_phone_number(phone VARCHAR)
+CREATE OR REPLACE FUNCTION validate_phone_number(phone TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN phone ~ '^\+?[0-9]{8,15}$';
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION validate_email(email VARCHAR)
+CREATE OR REPLACE FUNCTION validate_email(email TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN email ~ '^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
@@ -649,9 +657,9 @@ CREATE OR REPLACE FUNCTION add_audit_fields(table_name TEXT) RETURNS void AS $$
 BEGIN
   EXECUTE format('
     ALTER TABLE %I ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-    ALTER TABLE %I ADD COLUMN IF NOT EXISTS created_by VARCHAR(120);
+    ALTER TABLE %I ADD COLUMN IF NOT EXISTS created_by TEXT;
     ALTER TABLE %I ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
-    ALTER TABLE %I ADD COLUMN IF NOT EXISTS updated_by VARCHAR(120);
+    ALTER TABLE %I ADD COLUMN IF NOT EXISTS updated_by TEXT;
     ALTER TABLE %I ADD COLUMN IF NOT EXISTS rec_status SMALLINT DEFAULT 1;
     ALTER TABLE %I ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
   ', table_name, table_name, table_name, table_name, table_name, table_name);
@@ -670,7 +678,7 @@ CREATE OR REPLACE FUNCTION soft_delete_record(
   table_name TEXT,
   record_id UUID,
   tenant_id UUID,
-  deleted_by VARCHAR(120)
+  deleted_by TEXT
 ) RETURNS void AS $$
 BEGIN
   EXECUTE format('

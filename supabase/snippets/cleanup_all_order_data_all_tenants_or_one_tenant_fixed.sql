@@ -1,5 +1,7 @@
-ROLLBACK;
-select count(*) from org_orders_mst;
+--ROLLBACK;
+--select * from org_orders_mst;
+--11111111-1111-1111-1111-111111111111
+--c9ac29d1-219c-4a3a-8887-f860550c32be
 -- =============================================================================
 -- Cleanup script: delete ALL order-related test data for ALL tenants or ONE tenant
 --

@@ -41,7 +41,7 @@
 -- constraints and sys_platform_finance_cf (RESTRICT), and restore the dropped
 -- defaults. Lossless while the new columns are unused.
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

@@ -131,7 +131,7 @@ describe('shared edit workspace adapter', () => {
     const controller = createEditOrderController();
     const unchanged = {
       notes: 'original',
-      express: false,
+      serviceSpeed: 'STANDARD',
       customerName: 'Ada',
       customerMobile: '050',
       customerEmail: 'ada@example.com',
@@ -161,7 +161,7 @@ describe('shared edit workspace adapter', () => {
     if (!kept) throw new Error('line');
     applyVisualDraftToController(controller, loaded, {
       notes: 'original',
-      express: false,
+      serviceSpeed: 'STANDARD',
       customerName: 'Ada',
       customerMobile: '050',
       customerEmail: 'ada@example.com',
@@ -175,7 +175,7 @@ describe('shared edit workspace adapter', () => {
     ]);
     const sameHeader = {
       notes: 'original',
-      express: false,
+      serviceSpeed: 'STANDARD',
       customerName: 'Ada',
       customerMobile: '050',
       customerEmail: 'ada@example.com',
@@ -190,7 +190,7 @@ describe('shared edit workspace adapter', () => {
     const visual = projectEditVisualOrder(context());
     const preferenceId = '55555555-5555-4555-8555-555555555555';
     applyVisualDraftToController(controller, { ...loaded, readyBy: '2026-10-16T10:00:00.000Z' }, {
-      notes: 'original', readyBy: '', express: false, customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
+      notes: 'original', readyBy: '', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
       orderServicePrefs: [{ preference_code: 'HANG', source: 'manual', extra_price: 0, preferenceCfId: preferenceId }],
       items: visual.items.map((item, index) => index === 0 ? { ...item, priceOverride: 9 } : item),
     });
@@ -206,7 +206,7 @@ describe('shared edit workspace adapter', () => {
     const controller = createEditOrderController({ fetchImpl });
     const visual = projectEditVisualOrder(context());
     applyVisualDraftToController(controller, loaded, {
-      notes: 'original', express: false, customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
+      notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
       items: visual.items.map((item, index) => index === 0 ? { ...item, pieces: item.pieces?.map((piece) => ({ ...piece, color: 'BLUE' })) } : item),
     });
     expect(controller.operationCount()).toBe(1);

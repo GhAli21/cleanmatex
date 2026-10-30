@@ -1,0 +1,14 @@
+{
+  "label": "السرعة",
+  "orderAria": "سرعة خدمة الطلب",
+  "lineAria": "سرعة الخدمة لـ {item}",
+  "locked": "لا يمكن تغيير سرعة الخدمة في هذا الطلب.",
+  "applyToAll": "تطبيق على كل الأسطر",
+  "followOrder": "سرعة الطلب ({speed})",
+  "loading": "جارٍ تحميل السرعات…",
+  "unavailable": "السرعات غير متاحة",
+  "premiumIncluded": "يشمل {speed} +{amount}",
+  "premiumInCart": "يظهر سعر {speed} في السلة",
+  "repricedTitle": "{count, plural, one {أعاد تغيير السرعة تسعير سطر واحد} two {أعاد تغيير السرعة تسعير سطرين} few {أعاد تغيير السرعة تسعير # أسطر} many {أعاد تغيير السرعة تسعير # سطرًا} other {أعاد تغيير السرعة تسعير # سطر}}",
+  "repricedLine": "{item}: {from} ← {to}"
+}

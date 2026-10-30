@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-23T17:56:38.337Z",
+  "extractedAt": "2026-10-28T02:26:52.150Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -70,56 +70,56 @@
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 197,
+        "line": 198,
         "context": "return getFeatureFlags(user.user_metadata.tenant_org_id);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 214,
+        "line": 215,
         "context": "const flags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 247,
+        "line": 248,
         "context": "const flags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 301,
+        "line": 302,
         "context": "return getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 339,
+        "line": 340,
         "context": "return getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 362,
+        "line": 363,
         "context": "return getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/order-change/order-change-legacy-writer-guard.ts",
-        "line": 129,
+        "line": 135,
         "context": "getFeatureFlags(tenantId),",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/order-change/order-change-preview-reads.ts",
-        "line": 135,
+        "line": 101,
         "context": "const flags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
@@ -172,14 +172,14 @@
     "online_booking": [
       {
         "path": "app/api/v1/public/customer/booking/route.ts",
-        "line": 372,
+        "line": 379,
         "context": "const bookingEnabled = await canAccess(tenantId, 'online_booking');",
         "surface": "api",
         "pattern": "canAccess"
       },
       {
         "path": "app/api/v1/public/customer/booking/route.ts",
-        "line": 695,
+        "line": 703,
         "context": "const bookingEnabled = await canAccess(body.tenantId, 'online_booking');",
         "surface": "api",
         "pattern": "canAccess"
@@ -362,7 +362,7 @@
     "pdf_invoices": [
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 408,
+        "line": 409,
         "context": "*   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES);",
         "surface": "service",
         "pattern": "requireFeature"
@@ -385,7 +385,7 @@
     "order_fin_governed_amendments": [
       {
         "path": "lib/services/order-service.ts",
-        "line": 3131,
+        "line": 2487,
         "context": "const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments');",
         "surface": "service",
         "pattern": "canAccess"
@@ -447,7 +447,7 @@
       },
       {
         "path": "src/features/orders/ui/new-order-content.tsx",
-        "line": 103,
+        "line": 109,
         "context": "usePlanFlags();",
         "surface": "screen",
         "pattern": "usePlanFlags"

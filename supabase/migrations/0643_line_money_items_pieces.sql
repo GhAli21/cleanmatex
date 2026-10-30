@@ -50,7 +50,7 @@
 -- references them yet), drop the two new FKs's prerequisite uniques, and
 -- widening is not reversed (it is lossless).
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

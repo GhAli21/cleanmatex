@@ -46,7 +46,7 @@
 -- org_currency_cf RESTRICT. org_tenants_mst.currency is unchanged by this
 -- migration's backfill (the mirror writes the same value it read).
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

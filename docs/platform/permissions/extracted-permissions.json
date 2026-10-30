@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-23T17:56:37.271Z",
+  "extractedAt": "2026-10-28T02:26:51.141Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -535,7 +535,7 @@
       "route": "src/features/orders/ui/payment-full-view.tsx",
       "permission": "orders:apply_credit",
       "component": "useHasPermissionCode",
-      "line": 1617,
+      "line": 1624,
       "surface": "screen"
     },
     {
@@ -2593,7 +2593,7 @@
       "method": "POST",
       "route": "/api/v1/orders/payment-quote",
       "permission": "orders:create",
-      "line": 56,
+      "line": 59,
       "surface": "api"
     },
     {
@@ -2609,7 +2609,7 @@
       "method": "POST",
       "route": "/api/v1/orders/preview-financials",
       "permission": "orders:create",
-      "line": 25,
+      "line": 26,
       "surface": "api"
     },
     {
@@ -2617,7 +2617,15 @@
       "method": "POST",
       "route": "/api/v1/orders/preview-payment",
       "permission": "orders:create",
-      "line": 36,
+      "line": 32,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/quote/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/quote",
+      "permission": "orders:create",
+      "line": 31,
       "surface": "api"
     },
     {
@@ -2646,18 +2654,10 @@
     },
     {
       "file": "app/api/v1/orders/route.ts",
-      "method": "POST",
-      "route": "/api/v1/orders",
-      "permission": "orders:create",
-      "line": 47,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/orders/route.ts",
-      "method": "POST",
+      "method": "GET",
       "route": "/api/v1/orders",
       "permission": "orders:read",
-      "line": 212,
+      "line": 39,
       "surface": "api"
     },
     {
@@ -2665,7 +2665,7 @@
       "method": "POST",
       "route": "/api/v1/orders/submit-order",
       "permission": "orders:create",
-      "line": 92,
+      "line": 93,
       "surface": "api"
     },
     {
@@ -2817,7 +2817,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/financial-summary",
       "permission": "orders:view_financial_breakdown",
-      "line": 15,
+      "line": 21,
       "surface": "api"
     },
     {

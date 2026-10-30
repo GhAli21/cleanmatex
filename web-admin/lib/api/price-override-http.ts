@@ -9,6 +9,17 @@ import {
   PriceOverrideError,
 } from '@/lib/services/price-override-policy.service';
 
+/** One English fallback per code; the client shows the EN/AR message for the code. */
+function priceOverrideMessage(code: PriceOverrideError['code']): string {
+  switch (code) {
+    case PRICE_OVERRIDE_ERRORS.PRICE_OVERRIDE_NOT_PERMITTED: return 'You do not have permission to override item prices.';
+    case PRICE_OVERRIDE_ERRORS.PRICE_OVERRIDE_REASON_REQUIRED: return 'A reason is required for every price override.';
+    case PRICE_OVERRIDE_ERRORS.LINE_DISCOUNT_NOT_PERMITTED: return 'You do not have permission to discount order lines.';
+    case PRICE_OVERRIDE_ERRORS.ORDER_DISCOUNT_NOT_PERMITTED: return 'You do not have permission to give an order discount.';
+    default: return 'A reason is required for every line discount.';
+  }
+}
+
 /**
  * Maps a {@link PriceOverrideError} to its JSON response; any other error returns null.
  * @param error - Caught error.
@@ -20,10 +31,7 @@ export function priceOverrideErrorResponse(error: unknown): NextResponse | null 
     {
       success: false,
       errorCode: error.code,
-      error:
-        error.code === PRICE_OVERRIDE_ERRORS.PRICE_OVERRIDE_NOT_PERMITTED
-          ? 'You do not have permission to override item prices.'
-          : 'A reason is required for every price override.',
+      error: priceOverrideMessage(error.code),
       lineIndexes: error.lineIndexes,
     },
     { status: error.httpStatus },

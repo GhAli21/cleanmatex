@@ -7,6 +7,7 @@
  * must be compared explicitly or Save stays disabled.
  */
 
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import type {
   CustomerSnapshotOverride,
   OrderItem,
@@ -155,7 +156,8 @@ export interface OrderEditDirtyCurrent {
   notes: string;
   customerNotes: string;
   paymentNotes: string;
-  express: boolean;
+  /** The order speed code. */
+  serviceSpeed: string;
   customerName: string;
   customerMobile: string;
   customerEmail: string;
@@ -175,6 +177,7 @@ export interface OrderEditDirtyOriginal {
   customer_notes?: string | null;
   payment_notes?: string | null;
   is_express?: boolean;
+  service_speed?: string | null;
   customer_name?: string | null;
   customer_mobile?: string | null;
   customer_email?: string | null;
@@ -214,7 +217,9 @@ export function isOrderEditFormDirty(
 
   if (text(current.customerId) !== text(original.customer_id)) return true;
   if (text(current.branchId) !== text(original.branch_id)) return true;
-  if (current.express !== Boolean(original.is_express)) return true;
+  // An order written before M5 has only the legacy express flag.
+  const originalSpeed = original.service_speed ?? (original.is_express ? SERVICE_SPEEDS.EXPRESS : SERVICE_SPEEDS.STANDARD);
+  if (current.serviceSpeed !== originalSpeed) return true;
   if (text(current.notes) !== text(original.internal_notes ?? original.notes)) return true;
   if (text(current.customerNotes) !== text(original.customer_notes)) return true;
   if (text(current.paymentNotes) !== text(original.payment_notes)) return true;

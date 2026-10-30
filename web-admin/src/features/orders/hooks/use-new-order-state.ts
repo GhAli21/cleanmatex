@@ -3,6 +3,7 @@
  * Context consumer with dispatch helpers
  */
 
+import type { OrderItemLineDiscount } from '../model/new-order-types';
 import { useNewOrderContext } from '../ui/context/new-order-context';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
 import { resolveEditControlCapability, resolveEditControlGroup } from '../order-change/edit-control-capability';
@@ -55,7 +56,14 @@ export interface UseNewOrderStateWithDispatchReturn {
   updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => void;
   setQuickDrop: (value: boolean) => void;
   setQuickDropQuantity: (quantity: number) => void;
-  setExpress: (value: boolean) => void;
+  /** Sets the order speed (`sys_service_speed_cd.code`). */
+  setServiceSpeed: (serviceSpeed: string) => void;
+  /** Gives one line its own speed; null makes it follow the order speed. */
+  setItemServiceSpeed: (productId: string, serviceSpeed: string | null) => void;
+  /** Sets or (with null) removes a cashier discount on one line. */
+  setItemLineDiscount: (productId: string, lineDiscount: OrderItemLineDiscount | null) => void;
+  /** Every line follows the order speed again. */
+  applySpeedToAllLines: () => void;
   setBags: (count: number) => void;
   setNotes: (notes: string) => void;
   setCustomerNotes: (notes: string) => void;
@@ -234,9 +242,24 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       dispatch({ type: 'SET_QUICK_DROP_QUANTITY', payload: quantity });
     },
 
-    setExpress: (value: boolean) => {
+    setServiceSpeed: (serviceSpeed: string) => {
       if (blocked('CHANGE_SERVICE_SPEED')) return;
-      dispatch({ type: 'SET_EXPRESS', payload: value });
+      dispatch({ type: 'SET_SERVICE_SPEED', payload: serviceSpeed });
+    },
+
+    setItemServiceSpeed: (productId: string, serviceSpeed: string | null) => {
+      if (blocked('CHANGE_SERVICE_SPEED')) return;
+      dispatch({ type: 'SET_ITEM_SERVICE_SPEED', payload: { productId, serviceSpeed } });
+    },
+
+    setItemLineDiscount: (productId: string, lineDiscount: OrderItemLineDiscount | null) => {
+      if (blocked('CHANGE_ITEM_PRICE')) return;
+      dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { productId, lineDiscount } });
+    },
+
+    applySpeedToAllLines: () => {
+      if (blocked('CHANGE_SERVICE_SPEED')) return;
+      dispatch({ type: 'APPLY_SPEED_TO_ALL_LINES' });
     },
 
     setBags: (count: number) => {

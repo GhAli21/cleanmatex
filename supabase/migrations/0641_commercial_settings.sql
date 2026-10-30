@@ -47,7 +47,7 @@
 -- commercial_level, disc_alloc_mode, disc_alloc_basis RESTRICT (no
 -- dependents yet; org_orders_mst does not snapshot them until M6).
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

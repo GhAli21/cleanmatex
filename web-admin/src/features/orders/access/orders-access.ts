@@ -34,6 +34,13 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      lineDiscount: {
+        label: 'Discount an order line (Line-Level P5-03c)',
+        requirement: {
+          permissions: ['orders:discount'],
+          requireAllPermissions: true,
+        },
+      },
       useB2bCustomerOptions: {
         label: 'Use B2B customer options',
         requirement: {
@@ -574,6 +581,22 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'Cart quote',
+        method: 'POST',
+        path: '/api/v1/orders/quote',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Service speeds lookup',
+        method: 'GET',
+        path: '/api/v1/lookups/service-speeds',
+        notes: ['Auth-only; active sys_service_speed_cd for the speed menus (Line-Level P5-03b, HQ read-only).'],
+        enforcement: 'auth_only',
+      },
+      {
         label: 'Submit order with payment',
         method: 'POST',
         path: '/api/v1/orders/submit-order',
@@ -1102,6 +1125,13 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           permissions: ['orders:create'],
           requireAllPermissions: true,
         },
+      },
+      {
+        label: 'Service speeds lookup',
+        method: 'GET',
+        path: '/api/v1/lookups/service-speeds',
+        notes: ['Auth-only; active sys_service_speed_cd for the speed menus (Line-Level P5-03b, HQ read-only).'],
+        enforcement: 'auth_only',
       },
       {
         label: 'Orders Submit Order',

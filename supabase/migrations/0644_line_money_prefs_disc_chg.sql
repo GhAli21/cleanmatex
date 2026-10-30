@@ -64,7 +64,7 @@
 -- Rollback (forward-only): drop every column added here (RESTRICT; nothing
 -- references them yet).
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

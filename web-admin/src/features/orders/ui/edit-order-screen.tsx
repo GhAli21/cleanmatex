@@ -6,6 +6,7 @@
 
 'use client';
 
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { useEffect, useState } from 'react';
 import { Suspense } from 'react';
 import { createEditOrderController } from '../order-change/edit-order-controller';
@@ -124,7 +125,8 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         customerEmail: order.customer_email || '',
         branchId: order.branch_id || null,
         items,
-        express: order.is_express || false,
+        // The stored order speed; an order written before M5 only has the legacy flag.
+        serviceSpeed: order.service_speed ?? (order.is_express ? SERVICE_SPEEDS.EXPRESS : SERVICE_SPEEDS.STANDARD),
         notes: order.internal_notes ?? order.notes ?? '',
         customerNotes: order.customer_notes ?? '',
         paymentNotes: order.payment_notes ?? '',

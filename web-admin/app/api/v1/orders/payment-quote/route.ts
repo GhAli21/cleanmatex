@@ -4,8 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
-import { assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
+import { assertOrderDiscountAllowed, assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
 import { priceOverrideErrorResponse } from '@/lib/api/price-override-http';
+import { commercialErrorResponse } from '@/lib/api/commercial-http';
 import { BoundedJsonError, readBoundedJson } from '@/lib/api/bounded-json';
 import { PAYMENT_QUOTE_LIMITS, paymentQuoteRequestSchema } from '@/lib/validations/payment-quote-schema';
 import { PaymentQuoteError, quotePayment } from '@/lib/services/payment-quote.service';
@@ -48,6 +49,8 @@ export async function POST(request: NextRequest) {
     'Server-Timing': timing.toHeader(),
     'X-Request-Id': requestId,
   });
+  // Set once the session is verified; only used to attribute an invariant failure in the log.
+  let sessionTenantId = '';
   try {
     // Preserve the existing cashier POST CSRF boundary against cross-origin quote requests.
     const csrf = await validateCSRF(request);
@@ -55,6 +58,7 @@ export async function POST(request: NextRequest) {
     // Tenant and user are resolved from the validated session, never from posted identifiers.
     const auth = await timing.measure('auth', () => requirePermission('orders:create')(request));
     if (auth instanceof NextResponse) return auth;
+    sessionTenantId = auth.tenantId;
     const parsed = paymentQuoteRequestSchema.safeParse(await readBoundedJson(request, PAYMENT_QUOTE_LIMITS.MAX_BODY_BYTES));
     if (!parsed.success) {
       return NextResponse.json({ success: false, errorCode: 'INVALID_QUOTE_INPUT', error: 'Invalid payment quote input.' }, { status: 400, headers: headers() });
@@ -62,6 +66,8 @@ export async function POST(request: NextRequest) {
     const data = await timing.measure('quote', () => withinDeadline(async () => {
       // An override is a privileged money decision even though this endpoint only previews it.
       await assertPriceOverridesAllowed(parsed.data.items, { requireReason: false });
+      // Owner decision 2026-10-28: an order manual discount needs `orders:discount`.
+      await assertOrderDiscountAllowed(parsed.data);
       const canViewStoredValueBalances = parsed.data.customerId
         ? await hasPermissionServer('stored_value:view_balances')
         : false;
@@ -79,6 +85,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const overrideResponse = priceOverrideErrorResponse(error);
     if (overrideResponse) return overrideResponse;
+    const commercialResponse = commercialErrorResponse(error, { tenantId: sessionTenantId, route: 'payment_quote' });
+    if (commercialResponse) {
+      commercialResponse.headers.set('Cache-Control', 'private, no-store');
+      commercialResponse.headers.set('X-Request-Id', requestId);
+      return commercialResponse;
+    }
     if (error instanceof BoundedJsonError || error instanceof PaymentQuoteError) {
       return NextResponse.json({ success: false, errorCode: error.code, error: 'Payment preparation could not complete.' }, { status: error.status, headers: headers() });
     }

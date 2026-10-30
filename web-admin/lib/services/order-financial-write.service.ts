@@ -457,10 +457,14 @@ export async function recalculateOrderFinancialSnapshotTx(
       currency_ex_rate: true,
       base_cur_currency_code: true,
       tax_document_id: true,
+      commercial_calc_version: true,
+      tax_pricing_mode: true,
     },
   });
 
-  const taxPricingMode = await resolveTaxPricingMode(tx, tenantId, order.branch_id ?? null);
+  // The order's own pricing-mode snapshot (§5.3) wins; older orders read the current setting.
+  const taxPricingMode = (order.tax_pricing_mode as TaxPricingMode | null)
+    ?? await resolveTaxPricingMode(tx, tenantId, order.branch_id ?? null);
 
   const [
     itemAgg,
@@ -568,7 +572,12 @@ export async function recalculateOrderFinancialSnapshotTx(
   const subtotalAmount = itemsBaseAmount;
   const pieceExtraPriceAmount = toNumber(pieceAgg._sum.service_pref_charge);
   const preferenceExtraPriceAmount = toNumber(preferenceAgg._sum.extra_price);
-  const preferenceSourceIds = charges
+  // P5-02: an order written by the commercial calculator stores only real
+  // charges (a line's SEPARATE extra is not in its item total), so every
+  // active charge adds to the total (I3). The preference-level rule below is
+  // kept for orders written before it, until Edit (P6) and the recompute (P10).
+  const isCalculatorOrder = order.commercial_calc_version != null;
+  const preferenceSourceIds = isCalculatorOrder ? [] : charges
     .filter((row) => normalizeUpper(row.charge_type) === CHARGE_TYPES.PREFERENCE && row.charge_source_id)
     .map((row) => row.charge_source_id as string);
   const preferenceLevels = preferenceSourceIds.length > 0
@@ -578,7 +587,9 @@ export async function recalculateOrderFinancialSnapshotTx(
       })
     : [];
   const preferenceLevelById = mapPreferenceLevels(preferenceLevels);
-  const totalChargesAmount = sumMoneyAddendCharges(charges, preferenceLevelById);
+  const totalChargesAmount = isCalculatorOrder
+    ? charges.reduce((sum, row) => sum + toNumber(row.amount), 0)
+    : sumMoneyAddendCharges(charges, preferenceLevelById);
   const serviceChargeAmount = charges
     .filter((row) => ['SERVICE', 'SERVICE_CHARGE'].includes(normalizeUpper(row.charge_type)))
     .reduce((sum, row) => sum + toNumber(row.amount), 0);

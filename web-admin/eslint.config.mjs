@@ -145,6 +145,41 @@ const eslintConfig = [...nextVitals, {
   rules: {
     'no-restricted-imports': 'off',
   },
+}, {
+  // ADR-060 §1 / Line-Level PLAN §4.1: lib/commercial/ is the pure,
+  // domain-agnostic calculator. No I/O, no Prisma, no Supabase, no
+  // server-only, no i18n, no Next server primitives. Decimal arithmetic comes
+  // from decimal.js directly, never from @prisma/client/runtime. A later
+  // block replaces (does not merge) the global no-restricted-imports list,
+  // so the global UI patterns are repeated here.
+  files: ['lib/commercial/**'],
+  rules: {
+    'no-restricted-imports': ['error', {
+      paths: [
+        { name: 'server-only', message: 'lib/commercial/ is pure domain code: no server-only (ADR-060 §1).' },
+        { name: 'next-intl', message: 'lib/commercial/ is pure domain code: no i18n (ADR-060 §1).' },
+        { name: 'next/server', message: 'lib/commercial/ is pure domain code: no Next server primitives (ADR-060 §1).' },
+      ],
+      patterns: [
+        {
+          group: ['@prisma/client', '@prisma/client/**', 'prisma', '@/lib/db', '@/lib/db/**'],
+          message: 'lib/commercial/ is pure domain code: no Prisma or DB access. Use decimal.js for Decimal (ADR-060 §1). Data comes in through lib/services/commercial/ loaders.',
+        },
+        {
+          group: ['@supabase/**', '@/lib/supabase', '@/lib/supabase/**'],
+          message: 'lib/commercial/ is pure domain code: no Supabase (ADR-060 §1).',
+        },
+        {
+          group: ['@/lib/services/**', '@/app/**', '@/src/**', '@features/**', '@ui/**'],
+          message: 'lib/commercial/ is the innermost layer: it must not import services, routes, features or UI (ADR-060 §1).',
+        },
+        {
+          group: ['@/messages', '@/messages/*'],
+          message: 'Do not import locale JSON directly. Load messages on the server with loadLocaleMessages() and consume text through next-intl.',
+        },
+      ],
+    }],
+  },
 }, ...storybook.configs["flat/recommended"]];
 
 export default eslintConfig;

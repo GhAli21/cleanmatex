@@ -4,7 +4,7 @@
  * Prices come from the reviewed calculation lines.
  */
 
-import { reviewedItemTotal } from '@/lib/services/order-change/order-change-calculation.service';
+import { reviewedItemTotal } from '@/lib/services/order-change/order-change-edit-pricing';
 import type { OrderChangePersistedOperation, OrderChangeRowWrite } from '@/lib/services/order-change/order-change-mutation.service';
 import { OrderChangeApplyRejected } from '@/lib/services/order-change/order-change-commercial-write';
 import type { z } from 'zod';

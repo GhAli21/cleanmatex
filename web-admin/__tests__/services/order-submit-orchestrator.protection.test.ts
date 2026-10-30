@@ -9,8 +9,9 @@ import {
   makeServerTotals, mockCalculate, mockCreate, mockSettle, mockTaxDoc, mockVoucher,
   mockWire, mockLine, mockPromo, mockInvoice, mockTransaction, mockTenantContext,
   mockReadOrder, mockBranchRead, mockEffects, mockTx, mockInitialCommit, tenantId, orderId, branchId,
-  mockMethodConfigs,
+  mockMethodConfigs, mockQuoteResult,
 } from '../helpers/order-submit-harness';
+import { toMoney } from '@/lib/commercial';
 
 describe('WP01 actual canonical Create orchestration', () => {
   beforeEach(resetSubmitHarness);
@@ -42,16 +43,32 @@ describe('WP01 actual canonical Create orchestration', () => {
         servicePrefs: [{ ...pref, source: 'ITEM' }],
         pieces: [{ pieceSeq: 1, conditions: ['STAIN'], servicePrefs: [{ ...pref, source: 'PIECE' }] }] }] });
     await submitOrder(submitParams(input));
+    // P5-02: the quote gets the preference codes (line, piece, order); it prices them itself.
     expect(mockCalculate).toHaveBeenCalledWith(expect.objectContaining({ tenantId,
-      items: [expect.objectContaining({ servicePrefCharge: 1, packingPrefCharge: 2 })],
-      orderCharges: [{ label: 'IRON', amount: 2 }] }));
-    expect(mockCreate).toHaveBeenCalledWith(mockTx, expect.objectContaining({ isQuickDrop: true,
+      items: [expect.objectContaining({
+        servicePrefs: [expect.objectContaining({ preference_code: 'IRON' })],
+        pieces: [expect.objectContaining({ servicePrefs: [expect.objectContaining({ preference_code: 'IRON' })] })],
+      })],
+      orderServicePrefs: [pref] }));
+    expect(mockCreate).toHaveBeenCalledWith(mockTx, expect.objectContaining({ isQuickDrop: true, commercial: expect.any(Object),
       quickDropQuantity: 3, orderServicePrefs: [pref], items: [expect.objectContaining(input.items[0])] }));
   });
   it('rejects stale client totals before opening the transaction', async () => {
     mockCalculate.mockResolvedValue(makeServerTotals({ saleTotal: 21 }));
     await expect(submitOrder(submitParams())).rejects.toMatchObject({ message: 'AMOUNT_MISMATCH', differences: expect.any(Object) });
     expect(mockTransaction).not.toHaveBeenCalled();
+  });
+
+  it('D26: a unit price the cart showed that changed rejects PRICE_CHANGED with the line, before the totals guard and any write', async () => {
+    mockQuoteResult.mockReturnValue({ decimalPlaces: 3, lines: [{ item: { money: { unitPrice: toMoney(12) } } }] });
+    mockCalculate.mockResolvedValue(makeServerTotals({ saleTotal: 21 }));
+    const params = submitParams();
+    params.input.items = params.input.items.map((item, index) => index === 0 ? { ...item, confirmedUnitPrice: 10 } : item);
+    await expect(submitOrder(params)).rejects.toMatchObject({
+      code: 'PRICE_CHANGED', lines: [expect.objectContaining({ index: 0, shownUnitPrice: 10, currentUnitPrice: 12 })],
+    });
+    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it.each([

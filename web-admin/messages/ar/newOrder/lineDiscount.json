@@ -1,0 +1,21 @@
+{
+  "title": "خصم السطر",
+  "lineGross": "سعر السطر: {amount}",
+  "waitingForPrice": "بانتظار سعر السطر…",
+  "typeLabel": "نوع الخصم",
+  "typePercent": "نسبة من السطر",
+  "typeAmount": "مبلغ ({currency})",
+  "percentLabel": "النسبة (%)",
+  "amountLabel": "المبلغ ({currency})",
+  "reasonLabel": "السبب",
+  "reasonPlaceholder": "لماذا تم خصم هذا السطر؟",
+  "reasonHint": "مطلوب. يُحفظ مع الطلب لسجل التدقيق.",
+  "apply": "تطبيق الخصم",
+  "remove": "إزالة الخصم",
+  "errors": {
+    "valueRequired": "أدخل خصمًا أكبر من صفر.",
+    "percentTooHigh": "لا يمكن أن تتجاوز نسبة الخصم 100%.",
+    "amountTooHigh": "لا يمكن أن يتجاوز الخصم سعر السطر ({max}).",
+    "reasonRequired": "أدخل سبب الخصم."
+  }
+}

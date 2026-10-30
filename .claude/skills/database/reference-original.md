@@ -46,15 +46,22 @@ Include in EVERY table:
 
 ```sql
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-created_by VARCHAR(120),
+created_by TEXT,
 created_info TEXT,
+-- update 
 updated_at TIMESTAMP,
-updated_by VARCHAR(120),
+updated_by TEXT,
 updated_info TEXT,
-rec_status SMALLINT DEFAULT 1,
+updated_count INTEGER DEFAULT 0, -- then on update updated_count=updated_count+1
+-- soft delete 
+deleted_at TIMESTAMP,
+deleted_by TEXT,
+deleted_info TEXT,
+-- rec columns
+rec_status SMALLINT DEFAULT 1, -- 0 for soft delete 
 rec_order INTEGER,
-rec_notes VARCHAR(200),
-is_active BOOLEAN NOT NULL DEFAULT true
+rec_notes TEXT,
+is_active BOOLEAN DEFAULT true
 ```
 
 ## Bilingual Fields
@@ -142,21 +149,22 @@ UNIQUE (tenant_org_id, account_id)
 FOREIGN KEY (account_id, tenant_org_id)
   REFERENCES org_fin_acct_mst (id, tenant_org_id)
 
--- RIGHT when the parent key is (id, tenant_org_id) — match it (tenant second)
+-- RIGHT when the parent key is already (tenant_org_id, id)
+UNIQUE (tenant_org_id, account_id)
+FOREIGN KEY (tenant_org_id, account_id)
+  REFERENCES org_fin_acct_mst (tenant_org_id, id)
+
+-- RIGHT when the parent key is (id, tenant_org_id) — match it (tenant second) 
 -- This is what 0553 does: it does not rewrite the live FKs.
 UNIQUE (account_id, tenant_org_id)
 FOREIGN KEY (account_id, tenant_org_id)
   REFERENCES org_fin_acct_mst (id, tenant_org_id)
 
--- ALSO RIGHT when the parent key is already (tenant_org_id, id)
-UNIQUE (tenant_org_id, account_id)
-FOREIGN KEY (tenant_org_id, account_id)
-  REFERENCES org_fin_acct_mst (tenant_org_id, id)
 ```
 
 Do not flip an existing FK to tenant-first just to match index style. Flip the 1:1 unique to match the FK (or rebuild both sides together). `0553` only realigns uniques to the FKs that already exist.
 
-Also wrong: a composite FK `(line_id, tenant_org_id)` whose only unique is `UNIQUE (line_id)`. If the row is 1:1, add `UNIQUE (line_id, tenant_org_id)` in the same order as the FK (keep the stronger single-column unique if needed).
+Also wrong: a composite FK `(tenant_org_id, line_id)` whose only unique is `UNIQUE (line_id)`. If the row is 1:1, add `UNIQUE (tenant_org_id, line_id)` in the same order as the FK (keep the stronger single-column unique if needed).
 
 See `0135_fix_prisma_unique_constraints_order.sql` and `0553_prisma_1to1_unique_column_order.sql`.
 

@@ -29,7 +29,8 @@ interface ProductCardProps {
   product: Product;
   quantity: number;
   price: number;
-  express: boolean;
+  /** Shown under the price when the order speed adds a premium (priced in the cart). */
+  speedNote?: string | null;
   currencyCode?: string;
   categoryLabel?: string;
   onAdd: () => void;
@@ -43,7 +44,7 @@ interface ProductCardProps {
  * @param root0.product
  * @param root0.quantity
  * @param root0.price
- * @param root0.express
+ * @param root0.speedNote
  * @param root0.currencyCode
  * @param root0.onAdd
  * @param root0.onIncrement
@@ -53,7 +54,7 @@ export function ProductCard({
   product,
   quantity,
   price,
-  express,
+  speedNote = null,
   currencyCode = '',
   categoryLabel,
   onAdd,
@@ -61,7 +62,6 @@ export function ProductCard({
   onDecrement,
 }: ProductCardProps) {
   const t = useTranslations('newOrder.itemsGrid');
-  const tNewOrder = useTranslations('newOrder');
   const isRTL = useRTL();
   const locale = useLocale();
   const { decimalPlaces } = useTenantCurrency();
@@ -130,9 +130,9 @@ export function ProductCard({
             locale: moneyLocale,
           })}
         </p>
-        {express && (
-          <span className="text-xs text-orange-600 font-medium">{tNewOrder('express.label')}</span>
-        )}
+        {speedNote ? (
+          <span className="text-xs text-orange-600 font-medium">{speedNote}</span>
+        ) : null}
       </div>
 
       {/* Action Buttons */}

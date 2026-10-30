@@ -31,5 +31,28 @@
     "v02Enhanced": "V02 Enhanced",
     "v3": "V3",
     "v4": "V4 (Default)"
+  },
+  "discounts": "Discounts",
+  "charges": "Order charges",
+  "taxIncluded": "Tax (included)",
+  "rounding": "Rounding adjustment",
+  "quote": {
+    "updating": "Updating amounts…",
+    "retry": "Retry",
+    "orderChargeTaxed": "Tax includes {amount} on order-wide preferences (taxed like the service).",
+    "errors": {
+      "default": "The cart amounts could not be calculated. Retry, or continue to payment to see the final amounts.",
+      "PRODUCT_NOT_FOUND": "An item is no longer in the catalog. Remove it to see the amounts.",
+      "PREFERENCE_NOT_AVAILABLE": "A selected preference is no longer available for this branch. Remove it to see the amounts.",
+      "SERVICE_SPEED_INVALID": "The selected service speed is not available. Choose another speed.",
+      "TIMEZONE_NOT_CONFIGURED": "The branch time zone is not set up, so prices cannot be dated. Ask an administrator to set it.",
+      "PRICE_NOT_RESOLVED": "An item has no price set up. Ask an administrator to price it, or set a price for this line.",
+      "PRICE_BELOW_MINIMUM": "A line price is below the item's minimum price.",
+      "PRICE_OVERRIDE_NOT_PERMITTED": "A line has a changed price, which needs the price override permission.",
+      "MISSING_TENANT_CURRENCY": "The Organization Base Currency is not configured.",
+      "LINE_DISCOUNT_NOT_PERMITTED": "A line has a discount, which needs the order discount permission.",
+      "LINE_DISCOUNT_EXCEEDS_GROSS": "A line discount is more than the line price. Lower it to see the amounts.",
+      "INVALID_ADJUSTMENT": "A discount value is not valid. Check the line discounts."
+    }
   }
 }

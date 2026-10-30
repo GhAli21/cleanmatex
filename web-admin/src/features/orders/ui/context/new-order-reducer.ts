@@ -6,6 +6,7 @@
 import type { NewOrderState, NewOrderAction, OrderItem, PreSubmissionPiece } from '../../model/new-order-types';
 import { NEW_ORDER_DEFAULT_SOURCE_CODE } from '@/lib/constants/order-sources';
 import { ORDER_TYPE_IDS } from '@/lib/constants/order-types';
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 
 /**
  * Base line (qty × unit) plus service prefs charge and packing surcharge (catalog extra_price; per line, not × qty).
@@ -29,17 +30,16 @@ function itemLineBasePlusPrefCharges(item: {
 }
 
 /**
- * Catalog unit price of a cart line for the given speed: the express price when
- * express is on and one exists, else the normal price. Falls back to the price
- * the line had before any override, then to its current price.
- * @param item
- * @param express
+ * Catalog unit price of a cart line (standard speed). Speed premiums are priced
+ * by the server from the speed rules and shown from the cart quote (P5-03b), so
+ * the client never adds one. Falls back to the price before any override, then
+ * to the current price.
+ * @param item - the cart line
+ * @returns the standard catalog unit price
  */
 function catalogUnitPrice(
-  item: Pick<OrderItem, 'defaultSellPrice' | 'defaultExpressSellPrice' | 'pricePerUnit' | 'pricePerUnitBeforeOverride'>,
-  express: boolean
+  item: Pick<OrderItem, 'defaultSellPrice' | 'pricePerUnit' | 'pricePerUnitBeforeOverride'>,
 ): number {
-  if (express && item.defaultExpressSellPrice) return item.defaultExpressSellPrice;
   return item.defaultSellPrice || (item.pricePerUnitBeforeOverride ?? item.pricePerUnit);
 }
 
@@ -79,7 +79,7 @@ export const initialState: NewOrderState = {
   orderSourceCode: NEW_ORDER_DEFAULT_SOURCE_CODE,
   isQuickDrop: false,
   quickDropQuantity: 0,
-  express: false,
+  serviceSpeed: SERVICE_SPEEDS.STANDARD,
   notes: '',
   readyByAt: '',
   bags: 0,
@@ -439,7 +439,7 @@ export function newOrderReducer(
           // instead of keeping the overridden one (which the server would not charge).
           const hadOverride = item.priceOverride !== null && item.priceOverride !== undefined;
           const priceUnderOverride = hadOverride
-            ? item.pricePerUnitBeforeOverride ?? catalogUnitPrice(item, state.express)
+            ? item.pricePerUnitBeforeOverride ?? catalogUnitPrice(item)
             : item.pricePerUnit;
           const effectivePrice = priceOverride !== null ? priceOverride : priceUnderOverride;
           return {
@@ -472,31 +472,36 @@ export function newOrderReducer(
         quickDropQuantity: action.payload,
       };
 
-    case 'SET_EXPRESS':
+    case 'SET_SERVICE_SPEED':
+      // Only the speed changes. Prices stay server-owned: the cart quote re-prices
+      // every line that follows the order speed, and the cart lists what changed
+      // (rule #15). A cashier price override is never touched.
+      return { ...state, serviceSpeed: action.payload };
+
+    case 'SET_ITEM_SERVICE_SPEED':
       return {
         ...state,
-        express: action.payload,
-        // Recalculate catalog prices when express changes. A price override is the
-        // cashier's typed price and the server charges it, so it is never rewritten
-        // by this toggle (rule #15); only the price under it follows the new speed.
-        items: state.items.map((item) => {
-          const catalogPrice = catalogUnitPrice(item, action.payload);
-          const hasOverride = item.priceOverride !== null && item.priceOverride !== undefined;
-          const newPricePerUnit = hasOverride ? (item.priceOverride as number) : catalogPrice;
-
-          return {
-            ...item,
-            ...(hasOverride && { pricePerUnitBeforeOverride: catalogPrice }),
-            pricePerUnit: newPricePerUnit,
-            totalPrice: itemLineBasePlusPrefCharges({
-              quantity: item.quantity,
-              pricePerUnit: newPricePerUnit,
-              servicePrefCharge: item.servicePrefCharge,
-              packingPrefCharge: item.packingPrefCharge,
-            }),
-          };
-        }),
+        items: state.items.map((item) =>
+          item.productId === action.payload.productId
+            ? { ...item, serviceSpeed: action.payload.serviceSpeed }
+            : item
+        ),
       };
+
+    case 'SET_ITEM_LINE_DISCOUNT':
+      // Stored as the cashier typed it; the server prices it (P5-03c).
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.productId === action.payload.productId
+            ? { ...item, lineDiscount: action.payload.lineDiscount }
+            : item
+        ),
+      };
+
+    case 'APPLY_SPEED_TO_ALL_LINES':
+      // "Apply to all lines": every line follows the order speed again (§5.4).
+      return { ...state, items: state.items.map((item) => ({ ...item, serviceSpeed: null })) };
 
     case 'SET_BAGS':
       return {
@@ -678,7 +683,7 @@ export function newOrderReducer(
         customerEmail,
         branchId,
         items,
-        express,
+        serviceSpeed,
         notes,
         customerNotes,
         paymentNotes,
@@ -703,7 +708,7 @@ export function newOrderReducer(
         customerNameSnapshot: customerName,
         branchId,
         items,
-        express,
+        serviceSpeed,
         notes,
         customerNotes: customerNotes ?? '',
         paymentNotes: paymentNotes ?? '',

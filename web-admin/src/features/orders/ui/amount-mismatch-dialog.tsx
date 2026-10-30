@@ -117,7 +117,7 @@ export function AmountMismatchDialog({
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
             >
               <RefreshCw className="w-4 h-4" />
-              {t('refreshPage')}
+              {t('refreshAmounts')}
             </button>
             <button
               type="button"

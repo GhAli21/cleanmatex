@@ -8,7 +8,7 @@
 
 import { useMemo } from 'react';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
-import type { TaxBreakdownLine, TaxProfileEntry } from '@/lib/types/payment-quote';
+import type { CheckoutLineIntentFields, TaxBreakdownLine, TaxProfileEntry } from '@/lib/types/payment-quote';
 import { usePaymentQuote } from './use-payment-quote';
 import type {
   AppliedPromoCode,
@@ -34,7 +34,7 @@ export type { TaxBreakdownLine, TaxProfileEntry, ServerTotals } from '@/lib/type
 /**
  * Order line item shape consumed by the preview fetch.
  */
-export type PaymentTotalsItem = {
+export type PaymentTotalsItem = CheckoutLineIntentFields & {
   productId: string;
   quantity: number;
   priceOverride?: number | null;
@@ -56,7 +56,8 @@ export interface UsePaymentTotalsParams {
   tenantOrgId: string;
   branchId?: string;
   customerId?: string;
-  isExpress?: boolean;
+  /** The order speed code; each item may carry its own `serviceSpeed`. */
+  serviceSpeed?: string;
   /** Order subtotal used by the client-side fallback. */
   total: number;
   /** Optional explicit checkout amount used for eligibility before preview loads. */
@@ -87,7 +88,7 @@ export interface UsePaymentTotalsParams {
  * @param params.tenantOrgId - Active tenant org id.
  * @param params.branchId - Active branch id.
  * @param params.customerId - Active customer id.
- * @param params.isExpress - Express-order flag for pricing.
+ * @param params.serviceSpeed - Order speed code for pricing.
  * @param params.total - Order subtotal for the client fallback.
  * @param params.checkoutAmount - Explicit checkout amount for eligibility.
  * @param params.percentDiscount - Manual percent discount.
@@ -110,7 +111,7 @@ export function usePaymentTotals({
   tenantOrgId,
   branchId,
   customerId,
-  isExpress,
+  serviceSpeed,
   total,
   checkoutAmount,
   percentDiscount,
@@ -134,7 +135,7 @@ export function usePaymentTotals({
       items,
       branchId: branchId || undefined,
       customerId: customerId || undefined,
-      isExpress,
+      serviceSpeed,
       percentDiscount: percentDiscount ?? 0,
       amountDiscount: amountDiscount ?? 0,
       serviceCategories: serviceCategories?.length ? serviceCategories : undefined,

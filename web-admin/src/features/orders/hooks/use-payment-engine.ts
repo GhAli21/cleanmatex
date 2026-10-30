@@ -131,7 +131,7 @@ export interface PaymentEngineCurrencyConfig {
 /**
  * Order line item used by the totals preview.
  */
-export interface PaymentEngineItem {
+export interface PaymentEngineItem extends CheckoutLineIntentFields {
   productId: string;
   quantity: number;
   priceOverride?: number | null;
@@ -144,6 +144,7 @@ export interface PaymentEngineItem {
  * consumed by the leg suggestion + live-balance derivations.
  */
 export type { StoredValueSummaryResponse } from '@/lib/types/payment-quote';
+import type { CheckoutLineIntentFields } from '@/lib/types/payment-quote';
 
 
 /**
@@ -163,7 +164,8 @@ export interface UsePaymentEngineParams {
   branchId?: string;
   customerId?: string;
   customerType?: string;
-  isExpress: boolean;
+  /** The order speed code (`sys_service_speed_cd`). */
+  serviceSpeed: string;
   isRetailOnlyOrder: boolean;
   isB2BCustomer: boolean;
   total: number;
@@ -225,7 +227,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     tenantOrgId,
     branchId,
     customerId,
-    isExpress,
+    serviceSpeed,
     isRetailOnlyOrder,
     isB2BCustomer,
     total,
@@ -320,7 +322,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     tenantOrgId,
     branchId,
     customerId,
-    isExpress,
+    serviceSpeed,
     total,
     checkoutAmount,
     percentDiscount,

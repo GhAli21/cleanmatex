@@ -7,6 +7,8 @@ import { applyOrderChange, type ApplyOrderChangeInput, type OrderChangeApplyTx }
 import { persistOrderChangeTx, OrderChangeMutationError } from '@/lib/services/order-change/order-change-mutation.service';
 import type { OrderChangeFinancialResult } from '@/lib/services/order-change/order-change-financial-result.service';
 import type { OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
+import { calculateCommercialOrder, toMoney } from '@/lib/commercial';
+import type { EditQuote } from '@/lib/services/commercial/commercial-edit.loader';
 
 jest.mock('@/lib/services/order-change/order-change-mutation.service', () => {
   const actual = jest.requireActual('@/lib/services/order-change/order-change-mutation.service');
@@ -45,6 +47,57 @@ function preview(overrides: Partial<OrderChangePreviewSuccess> = {}): OrderChang
     followUp: [],
     ...overrides,
   };
+}
+
+/**
+ * A reviewed Edit quote from the real calculator: each line at its unit price,
+ * VAT 15%, with an order discount when given. What the preview hands Apply.
+ */
+function calculatedEdit(lines: Array<{ id: string; unitPrice: string; quantity?: number; speed?: string; pieceIds?: string[] }>, orderDiscount?: string): EditQuote {
+  const result = calculateCommercialOrder({
+    level: 'ITEM', pricingMode: 'TAX_EXCLUSIVE', discAllocMode: 'DOCUMENT_LEVEL', discAllocBasis: 'PROPORTIONAL_NET',
+    rounding: { decimalPlaces: 3, mode: 'HALF_UP' },
+    lines: lines.map((line) => ({
+      lineId: line.id, quantity: line.quantity ?? 1, priceType: null,
+      pricing: {
+        listUnitPrice: line.unitPrice, priceListDiscountPercent: 0, priceListItemId: null, speedUnitPremium: 0, speedLinePremium: 0,
+        overrideUnitPrice: null, modifiers: [], adjustments: [], minUnitPrice: null,
+      },
+      tax: {
+        taxCategoryCode: 'STANDARD', exemptReason: null,
+        profiles: [{ id: 'vat', taxType: 'VAT', ratePercent: 15, isCompound: false, isDefault: true, appliesTo: null, roundingLevel: 'DOCUMENT', rounding: { decimalPlaces: 3, mode: 'HALF_UP' } }],
+      },
+      pieces: (line.pieceIds ?? []).map((pieceId) => ({ pieceId })),
+      readyBy: { serviceSpeed: line.speed ?? 'STANDARD', speedRuleHours: null, productHours: '24', categoryHours: null, extraMinutes: 0 },
+    })),
+    orderAdjustments: orderDiscount ? [{ id: 'order:d1', source: 'MANUAL', calcType: 'FIXED_AMOUNT', value: orderDiscount }] : [],
+    charges: [],
+    readyBy: { startAt: new Date('2026-10-14T08:00:00.000Z'), orderExtraMinutes: 0, orderOverride: null },
+  });
+  return {
+    quote: {
+      result,
+      prices: lines.map((line) => ({
+        lineId: line.id, productId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', serviceSpeed: line.speed ?? 'STANDARD',
+        standard: { unitPrice: toMoney(line.unitPrice), source: 'PRODUCT_DEFAULT', priceListId: null, priceListItemId: null, priceListDiscountPercent: toMoney(0) },
+        speed: { ruleId: null },
+      })),
+      facts: { pricingMode: 'TAX_EXCLUSIVE', taxProfileLabels: new Map([['vat', { label: 'VAT', label2: null }]]) },
+      orderAdjustments: [],
+    },
+    intent: {
+      lines: lines.map((line) => ({ lineId: line.id, overrideUnitPrice: null, preferences: [], pieces: [] })),
+      orderPreferences: [],
+    },
+    adjustmentMeta: new Map([['order:d1', { sourceName: 'Manual Discount' }]]),
+    keptChargeIds: new Map(),
+  } as unknown as EditQuote;
+}
+
+/** Transaction delegates for the discount, charge and tax rows the Edit writer replaces. */
+function childRowDelegates() {
+  const model = () => ({ updateMany: jest.fn().mockResolvedValue({ count: 1 }), createMany: jest.fn().mockResolvedValue({ count: 1 }) });
+  return { org_order_discounts_dtl: model(), org_order_charges_dtl: model(), org_order_taxes_dtl: model() };
 }
 
 function request(): ApplyOrderChangeInput['request'] {
@@ -346,10 +399,13 @@ describe('applyOrderChange', () => {
         operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef, productId, quantity: 1 } }],
       },
       preview: preview({
-        projectedTotal: '12.0000',
-        lines: [{ id: clientRef, active: true, unitPrice: '2.0000', merchandiseAmount: '2.0000' }],
+        projectedTotal: '12.3000',
+        lines: [{ id: clientRef, active: true, unitPrice: '2.0000', merchandiseAmount: '2.0000', embeddedExtra: '0.0000' }],
+        commercial: calculatedEdit([{ id: '55555555-5555-4555-8555-555555555555', unitPrice: '8.7000' }, { id: clientRef, unitPrice: '2.0000' }]),
       }),
     });
+    const rows = childRowDelegates();
+    Object.assign(tx, rows);
     tx.$queryRaw = jest.fn(async (strings: TemplateStringsArray) => {
       const text = strings.join(' ');
       if (text.includes('org_orders_mst')) {
@@ -373,8 +429,28 @@ describe('applyOrderChange', () => {
         price_per_unit: '2.0000',
         total_price: '2.0000',
         order_item_srno: '100-3',
+        // P6-01c: the calculator's §6.1 columns ride on the insert.
+        list_unit_price: '2.0000', net_amount: '2.0000', tax_amount: '0.3000', line_total_amount: '2.3000', money_basis: 'PRICED',
       }),
     })]);
+    // The line already on the order is rewritten with its calculated columns too.
+    expect(persisted.itemUpdates).toEqual([expect.objectContaining({
+      id: '55555555-5555-4555-8555-555555555555',
+      data: expect.objectContaining({ total_price: '8.7000', tax_amount: '1.3050' }),
+    })]);
+    // Discount, charge and tax rows are replaced: the old ones voided or inactivated, then the new ones written.
+    expect(rows.org_order_discounts_dtl.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { tenant_org_id: input.tenantId, order_id: input.orderId, is_voided: false },
+      data: expect.objectContaining({ is_voided: true }),
+    }));
+    expect(rows.org_order_taxes_dtl.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { tenant_org_id: input.tenantId, order_id: input.orderId, rec_status: 1 },
+      data: expect.objectContaining({ rec_status: 0 }),
+    }));
+    expect(rows.org_order_taxes_dtl.createMany).toHaveBeenCalledWith({ data: [expect.objectContaining({
+      tenant_org_id: input.tenantId, order_id: input.orderId, tax_profile_id: 'vat', tax_amount: '1.6050',
+    })] });
+    expect(rows.org_order_discounts_dtl.createMany).not.toHaveBeenCalled();
     expect(persisted.operations[0]).toEqual(expect.objectContaining({
       code: 'ADD_ITEM',
       targetType: 'ITEM',
@@ -535,9 +611,12 @@ describe('applyOrderChange', () => {
         projectedTotal: '12.0000',
         projectedTax: '1.8000',
         speedAudit,
-        lines: [{ id: itemId, active: true, unitPrice: '12.0000', merchandiseAmount: '12.0000', embeddedExtra: '0.8000' }],
+        lines: [{ id: itemId, active: true, unitPrice: '12.0000', merchandiseAmount: '12.0000', embeddedExtra: '0.0000' }],
+        commercial: calculatedEdit([{ id: itemId, unitPrice: '12.0000', speed: 'EXPRESS' }]),
       }),
     });
+    const rows = childRowDelegates();
+    Object.assign(tx, rows);
     const executeRaw = jest.fn().mockResolvedValue(1);
     (tx as { $executeRaw: jest.Mock }).$executeRaw = executeRaw;
     await expect(applyOrderChange(input)).resolves.toMatchObject({ ok: true });
@@ -550,14 +629,16 @@ describe('applyOrderChange', () => {
     })]);
     expect(persistMock.mock.calls[0][1].itemUpdates).toEqual([expect.objectContaining({
       id: itemId,
-      data: expect.objectContaining({ price_per_unit: '12.0000', total_price: '12.8000' }),
+      data: expect.objectContaining({ price_per_unit: '12.0000', total_price: '12.0000', service_speed: 'EXPRESS', tax_amount: '1.8000' }),
     })]);
+    // The order takes the line's recounted ready-by (express default 12h) and the header speed premium.
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ service_speed: 'EXPRESS' }),
+      data: expect.objectContaining({ service_speed: 'EXPRESS', speed_premium_amount: '0.0000', ready_by: new Date('2026-10-14T20:00:00.000Z') }),
     }));
-    const chargeWrites = executeRaw.mock.calls.map((call) => String(call[0]));
-    expect(chargeWrites.some((sql) => sql.includes('is_voided = true'))).toBe(true);
-    expect(chargeWrites.some((sql) => sql.includes('INSERT INTO org_order_charges_dtl'))).toBe(false);
+    // P6-01c: no EXPRESS charge is written; every old charge row is voided, and no raw SQL writes money.
+    expect(rows.org_order_charges_dtl.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ is_voided: true }) }));
+    expect(rows.org_order_charges_dtl.createMany).not.toHaveBeenCalled();
+    expect(executeRaw).not.toHaveBeenCalled();
   });
 
   it('keeps an unchanged outstanding balance on the existing settlement type', async () => {

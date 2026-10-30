@@ -40,7 +40,7 @@
 -- Rollback (forward-only): DROP TABLE org_tax_doc_items_dtl RESTRICT (no
 -- dependents yet); drop the prerequisite unique on org_tax_documents_mst.
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

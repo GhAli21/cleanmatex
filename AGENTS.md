@@ -22,8 +22,8 @@
 # AGENTS.md — CleanMateX Tenant App · F:\jhapp\cleanmatex
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (GCC-first, EN/AR bilingual)
-**Last Update:** 18-07-2026
-**Last Update Description:** CRITICAL RULE #16 — mandatory `cmxMessage` / `useMessage()` for applicable web-admin user-facing feedback
+**Last Update:** 24-10-2026
+**Last Update Description:** Scoped performance engineering checkpoint and shared rules reference
 
 ---
 
@@ -71,6 +71,10 @@ Always:
 18. **HQ is the usual name for the SaaS Backoffice** — use HQ for `cleanmatexsaas`. SaaS Backoffice, platform, platform level, Platform HQ Console, SaaS Backoffice Admin and Management, and Headquarters mean the same application. HQ is not a tenant organization's headquarters. When a reader could confuse them, add the meaning once: HQ (the SaaS Backoffice). The Organization app is `cleanmatex`; tenant app, client app, and Tenant-Facing Application mean that app. The customer business is the Organization / المنشأة, and the database identifier stays `tenant_org_id`. Arabic for HQ is إدارة المنصة. Existing code and file identifiers that already contain HQ stay unchanged. Glossary: `docs/dev/i18n_docs/GLOSSARY.md`.
 
 ---
+
+## Performance Engineering Checkpoint
+
+For changes to data access, request orchestration, caching, async UI/query lifecycles, expensive rendering, or a reported performance issue, apply [the shared performance rules](docs/dev/rules/performance-engineering.md) and the relevant domain skill. Revalidate the current related system, trace hidden/repeated I/O, scope shared facts/caches correctly, bound concurrency, preserve tenant/security/money behavior, and verify the affected path. Performance investigations use one measured change followed by retesting and an evidence-based stopping decision. Ordinary low-impact copy/style edits do not require a benchmark project or new caching infrastructure. Preserve existing authorization and validation gates.
 
 ## Identity & Cross-Project Awareness
 
@@ -348,7 +352,7 @@ docs/         # All documentation
 ## Key Guardrails
 
 - **Security:** RLS on all `org_*` tables, composite FKs, no hardcoded secrets
-- **Performance:** Indexes, avoid N+1 queries, paginate results
+- **Performance:** Apply `docs/dev/rules/performance-engineering.md`; measure relevant work, avoid N+1 and unnecessary waterfalls, paginate/select narrowly, and justify indexes/caches with evidence
 - **Testing:** Cover business logic and tenant isolation
 - **Validation:** Validate all inputs at system boundaries
 - **Documentation:** For every feature — permissions, navigation tree, settings, feature flags, plan limits, i18n keys, API routes, migrations, constants/types, env vars

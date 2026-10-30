@@ -62,4 +62,15 @@ describe('locked Edit Policy revalidation', () => {
     await expect(revalidateLockedOrderChangePolicy(tx, { tenantId, orderId, binding })).rejects.toMatchObject({ code: 'ORDER_NOT_FOUND' });
     expect(mockResolve).not.toHaveBeenCalled();
   });
+
+  it.each([
+    { wf_profile_id: null, wf_profile_version_id: versionId, current_status: 'intake' },
+    { wf_profile_id: profileId, wf_profile_version_id: null, current_status: 'intake' },
+    { wf_profile_id: profileId, wf_profile_version_id: versionId, current_status: null },
+  ])('rejects an incomplete locked workflow binding before policy resolution', async (lockedOrder) => {
+    query.mockResolvedValue([lockedOrder]);
+    await expect(revalidateLockedOrderChangePolicy(tx, { tenantId, orderId, binding }))
+      .rejects.toMatchObject({ code: 'CAPABILITY_POLICY_BINDING_MISSING' });
+    expect(mockResolve).not.toHaveBeenCalled();
+  });
 });

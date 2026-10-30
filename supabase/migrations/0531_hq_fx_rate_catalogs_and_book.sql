@@ -44,7 +44,7 @@
 -- RESTRICT — and DELETE the 'cleanmatex_hq' source row if unreferenced.
 -- Lossless only while no rates or tenant rows reference these objects.
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

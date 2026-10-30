@@ -1,6 +1,11 @@
 import { committedCommercialEchoChanged, legacyCommittedReplacementDecision, payloadIncludesCommittedCommercialChange } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 
 describe('legacyCommittedReplacementDecision', () => {
+  it('P6-01d: retires the legacy writer on an order written by the calculator, whatever the flag or state', () => {
+    expect(legacyCommittedReplacementDecision({ committedAt: null, editStateVersion: 0, featureEnabled: false, commercialCalcVersion: 1 })).toBe('RETIRED');
+    expect(legacyCommittedReplacementDecision({ committedAt: null, editStateVersion: 0, featureEnabled: false, commercialCalcVersion: null })).toBe('ALLOW');
+  });
+
   it('retires the full replacement when Edit Order V2 is on and the order is committed', () => {
     expect(legacyCommittedReplacementDecision({
       committedAt: '2026-10-15T00:00:00.000Z',

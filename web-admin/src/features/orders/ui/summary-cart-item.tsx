@@ -8,17 +8,35 @@
 
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { cn } from '@/lib/utils';
-import { Pencil, Trash2 } from 'lucide-react';
+import { ChevronDown, Pencil, Percent, Trash2 } from 'lucide-react';
+import { DISCOUNT_SOURCE_TYPE } from '@/lib/constants/discount-source-type';
 import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
 import type { PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
 import { pieceColorCodesForDisplay } from '@/src/features/orders/lib/piece-color-utils';
+import type { CartQuoteLine } from '@/lib/types/cart-quote';
+import { ServiceSpeedSelect } from './service-speed-select';
+import { useServiceSpeeds } from '../hooks/use-service-speeds';
+
+/** New Order (P5-03b): this line's quoted figures and its speed menu. */
+export interface SummaryCartItemQuote {
+  /** Null before the first answer for this line. */
+  line: CartQuoteLine | null;
+  pending: boolean;
+  orderSpeed: string;
+  /** The line's own speed; null follows the order speed. */
+  lineSpeed: string | null;
+  onLineSpeedChange?: (serviceSpeed: string | null) => void;
+  lineSpeedDisabled?: boolean;
+  /** Opens the line discount dialog (P5-03c); absent without `orders:discount`. */
+  onEditLineDiscount?: () => void;
+}
 
 function humanizePreferenceCode(code: string): string {
   if (!code) return '';
@@ -99,6 +117,8 @@ interface SummaryCartItemProps {
   onEditPrice?: () => void;
   onEditPreferences?: () => void;
   onDelete: () => void;
+  /** When set, the price shown is the server's (Order Edit keeps its own until P6-02). */
+  quote?: SummaryCartItemQuote;
 }
 
 function SummaryCartItemComponent({
@@ -119,10 +139,15 @@ function SummaryCartItemComponent({
   onEditPrice,
   onEditPreferences,
   onDelete,
+  quote,
 }: SummaryCartItemProps) {
   const isRTL = useRTL();
   const locale = useLocale();
   const tPieces = useTranslations('newOrder.pieces');
+  const tSpeed = useTranslations('newOrder.serviceSpeed');
+  const tLine = useTranslations('newOrder.lineBreakdown');
+  const [expanded, setExpanded] = useState(false);
+  const { labelOf: speedLabel } = useServiceSpeeds();
   const { decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const getBilingual = useBilingual();
@@ -206,11 +231,16 @@ function SummaryCartItemComponent({
     moneyLocale,
   ]);
 
-  const displayPrice = formatMoneyAmountWithCode(totalPrice, {
+  const fmt = (amount: number) => formatMoneyAmountWithCode(amount, {
     currencyCode: currencyCode as string,
     decimalPlaces,
     locale: moneyLocale,
   });
+  // New Order shows the server's line gross only; before its first answer, a placeholder (never a client sum).
+  const shownPrice = quote ? quote.line?.grossAmount ?? null : totalPrice;
+  const displayPrice = shownPrice == null ? '…' : fmt(shownPrice);
+  const effectiveSpeed = quote ? quote.lineSpeed ?? quote.orderSpeed : null;
+  const premium = quote?.line && quote.line.speedPremiumAmount > 0 ? quote.line.speedPremiumAmount : 0;
 
   return (
     <div className={`border-b border-dashed border-gray-200 last:border-b-0 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -259,9 +289,38 @@ function SummaryCartItemComponent({
         <span className="shrink-0 text-[10px] text-gray-400 hidden sm:inline">{itemNumber}</span>
 
         {/* Price */}
-        <span className="shrink-0 text-sm font-semibold text-gray-900 tabular-nums">
+        <span
+          className={cn('shrink-0 text-sm font-semibold text-gray-900 tabular-nums', quote?.pending && 'opacity-50')}
+          aria-busy={quote?.pending || undefined}
+        >
           {displayPrice}
         </span>
+
+        {/* Line discount (P5-03c) */}
+        {quote?.onEditLineDiscount && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); quote.onEditLineDiscount?.(); }}
+            className="shrink-0 p-0.5 text-gray-500 hover:text-green-700 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-green-500"
+            title={tLine('discountAction')}
+            aria-label={tLine('discountActionFor', { item: displayName })}
+          >
+            <Percent className="w-3 h-3" />
+          </button>
+        )}
+
+        {/* Line breakdown toggle: gross, discounts, net, tax (server figures) */}
+        {quote?.line && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+            className="shrink-0 p-0.5 text-gray-500 hover:text-gray-800 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-gray-400"
+            aria-expanded={expanded}
+            aria-label={expanded ? tLine('hide', { item: displayName }) : tLine('show', { item: displayName })}
+          >
+            <ChevronDown className={cn('w-3 h-3 transition-transform', expanded && 'rotate-180')} />
+          </button>
+        )}
 
         {/* Pen — edit price override */}
         {onEditPrice && (
@@ -285,6 +344,55 @@ function SummaryCartItemComponent({
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
+
+      {quote?.line && expanded ? (
+        <dl
+          className={cn('mx-2 mb-1.5 space-y-0.5 rounded-md bg-gray-50 px-2 py-1 text-[11px] text-gray-600', isRTL ? 'me-8' : 'ms-8', quote.pending && 'opacity-50')}
+          aria-busy={quote.pending || undefined}
+        >
+          <div className="flex justify-between gap-2"><dt>{tLine('gross')}</dt><dd className="tabular-nums">{fmt(quote.line.grossAmount)}</dd></div>
+          {quote.line.discounts.map((d, i) => (
+            <div key={i} className="flex justify-between gap-2 text-green-700">
+              <dt>
+                {d.source === DISCOUNT_SOURCE_TYPE.PRICE_LIST ? tLine('priceListDiscount') : tLine('lineDiscount')}
+                {d.rate != null ? ` (${d.rate}%)` : ''}
+              </dt>
+              <dd className="tabular-nums">− {fmt(d.amount)}</dd>
+            </div>
+          ))}
+          {quote.line.orderDiscountAllocAmount > 0 ? (
+            <div className="flex justify-between gap-2 text-green-700">
+              <dt>{tLine('orderDiscountShare')}</dt>
+              <dd className="tabular-nums">− {fmt(quote.line.orderDiscountAllocAmount)}</dd>
+            </div>
+          ) : null}
+          <div className="flex justify-between gap-2"><dt>{tLine('net')}</dt><dd className="tabular-nums">{fmt(quote.line.netAmount)}</dd></div>
+          <div className="flex justify-between gap-2"><dt>{tLine('tax')}</dt><dd className="tabular-nums">{fmt(quote.line.taxAmount)}</dd></div>
+          <div className="flex justify-between gap-2 font-semibold text-gray-800"><dt>{tLine('lineTotal')}</dt><dd className="tabular-nums">{fmt(quote.line.lineTotalAmount)}</dd></div>
+        </dl>
+      ) : null}
+
+      {quote && (premium > 0 || quote.onLineSpeedChange) ? (
+        <div className={`flex items-center gap-2 px-2 pb-1.5 ${isRTL ? 'pe-8 flex-row-reverse' : 'ps-8'}`}>
+          {quote.onLineSpeedChange ? (
+            <ServiceSpeedSelect
+              size="line"
+              className="w-36"
+              value={quote.lineSpeed}
+              orderSpeed={quote.orderSpeed}
+              onChange={quote.onLineSpeedChange}
+              disabled={quote.lineSpeedDisabled}
+              disabledReason={tSpeed('locked')}
+              ariaLabel={tSpeed('lineAria', { item: displayName })}
+            />
+          ) : null}
+          {premium > 0 && effectiveSpeed ? (
+            <span className={cn('text-[11px] text-orange-700', quote.pending && 'opacity-50')}>
+              {tSpeed('premiumIncluded', { speed: speedLabel(effectiveSpeed), amount: fmt(premium) })}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       {piecePreferenceRows.some((r) => r.labels.length > 0) && (
         <div className={`px-2 pb-1.5 space-y-1.5 ${isRTL ? 'pe-8' : 'ps-8'}`}>

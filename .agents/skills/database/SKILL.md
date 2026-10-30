@@ -6,12 +6,25 @@ version: 1.1.0
 deprecated: false
 effort: medium
 references:
-  - @.claude/skills/database/reference-original.md
+  - '@.claude/skills/database/reference-original.md'
   - CLAUDE.md
 agents:
 ---
 
 # Database Skill
+
+## Database Performance
+
+Apply the relevant [shared performance rules](../../../docs/dev/rules/performance-engineering.md) to data-access or database-performance changes; ordinary documentation/copy edits do not require a benchmark project.
+
+- Revalidate current affected queries, function definitions, schema/types and evidence before optimizing an old plan; preserve ongoing work and select one measured bottleneck at a time.
+- Keep an explicit `tenant_org_id` predicate on every queried/joined `org_*` table; writes assign/filter it. RLS, a parent lookup and request context do not replace those predicates.
+- Select required columns, bound results and paginate collection reads with stable ordering. Avoid N+1 work and record query/RPC growth for representative input sizes; count SQL inside functions separately from transport calls.
+- Inspect actual function definitions and suitable query plans in a controlled environment. Write-capable plan analysis needs an approved isolated fixture; mocked call counts do not establish runtime performance.
+- Reuse compatible in-flight facts within the request. Bulk reads must preserve line mapping, quantity-tier semantics, precision, ordering and tie-breaks; do not aggregate quantities unless the business contract permits it.
+- Bound concurrency and measure pool/lock pressure. Preserve transaction/lock order; concurrent promises on one transaction connection do not imply parallel SQL.
+- Choose indexes from real tenant-scoped predicates/orderings and measured plans, accounting for existing indexes and write cost. Index examples are candidates, not a blanket list to create.
+- Schema/function/index changes require reviewed forward migrations and object documentation. Never edit applied migrations, reset the database or apply migrations; existing review/application boundaries remain in force.
 
 ## Mandatory Migration Object Documentation
 

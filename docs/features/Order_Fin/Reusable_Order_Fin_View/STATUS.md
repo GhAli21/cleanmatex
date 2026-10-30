@@ -7,7 +7,7 @@
 |---|---|---|---|
 | P0 | Discovery and decision freeze | ✅ Done 2026-10-23 (combined with Line-Level P0) | [PHASE0_FINDINGS.md](../Line_Level_Money_Snapshot/PHASE0_FINDINGS.md), [ADR-060](../ADR/ADR-060-Line-Level-Commercial-Calculation.md). Added BF-21, BF-22. P0-09 coordination agreed (findings §4). The public allowlist freeze (P0-05) is carried into P3-06 with the BF-16 outcome |
 | P1 | Fix existing bugs (BF-01 … BF-22) | ✅ Done 2026-10-23 (code bugs) | BF-01/02/03/04/05/06/07/09/10/11/13/16/20/21/22 ✅. BF-08 shared path ✅ (full page retired in P6-02). BF-12/15/17/18 are closed by the new view (D35). BF-14 decided in P3 (shared rule source). BF-19 → Line-Level P5-03. New BF-23 (tenant from `tenants[0]` in 32 routes) is its own package |
-| P1B | One shared commercial calculator and Order Edit parity (EC-01 … EC-08) | Not started | Owner D25: mandatory. Must complete before P3-08 and P6-13 |
+| P1B | One shared commercial calculator and Order Edit parity (EC-01 … EC-08) | In progress | Owner D25: mandatory. Must complete before P3-08 and P6-13. ✅ P1B-01 (Line-Level P1-01), P1B-03 (Line-Level P4), P1B-14 Create part (Line-Level P5-03d), P1B-04/06/07/08/09 (Line-Level P6-01, 2026-10-28). Partly: P1B-12 (Edit parity DB proof), P1B-13 (WP08 pointer). Open: P1B-05, P1B-10, P1B-11, P1B-14 Edit part (Line-Level P6-02), P1B-15 |
 | P2 | Database (indexes / permission seed, if needed) | Not started | Stop and wait after each migration file |
 | P3 | Backend read model | Not started | |
 | P4 | APIs, endpoints, server actions, access contracts | Not started | |
@@ -17,7 +17,33 @@
 | P8 | Order Fin rules file, skill, Cursor rule | Not started | |
 | P9 | Documentation update | Not started | |
 
+## Remaining work (2026-10-30)
+
+The combined order and the full list live in [Line-Level STATUS → Remaining work](../Line_Level_Money_Snapshot/STATUS.md#remaining-work-consolidated-2026-10-24-re-checked-2026-10-30). For this plan:
+
+- **Phase 1B left:**
+  - P1B-14 Edit part → Line-Level P6-02.
+  - P1B-05 discount re-evaluation (D21).
+  - P1B-11 review disclosure (rule #15).
+  - P1B-15 loyalty reconciliation, then P1B-10 (D27, D24).
+  - P1B-12 rest of the parity suite (quote side).
+  - P1B-13 Open Decisions D21–D24 and Test Guide scenarios.
+- **Then:** P2 → P3 → P4 → P5 (owner mockup sign-off first) → P6 → P7 → P8 → P9, after Line-Level P6-02…P6-04.
+- **Own package (security):** BF-23 → [API_Route_Auth_Hardening](../../API_Route_Auth_Hardening/PLAN.md) (30 routes skip session validation and permission checks; the tenant itself is correct).
+
 ## Log
+
+- **2026-10-30 (remaining work, docs only):** added the "Remaining work" section above, matching the consolidated list in Line-Level STATUS. No code changed.
+
+- **2026-10-28 (P1B-04/06/07/08/09 done in Line-Level P6-01):** Edit preview and apply now price on the shared calculator. Details in [Line-Level STATUS](../Line_Level_Money_Snapshot/STATUS.md) (P6-01a–e).
+  - **P1B-04:** `commercial-edit.loader.ts` reads the order's recorded discounts, charges, tax lines and stored line prices.
+  - **P1B-06:** tax comes from the order's recorded tax lines and profile rows (D22). Orders from before the calculator are refused for money edits (`ORDER_NEEDS_RECOMPUTE`), as the owner approved.
+  - **P1B-07:** a new line uses the same price resolver as Create, on the edit date (L24).
+  - **P1B-08:** Preview, Apply and the stored rows all come from one calculated order. Apply replaces the discount, charge and tax rows (old ones voided or inactivated), and the rollup must equal the reviewed total.
+  - **P1B-09:** a header-only edit is not re-priced (EC-08).
+  - **Partly P1B-12:** `order-change-edit-parity.db.test.ts` proves Create parity and Preview = Apply = rollup on real PostgreSQL for 9 edit kinds. The quote route side follows in P1B-08's live-quote work.
+  - **Partly P1B-13:** the Order Edit V2 active index points here and WP08 is marked replaced; D21–D24 in the Open Decisions doc and the Test Guide scenarios are still to do.
+  - **Kept for later:** recorded discounts are re-applied as recorded (a percent again, a fixed amount kept). Re-evaluating them is P1B-05, with the review disclosure in P1B-11.
 
 - **2026-10-23 (exec-3): Phase 1 bug fixes (combined step 4).**
   - **BF-11 (root cause):** `buildEffectiveOrderFinancialSnapshot` treated a stored 0 as missing and recomputed it from rows. It now takes `snapshotWritten` (`financial_engine_version` set). A written snapshot is the authority, zeros included. Rows are used only for a snapshot the engine never wrote (remote DB: all 11 orders are written). The service's own `||` fallbacks and its duplicate refund classifiers were removed. The unwritten-snapshot overpaid fallback uses `computeOverpaidAmount` (subtracts change returned). A written zero taxable amount stays 0.

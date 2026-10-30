@@ -10,9 +10,14 @@ export const mockInitialCommit = jest.fn();
 /** Identity sentinel used to detect writes that escape the shared callback transaction. */
 export const mockTx = Object.freeze({
   boundary: 'submit-transaction',
-  $executeRaw: (...args: unknown[]) => mockInitialCommit(...args),
+  // The tax-document savepoint statements are not the commitment write.
+  $executeRaw: (...args: unknown[]) => (
+    (args[0] as TemplateStringsArray).join('').includes('SAVEPOINT') ? Promise.resolve(0) : mockInitialCommit(...args)
+  ),
 });
 /** Supplies server totals without duplicating the calculator's pricing tests. */
+/** D26: the calculated order's `result` (line unit prices) the submit compares against. */
+export const mockQuoteResult = jest.fn();
 export const mockCalculate = jest.fn();
 /** Observes canonical order creation while leaving orchestration decisions real. */
 export const mockCreate = jest.fn();
@@ -61,7 +66,15 @@ jest.mock('@/lib/db/tenant-context', () => ({
 jest.mock('@/lib/services/order-service', () => ({ OrderService: {
   createOrderInTransaction: (...args: unknown[]) => mockCreate(...args),
 } }));
-jest.mock('@/lib/services/order-calculation.service', () => ({ calculateOrderTotals: (...args: unknown[]) => mockCalculate(...args) }));
+// P5-02: submit prices through the checkout quote; `mockCalculate` supplies its legacy-shaped totals.
+// `quote.result` is supplied by `mockQuoteResult` (D26 reads its line unit prices); the rest of
+// `quote` is opaque because `createOrderInTransaction` (which reads it) is mocked.
+jest.mock('@/lib/services/commercial/commercial-checkout.service', () => ({
+  quoteCheckout: async (...args: unknown[]) => ({
+    totals: await mockCalculate(...args), quote: { result: mockQuoteResult() }, intent: {}, adjustmentMeta: new Map(),
+    promotionId: null, promoNotice: null,
+  }),
+}));
 jest.mock('@/lib/services/ar-invoice.service', () => ({ createArInvoiceFromOrders: (...args: unknown[]) => mockInvoice(...args) }));
 jest.mock('@/lib/services/discount-service', () => ({ applyPromoCodeTx: (...args: unknown[]) => mockPromo(...args) }));
 jest.mock('@/lib/services/order-credit-application.service', () => ({ applyStoredValueDebitTx: (...args: unknown[]) => mockDebit(...args) }));

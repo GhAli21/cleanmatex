@@ -15,8 +15,12 @@ import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 interface OrderSummaryBottomSheetProps {
   /** Item count */
   itemCount: number;
-  /** Total amount */
-  total: number;
+  /**
+   * The server-quoted total of the current cart (P5-03); null when there is
+   * none to show (Order Edit, or the cart is being priced), so no unverified
+   * figure is ever labelled Total (BF-19).
+   */
+  total: number | null;
   /** Currency code */
   currencyCode?: string;
   /** Whether sheet is open */
@@ -140,12 +144,14 @@ export function OrderSummaryBottomSheet({
               />
             </button>
             <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className={`text-sm ${isRTL ? 'text-left' : 'text-right'}`}>
-                <p className="text-xs text-gray-500">{t('total')}</p>
-                <p className="font-bold text-gray-900">
-                  {fmtTotal(total)}
-                </p>
-              </div>
+              {total != null ? (
+                <div className={`text-sm ${isRTL ? 'text-left' : 'text-right'}`}>
+                  <p className="text-xs text-gray-500">{t('total')}</p>
+                  <p className="font-bold text-gray-900">
+                    {fmtTotal(total)}
+                  </p>
+                </div>
+              ) : null}
               <button
                 type="button"
                 onClick={onPrimaryAction}

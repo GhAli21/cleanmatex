@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 export const OrderStatusEnum = z.enum([
   'draft',
@@ -166,86 +165,7 @@ export const OrderHistoryEntrySchema = z.object({
 });
 
 // PRD-010: API Request Schemas
-export const CreateOrderPieceDataSchema = z.object({
-  pieceSeq: z.number().positive(),
-  color: z.string().optional(),
-  colorCodes: z.array(z.string()).optional(),
-  colorCfIds: z.array(z.union([z.string().uuid(), z.null()])).optional(),
-  brand: z.string().optional(),
-  hasStain: z.boolean().optional(),
-  hasDamage: z.boolean().optional(),
-  notes: z.string().optional(),
-  rackLocation: z.string().optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
-  conditions: z.array(z.string()).optional(),
-  packingPrefCode: z.string().optional(),
-  packingCfId: z.string().uuid().optional().nullable(),
-  servicePrefs: z.array(z.object({
-    preference_code: z.string(),
-    source: z.string().optional(),
-    extra_price: z.number().optional(),
-    preferenceCfId: z.string().uuid().optional().nullable(),
-  })).optional(),
-});
-
-const CreateOrderTotalsSchema = z.object({
-  subtotal: z.number().min(0),
-  discount: z.number().min(0).optional(),
-  tax: z.number().min(0).optional(),
-  total: z.number().min(0),
-  vatRate: z.number().min(0).max(100).optional(),
-  vatAmount: z.number().min(0).optional(),
-}).optional();
-
-export const CreateOrderRequestSchema = z.object({
-  customerId: z.string(),//.uuid(),
-  branchId: zUuidIfEnabled().optional(),
-  orderTypeId: z.string(),
-  items: z.array(z.object({
-    productId: z.string().uuid(),
-    quantity: z.number().positive(),
-    pricePerUnit: z.number().nonnegative(),
-    totalPrice: z.number().nonnegative(),
-    serviceCategoryCode: z.string().optional(),
-    notes: z.string().optional(),
-    hasStain: z.boolean().optional(),
-    hasDamage: z.boolean().optional(),
-    stainNotes: z.string().optional(),
-    damageNotes: z.string().optional(),
-    packingPrefCode: z.string().optional(),
-    packingCfId: z.string().uuid().optional().nullable(),
-    servicePrefs: z.array(z.object({
-      preference_code: z.string(),
-      source: z.string().optional(),
-      extra_price: z.number().optional(),
-      preferenceCfId: z.string().uuid().optional().nullable(),
-    })).optional(),
-    pieces: z.array(CreateOrderPieceDataSchema).optional(), // Optional piece-level data for order items
-  })),
-  isQuickDrop: z.boolean().optional(),
-  quickDropQuantity: z.number().positive().optional(),
-  priority: z.enum(['normal', 'urgent', 'express']).optional(),
-  express: z.boolean().optional(),
-  customerNotes: z.string().optional(),
-  internalNotes: z.string().optional(),
-  paymentMethod: z.string().optional(),
-  readyByAt: z.string().datetime().optional(), // ISO datetime string for ready-by date
-  totals: CreateOrderTotalsSchema.optional(),
-  discountRate: z.number().min(0).max(100).optional(),
-  discountType: z.string().optional(),
-  promoCodeId: z.string().uuid().optional(),
-  giftCardId: z.string().uuid().optional(),
-  promoDiscountAmount: z.number().min(0).optional(),
-  giftCardDiscountAmount: z.number().min(0).optional(),
-  paymentTypeCode: z.string().optional(),
-  currencyCode: z.string().length(3).optional(),
-  currencyExRate: z.number().min(0).optional(),
-  orderSourceCode: z.string().min(1).max(64).optional(),
-  physicalIntakeStatus: z.enum(['pending_dropoff', 'received', 'not_applicable']).optional(),
-  physicalIntakeInfo: z.string().max(8000).optional().nullable(),
-  receivedInfo: z.string().max(8000).optional().nullable(),
-});
-
+// Order create requests are validated by the submit-order schema (new-order-payment-schemas.ts).
 export const TransitionOrderRequestSchema = z.object({
   toStatus: z.string(),
   notes: z.string().max(1000).optional(),
@@ -336,10 +256,6 @@ export type ProcessingStep = z.infer<typeof ProcessingStepSchema>;
  *
  */
 export type OrderHistoryEntry = z.infer<typeof OrderHistoryEntrySchema>;
-/**
- *
- */
-export type CreateOrderRequest = z.infer<typeof CreateOrderRequestSchema>;
 /**
  *
  */

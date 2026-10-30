@@ -35,12 +35,14 @@ import {
 } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { OrderItemServicePref } from '@features/orders/model/new-order-types';
+import type { CheckoutLineIntentFields } from '@/lib/types/payment-quote';
 import type { PaymentServerGuard } from '@features/orders/hooks/use-order-submission';
 import {
   PAYMENT_MODAL_MODE,
   type PaymentModalMode,
 } from './payment-modal-v4.utils';
 import { PaymentFullView } from './payment-full-view';
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import {
   PaymentCurrencyConfigGate,
 } from '@features/orders/payment/primitives/payment-currency-config-gate';
@@ -58,16 +60,17 @@ interface PaymentModalProps {
   total: number;
   /** Order amount for checkout-options eligibility; defaults to preview saleTotal when loaded. */
   checkoutAmount?: number;
-  items: {
+  items: (CheckoutLineIntentFields & {
     productId: string;
     quantity: number;
     priceOverride?: number | null;
     servicePrefCharge?: number;
     packingPrefCharge?: number;
-  }[];
+  })[];
   /** B18 — order-level preferences threaded into the totals preview so the modal total includes their charge. */
   orderServicePrefs?: OrderItemServicePref[];
-  isExpress?: boolean;
+  /** The order speed code (`sys_service_speed_cd`). */
+  serviceSpeed?: string;
   tenantOrgId: string;
   customerId?: string;
   customerType?: string;
@@ -103,7 +106,7 @@ interface PaymentModalProps {
  * @param root0.onSubmit Persists the validated payment payload.
  * @param root0.total Trusted order total from the order workspace.
  * @param root0.items Order items used for cashier-facing payment context.
- * @param root0.isExpress Marks whether the order is an express order.
+ * @param root0.serviceSpeed The order speed code.
  * @param root0.tenantOrgId Tenant scope required by payment preview lookups.
  * @param root0.customerId Customer identifier for credit, wallet, and gift-card context.
  * @param root0.customerType Customer account type for B2B and AR rules.
@@ -129,7 +132,7 @@ export function PaymentModalV4({
   checkoutAmount,
   items,
   orderServicePrefs,
-  isExpress = false,
+  serviceSpeed = SERVICE_SPEEDS.STANDARD,
   tenantOrgId,
   customerId,
   customerType,
@@ -199,7 +202,7 @@ export function PaymentModalV4({
     items,
     branchId: branchId || undefined,
     customerId: customerId || undefined,
-    isExpress,
+    serviceSpeed,
     percentDiscount: 0,
     amountDiscount: 0,
     serviceCategories: serviceCategories?.length ? serviceCategories : undefined,
@@ -297,7 +300,7 @@ export function PaymentModalV4({
       orderServicePrefs={orderServicePrefs}
       total={total}
       checkoutAmount={checkoutAmount}
-      isExpress={isExpress}
+      serviceSpeed={serviceSpeed}
       tenantOrgId={tenantOrgId}
       customerId={customerId}
       customerType={customerType}

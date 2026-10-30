@@ -20,5 +20,6 @@
     "customerLimitExceeded": "لقد وصلت إلى الحد الأقصى لاستخدام هذا الكود",
     "validationFailed": "فشل التحقق من كود الخصم"
   },
-  "success": "تم تطبيق كود الخصم! وفرت {currencyCode} {amount}"
+  "success": "تم تطبيق كود الخصم! وفرت {currencyCode} {amount}",
+  "notAppliedRuleWins": "لم يُطبَّق رمز الترويج {code}: الخصم التلقائي \"{rule}\" أكبر ولا يمكن جمعه مع رموز الترويج."
 }

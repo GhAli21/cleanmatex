@@ -1,0 +1,13 @@
+{
+  "discountAction": "خصم السطر",
+  "discountActionFor": "خصم السطر لـ {item}",
+  "show": "عرض تفاصيل سعر {item}",
+  "hide": "إخفاء تفاصيل سعر {item}",
+  "gross": "سعر السطر",
+  "priceListDiscount": "خصم قائمة الأسعار",
+  "lineDiscount": "خصم السطر",
+  "orderDiscountShare": "حصة خصم الطلب",
+  "net": "بعد الخصومات",
+  "tax": "الضريبة",
+  "lineTotal": "إجمالي السطر"
+}

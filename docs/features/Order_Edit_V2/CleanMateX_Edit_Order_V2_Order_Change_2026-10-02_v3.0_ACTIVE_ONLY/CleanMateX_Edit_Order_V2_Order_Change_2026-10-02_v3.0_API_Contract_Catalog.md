@@ -202,7 +202,7 @@ Same intent as Preview plus required `reviewProof` and `calculationFingerprint`.
 4. verify commitment/access/permission/capabilities/proofs and the canonical locked-before snapshot digest;
 5. recompute projection and money;
 6. reject stale reviewed result rather than silently applying a new amount;
-7. resolve Edit Policy through `sys_wf_resolve_edit_policy` using the locked order's stamped profile/version/status and require the reviewed policy identity/revision immediately before mutation;
+7. resolve Edit Policy through `sys_oc_resolve_edit_policy` using the locked order's stamped profile/version/status and require the reviewed policy identity/revision immediately before mutation;
 8. persist stable mutations and financial snapshot, build canonical stored-after snapshots and reject any digest mismatch;
 9. persist Change + ops using those same before/after objects;
 10. increment edit version once;

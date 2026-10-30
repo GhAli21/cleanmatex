@@ -3,6 +3,7 @@
  * PRD-010: Advanced Order Management
  */
 
+import type { DiscountCalcType } from '@/lib/constants/discount-source-type';
 import type { OrderSourceCode } from '@/lib/constants/order-sources';
 import type { OrderTypeId } from '@/lib/constants/order-types';
 
@@ -123,6 +124,24 @@ export interface PreSubmissionPiece {
 // ==================================================================
 
 /**
+ * A custom item (P5-03e): a cart line with no catalog product. Its `productId`
+ * is only a cart key (`custom:<uuid>`), never sent; the server prices the
+ * entered unit price as MANUAL.
+ */
+export interface OrderItemCustom {
+  name: string;
+  name2: string | null;
+  unitPrice: number;
+}
+
+/** A cashier discount on one line (P5-03c): a percent (0 < rate <= 100) or an amount, with its reason. */
+export interface OrderItemLineDiscount {
+  type: DiscountCalcType;
+  value: number;
+  reason: string;
+}
+
+/**
  * Order Item
  */
 export interface OrderItem {
@@ -150,6 +169,15 @@ export interface OrderItem {
   overrideBy?: string | null;
   /** Cart only: the unit price under an active override, restored when the override is cleared (PF-21). Never submitted. */
   pricePerUnitBeforeOverride?: number;
+  /**
+   * This line's own speed (`sys_service_speed_cd.code`); null or absent
+   * follows the order speed (PLAN §5.4, P5-03b). The server prices it.
+   */
+  serviceSpeed?: string | null;
+  /** A cashier discount on this line (P5-03c); the server prices it and needs `orders:discount`. */
+  lineDiscount?: OrderItemLineDiscount | null;
+  /** Set for a custom item (no catalog product, P5-03e). */
+  customItem?: OrderItemCustom | null;
   /** Service preferences (starch, perfume, delicate, etc.) */
   servicePrefs?: OrderItemServicePref[];
   /** Packing preference (hang, fold, box, etc.) */
@@ -232,7 +260,11 @@ export interface NewOrderState {
   orderSourceCode: OrderSourceCode;
   isQuickDrop: boolean;
   quickDropQuantity: number;
-  express: boolean;
+  /**
+   * The order speed, a `sys_service_speed_cd.code` (PLAN §5.4, P5-03b). New
+   * lines follow it; a line can override it (`OrderItem.serviceSpeed`).
+   */
+  serviceSpeed: string;
   /** Internal staff notes (org_orders_mst.internal_notes) */
   notes: string;
   readyByAt: string;
@@ -324,7 +356,10 @@ export type NewOrderAction =
   | { type: 'UPDATE_ITEM_PRICE_OVERRIDE'; payload: { productId: string; priceOverride: number | null; overrideReason: string; overrideBy: string } }
   | { type: 'SET_QUICK_DROP'; payload: boolean }
   | { type: 'SET_QUICK_DROP_QUANTITY'; payload: number }
-  | { type: 'SET_EXPRESS'; payload: boolean }
+  | { type: 'SET_SERVICE_SPEED'; payload: string }
+  | { type: 'SET_ITEM_SERVICE_SPEED'; payload: { productId: string; serviceSpeed: string | null } }
+  | { type: 'APPLY_SPEED_TO_ALL_LINES' }
+  | { type: 'SET_ITEM_LINE_DISCOUNT'; payload: { productId: string; lineDiscount: OrderItemLineDiscount | null } }
   | { type: 'SET_BAGS'; payload: number }
   | { type: 'SET_NOTES'; payload: string }
   | { type: 'SET_CUSTOMER_NOTES'; payload: string }
@@ -356,7 +391,7 @@ export type NewOrderAction =
         customerEmail: string;
         branchId: string | null;
         items: OrderItem[];
-        express: boolean;
+        serviceSpeed: string;
         notes: string;
         customerNotes: string;
         paymentNotes: string;

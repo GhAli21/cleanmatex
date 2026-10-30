@@ -22,6 +22,16 @@ agents:
 - `supabase/` is the shared schema and migration authority
 - `docs/plan/` is the approved planning authority
 
+## Performance engineering
+
+Apply the [shared performance rules](../../../docs/dev/rules/performance-engineering.md) for changes affecting latency, throughput or resource use.
+
+- Revalidate current contracts and prerequisites before implementing an older plan; trace the affected UI-to-provider path and its dependency graph without auditing unrelated modules.
+- Keep policy ownership and module boundaries explicit. Separate loading verified facts from pure policy/math evaluation and reuse one business algorithm across preview and submit.
+- Define complete cache identity, freshness, invalidation, failure behavior and owner before reuse across requests. Cached display data, token hints and retained queries are not current financial or permission authority.
+- Preserve tenant isolation, shared auth/session checks, money invariants, idempotency and reviewed transaction/lock order when changing orchestration.
+- Use proportional baseline, correctness and runtime evidence. Count transport calls separately from executed work; do not claim readiness or latency targets from visibility, static checks or an unmeasured design.
+
 ## Data Access Guidance
 
 - client-side realtime/auth flows commonly use Supabase clients

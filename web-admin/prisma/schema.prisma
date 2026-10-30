@@ -3167,6 +3167,7 @@ model sys_tenant_settings_cd {
   stng_ui_group               String?
   stng_display_order          Int?
   stng_edit_policy            String                        @default("FREELY_EDITABLE")
+  stng_disabled_value_jsonb   Json?
   sys_stng_profile_values_dtl sys_stng_profile_values_dtl[]
   sys_stng_categories_cd      sys_stng_categories_cd?       @relation(fields: [stng_category_code], references: [stng_category_code], onDelete: NoAction, onUpdate: NoAction)
 
@@ -14957,24 +14958,25 @@ model sys_wf_profile_ver_mst {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_wf_profiles_cd {
-  profile_id                String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile_code              String                      @unique(map: "uq_sys_wf_profiles_code")
-  name                      String
-  name2                     String?
-  description               String?
-  description2              String?
-  is_system                 Boolean                     @default(false)
-  is_active                 Boolean                     @default(true)
-  display_order             Int                         @default(0)
-  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
-  created_by                String?                     @db.Uuid
-  updated_at                DateTime?                   @db.Timestamptz(6)
-  updated_by                String?                     @db.Uuid
-  rec_status                Int                         @default(1) @db.SmallInt
-  rec_notes                 String?
-  org_oc_edit_policy_asg_cf org_oc_edit_policy_asg_cf[]
-  org_wf_profile_assign_cf  org_wf_profile_assign_cf[]
-  sys_wf_profile_ver_mst    sys_wf_profile_ver_mst[]
+  profile_id                        String                              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_code                      String                              @unique(map: "uq_sys_wf_profiles_code")
+  name                              String
+  name2                             String?
+  description                       String?
+  description2                      String?
+  is_system                         Boolean                             @default(false)
+  is_active                         Boolean                             @default(true)
+  display_order                     Int                                 @default(0)
+  created_at                        DateTime                            @default(now()) @db.Timestamptz(6)
+  created_by                        String?                             @db.Uuid
+  updated_at                        DateTime?                           @db.Timestamptz(6)
+  updated_by                        String?                             @db.Uuid
+  rec_status                        Int                                 @default(1) @db.SmallInt
+  rec_notes                         String?
+  org_oc_edit_policy_asg_cf         org_oc_edit_policy_asg_cf[]
+  org_wf_profile_assign_cf          org_wf_profile_assign_cf[]
+  sys_oc_edit_policy_profile_def_cf sys_oc_edit_policy_profile_def_cf[]
+  sys_wf_profile_ver_mst            sys_wf_profile_ver_mst[]
 
   @@schema("public")
 }
@@ -16128,6 +16130,7 @@ model sys_ops_job_cf {
   rec_status          Int                   @default(1) @db.SmallInt
   rec_order           Int?
   rec_notes           String?
+  restore_command     String?
   sys_ops_job_run_dtl sys_ops_job_run_dtl[]
 
   @@index([module, category], map: "idx_sys_ops_job_cf_mod_cat")
@@ -16544,37 +16547,38 @@ model sys_oc_edit_policy_def_cf {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_oc_edit_policy_mst {
-  id                                                         String                        @id(map: "pk_oc_edit_policy") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workflow_profile_version_id                                String?                       @db.Uuid
-  policy_code                                                String                        @unique(map: "uq_oc_edit_policy_code")
+  id                                                         String                              @id(map: "pk_oc_edit_policy") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workflow_profile_version_id                                String?                             @db.Uuid
+  policy_code                                                String                              @unique(map: "uq_oc_edit_policy_code")
   name                                                       String
   name2                                                      String
   description                                                String?
   description2                                               String?
-  lifecycle_status                                           String                        @default("DRAFT")
-  policy_revision                                            Int                           @default(1)
-  pilot_started_at                                           DateTime?                     @db.Timestamptz(6)
-  pilot_started_by                                           String?                       @db.Uuid
-  published_at                                               DateTime?                     @db.Timestamptz(6)
-  published_by                                               String?                       @db.Uuid
-  retired_at                                                 DateTime?                     @db.Timestamptz(6)
-  retired_by                                                 String?                       @db.Uuid
-  created_at                                                 DateTime                      @default(now()) @db.Timestamptz(6)
-  created_by                                                 String?                       @db.Uuid
+  lifecycle_status                                           String                              @default("DRAFT")
+  policy_revision                                            Int                                 @default(1)
+  pilot_started_at                                           DateTime?                           @db.Timestamptz(6)
+  pilot_started_by                                           String?                             @db.Uuid
+  published_at                                               DateTime?                           @db.Timestamptz(6)
+  published_by                                               String?                             @db.Uuid
+  retired_at                                                 DateTime?                           @db.Timestamptz(6)
+  retired_by                                                 String?                             @db.Uuid
+  created_at                                                 DateTime                            @default(now()) @db.Timestamptz(6)
+  created_by                                                 String?                             @db.Uuid
   created_info                                               String?
-  updated_at                                                 DateTime?                     @db.Timestamptz(6)
-  updated_by                                                 String?                       @db.Uuid
+  updated_at                                                 DateTime?                           @db.Timestamptz(6)
+  updated_by                                                 String?                             @db.Uuid
   updated_info                                               String?
-  rec_status                                                 Int                           @default(1) @db.SmallInt
+  rec_status                                                 Int                                 @default(1) @db.SmallInt
   rec_order                                                  Int?
   rec_notes                                                  String?
-  is_active                                                  Boolean                       @default(true)
+  is_active                                                  Boolean                             @default(true)
   org_oc_edit_policy_asg_cf                                  org_oc_edit_policy_asg_cf[]
   sys_oc_edit_policy_def_cf                                  sys_oc_edit_policy_def_cf[]
-  hq_users_sys_oc_edit_policy_mst_pilot_started_byTohq_users hq_users?                     @relation("sys_oc_edit_policy_mst_pilot_started_byTohq_users", fields: [pilot_started_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_oc_edit_pol_pilot_by")
-  sys_wf_profile_ver_mst                                     sys_wf_profile_ver_mst?       @relation(fields: [workflow_profile_version_id], references: [version_id], onDelete: Restrict, onUpdate: Restrict, map: "fk_oc_edit_pol_profile")
-  hq_users_sys_oc_edit_policy_mst_published_byTohq_users     hq_users?                     @relation("sys_oc_edit_policy_mst_published_byTohq_users", fields: [published_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_oc_edit_pol_pub_by")
-  hq_users_sys_oc_edit_policy_mst_retired_byTohq_users       hq_users?                     @relation("sys_oc_edit_policy_mst_retired_byTohq_users", fields: [retired_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_oc_edit_pol_ret_by")
+  hq_users_sys_oc_edit_policy_mst_pilot_started_byTohq_users hq_users?                           @relation("sys_oc_edit_policy_mst_pilot_started_byTohq_users", fields: [pilot_started_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_oc_edit_pol_pilot_by")
+  sys_wf_profile_ver_mst                                     sys_wf_profile_ver_mst?             @relation(fields: [workflow_profile_version_id], references: [version_id], onDelete: Restrict, onUpdate: Restrict, map: "fk_oc_edit_pol_profile")
+  hq_users_sys_oc_edit_policy_mst_published_byTohq_users     hq_users?                           @relation("sys_oc_edit_policy_mst_published_byTohq_users", fields: [published_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_oc_edit_pol_pub_by")
+  hq_users_sys_oc_edit_policy_mst_retired_byTohq_users       hq_users?                           @relation("sys_oc_edit_policy_mst_retired_byTohq_users", fields: [retired_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_oc_edit_pol_ret_by")
+  sys_oc_edit_policy_profile_def_cf                          sys_oc_edit_policy_profile_def_cf[]
   sys_oc_edit_policy_rule_dtl                                sys_oc_edit_policy_rule_dtl[]
 
   @@schema("public")
@@ -16705,6 +16709,7 @@ model sys_tax_category_cd {
   org_order_items_dtl       org_order_items_dtl[]
   org_product_data_mst      org_product_data_mst[]
   org_tax_doc_items_dtl     org_tax_doc_items_dtl[]
+  sys_tax_exempt_reason_cd  sys_tax_exempt_reason_cd[]
 
   @@index([is_active, display_order], map: "idx_tax_category_active")
   @@schema("public")
@@ -16755,21 +16760,24 @@ model org_speed_price_rules_cf {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_tax_exempt_reason_cd {
-  id             String         @id(map: "pk_sys_tax_exempt_reason") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  country        String
-  code           String
-  name           String
-  name2          String?
-  description    String?
-  description2   String?
-  display_order  Int            @default(0)
-  is_active      Boolean        @default(true)
-  rec_status     Int            @default(1) @db.SmallInt
-  created_at     DateTime       @default(now()) @db.Timestamptz(6)
-  created_by     String?        @db.Uuid
-  updated_at     DateTime?      @db.Timestamptz(6)
-  updated_by     String?        @db.Uuid
-  sys_country_cd sys_country_cd @relation(fields: [country], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_sys_tax_exempt_reason_country")
+  id                  String              @id(map: "pk_sys_tax_exempt_reason") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  country             String
+  code                String
+  name                String
+  name2               String?
+  description         String?
+  description2        String?
+  display_order       Int                 @default(0)
+  is_active           Boolean             @default(true)
+  rec_status          Int                 @default(1) @db.SmallInt
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  created_by          String?             @db.Uuid
+  updated_at          DateTime?           @db.Timestamptz(6)
+  updated_by          String?             @db.Uuid
+  tax_category_code   String
+  allows_free_text    Boolean             @default(false)
+  sys_tax_category_cd sys_tax_category_cd @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_sys_tax_exempt_reason_cat")
+  sys_country_cd      sys_country_cd      @relation(fields: [country], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_sys_tax_exempt_reason_country")
 
   @@unique([country, code], map: "uq_sys_tax_exempt_reason_country_code")
   @@index([country, is_active], map: "idx_sys_tax_exempt_reason_country")
@@ -16808,6 +16816,28 @@ model org_tax_doc_items_dtl {
   @@unique([tax_document_id, line_no], map: "uq_otdi_document_line")
   @@index([tenant_org_id, tax_document_id, line_no], map: "idx_otdi_document")
   @@index([tenant_org_id, order_item_id], map: "idx_otdi_order_item")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_oc_edit_policy_profile_def_cf {
+  id                     String                 @id(map: "pk_oc_edit_profile_def") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workflow_profile_id    String                 @db.Uuid
+  edit_policy_id         String                 @db.Uuid
+  created_at             DateTime               @default(now()) @db.Timestamptz(6)
+  created_by             String?                @db.Uuid
+  created_info           String?
+  updated_at             DateTime?              @db.Timestamptz(6)
+  updated_by             String?                @db.Uuid
+  updated_info           String?
+  rec_status             Int                    @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean                @default(true)
+  sys_oc_edit_policy_mst sys_oc_edit_policy_mst @relation(fields: [edit_policy_id], references: [id], onUpdate: Restrict, map: "fk_oc_edit_profile_def_pol")
+  sys_wf_profiles_cd     sys_wf_profiles_cd     @relation(fields: [workflow_profile_id], references: [profile_id], onUpdate: Restrict, map: "fk_oc_edit_profile_def_profile")
+
   @@schema("public")
 }
 

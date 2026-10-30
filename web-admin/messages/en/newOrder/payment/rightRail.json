@@ -57,5 +57,6 @@
     "paymentAmountTitle": "Enter a Pay-Now Amount",
     "remainingPolicyTitle": "Choose a Balance Policy",
     "genericTitle": "Review Required"
-  }
+  },
+  "discountsLocked": "You need the Order discount permission (orders:discount) to give an order discount. Ask a manager."
 }

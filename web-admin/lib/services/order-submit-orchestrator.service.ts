@@ -14,13 +14,19 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { OrderService } from '@/lib/services/order-service';
-import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
+import { quoteCheckout } from '@/lib/services/commercial/commercial-checkout.service';
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
+import { findPriceChanges, PriceChangedError } from '@/lib/services/commercial/price-confirmation';
 import { createArInvoiceFromOrders } from '@/lib/services/ar-invoice.service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { applyStoredValueDebitTx } from '@/lib/services/order-credit-application.service';
 import { settleOrderTx } from '@/lib/services/order-settlement.service';
-import { maybeIssueTaxDocumentTx } from '@/lib/services/tax-document-issuance.service';
-import { TAX_DOCUMENT_TRIGGER_EVENTS } from '@/lib/constants/order-financial';
+import {
+  checkoutBreakdown,
+  checkoutCreateTotals,
+  commitInitialOrderTx,
+  issueSubmitTaxDocumentTx,
+} from '@/lib/services/order-create-from-checkout.service';
 import { checkCreditLimit, assertCreditWithinPolicy } from '@/lib/services/credit-limit.service';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
@@ -48,14 +54,12 @@ import { POS_SESSION_STATUS, POS_SESSION_SURFACE } from '@/lib/constants/pos-ses
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
 import {
-  TAX_TYPES,
   CREDIT_APPLICATION_TYPES,
   PAYMENT_NATURE,
   STORED_VALUE_SUB_IDEMPOTENCY_CODE,
 } from '@/lib/constants/order-financial';
 import type { CreditApplicationType } from '@/lib/constants/order-financial';
 import { LINE_ROLE, LINE_TYPE, VOUCHER_TYPE } from '@/lib/constants/voucher';
-import { logger } from '@/lib/utils/logger';
 import { sumMoney } from '@/lib/utils/money';
 import { Decimal } from '@prisma/client/runtime/library';
 import type { AmountMismatchDifferences, PaymentMethodCode } from '@/lib/types/payment';
@@ -65,10 +69,7 @@ import type {
   SubmitOrderRequest,
 } from '@/lib/validations/new-order-payment-schemas';
 import type {
-  FinancialBreakdownSnapshot,
   ResolvedSettlementLeg,
-  TaxLineItem,
-  DiscountLineInput as FinancialDiscountLineInput,
   SettlementOption,
 } from '@/lib/types/order-financial';
 import type { PostAndWireResult } from '@/lib/types/voucher-wiring';
@@ -79,7 +80,7 @@ import {
   type PlannedCashChangeRounding,
 } from '@/lib/services/cash-change-rounding.service';
 import type { RequestAuditContext } from '@/lib/utils/request-audit';
-import { assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
+import { assertOrderDiscountAllowed, assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
 
 const TOLERANCE = 0.001;
 
@@ -258,6 +259,7 @@ export async function resolveOrderBranch(
  * @param params Submission context containing tenant scope, actor identity, input payload, and request audit data.
  * @returns SubmitOrderResult containing order snapshot, optional voucher summary,
  *          linked BVM effects, and non-fatal warnings (e.g. GATEWAY_PAYMENT_PROCESSING).
+ * @throws PriceChangedError ('PRICE_CHANGED')    — a unit price the cart showed changed (D26); carries the lines.
  * @throws Error('AMOUNT_MISMATCH')               — server totals differ from client totals.
  * @throws Error('PRODUCT_NOT_FOUND')             — a line item product does not exist for this tenant.
  * @throws Error('B2B_CREDIT_HOLD')               — customer has a credit hold; order blocked.
@@ -292,21 +294,19 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   // An override needs `pricing:override` and a reason; otherwise the request is
   // rejected before any pricing. Throws PriceOverrideError (route → 403 / 400).
   await assertPriceOverridesAllowed(input.items, { requireReason: true });
+  // Owner decision 2026-10-28: an order manual discount needs `orders:discount` (403).
+  await assertOrderDiscountAllowed(input);
 
   // ── 1. Server-side totals ────────────────────────────────────────────────────
-  const serverTotals = await calculateOrderTotals({
+  // P5-02: the same checkout quote the payment modal showed (loader → calculator).
+  // Client prices, preference amounts and line totals are ignored; the codes are priced here.
+  const checkout = await quoteCheckout({
     tenantId,
     branchId,
     userId,
-    items: input.items.map((i) => ({
-      productId:        i.productId,
-      quantity:         i.quantity,
-      priceOverride:    i.priceOverride ?? null,
-      servicePrefCharge: i.servicePrefCharge ?? 0,
-      packingPrefCharge: i.packingPrefCharge ?? 0,
-    })),
+    items: input.items,
     customerId:          input.customerId,
-    isExpress:           input.express ?? false,
+    serviceSpeed:        input.serviceSpeed,
     percentDiscount:     input.percentDiscount ?? 0,
     amountDiscount:      input.amountDiscount ?? 0,
     promoCode:           input.promoCode,
@@ -316,11 +316,15 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     giftCardId:          input.giftCardId,
     serviceCategories:   Array.from(new Set(input.items.map((item) => item.serviceCategoryCode).filter(Boolean))),
     taxProfileIds:       input.taxProfileIds,
-    orderCharges: (input.orderServicePrefs ?? []).map((p) => ({
-      label: p.preference_code,
-      amount: p.extra_price,
-    })),
+    orderServicePrefs:   input.orderServicePrefs,
+    readyByAt:           input.readyByAt ?? null,
   });
+  // D26: a unit price the cart showed that no longer holds rejects the submit with
+  // the changed lines, before the totals guard and before anything is written.
+  const priceChanges = findPriceChanges(input.items, checkout);
+  if (priceChanges.length > 0) throw new PriceChangedError(priceChanges);
+
+  const serverTotals = checkout.totals;
   const clientSaleTotal = clientTotals.saleTotal;
   const serverSaleTotal = serverTotals.saleTotal;
 
@@ -601,12 +605,15 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     orderTypeId:  input.orderTypeId,
     items: input.items.map((i) => ({
       ...i,
-      productName:  i.productName ?? null,
-      productName2: i.productName2 ?? null,
+      // P5-03e: a custom item has no product; its entered name is the line name.
+      productId:    i.customItem ? null : i.productId,
+      productName:  i.customItem?.name ?? i.productName ?? null,
+      productName2: i.customItem ? i.customItem.name2 ?? null : i.productName2 ?? null,
     })),
     isQuickDrop:       input.isQuickDrop,
     quickDropQuantity: input.quickDropQuantity,
-    express:           input.express,
+    // Legacy `priority_multiplier` only; `service_speed` on the order and lines comes from the quote.
+    express:           (input.serviceSpeed ?? SERVICE_SPEEDS.STANDARD) !== SERVICE_SPEEDS.STANDARD,
     customerNotes:     input.customerNotes,
     paymentNotes:      input.paymentNotes,
     readyByAt:         input.readyByAt,
@@ -614,21 +621,10 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     idempotencyKey:    input.idempotencyKey,
     /** B18 — order-level preferences; written as prefs_level=ORDER rows + PREFERENCE charge facts. */
     orderServicePrefs: input.orderServicePrefs,
-    totals: {
-      subtotal:  serverTotals.subtotal,
-      discount:  serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
-      tax:       serverTotals.additionalTaxAmount ?? 0,
-      total:     serverSaleTotal,
-      vatRate:   serverTotals.vatTaxPercent,
-      vatAmount: serverTotals.vatValue,
-      // Only a single CUSTOM profile line maps to one unambiguous rate; with
-      // none (or several stacked) there is no single rate to report.
-      taxRate:   serverTotals.taxBreakdown.filter((line) => line.taxType === TAX_TYPES.CUSTOM).length === 1
-        ? serverTotals.taxBreakdown.find((line) => line.taxType === TAX_TYPES.CUSTOM)?.rate
-        : undefined,
-      roundingAdjustment: serverTotals.roundingAdjustmentAmount,
-      chargesTotal: serverTotals.chargesTotal,
-    },
+    /** P5-02 — line money, discount, charge and tax rows come from this quote. */
+    commercial:        checkout,
+    // The quote's header totals, shared with every quoted create path.
+    totals:            checkoutCreateTotals(checkout),
     discountRate:           input.percentDiscount ?? 0,
     promoCodeId:            input.promoCodeId,
     giftCardId:             input.giftCardId,
@@ -686,55 +682,13 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     effectiveOutstandingPolicy === 'CREDIT_INVOICE'
     && correctedOutstanding > TOLERANCE;
 
-  const discountTotal = serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount;
-  // No tax profile configured: the TENANT_VAT_RATE fallback is the only tax
-  // line possible here — `additionalTaxAmount` is derived from CUSTOM *profile*
-  // lines, which by definition do not exist when taxBreakdown is empty.
-  const taxLines: TaxLineItem[] = serverTotals.taxBreakdown.length > 0
-    ? serverTotals.taxBreakdown
-    : serverTotals.vatValue > 0
-      ? [{
-          taxType:    TAX_TYPES.VAT,
-          label:      'VAT',
-          label2:     'ضريبة القيمة المضافة',
-          rate:       serverTotals.vatTaxPercent,
-          isCompound: false,
-          baseAmount: serverTotals.afterDiscounts,
-          taxAmount:  serverTotals.vatValue,
-        }]
-      : [];
-  const taxTotal = taxLines.reduce((sum, line) => sum + line.taxAmount, 0);
-
-  const breakdown: FinancialBreakdownSnapshot = {
-    subtotal:         serverTotals.subtotal,
-    chargesTotal:     0,
-    grossTotal:       serverTotals.subtotal,
-    discountTotal,
-    netBeforeTax:     serverTotals.afterDiscounts,
-    taxBreakdown:     taxLines,
-    taxTotal,
-    grandTotal:       serverSaleTotal,
+  const breakdown = checkoutBreakdown(checkout, {
     // creditsTotal is informational: total balance debited via voucher
     // CREDIT_APPLICATION lines (gift-card + wallet + advance + cn + loyalty).
     creditsTotal:     plan.creditAppliedAmount,
-    // netReceivable: full sale total minus settlement-time credits.
-    netReceivable:    Math.max(0, serverSaleTotal - plan.creditAppliedAmount),
     paymentLegsTotal: amountToCharge,
-    changeReturned:   0,
     outstanding:      correctedOutstanding,
-    currencyCode:     serverTotals.currencyCode,
-    decimalPlaces:    serverTotals.decimalPlaces,
-  };
-
-  const financialDiscountLines: FinancialDiscountLineInput[] = serverTotals.discountLines.map((d) => ({
-    sourceType:     d.sourceType,
-    sourceId:       d.sourceId ?? null,
-    sourceName:     d.sourceName,
-    sourceName2:    d.sourceName2 ?? null,
-    discountType:   d.discountType,
-    discountRate:   d.discountRate ?? null,
-    discountAmount: d.discountAmount,
-  }));
+  });
 
   const result = await withTenantContext(tenantId, async () =>
     prisma.$transaction(async (tx) => {
@@ -774,9 +728,11 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         // the invoice header). `getInvoicesForOrder(orderId)` queries that.
       }
 
-      if (input.promoCodeId && serverTotals.promoDiscount > 0) {
+      // PF-15 / C8: usage is logged for every applied promo, typed or automatic.
+      const appliedPromoId = checkout.promotionId ?? input.promoCodeId;
+      if (appliedPromoId && serverTotals.promoDiscount > 0) {
         await applyPromoCodeTx(tx, {
-          promoCodeId:       input.promoCodeId,
+          promoCodeId:       appliedPromoId,
           orderId,
           invoiceId:         invoiceId ?? undefined,
           tenantOrgId:       tenantId,
@@ -1076,13 +1032,15 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       if (settlementLegs.length > 0 && !plan.shouldCreateReceiptVoucher) {
         throw new Error('SETTLEMENT_LEGS_REQUIRE_RECEIPT_VOUCHER');
       }
+      // P5-02: Create already wrote the tax and discount rows from the calculated
+      // order; settlement writes none, so nothing is stored twice.
       await settleOrderTx(tx, {
         orderId,
         tenantId,
         breakdown,
         chargeLines:         [],
-        taxLines,
-        discountLines:       financialDiscountLines,
+        taxLines:            [],
+        discountLines:       [],
         settlementLegs,
         cashDrawerSessionId,
         settledBy:           userId,
@@ -1094,42 +1052,19 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       // itself (D007 failure-coupling — same posture as the ERP-Lite auto-
       // post dispatch elsewhere in this flow). No-ops for every tenant today
       // (dormant: no org_tax_doc_triggers_cfg rows are enabled anywhere yet).
-      try {
-        await maybeIssueTaxDocumentTx(tx, {
-          tenantId,
-          orderId,
-          branchId: branchId ?? null,
-          triggerEvent: TAX_DOCUMENT_TRIGGER_EVENTS.ON_ORDER_SUBMIT,
-          orderStatus: currentStatus,
-          issuedBy: userId,
-        });
-      } catch (taxDocError) {
-        logger.error('[submitOrder] Tax-document issuance failed (non-blocking)', taxDocError as Error, {
-          feature: 'orders',
-          action: 'submit_order_tax_document',
-          orderId,
-          tenantId,
-        });
-      }
+      await issueSubmitTaxDocumentTx(tx, {
+        tenantId,
+        orderId,
+        branchId:    branchId ?? null,
+        orderStatus: currentStatus,
+        issuedBy:    userId,
+      });
 
       // The canonical aggregate is commercially committed only after its order,
       // settlement, and enabled fiscal work have completed in this transaction.
       // A conditional write prevents a replay or an unexpected pre-existing state
       // from silently replacing the immutable initial commitment evidence.
-      const commitmentCount = await tx.$executeRaw`
-        UPDATE public.org_orders_mst
-        SET
-          committed_at = clock_timestamp(),
-          committed_by = ${userId}::uuid,
-          edit_state_version = 1
-        WHERE id = ${orderId}::uuid
-          AND tenant_org_id = ${tenantId}::uuid
-          AND committed_at IS NULL
-          AND edit_state_version = 0
-      `;
-      if (Number(commitmentCount) !== 1) {
-        throw new Error('ORDER_INITIAL_COMMIT_CONFLICT');
-      }
+      await commitInitialOrderTx(tx, { tenantId, orderId, committedBy: userId });
 
       return { orderId, orderNo, invoiceId, currentStatus, voucherPostResult };
     }, { maxWait: 10000, timeout: 30000 })

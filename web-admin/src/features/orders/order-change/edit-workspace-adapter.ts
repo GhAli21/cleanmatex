@@ -1,3 +1,4 @@
+import type { ServiceSpeed } from '@/lib/constants/commercial';
 import type { OrderChangeContext, OrderChangeContextPreference } from '@/lib/types/order-change';
 import type { OrderItem, OrderItemServicePref, PreSubmissionPiece } from '@features/orders/model/new-order-types';
 import type { EditUnlistedChange } from './change-builder';
@@ -9,7 +10,8 @@ export interface VisualEditDraft {
   notes?: string;
   customerNotes?: string;
   readyBy?: string;
-  express?: boolean;
+  /** The order speed code (`sys_service_speed_cd`). */
+  serviceSpeed?: string;
   customerName?: string;
   customerMobile?: string;
   customerEmail?: string;
@@ -106,9 +108,9 @@ export function applyVisualDraftToController(
   if (visual.readyBy !== undefined && nextReadyBy !== text(baseline.readyBy)) {
     controller.setReadyBy(nextReadyBy);
   }
-  const baselineExpress = baseline.serviceSpeed === 'EXPRESS';
-  if (visual.express !== undefined && visual.express !== baselineExpress) {
-    controller.setServiceSpeed(visual.express ? 'EXPRESS' : 'STANDARD');
+  if (visual.serviceSpeed !== undefined && visual.serviceSpeed !== baseline.serviceSpeed) {
+    // The Edit change contract lists STANDARD and EXPRESS today; P6-02 widens it to the catalog.
+    controller.setServiceSpeed(visual.serviceSpeed as ServiceSpeed);
   }
   const name = text(visual.customerName);
   const mobile = text(visual.customerMobile);
@@ -124,7 +126,7 @@ export function visualHeaderChangeCount(baseline: EditOrderBaseline, visual: Vis
   if (text(visual.notes) !== text(baseline.notes)) count += 1;
   if (text(visual.customerNotes) !== text(baseline.customerNotes)) count += 1;
   if (visual.readyBy !== undefined && text(visual.readyBy) !== text(baseline.readyBy)) count += 1;
-  if (visual.express !== undefined && visual.express !== (baseline.serviceSpeed === 'EXPRESS')) count += 1;
+  if (visual.serviceSpeed !== undefined && visual.serviceSpeed !== baseline.serviceSpeed) count += 1;
   if (text(visual.customerName) !== text(baseline.customerName)) count += 1;
   if (text(visual.customerMobile) !== text(baseline.customerMobile)) count += 1;
   if (text(visual.customerEmail) !== text(baseline.customerEmail)) count += 1;

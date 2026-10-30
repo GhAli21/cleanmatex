@@ -42,15 +42,17 @@ const PIECE_A = '55555555-5555-5555-5555-555555555555';
  * @param overrides - Header facts that make the baseline ineligible or exercise a boundary condition.
  */
 function seedEligibleOrder(overrides: Record<string, unknown> = {}) {
-  mockFindFirst.mockResolvedValue({
+  const order = {
     id: ORDER_ID, order_no: 'ORD-1', committed_at: new Date('2026-10-03T00:00:00.000Z'), edit_state_version: 1, state_version: 7,
     edit_access_status: 'OPEN', edit_block_reason_code: null, edit_block_reason_text: null, edit_block_until: null,
-    current_status: 'processing', wf_profile_id: null, wf_profile_version_id: null,
+    current_status: 'processing', wf_profile_id: ITEM_A, wf_profile_version_id: ITEM_B,
     customer_id: null, customer_name: 'Customer', customer_mobile_number: null, customer_email: null,
     branch_id: null, currency_code: 'OMR', priority: 'normal', service_speed: 'STANDARD', ready_by: null,
     internal_notes: null, customer_notes: null, ...overrides,
-  });
+  };
+  mockFindFirst.mockResolvedValue(order);
   mockFinancialSummary.mockResolvedValue({ snapshot: { totalAmount: '10.0000', netCollectedAmount: '2.0000', outstandingAmount: '8.0000', overpaidAmount: '0.0000' } });
+  return order;
 }
 
 describe('getOrderChangeContext', () => {
@@ -106,10 +108,38 @@ describe('getOrderChangeContext', () => {
     [{ edit_state_version: 0 }, 'ORDER_NOT_COMMITTED'],
     [{ edit_access_status: 'PERMANENTLY_BLOCKED' }, 'EDIT_ACCESS_BLOCKED'],
     [{ state_version: 0 }, 'WORKFLOW_VERSION_UNAVAILABLE'],
+    [{ current_status: null }, 'WORKFLOW_VERSION_UNAVAILABLE'],
+    [{ wf_profile_id: null }, 'WORKFLOW_VERSION_UNAVAILABLE'],
+    [{ wf_profile_version_id: null }, 'WORKFLOW_VERSION_UNAVAILABLE'],
   ])('fails closed for an ineligible header', async (overrides, code) => {
     seedEligibleOrder(overrides);
     await expect(getOrderChangeContext({ tenantId: TENANT_ID, orderId: ORDER_ID })).rejects.toMatchObject<OrderChangeContextError>({ code });
     expect(mockItemFindMany).not.toHaveBeenCalled();
+  });
+
+  it('resolves each order from its own persisted workflow binding within the same tenant', async () => {
+    const first = seedEligibleOrder();
+    const secondOrderId = '99999999-9999-4999-8999-999999999999';
+    const secondProfileId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const secondVersionId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    mockFindFirst
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce({ ...first, id: secondOrderId, wf_profile_id: secondProfileId, wf_profile_version_id: secondVersionId });
+    mockItemFindMany.mockResolvedValue([]);
+    mockPieceFindMany.mockResolvedValue([]);
+    mockPreferenceFindMany.mockResolvedValue([]);
+
+    await getOrderChangeContext({ tenantId: TENANT_ID, orderId: ORDER_ID });
+    await getOrderChangeContext({ tenantId: TENANT_ID, orderId: secondOrderId });
+
+    expect(mockResolve).toHaveBeenNthCalledWith(1, expect.anything(), {
+      tenantId: TENANT_ID, profileId: ITEM_A, profileVersionId: ITEM_B, workflowStatus: 'processing',
+    });
+    expect(mockResolve).toHaveBeenNthCalledWith(2, expect.anything(), {
+      tenantId: TENANT_ID, profileId: secondProfileId, profileVersionId: secondVersionId, workflowStatus: 'processing',
+    });
+    expect(mockFindFirst).toHaveBeenNthCalledWith(1, expect.objectContaining({ where: { id: ORDER_ID, tenant_org_id: TENANT_ID } }));
+    expect(mockFindFirst).toHaveBeenNthCalledWith(2, expect.objectContaining({ where: { id: secondOrderId, tenant_org_id: TENANT_ID } }));
   });
 
   it('rejects a preference whose active parent hierarchy is inconsistent', async () => {

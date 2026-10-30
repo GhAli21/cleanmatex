@@ -62,7 +62,7 @@ All in `web-admin/__tests__/characterization/create-money/`:
 | PF-12 | C04, C05 | **Confirmed.** Item-preference and piece-preference changes overwrite each other's charge. The overwritten preference rows stay on the order but are not charged. | P4-05 / P5 (one allocation rule) |
 | PF-19 | G30 | Order charges are untaxed (the code comment says otherwise). | ADR-060 §6, M6 |
 | PF-21 (new) | C03, C03b | Clearing a price override in the cart kept the overridden price, and the express toggle overwrote a typed override; in both cases submit failed with `AMOUNT_MISMATCH`. | ✅ **Fixed 2026-10-23** (hotfix in `new-order-reducer.ts`) |
-| PF-22 (new) | G04 | `price_type = 'FIXED'` (8 products) and `min_sell_price` are stored but never applied. | Decided per L23: FIXED keeps unit × quantity (G04 stays); minimum price enforced in P4-02 |
+| PF-22 (new) | G04 | `price_type = 'FIXED'` (8 products) and `min_sell_price` are stored but never applied. | Decided per L23: FIXED keeps unit × quantity (G04 stays); minimum price enforced in P4-03 (`priceLine`, wired in P5) |
 | PF-24 (new) | — | 4 FIXED products have a default price below their own minimum (for example a tuxedo at 9.500 with a minimum of 80.000), so they could not be sold once the minimum is enforced. | Data cleanup by the owner in the catalog, plus P7 validation `min ≤ default` |
 | G07 | G07 | No items with ORDER charges returns 0 and drops the charges. | P4 calculator |
 | G15 | G15 | A typed promo that loses to a non-stackable rule is dropped without a message. | P5 disclosure (rule #15) |

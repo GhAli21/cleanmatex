@@ -55,5 +55,6 @@
   "itemsSubtotal": "العناصر",
   "additionalServices": "خدمات إضافية",
   "item": "عنصر",
-  "wholeItem": "كامل العنصر"
+  "wholeItem": "كامل العنصر",
+  "addCustomItem": "عنصر مخصص"
 }

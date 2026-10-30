@@ -53,7 +53,7 @@
 -- Rollback (forward-only): DROP TABLE org_speed_price_rules_cf RESTRICT (no
 -- dependents yet).
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

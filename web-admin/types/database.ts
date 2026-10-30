@@ -12094,6 +12094,31 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"sys_oc_edit_policy_profile_def_cf": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"edit_policy_id": string,"id": string,"is_active": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"workflow_profile_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"edit_policy_id": string,"id"?: string,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"workflow_profile_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"edit_policy_id"?: string,"id"?: string,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"workflow_profile_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_oc_edit_profile_def_pol"
+      columns: ["edit_policy_id"]
+isOneToOne: false
+      referencedRelation: "sys_oc_edit_policy_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_oc_edit_profile_def_profile"
+      columns: ["workflow_profile_id"]
+isOneToOne: false
+      referencedRelation: "sys_wf_profiles_cd"
+      referencedColumns: ["profile_id"]
+    }
+                  ]
                 },"sys_oc_edit_policy_rule_dtl": {
                   Row: {
                     "created_at": string,"created_by": string | null,"created_info": string | null,"decision": string,"edit_policy_id": string,"id": string,"is_active": boolean,"message_key": string,"operation_code": string,"override_permission_code": string | null,"reason_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"required_permission_code": string | null,"requires_reason": boolean,"target_type": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"workflow_status": string
@@ -12203,13 +12228,13 @@ isOneToOne: false
                   ]
                 },"sys_ops_job_cf": {
                   Row: {
-                    "category": string,"completion_mode": string,"created_at": string,"created_by": string | null,"created_info": string | null,"cron_job_name": string,"default_schedule": string,"description": string | null,"description2": string | null,"desired_enabled": boolean,"id": string,"is_active": boolean,"job_code": string,"kind": string,"module": string,"name": string,"name2": string | null,"notes": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"run_now_allowed": boolean,"schedule": string | null,"source_migration": string | null,"sub_system": string | null,"updated_at": string,"updated_by": string | null,"updated_info": string | null
+                    "category": string,"completion_mode": string,"created_at": string,"created_by": string | null,"created_info": string | null,"cron_job_name": string,"default_schedule": string,"description": string | null,"description2": string | null,"desired_enabled": boolean,"id": string,"is_active": boolean,"job_code": string,"kind": string,"module": string,"name": string,"name2": string | null,"notes": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"restore_command": string | null,"run_now_allowed": boolean,"schedule": string | null,"source_migration": string | null,"sub_system": string | null,"updated_at": string,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "category": string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name": string,"default_schedule": string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code": string,"kind"?: string,"module": string,"name": string,"name2"?: string | null,"notes"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
+                    "category": string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name": string,"default_schedule": string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code": string,"kind"?: string,"module": string,"name": string,"name2"?: string | null,"notes"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "category"?: string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name"?: string,"default_schedule"?: string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code"?: string,"kind"?: string,"module"?: string,"name"?: string,"name2"?: string | null,"notes"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
+                    "category"?: string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name"?: string,"default_schedule"?: string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code"?: string,"kind"?: string,"module"?: string,"name"?: string,"name2"?: string | null,"notes"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     
@@ -12903,16 +12928,22 @@ isOneToOne: false
                   ]
                 },"sys_tax_exempt_reason_cd": {
                   Row: {
-                    "code": string,"country": string,"created_at": string,"created_by": string | null,"description": string | null,"description2": string | null,"display_order": number,"id": string,"is_active": boolean,"name": string,"name2": string | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null
+                    "allows_free_text": boolean,"code": string,"country": string,"created_at": string,"created_by": string | null,"description": string | null,"description2": string | null,"display_order": number,"id": string,"is_active": boolean,"name": string,"name2": string | null,"rec_status": number,"tax_category_code": string,"updated_at": string | null,"updated_by": string | null
                   }
                   Insert: {
-                    "code": string,"country": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"id"?: string,"is_active"?: boolean,"name": string,"name2"?: string | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null
+                    "allows_free_text"?: boolean,"code": string,"country": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"id"?: string,"is_active"?: boolean,"name": string,"name2"?: string | null,"rec_status"?: number,"tax_category_code": string,"updated_at"?: string | null,"updated_by"?: string | null
                   }
                   Update: {
-                    "code"?: string,"country"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"id"?: string,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null
+                    "allows_free_text"?: boolean,"code"?: string,"country"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"id"?: string,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_status"?: number,"tax_category_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_sys_tax_exempt_reason_cat"
+      columns: ["tax_category_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_category_cd"
+      referencedColumns: ["code"]
+    },{
       foreignKeyName: "fk_sys_tax_exempt_reason_country"
       columns: ["country"]
 isOneToOne: false
@@ -12997,13 +13028,13 @@ isOneToOne: false
                   ]
                 },"sys_tenant_settings_cd": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"created_info": string | null,"is_active": boolean,"is_for_tenants_org": boolean,"is_per_branch_id": boolean,"is_per_tenant_org_id": boolean,"is_per_user_id": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"setting_code": string,"setting_desc": string | null,"setting_desc2": string | null,"setting_name": string | null,"setting_name2": string | null,"setting_value": string | null,"setting_value_type": string | null,"stng_allows_null": boolean,"stng_category_code": string | null,"stng_data_type": string | null,"stng_default_value_jsonb": Json | null,"stng_depends_on_flags": Json | null,"stng_display_order": number | null,"stng_edit_policy": string,"stng_is_overridable": boolean | null,"stng_is_required": boolean,"stng_is_sensitive": boolean | null,"stng_required_min_layer": string | null,"stng_requires_restart": boolean | null,"stng_scope": string | null,"stng_ui_component": string | null,"stng_ui_group": string | null,"stng_validation_jsonb": Json | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"is_active": boolean,"is_for_tenants_org": boolean,"is_per_branch_id": boolean,"is_per_tenant_org_id": boolean,"is_per_user_id": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"setting_code": string,"setting_desc": string | null,"setting_desc2": string | null,"setting_name": string | null,"setting_name2": string | null,"setting_value": string | null,"setting_value_type": string | null,"stng_allows_null": boolean,"stng_category_code": string | null,"stng_data_type": string | null,"stng_default_value_jsonb": Json | null,"stng_depends_on_flags": Json | null,"stng_disabled_value_jsonb": Json | null,"stng_display_order": number | null,"stng_edit_policy": string,"stng_is_overridable": boolean | null,"stng_is_required": boolean,"stng_is_sensitive": boolean | null,"stng_required_min_layer": string | null,"stng_requires_restart": boolean | null,"stng_scope": string | null,"stng_ui_component": string | null,"stng_ui_group": string | null,"stng_validation_jsonb": Json | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"is_active"?: boolean,"is_for_tenants_org"?: boolean,"is_per_branch_id"?: boolean,"is_per_tenant_org_id"?: boolean,"is_per_user_id"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"setting_code": string,"setting_desc"?: string | null,"setting_desc2"?: string | null,"setting_name"?: string | null,"setting_name2"?: string | null,"setting_value"?: string | null,"setting_value_type"?: string | null,"stng_allows_null"?: boolean,"stng_category_code"?: string | null,"stng_data_type"?: string | null,"stng_default_value_jsonb"?: Json | null,"stng_depends_on_flags"?: Json | null,"stng_display_order"?: number | null,"stng_edit_policy"?: string,"stng_is_overridable"?: boolean | null,"stng_is_required"?: boolean,"stng_is_sensitive"?: boolean | null,"stng_required_min_layer"?: string | null,"stng_requires_restart"?: boolean | null,"stng_scope"?: string | null,"stng_ui_component"?: string | null,"stng_ui_group"?: string | null,"stng_validation_jsonb"?: Json | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"is_active"?: boolean,"is_for_tenants_org"?: boolean,"is_per_branch_id"?: boolean,"is_per_tenant_org_id"?: boolean,"is_per_user_id"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"setting_code": string,"setting_desc"?: string | null,"setting_desc2"?: string | null,"setting_name"?: string | null,"setting_name2"?: string | null,"setting_value"?: string | null,"setting_value_type"?: string | null,"stng_allows_null"?: boolean,"stng_category_code"?: string | null,"stng_data_type"?: string | null,"stng_default_value_jsonb"?: Json | null,"stng_depends_on_flags"?: Json | null,"stng_disabled_value_jsonb"?: Json | null,"stng_display_order"?: number | null,"stng_edit_policy"?: string,"stng_is_overridable"?: boolean | null,"stng_is_required"?: boolean,"stng_is_sensitive"?: boolean | null,"stng_required_min_layer"?: string | null,"stng_requires_restart"?: boolean | null,"stng_scope"?: string | null,"stng_ui_component"?: string | null,"stng_ui_group"?: string | null,"stng_validation_jsonb"?: Json | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"is_active"?: boolean,"is_for_tenants_org"?: boolean,"is_per_branch_id"?: boolean,"is_per_tenant_org_id"?: boolean,"is_per_user_id"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"setting_code"?: string,"setting_desc"?: string | null,"setting_desc2"?: string | null,"setting_name"?: string | null,"setting_name2"?: string | null,"setting_value"?: string | null,"setting_value_type"?: string | null,"stng_allows_null"?: boolean,"stng_category_code"?: string | null,"stng_data_type"?: string | null,"stng_default_value_jsonb"?: Json | null,"stng_depends_on_flags"?: Json | null,"stng_display_order"?: number | null,"stng_edit_policy"?: string,"stng_is_overridable"?: boolean | null,"stng_is_required"?: boolean,"stng_is_sensitive"?: boolean | null,"stng_required_min_layer"?: string | null,"stng_requires_restart"?: boolean | null,"stng_scope"?: string | null,"stng_ui_component"?: string | null,"stng_ui_group"?: string | null,"stng_validation_jsonb"?: Json | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"is_active"?: boolean,"is_for_tenants_org"?: boolean,"is_per_branch_id"?: boolean,"is_per_tenant_org_id"?: boolean,"is_per_user_id"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"setting_code"?: string,"setting_desc"?: string | null,"setting_desc2"?: string | null,"setting_name"?: string | null,"setting_name2"?: string | null,"setting_value"?: string | null,"setting_value_type"?: string | null,"stng_allows_null"?: boolean,"stng_category_code"?: string | null,"stng_data_type"?: string | null,"stng_default_value_jsonb"?: Json | null,"stng_depends_on_flags"?: Json | null,"stng_disabled_value_jsonb"?: Json | null,"stng_display_order"?: number | null,"stng_edit_policy"?: string,"stng_is_overridable"?: boolean | null,"stng_is_required"?: boolean,"stng_is_sensitive"?: boolean | null,"stng_required_min_layer"?: string | null,"stng_requires_restart"?: boolean | null,"stng_scope"?: string | null,"stng_ui_component"?: string | null,"stng_ui_group"?: string | null,"stng_validation_jsonb"?: Json | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -14259,6 +14290,9 @@ isOneToOne: false
               "actual_active": boolean,"actual_schedule": string,"category": string,"command_present": boolean,"completion_mode": string,"cron_job_name": string,"cron_jobid": number,"default_schedule": string,"description": string,"description2": string,"desired_enabled": boolean,"drift_flags": (string)[],"effective_schedule": string,"is_active": boolean,"job_code": string,"kind": string,"last_run_actor": string,"last_run_at": string,"last_run_message": string,"last_run_source": string,"last_run_status": string,"last_run_trigger": string,"module": string,"name": string,"name2": string,"notes": string,"run_now_allowed": boolean,"schedule_override": string,"source_migration": string,"sub_system": string
             }[]
                            },
+"fn_ops_job_restore":
+{ Args: { "p_actor": string,"p_job_code": string }; Returns: Json
+                           },
 "fn_ops_job_run_now":
 { Args: { "p_actor": string,"p_job_code": string }; Returns: Json
                            },
@@ -14303,6 +14337,11 @@ isOneToOne: false
                            },
 "fn_stng_resolve_setting_value":
 { Args: { "p_branch_id"?: string,"p_setting_code": string,"p_tenant_id": string,"p_user_id"?: string }; Returns: {
+              "stng_code": string,"stng_computed_at": string,"stng_source_id": string,"stng_source_layer": string,"stng_value_jsonb": Json
+            }[]
+                           },
+"fn_stng_resolve_settings_set":
+{ Args: { "p_branch_id"?: string,"p_setting_codes"?: (string)[],"p_tenant_id": string,"p_user_id"?: string }; Returns: {
               "stng_code": string,"stng_computed_at": string,"stng_source_id": string,"stng_source_layer": string,"stng_value_jsonb": Json
             }[]
                            },
@@ -14444,6 +14483,9 @@ isOneToOne: false
 { Args: { "p_allow_event_append"?: boolean,"p_append_events"?: Json,"p_events_max_items"?: number,"p_payload": Json }; Returns: {
               "id": string,"last_seen_at": string,"lead_id": string,"max_scroll_pct": number,"out_session_id": string,"page_views": number,"total_dwell_ms": number,"tracking_level": number
             }[]
+                           },
+"hq_ff_get_eff_values_set":
+{ Args: { "p_flag_keys"?: (string)[],"p_tenant_id": string }; Returns: Json
                            },
 "hq_ff_get_effective_value":
 { Args: { "p_flag_key": string,"p_tenant_id": string }; Returns: {
@@ -14608,6 +14650,11 @@ isOneToOne: false
 "sys_oc_resolve_edit_policy":
 { Args: { "p_profile_id": string,"p_profile_version_id": string,"p_tenant_org_id": string,"p_workflow_status": string }; Returns: {
               "decision": string,"deny_reason": string,"edit_policy_id": string,"message_key": string,"operation_code": string,"override_permission_code": string,"policy_code": string,"policy_revision": number,"reason_code": string,"required_permission_code": string,"requires_reason": boolean,"resolution_level": string,"target_type": string,"workflow_status": string
+            }[]
+                           },
+"sys_oc_resolve_policy_link":
+{ Args: { "p_profile_id": string,"p_profile_version_id": string,"p_tenant_org_id": string }; Returns: {
+              "deny_reason": string,"edit_policy_id": string,"policy_code": string,"policy_revision": number,"resolution_level": string
             }[]
                            },
 "sys_wf_prof_ver_clone_sem":

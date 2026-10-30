@@ -54,7 +54,7 @@
 -- sys_tax_exempt_reason_cd RESTRICT. The price_type fix is not reversed (it
 -- corrects existing data, not a schema addition).
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

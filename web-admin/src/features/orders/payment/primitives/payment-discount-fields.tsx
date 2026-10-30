@@ -58,6 +58,11 @@ export interface PaymentDiscountFieldsProps {
   percentInputRef?: RefObject<HTMLInputElement | null>;
   /** Wrapper class override (Full uses a bordered card; Simple can be plainer). */
   className?: string;
+  /**
+   * Set when the cashier may not give an order discount (no `orders:discount`):
+   * the fields are replaced by this explanation, never shown disabled without a reason.
+   */
+  lockedReason?: string | null;
 }
 
 /**
@@ -77,6 +82,7 @@ export function PaymentDiscountFields({
   amountInputRef,
   percentInputRef,
   className,
+  lockedReason = null,
 }: PaymentDiscountFieldsProps) {
   const t = useTranslations('newOrder.payment');
   const isRTL = useRTL();
@@ -111,9 +117,10 @@ export function PaymentDiscountFields({
         <p
           className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
         >
-          {t('rightRail.discountsHelp')}
+          {lockedReason ?? t('rightRail.discountsHelp')}
         </p>
       </div>
+      {lockedReason ? null : (
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <Controller
           name="amountDiscount"
@@ -192,6 +199,7 @@ export function PaymentDiscountFields({
           )}
         />
       </div>
+      )}
       {errors.percentDiscount || errors.amountDiscount ? (
         <p
           className={`mt-2 text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}

@@ -65,6 +65,7 @@ function recordingTx() {
       data.forEach((d) => store(name, d));
       return { count: data.length };
     },
+    createManyAndReturn: async ({ data }: { data: Rec[] }) => data.map((d) => store(name, d)),
     findFirst: async () => (name === 'org_users_mst' ? { id: 'org-user-1' } : null),
     findMany: async ({ where }: { where: Rec }) =>
       (rows[name] ?? []).filter((r) =>
@@ -104,7 +105,7 @@ describe('P1-01 golden — rows written by Create', () => {
   it('W01 KNOWN DEFECT (PF-02): item prices are the client values, even when the server totals differ', async () => {
     const rows = await create(baseParams({
       items: [{ productId: 'shirt', quantity: 1, pricePerUnit: 10, totalPrice: 10, serviceCategoryCode: 'DRY_CLEAN' }],
-      totals: { subtotal: 9, discount: 0, tax: 0, total: 9, vatRate: 0, vatAmount: 0 },
+      totals: { subtotal: 9, discount: 0, tax: 0, total: 9, vatRate: 0 },
     }));
 
     const item = rows.org_order_items_dtl[0];
@@ -124,7 +125,6 @@ describe('P1-01 golden — rows written by Create', () => {
         tax: 0.2,
         total: 9.65,
         vatRate: 5,
-        vatAmount: 0.45,
         taxRate: 2,
         roundingAdjustment: 0,
         chargesTotal: 0,
@@ -242,7 +242,7 @@ describe('P1-01 golden — rows written by Create', () => {
         { preference_code: 'EXPRESS_BAG', extra_price: 1 },
         { preference_code: 'FOLD_NOTE', extra_price: 0 },
       ],
-      totals: { subtotal: 2, discount: 0, tax: 0, total: 3, vatRate: 0, vatAmount: 0, chargesTotal: 1 },
+      totals: { subtotal: 2, discount: 0, tax: 0, total: 3, vatRate: 0, chargesTotal: 1 },
     }));
     const orderPrefs = rows.org_order_preferences_dtl.filter((p) => p.prefs_level === 'ORDER');
     expect(orderPrefs.map((p) => [p.preference_code, p.extra_price, p.prefs_source])).toEqual([

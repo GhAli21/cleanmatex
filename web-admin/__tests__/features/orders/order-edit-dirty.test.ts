@@ -26,7 +26,7 @@ function current(overrides: Partial<OrderEditDirtyCurrent> = {}): OrderEditDirty
     notes: '',
     customerNotes: '',
     paymentNotes: '',
-    express: false,
+    serviceSpeed: 'STANDARD',
     customerName: 'Ahmed',
     customerMobile: '+96890000000',
     customerEmail: 'a@test.com',
@@ -120,9 +120,14 @@ describe('isOrderEditFormDirty', () => {
     ).toBe(false);
   });
 
-  it('detects payment notes, express, ready-by, and order prefs', () => {
+  it('compares the speed code to the stored service_speed, falling back to the legacy flag', () => {
+    expect(isOrderEditFormDirty(current({ serviceSpeed: 'EXPRESS' }), { ...original, service_speed: 'EXPRESS', is_express: false })).toBe(false);
+    expect(isOrderEditFormDirty(current({ serviceSpeed: 'EXPRESS' }), { ...original, is_express: true })).toBe(false);
+  });
+
+  it('detects payment notes, speed, ready-by, and order prefs', () => {
     expect(isOrderEditFormDirty(current({ paymentNotes: 'paid later' }), original)).toBe(true);
-    expect(isOrderEditFormDirty(current({ express: true }), original)).toBe(true);
+    expect(isOrderEditFormDirty(current({ serviceSpeed: 'EXPRESS' }), original)).toBe(true);
     expect(isOrderEditFormDirty(current({ readyByAt: '2026-09-21T10:00:00.000Z' }), original)).toBe(true);
     expect(
       isOrderEditFormDirty(

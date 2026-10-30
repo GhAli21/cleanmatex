@@ -5,7 +5,7 @@
 
 import { createHash } from 'node:crypto';
 import { toMoneyString } from '@/lib/utils/money';
-import { reviewedItemTotal } from './order-change-calculation.service';
+import { reviewedItemTotal } from './order-change-edit-pricing';
 import { PREFS_LEVEL, PREFS_OWNER_TYPE, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
 import type { OrderChangeContext } from '@/lib/types/order-change';
 import type { z } from 'zod';
@@ -145,6 +145,8 @@ function projectPreviewOperationRows(input: {
   catalog: readonly OrderChangePreferenceDefinition[];
   speedAudit?: OrderChangeSpeedAudit;
   auditFacts?: OrderChangePreviewAuditFacts;
+  /** Calculated `total_price` of each piece by id (P6-01c): a new piece stores its allocated share, extras included. */
+  pieceTotals?: ReadonlyMap<string, string>;
 }): Array<{seq: number; before: Record<string, unknown>; after: Record<string, unknown>}> {
   const facts = input.auditFacts;
   const order = facts?.order ?? orderFromContext(input.context);
@@ -204,7 +206,7 @@ function projectPreviewOperationRows(input: {
           order_item_id: parentId,
           quantity: 1,
           price_per_unit: line?.unitPrice,
-          total_price: line?.unitPrice,
+          total_price: input.pieceTotals?.get(keyOf(operation.payload.clientRef)) ?? line?.unitPrice,
           scan_state: 'expected',
           is_ready: false,
         }),

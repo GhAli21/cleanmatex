@@ -13,5 +13,6 @@
     "vatValue": "VAT",
     "saleTotal": "Sale total",
     "finalTotal": "Final total"
-  }
+  },
+  "refreshAmounts": "Refresh amounts"
 }

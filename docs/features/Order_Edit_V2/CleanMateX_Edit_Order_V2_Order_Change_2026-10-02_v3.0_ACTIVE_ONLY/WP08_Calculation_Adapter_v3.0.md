@@ -4,6 +4,8 @@
 **Status:** DONE for the pure calculation adapter. Compound tax resolution, currency-increment rounding, and persistence scale remain later packages.
 **Authority:** Living plan WP08, architecture tax-mode wording, WP07 contribution cache, and the current Create calculator's unchanged base-price behavior.
 
+> **Replaced 2026-10-28 (Line-Level Money Snapshot P6-01):** this adapter (`order-change-calculation.service.ts`) is deleted. Edit preview and apply now price on the shared commercial calculator, from the order's own stored prices and tax lines. See [Line-Level STATUS](../../Order_Fin/Line_Level_Money_Snapshot/STATUS.md) P6-01 and ADR-060. The text below is history only.
+
 ## Decision
 
 Create's calculator still consumes `basePrice` or an item override. That path was not changed. For an Edit line that is new or policy-relevant, the authoritative selling unit is an authorized override when present. Otherwise it is `finalPrice` when the resolved quote has a positive discount percent, and `basePrice` when it does not. The catalog adjustment is therefore counted once on those lines. An unchanged line keeps `persistedUnitPrice` even when a newer quote is supplied.

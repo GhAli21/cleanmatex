@@ -12,6 +12,8 @@ import { applyOrderChange, type OrderChangeApplyTx } from '@/lib/services/order-
 import { resolveOrderChangePolicyBindings } from '@/lib/services/order-change/order-change-edit-policy-resolver.service';
 import { revalidateLockedOrderChangePolicy } from '@/lib/services/order-change/order-change-policy-revalidation.service';
 import { digestOrderChangeOperationAudits } from '@/lib/services/order-change/order-change-review-audit';
+import { quoteOrderEdit, readEditOrderRecord, type EditRecordDb } from '@/lib/services/commercial/commercial-edit.loader';
+import type { CommercialDb } from '@/lib/services/commercial/commercial-context.loader';
 
 const ROLLBACK = 'REVIEWED_SNAPSHOT_FIXTURE_ROLLBACK';
 const key = { keyId: 'local-snapshot-proof', secret: 'local-only-reviewed-snapshot-test-secret' };
@@ -57,6 +59,22 @@ describe('signed operation snapshots on local PostgreSQL', () => {
     const customerId = randomUUID();
 
     await expect(prisma.$transaction(async (tx) => {
+      const workflowVersions = await tx.$queryRaw<Array<{ profile_id: string; version_id: string; version_no: number }>>`
+        SELECT version.profile_id, version.version_id, version.version_no
+        FROM public.sys_wf_profile_ver_mst AS version
+        INNER JOIN public.sys_wf_prof_ver_mod_st_cf AS membership
+          ON membership.version_id = version.version_id
+         AND membership.status_code = 'processing'
+         AND membership.rec_status = 1
+         AND membership.is_active = true
+        WHERE version.rec_status = 1
+          AND version.is_active = true
+          AND version.version_status IN ('PILOT', 'PUBLISHED')
+        ORDER BY version.version_id
+        LIMIT 1
+      `;
+      const workflowVersion = workflowVersions[0];
+      if (!workflowVersion) throw new Error('Snapshot proof requires an active workflow version containing processing');
       const occupied = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT id FROM public.org_oc_edit_policy_asg_cf
         WHERE tenant_org_id = ${tenantId}::uuid AND scope = 'ORGANIZATION' AND rec_status = 1 AND is_active = true`;
@@ -82,14 +100,30 @@ describe('signed operation snapshots on local PostgreSQL', () => {
         VALUES (${customerId}::uuid, ${tenantId}::uuid, 'Reviewed snapshot fixture')`;
       await tx.$executeRaw`
         INSERT INTO public.org_orders_mst(id, tenant_org_id, customer_id, order_no, currency_code, payment_type_code,
-          edit_state_version, committed_at, committed_by, current_status, internal_notes, priority, service_speed, total_amount, total_tax_amount)
+          edit_state_version, committed_at, committed_by, current_status, internal_notes, priority, service_speed, total_amount, total_tax_amount,
+          commercial_calc_version, commercial_level, tax_pricing_mode, extra_price_pricing_mode, disc_alloc_mode, disc_alloc_basis,
+          wf_profile_id, wf_version_no, wf_profile_version_id)
         VALUES (${orderId}::uuid, ${tenantId}::uuid, ${customerId}::uuid, ${`SNAP-${orderId}`}, 'OMR', 'PAY_ON_COLLECTION',
-          1, now(), ${actorId}::uuid, 'processing', 'Keep', 'NORMAL', 'STANDARD', 10, 0)`;
+          1, now(), ${actorId}::uuid, 'processing', 'Keep', 'NORMAL', 'STANDARD', 10, 0,
+          1, 'ITEM', 'TAX_EXCLUSIVE', 'INCLUDED_IN_ITEM_PRICE', 'DOCUMENT_LEVEL', 'PROPORTIONAL_NET',
+          ${workflowVersion.profile_id}::uuid, ${workflowVersion.version_no}, ${workflowVersion.version_id}::uuid)`;
+      // A line written by the calculator (P6-01c): a custom line at 10.000, untaxed (the order has no tax line).
       await tx.$executeRaw`
-        INSERT INTO public.org_order_items_dtl(id, tenant_org_id, order_id, product_name, quantity, price_per_unit, total_price)
-        VALUES (${itemId}::uuid, ${tenantId}::uuid, ${orderId}::uuid, 'Snapshot shirt', 1, 10, 10)`;
+        INSERT INTO public.org_order_items_dtl(id, tenant_org_id, order_id, product_name, quantity, price_per_unit, total_price,
+          money_basis, service_speed, ready_by_at, price_source, list_unit_price, service_pref_charge, speed_premium_amount,
+          line_disc_amount, order_disc_alloc_amount, net_amount, tax_pricing_mode, tax_category_code, tax_rate,
+          taxable_amount, tax_amount, line_total_amount)
+        VALUES (${itemId}::uuid, ${tenantId}::uuid, ${orderId}::uuid, 'Snapshot shirt', 1, 10, 10,
+          'PRICED', 'STANDARD', now() + interval '1 day', 'MANUAL', 10, 0, 0,
+          0, 0, 10, 'TAX_EXCLUSIVE', 'STANDARD', 0,
+          10, 0, 10)`;
 
-      const resolution = await resolveOrderChangePolicyBindings(tx, { tenantId, profileId: null, profileVersionId: null, workflowStatus: 'processing' });
+      const resolution = await resolveOrderChangePolicyBindings(tx, {
+        tenantId,
+        profileId: workflowVersion.profile_id,
+        profileVersionId: workflowVersion.version_id,
+        workflowStatus: 'processing',
+      });
       expect(resolution).toMatchObject({ resolutionLevel: 'ORGANIZATION', denyReason: 'NONE', editPolicyId: policyId });
 
       const review = async (code: 'CHANGE_ORDER_NOTES' | 'CHANGE_ITEM_QUANTITY', notes = 'Reviewed note') => {
@@ -103,7 +137,11 @@ describe('signed operation snapshots on local PostgreSQL', () => {
         const item = items[0];
         const context: OrderChangeContext = {
           orderId, orderNo: `SNAP-${orderId}`, committedAt: order.committed_at.toISOString(), editStateVersion: order.edit_state_version, wfStateVersion: order.state_version,
-          workflow: { currentStatus: 'processing', profileId: null, profileVersionId: null },
+          workflow: {
+            currentStatus: 'processing',
+            profileId: workflowVersion.profile_id,
+            profileVersionId: workflowVersion.version_id,
+          },
           editAccess: { status: 'OPEN', reasonCode: null, reasonText: null, blockedUntil: null },
           permissions: { canEdit: false, canOverride: false, canOverridePrice: false },
           configuration: { featureEnabled: false, newItemPricePolicy: null, existingDiscountPolicy: null, reasonPolicy: null, deferredReason: 'CAPABILITY_POLICY_PENDING' },
@@ -121,7 +159,11 @@ describe('signed operation snapshots on local PostgreSQL', () => {
         const preview = await previewOrderChange({
           tenantId, actorUserId: actorId, featureEnabled: true, canUsePermission: async () => true,
           context, request, bindings: resolution.bindings, policyResolution: resolution,
-          quotesByTargetId: {}, catalog: [], taxMode: 'TAX_EXCLUSIVE', taxRatePercent: '0.0000', currencyDecimalPlaces: 3,
+          // The real Edit pricer, reading the fixture through the same transaction.
+          priceEdit: async (projection) => quoteOrderEdit(tx as unknown as CommercialDb, tenantId,
+            await readEditOrderRecord(tx as unknown as EditRecordDb, tenantId, orderId), projection,
+            { currency: { code: 'OMR', decimalPlaces: 3 }, getTenantVatRate: async () => 0 }),
+          catalog: [], currencyDecimalPlaces: 3,
           payments: [], credits: [], refunds: [], persistedTaxAmount: order.total_tax_amount, proofKey: key,
           auditFacts: { order: { internal_notes: order.internal_notes, customer_notes: null, total_amount: order.total_amount, total_tax_amount: order.total_tax_amount }, items: {}, pieces: {}, preferences: {}, products: {} },
         });
@@ -146,6 +188,15 @@ describe('signed operation snapshots on local PostgreSQL', () => {
           WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND order_change_id = ${applied.orderChangeId}::uuid`;
         expect(history).toEqual([{ before_values: reviewed.preview.operationAudits[0].beforeValues, after_values: reviewed.preview.operationAudits[0].afterValues }]);
       }
+      // P6-01c: the quantity edit stored the calculated line and the rollup rebuilt the header from it.
+      const storedItem = await tx.$queryRaw<Array<{ quantity: number; total_price: string; net_amount: string; line_total_amount: string; list_unit_price: string }>>`
+        SELECT quantity, total_price::text AS total_price, net_amount::text AS net_amount,
+          line_total_amount::text AS line_total_amount, list_unit_price::text AS list_unit_price
+        FROM public.org_order_items_dtl WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND id = ${itemId}::uuid`;
+      expect(storedItem[0]).toMatchObject({ quantity: 2, total_price: '20.0000', net_amount: '20.0000', line_total_amount: '20.0000', list_unit_price: '10.0000' });
+      const storedHeader = await tx.$queryRaw<Array<{ total_amount: string }>>`
+        SELECT total_amount::text AS total_amount FROM public.org_orders_mst WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid`;
+      expect(Number(storedHeader[0].total_amount)).toBe(20);
       const stale = await review('CHANGE_ORDER_NOTES', 'Stale signed after');
       await tx.$executeRaw`
         UPDATE public.org_orders_mst SET internal_notes = 'Changed after Review'

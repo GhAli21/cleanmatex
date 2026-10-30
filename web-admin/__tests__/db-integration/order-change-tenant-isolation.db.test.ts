@@ -144,10 +144,11 @@ describe('order change tenant isolation', () => {
           calculationFingerprint: 'fingerprint-1',
           reviewProof: 'proof-1',
           financial,
+          // An unchanged total reaches the row guard; a priced edit without its reviewed calculation stops earlier (P6-01c).
           originalTotal: '10.0000',
-          projectedTotal: '8.0000',
+          projectedTotal: '10.0000',
           projectedTax: '0.0000',
-          displayTotal: '8.000',
+          displayTotal: '10.000',
           projectedItemIds: [],
           lines: [{ id: foreignItem, active: true, unitPrice: '2.0000', merchandiseAmount: '2.0000' }],
           followUp: [],

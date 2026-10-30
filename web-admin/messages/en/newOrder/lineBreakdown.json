@@ -1,0 +1,13 @@
+{
+  "discountAction": "Line discount",
+  "discountActionFor": "Line discount for {item}",
+  "show": "Show price details for {item}",
+  "hide": "Hide price details for {item}",
+  "gross": "Line price",
+  "priceListDiscount": "Price list discount",
+  "lineDiscount": "Line discount",
+  "orderDiscountShare": "Share of order discount",
+  "net": "After discounts",
+  "tax": "Tax",
+  "lineTotal": "Line total"
+}

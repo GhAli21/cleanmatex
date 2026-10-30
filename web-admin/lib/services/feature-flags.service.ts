@@ -4,7 +4,7 @@
  * Uses hq_ff_get_effective_values_batch RPC as single source of truth.
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient, createClient } from '@/lib/supabase/server';
 import type { FeatureFlags } from '@/lib/types/tenant';
 import {
   type FeatureFlagKey,
@@ -146,7 +146,8 @@ export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {
   }
 
   try {
-    const supabase = await createClient();
+    // Server-only service-role client: the flag RPCs are not executable by browser/customer sessions (0651/0652).
+    const supabase = createAdminSupabaseClient();
     const { data, error } = await supabase.rpc('hq_ff_get_effective_values_batch', {
       p_tenant_id: tenantId,
       p_flag_keys: ALL_FLAG_KEYS,

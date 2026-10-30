@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-23T17:56:39.303Z",
+  "extractedAt": "2026-10-28T02:26:53.084Z",
   "usages": {
     "B2B_DUNNING_LEVELS": [
       {
@@ -16,17 +16,17 @@
     "B2B_CREDIT_LIMIT_MODE": [
       {
         "path": "app\\api\\v1\\orders\\preview-financials\\route.ts",
-        "line": 85,
+        "line": 89,
         "context": "SETTING_CODES.B2B_CREDIT_LIMIT_MODE,"
       },
       {
         "path": "app\\api\\v1\\orders\\preview-payment\\route.ts",
-        "line": 105,
+        "line": 95,
         "context": "SETTING_CODES.B2B_CREDIT_LIMIT_MODE,"
       },
       {
         "path": "lib\\services\\payment-quote.service.ts",
-        "line": 148,
+        "line": 107,
         "context": "const mode = await settings.getSettingValue(tenantId, SETTING_CODES.B2B_CREDIT_L"
       }
     ],
@@ -38,13 +38,8 @@
       },
       {
         "path": "app\\api\\v1\\public\\customer\\booking\\route.ts",
-        "line": 415,
+        "line": 422,
         "context": "tenantSettings.getSettingValue(tenantId, 'TENANT_VAT_RATE', branchId),"
-      },
-      {
-        "path": "app\\api\\v1\\public\\customer\\booking\\route.ts",
-        "line": 865,
-        "context": "tenantSettings.getSettingValue(body.tenantId, 'TENANT_VAT_RATE', branch.id, sess"
       },
       {
         "path": "app\\dashboard\\settings\\finance\\page.tsx",

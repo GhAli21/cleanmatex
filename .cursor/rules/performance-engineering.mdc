@@ -1,0 +1,20 @@
+---
+description: Proportionate performance guidance for data access, orchestration, caching and async UI changes.
+alwaysApply: true
+---
+
+# Performance engineering
+
+Apply the relevant [shared performance rules](../../docs/dev/rules/performance-engineering.md) when changing data access, request orchestration, caching, async UI/query lifecycles or expensive rendering, or investigating reported slowness. This is a compact adapter; load only the relevant canonical sections and affected domain skill.
+
+- Revalidate current related code/contracts/schema/evidence before using an old plan; preserve others' work and keep discovery scoped.
+- For performance work, measure a comparable baseline, select one small justified change, retest and stop when agreed criteria pass.
+- Trace full operation cost; distinguish RPC requests from SQL work and cached visibility from safe readiness.
+- Share verified in-flight facts only within their complete request scope; keep strict failures and optional reads explicit.
+- Preserve dependencies/security gates, bound concurrency and account for pool/lock pressure and late completion.
+- Specify cache purpose, keys, sensitivity, bounds, invalidation and authority; a TTL does not authorize stale money/security decisions.
+- Cancel superseded transport work and check active identity; deadlines do not prove database cancellation. Preserve mutation idempotency/outcome recovery.
+- Retain tenant/session/permission/CSRF and money invariants, Cmx/i18n/accessibility and entered user values.
+- Validate the actual claim with scoped regressions and suitable runtime evidence; keep telemetry free of sensitive data.
+
+Ordinary copy, styling and other low-impact edits do not require a benchmark project, new cache/dependency or broad audit. Existing repository checks still apply. Feature-specific plans add scoped requirements; they do not impose a payment-specific hold or require loading an entire feature pack for unrelated work. No migration application, deployment or automatic rollback is authorized by this rule.

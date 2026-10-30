@@ -26,3 +26,8 @@ export {
   type IssueTypeLookupRow,
   type IssueTypeLookupMap,
 } from './issue-type-lookup.service';
+
+export {
+  listActiveServiceSpeeds,
+  type ServiceSpeedLookupRow,
+} from './service-speed-lookup.service';

@@ -25,7 +25,7 @@
 --
 -- Reversal: DROP TABLE sys_pln_price_dtl RESTRICT (lossless while unread).
 --
--- NOT APPLIED BY THE ASSISTANT — for owner review and apply (CLAUDE.md rule 3).
+
 -- =============================================================================
 
 BEGIN;

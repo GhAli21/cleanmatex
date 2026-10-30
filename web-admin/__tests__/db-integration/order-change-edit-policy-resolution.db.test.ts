@@ -39,7 +39,7 @@ beforeAll(async () => {
 afterAll(async () => { await prisma.$disconnect(); });
 
 describe('applied Edit Policy scopes and defaults', () => {
-  it('proves organization > profile > version default, profile moves, status holes and activation guards', async () => {
+  it('proves organization > version > profile resolution, workflow identity validation, and activation guards', async () => {
     const organizations = await prisma.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM public.org_tenants_mst
       WHERE name ILIKE '%test%' OR name ILIKE '%demo%' OR name ILIKE '%sandbox%'
@@ -55,17 +55,39 @@ describe('applied Edit Policy scopes and defaults', () => {
       FROM public.sys_wf_profile_ver_mst AS version
       LEFT JOIN public.sys_wf_prof_ver_mod_st_cf AS membership ON membership.version_id = version.version_id
       WHERE version.rec_status = 1 AND version.is_active = true AND version.version_status IN ('PILOT', 'PUBLISHED')
+         AND NOT EXISTS (
+           SELECT 1 FROM public.sys_oc_edit_policy_def_cf AS version_default
+           WHERE version_default.workflow_profile_version_id = version.version_id
+             AND version_default.rec_status = 1 AND version_default.is_active = true
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM public.sys_oc_edit_policy_profile_def_cf AS profile_default
+           WHERE profile_default.workflow_profile_id = version.profile_id
+             AND profile_default.rec_status = 1 AND profile_default.is_active = true
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM public.sys_wf_profile_ver_mst AS sibling_version
+           WHERE sibling_version.profile_id = version.profile_id
+             AND sibling_version.version_status IN ('PILOT', 'PUBLISHED')
+             AND sibling_version.rec_status = 1
+             AND sibling_version.is_active = true
+             AND NOT EXISTS (
+               SELECT 1
+               FROM public.sys_wf_prof_ver_mod_st_cf AS sibling_membership
+               WHERE sibling_membership.version_id = sibling_version.version_id
+                 AND sibling_membership.rec_status = 1
+                 AND sibling_membership.is_active = true
+             )
+         )
       GROUP BY version.version_id, version.profile_id ORDER BY live_status_count, version.version_id
     `;
-    const first = versions.find((version) => Number(version.live_status_count) > 0
-      && versions.some((other) => other.profile_id === version.profile_id && other.version_id !== version.version_id));
+    const first = versions.find((version) => Number(version.live_status_count) > 0);
     const second = versions.find((version) => Number(version.live_status_count) > 0 && version.profile_id !== first?.profile_id);
-    const earlier = versions.find((version) => version.profile_id === first?.profile_id && version.version_id !== first?.version_id);
-    if (!first || !second || !earlier) throw new Error('Proof requires two live workflow families and two versions of one family');
+    if (!first || !second) throw new Error('Proof requires two status-complete live workflow families');
     const profileA = first.profile_id;
     const profileB = second.profile_id;
     const versionA = first.version_id;
-    const versionA2 = earlier.version_id;
     const versionB = second.version_id;
     const strictPolicy = randomUUID();
     const permissivePolicy = randomUUID();
@@ -93,10 +115,6 @@ describe('applied Edit Policy scopes and defaults', () => {
       `;
       const fixture = statuses[0];
       if (!fixture) throw new Error('The two fixture workflow versions must share an active status');
-      await tx.$executeRaw`
-        INSERT INTO public.org_wf_profile_assign_cf(tenant_org_id, wf_profile_id, wf_version_no)
-        VALUES (${tenantId}::uuid, ${profileA}::uuid, NULL), (${tenantId}::uuid, ${profileB}::uuid, NULL)
-      `;
       for (const [id, label, decision] of [
         [strictPolicy, 'STRICT', 'DENY'], [permissivePolicy, 'ALLOW', 'ALLOW'], [pilotPolicy, 'PILOT', 'DENY'],
       ]) {
@@ -111,9 +129,13 @@ describe('applied Edit Policy scopes and defaults', () => {
                  ${decision}, 'EDIT_POLICY_PROOF', 'orders.edit.policyInfo.title'
           FROM public.sys_oc_order_edit_op_tgt_cd AS pair
           CROSS JOIN public.sys_wf_prof_ver_mod_st_cf AS membership
+          JOIN public.sys_wf_profile_ver_mst AS covered_version
+            ON covered_version.version_id = membership.version_id
           WHERE pair.rec_status = 1 AND pair.is_active = true
-            AND membership.version_id IN (${versionA}::uuid, ${versionB}::uuid)
             AND membership.rec_status = 1 AND membership.is_active = true
+            AND covered_version.profile_id IN (${profileA}::uuid, ${profileB}::uuid)
+            AND covered_version.rec_status = 1 AND covered_version.is_active = true
+            AND covered_version.version_status IN ('PILOT', 'PUBLISHED')
             AND (${id}::uuid <> ${pilotPolicy}::uuid OR pair.operation_code = 'ADD_ITEM')
         `;
         await tx.$executeRaw`
@@ -133,7 +155,7 @@ describe('applied Edit Policy scopes and defaults', () => {
       }
       await expectConstraintRejection(tx, () => tx.$executeRaw`
         INSERT INTO public.sys_oc_edit_policy_def_cf(workflow_profile_version_id, edit_policy_id)
-        VALUES (${versionA2}::uuid, ${pilotPolicy}::uuid)
+        VALUES (${versionB}::uuid, ${pilotPolicy}::uuid)
       `, 'default requires an active PUBLISHED Edit Policy');
       await tx.$executeRaw`
         INSERT INTO public.sys_oc_edit_policy_def_cf(workflow_profile_version_id, edit_policy_id)
@@ -148,15 +170,22 @@ describe('applied Edit Policy scopes and defaults', () => {
         VALUES (${versionA}::uuid, ${permissivePolicy}::uuid)
       `, '23505');
       await tx.$executeRaw`
-        INSERT INTO public.org_oc_edit_policy_asg_cf(id, tenant_org_id, scope, workflow_profile_id, edit_policy_id)
-        VALUES (${profileOverride}::uuid, ${tenantId}::uuid, 'PROFILE', ${profileA}::uuid, ${permissivePolicy}::uuid)
+        INSERT INTO public.sys_oc_edit_policy_profile_def_cf(id, workflow_profile_id, edit_policy_id)
+        VALUES (${profileOverride}::uuid, ${profileA}::uuid, ${permissivePolicy}::uuid)
       `;
-      // Case C: the profile override covers both versions of its family.
-      for (const version of [versionA, versionA2]) {
-        const resolution = await resolve(profileA, version);
-        expect(resolution).toMatchObject({ resolutionLevel: 'PROFILE', editPolicyId: permissivePolicy });
-        expect(resolution.bindings.find((binding) => binding.operationCode === 'ADD_ITEM')?.decision).toBe('ALLOW');
-      }
+      // Case C: the version row still wins; the profile default becomes effective only when the version row is inactive.
+      expect(await resolve(profileA, versionA)).toMatchObject({ resolutionLevel: 'VERSION_DEFAULT', editPolicyId: strictPolicy });
+      await tx.$executeRaw`
+        UPDATE public.sys_oc_edit_policy_def_cf SET is_active = false
+        WHERE workflow_profile_version_id = ${versionA}::uuid AND edit_policy_id = ${strictPolicy}::uuid
+      `;
+      const profileResolution = await resolve(profileA, versionA);
+      expect(profileResolution).toMatchObject({ resolutionLevel: 'PROFILE', editPolicyId: permissivePolicy });
+      expect(profileResolution.bindings.find((binding) => binding.operationCode === 'ADD_ITEM')?.decision).toBe('ALLOW');
+      await tx.$executeRaw`
+        UPDATE public.sys_oc_edit_policy_def_cf SET is_active = true
+        WHERE workflow_profile_version_id = ${versionA}::uuid AND edit_policy_id = ${strictPolicy}::uuid
+      `;
       // Case D: a different stamped profile uses its own default.
       expect(await resolve(profileB, versionB)).toMatchObject({ resolutionLevel: 'VERSION_DEFAULT', editPolicyId: strictPolicy });
       await expectConstraintRejection(tx, () => tx.$executeRaw`
@@ -167,12 +196,18 @@ describe('applied Edit Policy scopes and defaults', () => {
         INSERT INTO public.org_oc_edit_policy_asg_cf(id, tenant_org_id, scope, edit_policy_id, gap_acknowledged)
         VALUES (${organizationOverride}::uuid, ${tenantId}::uuid, 'ORGANIZATION', ${strictPolicy}::uuid, true)
       `;
-      // Case B: broad authority shadows both the profile override and defaults.
-      for (const [profile, version] of [[profileA, versionA], [profileB, versionB], [null, null]]) {
+      // Case B: broad authority shadows both platform defaults for valid order tuples.
+      for (const [profile, version] of [[profileA, versionA], [profileB, versionB]]) {
         const resolution = await resolve(profile, version);
         expect(resolution).toMatchObject({ resolutionLevel: 'ORGANIZATION', editPolicyId: strictPolicy });
         expect(resolution.bindings.find((binding) => binding.operationCode === 'ADD_ITEM')?.decision).toBe('DENY');
       }
+      expect(await resolve(null, null)).toMatchObject({
+        resolutionLevel: 'DENY', denyReason: 'WORKFLOW_CONTEXT_INVALID', editPolicyId: null, bindings: [],
+      });
+      expect(await resolve(profileA, versionB)).toMatchObject({
+        resolutionLevel: 'DENY', denyReason: 'WORKFLOW_CONTEXT_INVALID', editPolicyId: null, bindings: [],
+      });
       await expectConstraintRejection(tx, () => tx.$executeRaw`
         INSERT INTO public.org_oc_edit_policy_asg_cf(tenant_org_id, scope, edit_policy_id, gap_acknowledged)
         VALUES (${tenantId}::uuid, 'ORGANIZATION', ${permissivePolicy}::uuid, true)
@@ -184,13 +219,21 @@ describe('applied Edit Policy scopes and defaults', () => {
         UPDATE public.org_oc_edit_policy_asg_cf SET is_active = false
         WHERE tenant_org_id = ${tenantId}::uuid AND id = ${organizationOverride}::uuid
       `;
-      expect(await resolve(profileA, versionA)).toMatchObject({ resolutionLevel: 'PROFILE', editPolicyId: permissivePolicy });
+      expect(await resolve(profileA, versionA)).toMatchObject({ resolutionLevel: 'VERSION_DEFAULT', editPolicyId: strictPolicy });
       await tx.$executeRaw`
-        UPDATE public.org_oc_edit_policy_asg_cf SET is_active = false
-        WHERE tenant_org_id = ${tenantId}::uuid AND id = ${profileOverride}::uuid
+        UPDATE public.sys_oc_edit_policy_profile_def_cf SET is_active = false
+        WHERE id = ${profileOverride}::uuid
       `;
       expect(await resolve(profileA, versionA)).toMatchObject({ resolutionLevel: 'VERSION_DEFAULT', editPolicyId: strictPolicy });
-      expect(await resolve(profileA, versionA2)).toMatchObject({ resolutionLevel: 'DENY', denyReason: 'NO_AUTHORITY', bindings: [] });
+      await tx.$executeRaw`
+        UPDATE public.sys_oc_edit_policy_def_cf SET is_active = false
+        WHERE workflow_profile_version_id = ${versionA}::uuid AND edit_policy_id = ${strictPolicy}::uuid
+      `;
+      expect(await resolve(profileA, versionA)).toMatchObject({ resolutionLevel: 'DENY', denyReason: 'NO_AUTHORITY', bindings: [] });
+      await tx.$executeRaw`
+        UPDATE public.sys_oc_edit_policy_def_cf SET is_active = true
+        WHERE workflow_profile_version_id = ${versionA}::uuid AND edit_policy_id = ${strictPolicy}::uuid
+      `;
       // A partial reusable policy may publish, but cannot become a version
       // default: full coverage is enforced at binding rather than promotion.
       await tx.$executeRaw`
@@ -204,12 +247,16 @@ describe('applied Edit Policy scopes and defaults', () => {
       `, 'missing live status/operation/target decisions');
       await tx.$executeRaw`
         UPDATE public.org_oc_edit_policy_asg_cf SET is_active = true
-        WHERE tenant_org_id = ${tenantId}::uuid AND id IN (${organizationOverride}::uuid, ${profileOverride}::uuid)
+        WHERE tenant_org_id = ${tenantId}::uuid AND id = ${organizationOverride}::uuid
+      `;
+      await tx.$executeRaw`
+        UPDATE public.sys_oc_edit_policy_profile_def_cf SET is_active = true
+        WHERE id = ${profileOverride}::uuid
       `;
       await expectConstraintRejection(tx, () => tx.$executeRaw`
         INSERT INTO public.org_oc_edit_policy_asg_cf(tenant_org_id, scope, workflow_profile_id, edit_policy_id)
         VALUES (${tenantId}::uuid, 'PROFILE', ${profileA}::uuid, ${strictPolicy}::uuid)
-      `, '23505');
+      `, 'organization override has no workflow profile');
       // Case G: an unusable broad link blocks the usable narrower override.
       await tx.$executeRaw`
         UPDATE public.sys_oc_edit_policy_mst SET lifecycle_status = 'RETIRED', retired_at = now(), retired_by = ${actorId}::uuid
@@ -220,10 +267,15 @@ describe('applied Edit Policy scopes and defaults', () => {
         UPDATE public.org_oc_edit_policy_asg_cf SET is_active = false
         WHERE tenant_org_id = ${tenantId}::uuid AND id = ${organizationOverride}::uuid
       `;
+      expect(await resolve(profileA, versionA)).toMatchObject({ resolutionLevel: 'DENY', denyReason: 'POLICY_NOT_USABLE', editPolicyId: null, bindings: [] });
+      await tx.$executeRaw`
+        UPDATE public.sys_oc_edit_policy_def_cf SET is_active = false
+        WHERE workflow_profile_version_id = ${versionA}::uuid AND edit_policy_id = ${strictPolicy}::uuid
+      `;
       expect(await resolve(profileA, versionA)).toMatchObject({ resolutionLevel: 'PROFILE', editPolicyId: permissivePolicy });
       await tx.$executeRaw`
-        UPDATE public.org_oc_edit_policy_asg_cf SET is_active = false
-        WHERE tenant_org_id = ${tenantId}::uuid AND id = ${profileOverride}::uuid
+        UPDATE public.sys_oc_edit_policy_profile_def_cf SET is_active = false
+        WHERE id = ${profileOverride}::uuid
       `;
       throw new Error(ROLLBACK_FIXTURES);
     }, { timeout: 30000 })).rejects.toThrow(ROLLBACK_FIXTURES);

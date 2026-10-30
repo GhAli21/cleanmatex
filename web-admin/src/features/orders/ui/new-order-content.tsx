@@ -10,8 +10,12 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { useBreakpoint } from '@/lib/hooks/use-breakpoint';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useCategories, useProducts } from '../hooks/use-category-products';
-import { useOrderTotals } from '../hooks/use-order-totals';
-import { useReadyByEstimation } from '../hooks/use-ready-by-estimation';
+import { useNewOrderCartQuote } from '../hooks/use-new-order-cart-quote';
+import { useHasAnyPermission } from '@/lib/hooks/usePermissions';
+import { NEW_ORDER_ACCESS } from '../access/orders-access';
+import { LineDiscountDialog } from './line-discount-dialog';
+import { useServiceSpeeds } from '../hooks/use-service-speeds';
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useAuth } from '@/lib/auth/auth-context';
 import { usePlanFlags } from '../hooks/use-plan-flags';
@@ -30,7 +34,9 @@ import { usePaymentModalVersion } from '../hooks/use-payment-modal-version';
 import { useKeyboardNavigation } from '@/lib/hooks/use-keyboard-navigation';
 import { useOrderPerformance } from '../hooks/use-order-performance';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import type { CartQuoteLine } from '@/lib/types/cart-quote';
 import { useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { Check, GitBranch } from 'lucide-react';
@@ -185,23 +191,100 @@ export function NewOrderContent() {
     setPaymentModalVersion,
     showPaymentModalVersionSelector,
   } = usePaymentModalVersion(currentTenant);
-  const totals = useOrderTotals();
-  // B18 — order-level preference charges (independent of any item) added to the
-  // running total the cashier sees in the summary rail, so it stays consistent
-  // with the payment modal (which also includes them via the server preview).
-  const orderChargesTotal = useMemo(
-    () =>
-      (state.state.orderServicePrefs ?? []).reduce(
-        (sum, p) => sum + (p.extra_price ?? 0),
-        0,
-      ),
-    [state.state.orderServicePrefs],
+  // P5-03 (BF-19, D33): the cart's figures and ready-by come from the server
+  // quote — the same calculation the payment modal and submit use. Order Edit
+  // is not quoted as a new order; its only total is the live edit card.
+  const cartQuote = useNewOrderCartQuote();
+  const cartQuoteRequest = cartQuote.request;
+  const summaryTotal = cartQuote.current && cartQuote.data ? cartQuote.data.totals.saleTotal : null;
+
+  // ─── Speed change disclosure (rule #15, PLAN §11.1) ───────────────────────
+  // A speed change re-prices lines on the server. The cart keeps the figures from
+  // just before the change and, once the new quote is in, lists every line whose
+  // price moved, until the cashier dismisses it or edits anything else in the cart.
+  const speedAgnosticCartKey = useMemo(
+    () => JSON.stringify([
+      cartQuoteRequest.items.map(({ serviceSpeed: _speed, ...rest }) => rest),
+      cartQuoteRequest.orderServicePrefs, cartQuoteRequest.branchId, cartQuoteRequest.customerId,
+    ]),
+    [cartQuoteRequest],
   );
-  const summaryTotal = totals.subtotal + orderChargesTotal;
+  const tSpeed = useTranslations('newOrder.serviceSpeed');
+  const locale = useLocale();
+  const [speedChangeBase, setSpeedChangeBase] = useState<{
+    requestId: string; lines: CartQuoteLine[]; cartKey: string;
+  } | null>(null);
+  const captureSpeedChange = () => {
+    setSpeedChangeBase(cartQuote.current && cartQuote.data
+      ? { requestId: cartQuote.data.requestId, lines: cartQuote.data.lines, cartKey: speedAgnosticCartKey }
+      : null);
+  };
+  const speedChangeNote = useMemo(() => {
+    const data = cartQuote.data;
+    if (!speedChangeBase || !cartQuote.current || !data || data.requestId === speedChangeBase.requestId ||
+      speedChangeBase.cartKey !== speedAgnosticCartKey) return null;
+    const fmt = (amount: number) => formatMoneyAmountWithCode(amount, {
+      currencyCode: data.currencyCode, decimalPlaces: data.decimalPlaces, locale: locale === 'ar' ? 'ar' : 'en',
+    });
+    const changed = data.lines.flatMap((line) => {
+      const before = speedChangeBase.lines.find((b) => b.index === line.index);
+      const item = state.state.items[line.index];
+      if (!before || !item || before.grossAmount === line.grossAmount) return [];
+      return [tSpeed('repricedLine', {
+        item: getBilingual(item.productName, item.productName2) || item.productId,
+        from: fmt(before.grossAmount),
+        to: fmt(line.grossAmount),
+      })];
+    });
+    if (changed.length === 0) return null;
+    return {
+      title: tSpeed('repricedTitle', { count: changed.length }),
+      items: changed,
+      onDismiss: () => setSpeedChangeBase(null),
+    };
+  }, [speedChangeBase, cartQuote.current, cartQuote.data, speedAgnosticCartKey, state.state.items, tSpeed, getBilingual, locale]);
+  const { labelOf: speedLabel } = useServiceSpeeds();
+  const productSpeedNote = state.state.serviceSpeed !== SERVICE_SPEEDS.STANDARD
+    ? tSpeed('premiumInCart', { speed: speedLabel(state.state.serviceSpeed) })
+    : null;
+  const handleServiceSpeedChange = (serviceSpeed: string) => {
+    if (serviceSpeed === state.state.serviceSpeed) return;
+    captureSpeedChange();
+    state.setServiceSpeed(serviceSpeed);
+  };
+  const handleLineSpeedChange = (productId: string, serviceSpeed: string | null) => {
+    captureSpeedChange();
+    state.setItemServiceSpeed(productId, serviceSpeed);
+  };
+  // ─── Line discount (P5-03c): permission-gated; the server checks it again ───
+  const canDiscountLines = useHasAnyPermission(NEW_ORDER_ACCESS.actions?.lineDiscount?.requirement.permissions ?? []);
+  // P5-03e: a custom item's entered price is a price decision (`pricing:override`); New Order only (Edit: P6).
+  const canEnterPrices = useHasAnyPermission(NEW_ORDER_ACCESS.actions?.priceOverride?.requirement.permissions ?? []);
+  const canEnterCustomItems = canEnterPrices && !state.state.isEditMode;
+  const [discountProductId, setDiscountProductId] = useState<string | null>(null);
+  const discountItemIndex = discountProductId
+    ? state.state.items.findIndex((item) => item.productId === discountProductId)
+    : -1;
+  const discountItem = discountItemIndex >= 0 ? state.state.items[discountItemIndex] : null;
+  const discountLineGross = discountItemIndex >= 0 && cartQuote.current
+    ? cartQuote.data?.lines.find((line) => line.index === discountItemIndex)?.grossAmount ?? null
+    : null;
+
+  const handleApplySpeedToAllLines = () => {
+    captureSpeedChange();
+    state.applySpeedToAllLines();
+  };
   const { warnings, hasErrors } = useOrderWarnings({
     hasBranches: branches.length > 0,
   });
-  const { calculateReadyBy } = useReadyByEstimation();
+  /** Fills ready-by with the resolver's estimate for the cart as it is now (fresh, never a cached time). */
+  const calculateReadyBy = async (): Promise<string | null> => {
+    if (state.state.isEditMode || state.state.items.length === 0) return null;
+    const fresh = await cartQuote.refetch();
+    const readyByAt = fresh.data?.readyByAt ?? null;
+    if (readyByAt) state.setReadyByAt(readyByAt);
+    return readyByAt;
+  };
   const tEdit = useTranslations('orders.edit');
 
   const hasUnsavedChanges = useCallback(() => {
@@ -367,10 +450,8 @@ export function NewOrderContent() {
         }
       }
 
-      const pricePerUnit =
-        state.state.express && product.default_express_sell_price
-          ? product.default_express_sell_price
-          : product.default_sell_price || 0;
+      // Standard catalog price only; the speed premium comes from the speed rules on the server (P5-03b).
+      const pricePerUnit = product.default_sell_price || 0;
 
       let resolvedServicePrefs: Array<{
         preference_code: string;
@@ -699,6 +780,7 @@ export function NewOrderContent() {
           serviceCategoryName2: cat?.ctg_name2 ?? undefined,
           priceOverride: item.priceOverride,
           overrideReason: item.overrideReason,
+          serviceSpeed: item.serviceSpeed ?? null,
         };
       }),
     [state.state.items, state.state.categories],
@@ -810,7 +892,15 @@ export function NewOrderContent() {
     notes: state.state.notes,
     onNotesChange: state.setNotes,
     readyByAt: state.state.readyByAt,
-    total: summaryTotal,
+    cartQuote: state.state.isEditMode
+      ? undefined
+      : {
+          data: cartQuote.data,
+          pending: cartQuote.pending,
+          failed: cartQuote.failed,
+          errorCode: cartQuote.errorCode,
+          onRetry: () => void cartQuote.refetch(),
+        },
     onSubmit: handleSubmitOrderClick,
     primaryAction: workspace
       ? {
@@ -866,9 +956,21 @@ export function NewOrderContent() {
     onSelectCustomer: () => state.openModal('customerPicker'),
     onEditCustomer: () => state.openModal('customerEdit'),
     onClearCustomer: () => state.setCustomer(null, ''),
-    // Express toggle
-    express: state.state.express,
-    onExpressToggle: state.setExpress,
+    // Order speed (§5.4). Line speeds and quoted line prices are New Order only;
+    // Order Edit gets them in P6-02.
+    serviceSpeed: state.state.serviceSpeed,
+    onServiceSpeedChange: handleServiceSpeedChange,
+    hasLineSpeedOverrides: !state.state.isEditMode && state.state.items.some((item) => item.serviceSpeed != null),
+    onApplySpeedToAllLines: state.state.isEditMode ? undefined : handleApplySpeedToAllLines,
+    lineQuote: state.state.isEditMode
+      ? undefined
+      : {
+          lines: cartQuote.data?.lines ?? null,
+          pending: cartQuote.pending,
+          onLineSpeedChange: handleLineSpeedChange,
+          onEditLineDiscount: canDiscountLines ? setDiscountProductId : undefined,
+        },
+    speedChangeNote,
     // Bags
     bags: state.state.bags,
     onBagsChange: state.setBags,
@@ -920,8 +1022,8 @@ export function NewOrderContent() {
         onEditCustomer={
           workspace ? () => undefined : () => state.openModal('customerEdit')
         }
-        express={state.state.express}
-        onExpressToggle={state.setExpress}
+        serviceSpeed={state.state.serviceSpeed}
+        onServiceSpeedChange={handleServiceSpeedChange}
         categories={state.state.categories}
         selectedCategory={state.state.selectedCategory}
         onSelectCategory={handleSelectCategory}
@@ -1109,7 +1211,7 @@ export function NewOrderContent() {
                         <ProductGrid
                           products={state.state.products}
                           items={state.state.items}
-                          express={state.state.express}
+                          speedNote={productSpeedNote}
                           currencyCode={currencyCode}
                           productSearch={productsQuery.productSearch}
                           onProductSearchChange={productsQuery.setProductSearch}
@@ -1136,10 +1238,10 @@ export function NewOrderContent() {
                           onConditionToggle={handleConditionToggle}
                           selectedPieceId={state.state.selectedPieceId}
                           enforcePrefCompatibility={enforcePrefCompatibility}
-                          onOpenCustomItemModal={() => {
+                          onOpenCustomItemModal={canEnterCustomItems ? () => {
                             state.openModal('customItem');
                             trackModalOpen('customItem');
-                          }}
+                          } : undefined}
                           onOpenPhotoCapture={() => {
                             state.openModal('photoCapture');
                             trackModalOpen('photoCapture');
@@ -1326,6 +1428,18 @@ export function NewOrderContent() {
         info={amendmentDeltaNotice}
         onClose={closeAmendmentDeltaNotice}
       />
+      {discountItem ? (
+        <LineDiscountDialog
+          key={discountItem.productId}
+          open
+          onClose={() => setDiscountProductId(null)}
+          productName={getBilingual(discountItem.productName, discountItem.productName2) || discountItem.productId}
+          lineGross={discountLineGross}
+          current={discountItem.lineDiscount ?? null}
+          onApply={(lineDiscount) => state.setItemLineDiscount(discountItem.productId, lineDiscount)}
+          onRemove={() => state.setItemLineDiscount(discountItem.productId, null)}
+        />
+      ) : null}
     </div>
   );
 }

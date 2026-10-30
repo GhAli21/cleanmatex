@@ -1,26 +1,17 @@
 /**
- * Orders API - Main endpoints
- * PRD-010: Advanced Order Management
+ * Orders API - list endpoint (PRD-010).
+ *
+ * Orders are created only through `POST /api/v1/orders/submit-order` (staff,
+ * with payment) and the customer booking route. Both price the order on the
+ * commercial calculator (ADR-060). The former `POST` here stored the prices
+ * the client sent and was removed (Line-Level Money Snapshot, 2026-10-28).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { OrderService } from '@/lib/services/order-service';
-import { CreateOrderRequestSchema } from '@/lib/validations/workflow-schema';
-import { getAuthContext, requirePermission } from '@/lib/middleware/require-permission';
-import { checkAPIRateLimitTenant, checkAPIRateLimitUser } from '@/lib/middleware/rate-limit';
-import { validateCSRF } from '@/lib/middleware/csrf';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
 import { logger } from '@/lib/utils/logger';
-import { getRequestAuditContext } from '@/lib/utils/request-audit';
-import { withTenantContext } from '@/lib/db/tenant-context';
-import {
-  isWorkflowProfileCreateErrorCode,
-  workflowProfileCreateErrorPayload,
-  WORKFLOW_PROFILE_CREATE_HTTP_STATUS,
-} from '@/lib/services/workflow/workflow-profile-error-catalog';
-import { emitNotificationEvent } from '@lib/notifications/event-emitter';
-import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
-import { getTenantTimeZone } from '@/lib/utils/tenant-timezone.server';
 import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
 import { listStageWorklistOrderPage } from '@/lib/services/workflow/stage-worklist-query.service';
 import {
@@ -28,170 +19,6 @@ import {
   parseReadyListQueryFromApi,
   readyListQueryToWorklist,
 } from '@/lib/constants/ready-list-focus';
-
-/**
- * POST /api/v1/orders
- * Create new order
- * Requires: orders:create permission
- * @param request
- */
-export async function POST(request: NextRequest) {
-  try {
-    // Validate CSRF token
-    const csrfResponse = await validateCSRF(request);
-    if (csrfResponse) {
-      return csrfResponse;
-    }
-
-    // Check permission 
-    const authCheck = await requirePermission('orders:create')(request);
-    if (authCheck instanceof NextResponse) {
-      return authCheck; // Permission denied 
-    }
-    const { tenantId, userId, userName } = authCheck;
-    const requestAudit = getRequestAuditContext(request);
-
-    // Apply rate limiting (per tenant)
-    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
-    if (rateLimitResponse) {
-      return rateLimitResponse;
-    }
-
-    const body = await request.json();
-
-    // Support both old and new request formats for useOldWfCodeOrNew
-    const useOldWfCodeOrNew = false; // body.useOldWfCodeOrNew ?? body.use_old_wf_code_or_new;
-
-    const parsed = await CreateOrderRequestSchema.safeParseAsync(body);
-
-    if (!parsed.success) {
-      const errorDetails =
-        parsed.error.issues?.map(issue => {
-          const path = issue.path.join('.');
-          const detail: Record<string, unknown> = {
-            path,
-            message: issue.message,
-            code: issue.code,
-          };
-
-          // Enrich item-level errors with additional context from the raw request body
-          if (issue.path[0] === 'items' && typeof issue.path[1] === 'number') {
-            const itemIndex = issue.path[1] as number;
-            const items = Array.isArray((body as any).items) ? (body as any).items : [];
-            const rawItem = items[itemIndex];
-
-            detail.itemIndex = itemIndex;
-
-            if (rawItem && typeof rawItem === 'object') {
-              detail.item = {
-                productId: (rawItem as any).productId,
-                productName:
-                  (rawItem as any).productName ??
-                  (rawItem as any).name ??
-                  (rawItem as any).label ??
-                  null,
-                serviceCategoryCode: (rawItem as any).serviceCategoryCode,
-                quantity: (rawItem as any).quantity,
-                pricePerUnit: (rawItem as any).pricePerUnit,
-                totalPrice: (rawItem as any).totalPrice,
-              };
-            }
-          }
-
-          return detail;
-        }) || [];
-
-      logger.warn('Create order validation failed', {
-        feature: 'orders',
-        action: 'create',
-        tenantId,
-        userId,
-        errorDetails,
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid request body',
-          details: errorDetails
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate: orders cannot mix retail items and service items
-    const items = parsed.data.items || [];
-    if (items.length > 1) {
-      const hasRetail = items.some((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
-      const hasServices = items.some((i) => i.serviceCategoryCode && i.serviceCategoryCode !== 'RETAIL_ITEMS');
-      if (hasRetail && hasServices) {
-        return NextResponse.json(
-          { success: false, error: 'Orders cannot mix retail items and service items. Please add only one type per order.' },
-          { status: 400 }
-        );
-      }
-    }
-
-    const result = await withTenantContext(tenantId, async () =>
-      OrderService.createOrder({
-        tenantId,
-        userId,
-        userName,
-        ...parsed.data,
-        orderSourceCode: parsed.data.orderSourceCode ?? 'web_admin',
-        useOldWfCodeOrNew,
-        stockDeductionAudit: {
-          referenceType: 'ORDER',
-          userId,
-          userName,
-          userAgent: requestAudit.userAgent,
-          userIp: requestAudit.userIp,
-          reason: 'Order sale deduction',
-        },
-      })
-    );
-
-    if (!result.success) {
-      if (isWorkflowProfileCreateErrorCode(result.errorCode)) {
-        return NextResponse.json(
-          workflowProfileCreateErrorPayload(result.errorCode, { serviceCode: result.serviceCode }),
-          { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
-        );
-      }
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
-      );
-    }
-
-    if (result.order) {
-      void emitNotificationEvent({
-        code: 'order.created',
-        tenantOrgId: tenantId,
-        recipientUserIds: [userId],
-        sourceEntityType: 'order',
-        sourceEntityId: result.order.id,
-        variables: buildOrderCreatedNotificationVariables({
-          orderNo:   result.order.orderNo,
-          readyByAt: result.order.readyByAt,
-          timeZone:  await getTenantTimeZone(),
-        }),
-      });
-    }
-
-    return NextResponse.json({ success: true, data: result.order });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 400;
-    logger.error('Create order failed', e as Error, {
-      feature: 'orders',
-      action: 'create',
-      status,
-      message,
-    });
-    return NextResponse.json({ error: message }, { status });
-  }
-}
 
 /**
  * GET /api/v1/orders

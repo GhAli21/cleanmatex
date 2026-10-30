@@ -57,5 +57,6 @@
     "paymentAmountTitle": "أدخل مبلغ التحصيل الآن",
     "remainingPolicyTitle": "اختر سياسة الرصيد",
     "genericTitle": "مراجعة مطلوبة"
-  }
+  },
+  "discountsLocked": "تحتاج إلى صلاحية خصم الطلبات (orders:discount) لمنح خصم على الطلب. اطلب ذلك من المدير."
 }

@@ -146,7 +146,8 @@ export type OrderChangeEditPolicyResolutionLevel = 'ORGANIZATION' | 'PROFILE' | 
 
 /** SQL authority failures are display/proof facts; capability still requires an explicit live rule. */
 export type OrderChangeEditPolicyDenyReason = 'NONE' | 'NO_AUTHORITY' | 'AMBIGUOUS_ORGANIZATION'
-  | 'AMBIGUOUS_PROFILE' | 'AMBIGUOUS_DEFAULT' | 'POLICY_NOT_USABLE' | 'STATUS_NOT_COVERED';
+  | 'AMBIGUOUS_PROFILE' | 'AMBIGUOUS_DEFAULT' | 'POLICY_NOT_USABLE' | 'STATUS_NOT_COVERED'
+  | 'WORKFLOW_CONTEXT_INVALID';
 
 /** The single active Edit Policy for this order's workflow status, or a missing result. */
 export interface OrderChangeEditPolicyAssignment {

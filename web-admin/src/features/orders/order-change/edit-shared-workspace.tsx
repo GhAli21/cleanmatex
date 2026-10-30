@@ -1,5 +1,6 @@
 'use client';
 
+import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { cmxMessage, CmxSummaryMessage } from '@ui/feedback';
@@ -36,6 +37,29 @@ interface EditSharedWorkspaceProps {
   onLeave: (request: EditLeaveRequest) => Promise<void> | void;
 }
 
+/** Pricing codes the Edit preview and Apply return (P6-01d), mapped to their `workspace.pricingError` key. */
+const PRICING_ERROR_KEYS: Readonly<Record<string, string>> = {
+  ORDER_NEEDS_RECOMPUTE: 'orderNeedsRecompute',
+  OVERRIDE_REQUIRED: 'overrideRequired',
+  PRODUCT_NOT_FOUND: 'productNotFound',
+  PREFERENCE_NOT_AVAILABLE: 'preferenceNotAvailable',
+  SERVICE_SPEED_INVALID: 'serviceSpeedInvalid',
+  TIMEZONE_NOT_CONFIGURED: 'timezoneNotConfigured',
+  PRICE_NOT_RESOLVED: 'priceNotResolved',
+  PRICE_BELOW_MINIMUM: 'priceBelowMinimum',
+  LINE_DISCOUNT_EXCEEDS_GROSS: 'lineDiscountExceedsGross',
+  DOCUMENT_DISCOUNT_EXCEEDS_BASE: 'documentDiscountExceedsBase',
+  DOCUMENT_DISCOUNT_EXCEEDS_LINE: 'documentDiscountExceedsLine',
+  INVALID_ADJUSTMENT: 'invalidAdjustment',
+  COMMERCIAL_INVARIANT_FAILED: 'invariantFailed',
+};
+
+/** The translated reason for a pricing code, or null when the code is not a pricing one. */
+function explainPricingCode(t: ReturnType<typeof useTranslations>, code: string | undefined): string | null {
+  const key = code ? PRICING_ERROR_KEYS[code] : undefined;
+  return key ? t(`workspace.pricingError.${key}`) : null;
+}
+
 function explainApplyCode(t: ReturnType<typeof useTranslations>, code: string): string {
   switch (code) {
     case 'CURRENCY_UNRESOLVED': return t('workspace.applyError.currencyUnresolved');
@@ -60,7 +84,7 @@ function explainApplyCode(t: ReturnType<typeof useTranslations>, code: string): 
     case 'INTERNAL_ERROR': return t('workspace.applyError.internal');
     case 'PERMISSION_DENIED': return t('workspace.applyError.permissionDenied');
     case 'UNAUTHENTICATED': return t('workspace.applyError.unauthenticated');
-    default: return t('workspace.applyError.unknown', { code });
+    default: return explainPricingCode(t, code) ?? t('workspace.applyError.unknown', { code });
   }
 }
 
@@ -170,7 +194,7 @@ function EditSharedWorkspaceBody({
         branchId: context.order.branchId,
         items: visualOrder.items,
         orderServicePrefs: visualOrder.orderServicePrefs,
-        express: context.order.serviceSpeed === 'EXPRESS',
+        serviceSpeed: context.order.serviceSpeed ?? SERVICE_SPEEDS.STANDARD,
         notes: context.order.notes ?? '',
         customerNotes: context.order.customerNotes ?? '',
         paymentNotes: '',
@@ -190,13 +214,13 @@ function EditSharedWorkspaceBody({
     notes: state.notes,
     customerNotes: state.customerNotes,
     readyBy: state.readyByAt,
-    express: state.express,
+    serviceSpeed: state.serviceSpeed,
     customerName: state.customerName,
     customerMobile: state.customerMobile,
     customerEmail: state.customerEmail,
     items: state.items,
     orderServicePrefs: state.orderServicePrefs,
-  }), [state.customerEmail, state.customerMobile, state.customerName, state.customerNotes, state.express, state.items, state.notes, state.orderServicePrefs, state.readyByAt]);
+  }), [state.customerEmail, state.customerMobile, state.customerName, state.customerNotes, state.serviceSpeed, state.items, state.notes, state.orderServicePrefs, state.readyByAt]);
 
   const rememberReview = useCallback((body: unknown) => {
     const view = readEditReview(body, controller.buildOperations(), context.financial.totalAmount, { currencyCode: context.order.currencyCode, timezone: context.order.timezone });
@@ -226,7 +250,9 @@ function EditSharedWorkspaceBody({
       setConflict(result.status === 409);
       setReviewOpen(true);
       const code = (result.body as { error?: { code?: string } }).error?.code;
-      cmxMessage.error(code === 'POLICY_CHANGED_REVIEW_REQUIRED' ? t('workspace.policyChanged') : t('workspace.reviewFailed'));
+      cmxMessage.error(code === 'POLICY_CHANGED_REVIEW_REQUIRED'
+        ? t('workspace.policyChanged')
+        : explainPricingCode(t, code) ?? t('workspace.reviewFailed'));
       return;
     }
     const body = result.body as { status?: string };

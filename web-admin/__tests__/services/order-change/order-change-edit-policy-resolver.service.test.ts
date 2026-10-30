@@ -48,17 +48,14 @@ describe('order change shared Edit Policy resolver mapper', () => {
       operation: { seq: 1, code: 'CHANGE_UNLISTED', hasReason: true }, bindings: resolution.bindings,
     })).resolves.toMatchObject({ decision: 'DENY', reasonCode: 'CAPABILITY_POLICY_BINDING_MISSING' });
   });
-  it.each(['AMBIGUOUS_ORGANIZATION', 'AMBIGUOUS_PROFILE', 'AMBIGUOUS_DEFAULT', 'POLICY_NOT_USABLE', 'NO_AUTHORITY'] as const)('maps %s without fallback', async (reason) => {
+  it.each(['AMBIGUOUS_ORGANIZATION', 'AMBIGUOUS_PROFILE', 'AMBIGUOUS_DEFAULT', 'POLICY_NOT_USABLE', 'NO_AUTHORITY', 'WORKFLOW_CONTEXT_INVALID'] as const)('maps %s without fallback', async (reason) => {
     await expect(resolveOrderChangePolicyBindings(fakeTx([ruleRow('DENY', reason)]).tx, input)).resolves.toMatchObject({ resolutionLevel: 'DENY', denyReason: reason, editPolicyId: null, bindings: [] });
   });
-  it('passes a null profile unchanged and preserves the SQL version default', async () => {
-    const { tx, query } = fakeTx([ruleRow('VERSION_DEFAULT')]);
-    await expect(resolveOrderChangePolicyBindings(tx, { ...input, profileId: null })).resolves.toMatchObject({ resolutionLevel: 'VERSION_DEFAULT' });
-    expect(query.mock.calls[0][2]).toBeNull();
-  });
-  it('preserves organization bindings when stamped profile identifiers are null', async () => {
-    const resolution = await resolveOrderChangePolicyBindings(fakeTx([ruleRow()]).tx, { ...input, profileId: null, profileVersionId: null });
-    expect(resolution.bindings[0]).toMatchObject({ profileVersionId: null, operationCode: 'REMOVE_PIECE' });
+  it('preserves the SQL denial when persisted workflow identifiers are incomplete', async () => {
+    const { tx, query } = fakeTx([ruleRow('DENY', 'WORKFLOW_CONTEXT_INVALID')]);
+    await expect(resolveOrderChangePolicyBindings(tx, { ...input, profileId: null, profileVersionId: null }))
+      .resolves.toMatchObject({ resolutionLevel: 'DENY', denyReason: 'WORKFLOW_CONTEXT_INVALID', editPolicyId: null, bindings: [] });
+    expect(query.mock.calls[0].slice(1)).toEqual([TENANT, null, null, 'processing']);
   });
   it('passes another trusted organization into the SQL tenant predicate', async () => {
     const { tx, query } = fakeTx([ruleRow('DENY', 'NO_AUTHORITY')]);

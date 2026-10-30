@@ -76,7 +76,7 @@ Order of resolution for each priced row:
   - An exemption never falls back to the tenant VAT rate (PF-04).
 - **Charges:**
   - ORDER-level charges are taxed by their own profile and category.
-  - Until a charge has an explicit category, it reproduces today's treatment pinned by P1-01 (PF-19).
+  - Order preference charges (and later service charges such as delivery) are part of the same supply and are taxed like a standard line (Line-Level PLAN L25, 2026-10-24, fixes PF-19).
 - **Rounding:** per profile (`rounding_level`, `rounding_mode`, decimals or increment), falling back to the currency `ACCOUNTING` rule.
 - **Edit:** uses the **recorded** tax context of the order (profiles, rates, mode), never today's tenant rate (PF-07, D22).
 

@@ -7,3 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Performance-sensitive changes
+
+Apply the root repository instructions and [shared performance rules](../docs/dev/rules/performance-engineering.md) when changing data/query lifecycles, caching, request orchestration or expensive rendering. Check current behavior before applying an old plan; preserve tenant/security/money invariants and existing Cmx/EN/AR/RTL conventions. Use scoped evidence rather than requiring a benchmark for an ordinary copy/style edit. Keep this section outside the Next.js-managed block above.

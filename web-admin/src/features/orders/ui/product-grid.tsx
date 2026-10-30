@@ -12,7 +12,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ProductCard } from './product-card';
 import { PreferencesPanel } from './preferences-panel';
-import { Package, Search } from 'lucide-react';
+import { Package, Plus, Search } from 'lucide-react';
 import { CmxInput, CmxSwitch, Label, CmxSelect } from '@ui/primitives';
 import { CmxButton } from '@ui/primitives';
 import { CmxPagination } from '@ui/navigation';
@@ -40,7 +40,8 @@ interface OrderItem {
 interface ProductGridProps {
   products: Product[];
   items: OrderItem[];
-  express: boolean;
+  /** Shown on each card when the order speed adds a premium the cart prices (P5-03b). */
+  speedNote?: string | null;
   currencyCode?: string;
   productSearch?: string;
   onProductSearchChange?: (value: string) => void;
@@ -70,7 +71,7 @@ interface ProductGridProps {
 export const ProductGrid = memo(function ProductGrid({
   products,
   items,
-  express,
+  speedNote = null,
   currencyCode = '',
   productSearch = '',
   onProductSearchChange,
@@ -105,18 +106,13 @@ export const ProductGrid = memo(function ProductGrid({
     return item?.quantity || 0;
   };
 
-  const getItemPrice = (product: Product): number => {
-    if (express && product.default_express_sell_price) {
-      return product.default_express_sell_price;
-    }
-    return product.default_sell_price || 0;
-  };
+  // The standard catalog price; a speed premium comes from the server's speed rules and is shown in the cart.
+  const getItemPrice = (product: Product): number => product.default_sell_price || 0;
 
   const prefsPanelRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   void onRemoveItem;
-  void onOpenCustomItemModal;
   void onOpenPhotoCapture;
 
   const handlePageChange = (page: number) => {
@@ -138,11 +134,20 @@ export const ProductGrid = memo(function ProductGrid({
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         {/* Header panel */}
         <div className="border-b border-gray-200 bg-gradient-to-b from-slate-50 to-white px-4 py-4 sm:px-5">
-          <h2
-            className={`mb-3 text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl ${isRTL ? 'text-right' : 'text-left'}`}
-          >
-            {t('selectItems')}
-          </h2>
+          <div className={`mb-3 flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <h2
+              className={`text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl ${isRTL ? 'text-right' : 'text-left'}`}
+            >
+              {t('selectItems')}
+            </h2>
+            {/* P5-03e: a line with no catalog product; absent without `pricing:override` */}
+            {onOpenCustomItemModal ? (
+              <CmxButton type="button" variant="outline" size="sm" onClick={onOpenCustomItemModal}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                {t('addCustomItem')}
+              </CmxButton>
+            ) : null}
+          </div>
 
           {onProductSearchChange ? (
             <div
@@ -273,7 +278,7 @@ export const ProductGrid = memo(function ProductGrid({
                     product={product}
                     quantity={quantity}
                     price={price}
-                    express={express}
+                    speedNote={speedNote}
                     currencyCode={currencyCode}
                     categoryLabel={categoryLabel}
                     onAdd={() => onAddItem(product)}

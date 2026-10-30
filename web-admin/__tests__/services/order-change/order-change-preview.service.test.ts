@@ -8,6 +8,8 @@ import type { OrderChangeCapabilityBinding } from '@/lib/services/order-change/o
 import { previewOrderChange } from '@/lib/services/order-change/order-change-preview.service';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
 import type { z } from 'zod';
+import { calculateCommercialOrder } from '@/lib/commercial';
+import type { EditProjection, EditQuote } from '@/lib/services/commercial/commercial-edit.loader';
 
 type ChangeRequest = z.infer<typeof orderChangeRequestSchema>;
 
@@ -86,11 +88,43 @@ function request(operations: ChangeRequest['operations'], extra: Partial<ChangeR
   };
 }
 
+/**
+ * Stands in for `quoteOrderEdit`: the real calculator, no tax, each line at
+ * `unitPrices[line]` or its stored unit price; line extras inside the line,
+ * order extras as untaxed charges.
+ */
+function stubPricer(ctx: OrderChangeContext, unitPrices: Record<string, string> = {}) {
+  return async (projection: EditProjection): Promise<EditQuote> => {
+    const unitOf = (id: string) => unitPrices[id] ?? ctx.items.find((item) => item.id === id)?.pricePerUnit ?? '0';
+    const result = calculateCommercialOrder({
+      level: 'ITEM', pricingMode: 'TAX_EXCLUSIVE', discAllocMode: 'DOCUMENT_LEVEL', discAllocBasis: 'PROPORTIONAL_NET',
+      rounding: { decimalPlaces: 3, mode: 'HALF_UP' },
+      lines: projection.lines.map((line) => ({
+        lineId: line.id, quantity: line.quantity, priceType: null,
+        pricing: {
+          listUnitPrice: unitOf(line.id), priceListDiscountPercent: 0, priceListItemId: null, speedUnitPremium: 0, speedLinePremium: 0,
+          overrideUnitPrice: null, adjustments: [], minUnitPrice: null,
+          modifiers: projection.preferences.filter((p) => p.level !== 'ORDER' && p.itemId === line.id)
+            .map((p) => ({ id: p.id, kind: 'SERVICE', amount: p.amount, placement: 'INCLUDED' as const })),
+        },
+        tax: { taxCategoryCode: 'STANDARD', exemptReason: null, profiles: [] },
+        pieces: line.pieceIds.map((pieceId) => ({ pieceId })),
+        readyBy: { serviceSpeed: 'STANDARD', speedRuleHours: null, productHours: null, categoryHours: null, extraMinutes: 0 },
+      })),
+      orderAdjustments: [],
+      charges: projection.preferences.filter((p) => p.level === 'ORDER')
+        .map((p) => ({ chargeId: `order:SERVICE:${p.id}`, kind: 'SERVICE', amount: p.amount, tax: null })),
+      readyBy: { startAt: NOW, orderExtraMinutes: 0, orderOverride: null },
+    });
+    return { quote: { result, prices: [], orderAdjustments: [] } } as unknown as EditQuote;
+  };
+}
+
 function preview(input: {
   request: ChangeRequest;
   bindings: readonly OrderChangeCapabilityBinding[];
   context?: OrderChangeContext;
-  quotes?: Record<string, { basePrice: string; finalPrice: string; discountPercent: string }>;
+  unitPrices?: Record<string, string>;
   catalog?: Array<{ id: string; code: string; kind: string; category: string; level: 'ORDER' | 'ITEM' | 'PIECE'; extraPrice: string }>;
   proofKey?: { keyId: string; secret: string } | null;
   payments?: Array<{ amount: string; payment_status: string; payment_nature_snapshot: string; payment_method_code: string }>;
@@ -104,11 +138,8 @@ function preview(input: {
     context: input.context ?? context(),
     request: input.request,
     bindings: input.bindings,
-    quotesByTargetId: input.quotes ?? {},
+    priceEdit: stubPricer(input.context ?? context(), input.unitPrices),
     catalog: input.catalog ?? [],
-    taxMode: 'TAX_EXCLUSIVE',
-    taxRatePercent: '0.0000',
-    currencyDecimalPlaces: 3,
     payments: input.payments ?? [{ amount: '10.0000', payment_status: 'COMPLETED', payment_nature_snapshot: 'REAL_PAYMENT', payment_method_code: 'CASH' }],
     credits: [],
     refunds: [],
@@ -214,7 +245,7 @@ describe('previewOrderChange', () => {
         { changeReason: undefined },
       ),
       bindings: [{ ...binding('CHANGE_SERVICE_SPEED', 'ORDER'), requiresReason: true }],
-      quotes: { [ITEM]: { basePrice: '12.0000', finalPrice: '12.0000', discountPercent: '0.0000' } },
+      unitPrices: { [ITEM]: '12.0000' },
     });
     expect(result).toMatchObject({
       ok: true,
@@ -268,8 +299,8 @@ describe('previewOrderChange', () => {
   });
 
   it('accepts every frozen operation when its own facts are supplied', async () => {
-    const cases: Array<{ operations: ChangeRequest['operations']; target: OrderChangeCapabilityBinding['targetType']; context?: OrderChangeContext; quotes?: Record<string, { basePrice: string; finalPrice: string; discountPercent: string }>; catalog?: Array<{ id: string; code: string; kind: string; category: string; level: 'ORDER'; extraPrice: string }> }> = [
-      { operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: CLIENT, productId: PRODUCT, quantity: 1 } }], target: 'ORDER', quotes: { [CLIENT]: { basePrice: '8.0000', finalPrice: '8.0000', discountPercent: '0.0000' } } },
+    const cases: Array<{ operations: ChangeRequest['operations']; target: OrderChangeCapabilityBinding['targetType']; context?: OrderChangeContext; unitPrices?: Record<string, string>; catalog?: Array<{ id: string; code: string; kind: string; category: string; level: 'ORDER'; extraPrice: string }> }> = [
+      { operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: CLIENT, productId: PRODUCT, quantity: 1 } }], target: 'ORDER', unitPrices: { [CLIENT]: '8.0000' } },
       { operations: [{ seq: 1, code: 'REMOVE_ITEM', target: { kind: 'PERSISTED_ITEM', id: ITEM }, payload: {} }], target: 'ITEM' },
       { operations: [{ seq: 1, code: 'CHANGE_ITEM_QUANTITY', target: { kind: 'PERSISTED_ITEM', id: ITEM }, payload: { quantity: 2 } }], target: 'ITEM' },
       { operations: [{ seq: 1, code: 'ADD_PIECE', target: { kind: 'PERSISTED_ITEM', id: ITEM }, payload: { clientRef: CLIENT } }], target: 'ITEM', context: context({ pieces: [{ id: PIECE, orderId: ORDER, orderItemId: ITEM, pieceSeq: 1, pieceStatus: null, pieceStage: null, scanState: null, active: true }] }) },
@@ -278,7 +309,7 @@ describe('previewOrderChange', () => {
       { operations: [{ seq: 1, code: 'CHANGE_PREFERENCE', target: { kind: 'PERSISTED_PREFERENCE', id: PREFERENCE_ROW }, payload: { preferenceContent: 'Light' } }], target: 'PREFERENCE', context: context({ preferences: [{ id: PREFERENCE_ROW, orderId: ORDER, level: 'ORDER', orderItemId: null, orderItemPieceId: null, preferenceId: PREFERENCE, preferenceCode: 'STARCH', preferenceKind: 'service_prefs', preferenceCategory: 'FINISH', preferenceContent: 'Heavy', extraPrice: '1.0000', processingConfirmed: false, active: true }] }) },
       { operations: [{ seq: 1, code: 'REMOVE_PREFERENCE', target: { kind: 'PERSISTED_PREFERENCE', id: PREFERENCE_ROW }, payload: {} }], target: 'PREFERENCE', context: context({ preferences: [{ id: PREFERENCE_ROW, orderId: ORDER, level: 'ORDER', orderItemId: null, orderItemPieceId: null, preferenceId: PREFERENCE, preferenceCode: 'STARCH', preferenceKind: 'service_prefs', preferenceCategory: 'FINISH', preferenceContent: null, extraPrice: '1.0000', processingConfirmed: false, active: true }] }) },
       { operations: [{ seq: 1, code: 'CHANGE_PRIORITY', target: { kind: 'ORDER' }, payload: { priority: 'HIGH' } }], target: 'ORDER' },
-      { operations: [{ seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'ORDER' }, payload: { serviceSpeed: 'EXPRESS' } }], target: 'ORDER', quotes: { [ITEM]: { basePrice: '12.0000', finalPrice: '12.0000', discountPercent: '0.0000' } } },
+      { operations: [{ seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'ORDER' }, payload: { serviceSpeed: 'EXPRESS' } }], target: 'ORDER', unitPrices: { [ITEM]: '12.0000' } },
       { operations: [{ seq: 1, code: 'CHANGE_READY_BY', target: { kind: 'ORDER' }, payload: { readyBy: '2026-10-20T10:00:00.000Z' } }], target: 'ORDER' },
       { operations: [{ seq: 1, code: 'CHANGE_ORDER_NOTES', target: { kind: 'ORDER' }, payload: { notes: 'Updated' } }], target: 'ORDER' },
       { operations: [{ seq: 1, code: 'CHANGE_CUSTOMER_SNAPSHOT', target: { kind: 'ORDER' }, payload: { customerName: 'Ada Lovelace' } }], target: 'ORDER' },
@@ -288,7 +319,7 @@ describe('previewOrderChange', () => {
         request: request(entry.operations),
         bindings: [binding(entry.operations[0].code, entry.target)],
         context: entry.context,
-        quotes: entry.quotes,
+        unitPrices: entry.unitPrices,
         catalog: entry.catalog,
       });
       expect(result.ok).toBe(true);
@@ -313,6 +344,46 @@ describe('previewOrderChange', () => {
     });
     expect(unchanged).toMatchObject({ ok: true, status: 'NO_CHANGE', createsChange: false, reviewProof: null });
     expect(removed).toMatchObject({ ok: true, projectedItemIds: [OTHER] });
+  });
+
+  it('P6-01b: a header-only edit is not re-priced; the total stays the stored total (EC-08)', async () => {
+    const priceEdit = jest.fn(async () => { throw new Error('a notes edit must not price the order'); });
+    const result = await previewOrderChange({
+      now: NOW, tenantId: TENANT, actorUserId: ACTOR, featureEnabled: true,
+      canUsePermission: async () => true,
+      context: context({ financial: { totalAmount: '10.5000', netCollectedAmount: '0.0000', outstandingAmount: '10.5000', overpaidAmount: '0.0000' } }),
+      request: request([{ seq: 1, code: 'CHANGE_ORDER_NOTES', target: { kind: 'ORDER' }, payload: { notes: 'Updated' } }]),
+      bindings: [binding('CHANGE_ORDER_NOTES', 'ORDER')],
+      priceEdit, catalog: [], payments: [], credits: [], refunds: [], persistedTaxAmount: '0.5000', proofKey: KEY,
+    });
+    expect(priceEdit).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ ok: true, status: 'READY', projectedTotal: '10.5000', projectedTax: '0.5000', lines: [] });
+  });
+
+  it('P6-01b: a money edit on an order from before the calculator returns ORDER_NEEDS_RECOMPUTE', async () => {
+    const { CommercialEditError } = jest.requireActual('@/lib/services/commercial/commercial-edit.loader');
+    const result = await previewOrderChange({
+      now: NOW, tenantId: TENANT, actorUserId: ACTOR, featureEnabled: true,
+      canUsePermission: async () => true,
+      context: context(),
+      request: request([{ seq: 1, code: 'CHANGE_ITEM_QUANTITY', target: { kind: 'PERSISTED_ITEM', id: ITEM }, payload: { quantity: 2 } }]),
+      bindings: [binding('CHANGE_ITEM_QUANTITY', 'ITEM')],
+      priceEdit: async () => { throw new CommercialEditError('ORDER_NEEDS_RECOMPUTE', 'old order'); },
+      catalog: [], payments: [], credits: [], refunds: [], proofKey: KEY,
+    });
+    expect(result).toEqual({ ok: false, status: 422, code: 'ORDER_NEEDS_RECOMPUTE' });
+  });
+
+  it('P6-01b: the review carries the calculated order, and its fingerprint follows the figures', async () => {
+    const body = request([{ seq: 1, code: 'CHANGE_ITEM_QUANTITY', target: { kind: 'PERSISTED_ITEM', id: ITEM }, payload: { quantity: 2 } }]);
+    const bindings = [binding('CHANGE_ITEM_QUANTITY', 'ITEM')];
+    const atTen = await preview({ request: body, bindings });
+    const atEleven = await preview({ request: body, bindings, unitPrices: { [ITEM]: '11.0000' } });
+    expect(atTen).toMatchObject({ ok: true, projectedTotal: '20.0000', lines: [expect.objectContaining({ unitPrice: '10.0000' })] });
+    if (atTen.ok && atEleven.ok) {
+      expect(atTen.commercial?.quote.result.totals.totalAmount.toFixed(4)).toBe('20.0000');
+      expect(atEleven.calculationFingerprint).not.toBe(atTen.calculationFingerprint);
+    }
   });
 
   it('does not open a transaction or call a write client', () => {

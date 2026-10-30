@@ -6,7 +6,9 @@ import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { canAccess } from '@/lib/services/feature-flags.service';
 import { resolveCustomerMobileSession } from '@/lib/services/customer-mobile-session.service';
-import { OrderService } from '@/lib/services/order-service';
+import { quoteCheckout, type CheckoutQuote } from '@/lib/services/commercial/commercial-checkout.service';
+import { createUnpaidOrderFromCheckout } from '@/lib/services/order-create-from-checkout.service';
+import { checkoutQuoteErrorResponse } from '@/lib/api/commercial-http';
 import { resolveOrderTypeFromBookingFulfillment } from '@/lib/constants/order-types';
 import { PreferenceCatalogService } from '@/lib/services/preference-catalog.service';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
@@ -52,6 +54,8 @@ const submitBookingSchema = z.object({
   isAsap: z.boolean().optional().default(true),
   scheduledAt: z.string().datetime().optional().nullable(),
   notes: z.string().max(500).optional().default(''),
+  /** A `sys_service_speed_cd` code; absent means STANDARD. Priced by the tenant's speed rules. */
+  serviceSpeed: z.string().trim().min(1).max(40).optional(),
 });
 
 interface BookingSlot {
@@ -63,6 +67,7 @@ interface BookingSlot {
 }
 
 type BookingSubmitBody = z.infer<typeof submitBookingSchema>;
+type BookingPiece = z.infer<typeof bookingItemPieceSchema>;
 const PACKING_PREFERENCE_KIND_CODE = 'packing_prefs';
 const DEFAULT_SERVICE_PREFERENCE_KIND_CODE = 'service_prefs';
 
@@ -292,6 +297,7 @@ function buildBookingSignature(params: {
   scheduledAt?: string | null;
   addressId?: string | null;
   fulfillmentType: string;
+  serviceSpeed: string | null;
   servicePreferenceIds: string[];
   pickupPreferenceIds: string[];
   notes: string;
@@ -310,6 +316,7 @@ function buildBookingSignature(params: {
         params.fulfillmentType,
         params.isAsap ? 'asap' : params.scheduledAt ?? '',
         params.addressId ?? '',
+        params.serviceSpeed ?? '',
         [...params.servicePreferenceIds].sort().join('|'),
         [...params.pickupPreferenceIds].sort().join('|'),
         params.notes.trim(),
@@ -576,7 +583,8 @@ export async function GET(request: NextRequest) {
         description: preference.description ?? null,
         description2: preference.description2 ?? null,
         preferenceSysKind: PACKING_PREFERENCE_KIND_CODE,
-        extraPrice: 0,
+        // The tenant surcharge the order is priced with (org_packing_preference_cf.extra_price).
+        extraPrice: Number(preference.default_extra_price ?? 0),
         sustainabilityScore:
           preference.sustainability_score != null
             ? Number(preference.sustainability_score)
@@ -722,7 +730,6 @@ export async function POST(request: NextRequest) {
       );
     }
     const requestedItemIds = Array.from(requestedItems.keys());
-    const bodyItemsMap = new Map(body.items.map((item) => [item.itemId, item]));
     const requiresAddress = body.isPickupFromAddress;
     logger.info('Public customer booking submit items normalized', {
       ...submitContext,
@@ -859,82 +866,71 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const tenantSettings = createTenantSettingsService(supabase);
-    const [moneyConfig, vatSetting] = await Promise.all([
-      tenantSettings.getCurrencyConfig(body.tenantId, branch.id, session.customerId),
-      tenantSettings.getSettingValue(body.tenantId, 'TENANT_VAT_RATE', branch.id, session.customerId),
-    ]);
-    const vatRate =
-      typeof vatSetting === 'number'
-        ? vatSetting
-        : Number.parseFloat(String(vatSetting ?? '0')) || 0;
-    logger.info('Public customer booking submit tenant data resolved', {
-      ...submitContext,
-      customerId: session.customerId,
-      productCount: products.length,
-      branchId: branch.id,
-      hasAddress: Boolean(address),
-      currencyCode: moneyConfig.currencyCode,
-      vatRate,
-    });
     const orderTypeId = resolveOrderTypeFromBookingFulfillment(body.fulfillmentType);
     const paymentTypeCode =
       body.fulfillmentType === 'delivery' ? 'PAY_ON_DELIVERY' : 'PAY_ON_COLLECTION';
     const addressDescription = address ? buildAddressDescription(address) : null;
-    const selectedServicePrefs = body.servicePreferenceIds.map((id) => {
-      const preference = servicePreferenceMap.get(id)!;
-      return {
-        preference_code: preference.code,
-        source: 'customer_mobile_app',
-        extra_price: Number(preference.default_extra_price ?? 0),
-      };
-    });
+    const productById = new Map(products.map((product) => [product.id, product]));
     const preferredPackingCode = body.pickupPreferenceIds[0] ?? null;
-    const items = products.map((product) => {
-      const quantity = requestedItems.get(product.id) ?? 0;
-      const price = Number(product.default_sell_price ?? 0);
-      const servicePrefCharge = selectedServicePrefs.reduce(
-        (sum, preference) => sum + preference.extra_price * quantity,
-        0,
-      );
+
+    // Piece k of a line is the piece with pieceSeq k + 1 (Create writes one piece per unit).
+    const piecesByItem = new Map<string, Array<BookingPiece | undefined>>();
+    for (const itemId of requestedItemIds) {
+      const lines = body.items.filter((item) => item.itemId === itemId);
+      const pieces = lines.flatMap((item) => item.pieces ?? []);
+      if (pieces.length === 0) continue;
+      const quantity = requestedItems.get(itemId) ?? 0;
+      const seqs = new Set(pieces.map((piece) => piece.pieceSeq));
+      // Pieces belong to one line per item, each pieceSeq once and within the quantity.
+      if (lines.length > 1 || seqs.size !== pieces.length || pieces.some((piece) => piece.pieceSeq > quantity)) {
+        return jsonError('booking_piece_invalid', 'Piece details do not match the selected quantity', 400);
+      }
+      const ordered: Array<BookingPiece | undefined> = Array.from({ length: quantity }, () => undefined);
+      for (const piece of pieces) ordered[piece.pieceSeq - 1] = piece;
+      piecesByItem.set(itemId, ordered);
+    }
+
+    // Lines in the order the customer chose them; every price comes from the quote.
+    const lineRequests = requestedItemIds.map((itemId) => {
+      const product = productById.get(itemId)!;
       return {
-        productId: product.id,
-        productName: product.product_name ?? null,
-        productName2: product.product_name2 ?? null,
-        quantity,
-        pricePerUnit: price,
-        totalPrice: price * quantity,
-        serviceCategoryCode: product.service_category_code ?? undefined,
-        servicePrefs: selectedServicePrefs,
-        servicePrefCharge,
-        packingPrefCode: preferredPackingCode ?? product.default_packing_pref ?? undefined,
-        packingPrefSource: preferredPackingCode ? 'customer_mobile_app' : undefined,
-        pieces: (() => {
-          const bodyItem = bodyItemsMap.get(product.id);
-          if (!bodyItem?.pieces?.length) return undefined;
-          return bodyItem.pieces.map((p) => ({
-            pieceSeq: p.pieceSeq,
-            servicePrefs: (p.servicePreferenceIds ?? []).map((code) => {
-              const pref = servicePreferenceMap.get(code);
-              return {
-                preference_code: code,
-                source: 'customer_mobile_app',
-                extra_price: pref ? Number(pref.default_extra_price ?? 0) : 0,
-              };
-            }),
-            packingPrefCode: p.packingPrefCode ?? undefined,
-            color: p.colorCode ?? undefined,
-            notes: p.notes || undefined,
-          }));
-        })(),
+        product,
+        quantity: requestedItems.get(itemId) ?? 0,
+        packingPrefCode: preferredPackingCode ?? product.default_packing_pref ?? null,
+        pieces: piecesByItem.get(itemId),
       };
     });
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.totalPrice + item.servicePrefCharge,
-      0,
-    );
-    const vatAmount = subtotal * vatRate;
-    const total = subtotal + vatAmount;
+
+    let checkout: CheckoutQuote;
+    try {
+      checkout = await withTenantContext(body.tenantId, () => quoteCheckout({
+        tenantId: body.tenantId,
+        branchId: branch.id,
+        customerId: session.customerId,
+        serviceSpeed: body.serviceSpeed,
+        strictFinancialReads: true,
+        items: lineRequests.map((line) => ({
+          productId: line.product.id,
+          quantity: line.quantity,
+          servicePrefs: body.servicePreferenceIds.map((code) => ({ preference_code: code })),
+          packingPrefCode: line.packingPrefCode,
+          pieces: line.pieces?.map((piece) => ({
+            servicePrefs: (piece?.servicePreferenceIds ?? []).map((code) => ({ preference_code: code })),
+            packingPrefCode: piece?.packingPrefCode ?? null,
+          })),
+        })),
+      }));
+    } catch (error) {
+      const mapped = checkoutQuoteErrorResponse(error, { tenantId: body.tenantId, route: 'public_customer_booking' });
+      if (!mapped) throw error;
+      logger.warn('Public customer booking submit rejected by the quote', {
+        ...submitContext,
+        customerId: session.customerId,
+        status: mapped.status,
+      });
+      return mapped;
+    }
+
     const bookingSignature = buildBookingSignature({
       tenantId: body.tenantId,
       customerId: session.customerId,
@@ -944,6 +940,7 @@ export async function POST(request: NextRequest) {
       scheduledAt: body.scheduledAt,
       addressId: body.addressId,
       fulfillmentType: body.fulfillmentType,
+      serviceSpeed: body.serviceSpeed ?? null,
       servicePreferenceIds: body.servicePreferenceIds,
       pickupPreferenceIds: body.pickupPreferenceIds,
       notes: body.notes,
@@ -951,7 +948,7 @@ export async function POST(request: NextRequest) {
     const duplicateSince = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     const { data: duplicateOrder } = await supabase
       .from('org_orders_mst')
-      .select('id, order_no, ready_by_at_new, ready_by')
+      .select('id, order_no, ready_by_at_new, ready_by, total_amount, currency_code')
       .eq('tenant_org_id', body.tenantId)
       .eq('customer_id', session.customerId)
       .eq('customer_details->>bookingRequestSignature', bookingSignature)
@@ -973,6 +970,8 @@ export async function POST(request: NextRequest) {
             orderId: duplicateOrder.id,
             orderNo: duplicateOrder.order_no,
             promisedWindow: duplicateOrder.ready_by_at_new ?? duplicateOrder.ready_by ?? null,
+            totalAmount: duplicateOrder.total_amount != null ? String(duplicateOrder.total_amount) : null,
+            currencyCode: duplicateOrder.currency_code ?? null,
           },
         },
         { status: 200 },
@@ -983,36 +982,48 @@ export async function POST(request: NextRequest) {
       ...submitContext,
       customerId: session.customerId,
       branchId: branch.id,
-      subtotal,
-      vatAmount,
-      total,
-      currencyCode: moneyConfig.currencyCode,
+      saleTotal: checkout.totals.saleTotal,
+      currencyCode: checkout.totals.currencyCode,
       bookingSignature,
     });
 
-    const adminSupabase = createAdminSupabaseClient();
-    const creationResult = await withTenantContext(body.tenantId, async () =>
-      OrderService.createOrder({
-        tenantId: body.tenantId,
+    // The same create path as the staff submit: quote, create, settle and commit in one
+    // transaction. Nothing is paid here; the customer pays on collection or delivery.
+    const creationResult = await createUnpaidOrderFromCheckout({
+      tenantId: body.tenantId,
+      checkout,
+      // committed_by references auth.users, and a customer is not a staff user.
+      committedBy: null,
+      issuedBy: session.customerId,
+      order: {
         customerId: session.customerId,
         branchId: branch.id,
         orderTypeId,
-        items,
         orderSourceCode: 'customer_mobile_app',
-        supabaseClient: adminSupabase,
-        totals: {
-          subtotal,
-          tax: vatAmount,
-          total,
-          vatRate,
-          vatAmount,
-        },
+        items: lineRequests.map((line) => ({
+          productId: line.product.id,
+          productName: line.product.product_name ?? null,
+          productName2: line.product.product_name2 ?? null,
+          quantity: line.quantity,
+          // Create writes every money column from the quote; these legacy inputs are not read.
+          pricePerUnit: 0,
+          totalPrice: 0,
+          serviceCategoryCode: line.product.service_category_code ?? undefined,
+          servicePrefs: body.servicePreferenceIds.map((code) => ({ preference_code: code, source: 'customer_mobile_app' })),
+          packingPrefCode: line.packingPrefCode ?? undefined,
+          packingPrefSource: preferredPackingCode ? 'customer_mobile_app' : undefined,
+          pieces: line.pieces?.map((piece, index) => ({
+            pieceSeq: index + 1,
+            servicePrefs: (piece?.servicePreferenceIds ?? []).map((code) => ({ preference_code: code, source: 'customer_mobile_app' })),
+            packingPrefCode: piece?.packingPrefCode ?? undefined,
+            color: piece?.colorCode ?? undefined,
+            notes: piece?.notes || undefined,
+          })),
+        })),
         customerNotes: body.notes.trim(),
         internalNotes: `Mobile booking | ${body.isPickupFromAddress ? 'pickup_from_address' : 'bring_in'} | ${body.isAsap ? 'ASAP' : body.scheduledAt ?? 'scheduled'}`,
         paymentTypeCode,
-        currencyCode: moneyConfig.currencyCode,
         currencyExRate: 1,
-        readyByAt: body.scheduledAt ?? undefined,
         customerMobile: session.phoneNumber,
         customerName: session.displayName ?? undefined,
         customerDetails: {
@@ -1026,13 +1037,14 @@ export async function POST(request: NextRequest) {
           bookingAddressText: addressDescription,
           selectedServicePreferenceIds: body.servicePreferenceIds,
           selectedPickupPreferenceIds: body.pickupPreferenceIds,
+          serviceSpeed: body.serviceSpeed ?? null,
           fulfillmentType: body.fulfillmentType,
         },
         userId: session.customerId,
         userName: session.displayName ?? 'Customer Mobile App',
         useOldWfCodeOrNew: false,
-      })
-    );
+      },
+    });
 
     if (!creationResult.success || !creationResult.order) {
       logger.warn('Public customer booking submit order creation failed', {
@@ -1049,12 +1061,23 @@ export async function POST(request: NextRequest) {
           { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
         );
       }
+      // Retail goods are paid at the counter; a booking is always paid later.
+      if (creationResult.errorCode === 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED') {
+        return jsonError('booking_item_unavailable', 'Retail items cannot be booked online', 400);
+      }
       return jsonError(
         'booking_create_failed',
         creationResult.error ?? 'Failed to create booking',
         400,
       );
     }
+
+    const { data: createdOrder } = await supabase
+      .from('org_orders_mst')
+      .select('ready_by, total_amount')
+      .eq('tenant_org_id', body.tenantId)
+      .eq('id', creationResult.order.id)
+      .maybeSingle();
 
     const durationMs = Date.now() - startedAt;
     logger.info('Public customer booking submit success', {
@@ -1072,7 +1095,10 @@ export async function POST(request: NextRequest) {
         data: {
           orderId: creationResult.order.id,
           orderNo: creationResult.order.orderNo,
-          promisedWindow: body.scheduledAt ?? creationResult.order.readyByAt,
+          promisedWindow: body.scheduledAt ?? createdOrder?.ready_by ?? null,
+          // What the customer owes, as the calculator priced it.
+          totalAmount: createdOrder?.total_amount != null ? String(createdOrder.total_amount) : String(checkout.totals.saleTotal),
+          currencyCode: checkout.totals.currencyCode,
         },
       },
       { status: 200 },

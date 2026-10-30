@@ -83,6 +83,8 @@ export interface PaymentSimpleViewProps {
   // tenant has the Discounts & Credits section turned off, or no positive
   // order total exists yet to discount against) ----
   showDiscounts: boolean;
+  /** Set without `orders:discount`: the discount fields show this instead of inputs. */
+  discountLockedReason?: string | null;
   discountControl: Control<PaymentFormData>;
   discountSetValue: UseFormSetValue<PaymentFormData>;
   discountErrors: Pick<
@@ -174,6 +176,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     onMethodSelect,
     onMoreOptions,
     showDiscounts,
+    discountLockedReason = null,
     discountControl,
     discountSetValue,
     discountErrors,
@@ -409,6 +412,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               total={discountTotal}
               decimalPlaces={decimalPlaces}
               currencyCode={currencyCode}
+              lockedReason={discountLockedReason}
               className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
             />
           ) : null}

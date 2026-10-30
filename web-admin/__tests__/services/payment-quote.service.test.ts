@@ -2,11 +2,13 @@
 /** Verifies orchestration/tenant/amount contracts; database timing is measured separately. */
 import { quotePayment } from '@/lib/services/payment-quote.service';
 import type { PaymentQuoteRequest } from '@/lib/types/payment-quote';
+import { CommercialContextError } from '@/lib/services/commercial/commercial-context.loader';
 
 const mockBranch = jest.fn();
 const mockCustomer = jest.fn();
 const mockProfiles = jest.fn();
 const mockTotals = jest.fn();
+const mockEntries = jest.fn();
 const mockMethods = jest.fn();
 const mockBalances = jest.fn();
 const mockCompose = jest.fn();
@@ -19,7 +21,10 @@ jest.mock('@/lib/db/prisma', () => ({ prisma: {
   org_customers_mst: { findFirst: (...args: unknown[]) => mockCustomer(...args) },
   org_tax_profiles_cf: { findMany: (...args: unknown[]) => mockProfiles(...args) },
 } }));
-jest.mock('@/lib/services/order-calculation.service', () => ({ calculateOrderTotals: (...args: unknown[]) => mockTotals(...args) }));
+// P5-02: the quote prices through the checkout service (its own tests cover the calculator).
+jest.mock('@/lib/services/commercial/commercial-checkout.service', () => ({
+  quoteCheckout: async (...args: unknown[]) => ({ totals: await mockTotals(...args), taxProfileEntries: mockEntries(...args) }),
+}));
 jest.mock('@/lib/services/payment-config.service', () => ({ listEffectivePaymentMethodConfigs: (...args: unknown[]) => mockMethods(...args) }));
 jest.mock('@/lib/services/order-credit-application.service', () => ({ getAvailableStoredValueSummary: (...args: unknown[]) => mockBalances(...args) }));
 jest.mock('@/lib/services/checkout-options.service', () => ({ composeCheckoutOptions: (...args: unknown[]) => mockCompose(...args) }));
@@ -50,6 +55,7 @@ describe('coordinated payment quote', () => {
     mockCustomer.mockResolvedValue({ id: 'customer-A' });
     mockProfiles.mockResolvedValue([]);
     mockTotals.mockResolvedValue(totals);
+    mockEntries.mockReturnValue([]);
     mockMethods.mockResolvedValue([{ id: 'cash' }]);
     mockBalances.mockResolvedValue({ wallet: { balance: 5 } });
     mockCompose.mockResolvedValue({ paymentMethods: [{ id: 'cash' }], customerCredits: [], storedValueSummary: null });
@@ -65,8 +71,9 @@ describe('coordinated payment quote', () => {
       effectiveMethods: [{ id: 'cash' }], storedValueSummary: { wallet: { balance: 5 } },
       canViewStoredValueBalances: false,
     }));
+    // Order preferences go through as codes; the server prices them.
     expect(mockTotals).toHaveBeenCalledWith(expect.objectContaining({ tenantId: 'tenant-A', userId: 'staff-A',
-      orderCharges: [{ label: 'HANG', amount: 3 }] }));
+      orderServicePrefs: [expect.objectContaining({ preference_code: 'HANG' })] }));
     expect(mockBalances).toHaveBeenCalledTimes(1);
   });
 
@@ -92,20 +99,21 @@ describe('coordinated payment quote', () => {
     await pending;
   });
 
-  it('returns selected profile IDs in the same order used to calculate and submit', async () => {
-    mockProfiles.mockResolvedValue([
-      { id: 'vat', name: 'VAT', name2: null, tax_type: 'VAT', rate: 15, is_compound: false },
-      { id: 'custom', name: 'Levy', name2: null, tax_type: 'CUSTOM', rate: 2, is_compound: true },
-    ]);
+  it('shows the tax profiles the calculation used, from its own read (no second profile read)', async () => {
+    const entries = [
+      { id: 'custom', name: 'Levy', name2: null, tax_type: 'CUSTOM', rate: 2, is_compound: true, enabled: true },
+      { id: 'vat', name: 'VAT', name2: null, tax_type: 'VAT', rate: 15, is_compound: false, enabled: true },
+    ];
+    mockEntries.mockReturnValue(entries);
     const quote = await quotePayment({ ...input, taxProfileIds: ['custom', 'vat'] }, context);
-    expect(quote.taxProfileEntries.map((profile) => profile.id)).toEqual(['custom', 'vat']);
+    expect(quote.taxProfileEntries).toEqual(entries);
     expect(mockTotals).toHaveBeenCalledWith(expect.objectContaining({ taxProfileIds: ['custom', 'vat'] }));
-    expect(mockProfiles).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ tenant_org_id: 'tenant-A', is_active: true, rec_status: 1 }) }));
+    expect(mockProfiles).not.toHaveBeenCalled();
   });
 
-  it('rejects missing or no-longer-effective selected taxes before calculation', async () => {
+  it('rejects missing or no-longer-effective selected taxes with the existing code', async () => {
+    mockTotals.mockRejectedValue(new CommercialContextError('INVALID_TAX_PROFILE_SELECTION', 'not active', { profileIds: 'expired' }));
     await expect(quotePayment({ ...input, taxProfileIds: ['expired'] }, context)).rejects.toMatchObject({ code: 'INVALID_TAX_PROFILE_SELECTION' });
-    expect(mockTotals).not.toHaveBeenCalled();
   });
 
   it('preserves strict credit information and policy mode in the quote', async () => {

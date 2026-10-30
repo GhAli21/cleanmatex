@@ -30,17 +30,22 @@ import {
   type OrderChangePreferenceOperation,
 } from '@/lib/services/order-change/order-change-preference-projection';
 import {
-  calculateOrderChangeTotals,
   digestOrderChangeCalculationFingerprint,
+  editCalculationFingerprint,
+  editPricingErrorCode,
+  editProjectionOf,
+  orderChangeNeedsPricing,
   reviewedItemTotal,
-  type OrderChangePriceQuote,
-  type OrderChangeTaxMode,
-} from '@/lib/services/order-change/order-change-calculation.service';
+  reviewedLinesOf,
+  type OrderChangeEditPricer,
+  type OrderChangeReviewedLine,
+} from '@/lib/services/order-change/order-change-edit-pricing';
+import type { EditQuote } from '@/lib/services/commercial/commercial-edit.loader';
 import {
   projectOrderChangeFinancialResult,
   type OrderChangeFinancialResult,
 } from '@/lib/services/order-change/order-change-financial-result.service';
-import { round4, type AggregationCreditRow, type AggregationPaymentRow } from '@/lib/services/order-financial-aggregation';
+import type { AggregationCreditRow, AggregationPaymentRow } from '@/lib/services/order-financial-aggregation';
 import { buildPreviewOperationAudits, digestOrderChangeOperationAudits, type OrderChangeOperationAudit, type OrderChangePreviewAuditFacts } from '@/lib/services/order-change/order-change-review-audit';
 
 type ChangeRequest = z.infer<typeof orderChangeRequestSchema>;
@@ -70,7 +75,12 @@ export interface OrderChangePreviewSuccess {
   /** Frozen facts for the one speed operation. Apply copies these onto that operation row. */
   speedAudit?: OrderChangeSpeedAudit;
   /** Reviewed line prices. Apply writes these amounts and does not price the line again. */
-  lines?: readonly { id: string; active: boolean; unitPrice: string; merchandiseAmount: string }[];
+  lines?: readonly OrderChangeReviewedLine[];
+  /**
+   * Server-only: the calculated order behind the review (P6-01b). Apply stores
+   * it; the preview HTTP response omits it. Absent for an edit that is not re-priced.
+   */
+  commercial?: EditQuote;
   /** Before and after facts for each operation, in the same columns Apply stores. */
   operationAudits: OrderChangeOperationAudit[];
   followUp: string[];
@@ -260,16 +270,12 @@ export async function previewOrderChange(input: {
   bindings: readonly OrderChangeCapabilityBinding[];
   /** Keeps the winning identity visible even when the current status has no rules. */
   policyResolution?: OrderChangeEditPolicyResolution;
-  quotesByTargetId: Readonly<Record<string, OrderChangePriceQuote>>;
+  /** Prices the projected order on the commercial calculator; called only for an edit that changes money. */
+  priceEdit: OrderChangeEditPricer;
   catalog: readonly OrderChangePreferenceDefinition[];
-  taxMode: OrderChangeTaxMode;
-  taxRatePercent: string;
-  currencyDecimalPlaces: number;
   payments: readonly AggregationPaymentRow[];
   credits: readonly AggregationCreditRow[];
   refunds: ReadonlyArray<{ refund_status: string | null; refund_amount: string; reopens_due_amount: string }>;
-  /** Kept in the total when Express is not part of this change. A speed change replaces it on the items. */
-  persistedExpressAmount?: string;
   /** Stored order tax at preview time. The speed audit freezes this as the tax before the decision. */
   persistedTaxAmount?: string;
   /** Stored commercial rows for the review. Context is used when a row was not loaded. */
@@ -410,25 +416,53 @@ export async function previewOrderChange(input: {
     };
   }
 
-  const speedAmount = speedChanged ? '0.0000' : round4(Number(input.persistedExpressAmount ?? '0')).toFixed(4);
-  const calculated = calculateOrderChangeTotals({
-    lines: structure.items.map((item) => ({
-      id: item.id,
-      quantity: item.quantity,
-      active: item.active,
-      repriced: !input.context.items.some((current) => current.id === item.id) || (speedChanged && Boolean(input.quotesByTargetId[item.id])),
-      persistedUnitPrice: input.context.items.find((current) => current.id === item.id)?.pricePerUnit ?? '0.0000',
-      quote: input.quotesByTargetId[item.id],
-      lineEmbeddedExtra: projectedPreferences.charges.lineEmbeddedByItemId[item.id] ?? '0.0000',
-    })),
-    taxMode: input.taxMode,
-    taxRatePercent: input.taxRatePercent,
-    currencyDecimalPlaces: input.currencyDecimalPlaces,
-    overrideAllowed: await input.canUsePermission('orders:edit_override'),
-    orderPreferenceAddend: projectedPreferences.charges.orderAddend,
-    orderSpeedAddend: speedAmount,
-  });
-  if (calculated.ok === false) return { ok: false, status: 422, code: calculated.issue.code };
+  // ─── Pricing (P6-01b): the calculator, or no re-pricing for a header-only edit (EC-08) ─
+  const editedAt = input.now ?? new Date();
+  let pricing: {
+    totalAmount: string; taxAmount: string; displayTotal: string; fingerprint: string;
+    lines: OrderChangeReviewedLine[]; commercial?: EditQuote;
+  };
+  if (orderChangeNeedsPricing(input.request.operations, input.context.order.serviceSpeed)) {
+    // A new line's cashier price needs the Edit override permission, as before.
+    const overridden = input.request.operations.some((operation) => operation.code === 'ADD_ITEM' && operation.payload.priceOverride !== undefined);
+    if (overridden && !(await input.canUsePermission('orders:edit_override'))) {
+      return { ok: false, status: 422, code: 'OVERRIDE_REQUIRED' };
+    }
+    let commercial: EditQuote;
+    try {
+      commercial = await input.priceEdit(editProjectionOf({
+        context: input.context,
+        items: structure.items,
+        pieces: structure.pieces,
+        preferences: projectedPreferences.preferences,
+        operations: input.request.operations,
+        editedAt,
+      }));
+    } catch (error) {
+      const code = editPricingErrorCode(error);
+      if (!code) throw error;
+      return { ok: false, status: 422, code };
+    }
+    const { result } = commercial.quote;
+    pricing = {
+      totalAmount: result.totals.totalAmount.toFixed(4),
+      taxAmount: result.totals.taxTotal.toFixed(4),
+      displayTotal: result.totals.totalAmount.toFixed(result.decimalPlaces),
+      fingerprint: editCalculationFingerprint(result),
+      lines: reviewedLinesOf(result, structure.items),
+      commercial,
+    };
+  } else {
+    // Notes, ready-by or priority: the order keeps its figures.
+    pricing = {
+      totalAmount: moneyText(input.context.financial.totalAmount),
+      taxAmount: moneyText(input.persistedTaxAmount ?? '0'),
+      displayTotal: moneyText(input.context.financial.totalAmount),
+      fingerprint: `UNPRICED|${moneyText(input.context.financial.totalAmount)}`,
+      lines: [],
+    };
+  }
+  const calculated = { ...pricing, ok: true as const };
   const calculationFingerprint = digestOrderChangeCalculationFingerprint(calculated.fingerprint);
 
   const financial = projectOrderChangeFinancialResult({
@@ -461,6 +495,8 @@ export async function previewOrderChange(input: {
     catalog: input.catalog,
     speedAudit,
     auditFacts: input.auditFacts,
+    pieceTotals: new Map((calculated.commercial?.quote.result.lines ?? [])
+      .flatMap((line) => line.pieces.map((piece) => [piece.rowId.toLowerCase(), piece.money.grossAmount.toFixed(4)] as const))),
     projectedTotal: calculated.totalAmount,
     projectedTax: calculated.taxAmount,
   });
@@ -516,6 +552,7 @@ export async function previewOrderChange(input: {
     projectedItemIds: activeItemIds,
     speedAudit,
     lines: calculated.lines,
+    commercial: calculated.commercial,
     operationAudits,
     followUp: financial.warnings.map((warning) => warning.code),
   };
