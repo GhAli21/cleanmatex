@@ -321,7 +321,7 @@ ORDER-level preferences are always `SEPARATE_CHARGE`. `is_included_in_base` on t
 - Lookup index on (`tenant_org_id`, `service_speed`, `is_active`).
 - RLS.
 - No hard delete once a line references the rule (`ON DELETE RESTRICT`); soft delete instead.
-- Changes are recorded in `org_price_history_audit` with `entity_type = 'SPEED_RULE'`.
+- Changes are recorded in `org_price_history_audit` with `entity_type = 'speed_rule'` (lowercase, like the column's other values; CHECK widened in 0691).
 
 **`org_tax_profiles_cf`:** `rounding_level` (`LINE` / `DOCUMENT`), `rounding_mode` (FK → `sys_rounding_mode_cd`), `output_decimal_places`, `rounding_increment_minor`. Null falls back to the currency `ACCOUNTING` rule.
 
@@ -499,7 +499,7 @@ There are two kinds of money off. Only the first is part of the price.
 | Public tracking / customer portal | Customer-safe line totals. | |
 | Reports | Tax summary by category from header buckets; existing order and invoice reports read the new header facts. | |
 
-Navigation (dual-write): Speed Pricing under Catalog, in `config/navigation.ts` + `sys_components_cd` migration. Permissions: P0-05 decides between new `speed_pricing:read` / `speed_pricing:manage` and reusing existing catalog codes. If new, they get a migration plus role grants via `/update-rbac-role`. Access contract golden path, then a platform-inventory refresh.
+Navigation (dual-write): Speed Pricing under Catalog, in `config/navigation.ts` + `sys_components_cd` migration. Permissions (P0-05, decided 2026-11-05): reuse the existing `pricing:read/create/update/delete/bulk` codes, so no permission migration and no new role grants. Access contract golden path, then a platform-inventory refresh.
 
 ### 11.2 HQ
 
@@ -603,14 +603,14 @@ Legend: (S) STATUS.md, (D) docs, (Q) QA guide. **Every phase ends with all three
 | ID | Task |
 |---|---|
 | P6-01 | Every Edit write path persists calculator output for touched rows, from the order's snapshots. An ALLOCATED piece set is re-allocated when its item changes. **Steps (owner approved 2026-10-28; also covers Reusable View P1B-04, 06, 07, 08, 09):** ✅ P6-01a Edit facts loader (2026-10-28) · ✅ P6-01b Preview (2026-10-28) · ✅ P6-01c Apply writer (2026-10-28) · ✅ P6-01d older orders + legacy update (2026-10-28) · ✅ P6-01e tests and docs (2026-10-28). **Done.** |
-| P6-02 | Edit UI line controls (§11.1), including the order-wide speed selector and the per-line speed override; a speed change re-prices and moves ready-by. **Boundary:** discount re-evaluation, recorded-instruction loader, preview/quote wiring and the Review disclosure stay in Reusable View P1B-04…12, on this calculator. (S)(D)(Q) |
+| P6-02 | Edit UI line controls (§11.1), including the order-wide speed selector and the per-line speed override; a speed change re-prices and moves ready-by. **Boundary:** discount re-evaluation, recorded-instruction loader, preview/quote wiring and the Review disclosure stay in Reusable View P1B-04…12, on this calculator. Executed as steps a–f (STATUS "P6-02 plan"); a (order speed), b (per-line speed), c (line price and line discount), d (custom lines), e (price confirmation) and f (real-database proof; migration 0664 fixed the change history for line rows) done 2026-10-30 — P6-02 complete. (S)(D)(Q) |
 | P6-03 | **VAT setting retirement** (owner scheduled 2026-10-28): run [VAT_Settings_Fallback_Retirement_Plan.md](VAT_Settings_Fallback_Retirement_Plan.md). Remove the `TENANT_VAT_RATE` fallback from the old calculator and every reader (its R3 list), including the booking bootstrap `vatRate`. A migration, if needed, is written then stop-and-wait. (S)(D) |
 | P6-04 | **Mobile booking (`cmx_mobile_apps`)** (owner scheduled 2026-10-28): EN/AR messages for `booking_piece_invalid`, `SERVICE_SPEED_INVALID` and the calculator codes; show the returned `totalAmount` on the confirmation; optional speed choice (`serviceSpeed`). (S)(D) |
 
 ### Phase 7 — Configuration UI and HQ
 | ID | Task |
 |---|---|
-| P7-01 | Speed Pricing screen + APIs + resolver panel; navigation dual-write (M9); permissions (M8) + role grants; access contract golden path; inventories refresh. |
+| P7-01 | Speed Pricing screen + APIs + resolver panel; navigation dual-write (migration 0691); permissions reuse `pricing:*` (P0-05, no M8); access contract golden path; inventories refresh. |
 | P7-02 | **HQ:** Tax & Pricing card + `platform-api` DTO/service + types (§10.2, §11.2); branch edit page overrides section + branches DTO/service (§10.3); HQ lint/typecheck/build/i18n; update HQ `docs/features/Order_Fin/progress_status.md`. |
 | P7-05 | **Tenant app single-writer (L18):** server rejection in `tenants/me` and `branches/[id]`, read-only selects in both settings screens, EN/AR note, tests for `403 FIELD_MANAGED_BY_HQ`. Ships in the same release as P7-02, so there is never a window with no writer. |
 | P7-03 | Tax settings rounding fields + API/action + Zod. |
@@ -632,6 +632,7 @@ Legend: (S) STATUS.md, (D) docs, (Q) QA guide. **Every phase ends with all three
 | ID | Task |
 |---|---|
 | P10-01 | Remove `order-preference-charge-recalc` if it is made obsolete, after confirming nothing calls it. |
+| P10-04 | **Remove the order-total rounding step from Create** (owner-approved 2026-10-31). The checkout quote applies the `ACCOUNTING` rounding rule to the sale total (`commercial-checkout.service.ts`, `roundingAdjustmentAmount`); since migration 0686 that rule is always one minor unit, so the step always gives 0. Remove it with its writer of `rounding_adjustment_amount` on new orders (the column stays for older rows and the view's rounding line), and the modal's rounding row. Cash rounding stays where it belongs: the change on a cash tender (`cash-change-rounding.service.ts`). Grep every reader first; tests for quote = Create = Edit totals. |
 | P10-02 | Idempotent recompute command for existing (demo) orders through the calculator, run per tenant with a dry-run report first (pre-launch, no compatibility code). |
 | P10-03 | M10 (NOT NULL + CHECK), then M11 (drop retired product columns). (S) |
 
@@ -728,7 +729,7 @@ Legend: (S) STATUS.md, (D) docs, (Q) QA guide. **Every phase ends with all three
 
 **Resolved 2026-10-24 (owner approved the recommendation):**
 
-4. **Q3, loyalty redemption and VAT:** today redeemed points are a payment, so VAT is charged on the full order. For the shop's own points, the GCC tax authorities (e.g. ZATCA's loyalty guidance) may treat a redemption as a price reduction, which would lower the taxable base. **Recommendation:** keep today's treatment for Release A. Ask the tax adviser for Saudi Arabia and Oman. If they confirm, pass a redemption to the calculator as an ORDER adjustment (source `LOYALTY_POINTS`), keeping the points ledger as is. The calculator needs no other change. **Owner decision 2026-10-24: approved.** Release A keeps redemption as a payment. Asking the tax adviser is an owner follow-up.
+4. **Q3, loyalty redemption and VAT:** today redeemed points are a payment, so VAT is charged on the full order. For the shop's own points, the GCC tax authorities (e.g. ZATCA's loyalty guidance) may treat a redemption as a price reduction, which would lower the taxable base. **Recommendation:** keep today's treatment for Release A. Ask the tax adviser for Saudi Arabia and Oman. If they confirm, pass a redemption to the calculator as an ORDER adjustment (source `LOYALTY_POINTS`), keeping the points ledger as is. The calculator needs no other change. **Owner decision 2026-10-24: approved.** Release A keeps redemption as a payment. Confirmed again 2026-10-30: keep it; the owner revisits only if an adviser says otherwise. Nothing pending.
 
 ## 21. Phase 0 outcome (2026-10-23): changes to this plan
 

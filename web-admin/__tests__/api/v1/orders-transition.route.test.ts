@@ -30,6 +30,7 @@ jest.mock('@lib/notifications/config', () => ({
 }));
 
 import { POST } from '@/app/api/v1/orders/[id]/transition/route';
+import { isOrderTransitionNotifyEnabled } from '@lib/notifications/config';
 
 const AUTH_CONTEXT = {
   tenantId: '11111111-1111-1111-1111-111111111111',
@@ -116,5 +117,44 @@ describe('POST /api/v1/orders/[id]/transition — replay must not re-notify', ()
       if (original === undefined) delete process.env.NTF_ORDER_TRANSITION_NOTIFY;
       else process.env.NTF_ORDER_TRANSITION_NOTIFY = original;
     }
+  });
+});
+
+describe('POST /api/v1/orders/[id]/transition — notification shows the order number (Human-Friendly Codes T8.3)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    requirePermissionMock.mockResolvedValue(AUTH_CONTEXT);
+    (isOrderTransitionNotifyEnabled as jest.Mock).mockResolvedValueOnce(true);
+  });
+
+  it('sends order_number = order_no, not the UUID', async () => {
+    executeActionMock.mockResolvedValue({ ok: true, currentStatus: 'ready', stateVersion: 2 });
+    queryRawMock.mockResolvedValueOnce([{ order_no: 'ORD-20261031-0007' }]);
+
+    const response = await POST(
+      request({ screen: 'preparation', actionCode: 'MARK_READY', expectedStateVersion: 1, idempotencyKey: 'k-1' }),
+      { params: Promise.resolve({ id: ORDER_ID }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(emitNotificationEventMock).toHaveBeenCalledTimes(1);
+    expect(emitNotificationEventMock.mock.calls[0][0]).toMatchObject({
+      code: 'order.ready',
+      sourceEntityId: ORDER_ID,
+      variables: { order_number: 'ORD-20261031-0007' },
+    });
+  });
+
+  it('falls back to the id when the order number cannot be read', async () => {
+    executeActionMock.mockResolvedValue({ ok: true, currentStatus: 'ready', stateVersion: 2 });
+    queryRawMock.mockRejectedValueOnce(new Error('db down'));
+
+    const response = await POST(
+      request({ screen: 'preparation', actionCode: 'MARK_READY', expectedStateVersion: 1, idempotencyKey: 'k-2' }),
+      { params: Promise.resolve({ id: ORDER_ID }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(emitNotificationEventMock.mock.calls[0][0]).toMatchObject({ variables: { order_number: ORDER_ID } });
   });
 });

@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth/require-auth';
 import { getBranchesForCurrentTenant } from '@/lib/services/inventory-service';
 
 /**
@@ -11,6 +12,9 @@ import { getBranchesForCurrentTenant } from '@/lib/services/inventory-service';
  */
 export async function GET() {
   try {
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+
     const branches = await getBranchesForCurrentTenant();
     return NextResponse.json({ data: branches });
   } catch (error) {

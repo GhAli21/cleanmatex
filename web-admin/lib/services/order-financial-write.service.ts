@@ -14,6 +14,8 @@ import {
   ORDER_FINANCIAL_WARNING_CODES,
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
   ORDER_PAYMENT_STATUS,
+  LOYALTY_RECONCILE_TRIGGERS,
+  type LoyaltyReconcileTrigger,
   SETTLEMENT_TYPE_CODES,
   TAX_DOCUMENT_STATUSES,
   TAX_PRICING_MODES,
@@ -49,6 +51,7 @@ import type {
   TaxPricingMode,
 } from '@/lib/types/order-financial';
 import { resolveTaxPricingMode } from '@/lib/services/pricing-mode-resolver.service';
+import { reconcileOrderLoyaltyEarn } from '@/lib/services/loyalty.service';
 import { evaluateTaxDocumentTotalMismatch } from '@/lib/utils/order-financial-tax-document-mismatch';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -75,6 +78,8 @@ type CreditApplicationFactRow = {
 
 type RecalculateOrderFinancialSnapshotOptions = {
   baseCurCurrencyCode?: string | null;
+  /** Labels the loyalty reconcile request (D27); default = this recalculation's trace id. */
+  loyaltySource?: { trigger: LoyaltyReconcileTrigger; sourceId: string };
 };
 
 function toNumber(value: Decimal | number | string | null | undefined): number {
@@ -450,6 +455,8 @@ export async function recalculateOrderFinancialSnapshotTx(
       // B33 cross-check input: the stored paid total BEFORE this recalc.
       total_paid_amount: true,
       outstanding_amount: true,
+      refunded_amount: true,
+      customer_id: true,
       payment_type_code: true,
       rounding_adjustment_amount: true,
       total_amount: true,
@@ -927,6 +934,23 @@ export async function recalculateOrderFinancialSnapshotTx(
       updated_at: new Date(),
     },
   });
+
+  // D27: every money path ends here, so loyalty earn follows the order from one place.
+  // Requested only when a fact the earn target reads has moved.
+  const earnFactsChanged =
+    (toNumber(order.outstanding_amount) <= 0) !== (outstandingAmount <= 0)
+    || round4(toNumber(order.total_amount)) !== round4(totalAmount)
+    || round4(toNumber(order.refunded_amount)) !== round4(refundedAmount);
+  if (order.customer_id && earnFactsChanged) {
+    await reconcileOrderLoyaltyEarn(tx, {
+      tenantId,
+      orderId,
+      ...(options.loyaltySource ?? {
+        trigger: LOYALTY_RECONCILE_TRIGGERS.ORDER_FIN_RECALC,
+        sourceId: financialCalculationTraceId,
+      }),
+    });
+  }
 
   return {
     totalPaidAmount,

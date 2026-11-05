@@ -25,7 +25,8 @@ export interface Tenant {
   timezone: string;
   language: string;
   is_active: boolean;
-  status: 'trial' | 'active' | 'suspended' | 'canceled';
+  /** 'creating' only while self-signup runs (0678, A-31); insert-only. */
+  status: 'creating' | 'trial' | 'active' | 'suspended' | 'canceled';
   logo_url?: string | null;
   brand_color_primary: string;
   brand_color_secondary: string;
@@ -118,7 +119,6 @@ export interface FeatureFlags {
     hq_advanced_analytics: boolean;
     machine_maintenance_logs: boolean;
     tenant_api_access: boolean;
-    workflow_role_restrictions_enabled: boolean;
     tenant_whatsapp_receipts: boolean;
     tenant_in_app_receipts: boolean;
     tenant_multi_branch: boolean;
@@ -265,6 +265,7 @@ export interface FeatureFlags {
     geofence_validation_enabled: boolean;
     gift_cards_enabled: boolean;
     google_maps_enabled: boolean;
+    human_codes_scan_labels: boolean;
     idempotency_enforced: boolean;
     image_recognition: boolean;
     impersonation_enabled: boolean;
@@ -280,7 +281,6 @@ export interface FeatureFlags {
     invoice_printing: boolean;
     invoicing_enabled: boolean;
     issue_to_solve_enabled: boolean;
-    label_printing: boolean;
     label_printing_58mm: boolean;
     label_printing_80mm: boolean;
     live_order_tracking: boolean;

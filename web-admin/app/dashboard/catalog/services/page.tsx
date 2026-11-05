@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { CmxInput, CmxSelect } from '@ui/primitives'
 import { CmxCard } from '@ui/primitives/cmx-card'
 import { Badge } from '@ui/primitives/badge'
@@ -50,6 +51,8 @@ export default function ServicesPage() {
   const [category, setCategory] = useState<string>('')
   const [showImport, setShowImport] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const canCreateProducts = useHasPermissionCode('products:create')
+  const canExportProducts = useHasPermissionCode('products:export')
   const isRtl = useRTL()
 
   async function load() {
@@ -109,13 +112,19 @@ export default function ServicesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('products')}</h1>
         <div className="flex items-center gap-2">
-          <CmxButton onClick={() => window.location.assign('/dashboard/catalog/services/new')}>{t('newProduct')}</CmxButton>
-          <CmxButton variant="secondary" onClick={() => setShowExport(true)}>
-            {t('export')}
-          </CmxButton>
-          <CmxButton variant="secondary" onClick={() => setShowImport(true)}>
-            {tCommon('import')}
-          </CmxButton>
+          {canCreateProducts && (
+            <CmxButton onClick={() => window.location.assign('/dashboard/catalog/services/new')}>{t('newProduct')}</CmxButton>
+          )}
+          {canExportProducts && (
+            <CmxButton variant="secondary" onClick={() => setShowExport(true)}>
+              {t('export')}
+            </CmxButton>
+          )}
+          {canCreateProducts && (
+            <CmxButton variant="secondary" onClick={() => setShowImport(true)}>
+              {tCommon('import')}
+            </CmxButton>
+          )}
         </div>
       </div>
 

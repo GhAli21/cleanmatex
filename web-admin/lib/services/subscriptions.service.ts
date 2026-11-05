@@ -14,6 +14,7 @@ import type {
 } from '@/lib/types/tenant';
 import { toBillingPlanCode, toLimitsPlanCode, planCodesMatch } from '@/lib/constants/plan-codes';
 import { getTenant, updateTenant } from './tenants.service';
+import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 
 type SubscriptionRow = {
   id: string;
@@ -64,26 +65,14 @@ function mapSubscriptionRow(row: SubscriptionRow): Subscription {
 }
 
 /**
- * Resolve tenant ID for the authenticated user (org_users_mst / get_user_tenants).
+ * Resolve the tenant of the caller's validated session.
  */
 export async function getAuthenticatedTenantId(): Promise<string> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('No authenticated user');
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized');
   }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found');
-  }
-
-  const first = tenants[0] as { tenant_id: string };
-  return first.tenant_id;
+  return tenantId;
 }
 
 // ========================
@@ -236,24 +225,7 @@ export async function getSubscriptionOld(tenantId: string): Promise<Subscription
  * @returns Current subscription
  */
 export async function getCurrentSubscription(): Promise<Subscription> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('No authenticated user');
-  }
-
-  // Get user's tenants using the same function as other services 
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found');
-  } 
-  // Use the first tenant (current tenant)
-  return getSubscription(tenants[0].tenant_id);
+  return getSubscription(await getAuthenticatedTenantId());
 }
 
 // ========================

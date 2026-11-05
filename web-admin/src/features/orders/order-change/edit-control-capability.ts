@@ -56,6 +56,8 @@ const CREATE_CAPABILITY: EditControlCapability = { state: 'CREATE', interactive:
 export function resolveEditControlCapability(
   policy: OrderChangeEditPolicyInfo | null,
   operationCode: OrderChangeOperationCode,
+  /** Only this target's rules (e.g. the order speed vs one line's speed); all targets when omitted. */
+  targetType?: OrderChangeEditPolicyRule['targetType'],
 ): EditControlCapability {
   if (!policy) return CREATE_CAPABILITY;
   if (!isOrderChangeOperationWriterAvailable(operationCode)) {
@@ -67,7 +69,7 @@ export function resolveEditControlCapability(
   if (policy.status === 'MISSING') {
     return { state: 'DENIED', interactive: false, reasonKey: 'missing' };
   }
-  const rules = policy.rules.filter((rule) => rule.operationCode === operationCode);
+  const rules = policy.rules.filter((rule) => rule.operationCode === operationCode && (!targetType || rule.targetType === targetType));
   const decision = strictestDecision(rules);
   if (!decision || decision === 'DENY') {
     return { state: 'DENIED', interactive: false, reasonKey: 'deny' };
@@ -85,9 +87,10 @@ export function resolveEditControlCapability(
 export function resolveEditControlGroup(
   policy: OrderChangeEditPolicyInfo | null,
   operationCodes: readonly OrderChangeOperationCode[],
+  targetType?: OrderChangeEditPolicyRule['targetType'],
 ): EditControlCapability {
   if (!policy) return CREATE_CAPABILITY;
-  const capabilities = operationCodes.map((code) => resolveEditControlCapability(policy, code));
+  const capabilities = operationCodes.map((code) => resolveEditControlCapability(policy, code, targetType));
   return capabilities.reduce((strictest, candidate) =>
     STATE_RANK[candidate.state] < STATE_RANK[strictest.state] ? candidate : strictest,
   );

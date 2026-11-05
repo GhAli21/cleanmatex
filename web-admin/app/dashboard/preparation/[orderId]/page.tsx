@@ -1,3 +1,4 @@
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -99,7 +100,8 @@ async function PreparationContent({
             {tWorkflow('actions.transitionStatus')}
           </Link>
           <h1 className="text-xl font-semibold text-gray-900">
-            {tWorkflow('screens.preparation')} – {order.order_no}
+            {tWorkflow('screens.preparation')}{' '}
+            <CmxCodeChip code={order.order_no} kind="order" size="md" />
           </h1>
         </div>
         {canEditOrder ? (

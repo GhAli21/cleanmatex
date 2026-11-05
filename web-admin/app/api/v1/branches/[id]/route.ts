@@ -1,6 +1,7 @@
 /**
  * GET  /api/v1/branches/[id] — Branch detail including pricing mode fields and the business-day timezone
- * PATCH /api/v1/branches/[id] — Update branch pricing mode overrides and/or the branch timezone
+ * PATCH /api/v1/branches/[id] — Update the branch timezone. The pricing-mode overrides are managed by HQ (L18):
+ *   sending them answers 403 FIELD_MANAGED_BY_HQ.
  *
  * The branch timezone (`timezone_code`, NULL = inherit the organization timezone) decides the branch
  * business date and when a POS session rolls over, so changing it needs `settings:update`.
@@ -11,10 +12,7 @@ import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { SETTINGS_PERMISSIONS } from '@/lib/constants/permissions/settings-perm';
-import { TAX_PRICING_MODES, EXTRA_PRICE_PRICING_MODES } from '@/lib/constants/order-financial';
-
-const VALID_TAX_MODES = new Set<string>(Object.values(TAX_PRICING_MODES));
-const VALID_EXTRA_MODES = new Set<string>(Object.values(EXTRA_PRICE_PRICING_MODES));
+import { FIELD_MANAGED_BY_HQ, HQ_MANAGED_PRICING_FIELDS } from '@/lib/constants/order-financial';
 
 /**
  *
@@ -81,6 +79,15 @@ export async function PATCH(
       timezone_code?: string | null;
     } = await request.json();
 
+    // L18: HQ is the only writer of the branch pricing overrides; refuse before anything is written.
+    const managed = HQ_MANAGED_PRICING_FIELDS.branch.filter((field) => field in body);
+    if (managed.length > 0) {
+      return NextResponse.json(
+        { error: 'This setting is managed by platform administration.', code: FIELD_MANAGED_BY_HQ, fields: managed },
+        { status: 403 },
+      );
+    }
+
     const updateData: Record<string, string | null> = {};
 
     if ('timezone_code' in body) {
@@ -98,30 +105,6 @@ export async function PATCH(
         }
       }
       updateData.timezone_code = zone ?? null;
-    }
-
-    if ('tax_pricing_mode' in body) {
-      const mode = body.tax_pricing_mode;
-      if (mode !== null && mode !== undefined && !VALID_TAX_MODES.has(mode)) {
-        return NextResponse.json(
-          { error: `Invalid tax_pricing_mode. Valid values: ${[...VALID_TAX_MODES].join(', ')}` },
-          { status: 400 },
-        );
-      }
-      updateData.tax_pricing_mode = mode ?? null;
-    }
-
-    if ('extra_price_pricing_mode' in body) {
-      const mode = body.extra_price_pricing_mode;
-      if (mode !== null && mode !== undefined && !VALID_EXTRA_MODES.has(mode)) {
-        return NextResponse.json(
-          {
-            error: `Invalid extra_price_pricing_mode. Valid values: ${[...VALID_EXTRA_MODES].join(', ')}`,
-          },
-          { status: 400 },
-        );
-      }
-      updateData.extra_price_pricing_mode = mode ?? null;
     }
 
     const branch = await prisma.org_branches_mst.updateMany({

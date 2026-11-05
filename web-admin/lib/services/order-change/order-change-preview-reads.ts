@@ -144,7 +144,7 @@ export async function loadOrderChangePreviewFacts(input: {
       const preferenceIdsForAudit = input.operations.flatMap((operation) => (
         operation.code === 'CHANGE_PREFERENCE' || operation.code === 'REMOVE_PREFERENCE' ? [operation.target.id] : []
       ));
-      const productIds = input.operations.flatMap((operation) => operation.code === 'ADD_ITEM' ? [operation.payload.productId] : []);
+      const productIds = input.operations.flatMap((operation) => operation.code === 'ADD_ITEM' && operation.payload.productId ? [operation.payload.productId] : []);
       const auditItems = itemIds.length === 0 ? [] : await tx.org_order_items_dtl.findMany({
         where: { tenant_org_id: tenantId, order_id: input.context.orderId, id: { in: itemIds }, rec_status: 1 },
         select: {
@@ -218,8 +218,6 @@ export async function loadOrderChangePreviewFacts(input: {
       record ??= await readEditOrderRecord(prisma, tenantId, input.context.orderId);
       return quoteOrderEdit(prisma as unknown as CommercialDb, tenantId, record, projection, {
         currency: { code: currencyCode, decimalPlaces: currencyDecimalPlaces },
-        // Never read: Edit taxes from the order's recorded tax lines (D22).
-        getTenantVatRate: async () => 0,
       });
     });
 

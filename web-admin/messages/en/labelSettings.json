@@ -1,0 +1,81 @@
+{
+  "title": "Labels & Tags",
+  "description": "Size, QR code and copies for order labels and piece tags, and the barcode on the receipt. Set them for all branches or for one branch.",
+  "discard": "Discard changes",
+  "unsavedChanges": "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+  "viewOnly": {
+    "title": "View only",
+    "description": "You can see these settings. Ask an admin with the settings update permission to change them."
+  },
+  "scope": {
+    "label": "Apply to",
+    "allBranches": "All branches",
+    "hintTenant": "These values apply to every branch unless a branch has its own value.",
+    "hintBranch": "Values for this branch only. \"Use default\" takes the value set for all branches.",
+    "branchesFailed": "Could not load branches. You can still edit the values for all branches."
+  },
+  "types": {
+    "ORDER_LABEL": {
+      "title": "Order label",
+      "description": "The label stuck on the bag or bundle of an order."
+    },
+    "PIECE_TAG": {
+      "title": "Piece tag",
+      "description": "The small tag attached to each piece."
+    },
+    "RECEIPT": {
+      "title": "Receipt",
+      "description": "The printed customer receipt."
+    }
+  },
+  "fields": {
+    "sizeCode": {
+      "label": "Paper size",
+      "description": "Match the labels loaded in your printer."
+    },
+    "showQr": {
+      "label": "Staff QR code",
+      "description": "Staff can scan it to open the order or piece."
+    },
+    "showCustomerName": {
+      "label": "Customer name",
+      "description": "Shows first name and last initial only."
+    },
+    "showOrderBarcode": {
+      "label": "Order barcode",
+      "description": "Prints a barcode of the order number under it."
+    },
+    "copies": {
+      "label": "Copies",
+      "description": "How many of each label print each time."
+    }
+  },
+  "values": {
+    "true": "Show",
+    "false": "Hide",
+    "notSet": "not set"
+  },
+  "sizes": {
+    "4x6in": "4 × 6 in",
+    "80mm": "80 mm roll",
+    "58mm": "58 mm roll",
+    "A6": "A6",
+    "58x30mm": "58 × 30 mm",
+    "50x25mm": "50 × 25 mm",
+    "80x40mm": "80 × 40 mm"
+  },
+  "useDefault": "Use default ({value})",
+  "inUse": "In use: {value} ({source})",
+  "sources": {
+    "BRANCH": "this branch",
+    "TENANT": "all branches",
+    "SYSTEM": "system default",
+    "FEATURE_FLAG": "scanning is off"
+  },
+  "receiptBarcodeNote": "The order barcode prints on the receipt only when scanning and labels are enabled for your account.",
+  "messages": {
+    "loadFailed": "Could not load label settings. Try again.",
+    "saved": "Label settings saved.",
+    "saveFailed": "Could not save label settings. Try again."
+  }
+}

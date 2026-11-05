@@ -3,7 +3,7 @@
 /**
  * User Filters Bar Component
  *
- * Search, filters, bulk actions, and workflow role filter for the user list.
+ * Search, filters, and bulk actions for the user list.
  * Bulk actions (activate/deactivate/delete) call platform-api directly.
  * No Supabase imports.
  */
@@ -22,16 +22,6 @@ import {
   CmxDialogFooter,
 } from '@ui/overlays/cmx-dialog'
 import { CmxButton } from '@ui/primitives/cmx-button'
-
-// Workflow role filter options — matches org_auth_user_workflow_roles.workflow_role constraint
-const WORKFLOW_ROLE_OPTIONS = [
-  { value: 'ROLE_RECEPTION', labelEn: 'Reception', labelAr: 'الاستقبال' },
-  { value: 'ROLE_PREPARATION', labelEn: 'Preparation', labelAr: 'التحضير' },
-  { value: 'ROLE_PROCESSING', labelEn: 'Processing', labelAr: 'المعالجة' },
-  { value: 'ROLE_QA', labelEn: 'Quality Assurance', labelAr: 'ضمان الجودة' },
-  { value: 'ROLE_DELIVERY', labelEn: 'Delivery', labelAr: 'التوصيل' },
-  { value: 'ROLE_ADMIN', labelEn: 'Workflow Admin', labelAr: 'مسؤول سير العمل' },
-]
 
 interface UserFiltersBarProps {
   filters: UserFilters
@@ -226,30 +216,6 @@ export default function UserFiltersBar({
               {roleOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Workflow Role Filter */}
-          <div>
-            <label htmlFor="workflow-role-filter" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('workflowRole')}
-            </label>
-            <select
-              id="workflow-role-filter"
-              value={filters.workflowRole || 'all'}
-              onChange={(e) =>
-                onFilterChange({
-                  workflowRole: e.target.value === 'all' ? undefined : e.target.value,
-                })
-              }
-              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-            >
-              <option value="all">{t('allWorkflowRoles')}</option>
-              {WORKFLOW_ROLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.labelEn}
                 </option>
               ))}
             </select>

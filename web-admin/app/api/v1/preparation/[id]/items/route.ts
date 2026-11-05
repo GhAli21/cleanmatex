@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { addOrderItems } from '@/lib/db/orders';
 import { blockCommittedCommercialWrite } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { isPreparationEnabled } from '@/lib/config/features';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
  *
@@ -34,20 +35,10 @@ export async function POST(
       );
     }
 
+    const auth = await requirePermission('orders:update')(request);
+    if (auth instanceof NextResponse) return auth;
+    const { tenantId } = auth;
     const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = user.user_metadata?.tenant_org_id;
-    if (!tenantId) {
-      return NextResponse.json({ success: false, error: 'Tenant ID not found' }, { status: 400 });
-    }
 
     // Verify order belongs to tenant and is in preparation
     const { data: order, error: fetchError } = await supabase

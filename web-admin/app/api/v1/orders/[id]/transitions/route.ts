@@ -1,26 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { WorkflowService } from '@/lib/services/workflow-service';
-
-async function getAuthContext() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) throw new Error('No tenant access found' + error?.message);
-  return { tenantId: tenants[0].tenant_id as string };
-}
 
 /**
  *
- * @param _request
+ * @param request
  * @param root0
  * @param root0.params
  */
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requirePermission('orders:read')(request);
+  if (auth instanceof NextResponse) return auth;
+  const { tenantId } = auth;
+
   try {
     const { id } = await params;
-    const { tenantId } = await getAuthContext();
     const supabase = await createClient();
 
     const { data: order, error } = await supabase
@@ -69,8 +64,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ success: true, data: allowedLower, meta: { check: result } });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 400;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
 

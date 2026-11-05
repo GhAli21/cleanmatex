@@ -20,22 +20,21 @@ import { prisma } from '@/lib/db/prisma';
 import { createClient } from '@/lib/supabase/server';
 import {
   roundMoney,
+  sumMoney,
   toMoney,
   type AdjustmentInput,
   type Money,
   type RoundingRule,
 } from '@/lib/commercial';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
-import { DISCOUNT_CALC_TYPE, DISCOUNT_SOURCE_TYPE, type DiscountCalcType } from '@/lib/constants/discount-source-type';
+import { DISCOUNT_CALC_TYPE, DISCOUNT_SOURCE_TYPE, MANUAL_LINE_DISCOUNT_LABEL, type DiscountCalcType } from '@/lib/constants/discount-source-type';
 import { TAX_PRICING_MODES, TAX_TYPES } from '@/lib/constants/order-financial';
-import { resolveCurrencyRoundingRule, roundToIncrement } from '@/lib/money/currency-rounding';
 import type { DiscountLineInput } from '@/lib/db/order-discounts';
 import type { TaxLineItem } from '@/lib/types/order-financial';
 import type { PromoNotice, TaxProfileEntry } from '@/lib/types/payment-quote';
 import { evaluateBestAutoApplyPromo, getBestDiscount, validatePromoCode } from '../discount-service';
 import { validateGiftCard, validateGiftCardByIdForCalculation } from '../gift-card-service';
 import type { OrderCalculationResult } from '../order-calculation.service';
-import { TaxService } from '../tax.service';
 import { createTenantSettingsService } from '../tenant-settings.service';
 import {
   PREFERENCE_KINDS,
@@ -245,7 +244,6 @@ export async function quoteCheckout(params: CheckoutQuoteParams): Promise<Checko
   const currencyConfig = await measure('currency', () => tenantSettings.getCurrencyConfig(tenantId, branchId, userId));
   const currencyCode = currencyConfig.currencyCode;
   const decimalPlaces = currencyConfig.decimalPlaces ?? 3;
-  const tax = new TaxService({ tenantSettings, strictResolution: strictFinancialReads });
   const intent = checkoutIntentOf(params, new Date());
 
   // ─── Order discounts: manual → rule → promo, evaluated as today ──────────
@@ -254,7 +252,7 @@ export async function quoteCheckout(params: CheckoutQuoteParams): Promise<Checko
   params.items.forEach((item, index) => {
     if (!item.lineDiscount) return;
     adjustmentMeta.set(lineDiscountId(index), {
-      sourceName: 'Line Discount', sourceName2: 'خصم سطر', notes: item.lineDiscount.reason?.trim() || null,
+      ...MANUAL_LINE_DISCOUNT_LABEL, notes: item.lineDiscount.reason?.trim() || null,
     });
   });
   let promotionId: string | null = null;
@@ -343,7 +341,6 @@ export async function quoteCheckout(params: CheckoutQuoteParams): Promise<Checko
     intent,
     {
       currency: { code: currencyCode, decimalPlaces },
-      getTenantVatRate: () => measure('tax_fallback', () => tax.getTaxRate(tenantId, branchId, userId)),
     },
     resolveOrderAdjustments,
   ));
@@ -374,15 +371,11 @@ export async function quoteCheckout(params: CheckoutQuoteParams): Promise<Checko
   const inclusive = facts.pricingMode === TAX_PRICING_MODES.TAX_INCLUSIVE;
   const linesBeforeTax = inclusive ? t.totalAmount.minus(t.taxTotal).minus(chargesTaxable) : t.netTotal;
 
-  // B17: the cash-rounding rule on the grand total, before the gift-card cap.
-  let saleTotal = num(t.totalAmount);
-  let roundingAdjustmentAmount = 0;
-  const cashRule = await measure('rounding', () => resolveCurrencyRoundingRule(currencyCode));
-  if (cashRule) {
-    const rounded = roundToIncrement(saleTotal, cashRule.roundingUnit, cashRule.roundingMethod);
-    roundingAdjustmentAmount = Number((rounded - saleTotal).toFixed(decimalPlaces));
-    saleTotal = rounded;
-  }
+  // The order total is exact to the currency's decimals (Line-Level P10-04): the ACCOUNTING rule is
+  // one minor unit (CHECK chk_scrr_acct_minor_unit, 0686), and cash rounding applies only to the change
+  // on a cash tender (cash-change-rounding.service.ts). The field stays in the contract, always 0.
+  const saleTotal = num(t.totalAmount);
+  const roundingAdjustmentAmount = 0;
 
   // ─── Gift card: settlement, capped at the sale total ─────────────────────
   let giftCardApplied = 0;
@@ -438,6 +431,8 @@ export async function quoteCheckout(params: CheckoutQuoteParams): Promise<Checko
     taxPricingMode: facts.pricingMode,
     roundingAdjustmentAmount,
     chargesTotal: num(t.chargesNetTotal),
+    extrasIncludedAmount: num(sumMoney(result.lines.map((l) => l.item.money.includedModifierAmount))),
+    speedPremiumIncludedAmount: num(t.speedPremiumTotal),
   };
 
   const selection = params.taxProfileIds ?? [];

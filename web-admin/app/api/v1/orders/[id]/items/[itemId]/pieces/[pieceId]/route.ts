@@ -13,6 +13,7 @@ import {
   blockCommittedCommercialWrite,
 } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { log } from '@/lib/utils/logger';
+import { pieceTagErrorBody, pieceTagHttpStatus } from '@/lib/services/piece-code/piece-code.service';
 
 /**
  * GET /api/v1/orders/:id/items/:itemId/pieces/:pieceId
@@ -161,6 +162,12 @@ export async function PATCH(
     });
 
     if (!result.success) {
+      // HFC P3b: a refused external tag gets the same body and status as batch-update (400 format, 409 in use).
+      if (result.code) {
+        return NextResponse.json(pieceTagErrorBody(result.code, result.tagIssue), {
+          status: pieceTagHttpStatus(result.code),
+        });
+      }
       return NextResponse.json(
         { success: false, error: result.error },
         { status: 400 }

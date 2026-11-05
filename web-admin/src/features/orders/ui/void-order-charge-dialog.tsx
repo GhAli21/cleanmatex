@@ -1,5 +1,6 @@
 'use client';
 
+import { useOrderMoneyRefresh } from '@features/orders/order-fin-view/hooks/use-order-money-refresh';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -35,6 +36,7 @@ export function VoidOrderChargeDialog({
   const t = useTranslations('orders.detailFull.financialTab.voidChargeDialog');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const refreshMoney = useOrderMoneyRefresh();
   const { token: csrfToken } = useCSRFToken();
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -59,7 +61,7 @@ export function VoidOrderChargeDialog({
         cmxMessage.success(t('success'));
         setReason('');
         onOpenChange(false);
-        router.refresh();
+        refreshMoney(orderId);
       } else {
         cmxMessage.error(mapVoidError(json.error, t));
       }

@@ -17,6 +17,7 @@ import { CmxPermissionsInspectorTrigger } from './permissions-inspector'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { NotificationBell } from '@features/notifications/ui/notification-bell'
 import { SessionActivityTrigger } from '@features/session-activity'
+import { GlobalScanTrigger } from '@features/scan'
 
 export default function CmxTopBar() {
   const pathname = usePathname()
@@ -63,6 +64,8 @@ export default function CmxTopBar() {
                 />
               </div>
             </div>
+
+            <GlobalScanTrigger />
 
             <CmxLanguageSwitcher />
 

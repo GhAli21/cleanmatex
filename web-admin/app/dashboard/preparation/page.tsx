@@ -7,6 +7,7 @@
 'use client';
 /* eslint-disable react-hooks/set-state-in-effect */
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -183,7 +184,7 @@ export default function PreparationPage() {
               className="bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
             >
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold text-blue-600">{order.order_no}</h3>
+                <h3 className="text-xl font-bold text-blue-600"><CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} /></h3>
                 <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                   {t('preparation.bags', { count: order.bag_count })}
                 </span>

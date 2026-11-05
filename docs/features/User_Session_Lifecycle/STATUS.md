@@ -79,7 +79,7 @@ Password expiry/rotation, MFA, "cannot reset a higher role" rule for administrat
 ## Open items
 Single source: [REMAINING_WORK.md](REMAINING_WORK.md). Summary:
 - **Owner:** manual QA (QA_TEST_GUIDE phases 0–5, §6, HQ H.1–H.8); commit both repos; mail env (`RESEND_API_KEY` + `NEXT_PUBLIC_SITE_URL`; HQ `HQ_RESEND_API_KEY` + `TENANT_APP_URL`); grant `auth_config.view/manage` to HQ roles before enabling RBAC enforcement.
-- **Recommended before go-live (not required for features):** hosted Supabase JWT expiry 600 s and Secure password change — what each does and what happens without it is in REMAINING_WORK §1.1.
+- **Recommended before go-live (not required for features):** ~~hosted Supabase JWT expiry 600 s~~ (✅ done by the owner 2026-10-30) and Secure password change — what each does and what happens without it is in REMAINING_WORK §1.1.
 - **Remote DB:** verified read-only 2026-10-08/09 — 0575, 0576, 0577, 0581, 0584, 0585 are applied on remote.
 - **Not wired on purpose:** clearing tenant overrides automatically on plan downgrade; HQ has an explicit action instead (accepted as enough for now).
 - **Cleared 2026-10-09:** `platform-inventories` nav-drift test (cause: malformed `settings_security` entry in `navigation.ts` made the extractor mis-attribute `auth_config:read`); page-gate FAILs on `marketing/promotions` (server gate before redirect) and `reports/cash-variance/print` (`RequireAnyPermission`); `check:ui-access-contract --wire` PASS; BigInt TS2737 errors (`tsconfig.json` target ES2017 → ES2020, type-check only); corrupted `docs/dev/rules/integration-contracts.md` repaired (see CHANGELOG).

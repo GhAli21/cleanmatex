@@ -1,6 +1,6 @@
 # Reusable Order Financial View — Structure and UI Design (Discussion)
 
-**Status:** DECIDED, pending owner sign-off after the mockup review (2026-10-23). The owner delegated the six §4 questions ("you decide, best, flexible, future-proof"), and they are answered in §4. **v2 (2026-10-23):** external review folded in. The line contract and header metrics now follow PLAN §6.6, the wireframe is corrected, and the decisions are recorded in PLAN D29–D35.
+**Status:** DECIDED; mockup signed off by the owner 2026-10-30. The owner delegated the six §4 questions ("you decide, best, flexible, future-proof"), and they are answered in §4. **v2 (2026-10-23):** external review folded in. The line contract and header metrics now follow PLAN §6.6, the wireframe is corrected, and the decisions are recorded in PLAN D29–D35.
 **Interactive mockup:** https://claude.ai/artifact/Kc2iHiAdb47pJFzn1mjXaC (private to the owner until shared).
 **Related:** [PLAN.md](PLAN.md) · [STATUS.md](STATUS.md)
 

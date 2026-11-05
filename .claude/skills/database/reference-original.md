@@ -45,16 +45,16 @@ See [feature-abbreviations.md](./feature-abbreviations.md) for complete feature 
 Include in EVERY table:
 
 ```sql
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
 created_by TEXT,
 created_info TEXT,
 -- update 
-updated_at TIMESTAMP,
+updated_at TIMESTAMPTZ,
 updated_by TEXT,
 updated_info TEXT,
 updated_count INTEGER DEFAULT 0, -- then on update updated_count=updated_count+1
 -- soft delete 
-deleted_at TIMESTAMP,
+deleted_at TIMESTAMPTZ,
 deleted_by TEXT,
 deleted_info TEXT,
 -- rec columns
@@ -236,10 +236,9 @@ This rule is **always active** — no exceptions.
 Before adding a migration:
 
 1. **List existing migrations** in `supabase/migrations/` (excluding `archive/`, `seeds/`, and `x_*` / `xproduction/`).
-2. **Determine the latest version** from filenames: either numeric `NNNN` (e.g. `0082`) or timestamp `YYYYMMDDHHMMSS` (e.g. `20260127090030`).
+2. **Determine the latest version** from filenames: only numeric `NNNN` (e.g. `0082`) .
 3. **Use the next version:**
    - If the latest is **numeric** (e.g. `0082_svc_cat_proc_steps.sql`), use the next integer zero-padded to 4 digits: **`0083`**.
-   - If the latest is **timestamp**, use current date-time in that format: **`YYYYMMDDHHMMSS`**.
 4. **Name the file:** `{version}_{descriptive_snake_case_name}.sql`  
    Example: `0083_payments_nullable_invoice_id.sql`.
 
@@ -334,10 +333,10 @@ CREATE TABLE org_example_mst (
   description2 TEXT,             -- Arabic description
 
   -- Audit fields
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by VARCHAR(120),
   created_info TEXT,
-  updated_at TIMESTAMP,
+  updated_at TIMESTAMPTZ,
   updated_by VARCHAR(120),
   updated_info TEXT,
   rec_status SMALLINT DEFAULT 1,

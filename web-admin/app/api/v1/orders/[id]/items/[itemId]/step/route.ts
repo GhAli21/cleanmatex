@@ -5,31 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { ItemProcessingService } from '@/lib/services/item-processing-service';
 import { RecordStepRequestSchema } from '@/lib/validations/workflow-schema';
-
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    tenantId: tenants[0].tenant_id as string,
-    userId: user.id as string,
-    userName: user.user_metadata?.full_name || user.email || 'User',
-  };
-}
 
 /**
  *
@@ -41,9 +19,12 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
+  const auth = await requirePermission('orders:transition')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { id, itemId } = await params;
-    const { tenantId, userId, userName } = await getAuthContext();
+    const { tenantId, userId, userName } = auth;
 
     const body = await request.json();
     const parsed = RecordStepRequestSchema.safeParse(body);
@@ -76,8 +57,7 @@ export async function POST(
     return NextResponse.json({ success: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 400;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
 

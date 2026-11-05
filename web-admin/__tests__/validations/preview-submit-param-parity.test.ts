@@ -3,7 +3,7 @@
  * parity, kept as a permanent regression guard.
  *
  * Background (2026-08-13): `previewPaymentRequestSchema` (used by both
- * `/api/v1/orders/preview-payment` and `/api/v1/orders/preview-financials`)
+ * `/api/v1/orders/preview-payment`; the legacy `preview-financials` route was retired in Line-Level P10-01)
  * accepted a materially narrower input than `createWithPaymentRequestSchema`
  * (the real submit path). Because Zod's default `.object()` mode silently
  * STRIPS unrecognized keys rather than erroring, any field present on one and

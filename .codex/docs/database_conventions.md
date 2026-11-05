@@ -800,3 +800,28 @@ SELECT soft_delete_record('org_orders_mst', 'order-uuid', 'tenant-uuid', 'user-i
 ---
 
 ## Return to [Main Documentation](../CLAUDE.md)
+
+<!-- HFC-RULE:BEGIN (Human-Friendly Codes; keep in sync across .cursor/.claude/.codex and both repos) -->
+## Human-Friendly Codes (document numbering)
+
+Plan: `docs/features/Human_Friendly_Codes/IMPLEMENTATION_PLAN_Human_Friendly_Codes.md`. Engine guide: `docs/features/Human_Friendly_Codes/DEV_GUIDE_DOC_SEQ_ENGINE.md`.
+
+1. Never expose UUIDs as business identifiers. UUIDs stay the PK/FK; nothing joins on codes.
+2. Any table whose records people refer to has a human-friendly code column, unique per tenant (`UNIQUE (tenant_org_id, <code>)`), or per scope for SYS/HQ tables.
+3. Every code type has exactly one row in `sys_doc_seq_type_cd`: prefix, parts, padding, reset policy, owner and `implement_description` (how it works) live there, not in app code. Its `type_prefix` (3-5 capital letters, unique across all types) is the stable key of the type.
+4. Codes are generated only by the DB: the `fn_doc_seq_assign_code('<DOC_TYPE>', '<column>')` BEFORE INSERT trigger (GENERAL types), or the domain's registered function (DOMAIN types). Never compute `MAX()+1` in app code. Codes are immutable after insert (`fn_doc_seq_guard_immutable('<column>')` BEFORE UPDATE OF trigger).
+5. Existing generators stay as they are and are registered with `manage_by_level` DOMAIN or MANUAL until a planned phase moves them to GENERAL (in the same migration that seeds the counters from existing data).
+6. A new prefix / `type_prefix` is 3-5 capital letters, unique across all types (`uq_doc_seq_type_tprefix`), and approved by the user.
+7. Date parts use the tenant's local time (`org_tenants_mst.timezone`, fallback `hq_general_config.timezone`); the fiscal year uses `org_tenants_mst.fiscal_year_start_month` (fallback `hq_general_config`). SYS/HQ types use `hq_general_config`.
+8. UI shows codes, never raw UUIDs. Lookup/search routes accept codes; write routes keep UUIDs.
+9. Printed/scanned codes: staff QR `CMX1:<type_prefix>:<code>`, CODE128 of the code; the tracking link only on customer copies.
+10. Engine functions (`fn_doc_seq_next`, `fn_sys_doc_seq_next`, `fn_hq_doc_seq_next`) are service_role only; counters (`org_doc_seq_mst`, `sys_doc_seq_mst`, `hq_doc_seq_mst`) are never written by app code and never reset by tenant cleanup. Take a number in the same transaction as the document insert (a rollback then gives it back).
+11. **New-table checklist** (tables with a code people use):
+    - [ ] code column `NOT NULL` + `UNIQUE (tenant_org_id, <code>)` (or the scope's unique key)
+    - [ ] one `sys_doc_seq_type_cd` row (unique `type_prefix`, `implement_description` filled)
+    - [ ] assign trigger `trg_<x>_no_assign` + guard trigger `trg_<x>_no_guard`
+    - [ ] backfill of existing rows and counter seed in the same migration
+    - [ ] `SELECT * FROM vw_doc_seq_consistency WHERE severity = 'ERROR'` returns 0 rows
+12. Reuse the shared helpers; never write a new code regex. web-admin: `lib/validations/code-format-schemas.ts` (code formats, scan input, external-tag rules: a tag may not look like one of our codes) and `lib/services/scan-resolve/cmx-code-payload.ts` (`CMX1:` payload); scans go through `POST /api/v1/scan/resolve`. Mobile: `mobile_core` `human_codes.dart` (1:1 copy). Show codes with `CmxCodeChip` (web-admin and platform-web `src/ui/data-display`) and search with `CmxCodeSearchInput` (web-admin), always left-to-right (`dir="ltr"`; mobile `ltrCode()`), also in Arabic screens.
+13. Messages and notifications carry the code, never the UUID (template variable `order_number` = `org_orders_mst.order_no`).
+<!-- HFC-RULE:END -->

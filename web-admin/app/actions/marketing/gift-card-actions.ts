@@ -573,6 +573,17 @@ export async function listGiftCardTransactionsAction(params: {
         prisma.org_gift_card_txn_dtl.count({ where }),
       ]);
 
+      // HFC T3.9: show order numbers, not shortened ids (one query per page, same tenant).
+      const orderIds = [...new Set(rows.map((row) => row.order_id).filter((id): id is string => Boolean(id)))];
+      const orderNoById = new Map<string, string>();
+      if (orderIds.length > 0) {
+        const orders = await prisma.org_orders_mst.findMany({
+          where: { tenant_org_id: tenantId, id: { in: orderIds } },
+          select: { id: true, order_no: true },
+        });
+        for (const o of orders) orderNoById.set(o.id, o.order_no);
+      }
+
       const data: GiftCardTransactionLogRow[] = rows.map((row) => ({
         id: row.id,
         tenant_org_id: row.tenant_org_id,
@@ -584,6 +595,7 @@ export async function listGiftCardTransactionsAction(params: {
         balance_before: Number(row.balance_before),
         balance_after: Number(row.balance_after),
         order_id: row.order_id ?? undefined,
+        order_no: row.order_id ? orderNoById.get(row.order_id) : undefined,
         invoice_id: row.invoice_id ?? undefined,
         notes: row.notes ?? undefined,
         transaction_date: row.transaction_date.toISOString(),

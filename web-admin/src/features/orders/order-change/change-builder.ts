@@ -4,6 +4,7 @@
  */
 
 import { isOrderChangeOperationWriterAvailable, resolveOrderChangeKnownFieldOperation } from '@/lib/constants/order-change';
+import { sameLineDiscount, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
 import type { z } from 'zod';
 import {
@@ -96,6 +97,8 @@ export function buildOrderChangeOperations(baseline: EditOrderBaseline, draft: E
     });
   }
 
+  // The server moves every line to a new order speed unless the line has its own operation (P6-02b).
+  const orderSpeedChanged = baseline.serviceSpeed !== draft.serviceSpeed && Boolean(draft.serviceSpeed);
   const draftLines = new Map(draft.lines.map((line) => [identityKey(line.identity), line]));
   for (const line of baseline.lines) {
     if (line.identity.kind !== 'persisted') continue;
@@ -104,11 +107,15 @@ export function buildOrderChangeOperations(baseline: EditOrderBaseline, draft: E
       push({ code: 'REMOVE_ITEM', target: { kind: 'PERSISTED_ITEM', id: line.identity.id }, payload: {} });
       continue;
     }
+    const serverSpeed = orderSpeedChanged ? draft.serviceSpeed : line.serviceSpeed;
+    if (current.serviceSpeed && current.serviceSpeed !== serverSpeed) {
+      push({ code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_ITEM', id: line.identity.id }, payload: { serviceSpeed: current.serviceSpeed } });
+    }
     appendLineChanges(line, current, push);
   }
   for (const line of draft.lines) {
     if (line.identity.kind !== 'local') continue;
-    appendAddedLine(line, push);
+    appendAddedLine(line, draft.serviceSpeed, push);
   }
   appendPreferenceChanges(baseline.preferences, draft.preferences, { kind: 'ORDER' }, push);
   for (const change of draft.unlisted ?? []) {
@@ -143,6 +150,22 @@ function appendLineChanges(
       },
     });
   }
+  // P6-02c: the line's cashier price and discount, sent only when they differ from the stored ones.
+  const target = { kind: 'PERSISTED_ITEM' as const, id: baseline.identity.id };
+  const priceChanged = !sameOptionalMoney(baseline.priceOverride ?? null, draft.priceOverride ?? null)
+    || (draft.priceOverride != null && text(baseline.overrideReason) !== text(draft.overrideReason));
+  if (priceChanged) {
+    push({
+      code: 'CHANGE_ITEM_PRICE',
+      target,
+      payload: draft.priceOverride != null
+        ? { priceOverride: draft.priceOverride, overrideReason: text(draft.overrideReason) }
+        : { priceOverride: null },
+    });
+  }
+  if (!sameLineDiscount(baseline.lineDiscount ?? null, draft.lineDiscount ?? null)) {
+    push({ code: 'CHANGE_DISCOUNT', target, payload: { lineDiscount: draft.lineDiscount ?? null } });
+  }
   const draftPieces = new Map(draft.pieces.map((piece) => [identityKey(piece.identity), piece]));
   for (const piece of baseline.pieces) {
     if (piece.identity.kind !== 'persisted') continue;
@@ -172,16 +195,21 @@ function appendLineChanges(
   appendPreferenceChanges(baseline.preferences, draft.preferences, { kind: 'PERSISTED_ITEM', id: baseline.identity.id }, push);
 }
 
-function appendAddedLine(line: EditLineDraft, push: (operation: Omit<EditChangeOperation, 'seq'>) => void): void {
+function appendAddedLine(line: EditLineDraft, orderSpeed: string | undefined, push: (operation: Omit<EditChangeOperation, 'seq'>) => void): void {
   if (line.identity.kind !== 'local') return;
   push({
     code: 'ADD_ITEM',
     target: { kind: 'ORDER' },
     payload: {
       clientRef: line.identity.clientRef,
-      productId: line.productId,
+      // A custom line (P6-02d) carries its name and entered price instead of a product.
+      ...(line.customItem ? { customItem: line.customItem } : { productId: line.productId }),
       quantity: line.quantity,
       ...(line.priceOverride ? { priceOverride: line.priceOverride, ...(line.overrideReason ? { overrideReason: line.overrideReason } : {}) } : {}),
+      // A new line takes the order speed unless it has its own.
+      ...(line.serviceSpeed && line.serviceSpeed !== orderSpeed ? { serviceSpeed: line.serviceSpeed } : {}),
+      ...(line.lineDiscount ? { lineDiscount: line.lineDiscount } : {}),
+      ...(line.confirmedUnitPrice !== undefined ? { confirmedUnitPrice: line.confirmedUnitPrice } : {}),
     },
   });
   for (const piece of line.pieces) {

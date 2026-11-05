@@ -113,7 +113,6 @@ describe('Permission Service', () => {
       await invalidatePermissionCache('user-id', 'tenant-id');
 
       expect(cache.del).toHaveBeenCalledWith('permissions:user-id:tenant-id');
-      expect(cache.del).toHaveBeenCalledWith('workflow_roles:user-id:tenant-id');
     });
   });
 });

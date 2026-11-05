@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-10-28T02:26:55.465Z
+Generated: 2026-11-05T11:03:20.177Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -17,9 +17,9 @@ Generated: 2026-10-28T02:26:55.465Z
 | multi_branch | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 675 | {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>} |
 | multi_currency_fx | src/features/fx/ui/currency-fx-screen.tsx | 32 | const multiCurrencyAllowed = useFeature('multi_currency_fx'); |
 | order_fin_refund_execution | app/dashboard/internal_fin/refunds/page.tsx | 46 | currentTenantCan('order_fin_refund_execution').catch(() => false), |
-| order_fin_refund_execution | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 194 | const refundExecutionEnabled = useFeature('order_fin_refund_execution'); |
+| order_fin_refund_execution | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 196 | const refundExecutionEnabled = useFeature('order_fin_refund_execution'); |
 | order_fin_refund_ui | app/dashboard/internal_fin/refunds/page.tsx | 44 | currentTenantCan('order_fin_refund_ui').catch(() => false), |
-| order_fin_refund_ui | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 89 | const refundUiEnabled = useFeature('order_fin_refund_ui'); |
+| order_fin_refund_ui | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 90 | const refundUiEnabled = useFeature('order_fin_refund_ui'); |
 | order_fin_sv_funding_capture | src/features/customers/ui/customer-stored-value-tab.tsx | 104 | const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture'); |
 | order_fin_voucher_unwind | app/dashboard/internal_fin/vouchers/[voucherId]/page.tsx | 91 | const unwindEnabled = await canAccess(auth.tenantId, 'order_fin_voucher_unwind'); |
 | pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 535 | {plan.feature_flags.pdf_invoices && ( |

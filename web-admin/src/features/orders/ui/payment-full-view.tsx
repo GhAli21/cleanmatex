@@ -1,5 +1,7 @@
 'use client';
 
+import { OrderDraftFinancialSummaryButton } from '@features/orders/order-fin-view/ui/order-draft-financial-summary-button';
+import type { OrderFinDraftInput } from '@/lib/types/order-fin-view';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { isPaymentQuoteReviewCurrent } from '@features/orders/hooks/use-payment-quote';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -856,6 +858,22 @@ export function PaymentFullView({
     legacyUnresolvedOverpaymentAmount,
     amountAppliedToOrder,
   } = derivations;
+  // P6-09 (Reusable View §6.3): the read-only statement of exactly what this modal shows; never written back.
+  const financialSummaryDraft = useMemo<OrderFinDraftInput | null>(() => (serverTotals ? {
+    currencyCode: currencyConfig?.currencyCode ?? null,
+    currencyDecimals: currencyConfig?.decimalPlaces ?? null,
+    settlementType: null,
+    quote: serverTotals,
+    realPaymentEntries,
+    customerCreditEntries,
+    payNowAmount,
+    customerCreditAmount,
+    remainingBalance,
+    giftCardSettlementAmount,
+    displayChangeAmount,
+    unresolvedOverpaymentAmount,
+  } : null), [serverTotals, currencyConfig?.currencyCode, currencyConfig?.decimalPlaces, realPaymentEntries, customerCreditEntries,
+    payNowAmount, customerCreditAmount, remainingBalance, giftCardSettlementAmount, displayChangeAmount, unresolvedOverpaymentAmount]);
   const {
     cashDrawers,
     cashDrawersLoading,
@@ -2619,6 +2637,7 @@ export function PaymentFullView({
               <div
                 className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
               >
+                <OrderDraftFinancialSummaryButton draft={financialSummaryDraft} disabled={paymentInteractionLocked} />
                 <PaymentModeToggle
                   mode={mode}
                   onModeChange={handleModeChange}

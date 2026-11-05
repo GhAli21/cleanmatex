@@ -14,6 +14,11 @@ import { OrderPieceService, type OrderPreferencesSourceDefault } from './order-p
 import { logger } from '@/lib/utils/logger';
 import { resolveOrderCreateWorkflowState } from '@/lib/services/workflow/order-create-workflow.service';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
+import {
+  buildOrderItemSrno,
+  lockOrderItemSerials,
+  readOrderItemSerialMax,
+} from '@/lib/services/order-item-code.service';
 import { isOrderEditable } from '@/lib/utils/order-editability';
 import { checkOrderLock, unlockOrder } from '@/lib/services/order-lock.service';
 import { createEditAudit } from '@/lib/services/order-audit.service';
@@ -30,13 +35,20 @@ import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import type { CheckoutQuote } from '@/lib/services/commercial/commercial-checkout.service';
 import { openCommercialCreateSession } from '@/lib/services/commercial/commercial-create.session';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
+import {
+  splitOrderUnits,
+  buildSplitLines,
+  ORDER_SPLIT_ERRORS,
+  type OrderSplitResult,
+} from '@/lib/services/order-split.service';
 import { voidPreferenceChargesForOrderRewriteTx } from '@/lib/services/order-charge.service';
 import { customerSnapshotFieldChanged } from '@/lib/utils/order-customer-snapshot';
 import { CHARGE_TYPES } from '@/lib/constants/order-financial';
 import { PREFS_LEVEL, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
 import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
-import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
+import { DEFAULT_ORDER_SOURCE_CODE, type OrderSourceCode } from '@/lib/constants/order-sources';
+import type { OrderStatus } from '@/lib/types/workflow';
 import { findOpenPosSessionIdForOrder } from '@/lib/services/order-created-pos-session';
 import { PAYMENT_METHODS, PAYMENT_TYPE_IDS } from '@/lib/constants/payment';
 import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/lib/services/order-source-policy';
@@ -72,6 +84,12 @@ import { OrderCreatePresetError } from '@/lib/services/workflow/order-create-hyd
 import {
   staffEnForWorkflowProfileError,
 } from '@/lib/services/workflow/workflow-profile-error-catalog';
+
+/** The only channel whose retail orders may be paid later (on collection). */
+const ONLINE_RETAIL_PAY_LATER_SOURCE = 'customer_mobile_app' satisfies OrderSourceCode;
+
+/** Statuses at or past handover: an unpaid order must never start in one. */
+const HANDED_OVER_STATUSES: ReadonlySet<string> = new Set<OrderStatus>(['out_for_delivery', 'delivered', 'closed']);
 
 function createOrderFailureFromProfileError(error: unknown): CreateOrderResult | null {
   if (error instanceof SemanticInitialStatusResolutionError) {
@@ -320,24 +338,6 @@ export interface CreateOrderResult {
   error?: string;
   errorCode?: string;
   serviceCode?: string;
-}
-
-export interface EstimateReadyByParams {
-  items: Array<{
-    serviceCategoryCode: string;
-    turnaroundHh?: number;
-    quantity: number;
-    /** Service preference codes for SLA adjustment (extra_turnaround_minutes) */
-    servicePrefs?: Array<{ preference_code: string }>;
-  }>;
-  isQuickDrop?: boolean;
-  express?: boolean;
-}
-
-export interface EstimateReadyByResult {
-  success: boolean;
-  readyByAt?: string;
-  error?: string;
 }
 
 export interface UpdateOrderParams extends Partial<UpdateOrderInput> {
@@ -657,17 +657,32 @@ export class OrderService {
       hydrated,
     } = wf;
 
-    // T03: retail must always pay at POS; do not rely on the client-side block alone.
+    // T03: retail sold at the counter must be paid there; do not rely on the client-side block alone.
     // Paid later by method (staff) or by payment type (a channel with no payment, e.g. booking).
     const paidLater = paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION
       || paymentTypeCode === PAYMENT_TYPE_IDS.PAY_ON_COLLECTION
       || paymentTypeCode === PAYMENT_TYPE_IDS.PAY_ON_DELIVERY;
     if (isRetailOnlyOrder && paidLater) {
-      return {
-        success: false,
-        errorCode: 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED',
-        error: 'Retail orders must be paid at POS. Please select Cash or Card.',
-      };
+      // Owner rule (2026-10-30): only a customer-app retail order may be paid later, as
+      // PAY_ON_COLLECTION (the type the pickup/delivery collection gates hold until paid),
+      // and only when it starts before handover so the balance is collected on release.
+      const onlinePayOnCollection = orderSourceCode === ONLINE_RETAIL_PAY_LATER_SOURCE
+        && paymentTypeCode === PAYMENT_TYPE_IDS.PAY_ON_COLLECTION
+        && paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION;
+      if (!onlinePayOnCollection) {
+        return {
+          success: false,
+          errorCode: 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED',
+          error: 'Retail orders must be paid at POS. Please select Cash or Card.',
+        };
+      }
+      if (HANDED_OVER_STATUSES.has(v_initialStatus)) {
+        return {
+          success: false,
+          errorCode: 'RETAIL_PAY_LATER_STARTS_HANDED_OVER',
+          error: `The workflow profile starts this retail order as "${v_initialStatus}"; an unpaid order must start before handover.`,
+        };
+      }
     }
 
     const orderNo = await generateOrderNumberWithTx(tx, tenantId);
@@ -1196,82 +1211,11 @@ export class OrderService {
     };
   }
 
-  /**
-   * Estimate ready-by date based on items and priority
-   * PRD-010: Calculate SLA based on service categories and express mode
-   */
-  static async estimateReadyBy(params: EstimateReadyByParams): Promise<EstimateReadyByResult> {
-    try {
-      const supabase = await createClient();
-      const { items, isQuickDrop, express } = params;
-
-      // If Quick Drop with no items, use default turnaround
-      if (isQuickDrop && items.length === 0) {
-        const defaultHours = 24; // Default 24 hours for Quick Drop
-        const readyByAt = new Date(Date.now() + defaultHours * 60 * 60 * 1000);
-        return {
-          success: true,
-          readyByAt: readyByAt.toISOString(),
-        };
-      }
-
-      // Get max turnaround from service categories
-      let maxTurnaround = 0;
-      for (const item of items) {
-        const { data: category } = await supabase
-          .from('sys_service_category_cd')
-          .select('turnaround_hh, turnaround_hh_express')
-          .eq('service_category_code', item.serviceCategoryCode)
-          .single();
-
-        if (category) {
-          const turnaround = express ? category.turnaround_hh_express : category.turnaround_hh;
-          maxTurnaround = Math.max(maxTurnaround, turnaround || 0);
-        }
-      }
-
-      // Fallback to default if no category found
-      if (maxTurnaround === 0) {
-        maxTurnaround = express ? 12 : 24;
-      }
-
-      // Add extra minutes from service preferences (SLA adjustment, migration 0139)
-      let extraMinutes = 0;
-      const prefCodes = [...new Set(items.flatMap((i) => i.servicePrefs?.map((p) => p.preference_code) ?? []))];
-      if (prefCodes.length > 0) {
-        const { data: prefs } = await supabase
-          .from('sys_service_preference_cd')
-          .select('code, extra_turnaround_minutes')
-          .in('code', prefCodes);
-        extraMinutes = (prefs ?? []).reduce((sum, p) => {
-          const itemCount = items.filter((i) => i.servicePrefs?.some((sp) => sp.preference_code === p.code)).length;
-          return sum + (p.extra_turnaround_minutes ?? 0) * Math.max(1, itemCount);
-        }, 0);
-      }
-
-      // Apply priority multiplier if express
-      const multiplier = express ? 0.5 : 1.0;
-      const finalTurnaround = maxTurnaround * multiplier;
-
-      // Calculate ready-by date (base hours + extra minutes from prefs)
-      const readyByAt = new Date(Date.now() + finalTurnaround * 60 * 60 * 1000 + extraMinutes * 60 * 1000);
-
-      return {
-        success: true,
-        readyByAt: readyByAt.toISOString(),
-      };
-    } catch (error) {
-      console.error('OrderService.estimateReadyBy error:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
 
   /**
-   * Split order into suborder
-   * PRD-010: Create suborder with specific items
+   * Split order into suborder (whole remaining units of the selected lines).
+   * PRD-010 / Human-Friendly Codes P2: one transaction, sub-order number <root>-S<n>,
+   * money stays on the parent (A-29). See lib/services/order-split.service.ts.
    */
   static async splitOrder(
     orderId: string,
@@ -1280,148 +1224,15 @@ export class OrderService {
     reason: string,
     userId: string,
     userName: string
-  ): Promise<any> {
-    try {
-      const supabase = await createClient();
-
-      // Get parent order
-      const { data: parentOrder, error: orderError } = await supabase
-        .from('org_orders_mst')
-        .select('*')
-        .eq('id', orderId)
-        .eq('tenant_org_id', tenantId)
-        .single();
-
-      if (orderError || !parentOrder) {
-        return {
-          success: false,
-          error: 'Parent order not found',
-        };
-      }
-
-      // Get items to move
-      const { data: items, error: itemsError } = await supabase
-        .from('org_order_items_dtl')
-        .select('*')
-        .in('id', itemIds)
-        .eq('order_id', orderId)
-        .eq('tenant_org_id', tenantId);
-
-      if (itemsError || !items || items.length === 0) {
-        return {
-          success: false,
-          error: 'Items not found or already moved',
-        };
-      }
-
-      // Generate suborder number
-      const { data: orderNoData, error: orderNoError } = await supabase.rpc(
-        'generate_order_number',
-        { p_tenant_org_id: tenantId }
-      );
-
-      if (orderNoError || !orderNoData) {
-        return {
-          success: false,
-          error: 'Failed to generate suborder number',
-        };
-      }
-
-      const createdPosSessionId = userId && parentOrder.branch_id
-        ? await findOpenPosSessionIdForOrder(prisma, {
-            tenantId,
-            userId,
-            branchId: parentOrder.branch_id,
-          })
-        : null;
-
-      // Create suborder
-      const { data: suborder, error: suborderError } = await supabase
-        .from('org_orders_mst')
-        .insert({
-          tenant_org_id: tenantId,
-          ...(createdPosSessionId ? { created_pos_session_id: createdPosSessionId } : {}),
-          branch_id: parentOrder.branch_id,
-          customer_id: parentOrder.customer_id,
-          order_type_id: parentOrder.order_type_id,
-          order_no: orderNoData,
-          status: 'intake',
-          current_status: parentOrder.current_status,
-          current_stage: parentOrder.current_stage,
-          priority: parentOrder.priority,
-          priority_multiplier: parentOrder.priority_multiplier,
-          total_items: items.length,
-          subtotal: items.reduce((sum, item) => sum + item.total_price, 0),
-          discount: 0,
-          tax: 0,
-          total: items.reduce((sum, item) => sum + item.total_price, 0),
-          workflow_template_id: parentOrder.workflow_template_id,
-          parent_order_id: orderId,
-          order_subtype: 'split_child',
-          customer_notes: `Split from ${parentOrder.order_no}: ${reason}`,
-          internal_notes: `Split order created - reason: ${reason}`,
-        })
-        .select()
-        .single();
-
-      if (suborderError || !suborder) {
-        return {
-          success: false,
-          error: 'Failed to create suborder',
-        };
-      }
-
-      // Move items to suborder
-      const { error: moveError } = await supabase
-        .from('org_order_items_dtl')
-        .update({ order_id: suborder.id })
-        .in('id', itemIds);
-
-      if (moveError) {
-        return {
-          success: false,
-          error: 'Failed to move items to suborder',
-        };
-      }
-
-      // Update parent order
-      await supabase
-        .from('org_orders_mst')
-        .update({
-          has_split: true,
-          total_items: parentOrder.total_items - items.length,
-        })
-        .eq('id', orderId);
-
-      // Log to history
-      await supabase.rpc('log_order_action', {
-        p_tenant_org_id: tenantId,
-        p_order_id: orderId,
-        p_action_type: 'SPLIT',
-        p_from_value: null,
-        p_to_value: suborder.id,
-        p_done_by: userId,
-        p_payload: {
-          reason,
-          suborder_no: suborder.order_no,
-          items_moved: items.length,
-        },
-      });
-
-      return {
-        success: true,
-        suborder: {
-          id: suborder.id,
-          orderNo: suborder.order_no,
-        },
-      };
-    } catch (error) {
-      console.error('OrderService.splitOrder error:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
+  ): Promise<OrderSplitResult> {
+    return splitOrderUnits({
+      tenantId,
+      orderId,
+      userId,
+      userName,
+      reason,
+      lines: itemIds.map((itemId) => ({ itemId })),
+    });
   }
 
   /**
@@ -2138,9 +1949,9 @@ export class OrderService {
   }
 
   /**
-   * Split order by pieces (NEW)
-   * Creates a new sub-order with selected pieces from items
-   * PRD-010: Piece-level splitting for processing modal
+   * Split order by pieces ("{itemId}-piece-{n}" ids from the processing modal).
+   * PRD-010 / Human-Friendly Codes P2: one transaction, sub-order number <root>-S<n>,
+   * money stays on the parent (A-29). See lib/services/order-split.service.ts.
    */
   static async splitOrderByPieces(
     orderId: string,
@@ -2149,186 +1960,15 @@ export class OrderService {
     reason: string,
     userId: string,
     userName: string
-  ): Promise<any> {
-    try {
-      const supabase = await createClient();
-
-      // Parse piece IDs to extract itemId and pieceNumber
-      // Format: "{itemId}-piece-{pieceNumber}"
-      const pieceMap = new Map<string, number[]>();
-
-      pieceIds.forEach(pieceId => {
-        const match = pieceId.match(/^(.+)-piece-(\d+)$/);
-        if (match) {
-          const itemId = match[1];
-          const pieceNumber = parseInt(match[2], 10);
-          const existing = pieceMap.get(itemId) || [];
-          existing.push(pieceNumber);
-          pieceMap.set(itemId, existing);
-        }
-      });
-
-      if (pieceMap.size === 0) {
-        return {
-          success: false,
-          error: 'No valid piece IDs found',
-        };
-      }
-
-      // Get original order
-      const { data: originalOrder, error: orderError } = await supabase
-        .from('org_orders_mst')
-        .select('*')
-        .eq('id', orderId)
-        .eq('tenant_org_id', tenantId)
-        .single();
-
-      if (orderError || !originalOrder) {
-        return {
-          success: false,
-          error: 'Order not found or access denied',
-        };
-      }
-
-      // Get items that have pieces being split
-      const itemIds = Array.from(pieceMap.keys());
-      const { data: items, error: itemsError } = await supabase
-        .from('org_order_items_dtl')
-        .select('*')
-        .in('id', itemIds)
-        .eq('tenant_org_id', tenantId);
-
-      if (itemsError || !items || items.length === 0) {
-        return {
-          success: false,
-          error: 'Items not found',
-        };
-      }
-
-      // Generate new order number
-      const timestamp = Date.now().toString().slice(-6);
-      const newOrderNo = `${originalOrder.order_no}-S${timestamp}`;
-
-      const createdPosSessionId = userId && originalOrder.branch_id
-        ? await findOpenPosSessionIdForOrder(prisma, {
-            tenantId,
-            userId,
-            branchId: originalOrder.branch_id,
-          })
-        : null;
-
-      // Create sub-order
-      const { data: suborder, error: createError } = await supabase
-        .from('org_orders_mst')
-        .insert({
-          tenant_org_id: tenantId,
-          ...(createdPosSessionId ? { created_pos_session_id: createdPosSessionId } : {}),
-          order_no: newOrderNo,
-          customer_id: originalOrder.customer_id,
-          branch_id: originalOrder.branch_id,
-          service_category_code: originalOrder.service_category_code,
-          status: 'processing',
-          current_status: 'processing',
-          parent_order_id: orderId,
-          order_subtype: 'split',
-          priority: originalOrder.priority,
-          payment_status: 'pending',
-          subtotal: 0,
-          total: 0,
-          received_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (createError || !suborder) {
-        return {
-          success: false,
-          error: 'Failed to create sub-order',
-        };
-      }
-
-      // Create items in sub-order and update original items
-      let movedPieces = 0;
-      for (const item of items) {
-        const piecesToMove = pieceMap.get(item.id) || [];
-        const movingQuantity = piecesToMove.length;
-
-        if (movingQuantity === 0) continue;
-
-        // Create new item in suborder with the moving quantity
-        await supabase
-          .from('org_order_items_dtl')
-          .insert({
-            tenant_org_id: tenantId,
-            order_id: suborder.id,
-            branch_id: (item as any).branch_id ?? suborder.branch_id ?? null,
-            product_id: item.product_id,
-            service_category_code: item.service_category_code,
-            product_name: item.product_name,
-            product_name2: item.product_name2,
-            quantity: movingQuantity,
-            quantity_ready: 0,
-            price_per_unit: item.price_per_unit,
-            total_price: item.price_per_unit * movingQuantity,
-            status: item.status,
-            created_at: new Date().toISOString(),
-          });
-
-        // Update original item quantity
-        const newQuantity = item.quantity - movingQuantity;
-        await supabase
-          .from('org_order_items_dtl')
-          .update({
-            quantity: newQuantity,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', item.id)
-          .eq('tenant_org_id', tenantId);
-
-        movedPieces += movingQuantity;
-      }
-
-      // Mark original order as having split
-      await supabase
-        .from('org_orders_mst')
-        .update({
-          has_split: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', orderId)
-        .eq('tenant_org_id', tenantId);
-
-      // Log history
-      await supabase
-        .from('org_order_history')
-        .insert({
-          tenant_org_id: tenantId,
-          order_id: orderId,
-          action_type: 'SPLIT',
-          from_value: orderId,
-          to_value: suborder.id,
-          done_by: userId,
-          done_at: new Date().toISOString(),
-          payload: {
-            reason,
-            pieces_moved: movedPieces,
-            new_order_no: newOrderNo,
-            piece_ids: pieceIds,
-          },
-        });
-
-      return {
-        success: true,
-        suborder,
-      };
-    } catch (error) {
-      console.error('OrderService.splitOrderByPieces error:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+  ): Promise<OrderSplitResult> {
+    const built = buildSplitLines({ pieceIds });
+    if ('errorCode' in built) {
+      return { success: false, errorCode: built.errorCode, error: built.error };
     }
+    if (built.lines.length === 0) {
+      return { success: false, errorCode: ORDER_SPLIT_ERRORS.NOTHING_SELECTED, error: 'No valid piece IDs found' };
+    }
+    return splitOrderUnits({ tenantId, orderId, userId, userName, reason, lines: built.lines });
   }
 
   /**
@@ -2567,7 +2207,16 @@ export class OrderService {
       // 6. Use Prisma transaction for atomic updates
       const result = await prisma.$transaction(async (tx) => {
         // 7. Delete old items/pieces if items array provided
+        // HFC P3: read the order's highest line serial BEFORE the delete (same lock as the DB trigger), so the new
+        // lines continue the numbering. A serial that was printed on a label is never given to a different line.
+        let itemSerialFloor = 0;
         if (items && items.length >= 0) {
+          await lockOrderItemSerials(tx, orderId);
+          itemSerialFloor = await readOrderItemSerialMax(tx, {
+            tenantOrgId: tenantId,
+            orderId,
+            orderNo: existingOrder.order_no,
+          });
           // Delete all pieces first
           await tx.org_order_item_pieces_dtl.deleteMany({
             where: {
@@ -2702,7 +2351,8 @@ export class OrderService {
                 tenant_org_id: tenantId,
                 branch_id: branchId ?? existingOrder.branch_id ?? null,
                 service_category_code: item.serviceCategoryCode || 'GENERAL',
-                order_item_srno: `${orderNo}-${index + 1}`,
+                order_item_srno: buildOrderItemSrno(orderNo, itemSerialFloor + index + 1),
+                barcode: buildOrderItemSrno(orderNo, itemSerialFloor + index + 1),
                 product_id: item.productId,
                 quantity: item.quantity,
                 price_per_unit: item.pricePerUnit,

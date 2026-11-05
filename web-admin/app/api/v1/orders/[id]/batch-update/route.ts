@@ -22,6 +22,11 @@ import {
 } from '@/lib/services/workflow/workflow-engine.service';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { blockCommittedCommercialWrite, committedCommercialEchoChanged } from '@/lib/services/order-change/order-change-legacy-writer-guard';
+import {
+  PIECE_TAG_ERROR_CODES,
+  PieceCodeService,
+  mapPieceTagDbError,
+} from '@/lib/services/piece-code/piece-code.service';
 
 /**
  *
@@ -131,6 +136,46 @@ export async function POST(
           delete update.color;
           delete update.brand;
         }
+      }
+    }
+
+    // HFC P3 (A-38): every external tag (piece barcode) of the batch is checked before anything is written:
+    // format and normalising (A-36), code look-alike (A-37), the same tag on two pieces of the batch, and a tag
+    // already on another live piece (A-35). If any fails, nothing is saved and all problems are returned in `issues`.
+    // 400 PIECE_TAG_INVALID / PIECE_TAG_LOOKS_LIKE_CODE; 409 PIECE_TAG_DUPLICATE_IN_BATCH / PIECE_TAG_IN_USE.
+    const tagEntries = updates
+      .map((update, index) => ({ update, index }))
+      .filter(({ update }) => typeof update.barcode === 'string' && update.barcode !== '')
+      .map(({ update, index }) => ({
+        index,
+        raw: update.barcode as string,
+        target: { pieceId: update.pieceId, orderId, itemId: update.itemId, pieceNumber: update.pieceNumber },
+      }));
+    if (tagEntries.length > 0) {
+      const tagCheck = await PieceCodeService.validateBatchTags(supabase, tenantId, tagEntries);
+      if (tagCheck.issues.length > 0) {
+        const formatIssue = tagCheck.issues.find(
+          (i) => i.code === PIECE_TAG_ERROR_CODES.INVALID || i.code === PIECE_TAG_ERROR_CODES.LOOKS_LIKE_CODE
+        );
+        const first = formatIssue ?? tagCheck.issues[0];
+        return NextResponse.json(
+          {
+            error: first.code === PIECE_TAG_ERROR_CODES.IN_USE || first.code === PIECE_TAG_ERROR_CODES.DUPLICATE_IN_BATCH
+              ? 'Piece tag already in use'
+              : 'Invalid piece tag',
+            code: first.code,
+            tag: first.tag,
+            reason: first.reason,
+            heldByPieceCode: first.heldByPieceCode,
+            issues: tagCheck.issues,
+            piecesUpdated: 0,
+          },
+          { status: formatIssue ? 400 : 409 }
+        );
+      }
+      for (const entry of tagEntries) {
+        const tag = tagCheck.tags.get(entry.index);
+        if (tag) updates[entry.index].barcode = tag;
       }
     }
 
@@ -312,6 +357,24 @@ export async function POST(
           orderId,
           errors: batchResult.errors,
         });
+      }
+
+      // HFC P3 (A-38, accepted risk): pieces are saved one by one. Only a tag taken by another request at the same
+      // instant (after the full check above) is refused by the DB (uq_ord_piece_barcode); pieces saved before it
+      // stay saved, and the response says how many (piecesUpdated). The caller fixes the tag and retries.
+      const tagDbError = (batchResult.errors ?? [])
+        .map((e) => mapPieceTagDbError(e.error))
+        .find((code) => code !== null);
+      if (tagDbError) {
+        return NextResponse.json(
+          {
+            error: tagDbError === PIECE_TAG_ERROR_CODES.IN_USE ? 'Piece tag already in use' : 'Invalid piece tag',
+            code: tagDbError,
+            partial: (batchResult.updated ?? 0) > 0,
+            piecesUpdated: batchResult.updated ?? 0,
+          },
+          { status: tagDbError === PIECE_TAG_ERROR_CODES.IN_USE ? 409 : 400 }
+        );
       }
 
       piecesUpdated = batchResult.updated ?? 0;

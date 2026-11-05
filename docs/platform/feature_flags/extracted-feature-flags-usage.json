@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-10-28T02:26:52.150Z",
+  "extractedAt": "2026-11-01T16:03:10.999Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -63,49 +63,49 @@
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 142,
+        "line": 143,
         "context": "export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 198,
-        "context": "return getFeatureFlags(user.user_metadata.tenant_org_id);",
-        "surface": "service",
-        "pattern": "getFeatureFlags"
-      },
-      {
-        "path": "lib/services/feature-flags.service.ts",
-        "line": 215,
-        "context": "const flags = await getFeatureFlags(tenantId);",
-        "surface": "service",
-        "pattern": "getFeatureFlags"
-      },
-      {
-        "path": "lib/services/feature-flags.service.ts",
-        "line": 248,
-        "context": "const flags = await getFeatureFlags(tenantId);",
-        "surface": "service",
-        "pattern": "getFeatureFlags"
-      },
-      {
-        "path": "lib/services/feature-flags.service.ts",
-        "line": 302,
+        "line": 195,
         "context": "return getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 340,
+        "line": 212,
+        "context": "const flags = await getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 241,
+        "context": "const flags = await getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 295,
         "context": "return getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 363,
+        "line": 333,
+        "context": "return getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 356,
         "context": "return getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
@@ -133,14 +133,14 @@
       },
       {
         "path": "lib/services/workflow-service-enhanced.ts",
-        "line": 220,
+        "line": 225,
         "context": "const featureFlags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/workflow-service-enhanced.ts",
-        "line": 425,
+        "line": 446,
         "context": "const flags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
@@ -163,7 +163,7 @@
       },
       {
         "path": "src/features/orders/ui/order-financial/refund-initiate-dialog.tsx",
-        "line": 194,
+        "line": 196,
         "context": "const refundExecutionEnabled = useFeature('order_fin_refund_execution');",
         "surface": "screen",
         "pattern": "useFeature"
@@ -172,14 +172,14 @@
     "online_booking": [
       {
         "path": "app/api/v1/public/customer/booking/route.ts",
-        "line": 379,
+        "line": 380,
         "context": "const bookingEnabled = await canAccess(tenantId, 'online_booking');",
         "surface": "api",
         "pattern": "canAccess"
       },
       {
         "path": "app/api/v1/public/customer/booking/route.ts",
-        "line": 703,
+        "line": 700,
         "context": "const bookingEnabled = await canAccess(body.tenantId, 'online_booking');",
         "surface": "api",
         "pattern": "canAccess"
@@ -195,7 +195,7 @@
       },
       {
         "path": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
-        "line": 89,
+        "line": 90,
         "context": "const refundUiEnabled = useFeature('order_fin_refund_ui');",
         "surface": "screen",
         "pattern": "useFeature"
@@ -362,7 +362,7 @@
     "pdf_invoices": [
       {
         "path": "lib/services/feature-flags.service.ts",
-        "line": 409,
+        "line": 402,
         "context": "*   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES);",
         "surface": "service",
         "pattern": "requireFeature"
@@ -385,7 +385,7 @@
     "order_fin_governed_amendments": [
       {
         "path": "lib/services/order-service.ts",
-        "line": 2487,
+        "line": 2217,
         "context": "const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments');",
         "surface": "service",
         "pattern": "canAccess"

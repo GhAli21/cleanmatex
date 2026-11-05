@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAnyPermission } from '@/lib/middleware/require-permission'
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import {
   createProduct,
   searchProducts,
@@ -29,36 +28,6 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 10;
 
 // ==================================================================
-// HELPER FUNCTIONS
-// ==================================================================
-
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id,
-    userId: user.id,
-    userRole: tenants[0].user_role,
-  };
-}
-
-// ==================================================================
 // GET /api/v1/products - List Products
 // ==================================================================
 
@@ -79,8 +48,8 @@ async function getAuthContext() {
  * @param request
  */
 export async function GET(request: NextRequest) {
-  const authCheck = await requireAnyPermission(['products:read', 'catalog:read'])(request)
-  if (authCheck instanceof NextResponse) return authCheck
+  const authCheck = await requirePermission('products:read')(request);
+  if (authCheck instanceof NextResponse) return authCheck;
 
   const startTime = Date.now();
 
@@ -90,10 +59,6 @@ export async function GET(request: NextRequest) {
       // when a tenant-scoped catalog query stalls upstream.
       setTimeout(() => reject(new Error('Request timeout')), 8000);
     });
-
-    // Tenant is resolved server-side from the authenticated session before reading
-    // tenant-scoped catalog rows.
-    await Promise.race([getAuthContext(), timeoutPromise]);
 
     const { searchParams } = new URL(request.url);
 
@@ -200,9 +165,10 @@ export async function GET(request: NextRequest) {
  * @param request
  */
 export async function POST(request: NextRequest) {
-  try {
-    await getAuthContext();
+  const authCheck = await requirePermission('products:create')(request);
+  if (authCheck instanceof NextResponse) return authCheck;
 
+  try {
     const body: ProductCreateRequest = await request.json();
 
     // Validate required fields

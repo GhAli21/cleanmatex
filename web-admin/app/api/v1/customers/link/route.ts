@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthContext } from '@/lib/auth/server-auth';
 import { linkCustomerToTenant } from '@/lib/services/customers.service';
 
 /**
@@ -12,6 +13,7 @@ import { linkCustomerToTenant } from '@/lib/services/customers.service';
  */
 export async function POST(request: NextRequest) {
   try {
+    await getAuthContext();
     const body = await request.json();
     const { customerId, sourceType, originalTenantId } = body;
 

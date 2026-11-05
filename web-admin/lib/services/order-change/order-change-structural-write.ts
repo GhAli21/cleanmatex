@@ -7,6 +7,7 @@
 import { reviewedItemTotal } from '@/lib/services/order-change/order-change-edit-pricing';
 import type { OrderChangePersistedOperation, OrderChangeRowWrite } from '@/lib/services/order-change/order-change-mutation.service';
 import { OrderChangeApplyRejected } from '@/lib/services/order-change/order-change-commercial-write';
+import { ORDER_ITEM_SRNO_LOCK_PREFIX } from '@/lib/services/order-item-code.service';
 import type { z } from 'zod';
 import type { orderChangeApplyRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
 
@@ -87,7 +88,15 @@ export async function loadStructuralWriteFacts(
 ): Promise<StructuralWriteFacts> {
   if (!tx.$queryRaw) throw new OrderChangeApplyRejected(422, 'STRUCTURE_CATALOG_MISSING');
   const query = tx.$queryRaw.bind(tx);
-  const orderRows = await query<Array<{ order_no: string; branch_id: string | null; current_status: string | null; item_count: number }>>`
+  // HFC P3: new lines continue from the order's highest `<order_no>-<n>`. Take the same per-order lock as the DB
+  // trigger (fn_next_order_item_srno) in its own statement first, so the read below sees every committed line.
+  if (operations.some((operation) => operation.code === 'ADD_ITEM')) {
+    const lockKey = `${ORDER_ITEM_SRNO_LOCK_PREFIX}${orderId}`;
+    await query<Array<{ locked: number }>>`
+      SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}::text, 0))) AS srno_lock
+    `;
+  }
+  const orderRows = await query<Array<{ order_no: string; branch_id: string | null; current_status: string | null; item_count: number; item_serial_max?: number | null }>>`
     SELECT o.order_no,
            o.branch_id,
            o.current_status,
@@ -96,7 +105,15 @@ export async function loadStructuralWriteFacts(
              FROM public.org_order_items_dtl item
              WHERE item.tenant_org_id = o.tenant_org_id
                AND item.order_id = o.id
-           ) AS item_count
+           ) AS item_count,
+           (
+             SELECT COALESCE(MAX(substring(item.order_item_srno FROM length(o.order_no) + 2)::int), 0)::int
+             FROM public.org_order_items_dtl item
+             WHERE item.tenant_org_id = o.tenant_org_id
+               AND item.order_id = o.id
+               AND left(item.order_item_srno, length(o.order_no) + 1) = o.order_no || '-'
+               AND substring(item.order_item_srno FROM length(o.order_no) + 2) ~ '^[1-9][0-9]{0,8}$'
+           ) AS item_serial_max
     FROM public.org_orders_mst o
     WHERE o.id = ${orderId}::uuid
       AND o.tenant_org_id = ${tenantId}::uuid
@@ -108,6 +125,8 @@ export async function loadStructuralWriteFacts(
   for (const operation of operations) {
     if (operation.code !== 'ADD_ITEM') continue;
     const productId = operation.payload.productId;
+    // A custom item (P6-02d) names itself; there is no catalog row to read.
+    if (!productId) continue;
     const rows = await query<Array<{ id: string; product_name: string | null; product_name2: string | null; service_category_code: string | null }>>`
       SELECT id, product_name, product_name2, service_category_code
       FROM public.org_product_data_mst
@@ -167,7 +186,7 @@ export async function loadStructuralWriteFacts(
     branchId: order.branch_id,
     orderNo: order.order_no,
     itemStatus: order.current_status || 'processing',
-    nextItemSerial: Number(order.item_count) + 1,
+    nextItemSerial: Math.max(Number(order.item_count) || 0, Number(order.item_serial_max ?? 0) || 0) + 1,
     nextPieceSeqByItemId,
   };
 }
@@ -193,7 +212,10 @@ export function buildStructuralWritePlan(
   for (const operation of operations) {
     if (operation.code === 'ADD_ITEM') {
       const line = lineFor(lines, operation.payload.clientRef);
-      const product = facts.products.get(keyOf(operation.payload.productId));
+      const custom = operation.payload.customItem;
+      const product: StructuralProductFact | undefined = custom
+        ? { id: '', productName: custom.name, productName2: custom.name2 ?? null, serviceCategoryCode: custom.serviceCategoryCode ?? null }
+        : facts.products.get(keyOf(operation.payload.productId ?? ''));
       if (!product) throw new OrderChangeApplyRejected(422, 'STRUCTURE_CATALOG_MISSING');
       plan.itemInserts.push({
         id: operation.payload.clientRef,
@@ -201,7 +223,10 @@ export function buildStructuralWritePlan(
           branch_id: facts.branchId,
           service_category_code: product.serviceCategoryCode,
           order_item_srno: `${facts.orderNo}-${serial}`,
-          product_id: product.id,
+          // HFC P3: the line barcode is the plain serial (labels draw the image at print time).
+          barcode: `${facts.orderNo}-${serial}`,
+          // A custom item is stored like Create's (P5-03e): no product, its own name.
+          product_id: custom ? null : product.id,
           product_name: product.productName,
           product_name2: product.productName2,
           quantity: operation.payload.quantity,

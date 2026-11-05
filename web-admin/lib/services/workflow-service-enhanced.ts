@@ -11,6 +11,11 @@ import { getFeatureFlags } from '@/lib/services/feature-flags.service';
 import { canCreateOrder } from '@/lib/services/usage-tracking.service';
 import { hqApiClient } from '@/lib/api/hq-api-client';
 import { WorkflowService } from './workflow-service';
+import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
+import { reconcileOrderLoyaltyEarn } from '@/lib/services/loyalty.service';
+import { LOYALTY_RECONCILE_TRIGGERS } from '@/lib/constants/order-financial';
+import { logger } from '@/lib/utils/logger';
 import type { Order } from '@/types/order';
 import type { OrderStatus } from '@/lib/types/workflow';
 
@@ -320,6 +325,22 @@ export class WorkflowServiceEnhanced {
       }
       // Operational cancel only (ADR_CANCEL_RETURN_RULES): money stays on
       // the order until an explicit Fin reverse/refund. Do not auto-unwind.
+      // Loyalty earn does follow the cancel (D27): its target becomes 0.
+      try {
+        await withTenantContext(tenantId, () =>
+          prisma.$transaction((tx) =>
+            reconcileOrderLoyaltyEarn(tx, {
+              tenantId,
+              orderId,
+              trigger: LOYALTY_RECONCILE_TRIGGERS.ORDER_CANCEL,
+              sourceId: orderId,
+            })
+          )
+        );
+      } catch (err) {
+        // The cancel is committed; the next money change on the order reconciles again.
+        logger.error('Loyalty reconcile request after cancel failed', err as Error, { tenantId, orderId });
+      }
       return cancelPayload as TransitionResult;
     }
 

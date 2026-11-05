@@ -16,6 +16,7 @@
  * are labeled record-only until B09.
  */
 
+import { useOrderMoneyRefresh } from '@features/orders/order-fin-view/hooks/use-order-money-refresh';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -86,6 +87,7 @@ export function RefundInitiateDialog({
   const t = useTranslations('orders.detail.financial.refunds.initiate');
   const tErrors = useTranslations('orders.detail.financial.refunds.errors');
   const router = useRouter();
+  const refreshMoney = useOrderMoneyRefresh();
   const { showSuccess } = useMessage();
   const { token: csrfToken } = useCSRFToken();
   const canRebill = useHasPermissionCode('orders:rebill_authorize');
@@ -180,7 +182,7 @@ export function RefundInitiateDialog({
       }
       showSuccess(t('success'));
       resetAndClose(false);
-      router.refresh();
+      refreshMoney(orderId);
     } catch {
       setServerError(t('errors.submitFailed'));
     } finally {

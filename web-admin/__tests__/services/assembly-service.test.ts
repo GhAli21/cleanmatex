@@ -25,6 +25,11 @@ jest.mock('@/lib/utils/logger', () => ({
   logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
 
+const mockResolve = jest.fn();
+jest.mock('@/lib/services/scan-resolve/scan-resolve.service', () => ({
+  ScanResolveService: { resolve: (...args: unknown[]) => mockResolve(...args) },
+}));
+
 /** Builds one chainable, thenable Supabase query-builder mock for one `.from()` call. */
 function chain(resolved: { data?: unknown; error?: unknown }, singleResolved?: { data?: unknown; error?: unknown }) {
   const obj: Record<string, unknown> = {};
@@ -44,6 +49,7 @@ const TASK_ID = 'task-1';
 describe('AssemblyService.scanItem — scan gate', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockResolve.mockResolvedValue({ ok: false, code: 'SCAN_NOT_FOUND' });
   });
 
   it('rejects the scan when the task cannot be found', async () => {
@@ -150,6 +156,90 @@ describe('AssemblyService.scanItem — scan gate', () => {
 
     expect(result.success).toBe(true);
     expect(result.itemId).toBe('item-2');
+    expect(mockResolve).not.toHaveBeenCalled();
+  });
+});
+
+describe('AssemblyService.scanItem — shared resolver fallback (HFC A-42)', () => {
+  const task = { id: TASK_ID, task_status: 'IN_PROGRESS', order_id: 'order-1' };
+  const pending = [
+    { id: 'asm-1', order_item_id: 'line-1', barcode: null, order_item: { barcode: null } },
+    { id: 'asm-2', order_item_id: 'line-2', barcode: null, order_item: { barcode: null } },
+  ];
+  const pieceOutcome = (over: Record<string, unknown> = {}, orderId = 'order-1') => ({
+    ok: true,
+    result: {
+      kind: 'PIECE',
+      order: { id: orderId, orderNo: 'ORD-20261031-0007' },
+      item: { id: 'line-2', srno: 'ORD-20261031-0007-2' },
+      piece: { id: 'p-9', itemId: 'line-2', pieceSeq: 1, pieceCode: 'ORD-20261031-0007-2-1', removed: false, ...over },
+    },
+  });
+  const scan = (code: string) =>
+    AssemblyService.scanItem({ taskId: TASK_ID, tenantId: TENANT_ID, barcode: code, userId: USER_ID });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  function mockTaskAndItems() {
+    mockFrom
+      .mockImplementationOnce(() => chain({}, { data: task, error: null }))
+      .mockImplementationOnce(() => chain({ data: pending, error: null }));
+  }
+
+  it('scans the line a piece code (or tag) belongs to', async () => {
+    mockTaskAndItems();
+    mockFrom
+      .mockImplementationOnce(() => chain({ error: null }))
+      .mockImplementationOnce(() => chain({ data: [{ item_status: 'SCANNED' }], error: null }))
+      .mockImplementationOnce(() => chain({ error: null }));
+    mockResolve.mockResolvedValueOnce(pieceOutcome());
+
+    const result = await scan('ORD-20261031-0007-2-1');
+
+    expect(mockResolve).toHaveBeenCalledWith(expect.anything(), TENANT_ID, 'ORD-20261031-0007-2-1', 'assembly');
+    expect(result.success).toBe(true);
+    expect(result.itemId).toBe('asm-2');
+  });
+
+  it('scans the line a line code names', async () => {
+    mockTaskAndItems();
+    mockFrom
+      .mockImplementationOnce(() => chain({ error: null }))
+      .mockImplementationOnce(() => chain({ data: [{ item_status: 'SCANNED' }], error: null }))
+      .mockImplementationOnce(() => chain({ error: null }));
+    mockResolve.mockResolvedValueOnce({
+      ok: true,
+      result: { kind: 'ORDER_ITEM', order: { id: 'order-1' }, item: { id: 'line-1', srno: 'ORD-20261031-0007-1' } },
+    });
+
+    const result = await scan('ORD-20261031-0007-1');
+    expect(result.success).toBe(true);
+    expect(result.itemId).toBe('asm-1');
+  });
+
+  it.each([
+    ['a removed piece', pieceOutcome({ removed: true })],
+    ['a piece of another order', pieceOutcome({}, 'order-2')],
+    ['the order number alone', { ok: true, result: { kind: 'ORDER', order: { id: 'order-1' } } }],
+    ['an unknown code', { ok: false, code: 'SCAN_NOT_FOUND' }],
+  ])('keeps the same "not found" answer for %s, without writing', async (_label, outcome) => {
+    mockTaskAndItems();
+    mockResolve.mockResolvedValueOnce(outcome);
+
+    const result = await scan('X');
+
+    expect(result).toEqual({ success: false, isMatch: false, error: 'Barcode not found in expected items' });
+    expect(mockFrom).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats a resolver failure as no match', async () => {
+    mockTaskAndItems();
+    mockResolve.mockRejectedValueOnce(new Error('SCAN_LOOKUP_FAILED: boom'));
+
+    const result = await scan('ORD-20261031-0007-2-1');
+    expect(result).toEqual({ success: false, isMatch: false, error: 'Barcode not found in expected items' });
   });
 });
 

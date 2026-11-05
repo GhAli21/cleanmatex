@@ -15,6 +15,17 @@ jest.mock('@/lib/services/order-created-pos-session', () => ({
   stampCreatedPosSession: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('@/lib/services/order-split.service', () => ({
+  ORDER_SPLIT_ERRORS: { NOTHING_SELECTED: 'ORD_SPLIT_NOTHING_SELECTED' },
+  splitOrderUnits: jest.fn(),
+  buildSplitLines: jest.fn((input: { pieceIds?: string[] }) => {
+    const bad = (input.pieceIds ?? []).find((id) => !/^.+-piece-\d+$/.test(id));
+    return bad
+      ? { ok: false, errorCode: 'ORD_SPLIT_BAD_PIECE_ID', error: `Invalid piece id: ${bad}` }
+      : { ok: true, lines: [] };
+  }),
+}));
+
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
 }));
@@ -36,166 +47,14 @@ describe('OrderService', () => {
     jest.clearAllMocks();
   });
 
-  describe('estimateReadyBy', () => {
-    test('returns a ready-by timestamp using service-category turnaround', async () => {
-      const categorySingle = jest
-        .fn()
-        .mockResolvedValueOnce({
-          data: { turnaround_hh: 24, turnaround_hh_express: 12 },
-          error: null,
-        })
-        .mockResolvedValueOnce({
-          data: { turnaround_hh: 48, turnaround_hh_express: 24 },
-          error: null,
-        });
-
-      mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === 'sys_service_category_cd') {
-          return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: categorySingle,
-              })),
-            })),
-          };
-        }
-
-        if (table === 'sys_service_preference_cd') {
-          return {
-            select: jest.fn(() => ({
-              in: jest.fn().mockResolvedValue({
-                data: [{ code: 'PERFUME', extra_turnaround_minutes: 30 }],
-                error: null,
-              }),
-            })),
-          };
-        }
-
-        throw new Error(`Unexpected table: ${table}`);
-      });
-
-      const result = await OrderService.estimateReadyBy({
-        items: [
-          { serviceCategoryCode: 'WASH', quantity: 2, servicePrefs: [{ preference_code: 'PERFUME' }] },
-          { serviceCategoryCode: 'DRY', quantity: 1 },
-        ],
-        express: false,
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.readyByAt).toBeDefined();
-      expect(Number.isNaN(Date.parse(result.readyByAt!))).toBe(false);
-    });
-
-    test('uses faster express turnaround when express is enabled', async () => {
-      mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === 'sys_service_category_cd') {
-          return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn().mockResolvedValue({
-                  data: { turnaround_hh: 24, turnaround_hh_express: 12 },
-                  error: null,
-                }),
-              })),
-            })),
-          };
-        }
-
-        if (table === 'sys_service_preference_cd') {
-          return {
-            select: jest.fn(() => ({
-              in: jest.fn().mockResolvedValue({ data: [], error: null }),
-            })),
-          };
-        }
-
-        throw new Error(`Unexpected table: ${table}`);
-      });
-
-      const normal = await OrderService.estimateReadyBy({
-        items: [{ serviceCategoryCode: 'WASH', quantity: 1 }],
-        express: false,
-      });
-      const express = await OrderService.estimateReadyBy({
-        items: [{ serviceCategoryCode: 'WASH', quantity: 1 }],
-        express: true,
-      });
-
-      expect(normal.success).toBe(true);
-      expect(express.success).toBe(true);
-      expect(Date.parse(express.readyByAt!)).toBeLessThan(Date.parse(normal.readyByAt!));
-    });
-  });
 
   describe('splitOrder', () => {
-    test('creates a split suborder and logs the action', async () => {
-      mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === 'org_orders_mst') {
-          return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                eq: jest.fn(() => ({
-                  single: jest.fn().mockResolvedValue({
-                    data: {
-                      id: 'parent-order-id',
-                      branch_id: 'branch-1',
-                      customer_id: 'customer-1',
-                      order_type_id: 'STANDARD',
-                      order_no: 'ORD-1001',
-                      current_status: 'processing',
-                      current_stage: 'intake',
-                      priority: 'normal',
-                      priority_multiplier: 1,
-                      workflow_template_id: 'wf-1',
-                      total_items: 5,
-                    },
-                    error: null,
-                  }),
-                })),
-              })),
-            })),
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn().mockResolvedValue({
-                  data: { id: 'child-1', order_no: 'ORD-2001' },
-                  error: null,
-                }),
-              })),
-            })),
-            update: jest.fn(() => ({
-              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-            })),
-          };
-        }
-
-        if (table === 'org_order_items_dtl') {
-          return {
-            select: jest.fn(() => ({
-              in: jest.fn(() => ({
-                eq: jest.fn(() => ({
-                  eq: jest.fn().mockResolvedValue({
-                    data: [
-                      { id: 'item-1', total_price: 20 },
-                      { id: 'item-2', total_price: 30 },
-                    ],
-                    error: null,
-                  }),
-                })),
-              })),
-            })),
-            update: jest.fn(() => ({
-              in: jest.fn().mockResolvedValue({ data: null, error: null }),
-            })),
-          };
-        }
-
-        throw new Error(`Unexpected table: ${table}`);
-      });
-
-      mockSupabaseClient.rpc.mockResolvedValue({
-        data: 'ORD-2001',
-        error: null,
+    test('delegates whole-line splits to the transactional split service', async () => {
+      const { splitOrderUnits } = jest.requireMock('@/lib/services/order-split.service');
+      splitOrderUnits.mockResolvedValueOnce({
+        success: true,
+        suborder: { id: 'child-1', order_no: 'ORD-20261030-0001-S1' },
+        movedUnits: 3,
       });
 
       const result = await OrderService.splitOrder(
@@ -207,11 +66,34 @@ describe('OrderService', () => {
         'Tester'
       );
 
-      expect(result.success).toBe(true);
-      expect(result.suborder).toEqual({ id: 'child-1', orderNo: 'ORD-2001' });
-      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('generate_order_number', {
-        p_tenant_org_id: 'tenant-1',
+      expect(result).toEqual({
+        success: true,
+        suborder: { id: 'child-1', order_no: 'ORD-20261030-0001-S1' },
+        movedUnits: 3,
       });
+      expect(splitOrderUnits).toHaveBeenCalledWith({
+        tenantId: 'tenant-1',
+        orderId: 'parent-order-id',
+        userId: 'user-1',
+        userName: 'Tester',
+        reason: 'Separate delicate items',
+        lines: [{ itemId: 'item-1' }, { itemId: 'item-2' }],
+      });
+      expect(mockSupabaseClient.from).not.toHaveBeenCalled();
+    });
+
+    test('splitOrderByPieces rejects malformed piece ids without touching the DB', async () => {
+      const { splitOrderUnits } = jest.requireMock('@/lib/services/order-split.service');
+      const result = await OrderService.splitOrderByPieces(
+        'parent-order-id',
+        'tenant-1',
+        ['not-a-piece'],
+        'Reason',
+        'user-1',
+        'Tester'
+      );
+      expect(result).toEqual({ success: false, errorCode: 'ORD_SPLIT_BAD_PIECE_ID', error: 'Invalid piece id: not-a-piece' });
+      expect(splitOrderUnits).not.toHaveBeenCalled();
     });
   });
 

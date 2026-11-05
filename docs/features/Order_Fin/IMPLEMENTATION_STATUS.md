@@ -1435,3 +1435,7 @@ All 8 phases of `Order_Fin_Remediation_2026-07/PLAN.md` executed (validation fin
 Deliberately **not** built this session (owner-scoped out): B12's automated settlement-collection dialog (real architecture blocker — `collectPaymentTx` is PAY_ON_COLLECTION-scoped only). Wallet points expiry also remains out of scope — no policy surface exists anywhere for it.
 
 B23 (legacy path retirement), B24/B25 (AR periods / revenue recognition), and B26 (enterprise FX/gateway-settlement umbrella) remain explicitly out of scope until their stated prerequisite packages reach VERIFIED and, for B26, its scope is split into separate implementable packages.
+
+## Reusable Order Financial View — 2026-11-01
+
+Complete through P9 (owner QA and the live E2E run remain): one read model, routes and `OrderFinancialView` for every order money screen, the Order Edit live card, public tracking and the customer app. Canonical tracking: [`Reusable_Order_Fin_View/STATUS.md`](Reusable_Order_Fin_View/STATUS.md).

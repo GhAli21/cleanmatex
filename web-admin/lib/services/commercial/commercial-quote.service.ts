@@ -33,6 +33,8 @@ export interface OrderAdjustmentContext {
   netAfter: (adjustments: readonly AdjustmentInput[]) => Money;
   /** The order's currency rounding; a resolved amount must be at its decimals. */
   rounding: RoundingRule;
+  /** The lines' service categories (distinct), for discount conditions. */
+  serviceCategories: readonly string[];
 }
 
 /**
@@ -60,7 +62,7 @@ export interface CommercialQuote {
  * @returns the calculated order, with I1–I6 already checked
  * @throws CommercialContextError, CommercialRuleError (both map to 4xx in the route)
  * @example
- * const quote = await quoteCommercialOrder(prisma, tenantOrgId, intent, { currency, getTenantVatRate });
+ * const quote = await quoteCommercialOrder(prisma, tenantOrgId, intent, { currency });
  * quote.result.totals.totalAmount.toString();
  */
 export async function quoteCommercialOrder(
@@ -77,7 +79,11 @@ export async function quoteCommercialOrder(
     const netAfter = (adjustments: readonly AdjustmentInput[]) =>
       calculateCommercialOrder({ ...input, orderAdjustments: adjustments }).totals.netTotal;
     // With no order discount, the net total is exactly Σ line net after line discounts.
-    orderAdjustments = await resolveOrderAdjustments({ linesNet: netAfter([]), netAfter, rounding: facts.rounding });
+    const serviceCategories = [...new Set(intent.lines.map((l) => l.customItem?.serviceCategoryCode
+      ?? l.pinned?.product.serviceCategoryCode
+      ?? (l.productId ? facts.products.get(l.productId)?.serviceCategoryCode : null)
+      ?? null).filter((c): c is string => Boolean(c)))];
+    orderAdjustments = await resolveOrderAdjustments({ linesNet: netAfter([]), netAfter, rounding: facts.rounding, serviceCategories });
   }
   const result = calculateCommercialOrder({ ...input, orderAdjustments });
   return { result, prices, facts, orderAdjustments };

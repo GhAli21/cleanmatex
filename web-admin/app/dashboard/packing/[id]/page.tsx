@@ -5,6 +5,7 @@
 
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -223,7 +224,8 @@ export default function PackingDetailPage() {
           ← {t('packing.actions.back')}
         </Link>
         <h1 className="text-3xl font-bold">
-          {t('screens.packing')} - {order.order_no}
+          {t('screens.packing')}{' '}
+          <CmxCodeChip code={order.order_no} kind="order" size="md" />
         </h1>
         <p className="text-gray-600 mt-1">
           {order.customer.name} • {order.customer.phone}

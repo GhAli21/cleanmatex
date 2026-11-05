@@ -15,7 +15,8 @@ import {
   mapOrderTaxDocumentChain,
   selectOrderArInvoices,
 } from '@features/orders/lib/map-order-financial-summary-view';
-import { OrderFinancialSummaryCards } from '@features/orders/ui/order-financial/order-financial-summary-cards';
+import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view';
+import { ORDER_FIN_SECTION_KEYS } from '@/lib/constants/order-fin-view';
 import { OrderFinancialSummaryTab } from '@features/orders/ui/order-financial/order-financial-summary-tab';
 import { OrderPaymentsCreditsTables } from '@features/orders/ui/order-financial/order-payments-credits-tables';
 import { OrderInvoiceTaxTab } from '@features/orders/ui/order-financial/order-invoice-tax-tab';
@@ -27,7 +28,7 @@ import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
 import { StartOrderEditButton } from '@features/orders/order-change/start-order-edit-button';
 import { DeliveryProofAuditCard } from '@features/delivery/ui/delivery-proof-audit-card';
-import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab-rprt';
+import { OrderChargesVoidPanel } from '@features/orders/ui/order-financial/order-charges-void-panel';
 import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
 import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-rprt';
 import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
@@ -45,6 +46,8 @@ import { CmxTabsPanel } from '@ui/navigation';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import { readPieceParam } from '@features/orders/lib/piece-highlight';
 import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
 import type { OrderStatus } from '@/lib/types/workflow';
 import type { PrintLabelOrderInput } from '@features/orders/ui/print-label-button';
@@ -69,6 +72,9 @@ const TAB_IDS = [
 
 type TabId = (typeof TAB_IDS)[number];
 
+
+/** The page header shows the figures only; the statement lives in the Financial summary tab. */
+const HEADER_ONLY_SECTIONS = Object.fromEntries(ORDER_FIN_SECTION_KEYS.map((key) => [key, 'hidden'])) as Record<(typeof ORDER_FIN_SECTION_KEYS)[number], 'hidden'>;
 interface OrderDetailClientProps {
   order: Record<string, unknown>;
   publicTrackingPath?: string | null;
@@ -134,6 +140,7 @@ export function OrderDetailClient({
   const searchParams = useSearchParams();
   const tFin = useTranslations('orders.detail.financial');
   const tFull = useTranslations('orders.detailFull');
+  const tCodes = useTranslations('codes');
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
   const { decimalPlaces, currencyCode: tenantCurrencyCode } = useTenantCurrency();
@@ -148,9 +155,18 @@ export function OrderDetailClient({
     });
 
   const tabFromUrl = searchParams.get('tab');
+  // HFC T3.9: `?piece=<id or piece code>` (from a scan) opens the items tab on that piece.
+  const pieceParam = readPieceParam(searchParams.get('piece'));
   const activeTab: TabId = TAB_IDS.includes(tabFromUrl as TabId)
     ? (tabFromUrl as TabId)
-    : 'financial_summary';
+    : pieceParam
+      ? 'items'
+      : 'financial_summary';
+  const orderNo = String(order.order_no ?? '');
+  const parentOrderId =
+    typeof order.parent_order_id === 'string' && order.parent_order_id ? order.parent_order_id : null;
+  // A sub-order number is `<parent order_no>-S<n>` (HFC P2).
+  const parentOrderNo = parentOrderId ? orderNo.replace(/-S\d+$/i, '') : null;
 
   const handleTabChange = (tabId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -304,6 +320,7 @@ export function OrderDetailClient({
               branchId={order.branch_id as string | undefined}
               trackByPiece={trackByPiece}
               readOnly
+              highlightPiece={pieceParam}
             />
           </CmxCardContent>
         </CmxCard>
@@ -372,7 +389,10 @@ export function OrderDetailClient({
       id: 'financial_details',
       label: tFin('tabs.financialDetails'),
       content: financialData ? (
-        <OrdersFinancialTabRprt orderId={String(order.id)} {...financialData} />
+        <div className="space-y-4">
+          <OrderFinancialView source={{ kind: 'order', orderId: String(order.id) }} config={{ preset: 'full', layout: 'card' }} />
+          <OrderChargesVoidPanel orderId={String(order.id)} charges={financialData.charges} currencyCode={orderCurrency} decimalPlaces={decimalPlaces} />
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground">{tFin('financialDataUnavailable')}</p>
       ),
@@ -613,7 +633,17 @@ export function OrderDetailClient({
           <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}>
             <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <h1 className="text-2xl font-bold">{String(order.order_no)}</h1>
+                <h1 className="text-2xl font-bold">
+                  <CmxCodeChip code={orderNo} kind="order" size="md" className="text-2xl font-bold" />
+                </h1>
+                {parentOrderId && parentOrderNo && parentOrderNo !== orderNo && (
+                  <Link
+                    href={`/dashboard/orders/${parentOrderId}`}
+                    className="text-sm text-[rgb(var(--cmx-primary-rgb,37_99_235))] underline-offset-2 hover:underline"
+                  >
+                    {tCodes('partOf', { orderNo: parentOrderNo })}
+                  </Link>
+                )}
                 <span
                   className={`rounded-full border px-3 py-0.5 text-xs font-medium ${
                     statusColors[String(order.status)] ?? statusColors.intake
@@ -664,7 +694,11 @@ export function OrderDetailClient({
         </CmxCardContent>
       </CmxCard>
 
-      {financialViewModel && <OrderFinancialSummaryCards viewModel={financialViewModel} />}
+      {/* Header-only view: every section hidden, so only the snapshot row is read (P6-01). */}
+      <OrderFinancialView
+        source={{ kind: 'order', orderId: String(order.id) }}
+        config={{ preset: 'summary', layout: 'card', header: { layout: 'cards' }, sections: HEADER_ONLY_SECTIONS }}
+      />
 
       <CmxTabsPanel tabs={tabs} value={activeTab} onChange={handleTabChange} />
     </div>

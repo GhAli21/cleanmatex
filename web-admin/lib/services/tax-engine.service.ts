@@ -190,6 +190,24 @@ export async function calculateTaxDetailed(params: TaxCalcParams): Promise<TaxCa
 }
 
 /**
+ * The tenant's default VAT/GST rate as a fraction (0.05), for display and the
+ * legacy price lookups: the sum of its active, effective, general default
+ * VAT/GST profiles. No such profile means 0, never an assumed rate (B15).
+ * Replaces the retired `TENANT_VAT_RATE` setting (P6-03); orders are taxed by
+ * the commercial calculator from the profiles themselves.
+ * @param tenantId the session tenant (resolved server-side by the caller)
+ * @returns the rate as a fraction
+ * @example const vatRate = await getDefaultVatRate(tenantId); // 0.05
+ */
+export async function getDefaultVatRate(tenantId: string): Promise<number> {
+  const profiles = await resolveTaxProfiles(tenantId, undefined);
+  const percent = profiles
+    .filter((p) => (p.tax_type === TAX_TYPES.VAT || p.tax_type === TAX_TYPES.GST) && (!p.applies_to || p.applies_to.length === 0))
+    .reduce((sum, p) => sum + toNumber(p.rate), 0);
+  return Math.round(percent * 100) / 10000;
+}
+
+/**
  * Load the active tax profile for a tenant + branch + service-type combination,
  * then compute per-line tax breakdown. Returns no lines when exempt or when no
  * profile is configured; use {@link calculateTaxDetailed} to tell them apart.

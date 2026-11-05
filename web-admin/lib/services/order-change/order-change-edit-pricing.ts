@@ -14,6 +14,7 @@ import { CommercialRuleError, type CommercialOrderResult } from '@/lib/commercia
 import { CommercialContextError } from '@/lib/services/commercial/commercial-context.loader';
 import {
   CommercialEditError,
+  type EditLineDiscount,
   type EditProjection,
   type EditQuote,
 } from '@/lib/services/commercial/commercial-edit.loader';
@@ -29,11 +30,7 @@ type ChangeOperation = z.infer<typeof orderChangeRequestSchema>['operations'][nu
 /** Domain of the digest Apply echoes back; bumped from v1 because the facts behind it changed (calculator). */
 const CALCULATION_FINGERPRINT_DOMAIN = 'cleanmatex.order-change.calculation-fingerprint.v2';
 
-/** Operation codes that change money; any other edit (notes, ready-by, priority) is not re-priced (EC-08). */
-export const ORDER_CHANGE_PRICED_CODES: ReadonlySet<string> = new Set([
-  'ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'ADD_PIECE', 'REMOVE_PIECE',
-  'ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE', 'CHANGE_SERVICE_SPEED',
-]);
+export { ORDER_CHANGE_PRICED_CODES, orderChangeNeedsPricing } from './order-change-priced-ops';
 
 /** Prices one projected order (the preview reads facts lazily, only for a priced edit). */
 export type OrderChangeEditPricer = (projection: EditProjection) => Promise<EditQuote>;
@@ -69,20 +66,75 @@ export function reviewedItemTotal(line: { merchandiseAmount: string; embeddedExt
   return toMoneyString(addMoney(line.merchandiseAmount, line.embeddedExtra ?? '0'));
 }
 
+
 /**
- * True when the request changes money (structure, preferences or a real speed change).
+ * The speeds the reviewed operations set (P6-02b): the order speed (ORDER target)
+ * and each line's own speed (ITEM target). The last operation for a target wins.
  * @param operations the reviewed operations
- * @param currentSpeed the order's stored speed
- * @returns whether the order must be re-priced
+ * @returns the new order speed (null when unchanged) and line speeds by lower-case item id
  */
-export function orderChangeNeedsPricing(operations: readonly ChangeOperation[], currentSpeed: string | null): boolean {
-  return operations.some((operation) => ORDER_CHANGE_PRICED_CODES.has(operation.code)
-    && !(operation.code === 'CHANGE_SERVICE_SPEED' && operation.payload.serviceSpeed === currentSpeed));
+export function speedChangesOf(operations: readonly ChangeOperation[]): { orderSpeed: string | null; lineSpeeds: Map<string, string> } {
+  let orderSpeed: string | null = null;
+  const lineSpeeds = new Map<string, string>();
+  for (const operation of operations) {
+    if (operation.code !== 'CHANGE_SERVICE_SPEED') continue;
+    if (operation.target.kind === 'ORDER') orderSpeed = operation.payload.serviceSpeed;
+    else lineSpeeds.set(operation.target.id.toLowerCase(), operation.payload.serviceSpeed);
+  }
+  return { orderSpeed, lineSpeeds };
+}
+
+/**
+ * The cashier prices and discounts the reviewed operations set on stored lines (P6-02c).
+ * A null value clears the line's price or discount; an absent line keeps its own.
+ * @param operations the reviewed operations
+ * @returns prices and discounts by lower-case item id
+ */
+export function lineMoneyChangesOf(operations: readonly ChangeOperation[]): {
+  prices: Map<string, { priceOverride: string | null; overrideReason: string | null }>;
+  discounts: Map<string, EditLineDiscount | null>;
+} {
+  const prices = new Map<string, { priceOverride: string | null; overrideReason: string | null }>();
+  const discounts = new Map<string, EditLineDiscount | null>();
+  for (const operation of operations) {
+    if (operation.code === 'CHANGE_ITEM_PRICE') {
+      const { priceOverride, overrideReason } = operation.payload;
+      prices.set(operation.target.id.toLowerCase(), { priceOverride, overrideReason: priceOverride === null ? null : overrideReason ?? null });
+    }
+    if (operation.code === 'CHANGE_DISCOUNT') discounts.set(operation.target.id.toLowerCase(), operation.payload.lineDiscount);
+  }
+  return { prices, discounts };
+}
+
+/**
+ * Lines whose speed the request would change although they are already ready (some
+ * pieces ready, or the line itself): a ready line keeps the speed it was made at.
+ * @param context the order before the edit
+ * @param operations the reviewed operations
+ * @param activeItemIds the stored lines still on the order after the edit
+ * @returns the lower-case ids of the ready lines whose speed would change
+ */
+export function lockedSpeedLineIds(
+  context: OrderChangeContext,
+  operations: readonly ChangeOperation[],
+  activeItemIds: ReadonlySet<string>,
+): Set<string> {
+  const { orderSpeed, lineSpeeds } = speedChangesOf(operations);
+  const locked = new Set<string>();
+  for (const item of context.items) {
+    const id = item.id.toLowerCase();
+    if (!activeItemIds.has(id)) continue;
+    const next = lineSpeeds.get(id) ?? orderSpeed;
+    const current = item.serviceSpeed ?? context.order.serviceSpeed;
+    const ready = (item.quantityReady ?? 0) > 0 || item.readyAt != null;
+    if (next != null && next !== current && ready) locked.add(id);
+  }
+  return locked;
 }
 
 /**
  * The calculator's projection of the order after the reviewed operations.
- * An order-wide speed change moves every line (today's Edit has no per-line speed; P6-02 adds it).
+ * An order-wide speed change moves every line except a line given its own speed in the same request (P6-02b).
  * @param input the order context, the projected structure and preferences, the operations and the edit time
  * @returns the projection `quoteOrderEdit` prices
  */
@@ -94,9 +146,8 @@ export function editProjectionOf(input: {
   operations: readonly ChangeOperation[];
   editedAt: Date;
 }): EditProjection {
-  const speedChange = input.operations.reduce<string | null>((speed, operation) => (
-    operation.code === 'CHANGE_SERVICE_SPEED' ? operation.payload.serviceSpeed : speed
-  ), null);
+  const { orderSpeed: speedChange, lineSpeeds } = speedChangesOf(input.operations);
+  const { prices, discounts } = lineMoneyChangesOf(input.operations);
   const serviceSpeed = speedChange ?? input.context.order.serviceSpeed ?? 'STANDARD';
   const added = new Map(input.operations.flatMap((operation) => (
     operation.code === 'ADD_ITEM' ? [[operation.payload.clientRef, operation.payload] as const] : []
@@ -113,12 +164,21 @@ export function editProjectionOf(input: {
     editedAt: input.editedAt,
     lines: input.items.filter((item) => item.active).map((item) => {
       const add = added.get(item.id);
+      const key = item.id.toLowerCase();
       return {
         id: item.id,
         quantity: item.quantity,
-        serviceSpeed: speedChange,
+        serviceSpeed: lineSpeeds.get(key) ?? add?.serviceSpeed ?? speedChange,
         pieceIds: pieceIdsOf(item.id),
-        ...(add ? { productId: add.productId, overrideUnitPrice: add.priceOverride ?? null } : {}),
+        ...(add ? {
+          productId: add.productId ?? null,
+          // A custom item (P6-02d) is priced at its entered price as MANUAL.
+          customItem: add.customItem ? { unitPrice: add.customItem.unitPrice, serviceCategoryCode: add.customItem.serviceCategoryCode ?? null } : null,
+          overrideUnitPrice: add.priceOverride ?? null,
+          lineDiscount: add.lineDiscount ?? null,
+        } : {}),
+        ...(prices.has(key) ? { overrideUnitPrice: prices.get(key)?.priceOverride ?? null } : {}),
+        ...(discounts.has(key) ? { lineDiscount: discounts.get(key) ?? null } : {}),
       };
     }),
     preferences: input.preferences.filter((row) => row.active).map((row) => ({

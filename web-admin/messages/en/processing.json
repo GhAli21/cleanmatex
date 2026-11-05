@@ -147,7 +147,15 @@
     "confirmPrefs": "Confirm",
     "confirming": "Confirming...",
     "error": {
-      "loadingFailed": "Failed to Load Order"
+      "loadingFailed": "Failed to Load Order",
+      "tagInUse": "Tag \"{tag}\" is already on another piece. Remove it there first or use a different tag.",
+      "tagInUseBy": "Tag \"{tag}\" is already on piece {pieceCode}. Remove it there first or use a different tag.",
+      "tagInvalid": "Tag \"{tag}\" is not valid. Use 1 to 64 characters: letters A-Z, digits 0-9 and - _ . / only.",
+      "tagLooksLikeCode": "Tag \"{tag}\" looks like an order, item, piece or document code. Use the tag printed on the label, not a CleanMateX code.",
+      "tagDuplicateInBatch": "Tag \"{tag}\" is entered on more than one piece. A tag can be on one piece only.",
+      "tagMoreIssues": "Nothing was saved. Other tags to fix: {count}.",
+      "tagPartialSaved": "{count} piece(s) were saved before the tag error. Fix the tag and save again.",
+      "updateFailed": "Update Failed"
     }
   },
   "splitConfirm": {

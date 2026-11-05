@@ -1,5 +1,6 @@
 'use client';
 
+import { useOrderMoneyRefresh } from '@features/orders/order-fin-view/hooks/use-order-money-refresh';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -34,6 +35,7 @@ export function IssueTaxDocumentDialog({ open, onOpenChange, orderId }: IssueTax
   const t = useTranslations('taxDocuments.issueDialog');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const refreshMoney = useOrderMoneyRefresh();
   const { token: csrfToken } = useCSRFToken();
   const [documentType, setDocumentType] = useState<DocumentType>('SIMPLIFIED_INVOICE');
   const [submitting, setSubmitting] = useState(false);
@@ -56,7 +58,7 @@ export function IssueTaxDocumentDialog({ open, onOpenChange, orderId }: IssueTax
       if (json.success) {
         cmxMessage.success(t('success'));
         onOpenChange(false);
-        router.refresh();
+        refreshMoney(orderId);
       } else {
         cmxMessage.error(mapIssueError(json.error, t));
       }

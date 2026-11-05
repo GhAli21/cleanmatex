@@ -47,5 +47,31 @@
   "updated": "Tax profile updated",
   "exemptionUpdated": "Exemption updated",
   "exemptionDeactivated": "Exemption deactivated",
-  "actions": "Actions"
+  "actions": "Actions",
+  "noDefaultProfile": {
+    "title": "No default tax profile",
+    "description": "Orders are taxed only by tax profiles. Without an active default profile, new orders carry no tax. Add a profile and set it as default."
+  },
+  "rounding": {
+    "title": "Rounding",
+    "level": "Round at",
+    "levels": {
+      "DOCUMENT": "Document total",
+      "LINE": "Each line"
+    },
+    "mode": "Rounding method",
+    "modes": {
+      "HALF_UP": "Half up",
+      "HALF_DOWN": "Half down",
+      "HALF_EVEN": "Half even (banker's)",
+      "UP": "Up",
+      "DOWN": "Down",
+      "CEILING": "Ceiling",
+      "FLOOR": "Floor"
+    },
+    "currencyDefault": "Currency default",
+    "outputDecimals": "Decimal places",
+    "incrementMinor": "Increment (minor units)",
+    "hint": "Leave empty to use the currency's own decimals and increment. Applies to new orders."
+  }
 }

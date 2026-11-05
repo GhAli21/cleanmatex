@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useOrderMoneyRefresh } from '@features/orders/order-fin-view/hooks/use-order-money-refresh';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -43,6 +44,7 @@ interface OrderActionsProps {
  */
 export function OrderActions({ order }: OrderActionsProps) {
   const router = useRouter();
+  const refreshMoney = useOrderMoneyRefresh();
   const t = useTranslations('orders.actions');
   const tEngine = useTranslations('workflow.engine');
   const isRTL = useRTL();
@@ -65,7 +67,7 @@ export function OrderActions({ order }: OrderActionsProps) {
             screen="new_order"
             hideWhenEmpty
             title={tEngine('newOrderActionTitle')}
-            onActionSuccess={() => router.refresh()}
+            onActionSuccess={() => refreshMoney(order.id)}
           />
         ) : null}
 
@@ -76,7 +78,7 @@ export function OrderActions({ order }: OrderActionsProps) {
             screen="order_control"
             hideWhenEmpty
             title={tEngine('orderControlTitle')}
-            onActionSuccess={() => router.refresh()}
+            onActionSuccess={() => refreshMoney(order.id)}
           />
         ) : null}
 
@@ -137,7 +139,7 @@ export function OrderActions({ order }: OrderActionsProps) {
           open={showFixOrderDataModal}
           onOpenChange={setShowFixOrderDataModal}
           onSuccess={() => {
-            router.refresh();
+            refreshMoney(order.id);
             setShowFixOrderDataModal(false);
           }}
         />
@@ -148,7 +150,7 @@ export function OrderActions({ order }: OrderActionsProps) {
         tenantOrgId={order.tenant_org_id}
         open={showCancelDialog}
         onOpenChange={setShowCancelDialog}
-        onSuccess={() => router.refresh()}
+        onSuccess={() => refreshMoney(order.id)}
       />
 
       <CustomerReturnOrderDialog
@@ -156,7 +158,7 @@ export function OrderActions({ order }: OrderActionsProps) {
         tenantOrgId={order.tenant_org_id}
         open={showReturnDialog}
         onOpenChange={setShowReturnDialog}
-        onSuccess={() => router.refresh()}
+        onSuccess={() => refreshMoney(order.id)}
       />
     </>
   );

@@ -13,6 +13,7 @@ import type { orderChangeRequestSchema } from '@/lib/validations/order-change/or
 import { ITEM_FIELDS, PIECE_FIELDS } from '@/lib/services/order-change/order-change-commercial-write';
 import type { OrderChangePreferenceDefinition } from '@/lib/services/order-change/order-change-preference-projection';
 import type { OrderChangeSpeedAudit } from '@/lib/services/order-change/order-change-preview.service';
+import { lineDiscountAuditFields } from '@/lib/services/order-change/order-change-line-money';
 
 type ChangeOperation = z.infer<typeof orderChangeRequestSchema>['operations'][number];
 
@@ -87,6 +88,7 @@ function itemFromContext(item: OrderChangeContext['items'][number]): Record<stri
     price_per_unit: item.pricePerUnit,
     total_price: item.totalPrice,
     price_override: item.priceOverride,
+    override_reason: item.overrideReason,
     service_pref_charge: item.preferenceCharge,
     packing_pref_code: item.packingPreferenceCode,
     rec_status: 1,
@@ -162,6 +164,7 @@ function projectPreviewOperationRows(input: {
     if (operation.code === 'CHANGE_SERVICE_SPEED' && input.speedAudit) {
       const items = (snapshot: OrderChangeSpeedAudit['before']) => snapshot.items.map((item) => compact({
         id: item.orderItemId,
+        service_speed: item.serviceSpeed,
         product_name: input.context.items.find((row) => keyOf(row.id) === keyOf(item.orderItemId))?.productName,
         quantity: item.quantity,
         price_per_unit: item.pricePerUnit,
@@ -174,7 +177,10 @@ function projectPreviewOperationRows(input: {
       };
     }
     if (operation.code === 'ADD_ITEM') {
-      const product = facts?.products[keyOf(operation.payload.productId)];
+      const custom = operation.payload.customItem;
+      const product = custom
+        ? { product_name: custom.name, product_name2: custom.name2 ?? null, service_category_code: custom.serviceCategoryCode ?? null }
+        : facts?.products[keyOf(operation.payload.productId ?? '')];
       const line = lineFor(operation.payload.clientRef);
       return {
         seq: operation.seq,
@@ -182,7 +188,7 @@ function projectPreviewOperationRows(input: {
         after: compact({
           id: operation.payload.clientRef,
           rec_status: 1,
-          product_id: operation.payload.productId,
+          product_id: operation.payload.productId ?? null,
           product_name: product?.product_name,
           product_name2: product?.product_name2,
           service_category_code: product?.service_category_code,
@@ -191,8 +197,31 @@ function projectPreviewOperationRows(input: {
           total_price: line ? reviewedItemTotal(line) : undefined,
           price_override: operation.payload.priceOverride ?? null,
           override_reason: operation.payload.overrideReason ?? null,
+          ...(operation.payload.lineDiscount ? lineDiscountAuditFields(operation.payload.lineDiscount) : {}),
         }),
       };
+    }
+    if (operation.code === 'CHANGE_ITEM_PRICE') {
+      const before = itemById(operation.target.id) ?? {};
+      const line = lineFor(operation.target.id);
+      const { priceOverride, overrideReason } = operation.payload;
+      return {
+        seq: operation.seq,
+        before,
+        after: compact({
+          ...before,
+          price_override: priceOverride,
+          override_reason: priceOverride === null ? null : overrideReason ?? null,
+          price_per_unit: line?.unitPrice ?? before.price_per_unit,
+          total_price: line ? reviewedItemTotal(line) : before.total_price,
+        }),
+      };
+    }
+    if (operation.code === 'CHANGE_DISCOUNT') {
+      // The stored discount comes from the context: an audit row loaded for another operation does not carry it.
+      const stored = input.context.items.find((item) => keyOf(item.id) === keyOf(operation.target.id))?.lineDiscount ?? null;
+      const before = { ...(itemById(operation.target.id) ?? {}), ...lineDiscountAuditFields(stored) };
+      return { seq: operation.seq, before, after: { ...before, ...lineDiscountAuditFields(operation.payload.lineDiscount) } };
     }
     if (operation.code === 'ADD_PIECE') {
       const parentId = operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : operation.target.clientRef;
@@ -346,6 +375,11 @@ export function buildOrderChangeOperationAudit(input: {
     const itemId = row.order_item_id ?? (operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : operation.target.kind === 'LOCAL_ITEM' ? operation.target.clientRef : null);
     const pieceId = row.order_item_piece_id ?? (operation.target.kind === 'PERSISTED_PIECE' ? operation.target.id : operation.target.kind === 'LOCAL_PIECE' ? operation.target.clientRef : null);
     const money = () => Object.assign(result, { totalAmount: amount(order.total_amount), taxAmount: amount(order.total_tax_amount) });
+    const lineDiscountSnapshot = (row: Values) => Object.assign(result, {
+      discountType: read(row, 'line_disc_type'),
+      discountValue: amount(row.line_disc_value),
+      discountReason: read(row, 'line_disc_reason'),
+    });
     const item = operation.code === 'ADD_ITEM' || operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY';
     const piece = operation.code === 'ADD_PIECE' || operation.code === 'REMOVE_PIECE';
     const preference = operation.code === 'ADD_PREFERENCE' || operation.code === 'CHANGE_PREFERENCE' || operation.code === 'REMOVE_PREFERENCE';
@@ -363,6 +397,21 @@ export function buildOrderChangeOperationAudit(input: {
         if (operation.code === 'ADD_ITEM') result.overrideReason = read(row, 'override_reason');
         else result.preferenceCharge = amount(row.service_pref_charge);
       }
+      // A new line's cashier discount (P6-02c); a line without one keeps its earlier snapshot shape.
+      if (operation.code === 'ADD_ITEM' && row.line_disc_type != null) lineDiscountSnapshot(row);
+      // The price the cart showed (P6-02e), from the request so Preview and Apply agree; Review compares it with pricePerUnit.
+      if (operation.code === 'ADD_ITEM' && operation.payload.confirmedUnitPrice !== undefined) result.shownUnitPrice = amount(operation.payload.confirmedUnitPrice);
+      money();
+    } else if (operation.code === 'CHANGE_ITEM_PRICE') {
+      result.orderItemId = operation.target.id;
+      result.priceOverride = amount(row.price_override);
+      result.overrideReason = read(row, 'override_reason');
+      result.pricePerUnit = amount(row.price_per_unit);
+      result.totalPrice = amount(row.total_price);
+      money();
+    } else if (operation.code === 'CHANGE_DISCOUNT') {
+      result.orderItemId = operation.target.id;
+      lineDiscountSnapshot(row);
       money();
     } else if (piece) {
       result.orderItemId = itemId;
@@ -404,10 +453,12 @@ export function buildOrderChangeOperationAudit(input: {
         result.customerDetails = read(row, 'customer_details');
       }
     } else if (operation.code === 'CHANGE_SERVICE_SPEED') {
+      if (operation.target.kind === 'PERSISTED_ITEM') result.orderItemId = operation.target.id;
       result.serviceSpeed = read(row, 'service_speed');
       result.commercialDelta = amount(row.commercial_delta);
       result.items = Array.isArray(row.items) ? row.items.map((entry: Values) => ({
         orderItemId: entry.orderItemId ?? entry.id,
+        serviceSpeed: entry.serviceSpeed ?? entry.service_speed ?? null,
         quantity: entry.quantity,
         pricePerUnit: amount(entry.pricePerUnit ?? entry.price_per_unit),
         totalPrice: amount(entry.totalPrice ?? entry.total_price),

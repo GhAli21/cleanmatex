@@ -7,6 +7,7 @@
 
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -299,7 +300,8 @@ export default function ProcessingDetailPage() {
             
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                {t('title')} - {order.order_no}
+                {t('title')}{' '}
+                <CmxCodeChip code={order.order_no} kind="order" size="md" />
               </h1>
               {order.status && (
                 <Badge variant="info">

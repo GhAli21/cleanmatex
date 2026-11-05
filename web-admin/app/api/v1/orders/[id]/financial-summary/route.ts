@@ -10,6 +10,8 @@ import { logger } from '@/lib/utils/logger';
  * Requires `orders:view_financial_breakdown`. A missing order (or one in another
  * tenant) answers 404; any other failure answers a generic 500 and is logged
  * server-side, never echoed (BF-10).
+ * New screens: prefer `GET /api/v1/orders/[id]/financial-view` (Reusable Order
+ * Fin View, P4-04); this contract stays unchanged for its current callers.
  * @param request incoming request (auth + tenant come from the session)
  * @param root0 route context
  * @param root0.params dynamic route params (`id` = order id)

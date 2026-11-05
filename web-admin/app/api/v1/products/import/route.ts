@@ -4,46 +4,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { bulkImportProducts } from '@/lib/services/catalog.service';
 import type { BulkImportRequest } from '@/lib/types/catalog';
 
-// ==================================================================
-// HELPER FUNCTIONS
-// ==================================================================
-
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id,
-    userId: user.id,
-    userRole: tenants[0].user_role,
-  };
-}
+/** Each row is created one by one inside the request, so the upload is bounded. */
+const MAX_IMPORT_CSV_CHARS = 2 * 1024 * 1024;
 
 // ==================================================================
 // POST /api/v1/products/import - Import Products
 // ==================================================================
 
 /**
- * Import products from CSV file
+ * Import products from CSV file (insert only, so `products:create` is the gate).
  *
  * Request Body:
  * - template: 'basic' | 'advanced'
@@ -53,9 +26,10 @@ async function getAuthContext() {
  * @param request
  */
 export async function POST(request: NextRequest) {
-  try {
-    await getAuthContext();
+  const authCheck = await requirePermission('products:create')(request);
+  if (authCheck instanceof NextResponse) return authCheck;
 
+  try {
     const body: BulkImportRequest = await request.json();
 
     // Validate request body
@@ -80,6 +54,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (body.data.length > MAX_IMPORT_CSV_CHARS) {
+      return NextResponse.json(
+        { error: 'CSV data is too large (max 2 MB)' },
+        { status: 413 }
+      );
+    }
+
     // Import products
     const result = await bulkImportProducts(body.data, body.template);
 
@@ -91,7 +72,7 @@ export async function POST(request: NextRequest) {
     console.error('Error importing products:', error);
 
     if (error instanceof Error) {
-      if (error.message === 'Unauthorized' || error.message === 'No tenant context') {
+      if (error.message === 'No tenant context') {
         return NextResponse.json({ error: error.message }, { status: 401 });
       }
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -103,4 +84,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

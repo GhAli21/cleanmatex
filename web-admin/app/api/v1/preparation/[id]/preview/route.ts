@@ -3,19 +3,20 @@
  * GET /api/v1/preparation/[id]/preview
  */
 
-import { NextResponse } from 'next/server';
+import { getDefaultVatRate } from '@/lib/services/tax-engine.service';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isPreparationEnabled } from '@/lib/config/features';
-import { createTenantSettingsService, SETTING_CODES } from '@/lib/services/tenant-settings.service';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
  *
- * @param _request
+ * @param request
  * @param root0
  * @param root0.params
  */
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -23,20 +24,10 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Feature disabled' }, { status: 403 });
     }
     const { id: orderId } = await params;
+    const auth = await requirePermission('orders:read')(request);
+    if (auth instanceof NextResponse) return auth;
+    const { tenantId } = auth;
     const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = user.user_metadata?.tenant_org_id;
-    if (!tenantId) {
-      return NextResponse.json({ success: false, error: 'Tenant ID not found' }, { status: 400 });
-    }
 
     const { data: items, error } = await supabase
       .from('org_order_items_dtl')
@@ -49,10 +40,9 @@ export async function GET(
     }
 
     const subtotal = (items || []).reduce((sum, it) => sum + Number(it.total_price || 0), 0);
-    const tenantSettings = createTenantSettingsService(supabase);
-    const taxRateRaw = await tenantSettings.getSettingValue(tenantId, SETTING_CODES.TENANT_VAT_RATE, undefined, user?.id);
-    const taxRate = taxRateRaw != null ? Number(taxRateRaw) : 0.05;
-    const tax = subtotal * (Number.isFinite(taxRate) ? taxRate : 0.05);
+    // Tax rate from the tenant's default tax profiles; none means no tax, never an assumed rate (B15).
+    const taxRate = await getDefaultVatRate(tenantId);
+    const tax = subtotal * taxRate;
     const total = subtotal + tax;
     const totalItems = (items || []).reduce((sum, it) => sum + Number(it.quantity || 0), 0);
 

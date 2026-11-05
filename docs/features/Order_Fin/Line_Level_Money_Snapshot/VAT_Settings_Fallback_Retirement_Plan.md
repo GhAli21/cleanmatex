@@ -1,6 +1,6 @@
 # Retire the `TENANT_VAT_RATE` Settings Fallback
 
-**Date:** 2026-10-28 · **Status:** PLAN, approved in principle by owner ("retire all") · awaiting go on the steps below
+**Date:** 2026-10-28 · **Status:** EXECUTED as Line-Level P6-03 (2026-10-30): R1 (0665) applied; R2–R5, R7 done; R6 migration 0673 applied 2026-10-30. **Complete.** Deviations: the R1 condition is the calculator's (no active effective profile at all); the recorded-line flag `isTenantRateFallback` stays for older orders; a Tax Setup warning replaces the non-existent readiness check. See STATUS log.
 **Origin:** `docs/features/Order_Fin/Performance_Enhance/Settings_Resolver_Remediation_Plan.md` (tracked gap)
 
 ## 1. Current behavior (verified)

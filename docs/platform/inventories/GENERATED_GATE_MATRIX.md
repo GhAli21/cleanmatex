@@ -1,18 +1,18 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-10-28T02:26:55.465Z
-Git SHA: ee829ba6
+Generated: 2026-11-05T11:03:20.177Z
+Git SHA: b3df6185
 ## Summary
 | Domain | Count |
 | --- | --- |
 | Access contracts | 166 |
-| Permission usages | 420 |
+| Permission usages | 472 |
 | Feature flag usages | 88 |
-| Setting usages | 30 |
+| Setting usages | 24 |
 | Plan limit usages | 2 |
 | Navigation entries | 110 |
-| Flag catalog entries | 299 |
+| Flag catalog entries | 298 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
 | --- | --- | --- | --- | --- |
@@ -38,6 +38,7 @@ Git SHA: ee829ba6
 | /dashboard/catalog/services | Catalog Services | admin:manage | — | 0 |
 | /dashboard/catalog/services/[id] | Catalog Service Details | admin:manage | — | 0 |
 | /dashboard/catalog/services/new | New Catalog Service | admin:manage | — | 0 |
+| /dashboard/catalog/speed-pricing | Speed Pricing | pricing:read | — | 4 |
 | /dashboard/customers | Customers | — | — | 0 |
 | /dashboard/customers/[id] | Customer Details | — | — | 1 |
 | /dashboard/customers/account-receipt | Customer Account Receipt | customers:receipt_allocate | — | 0 |
@@ -125,7 +126,7 @@ Git SHA: ee829ba6
 | /dashboard/orders/[id] | Order Details | orders:view_financial_breakdown | — | 0 |
 | /dashboard/orders/[id]/edit | Edit Order | — | — | 0 |
 | /dashboard/orders/[id]/full | Full Order Details | — | — | 0 |
-| /dashboard/orders/[id]/prepare | Prepare Order | — | — | 0 |
+| /dashboard/orders/[id]/prepare | Prepare Order | orders:read | — | 0 |
 | /dashboard/orders/[id]/tax-documents/[documentId]/print | Print Tax Document | orders:view_financial_breakdown | — | 0 |
 | /dashboard/orders/[id]/workspace | Workspace | orders:view_financial_breakdown | — | 0 |
 | /dashboard/orders/new | New Order | — | — | 0 |
@@ -158,10 +159,10 @@ Git SHA: ee829ba6
 | /dashboard/settings/branches | Branches List | — | — | 0 |
 | /dashboard/settings/branches/[id] | Branch Settings | — | — | 0 |
 | /dashboard/settings/branding | Branding Settings | — | — | 0 |
-| /dashboard/settings/finance | Finance Settings | — | — | 0 |
+| /dashboard/settings/finance | Finance Settings | settings:read | — | 0 |
 | /dashboard/settings/finance/currency-fx | Currencies & FX | currencies:view | — | 7 |
 | /dashboard/settings/general | General Settings | — | — | 0 |
-| /dashboard/settings/navigation | Navigation Settings | — | — | 0 |
+| /dashboard/settings/labels | Labels & Tags | settings:read | — | 0 |
 | /dashboard/settings/payments | Payment Setup | payment_config:view | — | 0 |
 | /dashboard/settings/payments/cash-control-settings | Cash Control Settings | cash_control:view | — | 0 |
 | /dashboard/settings/permissions | Permissions Management | *:*, settings:* | — | 0 |
@@ -172,7 +173,6 @@ Git SHA: ee829ba6
 | /dashboard/settings/tax | Tax Setup | tax:view_config | — | 0 |
 | /dashboard/settings/tenant | Tenant Settings | — | — | 0 |
 | /dashboard/settings/users | Settings Users | — | — | 0 |
-| /dashboard/settings/workflow-roles | Workflow Roles | settings:workflow_roles:view | — | 0 |
 | /dashboard/settings/workflows | Workflows | settings:workflow | — | 0 |
 | /dashboard/settings/workflows/[id]/edit | Edit Workflow | — | — | 0 |
 | /dashboard/settings/workflows/new | New Workflow | — | — | 0 |

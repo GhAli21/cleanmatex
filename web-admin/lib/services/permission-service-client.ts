@@ -32,13 +32,6 @@ export interface UserRole {
 /**
  *
  */
-export interface WorkflowRole {
-  workflow_role: string;
-}
-
-/**
- *
- */
 export interface PermissionCheckOptions {
   resourceType?: string;
   resourceId?: string;
@@ -180,49 +173,6 @@ export async function getUserRoles(): Promise<UserRole[]> {
   } catch (error) {
     console.error('Error in getUserRoles:', error);
     return [];
-  }
-}
-
-/**
- * Get workflow roles for current user
- * @returns Array of workflow role codes
- */
-export async function getUserWorkflowRoles(): Promise<string[]> {
-  try {
-    const { data, error } = await supabase.rpc('get_user_workflow_roles');
-
-    if (error) {
-      console.error('Error fetching workflow roles:', error);
-      return [];
-    }
-
-    return (data || []).map((r: WorkflowRole) => r.workflow_role);
-  } catch (error) {
-    console.error('Error in getUserWorkflowRoles:', error);
-    return [];
-  }
-}
-
-/**
- * Check if user has specific workflow role
- * @param workflowRole - Workflow role code (e.g., 'ROLE_RECEPTION')
- * @returns True if user has workflow role
- */
-export async function hasWorkflowRole(workflowRole: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase.rpc('has_workflow_role', {
-      p_workflow_role: workflowRole,
-    });
-
-    if (error) {
-      console.error('Error checking workflow role:', error);
-      return false;
-    }
-
-    return data === true;
-  } catch (error) {
-    console.error('Error in hasWorkflowRole:', error);
-    return false;
   }
 }
 

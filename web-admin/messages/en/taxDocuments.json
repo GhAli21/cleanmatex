@@ -66,7 +66,17 @@
     "qrHint": "Scan to verify document essentials (document no., date, total, tax, seller registration no.)",
     "errors": {
       "loadFailed": "Failed to load the tax document"
-    }
+    },
+    "itemColumns": {
+      "item": "Item",
+      "quantity": "Qty",
+      "unitPrice": "Unit price",
+      "discount": "Discount",
+      "net": "Net",
+      "itemTax": "Tax",
+      "lineTotal": "Total"
+    },
+    "itemsTitle": "Items"
   },
   "issueDialog": {
     "title": "Issue tax document",

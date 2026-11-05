@@ -9,6 +9,7 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { sourceLabel } from '@/lib/db/order-discounts-types';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
+import { CmxBarcode } from '@ui/print';
 import {
   buildCashChangeRows,
   type CashChangePaymentLike,
@@ -38,6 +39,11 @@ interface OrderReceiptPrintProps {
   payments?: ReceiptPaymentLine[];
   /** Net posted cash-change rounding per currency; empty/omitted when none applied. */
   cashChangeRounding?: CashChangeRoundingLike[];
+  /**
+   * HFC P4: print a CODE128 of the order number under it (RECEIPT row of the label printing config,
+   * migration 0685, capped by the human_codes_scan_labels flag). Default false: the receipt looks as before.
+   */
+  showOrderBarcode?: boolean;
 }
 
 /**
@@ -48,6 +54,7 @@ interface OrderReceiptPrintProps {
  * @param root0.discountLines
  * @param root0.payments
  * @param root0.cashChangeRounding
+ * @param root0.showOrderBarcode
  */
 export function OrderReceiptPrint({
   order,
@@ -55,9 +62,11 @@ export function OrderReceiptPrint({
   discountLines = [],
   payments = [],
   cashChangeRounding = [],
+  showOrderBarcode = false,
 }: OrderReceiptPrintProps) {
   const tPaymentsDetail = useTranslations('orders.detailFull');
   const tOrders = useTranslations('orders');
+  const tLabels = useTranslations('labels');
   const tOrderDetail = useTranslations('orders.detail');
   const tWorkflowReady = useTranslations('workflow.ready');
   const tWorkflowLabels = useTranslations('workflow.labels');
@@ -103,8 +112,20 @@ export function OrderReceiptPrint({
       <section className="print-section">
         <div className="flex justify-between print-row">
           <span className="font-semibold">{tOrders('orderNumber')}</span>
-          <span>{order.orderNo}</span>
+          <bdi dir="ltr" className="font-mono">{order.orderNo}</bdi>
         </div>
+        {showOrderBarcode && order.orderNo ? (
+          <div className="flex justify-center print-row" data-testid="receipt-order-barcode">
+            <CmxBarcode
+              kind="code128"
+              value={order.orderNo}
+              label={`${tLabels('template.orderBarcode')} ${order.orderNo}`}
+              moduleWidth={layout === 'thermal' ? 1 : 2}
+              height={layout === 'thermal' ? 36 : 48}
+              className="block [&_svg]:max-w-full [&_svg]:h-auto"
+            />
+          </div>
+        ) : null}
         <div className="flex justify-between print-row">
           <span className="font-semibold">{tWorkflowLabels('customer')}</span>
           <span>{order.customer.name}</span>

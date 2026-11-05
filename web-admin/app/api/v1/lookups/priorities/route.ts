@@ -4,25 +4,17 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth/require-auth';
 import { listActivePriorities } from '@/lib/services/lookups';
-
-async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-  return supabase;
-}
 
 /**
  * List active priorities for pickers / filters.
  */
 export async function GET() {
   try {
-    const supabase = await requireUser();
-    const result = await listActivePriorities(supabase);
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+    const result = await listActivePriorities(auth.supabase);
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error },

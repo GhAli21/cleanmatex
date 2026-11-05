@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -228,7 +229,7 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
                       variant={statusVariant(stop.statusCode)}
                       size="sm"
                     />
-                    <span className="font-semibold">{stop.order.orderNo}</span>
+                    <CmxCodeChip code={stop.order.orderNo} kind="order" />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {stop.contactName ?? stop.order.customerName ?? t('fallbacks.unknownCustomer')}

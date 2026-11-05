@@ -190,6 +190,10 @@ ui_components:
   inline_edit_table: "import { CmxInlineEditTable } from '@ui/data-display'"
   empty_state: "import { CmxEmptyState } from '@ui/data-display'"
   kpi_stat_card: "import { CmxKpiStatCard } from '@ui/data-display'"
+  collapsible_section: "import { CmxCollapsibleSection } from '@ui/data-display'"
+  money_text: "import { CmxMoneyText } from '@ui/data-display'"
+  statement: "import { CmxStatement, CmxStatementGroup, CmxStatementRow, CmxStatementLine, CmxStatementLineList } from '@ui/data-display'"
+  order_financial_view: "import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view'"  # every order money display (rules: docs/dev/rules/order-fin-rules.md)
   # ── Navigation ───────────────────────────────────────────────────
   tabs: "import { CmxTabsPanel } from '@ui/navigation'"
   pagination: "import { CmxPagination } from '@ui/navigation'"

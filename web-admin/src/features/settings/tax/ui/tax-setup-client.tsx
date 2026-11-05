@@ -1,5 +1,6 @@
 'use client';
 
+import { CURRENCY_ROUNDING_MODES } from '@/lib/constants/order-financial';
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Pencil, Plus, Star, Trash2 } from 'lucide-react';
@@ -12,7 +13,7 @@ import { CmxSwitch } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxEmptyState } from '@ui/data-display';
 import { Badge } from '@ui/primitives/badge';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxSummaryMessage } from '@ui/feedback';
 import { CmxTabsPanel } from '@ui/navigation';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
@@ -25,6 +26,7 @@ import {
   updateTaxExemptionAction,
   deactivateTaxExemptionAction,
 } from '@/app/actions/settings/tax-actions';
+import { hasDefaultTaxProfile } from '../model/tax-default-profile';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -40,6 +42,11 @@ const profileSchema = z.object({
   effective_from: z.string().min(1),
   effective_to: z.string().optional(),
   is_default: z.boolean(),
+  // Line-Level P7-03: tax rounding (empty = the currency's own decimals / increment).
+  rounding_level: z.enum(['LINE', 'DOCUMENT']),
+  rounding_mode: z.string(),
+  output_decimal_places: z.string().regex(/^\d?$/),
+  rounding_increment_minor: z.string().regex(/^\d{0,4}$/),
 });
 
 const exemptionSchema = z.object({
@@ -74,6 +81,10 @@ export interface SerializedTaxProfile {
   is_default: boolean;
   is_active: boolean;
   created_at: string;
+  rounding_level?: string;
+  rounding_mode?: string | null;
+  output_decimal_places?: number | null;
+  rounding_increment_minor?: number | null;
 }
 
 /**
@@ -155,12 +166,18 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
       effective_from: new Date().toISOString().slice(0, 10),
       effective_to: '',
       is_default: false,
+      rounding_level: 'DOCUMENT',
+      rounding_mode: '',
+      output_decimal_places: '',
+      rounding_increment_minor: '',
     },
   });
 
   const profileTaxType = useWatch({ control: profileForm.control, name: 'tax_type' });
   const profileIsCompound = useWatch({ control: profileForm.control, name: 'is_compound' });
   const profileIsDefault = useWatch({ control: profileForm.control, name: 'is_default' });
+  const profileRoundingLevel = useWatch({ control: profileForm.control, name: 'rounding_level' });
+  const profileRoundingMode = useWatch({ control: profileForm.control, name: 'rounding_mode' });
 
   const openCreateProfile = () => {
     profileForm.reset({
@@ -173,6 +190,10 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
       effective_from: new Date().toISOString().slice(0, 10),
       effective_to: '',
       is_default: false,
+      rounding_level: 'DOCUMENT',
+      rounding_mode: '',
+      output_decimal_places: '',
+      rounding_increment_minor: '',
     });
     setEditingProfile(null);
     setProfileDialogMode('create');
@@ -189,6 +210,10 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
       effective_from: toDateInput(p.effective_from),
       effective_to: toDateInput(p.effective_to),
       is_default: p.is_default,
+      rounding_level: p.rounding_level === 'LINE' ? 'LINE' : 'DOCUMENT',
+      rounding_mode: p.rounding_mode ?? '',
+      output_decimal_places: p.output_decimal_places == null ? '' : String(p.output_decimal_places),
+      rounding_increment_minor: p.rounding_increment_minor == null ? '' : String(p.rounding_increment_minor),
     });
     setEditingProfile(p);
     setProfileDialogMode('edit');
@@ -206,6 +231,10 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
           effectiveFrom: values.effective_from,
           effectiveTo: values.effective_to || undefined,
           isDefault: values.is_default,
+          roundingLevel: values.rounding_level,
+          roundingMode: values.rounding_mode || null,
+          outputDecimalPlaces: values.output_decimal_places === '' ? null : Number(values.output_decimal_places),
+          roundingIncrementMinor: values.rounding_increment_minor === '' ? null : Number(values.rounding_increment_minor),
         });
         if (result.success && result.data) {
           const d = result.data;
@@ -232,6 +261,10 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
           effectiveFrom: values.effective_from,
           effectiveTo: values.effective_to || null,
           isDefault: values.is_default,
+          roundingLevel: values.rounding_level,
+          roundingMode: values.rounding_mode || null,
+          outputDecimalPlaces: values.output_decimal_places === '' ? null : Number(values.output_decimal_places),
+          roundingIncrementMinor: values.rounding_increment_minor === '' ? null : Number(values.rounding_increment_minor),
         });
         if (result.success && result.data) {
           const d = result.data;
@@ -556,6 +589,9 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
   // Tabs
   // ---------------------------------------------------------------------------
 
+  // P6-03: tax comes from profiles only; with no applicable default, orders carry no tax.
+  const hasDefaultProfile = hasDefaultTaxProfile(profiles, new Date().toISOString().slice(0, 10));
+
   const tabs = [
     {
       id: 'profiles',
@@ -601,6 +637,9 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
 
   return (
     <>
+      {!hasDefaultProfile && (
+        <CmxSummaryMessage type="warning" title={t('noDefaultProfile.title')} items={[t('noDefaultProfile.description')]} className="mb-4" />
+      )}
       <CmxTabsPanel tabs={tabs} />
 
       {/* Profile Dialog */}
@@ -682,6 +721,44 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
                 <CmxInput type="date" {...profileForm.register('effective_to')} />
               </div>
             </div>
+
+            {/* Line-Level P7-03: how this tax is rounded. Empty = the currency's own decimals and increment. */}
+            <fieldset className="space-y-3 rounded-md border px-3 py-3">
+              <legend className="px-1 text-sm font-medium">{t('rounding.title')}</legend>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">{t('rounding.level')}</label>
+                  <CmxSelectDropdown value={profileRoundingLevel} onValueChange={(v) => profileForm.setValue('rounding_level', v as 'LINE' | 'DOCUMENT', { shouldDirty: true })}>
+                    <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+                    <CmxSelectDropdownContent>
+                      <CmxSelectDropdownItem value="DOCUMENT">{t('rounding.levels.DOCUMENT')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="LINE">{t('rounding.levels.LINE')}</CmxSelectDropdownItem>
+                    </CmxSelectDropdownContent>
+                  </CmxSelectDropdown>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{t('rounding.mode')}</label>
+                  <CmxSelectDropdown value={profileRoundingMode || 'CURRENCY_DEFAULT'} onValueChange={(v) => profileForm.setValue('rounding_mode', v === 'CURRENCY_DEFAULT' ? '' : v, { shouldDirty: true })}>
+                    <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+                    <CmxSelectDropdownContent>
+                      <CmxSelectDropdownItem value="CURRENCY_DEFAULT">{t('rounding.currencyDefault')}</CmxSelectDropdownItem>
+                      {Object.values(CURRENCY_ROUNDING_MODES).map((mode) => (
+                        <CmxSelectDropdownItem key={mode} value={mode}>{t(`rounding.modes.${mode}` as never)}</CmxSelectDropdownItem>
+                      ))}
+                    </CmxSelectDropdownContent>
+                  </CmxSelectDropdown>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{t('rounding.outputDecimals')}</label>
+                  <CmxInput type="number" min={0} max={6} step={1} placeholder={t('rounding.currencyDefault')} {...profileForm.register('output_decimal_places')} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{t('rounding.incrementMinor')}</label>
+                  <CmxInput type="number" min={1} max={1000} step={1} placeholder={t('rounding.currencyDefault')} {...profileForm.register('rounding_increment_minor')} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('rounding.hint')}</p>
+            </fieldset>
 
             <div className="flex items-center justify-between rounded-md border px-3 py-2">
               <span className="text-sm">{t('isCompound')}</span>

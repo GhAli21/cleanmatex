@@ -17,6 +17,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
 import { log } from '@/lib/utils/logger';
 import { downloadPiecesCSV } from '@/lib/utils/piece-export';
+import { pieceTagErrorMessage } from '@features/workflow/lib/piece-tag-error';
 
 /**
  *
@@ -40,6 +41,8 @@ export interface OrderPiecesManagerProps {
   pieceDensity?: 'comfortable' | 'compact';
   /** Polymorphic mode for the piece cards */
   mode?: 'intake' | 'processing' | 'sorting' | 'assembly' | 'qc';
+  /** Piece id or piece code to scroll to and highlight (`?piece=`, HFC T3.9). */
+  highlightPiece?: string | null;
 }
 
 /**
@@ -60,6 +63,7 @@ export interface OrderPiecesManagerProps {
  * @param root0.enableBulkOperations
  * @param root0.pieceDensity
  * @param root0.mode
+ * @param root0.highlightPiece
  */
 export function OrderPiecesManager({
   orderId,
@@ -77,9 +81,11 @@ export function OrderPiecesManager({
   enableBulkOperations = false,
   pieceDensity = 'comfortable',
   mode = 'intake',
+  highlightPiece = null,
 }: OrderPiecesManagerProps) {
   const t = useTranslations('orders.pieces');
   const tCommon = useTranslations('common');
+  const tTag = useTranslations('processing.modal');
   const isRTL = useRTL();
 
   const [pieces, setPieces] = React.useState<OrderItemPiece[]>([]);
@@ -173,7 +179,8 @@ export function OrderPiecesManager({
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || 'Failed to update piece');
+          // HFC P3b: a refused external tag gets a clear EN/AR message (same as batch-update).
+          throw new Error(pieceTagErrorMessage(data, tTag) ?? (data.error || 'Failed to update piece'));
         }
 
         const data = await response.json();
@@ -200,7 +207,7 @@ export function OrderPiecesManager({
         setError(err instanceof Error ? err.message : 'Failed to update piece');
       }
     },
-    [orderId, itemId, readOnly, onUpdate, pieces]
+    [orderId, itemId, readOnly, onUpdate, pieces, tTag]
   );
 
   const toggleBulkSelect = React.useCallback((pieceId: string, selected: boolean) => {
@@ -380,6 +387,7 @@ export function OrderPiecesManager({
         onPreferencesSaved={handlePreferencesSaved}
         density={pieceDensity}
         mode={mode}
+        highlightPiece={highlightPiece}
       />
     </div>
   );

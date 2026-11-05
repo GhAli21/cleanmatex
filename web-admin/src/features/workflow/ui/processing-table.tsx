@@ -5,6 +5,7 @@
 
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import React, { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowUpDown, SquarePen, CheckCircle, Loader2, AlertCircle, ListChecks } from 'lucide-react';
@@ -320,7 +321,7 @@ const OrderRow = React.memo(function OrderRow({
         {/* ID */}
         <td className="px-4 py-4">
           <div className="flex items-center gap-2">
-            <div className="font-medium text-blue-600">{order.order_no}</div>
+            <CmxCodeChip code={order.order_no} kind="order" size="md" />
             <OrderIssueRowActions
               orderId={order.id}
               scopeLevel={ORDER_ISSUE_SCOPE.ORDER}
@@ -767,7 +768,7 @@ function ProcessingOrderCard({
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-bold text-blue-600 text-lg">{order.order_no}</h3>
+            <h3 className="font-bold text-blue-600 text-lg"><CmxCodeChip code={order.order_no} kind="order" size="md" /></h3>
             <OrderIssueRowActions
               orderId={order.id}
               scopeLevel={ORDER_ISSUE_SCOPE.ORDER}

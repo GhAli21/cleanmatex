@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth/require-auth';
 import { listActiveServiceSpeeds } from '@/lib/services/lookups';
 
 /**
@@ -13,13 +13,10 @@ import { listActiveServiceSpeeds } from '@/lib/services/lookups';
  * @returns `{ success, data: ServiceSpeedLookupRow[] }`
  */
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
 
-  const result = await listActiveServiceSpeeds(supabase);
+  const result = await listActiveServiceSpeeds(auth.supabase);
   if (!result.success) {
     return NextResponse.json({ success: false, error: 'The service speeds could not be loaded.' }, { status: 500 });
   }

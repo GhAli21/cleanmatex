@@ -11,6 +11,12 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { assertCurrencyMatch, requireCurrencyCode } from '@/lib/money/currency-resolution';
 import { logger } from '@/lib/utils/logger';
 import {
+  STORE_CREDIT_NOTE_NUMBERING,
+  STORE_CREDIT_NOTE_NUMBERING_MODES,
+  STORE_CREDIT_NOTE_NO_NOT_ASSIGNED,
+  type StoreCreditNoteNumberingMode,
+} from '@/lib/constants/doc-seq';
+import {
   getLoyaltyAccount,
   getLoyaltyConfig,
   syncAvailableLoyaltyPoints,
@@ -372,6 +378,40 @@ export async function redeemAdvanceTx(
 
 // ── Credit Note ───────────────────────────────────────────────────────────────
 
+/**
+ * credit_note_no to send on INSERT.
+ * ENGINE (default): '' so the DB trigger trg_fin_cn_no_assign assigns SCN-YYYY-NNNNNN (migration 0687).
+ * LEGACY (one-release rollback path, plan T5.2): the pre-P5 CN-<tenant8>-<count+1> value.
+ * @param tenantId tenant id
+ * @param countNotes counts the tenant's credit notes (LEGACY only)
+ * @param mode numbering mode (defaults to STORE_CREDIT_NOTE_NUMBERING)
+ * @returns the value for credit_note_no
+ */
+export async function creditNoteNoForInsert(
+  tenantId: string,
+  countNotes: () => Promise<number>,
+  mode: StoreCreditNoteNumberingMode = STORE_CREDIT_NOTE_NUMBERING
+): Promise<string> {
+  if (mode === STORE_CREDIT_NOTE_NUMBERING_MODES.ENGINE) return '';
+  const count = await countNotes();
+  return `CN-${tenantId.slice(0, 8).toUpperCase()}-${String(count + 1).padStart(5, '0')}`;
+}
+
+/**
+ * Stops the issue (and rolls its transaction back) when the DB returned no number,
+ * so a credit note is never issued without one (no-silent-money-mutation).
+ * @param creditNoteNo credit_note_no returned by the INSERT
+ * @returns the number
+ */
+export function assertCreditNoteNoAssigned(creditNoteNo: string | null | undefined): string {
+  if (!creditNoteNo || creditNoteNo.trim() === '') {
+    throw new Error(
+      `${STORE_CREDIT_NOTE_NO_NOT_ASSIGNED}: the database did not assign a credit note number (is migration 0687_fin_store_credit_note_scn applied?)`
+    );
+  }
+  return creditNoteNo;
+}
+
 export async function issueCreditNoteTx(
   tx: PrismaTransactionClient,
   params: {
@@ -410,8 +450,9 @@ export async function issueCreditNoteTx(
     }
   }
 
-  const count = await tx.org_credit_notes_mst.count({ where: { tenant_org_id: tenantId } });
-  const creditNoteNo = `CN-${tenantId.slice(0, 8).toUpperCase()}-${String(count + 1).padStart(5, '0')}`;
+  const creditNoteNo = await creditNoteNoForInsert(tenantId, () =>
+    tx.org_credit_notes_mst.count({ where: { tenant_org_id: tenantId } })
+  );
 
   const creditNote = await tx.org_credit_notes_mst.create({
     data: {
@@ -430,6 +471,7 @@ export async function issueCreditNoteTx(
       rec_status: 1,
     },
   });
+  assertCreditNoteNoAssigned(creditNote.credit_note_no);
 
   if (idempotencyKey) {
     await tx.org_credit_note_txn_dtl.create({
@@ -466,12 +508,13 @@ export async function issueCreditNote(
 ) {
   const { customerId, amount, reason, orderId, expiresAt, issuedBy, currencyCode } = params;
 
-  const count = await withTenantContext(tenantId, () =>
-    prisma.org_credit_notes_mst.count({ where: { tenant_org_id: tenantId } })
+  const creditNoteNo = await creditNoteNoForInsert(tenantId, () =>
+    withTenantContext(tenantId, () =>
+      prisma.org_credit_notes_mst.count({ where: { tenant_org_id: tenantId } })
+    )
   );
-  const creditNoteNo = `CN-${tenantId.slice(0, 8).toUpperCase()}-${String(count + 1).padStart(5, '0')}`;
 
-  return withTenantContext(tenantId, () =>
+  const creditNote = await withTenantContext(tenantId, () =>
     prisma.org_credit_notes_mst.create({
       data: {
         tenant_org_id:    tenantId,
@@ -490,6 +533,8 @@ export async function issueCreditNote(
       },
     })
   );
+  assertCreditNoteNoAssigned(creditNote.credit_note_no);
+  return creditNote;
 }
 
 /**

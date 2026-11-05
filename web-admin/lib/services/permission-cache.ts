@@ -38,10 +38,6 @@ export async function invalidatePermissionCache(
     const cache = await getCache();
     const cacheKey = getPermissionCacheKey(userId, tenantId);
     await cache.del(cacheKey);
-    
-    // Also invalidate workflow roles cache
-    const workflowCacheKey = `workflow_roles:${userId}:${tenantId}`;
-    await cache.del(workflowCacheKey);
   } catch (error) {
     console.error('Error invalidating permission cache:', error);
     // Don't throw - cache invalidation failure shouldn't break the app
@@ -58,7 +54,6 @@ export async function invalidateTenantPermissionCache(tenantId: string): Promise
     const cache = await getCache();
     // Delete all permission caches for this tenant
     await cache.delPattern(`permissions:*:${tenantId}`);
-    await cache.delPattern(`workflow_roles:*:${tenantId}`);
   } catch (error) {
     console.error('Error invalidating tenant permission cache:', error);
   }

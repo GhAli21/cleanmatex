@@ -245,7 +245,7 @@ export function FixOrderDataModal({
               {step.details.item_results.map((ir, idx) => (
                 <li key={idx}>
                   {t('stepItemAdjusted', {
-                    srno: ir.order_item_srno || ir.order_item_id?.slice(0, 8),
+                    srno: ir.order_item_srno || '—',
                     action: getActionLabel(ir.action),
                     count: ir.count,
                   })}

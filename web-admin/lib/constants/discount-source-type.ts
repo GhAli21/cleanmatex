@@ -15,6 +15,9 @@ export const DISCOUNT_SOURCE_TYPE = {
 /** Derived union for `org_order_discounts_dtl.source_type`. */
 export type DiscountSourceType = (typeof DISCOUNT_SOURCE_TYPE)[keyof typeof DISCOUNT_SOURCE_TYPE];
 
+/** `source_name` / `source_name2` of a cashier's line discount row (Create P5-03c, Edit P6-02c). */
+export const MANUAL_LINE_DISCOUNT_LABEL = { sourceName: 'Line Discount', sourceName2: 'خصم سطر' } as const;
+
 /** Display priority order for sorting mixed-type line lists in the UI */
 export const DISCOUNT_SOURCE_DISPLAY_ORDER: Record<DiscountSourceType, number> = {
   PRICE_LIST: 0, MANUAL: 1, DISCOUNT_RULE: 2, PROMO_CODE: 3, GIFT_CARD: 4,

@@ -1,8 +1,10 @@
-import type { ServiceSpeed } from '@/lib/constants/commercial';
 import type { OrderChangeContext, OrderChangeContextPreference } from '@/lib/types/order-change';
 import type { OrderItem, OrderItemServicePref, PreSubmissionPiece } from '@features/orders/model/new-order-types';
 import type { EditUnlistedChange } from './change-builder';
-import type { EditOrderBaseline, EditPieceDraft, EditPreferenceDraft, EditRowIdentity } from './edit-order-view-model';
+import { DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
+import { CUSTOM_ITEM_KEY_PREFIX } from '@features/orders/model/checkout-line-intent';
+import type { EditLineDiscountDraft, EditOrderBaseline, EditPieceDraft, EditPreferenceDraft, EditRowIdentity } from './edit-order-view-model';
+import { sameLineDiscount, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
 import type { EditOrderController } from './edit-order-controller';
 
 /** Header fields and the current cart. Review copies both into the Edit controller. */
@@ -59,11 +61,15 @@ export function projectEditVisualOrder(context: OrderChangeContext): {
   return {
     orderServicePrefs: preferencesAt(context, 'ORDER', null, null),
     items: context.items.flatMap((item) => {
-      if (!item.productId || item.quantity == null || item.quantity < 1) return [];
+      if (item.quantity == null || item.quantity < 1) return [];
       const servicePrefs = preferencesAt(context, 'ITEM', item.id, null);
+      // The cart shows a line's own speed only where it differs from the order speed (null follows it).
+      const ownSpeed = item.serviceSpeed && item.serviceSpeed !== context.order.serviceSpeed ? item.serviceSpeed : null;
       return [{
         persistedItemId: item.id,
-        productId: item.productId,
+        // A stored custom line (no product) keeps a cart key of its own, as on New Order.
+        productId: item.productId ?? `${CUSTOM_ITEM_KEY_PREFIX}${item.id}`,
+        ...(item.productId ? {} : { customItem: { name: item.productName ?? '', name2: item.productName2, unitPrice: Number(item.pricePerUnit) } }),
         productName: item.productName,
         productName2: item.productName2,
         quantity: item.quantity,
@@ -72,6 +78,13 @@ export function projectEditVisualOrder(context: OrderChangeContext): {
         defaultSellPrice: null,
         defaultExpressSellPrice: null,
         serviceCategoryCode: item.serviceCategoryCode ?? undefined,
+        serviceSpeed: ownSpeed,
+        // The line's cashier price and discount (P6-02c), editable from the cart like on Create.
+        priceOverride: item.priceOverride == null ? null : Number(item.priceOverride),
+        overrideReason: item.overrideReason ?? null,
+        lineDiscount: item.lineDiscount
+          ? { type: item.lineDiscount.type as EditLineDiscountDraft['type'], value: Number(item.lineDiscount.value), reason: item.lineDiscount.reason ?? '' }
+          : null,
         servicePrefs: servicePrefs.length > 0 ? servicePrefs : undefined,
         pieces: context.pieces.filter((piece) => piece.orderItemId === item.id).map((piece) => {
           const piecePrefs = preferencesAt(context, 'PIECE', item.id, piece.id);
@@ -98,7 +111,7 @@ export function applyVisualDraftToController(
   visual: VisualEditDraft,
 ): void {
   controller.load(baseline);
-  if (visual.items) applyVisualLines(controller, baseline, visual.items);
+  if (visual.items) applyVisualLines(controller, baseline, visual.items, visualOrderSpeed(baseline, visual));
   if (visual.orderServicePrefs) {
     syncPreferences(controller, baseline.preferences, visual.orderServicePrefs, 'ORDER', undefined, { kind: 'ORDER' });
   }
@@ -109,8 +122,7 @@ export function applyVisualDraftToController(
     controller.setReadyBy(nextReadyBy);
   }
   if (visual.serviceSpeed !== undefined && visual.serviceSpeed !== baseline.serviceSpeed) {
-    // The Edit change contract lists STANDARD and EXPRESS today; P6-02 widens it to the catalog.
-    controller.setServiceSpeed(visual.serviceSpeed as ServiceSpeed);
+    controller.setServiceSpeed(visual.serviceSpeed);
   }
   const name = text(visual.customerName);
   const mobile = text(visual.customerMobile);
@@ -130,12 +142,22 @@ export function visualHeaderChangeCount(baseline: EditOrderBaseline, visual: Vis
   if (text(visual.customerName) !== text(baseline.customerName)) count += 1;
   if (text(visual.customerMobile) !== text(baseline.customerMobile)) count += 1;
   if (text(visual.customerEmail) !== text(baseline.customerEmail)) count += 1;
-  if (visual.items) count += visualLineChangeCount(baseline, visual.items);
+  if (visual.items) count += visualLineChangeCount(baseline, visual.items, visualOrderSpeed(baseline, visual));
   if (visual.orderServicePrefs) count += preferenceChangeCount(baseline.preferences, visual.orderServicePrefs);
   return count;
 }
 
-function applyVisualLines(controller: EditOrderController, baseline: EditOrderBaseline, items: readonly OrderItem[]): void {
+/** The order speed the screen shows: the chosen one, else the stored one. */
+function visualOrderSpeed(baseline: EditOrderBaseline, visual: VisualEditDraft): string | undefined {
+  return visual.serviceSpeed ?? baseline.serviceSpeed;
+}
+
+/** The speed a cart line ends up with: its own, else the order speed (P6-02b). */
+function lineSpeedOf(item: OrderItem, orderSpeed: string | undefined): string | undefined {
+  return item.serviceSpeed ?? orderSpeed;
+}
+
+function applyVisualLines(controller: EditOrderController, baseline: EditOrderBaseline, items: readonly OrderItem[], orderSpeed: string | undefined): void {
   const byPersistedId = new Map(items.flatMap((item) => item.persistedItemId ? [[item.persistedItemId, item] as const] : []));
   for (const line of baseline.lines) {
     if (line.identity.kind !== 'persisted') continue;
@@ -145,15 +167,29 @@ function applyVisualLines(controller: EditOrderController, baseline: EditOrderBa
       continue;
     }
     syncPersistedLine(controller, line, current);
+    const speed = lineSpeedOf(current, orderSpeed);
+    if (speed && speed !== line.serviceSpeed) controller.setLineSpeed(line.identity, speed);
+    if (linePriceChanged(line, current)) {
+      controller.setLinePrice(line.identity, moneyOverride(current.priceOverride) ?? null, current.overrideReason ?? undefined);
+    }
+    const discount = lineDiscountDraft(current);
+    if (!sameLineDiscount(line.lineDiscount ?? null, discount)) controller.setLineDiscount(line.identity, discount);
   }
   for (const item of items) {
     if (item.persistedItemId) continue;
     const override = moneyOverride(item.priceOverride);
     const identity = controller.addItem({
-      productId: item.productId,
+      // A custom item (P6-02d) is sent with its name and entered price, not its cart key.
+      ...(item.customItem
+        ? { customItem: { name: item.customItem.name, name2: item.customItem.name2, unitPrice: item.customItem.unitPrice.toFixed(4), serviceCategoryCode: item.serviceCategoryCode ?? null } }
+        : { productId: item.productId }),
       quantity: item.quantity,
-      ...(override ? { priceOverride: override } : {}),
-      ...(item.overrideReason ? { overrideReason: item.overrideReason } : {}),
+      ...(override && !item.customItem ? { priceOverride: override } : {}),
+      ...(item.overrideReason && !item.customItem ? { overrideReason: item.overrideReason } : {}),
+      ...(item.serviceSpeed ? { serviceSpeed: item.serviceSpeed } : {}),
+      ...(item.lineDiscount ? { lineDiscount: lineDiscountDraft(item) ?? undefined } : {}),
+      // The catalog price the cart showed (P6-02e); an entered price (override, custom item) is the one charged.
+      ...(!override && !item.customItem && Number.isFinite(item.pricePerUnit) ? { confirmedUnitPrice: item.pricePerUnit.toFixed(4) } : {}),
     });
     syncPreferences(controller, [], item.servicePrefs, 'ITEM', identity, localTarget('LOCAL_ITEM', identity));
     recordUnlisted(controller, itemExtras(item, localTarget('LOCAL_ITEM', identity)));
@@ -195,7 +231,7 @@ function syncPersistedLine(controller: EditOrderController, line: EditOrderBasel
   }
 }
 
-function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly OrderItem[]): number {
+function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly OrderItem[], orderSpeed: string | undefined): number {
   const byPersistedId = new Map(items.flatMap((item) => item.persistedItemId ? [[item.persistedItemId, item] as const] : []));
   let count = 0;
   for (const item of items) {
@@ -214,6 +250,12 @@ function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly Orde
       continue;
     }
     if (current.quantity !== line.quantity) count += 1;
+    // A line moved only by the order speed is counted once, with the order speed.
+    const speed = lineSpeedOf(current, orderSpeed);
+    const movedByOrderSpeed = current.serviceSpeed == null && orderSpeed !== baseline.serviceSpeed;
+    if (speed !== line.serviceSpeed && !movedByOrderSpeed) count += 1;
+    if (linePriceChanged(line, current)) count += 1;
+    if (!sameLineDiscount(line.lineDiscount ?? null, lineDiscountDraft(current))) count += 1;
     count += preferenceChangeCount(line.preferences, current.servicePrefs);
     count += persistedItemExtras(line, current).length;
     const known = new Set(line.pieces.flatMap((piece) => piece.identity.kind === 'persisted' ? [piece.identity.id] : []));
@@ -232,6 +274,21 @@ function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly Orde
     }
   }
   return count;
+}
+
+/** True when the cart's cashier price (or its reason) differs from the stored one (P6-02c). */
+function linePriceChanged(line: EditOrderBaseline['lines'][number], item: OrderItem): boolean {
+  const price = moneyOverride(item.priceOverride) ?? null;
+  return !sameOptionalMoney(line.priceOverride ?? null, price)
+    || (price != null && text(line.overrideReason) !== text(item.overrideReason ?? undefined));
+}
+
+/** The cart's line discount as Edit sends it: a percent keeps 2 decimals (`discount_rate`), an amount 4. */
+function lineDiscountDraft(item: OrderItem): EditLineDiscountDraft | null {
+  const discount = item.lineDiscount;
+  if (!discount || !Number.isFinite(discount.value)) return null;
+  const decimals = discount.type === DISCOUNT_CALC_TYPE.PERCENTAGE ? 2 : 4;
+  return { type: discount.type, value: discount.value.toFixed(decimals), reason: discount.reason.trim() };
 }
 
 function persistedPieceId(piece: NonNullable<OrderItem['pieces']>[number], known: ReadonlySet<string>): string | undefined {
@@ -325,9 +382,8 @@ function persistedItemExtras(line: EditOrderBaseline['lines'][number], item: Ord
   if (line.identity.kind !== 'persisted') return [];
   const target: EditUnlistedChange['target'] = { kind: 'PERSISTED_ITEM', id: line.identity.id };
   return textChanges(target, [
-    ['item.productId', line.productId, item.productId],
-    ['item.priceOverride', line.priceOverride ?? '', moneyOverride(item.priceOverride) ?? ''],
-    ['item.overrideReason', text(line.overrideReason), text(item.overrideReason ?? undefined)],
+    // A stored custom line has no product to compare (its cart key is local).
+    ['item.productId', line.productId ?? '', line.productId ? item.productId : ''],
     ['item.notes', '', text(item.notes)],
     ['item.packing', '', text(item.packingPrefCode)],
     ['item.stainNotes', '', text(item.stainNotes)],

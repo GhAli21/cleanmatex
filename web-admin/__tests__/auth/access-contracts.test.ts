@@ -28,7 +28,6 @@ describe('access contracts helpers', () => {
       },
       {
         userPermissions: ['b2b_contracts:*'],
-        userWorkflowRoles: [],
         userTenantRole: null,
         featureFlags: {},
       }
@@ -46,7 +45,6 @@ describe('access contracts helpers', () => {
       },
       {
         userPermissions: ['roles:create'],
-        userWorkflowRoles: [],
         userTenantRole: 'operator',
         featureFlags: {},
       }
@@ -60,7 +58,6 @@ describe('access contracts helpers', () => {
       {},
       {
         userPermissions: [],
-        userWorkflowRoles: [],
         userTenantRole: null,
         featureFlags: {},
       }
@@ -70,15 +67,13 @@ describe('access contracts helpers', () => {
     expect(hasExplicitPermissionGate({})).toBe(false)
   })
 
-  it('requires feature flags and workflow roles when declared', () => {
+  it('requires feature flags when declared', () => {
     const result = evaluateAccessRequirement(
       {
         featureFlags: ['advanced_analytics'],
-        workflowRoles: ['ROLE_QA'],
       },
       {
         userPermissions: [],
-        userWorkflowRoles: ['ROLE_QA'],
         userTenantRole: null,
         featureFlags: { advanced_analytics: true },
       }
@@ -101,7 +96,6 @@ describe('access contracts helpers', () => {
     expect(
       evaluatePageAccessContract(contract, {
         userPermissions: ['admin:manage'],
-        userWorkflowRoles: [],
         userTenantRole: 'admin',
         featureFlags: {},
       }).passed

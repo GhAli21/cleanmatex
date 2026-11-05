@@ -5,7 +5,7 @@
  * User role assignment hooks.
  *
  * Three hooks exported from this file:
- *   useUserRoleAssignments(userId)   — tenant roles + resource roles + workflow roles + mutation actions
+ *   useUserRoleAssignments(userId)   — tenant roles + resource roles + mutation actions
  *   useUserPermissionOverrides(userId) — global + resource-scoped overrides + save actions
  *   useEffectivePermissions(userId)  — pre-computed effective permission list
  *
@@ -16,10 +16,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import {
   getUserRolesExtended,
-  getUserWorkflowRoles,
   assignRoles,
   removeRole,
-  assignWorkflowRoles,
   getPermissionOverrides,
   setPermissionOverrides,
   setResourcePermissionOverrides,
@@ -29,7 +27,6 @@ import { getEffectivePermissions as getEffectivePermissionsApi } from '@/lib/api
 import type {
   UserRole,
   UserResourceRole,
-  UserWorkflowRole,
   UserPermissionOverride,
   UserResourcePermissionOverride,
 } from '@/lib/api/user-rbac'
@@ -46,8 +43,6 @@ export interface UseUserRoleAssignmentsResult {
   tenantRoles: UserRole[]
   /** Resource-scoped role assignments */
   resourceRoles: UserResourceRole[]
-  /** Workflow role assignments */
-  workflowRoles: UserWorkflowRole[]
   loading: boolean
   error: string | null
   /**
@@ -59,10 +54,6 @@ export interface UseUserRoleAssignmentsResult {
   assignRoles: (roleCodes: string[], resourceType?: string, resourceId?: string) => Promise<void>
   /** Remove a single role from the user */
   removeRole: (roleCode: string) => Promise<void>
-  /** Assign (replace) workflow roles */
-  assignWorkflowRoles: (workflowRoles: string[]) => Promise<void>
-  /** Remove a single workflow role */
-  removeWorkflowRole: (workflowRole: string) => Promise<void>
   /** Rebuild effective permissions cache for this user */
   rebuildPermissions: () => Promise<void>
   /** true while rebuild is in progress */
@@ -81,7 +72,6 @@ export function useUserRoleAssignments(userId: string): UseUserRoleAssignmentsRe
 
   const [tenantRoles, setTenantRoles] = useState<UserRole[]>([])
   const [resourceRoles, setResourceRoles] = useState<UserResourceRole[]>([])
-  const [workflowRoles, setWorkflowRoles] = useState<UserWorkflowRole[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rebuilding, setRebuilding] = useState(false)
@@ -91,13 +81,9 @@ export function useUserRoleAssignments(userId: string): UseUserRoleAssignmentsRe
     setLoading(true)
     setError(null)
     try {
-      const [rolesResp, workflowResp] = await Promise.all([
-        getUserRolesExtended(userId, tenantId, accessToken),
-        getUserWorkflowRoles(userId, tenantId, accessToken),
-      ])
+      const rolesResp = await getUserRolesExtended(userId, tenantId, accessToken)
       setTenantRoles(rolesResp.tenant_roles)
       setResourceRoles(rolesResp.resource_roles)
-      setWorkflowRoles(workflowResp.workflow_roles)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load role assignments')
     } finally {
@@ -125,26 +111,6 @@ export function useUserRoleAssignments(userId: string): UseUserRoleAssignmentsRe
     [userId, tenantId, accessToken, fetchAll]
   )
 
-  const handleAssignWorkflowRoles = useCallback(
-    async (roles: string[]) => {
-      await assignWorkflowRoles(userId, tenantId, roles, accessToken)
-      await fetchAll()
-    },
-    [userId, tenantId, accessToken, fetchAll]
-  )
-
-  const handleRemoveWorkflowRole = useCallback(
-    async (workflowRole: string) => {
-      // Build the updated list without the removed role
-      const updated = workflowRoles
-        .map((r) => r.workflow_role)
-        .filter((r) => r !== workflowRole)
-      await assignWorkflowRoles(userId, tenantId, updated, accessToken)
-      await fetchAll()
-    },
-    [userId, tenantId, accessToken, workflowRoles, fetchAll]
-  )
-
   const handleRebuildPermissions = useCallback(async () => {
     setRebuilding(true)
     try {
@@ -157,13 +123,10 @@ export function useUserRoleAssignments(userId: string): UseUserRoleAssignmentsRe
   return {
     tenantRoles,
     resourceRoles,
-    workflowRoles,
     loading,
     error,
     assignRoles: handleAssignRoles,
     removeRole: handleRemoveRole,
-    assignWorkflowRoles: handleAssignWorkflowRoles,
-    removeWorkflowRole: handleRemoveWorkflowRole,
     rebuildPermissions: handleRebuildPermissions,
     rebuilding,
     refetch: fetchAll,

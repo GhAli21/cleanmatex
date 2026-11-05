@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
@@ -97,7 +98,7 @@ class CustomerOrderSummaryCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(order.orderNumber, style: textTheme.titleMedium),
+                        Text(ltrCode(order.orderNumber), style: textTheme.titleMedium),
                         if (order.physicalIntakeStatus == 'pending_dropoff' &&
                             (order.requiresRemoteIntakeConfirm ?? false))
                           Padding(

@@ -2,6 +2,10 @@
  * Piece Barcode Scan API
  * POST /api/v1/orders/:id/items/:itemId/pieces/scan
  * Lookup piece by barcode and optionally update status
+ *
+ * HFC P3b: the value goes through ScanResolveService, so it matches the piece code (`<line>-<n>`), a staff QR
+ * (`CMX1:PEC:...`) or the piece's live external tag. The piece must belong to this line and order; anything else is
+ * the same 404. Response shape is unchanged ({ success, piece, scanned }).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -9,6 +13,8 @@ import { createClient } from '@/lib/supabase/server';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { log } from '@/lib/utils/logger';
+import { ScanResolveService } from '@/lib/services/scan-resolve/scan-resolve.service';
+import { SCAN_RAW_MAX_LENGTH } from '@/lib/validations/code-format-schemas';
 
 /**
  *
@@ -31,7 +37,7 @@ export async function POST(
     const body = await request.json();
     const { barcode, updateStatus } = body;
 
-    if (!barcode) {
+    if (!barcode || typeof barcode !== 'string' || barcode.length > SCAN_RAW_MAX_LENGTH) {
       return NextResponse.json(
         { success: false, error: 'Barcode is required' },
         { status: 400 }
@@ -56,14 +62,21 @@ export async function POST(
       );
     }
 
-    // Find piece by barcode
-    const { data: piece, error: pieceError } = await supabase
-      .from('org_order_item_pieces_dtl')
-      .select('*')
-      .eq('tenant_org_id', tenantId)
-      .eq('order_item_id', itemId)
-      .eq('barcode', barcode.trim())
-      .single();
+    // Find the piece by piece code, staff QR or live external tag (HFC P3b)
+    const outcome = await ScanResolveService.resolve(supabase, tenantId, barcode, 'any');
+    const resolved = outcome.ok ? outcome.result.piece : undefined;
+    const onThisLine =
+      outcome.ok && !!resolved && !resolved.removed && resolved.itemId === itemId && outcome.result.order.id === orderId;
+
+    const { data: piece, error: pieceError } = onThisLine
+      ? await supabase
+          .from('org_order_item_pieces_dtl')
+          .select('*')
+          .eq('tenant_org_id', tenantId)
+          .eq('order_item_id', itemId)
+          .eq('id', resolved?.id ?? '')
+          .single()
+      : { data: null, error: null };
 
     if (pieceError || !piece) {
       return NextResponse.json(

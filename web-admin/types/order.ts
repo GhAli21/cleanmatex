@@ -236,7 +236,7 @@ export interface OrderItemPiece {
 
   // Piece identification
   piece_seq: number;
-  piece_code: string; // Generated: order_id-order_item_id-piece_seq
+  piece_code: string; // Set by the DB (HFC P3): `<line code>-<piece_seq>`, e.g. ORD-20261031-0007-2-1
 
   // Product and service category
   service_category_code: string | null;
@@ -244,7 +244,9 @@ export interface OrderItemPiece {
 
   // Scanning and tracking
   scan_state: 'expected' | 'scanned' | 'missing' | 'wrong' | null;
-  barcode: string | null;
+  barcode: string | null; // External tag staff attach (HFC P3b); not the piece code
+  /** Set when the order closed and the tag was freed for reuse (HFC P3). */
+  tag_released_at?: string | Date | null;
 
   // Pricing
   quantity: number | null;

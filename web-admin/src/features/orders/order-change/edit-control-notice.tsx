@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
+import type { OrderChangeEditPolicyRule } from '@/lib/types/order-change';
 import { resolveEditControlCapability, resolveEditControlGroup } from './edit-control-capability';
 import { useOrderWorkspaceSessionOptional } from './order-workspace-session';
 
@@ -12,16 +13,19 @@ import { useOrderWorkspaceSessionOptional } from './order-workspace-session';
 export function EditControlNotice({
   codes,
   identity = false,
+  targetType,
 }: {
   codes?: readonly OrderChangeOperationCode[];
   identity?: boolean;
+  /** Only the rules of this target (an operation can have ORDER and ITEM cells). */
+  targetType?: OrderChangeEditPolicyRule['targetType'];
 }) {
   const t = useTranslations('orders.edit');
   const session = useOrderWorkspaceSessionOptional();
   if (!session) return null;
   const denied = identity || !codes
     ? []
-    : codes.filter((code) => resolveEditControlCapability(session.editPolicy, code).reasonKey === 'deny');
+    : codes.filter((code) => resolveEditControlCapability(session.editPolicy, code, targetType).reasonKey === 'deny');
   if (denied.length > 0) {
     return (
       <div role="status" className="text-start rounded border border-[rgb(var(--cmx-destructive-rgb,220_38_38))] bg-[rgb(var(--cmx-destructive-bg-rgb,254_242_242))] px-3 py-2">
@@ -38,7 +42,7 @@ export function EditControlNotice({
   if (!identity && (!codes || codes.length === 0)) return null;
   const capability = identity
     ? { reasonKey: 'locked' as const, state: 'LOCKED' as const }
-    : resolveEditControlGroup(session.editPolicy, codes ?? []);
+    : resolveEditControlGroup(session.editPolicy, codes ?? [], targetType);
   if (!capability.reasonKey || capability.state === 'CREATE') return null;
   return (
     <p role="status" className="text-start text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">

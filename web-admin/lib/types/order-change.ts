@@ -31,8 +31,18 @@ export interface OrderChangeContextItem {
   pricePerUnit: string;
   totalPrice: string;
   priceOverride: string | null;
+  /** Why the cashier set `priceOverride` (`override_reason`). */
+  overrideReason?: string | null;
+  /** The line's cashier discount (its `MANUAL` discount rows), or null (P6-02c). */
+  lineDiscount?: { type: string; value: string; reason: string | null } | null;
   preferenceCharge: string;
   packingPreferenceCode: string | null;
+  /** The line's speed code (`service_speed`); null on a line written before the calculator. */
+  serviceSpeed?: string | null;
+  /** Pieces of this line already marked ready (`quantity_ready`). */
+  quantityReady?: number | null;
+  /** When the line became ready (`ready_at`). */
+  readyAt?: string | null;
   /** Always true because the context query includes only explicitly active governed commercial rows. */
   active: true;
 }

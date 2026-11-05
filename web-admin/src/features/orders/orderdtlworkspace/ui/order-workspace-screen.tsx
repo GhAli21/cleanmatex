@@ -1,5 +1,7 @@
 'use client';
 
+import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view';
+import { useOrderMoneyRefresh } from '@features/orders/order-fin-view/hooks/use-order-money-refresh';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -129,6 +131,7 @@ export function OrderWorkspaceScreen({
   const t = useTranslations('orders.detail.workspace');
   const isRTL = useRTL();
   const router = useRouter();
+  const refreshMoney = useOrderMoneyRefresh();
   const searchParams = useSearchParams();
   const [collectOpen, setCollectOpen] = useState(false);
   const orderId = String(order.id ?? '');
@@ -138,8 +141,8 @@ export function OrderWorkspaceScreen({
   const paid =
     amount(order, 'total_paid_amount') || amount(order, 'paid_amount');
   const credits = amount(order, 'total_credit_applied_amount');
-  const balance =
-    amount(order, 'outstanding_amount') || Math.max(0, total - paid - credits);
+  // The stored balance (snapshot writer); never total − paid − credits in the browser.
+  const balance = amount(order, 'outstanding_amount');
   const itemRows = Array.isArray(order.items) ? order.items : [];
   const customer = order.org_customers_mst as
     | Record<string, unknown>
@@ -458,23 +461,9 @@ export function OrderWorkspaceScreen({
             <CmxCardHeader>
               <CmxCardTitle>{t('financialSnapshot')}</CmxCardTitle>
             </CmxCardHeader>
-            <CmxCardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('paid')}</span>
-                <span className="font-semibold tabular-nums">{fmt(paid)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('credits')}</span>
-                <span className="font-semibold tabular-nums">
-                  {fmt(credits)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between border-t pt-3">
-                <span className="font-medium">{t('balance')}</span>
-                <span className="text-lg font-bold tabular-nums">
-                  {fmt(balance)}
-                </span>
-              </div>
+            <CmxCardContent>
+              {/* P6-06: the statement totals from the read model. */}
+              <OrderFinancialView source={{ kind: 'order', orderId }} config={{ preset: 'totals', layout: 'plain', density: 'compact', columns: 1 }} />
             </CmxCardContent>
           </CmxCard>
           <CmxCard>
@@ -620,7 +609,7 @@ export function OrderWorkspaceScreen({
             screen="new_order"
             hideWhenEmpty
             title={t('newOrderActionTitle')}
-            onActionSuccess={() => router.refresh()}
+            onActionSuccess={() => refreshMoney(orderId)}
           />
           {/* The workflow engine remains authoritative for allowed order-control actions and their safety gates. */}
           <WorkflowActionBar
@@ -629,7 +618,7 @@ export function OrderWorkspaceScreen({
             hideWhenEmpty
             title={t('orderControlTitle')}
             // Re-read the server-sourced workspace after an audited workflow transition changes the order state.
-            onActionSuccess={() => router.refresh()}
+            onActionSuccess={() => refreshMoney(orderId)}
           />
         </section>
       ) : null}
@@ -641,7 +630,7 @@ export function OrderWorkspaceScreen({
         branchId={value(order, 'branch_id')}
         outstandingAmount={balance}
         currencyCode={orderCurrency}
-        onCollected={() => router.refresh()}
+        onCollected={() => refreshMoney(orderId)}
       />
     </main>
   );

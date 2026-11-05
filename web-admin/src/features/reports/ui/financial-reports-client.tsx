@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives';
@@ -144,7 +145,8 @@ export function FinancialReportsClient() {
     {
       key: 'order_no',
       header: t('orderNo'),
-      render: (o: OrderRow) => <span className="font-mono font-medium">{o.order_no ?? '—'}</span>,
+      render: (o: OrderRow) =>
+        o.order_no ? <CmxCodeChip code={o.order_no} kind="order" /> : <span className="font-mono font-medium">—</span>,
     },
     {
       key: 'date',

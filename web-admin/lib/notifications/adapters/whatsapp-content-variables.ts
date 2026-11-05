@@ -13,6 +13,8 @@ const NAMED_ORDER_KEYS = [
   'estimated_ready_at',
   'date',
   'tracking_token',
+  // credit_note.issued: store credit note number (HFC A-74).
+  'credit_note_no',
 ] as const
 
 /**

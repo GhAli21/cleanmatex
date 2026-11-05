@@ -56,7 +56,11 @@ export async function getAuthContext(): Promise<AuthContext> {
   }
 
   const tenantId = validation.tenantOrgId;
-  const tenantEntry = tenants.find((t) => t.tenant_id === tenantId) ?? tenants[0];
+  // Fail closed: the role must come from the session's own membership, never from another row.
+  const tenantEntry = tenants.find((t) => t.tenant_id === tenantId);
+  if (!tenantEntry) {
+    throw new Error('Unauthorized');
+  }
 
   return {
     user: {

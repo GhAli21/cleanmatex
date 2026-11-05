@@ -1,0 +1,173 @@
+{
+  "title": "الملخص المالي",
+  "draftBadge": "معاينة — لم يُحفظ بعد",
+  "groups": {
+    "value": "قيمة الطلب",
+    "settlement": "السداد",
+    "records": "السجلات",
+    "control": "الرقابة"
+  },
+  "sections": {
+    "items": "الأصناف والإضافات",
+    "charges": "الرسوم",
+    "discounts": "الخصومات",
+    "taxes": "الضريبة",
+    "taxesIncluded": "الضريبة (مشمولة في الأسعار)",
+    "rounding": "التقريب",
+    "payments": "المدفوعات",
+    "credits": "الأرصدة المطبّقة",
+    "refunds": "المبالغ المستردة",
+    "overpayment": "الدفع الزائد",
+    "receivable": "الذمم المدينة",
+    "taxDocuments": "المستندات الضريبية",
+    "vouchers": "السندات",
+    "loyalty": "الولاء",
+    "adjustments": "التسويات",
+    "orderChanges": "تعديلات الطلب",
+    "currency": "العملة",
+    "receipts": "الإيصالات",
+    "timeline": "السجل الزمني",
+    "reconciliation": "المطابقة",
+    "debug": "تفاصيل فنية"
+  },
+  "metrics": {
+    "total": "الإجمالي",
+    "paid": "المدفوع",
+    "credits": "الأرصدة",
+    "balance": "الرصيد",
+    "refunded": "المسترد",
+    "netCollected": "صافي المحصّل",
+    "overpaid": "مدفوع زيادة",
+    "changeReturned": "الباقي المُعاد",
+    "receivable": "المستحق للتحصيل",
+    "discount": "الخصم",
+    "tax": "الضريبة",
+    "originalTotal": "كان",
+    "projectedTotal": "الإجمالي الجديد",
+    "totalDelta": "الفرق",
+    "projectedBalance": "الرصيد بعد التعديل"
+  },
+  "balanceStates": {
+    "due": "مستحق",
+    "dueAtCollection": "مستحق عند الاستلام",
+    "dueOnInvoice": "مستحق بالفاتورة",
+    "settled": "مسدّد",
+    "overpaid": "مدفوع زيادة"
+  },
+  "paymentStatus": {
+    "UNPAID": "غير مدفوع",
+    "PENDING_COLLECTION": "بانتظار التحصيل",
+    "PARTIALLY_PAID": "مدفوع جزئيًا",
+    "PAID": "مدفوع",
+    "OVERPAID": "مدفوع زيادة"
+  },
+  "creditTypes": {
+    "GIFT_CARD": "بطاقة هدية",
+    "WALLET": "المحفظة",
+    "ADVANCE": "دفعة مقدّمة للعميل",
+    "CREDIT_NOTE": "إشعار دائن",
+    "LOYALTY_POINTS": "نقاط الولاء"
+  },
+  "lines": {
+    "speedPremiumIncluded": "رسوم الخدمة السريعة (مشمولة)",
+    "extrasIncluded": "الإضافات (مشمولة)",
+    "manualDiscount": "خصم يدوي",
+    "autoRuleDiscount": "خصم تلقائي",
+    "promoDiscount": "رمز ترويجي",
+    "lineDiscounts": "خصومات الأصناف",
+    "baseTotal": "الإجمالي بالعملة الأساسية",
+    "hash": "بصمة الاحتساب",
+    "traceId": "معرّف التتبع",
+    "engineVersion": "إصدار المحرك",
+    "points": "{points, plural, one {# نقطة} other {# نقاط}}",
+    "informational": "الإجمالي {amount}",
+    "wasNow": "{previous} ← {current}",
+    "removed": "أُزيل"
+  },
+  "lineStates": {
+    "pending": "معلّق · غير محتسب",
+    "failed": "فاشل · غير محتسب",
+    "voided": "ملغى · غير محتسب",
+    "reversed": "معكوس · غير محتسب"
+  },
+  "chips": {
+    "pending": "{count} معلّق",
+    "failed": "{count} فاشل",
+    "voided": "{count} ملغى",
+    "reversed": "{count} معكوس"
+  },
+  "reconciliation": {
+    "reconciled": "مطابق",
+    "differs": "الأرقام مختلفة",
+    "recalculating": "قيد إعادة الاحتساب"
+  },
+  "banners": {
+    "recalculating": "يُعاد احتساب الأرقام.",
+    "cancelled": "هذا الطلب ملغى. تعرض الأرقام ما تم تسجيله.",
+    "unavailable": "البيانات المالية غير متاحة",
+    "currencyUnknown": "العملة غير معروفة",
+    "orderChanged": "تغيّر هذا الطلب — تم تحديث الأرقام.",
+    "partialTimeline": "بعض الأحداث غير معروضة."
+  },
+  "states": {
+    "none": "لا يوجد",
+    "loadFailed": "تعذّر التحميل",
+    "retry": "إعادة المحاولة",
+    "loading": "جارٍ تحميل الملخص المالي…",
+    "forbidden": "ليست لديك صلاحية لهذا الجزء"
+  },
+  "actions": {
+    "expandAll": "توسيع الكل",
+    "collapseAll": "طي الكل",
+    "showAll": "عرض الكل ({count})",
+    "showLess": "عرض أقل",
+    "details": "التفاصيل",
+    "close": "إغلاق"
+  },
+  "presets": {
+    "switcher": "مستوى التفصيل",
+    "badge": "شارة",
+    "totals": "الإجماليات",
+    "summary": "ملخص",
+    "detailed": "مفصّل",
+    "full": "كامل",
+    "audit": "تدقيق",
+    "public": "العميل"
+  },
+  "warnings": {
+    "count": "{count, plural, one {تنبيه واحد} two {تنبيهان} few {# تنبيهات} many {# تنبيهًا} other {# تنبيه}}",
+    "arReceivableMismatch": "رصيد الفاتورة ({invoiceOutstanding}) يختلف عن رصيد الطلب ({orderOutstanding}).",
+    "pendingPaymentsNote": "{count, plural, one {دفعة واحدة لم تُؤكَّد بعد} two {دفعتان لم تُؤكَّدا بعد} few {# دفعات لم تُؤكَّد بعد} many {# دفعة لم تُؤكَّد بعد} other {# دفعة لم تُؤكَّد بعد}}.",
+    "sectionLinesMismatch": "مجموع بنود هذا القسم لا يساوي إجماليه.",
+    "totalComponentsMismatch": "الأجزاء المخزّنة تعطي {expected}، لكن الإجمالي المخزّن {stored}."
+  },
+  "edit": {
+    "outcomes": {
+      "SETTLED": "مسدّد",
+      "OUTSTANDING": "مطلوب تحصيله",
+      "OVERPAYMENT": "مستحق استرداد أو رصيد",
+      "DENIED": "لا يمكن تطبيق هذا التعديل"
+    },
+    "updating": "جارٍ التحديث…",
+    "quoteFailed": "تعذّر احتساب هذا التعديل",
+    "tryAgain": "إعادة المحاولة",
+    "newTotal": "الإجمالي الجديد",
+    "noChange": "لا يوجد تغيير مالي"
+  },
+  "errors": {
+    "VALIDATION_FAILED": "الطلب غير صالح.",
+    "UNAUTHENTICATED": "يرجى تسجيل الدخول مرة أخرى.",
+    "PERMISSION_DENIED": "ليست لديك صلاحية لعرض هذا.",
+    "CSRF_REJECTED": "انتهت صلاحية الصفحة. حدّثها وحاول مرة أخرى.",
+    "ORDER_NOT_FOUND": "الطلب غير موجود.",
+    "ORDER_CHANGED": "تغيّر هذا الطلب. راجِع مرة أخرى.",
+    "EDIT_SESSION_INVALID": "انتهت جلسة التعديل. أعد فتح الطلب للمتابعة.",
+    "QUOTE_REJECTED": "لا يمكن احتساب هذا التعديل.",
+    "RATE_LIMITED": "طلبات كثيرة. انتظر قليلًا.",
+    "INTERNAL_ERROR": "حدث خطأ. حاول مرة أخرى."
+  },
+  "sign": {
+    "plus": "زائد",
+    "minus": "ناقص"
+  }
+}

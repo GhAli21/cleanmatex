@@ -28,6 +28,21 @@ export interface TaxDocumentPrintLine {
   taxAmount: number;
 }
 
+/** One item line as copied onto the document at issue (`org_tax_doc_items_dtl`). */
+export interface TaxDocumentPrintItem {
+  lineNo: number;
+  productName: string;
+  productName2: string | null;
+  quantity: number;
+  pricePerUnit: number;
+  discountAmount: number;
+  netAmount: number;
+  taxCategoryCode: string;
+  taxRate: number;
+  taxAmount: number;
+  lineTotalAmount: number;
+}
+
 export interface TaxDocumentPrintDetail {
   id: string;
   documentType: string;
@@ -44,6 +59,8 @@ export interface TaxDocumentPrintDetail {
   issuedBy: string | null;
   createdAt: string;
   lines: TaxDocumentPrintLine[];
+  /** The document's own item table, copied at issue (Line-Level §6.7); empty for documents of orders written before the calculator. */
+  items: TaxDocumentPrintItem[];
   order: {
     id: string;
     orderNo: string | null;
@@ -94,10 +111,14 @@ export async function getTaxDocumentPrintDetail(
       throw new TaxDocumentReadError('TAX_DOCUMENT_NOT_FOUND', 'Tax document not found');
     }
 
-    const [lines, order] = await Promise.all([
+    const [lines, items, order] = await Promise.all([
       prisma.org_tax_doc_lines_dtl.findMany({
         where: { tenant_org_id: tenantId, tax_document_id: documentId },
         orderBy: { created_at: 'asc' },
+      }),
+      prisma.org_tax_doc_items_dtl.findMany({
+        where: { tenant_org_id: tenantId, tax_document_id: documentId, rec_status: 1 },
+        orderBy: { line_no: 'asc' },
       }),
       prisma.org_orders_mst.findFirst({
         where: { id: orderId, tenant_org_id: tenantId },
@@ -172,6 +193,19 @@ export async function getTaxDocumentPrintDetail(
         rate: line.rate == null ? null : toNumber(line.rate),
         baseAmount: toNumber(line.base_amount),
         taxAmount: toNumber(line.tax_amount),
+      })),
+      items: items.map((item) => ({
+        lineNo: item.line_no,
+        productName: item.product_name,
+        productName2: item.product_name2 ?? null,
+        quantity: item.quantity,
+        pricePerUnit: toNumber(item.price_per_unit),
+        discountAmount: toNumber(item.discount_amount),
+        netAmount: toNumber(item.net_amount),
+        taxCategoryCode: item.tax_category_code,
+        taxRate: toNumber(item.tax_rate),
+        taxAmount: toNumber(item.tax_amount),
+        lineTotalAmount: toNumber(item.line_total_amount),
       })),
       order: {
         id: order.id,

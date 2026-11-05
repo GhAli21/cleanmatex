@@ -68,6 +68,9 @@ export const SPEED_PRICE_TYPES = {
 /** Derived union for `org_speed_price_rules_cf.speed_price_type` values. */
 export type SpeedPriceType = (typeof SPEED_PRICE_TYPES)[keyof typeof SPEED_PRICE_TYPES];
 
+/** `org_price_history_audit.entity_type` of a speed rule change (CHECK `chk_pha_entity_type`, 0691). */
+export const PRICE_HISTORY_SPEED_RULE = 'speed_rule';
+
 /**
  * How a `FIXED_AMOUNT` speed rule's `speed_extra_amount` is applied,
  * persisted in `org_speed_price_rules_cf.price_basis` (M2). Meaningless (and

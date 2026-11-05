@@ -13,8 +13,11 @@ export const CHARGE_TYPES = {
   EXPRESS: 'EXPRESS',
   BULK_SURCHARGE: 'BULK_SURCHARGE',
   SPECIAL_HANDLING: 'SPECIAL_HANDLING',
+  DELIVERY: 'DELIVERY',
+  SERVICE: 'SERVICE',
+  OTHER: 'OTHER',
 } as const;
-/** Derived union for persisted order charge codes. */
+/** Derived union for persisted order charge codes (`sys_charge_types_cd`, FK since 0680). */
 export type ChargeType = (typeof CHARGE_TYPES)[keyof typeof CHARGE_TYPES];
 
 /** Tax fact codes persisted in `org_order_taxes_dtl.tax_type`. */
@@ -912,6 +915,8 @@ export const ORDER_FINANCIAL_WARNING_CODES = {
   LEGACY_FIELD_USED_IN_SUMMARY: 'LEGACY_FIELD_USED_IN_SUMMARY',
   REFUND_SOURCE_UNCLASSIFIED: 'REFUND_SOURCE_UNCLASSIFIED',
   PAYMENT_TARGET_UNCLASSIFIED: 'PAYMENT_TARGET_UNCLASSIFIED',
+  /** Order Fin View §6.6: a value section's counted lines do not add up to its snapshot total. */
+  SECTION_LINES_MISMATCH: 'SECTION_LINES_MISMATCH',
 } as const;
 /** Derived union for canonical financial warning codes. */
 export type OrderFinancialWarningCode =
@@ -962,6 +967,22 @@ export const LOYALTY_TXN_TYPES = {
 /** Derived union for loyalty ledger transaction types. */
 export type LoyaltyTxnType =
   (typeof LOYALTY_TXN_TYPES)[keyof typeof LOYALTY_TXN_TYPES];
+
+/**
+ * What asked for an order's loyalty earn to be reconciled (D27). Becomes part of
+ * the ledger row's idempotency key `loyalty-<trigger>-<sourceId>`.
+ */
+export const LOYALTY_RECONCILE_TRIGGERS = {
+  /** Any money change on the order (snapshot recalculation); source = calculation trace id. */
+  ORDER_FIN_RECALC: 'ORDER_FIN_RECALC',
+  /** Workflow cancellation; source = order id. */
+  ORDER_CANCEL: 'ORDER_CANCEL',
+  /** Order Edit Apply (D24); source = order change id. */
+  ORDER_EDIT: 'ORDER_EDIT',
+} as const;
+/** Derived union for loyalty reconcile triggers. */
+export type LoyaltyReconcileTrigger =
+  (typeof LOYALTY_RECONCILE_TRIGGERS)[keyof typeof LOYALTY_RECONCILE_TRIGGERS];
 
 /** Credit note lifecycle states mirrored from `org_credit_notes_mst.status`. */
 export const CREDIT_NOTE_STATUSES = {
@@ -1020,3 +1041,16 @@ export const TAX_DOCUMENT_TRIGGER_EVENTS = {
 /** Derived union for tax document trigger events. */
 export type TaxDocumentTriggerEvent =
   (typeof TAX_DOCUMENT_TRIGGER_EVENTS)[keyof typeof TAX_DOCUMENT_TRIGGER_EVENTS];
+
+/**
+ * L18 single writer (Line-Level P7-05): pricing-mode and calculation fields
+ * owned by HQ (the SaaS Backoffice). The Organization app reads them but
+ * refuses to write them, with `403 FIELD_MANAGED_BY_HQ`, so there is one writer.
+ */
+export const HQ_MANAGED_PRICING_FIELDS = {
+  tenant: ['tax_pricing_mode', 'extra_price_pricing_mode', 'commercial_level', 'disc_alloc_mode', 'disc_alloc_basis'],
+  branch: ['tax_pricing_mode', 'extra_price_pricing_mode'],
+} as const;
+
+/** Error code returned when a request tries to write an HQ-managed field. */
+export const FIELD_MANAGED_BY_HQ = 'FIELD_MANAGED_BY_HQ';

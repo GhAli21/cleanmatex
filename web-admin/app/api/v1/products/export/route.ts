@@ -4,38 +4,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { exportProducts } from '@/lib/services/catalog.service';
 
 // ==================================================================
 // HELPER FUNCTIONS
 // ==================================================================
-
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id,
-    userId: user.id,
-    userRole: tenants[0].user_role,
-  };
-}
 
 // ==================================================================
 // GET /api/v1/products/export - Export Products
@@ -51,8 +25,10 @@ async function getAuthContext() {
  * @param request
  */
 export async function GET(request: NextRequest) {
+  const auth = await requirePermission('products:export')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    await getAuthContext();
 
     const { searchParams } = new URL(request.url);
     const template = (searchParams.get('template') as 'basic' | 'advanced') || 'advanced';

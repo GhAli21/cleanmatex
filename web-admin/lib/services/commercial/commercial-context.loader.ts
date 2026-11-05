@@ -206,12 +206,10 @@ export interface RecordedChargeIntent {
   taxed: boolean;
 }
 
-/** Context the caller already holds: the tenant currency and the fallback VAT rate. */
+/** Context the caller already holds: the tenant currency. Tax comes from tax profiles only (P6-03). */
 export interface CommercialLoaderDeps {
   /** From the currency profile (`getCurrencyConfig`). */
   currency: { code: string; decimalPlaces: number };
-  /** `TaxService.getTaxRate` as a fraction (0.05); read only when the tenant has no tax profile. */
-  getTenantVatRate: () => Promise<number>;
   /**
    * Order Edit (§5.3, D22): the order's own snapshots and recorded tax. When
    * set, the tenant settings, the pricing-mode resolvers and the tenant tax
@@ -349,7 +347,11 @@ const text = (value: { toString(): string } | null | undefined): string | null =
 const dateOnly = (value: Date | null): string | null => (value ? value.toISOString().slice(0, 10) : null);
 const preferenceKey = (kind: string, code: string) => `${kind}:${code}`;
 
-/** Id of the tenant VAT-rate fallback profile (no `org_tax_profiles_cf` row; written as a NULL profile id). */
+/**
+ * Id of a recorded tax line with no profile row: orders created before P6-03
+ * were taxed from the retired `TENANT_VAT_RATE` setting and stored a NULL
+ * profile id. Edit re-uses that recorded rate; no new order gets one.
+ */
 export const TENANT_RATE_PROFILE_ID = 'tenant-vat-rate';
 
 const lineSpeed = (intent: CommercialOrderIntent, line: LineIntent) => line.serviceSpeed ?? intent.serviceSpeed;
@@ -359,11 +361,11 @@ const lineSpeed = (intent: CommercialOrderIntent, line: LineIntent) => line.serv
  * @param db the Prisma client or the caller's transaction client
  * @param tenantOrgId the session tenant (resolved server-side by the caller)
  * @param intent the client's order intents
- * @param deps the tenant currency and the VAT-rate fallback
+ * @param deps the tenant currency
  * @returns plain facts for `buildCommercialOrderInput`
  * @throws CommercialContextError TIMEZONE_NOT_CONFIGURED
  * @example
- * const facts = await loadCommercialFacts(prisma, tenantOrgId, intent, { currency, getTenantVatRate });
+ * const facts = await loadCommercialFacts(prisma, tenantOrgId, intent, { currency });
  */
 export async function loadCommercialFacts(
   db: CommercialDb,
@@ -502,7 +504,7 @@ export async function loadCommercialFacts(
   const accountingMode = accounting && isRoundingMode(accounting.rounding_mode) ? accounting.rounding_mode : 'HALF_UP';
   const rounding: RoundingRule = { decimalPlaces: deps.currency.decimalPlaces, mode: accountingMode as RoundingMode };
 
-  // ─── Tax profiles (tenant-rate fallback only when none exists, as today) ─
+  // ─── Tax profiles (none applicable: no tax line, never an assumed rate; B15) ─
   const selected = new Set(intent.taxProfileIds ?? []);
   const missing = [...selected].filter((id) => !profiles.some((p) => p.id === id));
   if (missing.length > 0) {
@@ -543,16 +545,6 @@ export async function loadCommercialFacts(
       ...(p.isTenantRateFallback ? { isTenantRateFallback: true } : {}),
     }));
     for (const [id, label] of deps.recorded.taxProfileLabels) taxProfileLabels.set(id, label);
-  } else if (taxProfiles.length === 0) {
-    const rate = await deps.getTenantVatRate();
-    if (rate > 0) {
-      taxProfiles = [{
-        id: TENANT_RATE_PROFILE_ID, taxType: 'VAT', ratePercent: (rate * 100).toString(), isCompound: false,
-        isDefault: true, appliesTo: null, roundingLevel: 'DOCUMENT', rounding, isTenantRateFallback: true,
-      }];
-      // Today's fallback line label (`order-submit-orchestrator`).
-      taxProfileLabels.set(TENANT_RATE_PROFILE_ID, { label: 'VAT', label2: 'ضريبة القيمة المضافة' });
-    }
   }
 
   // ─── Price candidates ──────────────────────────────────────────────────

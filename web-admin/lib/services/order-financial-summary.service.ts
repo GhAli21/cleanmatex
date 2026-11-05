@@ -4,12 +4,22 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 import { buildEffectiveOrderFinancialSnapshot } from '@/lib/utils/order-financial-effective-snapshot';
 import { ORDER_FINANCIAL_SNAPSHOT_STATUS } from '@/lib/constants/order-financial';
 import { NotFoundError } from '@/lib/errors/base-errors';
 import { computeOutstanding, sumRefundReopens } from '@/lib/services/order-financial-aggregation';
+import { loadOrderCore } from '@/lib/services/order-fin-view/sources/core.source';
+import {
+  loadOrderAdjustments,
+  loadOrderCharges,
+  loadOrderCredits,
+  loadOrderDiscounts,
+  loadOrderPayments,
+  loadOrderRefunds,
+  loadOrderTaxDocuments,
+  loadOrderTaxes,
+} from '@/lib/services/order-fin-view/sources/settlement.sources';
 
 /**
  * Why:
@@ -377,8 +387,7 @@ export async function getOrderFinancialSummary(
   tenantId: string,
   orderId: string,
 ): Promise<OrderFinancialSummary> {
-  let adjustments: OrderAdjustmentRow[] = [];
-
+  // Same loaders the Order Financial View uses (DESIGN D18): one query per table, tenant-filtered.
   const [
     order,
     charges,
@@ -389,142 +398,20 @@ export async function getOrderFinancialSummary(
     discountLines,
     taxDocumentRows,
   ] = await Promise.all([
-    withTenantContext(tenantId, () =>
-      prisma.org_orders_mst.findFirst({
-        where: { tenant_org_id: tenantId, id: orderId },
-        select: {
-          id: true,
-          order_no: true,
-          currency_code: true,
-          currency_ex_rate: true,
-          base_cur_currency_code: true,
-          base_cur_total_amount: true,
-          base_cur_tax_amount: true,
-          base_cur_paid_amount: true,
-          base_cur_credit_applied_amount: true,
-          base_cur_outstanding_amount: true,
-          base_cur_ar_receivable_amount: true,
-          payment_type_code: true,
-          payment_status: true,
-          subtotal_amount: true,
-          items_base_amount: true,
-          total_amount: true,
-          piece_extra_price_amount: true,
-          preference_extra_price_amount: true,
-          service_charge_amount: true,
-          delivery_charge_amount: true,
-          express_charge_amount: true,
-          other_charges_amount: true,
-          total_charges_amount: true,
-          total_discount_amount: true,
-          taxable_amount: true,
-          non_taxable_amount: true,
-          exempt_amount: true,
-          zero_rated_amount: true,
-          out_of_scope_amount: true,
-          total_tax_amount: true,
-          total_credit_applied_amount: true,
-          pending_credit_application_amount: true,
-          failed_credit_application_amount: true,
-          total_paid_amount: true,
-          pending_payment_amount: true,
-          authorized_payment_amount: true,
-          failed_payment_amount: true,
-          refunded_amount: true,
-          real_payment_refunded_amount: true,
-          stored_value_restored_amount: true,
-          customer_credit_issued_amount: true,
-          net_collected_amount: true,
-          outstanding_amount: true,
-          overpaid_amount: true,
-          ar_receivable_amount: true,
-          ar_invoice_id: true,
-          ar_invoice_no: true,
-          ar_invoice_status: true,
-          tax_document_id: true,
-          tax_document_no: true,
-          tax_document_status: true,
-          tax_document_type: true,
-          pay_on_collection_amount: true,
-          change_returned_amount: true,
-          rounding_adjustment_amount: true,
-          financial_engine_version: true,
-          financial_snapshot_status: true,
-          financial_mismatch_warning_count: true,
-          financial_calculation_snapshot: true,
-          financial_calculation_hash: true,
-          financial_calculation_trace_id: true,
-        },
-      }),
-    ),
-    withTenantContext(tenantId, () =>
-      prisma.org_order_charges_dtl.findMany({
-        where: { tenant_org_id: tenantId, order_id: orderId },
-        orderBy: { created_at: 'asc' },
-      }),
-    ),
-    withTenantContext(tenantId, () =>
-      prisma.org_order_taxes_dtl.findMany({
-        where: { tenant_org_id: tenantId, order_id: orderId },
-        orderBy: { created_at: 'asc' },
-      }),
-    ),
-    withTenantContext(tenantId, () =>
-      prisma.org_order_payments_dtl.findMany({
-        where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
-        orderBy: { created_at: 'asc' },
-      }),
-    ),
-    withTenantContext(tenantId, () =>
-      prisma.org_order_credit_apps_dtl.findMany({
-        where: { tenant_org_id: tenantId, order_id: orderId },
-        orderBy: { applied_at: 'asc' },
-      }),
-    ),
-    withTenantContext(tenantId, () =>
-      prisma.org_order_refunds_dtl.findMany({
-        where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
-        orderBy: { created_at: 'asc' },
-      }),
-    ),
-    getDiscountLinesForOrder(tenantId, orderId),
-    withTenantContext(tenantId, () =>
-      prisma.org_tax_documents_mst.findMany({
-        where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
-        orderBy: { created_at: 'desc' },
-      }),
-    ),
+    loadOrderCore(tenantId, orderId),
+    loadOrderCharges(tenantId, orderId),
+    loadOrderTaxes(tenantId, orderId),
+    loadOrderPayments(tenantId, orderId),
+    loadOrderCredits(tenantId, orderId),
+    loadOrderRefunds(tenantId, orderId),
+    loadOrderDiscounts(tenantId, orderId),
+    loadOrderTaxDocuments(tenantId, orderId),
   ]);
 
   // BF-10: a missing order is a typed 404, not a Prisma throw that reads as 500.
   if (!order) throw new NotFoundError('Order', orderId);
 
-  try {
-    adjustments = await prisma.$queryRaw<OrderAdjustmentRow[]>`
-      SELECT
-        a.id,
-        a.adjustment_type,
-        a.amount::float8 AS amount,
-        a.currency_code,
-        a.reason,
-        a.status,
-        a.approved_by,
-        a.created_by,
-        a.created_at,
-        a.metadata
-      FROM public.org_order_adjustments_dtl a
-      WHERE a.tenant_org_id = ${tenantId}::uuid
-        AND a.order_id = ${orderId}::uuid
-        AND a.is_active = true
-        AND a.rec_status = 1
-      ORDER BY a.created_at ASC
-    `;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '';
-    if (!message.includes('org_order_adjustments_dtl')) {
-      throw error;
-    }
-  }
+  const adjustments = await loadOrderAdjustments(tenantId, orderId);
 
   const effectiveSnapshot = buildEffectiveOrderFinancialSnapshot({
     paymentTypeCode: order.payment_type_code ?? null,

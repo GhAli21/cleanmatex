@@ -8,7 +8,7 @@
  * - redeemPointsTx — deducts points, writes ledger row, FIFO-consumes lots (B19)
  * - redeemPointsTx — throws when account not found
  * - redeemPointsTx — throws INSUFFICIENT when balance < requested
- * - queueEarnPoints — emits LOYALTY_EARN outbox event
+ * - reconcileOrderLoyaltyEarn / reconcileOrderLoyaltyEarnTx — D27 earn follows the order
  * - processEarnPoints — sets remaining_points on the new EARN lot (B19)
  * - adjustPointsTx — positive delta opens a new lot; negative delta consumes FIFO (B19)
  * - expireLoyaltyPointsForAccount / expireLoyaltyPoints — B19 expiry sweep
@@ -34,6 +34,7 @@ const mockOutboxCreate              = jest.fn();
 const mockTxProgramFindFirst        = jest.fn();
 const mockTxAccountFindFirst        = jest.fn();
 const mockTxAccountCreate           = jest.fn();
+const mockTxTxnFindMany             = jest.fn();
 
 // $queryRaw is called for two distinct purposes inside a debit path:
 // (1) lock + read the account row, (2) lock + read open lots for FIFO
@@ -43,8 +44,10 @@ const mockTxAccountCreate           = jest.fn();
 let queuedAccountRows: unknown[] = [];
 let queuedLotRows: unknown[] = [];
 let queuedExpiredLotRows: unknown[] = [];
+let queuedOrderRows: unknown[] = [];
 const mockTxQueryRaw = jest.fn((strings: TemplateStringsArray) => {
   const sql = Array.isArray(strings) ? strings.join('') : String(strings);
+  if (sql.includes('org_orders_mst')) return Promise.resolve(queuedOrderRows);
   if (sql.includes('remaining_points') && sql.includes('FOR UPDATE')) {
     if (sql.includes('created_at <')) {
       return Promise.resolve(queuedExpiredLotRows);
@@ -69,6 +72,7 @@ const mockTx = {
     findFirst: (...a: unknown[]) => mockLoyaltyTxnFindFirst(...a),
     create:    (...a: unknown[]) => mockLoyaltyTxnCreate(...a),
     update:    (...a: unknown[]) => mockLoyaltyTxnUpdate(...a),
+    findMany:  (...a: unknown[]) => mockTxTxnFindMany(...a),
   },
   org_loyalty_txn_allocs_dtl: { create: (...a: unknown[]) => mockAllocCreate(...a) },
   org_domain_events_outbox:   { create: (...a: unknown[]) => mockOutboxCreate(...a) },
@@ -106,7 +110,9 @@ import {
   getLoyaltyAccount,
   getCustomerTier,
   redeemPointsTx,
-  queueEarnPoints,
+  reconcileOrderLoyaltyEarn,
+  reconcileOrderLoyaltyEarnTx,
+  orderEarnTargetPoints,
   processEarnPoints,
   adjustPointsTx,
   expireLoyaltyPointsForAccount,
@@ -767,25 +773,131 @@ describe('loyalty.service — syncAvailableLoyaltyPoints', () => {
   });
 });
 
-describe('loyalty.service — queueEarnPoints', () => {
+describe('loyalty.service — reconcileOrderLoyaltyEarn (D27 request)', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('emits LOYALTY_EARN event via outbox', async () => {
+  it('emits LOYALTY_EARN for the order with trigger and source, no amounts', async () => {
     mockOutboxCreate.mockResolvedValue({});
-
-    await queueEarnPoints(mockTx as Parameters<typeof queueEarnPoints>[0], {
-      tenantId: TENANT, customerId: CUST, orderId: ORDER, orderAmount: 50,
+    await reconcileOrderLoyaltyEarn(mockTx as Parameters<typeof reconcileOrderLoyaltyEarn>[0], {
+      tenantId: TENANT, orderId: ORDER, trigger: 'ORDER_CANCEL', sourceId: ORDER,
     });
+    expect(mockOutboxCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        event_type: 'LOYALTY_EARN', aggregate_type: 'order', aggregate_id: ORDER,
+        payload: { trigger: 'ORDER_CANCEL', sourceId: ORDER },
+      }),
+    }));
+  });
+});
 
-    expect(mockOutboxCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          event_type: 'LOYALTY_EARN',
-          aggregate_type: 'order',
-          aggregate_id: ORDER,
-        }),
-      })
-    );
+describe('loyalty.service — orderEarnTargetPoints (D27)', () => {
+  const settled = { customerId: CUST, cancelled: false, outstanding: 0, total: 10, refunded: 0 };
+  it('earns floor((total − refunded) × rate) once settled, without float drift', () => {
+    expect(orderEarnTargetPoints({ ...settled, total: 2.3 }, 100)).toBe(230);
+    expect(orderEarnTargetPoints({ ...settled, total: 10.5, refunded: 0.5 }, 1.5)).toBe(15);
+  });
+  it('is 0 when cancelled, customer-less or fully refunded; null while money is owed', () => {
+    expect(orderEarnTargetPoints({ ...settled, cancelled: true }, 2)).toBe(0);
+    expect(orderEarnTargetPoints({ ...settled, customerId: null }, 2)).toBe(0);
+    expect(orderEarnTargetPoints({ ...settled, refunded: 12 }, 2)).toBe(0);
+    expect(orderEarnTargetPoints({ ...settled, outstanding: 1 }, 2)).toBeNull();
+  });
+});
+
+describe('loyalty.service — reconcileOrderLoyaltyEarnTx (D27 consumer)', () => {
+  const KEY = 'loyalty-ORDER_FIN_RECALC-trace-1';
+  const run = () => reconcileOrderLoyaltyEarnTx(mockTx as Parameters<typeof reconcileOrderLoyaltyEarnTx>[0], {
+    tenantId: TENANT, orderId: ORDER, idempotencyKey: KEY,
+  });
+  const order = (over: Record<string, unknown> = {}) => [{
+    customer_id: CUST, cancelled_at: null, outstanding_amount: 0, total_amount: 10, refunded_amount: 0, ...over,
+  }];
+  const earn = (points: number) => ({
+    txn_type: 'EARN', points, unreversed_points: null, earn_rate: 2, customer_id: CUST,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    queuedLotRows = [];
+    mockLoyaltyTxnFindFirst.mockResolvedValue(null);
+    mockTxProgramFindFirst.mockResolvedValue({ id: 'prog-1', earn_rate_per_unit: 2 });
+    mockTxAccountFindFirst.mockResolvedValue({ id: 'acct-1', points_balance: 0 });
+    mockLoyaltyTxnCreate.mockImplementation(async ({ data }) => ({ id: 'txn-new', ...data }));
+  });
+
+  it('earns on an order paid later (LE-01) and records the rate used', async () => {
+    queuedOrderRows = order();
+    mockTxTxnFindMany.mockResolvedValue([]);
+    await run();
+    expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ txn_type: 'EARN', points: 20, order_id: ORDER, idempotency_key: KEY }),
+    }));
+    expect(String(mockLoyaltyTxnCreate.mock.calls[0][0].data.earn_rate)).toBe('2');
+  });
+
+  it('edit up earns only the delta, at the rate recorded at the first earn', async () => {
+    queuedOrderRows = order({ total_amount: 15 });
+    mockTxTxnFindMany.mockResolvedValue([earn(20)]);
+    mockTxProgramFindFirst.mockResolvedValue({ id: 'prog-1', earn_rate_per_unit: 5 });
+    await run();
+    expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ txn_type: 'EARN', points: 10 }),
+    }));
+  });
+
+  it('edit down takes the difference back as an ADJUST row', async () => {
+    queuedOrderRows = order({ total_amount: 6 });
+    mockTxTxnFindMany.mockResolvedValue([earn(20)]);
+    queuedAccountRows = [{ id: 'acct-1', points_balance: 20 }];
+    queuedLotRows = [{ id: 'lot-1', remaining_points: 20 }];
+    await run();
+    expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ txn_type: 'ADJUST', points: -8, points_after: 12, unreversed_points: null }),
+    }));
+    expect(mockAllocCreate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ applied_points: 8 }) }));
+  });
+
+  it('a refund clawback never goes below 0 and records the shortfall', async () => {
+    queuedOrderRows = order({ refunded_amount: 10 });
+    mockTxTxnFindMany.mockResolvedValue([earn(20)]);
+    queuedAccountRows = [{ id: 'acct-1', points_balance: 5 }];
+    queuedLotRows = [{ id: 'lot-1', remaining_points: 5 }];
+    await run();
+    expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ txn_type: 'ADJUST', points: -5, points_after: 0, unreversed_points: 15 }),
+    }));
+  });
+
+  it('a later request after a short clawback posts nothing (shortfall counts as settled)', async () => {
+    queuedOrderRows = order({ refunded_amount: 10 });
+    mockTxTxnFindMany.mockResolvedValue([
+      earn(20),
+      { txn_type: 'ADJUST', points: -5, unreversed_points: 15, earn_rate: null, customer_id: CUST },
+    ]);
+    await run();
+    expect(mockLoyaltyTxnCreate).not.toHaveBeenCalled();
+  });
+
+  it('a redelivery of the same request posts nothing', async () => {
+    queuedOrderRows = order();
+    mockLoyaltyTxnFindFirst.mockResolvedValue({ id: 'already' });
+    await run();
+    expect(mockTxTxnFindMany).not.toHaveBeenCalled();
+    expect(mockLoyaltyTxnCreate).not.toHaveBeenCalled();
+  });
+
+  it('a double click (second request, new key) finds the target met and posts nothing', async () => {
+    queuedOrderRows = order();
+    mockTxTxnFindMany.mockResolvedValue([earn(20)]);
+    await run();
+    expect(mockLoyaltyTxnCreate).not.toHaveBeenCalled();
+  });
+
+  it('leaves points alone while the order still owes money', async () => {
+    queuedOrderRows = order({ outstanding_amount: 3, total_amount: 15 });
+    mockTxTxnFindMany.mockResolvedValue([earn(20)]);
+    await run();
+    expect(mockLoyaltyTxnCreate).not.toHaveBeenCalled();
   });
 });
 

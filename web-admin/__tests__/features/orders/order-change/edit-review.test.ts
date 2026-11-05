@@ -34,6 +34,26 @@ describe('edit review and history', () => {
     expect(history[0]?.revision).toBe(3);
   });
 
+  it('P1B-11: lists only the discounts the edit changed or removed', () => {
+    const change = (outcome: string) => ({ key: `DISCOUNT_RULE:${outcome}`, adjustmentId: 'order:d1', sourceType: 'DISCOUNT_RULE', sourceId: outcome,
+      promotionId: null, sourceName: 'Weekday', sourceName2: null, outcome, reason: outcome === 'REMOVED' ? 'MIN_ORDER_NOT_MET' : null,
+      previousAmount: '1.0000', amount: '0.0000' });
+    const review = readEditReview({ data: { status: 'ACKNOWLEDGEMENT_REQUIRED', discountChanges: [change('KEPT'), change('CHANGED'), change('REMOVED')] } }, [], '10.0000');
+    expect(review.discountChanges.map((c) => c.outcome)).toEqual(['CHANGED', 'REMOVED']);
+    expect(readEditReview({ data: { status: 'READY' } }, [], '10.0000').discountChanges).toEqual([]);
+  });
+
+  it('P6-02e: shows the price the cart showed only on a line whose price changed', () => {
+    const audit = (seq: number) => ({ seq, before: {}, after: {}, beforeValues: {}, afterValues: { shownUnitPrice: '7.5000', pricePerUnit: '8.0000' }, effect: 'add' as const });
+    const review = readEditReview({ data: { status: 'READY', operationAudits: [audit(1), audit(2)], priceChanges: [{ seq: 2 }] } }, [
+      { seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: 'a', productId: 'p', quantity: 1 } },
+      { seq: 2, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: 'b', productId: 'p', quantity: 1 } },
+    ], '10.0000');
+    expect(review.priceChangedSeqs).toEqual([2]);
+    expect(review.operations[0].after).toEqual({ pricePerUnit: '8.0000' });
+    expect(review.operations[1].after).toEqual({ shownUnitPrice: '7.5000', pricePerUnit: '8.0000' });
+  });
+
   it('uses canonical snapshots and display labels without exposing target ids as fallbacks', () => {
     const review = readEditReview({ data: {
       status: 'READY',

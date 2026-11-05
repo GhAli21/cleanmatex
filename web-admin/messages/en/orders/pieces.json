@@ -56,7 +56,8 @@
     "deleteFailed": "Failed to delete piece",
     "errorLoadingPieces": "Error loading pieces",
     "retry": "Retry",
-    "barcodeRequired": "Barcode is required"
+    "barcodeRequired": "Barcode is required",
+    "pieceNotFound": "No piece on this line matches this code or tag"
   },
   "success": {
     "updated": "Piece updated successfully",
@@ -82,6 +83,7 @@
   "splitSelectedPieces": "Split {count} pieces",
   "barcodeScanner": "Barcode Scanner",
   "scanBarcodePlaceholder": "Scan or enter barcode...",
+  "scanHint": "Scan the piece code, its staff QR or its tag",
   "scan": "Scan",
   "scanning": "Scanning...",
   "showing": "Showing {start} to {end} of {total}",

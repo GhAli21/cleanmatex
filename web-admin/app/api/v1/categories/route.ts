@@ -4,43 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import { validateJWTWithTenant } from '@/lib/middleware/jwt-tenant-validator';
 import {
   getServiceCategories,
   getEnabledCategories,
-  enableCategories, 
+  enableCategories,
 } from '@/lib/services/catalog.service';
 import type { EnableCategoriesRequest } from '@/lib/types/catalog';
-
-// ==================================================================
-// HELPER FUNCTIONS
-// ==================================================================
-
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id,
-    userId: user.id,
-    userRole: tenants[0].user_role,
-  };
-}
 
 // ==================================================================
 // GET /api/v1/categories - List Categories
@@ -105,16 +76,17 @@ export const maxDuration = 10; // Vercel timeout limit
  * @param request
  */
 export async function GET(request: NextRequest) {
+  // Reference data for order and processing screens: session check only, no permission.
+  const auth = await validateJWTWithTenant(request);
+  if (auth instanceof NextResponse) return auth;
+
   const startTime = Date.now();
-  
+
   try {
     // Add timeout wrapper for Supabase calls
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('Request timeout')), 8000);
     });
-
-    const authPromise = getAuthContext();
-    await Promise.race([authPromise, timeoutPromise]);
 
     const { searchParams } = new URL(request.url);
     const enabled = searchParams.get('enabled') === 'true';
@@ -213,9 +185,10 @@ export async function GET(request: NextRequest) {
  *               $ref: '#/components/schemas/Error'
  */
 export async function POST(request: NextRequest) {
-  try {
-    await getAuthContext();
+  const authCheck = await requirePermission('products:categories')(request);
+  if (authCheck instanceof NextResponse) return authCheck;
 
+  try {
     const body: EnableCategoriesRequest = await request.json();
 
     // Validate request body

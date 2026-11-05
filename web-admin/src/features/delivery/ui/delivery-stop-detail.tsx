@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -47,7 +48,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm text-muted-foreground">{t('stopDetail.stopNumber', { sequence: stop.sequence })}</p>
-                <CmxCardTitle className="mt-1 text-xl">{stop.order.orderNo}</CmxCardTitle>
+                <CmxCardTitle className="mt-1 text-xl"><CmxCodeChip code={stop.order.orderNo} kind="order" size="md" /></CmxCardTitle>
               </div>
               <CmxStatusBadge
                 label={t(`stopStatus.${stop.statusCode}`, { default: stop.statusCode })}

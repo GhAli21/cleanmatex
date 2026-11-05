@@ -18,20 +18,9 @@ export interface OrderVoucherReference {
   source: 'PAYMENT' | 'REFUND' | 'CREDIT_APPLICATION';
 }
 
-/**
- *
- */
-export type FinancialWarningSeverity = 'info' | 'warning' | 'error';
-
-/**
- *
- */
-export interface FinancialWarning {
-  code: string;
-  severity: FinancialWarningSeverity;
-  messageKey: string;
-  messageParams?: Record<string, string | number>;
-}
+/** Single definition lives in the Order Financial View contract. */
+export type { FinancialWarning, FinancialWarningSeverity } from '@/lib/types/order-fin-view';
+import type { FinancialWarning } from '@/lib/types/order-fin-view';
 
 /**
  *

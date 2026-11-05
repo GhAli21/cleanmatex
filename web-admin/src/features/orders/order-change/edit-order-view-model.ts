@@ -3,6 +3,7 @@
  * Create continues to group lines by product. This model is only for a Change.
  */
 
+import type { DiscountCalcType } from '@/lib/constants/discount-source-type';
 import type { OrderChangeContext } from '@/lib/types/order-change';
 
 export type EditRowIdentity =
@@ -26,12 +27,36 @@ export interface EditPieceDraft {
   preferences: EditPreferenceDraft[];
 }
 
+/** A line's cashier discount (P6-02c): the percent or amount as money text, and why. */
+export interface EditLineDiscountDraft {
+  type: DiscountCalcType;
+  value: string;
+  reason: string;
+}
+
+/** A line with no catalog product (P6-02d): its name and entered unit price (money text). */
+export interface EditCustomItemDraft {
+  name: string;
+  name2?: string | null;
+  unitPrice: string;
+  serviceCategoryCode?: string | null;
+}
+
 export interface EditLineDraft {
   identity: EditRowIdentity;
-  productId: string;
+  /** The catalog product; absent for a custom line. */
+  productId?: string;
+  /** New custom lines only; a stored custom line is edited like any other line. */
+  customItem?: EditCustomItemDraft;
   quantity: number;
   priceOverride?: string;
   overrideReason?: string;
+  /** The line's cashier discount; absent when it has none (P6-02c). */
+  lineDiscount?: EditLineDiscountDraft;
+  /** New catalog lines only: the unit price the cart showed, as money text (P6-02e); Preview compares it. */
+  confirmedUnitPrice?: string;
+  /** The speed the line has (baseline) or will have (draft); absent follows the order speed. */
+  serviceSpeed?: string;
   selectedPieceIds?: string[];
   pieces: EditPieceDraft[];
   preferences: EditPreferenceDraft[];
@@ -43,7 +68,8 @@ export interface EditOrderBaseline {
   expectedWfStateVersion: number;
   sourceContext: string;
   priority?: string;
-  serviceSpeed?: 'STANDARD' | 'EXPRESS';
+  /** The order speed code (`sys_service_speed_cd`). */
+  serviceSpeed?: string;
   readyBy?: string;
   notes?: string;
   customerNotes?: string;
@@ -78,6 +104,8 @@ export interface LoadedEditItem {
   quantity?: number;
   price_override?: number | string | null;
   override_reason?: string | null;
+  line_discount?: { type: string; value: string; reason: string | null } | null;
+  service_speed?: string | null;
   pieces?: LoadedEditPiece[];
   service_prefs?: LoadedEditPreference[];
 }
@@ -133,7 +161,8 @@ export function mapLoadedOrderToEditBaseline(order: LoadedEditOrder, orderId: st
   }
   const lines: EditLineDraft[] = [];
   for (const item of order.items ?? []) {
-    if (!item.id || !item.product_id || item.quantity == null || item.quantity < 1) {
+    // A custom line (P5-03e) has no product; it still needs its own id.
+    if (!item.id || item.quantity == null || item.quantity < 1) {
       return { ok: false, code: 'EDIT_BASELINE_INVALID' };
     }
     const pieces: EditPieceDraft[] = [];
@@ -154,10 +183,15 @@ export function mapLoadedOrderToEditBaseline(order: LoadedEditOrder, orderId: st
     }
     lines.push({
       identity: { kind: 'persisted', id: item.id },
-      productId: item.product_id,
+      ...(item.product_id ? { productId: item.product_id } : {}),
       quantity: item.quantity,
       priceOverride: priceOverride(item.price_override),
       overrideReason: item.override_reason ?? undefined,
+      ...(item.line_discount ? {
+        lineDiscount: { type: item.line_discount.type as DiscountCalcType, value: item.line_discount.value, reason: item.line_discount.reason ?? '' },
+      } : {}),
+      // A line written before per-line speed follows the order speed.
+      serviceSpeed: item.service_speed ?? order.service_speed ?? undefined,
       pieces,
       preferences: (item.service_prefs ?? []).flatMap((row) => {
         const preference = persistedPreference(row);
@@ -165,7 +199,7 @@ export function mapLoadedOrderToEditBaseline(order: LoadedEditOrder, orderId: st
       }),
     });
   }
-  const speed = order.service_speed === 'STANDARD' || order.service_speed === 'EXPRESS' ? order.service_speed : undefined;
+  const speed = order.service_speed ?? undefined;
   const readyBy = order.ready_by ?? order.ready_by_at ?? undefined;
   return {
     ok: true,
@@ -232,6 +266,10 @@ export function mapChangeContextToEditBaseline(context: OrderChangeContext): Edi
       id: item.id,
       product_id: item.productId ?? undefined,
       quantity: item.quantity ?? undefined,
+      price_override: item.priceOverride,
+      override_reason: item.overrideReason ?? null,
+      line_discount: item.lineDiscount ?? null,
+      service_speed: item.serviceSpeed ?? null,
       pieces: context.pieces.filter((piece) => piece.orderItemId === item.id).map((piece) => ({
         id: piece.id,
         service_prefs: preferencesFor('PIECE', item.id, piece.id).map((preference) => ({

@@ -4,30 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
-
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found');
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id,
-    userId: user.id,
-  };
-}
 
 /**
  * POST /api/v1/price-lists/[id]/items
@@ -40,8 +19,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requirePermission('pricing:update')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    const { tenantId } = await getAuthContext();
+    const { tenantId } = auth;
     const { id: priceListId } = await params;
     const body = await request.json();
 

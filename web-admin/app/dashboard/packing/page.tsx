@@ -5,6 +5,7 @@
 
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -90,7 +91,7 @@ export default function PackingPage() {
                     href={`/dashboard/packing/${order.id}?returnUrl=${encodeURIComponent('/dashboard/packing')}`}
                     className="text-xl font-bold text-blue-600 hover:underline"
                   >
-                    {order.order_no}
+                    <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
                   </Link>
                   <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs font-medium">
                     {order.total_items} {t('packing.items')}

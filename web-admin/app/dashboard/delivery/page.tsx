@@ -5,6 +5,7 @@
 
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -277,7 +278,7 @@ function DeliveryReadOnlyScreen() {
                         )}`}
                         className="text-lg font-bold text-blue-600 hover:underline"
                       >
-                        {order.order_no}
+                        <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
                       </Link>
                       <DeliveryOrderStatusBadge status={order.status} />
                     </div>

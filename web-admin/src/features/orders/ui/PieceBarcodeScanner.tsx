@@ -1,15 +1,17 @@
 /**
  * Piece Barcode Scanner Component
  * Allows scanning barcodes to update piece status
+ *
+ * HFC P3b: built on CmxScanInput. The server matches the piece code, a staff QR (CMX1:PEC:...) or the piece's
+ * live tag on this line (POST .../pieces/scan, which uses ScanResolveService).
  */
 
 'use client';
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
-import { CmxInput, CmxButton } from '@ui/primitives';
-import { Scan, CheckCircle2, XCircle } from 'lucide-react';
+import { Scan } from 'lucide-react';
+import { CmxScanInput, type CmxScanStatus } from '@ui/forms';
 import { log } from '@/lib/utils/logger';
 
 /**
@@ -35,133 +37,69 @@ export interface PieceBarcodeScannerProps {
 export function PieceBarcodeScanner({
   orderId,
   itemId,
-  tenantId,
   onScanSuccess,
   onScanError,
 }: PieceBarcodeScannerProps) {
   const t = useTranslations('orders.pieces');
-  const isRTL = useRTL();
-  const [barcode, setBarcode] = React.useState('');
+  const [status, setStatus] = React.useState<CmxScanStatus | null>(null);
   const [scanning, setScanning] = React.useState(false);
-  const [lastResult, setLastResult] = React.useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
-  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  const handleScan = React.useCallback(async () => {
-    if (!barcode.trim()) {
-      setLastResult({
-        success: false,
-        message: t('errors.barcodeRequired') || 'Barcode is required',
-      });
-      return;
-    }
-
-    setScanning(true);
-    setLastResult(null);
-
-    try {
-      // Lookup piece by barcode
-      const response = await fetch(
-        `/api/v1/orders/${orderId}/items/${itemId}/pieces/scan`,
-        {
+  const handleScan = React.useCallback(
+    async (barcode: string) => {
+      setScanning(true);
+      setStatus(null);
+      try {
+        const response = await fetch(`/api/v1/orders/${orderId}/items/${itemId}/pieces/scan`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ barcode: barcode.trim() }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ barcode }),
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success) {
+          const message = response.status === 404 ? t('errors.pieceNotFound') : data.error || t('errors.updateFailed');
+          setStatus({ tone: 'error', message });
+          onScanError?.(message);
+          return;
         }
-      );
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Piece not found');
+        setStatus({ tone: 'success', message: t('success.scanned', { pieceSeq: data.piece?.piece_seq }) });
+        onScanSuccess?.(data.piece?.id);
+      } catch (err) {
+        log.error('[PieceBarcodeScanner] Scan error', err instanceof Error ? err : new Error(String(err)), {
+          feature: 'order_pieces',
+          action: 'scan_barcode',
+          orderId,
+          itemId,
+        });
+        const message = t('errors.updateFailed');
+        setStatus({ tone: 'error', message });
+        onScanError?.(message);
+      } finally {
+        setScanning(false);
       }
-
-      setLastResult({
-        success: true,
-        message: t('success.scanned', { pieceSeq: data.piece?.piece_seq }) || `Piece ${data.piece?.piece_seq} scanned successfully`,
-      });
-
-      setBarcode('');
-      inputRef.current?.focus();
-      onScanSuccess?.(data.piece?.id);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Scan failed';
-      log.error('[PieceBarcodeScanner] Scan error', err instanceof Error ? err : new Error(String(err)), {
-        feature: 'order_pieces',
-        action: 'scan_barcode',
-        orderId,
-        itemId,
-        barcode: barcode.trim(),
-      });
-      setLastResult({
-        success: false,
-        message: errorMessage,
-      });
-      onScanError?.(errorMessage);
-    } finally {
-      setScanning(false);
-    }
-  }, [barcode, orderId, itemId, t, onScanSuccess, onScanError]);
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !scanning) {
-      handleScan();
-    }
-  };
+    },
+    [orderId, itemId, t, onScanSuccess, onScanError]
+  );
 
   return (
-    <div className={`space-y-3 p-4 border rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}>
-      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-2`}>
-        <Scan className="h-5 w-5 text-gray-500" />
-        <h4 className="text-sm font-semibold text-gray-700">{t('barcodeScanner') || 'Barcode Scanner'}</h4>
+    <div className="space-y-3 rounded-lg border p-4 text-start">
+      <div className="flex items-center gap-2">
+        <Scan className="h-5 w-5 text-gray-500" aria-hidden="true" />
+        <h4 className="text-sm font-semibold text-gray-700">{t('barcodeScanner')}</h4>
       </div>
 
-      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2`}>
-        <CmxInput
-          ref={inputRef}
-          type="text"
-          value={barcode}
-          onChange={(e) => setBarcode(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder={t('scanBarcodePlaceholder') || 'Scan or enter barcode...'}
-          className="flex-1"
-          disabled={scanning}
-        />
-        <CmxButton
-          onClick={handleScan}
-          disabled={scanning || !barcode.trim()}
-          className={isRTL ? 'flex-row-reverse' : ''}
-        >
-          <Scan className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-          {scanning ? t('scanning') || 'Scanning...' : t('scan') || 'Scan'}
-        </CmxButton>
-      </div>
-
-      {lastResult && (
-        <div
-          className={`p-3 rounded-lg flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-2 ${
-            lastResult.success
-              ? 'bg-green-50 text-green-800 border border-green-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
-        >
-          {lastResult.success ? (
-            <CheckCircle2 className="h-5 w-5" />
-          ) : (
-            <XCircle className="h-5 w-5" />
-          )}
-          <span className="text-sm font-medium">{lastResult.message}</span>
-        </div>
-      )}
+      <CmxScanInput
+        label={t('scanBarcodePlaceholder')}
+        placeholder={t('scanBarcodePlaceholder')}
+        hint={t('scanHint')}
+        submitLabel={scanning ? t('scanning') : t('scan')}
+        emptyMessage={t('errors.barcodeRequired')}
+        status={status}
+        busy={scanning}
+        onScan={handleScan}
+        autoFocus
+      />
     </div>
   );
 }
-

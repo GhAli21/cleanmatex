@@ -1,6 +1,7 @@
 'use server';
 /* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 
+import { taxProfileRoundingColumns, taxProfileRoundingSchema, type TaxProfileRoundingInput } from '@/lib/validations/tax-profile-rounding-schema';
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
@@ -21,6 +22,10 @@ export interface TaxProfile {
   rate: number;
   is_compound: boolean;
   applies_to: string[];
+  rounding_level: string;
+  rounding_mode: string | null;
+  output_decimal_places: number | null;
+  rounding_increment_minor: number | null;
   effective_from: Date | null;
   effective_to: Date | null;
   is_default: boolean;
@@ -29,7 +34,7 @@ export interface TaxProfile {
   created_at: Date;
 }
 
-export interface CreateTaxProfileInput {
+export interface CreateTaxProfileInput extends TaxProfileRoundingInput {
   name: string;
   name2?: string;
   taxType: 'VAT' | 'GST' | 'CUSTOM';
@@ -66,7 +71,7 @@ export interface CreateTaxExemptionInput {
   serviceType?: string;
 }
 
-export interface UpdateTaxProfileInput {
+export interface UpdateTaxProfileInput extends TaxProfileRoundingInput {
   name?: string;
   name2?: string;
   taxType?: 'VAT' | 'GST' | 'CUSTOM';
@@ -121,6 +126,9 @@ export async function createTaxProfileAction(input: CreateTaxProfileInput): Prom
 }> {
   try {
     const { tenantId, userId } = await getAuthContext();
+    // A server action is a callable endpoint: validate the rounding fields at the boundary.
+    const rounding = taxProfileRoundingSchema.safeParse(input);
+    if (!rounding.success) return { success: false, error: 'Invalid rounding settings' };
     return withTenantContext(tenantId, async () => {
       const appliesToArr = input.appliesTo
         ? input.appliesTo.split(',').map((s) => s.trim()).filter(Boolean)
@@ -138,6 +146,7 @@ export async function createTaxProfileAction(input: CreateTaxProfileInput): Prom
           effective_from: input.effectiveFrom ? new Date(input.effectiveFrom) : new Date(),
           effective_to:   input.effectiveTo ? new Date(input.effectiveTo) : null,
           is_default:     input.isDefault ?? false,
+          ...taxProfileRoundingColumns(rounding.data),
           is_active:      true,
           rec_status:     1,
           created_by:     userId,
@@ -283,6 +292,8 @@ export async function updateTaxProfileAction(
 ): Promise<{ success: boolean; data?: TaxProfile; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
+    const rounding = taxProfileRoundingSchema.safeParse(input);
+    if (!rounding.success) return { success: false, error: 'Invalid rounding settings' };
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_tax_profiles_cf.findFirst({
         where: { id, tenant_org_id: tenantId, rec_status: 1 },
@@ -305,6 +316,7 @@ export async function updateTaxProfileAction(
           ...(appliesToArr !== undefined && { applies_to: appliesToArr }),
           ...(input.effectiveFrom !== undefined && { effective_from: new Date(input.effectiveFrom) }),
           ...(input.effectiveTo !== undefined && { effective_to: input.effectiveTo ? new Date(input.effectiveTo) : null }),
+          ...taxProfileRoundingColumns(rounding.data),
           updated_by: userId,
           updated_at: new Date(),
         },

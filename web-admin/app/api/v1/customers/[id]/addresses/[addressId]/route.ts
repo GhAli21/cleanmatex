@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthContext } from '@/lib/auth/server-auth';
 import {
   getAddressById,
   updateAddress,
@@ -12,36 +12,6 @@ import {
   validateCoordinates,
 } from '@/lib/services/customer-addresses.service';
 import type { UpdateAddressRequest } from '@/lib/types/customer';
-
-// ==================================================================
-// HELPER FUNCTIONS
-// ==================================================================
-
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const tenantId = user.user_metadata?.tenant_org_id;
-  if (!tenantId) {
-    throw new Error('No tenant context');
-  }
-
-  return {
-    user,
-    tenantId,
-    userId: user.id,
-    userRole: user.user_metadata?.role || 'user',
-  };
-}
 
 // ==================================================================
 // PATCH /api/v1/customers/:id/addresses/:addressId - Update Address
@@ -140,7 +110,7 @@ export async function PATCH(
     console.error('Error updating address:', error);
 
     if (error instanceof Error) {
-      if (error.message === 'Unauthorized' || error.message === 'No tenant context') {
+      if (error.message === 'Unauthorized' || error.message === 'Password change required' || error.message.startsWith('No tenant access')) {
         return NextResponse.json({ error: error.message }, { status: 401 });
       }
 
@@ -213,7 +183,7 @@ export async function DELETE(
     console.error('Error deleting address:', error);
 
     if (error instanceof Error) {
-      if (error.message === 'Unauthorized' || error.message === 'No tenant context') {
+      if (error.message === 'Unauthorized' || error.message === 'Password change required' || error.message.startsWith('No tenant access')) {
         return NextResponse.json({ error: error.message }, { status: 401 });
       }
 

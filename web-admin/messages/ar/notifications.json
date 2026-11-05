@@ -64,7 +64,7 @@
       "sid": "معرّف محتوى Twilio",
       "sidHint": "انسخ المعرّف الذي يبدأ بـ HX من قالبك المعتمد في Twilio. هذا الحقل ليس معرّف الحساب.",
       "variables": "متغيرات القالب",
-      "variablesHint": "انسخ اسم كل متغير أو رقمه من Twilio كما هو. اربطه ببيانات الإشعار أو بقيمة ثابتة. تتضمن بيانات order.created المتاحة order_number و estimated_ready_at.",
+      "variablesHint": "انسخ اسم كل متغير أو رقمه من Twilio كما هو. اربطه ببيانات الإشعار أو بقيمة ثابتة. تتضمن بيانات order.created المتاحة order_number و estimated_ready_at. وتتضمن بيانات credit_note.issued المتاحة credit_note_no.",
       "noVariables": "لا توجد متغيرات. استخدم هذا الخيار فقط لقالب يحتوي على نص ثابت.",
       "variableName": "اسم متغير القالب أو رقمه",
       "valueType": "نوع القيمة",

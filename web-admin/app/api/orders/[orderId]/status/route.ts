@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
  *
@@ -17,28 +18,8 @@ export async function PATCH(
   request: NextRequest,
 ) {
   try {
-    // Get authenticated user
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Get tenant ID from user metadata
-    const tenantId = user.user_metadata?.tenant_org_id;
-    if (!tenantId) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant ID not found' },
-        { status: 400 }
-      );
-    }
+    const auth = await requirePermission('orders:update')(request);
+    if (auth instanceof NextResponse) return auth;
 
     return NextResponse.json(
       {
@@ -75,27 +56,10 @@ export async function GET(
   try {
     const { orderId } = await params;
 
-    // Get authenticated user
+    const auth = await requirePermission('orders:read')(request);
+    if (auth instanceof NextResponse) return auth;
+    const { tenantId } = auth;
     const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const tenantId = user.user_metadata?.tenant_org_id;
-    if (!tenantId) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant ID not found' },
-        { status: 400 }
-      );
-    }
 
     // Get order with current status
     const { data: order, error: fetchError } = await supabase

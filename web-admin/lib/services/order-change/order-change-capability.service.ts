@@ -210,6 +210,10 @@ export function resolveOrderChangeCapabilityTarget(
   }
   if (operationCode === 'CHANGE_PREFERENCE' || operationCode === 'REMOVE_PREFERENCE') return 'PREFERENCE';
   if (operationCode === 'CHANGE_UNLISTED') return residualTargetType ?? 'ORDER';
+  // The order speed (ORDER) and one line's speed (ITEM) are separate policy cells (P6-02b).
+  if (operationCode === 'CHANGE_SERVICE_SPEED') return residualTargetType ?? 'ORDER';
+  // Order discounts (ORDER) and one line's cashier discount (ITEM) are separate policy cells (P6-02c).
+  if (operationCode === 'CHANGE_DISCOUNT') return residualTargetType ?? 'ORDER';
   return 'ORDER';
 }
 

@@ -4,6 +4,7 @@
  * Protected endpoints (requires authentication)
  */
 
+import { FIELD_MANAGED_BY_HQ, HQ_MANAGED_PRICING_FIELDS } from '@/lib/constants/order-financial';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentTenant, updateTenant } from '@/lib/services/tenants.service';
 import { getCurrentSubscription } from '@/lib/services/subscriptions.service';
@@ -78,6 +79,15 @@ export async function PATCH(request: NextRequest) {
   try {
     const tenant = await getCurrentTenant();
     const updates: TenantUpdateRequest = await request.json();
+
+    // L18: HQ is the only writer of the pricing modes and calculation settings; refuse before anything is written.
+    const managed = HQ_MANAGED_PRICING_FIELDS.tenant.filter((field) => field in (updates as object));
+    if (managed.length > 0) {
+      return NextResponse.json(
+        { success: false, error: 'This setting is managed by platform administration.', code: FIELD_MANAGED_BY_HQ, fields: managed },
+        { status: 403 },
+      );
+    }
 
     // Validate color format if provided
     if (updates.brand_color_primary || updates.brand_color_secondary) {

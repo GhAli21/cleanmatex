@@ -22,6 +22,7 @@ export default async function PublicOrderTokenPage({ params }: PublicOrderTokenP
   return (
     <PublicOrderTrackingPage
       lookupPath={`/api/v1/public/track/${encodeURIComponent(token)}`}
+      financialViewPath={`/api/v1/public/track/${encodeURIComponent(token)}/financial-view`}
       confirmPath={`/api/v1/public/track/${encodeURIComponent(token)}/confirm-received`}
     />
   );

@@ -101,7 +101,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   const tCommon = useTranslations('common');
   const tOrders = useTranslations('orders');
   const isRTL = useRTL();
-  const speedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED']);
+  const speedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED'], 'ORDER');
   const orderTypeOptions = ORDER_TYPE_ID_VALUES.map((code) => ({
     value: code,
     label: tOrders(ORDER_TYPE_I18N_KEYS[code]),

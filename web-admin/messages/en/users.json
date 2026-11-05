@@ -64,8 +64,6 @@
     "activeFilters": "Active filters:",
     "selectedCount": "{count, plural, one {# user selected} other {# users selected}}",
     "processing": "Processing...",
-    "workflowRole": "Workflow Role",
-    "allWorkflowRoles": "All Workflow Roles",
     "deleteConfirm": "{count, plural, one {Delete # user? This cannot be undone.} other {Delete # users? This cannot be undone.}}"
   },
   "table": {
@@ -197,25 +195,19 @@
     "tenantRoles": "Tenant-Level Roles",
     "tenantRolesDesc": "Roles that apply across all resources in this tenant",
     "resourceRoles": "Resource-Scoped Roles",
-    "workflowRoles": "Workflow Roles",
-    "workflowRolesDesc": "Controls operational workflow access (independent from user roles)",
     "permissionOverrides": "Permission Overrides",
     "permissionOverridesDesc": "Specific permission grants or denials for this user",
     "assignRoles": "Assign Roles",
-    "assignWorkflowRoles": "Assign Workflow Roles",
     "overridePermissions": "Override Permissions",
     "rebuildPermissions": "Rebuild Permissions",
     "rebuilding": "Rebuilding...",
     "rebuildSuccess": "Permissions rebuilt successfully",
     "rebuildFailed": "Failed to rebuild permissions",
     "noRolesAssigned": "No roles assigned",
-    "noWorkflowRoles": "No workflow roles assigned",
     "noOverrides": "No permission overrides",
     "assignRolesSuccess": "Roles assigned successfully",
-    "assignWorkflowRolesSuccess": "Workflow roles assigned successfully",
     "overridesSavedSuccess": "Permission overrides saved",
     "roleRemoved": "Role removed",
-    "workflowRoleRemoved": "Workflow role removed",
     "overrideRemoved": "Override removed",
     "scopeTenant": "Tenant-Level",
     "scopeResource": "Resource-Scoped",
@@ -225,15 +217,6 @@
     "deny": "Deny",
     "addOverride": "Add Override",
     "overrideWarning": "Permission overrides take precedence over role-based permissions. Use carefully.",
-    "workflowRolesInfo": "Workflow roles are independent from user roles and control operational workflow access only.",
-    "changesSummary": "Changes: +{added} / -{removed}",
-    "workflowRolesLegend": {
-      "ROLE_RECEPTION": "Reception",
-      "ROLE_PREPARATION": "Preparation",
-      "ROLE_PROCESSING": "Processing",
-      "ROLE_QA": "Quality Assurance",
-      "ROLE_DELIVERY": "Delivery",
-      "ROLE_ADMIN": "Workflow Admin"
-    }
+    "changesSummary": "Changes: +{added} / -{removed}"
   }
 }

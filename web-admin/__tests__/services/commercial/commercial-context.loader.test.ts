@@ -95,7 +95,7 @@ const intent = (over: Partial<CommercialOrderIntent> = {}): CommercialOrderInten
   ...over,
 });
 
-const deps = { currency: { code: 'OMR', decimalPlaces: 3 }, getTenantVatRate: jest.fn().mockResolvedValue(0.05) };
+const deps = { currency: { code: 'OMR', decimalPlaces: 3 } };
 
 describe('loadCommercialFacts', () => {
   it('filters every org_* read by tenant_org_id (org_tenants_mst by its own id)', async () => {
@@ -119,21 +119,18 @@ describe('loadCommercialFacts', () => {
     expect(facts.preferences.get('SERVICE:STARCH')).toEqual({ amount: '0.200', extraMinutes: 30 });
   });
 
-  it('builds the tenant-rate fallback profile only when the tenant has no profile (as today)', async () => {
+  it('P6-03: a tenant with no tax profile has no tax profile and no tax line, never an assumed rate', async () => {
     const fixtures = baseFixtures();
     fixtures.org_tax_profiles_cf = [];
     const { db } = mockDb(fixtures);
     const facts = await loadCommercialFacts(db, TENANT, intent(), deps);
-    expect(facts.taxProfiles).toEqual([expect.objectContaining({ ratePercent: '5', isTenantRateFallback: true })]);
+    expect(facts.taxProfiles).toEqual([]);
+    expect(facts.taxProfileLabels.has('tenant-vat-rate')).toBe(false);
   });
 
-  it('labels every tax line, the fallback included', async () => {
+  it('labels every tax line', async () => {
     const { db } = mockDb(baseFixtures());
     expect((await loadCommercialFacts(db, TENANT, intent(), deps)).taxProfileLabels.get('vat')).toEqual({ label: 'VAT', label2: 'ضريبة' });
-    const fixtures = baseFixtures();
-    fixtures.org_tax_profiles_cf = [];
-    const fallback = await loadCommercialFacts(mockDb(fixtures).db, TENANT, intent(), deps);
-    expect(fallback.taxProfileLabels.get('tenant-vat-rate')?.label).toBe('VAT');
   });
 
   it('a cashier tax selection replaces the defaults; an unknown id is rejected', async () => {

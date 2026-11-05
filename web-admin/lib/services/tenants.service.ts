@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type { Json } from '@/types/database';
 import type {
   Tenant,
@@ -12,6 +13,21 @@ import type {
   TenantUpdateRequest,
   SlugValidationResult,
 } from '@/lib/types/tenant';
+
+// ========================
+// Signup lifecycle (decision A-31, migration 0678)
+// ========================
+
+/**
+ * Tenant status while signup is still running. Only a tenant in this status can
+ * be hard-deleted (DB trigger trg_tenant_hard_delete_guard), and the same
+ * trigger removes its document counters first. 'creating' is insert-only:
+ * no update can move a tenant back to it.
+ */
+export const TENANT_SIGNUP_STATUS = 'creating';
+
+/** Status a tenant gets once signup has finished. */
+export const TENANT_TRIAL_STATUS = 'trial';
 
 // ========================
 // Slug Generation & Validation
@@ -210,7 +226,8 @@ export async function registerTenant(
         timezone: request.timezone,
         language: request.language,
         s_cureent_plan: 'free',
-        status: 'trial',
+        // 'creating' until signup finishes, so a failed signup can roll the tenant back (A-31).
+        status: TENANT_SIGNUP_STATUS,
         is_active: true,
       })
       .select()
@@ -243,8 +260,8 @@ export async function registerTenant(
 
     if (subscriptionError || !subscription) {
       console.error('Error creating subscription:', subscriptionError);
-      // Rollback: Delete tenant
-      await supabase.from('org_tenants_mst').delete().eq('id', tenant.id);
+      // Rollback: delete the 'creating' tenant (the DB trigger removes its counters first)
+      await rollbackSignupTenant(supabase, tenant.id);
       throw new Error('Failed to create subscription');
     }
 
@@ -268,16 +285,19 @@ export async function registerTenant(
         .from('org_pln_subscriptions_mst')
         .delete()
         .eq('id', subscription.id);
-      await supabase.from('org_tenants_mst').delete().eq('id', tenant.id);
+      await rollbackSignupTenant(supabase, tenant.id);
       throw new Error('Failed to create admin user');
     }
+
+    // Step 6b: Signup finished: leave 'creating' (from now on the tenant can never be hard-deleted).
+    const finalStatus = await finishSignupTenant(supabase, tenant.id);
 
     // Step 7: Send welcome email (TODO: Implement email service)
     // await sendWelcomeEmail(tenant, authData.user);
 
     // Step 8: Return registration response
     return {
-      tenant: tenant as unknown as Tenant,
+      tenant: { ...tenant, status: finalStatus } as unknown as Tenant,
       subscription: subscription as unknown as TenantRegistrationResponse['subscription'],
       user: {
         id: authData.user.id,
@@ -290,6 +310,50 @@ export async function registerTenant(
     console.error('Registration error:', error);
     throw error;
   }
+}
+
+type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Hard-deletes a tenant whose signup failed. The DB allows this only while the
+ * tenant is 'creating' (0678) and deletes its document counters in the same
+ * statement. A refusal is logged, not thrown, so the original signup error is
+ * what the caller sees.
+ * @param supabase server client used by the signup
+ * @param tenantId tenant created by the failed signup
+ */
+async function rollbackSignupTenant(supabase: ServerSupabase, tenantId: string): Promise<void> {
+  const { error } = await supabase
+    .from('org_tenants_mst')
+    .delete()
+    .eq('id', tenantId)
+    .eq('status', TENANT_SIGNUP_STATUS);
+  if (error) {
+    console.error('Error rolling back signup tenant (TENANT_HARD_DELETE_BLOCKED?):', error);
+  }
+}
+
+/**
+ * Moves a tenant from 'creating' to 'trial' at the end of signup.
+ * A failure does not undo the signup (the subscription and admin user exist);
+ * it is logged so HQ can set the status (leaving 'creating' is always allowed).
+ * @param supabase server client used by the signup
+ * @param tenantId tenant created by the signup
+ * @returns the status the tenant has now
+ */
+async function finishSignupTenant(supabase: ServerSupabase, tenantId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from('org_tenants_mst')
+    .update({ status: TENANT_TRIAL_STATUS })
+    .eq('id', tenantId)
+    .eq('status', TENANT_SIGNUP_STATUS)
+    .select('id');
+  // RLS can filter the row without an error: check that it really changed.
+  if (error || !data || data.length !== 1) {
+    console.error(`Tenant ${tenantId} is still '${TENANT_SIGNUP_STATUS}' after signup; set it to '${TENANT_TRIAL_STATUS}' from HQ:`, error ?? 'no row updated');
+    return TENANT_SIGNUP_STATUS;
+  }
+  return TENANT_TRIAL_STATUS;
 }
 
 // ========================
@@ -321,24 +385,11 @@ export async function getTenant(tenantId: string): Promise<Tenant> {
  * @returns Current tenant
  */
 export async function getCurrentTenant(): Promise<Tenant> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('No authenticated user');
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized');
   }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found');
-  }
-
-  const first = tenants[0] as { tenant_id: string };
-  return getTenant(first.tenant_id);
+  return getTenant(tenantId);
 }
 
 /**

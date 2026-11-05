@@ -15,8 +15,9 @@ jest.mock('@/lib/services/tenant-settings.service', () => ({
 }));
 jest.mock('@/lib/services/tax.service', () => ({ TaxService: jest.fn().mockImplementation(() => ({ getTaxRate: async () => 0 })) }));
 jest.mock('@/lib/money/currency-rounding', () => ({ resolveCurrencyRoundingRule: async () => null, roundToIncrement: (v: number) => v }));
+const mockBestDiscount = jest.fn(async (): Promise<unknown> => null);
 jest.mock('@/lib/services/discount-service', () => ({
-  getBestDiscount: async () => null, validatePromoCode: async () => ({ isValid: false }), evaluateBestAutoApplyPromo: async () => null,
+  getBestDiscount: () => mockBestDiscount(), validatePromoCode: async () => ({ isValid: false }), evaluateBestAutoApplyPromo: async () => null,
 }));
 jest.mock('@/lib/services/gift-card-service', () => ({ validateGiftCardByIdForCalculation: jest.fn(), validateGiftCard: jest.fn() }));
 const mockExtraMode = jest.fn();
@@ -146,7 +147,7 @@ import {
 import { lineMoneyColumns } from '@/lib/services/commercial/commercial-line.writer';
 import { editMoneyColumns, replaceEditChildRows, type EditChildRowsTx } from '@/lib/services/commercial/commercial-edit.writer';
 
-const DEPS = { currency: { code: 'OMR', decimalPlaces: 3 }, getTenantVatRate: async () => 0 };
+const DEPS = { currency: { code: 'OMR', decimalPlaces: 3 } };
 const MONEY_COLUMNS = [
   'list_unit_price', 'price_per_unit', 'total_price', 'service_pref_charge', 'speed_premium_amount', 'line_disc_amount',
   'order_disc_alloc_amount', 'net_amount', 'taxable_amount', 'tax_amount', 'line_total_amount', 'price_source', 'service_speed',
@@ -324,6 +325,99 @@ describe('P6-01a Edit re-prices on the calculator', () => {
     const recordedAt7 = { ...record, taxLines: record.taxLines.map((t) => ({ ...t, ratePercent: '7' })) };
     const edit = await quoteOrderEdit(catalogDb(), TENANT, recordedAt7, unchanged(record), DEPS);
     expect(edit.quote.facts.taxProfiles.map((p) => String(p.ratePercent))).toEqual(['7']);
+  });
+});
+
+describe('P6-02c a stored line\'s cashier price and discount', () => {
+  beforeEach(() => mockExtraMode.mockResolvedValue('INCLUDED_IN_ITEM_PRICE'));
+
+  it('sets a cashier price and a line discount on a stored line, labelled as on Create', async () => {
+    const { record } = await storedOrder();
+    const projection = unchanged(record);
+    const lineId = record.items[0].id;
+    const edit = await quoteOrderEdit(catalogDb(), TENANT, record, {
+      ...projection,
+      lines: [{ ...projection.lines[0], overrideUnitPrice: '1.500', lineDiscount: { type: 'FIXED_AMOUNT', value: '0.5', reason: 'Stain' } }],
+    }, DEPS);
+    const money = edit.quote.result.lines[0].item.money;
+    expect([money.unitPrice.toFixed(4), money.lineDiscountAmount.toFixed(4)]).toEqual(['1.5000', '0.5000']);
+    expect(edit.intent.lines[0].overrideUnitPrice).toBe('1.500');
+    expect(edit.adjustmentMeta.get(`${lineId}:manual`)).toEqual({ sourceName: 'Line Discount', sourceName2: 'خصم سطر', notes: 'Stain' });
+  });
+
+  it('keeps a stored cashier price unless the edit clears it, and a cleared one returns to the list price', async () => {
+    const { record } = await storedOrder();
+    const overridden = { ...record, items: record.items.map((i) => ({ ...i, priceOverride: '1.5000' })) };
+    const projection = unchanged(record);
+    const kept = await quoteOrderEdit(catalogDb(), TENANT, overridden, projection, DEPS);
+    expect(kept.quote.result.lines[0].item.money.unitPrice.toFixed(4)).toBe('1.5000');
+    const cleared = await quoteOrderEdit(catalogDb(), TENANT, overridden, {
+      ...projection, lines: [{ ...projection.lines[0], overrideUnitPrice: null }],
+    }, DEPS);
+    expect(cleared.quote.result.lines[0].item.money.unitPrice.toFixed(4)).toBe('2.0000');
+    expect(cleared.intent.lines[0].overrideUnitPrice).toBeNull();
+  });
+
+  it('P6-02d: a new custom line is priced at its entered price, with no product', async () => {
+    const { record } = await storedOrder();
+    const projection = unchanged(record);
+    const edit = await quoteOrderEdit(catalogDb(), TENANT, record, {
+      ...projection,
+      lines: [...projection.lines, { id: 'custom-line', quantity: 2, serviceSpeed: 'STANDARD', pieceIds: [], productId: null, customItem: { unitPrice: '3.500', serviceCategoryCode: 'LAUNDRY' } }],
+    }, DEPS);
+    const added = edit.quote.result.lines.find((l) => l.lineId === 'custom-line')!;
+    expect(added.item.money.grossAmount.toFixed(4)).toBe('7.0000');
+    expect(edit.quote.prices.find((p) => p.lineId === 'custom-line')?.productId).toBeNull();
+  });
+
+  it('replaces only the line\'s own cashier discount and keeps it when the edit does not touch it', async () => {
+    const { record } = await storedOrder();
+    const lineId = record.items[0].id;
+    const manual = {
+      id: 'disc-manual', level: 'ITEM', itemId: lineId, pieceId: null, sourceType: 'MANUAL', sourceId: null,
+      sourceName: 'Line Discount', sourceName2: null, promotionId: null, discountType: 'FIXED_AMOUNT',
+      discountRate: null, discountAmount: '0.3000', notes: 'Old reason', appliedSeq: 9,
+    };
+    const withManual = { ...record, discounts: [...record.discounts, manual] };
+    const projection = unchanged(record);
+    const lineDiscountOf = (edit: Awaited<ReturnType<typeof quoteOrderEdit>>) => edit.quote.result.lines[0].item.money.lineDiscountAmount.toFixed(4);
+    expect(lineDiscountOf(await quoteOrderEdit(catalogDb(), TENANT, withManual, projection, DEPS))).toBe('0.3000');
+    const removed = await quoteOrderEdit(catalogDb(), TENANT, withManual, {
+      ...projection, lines: [{ ...projection.lines[0], lineDiscount: null }],
+    }, DEPS);
+    expect(lineDiscountOf(removed)).toBe('0.0000');
+    const replaced = await quoteOrderEdit(catalogDb(), TENANT, withManual, {
+      ...projection, lines: [{ ...projection.lines[0], lineDiscount: { type: 'FIXED_AMOUNT', value: '0.2', reason: 'New reason' } }],
+    }, DEPS);
+    expect(lineDiscountOf(replaced)).toBe('0.2000');
+    expect(replaced.adjustmentMeta.get(`${lineId}:manual`)?.notes).toBe('New reason');
+  });
+});
+
+describe('P1B-05 recorded order discounts are re-evaluated (D21)', () => {
+  afterEach(() => mockBestDiscount.mockResolvedValue(null));
+
+  it('re-applies the recorded rule on the new base, and removes it when its minimum is no longer met', async () => {
+    // Create granted "Weekday 10%" on 2 × 2.000 + STARCH 0.200 + HANG 0.100 = 4.300 → 0.430.
+    mockBestDiscount.mockResolvedValue({
+      rule: { id: 'rule-w', rule_name: 'Weekday 10%', rule_name2: null, can_stack_with_promo: true }, discount_amount: 0.43,
+    });
+    const { rows } = await createFromQuote({ ...cart, percentDiscount: 0 });
+    rows.org_discount_rules_cf = [{ id: 'rule-w', discount_type: 'percentage', discount_value: '10', conditions: { min_order_amount: 4 } }];
+    const record = await readEditOrderRecord(storedDb(rows), TENANT, rows.org_orders_mst[0].id as string);
+    expect(record.discountRules.get('rule-w')).toMatchObject({ discountValue: '10' });
+    const line = unchanged(record).lines[0];
+
+    const same = await quoteOrderEdit(catalogDb(), TENANT, record, unchanged(record), DEPS);
+    expect(same.discountChanges).toEqual([expect.objectContaining({ key: 'DISCOUNT_RULE:rule-w', outcome: 'KEPT', amount: '0.4300' })]);
+
+    const up = await quoteOrderEdit(catalogDb(), TENANT, record, { ...unchanged(record), lines: [{ ...line, quantity: 3 }] }, DEPS);
+    // 3 × 2.000 + 0.300 = 6.300 → 10% = 0.630.
+    expect(up.discountChanges[0]).toMatchObject({ outcome: 'CHANGED', previousAmount: '0.4300', amount: '0.6300' });
+
+    const down = await quoteOrderEdit(catalogDb(), TENANT, record, { ...unchanged(record), lines: [{ ...line, quantity: 1 }] }, DEPS);
+    expect(down.discountChanges[0]).toMatchObject({ outcome: 'REMOVED', reason: 'MIN_ORDER_NOT_MET', amount: '0.0000' });
+    expect(down.quote.result.document.adjustments).toEqual([]);
   });
 });
 

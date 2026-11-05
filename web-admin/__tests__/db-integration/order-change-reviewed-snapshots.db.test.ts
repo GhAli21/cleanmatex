@@ -6,6 +6,9 @@
 import { randomUUID } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
+
+// Apply imports discount-service (promo reversal), whose settings service builds a browser client at load.
+jest.mock('@/lib/supabase/client', () => ({ createClient: () => ({}), supabase: {} }));
 import type { OrderChangeContext } from '@/lib/types/order-change';
 import { previewOrderChange, type OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
 import { applyOrderChange, type OrderChangeApplyTx } from '@/lib/services/order-change/order-change-apply.service';
@@ -162,7 +165,7 @@ describe('signed operation snapshots on local PostgreSQL', () => {
           // The real Edit pricer, reading the fixture through the same transaction.
           priceEdit: async (projection) => quoteOrderEdit(tx as unknown as CommercialDb, tenantId,
             await readEditOrderRecord(tx as unknown as EditRecordDb, tenantId, orderId), projection,
-            { currency: { code: 'OMR', decimalPlaces: 3 }, getTenantVatRate: async () => 0 }),
+            { currency: { code: 'OMR', decimalPlaces: 3 } }),
           catalog: [], currencyDecimalPlaces: 3,
           payments: [], credits: [], refunds: [], persistedTaxAmount: order.total_tax_amount, proofKey: key,
           auditFacts: { order: { internal_notes: order.internal_notes, customer_notes: null, total_amount: order.total_amount, total_tax_amount: order.total_tax_amount }, items: {}, pieces: {}, preferences: {}, products: {} },

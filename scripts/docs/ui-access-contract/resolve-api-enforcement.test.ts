@@ -75,6 +75,21 @@ describe('resolve-api-enforcement', () => {
     assert.equal(routeContentSatisfiesEnforcement(sample, 'auth_only'), true);
   });
 
+  it('accepts the requirePermission family for the permission tier', () => {
+    for (const call of [
+      "requirePermission('orders:read')(request)",
+      "requireAnyPermission(['orders:create', 'orders:edit'])(request)",
+      "requireAllPermissions(['a:b', 'c:d'])(request)",
+      "withPermission(handler, 'orders:read')",
+    ]) {
+      assert.equal(routeContentSatisfiesEnforcement(call, 'permission'), true, call);
+    }
+  });
+
+  it('does not accept a bare mention of requirePermission as a guard', () => {
+    assert.equal(routeContentSatisfiesEnforcement('// TODO: add requirePermission later', 'permission'), false);
+  });
+
   it('parses dependency entry with enforcement', () => {
     const entry = `{
       label: 'Plans',

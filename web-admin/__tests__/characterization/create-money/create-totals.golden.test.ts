@@ -14,7 +14,6 @@
  */
 
 const mockGetPriceForOrderItem = jest.fn();
-const mockGetTaxRate = jest.fn();
 const mockGetCurrencyConfig = jest.fn();
 const mockValidatePromoCode = jest.fn();
 const mockGetBestDiscount = jest.fn();
@@ -52,9 +51,6 @@ jest.mock('@/lib/services/pricing.service', () => ({
         isExpress: params.isExpress, customerId: params.customerId,
       })).basePrice)),
   },
-}));
-jest.mock('@/lib/services/tax.service', () => ({
-  TaxService: jest.fn().mockImplementation(() => ({ getTaxRate: (...a: unknown[]) => mockGetTaxRate(...a) })),
 }));
 jest.mock('@/lib/services/tenant-settings.service', () => ({
   createTenantSettingsService: jest.fn(() => ({
@@ -127,7 +123,6 @@ beforeEach(() => {
   mockResolveCurrencyRoundingRule.mockResolvedValue(null);
   mockTaxProfileFindMany.mockResolvedValue([]);
   mockTaxExemptionFindFirst.mockResolvedValue(null);
-  mockGetTaxRate.mockResolvedValue(0);
   mockGetBestDiscount.mockResolvedValue(null);
   mockValidatePromoCode.mockResolvedValue({ isValid: false });
   mockEvaluateBestAutoApplyPromo.mockResolvedValue({ isValid: false });
@@ -354,8 +349,6 @@ describe('P1-01 golden — tax', () => {
     expect(mockTaxProfileFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ tenant_org_id: TENANT, is_default: true, is_active: true }),
     }));
-    // getTaxRate is not used when profiles exist.
-    expect(mockGetTaxRate).not.toHaveBeenCalled();
   });
 
   it('G21 a compound profile is taxed on base + prior tax and always runs after non-compound ones', async () => {
@@ -413,30 +406,27 @@ describe('P1-01 golden — tax', () => {
     ).rejects.toThrow('INVALID_TAX_PROFILE_SELECTION');
   });
 
-  it('G25 no profile configured: tenant VAT rate fallback (exclusive and inclusive)', async () => {
+  it('G25 CHANGED P6-03 (owner "retire all"): no profile configured means no tax, the TENANT_VAT_RATE fallback is gone', async () => {
     priceBook({ a: 10 });
-    mockGetTaxRate.mockResolvedValue(0.05);
     const exclusive = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'a', quantity: 1 }] });
-    expect([exclusive.vatTaxPercent, exclusive.vatValue, exclusive.afterDiscounts, exclusive.saleTotal]).toEqual([5, 0.5, 10, 10.5]);
+    expect([exclusive.vatTaxPercent, exclusive.vatValue, exclusive.afterDiscounts, exclusive.saleTotal]).toEqual([0, 0, 10, 10]);
     expect(exclusive.taxBreakdown).toEqual([]);
 
     priceBook({ a: 10.5 });
     mockResolveTaxPricingMode.mockResolvedValue('TAX_INCLUSIVE');
     const inclusive = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'a', quantity: 1 }] });
-    expect([inclusive.vatValue, inclusive.afterDiscounts, inclusive.saleTotal]).toEqual([0.5, 10, 10.5]);
+    expect([inclusive.vatValue, inclusive.afterDiscounts, inclusive.saleTotal]).toEqual([0, 10.5, 10.5]);
   });
 
   it('G26 customer exemption: no tax and no VAT fallback (after the PF-04 fix)', async () => {
     priceBook({ a: 10 });
     mockTaxProfileFindMany.mockResolvedValue([profile('vat', 'VAT', 5)]);
-    mockGetTaxRate.mockResolvedValue(0.05);
     mockTaxExemptionFindFirst.mockResolvedValue({ id: 'ex-1' });
 
     const r = await calculateOrderTotals({ tenantId: TENANT, customerId: 'cust-exempt', items: [{ productId: 'a', quantity: 1 }] });
 
     expect(money(r)).toEqual({ ...ZERO, subtotal: 10, afterDiscounts: 10, saleTotal: 10 });
     expect(mockTaxProfileFindMany).not.toHaveBeenCalled();
-    expect(mockGetTaxRate).not.toHaveBeenCalled();
   });
 
   it('G27 KNOWN DEFECT (PF-05): one exempt service category exempts the whole order', async () => {
@@ -463,7 +453,7 @@ describe('P1-01 golden — tax', () => {
 describe('P1-01 golden — charges (PF-19), rounding, gift card, currencies', () => {
   it('G30 ORDER-level preference charges are added after tax: not discounted, not taxed', async () => {
     priceBook({ a: 10 });
-    mockGetTaxRate.mockResolvedValue(0.05);
+    mockTaxProfileFindMany.mockResolvedValue([profile('vat', 'VAT', 5)]); // P6-03: was the 5% settings fallback
 
     const r = await calculateOrderTotals({
       tenantId: TENANT,
@@ -489,7 +479,7 @@ describe('P1-01 golden — charges (PF-19), rounding, gift card, currencies', ()
   it('G31 inclusive mode also adds charges outside the tax envelope', async () => {
     priceBook({ a: 10.5 });
     mockResolveTaxPricingMode.mockResolvedValue('TAX_INCLUSIVE');
-    mockGetTaxRate.mockResolvedValue(0.05);
+    mockTaxProfileFindMany.mockResolvedValue([profile('vat', 'VAT', 5)]); // P6-03: was the 5% settings fallback
     const r = await calculateOrderTotals({
       tenantId: TENANT,
       items: [{ productId: 'a', quantity: 1 }],
@@ -498,10 +488,10 @@ describe('P1-01 golden — charges (PF-19), rounding, gift card, currencies', ()
     expect([r.vatValue, r.afterDiscounts, r.chargesTotal, r.saleTotal]).toEqual([0.5, 10, 1, 11.5]);
   });
 
-  it('G32 SAR (2 decimals), VAT 15% fallback, cash rounding 0.05 HALF_UP on the grand total', async () => {
+  it('G32 SAR (2 decimals), VAT 15% profile, cash rounding 0.05 HALF_UP on the grand total', async () => {
     mockGetCurrencyConfig.mockResolvedValue({ currencyCode: 'SAR', decimalPlaces: 2 });
     mockResolveCurrencyRoundingRule.mockResolvedValue({ roundingMethod: 'HALF_UP', roundingUnit: 0.05 });
-    mockGetTaxRate.mockResolvedValue(0.15);
+    mockTaxProfileFindMany.mockResolvedValue([profile('vat', 'VAT', 15)]); // P6-03: was the 15% settings fallback
     priceBook({ a: 9.99 });
 
     const r = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'a', quantity: 1 }] });

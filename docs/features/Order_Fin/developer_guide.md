@@ -1,5 +1,7 @@
 # Order Financial Platform — Developer Guide
 
+> Showing an order's money: use `OrderFinancialView` — see [`Reusable_Order_Fin_View/developer_guide.md`](Reusable_Order_Fin_View/developer_guide.md) and the rules in [`docs/dev/rules/order-fin-rules.md`](../../dev/rules/order-fin-rules.md). Never build a new financial panel.
+
 ## Service Dependency Graph
 
 ```

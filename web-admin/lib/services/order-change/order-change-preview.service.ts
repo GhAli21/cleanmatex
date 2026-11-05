@@ -34,13 +34,21 @@ import {
   editCalculationFingerprint,
   editPricingErrorCode,
   editProjectionOf,
+  lineMoneyChangesOf,
+  lockedSpeedLineIds,
   orderChangeNeedsPricing,
   reviewedItemTotal,
   reviewedLinesOf,
+  speedChangesOf,
   type OrderChangeEditPricer,
   type OrderChangeReviewedLine,
 } from '@/lib/services/order-change/order-change-edit-pricing';
 import type { EditQuote } from '@/lib/services/commercial/commercial-edit.loader';
+import { findEditPriceChanges, type EditPriceChangedLine } from '@/lib/services/commercial/price-confirmation';
+import { DISCOUNT_CHANGE_OUTCOMES, DISCOUNT_REMOVED_GATE, discountRemovedGateCode, type DiscountChange } from '@/lib/services/commercial/edit-discount-reevaluation';
+import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm';
+import { PRICE_OVERRIDE_ERRORS } from '@/lib/services/price-override-policy.service';
+import { sameLineDiscount, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
 import {
   projectOrderChangeFinancialResult,
   type OrderChangeFinancialResult,
@@ -84,11 +92,17 @@ export interface OrderChangePreviewSuccess {
   /** Before and after facts for each operation, in the same columns Apply stores. */
   operationAudits: OrderChangeOperationAudit[];
   followUp: string[];
+  /** Added lines whose calculated price is not the one the cart showed (P6-02e); Review lists them. */
+  priceChanges?: EditPriceChangedLine[];
+  /** Each recorded order discount after the edit (D21); a removal needs a `DISCOUNT_REMOVED:<key>` acknowledgement. */
+  discountChanges?: DiscountChange[];
 }
 
 /** One item's selling facts captured for the speed operation audit. */
 export interface OrderChangeSpeedAuditItem {
   orderItemId: string;
+  /** The line's speed code (P6-02b): lines of one order can differ. */
+  serviceSpeed: string | null;
   quantity: number;
   pricePerUnit: string;
   totalPrice: string;
@@ -106,7 +120,7 @@ export interface OrderChangeSpeedValueSnapshot {
   items: OrderChangeSpeedAuditItem[];
 }
 
-/** Before and after snapshots for the single CHANGE_SERVICE_SPEED operation. */
+/** Before and after snapshots of the whole order, shared by every CHANGE_SERVICE_SPEED operation of a review. */
 export interface OrderChangeSpeedAudit {
   before: OrderChangeSpeedValueSnapshot;
   after: OrderChangeSpeedValueSnapshot;
@@ -138,7 +152,8 @@ function toStructural(operation: ChangeOperation): OrderChangeStructuralOperatio
       seq: operation.seq,
       code: 'ADD_ITEM',
       target: operation.target,
-      payload: { clientRef: operation.payload.clientRef, productId: operation.payload.productId, quantity: operation.payload.quantity },
+      // A custom item (P6-02d) has no catalog product.
+      payload: { clientRef: operation.payload.clientRef, productId: operation.payload.productId ?? '', quantity: operation.payload.quantity },
     };
   }
   if (operation.code === 'REMOVE_ITEM') return { seq: operation.seq, code: 'REMOVE_ITEM', target: operation.target };
@@ -166,7 +181,7 @@ function headerChanged(context: OrderChangeContext, operations: readonly ChangeO
   let email = context.order.customerSnapshot.email;
   for (const operation of operations) {
     if (operation.code === 'CHANGE_PRIORITY') priority = operation.payload.priority;
-    if (operation.code === 'CHANGE_SERVICE_SPEED') serviceSpeed = operation.payload.serviceSpeed;
+    if (operation.code === 'CHANGE_SERVICE_SPEED' && operation.target.kind === 'ORDER') serviceSpeed = operation.payload.serviceSpeed;
     if (operation.code === 'CHANGE_READY_BY') readyBy = operation.payload.readyBy;
     if (operation.code === 'CHANGE_ORDER_NOTES') {
       if (operation.payload.notes !== undefined) notes = operation.payload.notes;
@@ -200,6 +215,8 @@ function buildSpeedAudit(input: {
   speedChanged: boolean;
   serviceSpeed: string | null;
   nextServiceSpeed: string | null;
+  /** The speed of each line after the edit, by lower-case item id. */
+  nextLineSpeeds: ReadonlyMap<string, string | null>;
   originalTotal: string;
   originalTax: string;
   projectedTotal: string;
@@ -219,12 +236,14 @@ function buildSpeedAudit(input: {
     if (!item.active || !projected?.active || !line?.active || item.quantity == null) continue;
     beforeItems.push({
       orderItemId: item.id,
+      serviceSpeed: item.serviceSpeed ?? input.serviceSpeed,
       quantity: item.quantity,
       pricePerUnit: moneyText(item.pricePerUnit),
       totalPrice: moneyText(item.totalPrice),
     });
     afterItems.push({
       orderItemId: item.id,
+      serviceSpeed: input.nextLineSpeeds.get(item.id.toLowerCase()) ?? null,
       quantity: projected.quantity,
       pricePerUnit: line.unitPrice,
       totalPrice: reviewedItemTotal(line),
@@ -346,6 +365,26 @@ export async function previewOrderChange(input: {
   const structure = projectOrderChangeStructure(baseline, structural);
   if (structure.ok === false) return { ok: false, status: 422, code: structure.issue.code, seq: structure.issue.seq };
 
+  // A cashier price or discount (P6-02c) targets a stored line that stays on the order.
+  const activeLineIds = new Set(structure.items.filter((item) => item.active).map((item) => item.id.toLowerCase()));
+  const storedLineIds = new Set(input.context.items.map((item) => item.id.toLowerCase()));
+  const strayLineMoney = input.request.operations.find((operation) => (operation.code === 'CHANGE_ITEM_PRICE' || operation.code === 'CHANGE_DISCOUNT')
+    && !(storedLineIds.has(operation.target.id.toLowerCase()) && activeLineIds.has(operation.target.id.toLowerCase())));
+  if (strayLineMoney) return { ok: false, status: 422, code: 'UPDATE_NOT_ACTIVE', seq: strayLineMoney.seq };
+
+  // A ready line keeps its speed (P6-02b): refuse the operation that would move it.
+  const lockedLines = lockedSpeedLineIds(
+    input.context,
+    input.request.operations,
+    new Set(structure.items.filter((item) => item.active).map((item) => item.id.toLowerCase())),
+  );
+  const { orderSpeed, lineSpeeds } = speedChangesOf(input.request.operations);
+  const speedLocked = (operation: ChangeOperation): boolean => {
+    if (operation.code !== 'CHANGE_SERVICE_SPEED' || lockedLines.size === 0) return false;
+    if (operation.target.kind !== 'ORDER') return lockedLines.has(operation.target.id.toLowerCase());
+    return [...lockedLines].some((id) => !lineSpeeds.has(id));
+  };
+
   const decisions: OrderChangeCapabilityResult[] = [];
   for (const operation of input.request.operations) {
     decisions.push(await evaluateOrderChangeCapability({
@@ -364,10 +403,13 @@ export async function previewOrderChange(input: {
         seq: operation.seq,
         code: operation.code as OrderChangeOperationCode,
         preferenceParentTargetType: preferenceParent(operation),
-        targetType: operation.code === 'CHANGE_UNLISTED'
+        targetType: operation.code === 'CHANGE_UNLISTED' || operation.code === 'CHANGE_SERVICE_SPEED' || operation.code === 'CHANGE_DISCOUNT'
           ? operation.target.kind === 'PERSISTED_ITEM' ? 'ITEM' : operation.target.kind === 'PERSISTED_PIECE' ? 'PIECE' : operation.target.kind === 'PERSISTED_PREFERENCE' ? 'PREFERENCE' : 'ORDER'
           : undefined,
         hasReason: Boolean(input.request.changeReason?.trim()),
+        hardDenial: speedLocked(operation)
+          ? { code: 'LINE_SPEED_LOCKED', messageKey: 'orderChange.capability.lineSpeedLocked' }
+          : null,
       },
       bindings: input.bindings,
     }));
@@ -383,12 +425,31 @@ export async function previewOrderChange(input: {
     && decisions.some((decision) => decision.requiresReason && decision.decision !== 'DENY');
   const acknowledgementMissing = decisions.some((decision) =>
     decision.requiresAcknowledgement
-    && !input.request.gateDecisions?.some((gate) => gate.seq === decision.seq && gate.acknowledgementChallenge),
+    && !input.request.gateDecisions?.some((gate) => gate.seq === decision.seq && gate.acknowledgementChallenge
+      && !gate.gateCode.startsWith(DISCOUNT_REMOVED_GATE)),
   );
   const header = headerChanged(input.context, input.request.operations);
-  const speedChanged = input.request.operations.some((operation) => operation.code === 'CHANGE_SERVICE_SPEED' && operation.payload.serviceSpeed !== input.context.order.serviceSpeed);
+  // Each stored line's speed after the edit: its own, else the new order speed, else unchanged.
+  const nextLineSpeeds = new Map(input.context.items.map((item) => {
+    const id = item.id.toLowerCase();
+    return [id, lineSpeeds.get(id) ?? orderSpeed ?? item.serviceSpeed ?? input.context.order.serviceSpeed] as const;
+  }));
+  const lineSpeedChanged = input.context.items.some((item) => (
+    lineSpeeds.has(item.id.toLowerCase())
+    && nextLineSpeeds.get(item.id.toLowerCase()) !== (item.serviceSpeed ?? input.context.order.serviceSpeed)
+  ));
+  const speedChanged = (orderSpeed !== null && orderSpeed !== input.context.order.serviceSpeed) || lineSpeedChanged;
+  // A cashier price or discount equal to the stored one changes nothing (P6-02c).
+  const { prices, discounts } = lineMoneyChangesOf(input.request.operations);
+  const lineMoneyChanged = input.context.items.some((item) => {
+    const key = item.id.toLowerCase();
+    const price = prices.get(key);
+    const priceMoved = price !== undefined && (!sameOptionalMoney(price.priceOverride, item.priceOverride)
+      || (price.priceOverride !== null && price.overrideReason !== (item.overrideReason ?? null)));
+    return priceMoved || (discounts.has(key) && !sameLineDiscount(discounts.get(key) ?? null, item.lineDiscount ?? null));
+  });
   const unlisted = input.request.operations.some((operation) => operation.code === 'CHANGE_UNLISTED');
-  const createsChange = structure.createsChange || projectedPreferences.createsChange || header || unlisted;
+  const createsChange = structure.createsChange || projectedPreferences.createsChange || header || lineSpeedChanged || lineMoneyChanged || unlisted;
   const activeItemIds = structure.items.filter((item) => item.active).map((item) => item.id);
   if (!createsChange || denied) {
     return {
@@ -428,6 +489,16 @@ export async function previewOrderChange(input: {
     if (overridden && !(await input.canUsePermission('orders:edit_override'))) {
       return { ok: false, status: 422, code: 'OVERRIDE_REQUIRED' };
     }
+    // A stored line's cashier price or discount needs the permission Create asks for (P6-02c).
+    // A custom item's entered price is a price decision too (P6-02d), as on Create.
+    if (input.request.operations.some((operation) => operation.code === 'CHANGE_ITEM_PRICE' || (operation.code === 'ADD_ITEM' && operation.payload.customItem))
+      && !(await input.canUsePermission(ORDERS_PERMISSIONS.PRICING_OVERRIDE))) {
+      return { ok: false, status: 422, code: PRICE_OVERRIDE_ERRORS.PRICE_OVERRIDE_NOT_PERMITTED };
+    }
+    if (input.request.operations.some((operation) => operation.code === 'CHANGE_DISCOUNT' || (operation.code === 'ADD_ITEM' && operation.payload.lineDiscount))
+      && !(await input.canUsePermission(ORDERS_PERMISSIONS.DISCOUNT))) {
+      return { ok: false, status: 422, code: PRICE_OVERRIDE_ERRORS.LINE_DISCOUNT_NOT_PERMITTED };
+    }
     let commercial: EditQuote;
     try {
       commercial = await input.priceEdit(editProjectionOf({
@@ -463,6 +534,10 @@ export async function previewOrderChange(input: {
     };
   }
   const calculated = { ...pricing, ok: true as const };
+  // D21: a recorded discount the edit removes is never dropped silently; the cashier acknowledges each one.
+  const discountChanges = calculated.commercial?.discountChanges ?? [];
+  const discountAckMissing = discountChanges.some((change) => change.outcome === DISCOUNT_CHANGE_OUTCOMES.REMOVED
+    && !input.request.gateDecisions?.some((gate) => gate.gateCode === discountRemovedGateCode(change.key) && gate.acknowledgementChallenge));
   const calculationFingerprint = digestOrderChangeCalculationFingerprint(calculated.fingerprint);
 
   const financial = projectOrderChangeFinancialResult({
@@ -477,9 +552,8 @@ export async function previewOrderChange(input: {
   const speedAudit = buildSpeedAudit({
     speedChanged,
     serviceSpeed: input.context.order.serviceSpeed,
-    nextServiceSpeed: input.request.operations.reduce<string | null>((speed, operation) => (
-      operation.code === 'CHANGE_SERVICE_SPEED' ? operation.payload.serviceSpeed : speed
-    ), null),
+    nextServiceSpeed: orderSpeed ?? input.context.order.serviceSpeed,
+    nextLineSpeeds,
     originalTotal: input.context.financial.totalAmount,
     originalTax: input.persistedTaxAmount ?? '0.0000',
     projectedTotal: calculated.totalAmount,
@@ -519,7 +593,7 @@ export async function previewOrderChange(input: {
       operationSnapshotDigest: digestOrderChangeOperationAudits(operationAudits),
     }
     : null;
-  const issuedProof = !reasonMissing && !acknowledgementMissing && !financiallyBlocked && input.proofKey && reviewBinding
+  const issuedProof = !reasonMissing && !acknowledgementMissing && !discountAckMissing && !financiallyBlocked && input.proofKey && reviewBinding
     ? issueOrderChangeReviewProof({ now: input.now, key: input.proofKey, binding: reviewBinding })
     : null;
   if (issuedProof && issuedProof.length > ORDER_CHANGE_LIMITS.MAX_REVIEW_PROOF_LENGTH) {
@@ -534,7 +608,7 @@ export async function previewOrderChange(input: {
       ? 'DENIED'
       : reasonMissing
         ? 'REASON_REQUIRED'
-        : acknowledgementMissing
+        : acknowledgementMissing || discountAckMissing
           ? 'ACKNOWLEDGEMENT_REQUIRED'
           : reviewProof
             ? 'READY'
@@ -555,5 +629,13 @@ export async function previewOrderChange(input: {
     commercial: calculated.commercial,
     operationAudits,
     followUp: financial.warnings.map((warning) => warning.code),
+    priceChanges: calculated.commercial
+      ? findEditPriceChanges(input.request.operations.flatMap((operation) => (
+        operation.code === 'ADD_ITEM' && operation.payload.confirmedUnitPrice !== undefined
+          ? [{ seq: operation.seq, orderItemId: operation.payload.clientRef, confirmedUnitPrice: operation.payload.confirmedUnitPrice }]
+          : []
+      )), calculated.commercial.quote.result)
+      : [],
+    discountChanges,
   };
 }

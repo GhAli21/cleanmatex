@@ -250,6 +250,16 @@ describe('persistOrderChangeTx', () => {
     expect(conflict.change()).toBeNull();
   });
 
+  it('P6-02f: stores a line speed, price and discount as line rows (mirrors oc_op_target_ck, 0664)', async () => {
+    const line = (seq: number, code: string, targetType: 'ITEM' | 'ORDER', orderItemId: string | null) => ({ seq, code, targetType, orderItemId });
+    const lineOps = [line(1, 'CHANGE_SERVICE_SPEED', 'ITEM', 'item-1'), line(2, 'CHANGE_ITEM_PRICE', 'ITEM', 'item-1'), line(3, 'CHANGE_DISCOUNT', 'ITEM', 'item-1'), line(4, 'CHANGE_SERVICE_SPEED', 'ORDER', null)];
+    await expect(persistOrderChangeTx(fakeTx() as unknown as OrderChangeWriteTx, input({ operations: lineOps as PersistOrderChangeInput['operations'], itemInserts: [], removeItemIds: [] })))
+      .resolves.toMatchObject({ ok: true });
+    // A line operation without its line is still refused.
+    await expect(persistOrderChangeTx(fakeTx() as unknown as OrderChangeWriteTx, input({ operations: [line(1, 'CHANGE_ITEM_PRICE', 'ITEM', null)] as PersistOrderChangeInput['operations'], itemInserts: [], removeItemIds: [] })))
+      .rejects.toMatchObject({ code: 'OPERATION_INVALID' });
+  });
+
   it('rejects a protected identity field and an empty snapshot', async () => {
     const tx = fakeTx();
     await expect(persistOrderChangeTx(tx as unknown as OrderChangeWriteTx, input({

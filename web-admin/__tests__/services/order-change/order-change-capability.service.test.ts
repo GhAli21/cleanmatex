@@ -91,8 +91,8 @@ describe('order change capability policy', () => {
 
   it('keeps a seeded operation closed even when its policy rule allows it', async () => {
     await expect(evaluateOrderChangeCapability(capabilityInput({
-      operation: { seq: 1, code: 'CHANGE_ITEM_PRICE', hasReason: true },
-      bindings: [{ ...baseBinding, operationCode: 'CHANGE_ITEM_PRICE', targetType: 'ITEM' }],
+      operation: { seq: 1, code: 'CHANGE_ITEM_PRODUCT', hasReason: true },
+      bindings: [{ ...baseBinding, operationCode: 'CHANGE_ITEM_PRODUCT', targetType: 'ITEM' }],
     }))).resolves.toMatchObject({ decision: 'DENY', reasonCode: 'OPERATION_NOT_AVAILABLE' });
   });
 

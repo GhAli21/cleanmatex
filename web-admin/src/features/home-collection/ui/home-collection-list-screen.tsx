@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -59,7 +60,7 @@ export function HomeCollectionListScreen() {
             return (
               <li key={order.id} className="flex items-center justify-between gap-4 p-4">
                 <div>
-                  <p className="font-medium">{order.order_no}</p>
+                  <p className="font-medium"><CmxCodeChip code={order.order_no} kind="order" /></p>
                   <p className="text-sm text-muted-foreground">
                     {order.customer?.name ?? t('fallbacks.unknownCustomer')}
                     {order.customer?.phone ? ` • ${order.customer.phone}` : ''}

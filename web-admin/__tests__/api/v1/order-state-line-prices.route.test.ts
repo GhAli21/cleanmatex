@@ -45,10 +45,11 @@ function chain(table: string) {
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: async () => ({
-    auth: { getUser: async () => ({ data: { user: { id: 'auth-1' } } }) },
-    rpc: async () => ({ data: [{ tenant_id: TENANT }], error: null }),
     from: (table: string) => chain(table),
   }),
+}));
+jest.mock('@/lib/middleware/require-permission', () => ({
+  requirePermission: () => async () => ({ tenantId: TENANT, userId: 'auth-1', userName: 'User', user: {} }),
 }));
 jest.mock('@/lib/services/workflow-service', () => ({
   WorkflowService: { getAllowedTransitions: async () => [] },

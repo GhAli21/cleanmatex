@@ -15,14 +15,16 @@ import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 import type { CartQuoteLine } from '@/lib/types/cart-quote';
 
 /**
- * New Order only (P5-03b): the server's figures per cart line and the line
- * speed menus. Order Edit passes nothing and keeps its own line prices (P6-02).
+ * The server's figures per cart line (New Order, P5-03b) and the line speed
+ * menus (New Order and Order Edit, P6-02b).
  */
 export interface ItemCartListQuoteProps {
   /** Quoted lines by cart position; null before the first answer. */
   lines: CartQuoteLine[] | null;
   /** A changed cart is being priced: the figures shown are not final. */
   pending: boolean;
+  /** Order Edit: no live line figures; each line shows its stored price and Review re-prices. */
+  unquoted?: boolean;
   onLineSpeedChange?: (productId: string, serviceSpeed: string | null) => void;
   lineSpeedDisabled?: boolean;
   /** Opens the line discount dialog; absent when the user lacks `orders:discount` (P5-03c). */
@@ -155,6 +157,7 @@ function ItemCartListComponent({
             quote={quote ? {
               line: quote.lines?.find((line) => line.index === index) ?? null,
               pending: quote.pending,
+              unquoted: quote.unquoted,
               orderSpeed: orderSpeed ?? '',
               lineSpeed: item.serviceSpeed ?? null,
               onLineSpeedChange: quote.onLineSpeedChange

@@ -56,6 +56,8 @@ export interface CmxListOfValuesDialogProps<TOption> {
   isOptionDisabled?: (option: TOption) => boolean
   renderOption?: (option: TOption, selected: boolean) => React.ReactNode
   isLoading?: boolean
+  /** Set when the list is searched on the server: called with the typed text, debounced. Omit to search only the given options. */
+  onSearchChange?: (search: string) => void
   labels: CmxListOfValuesDialogLabels
   className?: string
 }
@@ -104,16 +106,25 @@ function CmxListOfValuesDialogContent<TOption>({
   isOptionDisabled,
   renderOption,
   isLoading = false,
+  onSearchChange,
   labels,
   className,
 }: CmxListOfValuesDialogProps<TOption>) {
   const [searchTerm, setSearchTerm] = React.useState('')
   const [draftSelectedId, setDraftSelectedId] = React.useState<string | null>(selectedId)
 
+  // Debounced so a server-searched list gets one request per pause in typing, not one per key.
+  React.useEffect(() => {
+    if (!onSearchChange) return
+    const timer = setTimeout(() => onSearchChange(searchTerm.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [onSearchChange, searchTerm])
+
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase()
   const matchingOptions = React.useMemo(
     () => options.filter((option) => {
-      if (!normalizedSearch) {
+      // A server-searched list is already filtered, possibly on fields the label does not show.
+      if (!normalizedSearch || onSearchChange) {
         return true
       }
 
@@ -124,7 +135,7 @@ function CmxListOfValuesDialogContent<TOption>({
 
       return searchableText.includes(normalizedSearch)
     }),
-    [getOptionDescription, getOptionLabel, normalizedSearch, options],
+    [getOptionDescription, getOptionLabel, normalizedSearch, onSearchChange, options],
   )
 
   const handleApply = () => {

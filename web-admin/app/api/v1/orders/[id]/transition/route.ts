@@ -30,6 +30,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * The order number shown to people (`ORD-...`), for notification text. Never the UUID (Human-Friendly Codes T8.3).
+ * Null when the order is not found or the read fails; the transition itself has already committed.
+ * @param tenantId tenant of the order
+ * @param orderId order UUID
+ */
+async function findOrderNo(tenantId: string, orderId: string): Promise<string | null> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ order_no: string | null }>>`
+      SELECT order_no
+      FROM public.org_orders_mst
+      WHERE id = ${orderId}::uuid
+        AND tenant_org_id = ${tenantId}::uuid
+      LIMIT 1
+    `;
+    return rows[0]?.order_no ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * POST /api/v1/orders/[id]/transition
  * Compatibility endpoint that resolves legacy transition fields into an engine action.
  * Requires orders:transition permission; new clients should use POST /actions directly.
@@ -135,13 +156,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // the same cached result and must not re-send a notification.
       const eventCode = ORDER_STATUS_EVENT[result.currentStatus];
       if (eventCode && !result.replay && await isOrderTransitionNotifyEnabled()) {
+        const orderNo = await findOrderNo(tenantId, id);
         void emitNotificationEvent({
           code: eventCode,
           tenantOrgId: tenantId,
           recipientUserIds: [userId],
           sourceEntityType: 'order',
           sourceEntityId: id,
-          variables: { order_number: id },
+          // Customers see the order number; the UUID only if the order number cannot be read.
+          variables: { order_number: orderNo ?? id },
         });
       }
 

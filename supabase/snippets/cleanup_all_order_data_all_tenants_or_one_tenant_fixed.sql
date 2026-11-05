@@ -1,5 +1,6 @@
---ROLLBACK;
---select * from org_orders_mst;
+
+commit;
+select * from org_orders_mst;
 --11111111-1111-1111-1111-111111111111
 --c9ac29d1-219c-4a3a-8887-f860550c32be
 -- =============================================================================
@@ -66,6 +67,16 @@
 --       org_tax_doc_lines_dtl        -> org_tax_documents_mst
 --       org_tax_documents_mst       -> org_orders_mst (and itself, via supersedes_id)
 --       org_wf_gate_decision_mst    -> org_orders_mst
+--       org_order_change_ops_dtl     -> org_order_changes_mst, items / pieces / preferences
+--       org_order_changes_mst        -> org_orders_mst
+--       items / pieces / preferences -> org_order_changes_mst (removed lines; so the
+--         change header is deleted after items, not with the ops)
+--   - Order Change guard triggers (0548): oc_change_immutable, oc_op_immutable,
+--     oc_order_foundation_guard (committed orders), oc_item/piece/pref_removed_guard
+--     reject every DELETE of these rows. When do_execute = true the script disables
+--     exactly those six row triggers (table owner only -- run as postgres), deletes,
+--     then re-enables them before COMMIT. Transactional: any error rolls the disable
+--     back too. The ALTERs lock those tables until COMMIT (lock_timeout 5s).
 --   - Tables that would otherwise be silently SET NULL or cascaded are deleted
 --     explicitly instead: org_ar_dunning_runs_mst, org_b2b_statement_payments_dtl,
 --     org_fin_voucher_audit_log, org_asm_exceptions_tr, org_dlv_pod_tr.
@@ -1101,7 +1112,10 @@ BEGIN
         'org_wf_release_mst',
         'org_wf_release_ln',
         -- covered as of 2026-10-02
-        'org_loyalty_txn_allocs_dtl'
+        'org_loyalty_txn_allocs_dtl',
+        -- covered as of 2026-10-30
+        'org_order_changes_mst',
+        'org_order_change_ops_dtl'
       )
   LOOP
     v_predicate := CASE r.column_name
@@ -1365,6 +1379,24 @@ SELECT
   row_count
 FROM tmp_uncovered_related_refs
 ORDER BY reference_scope, table_name, link_column;
+
+-- -----------------------------------------------------------------------------
+-- Order Change guards (0548) reject these deletes; disable them for this
+-- transaction only. Must run before any DELETE: ALTER TABLE refuses a table
+-- with pending trigger events. Skipped on a dry run so nothing is locked.
+-- -----------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF (SELECT do_execute FROM cleanup_config LIMIT 1) THEN
+    PERFORM set_config('lock_timeout', '5s', true);
+    ALTER TABLE public.org_order_changes_mst     DISABLE TRIGGER oc_change_immutable;
+    ALTER TABLE public.org_order_change_ops_dtl  DISABLE TRIGGER oc_op_immutable;
+    ALTER TABLE public.org_orders_mst            DISABLE TRIGGER oc_order_foundation_guard;
+    ALTER TABLE public.org_order_items_dtl       DISABLE TRIGGER oc_item_removed_guard;
+    ALTER TABLE public.org_order_item_pieces_dtl DISABLE TRIGGER oc_piece_removed_guard;
+    ALTER TABLE public.org_order_preferences_dtl DISABLE TRIGGER oc_pref_removed_guard;
+  END IF;
+END $$;
 
 -- -----------------------------------------------------------------------------
 -- Delete dependent rows first
@@ -1915,6 +1947,14 @@ WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.order_id IN (SELECT order_id FROM tmp_target_orders);
 
+-- Order Change ops RESTRICT their change header and items / pieces /
+-- preferences, so they go first. The header itself is deleted after items.
+DELETE FROM public.org_order_change_ops_dtl AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.order_id IN (SELECT order_id FROM tmp_target_orders);
+
 DELETE FROM public.org_order_preferences_dtl AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
@@ -1976,6 +2016,15 @@ WHERE cfg.do_execute
   AND x.order_id IN (SELECT order_id FROM tmp_target_orders);
 
 DELETE FROM public.org_order_items_dtl AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.order_id IN (SELECT order_id FROM tmp_target_orders);
+
+-- Removed (governed) items / pieces / preferences RESTRICT their change header
+-- (checked immediately despite DEFERRABLE), so the header goes after them; it
+-- RESTRICTs org_orders_mst, so before the order.
+DELETE FROM public.org_order_changes_mst AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
@@ -2083,6 +2132,22 @@ USING cleanup_config AS cfg
 WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.id IN (SELECT order_id FROM tmp_target_orders);
+
+-- Re-enable the Order Change guards. Deferred FK checks are fired first because
+-- ALTER TABLE refuses a table with pending trigger events (they would run at
+-- COMMIT anyway).
+DO $$
+BEGIN
+  IF (SELECT do_execute FROM cleanup_config LIMIT 1) THEN
+    SET CONSTRAINTS ALL IMMEDIATE;
+    ALTER TABLE public.org_order_changes_mst     ENABLE TRIGGER oc_change_immutable;
+    ALTER TABLE public.org_order_change_ops_dtl  ENABLE TRIGGER oc_op_immutable;
+    ALTER TABLE public.org_orders_mst            ENABLE TRIGGER oc_order_foundation_guard;
+    ALTER TABLE public.org_order_items_dtl       ENABLE TRIGGER oc_item_removed_guard;
+    ALTER TABLE public.org_order_item_pieces_dtl ENABLE TRIGGER oc_piece_removed_guard;
+    ALTER TABLE public.org_order_preferences_dtl ENABLE TRIGGER oc_pref_removed_guard;
+  END IF;
+END $$;
 
 -- -----------------------------------------------------------------------------
 -- Final verification snapshot

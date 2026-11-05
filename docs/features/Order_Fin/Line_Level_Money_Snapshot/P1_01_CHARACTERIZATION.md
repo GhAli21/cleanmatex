@@ -42,7 +42,7 @@ All in `web-admin/__tests__/characterization/create-money/`:
   3. promo code or auto-promo (on the after-rule base)
 
   A non-stackable rule competes with the promo on the after-manual base, and the larger one wins; the losing typed promo is dropped silently (G10–G17).
-- **Tax:** order-level, on the after-discount base, by default profiles or selected ids (compound profiles last). Inclusive extracts from the gross. With no profile, the tenant VAT rate applies. An exemption carries no tax and gets no fallback (G20–G27).
+- **Tax:** order-level, on the after-discount base, by default profiles or selected ids (compound profiles last). Inclusive extracts from the gross. With no profile, there is no tax: the `TENANT_VAT_RATE` fallback was retired in P6-03 (G25 flipped, owner "retire all"; migration 0665 first gave every tenant that relied on it a real VAT profile at the same rate). An exemption carries no tax (G20–G27). G30–G32 now take their VAT from a profile at the same rate; their figures are unchanged.
 - **Order charges** (ORDER preferences) are added after tax: not discounted and not taxed (G30, G31; PF-19). A free ORDER preference gets a row but no charge (W06).
 - **Cash rounding** applies to the grand total; the gift card is settlement only (G32–G34).
 - **Pieces:**
@@ -245,5 +245,6 @@ Each entry gives: what happens today, a worked example, the impact, the planned 
 | P4 (calculator) | PF-03, PF-05, PF-08, PF-22, G07 |
 | P5 (Create on the calculator, Release A) | PF-02, PF-12, G15 |
 | M6 + charge configuration | PF-19 |
+| ✅ P6-03 (2026-10-30) | G25: no profile means no tax (settings fallback retired) |
 
 Every fix flips its golden case in the same change and is logged in STATUS.

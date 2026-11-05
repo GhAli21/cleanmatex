@@ -106,6 +106,10 @@ export type ServerTotals = {
   taxPricingMode?: 'TAX_EXCLUSIVE' | 'TAX_INCLUSIVE';
   /** B17 — currency cash-rounding delta applied to saleTotal; 0 when no rule changes it. */
   roundingAdjustmentAmount?: number;
+  /** Extras inside the line prices (calculator `includedModifierAmount`); absent = unknown. */
+  extrasIncludedAmount?: number;
+  /** Speed premiums inside the line prices (calculator `speedPremiumTotal`); absent = unknown. */
+  speedPremiumIncludedAmount?: number;
   creditLimit?: {
     currentBalance: number;
     creditLimit: number;

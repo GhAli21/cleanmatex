@@ -11,7 +11,6 @@ import {
   createIssue,
   resolveIssue,
   getOrderHistory,
-  estimateReadyBy,
 } from '@/lib/api/orders';
 
 // Mock fetch globally
@@ -222,69 +221,5 @@ describe('Workflow Orders API', () => {
     });
   });
 
-  describe('POST /api/v1/orders/estimate-ready-by - Estimate Ready By', () => {
-    it('should estimate ready by time', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const mockResponse = {
-        success: true,
-        data: {
-          readyBy: tomorrow.toISOString(),
-        },
-      };
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await estimateReadyBy({
-        items: [
-          { productId: 'prod-1', quantity: 2 },
-        ],
-        express: false,
-      });
-
-      expect(result.readyBy).toBeDefined();
-      expect(new Date(result.readyBy).getTime()).toBeGreaterThan(Date.now());
-    });
-
-    it('should calculate express service time reduction', async () => {
-      const normal = new Date();
-      normal.setDate(normal.getDate() + 2);
-      const express = new Date();
-      express.setHours(express.getHours() + 12);
-
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            success: true,
-            data: { readyBy: normal.toISOString() },
-          }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            success: true,
-            data: { readyBy: express.toISOString() },
-          }),
-        });
-
-      const normalResult = await estimateReadyBy({
-        items: [{ productId: 'prod-1', quantity: 1 }],
-        express: false,
-      });
-
-      const expressResult = await estimateReadyBy({
-        items: [{ productId: 'prod-1', quantity: 1 }],
-        express: true,
-      });
-
-      const timeDiff = new Date(normalResult.readyBy).getTime() - new Date(expressResult.readyBy).getTime();
-      expect(timeDiff).toBeGreaterThan(0);
-    });
-  });
 });
 

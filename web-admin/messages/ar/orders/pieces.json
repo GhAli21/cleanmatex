@@ -56,7 +56,8 @@
     "deleteFailed": "فشل حذف القطعة",
     "errorLoadingPieces": "خطأ في تحميل القطع",
     "retry": "إعادة المحاولة",
-    "barcodeRequired": "الباركود مطلوب"
+    "barcodeRequired": "الباركود مطلوب",
+    "pieceNotFound": "لا توجد قطعة في هذا البند تطابق هذا الرمز أو البطاقة"
   },
   "success": {
     "updated": "تم تحديث القطعة بنجاح",
@@ -82,6 +83,7 @@
   "splitSelectedPieces": "تقسيم {count} قطع",
   "barcodeScanner": "قارئ الباركود",
   "scanBarcodePlaceholder": "امسح أو أدخل الباركود...",
+  "scanHint": "امسح رمز القطعة أو رمز QR الخاص بها أو بطاقتها",
   "scan": "مسح",
   "scanning": "جاري المسح...",
   "showing": "عرض {start} إلى {end} من {total}",

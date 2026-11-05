@@ -46,9 +46,9 @@ export interface TaxProfileInput {
   /** Profile mode + decimals/increment, falling back to the currency ACCOUNTING rule. */
   rounding: RoundingRule;
   /**
-   * True for the profile the loader builds from the tenant VAT rate when the
-   * tenant has no profile at all (today's fallback). Never used for an
-   * exempt row (PF-04). Written with `tax_profile_id` NULL.
+   * True for a tax line recorded on an order created before P6-03 from the
+   * retired `TENANT_VAT_RATE` setting (stored with `tax_profile_id` NULL).
+   * Edit re-uses its recorded rate; no new order gets one.
    */
   isTenantRateFallback?: boolean;
 }

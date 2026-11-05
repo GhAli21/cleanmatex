@@ -37,23 +37,24 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
           permissions: ['products:read'],
           requireAllPermissions: true,
         },
-        notes: [
-          'Runtime also accepts catalog:read via requireAnyPermission; products:read is the DB-backed code.',
-        ],
       },
       {
         label: 'Export products',
         method: 'GET',
         path: '/api/v1/products/export',
-        enforcement: 'auth_only',
-        notes: ['Template/download export used by ImportModal/ExportModal on services screen.'],
+        requirement: {
+          permissions: ['products:export'],
+          requireAllPermissions: true,
+        },
       },
       {
         label: 'Import products',
         method: 'POST',
         path: '/api/v1/products/import',
-        enforcement: 'auth_only',
-        notes: ['Bulk import used by ImportModal on services screen.'],
+        requirement: {
+          permissions: ['products:create'],
+          requireAllPermissions: true,
+        },
       },
     ],
     notes: CATALOG_CHILD_NOTES,
@@ -71,13 +72,16 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'GET',
         path: '/api/v1/categories',
         enforcement: 'auth_only',
-        notes: ['GET with ?enabled=true query filter.'],
+        notes: ['Session-only: validated session (validateJWTWithTenant); reference data read by order and processing screens (BF-23).'],
       },
       {
         label: 'Create product',
         method: 'POST',
         path: '/api/v1/products',
-        enforcement: 'auth_only',
+        requirement: {
+          permissions: ['products:create'],
+          requireAllPermissions: true,
+        },
       },
       {
         label: 'Upload product image',
@@ -100,13 +104,19 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Get product',
         method: 'GET',
         path: '/api/v1/products/[id]',
-        enforcement: 'auth_only',
+        requirement: {
+          permissions: ['products:read'],
+          requireAllPermissions: true,
+        },
       },
       {
         label: 'Update product',
         method: 'PATCH',
         path: '/api/v1/products/[id]',
-        enforcement: 'auth_only',
+        requirement: {
+          permissions: ['products:update'],
+          requireAllPermissions: true,
+        },
       },
       {
         label: 'Delete product image',
@@ -135,16 +145,143 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'List price lists',
         method: 'GET',
         path: '/api/v1/price-lists',
-        enforcement: 'auth_only',
+        requirement: {
+          permissions: ['pricing:read'],
+          requireAllPermissions: true,
+        },
       },
       {
         label: 'Create price list',
         method: 'POST',
         path: '/api/v1/price-lists',
-        enforcement: 'auth_only',
+        requirement: {
+          permissions: ['pricing:create'],
+          requireAllPermissions: true,
+        },
       },
     ],
     notes: CATALOG_CHILD_NOTES,
+  },
+  {
+    routePattern: '/dashboard/catalog/speed-pricing',
+    label: 'Speed Pricing',
+    page: {
+      permissions: ['pricing:read'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      create: {
+        label: 'Add rule',
+        requirement: { permissions: ['pricing:create'], requireAllPermissions: true },
+      },
+      update: {
+        label: 'Edit, activate or deactivate rule',
+        requirement: { permissions: ['pricing:update'], requireAllPermissions: true },
+      },
+      delete: {
+        label: 'Delete rule',
+        requirement: { permissions: ['pricing:delete'], requireAllPermissions: true },
+      },
+      bulk: {
+        label: 'Add rules for a category',
+        requirement: { permissions: ['pricing:bulk'], requireAllPermissions: true },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'List speed rules',
+        method: 'GET',
+        path: '/api/v1/catalog/speed-rules',
+        requirement: {
+          permissions: ['pricing:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create speed rule',
+        method: 'POST',
+        path: '/api/v1/catalog/speed-rules',
+        requirement: {
+          permissions: ['pricing:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Read speed rule',
+        method: 'GET',
+        path: '/api/v1/catalog/speed-rules/[id]',
+        requirement: {
+          permissions: ['pricing:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Update speed rule',
+        method: 'PATCH',
+        path: '/api/v1/catalog/speed-rules/[id]',
+        requirement: {
+          permissions: ['pricing:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Delete speed rule',
+        method: 'DELETE',
+        path: '/api/v1/catalog/speed-rules/[id]',
+        requirement: {
+          permissions: ['pricing:delete'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Bulk create speed rules for a category',
+        method: 'POST',
+        path: '/api/v1/catalog/speed-rules/bulk',
+        requirement: {
+          permissions: ['pricing:bulk'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Which speed rule applies',
+        method: 'GET',
+        path: '/api/v1/catalog/speed-rules/resolve',
+        requirement: {
+          permissions: ['pricing:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Product picker',
+        method: 'GET',
+        path: '/api/v1/products',
+        requirement: {
+          permissions: ['products:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Category menu',
+        method: 'GET',
+        path: '/api/v1/categories',
+        enforcement: 'auth_only',
+      },
+      {
+        label: 'Branch menu',
+        method: 'GET',
+        path: '/api/v1/branches',
+        enforcement: 'auth_only',
+      },
+      {
+        label: 'Service speed menu',
+        method: 'GET',
+        path: '/api/v1/lookups/service-speeds',
+        enforcement: 'auth_only',
+      },
+    ],
+    notes: [
+      'Child under catalog nav. Reuses the existing pricing:* codes (P0-05), so no permission migration; navigation in 0691.',
+    ],
   },
   {
     routePattern: '/dashboard/catalog/pricing/[id]',
@@ -158,25 +295,37 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Get price list',
         method: 'GET',
         path: '/api/v1/price-lists/[id]',
-        enforcement: 'auth_only',
+        requirement: {
+          permissions: ['pricing:read'],
+          requireAllPermissions: true,
+        },
       },
       {
         label: 'Update price list',
         method: 'PATCH',
         path: '/api/v1/price-lists/[id]',
-        enforcement: 'auth_only',
+        requirement: {
+          permissions: ['pricing:update'],
+          requireAllPermissions: true,
+        },
       },
       {
         label: 'Manage price list items',
         method: 'POST',
         path: '/api/v1/price-lists/[id]/items',
-        enforcement: 'auth_only',
+        requirement: {
+          permissions: ['pricing:update'],
+          requireAllPermissions: true,
+        },
       },
       {
         label: 'Update price list item',
-        method: 'PATCH',
+        method: 'PUT',
         path: '/api/v1/price-lists/[id]/items/[itemId]',
-        enforcement: 'auth_only',
+        requirement: {
+          permissions: ['pricing:update'],
+          requireAllPermissions: true,
+        },
       },
       {
         label: 'Export pricing',
@@ -222,20 +371,23 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'GET',
         path: '/api/v1/categories',
         enforcement: 'auth_only',
+        notes: ['Session-only: validated session (validateJWTWithTenant); reference data read by order and processing screens (BF-23).'],
       },
       {
         label: 'List enabled categories',
         method: 'GET',
         path: '/api/v1/categories',
         enforcement: 'auth_only',
-        notes: ['GET with ?enabled=true query filter.'],
+        notes: ['Session-only: validated session (validateJWTWithTenant); reference data read by order and processing screens (BF-23).'],
       },
       {
         label: 'Toggle category enablement',
         method: 'POST',
-        path: '/api/v1/categories/enable',
-        enforcement: 'auth_only',
-        notes: ['Session + tenant; no granular permission on local route.'],
+        path: '/api/v1/categories',
+        requirement: {
+          permissions: ['products:categories'],
+          requireAllPermissions: true,
+        },
       },
     ],
     notes: CATALOG_CHILD_NOTES,

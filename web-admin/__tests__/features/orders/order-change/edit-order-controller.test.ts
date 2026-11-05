@@ -58,6 +58,19 @@ function requestOf(controller: ReturnType<typeof createEditOrderController>) {
 }
 
 describe('edit order controller', () => {
+  it('P1B-11: keeps a discount removal and a policy warning on the same step as two acknowledgements', async () => {
+    const fetchImpl = jest.fn(async (_url: string, _init?: { body?: string }) => ({ ok: true, status: 200, json: async () => ({ data: {} }) }));
+    const controller = createEditOrderController({ fetchImpl: fetchImpl as unknown as typeof fetch });
+    controller.load(baseline());
+    controller.setQuantity({ kind: 'persisted', id: ITEM_B }, 4, [PIECE_B]);
+    controller.acknowledge(1, 'CHANGE_ITEM_QUANTITY');
+    controller.acknowledge(1, 'DISCOUNT_REMOVED:DISCOUNT_RULE:r1');
+    controller.acknowledge(1, 'DISCOUNT_REMOVED:DISCOUNT_RULE:r1');
+    await controller.preview('order-1');
+    const sent = JSON.parse(fetchImpl.mock.calls[0][1]?.body ?? '{}') as { gateDecisions: Array<{ gateCode: string }> };
+    expect(sent.gateDecisions.map((gate) => gate.gateCode)).toEqual(['CHANGE_ITEM_QUANTITY', 'DISCOUNT_REMOVED:DISCOUNT_RULE:r1']);
+  });
+
   it('changes only the repeated product line that was edited', () => {
     const controller = createEditOrderController();
     controller.load(baseline());
@@ -71,6 +84,61 @@ describe('edit order controller', () => {
         payload: { quantity: 4, selectedPieceIds: [PIECE_B] },
       },
     ]);
+  });
+
+  it('P6-02b: sends a line speed only where the server would not give it', () => {
+    const speeds = (): EditOrderBaseline => ({
+      ...baseline(),
+      serviceSpeed: 'STANDARD',
+      lines: baseline().lines.map((line) => ({ ...line, serviceSpeed: 'STANDARD' })),
+    });
+    // The order moves to EXPRESS; line A follows it, line B keeps STANDARD on its own.
+    const controller = createEditOrderController({ createId: () => '12121212-1212-4121-8121-121212121212' });
+    controller.load(speeds());
+    controller.setServiceSpeed('EXPRESS');
+    controller.setLineSpeed({ kind: 'persisted', id: ITEM_A }, 'EXPRESS');
+    controller.setLineSpeed({ kind: 'persisted', id: ITEM_B }, 'STANDARD');
+    controller.addItem({ productId: PRODUCT, quantity: 1, serviceSpeed: 'EXPRESS' });
+    const operations = requestOf(controller).operations;
+    expect(operations.filter((operation) => operation.code === 'CHANGE_SERVICE_SPEED')).toEqual([
+      { seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'ORDER' }, payload: { serviceSpeed: 'EXPRESS' } },
+      { seq: 2, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_ITEM', id: ITEM_B }, payload: { serviceSpeed: 'STANDARD' } },
+    ]);
+    // A new line at the order speed carries no speed of its own.
+    expect(operations.find((operation) => operation.code === 'ADD_ITEM')?.payload).not.toHaveProperty('serviceSpeed');
+
+    // Only line A changes: one line operation, no order operation.
+    const lineOnly = createEditOrderController();
+    lineOnly.load(speeds());
+    lineOnly.setLineSpeed({ kind: 'persisted', id: ITEM_A }, 'EXPRESS');
+    expect(requestOf(lineOnly).operations).toEqual([
+      { seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_ITEM', id: ITEM_A }, payload: { serviceSpeed: 'EXPRESS' } },
+    ]);
+  });
+
+  it('P6-02c: sends a line price or discount only where it differs from the stored one', () => {
+    const stored = (): EditOrderBaseline => ({
+      ...baseline(),
+      lines: baseline().lines.map((line, index) => index === 0
+        ? { ...line, priceOverride: '5', overrideReason: 'Loyal', lineDiscount: { type: 'PERCENTAGE', value: '10.0000', reason: 'Stain' } }
+        : line),
+    });
+    const controller = createEditOrderController({ createId: () => '12121212-1212-4121-8121-121212121212' });
+    controller.load(stored());
+    // The same price and discount entered again send nothing.
+    controller.setLinePrice({ kind: 'persisted', id: ITEM_A }, '5.0000', 'Loyal');
+    controller.setLineDiscount({ kind: 'persisted', id: ITEM_A }, { type: 'PERCENTAGE', value: '10.00', reason: 'Stain' });
+    expect(controller.buildOperations()).toEqual([]);
+
+    controller.setLinePrice({ kind: 'persisted', id: ITEM_A }, null);
+    controller.setLineDiscount({ kind: 'persisted', id: ITEM_B }, { type: 'FIXED_AMOUNT', value: '1.5000', reason: 'Late' });
+    controller.addItem({ productId: PRODUCT, quantity: 1, lineDiscount: { type: 'PERCENTAGE', value: '5.00', reason: 'Promo' } });
+    const operations = requestOf(controller).operations;
+    expect(operations.filter((operation) => operation.code === 'CHANGE_ITEM_PRICE' || operation.code === 'CHANGE_DISCOUNT')).toEqual([
+      { seq: 1, code: 'CHANGE_ITEM_PRICE', target: { kind: 'PERSISTED_ITEM', id: ITEM_A }, payload: { priceOverride: null } },
+      { seq: 2, code: 'CHANGE_DISCOUNT', target: { kind: 'PERSISTED_ITEM', id: ITEM_B }, payload: { lineDiscount: { type: 'FIXED_AMOUNT', value: '1.5000', reason: 'Late' } } },
+    ]);
+    expect(operations.find((operation) => operation.code === 'ADD_ITEM')?.payload).toMatchObject({ lineDiscount: { type: 'PERCENTAGE', value: '5.00', reason: 'Promo' } });
   });
 
   it('cancels a local item that is removed before commit', () => {

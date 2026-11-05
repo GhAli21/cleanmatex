@@ -7,6 +7,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { ADMIN_PERMISSIONS } from '@/lib/constants/permissions/admin-perm'
+import { PRICING_PERMISSIONS } from '@/lib/constants/permissions/pricing-perm'
 import {
   Home,
   PackageSearch,
@@ -367,6 +368,13 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/catalog/pricing',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
         permissions: [ADMIN_PERMISSIONS.MANAGE],
+      },
+      {
+        key: 'catalog_speed_pricing',
+        label: 'Speed Pricing',
+        path: '/dashboard/catalog/speed-pricing',
+        roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: [PRICING_PERMISSIONS.READ],
       },
       {
         key: 'catalog_addons',
@@ -1007,13 +1015,6 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         permissions: ['auth_config:read'],
       },
       {
-        key: 'settings_workflow_roles',
-        label: 'Workflow Roles',
-        path: '/dashboard/settings/workflow-roles',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['settings:workflow_roles:view'],
-      },
-      {
         key: 'settings_branding',
         label: 'Branding',
         path: '/dashboard/settings/branding',
@@ -1059,18 +1060,19 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         permissions: ['cash_control:view'],
       },
       {
+        key: 'settings_labels',
+        label: 'Labels & Tags',
+        label2: 'الملصقات والبطاقات',
+        path: '/dashboard/settings/labels',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
+      },
+      {
         key: 'settings_workflows',
         label: 'Workflows',
         path: '/dashboard/settings/workflows',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['settings:workflow'],
-      },
-      {
-        key: 'settings_navigation',
-        label: 'Navigation',
-        path: '/dashboard/settings/navigation',
-        roles: ['super_admin', 'tenant_admin'],
-        permissions: ['settings:read'],
       },
       {
         key: 'settings_tax',

@@ -54,7 +54,6 @@ export interface AuthState {
   currentTenant: UserTenant | null
   availableTenants: UserTenant[]
   permissions: string[] // RBAC permissions
-  workflowRoles: string[] // Workflow roles
   isLoading: boolean
   isAuthenticated: boolean
   /**

@@ -13,8 +13,9 @@
  * - a new line is priced from the catalog on the edit date, like Create;
  * - preferences keep the price on their row (a new row carries the price the
  *   review read from the catalog);
- * - recorded order and line discounts are kept as recorded: a percentage is
- *   applied again, an amount is kept (re-evaluation is Reusable View P1B-05).
+ * - recorded line discounts are kept as recorded (a percentage applied again,
+ *   an amount kept); recorded order discounts are re-evaluated on the new base
+ *   (D21, `edit-discount-reevaluation.ts`) and each change is reported.
  *
  * Two parts, so the mapping is testable without a database:
  * - `readEditOrderRecord`: the reads; every `org_*` query filters
@@ -26,7 +27,7 @@ import 'server-only';
 import type { PrismaClient } from '@prisma/client';
 import { toMoney, type AdjustmentInput, type StandardPriceResult } from '@/lib/commercial';
 import { PRICE_SOURCES, type CommercialLevel, type DiscAllocBasis, type DiscAllocMode } from '@/lib/constants/commercial';
-import { DISCOUNT_CALC_TYPE, DISCOUNT_SOURCE_TYPE, type DiscountCalcType } from '@/lib/constants/discount-source-type';
+import { DISCOUNT_CALC_TYPE, DISCOUNT_SOURCE_TYPE, MANUAL_LINE_DISCOUNT_LABEL, type DiscountCalcType } from '@/lib/constants/discount-source-type';
 import { CHARGE_TYPES, type ExtraPricePricingMode, type TaxPricingMode } from '@/lib/constants/order-financial';
 import { PREFS_LEVEL } from '@/lib/constants/order-preferences';
 import {
@@ -35,6 +36,7 @@ import {
   type CommercialDb,
   type CommercialLoaderDeps,
   type CommercialOrderIntent,
+  type CustomItemIntent,
   type LineIntent,
   type PreferenceIntent,
   type ProductFacts,
@@ -43,6 +45,15 @@ import {
 } from './commercial-context.loader';
 import type { AdjustmentMeta } from './commercial-line.writer';
 import { quoteCommercialOrder, type CommercialQuote } from './commercial-quote.service';
+import {
+  discountChangesOf,
+  reevaluateOrderDiscounts,
+  type DiscountChange,
+  type DiscountRemovalReason,
+  type EditDiscountRule,
+  type EditPromotion,
+  type RecordedOrderDiscount,
+} from './edit-discount-reevaluation';
 
 // ─── Errors ────────────────────────────────────────────────────────────────
 
@@ -171,13 +182,17 @@ export interface EditOrderRecord {
   /** Products of the stored lines, read without the active filter. */
   products: ReadonlyMap<string, ProductFacts>;
   taxProfiles: ReadonlyMap<string, EditTaxProfileRow>;
+  /** The rules the recorded discounts came from, read without the active filter (D21). */
+  discountRules: ReadonlyMap<string, EditDiscountRule>;
+  /** The promotions the recorded discounts came from, read without the active filter (D21). */
+  promotions: ReadonlyMap<string, EditPromotion>;
 }
 
 /** The reads `readEditOrderRecord` needs (the Prisma client or a transaction client). */
 export type EditRecordDb = Pick<PrismaClient,
   | 'org_orders_mst' | 'org_order_items_dtl' | 'org_order_item_pieces_dtl' | 'org_order_preferences_dtl'
   | 'org_order_discounts_dtl' | 'org_order_charges_dtl' | 'org_order_taxes_dtl' | 'org_product_data_mst'
-  | 'org_tax_profiles_cf'>;
+  | 'org_tax_profiles_cf' | 'org_discount_rules_cf' | 'org_promotions_mst'>;
 
 const text = (value: { toString(): string } | null | undefined): string | null => (value == null ? null : value.toString());
 const amount = (value: { toString(): string } | null | undefined): string => text(value) ?? '0';
@@ -249,7 +264,11 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
 
   const productIds = [...new Set(items.map((i) => i.product_id).filter((id): id is string => id != null))];
   const profileIds = [...new Set(taxLines.map((t) => t.tax_profile_id).filter((id): id is string => id != null))];
-  const [products, profiles] = await Promise.all([
+  const ruleIds = [...new Set(discounts.filter((d) => d.source_type === DISCOUNT_SOURCE_TYPE.DISCOUNT_RULE)
+    .map((d) => d.source_id).filter((id): id is string => id != null))];
+  const promotionIds = [...new Set(discounts.filter((d) => d.source_type === DISCOUNT_SOURCE_TYPE.PROMO_CODE)
+    .map((d) => d.promotion_id ?? d.source_id).filter((id): id is string => id != null))];
+  const [products, profiles, rules, promotions] = await Promise.all([
     db.org_product_data_mst.findMany({
       where: { tenant_org_id: tenantOrgId, id: { in: productIds } },
         select: {
@@ -264,6 +283,21 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
         output_decimal_places: true, rounding_increment_minor: true,
       },
     }),
+    ruleIds.length > 0
+      ? db.org_discount_rules_cf.findMany({
+        where: { tenant_org_id: tenantOrgId, id: { in: ruleIds } },
+        select: { id: true, discount_type: true, discount_value: true, conditions: true },
+      })
+      : [],
+    promotionIds.length > 0
+      ? db.org_promotions_mst.findMany({
+        where: { tenant_org_id: tenantOrgId, id: { in: promotionIds } },
+        select: {
+          id: true, discount_type: true, discount_value: true, max_discount_amount: true,
+          min_order_amount: true, max_order_amount: true, applicable_categories: true,
+        },
+      })
+      : [],
   ]);
 
   const s = order;
@@ -362,10 +396,30 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
       outputDecimalPlaces: p.output_decimal_places,
       incrementMinor: p.rounding_increment_minor,
     }])),
+    discountRules: new Map(rules.map((r): [string, EditDiscountRule] => [r.id, {
+      id: r.id, discountType: r.discount_type, discountValue: r.discount_value.toString(), conditions: r.conditions,
+    }])),
+    promotions: new Map(promotions.map((p): [string, EditPromotion] => [p.id, {
+      id: p.id,
+      discountType: p.discount_type,
+      discountValue: p.discount_value.toString(),
+      maxDiscountAmount: text(p.max_discount_amount),
+      minOrderAmount: text(p.min_order_amount),
+      maxOrderAmount: text(p.max_order_amount),
+      applicableCategories: p.applicable_categories,
+    }])),
   };
 }
 
 // ─── Projection (what the edit asks for) ───────────────────────────────────
+
+/** A cashier's line discount set by the edit (P6-02c). */
+export interface EditLineDiscount {
+  type: DiscountCalcType;
+  /** The percent or the amount, as money text. */
+  value: string;
+  reason: string;
+}
 
 /** One line after the edit. */
 export interface EditProjectedLine {
@@ -376,9 +430,14 @@ export interface EditProjectedLine {
   serviceSpeed: string | null;
   /** Active pieces after the edit: stored ones by `piece_seq`, then new ones. */
   pieceIds: readonly string[];
-  /** New lines only: the catalog product and an authorized cashier price. */
+  /** New lines only: the catalog product. */
   productId?: string | null;
+  /** New lines only: a line with no catalog product, at its entered price (P6-02d). */
+  customItem?: CustomItemIntent | null;
+  /** An authorized cashier price; on a stored line, absent keeps its own and null clears it (P6-02c). */
   overrideUnitPrice?: string | null;
+  /** The line's cashier discount; on a stored line, absent keeps its own and null removes it (P6-02c). */
+  lineDiscount?: EditLineDiscount | null;
 }
 
 /** One active preference row after the edit, with its price. */
@@ -412,6 +471,8 @@ export interface EditIntent {
   adjustmentMeta: ReadonlyMap<string, AdjustmentMeta>;
   /** Stored charge kept as it is, keyed by its calculator charge id. */
   keptChargeIds: ReadonlyMap<string, string>;
+  /** The recorded ORDER discounts, in applied order; `quoteOrderEdit` re-evaluates them (D21). */
+  recordedOrderDiscounts: readonly RecordedOrderDiscount[];
 }
 
 /** The calculator id of a stored charge Edit keeps unchanged. */
@@ -522,6 +583,13 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
     ...record.items.filter((i) => projected.has(i.id)).map((i) => projected.get(i.id) as EditProjectedLine),
     ...projection.lines.filter((l) => !stored.has(l.id)),
   ];
+  // A cashier line discount set by the edit, labelled as on Create and carrying its reason.
+  const manualDiscount = (lineId: string, discount: EditLineDiscount | null | undefined): AdjustmentInput[] => {
+    if (!discount) return [];
+    const id = `${lineId}:manual`;
+    adjustmentMeta.set(id, { ...MANUAL_LINE_DISCOUNT_LABEL, notes: discount.reason });
+    return [{ id, source: DISCOUNT_SOURCE_TYPE.MANUAL, calcType: discount.type, value: discount.value }];
+  };
   const lines: LineIntent[] = ordered.map((line) => {
     const item = stored.get(line.id);
     const serviceSpeed = line.serviceSpeed ?? item?.serviceSpeed ?? projection.serviceSpeed;
@@ -537,19 +605,25 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
       return {
         ...base,
         productId: line.productId ?? null,
+        customItem: line.customItem ?? null,
         overrideUnitPrice: line.overrideUnitPrice ?? null,
-        lineDiscounts: [],
+        lineDiscounts: manualDiscount(line.id, line.lineDiscount),
       };
     }
 
     // ─── A stored line keeps its agreed price (L24) ──────────────────────
     const own = record.discounts.filter((d) => d.itemId === item.id && d.level !== 'ORDER');
     const priceList = own.find((d) => d.sourceType === DISCOUNT_SOURCE_TYPE.PRICE_LIST);
-    const lineDiscounts = own.filter((d) => d !== priceList).map((d, k) => {
-      const id = `${item.id}:d${k + 1}`;
-      adjustmentMeta.set(id, metaOf(d));
-      return adjustmentOf(id, [d]);
-    });
+    // A discount the edit sets replaces the line's own cashier discount (P6-02c).
+    const replacesManual = line.lineDiscount !== undefined;
+    const lineDiscounts = [
+      ...own.filter((d) => d !== priceList && !(replacesManual && d.sourceType === DISCOUNT_SOURCE_TYPE.MANUAL)).map((d, k) => {
+        const id = `${item.id}:d${k + 1}`;
+        adjustmentMeta.set(id, metaOf(d));
+        return adjustmentOf(id, [d]);
+      }),
+      ...manualDiscount(item.id, line.lineDiscount),
+    ];
     const listUnitPrice = item.listUnitPrice as string;
     const source = item.priceSource === PRICE_SOURCES.PRICE_LIST || item.priceSource === PRICE_SOURCES.CUSTOMER_PRICE
       ? item.priceSource
@@ -563,12 +637,15 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
     };
     const product = item.productId ? record.products.get(item.productId) : undefined;
     const speedChanged = serviceSpeed !== item.serviceSpeed;
+    const overrideUnitPrice = line.overrideUnitPrice !== undefined ? line.overrideUnitPrice : item.priceOverride;
+    // A cleared cashier price returns to the list price and the speed rule in force today.
+    const overrideCleared = item.priceOverride != null && overrideUnitPrice == null;
     return {
       ...base,
       productId: item.productId,
       // A custom line keeps its entered price as its list price.
       customItem: item.productId ? null : { unitPrice: listUnitPrice, serviceCategoryCode: item.serviceCategoryCode },
-      overrideUnitPrice: item.priceOverride,
+      overrideUnitPrice,
       lineDiscounts,
       pinned: {
         product: {
@@ -584,7 +661,7 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
         },
         standard,
         // A changed speed reads the rule in force today; the ready-by is counted again.
-        speed: speedChanged ? null : storedSpeed(item),
+        speed: speedChanged || overrideCleared ? null : storedSpeed(item),
         readyByAt: speedChanged ? null : item.readyByAt,
         tax: { taxCategoryCode: item.taxCategoryCode ?? 'STANDARD', exemptReason: item.taxExemptReason },
       },
@@ -597,13 +674,23 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
     const key = [d.sourceType, d.sourceId, d.promotionId, d.discountType, d.discountRate, d.sourceName].join('|');
     groups.set(key, [...(groups.get(key) ?? []), d]);
   }
-  const orderAdjustments = [...groups.values()]
-    .sort((a, b) => a[0].appliedSeq - b[0].appliedSeq)
-    .map((rows, k) => {
-      const id = `order:d${k + 1}`;
-      adjustmentMeta.set(id, metaOf(rows[0]));
-      return adjustmentOf(id, rows);
-    });
+  const sortedGroups = [...groups.values()].sort((a, b) => a[0].appliedSeq - b[0].appliedSeq);
+  const recordedOrderDiscounts: RecordedOrderDiscount[] = sortedGroups.map((rows, k) => ({
+    id: `order:d${k + 1}`,
+    sourceType: rows[0].sourceType,
+    sourceId: rows[0].sourceId,
+    promotionId: rows[0].promotionId,
+    sourceName: rows[0].sourceName,
+    sourceName2: rows[0].sourceName2,
+    discountType: rows[0].discountType,
+    discountRate: rows[0].discountRate,
+    amount: rows.reduce((sum, r) => sum.plus(toMoney(r.discountAmount)), toMoney(0)).toString(),
+  }));
+  const orderAdjustments = sortedGroups.map((rows, k) => {
+    const id = `order:d${k + 1}`;
+    adjustmentMeta.set(id, metaOf(rows[0]));
+    return adjustmentOf(id, rows);
+  });
 
   // ─── Charges that are not preference extras stay as they are ──────────
   const keptChargeIds = new Map<string, string>();
@@ -630,12 +717,15 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
     recorded: { ...record.snapshot, ...recordedTaxContext(record) },
     adjustmentMeta,
     keptChargeIds,
+    recordedOrderDiscounts,
   };
 }
 
 /** One Edit quote: the calculated order and what the writer needs to store it. */
 export interface EditQuote extends EditIntent {
   quote: CommercialQuote;
+  /** Each recorded order discount after the edit (D21); Review lists them, a removal needs acknowledgement. */
+  discountChanges: DiscountChange[];
 }
 
 /**
@@ -644,11 +734,11 @@ export interface EditQuote extends EditIntent {
  * @param tenantOrgId the session tenant, resolved server-side by the caller
  * @param record the stored order (`readEditOrderRecord`)
  * @param projection the order after the edit
- * @param deps the order's currency and the VAT-rate fallback (unused: the recorded tax wins)
- * @returns the calculated order, its intents and the writer labels
+ * @param deps the order's currency (tax comes from the order's recorded tax lines)
+ * @returns the calculated order, its intents, the writer labels and the discount changes (D21)
  * @throws CommercialEditError, CommercialContextError, CommercialRuleError (all 4xx in the routes)
  * @example
- * const edit = await quoteOrderEdit(prisma, tenantOrgId, record, projection, { currency, getTenantVatRate });
+ * const edit = await quoteOrderEdit(prisma, tenantOrgId, record, projection, { currency });
  * edit.quote.result.totals.totalAmount.toString();
  */
 export async function quoteOrderEdit(
@@ -659,6 +749,14 @@ export async function quoteOrderEdit(
   deps: Omit<CommercialLoaderDeps, 'recorded'>,
 ): Promise<EditQuote> {
   const edit = buildEditIntent(record, projection);
-  const quote = await quoteCommercialOrder(db, tenantOrgId, edit.intent, { ...deps, recorded: edit.recorded });
-  return { ...edit, quote };
+  let removed: ReadonlyMap<string, DiscountRemovalReason> = new Map();
+  // D21: the recorded order discounts, applied again on the edited base.
+  const quote = await quoteCommercialOrder(db, tenantOrgId, edit.intent, { ...deps, recorded: edit.recorded }, async (context) => {
+    const evaluated = reevaluateOrderDiscounts(edit.recordedOrderDiscounts, { rules: record.discountRules, promotions: record.promotions },
+      { lineCount: edit.intent.lines.length, serviceCategories: context.serviceCategories }, context);
+    removed = evaluated.removed;
+    return evaluated.adjustments;
+  });
+  const applied = new Map(quote.result.document.adjustments.map((a) => [a.id, a.amount] as const));
+  return { ...edit, quote, discountChanges: discountChangesOf(edit.recordedOrderDiscounts, applied, removed) };
 }

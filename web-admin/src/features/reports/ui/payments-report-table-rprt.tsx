@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
@@ -73,7 +74,7 @@ export default function PaymentsReportTable({
           <tbody className="divide-y divide-gray-100">
             {payments.map((p) => (
               <tr key={p.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-blue-600">{p.orderNo ?? '-'}</td>
+                <td className="px-4 py-3 font-medium text-blue-600">{p.orderNo ? <CmxCodeChip code={p.orderNo} kind="order" /> : '-'}</td>
                 <td className="px-4 py-3 text-gray-700">{p.invoiceNo ?? '-'}</td>
                 <td className="px-4 py-3 text-gray-900">{p.customerName ?? '-'}</td>
                 <td className="px-4 py-3 text-end font-medium text-gray-900">

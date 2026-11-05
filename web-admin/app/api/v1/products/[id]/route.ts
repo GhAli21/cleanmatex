@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import {
   getProductById,
   updateProduct,
@@ -15,32 +15,6 @@ import type { ProductUpdateRequest } from '@/lib/types/catalog';
 // ==================================================================
 // HELPER FUNCTIONS
 // ==================================================================
-
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id,
-    userId: user.id,
-    userRole: tenants[0].user_role,
-  };
-}
 
 // ==================================================================
 // GET /api/v1/products/:id - Get Product
@@ -58,8 +32,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requirePermission('products:read')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    await getAuthContext();
     const { id } = await params;
 
     const product = await getProductById(id);
@@ -108,8 +84,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requirePermission('products:update')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    await getAuthContext();
     const { id } = await params;
 
     const body: Partial<ProductUpdateRequest> = await request.json();
@@ -175,8 +153,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requirePermission('products:delete')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    await getAuthContext();
     const { id } = await params;
 
     await deleteProduct(id);

@@ -1,5 +1,6 @@
 'use client';
 
+import { useOrderMoneyRefresh } from '@features/orders/order-fin-view/hooks/use-order-money-refresh';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -54,6 +55,7 @@ export function OrderReceivableCollectionPanel({
   const tCollect = useTranslations('orders.collectPayment');
   const isRTL = useRTL();
   const router = useRouter();
+  const refreshMoney = useOrderMoneyRefresh();
   const [collectOpen, setCollectOpen] = useState(false);
   const { amounts, currencyCode, payment, arInvoice } = viewModel;
   const isPoc = payment.paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION;
@@ -105,7 +107,7 @@ export function OrderReceivableCollectionPanel({
       branchId={branchId}
       outstandingAmount={amounts.payOnCollectionAmount}
       currencyCode={currencyCode}
-      onCollected={() => router.refresh()}
+      onCollected={() => refreshMoney(orderId)}
     />
     </>
   );

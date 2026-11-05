@@ -5,29 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { createClient } from '@/lib/supabase/server';
-
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found');
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id,
-    userId: user.id,
-  };
-}
 
 /**
  * PUT /api/v1/price-lists/[id]/items/[itemId]
@@ -40,8 +19,11 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
+  const auth = await requirePermission('pricing:update')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    const { tenantId } = await getAuthContext();
+    const { tenantId } = auth;
     const { id: priceListId, itemId } = await params;
     const body = await request.json();
 
@@ -160,8 +142,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
+  const auth = await requirePermission('pricing:update')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    const { tenantId } = await getAuthContext();
+    const { tenantId } = auth;
     const { id: priceListId, itemId } = await params;
 
     // Verify item exists and belongs to tenant and price list

@@ -11,6 +11,7 @@
  * - Pagination controls
  */
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -118,7 +119,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                 onClick={() => router.push(`/dashboard/orders/${order.id}`)}
               >
                 <td className="px-4 py-3">
-                  <span className="font-medium text-blue-600">{order.order_no}</span>
+                  <CmxCodeChip code={order.order_no} kind="order" />
                 </td>
                 <td className="px-4 py-3">
                   <div className="font-medium">{order.customer?.name || '—'}</div>

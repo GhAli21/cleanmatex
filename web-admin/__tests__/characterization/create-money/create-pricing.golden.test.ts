@@ -55,9 +55,12 @@ jest.mock('@/lib/supabase/server', () => ({
 jest.mock('@/lib/services/tenant-settings.service', () => ({
   createTenantSettingsService: jest.fn(() => ({ getCurrencyConfig: (...a: unknown[]) => mockGetCurrencyConfig(...a) })),
 }));
+// P6-03: the price lookup reads its rate from the default tax profiles, not the TENANT_VAT_RATE setting.
+jest.mock('@/lib/services/tax-engine.service', () => ({
+  getDefaultVatRate: (...a: unknown[]) => mockGetTaxRate(...a),
+}));
 jest.mock('@/lib/services/tax.service', () => ({
   TaxService: jest.fn().mockImplementation(() => ({
-    getTaxRate: (...a: unknown[]) => mockGetTaxRate(...a),
     isTaxExempt: (...a: unknown[]) => mockIsTaxExempt(...a),
     calculateTax: (amount: number, rate: number, dp: number) => Number((amount * rate).toFixed(dp)),
   })),

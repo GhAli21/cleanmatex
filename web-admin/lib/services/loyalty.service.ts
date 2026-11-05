@@ -10,6 +10,7 @@ import {
   LOYALTY_ROUNDING_RULES,
   LOYALTY_TXN_TYPES,
   OUTBOX_EVENT_TYPES,
+  type LoyaltyReconcileTrigger,
   type LoyaltyRoundingRule,
 } from '@/lib/constants/order-financial';
 import { emitEventTx } from './outbox.service';
@@ -388,25 +389,151 @@ export async function redeemPointsTx(
 }
 
 /**
- * Queue a loyalty earn event via the outbox (async — avoids blocking the checkout transaction).
+ * Ask for the order's loyalty earn to be reconciled (D27). The delta is computed later by
+ * the `LOYALTY_EARN` outbox consumer (`reconcileOrderLoyaltyEarnTx`), so this never blocks
+ * or fails the money transaction that calls it.
+ * @param tx caller's transaction; the request commits with the money change
+ * @param params.tenantId tenant of the order
+ * @param params.sourceId with `trigger`, forms the ledger row's idempotency key
+ * @example await reconcileOrderLoyaltyEarn(tx, { tenantId, orderId, trigger: 'ORDER_FIN_RECALC', sourceId: traceId })
  */
-export async function queueEarnPoints(
+export async function reconcileOrderLoyaltyEarn(
   tx: PrismaTransactionClient,
-  params: {
-    tenantId:    string;
-    customerId:  string;
-    orderId:     string;
-    orderAmount: number;
-  }
-) {
+  params: { tenantId: string; orderId: string; trigger: LoyaltyReconcileTrigger; sourceId: string },
+): Promise<void> {
   await emitEventTx(tx, params.tenantId, OUTBOX_EVENT_TYPES.LOYALTY_EARN, 'order', params.orderId, {
-    customerId:  params.customerId,
-    orderAmount: params.orderAmount,
+    trigger: params.trigger,
+    sourceId: params.sourceId,
   });
 }
 
+/** Order facts the earn target depends on. */
+export interface OrderEarnFacts {
+  customerId: string | null;
+  cancelled: boolean;
+  outstanding: Decimal.Value;
+  total: Decimal.Value;
+  refunded: Decimal.Value;
+}
+
 /**
- * Process loyalty earn — called by the outbox worker after ORDER_COMPLETED event.
+ * Points this order should have earned (D27), or `null` for "leave as is".
+ * Cancelled or customer-less → 0; still owing money → null (earn waits for settlement);
+ * otherwise floor((total − refunded) × rate), never below 0.
+ */
+export function orderEarnTargetPoints(order: OrderEarnFacts, rate: Decimal.Value): number | null {
+  if (!order.customerId || order.cancelled) return 0;
+  if (new Decimal(order.outstanding).gt(0)) return null;
+  return Decimal.max(0, new Decimal(order.total).minus(order.refunded)).times(rate).floor().toNumber();
+}
+
+/**
+ * Outbox consumer side of D27: bring the order's earned points to its target in one
+ * transaction. The order row is locked, so two requests for one order run one after the
+ * other; earned-so-far is read from the ledger, so a redelivery or a double click posts 0.
+ * A clawback never takes the balance below 0 — the shortfall is kept in `unreversed_points`.
+ * @param tx outbox worker transaction (tenant context already set)
+ * @param params.tenantId tenant of the order; every query filters by it
+ * @returns the ledger row written, or null when nothing changed
+ * @example await reconcileOrderLoyaltyEarnTx(tx, { tenantId, orderId, idempotencyKey: 'loyalty-ORDER_CANCEL-o1' })
+ */
+export async function reconcileOrderLoyaltyEarnTx(
+  tx: PrismaTransactionClient,
+  params: { tenantId: string; orderId: string; idempotencyKey: string },
+) {
+  const { tenantId, orderId, idempotencyKey } = params;
+
+  const [order] = await tx.$queryRaw<{
+    customer_id: string | null; cancelled_at: Date | null;
+    outstanding_amount: Decimal | null; total_amount: Decimal | null; refunded_amount: Decimal | null;
+  }[]>`
+    SELECT customer_id, cancelled_at, outstanding_amount, total_amount, refunded_amount
+    FROM org_orders_mst
+    WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid
+    FOR UPDATE`;
+  if (!order) return null;
+
+  const replay = await tx.org_loyalty_txn_dtl.findFirst({
+    where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+  });
+  if (replay) return null;
+
+  const rows = await tx.org_loyalty_txn_dtl.findMany({
+    where: {
+      tenant_org_id: tenantId,
+      order_id: orderId,
+      txn_type: { in: [LOYALTY_TXN_TYPES.EARN, LOYALTY_TXN_TYPES.ADJUST] },
+    },
+    select: { txn_type: true, points: true, unreversed_points: true, earn_rate: true, customer_id: true },
+    orderBy: { created_at: 'asc' },
+  });
+  const earned = rows.reduce((sum, r) => sum + r.points - (r.unreversed_points ?? 0), 0);
+  const recordedRate = rows.find((r) => r.txn_type === LOYALTY_TXN_TYPES.EARN && r.earn_rate != null)?.earn_rate;
+
+  const program = await tx.org_loyalty_programs_cf.findFirst({
+    where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
+  });
+  const rate = recordedRate ?? program?.earn_rate_per_unit ?? null;
+  if (rate == null && earned === 0) return null;
+
+  const target = orderEarnTargetPoints({
+    customerId: order.customer_id,
+    cancelled: order.cancelled_at != null,
+    outstanding: order.outstanding_amount ?? 0,
+    total: order.total_amount ?? 0,
+    refunded: order.refunded_amount ?? 0,
+  }, rate ?? 0);
+  if (target === null) return null;
+  const delta = target - earned;
+
+  if (delta > 0) {
+    // A tenant that switched its program off earns nothing new.
+    if (!program || !order.customer_id || rate == null) return null;
+    return processEarnPoints(tx, {
+      tenantId, customerId: order.customer_id, orderId, earnPoints: delta,
+      monetaryValue: 0, idempotencyKey, earnRate: new Decimal(rate),
+    });
+  }
+  if (delta === 0) return null;
+
+  // Clawback from the customer the points were earned by.
+  const customerId = rows[0].customer_id;
+  const [account] = await tx.$queryRaw<{ id: string; points_balance: number }[]>`
+    SELECT id, points_balance FROM org_loyalty_accounts_mst
+    WHERE tenant_org_id = ${tenantId}::uuid AND customer_id = ${customerId}::uuid AND is_active = true
+    FOR UPDATE`;
+  if (!account) throw new Error('Loyalty account not found');
+
+  const owed = -delta;
+  const reversed = Math.min(owed, Math.max(0, account.points_balance));
+  const pointsAfter = account.points_balance - reversed;
+
+  await tx.org_loyalty_accounts_mst.update({
+    where: { id: account.id, tenant_org_id: tenantId },
+    data: { points_balance: pointsAfter, lifetime_earned: { decrement: reversed } },
+  });
+  const adjustTxn = await tx.org_loyalty_txn_dtl.create({
+    data: {
+      tenant_org_id: tenantId,
+      account_id: account.id,
+      customer_id: customerId,
+      txn_type: LOYALTY_TXN_TYPES.ADJUST,
+      points: -reversed,
+      points_before: account.points_balance,
+      points_after: pointsAfter,
+      order_id: orderId,
+      idempotency_key: idempotencyKey,
+      unreversed_points: owed > reversed ? owed - reversed : null,
+      notes: `Order earn reconciled to ${target} points`,
+    },
+  });
+  await consumeLoyaltyLotsTx(tx, tenantId, account.id, adjustTxn.id, reversed);
+  return adjustTxn;
+}
+
+/**
+ * Credit `earnPoints` to the customer as a new EARN lot for the order. Called by
+ * `reconcileOrderLoyaltyEarnTx` for a positive delta.
  */
 export async function processEarnPoints(
   tx: PrismaTransactionClient,
@@ -417,9 +544,11 @@ export async function processEarnPoints(
     earnPoints:     number;
     monetaryValue:  number;
     idempotencyKey: string;
+    /** Rate used, recorded on the row so later deltas for the order reuse it (D27). */
+    earnRate?:      Decimal;
   }
 ) {
-  const { tenantId, customerId, orderId, earnPoints, idempotencyKey } = params;
+  const { tenantId, customerId, orderId, earnPoints, idempotencyKey, earnRate } = params;
 
   // Idempotency-skip (mirrors redeemPointsTx). The outbox delivers LOYALTY_EARN
   // at-least-once, so a re-delivery must not double-credit. The DB unique
@@ -476,6 +605,7 @@ export async function processEarnPoints(
       points_after:    pointsAfter,
       order_id:        orderId,
       idempotency_key: idempotencyKey,
+      earn_rate:       earnRate ?? null,
       // B19 FIFO ledger — this EARN row is a new lot, fully unconsumed until
       // a later redemption or the expiry sweep draws it down.
       remaining_points: earnPoints,

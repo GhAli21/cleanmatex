@@ -27,6 +27,47 @@ describe('Order Change V1 request schema', () => {
     expect(orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: '33333333-3333-4333-8333-333333333333', productId: '44444444-4444-4444-8444-444444444444', quantity: 999 } }] }).success).toBe(true);
   });
 
+  it('accepts any speed code shape and leaves the active check to the calculator (P6-02a)', () => {
+    const speed = (serviceSpeed: string) => orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'ORDER' }, payload: { serviceSpeed } }] }).success;
+    expect(speed('SAME_DAY')).toBe(true);
+    expect(speed('express')).toBe(false);
+    expect(speed('')).toBe(false);
+  });
+
+  it('P6-02c: accepts a line price with its reason and a line discount, and rejects what would not read back', () => {
+    const op = (code: string, payload: Record<string, unknown>, target: Record<string, unknown> = { kind: 'PERSISTED_ITEM', id: '11111111-1111-4111-8111-111111111111' }) =>
+      orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code, target, payload }] }).success;
+    expect(op('CHANGE_ITEM_PRICE', { priceOverride: '8.5', overrideReason: 'Damaged' })).toBe(true);
+    expect(op('CHANGE_ITEM_PRICE', { priceOverride: '8.5' })).toBe(false);
+    expect(op('CHANGE_ITEM_PRICE', { priceOverride: null })).toBe(true);
+    expect(op('CHANGE_DISCOUNT', { lineDiscount: { type: 'PERCENTAGE', value: '12.5', reason: 'Stain' } })).toBe(true);
+    expect(op('CHANGE_DISCOUNT', { lineDiscount: { type: 'PERCENTAGE', value: '12.555', reason: 'Stain' } })).toBe(false);
+    expect(op('CHANGE_DISCOUNT', { lineDiscount: { type: 'FIXED_AMOUNT', value: '1.5', reason: ' ' } })).toBe(false);
+    expect(op('CHANGE_DISCOUNT', { lineDiscount: null })).toBe(true);
+    // Order discounts have no writer yet.
+    expect(op('CHANGE_DISCOUNT', { lineDiscount: null }, { kind: 'ORDER' })).toBe(false);
+    const twice = { ...request, operations: [1, 2].map((seq) => ({ seq, code: 'CHANGE_DISCOUNT', target: { kind: 'PERSISTED_ITEM', id: '11111111-1111-4111-8111-111111111111' }, payload: { lineDiscount: null } })) };
+    expect(orderChangeRequestSchema.safeParse(twice).success).toBe(false);
+  });
+
+  it('P6-02d: a new line is a catalog product or a custom item, never both', () => {
+    const add = (payload: Record<string, unknown>) => orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: '33333333-3333-4333-8333-333333333333', quantity: 1, ...payload } }] }).success;
+    const custom = { name: 'Wedding dress', name2: null, unitPrice: '12.5', serviceCategoryCode: 'DRY_CLEAN' };
+    expect(add({ customItem: custom })).toBe(true);
+    expect(add({ customItem: custom, productId: '44444444-4444-4444-8444-444444444444' })).toBe(false);
+    expect(add({})).toBe(false);
+    expect(add({ customItem: custom, priceOverride: '10' })).toBe(false);
+    expect(add({ customItem: { ...custom, name: ' ' } })).toBe(false);
+  });
+
+  it('P6-02e: a new line confirms only a catalog price', () => {
+    const add = (payload: Record<string, unknown>) => orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: '33333333-3333-4333-8333-333333333333', quantity: 1, ...payload } }] }).success;
+    expect(add({ productId: '44444444-4444-4444-8444-444444444444', confirmedUnitPrice: '2.5000' })).toBe(true);
+    expect(add({ productId: '44444444-4444-4444-8444-444444444444', confirmedUnitPrice: '-1' })).toBe(false);
+    expect(add({ productId: '44444444-4444-4444-8444-444444444444', confirmedUnitPrice: '2.5', priceOverride: '3', overrideReason: 'Regular' })).toBe(false);
+    expect(add({ customItem: { name: 'Curtain', unitPrice: '7' }, confirmedUnitPrice: '7' })).toBe(false);
+  });
+
   it('allows a preference on a piece created earlier in the same request and requires preference content for a change', () => {
     const localPiecePreference = {
       ...request,

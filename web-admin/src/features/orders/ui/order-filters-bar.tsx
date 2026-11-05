@@ -10,6 +10,8 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { CmxCodeSearchInput, type CodeSearchSubmit } from '@ui/forms/cmx-code-search-input';
+import { resolveScan, scanResultHref } from '@features/scan/api/scan-api';
 
 interface OrderFiltersBarProps {
   currentFilters: Record<string, string | undefined>;
@@ -39,9 +41,28 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleFilterChange('search', search);
+  const [opening, setOpening] = useState(false);
+
+  // HFC T3.9: a full code (order, line, piece, staff QR) opens that order at once; on any miss it falls back to the
+  // normal list search, which also has an exact order-number fast path on the server.
+  const handleSearch = async (submit: CodeSearchSubmit) => {
+    if (submit.mode === 'text') {
+      handleFilterChange('search', submit.text);
+      return;
+    }
+    setOpening(true);
+    try {
+      const found = await resolveScan(submit.code, 'any');
+      if (found.ok) {
+        router.push(scanResultHref(found.data));
+        return;
+      }
+    } catch {
+      // Network error: fall through to the list search.
+    } finally {
+      setOpening(false);
+    }
+    handleFilterChange('search', submit.code);
   };
 
   const handleClearFilters = () => {
@@ -53,17 +74,18 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-8">
         {/* Search */}
-        <form onSubmit={handleSearch} className="lg:col-span-2">
-          <input
-            type="text"
-            placeholder={t('search')}
+        <div className="lg:col-span-2" aria-busy={opening || undefined}>
+          <CmxCodeSearchInput
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'}`}
-            dir={isRTL ? 'rtl' : 'ltr'}
+            onChange={setSearch}
+            onSubmit={(submit) => {
+              void handleSearch(submit);
+            }}
+            placeholder={t('search')}
             aria-label={t('search')}
+            disabled={opening}
           />
-        </form>
+        </div>
 
         {/* Status Filter */}
         <select

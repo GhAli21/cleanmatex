@@ -2,7 +2,7 @@
 /**
  * User RBAC API Client — Extended role/permission operations
  *
- * Complements lib/api/users.ts with workflow roles, resource-scoped roles,
+ * Complements lib/api/users.ts with resource-scoped roles,
  * permission override saves, and permissions rebuild.
  *
  * All calls go to platform-api (port 3002) via rbacFetch.
@@ -11,7 +11,6 @@
  * DB tables backing these endpoints:
  *   org_auth_user_roles              → tenant-level roles
  *   org_auth_user_resource_roles     → resource-scoped roles (branch/store/pos/route/device)
- *   org_auth_user_workflow_roles     → workflow roles (ROLE_RECEPTION, ROLE_PREPARATION, etc.)
  *   org_auth_user_permissions        → global permission overrides
  *   org_auth_user_resource_permissions → resource-scoped permission overrides
  *   cmx_effective_permissions        → pre-computed effective permissions cache
@@ -62,17 +61,6 @@ export interface UserResourceRole {
 }
 
 /**
- * Workflow role assigned to a user.
- * Maps to org_auth_user_workflow_roles.
- */
-export interface UserWorkflowRole {
-  /** Workflow role code: ROLE_RECEPTION | ROLE_PREPARATION | ROLE_PROCESSING | ROLE_QA | ROLE_DELIVERY | ROLE_ADMIN */
-  workflow_role: string
-  /** ISO timestamp when role was assigned */
-  assigned_at?: string
-}
-
-/**
  * Global (tenant-wide) permission override for a user.
  * Maps to org_auth_user_permissions.
  */
@@ -106,11 +94,6 @@ export interface UserResourcePermissionOverride {
 export interface UserRolesResponse {
   tenant_roles: UserRole[]
   resource_roles: UserResourceRole[]
-}
-
-/** Workflow roles response */
-export interface UserWorkflowRolesResponse {
-  workflow_roles: UserWorkflowRole[]
 }
 
 /** Permission overrides response — global + resource-scoped */
@@ -195,58 +178,6 @@ export async function removeRole(
     `/tenants/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}/roles/${encodeURIComponent(roleCode)}`,
     accessToken,
     { method: 'DELETE' }
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Workflow role functions
-// ---------------------------------------------------------------------------
-
-/**
- * Get all workflow roles assigned to a user.
- * GET /tenants/{tenantId}/users/{userId}/workflow-roles
- */
-export async function getUserWorkflowRoles(
-  userId: string,
-  tenantId: string,
-  accessToken: string
-): Promise<UserWorkflowRolesResponse> {
-  const response = await rbacFetch<UserWorkflowRolesResponse | UserWorkflowRole[] | string[]>(
-    `/tenants/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}/workflow-roles`,
-    accessToken
-  )
-  if (Array.isArray(response)) {
-    // Handle both string[] and UserWorkflowRole[]
-    const roles = response.map((r) =>
-      typeof r === 'string' ? { workflow_role: r } : (r as UserWorkflowRole)
-    )
-    return { workflow_roles: roles }
-  }
-  if (response && 'workflow_roles' in response) {
-    return response as UserWorkflowRolesResponse
-  }
-  return { workflow_roles: [] }
-}
-
-/**
- * Assign (replace) workflow roles for a user.
- * POST /tenants/{tenantId}/users/{userId}/workflow-roles
- *
- * @param userId - User UUID
- * @param tenantId - Tenant organization UUID
- * @param workflowRoles - Full list of workflow role codes to assign (replaces existing)
- * @param accessToken - RBAC API bearer token
- */
-export async function assignWorkflowRoles(
-  userId: string,
-  tenantId: string,
-  workflowRoles: string[],
-  accessToken: string
-): Promise<void> {
-  await rbacFetch<void>(
-    `/tenants/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}/workflow-roles`,
-    accessToken,
-    { method: 'POST', body: { workflow_roles: workflowRoles } }
   )
 }
 

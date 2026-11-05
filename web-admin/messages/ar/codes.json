@@ -1,0 +1,15 @@
+{
+  "orderNo": "رقم الطلب",
+  "lineCode": "رمز البند",
+  "pieceCode": "رمز القطعة",
+  "tag": "البطاقة",
+  "noTag": "لا توجد بطاقة",
+  "partOf": "جزء من {orderNo}",
+  "piece": "القطعة {seq}",
+  "removedPiece": "أُزيلت من الطلب",
+  "openedFromScan": "فُتحت من المسح",
+  "filterPieces": "تصفية القطع حسب رمز القطعة أو البطاقة",
+  "filterPiecesPlaceholder": "رمز القطعة أو البطاقة",
+  "filterCount": "{shown} من {total} قطعة",
+  "filterNoMatch": "لا توجد قطعة تطابق هذا الرمز أو البطاقة"
+}

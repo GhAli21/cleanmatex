@@ -6,15 +6,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isPreparationEnabled } from '@/lib/config/features';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
  *
- * @param _request
+ * @param request
  * @param root0
  * @param root0.params
  */
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -22,20 +23,10 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Feature disabled' }, { status: 403 });
     }
     const { id: orderId } = await params;
+    const auth = await requirePermission('orders:transition')(request);
+    if (auth instanceof NextResponse) return auth;
+    const { tenantId, userId } = auth;
     const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = user.user_metadata?.tenant_org_id;
-    if (!tenantId) {
-      return NextResponse.json({ success: false, error: 'Tenant ID not found' }, { status: 400 });
-    }
 
     // Verify order exists in tenant and is in intake
     const { data: order, error: fetchError } = await supabase
@@ -51,7 +42,7 @@ export async function POST(
 
     const { error: updateError } = await supabase
       .from('org_orders_mst')
-      .update({ preparation_status: 'in_progress', prepared_by: user.id })
+      .update({ preparation_status: 'in_progress', prepared_by: userId })
       .eq('id', orderId)
       .eq('tenant_org_id', tenantId)
       .in('preparation_status', ['pending', 'in_progress']);

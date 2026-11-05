@@ -25,9 +25,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * The settings-catalog codes `TENANT_CURRENCY`/`TENANT_DECIMAL_PLACES`/
  * `BRANCH_CURRENCY` were soft-retired at stage L4 (migrations 0542/0543) and
  * are intentionally absent from this map — no code path should read them.
+ * Tax: `TENANT_VAT_RATE` (and `TAX_RATE`) were retired in Line-Level P6-03
+ * (migration 0673); tax comes from tax profiles only.
  */
 export const SETTING_CODES = {
-  TENANT_VAT_RATE: 'TENANT_VAT_RATE',
   DEFAULT_PHONE_COUNTRY_CODE: 'DEFAULT_PHONE_COUNTRY_CODE',
   USING_SPLIT_ORDER: 'USING_SPLIT_ORDER',
   USE_REJECT_TO_SOLVE: 'USE_REJECT_TO_SOLVE',
@@ -86,7 +87,7 @@ export class TenantSettingsService {
    * @param userId Authenticated user override scope.
    * @returns The resolved value, or null when a successful resolver returns no such setting.
    * @throws When the settings service cannot verify its response.
-   * @example await service.getSettingValueStrict(tenantId, SETTING_CODES.TENANT_VAT_RATE, branchId, userId)
+   * @example await service.getSettingValueStrict(tenantId, SETTING_CODES.USE_TRACK_BY_PIECE, branchId, userId)
    */
   async getSettingValueStrict(
     tenantId: string,

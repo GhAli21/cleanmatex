@@ -1,7 +1,7 @@
 /**
  * Permission Hooks
  * 
- * React hooks for checking permissions and workflow roles
+ * React hooks for checking permissions
  * Uses AuthContext for permission data
  */
 
@@ -117,70 +117,5 @@ export function useHasAllPermissions(permissions: string[]): boolean {
       return false
     })
   }, [userPermissions, permissions])
-}
-
-/**
- * Get workflow roles for current user
- * @returns Array of workflow role codes
- */
-export function useWorkflowRoles(): string[] {
-  const { workflowRoles } = useAuth()
-  return workflowRoles || []
-}
-
-/**
- * Check if user has specific workflow role
- * @param workflowRole - Workflow role code (e.g., 'ROLE_RECEPTION')
- * @returns True if user has workflow role
- */
-export function useHasWorkflowRole(workflowRole: string): boolean {
-  const { workflowRoles } = useAuth()
-  
-  return useMemo(() => {
-    if (!workflowRoles || workflowRoles.length === 0) return false
-    
-    // ROLE_ADMIN has access to all workflow roles
-    if (workflowRoles.includes('ROLE_ADMIN')) return true
-    
-    return workflowRoles.includes(workflowRole)
-  }, [workflowRoles, workflowRole])
-}
-
-/**
- * Check if user has any of the specified workflow roles
- * @param workflowRoles - Array of workflow role codes
- * @returns True if user has at least one workflow role
- */
-export function useHasAnyWorkflowRole(workflowRoles: string[]): boolean {
-  const { workflowRoles: userWorkflowRoles } = useAuth()
-  
-  return useMemo(() => {
-    if (!userWorkflowRoles || userWorkflowRoles.length === 0) return false
-    if (!workflowRoles || workflowRoles.length === 0) return false
-    
-    // ROLE_ADMIN has access to all workflow roles
-    if (userWorkflowRoles.includes('ROLE_ADMIN')) return true
-    
-    return workflowRoles.some(role => userWorkflowRoles.includes(role))
-  }, [userWorkflowRoles, workflowRoles])
-}
-
-/**
- * Check if user has all of the specified workflow roles
- * @param workflowRoles - Array of workflow role codes
- * @returns True if user has all workflow roles
- */
-export function useHasAllWorkflowRoles(workflowRoles: string[]): boolean {
-  const { workflowRoles: userWorkflowRoles } = useAuth()
-  
-  return useMemo(() => {
-    if (!userWorkflowRoles || userWorkflowRoles.length === 0) return false
-    if (!workflowRoles || workflowRoles.length === 0) return true
-    
-    // ROLE_ADMIN has access to all workflow roles
-    if (userWorkflowRoles.includes('ROLE_ADMIN')) return true
-    
-    return workflowRoles.every(role => userWorkflowRoles.includes(role))
-  }, [userWorkflowRoles, workflowRoles])
 }
 

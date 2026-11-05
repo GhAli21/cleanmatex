@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import {
   getPriceListById,
   updatePriceList,
@@ -15,32 +15,6 @@ import type { PriceListUpdateRequest } from '@/lib/types/catalog';
 // ==================================================================
 // HELPER FUNCTIONS
 // ==================================================================
-
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id,
-    userId: user.id,
-    userRole: tenants[0].user_role,
-  };
-}
 
 // ==================================================================
 // GET /api/v1/price-lists/:id - Get Price List
@@ -58,8 +32,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requirePermission('pricing:read')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    await getAuthContext();
     const { id } = await params;
 
     const priceList = await getPriceListById(id);
@@ -108,8 +84,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requirePermission('pricing:update')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    await getAuthContext();
     const { id } = await params;
 
     const body: Partial<PriceListUpdateRequest> = await request.json();
@@ -200,8 +178,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requirePermission('pricing:delete')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    await getAuthContext();
     const { id } = await params;
 
     await deletePriceList(id);

@@ -6,6 +6,7 @@
 
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -162,7 +163,9 @@ export default function AssemblyDetailPage() {
         <Link href={returnUrl} className="text-blue-600 hover:underline mb-2 inline-block">
           ← {t('assembly.backToAssembly')}
         </Link>
-        <h1 className="text-3xl font-bold">{t('screens.assembly')} - {order.order_no}</h1>
+        <h1 className="text-3xl font-bold">
+          {t('screens.assembly')} <CmxCodeChip code={order.order_no} kind="order" size="md" />
+        </h1>
         <p className="text-gray-600 mt-1">{order.customer.name} • {order.customer.phone}</p>
       </div>
 

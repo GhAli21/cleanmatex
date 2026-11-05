@@ -121,7 +121,7 @@ export function PendingPaymentsWorklistPage() {
       header: t('columns.order'),
       cell: ({ row }) => (
         <Link href={`/dashboard/orders/${row.original.order_id}`} className="text-xs font-medium text-blue-700 hover:underline">
-          {row.original.order_no ?? row.original.order_id.slice(0, 8)}
+          <bdi dir="ltr" className="font-mono">{row.original.order_no ?? '—'}</bdi>
         </Link>
       ),
     },

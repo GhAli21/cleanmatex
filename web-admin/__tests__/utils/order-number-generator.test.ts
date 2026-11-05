@@ -1,9 +1,9 @@
 /** @jest-environment node */
 
-// generateOrderNumber calls prisma.$queryRawUnsafe — mock Prisma before importing the module.
+// generateOrderNumber calls prisma.$queryRaw (tagged, parameterized) — mock Prisma before importing the module.
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
-    $queryRawUnsafe: jest.fn(),
+    $queryRaw: jest.fn(),
   },
 }));
 
@@ -21,9 +21,7 @@ describe('Order Number Generator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     const { prisma } = require('@/lib/db/prisma');
-    prisma.$queryRawUnsafe.mockResolvedValue([
-      { generate_order_number: `ORD-${TODAY_DATE}-0001` },
-    ]);
+    prisma.$queryRaw.mockResolvedValue([{ order_no: `ORD-${TODAY_DATE}-0001` }]);
   });
 
   describe('generateOrderNumber', () => {
@@ -47,7 +45,7 @@ describe('Order Number Generator', () => {
 
     it('should throw error when database returns no result', async () => {
       const { prisma } = require('@/lib/db/prisma');
-      prisma.$queryRawUnsafe.mockResolvedValueOnce([]);
+      prisma.$queryRaw.mockResolvedValueOnce([]);
       await expect(generateOrderNumber(mockTenantId)).rejects.toThrow();
     });
   });
@@ -96,6 +94,15 @@ describe('Order Number Generator', () => {
       expect(isValidOrderNumber('ORD-20251030')).toBe(false);
       expect(isValidOrderNumber('ORD-2025103-0001')).toBe(false);
       expect(isValidOrderNumber('ORD-20251030-001')).toBe(false);
+      expect(isValidOrderNumber('ORD-20251030-0001-S0')).toBe(false);
+      expect(isValidOrderNumber('ORD-20251030-0001-S01')).toBe(false);
+      expect(isValidOrderNumber('ORD-20251030-0001-1730000000')).toBe(false);
+    });
+
+    it('should accept 5+ digit sequences and sub-order numbers (P2)', () => {
+      expect(isValidOrderNumber('ORD-20251030-10000')).toBe(true);
+      expect(isValidOrderNumber('ORD-20251030-0001-S1')).toBe(true);
+      expect(isValidOrderNumber('ORD-20251030-12345-S27')).toBe(true);
     });
 
     it('should reject empty or null values', () => {
@@ -116,9 +123,9 @@ describe('Order Number Generator', () => {
   describe('Order number sequence', () => {
     it('should generate sequential numbers for same day', async () => {
       const { prisma } = require('@/lib/db/prisma');
-      prisma.$queryRawUnsafe
-        .mockResolvedValueOnce([{ generate_order_number: `ORD-${TODAY_DATE}-0001` }])
-        .mockResolvedValueOnce([{ generate_order_number: `ORD-${TODAY_DATE}-0002` }]);
+      prisma.$queryRaw
+        .mockResolvedValueOnce([{ order_no: `ORD-${TODAY_DATE}-0001` }])
+        .mockResolvedValueOnce([{ order_no: `ORD-${TODAY_DATE}-0002` }]);
 
       const orderNo1 = await generateOrderNumber(mockTenantId);
       const orderNo2 = await generateOrderNumber(mockTenantId);
@@ -130,9 +137,11 @@ describe('Order Number Generator', () => {
       expect((parsed2?.sequence ?? 0)).toBeGreaterThan((parsed1?.sequence ?? 0));
     });
 
-    it('should reset sequence for new day', () => {
-      // Tested at the DB level; verifying placeholder
-      expect(true).toBe(true);
+    it('should parse sub-order numbers to their root', () => {
+      const parsed = parseOrderNumber('ORD-20251030-0042-S3');
+      expect(parsed?.sequence).toBe(42);
+      expect(parsed?.subOrderIndex).toBe(3);
+      expect(parsed?.rootOrderNumber).toBe('ORD-20251030-0042');
     });
   });
 });

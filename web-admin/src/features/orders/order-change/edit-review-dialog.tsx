@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxCheckbox } from '@ui/primitives/cmx-checkbox';
 import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { cmxMessage } from '@ui/feedback';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
+import { discountRemovedGateCode } from '@/lib/services/commercial/edit-discount-reevaluation';
 import type { EditReviewView } from './edit-review-view';
 import { EditReviewChanges } from './edit-review-changes';
 import type { ApplyFailureNotice } from './apply-failure';
@@ -54,12 +55,21 @@ export function EditReviewDialog({
   onReload: () => void;
 }) {
   const t = useTranslations('orders.edit');
+  const tPriceChanged = useTranslations('newOrder.priceChanged');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const tDiscount = useTranslations('orders.edit.review.discounts');
+  const money = (amount: string) => (review?.currencyCode
+    ? new Intl.NumberFormat(locale, { style: 'currency', currency: review.currencyCode }).format(Number(amount))
+    : amount);
+  const discountName = (change: EditReviewView['discountChanges'][number]) => (locale === 'ar' && change.sourceName2) || change.sourceName
+    || tDiscount(change.sourceType === 'PROMO_CODE' ? 'promo' : change.sourceType === 'DISCOUNT_RULE' ? 'rule' : 'manual');
   const [reasonText, setReasonText] = useState('');
   // Acknowledgements and reasons must produce a fresh READY Preview before Apply is offered.
   const ready = review?.status === 'READY' && review.operations.length > 0 && !conflict;
   const awaitingReason = review?.status === 'REASON_REQUIRED';
   const warningTitle = (decision: string, reasonCode: string) => {
+    if (decision === 'DENY' && reasonCode === 'LINE_SPEED_LOCKED') return t('workspace.lineSpeedLocked');
     if (decision === 'DENY') return t('workspace.deniedReason', { reason: reasonCode });
     if (decision === 'REQUIRE_OVERRIDE') return t('policyInfo.legend.override');
     if (decision === 'ALLOW_WITH_WARNING') return t('policyInfo.legend.warning');
@@ -98,18 +108,43 @@ export function EditReviewDialog({
                   ...(review.financialOutcome ? [`${t('workspace.outcome')}: ${review.financialOutcome}`] : []),
                 ]}
               />
+              {review.discountChanges.length > 0 ? (
+                // D21 / rule #15: every recalculated discount is shown; a removal is acknowledged before Apply.
+                <div className="space-y-2">
+                  <CmxSummaryMessage
+                    type={review.discountChanges.some((change) => change.outcome === 'REMOVED') ? 'warning' : 'info'}
+                    title={tDiscount('title')}
+                    items={[tDiscount('hint'), ...review.discountChanges.map((change) => (change.outcome === 'REMOVED'
+                      ? tDiscount('removed', { name: discountName(change), before: money(change.previousAmount), reason: tDiscount(`reason.${change.reason ?? 'NOTHING_TO_DISCOUNT'}`) })
+                      : tDiscount('changed', { name: discountName(change), before: money(change.previousAmount), after: money(change.amount) })))]}
+                  />
+                  {review.discountChanges.filter((change) => change.outcome === 'REMOVED').map((change) => (
+                    <CmxCheckbox
+                      key={change.key}
+                      label={`${tDiscount('acknowledge')} (${discountName(change)})`}
+                      onChange={() => onAcknowledge(review.operations[0]?.seq ?? 1, discountRemovedGateCode(change.key))}
+                    />
+                  ))}
+                </div>
+              ) : null}
               <EditReviewChanges
                 operations={review.operations}
                 currencyCode={review.currencyCode}
                 timezone={review.timezone}
-                renderWarning={(seq) => review.warnings.filter((warning) => warning.seq === seq).map((warning) => (
+                renderWarning={(seq) => [
+                  // P6-02e: the cart showed another price; Apply charges the one reviewed here.
+                  ...(review.priceChangedSeqs.includes(seq)
+                    ? [<CmxSummaryMessage key={`${seq}-price`} type="warning" title={tPriceChanged('title')} items={[t('review.priceChangedHint')]} />]
+                    : []),
+                  ...review.warnings.filter((warning) => warning.seq === seq).map((warning) => (
                   <div key={`${warning.seq}-${warning.gateCode}`} className="space-y-2">
                     <CmxSummaryMessage type={warning.decision === 'DENY' ? 'error' : 'warning'} title={warningTitle(warning.decision, warning.reasonCode)} items={[warning.decision === 'DENY' ? warning.decision : warning.reasonCode]} />
                     {warning.requiresAcknowledgement ? (
                       <CmxCheckbox label={t('workspace.acknowledge')} onChange={() => onAcknowledge(warning.seq, warning.gateCode)} />
                     ) : null}
                   </div>
-                ))}
+                  )),
+                ]}
               />
               {awaitingReason ? (
                 <CmxTextarea

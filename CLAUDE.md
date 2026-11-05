@@ -9,6 +9,7 @@
 | i18n / translation | `/i18n` (resolve keys; pass into `cmxMessage` for feedback) |
 | API route / service / backend | `/backend` |
 | Any `org_*` table query | `/multitenancy` |
+| Order money: read, display, calculation | `/order-fin` |
 | New feature | `/implementation` |
 | Dashboard route gating | `/refill-ui-access-contract-permissions` And `/rebuild-ui-access-contract` |
 | RBAC role create / update | `/update-rbac-role` |
@@ -126,6 +127,7 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 | Any i18n key, translation, bilingual text | `/i18n` |
 | Any API route, service, backend logic | `/backend` |
 | Any query touching `org_*` tables | `/multitenancy` |
+| Any order financial read, display or calculation | `/order-fin` |
 | Any new feature implementation | `/implementation` |
 | Any inline comment, JSDoc, SQL comment, config annotation | `/code-documentation` |
 | Any `.stories.tsx` file, new Cmx component | `/storybook` |
@@ -284,6 +286,7 @@ npm run build                      # Build (run after changes)
 ### Architecture & Planning
 - `/architecture` — System design, tech stack, data access
 - `/business-logic` — Order workflows, pricing, quality gates
+- `/order-fin` — Order money: one source of truth, the `OrderFinancialView` component, routes, no UI arithmetic (`docs/dev/rules/order-fin-rules.md`)
 
 ### Development Workflow
 - `/implementation` — Feature development, coding standards
@@ -349,7 +352,7 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `feature-flag-migration.mdc`, `ui-access-contract-pattern.mdc`
+   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `feature-flag-migration.mdc`, `ui-access-contract-pattern.mdc`, `order-fin.mdc` (path-scoped)
    **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
 
 2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.
@@ -424,3 +427,7 @@ docs/         # All documentation
   2. files changed
   3. validation results
   4. risks / follow-ups
+
+<!-- HFC-RULE:BEGIN (Human-Friendly Codes pointer) -->
+- **Human-Friendly Codes:** codes people see are generated only by the DB and registered in `sys_doc_seq_type_cd`; see the "Human-Friendly Codes" section in `.claude/skills/database/conventions.md`.
+<!-- HFC-RULE:END -->

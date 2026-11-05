@@ -22,6 +22,13 @@ import {
   fetchOrgServicePreferenceCfIdsByCodesPrismaTx,
   fetchOrgServicePreferenceCfIdsByCodesSupabase,
 } from '@/lib/utils/org-service-preference-cf-lookup';
+import {
+  checkSinglePieceTag,
+  mapPieceTagDbError,
+  PIECE_TAG_ERROR_CODES,
+  type PieceTagErrorCode,
+  type PieceTagIssue,
+} from '@/lib/services/piece-code/piece-code.service';
 
 /** Default for piece/item preference rows created in create vs edit-order flows */
 export type OrderPreferencesSourceDefault = 'ORDER_CREATE' | 'ORDER_EDIT';
@@ -51,7 +58,8 @@ export interface UpdatePieceParams {
   tenantId: string;
   updates: {
     scan_state?: 'expected' | 'scanned' | 'missing' | 'wrong';
-    barcode?: string;
+    /** External tag. Checked like batch-update (HFC P3b). '' or null removes the tag. */
+    barcode?: string | null;
     piece_status?: 'intake' | 'processing' | 'qa' | 'ready';
     is_ready?: boolean;
     piece_stage?: string;
@@ -1011,18 +1019,53 @@ export class OrderPieceService {
    */
   static async updatePiece(
     params: UpdatePieceParams
-  ): Promise<{ success: boolean; piece?: OrderItemPiece; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    piece?: OrderItemPiece;
+    error?: string;
+    /** HFC P3b: set when the external tag was refused (PIECE_TAG_*). */
+    code?: PieceTagErrorCode;
+    tagIssue?: PieceTagIssue;
+  }> {
     try {
       const supabase = await createClient();
 
       const { data: beforeRow } = await supabase
         .from('org_order_item_pieces_dtl')
         .select(
-          'piece_status,is_ready,is_rejected,scan_state,rack_location,piece_stage,barcode,notes'
+          'piece_status,is_ready,is_rejected,scan_state,rack_location,piece_stage,barcode,notes,order_id'
         )
         .eq('id', params.pieceId)
         .eq('tenant_org_id', params.tenantId)
         .maybeSingle();
+
+      // HFC P3b: the external tag gets the same checks as batch-update (A-35..A-37): format, code look-alike,
+      // tag already on another live piece. Blank or null removes the tag.
+      let normalizedTag: string | null | undefined;
+      if (Object.prototype.hasOwnProperty.call(params.updates as object, 'barcode')) {
+        const rawTag = params.updates.barcode;
+        if (rawTag == null || (typeof rawTag === 'string' && rawTag.trim() === '')) {
+          normalizedTag = null;
+        } else {
+          const tagCheck = await checkSinglePieceTag(
+            supabase,
+            params.tenantId,
+            params.pieceId,
+            (beforeRow as { order_id?: string } | null)?.order_id ?? '',
+            String(rawTag)
+          );
+          if (tagCheck.ok === false) {
+            return {
+              success: false,
+              error:
+                tagCheck.issue.code === PIECE_TAG_ERROR_CODES.IN_USE ? 'Piece tag already in use' : 'Invalid piece tag',
+              code: tagCheck.issue.code,
+              tagIssue: tagCheck.issue,
+            };
+          }
+          normalizedTag = tagCheck.tag;
+        }
+      }
 
       const packingPrefExplicit = Object.prototype.hasOwnProperty.call(
         params.updates as object,
@@ -1043,6 +1086,9 @@ export class OrderPieceService {
         ...params.updates,
         updated_at: new Date().toISOString(),
       };
+      if (normalizedTag !== undefined) {
+        updateData.barcode = normalizedTag;
+      }
       if (packingPrefExplicit) {
         delete updateData.packing_pref_code;
       }
@@ -1088,6 +1134,15 @@ export class OrderPieceService {
           tenantId: params.tenantId,
           pieceId: params.pieceId,
         });
+        // A tag taken by another request at the same instant is refused by the DB (uq_ord_piece_barcode).
+        const tagDbCode = mapPieceTagDbError(error.message);
+        if (tagDbCode) {
+          return {
+            success: false,
+            error: tagDbCode === PIECE_TAG_ERROR_CODES.IN_USE ? 'Piece tag already in use' : 'Invalid piece tag',
+            code: tagDbCode,
+          };
+        }
         return { success: false, error: error.message };
       }
 

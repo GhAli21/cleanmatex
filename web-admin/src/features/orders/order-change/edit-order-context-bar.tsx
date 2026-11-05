@@ -45,6 +45,7 @@ export function EditOrderContextBar({ session }: { session: OrderWorkspaceSessio
           </CmxButton>
         </div>
       </div>
+      {session.financialCard ? <div className="w-full sm:ms-auto sm:max-w-sm">{session.financialCard}</div> : null}
       {session.accessBlocked ? (
         <CmxSummaryMessage type="warning" title={session.accessReason || t('cannotEdit')} items={[]} />
       ) : null}
@@ -52,10 +53,8 @@ export function EditOrderContextBar({ session }: { session: OrderWorkspaceSessio
         <CmxSummaryMessage
           type={session.reviewStatus === 'READY' ? 'success' : 'warning'}
           title={t('workspace.reviewStatus', { status: session.reviewStatus })}
-          items={[
-            `${t('workspace.currentTotal')}: ${session.currentTotal}`,
-            `${t('workspace.estimatedTotal')}: ${session.estimatedTotal ?? session.currentTotal}`,
-          ]}
+          // D33: totals live only in the financial card, formatted in the order currency.
+          items={[]}
         />
       ) : null}
     </div>

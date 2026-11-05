@@ -7,5 +7,9 @@
   "cash_disposition": "Disposition",
   "cash_drawer": "Cash Drawer",
   "saas_backoffice": "HQ",
-  "organization_app": "Organization app"
+  "organization_app": "Organization app",
+  "order_balance": "Balance",
+  "order_settled": "Settled",
+  "order_overpaid": "Overpaid",
+  "figures_reconciled": "Reconciled"
 }

@@ -148,21 +148,3 @@ export async function getOrderHistory(orderId: string): Promise<{ history: any[]
   return result.data;
 }
 
-/**
- * Estimate ready by time
- */
-export async function estimateReadyBy(data: any): Promise<{ readyBy: string }> {
-  const response = await fetch('/api/v1/orders/estimate-ready-by', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to estimate ready by' }));
-    throw new Error(error.error || 'Failed to estimate ready by');
-  }
-
-  const result = await response.json();
-  return result.data;
-}

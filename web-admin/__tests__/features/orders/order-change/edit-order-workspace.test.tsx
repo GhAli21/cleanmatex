@@ -184,7 +184,30 @@ describe('shared edit workspace adapter', () => {
     expect(visualHeaderChangeCount(loaded, { ...sameHeader, items: [kept, added] })).toBe(2);
   });
 
-  it('uses canonical operations for ready-by clearing and unavailable price changes', () => {
+  it('P6-02b: shows a line\'s own speed and turns cart speed choices into Edit operations', () => {
+    const withSpeeds = { ...context(), items: [{ ...item(ITEM_A, 1), serviceSpeed: 'STANDARD' }, { ...item(ITEM_B, 2), serviceSpeed: 'EXPRESS' }] };
+    const mapped = mapChangeContextToEditBaseline(withSpeeds);
+    if (!mapped.ok) throw new Error('baseline');
+    const visual = projectEditVisualOrder(withSpeeds);
+    // A line at the order speed follows it (null); a line with its own speed shows it.
+    expect(visual.items.map((line) => line.serviceSpeed)).toEqual([null, 'EXPRESS']);
+    const header = { notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com' };
+    expect(visualHeaderChangeCount(mapped.baseline, { ...header, items: visual.items })).toBe(0);
+
+    // Line B goes back to the order speed; line A gets its own EXPRESS.
+    const [lineA, lineB] = visual.items;
+    if (!lineA || !lineB) throw new Error('lines');
+    const items = [{ ...lineA, serviceSpeed: 'EXPRESS' }, { ...lineB, serviceSpeed: null }];
+    const controller = createEditOrderController();
+    applyVisualDraftToController(controller, mapped.baseline, { ...header, items });
+    expect(controller.buildOperations()).toEqual([
+      { seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_ITEM', id: ITEM_A }, payload: { serviceSpeed: 'EXPRESS' } },
+      { seq: 2, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_ITEM', id: ITEM_B }, payload: { serviceSpeed: 'STANDARD' } },
+    ]);
+    expect(visualHeaderChangeCount(mapped.baseline, { ...header, items })).toBe(2);
+  });
+
+  it('uses canonical operations for ready-by clearing and a line price (P6-02c)', () => {
     const loaded = baseline();
     const controller = createEditOrderController({ createId: () => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' });
     const visual = projectEditVisualOrder(context());
@@ -192,12 +215,57 @@ describe('shared edit workspace adapter', () => {
     applyVisualDraftToController(controller, { ...loaded, readyBy: '2026-10-16T10:00:00.000Z' }, {
       notes: 'original', readyBy: '', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
       orderServicePrefs: [{ preference_code: 'HANG', source: 'manual', extra_price: 0, preferenceCfId: preferenceId }],
-      items: visual.items.map((item, index) => index === 0 ? { ...item, priceOverride: 9 } : item),
+      items: visual.items.map((item, index) => index === 0 ? { ...item, priceOverride: 9, overrideReason: 'Damaged on arrival' } : item),
     });
     const operations = controller.buildOperations();
-    expect(operations.map((operation) => operation.code)).toEqual(['CHANGE_READY_BY', 'ADD_PREFERENCE', 'CHANGE_ITEM_PRICE']);
+    expect(operations.map((operation) => operation.code)).toEqual(['CHANGE_READY_BY', 'CHANGE_ITEM_PRICE', 'ADD_PREFERENCE']);
     expect(operations[0].payload).toEqual({ readyBy: null });
+    expect(operations[1]).toMatchObject({ target: { kind: 'PERSISTED_ITEM', id: visual.items[0].persistedItemId }, payload: { priceOverride: '9.0000', overrideReason: 'Damaged on arrival' } });
     expect(operations.some((operation) => operation.code === 'CHANGE_UNLISTED')).toBe(false);
+  });
+
+  it('P6-02e: a new catalog line sends the price the cart showed; an overridden line does not', () => {
+    const mapped = mapChangeContextToEditBaseline(context());
+    if (!mapped.ok) throw new Error('baseline');
+    const visual = projectEditVisualOrder(context());
+    const line = { productId: PRODUCT, productName: 'Shirt', productName2: null, quantity: 1, pricePerUnit: 2.5, totalPrice: 2.5, defaultSellPrice: 2.5, defaultExpressSellPrice: null };
+    let next = 0;
+    const ids = ['dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'];
+    const controller = createEditOrderController({ createId: () => ids[next++] });
+    applyVisualDraftToController(controller, mapped.baseline, {
+      notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
+      items: [...visual.items, line, { ...line, priceOverride: 2, overrideReason: 'Regular' }],
+    });
+    const adds = controller.buildOperations().filter((operation) => operation.code === 'ADD_ITEM');
+    expect(adds.map((operation) => operation.payload)).toEqual([
+      expect.objectContaining({ productId: PRODUCT, confirmedUnitPrice: '2.5000' }),
+      expect.not.objectContaining({ confirmedUnitPrice: expect.anything() }),
+    ]);
+  });
+
+  it('P6-02d: edits an order with a stored custom line and sends a new custom line by name and price', () => {
+    const withCustom = { ...context(), items: [item(ITEM_A, 1), { ...item(ITEM_B, 1), productId: null, productName: 'Wedding dress' }] };
+    const mapped = mapChangeContextToEditBaseline(withCustom);
+    expect(mapped.ok).toBe(true);
+    if (!mapped.ok) return;
+    const visual = projectEditVisualOrder(withCustom);
+    expect(visual.items[1]).toMatchObject({ persistedItemId: ITEM_B, productId: `custom:${ITEM_B}`, customItem: { name: 'Wedding dress', unitPrice: 5 } });
+    // The stored custom line, untouched, sends nothing.
+    const idle = createEditOrderController();
+    applyVisualDraftToController(idle, mapped.baseline, { notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com', items: visual.items });
+    expect(idle.buildOperations()).toEqual([]);
+    const controller = createEditOrderController({ createId: () => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' });
+    applyVisualDraftToController(controller, mapped.baseline, {
+      notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
+      items: [...visual.items, {
+        productId: 'custom:new', customItem: { name: 'Curtain', name2: null, unitPrice: 7.25 }, productName: 'Curtain', productName2: null,
+        quantity: 1, pricePerUnit: 7.25, totalPrice: 7.25, defaultSellPrice: 7.25, defaultExpressSellPrice: null, serviceCategoryCode: 'LAUNDRY',
+      }],
+    });
+    expect(controller.buildOperations()).toEqual([{
+      seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' },
+      payload: { clientRef: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', customItem: { name: 'Curtain', name2: null, unitPrice: '7.2500', serviceCategoryCode: 'LAUNDRY' }, quantity: 1 },
+    }]);
   });
 
   it('blocks known preference fields without catalog identity instead of using residual permission', async () => {

@@ -238,12 +238,23 @@ CREATE TABLE org_orders_mst (
   order_number VARCHAR(50) NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
   total_amount DECIMAL(10,2) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  created_by VARCHAR(120),
-  updated_at TIMESTAMP,
-  updated_by VARCHAR(120),
-  rec_status SMALLINT DEFAULT 1,
-  is_active BOOLEAN DEFAULT true
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+	  created_by TEXT,
+	  created_info TEXT,
+	  
+	  updated_at TIMESTAMPTZ,
+	  updated_by TEXT,
+	  updated_info TEXT,
+	  updated_count INTEGER DEFAULT 0, -- then on update updated_count=updated_count+1
+	  
+	  deleted_at TIMESTAMPTZ,
+	  deleted_by TEXT,
+	  deleted_info TEXT,
+	  
+	  rec_status SMALLINT DEFAULT 1, -- 0 for soft delete 
+	  rec_order INTEGER,
+	  rec_notes TEXT,
+	  is_active BOOLEAN DEFAULT true
 );
 
 -- Add indexes

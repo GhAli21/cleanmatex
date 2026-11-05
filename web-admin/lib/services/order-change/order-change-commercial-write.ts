@@ -6,6 +6,7 @@
 
 import { PREFS_LEVEL, PREFS_OWNER_TYPE, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
+import { LOYALTY_RECONCILE_TRIGGERS } from '@/lib/constants/order-financial';
 import type { OrderChangePersistedOperation, OrderChangeRowWrite } from '@/lib/services/order-change/order-change-mutation.service';
 import type { z } from 'zod';
 import type { orderChangeApplyRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
@@ -244,10 +245,13 @@ export async function loadCommercialWriteFacts(
 
 export async function assertCommercialSnapshot(
   tx: CommercialQueryTx & { org_orders_mst?: { findFirstOrThrow?: unknown; updateMany?: unknown } },
-  input: { tenantId: string; orderId: string; projectedTotal: string },
+  input: { tenantId: string; orderId: string; projectedTotal: string; orderChangeId: string },
 ): Promise<void> {
   if (typeof tx.org_orders_mst?.findFirstOrThrow !== 'function') return;
-  await recalculateOrderFinancialSnapshotTx(tx as never, input.tenantId, input.orderId);
+  // D24: the loyalty points change from this edit is traced to the change.
+  await recalculateOrderFinancialSnapshotTx(tx as never, input.tenantId, input.orderId, {
+    loyaltySource: { trigger: LOYALTY_RECONCILE_TRIGGERS.ORDER_EDIT, sourceId: input.orderChangeId },
+  });
   const total = await readAppliedOrderTotal(tx, input.tenantId, input.orderId);
   if (total !== input.projectedTotal) throw new OrderChangeApplyRejected(422, 'FINANCIAL_SNAPSHOT_MISMATCH');
 }

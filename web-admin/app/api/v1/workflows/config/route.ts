@@ -1,23 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import { validateJWTWithTenant } from '@/lib/middleware/jwt-tenant-validator';
 import { createClient } from '@/lib/supabase/server';
 import { WorkflowSettingsSchema } from '@/lib/validations/workflow-schema';
-
-async function getAuthContext() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) throw new Error('No tenant access found' + error?.message);
-  return { tenantId: tenants[0].tenant_id as string };
-}
 
 /**
  *
  * @param request
  */
 export async function GET(request: NextRequest) {
+  const auth = await validateJWTWithTenant(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    const { tenantId } = await getAuthContext();
+    const { tenantId } = auth;
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
 
@@ -44,8 +40,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 400;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
 
@@ -54,8 +49,11 @@ export async function GET(request: NextRequest) {
  * @param request
  */
 export async function PATCH(request: NextRequest) {
+  const auth = await requirePermission('settings:workflow')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    const { tenantId } = await getAuthContext();
+    const { tenantId } = auth;
     const supabase = await createClient();
     const body = await request.json();
 
@@ -81,9 +79,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, data: data?.[0] });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 400;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
-
 

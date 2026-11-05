@@ -13,6 +13,8 @@ import {
 } from '@/lib/services/tax-document-sequence.service';
 import { resolveEInvoiceActivation } from '@/lib/services/e-invoice.service';
 import { resolveInitialEInvoiceStatus } from '@/lib/payments/e-invoice';
+import { addMoney, toMoneyString } from '@/lib/utils/money';
+import { logger } from '@/lib/utils/logger';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -82,7 +84,67 @@ export async function createTaxDocumentTx(
     });
   }
 
+  await snapshotTaxDocumentItemsTx(tx, input.tenantId, input.orderId, doc.id, now);
+
   return doc.id;
+}
+
+/**
+ * Copies each active item's line money onto the document (Line-Level §6.7,
+ * P8-02): the document keeps its own item table and never re-reads live order
+ * items; rows are never updated after issue, and credit notes reference them.
+ * An order written before the calculator has no line money: no item lines are
+ * written (logged), rather than invented figures.
+ * @param tx - the issuing transaction
+ * @param tenantId - session tenant
+ * @param orderId - the document's order
+ * @param taxDocumentId - the new document
+ * @param now - creation time shared with the document
+ */
+async function snapshotTaxDocumentItemsTx(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  orderId: string,
+  taxDocumentId: string,
+  now: Date,
+): Promise<void> {
+  const items = await tx.org_order_items_dtl.findMany({
+    where: { order_id: orderId, tenant_org_id: tenantId, rec_status: 1 },
+    orderBy: [{ created_at: 'asc' }, { id: 'asc' }],
+    select: {
+      id: true, product_name: true, product_name2: true, quantity: true, price_per_unit: true,
+      line_disc_amount: true, order_disc_alloc_amount: true, net_amount: true,
+      tax_category_code: true, tax_rate: true, tax_amount: true, line_total_amount: true,
+    },
+  });
+  if (items.length === 0) return;
+  if (items.some((i) => i.net_amount == null || i.line_total_amount == null || !i.tax_category_code)) {
+    logger.warn('Tax document item lines skipped: order has no line money (written before the calculator)', {
+      feature: 'tax_document', action: 'snapshot_items', tenantId, orderId, taxDocumentId,
+    });
+    return;
+  }
+  await tx.org_tax_doc_items_dtl.createMany({
+    data: items.map((i, index) => ({
+      tenant_org_id: tenantId,
+      tax_document_id: taxDocumentId,
+      order_item_id: i.id,
+      line_no: index + 1,
+      product_name: i.product_name ?? i.product_name2 ?? '',
+      product_name2: i.product_name2 ?? null,
+      quantity: i.quantity ?? 0,
+      price_per_unit: i.price_per_unit,
+      // Line discount plus the order discount allocated to this line (§6.7).
+      discount_amount: toMoneyString(addMoney(i.line_disc_amount ?? 0, i.order_disc_alloc_amount ?? 0)),
+      net_amount: i.net_amount!,
+      tax_category_code: i.tax_category_code!,
+      tax_rate: i.tax_rate ?? 0,
+      tax_amount: i.tax_amount ?? 0,
+      line_total_amount: i.line_total_amount!,
+      created_at: now,
+      created_by: 'system',
+    })),
+  });
 }
 
 /**

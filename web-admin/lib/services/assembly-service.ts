@@ -9,6 +9,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
+import { ScanResolveService } from '@/lib/services/scan-resolve/scan-resolve.service';
 import {
   AssemblyTaskNotFoundError,
   InvalidScanError,
@@ -480,6 +481,36 @@ export class AssemblyService {
    * Scan item during assembly
    * Validates barcode matches expected item
    */
+  /**
+   * Resolver fallback for scanItem (HFC A-42). Returns the pending assembly item whose order line the scanned
+   * code names, or undefined. A removed piece, another order's code or a lookup failure all count as no match.
+   */
+  private static async findPendingItemByCode<T extends { order_item_id?: string | null }>(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    tenantId: string,
+    code: string,
+    taskOrderId: string | null | undefined,
+    items: T[],
+  ): Promise<T | undefined> {
+    try {
+      const outcome = await ScanResolveService.resolve(supabase, tenantId, code, 'assembly');
+      if (outcome.ok === false) return undefined;
+      const { order, item, piece } = outcome.result;
+      if (taskOrderId && order.id !== taskOrderId) return undefined;
+      const orderItemId = piece ? (piece.removed ? null : piece.itemId) : (item?.id ?? null);
+      if (!orderItemId) return undefined;
+      return items.find((row) => row.order_item_id === orderItemId);
+    } catch (error) {
+      logger.warn('Assembly scan resolver lookup failed', {
+        tenantId,
+        feature: 'assembly',
+        action: 'scan_item_resolve',
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  }
+
   static async scanItem(params: ScanItemParams): Promise<ScanItemResult> {
     try {
       const { taskId, tenantId, barcode, userId } = params;
@@ -540,7 +571,7 @@ export class AssemblyService {
       }
 
       // Match asm-item barcode OR order-item barcode
-      const matchingItem = items?.find((item: {
+      let matchingItem = items?.find((item: {
         barcode?: string | null;
         order_item?: { barcode?: string | null } | { barcode?: string | null }[] | null;
       }) => {
@@ -550,6 +581,12 @@ export class AssemblyService {
         const candidates = [item.barcode, orderItem?.barcode].filter(Boolean);
         return candidates.includes(barcode);
       });
+
+      // HFC A-42: no exact barcode match, so ask the shared resolver (piece code, line code, staff QR or live tag)
+      // and take the pending line of THIS task's order it points at. Same "not found" answer when it does not fit.
+      if (!matchingItem && items && items.length > 0) {
+        matchingItem = await AssemblyService.findPendingItemByCode(supabase, tenantId, barcode, task.order_id, items);
+      }
 
       if (!matchingItem) {
         logger.warn('Barcode not found in pending items', {

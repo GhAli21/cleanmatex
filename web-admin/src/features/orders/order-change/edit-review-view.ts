@@ -4,6 +4,7 @@
  */
 
 import type { EditChangeOperation } from './change-builder';
+import type { DiscountChange } from '@/lib/services/commercial/edit-discount-reevaluation';
 
 /** A policy gate stays attached to the operation the operator must review. */
 export interface EditReviewWarning {
@@ -42,6 +43,10 @@ export interface EditReviewView {
   operations: EditReviewOperation[];
   warnings: EditReviewWarning[];
   conflict: boolean;
+  /** Added lines whose price is not the one the cart showed (P6-02e), by operation. */
+  priceChangedSeqs: number[];
+  /** Recorded order discounts the edit changed or removed (D21); a removal needs acknowledgement. */
+  discountChanges: DiscountChange[];
   currencyCode?: string | null;
   timezone?: string | null;
 }
@@ -71,6 +76,8 @@ export function readEditReview(body: unknown, operations: readonly EditChangeOpe
       financial?: { outcome?: string } | null;
       currencyCode?: string | null;
       timezone?: string | null;
+      priceChanges?: Array<{ seq: number }>;
+      discountChanges?: DiscountChange[];
       operationAudits?: Array<Partial<EditReviewOperation> & { seq: number; beforeValues?: Record<string, unknown>; afterValues?: Record<string, unknown> }>;
       decisions?: Array<{
         seq: number;
@@ -85,6 +92,14 @@ export function readEditReview(body: unknown, operations: readonly EditChangeOpe
   const data = envelope.data;
   const status = data?.status ?? envelope.status ?? envelope.error?.code ?? 'DENIED';
   const audits = new Map((data?.operationAudits ?? []).map((audit) => [audit.seq, audit]));
+  const priceChangedSeqs = (data?.priceChanges ?? []).map((change) => change.seq);
+  // The shown price is recorded for every added line; Review shows it only where it differs.
+  const after = (seq: number) => {
+    const values = audits.get(seq)?.afterValues ?? audits.get(seq)?.after ?? {};
+    if (priceChangedSeqs.includes(seq) || !('shownUnitPrice' in values)) return values;
+    const { shownUnitPrice: _shown, ...rest } = values;
+    return rest;
+  };
   return {
     status,
     currentTotal: data?.originalTotal ?? currentTotal,
@@ -97,7 +112,7 @@ export function readEditReview(body: unknown, operations: readonly EditChangeOpe
       code: operation.code,
       target: targetLabel(operation),
       before: audits.get(operation.seq)?.beforeValues ?? audits.get(operation.seq)?.before ?? {},
-      after: audits.get(operation.seq)?.afterValues ?? audits.get(operation.seq)?.after ?? {},
+      after: after(operation.seq),
       titleKey: audits.get(operation.seq)?.titleKey,
       targetLabel: audits.get(operation.seq)?.targetLabel,
       targetLabel2: audits.get(operation.seq)?.targetLabel2,
@@ -114,6 +129,9 @@ export function readEditReview(body: unknown, operations: readonly EditChangeOpe
       requiresAcknowledgement: decision.requiresAcknowledgement === true,
       requiresReason: decision.requiresReason === true,
     })),
+    priceChangedSeqs,
+    // A kept discount is not a change; Review lists only what moved.
+    discountChanges: (data?.discountChanges ?? []).filter((change) => change.outcome !== 'KEPT'),
     conflict: envelope.error?.code === 'REVIEW_CHANGED' || envelope.error?.code === 'VERSION_CONFLICT' || envelope.error?.code === 'POLICY_CHANGED_REVIEW_REQUIRED' || status === '409',
   };
 }

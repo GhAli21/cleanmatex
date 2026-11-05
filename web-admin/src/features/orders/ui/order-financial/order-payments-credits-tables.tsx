@@ -1,5 +1,6 @@
 'use client';
 
+import { useOrderMoneyRefresh } from '@features/orders/order-fin-view/hooks/use-order-money-refresh';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -340,6 +341,7 @@ function PaymentRow({
   const t = useTranslations('orders.detail.financial');
   const tLedger = useTranslations('cashControl.ledgerErrors');
   const router = useRouter();
+  const refreshMoney = useOrderMoneyRefresh();
   const { token: csrfToken } = useCSRFToken();
   const { showSuccess, showError } = useMessage();
   const [open, setOpen] = useState(false);
@@ -391,7 +393,7 @@ function PaymentRow({
       setOpen(false);
       // Re-fetch the order detail server data so the row flips to
       // COMPLETED and the outstanding amount in the header refreshes.
-      router.refresh();
+      refreshMoney(orderId);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Network error';
       showError(t('verify.errorToast', { error: message }));
@@ -520,7 +522,7 @@ function PaymentRow({
             action={transitionAction}
             paymentMethodCode={payment.payment_method_code}
             currencyCode={currencyCode}
-            onTransitioned={() => { setTransitionAction(null); router.refresh(); }}
+            onTransitioned={() => { setTransitionAction(null); refreshMoney(orderId); }}
           />
         ) : null}
       </td>

@@ -21,13 +21,31 @@ import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 /** Keep at least this many pixels of the dialog inside the viewport while dragging. */
 const DIALOG_DRAG_MARGIN = 16;
 
+type DialogLabelSetter = (update: (current: string | null) => string | null) => void;
+
 const DialogContext = React.createContext<
   | {
       open: boolean;
       onOpenChange: (open: boolean) => void;
+      /** `CmxDialogTitle` / `CmxDialogDescription` register their ids so the dialog is named by them (a11y). */
+      setTitleId?: DialogLabelSetter;
+      setDescriptionId?: DialogLabelSetter;
     }
   | undefined
 >(undefined);
+
+/**
+ * Registers `id` with the dialog while mounted; on unmount clears it only if it is still the registered one.
+ * @param setter Title or description id setter from the dialog context (absent outside a CmxDialog).
+ * @param id Element id to register.
+ */
+function useRegisterDialogLabel(setter: DialogLabelSetter | undefined, id: string) {
+  React.useEffect(() => {
+    if (!setter) return undefined;
+    setter(() => id);
+    return () => setter((current) => (current === id ? null : current));
+  }, [setter, id]);
+}
 
 type DialogDragContextValue = {
   enabled: boolean;
@@ -104,6 +122,12 @@ export interface CmxDialogProps {
    * Default false — dismiss via Esc, header close, Cancel, or a successful Done.
    */
   closeOnOverlayClick?: boolean;
+  /** Accessible name when the dialog has no `CmxDialogTitle`. */
+  'aria-label'?: string;
+  /** Overrides the id of the element that names the dialog (default: its `CmxDialogTitle`). */
+  'aria-labelledby'?: string;
+  /** Overrides the id of the element that describes the dialog (default: its `CmxDialogDescription`). */
+  'aria-describedby'?: string;
 }
 
 export function CmxDialog({
@@ -112,8 +136,14 @@ export function CmxDialog({
   children,
   autoFocus = true,
   closeOnOverlayClick = false,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
 }: CmxDialogProps) {
   const [mounted, setMounted] = React.useState(false);
+  const [titleId, setTitleId] = React.useState<string | null>(null);
+  const [descriptionId, setDescriptionId] = React.useState<string | null>(null);
+  const labelledBy = ariaLabelledBy ?? titleId ?? undefined;
   // Trap only after portal mount — otherwise the first open effect sees a null
   // ref and never attaches listeners when `mounted` flips to true.
   const trapRef = useFocusTrap(open && mounted, { returnFocus: true, autoFocus });
@@ -160,12 +190,15 @@ export function CmxDialog({
   if (!open || !mounted) return null;
 
   return createPortal(
-    <DialogContext.Provider value={{ open, onOpenChange }}>
+    <DialogContext.Provider value={{ open, onOpenChange, setTitleId, setDescriptionId }}>
       <div
         ref={trapRef}
         className="fixed inset-0 z-50 flex items-center justify-center"
         role="dialog"
         aria-modal="true"
+        aria-labelledby={labelledBy}
+        aria-label={labelledBy ? undefined : ariaLabel}
+        aria-describedby={ariaDescribedBy ?? descriptionId ?? undefined}
         data-cmx-dialog-root="true"
       >
         <div
@@ -394,10 +427,15 @@ export interface CmxDialogTitleProps extends React.HTMLAttributes<HTMLHeadingEle
 export function CmxDialogTitle({
   children,
   className = '',
+  id,
   ...props
 }: CmxDialogTitleProps) {
+  const autoId = React.useId();
+  const titleId = id ?? `cmx-dialog-title-${autoId}`;
+  useRegisterDialogLabel(React.useContext(DialogContext)?.setTitleId, titleId);
   return (
     <h2
+      id={titleId}
       className={cn(
         'text-lg font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
         className,
@@ -417,10 +455,15 @@ export interface CmxDialogDescriptionProps
 export function CmxDialogDescription({
   children,
   className = '',
+  id,
   ...props
 }: CmxDialogDescriptionProps) {
+  const autoId = React.useId();
+  const descriptionId = id ?? `cmx-dialog-description-${autoId}`;
+  useRegisterDialogLabel(React.useContext(DialogContext)?.setDescriptionId, descriptionId);
   return (
     <p
+      id={descriptionId}
       className={cn(
         'mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
         className,

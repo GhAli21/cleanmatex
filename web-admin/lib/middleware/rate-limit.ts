@@ -94,6 +94,22 @@ export const rateLimiters = {
    * Public order confirm-received: 30 per hour per IP
    */
   publicConfirmReceived: createRateLimiter(30, '1 h', 'public-confirm-received'),
+
+  /**
+   * Scan and code lookups (HFC P3b): 600 per minute per user (about 10 per second for fast scanners)
+   */
+  scanUser: createRateLimiter(600, '1 m', 'scan-user'),
+
+  /**
+   * Order Edit live quote (Reusable Order Fin View P4-08, PR-22): 120 per minute per user.
+   * The card debounces 500 ms, so a fast typist stays well under it.
+   */
+  editQuoteUser: createRateLimiter(120, '1 m', 'edit-quote-user'),
+
+  /**
+   * Public financial views (tracking token, customer portal; P4-06/P4-07): 60 per minute per IP.
+   */
+  publicFinancialView: createRateLimiter(60, '1 m', 'public-financial-view'),
 };
 
 /**
@@ -368,6 +384,76 @@ export async function checkPublicConfirmReceivedRateLimit(
       feature: 'rate-limit',
       action: 'public_confirm_received',
     });
+    return null;
+  }
+}
+
+/**
+ * Rate limit check for scan and code lookups (per user, HFC P3b). Fails open like the others.
+ */
+export async function checkScanRateLimit(userId: string): Promise<NextResponse | null> {
+  if (!rateLimiters.scanUser) {
+    return null;
+  }
+
+  try {
+    const { success, limit, remaining, reset } = await rateLimiters.scanUser.limit(userId);
+    if (!success) {
+      logger.warn('Scan rate limit exceeded (user)', {
+        feature: 'rate-limit',
+        action: 'scan-user',
+        userId,
+        limit,
+        remaining,
+      });
+      return createRateLimitResponse(limit, remaining, reset);
+    }
+    return null;
+  } catch (error) {
+    logger.error('Error checking scan rate limit (user)', error as Error, {
+      feature: 'rate-limit',
+      action: 'scan-user',
+    });
+    return null;
+  }
+}
+
+/**
+ * Order Edit live quote limit, per user (PR-22).
+ * @param userId - authenticated user id
+ * @returns a 429 response when over the limit, else null (also null when Redis is not configured)
+ */
+export async function checkEditQuoteRateLimit(userId: string): Promise<NextResponse | null> {
+  if (!rateLimiters.editQuoteUser) return null;
+  try {
+    const { success, limit, remaining, reset } = await rateLimiters.editQuoteUser.limit(userId);
+    if (!success) {
+      logger.warn('Edit quote rate limit exceeded (user)', { feature: 'rate-limit', action: 'edit-quote-user', userId, limit, remaining });
+      return createRateLimitResponse(limit, remaining, reset);
+    }
+    return null;
+  } catch (error) {
+    logger.error('Error checking edit quote rate limit', error as Error, { feature: 'rate-limit', action: 'edit-quote-user' });
+    return null;
+  }
+}
+
+/**
+ * Public financial view limit, per client IP (PR-06). The IP is the limiter key only; it is never logged.
+ * @param request - incoming public request
+ * @returns a 429 response when over the limit, else null
+ */
+export async function checkPublicFinancialViewRateLimit(request: NextRequest): Promise<NextResponse | null> {
+  if (!rateLimiters.publicFinancialView) return null;
+  try {
+    const { success, limit, remaining, reset } = await rateLimiters.publicFinancialView.limit(getClientIP(request));
+    if (!success) {
+      logger.warn('Public financial view rate limit exceeded', { feature: 'rate-limit', action: 'public_financial_view', limit, remaining });
+      return createRateLimitResponse(limit, remaining, reset);
+    }
+    return null;
+  } catch (error) {
+    logger.error('Error checking public financial view rate limit', error as Error, { feature: 'rate-limit', action: 'public_financial_view' });
     return null;
   }
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -950,6 +951,8 @@ export function OrderCollectPaymentModal({
             {/* Gives the dialog an aria-describedby target; previously it had a
                 title only, so assistive tech announced no purpose. */}
             <CmxDialogDescription>{t('dialogDescription')}</CmxDialogDescription>
+            {/* P6-05: the order's balance as the read model states it; the till stays simple (badge). */}
+            <OrderFinancialView source={{ kind: 'order', orderId }} config={{ preset: 'badge' }} />
           </CmxDialogHeader>
 
           <PayExtraTopStrip

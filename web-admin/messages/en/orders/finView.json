@@ -1,0 +1,173 @@
+{
+  "title": "Financial summary",
+  "draftBadge": "Preview — not yet saved",
+  "groups": {
+    "value": "Order value",
+    "settlement": "Settlement",
+    "records": "Records",
+    "control": "Control"
+  },
+  "sections": {
+    "items": "Items & extras",
+    "charges": "Charges",
+    "discounts": "Discounts",
+    "taxes": "Tax",
+    "taxesIncluded": "Tax (included in prices)",
+    "rounding": "Rounding",
+    "payments": "Payments",
+    "credits": "Credits",
+    "refunds": "Refunds",
+    "overpayment": "Overpayment",
+    "receivable": "Receivable",
+    "taxDocuments": "Tax documents",
+    "vouchers": "Vouchers",
+    "loyalty": "Loyalty",
+    "adjustments": "Adjustments",
+    "orderChanges": "Order changes",
+    "currency": "Currency",
+    "receipts": "Receipts",
+    "timeline": "Timeline",
+    "reconciliation": "Reconciliation",
+    "debug": "Technical details"
+  },
+  "metrics": {
+    "total": "Total",
+    "paid": "Paid",
+    "credits": "Credits",
+    "balance": "Balance",
+    "refunded": "Refunded",
+    "netCollected": "Net collected",
+    "overpaid": "Overpaid",
+    "changeReturned": "Change returned",
+    "receivable": "Receivable",
+    "discount": "Discount",
+    "tax": "Tax",
+    "originalTotal": "Was",
+    "projectedTotal": "New total",
+    "totalDelta": "Difference",
+    "projectedBalance": "Balance after change"
+  },
+  "balanceStates": {
+    "due": "Due",
+    "dueAtCollection": "Due at collection",
+    "dueOnInvoice": "Due on invoice",
+    "settled": "Settled",
+    "overpaid": "Overpaid"
+  },
+  "paymentStatus": {
+    "UNPAID": "Unpaid",
+    "PENDING_COLLECTION": "Pending collection",
+    "PARTIALLY_PAID": "Partially paid",
+    "PAID": "Paid",
+    "OVERPAID": "Overpaid"
+  },
+  "creditTypes": {
+    "GIFT_CARD": "Gift card",
+    "WALLET": "Wallet",
+    "ADVANCE": "Customer advance",
+    "CREDIT_NOTE": "Credit note",
+    "LOYALTY_POINTS": "Loyalty points"
+  },
+  "lines": {
+    "speedPremiumIncluded": "Express premium (included)",
+    "extrasIncluded": "Extras (included)",
+    "manualDiscount": "Manual discount",
+    "autoRuleDiscount": "Automatic discount",
+    "promoDiscount": "Promo code",
+    "lineDiscounts": "Line discounts",
+    "baseTotal": "Total in base currency",
+    "hash": "Calculation hash",
+    "traceId": "Trace ID",
+    "engineVersion": "Engine version",
+    "points": "{points, plural, one {# pt} other {# pts}}",
+    "informational": "Total {amount}",
+    "wasNow": "{previous} → {current}",
+    "removed": "Removed"
+  },
+  "lineStates": {
+    "pending": "Pending · not counted",
+    "failed": "Failed · not counted",
+    "voided": "Voided · not counted",
+    "reversed": "Reversed · not counted"
+  },
+  "chips": {
+    "pending": "{count} pending",
+    "failed": "{count} failed",
+    "voided": "{count} voided",
+    "reversed": "{count} reversed"
+  },
+  "reconciliation": {
+    "reconciled": "Reconciled",
+    "differs": "Figures differ",
+    "recalculating": "Recalculating"
+  },
+  "banners": {
+    "recalculating": "Figures are being recalculated.",
+    "cancelled": "This order is cancelled. The figures show what was recorded.",
+    "unavailable": "Financial data unavailable",
+    "currencyUnknown": "Currency unknown",
+    "orderChanged": "This order changed — figures refreshed.",
+    "partialTimeline": "Some events are not shown."
+  },
+  "states": {
+    "none": "None",
+    "loadFailed": "Couldn't load",
+    "retry": "Retry",
+    "loading": "Loading financial summary…",
+    "forbidden": "You don't have access to this part"
+  },
+  "actions": {
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "showAll": "Show all ({count})",
+    "showLess": "Show less",
+    "details": "Details",
+    "close": "Close"
+  },
+  "presets": {
+    "switcher": "Detail level",
+    "badge": "Badge",
+    "totals": "Totals",
+    "summary": "Summary",
+    "detailed": "Detailed",
+    "full": "Full",
+    "audit": "Audit",
+    "public": "Customer"
+  },
+  "warnings": {
+    "count": "{count, plural, one {# warning} other {# warnings}}",
+    "arReceivableMismatch": "The invoice balance ({invoiceOutstanding}) differs from the order balance ({orderOutstanding}).",
+    "pendingPaymentsNote": "{count, plural, one {# payment is} other {# payments are}} not yet confirmed.",
+    "sectionLinesMismatch": "The lines of this section do not add up to its total.",
+    "totalComponentsMismatch": "The stored parts give {expected}, but the stored total is {stored}."
+  },
+  "edit": {
+    "outcomes": {
+      "SETTLED": "Settled",
+      "OUTSTANDING": "To collect",
+      "OVERPAYMENT": "Refund or credit due",
+      "DENIED": "This change can't be applied"
+    },
+    "updating": "Updating…",
+    "quoteFailed": "Can't calculate this change",
+    "tryAgain": "Try again",
+    "newTotal": "New total",
+    "noChange": "No money change"
+  },
+  "errors": {
+    "VALIDATION_FAILED": "The request is not valid.",
+    "UNAUTHENTICATED": "Please sign in again.",
+    "PERMISSION_DENIED": "You don't have permission to view this.",
+    "CSRF_REJECTED": "The page expired. Refresh and try again.",
+    "ORDER_NOT_FOUND": "Order not found.",
+    "ORDER_CHANGED": "This order changed. Review again.",
+    "EDIT_SESSION_INVALID": "The edit session ended. Reopen the order to continue.",
+    "QUOTE_REJECTED": "This change can't be calculated.",
+    "RATE_LIMITED": "Too many requests. Wait a moment.",
+    "INTERNAL_ERROR": "Something went wrong. Try again."
+  },
+  "sign": {
+    "plus": "plus",
+    "minus": "minus"
+  }
+}

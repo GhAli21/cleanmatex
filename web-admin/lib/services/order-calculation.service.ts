@@ -11,7 +11,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/db/prisma';
 import { pricingService } from './pricing.service';
-import { TaxService } from './tax.service';
 import { createTenantSettingsService } from './tenant-settings.service';
 import {
   validatePromoCode,
@@ -21,7 +20,6 @@ import {
 import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
 import { calculateTaxDetailed, type ResolvedTaxProfileSnapshot } from './tax-engine.service';
 import { resolveTaxPricingMode } from './pricing-mode-resolver.service';
-import { extractTaxFromInclusive } from './order-financial-write.service';
 import { resolveCurrencyRoundingRule, roundToIncrement } from '@/lib/money/currency-rounding';
 import { DISCOUNT_SOURCE_TYPE, DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { TAX_TYPES, TAX_PRICING_MODES } from '@/lib/constants/order-financial';
@@ -105,6 +103,14 @@ export interface OrderCalculationResult {
   roundingAdjustmentAmount: number;
   /** B18 — sum of order-level charge facts (`orderCharges`); 0 when none were supplied. */
   chargesTotal: number;
+  /**
+   * Extras inside the line prices (Σ the calculator's `includedModifierAmount`,
+   * stored per item as `service_pref_charge`). Set by the commercial checkout
+   * quote only; absent from this legacy calculator (unknown, never zero).
+   */
+  extrasIncludedAmount?: number;
+  /** Speed premiums inside the line prices (calculator `speedPremiumTotal`); same rule as `extrasIncludedAmount`. */
+  speedPremiumIncludedAmount?: number;
 }
 
 function round(value: number, decimals: number): number {
@@ -142,7 +148,6 @@ export async function calculateOrderTotals(
   const supabase = await createClient();
   const measure: NonNullable<OrderCalculationParams['measure']> = params.measure ?? ((_stage, operation) => operation());
   const tenantSettings = createTenantSettingsService(supabase);
-  const tax = new TaxService({ tenantSettings, strictResolution: params.strictFinancialReads ?? false });
   // Both reads are independent; currency remains the sole precision authority for this calculation.
   const [pricingMode, currencyConfig] = await Promise.all([
     measure('pricing_mode', () => resolveTaxPricingMode(prisma, tenantId, branchId ?? null)),
@@ -304,7 +309,7 @@ export async function calculateOrderTotals(
     decimalPlaces
   );
 
-  const { lines: taxBreakdown, exempt: isTaxExemptOrder } = await measure('tax', () => calculateTaxDetailed({
+  const { lines: taxBreakdown } = await measure('tax', () => calculateTaxDetailed({
     tenantId,
     branchId,
     customerId,
@@ -316,11 +321,11 @@ export async function calculateOrderTotals(
     ...(params.resolvedTaxProfiles ? { resolvedTaxProfiles: params.resolvedTaxProfiles } : {}),
   }));
 
-  let vatTaxPercent = round(
+  const vatTaxPercent = round(
     taxBreakdown.find((line) => line.taxType === TAX_TYPES.VAT || line.taxType === TAX_TYPES.GST)?.rate ?? 0,
     2
   );
-  let vatValue = round(
+  const vatValue = round(
     taxBreakdown
       .filter((line) => line.taxType === TAX_TYPES.VAT || line.taxType === TAX_TYPES.GST)
       .reduce((sum, line) => sum + line.taxAmount, 0),
@@ -338,20 +343,8 @@ export async function calculateOrderTotals(
   // they share the same tenant tax-profile configuration mechanism as VAT/GST.
   const additionalTaxEmbedded = isInclusive && taxBreakdown.length > 0;
 
-  // No tax profile configured for this order: fall back to the tenant-level
-  // TENANT_VAT_RATE setting. B15 policy — an unset/unparsable rate resolves to
-  // zero, never an assumed positive rate. `additionalTaxAmount` stays 0 here:
-  // it only ever carries CUSTOM-type *profile* lines, which by definition do
-  // not exist when taxBreakdown is empty.
-  // PF-04: an exempt order has no lines BY DESIGN and carries no tax; it must
-  // never fall back to the tenant VAT rate.
-  if (taxBreakdown.length === 0 && !isTaxExemptOrder) {
-    const vatRate = await measure('tax_fallback', () => tax.getTaxRate(tenantId, branchId, userId));
-    vatTaxPercent = round(vatRate * 100, 2);
-    vatValue = isInclusive
-      ? round(extractTaxFromInclusive(afterDiscounts, vatRate).taxAmount, decimalPlaces)
-      : round(afterDiscounts * vatRate, decimalPlaces);
-  }
+  // Tax comes from tax profiles only (P6-03): no applicable profile means no
+  // tax, never an assumed rate (B15). The TENANT_VAT_RATE fallback is retired.
 
   const taxAmount = vatValue;
 

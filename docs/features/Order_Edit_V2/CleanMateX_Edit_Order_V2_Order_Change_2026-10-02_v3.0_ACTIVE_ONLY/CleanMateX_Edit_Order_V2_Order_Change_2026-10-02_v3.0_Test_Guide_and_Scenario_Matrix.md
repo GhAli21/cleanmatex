@@ -116,6 +116,14 @@ Do not put credentials, secrets or unnecessary customer PII in evidence.
 | OC-CALC-008 | reviewed pricing/config fingerprint drift forces re-review | API + DB | WP08/WP10/WP12/WP15 | AUTOMATED_REQUIRED |
 | OC-CALC-009 | currency display precision and persistence precision are handled without silent truncation | Unit + DB | WP08/WP12/WP18 | AUTOMATED_REQUIRED |
 | OC-CALC-010 | currency increment rounding uses canonical currency rule when enabled | Unit + integration | later WP08 completion/WP12 | AUTOMATION_PLANNED |
+| OC-CALC-011 | Create parity: re-pricing an unchanged order gives exactly Create's total, tax and line columns | DB | P1B-12 | AUTOMATED_EXISTING |
+| OC-CALC-012 | the cart quote (`POST /api/v1/orders/quote`) equals the stored Create snapshot: total, tax, each line | DB | P1B-12 | AUTOMATED_EXISTING |
+| OC-CALC-013 | Preview = Apply = stored rollup for every Edit kind (quantity, add/remove line, preferences, order and line speed, override, line price, line discount, custom line, notes-only not re-priced) | DB | P6-01/P6-02/P1B-12 | AUTOMATED_EXISTING |
+| OC-CALC-014 | recorded discounts re-evaluated per D21; a removal needs the Review acknowledgement before a proof is issued | Unit + DB | P1B-05/P1B-11 | AUTOMATED_EXISTING |
+| OC-CALC-015 | a promo removed by an edit gives its use back (usage voided, `current_uses` −1); a booking records its promo use | DB | P1B-12 | AUTOMATED_EXISTING |
+| OC-CALC-016 | tax on edit uses the recorded rate (D22); a later catalog price never re-prices a stored line; a new line gets today's Create price (D23) | Unit + DB | P1B-06/P1B-07 | AUTOMATED_EXISTING |
+| OC-CALC-017 | loyalty delta at Apply is traced to the change (D24) | Unit + DB | P1B-10/P1B-15 | AUTOMATED_EXISTING |
+| OC-CALC-018 | the Edit live card (quote mode) shows the Review figures | API + unit | Reusable View P3-08/P4-08 | NOT_APPLICABLE_YET |
 
 ## 9. Scenario matrix — financial outcome and immutable settlement
 
@@ -282,3 +290,16 @@ This document is the detailed testing-execution companion. If this file conflict
 | WP10 preview composition | Revalidated PASS | Preview service and route suites | 11 passed |
 
 These rows are unit evidence only. They do not claim a database, browser, or manual UI pass. Manual UI scenarios remain `NOT_EXECUTABLE_YET`.
+
+## 21. Parity evidence on the shared calculator — 2026-10-31 (Reusable View P1B-12)
+
+Run from `web-admin`. DB suites need local Supabase on port 54322; each runs in one rolled-back transaction.
+
+| Scenario IDs | Evidence | Command | Result |
+|---|---|---|---|
+| OC-CALC-011, 012, 013, 015, 016 (new line), 017 (Edit request) | `__tests__/db-integration/order-change-edit-parity.db.test.ts` | `npx jest --config jest.db.config.js __tests__/db-integration/order-change-edit-parity.db.test.ts` | PASS |
+| OC-CALC-014 | `__tests__/services/commercial/edit-discount-reevaluation.test.ts` + the preview/apply unit suites | `npx jest __tests__/services/commercial` | PASS |
+| OC-CALC-016 (recorded tax, stored line price) | `__tests__/services/commercial/commercial-edit.loader.test.ts` | same | PASS |
+| OC-CALC-017 (ledger) | `__tests__/db-integration/loyalty-order-earn-reconcile.db.test.ts`, `__tests__/services/loyalty.service.test.ts` | `npx jest --config jest.db.config.js __tests__/db-integration/loyalty-order-earn-reconcile.db.test.ts` | PASS |
+
+Browser steps for the same rules: [Line-Level QA guide](../../Order_Fin/Line_Level_Money_Snapshot/QA_TEST_GUIDE.md) S9–S17.

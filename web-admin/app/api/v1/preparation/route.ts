@@ -3,32 +3,24 @@
  * GET /api/v1/preparation
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isPreparationEnabled } from '@/lib/config/features';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
  *
+ * @param request
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     if (!isPreparationEnabled()) {
       return NextResponse.json({ success: false, error: 'Feature disabled' }, { status: 403 });
     }
+    const auth = await requirePermission('orders:read')(request);
+    if (auth instanceof NextResponse) return auth;
+    const { tenantId } = auth;
     const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = user.user_metadata?.tenant_org_id;
-    if (!tenantId) {
-      return NextResponse.json({ success: false, error: 'Tenant ID not found' }, { status: 400 });
-    }
 
     const { data: orders, error } = await supabase
       .from('org_orders_mst')

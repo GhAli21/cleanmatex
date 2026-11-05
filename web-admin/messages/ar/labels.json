@@ -1,0 +1,27 @@
+{
+  "actions": {
+    "printOrderLabel": "طباعة ملصق الطلب",
+    "printPieceTags": "طباعة بطاقات القطع",
+    "printing": "جارٍ الطباعة...",
+    "menu": "طباعة الملصقات"
+  },
+  "template": {
+    "order": "الطلب",
+    "readyBy": "جاهز في",
+    "tbd": "سيتم تأكيده",
+    "items": "الأصناف",
+    "pieces": "القطع",
+    "customer": "العميل",
+    "tag": "البطاقة",
+    "pieceOf": "القطعة {seq} من {total}",
+    "orderBarcode": "باركود الطلب",
+    "lineBarcode": "باركود الصنف",
+    "pieceBarcode": "باركود القطعة",
+    "staffQr": "رمز QR للموظفين"
+  },
+  "errors": {
+    "loadFailed": "تعذّر تحميل الملصق. حاول مرة أخرى.",
+    "printFailed": "تعذّر فتح الطباعة. حاول مرة أخرى.",
+    "noPieces": "لا توجد قطع لهذا الطلب بعد."
+  }
+}

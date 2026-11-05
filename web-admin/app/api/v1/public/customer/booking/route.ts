@@ -1,3 +1,4 @@
+import { getDefaultVatRate } from '@/lib/services/tax-engine.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { z } from 'zod';
@@ -412,23 +413,19 @@ export async function GET(request: NextRequest) {
     });
     const [
       moneyConfig,
-      vatSetting,
+      vatRate,
       servicePreferences,
       pickupPreferences,
       preferenceKinds,
     ] =
       await Promise.all([
         tenantSettings.getCurrencyConfig(tenantId, branchId),
-        tenantSettings.getSettingValue(tenantId, 'TENANT_VAT_RATE', branchId),
+        // Display only: the submit is priced by the commercial calculator from the tax profiles.
+        getDefaultVatRate(tenantId),
         PreferenceCatalogService.getServicePreferences(supabase, tenantId, branchId),
         PreferenceCatalogService.getPackingPreferences(supabase, tenantId),
         PreferenceCatalogService.getPreferenceKinds(supabase, tenantId, false),
       ]);
-    const vatRate =
-      typeof vatSetting === 'number'
-        ? vatSetting
-        : Number.parseFloat(String(vatSetting ?? '0')) || 0;
-
     logger.info('Public customer booking executing bootstrap data queries', {
       ...requestContext,
       customerId: session.customerId,
@@ -1061,8 +1058,14 @@ export async function POST(request: NextRequest) {
           { status: WORKFLOW_PROFILE_CREATE_HTTP_STATUS },
         );
       }
-      // Retail goods are paid at the counter; a booking is always paid later.
-      if (creationResult.errorCode === 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED') {
+      // Online retail is paid on collection; a profile that starts it handed over cannot
+      // take it unpaid, so the goods are unavailable online until that profile is fixed.
+      if (creationResult.errorCode === 'RETAIL_PAY_LATER_STARTS_HANDED_OVER') {
+        logger.warn('Public customer booking: workflow profile starts online retail handed over', {
+          feature: 'public_customer_booking',
+          tenantId: body.tenantId,
+          error: creationResult.error,
+        });
         return jsonError('booking_item_unavailable', 'Retail items cannot be booked online', 400);
       }
       return jsonError(

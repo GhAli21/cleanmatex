@@ -65,6 +65,7 @@
     "targetPersisted": "Saved row",
     "emptyItems": "This order has no items.",
     "lockedField": "Locked",
+    "lineSpeedLocked": "A line that is already ready keeps its speed. Change the speed of the other lines one by one.",
     "deniedReason": "Not allowed: {reason}",
     "loadFailed": "The order could not be loaded for editing.",
     "reviewFailed": "The review could not be completed.",
@@ -150,6 +151,9 @@
     "pricingError": {
       "orderNeedsRecompute": "This order was saved before line-by-line pricing, so its prices cannot be edited yet. Notes, ready-by and priority can still be changed.",
       "overrideRequired": "A new line has a changed price, which needs the price override permission for Edit Order.",
+      "priceOverrideNotPermitted": "Changing a line price needs the price override permission.",
+      "lineDiscountNotPermitted": "A line discount needs the discount permission.",
+      "lineNotActive": "A line with a changed price or discount is no longer on this order. Reload it and review again.",
       "productNotFound": "An item is no longer in the catalog. Remove it from this change.",
       "preferenceNotAvailable": "A preference is no longer available for this branch. Remove it from this change.",
       "serviceSpeedInvalid": "The selected service speed is not available. Choose another speed.",
@@ -308,6 +312,24 @@
     "willRemove": "Will be removed",
     "none": "None",
     "newItem": "New item",
+    "priceChangedHint": "The cart showed a different price for this item. Apply charges the unit price shown here.",
+    "discounts": {
+      "title": "Discounts recalculated",
+      "hint": "Each discount on the order was applied again to the new total.",
+      "changed": "{name}: −{before} → −{after}",
+      "removed": "{name} removed (was −{before}): {reason}",
+      "acknowledge": "I understand this discount will be removed.",
+      "manual": "Manual discount",
+      "rule": "Automatic discount",
+      "promo": "Promo code",
+      "reason": {
+        "MIN_ORDER_NOT_MET": "the order is below its minimum amount",
+        "MAX_ORDER_EXCEEDED": "the order is above its maximum amount",
+        "MIN_ITEMS_NOT_MET": "the order has fewer items than it needs",
+        "CATEGORY_NOT_APPLICABLE": "it does not apply to the services on the order",
+        "NOTHING_TO_DISCOUNT": "earlier discounts already cover the whole amount"
+      }
+    },
     "newPiece": "New piece",
     "kind": {
       "packing": "Packing",
@@ -326,7 +348,13 @@
       "stage": "Stage",
       "scanState": "Scan state",
       "value": "Value",
-      "defaultCustomer": "Default customer"
+      "defaultCustomer": "Default customer",
+      "discountType": "Line discount type",
+      "discountValue": "Line discount",
+      "discountReason": "Line discount reason",
+      "discountPercent": "Percent",
+      "discountAmount": "Amount",
+      "shownUnitPrice": "Price shown in the cart"
     }
   },
   "legacyUpdateRetired": "This order's prices were calculated line by line. Save price, quantity or item changes through Edit Order review."

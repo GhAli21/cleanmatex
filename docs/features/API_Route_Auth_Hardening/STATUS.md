@@ -1,21 +1,81 @@
 # API Route Auth Hardening (BF-23) — STATUS
 
 **Plan:** [PLAN.md](PLAN.md)
-**Overall:** DRAFT — waiting for owner approval of the plan and decisions D1–D4.
+**Overall:** Implemented 2026-10-30 (Steps 0–8). Migration 0660 is applied on remote (verified 2026-10-30). Not committed yet. Manual QA pending (scenarios below). Gap C was a false finding (closed, see below). BF-24 (the 45-route legacy-guard list) is done (2026-10-30, see log) — `LEGACY_UNGUARDED` is now empty. BF-25 (shadowed `getAuthContext()` helpers found while triaging BF-24, plus a matching gap in `feature-flags.service.ts`) is also done (2026-10-30, see log).
 
 | Step | Title | Status |
 |---|---|---|
-| 0 | Confirm callers, role coverage, D2/D3 facts | Not started |
-| 1 | Orders routes (#1–#14) | Not started |
-| 2 | Catalog and pricing routes (#15–#23) | Not started |
-| 3 | Settings, workflow, roles routes (#24–#28) | Not started |
-| 4 | Services and `server-auth.ts` fallback | Not started |
-| 5 | Retire navigation write endpoints + drop `sys_components_cd` write policies (D2) | Not started |
-| 6 | Access contracts + platform inventories | Not started |
-| 7 | Repo rule test (`api-route-auth-guard`) | Not started |
-| 8 | Verify, QA scenarios, close BF-23 | Not started |
-| — | Gap C: revoke Supabase session on session end (D3), separate package | Not started |
+| 0 | Confirm callers, role coverage, D2/D3 facts | ✅ Done |
+| 1 | Orders routes (#1–#14) | ✅ Done |
+| 2 | Catalog and pricing routes (#15–#23) | ✅ Done |
+| 3 | Settings, workflow, roles routes (#24–#28, plus `workflow-roles/[id]`) | ✅ Done |
+| 4 | Services and `server-auth.ts` fallback | ✅ Done |
+| 5 | Retire navigation editor + drop `sys_components_cd` write policies (D2) | ✅ Done (migration 0660 applied on remote) |
+| 6 | Access contracts + platform inventories | ✅ Done |
+| 7 | Repo rule tests | ✅ Done |
+| 8 | Verify, QA scenarios, close BF-23 | ✅ Automated checks green; manual QA pending |
+| — | Gap C: revoke the Supabase session when the app session ends (D3) | ✅ Closed — already implemented by User Session Lifecycle (re-verified 2026-10-30) |
+| — | BF-24: 45 legacy routes without a recognized session guard | ✅ Done — `LEGACY_UNGUARDED` is now empty |
+| — | BF-25: shadowed `getAuthContext()` helpers found while triaging BF-24 | ✅ Done — 5 routes + `feature-flags.service.ts` fixed, see below |
+
+## What changed (reference)
+
+**Gates per route** — PLAN §2 table, as implemented. Additions found in Step 0:
+- `DELETE /api/workflow-roles/[id]` had no tenant and no permission check: now `roles:update`, tenant-filtered.
+- `POST /api/v1/orders/estimate-ready-by` never authenticated at all: now `orders:create` or `orders:edit`, body validated (Zod, max 500 items).
+- `POST /api/v1/products/import`: body capped at 2 MB (413).
+
+**Bugs fixed on the way**
+- Workflow Roles screen always showed no roles: the service read with the browser Supabase client on the server (no session, so RLS returned nothing). Now the server client, one batched query instead of one per user, members and emails from `org_users_mst` (no more `auth.admin.listUsers()` over every platform user).
+- Workflow Roles menu and page were gated on `settings:workflow_roles:view`, which is not a permission code (three parts, not in the DB), so only `*:*` users could open them. Now `roles:update` in `config/navigation.ts`, the contract and `sys_components_cd` (0660).
+- Catalog Categories page saved to `/api/v1/categories/enable`, which does not exist (always 404). Now `POST /api/v1/categories`.
+- Contract drift: estimate-ready-by declared GET (route is POST); price-list item edit declared PATCH (route is PUT); a "Create workflow config" POST that has no route was removed.
+- Wire audit (`scripts/docs/ui-access-contract/resolve-api-enforcement.ts`) only recognized `requirePermission`; it now also accepts `requireAnyPermission` / `requireAllPermissions` / `withPermission*`.
+
+**Services** — `getCurrentTenant`, `getAuthenticatedTenantId`, `getCurrentSubscription` and the customers service read the tenant from the validated session (`getTenantIdFromSession` / `getAuthContext`). `server-auth.ts` no longer falls back to `tenants[0]`: it fails closed when the session tenant is not in the membership list. The customers service no longer reads `user_metadata.tenant_org_id`.
+
+**UI (frontend gates are UX; the API enforces)**
+- Split controls in both processing dialogs: tenant setting AND `orders:split`.
+- Report issue (row action and "Add issue"): `orders:transition`. Resolve issue (list dialog and queue): `orders:update`.
+- Catalog Services: New product and Import need `products:create`; Export needs `products:export`.
+- Catalog Categories: switches read-only and Save hidden without `products:categories`.
+- Retired: `/dashboard/settings/navigation` page, `NavigationManagement` / `NavigationItemForm`, `navigation-management.service.ts`, `/api/navigation/components` (+ `[id]`), the sidebar icon/i18n entries and the `navigationAdmin` i18n key (EN/AR).
+
+**Permissions / navigation / migrations / flags**
+- No new permission codes (all codes already in `sys_auth_permissions`). Removed the invalid `SETTINGS_PERMISSIONS.WORKFLOW_ROLES_VIEW` constant.
+- Navigation dual-write: `config/navigation.ts` + migration `0660_nav_retire_editor_fix_wf_roles.sql`.
+- No feature flags, settings, plan limits or env vars changed.
+
+**Tests**
+- `__tests__/security/api-route-auth-guard.test.ts`: only allowed files call `get_user_tenants`; no route uses `tenants[0]`; every non-exempt route validates the session; the legacy list (45 routes) may only shrink.
+- `__tests__/security/api-route-auth-gates.test.ts`: 39 handler cases ask for the expected gate before any data access and return the guard's denial unchanged.
+- `__tests__/services/role-service-workflow-roles.test.ts`: member check, conflict mapping, tenant filters, batching, loud failure.
+- Updated: `order-state-line-prices.route.test.ts`, `customers.notification-preferences.test.ts`, `resolve-api-enforcement.test.ts` (+2 cases).
+
+## Follow-up packages
+
+**Gap C / D3 — closed, false finding (corrected 2026-10-30):** the plan said session end does not revoke the Supabase session. That check only read the thin wrappers `fn_auth_session_end` / `fn_auth_sessions_revoke`. Both call `fn_auth_session_end_internal`, which already runs `DELETE FROM auth.sessions WHERE id = p_auth_session_id`; `auth.refresh_tokens` has `ON DELETE CASCADE`, so the refresh token dies with it. Idle/absolute timeout (`fn_auth_session_validate`), the sweep (`fn_auth_sessions_sweep`) and deactivation (trigger `trg_org_users_revoke_sessions`) all go through the same function. Remote data: 134 ended sessions, 0 with a live `auth.sessions` row. Design: [User_Session_Lifecycle ADR](../User_Session_Lifecycle/ADR-session-registry-and-tenant-claim.md) §6. The only residual is an already-issued access token calling Supabase directly until it expires: `jwt_expiry = 600` locally; the hosted project's value is set in the Supabase dashboard (owner action, [REMAINING_WORK §1.1](../User_Session_Lifecycle/REMAINING_WORK.md)). No code or migration needed.
+
+**BF-24 (HIGH) — done 2026-10-30.** Triaged all 45 `LEGACY_UNGUARDED` routes individually; none were left unexamined. Outcome:
+- **14 real gaps fixed** (session/tenant now from `requirePermission`/`getTenantIdFromSession`/`getAuthContext`, never `user.user_metadata`): `dashboard/workflow-stats`, `orders/overdue` (auth-only dashboard widgets); `orders/[orderId]/status` (GET → `orders:read`; PATCH retired-stub → `orders:update`), `orders/bulk-status` (retired-stub → `orders:update`), `orders/[orderId]/status-history` (→ `orders:read`); `v1/preparation` (→ `orders:read`), `v1/preparation/[id]/start` (→ `orders:transition`), `v1/preparation/[id]/preview` (→ `orders:read`), `v1/preparation/[id]/items` (→ `orders:update`); `v1/branches`, `v1/customers/link`, `v1/subscriptions/usage` (now `getAuthContext`/`getTenantIdFromSession`, not a client-editable field or a second raw `org_users_mst` lookup); `settings/catalog`, `settings/categories` (previously had **no local session check at all** — the browser never attaches an Authorization header, so every call silently fell back to the server's own `HQ_SERVICE_TOKEN`, meaning *any* visitor, logged in or not, could read the settings catalog; now gated by `requireAuth()` before the HQ proxy call).
+- **4 dead routes deleted**, not patched: `app/api/roles/route.ts`, `app/api/roles/[id]/route.ts`, `app/api/roles/[id]/permissions/route.ts`, `app/api/permissions/route.ts`, plus the now-orphaned `lib/services/role-service.ts`. The frontend (`roles` page, user/role pickers) calls `lib/api/roles.ts` → `/tenant-api/roles` (HQ platform-api via `rbacFetch`), never these local routes — confirmed via grep, zero live callers.
+- **10 EXEMPT additions** (not session-gated by design, verified safe): `api/docs` (public OpenAPI spec, no tenant data); `v1/customers/send-otp`/`verify-otp` (pre-session phone verification, rate-limited); `v1/tenants/check-slug`/`register` (pre-session signup); `finance/process-jobs`/`process-outbox`, `notifications/process-campaigns`/`process-outbox`/`reconcile-outbox` (pg_cron-driven, constant-time `Bearer {OUTBOX_SECRET}` check, not a user session).
+- **17 false positives** — already fail-closed, just invisible to the test's regex (one import hop away, or an unrecognized-but-safe guard name). Fixed by either extending `GUARD_RE` with `requireTenantAuth`/`requireRequestPermission`/`createWorkflowStageCommandHandler` (11 workflow-stage-command routes: `assembly/complete`, `home-collection/assign`+`fail`+`orders/complete`, `packing/complete`, `pickup/orders/complete`, `preparation/items/[itemId]`, `processing/complete`, `qa/fail`+`pass`, `ready/release-delivery`+`release-pickup`) or by adding a new shared `requireAuth()` helper (`lib/auth/require-auth.ts`) and calling it visibly in the route (`v1/lookups/issue-types`+`priorities`+`service-speeds`+`timezones`, `admin/prisma-performance` — also inlined to drop the re-export indirection through the now-deleted `lib/db/prisma-performance-api.ts`; the metrics module `lib/db/prisma-performance.ts` itself is untouched).
+- Net result: `LEGACY_UNGUARDED` is now `[]`. Test updated: `__tests__/security/api-route-auth-guard.test.ts`. Also updated: `__tests__/api/v1/orders-bulk-status-retired.route.test.ts`, `__tests__/api/preparation.preview.test.ts` (mocks swapped to `requirePermission`).
+- Verification: `tsc --noEmit` 0 errors; `eslint --quiet` clean on touched files; full Jest 4676/4677 (the one failure is the pre-existing, unrelated `platform-inventories` drift test — same 6 items as before this work); `npm run build` green.
+
+**BF-25 (MEDIUM) — done 2026-10-30.** Found while triaging BF-24: 5 route files (not 3 — `upgrade` and `addresses/[addressId]` had the same bug, missed by the earlier scan) each defined a **local, same-named `getAuthContext()`** that read `user.user_metadata?.tenant_org_id` / `user.user_metadata?.role` — the exact BF-23/BF-24 vulnerability class, spoofable via a client-editable JWT claim — but passed the guard test because the literal text `getAuthContext(` matches `GUARD_RE`, even though it was not the real, fail-closed `getAuthContext` from `lib/auth/server-auth.ts`. Fixed: `app/api/v1/customers/export/route.ts`, `merge/route.ts`, `[id]/addresses/route.ts`, `[id]/addresses/[addressId]/route.ts`, `[id]/upgrade/route.ts` — deleted each local helper, imported the canonical `getAuthContext` instead (same shape: `{ user, tenantId, userId, userRole }`, with `userRole` now sourced from the session's own tenant membership row via `get_user_tenants()`, not a client claim); updated each catch block's status-mapping condition from `error.message === 'No tenant context'` to `error.message.startsWith('No tenant access')` (plus `'Password change required'`) to match the canonical helper's thrown messages. The underlying services (`searchCustomers`, `mergeCustomers`, `upgradeCustomerProfile`, `customer-addresses.service.ts`) already derived their own tenant from `getTenantIdFromSession()`/`getCurrentUserTenantSessionContext()` internally, so there was no cross-tenant data leak — the gap was purely that the route-level admin-role gate (export/merge) and the auth presence check (addresses/upgrade) could be satisfied with a forged client claim before the safe service call ever ran. Also fixed `lib/services/feature-flags.service.ts`'s `getCurrentFeatureFlags()` and `currentTenantCan()`, which read `user.user_metadata.tenant_org_id` directly to gate entire ERP-Lite dashboard sections (`/dashboard/erp-lite/*`) behind a feature flag — not a route, so invisible to the guard test by construction; switched both to `getTenantIdFromSession()`. No new permission codes, no migration. Verification: `tsc --noEmit` 0 errors; `eslint --quiet` clean on touched files; targeted Jest (`__tests__/api/customers.test.ts`, `__tests__/security/api-route-auth-guard.test.ts`) green; `npm run build` exit 0.
+
+**Workflow Roles page UX:** the page (`app/dashboard/settings/workflow-roles/page.tsx`) still uses `alert()`, hardcoded English role names and raw markup. Its API now returns clear 404/409/422 codes, ready for a `cmxMessage` rewrite.
+
+## QA scenarios (owner)
+
+See [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) for the owner-runnable scenario table (BF-23 scenarios 1–10, BF-24 scenario 11, BF-25 scenarios 12–14).
 
 ## Log
 
+- **2026-10-30 (Workflow Roles retirement, owner decision — fully dropped):** Owner decision: drop the concept entirely rather than just retiring the screen (it gated nothing — see the Gap C re-check entry below). Migration `0663_drop_workflow_roles.sql` written and applied by the owner to both local and remote DBs (table `org_auth_user_workflow_roles`, functions `get_user_workflow_roles()`/`has_workflow_role(text)`, feature flag `workflow_role_restrictions_enabled` and its plan mappings dropped; `sys_components_cd` row soft-retired). Prisma types/schema regenerated by the owner in both `cleanmatex` and `cleanmatexsaas`. Code removed in `cleanmatex`: the settings screen and its 3 API routes, `lib/api/workflow-roles.ts`, the workflow-role functions in `role-service.ts` and `permission-cache.ts`, the `AssignWorkflowRolesDialog` and the Users → Roles tab's Workflow Roles section, all hooks/context fields (`useAuth().workflowRoles`, `useHasWorkflowRole`/`useHasAnyWorkflowRole`/etc.), the `evaluateWorkflowRoles` access-contract primitive and `userWorkflowRoles`/`workflowRoles` fields, the nav entry (dual-write), the flag-catalog entry and tenant-settings type field, the users-list `workflowRole` filter, and all EN/AR i18n keys. Also removed the parallel implementation in `cleanmatexsaas` (HQ) that read the same table/functions: `TenantWorkflowRoleGuard`/`RequireTenantWorkflowRole`, the `tenant-users` controller/service/repository workflow-role endpoints and DTO, and the platform-web dialog/hook/tab wiring — HQ's workflow-roles endpoints would otherwise have started failing once migration 0663 landed on the shared DB. Verification: `tsc --noEmit` 0 errors in `cleanmatex` web-admin and in both HQ `platform-api`/`platform-web`; `eslint --quiet` clean on touched files; `npm run build` green in `cleanmatex` (route `/dashboard/settings/workflow-roles` no longer emitted); `check:i18n` passed; targeted Jest green (51/51 in `cleanmatex` across access-contracts, permission-service, api-route-auth-gates, api-route-auth-guard; 23/23 HQ `tenant-users.service.spec`); `rebuild:platform-info-inventories` run, drift unchanged (same 6 pre-existing nav/contract warnings, none related to this change). Leftover mentions in HQ's `platform-api/src/common/*.md` reference docs (README, USAGE_EXAMPLES, INTEGRATION_GUIDE, PHASE1_COMPLETION_SUMMARY, TESTING_CHECKLIST) were left as-is — historical documentation, not code.
+- **2026-10-30 (Gap C re-check, docs only):** Gap C closed as a false finding; details in "Follow-up packages". Workflow roles checked: 0 rows, no gate reads them (no component, server check or RLS policy), flag `workflow_role_restrictions_enabled` off; retirement is an owner decision.
+
+- **2026-10-30 (implemented):** Steps 0–8 done. 31 route files guarded (30 from the plan plus `workflow-roles/[id]`), 3 services and `server-auth.ts` fixed, navigation editor retired, contracts and inventories refreshed, 3 new test files. Migration 0660 written, then applied by the owner (remote checked: write policies removed, editor row inactive, workflow-roles menu on `roles:update`). Verification: `tsc --noEmit` 0 errors, `eslint . --quiet` clean, `npm run build` passed, `check:i18n` passed, contract wire check passed for orders, catalog and settings, full Jest 4670 of 4671 (the one failure is the pre-existing `platform-inventories` drift test). `platform-inventories` drift: the same 6 pre-existing items, none from this work.
 - **2026-10-30 (plan drafted, no code):** re-verified BF-23 on the remote DB. `org_users_mst` has `UNIQUE (user_id)`, so `tenants[0]` always equals the session tenant — the original "wrong tenant" premise does not hold. The real gaps are: the 30 routes skip server session validation (Gap A) and permission checks (Gap B); session end does not revoke the Supabase session (Gap C); tenant `super_admin` can write global navigation (Gap D). Inventory, permission mapping and steps in PLAN.md.

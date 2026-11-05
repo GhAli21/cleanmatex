@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 import { OrderActions } from '@features/orders/ui/order-actions';
+
+// OrderActions refreshes the order's financial view after money actions (needs the app's query client).
+const render = (ui: ReactElement) => rtlRender(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 
 const workflowActionBarMock = jest.fn((props: { screen?: string }) => (
   <div data-testid={`workflow-action-bar-${props.screen ?? 'unknown'}`}>

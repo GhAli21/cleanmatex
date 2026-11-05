@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTenantIdFromSession } from '@/lib/db/tenant-context'
 import { prisma } from '@/lib/db/prisma'
+import { PRICE_HISTORY_SPEED_RULE } from '@/lib/constants/commercial'
 
 /**
  *
@@ -74,6 +75,9 @@ export async function GET(request: NextRequest) {
 
         if (entityType) {
             where.entity_type = entityType
+        } else {
+            // This timeline shows prices; a speed rule's value may be a multiplier, so it is not listed here.
+            where.entity_type = { not: PRICE_HISTORY_SPEED_RULE }
         }
 
         // Build dynamic query conditions
@@ -115,6 +119,8 @@ export async function GET(request: NextRequest) {
             conditions.push(`pha.entity_type = $${paramIndex}`)
             params.push(entityType)
             paramIndex++
+        } else {
+            conditions.push(`pha.entity_type <> '${PRICE_HISTORY_SPEED_RULE}'`)
         }
 
         const whereClause = conditions.join(' AND ')

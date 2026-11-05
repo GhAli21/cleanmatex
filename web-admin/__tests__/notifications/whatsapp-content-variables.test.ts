@@ -34,6 +34,15 @@ describe('buildTwilioContentVariables', () => {
     })
   })
 
+  it('passes credit_note_no through for credit_note.issued', () => {
+    expect(
+      buildTwilioContentVariables({
+        event_code: 'credit_note.issued',
+        metadata: { variables: { credit_note_no: 'SCN-000123', invoice_number: 'SCN-000123' } },
+      }),
+    ).toEqual({ credit_note_no: 'SCN-000123' })
+  })
+
   it('falls back to OTP-style slots when only a code is present', () => {
     expect(
       buildTwilioContentVariables({

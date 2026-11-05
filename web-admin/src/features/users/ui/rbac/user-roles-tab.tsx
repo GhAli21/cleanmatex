@@ -1,13 +1,12 @@
 'use client'
 
 /**
- * UserRolesTab — Four-section RBAC management tab for a user.
+ * UserRolesTab — Three-section RBAC management tab for a user.
  *
  * Sections:
  *   1. Tenant-Level Roles — table of assigned roles with remove actions
  *   2. Resource-Scoped Roles — conditional; shown only when present
- *   3. Workflow Roles — badge list with remove per badge
- *   4. Permission Overrides — table of global + resource overrides
+ *   3. Permission Overrides — table of global + resource overrides
  *
  * Header action bar: "Rebuild Permissions" button
  */
@@ -25,7 +24,6 @@ import { cmxMessage } from '@ui/feedback'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import { useUserRoleAssignments, useUserPermissionOverrides } from '@/lib/hooks/use-user-role-assignments'
 import { AssignRolesDialog } from './assign-roles-dialog'
-import { AssignWorkflowRolesDialog } from './assign-workflow-roles-dialog'
 import { PermissionOverrideDialog } from './permission-override-dialog'
 
 interface UserRolesTabProps {
@@ -48,10 +46,8 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
   const {
     tenantRoles,
     resourceRoles,
-    workflowRoles,
     loading: rolesLoading,
     removeRole,
-    removeWorkflowRole,
     rebuildPermissions,
     rebuilding,
     refetch,
@@ -60,10 +56,8 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
   const { globalOverrides, resourceOverrides } = useUserPermissionOverrides(userId)
 
   const [assignRolesOpen, setAssignRolesOpen] = useState(false)
-  const [assignWorkflowOpen, setAssignWorkflowOpen] = useState(false)
   const [overrideOpen, setOverrideOpen] = useState(false)
   const [removingRole, setRemovingRole] = useState<string | null>(null)
-  const [removingWorkflow, setRemovingWorkflow] = useState<string | null>(null)
 
   const handleRemoveRole = async (roleCode: string) => {
     setRemovingRole(roleCode)
@@ -74,18 +68,6 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
       cmxMessage.error(err instanceof Error ? err.message : tCommon('error'))
     } finally {
       setRemovingRole(null)
-    }
-  }
-
-  const handleRemoveWorkflowRole = async (workflowRole: string) => {
-    setRemovingWorkflow(workflowRole)
-    try {
-      await removeWorkflowRole(workflowRole)
-      cmxMessage.success(t('workflowRoleRemoved'))
-    } catch (err) {
-      cmxMessage.error(err instanceof Error ? err.message : tCommon('error'))
-    } finally {
-      setRemovingWorkflow(null)
     }
   }
 
@@ -292,50 +274,7 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
         </div>
       )}
 
-      {/* Section 3: Workflow Roles */}
-      <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]">
-          <div>
-            <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-              {t('workflowRoles')}
-            </h3>
-            <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-              {t('workflowRolesDesc')}
-            </p>
-          </div>
-          <CmxButton size="sm" variant="secondary" onClick={() => setAssignWorkflowOpen(true)}>
-            {t('assignWorkflowRoles')}
-          </CmxButton>
-        </div>
-        <div className="p-4">
-          {workflowRoles.length === 0 ? (
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-              {t('noWorkflowRoles')}
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {workflowRoles.map((wr) => (
-                <span
-                  key={wr.workflow_role}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] text-[rgb(var(--cmx-foreground-rgb,15_23_42))] border border-[rgb(var(--cmx-border-rgb,226_232_240))]"
-                >
-                  {wr.workflow_role}
-                  <button
-                    onClick={() => handleRemoveWorkflowRole(wr.workflow_role)}
-                    disabled={removingWorkflow === wr.workflow_role}
-                    className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:text-red-600 disabled:opacity-50"
-                    aria-label={`Remove ${wr.workflow_role}`}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Section 4: Permission Overrides */}
+      {/* Section 3: Permission Overrides */}
       <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]">
           <div>
@@ -414,13 +353,6 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
       <AssignRolesDialog
         open={assignRolesOpen}
         onOpenChange={setAssignRolesOpen}
-        userId={userId}
-        userName={userName}
-        onSuccess={refetch}
-      />
-      <AssignWorkflowRolesDialog
-        open={assignWorkflowOpen}
-        onOpenChange={setAssignWorkflowOpen}
         userId={userId}
         userName={userName}
         onSuccess={refetch}

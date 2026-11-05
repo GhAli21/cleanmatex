@@ -24,11 +24,13 @@ import type { CartQuoteLine } from '@/lib/types/cart-quote';
 import { ServiceSpeedSelect } from './service-speed-select';
 import { useServiceSpeeds } from '../hooks/use-service-speeds';
 
-/** New Order (P5-03b): this line's quoted figures and its speed menu. */
+/** This line's quoted figures (New Order, P5-03b) and its speed menu (also Order Edit, P6-02b). */
 export interface SummaryCartItemQuote {
   /** Null before the first answer for this line. */
   line: CartQuoteLine | null;
   pending: boolean;
+  /** Order Edit: no quoted figures; the stored line price shows. */
+  unquoted?: boolean;
   orderSpeed: string;
   /** The line's own speed; null follows the order speed. */
   lineSpeed: string | null;
@@ -237,7 +239,7 @@ function SummaryCartItemComponent({
     locale: moneyLocale,
   });
   // New Order shows the server's line gross only; before its first answer, a placeholder (never a client sum).
-  const shownPrice = quote ? quote.line?.grossAmount ?? null : totalPrice;
+  const shownPrice = quote && !quote.unquoted ? quote.line?.grossAmount ?? null : totalPrice;
   const displayPrice = shownPrice == null ? '…' : fmt(shownPrice);
   const effectiveSpeed = quote ? quote.lineSpeed ?? quote.orderSpeed : null;
   const premium = quote?.line && quote.line.speedPremiumAmount > 0 ? quote.line.speedPremiumAmount : 0;

@@ -11,6 +11,10 @@ import type { OrderChangeContext } from '@/lib/types/order-change';
 import type { MinimalCustomer } from '@features/orders/model/new-order-types';
 import { useNewOrderDispatch, useNewOrderState, NewOrderProvider } from '@features/orders/ui/context/new-order-context';
 import { NewOrderLayout } from '@features/orders/ui/new-order-layout';
+import { OrderEditFinancialCard } from '@features/orders/order-fin-view/ui/order-edit-financial-card';
+import { useOrderEditFinancialQuote, type EditQuoteController } from '@features/orders/order-fin-view/hooks/use-order-edit-financial-quote';
+import { invalidateOrderFinancial } from '@features/orders/order-fin-view/hooks/order-fin-view-cache';
+import { useQueryClient } from '@tanstack/react-query';
 import { NewOrderContent } from '@features/orders/ui/new-order-content';
 import { NewOrderModals } from '@features/orders/ui/new-order-modals';
 import { createEditOrderController, type EditOrderController } from './edit-order-controller';
@@ -41,6 +45,9 @@ interface EditSharedWorkspaceProps {
 const PRICING_ERROR_KEYS: Readonly<Record<string, string>> = {
   ORDER_NEEDS_RECOMPUTE: 'orderNeedsRecompute',
   OVERRIDE_REQUIRED: 'overrideRequired',
+  PRICE_OVERRIDE_NOT_PERMITTED: 'priceOverrideNotPermitted',
+  LINE_DISCOUNT_NOT_PERMITTED: 'lineDiscountNotPermitted',
+  UPDATE_NOT_ACTIVE: 'lineNotActive',
   PRODUCT_NOT_FOUND: 'productNotFound',
   PREFERENCE_NOT_AVAILABLE: 'preferenceNotAvailable',
   SERVICE_SPEED_INVALID: 'serviceSpeedInvalid',
@@ -152,10 +159,19 @@ function EditSharedWorkspaceBody({
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const dispatch = useNewOrderDispatch();
+  const queryClient = useQueryClient();
   const state = useNewOrderState();
   const [controller] = useState<EditOrderController>(() => createEditOrderController({
     headers: async () => ({
       // Bind mutation requests to the browser session to prevent cross-site request forgery.
+      ...getCSRFHeader(await getCSRFToken()),
+      ...orderEditSessionHeaders(sessionToken),
+    }),
+  }));
+  // The live card's own controller (P6-13): quoting syncs the draft into it, never into the Review
+  // controller, so a quote can never invalidate an issued review proof.
+  const [quoteController] = useState<EditOrderController>(() => createEditOrderController({
+    headers: async () => ({
       ...getCSRFHeader(await getCSRFToken()),
       ...orderEditSessionHeaders(sessionToken),
     }),
@@ -182,6 +198,7 @@ function EditSharedWorkspaceBody({
   useEffect(() => {
     const visualOrder = projectEditVisualOrder(context);
     controller.load(baseline);
+    quoteController.load(baseline);
     dispatch({
       type: 'LOAD_ORDER_FOR_EDIT',
       payload: {
@@ -203,12 +220,13 @@ function EditSharedWorkspaceBody({
         expectedUpdatedAt: new Date(context.committedAt),
       },
     });
-  }, [baseline, context, controller, dispatch, reloadKey]);
+  }, [baseline, context, controller, quoteController, dispatch, reloadKey]);
 
   // Loading a different policy invalidates review proof before the next Preview or Apply.
   useEffect(() => {
     controller.rememberLoadedPolicy(context.editPolicy);
-  }, [context.editPolicy, controller]);
+    quoteController.rememberLoadedPolicy(context.editPolicy);
+  }, [context.editPolicy, controller, quoteController]);
 
   const visual = useMemo(() => ({
     notes: state.notes,
@@ -221,6 +239,28 @@ function EditSharedWorkspaceBody({
     items: state.items,
     orderServicePrefs: state.orderServicePrefs,
   }), [state.customerEmail, state.customerMobile, state.customerName, state.customerNotes, state.serviceSpeed, state.items, state.notes, state.orderServicePrefs, state.readyByAt]);
+
+  // The card's view of the draft: the same operations Review would send, built in the card's controller.
+  const quoteSource = useMemo<EditQuoteController>(() => ({
+    buildOperations: () => {
+      if (!quoteController.isLoaded()) return [];
+      try {
+        applyVisualDraftToController(quoteController, baseline, visual);
+      } catch {
+        // A draft Review would refuse prices nothing; Review explains why.
+        return [];
+      }
+      return quoteController.buildOperations();
+    },
+    quote: (orderId, options) => quoteController.quote(orderId, options),
+  }), [baseline, quoteController, visual]);
+  const financialQuote = useOrderEditFinancialQuote({
+    controller: quoteSource,
+    orderId: context.orderId,
+    revision: context.editStateVersion,
+    currentSpeed: context.order.serviceSpeed ?? null,
+    preset: 'detailed',
+  });
 
   const rememberReview = useCallback((body: unknown) => {
     const view = readEditReview(body, controller.buildOperations(), context.financial.totalAmount, { currencyCode: context.order.currencyCode, timezone: context.order.timezone });
@@ -296,6 +336,8 @@ function EditSharedWorkspaceBody({
         return;
       }
       cmxMessage.success(t('workspace.applied'));
+      // The order's money changed: every cached financial view of it is stale (P6-08).
+      void invalidateOrderFinancial(queryClient, context.orderId);
       setApplyFailure(null);
       setReviewOpen(false);
       setSealed(true);
@@ -333,7 +375,7 @@ function EditSharedWorkspaceBody({
     } finally {
       setApplying(false);
     }
-  }, [context.orderId, controller, onLeave, sessionToken, t, tCommon]);
+  }, [context.orderId, controller, onLeave, queryClient, sessionToken, t, tCommon]);
 
   const onDiscard = useCallback(() => {
     if (sealed || exiting) return;
@@ -396,7 +438,8 @@ function EditSharedWorkspaceBody({
     onExit: () => { void onExit(); },
     exiting,
     sealed,
-  }), [baseline, context, estimatedTotal, exiting, onDiscard, onExit, onReview, reviewStatus, reviewing, sealed, visual]);
+    financialCard: <OrderEditFinancialCard orderId={context.orderId} quote={financialQuote} />,
+  }), [baseline, context, estimatedTotal, exiting, financialQuote, onDiscard, onExit, onReview, reviewStatus, reviewing, sealed, visual]);
 
   return (
     <OrderWorkspaceSessionProvider value={session}>

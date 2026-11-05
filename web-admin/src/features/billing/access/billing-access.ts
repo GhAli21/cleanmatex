@@ -178,6 +178,16 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
+        label: 'Order Financial Headers (batch) — linked orders balance',
+        method: 'POST',
+        path: '/api/v1/orders/financial-headers',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['Reusable Order Fin View P6-07: one request for every linked order. A user without orders:read sees "—" in the Order balance column; the rest of the page is unaffected.'],
+      },
+      {
         label: 'Get AR invoice detail',
         method: 'GET',
         path: '/api/v1/ar/invoices/[id]',

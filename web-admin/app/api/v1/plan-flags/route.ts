@@ -3,34 +3,22 @@
  * Returns plan-bound feature flags for the current tenant (bundles, repeat last order, smart suggestions)
  */
 
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { validateJWTWithTenant } from '@/lib/middleware/jwt-tenant-validator';
 import { getPlanFlags } from '@/lib/services/plan-flags.service';
 
 export const dynamic = 'force-dynamic';
 
 /**
- *
+ * Plan flags are read by every order screen, so only the session is checked.
+ * @param request
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await validateJWTWithTenant(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: tenants, error: tenantsError } = await supabase.rpc('get_user_tenants');
-
-    if (tenantsError || !tenants || tenants.length === 0) {
-      return NextResponse.json({ error: 'No tenant access found' }, { status: 403 });
-    }
-
-    const tenantId = tenants[0].tenant_id as string;
-    const flags = await getPlanFlags(tenantId);
-
+    const flags = await getPlanFlags(auth.tenantId);
     return NextResponse.json(flags);
   } catch (error) {
     console.error('[API] GET /api/v1/plan-flags error:', error);

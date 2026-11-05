@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import {
   getPriceLists,
   getPriceListById,
@@ -21,32 +21,6 @@ import type {
 // HELPER FUNCTIONS
 // ==================================================================
 
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id,
-    userId: user.id,
-    userRole: tenants[0].user_role,
-  };
-}
-
 // ==================================================================
 // GET /api/v1/price-lists - List Price Lists
 // ==================================================================
@@ -58,8 +32,10 @@ async function getAuthContext() {
  * @param request
  */
 export async function GET(request: NextRequest) {
+  const auth = await requirePermission('pricing:read')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    await getAuthContext();
 
     const priceLists = await getPriceLists();
 
@@ -97,8 +73,10 @@ export async function GET(request: NextRequest) {
  * @param request
  */
 export async function POST(request: NextRequest) {
+  const auth = await requirePermission('pricing:create')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    await getAuthContext();
 
     const body: PriceListCreateRequest = await request.json();
 

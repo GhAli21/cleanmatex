@@ -22,7 +22,7 @@ Both are already set in the local `supabase/config.toml`; the hosted project has
 
 | Setting | Where (hosted) | Without it |
 |---|---|---|
-| **JWT expiry = 600 s** | Dashboard → Authentication → Sessions → *JWT expiry* (or Project Settings → API) | The app itself still revokes immediately (every page and API call is checked against the session registry). Only calls that go **straight from the browser to Supabase** with an already-issued access token keep working until that token expires — up to 1 hour (default 3600 s) instead of 10 minutes, after a session was revoked or timed out. |
+| ✅ **JWT expiry = 600 s** — set on the hosted project by the owner (2026-10-30) | Dashboard → Authentication → Sessions → *JWT expiry* (or Project Settings → API) | The app itself still revokes immediately (every page and API call is checked against the session registry). Only calls that go **straight from the browser to Supabase** with an already-issued access token keep working until that token expires — up to 1 hour (default 3600 s) instead of 10 minutes, after a session was revoked or timed out. |
 | **Secure password change = on** | Dashboard → Authentication → Providers → Email → *Secure password change* | The app's own change/reset flows run on the server and are unaffected. But a browser holding a valid token can call Supabase's own password update directly, bypassing this app's policy checks (current password, strength, history, breached-password check); with the setting on, Supabase requires a recent sign-in or re-authentication for that call. |
 
 Because the product is pre-launch with demo data only, neither blocks QA. Set both before real tenants sign in.

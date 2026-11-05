@@ -16,11 +16,17 @@ class BookingConfirmationModel {
     required this.orderId,
     required this.orderNumber,
     this.promisedWindow,
+    this.totalAmount,
+    this.currencyCode,
   });
 
   final String orderId;
   final String orderNumber;
   final String? promisedWindow;
+
+  /// What the customer owes, as the server priced it (decimal text); shown, never recalculated.
+  final String? totalAmount;
+  final String? currencyCode;
 }
 
 class BookingBootstrapModel {
@@ -232,6 +238,8 @@ class OrderBookingService {
         orderId: data['orderId'] as String? ?? '',
         orderNumber: data['orderNo'] as String? ?? '',
         promisedWindow: data['promisedWindow'] as String?,
+        totalAmount: data['totalAmount'] as String?,
+        currencyCode: data['currencyCode'] as String?,
       );
     } on MobileHttpException catch (error) {
       throw OrderBookingServiceException(
@@ -306,7 +314,20 @@ class OrderBookingService {
       'booking_address_unavailable' => 'booking.addressUnavailableError',
       'booking_branch_unavailable' => 'booking.branchUnavailableError',
       'booking_preference_unavailable' => 'booking.preferenceUnavailableError',
+      'booking_piece_invalid' => 'booking.pieceInvalidError',
       'booking_disabled' => 'booking.disabledBody',
+      // The server prices the booking (commercial calculator, P6-04).
+      'PRODUCT_NOT_FOUND' => 'booking.itemUnavailableError',
+      'PREFERENCE_NOT_AVAILABLE' => 'booking.preferenceUnavailableError',
+      'SERVICE_SPEED_INVALID' => 'booking.speedInvalidError',
+      'PRICE_NOT_RESOLVED' => 'booking.priceUnavailableError',
+      // Laundry setup the customer cannot fix (time zone, currency, workflow profile).
+      'TIMEZONE_NOT_CONFIGURED' ||
+      'MISSING_TENANT_CURRENCY' ||
+      'MISSING_CURRENCY_CODE' =>
+        'booking.setupUnavailableError',
+      final code when code.startsWith('PROFILE_') =>
+        'booking.setupUnavailableError',
       _ => 'booking.submitErrorBody',
     };
   }

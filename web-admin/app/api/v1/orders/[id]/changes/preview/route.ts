@@ -5,10 +5,9 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { readBoundedOrderChangeJson, OrderChangeBodyError } from '@/lib/api/order-change-bounded-json';
 import { logger } from '@/lib/utils/logger';
 import { orderChangeContextParamsSchema, orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
-import { getOrderChangeContext, OrderChangeContextError } from '@/lib/services/order-change/order-change-context.service';
-import { hasPermissionServer } from '@/lib/services/permission-service-server';
-import { loadOrderChangePreviewFacts, OrderChangePreviewReadError } from '@/lib/services/order-change/order-change-preview-reads';
-import { previewOrderChange } from '@/lib/services/order-change/order-change-preview.service';
+import { OrderChangeContextError } from '@/lib/services/order-change/order-change-context.service';
+import { OrderChangePreviewReadError } from '@/lib/services/order-change/order-change-preview-reads';
+import { runOrderChangePreview } from '@/lib/services/order-change/order-change-preview-run';
 import { enforceOrderEditSession } from '@/lib/api/order-edit-session-guard';
 
 /** Forces a fresh preview because versions, flags, and settlement are concurrency-sensitive. */
@@ -59,30 +58,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!parsedBody.success) return errorResponse(400, 'VALIDATION_ERROR', 'Invalid order change request', requestId);
 
   try {
-    const context = await getOrderChangeContext({ tenantId: auth.tenantId, orderId: parsedParams.data.id });
-    const facts = await loadOrderChangePreviewFacts({
+    const preview = await runOrderChangePreview({
       tenantId: auth.tenantId,
       actorUserId: auth.userId,
-      context,
-      operations: parsedBody.data.operations,
-    });
-    const preview = await previewOrderChange({
-      tenantId: auth.tenantId,
-      actorUserId: auth.userId,
-      featureEnabled: facts.featureEnabled,
-      canUsePermission: (permission) => hasPermissionServer(permission),
-      context,
+      orderId: parsedParams.data.id,
       request: parsedBody.data,
-      bindings: facts.bindings,
-      policyResolution: facts.policyResolution,
-      priceEdit: facts.priceEdit,
-      catalog: facts.catalog,
-      payments: facts.payments,
-      credits: facts.credits,
-      refunds: facts.refunds,
-      persistedTaxAmount: facts.persistedTaxAmount,
-      auditFacts: facts.auditFacts,
-      proofKey: facts.proofKey,
+      issueProof: true,
     });
     if (preview.ok === false) return errorResponse(preview.status, preview.code, 'Order change preview was rejected', requestId);
     // The proof binding and the calculated order stay on the server.

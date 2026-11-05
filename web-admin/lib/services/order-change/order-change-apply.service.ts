@@ -30,6 +30,10 @@ import {
 import { collectionRequiredForPaymentType, mapPersistedFinancialOutcome, OrderChangeMutationError, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
 import type { OrderChangePreviewSuccess, OrderChangeSpeedAudit } from '@/lib/services/order-change/order-change-preview.service';
 import { buildOrderChangeOperationAudit, digestOrderChangeOperationAudits } from '@/lib/services/order-change/order-change-review-audit';
+import { lineDiscountAuditFields, manualLineDiscounts, type StoredLineDiscountRow } from '@/lib/services/order-change/order-change-line-money';
+import { DISCOUNT_SOURCE_TYPE } from '@/lib/constants/discount-source-type';
+import { DISCOUNT_CHANGE_OUTCOMES } from '@/lib/services/commercial/edit-discount-reevaluation';
+import { reversePromoUsageTx } from '@/lib/services/discount-service';
 import { subMoney, toMoneyString } from '@/lib/utils/money';
 import type { z } from 'zod';
 import type { orderChangeApplyRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
@@ -42,6 +46,9 @@ const EMPTY_COMMERCIAL_FACTS: CommercialWriteFacts = {
 };
 
 type ApplyRequest = z.infer<typeof orderChangeApplyRequestSchema>;
+
+/** A stored line's cashier price or discount (P6-02c): priced by the calculator, written on the line. */
+const LINE_MONEY_CODES: ReadonlySet<string> = new Set(['CHANGE_ITEM_PRICE', 'CHANGE_DISCOUNT']);
 
 function finiteMoney(value: string | null | undefined): value is string {
   return value != null && value.trim() !== '' && Number.isFinite(Number(value));
@@ -121,7 +128,8 @@ function orderFields(request: ApplyRequest): Record<string, unknown> {
       if (operation.payload.customerNotes !== undefined) data.customer_notes = operation.payload.customerNotes;
     } else if (operation.code === 'CHANGE_PRIORITY') {
       data.priority = operation.payload.priority;
-    } else if (operation.code === 'CHANGE_SERVICE_SPEED') {
+    } else if (operation.code === 'CHANGE_SERVICE_SPEED' && operation.target.kind === 'ORDER') {
+      // A line speed (ITEM) is stored on its line by the calculated money columns.
       data.service_speed = operation.payload.serviceSpeed;
     } else if (operation.code === 'CHANGE_READY_BY') {
       data.ready_by = operation.payload.readyBy == null ? null : new Date(operation.payload.readyBy);
@@ -179,6 +187,7 @@ function speedSnapshot(
     commercial_delta: snapshot.commercialDelta,
     items: snapshot.items.map((item) => ({
       id: item.orderItemId,
+      service_speed: item.serviceSpeed,
       quantity: item.quantity,
       price_per_unit: item.pricePerUnit,
       total_price: item.totalPrice,
@@ -241,10 +250,15 @@ interface ItemBeforeRow {
   service_category_code: string | null;
   quantity: number | null;
   quantity_ready: number | null;
+  service_speed: string | null;
   price_per_unit: string | null;
   total_price: string | null;
   price_override: string | null;
   override_reason: string | null;
+  /** The line's cashier discount (`MANUAL` rows), read only when the request sets one (P6-02c). */
+  line_disc_type?: string | null;
+  line_disc_value?: string | null;
+  line_disc_reason?: string | null;
   service_pref_charge: string | null;
   status: string | null;
   item_status: string | null;
@@ -347,6 +361,9 @@ function itemSnapshot(row: ItemBeforeRow): Record<string, unknown> {
     total_price: storedMoney(row.total_price),
     price_override: storedMoney(row.price_override),
     override_reason: row.override_reason,
+    line_disc_type: row.line_disc_type,
+    line_disc_value: row.line_disc_value,
+    line_disc_reason: row.line_disc_reason,
     service_pref_charge: storedMoney(row.service_pref_charge),
     status: row.status,
     item_status: row.item_status,
@@ -491,7 +508,7 @@ function beforeValuesFor(
   ) {
     return orderSnapshot(order);
   }
-  if ((operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY') && operation.target.kind === 'PERSISTED_ITEM') {
+  if ((operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY' || LINE_MONEY_CODES.has(operation.code)) && operation.target.kind === 'PERSISTED_ITEM') {
     const item = facts.items.get(operation.target.id.toLowerCase());
     return item ? itemSnapshot(item) : {};
   }
@@ -526,7 +543,7 @@ async function loadOperationBeforeFacts(
   const query = queryable.$queryRaw.bind(queryable);
   const needsOrder = true;
   const itemIds = operations.flatMap((operation) => (
-    (operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY' || operation.code === 'CHANGE_UNLISTED')
+    (operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY' || operation.code === 'CHANGE_UNLISTED' || LINE_MONEY_CODES.has(operation.code))
     && operation.target.kind === 'PERSISTED_ITEM'
       ? [operation.target.id]
       : []
@@ -582,7 +599,7 @@ async function loadOperationBeforeFacts(
              product_id::text AS product_id, product_name, product_name2, barcode, service_category_code,
              quantity, quantity_ready, color, brand, override_reason,
              price_per_unit::text AS price_per_unit, total_price::text AS total_price,
-             price_override::text AS price_override, service_pref_charge::text AS service_pref_charge,
+             price_override::text AS price_override, service_pref_charge::text AS service_pref_charge, service_speed,
              status, item_status, item_stage, item_is_rejected,
              notes, stain_notes, damage_notes, packing_pref_code, packing_pref_is_override, packing_pref_source,
              has_stain, has_damage, rec_status
@@ -593,6 +610,22 @@ async function loadOperationBeforeFacts(
         AND (rec_status = 1 OR ${includeRetiredAndCreated})
     `;
     if (rows[0]) items.set(itemId.toLowerCase(), rows[0]);
+  }
+  // A line discount's audit is the line's cashier discount rows, read the same way Review read them.
+  const discountChanged = operations.some((operation) => operation.code === 'CHANGE_DISCOUNT'
+    || (operation.code === 'ADD_ITEM' && operation.payload.lineDiscount));
+  if (discountChanged && items.size > 0) {
+    const discountRows = await query<StoredLineDiscountRow[]>`
+      SELECT order_item_id::text AS order_item_id, discount_level, source_type, discount_type,
+             discount_rate::text AS discount_rate, discount_amount::text AS discount_amount, rec_notes
+      FROM org_order_discounts_dtl
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND order_id = ${orderId}::uuid
+        AND is_voided = false
+        AND source_type = ${DISCOUNT_SOURCE_TYPE.MANUAL}
+      ORDER BY applied_seq`;
+    const discounts = manualLineDiscounts(discountRows);
+    for (const [id, row] of items) Object.assign(row, lineDiscountAuditFields(discounts.get(id) ?? null));
   }
   const pieces = new Map<string, PieceBeforeRow>();
   for (const pieceId of pieceIds) {
@@ -629,7 +662,7 @@ async function loadOperationBeforeFacts(
   }
   if (!includeRetiredAndCreated) {
     for (const operation of operations) {
-      const missing = operation.target.kind === 'PERSISTED_ITEM' && (operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY' || operation.code === 'CHANGE_UNLISTED') ? !items.has(operation.target.id.toLowerCase())
+      const missing = operation.target.kind === 'PERSISTED_ITEM' && (operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY' || operation.code === 'CHANGE_UNLISTED' || LINE_MONEY_CODES.has(operation.code)) ? !items.has(operation.target.id.toLowerCase())
         : operation.target.kind === 'PERSISTED_PIECE' && (operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_UNLISTED') ? !pieces.has(operation.target.id.toLowerCase())
           : operation.target.kind === 'PERSISTED_PREFERENCE' ? !preferences.has(operation.target.id.toLowerCase()) : false;
       if (missing) throw new OrderChangeMutationError(operation.code.startsWith('REMOVE_') ? 'REMOVAL_NOT_ACTIVE' : 'UPDATE_NOT_ACTIVE');
@@ -656,8 +689,16 @@ function afterValuesFor(
   audit: CommercialWritePlan['auditBySeq'] extends Map<number, infer V> ? V | undefined : never,
   plan: CommercialWritePlan,
   structural: StructuralWritePlan | null,
+  itemRows: CommercialWritePlan['itemUpdates'] | undefined,
 ): Record<string, unknown> {
-  if (operation.code === 'ADD_ITEM') return createdRow(operation.payload.clientRef, rowData(structural?.itemInserts, operation.payload.clientRef));
+  if (operation.code === 'ADD_ITEM') {
+    const created = createdRow(operation.payload.clientRef, rowData(structural?.itemInserts, operation.payload.clientRef));
+    return operation.payload.lineDiscount ? { ...created, ...lineDiscountAuditFields(operation.payload.lineDiscount) } : created;
+  }
+  if (operation.code === 'CHANGE_ITEM_PRICE') {
+    return compact({ ...before, ...writtenFields(rowData(itemRows, operation.target.id)) });
+  }
+  if (operation.code === 'CHANGE_DISCOUNT') return { ...before, ...lineDiscountAuditFields(operation.payload.lineDiscount) };
   if (operation.code === 'ADD_PIECE') return createdRow(operation.payload.clientRef, rowData(structural?.pieceInserts, operation.payload.clientRef));
   if (operation.code === 'ADD_PREFERENCE') return createdRow(audit?.orderPreferenceId, rowData(plan.preferenceInserts, audit?.orderPreferenceId));
   if (operation.code === 'REMOVE_ITEM' || operation.code === 'REMOVE_PIECE' || operation.code === 'REMOVE_PREFERENCE') {
@@ -709,7 +750,9 @@ function storedSpeedSnapshot(snapshot: OrderChangeSpeedAudit['before'], facts: O
     commercial_delta: snapshot.commercialDelta,
     items: snapshot.items.map((item) => {
       const row = facts.items.get(item.orderItemId.toLowerCase());
-      return row ? { id: row.id, quantity: row.quantity, price_per_unit: row.price_per_unit, total_price: row.total_price } : { id: item.orderItemId };
+      return row
+        ? { id: row.id, service_speed: row.service_speed ?? facts.order?.service_speed ?? null, quantity: row.quantity, price_per_unit: row.price_per_unit, total_price: row.total_price }
+        : { id: item.orderItemId };
     }),
   };
 }
@@ -721,19 +764,22 @@ function persistedOperations(
   beforeFacts: OperationBeforeFacts | null,
   plan: CommercialWritePlan,
   structural: StructuralWritePlan | null,
+  itemRows: CommercialWritePlan['itemUpdates'] | undefined,
   orderId: string,
   preview: OrderChangePreviewSuccess,
   storedAfter?: OperationBeforeFacts | null,
 ): OrderChangePersistedOperation[] {
   return request.operations.map((operation) => {
     const audit = auditBySeq.get(operation.seq);
+    // A line speed, price or discount is recorded against its line.
+    const lineTarget = (operation.code === 'CHANGE_SERVICE_SPEED' || LINE_MONEY_CODES.has(operation.code)) && operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : null;
     const speedValues = operation.code === 'CHANGE_SERVICE_SPEED' && speedAudit;
     const beforeValues = speedValues ? storedSpeedSnapshot(speedAudit.before, beforeFacts) : beforeValuesFor(operation, beforeFacts);
     const afterSpeed = speedValues ? speedSnapshot(speedAudit.after, beforeFacts?.order ?? null) : null;
     if (afterSpeed) afterSpeed.express_charge_amount = '0.0000';
     const rawAfter = storedAfter
       ? beforeValuesFor(operation, storedAfter)
-      : afterSpeed ?? afterValuesFor(operation, beforeValues, audit, plan, structural);
+      : afterSpeed ?? afterValuesFor(operation, beforeValues, audit, plan, structural, itemRows);
     const afterRow = storedAfter && operation.code === 'ADD_ITEM'
       ? storedAfter.items.get(operation.payload.clientRef.toLowerCase())
       : storedAfter && operation.code === 'ADD_PIECE'
@@ -754,8 +800,8 @@ function persistedOperations(
     return {
       seq: operation.seq,
       code: operation.code,
-      targetType: audit?.targetType ?? 'ORDER',
-      orderItemId: audit?.orderItemId ?? null,
+      targetType: audit?.targetType ?? (lineTarget ? 'ITEM' : 'ORDER'),
+      orderItemId: audit?.orderItemId ?? lineTarget ?? null,
       orderItemPieceId: audit?.orderItemPieceId ?? null,
       orderPreferenceId: audit?.orderPreferenceId ?? null,
       clientRef: audit?.clientRef ?? null,
@@ -792,22 +838,24 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
   if (!input.currencyCode) return { ok: false, status: 422, code: 'CURRENCY_UNRESOLVED' };
   const hasPreference = input.request.operations.some((operation) => PREFERENCE_OPERATION_CODES.has(operation.code));
   const hasStructural = input.request.operations.some((operation) => STRUCTURAL_OPERATION_CODES.has(operation.code));
+  const lineMoney = input.request.operations.some((operation) => LINE_MONEY_CODES.has(operation.code));
   if (input.request.operations.some((operation) => (
     !ORDER_FIELD_CODES.has(operation.code)
     && operation.code !== 'CHANGE_UNLISTED'
     && !PREFERENCE_OPERATION_CODES.has(operation.code)
     && !STRUCTURAL_OPERATION_CODES.has(operation.code)
+    && !LINE_MONEY_CODES.has(operation.code)
   ))) {
     return { ok: false, status: 422, code: 'COMMERCIAL_LINE_UNSUPPORTED' };
   }
   const speedChanged = input.request.operations.some((operation) => operation.code === 'CHANGE_SERVICE_SPEED');
   if (speedChanged && !input.preview.speedAudit) return { ok: false, status: 422, code: 'REVIEW_NOT_READY' };
-  if (!hasPreference && !hasStructural && !speedChanged && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal)) {
+  if (!hasPreference && !hasStructural && !speedChanged && !lineMoney && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal)) {
     return { ok: false, status: 422, code: 'COMMERCIAL_TOTAL_CHANGED' };
   }
   // P6-01c: a priced edit stores the calculated order the review carried; nothing is priced here.
   const priced = Boolean(input.preview.commercial);
-  if ((hasPreference || hasStructural || speedChanged) && !priced && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal)) {
+  if ((hasPreference || hasStructural || speedChanged || lineMoney) && !priced && !sameMoney(input.preview.projectedTotal, input.preview.originalTotal)) {
     return { ok: false, status: 422, code: 'REVIEW_NOT_READY' };
   }
   const money = input.preview.commercial ? editMoneyColumns(input.preview.commercial) : null;
@@ -847,9 +895,10 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       ? buildStructuralWritePlan(input.request.operations, input.preview.lines ?? [], structuralFacts, input.actorUserId)
       : null;
     const beforeFacts = await loadOperationBeforeFacts(tx, input.tenantId, input.orderId, input.request.operations);
-    const rows = withLineMoney(money, plan, structural, input.actorUserId);
+    const overrideActor = await overrideActorOf(tx, input.tenantId, input.actorUserId, input.request);
+    const rows = withLineMoney(money, plan, structural, input.actorUserId, linePriceUpdates(input.request, overrideActor));
     const auditBySeq = new Map([...plan.auditBySeq, ...(structural?.auditBySeq ?? [])]);
-    const lockedOperations = persistedOperations(input.request, auditBySeq, input.preview.speedAudit, beforeFacts, plan, structural, input.orderId, input.preview);
+    const lockedOperations = persistedOperations(input.request, auditBySeq, input.preview.speedAudit, beforeFacts, plan, structural, rows.itemUpdates, input.orderId, input.preview);
     const digest = (operations: readonly OrderChangePersistedOperation[]) => digestOrderChangeOperationAudits(operations.map((operation) => ({
       seq: operation.seq, code: operation.code, beforeValues: operation.beforeValues ?? {}, afterValues: operation.afterValues ?? {},
     })));
@@ -887,7 +936,7 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       pieceUpdates: rows.pieceUpdates,
       removeItemIds: structural && structural.removeItemIds.length > 0 ? structural.removeItemIds : undefined,
       removePieceIds: structural && structural.removePieceIds.length > 0 ? structural.removePieceIds : undefined,
-      finalizeOperations: async () => {
+      finalizeOperations: async (orderChangeId) => {
       if (input.preview.commercial) {
         await replaceEditChildRows(tx as unknown as EditChildRowsTx, {
           tenantOrgId: input.tenantId,
@@ -897,11 +946,19 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
           at: input.appliedAt,
           edit: input.preview.commercial,
         });
+        // D21: a promo the edit removed gives its use back (an order carries at most one promo).
+        if (input.preview.commercial.discountChanges.some((change) => change.outcome === DISCOUNT_CHANGE_OUTCOMES.REMOVED
+          && change.sourceType === DISCOUNT_SOURCE_TYPE.PROMO_CODE)) {
+          await reversePromoUsageTx(tx as unknown as Parameters<typeof reversePromoUsageTx>[0], {
+            orderId: input.orderId, tenantOrgId: input.tenantId, voidedBy: input.actorUserId,
+          });
+        }
         // The rollup rebuilds the header from the rows; it must equal the reviewed total (I3).
         await assertCommercialSnapshot(tx, {
           tenantId: input.tenantId,
           orderId: input.orderId,
           projectedTotal,
+          orderChangeId,
         });
       }
     if (Object.keys(fields).length > 0) {
@@ -921,7 +978,7 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
     }
         if (!beforeFacts) return lockedOperations;
         const storedAfter = await loadOperationBeforeFacts(tx, input.tenantId, input.orderId, input.request.operations, true);
-        const storedOperations = persistedOperations(input.request, auditBySeq, input.preview.speedAudit, beforeFacts, plan, structural, input.orderId, input.preview, storedAfter);
+        const storedOperations = persistedOperations(input.request, auditBySeq, input.preview.speedAudit, beforeFacts, plan, structural, rows.itemUpdates, input.orderId, input.preview, storedAfter);
         if (input.preview.reviewBinding && digest(storedOperations) !== input.preview.reviewBinding.operationSnapshotDigest) {
           throw new OrderChangeMutationError('REVIEW_CHANGED');
         }
@@ -989,6 +1046,7 @@ function withLineMoney(
   plan: CommercialWritePlan,
   structural: StructuralWritePlan | null,
   actorUserId: string,
+  priceUpdates: CommercialWritePlan['itemUpdates'] = [],
 ): {
   itemInserts: CommercialWritePlan['itemUpdates'];
   pieceInserts: CommercialWritePlan['itemUpdates'];
@@ -1004,9 +1062,43 @@ function withLineMoney(
   return {
     itemInserts,
     pieceInserts,
-    itemUpdates: mergedRows([...plan.itemUpdates, ...(structural?.itemUpdates ?? [])], moneyUpdates(money?.items)),
+    itemUpdates: mergedRows([...plan.itemUpdates, ...(structural?.itemUpdates ?? []), ...priceUpdates], moneyUpdates(money?.items)),
     pieceUpdates: mergedRows(plan.pieceUpdates, moneyUpdates(money?.pieces)),
   };
+}
+
+/**
+ * The cashier price columns a line price operation writes (P6-02c); the price
+ * itself (`price_per_unit`, `price_source`) comes with the calculated columns.
+ */
+function linePriceUpdates(request: ApplyRequest, overrideActor: string | null): CommercialWritePlan['itemUpdates'] {
+  return request.operations.flatMap((operation) => {
+    if (operation.code !== 'CHANGE_ITEM_PRICE') return [];
+    const set = operation.payload.priceOverride !== null;
+    return [{
+      id: operation.target.id,
+      data: {
+        price_override: operation.payload.priceOverride,
+        override_reason: set ? operation.payload.overrideReason ?? null : null,
+        override_by: set ? overrideActor : null,
+      },
+    }];
+  });
+}
+
+/**
+ * The session user's `org_users_mst.id` for `override_by` (it is not the auth user id), when the edit sets a price.
+ * @returns the id, or null when no price is set or the user has no active membership
+ */
+async function overrideActorOf(tx: OrderChangeApplyTx, tenantId: string, actorUserId: string, request: ApplyRequest): Promise<string | null> {
+  const queryable = tx as { $queryRaw?: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T> };
+  const setsPrice = request.operations.some((operation) => operation.code === 'CHANGE_ITEM_PRICE' && operation.payload.priceOverride !== null);
+  if (!setsPrice || typeof queryable.$queryRaw !== 'function') return null;
+  const rows = await queryable.$queryRaw<Array<{ id: string }>>`
+    SELECT id::text AS id FROM org_users_mst
+    WHERE tenant_org_id = ${tenantId}::uuid AND user_id = ${actorUserId}::uuid AND is_active = true
+    LIMIT 1`;
+  return rows[0]?.id ?? null;
 }
 
 function withColumns(row: CommercialWritePlan['itemUpdates'][number], columns: object | undefined) {

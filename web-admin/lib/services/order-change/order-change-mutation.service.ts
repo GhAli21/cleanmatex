@@ -24,7 +24,8 @@ const PROTECTED_WRITE_FIELDS = new Set([
   'deleted_order_change_id',
 ]);
 
-const ITEM_CODES = new Set(['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY']);
+// Mirrors oc_op_target_ck (0664): a line's speed, price and discount are line rows too.
+const ITEM_CODES = new Set(['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'CHANGE_SERVICE_SPEED', 'CHANGE_ITEM_PRICE', 'CHANGE_DISCOUNT']);
 const PIECE_CODES = new Set(['ADD_PIECE', 'REMOVE_PIECE']);
 const PREFERENCE_CODES = new Set(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE']);
 const ORDER_CODES = new Set([
@@ -130,7 +131,7 @@ export interface PersistOrderChangeInput {
   removePreferenceIds?: readonly string[];
   appliedAt: Date;
   /** Finalize domain writes and read their stored snapshots before immutable history is inserted. */
-  finalizeOperations?: () => Promise<readonly OrderChangePersistedOperation[]>;
+  finalizeOperations?: (orderChangeId: string) => Promise<readonly OrderChangePersistedOperation[]>;
 }
 
 export interface PersistOrderChangeSuccess {
@@ -463,7 +464,7 @@ export async function persistOrderChangeTx(
     if (retired.count !== preferenceIds.length) throw new OrderChangeMutationError('REMOVAL_NOT_ACTIVE');
   }
 
-  const operations = input.finalizeOperations ? await input.finalizeOperations() : input.operations;
+  const operations = input.finalizeOperations ? await input.finalizeOperations(orderChangeId) : input.operations;
   if (operations.length > 0) {
     await tx.org_order_change_ops_dtl.createMany({
       data: operations.map((operation) => ({

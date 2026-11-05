@@ -30,6 +30,8 @@ class BookingState {
     this.validationIssueKeys = const [],
     this.submittedOrderNumber,
     this.submittedPromisedWindow,
+    this.submittedTotalAmount,
+    this.submittedCurrencyCode,
     this.draft = const OrderBookingDraftModel(),
     this.services = const [],
     this.addresses = const [],
@@ -53,6 +55,10 @@ class BookingState {
   final List<String> validationIssueKeys;
   final String? submittedOrderNumber;
   final String? submittedPromisedWindow;
+
+  /// The server's total for the confirmed booking (decimal text), and its currency.
+  final String? submittedTotalAmount;
+  final String? submittedCurrencyCode;
   final OrderBookingDraftModel draft;
   final List<ServiceOptionModel> services;
   final List<AddressOptionModel> addresses;
@@ -258,6 +264,8 @@ class BookingState {
     bool clearValidationIssues = false,
     String? submittedOrderNumber,
     String? submittedPromisedWindow,
+    String? submittedTotalAmount,
+    String? submittedCurrencyCode,
     OrderBookingDraftModel? draft,
     List<ServiceOptionModel>? services,
     List<AddressOptionModel>? addresses,
@@ -285,6 +293,9 @@ class BookingState {
       submittedOrderNumber: submittedOrderNumber ?? this.submittedOrderNumber,
       submittedPromisedWindow:
           submittedPromisedWindow ?? this.submittedPromisedWindow,
+      submittedTotalAmount: submittedTotalAmount ?? this.submittedTotalAmount,
+      submittedCurrencyCode:
+          submittedCurrencyCode ?? this.submittedCurrencyCode,
       draft: draft ?? this.draft,
       services: services ?? this.services,
       addresses: addresses ?? this.addresses,
@@ -548,8 +559,7 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     if (index < 0 || index >= pieces.length) return;
     final updated = List<BookingPiecePreferenceModel>.from(pieces);
     updated[index] = update(pieces[index]);
-    final updatedMap =
-        Map<String, List<BookingPiecePreferenceModel>>.from(
+    final updatedMap = Map<String, List<BookingPiecePreferenceModel>>.from(
       state.draft.piecePreferences,
     );
     updatedMap[itemId] = List.unmodifiable(updated);
@@ -809,6 +819,8 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         isSubmitting: false,
         submittedOrderNumber: confirmation.orderNumber,
         submittedPromisedWindow: confirmation.promisedWindow,
+        submittedTotalAmount: confirmation.totalAmount,
+        submittedCurrencyCode: confirmation.currencyCode,
       );
       AppLogger.info(
         'booking_provider.submit_succeeded orderNumber=${confirmation.orderNumber}',

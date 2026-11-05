@@ -1,5 +1,9 @@
 # Changelog — Order Financial Platform
 
+## 2026-11-01 — Reusable Order Financial View 1.0.0
+
+One money view for every order screen; legacy panels and four browser/app balance computations removed; ACCOUNTING rounding guard (migration 0686). Details: [`Reusable_Order_Fin_View/CHANGELOG.md`](Reusable_Order_Fin_View/CHANGELOG.md).
+
 ## 2026-10-09 — POS Session & Cash Drawer: HQ catalogs, web-admin audit, POS Settings page (D68–D70)
 
 **Scope:** post-program polish after the hardening program closed (STATUS D67). Details: `POS_Session_Cash_Drawer_Hardening/STATUS.md` D68–D70.

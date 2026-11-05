@@ -21,4 +21,14 @@ class CustomerOrdersRepository {
       orderNumber: orderNumber,
     );
   }
+
+  Future<OrderFinancialStatementModel?> fetchOrderFinancialStatement({
+    required CustomerSessionModel? session,
+    required String orderNumber,
+  }) {
+    return _trackingService.fetchOrderFinancialStatement(
+      session: session,
+      orderNumber: orderNumber,
+    );
+  }
 }

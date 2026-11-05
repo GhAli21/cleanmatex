@@ -126,6 +126,8 @@ Related ADRs in sibling features:
 
 ## Quick Links
 
+- [Reusable Order Financial View](Reusable_Order_Fin_View/README.md) — the one money view for every order screen (1.0.0, 2026-11-01) · rules [`order-fin-rules.md`](../../dev/rules/order-fin-rules.md)
+- [Line-Level Money Snapshot](Line_Level_Money_Snapshot/STATUS.md) — the one commercial calculator
 - [Order Fin Remediation Program (B01–B35) — active, canonical tracking](Remediation_Work_Packages/README.md)
 - [POS Session Management v1](POS_Session_Management_V1.md)
 - [ADR-054 — User-Owned POS Sessions](ADR/ADR-054-User-Owned-POS-Sessions.md)

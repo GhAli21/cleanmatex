@@ -139,27 +139,12 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/settings/finance',
     label: 'Finance Settings',
-    page: {},
-    apiDependencies: [
-      {
-        label: 'Effective settings',
-        method: 'GET',
-        path: '/api/settings/tenants/[tenantId]/effective',
-        notes: ['Auth-only settings route.'],
-      },
-      {
-        label: 'Update overrides',
-        method: 'PATCH',
-        path: '/api/settings/tenants/me/overrides',
-        notes: ['Auth-only settings route.'],
-      },
-    ],
-    notes: SETTINGS_NOTES,
-  },
-  {
-    routePattern: '/dashboard/settings/navigation',
-    label: 'Navigation Settings',
-    page: {},
+    page: {
+      permissions: ['settings:read'],
+      requireAllPermissions: true,
+    },
+    // P6-03: only points to Tax Setup; the TENANT_VAT_RATE form and its API calls are gone.
+    apiDependencies: [],
     notes: SETTINGS_NOTES,
   },
   {
@@ -260,6 +245,50 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
   },
   {
+    routePattern: '/dashboard/settings/labels',
+    label: 'Labels & Tags',
+    page: {
+      permissions: ['settings:read'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      manage: {
+        label: 'Save label printing settings',
+        requirement: {
+          permissions: ['settings:update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Label printing config',
+        method: 'GET',
+        path: '/api/v1/settings/label-printing',
+        requirement: {
+          permissions: ['settings:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Save label printing overrides',
+        method: 'PUT',
+        path: '/api/v1/settings/label-printing',
+        requirement: {
+          permissions: ['settings:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Branches',
+        method: 'GET',
+        path: '/api/v1/branches',
+        notes: ['Auth-only local route; lists all branches for the tenant.'],
+      },
+    ],
+    notes: SETTINGS_NOTES,
+  },
+  {
     routePattern: '/dashboard/settings/workflows',
     label: 'Workflows',
     page: {
@@ -280,7 +309,8 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Workflow config list',
         method: 'GET',
         path: '/api/v1/workflows/config',
-        notes: ['Auth-only local route; page gated by settings:workflow.'],
+        enforcement: 'auth_only',
+        notes: ['Session-only: validated session (validateJWTWithTenant); reference data read by order and processing screens (BF-23).'],
       },
       {
         label: 'Screen contracts server actions',
@@ -302,12 +332,6 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     label: 'New Workflow',
     page: {},
     apiDependencies: [
-      {
-        label: 'Create workflow config',
-        method: 'POST',
-        path: '/api/v1/workflows/config',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
-      },
     ],
     notes: [
       ...SETTINGS_NOTES,
@@ -323,46 +347,22 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Workflow config list',
         method: 'GET',
         path: '/api/v1/workflows/config',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+        enforcement: 'auth_only',
+        notes: ['Session-only: validated session (validateJWTWithTenant); reference data read by order and processing screens (BF-23).'],
       },
       {
         label: 'Update workflow config',
         method: 'PATCH',
         path: '/api/v1/workflows/config',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+        requirement: {
+          permissions: ['settings:workflow'],
+          requireAllPermissions: true,
+        },
       },
     ],
     notes: [
       ...SETTINGS_NOTES,
       'Legacy JSON editor retired; this route redirects to /dashboard/settings/workflows.',
-    ],
-  },
-  {
-    routePattern: '/dashboard/settings/workflow-roles',
-    label: 'Workflow Roles',
-    page: {
-      permissions: ['settings:workflow_roles:view'],
-      requireAllPermissions: true,
-    },
-    apiDependencies: [
-      {
-        label: 'Users with workflow roles',
-        method: 'GET',
-        path: '/api/workflow-roles/users',
-        notes: ['Auth-only workflow roles route; page access is permission-gated in the frontend contract.'],
-      },
-      {
-        label: 'Assign workflow role',
-        method: 'POST',
-        path: '/api/workflow-roles',
-        notes: ['Auth-only workflow roles route.'],
-      },
-      {
-        label: 'Remove workflow role',
-        method: 'DELETE',
-        path: '/api/workflow-roles/[id]',
-        notes: ['Auth-only workflow roles route.'],
-      },
     ],
   },
   {
@@ -443,9 +443,6 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
   },
 ]
 
-export const SETTINGS_WORKFLOW_ROLES_ACCESS =
-  SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/workflow-roles')!
-
 export const SETTINGS_ROLES_ACCESS =
   SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/roles')!
 
@@ -460,3 +457,5 @@ export const SETTINGS_SETTINGS_TAX_ACCESS =
 
 export const SETTINGS_WORKFLOWS_ACCESS =
   SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/workflows')!
+export const SETTINGS_SETTINGS_FINANCE_ACCESS =
+  SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/finance')!

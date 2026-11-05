@@ -16,7 +16,6 @@ import type {
 } from '@/lib/types/order-financial';
 import { createClient } from '@/lib/supabase/server';
 import { emitEventTx } from './outbox.service';
-import { queueEarnPoints } from './loyalty.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { addMoney, subMoney, sumMoney } from '@/lib/utils/money';
@@ -252,25 +251,12 @@ export async function settleOrderTx(
     // ── 5. Header recalc from fact rows ──────────────────────────────────────
     const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
 
-    // ── 6. Outbox and loyalty follow-up ──────────────────────────────────────
+    // ── 6. Outbox follow-up (loyalty earn is requested by the snapshot recalc, D27) ──
     await emitEventTx(tx, tenantId, OUTBOX_EVENT_TYPES.ORDER_COMPLETED, 'order', orderId, {
       paymentStatus: snapshot.paymentStatus,
       grandTotal: breakdown.grandTotal,
       settled: snapshot.outstandingAmount <= 0,
     });
-
-    const order = await tx.org_orders_mst.findFirst({
-      where: { id: orderId, tenant_org_id: tenantId },
-      select: { customer_id: true },
-    });
-    if (order?.customer_id && snapshot.outstandingAmount <= 0) {
-      await queueEarnPoints(tx, {
-        tenantId,
-        customerId: order.customer_id,
-        orderId,
-        orderAmount: breakdown.grandTotal,
-      });
-    }
 
     return {
       orderId,

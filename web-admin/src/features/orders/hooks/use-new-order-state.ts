@@ -98,8 +98,8 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
   const { state, dispatch } = useNewOrderContext();
   const editSession = useOrderWorkspaceSessionOptional();
   const identityLocked = editSession != null;
-  const blocked = (code: OrderChangeOperationCode) =>
-    editSession != null && !resolveEditControlCapability(editSession.editPolicy, code).interactive;
+  const blocked = (code: OrderChangeOperationCode, targetType?: 'ORDER' | 'ITEM') =>
+    editSession != null && !resolveEditControlCapability(editSession.editPolicy, code, targetType).interactive;
   const groupBlocked = (codes: readonly OrderChangeOperationCode[]) =>
     editSession != null && !resolveEditControlGroup(editSession.editPolicy, codes).interactive;
 
@@ -225,7 +225,8 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => {
-      if (identityLocked) return;
+      // Edit: a stored line's cashier price is its own policy cell (CHANGE_ITEM_PRICE / ITEM, P6-02c).
+      if (blocked('CHANGE_ITEM_PRICE', 'ITEM')) return;
       dispatch({
         type: 'UPDATE_ITEM_PRICE_OVERRIDE',
         payload: { productId, priceOverride, overrideReason, overrideBy },
@@ -243,22 +244,23 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     setServiceSpeed: (serviceSpeed: string) => {
-      if (blocked('CHANGE_SERVICE_SPEED')) return;
+      if (blocked('CHANGE_SERVICE_SPEED', 'ORDER')) return;
       dispatch({ type: 'SET_SERVICE_SPEED', payload: serviceSpeed });
     },
 
     setItemServiceSpeed: (productId: string, serviceSpeed: string | null) => {
-      if (blocked('CHANGE_SERVICE_SPEED')) return;
+      if (blocked('CHANGE_SERVICE_SPEED', 'ITEM')) return;
       dispatch({ type: 'SET_ITEM_SERVICE_SPEED', payload: { productId, serviceSpeed } });
     },
 
     setItemLineDiscount: (productId: string, lineDiscount: OrderItemLineDiscount | null) => {
-      if (blocked('CHANGE_ITEM_PRICE')) return;
+      if (blocked('CHANGE_DISCOUNT', 'ITEM')) return;
       dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { productId, lineDiscount } });
     },
 
     applySpeedToAllLines: () => {
-      if (blocked('CHANGE_SERVICE_SPEED')) return;
+      // Clearing the line speeds changes each line's own speed (ITEM).
+      if (blocked('CHANGE_SERVICE_SPEED', 'ITEM')) return;
       dispatch({ type: 'APPLY_SPEED_TO_ALL_LINES' });
     },
 
@@ -299,7 +301,9 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     openModal: (modal: keyof typeof state.modals) => {
-      if (identityLocked && (modal === 'customerPicker' || modal === 'customerEdit' || modal === 'customItem' || modal === 'payment')) return;
+      if (identityLocked && (modal === 'customerPicker' || modal === 'customerEdit' || modal === 'payment')) return;
+      // Edit: a custom line is a new line (ADD_ITEM, P6-02d).
+      if (modal === 'customItem' && blocked('ADD_ITEM')) return;
       dispatch({ type: 'OPEN_MODAL', payload: modal });
     },
 

@@ -15,8 +15,6 @@ export interface AccessRequirement {
   requireAllPermissions?: boolean
   featureFlags?: string[]
   requireAllFeatureFlags?: boolean
-  workflowRoles?: string[]
-  requireAllWorkflowRoles?: boolean
   tenantRoles?: string[]
   requireAllTenantRoles?: boolean
 }
@@ -68,7 +66,6 @@ export interface PageAccessContract {
  */
 export interface AccessEvaluationContext {
   userPermissions: string[]
-  userWorkflowRoles: string[]
   userTenantRole: string | null
   featureFlags: Record<string, boolean>
 }
@@ -77,7 +74,7 @@ export interface AccessEvaluationContext {
  *
  */
 export interface AccessEvaluationDetail {
-  kind: 'permission' | 'permission_prefix' | 'feature_flag' | 'workflow_role' | 'tenant_role'
+  kind: 'permission' | 'permission_prefix' | 'feature_flag' | 'tenant_role'
   value: string
   passed: boolean
 }
@@ -172,20 +169,6 @@ function evaluateFeatureFlags(
   }))
 }
 
-function evaluateWorkflowRoles(
-  requirement: AccessRequirement,
-  userWorkflowRoles: string[]
-): AccessEvaluationDetail[] {
-  const hasWorkflowRole = (workflowRole: string) =>
-    userWorkflowRoles.includes('ROLE_ADMIN') || userWorkflowRoles.includes(workflowRole)
-
-  return (requirement.workflowRoles ?? []).map((workflowRole) => ({
-    kind: 'workflow_role',
-    value: workflowRole,
-    passed: hasWorkflowRole(workflowRole),
-  }))
-}
-
 function evaluateTenantRoles(
   requirement: AccessRequirement,
   userTenantRole: string | null
@@ -222,7 +205,6 @@ export function evaluateAccessRequirement(
   const nextRequirement = requirement ?? {}
   const permissionDetails = evaluatePermissionList(nextRequirement, context.userPermissions)
   const permissionPrefixDetails = evaluatePermissionPrefixes(nextRequirement, context.userPermissions)
-  const workflowRoleDetails = evaluateWorkflowRoles(nextRequirement, context.userWorkflowRoles)
   const featureFlagDetails = evaluateFeatureFlags(nextRequirement, context.featureFlags)
   const tenantRoleDetails = evaluateTenantRoles(nextRequirement, context.userTenantRole)
 
@@ -246,18 +228,13 @@ export function evaluateAccessRequirement(
     featureFlagDetails.length === 0 ||
     reduceDetailGroup(featureFlagDetails, nextRequirement.requireAllFeatureFlags)
 
-  const workflowRolePassed =
-    workflowRoleDetails.length === 0 ||
-    reduceDetailGroup(workflowRoleDetails, nextRequirement.requireAllWorkflowRoles)
-
   return {
-    passed: basePassed && featureFlagPassed && workflowRolePassed,
+    passed: basePassed && featureFlagPassed,
     details: [
       ...permissionDetails,
       ...permissionPrefixDetails,
       ...tenantRoleDetails,
       ...featureFlagDetails,
-      ...workflowRoleDetails,
     ],
   }
 }

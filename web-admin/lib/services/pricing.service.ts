@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 import { roundMoneyAmount } from '@/lib/money/format-money';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { TaxService } from './tax.service';
+import { getDefaultVatRate } from './tax-engine.service';
 import { calculateItemPrice } from '@/lib/utils/pricing-calculator';
 import type {
     PriceResult,
@@ -196,7 +197,7 @@ export class PricingService {
         try {
             const supabase = await createClient();
             const tenantSettings = createTenantSettingsService(supabase);
-            const taxService = new TaxService({ tenantSettings });
+            const taxService = new TaxService();
             const { decimalPlaces } = await tenantSettings.getCurrencyConfig(
                 tenantId,
                 branchId,
@@ -271,8 +272,8 @@ export class PricingService {
                 }
             }
 
-            // Get tax rate (with branch/user context for full 7-layer resolution)
-            const taxRate = await taxService.getTaxRate(tenantId, branchId, userId);
+            // Tax rate from the tenant's default tax profiles (P6-03).
+            const taxRate = await getDefaultVatRate(tenantId);
             const isTaxExempt = await taxService.isTaxExempt(tenantId, productId);
 
             // Calculate final price (after discount)
@@ -389,8 +390,7 @@ export class PricingService {
             decimalPlaces,
         });
 
-        const taxService = new TaxService({ tenantSettings });
-        const taxRate = await taxService.getTaxRate(tenantId, branchId, userId);
+        const taxRate = await getDefaultVatRate(tenantId);
 
         return {
             itemsSubtotal: orderResult.itemsSubtotal,

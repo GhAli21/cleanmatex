@@ -36,7 +36,7 @@ jest.mock('@/lib/supabase/server', () => ({
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import { calculateTax, calculateTaxDetailed, calculateTaxInTx } from '@/lib/services/tax-engine.service';
+import { calculateTax, calculateTaxDetailed, calculateTaxInTx, getDefaultVatRate } from '@/lib/services/tax-engine.service';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -274,5 +274,27 @@ describe('tax-engine.service — calculateTaxInTx', () => {
     const result = await calculateTaxInTx(txMock, { tenantId: TENANT, baseAmount: 100 });
     expect(result).toHaveLength(1);
     expect(result[0].taxAmount).toBeCloseTo(5);
+  });
+});
+
+describe('tax-engine.service — getDefaultVatRate (P6-03: replaces the TENANT_VAT_RATE setting)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('is the general default VAT/GST rate as a fraction; CUSTOM and supply-code profiles do not count', async () => {
+    mockTaxProfileFindMany.mockResolvedValue([
+      makeProfile(5),
+      makeProfile(2, { id: 'municipal', tax_type: 'CUSTOM' }),
+      makeProfile(0, { id: 'exempt', applies_to: ['EXEMPT_SERVICE'] }),
+    ]);
+    await expect(getDefaultVatRate(TENANT)).resolves.toBe(0.05);
+    // Only the tenant's active, effective default profiles are read.
+    expect(mockTaxProfileFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ tenant_org_id: TENANT, is_default: true, is_active: true, rec_status: 1 }),
+    }));
+  });
+
+  it('is 0 with no profile: never an assumed rate (B15)', async () => {
+    mockTaxProfileFindMany.mockResolvedValue([]);
+    await expect(getDefaultVatRate(TENANT)).resolves.toBe(0);
   });
 });

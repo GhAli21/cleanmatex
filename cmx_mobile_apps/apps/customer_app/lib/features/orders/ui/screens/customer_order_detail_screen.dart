@@ -8,6 +8,8 @@ import 'package:mobile_ui/mobile_ui.dart';
 
 import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
 import '../../providers/customer_order_detail_provider.dart';
+import '../../providers/customer_order_statement_provider.dart';
+import '../cards/customer_order_statement_card.dart';
 import '../cards/customer_order_timeline_step_card.dart';
 
 class CustomerOrderDetailScreen extends ConsumerWidget {
@@ -37,7 +39,9 @@ class CustomerOrderDetailScreen extends ConsumerWidget {
             AppLogger.info(
               'order_detail_screen.data_rendered orderNumber=${order.orderNumber}',
             );
-            return _OrderDetailBody(order: order, localizations: localizations);
+            // P6-12: the server's money statement; null until it loads or when it has no figures.
+            final statement = ref.watch(customerOrderStatementProvider(orderId)).valueOrNull;
+            return _OrderDetailBody(order: order, localizations: localizations, statement: statement);
           },
           error: (e, _) {
             AppLogger.error(
@@ -106,10 +110,14 @@ class _OrderDetailBody extends StatelessWidget {
   const _OrderDetailBody({
     required this.order,
     required this.localizations,
+    this.statement,
   });
 
   final OrderDetailModel order;
   final AppLocalizations localizations;
+
+  /// The server statement; when present it replaces the plain totals.
+  final OrderFinancialStatementModel? statement;
 
   Color _paymentColor(String? status) {
     switch (status) {
@@ -155,7 +163,7 @@ class _OrderDetailBody extends StatelessWidget {
       children: [
         // Header
         AppHeaderWidget(
-          title: order.orderNumber,
+          title: ltrCode(order.orderNumber),
           subtitle:
               '${localizations.text(order.statusLabelKey)} • ${order.promisedWindow}',
         ),
@@ -260,6 +268,8 @@ class _OrderDetailBody extends StatelessWidget {
                   ),
                 ],
 
+                // Totals (server figures); the statement card below replaces them when it loads.
+                if (statement == null) ...[
                 // Totals
                 const SizedBox(height: AppSpacing.sm),
                 const Divider(height: 1, color: AppColors.border),
@@ -302,26 +312,18 @@ class _OrderDetailBody extends StatelessWidget {
                     textTheme: textTheme,
                     valueColor: AppColors.success,
                   ),
-                  if ((order.total ?? 0) - (order.paidAmount ?? 0) > 0.005) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    _TotalRow(
-                      label: localizations.text('orders.balance'),
-                      value: _formatAmount(
-                        context,
-                        (order.total ?? 0) - (order.paidAmount ?? 0),
-                        currency,
-                        decimals,
-                      ),
-                      textTheme: textTheme,
-                      valueColor: AppColors.error,
-                    ),
-                  ],
+                ],
                 ],
               ],
             ),
           ),
 
         if (hasFinancials || hasItems) const SizedBox(height: AppSpacing.lg),
+
+        if (statement != null) ...[
+          CustomerOrderStatementCard(statement: statement!),
+          const SizedBox(height: AppSpacing.lg),
+        ],
 
         // Timeline card
         AppCardWidget(

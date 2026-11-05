@@ -5,6 +5,7 @@
 
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -136,7 +137,7 @@ export default function AssemblyPage() {
                     href={`/dashboard/assembly/${order.id}?returnUrl=${encodeURIComponent('/dashboard/assembly')}`}
                     className="text-xl font-bold text-blue-600 hover:underline"
                   >
-                    {order.order_no}
+                    <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
                   </Link>
                   <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
                     {order.total_items} {t('assembly.items')}

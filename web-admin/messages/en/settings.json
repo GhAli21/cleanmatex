@@ -7,6 +7,10 @@
   "workflows": "Workflows",
   "subscription": "Subscription",
   "finance": "Finance",
+  "financeTaxMoved": {
+    "description": "Tax rates are set as tax profiles in Tax Setup. Each order is taxed by the default profiles that apply to it; with no profile, no tax is charged.",
+    "action": "Open Tax Setup"
+  },
   "navigation": "Navigation",
   "businessInfo": "Business Information",
   "businessName": "Business Name",
@@ -80,11 +84,6 @@
     "createTitle": "Create New Role",
     "editTitle": "Edit Role"
   },
-  "workflowRoles": {
-    "title": "Workflow Roles",
-    "description": "Manage workflow role assignments for users"
-  },
-  "manageWorkflowRolesDesc": "Assign workflow roles to users for operational access",
   "role": "Role",
   "status": "Status",
   "joined": "Joined",
@@ -201,6 +200,8 @@
     "separateChargeDesc": "Extra price is shown as a separate line item",
     "saveSuccess": "Pricing mode updated successfully",
     "saveFailed": "Failed to update pricing mode",
-    "inheritNote": "Leave unset to inherit from tenant"
+    "inheritNote": "Leave unset to inherit from tenant",
+    "managedByPlatform": "Managed by platform administration. Contact your platform administrator to change it.",
+    "inheritFromOrganization": "Same as the organization"
   }
 }

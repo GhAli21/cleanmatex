@@ -33,7 +33,8 @@ import { OrdersChangeHistoryTabRprt } from '@features/orders/ui/orders-change-hi
 import type { OrderChangeHistoryErrorCode } from '@/app/actions/orders/get-order-change-history';
 import type { OrderChangeHistoryPage } from '@/lib/services/order-change/order-change-history-view';
 import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
-import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab-rprt';
+import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view';
+import { OrderChargesVoidPanel } from '@features/orders/ui/order-financial/order-charges-void-panel';
 import type { OrderPreferenceDtlColumn, OrderPreferenceRow } from '@/lib/orders/order-preferences-dtl';
 import type {
   OrderAdjustmentRow,
@@ -1206,19 +1207,10 @@ export function OrderDetailsFullClient({
       id: 'financial',
       label: t.tabsFinancial ?? 'Financial',
       content: (
-        <OrdersFinancialTabRprt
-          orderId={order.id as string}
-          snapshot={financialData?.snapshot ?? null}
-          charges={financialData?.charges ?? []}
-          discounts={financialData?.discounts ?? []}
-          taxes={financialData?.taxes ?? []}
-          payments={financialData?.payments ?? []}
-          creditApplications={financialData?.creditApplications ?? []}
-          refunds={financialData?.refunds ?? []}
-          adjustments={financialData?.adjustments ?? []}
-          voucherReferences={financialData?.voucherReferences ?? []}
-          auditTimeline={financialData?.auditTimeline ?? []}
-        />
+        <div className="space-y-4">
+          <OrderFinancialView source={{ kind: 'order', orderId: order.id as string }} config={{ preset: 'full', layout: 'card', presetSwitcher: ['full', 'audit'] }} />
+          <OrderChargesVoidPanel orderId={order.id as string} charges={financialData?.charges ?? []} currencyCode={orderCurrency} decimalPlaces={decimalPlaces} />
+        </div>
       ),
     },
     {

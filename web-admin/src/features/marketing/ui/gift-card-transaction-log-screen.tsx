@@ -20,6 +20,7 @@ import { CmxDataTable } from '@ui/data-display';
 import { CmxSummaryMessage } from '@ui/feedback';
 import { useGiftCardTransactionLog } from '../hooks/use-gift-cards';
 import type { GiftCardTransactionLogRow } from '@/lib/types/payment';
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import type { GiftCardTxnType } from '@/lib/constants/gift-card';
 
 // ---------------------------------------------------------------------------
@@ -193,10 +194,8 @@ export function GiftCardTransactionLogScreen() {
       key: 'order_id',
       header: tLog('fields.orderNo'),
       render: (row: GiftCardTransactionLogRow) =>
-        row.order_id ? (
-          <span className="font-mono text-xs text-muted-foreground">
-            {row.order_id.slice(0, 8)}…
-          </span>
+        row.order_no ? (
+          <CmxCodeChip code={row.order_no} kind="order" />
         ) : (
           <span className="text-muted-foreground">—</span>
         ),

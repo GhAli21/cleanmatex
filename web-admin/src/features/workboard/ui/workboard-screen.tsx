@@ -1,5 +1,6 @@
 'use client'
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip'
 import { useCallback, useDeferredValue, useMemo, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
@@ -191,7 +192,7 @@ function WorkboardOrderReference({ order, returnUrl }: WorkboardOrderReferencePr
         title={t('orderDetailsLinkTitle', { orderNo })}
         ariaLabel={t('orderDetailsLinkTitle', { orderNo })}
       >
-        {orderNo}
+        <CmxCodeChip code={orderNo} kind="order" copyable={false} />
       </OrderDetailsLink>
       <CmxButton
         type="button"

@@ -92,6 +92,121 @@ The figures on the order screens must equal the saved order snapshot, including 
 
 Engineers: `cd web-admin && npx jest __tests__/utils/order-financial-effective-snapshot __tests__/features/orders/map-order-financial-summary-view.test.ts __tests__/api/v1/order-financial-summary.route.test.ts __tests__/api/v1/order-state-line-prices.route.test.ts __tests__/services/customer-receipt-excess-order-allocation.test.ts __tests__/services/invoice-service-order-invoices.test.ts`.
 
+## S9 — Order Edit: order speed and per-line speed (P6-02a/b)
+
+**Before you start:** in HQ, the Edit policy of the order's workflow profile must have rules for `CHANGE_SERVICE_SPEED` on target `ORDER` and on target `ITEM` for the order's status. Without the `ITEM` rule the line speed menu shows disabled with its reason.
+
+1. Create an order with two lines at Standard (sidebar **Orders › New Order**, `/dashboard/orders/new`), then open it and click **Edit**.
+2. In the cart, open the speed menu under line 2 and pick **Express**. Line 1 stays at the order speed.
+3. Click **Review**. Expected: only line 2 is re-priced (speed premium added), its ready-by moves, the total goes up by line 2's premium. Apply, then reopen: line 2 is Express, line 1 Standard, the order speed is still Standard.
+4. Edit again, set the **order** speed to Express. Expected at Review: line 1 moves to Express; line 2 is already Express.
+5. Mark one piece of line 1 ready (workflow screen), then Edit and set the order speed back to Standard. Expected: Review refuses with "A line that is already ready keeps its speed…". Set line 1 to Express on its own (it keeps its speed) and the order to Standard: Review is ready, only line 2 moves.
+6. Arabic: repeat step 5 in AR; the message is in Arabic and the menu is right-to-left.
+
+## S10 — Order Edit: line price and line discount (P6-02c)
+
+**Before you start:** in HQ, the Edit policy must have rules for `CHANGE_ITEM_PRICE` and `CHANGE_DISCOUNT` on target `ITEM` for the order's status. The tester needs `pricing:override` (line price) and `orders:discount` (line discount).
+
+1. Create an order with two lines (sidebar **Orders › New Order**, `/dashboard/orders/new`), then open it and click **Edit**.
+2. On line 1, click the pen, enter a lower price and a reason, and save. Click **Review**. Expected: line 1's unit price and total use the new price, the order total drops by the difference, and the change lists the price and its reason. Apply, then reopen Edit: the pen shows the saved price.
+3. Edit again, clear line 1's price (the pen's reset). Expected at Review: line 1 is back at its standard price.
+4. On line 2, click the % button, choose **Percent**, enter 10 and a reason. Expected at Review: line 2's net drops by 10%, the change shows "Line discount type: Percent", the value and the reason. Apply.
+5. Edit again, open line 2's discount and enter the same values. Expected: Review says there is nothing to change. Then remove the discount: Review shows it removed.
+6. Enter an amount discount above line 2's total. Expected: the dialog keeps Apply disabled with the reason; nothing is clamped.
+7. Sign in as a user without `orders:discount`: the % button is not shown. Without the HQ `ITEM` rule: the controls show disabled with the reason.
+8. Arabic: repeat step 4 in AR; the dialog and the Review lines are in Arabic and right-to-left.
+
+## S11 — Order Edit: custom lines (P6-02d)
+
+**Before you start:** the tester needs `pricing:override`; the Edit policy allows `ADD_ITEM` at the order's status.
+
+1. Create an order with one catalog line and one custom item (sidebar **Orders › New Order**, `/dashboard/orders/new`, **Custom item** button).
+2. Open the order and click **Edit**. Expected: the page opens (before this step it refused orders with a custom line); the custom line shows its name and price.
+3. Change the custom line's quantity and click **Review**. Expected: it is priced at its entered price times the new quantity; nothing else changes.
+4. Click **Custom item**, add "Curtain" at 7.250, and Review. Expected: the new line is added at 7.250 and the change lists it with no catalog product. Apply, then reopen: both custom lines are there.
+5. Sign in as a user without `pricing:override`: the **Custom item** button is not shown in Edit.
+6. Arabic: repeat step 4 in AR; the dialog and Review are right-to-left.
+
+## S12 — Order Edit: price confirmation (P6-02e)
+
+**Before you start:** the Edit policy allows `ADD_ITEM` at the order's status. Pick a product whose price you can change in its price list.
+
+1. Open an order (sidebar **Orders**, `/dashboard/orders`), click **Edit**, and add that product. Note the price the cart shows.
+2. In another tab, change the product's price in the price list and save.
+3. Back in Edit, click **Review**. Expected: the new line has a "Prices changed" warning, the row "Price shown in the cart" with the old price, and the unit price with the new one. Other added lines whose price held show no warning and no row.
+4. Click **Apply**. Expected: the line is saved at the new price. The stored change keeps both prices (`shownUnitPrice` and `pricePerUnit` in the ADD_ITEM audit snapshot); check them where your history view shows change details.
+5. Repeat with a price override on the new line. Expected: no warning (an entered price is the one charged).
+6. Stale review: click **Review**, then change the price again in the other tab, then click **Apply**. Expected: Apply is refused as changed; review again.
+7. Arabic: repeat step 3 in AR; the warning and row read right-to-left.
+
+## S13 — Order Edit: line controls are saved and listed in the history (P6-02f)
+
+**Before you start:** migration 0664 is applied; the Edit policy allows `CHANGE_SERVICE_SPEED`, `CHANGE_ITEM_PRICE` and `CHANGE_DISCOUNT` on ITEM at the order's status. Before 0664, Apply refused all three.
+
+1. Open an order (sidebar **Orders**, `/dashboard/orders`), click **Edit**, and change one line's speed. Review, then Apply. Expected: saved; reopening shows the line on its new speed and price.
+2. Repeat with a line price (with a reason), then with a line discount. Expected: each Apply is saved.
+3. Open the order's change history. Expected: each change is listed against its line, with before and after values.
+4. Arabic: repeat step 3 in AR.
+
+## S14 — Tax comes from tax profiles only (P6-03)
+
+**Before you start:** migrations 0665 and 0673 applied.
+
+1. Sign in to BlueWave Laundry Co. and open **Settings › Tax Setup** (`/dashboard/settings/tax`). Expected: a default profile "VAT 5%" is listed; no warning.
+2. Create an order (`/dashboard/orders/new`) with one item. Expected: VAT 5% on the order, as before.
+3. Open **Settings › Finance** (`/dashboard/settings/finance`). Expected: no tax-rate form; a short explanation and an **Open Tax Setup** button that opens Tax Setup.
+4. On a test organization, deactivate its default profile in Tax Setup. Expected: the warning "No default tax profile" appears; a new order carries no tax. Reactivate the profile afterwards.
+5. Edit an order created before 0665 for BlueWave (if any). Expected: its recorded VAT stays at 5% on Review.
+6. Arabic: repeat steps 1 and 3 in AR; the warning and the Finance card read right-to-left.
+
+## S15 — Customer app booking: total and error messages (P6-04)
+
+**Before you start:** the customer app runs against this server (`API_BASE_URL`), signed in with a real customer of a demo organization.
+
+1. Book one item and confirm. Expected: the confirmation card shows "Total: …" in the organization's currency with its decimals (OMR: 3), equal to the order total in web-admin.
+2. In web-admin, remove the price of a catalog item (or deactivate it), then book that item in the app. Expected: a clear message (item unavailable, or no price yet), not a generic error.
+3. On a test organization with no workflow profile for the service, book. Expected: "Online booking is not available for this laundry right now. Please contact the laundry."
+4. Arabic: repeat step 1 in AR; the total line reads right-to-left.
+
+## S16 — Edit re-checks recorded rule and promo discounts (Reusable View P1B-05, P1B-11, P1B-12)
+
+**Before you start:** in **Marketing → Discount Rules** (`/dashboard/marketing/discount-rules`) make an active 10% rule with a minimum order amount (for example 5.000). Create an order above the minimum so the rule is applied.
+
+1. Open the order, choose **Edit**, raise a quantity, then **Review**. Expected: the new total includes 10% of the new base (not the old amount).
+   Review shows **Discounts recalculated** with a line such as "Weekday 10%: −0.430 → −0.630".
+2. Edit again and lower the quantities so the order falls below the minimum, then **Review**. Expected: a warning line "Weekday 10% removed (was −…): the order is below its minimum amount" and a checkbox "I understand this discount will be removed." Apply is not offered. Tick it, choose **Review again**: Apply is now offered, and applying saves the order without the rule.
+3. Promo: in **Marketing → Promotions** (`/dashboard/marketing/promos`) make a promo with a minimum order, use it on a new order, then edit the order below the minimum, acknowledge and apply. Expected: the promo row is gone, and the promo's usage count went down by one.
+4. A notes-only edit on the same order: Expected: no re-pricing, the discount stays as it was.
+5. Arabic: repeat step 2 in AR. The lines and the checkbox are in Arabic and read right-to-left.
+6. Customer app booking with an automatic promo (P1B-12): in **Marketing → Promotions** turn on **Auto apply** for a promo the booking qualifies for, then book from the customer app. Expected: the promo's usage count goes up by one (before the fix it stayed the same), and step 3's edit gives it back.
+
+## S17 — Loyalty points follow the order (Reusable View P1B-15, P1B-10)
+
+**Before you start:** in **Marketing → Loyalty** (`/dashboard/marketing/loyalty`) make sure the program is active, for example 1 point per 1.000. The outbox worker must be running (points are posted a moment after the money change). Check points on **Customers → (customer) → Loyalty** (`/dashboard/customers/<id>`, Loyalty tab).
+
+1. **Paid later (LE-01):** create an order for a customer as Pay on Collection (nothing paid). Expected: no points yet. Collect the full amount later. Expected: the customer earns floor(total × rate) points, one EARN row for the order.
+2. **Paid at checkout:** create and fully pay an order. Expected: points earned once (same as before).
+3. **Edit up:** edit the paid order to a higher total and collect the difference. Expected: one more EARN row for the difference only. Change the program rate first: the order still uses the rate of its first earn. The new ledger row is traced to the edit (its key starts with `loyalty-ORDER_EDIT-`).
+4. **Edit down:** edit a paid order to a lower total (refund or credit the difference). Expected: an ADJUST row takes back the difference.
+5. **Refund after spending:** redeem most of the customer's points on another order, then fully refund the first order. Expected: the balance goes to 0, never negative; the ADJUST row shows how many points could not be taken back.
+6. **Cancel:** cancel a paid order (Workflow → Cancel). Expected: its points are taken back (balance never below 0).
+7. **No double credit:** click Collect twice quickly, or retry the same payment. Expected: points earned once.
+
+## S18 — Speed Pricing rules (P7-01)
+
+Needs migration 0691 applied. Sign in as an organization admin. Sidebar: **Catalog & Pricing › Speed Pricing** (`/dashboard/catalog/speed-pricing`).
+
+1. Open the page. Expect the existing rules, the card with the six rule levels in order, and the filters. Switch to Arabic and check the layout and wording.
+2. Click **Add rule**. Speed Express, Applies to All products, Price type Percentage of the price, amount `0.25`, a start date not used yet. Expect the hint "Adds 25% to the normal price". Save. Expect "Rule saved." and the rule in the list.
+3. Add the same rule again (same speed, scope, branch and start date). Expect the dialog to stay open with "A rule for this speed, scope and start date already exists", and nothing added.
+4. Type `abc` as the amount and save. Expect a message under the field, and that `abc` is still in the field. Change the price type. Expect the amount to clear and the hint under the type to say why.
+5. Under **Which rule applies?** pick Express and a product with its own rule, then **Check**. Expect that rule marked **Applies** and any category or organization rule marked **Overridden**. Pick a speed and date with no rule. Expect "No rule applies".
+6. Click **Add for a category**, pick a category, a multiplier and a new start date. Expect "N rules created, M skipped", and one product rule per active product in the list. Run it again. Expect 0 created and all skipped.
+7. Delete a rule no order used. Expect it gone, and the same scope can be added again. Delete a rule an order was priced with (in a New Order, pick Express for a product using that rule and save the order first). Expect "Orders were priced with this rule, so it cannot be deleted. Deactivate it instead." Click **Deactivate**. Expect the status Inactive, and a new order no longer uses that rule.
+8. Create an order at Express for a product whose rule you changed. Expect the new price on the new order, and older orders unchanged.
+9. Sign in as a user with `pricing:read` only (for example a viewer). Expect the list and the panel, with no Add, Edit, Deactivate or Delete buttons. Calling `POST /api/v1/catalog/speed-rules` directly answers 403.
+10. Open **Catalog & Pricing › Pricing** and a product's price history. Expect no speed-rule rows there. `GET /api/v1/pricing/history?entityType=speed_rule` lists the changes from the steps above, each with who and when.
+
 ## Sign-off
 
 | Scenario | Result | Tester | Date |
@@ -104,6 +219,15 @@ Engineers: `cd web-admin && npx jest __tests__/utils/order-financial-effective-s
 | S6 | | | |
 | S7 | | | |
 | S8 | | | |
+| S9 | | | |
+| S10 | | | |
+| S11 | | | |
+| S12 | | | |
+| S13 | | | |
+| S14 | | | |
+| S15 | | | |
+| S16 | | | |
+| S17 | | | |
 
 ## Financial_Expert_Tester Results — Round 1 (2026-10-23)
 
@@ -117,7 +241,7 @@ Engineers: `cd web-admin && npx jest __tests__/utils/order-financial-effective-s
 | S4 | **PARTIAL** | Works: the Orders list loads with 3 orders and stats cards (3 total, 3 pending prep, 3 in progress, 0 ready, 0 out for delivery, 0 delivered today, 3 overdue). Order detail and full pages load. New Order shows currency OMR. Customers › Add Customer (Quick Add) pre-fills +968, and B2B › Customers › New pre-fills +968 (both cancelled, not saved). **Not confirmed:** the status filter exists (Draft…Delivered), but the filter result was not captured. **Blocked:** `/dashboard/orders/{id}/prepare` shows "Cannot Prepare Order - This order is in processing status and cannot be prepared…". All 3 orders are Processing, so there is no order to prepare. **Not found:** there is no promo field on New Order. The promo code is on the payment screen (see (h)), which could not be reached because of the POS block. **Disabled:** the new-customer icon inside the order panel does nothing while POS is locked (see (i)). |
 | S5 | **BLOCKED** | POS session `POS-20261016-E2ED9312` (Main Branch 2, business date 2026-10-16, drawer `SES-20261016-0001`, balance 54.250 OMR) is Paused / Stale / Rolled over: "This session was paused because the business day changed, so it cannot be resumed. Close it, then open a new session to keep taking payments." The New Order banner says "Resume the POS session - This POS session is paused. Resume it here before creating an order." Item **Add** does nothing, and the cart stays at "No items added yet", so no order could be built. Sign-in as `operator@demo-laundry.example` / `U000001` failed twice with "Invalid user code, email or password. Please try again." (see the operator finding). The setup premise also fails: no tenant user who can create orders lacks `pricing:override` (see the operator finding). |
 | S6 | **BLOCKED** | Settings › Tax › Exemptions › Add has Exemption Type* (CUSTOMER_EXEMPT, PRODUCT_EXEMPT, ZERO_RATED, REDUCED_RATE, OTHER), Certificate No., Service Type, Valid From* (default 2026-10-23) and Valid To. It has **no customer field**, so a customer-level exemption cannot be created in the UI (see (e)). It was not saved. The only exemption row (GOVERNMENT_ENTITY, cert `GOV-OM-2024-001`, valid from 2024-01-01, no expiry, Customer ID "–") has no customer and no service type, so it applies to no order. New Order is also blocked by POS (as in S5). Customer `QA-LLMS Exempt` was created for this scenario (below). |
-| S7 | **NOT RUN** (owner sign-off) / PF-21 repro **BLOCKED** | The P1-01 sign-off is for the owner (P1_01_CHARACTERIZATION.md §4.4); the tester did not run it. The PF-21 UI repro needs items on New Order, which is blocked by POS (as in S5). |
+| S7 | Sign-off ✅ done 2026-10-23 (delegated, §4.4) / PF-21 repro **BLOCKED** | The P1-01 sign-off is recorded in P1_01_CHARACTERIZATION.md §4.4; no owner action. The PF-21 UI repro needs items on New Order, which is blocked by POS (as in S5). |
 
 **Counts:** 7 scenarios. PASS 2 (S1 with 4 bugs, S2), PARTIAL 1 (S4), BLOCKED 3 (S3, S5, S6), NOT RUN 1 (S7; PF-21 repro blocked). New issues: 6 bugs (a, b, c, d, e, f-message), 1 privacy observation (k), and 5 by-design or guide-wording items (g, h, i, j, Confirm received). No orders were created.
 
@@ -174,7 +298,7 @@ Engineers: `cd web-admin && npx jest __tests__/utils/order-financial-effective-s
 5. **Arabic:** set cookie `NEXT_LOCALE=ar` (or browser language Arabic) for the S2 Arabic text and the S5 Arabic error.
 6. **Mobile (S3):** customer mobile app build plus a customer bearer token, and a second customer's order number.
 7. **API calls (S5 steps 6–7):** an authenticated session with a CSRF token for `POST /api/v1/orders/submit-order`.
-8. **Owner:** S7 sign-off in P1_01_CHARACTERIZATION.md §4.4 stays with the owner.
+8. ✅ S7 sign-off in P1_01_CHARACTERIZATION.md §4.4: done 2026-10-23 (delegated). No owner action.
 
 ## Financial_Expert_Tester Results — Round 2 (2026-10-23)
 

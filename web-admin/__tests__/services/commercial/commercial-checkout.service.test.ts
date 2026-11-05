@@ -94,6 +94,9 @@ describe('quoteCheckout', () => {
     const t = checkout.totals;
     // VAT: lines 4.200 × 5% = 0.210, charge 0.200 × 5% = 0.010.
     expect([t.subtotal, t.chargesTotal, t.vatValue, t.saleTotal]).toEqual([4.2, 0.2, 0.22, 4.62]);
+    // The included STARCH extras sit inside the 4.200 line price (Order Fin View "Extras included").
+    expect(t.extrasIncludedAmount).toBe(0.2);
+    expect(t.speedPremiumIncludedAmount).toBe(0); // standard speed
     expect(t.taxBreakdown).toEqual([expect.objectContaining({ profileId: 'vat', label: 'VAT', label2: 'ضريبة', rate: 5, taxAmount: 0.22 })]);
     expect(checkout.taxProfileEntries).toEqual([expect.objectContaining({ id: 'vat', name: 'VAT', rate: 5, enabled: true })]);
     expect(counts.org_tax_profiles_cf).toBe(1);

@@ -41,7 +41,6 @@ function RequirementDetailRow({ detail }: { detail: AccessEvaluationDetail }) {
     permission: 'Permission',
     permission_prefix: 'Permission Prefix',
     feature_flag: 'Feature Flag',
-    workflow_role: 'Workflow Role',
     tenant_role: 'Tenant Role',
   }
 
@@ -156,7 +155,6 @@ export function CmxPermissionsInspectorPanel({
   const queryClient = useQueryClient()
   const {
     permissions,
-    workflowRoles,
     currentTenant,
     refreshPermissions,
   } = useAuth()
@@ -214,7 +212,6 @@ export function CmxPermissionsInspectorPanel({
   const pageEvaluation = currentPageContract
     ? evaluateAccessRequirement(currentPageContract.page, {
         userPermissions: permissions ?? [],
-        userWorkflowRoles: workflowRoles ?? [],
         userTenantRole: currentTenant?.user_role ?? null,
         featureFlags,
       })
@@ -393,7 +390,6 @@ export function CmxPermissionsInspectorPanel({
                         .map(([actionKey, action]) => {
                           const actionEvaluation = evaluateAccessRequirement(action.requirement, {
                             userPermissions: permissions ?? [],
-                            userWorkflowRoles: workflowRoles ?? [],
                             userTenantRole: currentTenant?.user_role ?? null,
                             featureFlags,
                           })
@@ -487,7 +483,6 @@ export function CmxPermissionsInspectorPanel({
                         {filteredApiDependencies.map((dependency) => {
                           const apiEvaluation = evaluateAccessRequirement(dependency.requirement, {
                             userPermissions: permissions ?? [],
-                            userWorkflowRoles: workflowRoles ?? [],
                             userTenantRole: currentTenant?.user_role ?? null,
                             featureFlags,
                           })

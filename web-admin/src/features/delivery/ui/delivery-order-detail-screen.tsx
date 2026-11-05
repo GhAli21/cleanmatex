@@ -1,5 +1,7 @@
 'use client';
 
+import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view';
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -135,7 +137,8 @@ export function DeliveryOrderDetailScreen() {
           ← {t('delivery.actions.backToDelivery')}
         </Link>
         <h1 className="text-3xl font-bold">
-          {t('screens.delivery')} - {order.orderNo}
+          {t('screens.delivery')}{' '}
+          <CmxCodeChip code={order.orderNo} kind="order" size="md" />
         </h1>
         <p className="mt-1 text-gray-600">
           {order.customer.name} • {order.customer.phone}
@@ -144,6 +147,8 @@ export function DeliveryOrderDetailScreen() {
 
       {error ? <Alert variant="error" message={error} /> : null}
 
+      {/* P6-04: the order's totals and balance from the read model. */}
+      <OrderFinancialView source={{ kind: 'order', orderId }} config={{ preset: 'totals', layout: 'card', density: 'compact', columns: 1 }} />
       <DeliveryHandoverCard
         key={`delivery-handover-${actionBarKey}`}
         orderId={orderId}

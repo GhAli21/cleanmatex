@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hqApiClient } from '@/lib/api/hq-api-client';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 /**
  *
@@ -7,6 +8,9 @@ import { hqApiClient } from '@/lib/api/hq-api-client';
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+
     const { searchParams } = new URL(request.url);
     const authHeader = request.headers.get('authorization');
 

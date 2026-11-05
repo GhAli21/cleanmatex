@@ -21,6 +21,7 @@ import { OrderDetailsPrint } from '@features/orders/ui/order-details-print';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import { OrderInvoicesPaymentsPrintRprt, type OrderInvoicesPaymentsPrintRprtData } from '@features/orders/ui/order-invoices-payments-print-rprt';
 import { OrderPaymentsPrintRprt, type OrderPaymentsPrintRprtData } from '@features/orders/ui/order-payments-print-rprt';
+import { OrdersFinancialStatementRprt } from '@features/orders/order-fin-view/ui/orders-financial-statement-rprt';
 import { OrderHistoryPrintRprt, type OrderHistoryPrintRprtData } from '@features/orders/ui/order-history-print-rprt';
 
 type PrintType = 'receipt' | 'order-details' | 'invoices-payments-rprt' | 'payments-rprt' | 'history-rprt';
@@ -48,6 +49,9 @@ export default function ReadyPrintPage() {
   const [discountLines, setDiscountLines] = useState<OrderDiscountLine[]>([]);
   const [receiptPayments, setReceiptPayments] = useState<ReceiptPaymentLine[]>([]);
   const [receiptCashChangeRounding, setReceiptCashChangeRounding] = useState<CashChangeRoundingLike[]>([]);
+  // HFC P4: CODE128 of the order no on the receipt when the RECEIPT label config (0685) resolves on
+  // (show_order_barcode for the order's branch, capped by the human_codes_scan_labels flag).
+  const [receiptOrderBarcode, setReceiptOrderBarcode] = useState(false);
   const [reportData, setReportData] = useState<OrderInvoicesPaymentsPrintRprtData | OrderPaymentsPrintRprtData | OrderHistoryPrintRprtData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,13 +65,19 @@ export default function ReadyPrintPage() {
       setLoading(true);
       setError(null);
       try {
-        const [stateRes, discountsRes, paymentsRes] = await Promise.all([
+        const [stateRes, discountsRes, paymentsRes, labelRes] = await Promise.all([
           fetch(`/api/v1/orders/${id}/state`, { signal: controller.signal, cache: 'no-store' }),
           fetch(`/api/v1/orders/${id}/discounts`, { signal: controller.signal, cache: 'no-store' }),
           // The tender block is supplementary: a failed lookup prints the receipt without it.
           fetch(`/api/v1/orders/${id}/report/payments-rprt?sort=asc`, { signal: controller.signal, cache: 'no-store' }).catch(
             () => null,
           ),
+          // Label settings are supplementary too: on failure the receipt prints without the barcode.
+          type === 'receipt'
+            ? fetch(`/api/v1/orders/${id}/label-data?pieces=none`, { signal: controller.signal, cache: 'no-store' }).catch(
+                () => null,
+              )
+            : Promise.resolve(null),
         ]);
         const json: ReadyOrderStateResponse = await stateRes.json();
         const mapped = mapReadyOrderFromStateResponse(json);
@@ -81,6 +91,10 @@ export default function ReadyPrintPage() {
           const paymentsJson = await paymentsRes.json().catch(() => null);
           setReceiptPayments(paymentsJson?.payments ?? []);
           setReceiptCashChangeRounding(paymentsJson?.cashChangeRounding ?? []);
+        }
+        if (labelRes?.ok) {
+          const labelJson = await labelRes.json().catch(() => null);
+          setReceiptOrderBarcode(labelJson?.data?.settings?.receiptOrderCode128 === true);
         }
       } catch (e: unknown) {
         if (e instanceof Error && e.name === 'AbortError') return;
@@ -319,16 +333,29 @@ export default function ReadyPrintPage() {
               discountLines={discountLines}
               payments={receiptPayments}
               cashChangeRounding={receiptCashChangeRounding}
+              showOrderBarcode={receiptOrderBarcode}
             />
           )}
           {type === 'order-details' && order && (
             <OrderDetailsPrint order={order} layout={layout} discountLines={discountLines} />
           )}
           {type === 'invoices-payments-rprt' && reportData && 'invoices' in reportData && (
-            <OrderInvoicesPaymentsPrintRprt data={reportData} />
+            <>
+              <OrderInvoicesPaymentsPrintRprt data={reportData} />
+              {/* P6-03: the order's statement, print layout (every row open, all lines). */}
+              <div className="mt-6 break-inside-avoid">
+                <OrdersFinancialStatementRprt source={{ kind: 'order', orderId: params.id }} />
+              </div>
+            </>
           )}
           {type === 'payments-rprt' && reportData && 'payments' in reportData && (
-            <OrderPaymentsPrintRprt data={reportData} />
+            <>
+              <OrderPaymentsPrintRprt data={reportData} />
+              {/* P6-03: the order's statement, print layout (every row open, all lines). */}
+              <div className="mt-6 break-inside-avoid">
+                <OrdersFinancialStatementRprt source={{ kind: 'order', orderId: params.id }} />
+              </div>
+            </>
           )}
           {type === 'history-rprt' && reportData && 'history' in reportData && (
             <OrderHistoryPrintRprt data={reportData} />

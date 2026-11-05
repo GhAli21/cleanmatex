@@ -9,6 +9,10 @@ import type { OrderChangeFinancialResult } from '@/lib/services/order-change/ord
 import type { OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
 import { calculateCommercialOrder, toMoney } from '@/lib/commercial';
 import type { EditQuote } from '@/lib/services/commercial/commercial-edit.loader';
+import type { DiscountChange } from '@/lib/services/commercial/edit-discount-reevaluation';
+import { reversePromoUsageTx } from '@/lib/services/discount-service';
+
+jest.mock('@/lib/services/discount-service', () => ({ reversePromoUsageTx: jest.fn().mockResolvedValue({ reversedCount: 1 }) }));
 
 jest.mock('@/lib/services/order-change/order-change-mutation.service', () => {
   const actual = jest.requireActual('@/lib/services/order-change/order-change-mutation.service');
@@ -91,6 +95,7 @@ function calculatedEdit(lines: Array<{ id: string; unitPrice: string; quantity?:
     },
     adjustmentMeta: new Map([['order:d1', { sourceName: 'Manual Discount' }]]),
     keptChargeIds: new Map(),
+    discountChanges: [],
   } as unknown as EditQuote;
 }
 
@@ -306,7 +311,7 @@ describe('applyOrderChange', () => {
 
   it('rejects an unshipped writer and a known field disguised as residual before starting a transaction', async () => {
     for (const operation of [
-      { seq: 1, code: 'CHANGE_ITEM_PRICE' as const, target: { kind: 'PERSISTED_ITEM' as const, id: '55555555-5555-4555-8555-555555555555' }, payload: {} },
+      { seq: 1, code: 'CHANGE_ITEM_PRODUCT' as const, target: { kind: 'PERSISTED_ITEM' as const, id: '55555555-5555-4555-8555-555555555555' }, payload: {} },
       { seq: 1, code: 'CHANGE_UNLISTED' as const, target: { kind: 'PERSISTED_PIECE' as const, id: '66666666-6666-4666-8666-666666666666' }, payload: { field: 'piece.brand', value: 'New brand' } },
     ]) {
       const { input, opened } = harness({ request: { ...request(), operations: [operation] } });
@@ -459,6 +464,68 @@ describe('applyOrderChange', () => {
     }));
   });
 
+  it('P6-02d: stores a custom line with no product and its own name, reading no catalog row', async () => {
+    const clientRef = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const { input, tx } = harness({
+      request: {
+        ...request(),
+        operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef, customItem: { name: 'Wedding dress', name2: null, unitPrice: '12.5', serviceCategoryCode: 'DRY_CLEAN' }, quantity: 1 } }],
+      },
+      preview: preview({
+        projectedTotal: '24.3000',
+        lines: [{ id: clientRef, active: true, unitPrice: '12.5000', merchandiseAmount: '12.5000', embeddedExtra: '0.0000' }],
+        commercial: calculatedEdit([{ id: '55555555-5555-4555-8555-555555555555', unitPrice: '8.7000' }, { id: clientRef, unitPrice: '12.5000' }]),
+      }),
+    });
+    Object.assign(tx, childRowDelegates());
+    const query = jest.fn(async (strings: TemplateStringsArray) => {
+      const text = strings.join(' ');
+      if (text.includes('org_orders_mst')) return [{ order_no: '100', branch_id: null, current_status: 'processing', item_count: 2 }];
+      return [];
+    });
+    tx.$queryRaw = query;
+    await expect(applyOrderChange(input)).resolves.toMatchObject({ ok: true });
+    expect(persistMock.mock.calls[0][1].itemInserts).toEqual([expect.objectContaining({
+      id: clientRef,
+      data: expect.objectContaining({ product_id: null, product_name: 'Wedding dress', service_category_code: 'DRY_CLEAN', price_per_unit: '12.5000' }),
+    })]);
+    expect(query.mock.calls.some(([strings]) => (strings as TemplateStringsArray).join(' ').includes('org_product_data_mst'))).toBe(false);
+  });
+
+  it('HFC P3: a new line takes the per-order serial lock, then continues from the highest serial', async () => {
+    const clientRef = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const { input, tx } = harness({
+      request: {
+        ...request(),
+        operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef, customItem: { name: 'Coat', name2: null, unitPrice: '12.5', serviceCategoryCode: 'DRY_CLEAN' }, quantity: 1 } }],
+      },
+      preview: preview({
+        projectedTotal: '24.3000',
+        lines: [{ id: clientRef, active: true, unitPrice: '12.5000', merchandiseAmount: '12.5000', embeddedExtra: '0.0000' }],
+        commercial: calculatedEdit([{ id: '55555555-5555-4555-8555-555555555555', unitPrice: '8.7000' }, { id: clientRef, unitPrice: '12.5000' }]),
+      }),
+    });
+    Object.assign(tx, childRowDelegates());
+    const query = jest.fn(async (strings: TemplateStringsArray) => {
+      const text = strings.join(' ');
+      // 2 live lines, but a removed line already used 100-5: the new line is 100-6, never a reused number.
+      if (text.includes('org_orders_mst')) return [{ order_no: '100', branch_id: null, current_status: 'processing', item_count: 2, item_serial_max: 5 }];
+      return [];
+    });
+    tx.$queryRaw = query;
+    await expect(applyOrderChange(input)).resolves.toMatchObject({ ok: true });
+    expect(persistMock.mock.calls.at(-1)?.[1].itemInserts).toEqual([expect.objectContaining({
+      id: clientRef,
+      data: expect.objectContaining({ order_item_srno: '100-6' }),
+    })]);
+    const texts = query.mock.calls.map(([strings]) => (strings as TemplateStringsArray).join(' '));
+    const lockAt = texts.findIndex((text) => text.includes('pg_advisory_xact_lock'));
+    const serialReadAt = texts.findIndex((text) => text.includes('item_serial_max'));
+    expect(lockAt).toBeGreaterThanOrEqual(0);
+    expect(lockAt).toBeLessThan(serialReadAt);
+    expect(query.mock.calls[lockAt].slice(1)).toEqual([`ord_item_srno:${input.orderId}`]);
+  });
+
   it('stores the real stored values before every decision that already has a row', async () => {
     const orderFacts = harness({
       request: {
@@ -591,14 +658,14 @@ describe('applyOrderChange', () => {
         totalAmount: '10.0000',
         taxAmount: '1.5000',
         commercialDelta: '0.0000',
-        items: [{ orderItemId: itemId, quantity: 1, pricePerUnit: '10.0000', totalPrice: '10.0000' }],
+        items: [{ orderItemId: itemId, serviceSpeed: 'STANDARD', quantity: 1, pricePerUnit: '10.0000', totalPrice: '10.0000' }],
       },
       after: {
         serviceSpeed: 'EXPRESS',
         totalAmount: '12.0000',
         taxAmount: '1.8000',
         commercialDelta: '2.0000',
-        items: [{ orderItemId: itemId, quantity: 1, pricePerUnit: '12.0000', totalPrice: '12.0000' }],
+        items: [{ orderItemId: itemId, serviceSpeed: 'EXPRESS', quantity: 1, pricePerUnit: '12.0000', totalPrice: '12.0000' }],
       },
     };
     const { input, committed, tx, updateMany } = harness({
@@ -639,6 +706,60 @@ describe('applyOrderChange', () => {
     expect(rows.org_order_charges_dtl.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ is_voided: true }) }));
     expect(rows.org_order_charges_dtl.createMany).not.toHaveBeenCalled();
     expect(executeRaw).not.toHaveBeenCalled();
+  });
+
+  it('P1B-05: gives a removed promo its use back at Apply, and nothing when the promo is kept', async () => {
+    const itemId = '55555555-5555-4555-8555-555555555555';
+    const removedPromo: DiscountChange = {
+      key: 'PROMO_CODE:p1', adjustmentId: 'order:d1', sourceType: 'PROMO_CODE', sourceId: 'p1', promotionId: 'p1',
+      sourceName: 'SPRING10', sourceName2: null, outcome: 'REMOVED', reason: 'MIN_ORDER_NOT_MET',
+      previousAmount: '1.0000', amount: '0.0000',
+    };
+    const run = async (change: DiscountChange) => {
+      const commercial = { ...calculatedEdit([{ id: itemId, unitPrice: '8.0000' }]), discountChanges: [change] };
+      (commercial.intent.lines[0] as { overrideUnitPrice: string | null }).overrideUnitPrice = '8';
+      const { input, tx } = harness({
+        request: { ...request(), operations: [{ seq: 1, code: 'CHANGE_ITEM_PRICE', target: { kind: 'PERSISTED_ITEM', id: itemId }, payload: { priceOverride: '8', overrideReason: 'Damaged on arrival' } }] },
+        preview: preview({ projectedTotal: '9.2000', projectedTax: '1.2000', commercial,
+          lines: [{ id: itemId, active: true, unitPrice: '8.0000', merchandiseAmount: '8.0000', embeddedExtra: '0.0000' }] }),
+      });
+      Object.assign(tx, childRowDelegates());
+      await expect(applyOrderChange(input)).resolves.toMatchObject({ ok: true });
+      return input;
+    };
+    const reverse = reversePromoUsageTx as jest.MockedFunction<typeof reversePromoUsageTx>;
+    reverse.mockClear();
+    const input = await run(removedPromo);
+    expect(reverse).toHaveBeenCalledWith(expect.anything(), { orderId: input.orderId, tenantOrgId: input.tenantId, voidedBy: input.actorUserId });
+    reverse.mockClear();
+    await run({ ...removedPromo, outcome: 'KEPT', reason: null });
+    expect(reverse).not.toHaveBeenCalled();
+  });
+
+  it('P6-02c: stores a line price with its reason on the line and records the operation against it', async () => {
+    const itemId = '55555555-5555-4555-8555-555555555555';
+    const commercial = calculatedEdit([{ id: itemId, unitPrice: '8.0000' }]);
+    (commercial.intent.lines[0] as { overrideUnitPrice: string | null }).overrideUnitPrice = '8';
+    const { input, committed, tx } = harness({
+      request: {
+        ...request(),
+        operations: [{ seq: 1, code: 'CHANGE_ITEM_PRICE', target: { kind: 'PERSISTED_ITEM', id: itemId }, payload: { priceOverride: '8', overrideReason: 'Damaged on arrival' } }],
+      },
+      preview: preview({
+        projectedTotal: '9.2000',
+        projectedTax: '1.2000',
+        lines: [{ id: itemId, active: true, unitPrice: '8.0000', merchandiseAmount: '8.0000', embeddedExtra: '0.0000' }],
+        commercial,
+      }),
+    });
+    Object.assign(tx, childRowDelegates());
+    await expect(applyOrderChange(input)).resolves.toMatchObject({ ok: true });
+    expect(committed()).toBe(true);
+    expect(persistMock.mock.calls[0][1].itemUpdates).toEqual([expect.objectContaining({
+      id: itemId,
+      data: expect.objectContaining({ price_override: '8', override_reason: 'Damaged on arrival', price_per_unit: '8.0000', price_source: 'MANUAL' }),
+    })]);
+    expect(persistMock.mock.calls[0][1].operations).toEqual([expect.objectContaining({ code: 'CHANGE_ITEM_PRICE', targetType: 'ITEM', orderItemId: itemId })]);
   });
 
   it('keeps an unchanged outstanding balance on the existing settlement type', async () => {

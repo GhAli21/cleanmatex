@@ -219,5 +219,140 @@
     "createCustomServicePref": "Create Custom Service Preference",
     "createCustomPackingPref": "Create Custom Packing Preference",
     "create": "Create"
+  },
+  "speedPricing": {
+    "title": "Speed Pricing",
+    "subtitle": "The premium added when a customer picks a faster service. With no matching rule, a faster speed costs the same as Standard.",
+    "addRule": "Add rule",
+    "editRule": "Edit rule",
+    "saved": "Rule saved.",
+    "deleted": "Rule deleted.",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "openEnded": "open-ended",
+    "newOrdersOnly": "Applies to new orders and new edits only. Saved orders keep the price they were given.",
+    "priceTypeChangeHint": "Changing the type clears the amount, because each type means something different.",
+    "multiplierExample": "Example: 0.30 adds 30% to the normal price.",
+    "multiplierHint": "Adds {percent}% to the normal price.",
+    "turnaroundHint": "Optional. Hours to finish at this speed.",
+    "effectiveToHint": "Leave empty if the rule has no end date.",
+    "order": {
+      "title": "When several rules match, the first one in this order wins:"
+    },
+    "empty": {
+      "title": "No speed rules yet",
+      "description": "With no rule, a faster speed adds no premium. Add a rule to charge for it."
+    },
+    "level": {
+      "PRODUCT_BRANCH": "Product, in one branch",
+      "PRODUCT": "Product, in all branches",
+      "CATEGORY_BRANCH": "Category, in one branch",
+      "CATEGORY": "Category, in all branches",
+      "TENANT_BRANCH": "All products, in one branch",
+      "TENANT": "All products, in all branches"
+    },
+    "scope": {
+      "allProducts": "All products",
+      "allBranches": "All branches",
+      "anyBranch": "No specific branch",
+      "anyCategory": "No specific category",
+      "category": "One category",
+      "product": "One product"
+    },
+    "fields": {
+      "speed": "Service speed",
+      "branch": "Branch",
+      "scope": "Applies to",
+      "category": "Category",
+      "chooseCategory": "Choose a category",
+      "product": "Product",
+      "value": "Premium",
+      "effective": "Effective dates",
+      "priceType": "Price type",
+      "priceBasis": "Charged",
+      "turnaround": "Turnaround (hours)",
+      "effectiveFrom": "Effective from",
+      "effectiveTo": "Effective to",
+      "name": "Label (English)",
+      "name2": "Label (Arabic)"
+    },
+    "priceType": {
+      "SELL_PRICE": "Fixed sell price",
+      "MULTIPLIER": "Percentage of the price",
+      "FIXED_AMOUNT": "Fixed extra amount"
+    },
+    "amountLabel": {
+      "SELL_PRICE": "Sell price at this speed",
+      "MULTIPLIER": "Added fraction of the price",
+      "FIXED_AMOUNT": "Extra amount"
+    },
+    "priceBasis": {
+      "PER_UNIT": "Per unit",
+      "PER_LINE": "Per line"
+    },
+    "valueText": {
+      "sellPrice": "Sell price {amount}",
+      "multiplier": "+{percent}",
+      "fixedPerUnit": "+{amount} per unit",
+      "fixedPerLine": "+{amount} per line"
+    },
+    "validation": {
+      "form": "Check this value.",
+      "serviceSpeed": "Choose a speed other than Standard.",
+      "productId": "Choose a product.",
+      "serviceCategoryCode": "Choose a category.",
+      "defaultSpeedSellPrice": "Enter an amount with up to 4 decimals.",
+      "multiplierSpeed": "Enter a number with up to 4 decimals, such as 0.30.",
+      "speedExtraAmount": "Enter an amount with up to 4 decimals.",
+      "priceBasis": "Choose how the amount is charged.",
+      "turnaroundHhSpeed": "Enter hours with up to 2 decimals.",
+      "effectiveFrom": "Enter the start date.",
+      "effectiveTo": "The end date cannot be before the start date.",
+      "name": "Use at most 200 characters.",
+      "name2": "Use at most 200 characters."
+    },
+    "errors": {
+      "title": "Could not complete this",
+      "NOT_FOUND": "This rule no longer exists. Refresh the list.",
+      "DUPLICATE_SCOPE": "A rule for this speed, scope and start date already exists. Edit that rule, or choose another start date.",
+      "RULE_IN_USE": "Orders were priced with this rule, so it cannot be deleted. Deactivate it instead.",
+      "INVALID_REFERENCE": "The speed, product, branch or category is no longer available. Choose another one.",
+      "VALIDATION_FAILED": "Some values are not valid. Check them and try again.",
+      "CSRF_REJECTED": "Your session needs refreshing. Reload the page and try again.",
+      "INTERNAL_ERROR": "Something went wrong. Try again."
+    },
+    "deleteConfirm": {
+      "title": "Delete this rule?",
+      "description": "This cannot be undone. The change stays in the price history."
+    },
+    "bulk": {
+      "open": "Add for a category",
+      "title": "Add rules for a category",
+      "description": "Creates one rule for each active product in the category. A product that already has a rule for this speed, branch and start date keeps it. To cover the whole category with one rule, use Add rule instead.",
+      "create": "Create rules",
+      "done": "{created, plural, one {# rule created} other {# rules created}}, {skipped} skipped."
+    },
+    "resolver": {
+      "title": "Which rule applies?",
+      "date": "Date",
+      "check": "Check",
+      "applies": "Applies",
+      "overridden": "Overridden",
+      "categoryFromProduct": "Taken from the product.",
+      "noRuleTitle": "No rule applies",
+      "noRule": "No rule matches, so this speed adds no premium."
+    },
+    "productPicker": {
+      "choose": "Any product",
+      "title": "Choose a product",
+      "search": "Search",
+      "searchPlaceholder": "Product name or code",
+      "loading": "Loading products...",
+      "empty": "No products found.",
+      "clear": "Clear",
+      "cancel": "Cancel",
+      "apply": "Apply",
+      "options": "Products"
+    }
   }
 }

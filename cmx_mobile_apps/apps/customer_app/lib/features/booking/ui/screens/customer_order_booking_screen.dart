@@ -6,6 +6,7 @@ import 'package:mobile_ui/mobile_ui.dart';
 
 import '../../../../core/navigation/app_route.dart';
 import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
+import '../../domain/booking_total_format.dart';
 import '../../providers/customer_order_booking_provider.dart';
 import '../views/customer_booking_step1_items_vw.dart';
 import '../views/customer_booking_step2_preferences_vw.dart';
@@ -185,6 +186,11 @@ class _CustomerOrderBookingScreenState
     AppLocalizations localizations,
     BookingState booking,
   ) {
+    final total = formatBookingTotal(
+      amount: booking.submittedTotalAmount,
+      currencyCode: booking.submittedCurrencyCode,
+      localeTag: Localizations.localeOf(context).toLanguageTag(),
+    );
     return AppCardWidget(
       accentColor: AppColors.success,
       child: Column(
@@ -198,10 +204,19 @@ class _CustomerOrderBookingScreenState
           Text(
             localizations.textWithArg(
               'booking.successBody',
-              booking.submittedOrderNumber ?? '',
+              // Isolate the order code so it reads left-to-right in Arabic (HFC A-73).
+              ltrCode(booking.submittedOrderNumber ?? ''),
             ),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
+          if (total != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              localizations
+                  .textWithArgs('booking.successTotal', {'amount': total}),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
           if ((booking.submittedPromisedWindow ?? '').isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(

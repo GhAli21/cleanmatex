@@ -64,7 +64,7 @@ export function buildOrderIssueTableColumns(
           href={`/dashboard/processing?orderId=${row.order_id}`}
           className="font-medium text-primary hover:underline"
         >
-          {row.order_no ?? row.order_id?.slice(0, 8) ?? '—'}
+          <bdi dir="ltr" className="font-mono">{row.order_no ?? '—'}</bdi>
         </Link>
       ),
     });

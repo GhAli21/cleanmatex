@@ -176,6 +176,41 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
         </div>
       </div>
 
+      {/* Line-Level §6.7: the document's own item table (copied at issue), never live order items. */}
+      {detail.items.length > 0 && (
+        <div className="mb-6 overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-full text-sm">
+            <caption className="px-4 py-2 text-start font-medium text-slate-700">{t('print.itemsTitle')}</caption>
+            <thead className="bg-slate-50 text-slate-500">
+              <tr>
+                <th className="px-3 py-2 text-start">#</th>
+                <th className="px-3 py-2 text-start">{t('print.itemColumns.item')}</th>
+                <th className="px-3 py-2 text-end">{t('print.itemColumns.quantity')}</th>
+                <th className="px-3 py-2 text-end">{t('print.itemColumns.unitPrice')}</th>
+                <th className="px-3 py-2 text-end">{t('print.itemColumns.discount')}</th>
+                <th className="px-3 py-2 text-end">{t('print.itemColumns.net')}</th>
+                <th className="px-3 py-2 text-end">{t('print.itemColumns.itemTax')}</th>
+                <th className="px-3 py-2 text-end">{t('print.itemColumns.lineTotal')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detail.items.map((item) => (
+                <tr key={item.lineNo} className="border-t border-slate-200">
+                  <td className="px-3 py-2 text-slate-500">{item.lineNo}</td>
+                  <td className="px-3 py-2 text-slate-800">{(locale === 'ar' && item.productName2) || item.productName}</td>
+                  <td className="px-3 py-2 text-end tabular-nums">{item.quantity}</td>
+                  <td className="px-3 py-2 text-end tabular-nums">{formatCurrency(item.pricePerUnit, detail.currencyCode, locale)}</td>
+                  <td className="px-3 py-2 text-end tabular-nums">{item.discountAmount ? formatCurrency(item.discountAmount, detail.currencyCode, locale) : '—'}</td>
+                  <td className="px-3 py-2 text-end tabular-nums">{formatCurrency(item.netAmount, detail.currencyCode, locale)}</td>
+                  <td className="px-3 py-2 text-end tabular-nums">{formatCurrency(item.taxAmount, detail.currencyCode, locale)} ({item.taxRate}%)</td>
+                  <td className="px-3 py-2 text-end font-medium tabular-nums">{formatCurrency(item.lineTotalAmount, detail.currencyCode, locale)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-xl border border-slate-200">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-slate-500">

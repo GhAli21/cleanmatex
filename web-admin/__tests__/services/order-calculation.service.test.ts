@@ -16,7 +16,8 @@
 // ---------------------------------------------------------------------------
 
 const mockGetPriceForOrderItem = jest.fn();
-const mockGetVatRate           = jest.fn();
+// P6-03: VAT comes from a tax profile line; the TENANT_VAT_RATE fallback is retired.
+const VAT_5_ON_100 = { taxType: 'VAT', label: 'VAT 5%', label2: null, rate: 5, isCompound: false, baseAmount: 100, taxAmount: 5 };
 const mockGetCurrencyConfig    = jest.fn();
 const mockValidatePromoCode    = jest.fn();
 const mockGetBestDiscount      = jest.fn();
@@ -49,12 +50,6 @@ jest.mock('@/lib/services/pricing.service', () => ({
         isExpress: params.isExpress, customerId: params.customerId,
       })).basePrice)),
   },
-}));
-
-jest.mock('@/lib/services/tax.service', () => ({
-  TaxService: jest.fn().mockImplementation(() => ({
-    getTaxRate: (...a: unknown[]) => mockGetVatRate(...a),
-  })),
 }));
 
 jest.mock('@/lib/services/tenant-settings.service', () => ({
@@ -103,7 +98,6 @@ const defaultParams = {
 
 function setupDefaults() {
   mockGetCurrencyConfig.mockResolvedValue({ currencyCode: 'OMR', decimalPlaces: 3 });
-  mockGetVatRate.mockResolvedValue(0);
   mockCalculateTax.mockResolvedValue([]);
   mockGetBestDiscount.mockResolvedValue(null);
   mockValidatePromoCode.mockResolvedValue({ isValid: false });
@@ -168,7 +162,7 @@ describe('order-calculation.service — calculateOrderTotals', () => {
       },
     });
     expect(stages).toEqual(expect.arrayContaining([
-      'pricing_mode', 'currency', 'pricing', 'discounts', 'promos', 'tax', 'tax_fallback', 'rounding', 'gift_card',
+      'pricing_mode', 'currency', 'pricing', 'discounts', 'promos', 'tax', 'rounding', 'gift_card',
     ]));
     expect(result).toMatchObject({ subtotal: 200, saleTotal: 200, giftCardApplied: 20 });
   });
@@ -178,25 +172,22 @@ describe('order-calculation.service — calculateOrderTotals', () => {
       mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
       mockCalculateTax.mockResolvedValueOnce([]);
       mockTaxExempt.mockReturnValueOnce(true);
-      mockGetVatRate.mockResolvedValue(0.05);
 
       const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
 
       expect(result.vatValue).toBe(0);
       expect(result.vatTaxPercent).toBe(0);
       expect(result.saleTotal).toBeCloseTo(100);
-      expect(mockGetVatRate).not.toHaveBeenCalled();
     });
 
-    it('still uses the tenant VAT fallback when the order is not exempt and no profile exists', async () => {
+    it('P6-03: charges no VAT when the order is not exempt but no profile applies (no settings fallback)', async () => {
       mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
       mockCalculateTax.mockResolvedValueOnce([]);
-      mockGetVatRate.mockResolvedValue(0.05);
 
       const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
 
-      expect(result.vatValue).toBeCloseTo(5);
-      expect(result.saleTotal).toBeCloseTo(105);
+      expect(result.vatValue).toBe(0);
+      expect(result.saleTotal).toBeCloseTo(100);
     });
   });
 
@@ -265,7 +256,7 @@ describe('order-calculation.service — calculateOrderTotals', () => {
 
   it('does not let gift card reduce the tax base or tax amount', async () => {
     mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
-    mockGetVatRate.mockResolvedValue(0.05);
+    mockCalculateTax.mockResolvedValueOnce([VAT_5_ON_100]);
     mockValidateGiftCard.mockResolvedValue({ isValid: true, availableBalance: 10 });
 
     const result = await calculateOrderTotals({
@@ -284,7 +275,7 @@ describe('order-calculation.service — calculateOrderTotals', () => {
 
   it('adds VAT on top of after-discounts', async () => {
     mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
-    mockGetVatRate.mockResolvedValue(0.05); // 5% as a decimal
+    mockCalculateTax.mockResolvedValueOnce([VAT_5_ON_100]);
 
     const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
     expect(result.currencyCode).toBe('OMR');
@@ -350,26 +341,9 @@ describe('order-calculation.service — calculateOrderTotals TAX_INCLUSIVE (B11)
     expect(result.saleTotal).toBeCloseTo(107); // gross unchanged — nothing re-added
   });
 
-  it('extracts VAT via the no-profile-configured TENANT_VAT_RATE fallback; additionalTaxAmount stays 0 (no CUSTOM profile lines exist)', async () => {
-    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 105, basePrice: 105 });
-    mockCalculateTax.mockResolvedValue([]); // no tax profile configured
-    mockGetVatRate.mockResolvedValue(0.05);
-
-    const result = await calculateOrderTotals({
-      tenantId: TENANT,
-      items: [{ productId: 'p1', quantity: 1 }],
-    });
-
-    expect(result.vatValue).toBeCloseTo(5); // extracted from the 105 gross
-    expect(result.afterDiscounts).toBeCloseTo(100); // net after extracting the embedded VAT
-    expect(result.additionalTaxAmount).toBe(0); // derived from CUSTOM profile lines only
-    expect(result.saleTotal).toBeCloseTo(105); // gross unchanged — nothing re-added
-  });
-
   it('is a no-op when no tax profile and no VAT setting exist (zero-rated, B15 policy)', async () => {
     mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
     mockCalculateTax.mockResolvedValue([]);
-    mockGetVatRate.mockResolvedValue(0);
 
     const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
 
@@ -457,7 +431,7 @@ describe('order-calculation.service — calculateOrderTotals order-level charges
 
   it('adds order-level charges to the grand total as a flat, non-taxable addend', async () => {
     mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
-    mockGetVatRate.mockResolvedValue(0.05);
+    mockCalculateTax.mockResolvedValueOnce([VAT_5_ON_100]);
 
     const result = await calculateOrderTotals({
       tenantId: TENANT,

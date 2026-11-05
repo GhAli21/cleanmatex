@@ -5,44 +5,25 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { ItemProcessingService } from '@/lib/services/item-processing-service';
-
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    tenantId: tenants[0].tenant_id as string,
-    userId: user.id as string,
-    userName: user.user_metadata?.full_name || user.email || 'User',
-  };
-}
 
 /**
  *
- * @param _request
+ * @param request
  * @param root0
  * @param root0.params
  */
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
+  const auth = await requirePermission('orders:transition')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { id, itemId } = await params;
-    const { tenantId, userId, userName } = await getAuthContext();
+    const { tenantId, userId, userName } = auth;
 
     const result = await ItemProcessingService.markItemComplete({
       orderId: id,
@@ -65,8 +46,7 @@ export async function POST(
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 400;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
 

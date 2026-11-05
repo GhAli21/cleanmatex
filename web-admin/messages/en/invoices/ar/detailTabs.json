@@ -63,7 +63,8 @@
     "movement": "Movement",
     "side": "Side",
     "runningBalance": "Running Balance",
-    "refDocNo": "Reference Doc No."
+    "refDocNo": "Reference Doc No.",
+    "orderBalance": "Order balance"
   },
   "emptyLinesTitle": "No invoice lines",
   "emptyLinesDescription": "This invoice does not have AR line details yet.",

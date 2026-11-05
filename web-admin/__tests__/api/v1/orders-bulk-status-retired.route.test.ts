@@ -3,9 +3,10 @@
  * T12 — bulk/PATCH status writers must stay denied or engine-only.
  *
  * `POST /api/orders/bulk-status` is a retired writer: it must always answer
- * 410 with code USE_WORKFLOW_ACTIONS once authenticated, never mutate a
- * status. `GET /api/v1/orders/[id]/route.ts` must expose no PATCH handler at
- * all — status changes only ever happen through workflow engine actions.
+ * 410 with code USE_WORKFLOW_ACTIONS once authenticated and permitted, never
+ * mutate a status. `GET /api/v1/orders/[id]/route.ts` must expose no PATCH
+ * handler at all — status changes only ever happen through workflow engine
+ * actions.
  */
 
 // tenant-settings.service exports a module-level TenantSettingsService that calls
@@ -19,16 +20,16 @@ jest.mock('@/lib/supabase/client', () => ({
   })),
 }));
 
-jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(),
+jest.mock('@/lib/middleware/require-permission', () => ({
+  requirePermission: jest.fn(),
 }));
 
-import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { POST as bulkStatusPost } from '@/app/api/orders/bulk-status/route';
 import * as orderByIdRoute from '@/app/api/v1/orders/[id]/route';
 
-const mockCreateClient = createClient as jest.Mock;
+const mockRequirePermission = requirePermission as jest.Mock;
 
 function buildRequest(body: Record<string, unknown>) {
   return new NextRequest('http://localhost/api/orders/bulk-status', {
@@ -43,55 +44,32 @@ describe('T12 — POST /api/orders/bulk-status is permanently retired', () => {
     jest.clearAllMocks();
   });
 
-  it('returns 410 USE_WORKFLOW_ACTIONS for an authenticated tenant user and does not touch the database', async () => {
-    const mockFrom = jest.fn();
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: jest.fn().mockResolvedValue({
-          data: { user: { id: 'u1', user_metadata: { tenant_org_id: 't1' } } },
-          error: null,
-        }),
-      },
-      from: mockFrom,
-    });
+  it('returns 410 USE_WORKFLOW_ACTIONS for an authorized tenant user and does not touch the database', async () => {
+    mockRequirePermission.mockReturnValue(
+      jest.fn().mockResolvedValue({ user: { id: 'u1' }, tenantId: 't1', userId: 'u1', userName: 'U1' }),
+    );
 
     const response = await bulkStatusPost(
       buildRequest({ orderIds: ['o1', 'o2'], status: 'ready' }),
     );
     const body = await response.json();
 
+    expect(requirePermission).toHaveBeenCalledWith('orders:update');
     expect(response.status).toBe(410);
     expect(body).toEqual({
       success: false,
       error: 'Bulk status updates are retired. Use per-order POST /api/v1/orders/{id}/actions.',
       code: 'USE_WORKFLOW_ACTIONS',
     });
-    // No table was ever queried/mutated to perform the requested bulk write.
-    expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  it('rejects with 401 before ever reaching the retirement response when unauthenticated', async () => {
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: { message: 'no session' } }),
-      },
-      from: jest.fn(),
-    });
+  it('rejects before ever reaching the retirement response when unauthenticated or unpermitted', async () => {
+    mockRequirePermission.mockReturnValue(
+      jest.fn().mockResolvedValue(NextResponse.json({ error: 'Unauthorized' }, { status: 401 })),
+    );
 
     const response = await bulkStatusPost(buildRequest({ orderIds: ['o1'], status: 'ready' }));
     expect(response.status).toBe(401);
-  });
-
-  it('still requires a resolvable tenant even for an authenticated user', async () => {
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'u1', user_metadata: {} } }, error: null }),
-      },
-      from: jest.fn(),
-    });
-
-    const response = await bulkStatusPost(buildRequest({ orderIds: ['o1'], status: 'ready' }));
-    expect(response.status).toBe(400);
   });
 });
 

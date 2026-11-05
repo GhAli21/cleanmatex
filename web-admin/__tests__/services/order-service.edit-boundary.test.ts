@@ -14,6 +14,7 @@ const mockPieces = jest.fn();
 const mockDeletePieces = jest.fn();
 const mockDeleteItems = jest.fn();
 const mockAudit = jest.fn();
+const mockSerials = jest.fn();
 
 jest.mock('server-only', () => ({}));
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }));
@@ -44,10 +45,12 @@ describe('WP01 actual OrderService legacy Edit boundary', () => {
     mockPrefs.mockResolvedValue([]);
     mockPieces.mockResolvedValue([]);
     mockDeletePieces.mockResolvedValue({ count: 0 });
+    mockSerials.mockResolvedValue([{ order_item_srno: 'ORD-1-1' }, { order_item_srno: 'ORD-1-4' }]);
     mockDeleteItems.mockRejectedValue(new Error('wp01-stop-before-replacement'));
     mockTransaction.mockImplementation((callback: (tx: unknown) => unknown) => callback({
       org_order_item_pieces_dtl: { deleteMany: mockDeletePieces },
-      org_order_items_dtl: { deleteMany: mockDeleteItems },
+      // HFC P3: updateOrder reads the order's highest line serial before the delete.
+      org_order_items_dtl: { deleteMany: mockDeleteItems, findMany: mockSerials },
     }));
   });
   it('loads with tenant context and rejects a missing order before any transaction', async () => {
@@ -70,6 +73,7 @@ describe('WP01 actual OrderService legacy Edit boundary', () => {
   it('documents that legacy items input reaches whole-order deletion and propagates a writer failure', async () => {
     const result = await OrderService.updateOrder({ ...params,
       items: [{ productId: 'product-1', quantity: 1, pricePerUnit: 20, totalPrice: 20 }] });
+    expect(mockSerials).toHaveBeenCalledWith({ where: { tenant_org_id: 'tenant-1', order_id: 'order-1' }, select: { order_item_srno: true } });
     expect(mockDeletePieces).toHaveBeenCalledWith({ where: { order_id: 'order-1', tenant_org_id: 'tenant-1' } });
     expect(mockDeleteItems).toHaveBeenCalledWith({ where: { order_id: 'order-1', tenant_org_id: 'tenant-1' } });
     expect(result).toMatchObject({ success: false, error: 'wp01-stop-before-replacement' });

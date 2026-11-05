@@ -5,30 +5,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { validateJWTWithTenant } from '@/lib/middleware/jwt-tenant-validator';
 import { ProcessingStepsService } from '@/lib/services/processing-steps-service';
-
-async function getAuthContext() {
-  const { createClient } = await import('@/lib/supabase/server');
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) throw new Error('No tenant access found');
-  return { tenantId: tenants[0].tenant_id as string };
-}
 
 /**
  *
- * @param _request
+ * @param request
  * @param root0
  * @param root0.params
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ category: string }> }
 ) {
+  const auth = await validateJWTWithTenant(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    const { tenantId } = await getAuthContext();
+    const { tenantId } = auth;
     const { category } = await params;
 
     if (!category) {

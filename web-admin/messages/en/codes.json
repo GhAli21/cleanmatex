@@ -1,0 +1,15 @@
+{
+  "orderNo": "Order number",
+  "lineCode": "Line code",
+  "pieceCode": "Piece code",
+  "tag": "Tag",
+  "noTag": "No tag",
+  "partOf": "Part of {orderNo}",
+  "piece": "Piece {seq}",
+  "removedPiece": "Removed from the order",
+  "openedFromScan": "Opened from a scan",
+  "filterPieces": "Filter pieces by piece code or tag",
+  "filterPiecesPlaceholder": "Piece code or tag",
+  "filterCount": "{shown} of {total} pieces",
+  "filterNoMatch": "No piece matches this code or tag"
+}

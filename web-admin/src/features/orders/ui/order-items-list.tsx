@@ -9,9 +9,13 @@ import { useBilingual } from '@/lib/hooks/useBilingual';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import { lineCodeOfPieceRef } from '@features/orders/lib/piece-highlight';
 
 interface OrderItem {
   id: string;
+  /** Line code `<order_no>-<n>` (HFC P2). */
+  order_item_srno?: string | null;
   service_category_code?: string | null;
   product_name?: string | null;
   product_name2?: string | null;
@@ -35,6 +39,8 @@ interface OrderItemsListProps {
   branchId?: string | null;
   trackByPiece?: boolean;
   readOnly?: boolean;
+  /** `?piece=` (piece id or code): open its line and highlight it (HFC T3.9). */
+  highlightPiece?: string | null;
 }
 
 /**
@@ -46,6 +52,7 @@ interface OrderItemsListProps {
  * @param root0.branchId
  * @param root0.trackByPiece
  * @param root0.readOnly
+ * @param root0.highlightPiece
  */
 export function OrderItemsList({ 
   items, 
@@ -53,14 +60,22 @@ export function OrderItemsList({
   tenantId,
   branchId = null,
   trackByPiece = false,
-  readOnly = true 
+  readOnly = true,
+  highlightPiece = null,
 }: OrderItemsListProps) {
   const t = useTranslations('orders.itemsList');
   const tPieces = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
   const getBilingual = useBilingual();
   const { formatMoneyWithCode } = useTenantCurrency();
-  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+  // A piece code names its line; a piece id does not, so then every line opens to find it.
+  const highlightLine = lineCodeOfPieceRef(highlightPiece);
+  const isHighlightLine = (item: OrderItem) =>
+    Boolean(highlightPiece) &&
+    (!highlightLine || (item.order_item_srno ?? '').toUpperCase() === highlightLine);
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(
+    () => new Set(highlightPiece ? items.filter(isHighlightLine).map((item) => item.id) : [])
+  );
 
   const toggleItemExpansion = (itemId: string) => {
     setExpandedItemIds(prev => {
@@ -97,6 +112,7 @@ export function OrderItemsList({
                 <span className={`text-sm font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {getBilingual(item.product_name, item.product_name2) || item.service_category_code || t('item')}
                 </span>
+                <CmxCodeChip code={item.order_item_srno} kind="item" />
                 {item.status && (
                   <span className={`px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded ${isRTL ? 'text-right' : 'text-left'}`}>
                     {item.status.replace('_', ' ')}
@@ -173,7 +189,7 @@ export function OrderItemsList({
           )}
 
           {/* Pieces Section - Expandable */}
-          {trackByPiece && orderId && tenantId && (
+          {(trackByPiece || isHighlightLine(item)) && orderId && tenantId && (
             <div className="mt-3 pt-3 border-t border-gray-200">
               <button
                 onClick={() => toggleItemExpansion(item.id)}
@@ -202,6 +218,7 @@ export function OrderItemsList({
                         autoLoad={true}
                         enableBulkOperations={!readOnly}
                         pieceDensity="compact"
+                        highlightPiece={isHighlightLine(item) ? highlightPiece : null}
                       />
                     </React.Suspense>
                   </PiecesErrorBoundary>

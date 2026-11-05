@@ -16,6 +16,7 @@ import {
   CmxCardTitle,
 } from '@ui/primitives/cmx-card';
 import { ORDER_ISSUE_STATUS } from '@/lib/constants/order-issues';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { OrderIssueSolveDialog } from './order-issue-solve-dialog';
 import { OrderIssuesFilterBar } from './order-issues-filter-bar';
 import { buildOrderIssueTableColumns } from './order-issues-table-columns';
@@ -52,6 +53,7 @@ export function OrdersIssuesQueuePage() {
   );
   const [solveTarget, setSolveTarget] =
     React.useState<OrderIssueTableRow | null>(null);
+  const canResolveIssues = useHasPermissionCode('orders:update');
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['tenant-order-issues', status, scope, priority],
@@ -87,9 +89,9 @@ export function OrdersIssuesQueuePage() {
         t: (key, values) => t(key as never, values as never),
         includeOrderColumn: true,
         includeScopeColumn: true,
-        onSolve: (row) => setSolveTarget(row),
+        onSolve: canResolveIssues ? (row) => setSolveTarget(row) : undefined,
       }),
-    [locale, t]
+    [locale, t, canResolveIssues]
   );
 
   return (

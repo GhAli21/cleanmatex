@@ -1,5 +1,9 @@
 /**
  * P6-01e: Edit on the commercial calculator, proved on real local PostgreSQL.
+ * P6-02f: extended to the line controls (line speed, line price, line discount,
+ * custom line) and the price the cart showed.
+ * P1B-12: the cart quote shows what Create stores, and an Edit that removes a
+ * promo (real usage row) gives its use back.
  *
  * One order is created by the real Create path (checkout quote + order writer),
  * then edited through the same chain as the Edit routes: context → preview facts
@@ -47,6 +51,7 @@ import { prisma } from '@/lib/db/prisma';
 import { OrderService, type CreateOrderParams } from '@/lib/services/order-service';
 import { checkoutCreateTotals, createUnpaidOrderFromCheckoutTx } from '@/lib/services/order-create-from-checkout.service';
 import { quoteCheckout } from '@/lib/services/commercial/commercial-checkout.service';
+import { toCartQuote } from '@/lib/services/commercial/commercial-cart-quote';
 import type { CommercialDb } from '@/lib/services/commercial/commercial-context.loader';
 import { editMoneyColumns } from '@/lib/services/commercial/commercial-edit.writer';
 import { readEditOrderRecord, type EditProjection, type EditRecordDb } from '@/lib/services/commercial/commercial-edit.loader';
@@ -54,7 +59,15 @@ import { getOrderChangeContext } from '@/lib/services/order-change/order-change-
 import { loadOrderChangePreviewFacts } from '@/lib/services/order-change/order-change-preview-reads';
 import { previewOrderChange } from '@/lib/services/order-change/order-change-preview.service';
 import { applyOrderChange, type OrderChangeApplyTx } from '@/lib/services/order-change/order-change-apply.service';
+import { discountRemovedGateCode } from '@/lib/services/commercial/edit-discount-reevaluation';
 import { revalidateLockedOrderChangePolicy } from '@/lib/services/order-change/order-change-policy-revalidation.service';
+import { getOrderEditQuoteView } from '@/lib/services/order-fin-view/edit-view.service';
+import { editQuoteFromPreview } from '@/lib/services/order-fin-view/edit-quote';
+import { getOrderFinancialView } from '@/lib/services/order-fin-view/order-fin-view.service';
+import { resolveOrderFinDisplayConfig } from '@/src/features/orders/order-fin-view/config/resolve-display-config';
+import { readEditReview } from '@/src/features/orders/order-change/edit-review-view';
+import { orderFinancialViewSchema } from '@/lib/validations/order-fin-view-schemas';
+import type { OrderFinancialView } from '@/lib/types/order-fin-view';
 import type { z } from 'zod';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
 
@@ -120,6 +133,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         const rules: Array<[string, string]> = [
           ['CHANGE_ORDER_NOTES', 'ORDER'], ['CHANGE_ITEM_QUANTITY', 'ITEM'], ['ADD_ITEM', 'ORDER'], ['REMOVE_ITEM', 'ITEM'],
           ['ADD_PREFERENCE', 'ITEM'], ['REMOVE_PREFERENCE', 'PREFERENCE'], ['CHANGE_SERVICE_SPEED', 'ORDER'], ['ADD_PIECE', 'ITEM'],
+          ['CHANGE_SERVICE_SPEED', 'ITEM'], ['CHANGE_ITEM_PRICE', 'ITEM'], ['CHANGE_DISCOUNT', 'ITEM'],
         ];
         for (const [code, target] of rules) {
           await tx.$executeRaw`
@@ -183,7 +197,8 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           tenantId, checkout, committedBy: null, issuedBy: customerId,
           order: { customerId, orderTypeId: 'POS', userId: actorId, userName: 'Parity cashier', paymentTypeCode: 'PAY_ON_COLLECTION', items: orderLines },
         });
-        const orderId = created.order.id;
+        // Reassigned for the promo order in step 15; the readers and `edit` follow it.
+        let orderId = created.order.id;
         const commitment = (await tx.$queryRaw<Array<{ committed_at: Date | null; committed_by: string | null; edit_state_version: number; outstanding_amount: string; total_amount: string }>>`
           SELECT committed_at, committed_by, edit_state_version, outstanding_amount::text AS outstanding_amount, total_amount::text AS total_amount
           FROM public.org_orders_mst WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid`)[0];
@@ -226,13 +241,33 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           expect(express).toEqual([]);
         };
 
+        /** P3-08: card = Review dialog = the saved order after Apply, figure by figure. */
+        let cardChecks = 0;
+        const assertCardMatches = async (card: OrderFinancialView, preview: Parameters<typeof readEditReview>[0], operations: Operation[]) => {
+          cardChecks += 1;
+          expect(orderFinancialViewSchema.safeParse(card).success).toBe(true);
+          const review = readEditReview({ ok: true, data: preview }, [], '0');
+          expect([card.header.metrics.originalTotal, card.header.metrics.projectedTotal, card.header.editOutcome])
+            .toEqual([Number(review.currentTotal), Number(review.estimatedTotal), review.financialOutcome]);
+          const after = await getOrderFinancialView(tenantId, orderId, resolveOrderFinDisplayConfig({ preset: 'detailed' }));
+          const figures = (v: OrderFinancialView) => ({
+            ...Object.fromEntries((['items', 'charges', 'discounts', 'taxes', 'rounding'] as const).map((k) => [k, money(v.sections[k]?.totals[0]?.amount ?? 0)])),
+            included: (v.sections.items?.lines ?? []).filter((l) => l.role === 'included').map((l) => [l.id, money(l.amount)]),
+            total: money(v.header.metrics.total), balance: money(v.header.metrics.balance), paid: money(v.header.metrics.paid),
+          });
+          expect([operations.map((o) => o.code).join('+'), figures(card)]).toEqual([operations.map((o) => o.code).join('+'), figures(after)]);
+          // Every counted discount line adds up to the discount total.
+          const discountLines = card.sections.discounts?.lines ?? [];
+          expect(money(discountLines.filter((l) => l.countsInTotal).reduce((a, l) => a + (l.amount ?? 0), 0))).toBe(figures(card).discounts);
+        };
+
         /** One Edit, the way the preview and apply routes run it. */
-        const edit = async (operations: Operation[], allowRejected = false) => {
+        const edit = async (operations: Operation[], allowRejected = false, gateDecisions?: Array<{ seq: number; gateCode: string; acknowledgementChallenge: string }>) => {
           const context = await getOrderChangeContext({ tenantId, orderId });
           const facts = await loadOrderChangePreviewFacts({ tenantId, actorUserId: actorId, context, operations });
           const request = {
             expectedEditStateVersion: context.editStateVersion, expectedWfStateVersion: context.wfStateVersion,
-            sourceContext: 'staff_web', changeReason: 'Edit parity database proof', operations,
+            sourceContext: 'staff_web', changeReason: 'Edit parity database proof', operations, gateDecisions,
           };
           const preview = await previewOrderChange({
             tenantId, actorUserId: actorId, featureEnabled: facts.featureEnabled, canUsePermission: async () => true,
@@ -244,7 +279,14 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
             if (allowRejected) return { context, preview, applied: null };
             throw new Error(`Preview rejected: ${preview.code}`);
           }
-          if (!preview.reviewProof || !preview.calculationFingerprint) throw new Error('Signed preview unavailable');
+          if (!preview.reviewProof || !preview.calculationFingerprint) {
+            if (allowRejected) return { context, preview, applied: null };
+            throw new Error('Signed preview unavailable');
+          }
+          // P3-08/P4-08: the live card, built by the quote route's service from this preview, before Apply.
+          const card = editQuoteFromPreview(preview)
+            ? await getOrderEditQuoteView(tenantId, orderId, preview, resolveOrderFinDisplayConfig({ preset: 'detailed' }, 'edit'))
+            : null;
           const reviewed = { ...request, reviewProof: preview.reviewProof, calculationFingerprint: preview.calculationFingerprint };
           const applied = await applyOrderChange({
             tenantId, orderId, actorUserId: actorId, currencyCode: context.order.currencyCode, paymentTypeCode: context.order.paymentTypeCode,
@@ -254,6 +296,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           });
           if (!applied.ok) throw new Error(`Apply rejected: ${applied.code}`);
           await assertStoredInvariants(preview.projectedTotal);
+          if (card) await assertCardMatches(card, preview, operations);
           return { context, preview, applied };
         };
 
@@ -276,6 +319,16 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         expect(createdItems.map((i) => money(columns.items.get(i.id)?.line_total_amount))).toEqual(createdItems.map((i) => money(i.line_total_amount)));
         expect(createdItems.map((i) => money(columns.items.get(i.id)?.total_price))).toEqual(createdItems.map((i) => money(i.total_price)));
         await assertStoredInvariants(createdHeader.total_amount);
+        // The cart quote (POST /orders/quote) shows the stored figures, line by line.
+        const cartQuote = toCartQuote(checkout, 'parity');
+        expect(money(cartQuote.totals.saleTotal)).toBe(money(createdHeader.total_amount));
+        expect(money(cartQuote.totals.taxTotal)).toBe(money(createdHeader.total_tax_amount));
+        expect(createdItems.map((i) => money(i.line_total_amount)).sort())
+          .toEqual(cartQuote.lines.map((l) => money(l.lineTotalAmount)).sort());
+        for (const line of cartQuote.lines) {
+          const stored = createdItems.find((i) => i.product_id === orderLines[line.index].productId);
+          expect(money(stored?.line_total_amount)).toBe(money(line.lineTotalAmount));
+        }
 
         // ─── 2. Header-only edit: not re-priced (EC-08) ──────────────────
         const notes = await edit([{ seq: 1, code: 'CHANGE_ORDER_NOTES', target: { kind: 'ORDER' }, payload: { notes: 'Parity note' } }]);
@@ -292,6 +345,13 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         ]);
         expect(qty.preview.ok && Number(qty.preview.projectedTotal)).toBeGreaterThan(Number(createdHeader.total_amount));
         expect((await items()).find((i) => i.id === trouserLine.id)?.quantity).toBe(2);
+        // D24 (P1B-10): the total moved, so Apply requests a loyalty reconcile traced to this change.
+        const loyaltyRequests = await tx.$queryRaw<Array<{ payload: { trigger: string; sourceId: string } }>>`
+          SELECT payload FROM public.org_domain_events_outbox
+          WHERE tenant_org_id = ${tenantId}::uuid AND aggregate_id = ${orderId}::uuid AND event_type = 'LOYALTY_EARN'`;
+        expect(loyaltyRequests.map((r) => r.payload)).toContainEqual({
+          trigger: 'ORDER_EDIT', sourceId: qty.applied?.ok ? qty.applied.orderChangeId : 'missing',
+        });
 
         // ─── 4. Add a line, priced from today's catalog ──────────────────
         const newLineRef = randomUUID();
@@ -338,7 +398,60 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         const overridden = (await items()).find((i) => ![shirtLine.id, trouserLine.id].includes(i.id));
         expect(money(overridden?.total_price)).toBe(money(4.5));
 
-        // ─── 9. An order from before the calculator is refused for money edits ──
+        // ─── 9. Line speed (P6-02b): one line back to STANDARD, priced on its own speed ──
+        await edit([{ seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_ITEM', id: shirtLine.id }, payload: { serviceSpeed: 'STANDARD' } }]);
+        const standardShirt = (await items()).find((i) => i.id === shirtLine.id);
+        expect(standardShirt?.service_speed).toBe('STANDARD');
+        expect(money(standardShirt?.total_price)).toBe(money(4));
+
+        // ─── 10. Line price (P6-02c): set, stored with its reason, then returned to standard ──
+        const linePrice = () => tx.$queryRaw<Array<{ price_override: string | null; override_reason: string | null; total_price: string }>>`
+          SELECT price_override::text AS price_override, override_reason, total_price::text AS total_price
+          FROM public.org_order_items_dtl WHERE tenant_org_id = ${tenantId}::uuid AND id = ${trouserLine.id}::uuid`;
+        await edit([{ seq: 1, code: 'CHANGE_ITEM_PRICE', target: { kind: 'PERSISTED_ITEM', id: trouserLine.id }, payload: { priceOverride: '4.000', overrideReason: 'Parity line price' } }]);
+        expect((await linePrice())[0]).toMatchObject({ override_reason: 'Parity line price' });
+        expect(money((await linePrice())[0].price_override)).toBe(money(4));
+        expect(money((await linePrice())[0].total_price)).toBe(money(8));
+        await edit([{ seq: 1, code: 'CHANGE_ITEM_PRICE', target: { kind: 'PERSISTED_ITEM', id: trouserLine.id }, payload: { priceOverride: null } }]);
+        expect((await linePrice())[0]).toMatchObject({ price_override: null, override_reason: null });
+        expect(money((await linePrice())[0].total_price)).toBe(money(10));
+
+        // ─── 11. Line discount (P6-02c): a cashier row on the line, then removed ──
+        const lineDiscounts = () => tx.$queryRaw<Array<{ discount_type: string; discount_rate: string | null; discount_amount: string }>>`
+          SELECT discount_type, discount_rate::text AS discount_rate, discount_amount::text AS discount_amount
+          FROM public.org_order_discounts_dtl
+          WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND order_item_id = ${shirtLine.id}::uuid
+            AND source_type = 'MANUAL' AND is_voided = false AND rec_status = 1`;
+        const undiscounted = Number((await header()).total_amount);
+        await edit([{ seq: 1, code: 'CHANGE_DISCOUNT', target: { kind: 'PERSISTED_ITEM', id: shirtLine.id }, payload: { lineDiscount: { type: 'PERCENTAGE', value: '10', reason: 'Parity line discount' } } }]);
+        const discountRows = await lineDiscounts();
+        expect(discountRows).toHaveLength(1);
+        expect(discountRows[0].discount_type).toBe('PERCENTAGE');
+        expect(Number(discountRows[0].discount_rate)).toBe(10);
+        // 10% of the shirt line's 4.000.
+        expect(money(discountRows[0].discount_amount)).toBe(money(0.4));
+        expect(Number((await header()).total_amount)).toBeLessThan(undiscounted);
+        await edit([{ seq: 1, code: 'CHANGE_DISCOUNT', target: { kind: 'PERSISTED_ITEM', id: shirtLine.id }, payload: { lineDiscount: null } }]);
+        expect(await lineDiscounts()).toEqual([]);
+        expect(money((await header()).total_amount)).toBe(money(undiscounted));
+
+        // ─── 12. Custom line (P6-02d): no product, its own name and entered price ──
+        const customRef = randomUUID();
+        await edit([{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: customRef, customItem: { name: 'Parity curtain', name2: null, unitPrice: '7.250', serviceCategoryCode: 'WASH_AND_IRON' }, quantity: 1 } }]);
+        const custom = (await tx.$queryRaw<Array<{ product_id: string | null; product_name: string | null; total_price: string }>>`
+          SELECT product_id, product_name, total_price::text AS total_price FROM public.org_order_items_dtl
+          WHERE tenant_org_id = ${tenantId}::uuid AND id = ${customRef}::uuid AND rec_status = 1`)[0];
+        expect(custom).toMatchObject({ product_id: null, product_name: 'Parity curtain' });
+        expect(money(custom.total_price)).toBe(money(7.25));
+
+        // ─── 13. Price the cart showed (P6-02e): a stale price is listed, Apply charges today's ──
+        const shownRef = randomUUID();
+        const shown = await edit([{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: shownRef, productId: trouser, quantity: 1, confirmedUnitPrice: '4.000' } }]);
+        expect(shown.preview.ok && shown.preview.priceChanges).toEqual([expect.objectContaining({ seq: 1, shownUnitPrice: 4, currentUnitPrice: 5 })]);
+        const charged = (await items()).find((i) => i.id === shownRef);
+        expect(money(charged?.total_price)).toBe(money(5));
+
+        // ─── 14. An order from before the calculator is refused for money edits ──
         await tx.$executeRaw`
           UPDATE public.org_orders_mst SET commercial_calc_version = NULL
           WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid`;
@@ -350,6 +463,64 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         // A header-only edit still works on it.
         await expect(edit([{ seq: 1, code: 'CHANGE_ORDER_NOTES', target: { kind: 'ORDER' }, payload: { notes: 'Legacy note' } }]))
           .resolves.toMatchObject({ applied: { ok: true } });
+
+        // ─── 15. Promo removed by an Edit (D21): acknowledged, use given back ──
+        // 10% off orders of 8.000 or more; shirt ×2 (4.000) + trouser (5.000) qualifies.
+        const promoId = randomUUID();
+        const promoCode = `PAR${promoId.slice(0, 8)}`.toUpperCase();
+        await tx.$executeRaw`
+          INSERT INTO public.org_promotions_mst(id, tenant_org_id, promo_code, promo_name, discount_type, discount_value, min_order_amount, max_uses, current_uses)
+          VALUES (${promoId}::uuid, ${tenantId}::uuid, ${promoCode}, 'Parity promo', 'percentage', 10, 8, 5, 0)`;
+        const promoCheckout = await quoteCheckout({
+          db: tx as unknown as CommercialDb, tenantId, customerId, promoCode,
+          items: [{ productId: shirt, quantity: 2, pieces: [{}, {}] }, { productId: trouser, quantity: 1, pieces: [{}] }],
+        });
+        expect(promoCheckout.promotionId).toBe(promoId);
+        expect(promoCheckout.totals.promoDiscount).toBeGreaterThan(0);
+        const promoOrder = await createUnpaidOrderFromCheckoutTx(tx as never, {
+          tenantId, checkout: promoCheckout, committedBy: null, issuedBy: customerId,
+          order: { customerId, orderTypeId: 'POS', userId: actorId, userName: 'Parity cashier', paymentTypeCode: 'PAY_ON_COLLECTION', items: orderLines },
+        });
+        orderId = promoOrder.order.id;
+        await tx.$executeRaw`
+          UPDATE public.org_orders_mst SET current_status = 'processing'
+          WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid`;
+        const promoUse = async () => ({
+          promo: (await tx.$queryRaw<Array<{ current_uses: number }>>`
+            SELECT current_uses FROM public.org_promotions_mst WHERE tenant_org_id = ${tenantId}::uuid AND id = ${promoId}::uuid`)[0],
+          usages: await tx.$queryRaw<Array<{ voided_at: Date | null }>>`
+            SELECT voided_at FROM public.org_promotion_usage_dtl
+            WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND promo_code_id = ${promoId}::uuid`,
+        });
+        // The booking path logs the use, as the staff submit does (PF-15).
+        const used = await promoUse();
+        expect(used.promo.current_uses).toBe(1);
+        expect(used.usages).toEqual([{ voided_at: null }]);
+        expect(money((await header()).total_amount)).toBe(money(promoCheckout.totals.saleTotal));
+
+        // Removing the trouser leaves 4.000, under the promo's minimum: Review must list it first.
+        const promoTrouser = (await items()).find((i) => i.product_id === trouser)!;
+        const removeTrouser: Operation[] = [{ seq: 1, code: 'REMOVE_ITEM', target: { kind: 'PERSISTED_ITEM', id: promoTrouser.id }, payload: {} }];
+        const unacknowledged = await edit(removeTrouser, true);
+        expect(unacknowledged.preview).toMatchObject({ ok: true, status: 'ACKNOWLEDGEMENT_REQUIRED' });
+        const removedPromo = unacknowledged.preview.ok
+          ? unacknowledged.preview.discountChanges?.find((c) => c.outcome === 'REMOVED')
+          : undefined;
+        expect(removedPromo).toMatchObject({ sourceType: 'PROMO_CODE', promotionId: promoId, reason: 'MIN_ORDER_NOT_MET' });
+        expect((await promoUse()).promo.current_uses).toBe(1);
+
+        await edit(removeTrouser, false, [{ seq: 1, gateCode: discountRemovedGateCode(removedPromo!.key), acknowledgementChallenge: 'acknowledged' }]);
+        const givenBack = await promoUse();
+        expect(givenBack.promo.current_uses).toBe(0);
+        expect(givenBack.usages).toHaveLength(1);
+        expect(givenBack.usages[0].voided_at).not.toBeNull();
+        const livePromoRows = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT id FROM public.org_order_discounts_dtl
+          WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND source_type = 'PROMO_CODE'
+            AND is_voided = false AND rec_status = 1`;
+        expect(livePromoRows).toEqual([]);
+        // The card proof ran on every applied edit, priced or not.
+        expect(cardChecks).toBeGreaterThanOrEqual(15);
       } finally {
         delete (globalThis as { __editParityTx?: unknown }).__editParityTx;
       }

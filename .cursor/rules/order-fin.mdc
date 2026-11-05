@@ -1,0 +1,20 @@
+---
+description: Order money (totals, payments, credits, balance, tax, refunds) — one source of truth, one component, no UI arithmetic
+globs: web-admin/src/features/orders/**,web-admin/lib/services/order-fin*/**,web-admin/lib/services/order-financial*.ts,web-admin/lib/commercial/**,web-admin/app/api/v1/orders/**,web-admin/src/features/ar/**
+alwaysApply: false
+---
+
+# Order Fin
+
+Canonical source: `docs/dev/rules/order-fin-rules.md`. Working guide: `/order-fin` skill.
+
+Short form:
+
+1. The `org_orders_mst` snapshot is the source of truth; one commercial calculator; one outstanding formula (`computeOutstanding`).
+2. No money arithmetic in the browser or the app — show server figures only.
+3. Show money with `OrderFinancialView`; lists use the batch header reader. Never build a new financial panel.
+4. Voided/failed/pending rows are shown, never summed. Points are never money. Informational amounts never in the amount column.
+5. Order currency and decimals, never the tenant default; `??` not `||` for money.
+6. Tenant from the session/token only; `tenant_org_id` in every query; public data only via the server projection.
+7. After any money write: `useOrderMoneyRefresh(orderId)`.
+8. Golden-fixture and statement-identity tests stay green.

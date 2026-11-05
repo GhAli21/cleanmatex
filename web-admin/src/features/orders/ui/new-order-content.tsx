@@ -258,17 +258,19 @@ export function NewOrderContent() {
   };
   // ─── Line discount (P5-03c): permission-gated; the server checks it again ───
   const canDiscountLines = useHasAnyPermission(NEW_ORDER_ACCESS.actions?.lineDiscount?.requirement.permissions ?? []);
-  // P5-03e: a custom item's entered price is a price decision (`pricing:override`); New Order only (Edit: P6).
+  // P5-03e: a custom item's entered price is a price decision (`pricing:override`); in Edit also an ADD_ITEM (P6-02d).
   const canEnterPrices = useHasAnyPermission(NEW_ORDER_ACCESS.actions?.priceOverride?.requirement.permissions ?? []);
-  const canEnterCustomItems = canEnterPrices && !state.state.isEditMode;
   const [discountProductId, setDiscountProductId] = useState<string | null>(null);
   const discountItemIndex = discountProductId
     ? state.state.items.findIndex((item) => item.productId === discountProductId)
     : -1;
   const discountItem = discountItemIndex >= 0 ? state.state.items[discountItemIndex] : null;
-  const discountLineGross = discountItemIndex >= 0 && cartQuote.current
-    ? cartQuote.data?.lines.find((line) => line.index === discountItemIndex)?.grossAmount ?? null
-    : null;
+  // Edit has no live quote: the stored line total caps the amount; Review re-prices and the server checks it again.
+  const discountLineGross = discountItem && state.state.isEditMode
+    ? discountItem.totalPrice
+    : discountItemIndex >= 0 && cartQuote.current
+      ? cartQuote.data?.lines.find((line) => line.index === discountItemIndex)?.grossAmount ?? null
+      : null;
 
   const handleApplySpeedToAllLines = () => {
     captureSpeedChange();
@@ -432,7 +434,11 @@ export function NewOrderContent() {
     return () => setEditLeaveBypass(null);
   }, [workspace, allowNextNavigation]);
   const itemCapability = useEditControlGroup(['ADD_ITEM']);
-  const priceCapability = useEditControlGroup(['CHANGE_ITEM_PRICE']);
+  // A line's cashier price and discount are their own policy cells (ITEM, P6-02c).
+  const priceCapability = useEditControlGroup(['CHANGE_ITEM_PRICE'], 'ITEM');
+  const lineDiscountCapability = useEditControlGroup(['CHANGE_DISCOUNT'], 'ITEM');
+  // A line's own speed is its own policy cell (CHANGE_SERVICE_SPEED / ITEM, P6-02b).
+  const lineSpeedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED'], 'ITEM');
 
   const handleAddItem = useCallback(
     async (product: Product) => {
@@ -956,14 +962,21 @@ export function NewOrderContent() {
     onSelectCustomer: () => state.openModal('customerPicker'),
     onEditCustomer: () => state.openModal('customerEdit'),
     onClearCustomer: () => state.setCustomer(null, ''),
-    // Order speed (§5.4). Line speeds and quoted line prices are New Order only;
-    // Order Edit gets them in P6-02.
+    // Order speed (§5.4) and line speeds (P6-02b). Quoted line figures are New Order only;
+    // Order Edit shows the stored prices and re-prices at Review.
     serviceSpeed: state.state.serviceSpeed,
     onServiceSpeedChange: handleServiceSpeedChange,
-    hasLineSpeedOverrides: !state.state.isEditMode && state.state.items.some((item) => item.serviceSpeed != null),
-    onApplySpeedToAllLines: state.state.isEditMode ? undefined : handleApplySpeedToAllLines,
+    hasLineSpeedOverrides: state.state.items.some((item) => item.serviceSpeed != null),
+    onApplySpeedToAllLines: lineSpeedCapability.interactive ? handleApplySpeedToAllLines : undefined,
     lineQuote: state.state.isEditMode
-      ? undefined
+      ? {
+          lines: null,
+          pending: false,
+          unquoted: true,
+          onLineSpeedChange: handleLineSpeedChange,
+          lineSpeedDisabled: !lineSpeedCapability.interactive,
+          onEditLineDiscount: canDiscountLines && lineDiscountCapability.interactive ? setDiscountProductId : undefined,
+        }
       : {
           lines: cartQuote.data?.lines ?? null,
           pending: cartQuote.pending,
@@ -1071,7 +1084,7 @@ export function NewOrderContent() {
       )}
 
       {workspace ? <EditOrderContextBar session={workspace} /> : null}
-      {workspace ? <EditControlNotice codes={['CHANGE_ITEM_PRICE']} /> : null}
+      {workspace ? <EditControlNotice codes={['CHANGE_ITEM_PRICE', 'CHANGE_DISCOUNT']} targetType="ITEM" /> : null}
       {state.state.isEditMode && !workspace && (
         <EditOrderBar
           orderNo={state.state.editingOrderNo}
@@ -1238,7 +1251,7 @@ export function NewOrderContent() {
                           onConditionToggle={handleConditionToggle}
                           selectedPieceId={state.state.selectedPieceId}
                           enforcePrefCompatibility={enforcePrefCompatibility}
-                          onOpenCustomItemModal={canEnterCustomItems ? () => {
+                          onOpenCustomItemModal={canEnterPrices && itemCapability.interactive ? () => {
                             state.openModal('customItem');
                             trackModalOpen('customItem');
                           } : undefined}

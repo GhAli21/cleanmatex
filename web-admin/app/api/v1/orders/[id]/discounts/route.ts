@@ -5,29 +5,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
-
-async function getAuthContext() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) throw new Error('No tenant access found');
-  return { tenantId: tenants[0].tenant_id as string };
-}
 
 /**
  *
- * @param _request
+ * @param request
  * @param root0
  * @param root0.params
  */
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requirePermission('orders:read')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
-    const { tenantId } = await getAuthContext();
     const { id } = await params;
-    const lines = await getDiscountLinesForOrder(tenantId, id);
+    const lines = await getDiscountLinesForOrder(auth.tenantId, id);
     return NextResponse.json({ discountLines: lines });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to fetch discount lines';

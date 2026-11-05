@@ -4,7 +4,7 @@
  * Batch Auth Data Service
  * 
  * Fetches all authentication-related data in parallel for better performance
- * Includes: tenants, permissions, workflow roles, and feature flags
+ * Includes: tenants, permissions, and feature flags
  */
 
 import { supabase } from '@/lib/supabase/client'
@@ -16,7 +16,6 @@ import type { UserTenant } from '@/types/auth'
 export interface AuthData {
   tenants: UserTenant[]
   permissions: string[]
-  workflowRoles: string[]
   featureFlags: Record<string, boolean>
 }
 
@@ -51,42 +50,31 @@ export async function fetchAuthData(options?: { prefetchedTenants?: UserTenant[]
   const t0 = Date.now()
 
   if (skipTenants) {
-    console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ▶ get_user_permissions + get_user_workflow_roles [parallel] (tenants prefetched: ${options!.prefetchedTenants!.length})`)
-    const [permissionsResult, workflowRolesResult] = await Promise.all([
-      supabase.rpc('get_user_permissions'),
-      supabase.rpc('get_user_workflow_roles'),
-    ])
-    console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ✓ done — permissions: ${permissionsResult.data?.length ?? 0} row(s), workflowRoles: ${workflowRolesResult.data?.length ?? 0} row(s)`)
+    console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ▶ get_user_permissions (tenants prefetched: ${options!.prefetchedTenants!.length})`)
+    const permissionsResult = await supabase.rpc('get_user_permissions')
+    console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ✓ done — permissions: ${permissionsResult.data?.length ?? 0} row(s)`)
 
     if (permissionsResult.error) {
       console.error('Error fetching permissions:', permissionsResult.error)
-    }
-    if (workflowRolesResult.error) {
-      console.error('Error fetching workflow roles:', workflowRolesResult.error)
     }
 
     const permissions: string[] = (permissionsResult.data || []).map(
       (p: { permission_code: string }) => p.permission_code
     )
-    const workflowRoles: string[] = (workflowRolesResult.data || []).map(
-      (r: { workflow_role: string }) => r.workflow_role
-    )
 
     return {
       tenants: options!.prefetchedTenants!,
       permissions,
-      workflowRoles,
       featureFlags: {},
     }
   }
 
-  console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ▶ get_user_permissions + get_user_workflow_roles + get_user_tenants [parallel]`)
-  const [permissionsResult, workflowRolesResult, tenantsResult] = await Promise.all([
+  console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ▶ get_user_permissions + get_user_tenants [parallel]`)
+  const [permissionsResult, tenantsResult] = await Promise.all([
     supabase.rpc('get_user_permissions'),
-    supabase.rpc('get_user_workflow_roles'),
     fetchTenantsWithRetry(),
   ])
-  console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ✓ done — permissions: ${permissionsResult.data?.length ?? 0} row(s), workflowRoles: ${workflowRolesResult.data?.length ?? 0} row(s), tenants: ${tenantsResult.data?.length ?? 0} row(s)`)
+  console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ✓ done — permissions: ${permissionsResult.data?.length ?? 0} row(s), tenants: ${tenantsResult.data?.length ?? 0} row(s)`)
 
   if (tenantsResult.error) {
     console.error('Error fetching tenants:', tenantsResult.error)
@@ -102,9 +90,6 @@ export async function fetchAuthData(options?: { prefetchedTenants?: UserTenant[]
 
   if (permissionsResult.error) {
     console.error('Error fetching permissions:', permissionsResult.error)
-  }
-  if (workflowRolesResult.error) {
-    console.error('Error fetching workflow roles:', workflowRolesResult.error)
   }
 
   const tenants: UserTenant[] = (tenantsResult.data || []).map((t: {
@@ -128,9 +113,6 @@ export async function fetchAuthData(options?: { prefetchedTenants?: UserTenant[]
   const permissions: string[] = (permissionsResult.data || []).map(
     (p: { permission_code: string }) => p.permission_code
   )
-  const workflowRoles: string[] = (workflowRolesResult.data || []).map(
-    (r: { workflow_role: string }) => r.workflow_role
-  )
 
   // Fetch feature flags for first tenant (if available)
   // TEMPORARILY DISABLED
@@ -139,7 +121,6 @@ export async function fetchAuthData(options?: { prefetchedTenants?: UserTenant[]
   return {
     tenants,
     permissions,
-    workflowRoles,
     featureFlags: {},
   }
 }

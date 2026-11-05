@@ -25,6 +25,8 @@ export interface OrderWorkspaceSessionValue {
   exiting: boolean;
   /** True after Apply, while the follow-up dialog is the only remaining action. */
   sealed: boolean;
+  /** The live financial card under the Review button (Reusable View P6-13); the only money on screen (D33). */
+  financialCard?: ReactNode;
 }
 
 const OrderWorkspaceSessionContext = createContext<OrderWorkspaceSessionValue | null>(null);

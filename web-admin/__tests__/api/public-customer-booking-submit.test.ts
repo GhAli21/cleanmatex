@@ -165,8 +165,8 @@ describe('customer booking submit', () => {
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
-  it('refuses retail goods with the existing unavailable-item code', async () => {
-    mockCreate.mockResolvedValue({ success: false, errorCode: 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED', error: 'Retail' });
+  it('answers unavailable when the profile would start online retail handed over', async () => {
+    mockCreate.mockResolvedValue({ success: false, errorCode: 'RETAIL_PAY_LATER_STARTS_HANDED_OVER', error: 'Retail' });
 
     const response = await POST(request({}));
 

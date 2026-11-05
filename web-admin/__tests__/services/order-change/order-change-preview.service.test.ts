@@ -10,6 +10,7 @@ import type { orderChangeRequestSchema } from '@/lib/validations/order-change/or
 import type { z } from 'zod';
 import { calculateCommercialOrder } from '@/lib/commercial';
 import type { EditProjection, EditQuote } from '@/lib/services/commercial/commercial-edit.loader';
+import type { DiscountChange } from '@/lib/services/commercial/edit-discount-reevaluation';
 
 type ChangeRequest = z.infer<typeof orderChangeRequestSchema>;
 
@@ -103,7 +104,8 @@ function stubPricer(ctx: OrderChangeContext, unitPrices: Record<string, string> 
         lineId: line.id, quantity: line.quantity, priceType: null,
         pricing: {
           listUnitPrice: unitOf(line.id), priceListDiscountPercent: 0, priceListItemId: null, speedUnitPremium: 0, speedLinePremium: 0,
-          overrideUnitPrice: null, adjustments: [], minUnitPrice: null,
+          overrideUnitPrice: line.overrideUnitPrice ?? null, minUnitPrice: null,
+          adjustments: line.lineDiscount ? [{ id: `${line.id}:manual`, source: 'MANUAL', calcType: line.lineDiscount.type, value: line.lineDiscount.value }] : [],
           modifiers: projection.preferences.filter((p) => p.level !== 'ORDER' && p.itemId === line.id)
             .map((p) => ({ id: p.id, kind: 'SERVICE', amount: p.amount, placement: 'INCLUDED' as const })),
         },
@@ -128,17 +130,22 @@ function preview(input: {
   catalog?: Array<{ id: string; code: string; kind: string; category: string; level: 'ORDER' | 'ITEM' | 'PIECE'; extraPrice: string }>;
   proofKey?: { keyId: string; secret: string } | null;
   payments?: Array<{ amount: string; payment_status: string; payment_nature_snapshot: string; payment_method_code: string }>;
+  /** Permissions beyond `orders:edit` and `orders:edit_override`. */
+  permissions?: readonly string[];
+  /** What the pricer reports about the recorded order discounts (D21). */
+  discountChanges?: DiscountChange[];
 }) {
+  const price = stubPricer(input.context ?? context(), input.unitPrices);
   return previewOrderChange({
     now: NOW,
     tenantId: TENANT,
     actorUserId: ACTOR,
     featureEnabled: true,
-    canUsePermission: async (permission) => permission === 'orders:edit' || permission === 'orders:edit_override',
+    canUsePermission: async (permission) => permission === 'orders:edit' || permission === 'orders:edit_override' || (input.permissions ?? []).includes(permission),
     context: input.context ?? context(),
     request: input.request,
     bindings: input.bindings,
-    priceEdit: stubPricer(input.context ?? context(), input.unitPrices),
+    priceEdit: async (projection) => ({ ...await price(projection), discountChanges: input.discountChanges ?? [] }),
     catalog: input.catalog ?? [],
     payments: input.payments ?? [{ amount: '10.0000', payment_status: 'COMPLETED', payment_nature_snapshot: 'REAL_PAYMENT', payment_method_code: 'CASH' }],
     credits: [],
@@ -284,6 +291,213 @@ describe('previewOrderChange', () => {
           items: [expect.objectContaining({ orderItemId: ITEM, pricePerUnit: '12.0000' })],
         }),
       })],
+    });
+  });
+
+  describe('P6-02b: per-line speed', () => {
+    const twoLines = (ready: Partial<OrderChangeContext['items'][number]> = {}) => context({
+      items: [
+        { ...context().items[0], serviceSpeed: 'STANDARD', ...ready },
+        { ...context().items[0], id: OTHER, serviceSpeed: 'STANDARD' },
+      ],
+      financial: { totalAmount: '20.0000', netCollectedAmount: '0.0000', outstandingAmount: '20.0000', overpaidAmount: '0.0000' },
+    });
+    const lineSpeed = (id: string, serviceSpeed: string, seq = 1) => ({ seq, code: 'CHANGE_SERVICE_SPEED' as const, target: { kind: 'PERSISTED_ITEM' as const, id }, payload: { serviceSpeed } });
+    const orderSpeed = (serviceSpeed: string, seq = 1) => ({ seq, code: 'CHANGE_SERVICE_SPEED' as const, target: { kind: 'ORDER' as const }, payload: { serviceSpeed } });
+
+    it('changes one line on its own policy cell and keeps the order speed', async () => {
+      const result = await preview({
+        context: twoLines(),
+        request: request([lineSpeed(OTHER, 'EXPRESS')]),
+        bindings: [binding('CHANGE_SERVICE_SPEED', 'ITEM')],
+        unitPrices: { [OTHER]: '12.0000' },
+      });
+      expect(result).toMatchObject({
+        ok: true,
+        status: 'READY',
+        createsChange: true,
+        decisions: [expect.objectContaining({ targetType: 'ITEM', decision: 'ALLOW' })],
+        projectedTotal: '22.0000',
+        speedAudit: {
+          before: { serviceSpeed: 'STANDARD', items: [expect.objectContaining({ orderItemId: ITEM, serviceSpeed: 'STANDARD' }), expect.objectContaining({ orderItemId: OTHER, serviceSpeed: 'STANDARD' })] },
+          after: { serviceSpeed: 'STANDARD', items: [expect.objectContaining({ orderItemId: ITEM, serviceSpeed: 'STANDARD' }), expect.objectContaining({ orderItemId: OTHER, serviceSpeed: 'EXPRESS', pricePerUnit: '12.0000' })] },
+        },
+        operationAudits: [expect.objectContaining({ after: expect.objectContaining({ orderItemId: OTHER }) })],
+      });
+    });
+
+    it('refuses a line speed when only the order speed is allowed', async () => {
+      const result = await preview({
+        context: twoLines(),
+        request: request([lineSpeed(OTHER, 'EXPRESS')]),
+        bindings: [binding('CHANGE_SERVICE_SPEED', 'ORDER')],
+      });
+      expect(result).toMatchObject({ ok: true, status: 'DENIED', decisions: [expect.objectContaining({ reasonCode: 'CAPABILITY_POLICY_BINDING_MISSING' })] });
+    });
+
+    it('refuses to move a ready line, by the order speed or by its own', async () => {
+      const ready = twoLines({ quantityReady: 1 });
+      const viaOrder = await preview({ context: ready, request: request([orderSpeed('EXPRESS')]), bindings: [binding('CHANGE_SERVICE_SPEED', 'ORDER')] });
+      expect(viaOrder).toMatchObject({ ok: true, status: 'DENIED', decisions: [expect.objectContaining({ reasonCode: 'LINE_SPEED_LOCKED' })] });
+      const viaLine = await preview({ context: ready, request: request([lineSpeed(ITEM, 'EXPRESS')]), bindings: [binding('CHANGE_SERVICE_SPEED', 'ITEM')] });
+      expect(viaLine).toMatchObject({ ok: true, status: 'DENIED', decisions: [expect.objectContaining({ reasonCode: 'LINE_SPEED_LOCKED' })] });
+    });
+
+    it('lets the order speed move the other lines when the ready line keeps its own speed', async () => {
+      const result = await preview({
+        context: twoLines({ readyAt: '2026-10-13T08:00:00.000Z' }),
+        request: request([orderSpeed('EXPRESS', 1), lineSpeed(ITEM, 'STANDARD', 2)]),
+        bindings: [binding('CHANGE_SERVICE_SPEED', 'ORDER'), binding('CHANGE_SERVICE_SPEED', 'ITEM')],
+        unitPrices: { [OTHER]: '12.0000' },
+      });
+      expect(result).toMatchObject({
+        ok: true,
+        status: 'READY',
+        speedAudit: { after: { serviceSpeed: 'EXPRESS', items: [expect.objectContaining({ orderItemId: ITEM, serviceSpeed: 'STANDARD' }), expect.objectContaining({ orderItemId: OTHER, serviceSpeed: 'EXPRESS' })] } },
+      });
+    });
+  });
+
+  describe('P6-02c: line price and line discount', () => {
+    const price = (priceOverride: string | null, overrideReason?: string, id = ITEM) => ({
+      seq: 1, code: 'CHANGE_ITEM_PRICE' as const, target: { kind: 'PERSISTED_ITEM' as const, id },
+      payload: priceOverride === null ? { priceOverride } : { priceOverride, overrideReason },
+    });
+    const discount = (lineDiscount: { type: 'PERCENTAGE' | 'FIXED_AMOUNT'; value: string; reason: string } | null, id = ITEM, seq = 1) => ({
+      seq, code: 'CHANGE_DISCOUNT' as const, target: { kind: 'PERSISTED_ITEM' as const, id }, payload: { lineDiscount },
+    });
+
+    it('sets a line price on its ITEM cell with pricing:override and audits the price and its reason', async () => {
+      const result = await preview({ request: request([price('8', 'Damaged on arrival')]), bindings: [binding('CHANGE_ITEM_PRICE', 'ITEM')], permissions: ['pricing:override'] });
+      expect(result).toMatchObject({
+        ok: true, status: 'READY', projectedTotal: '8.0000',
+        decisions: [expect.objectContaining({ targetType: 'ITEM', decision: 'ALLOW' })],
+        operationAudits: [expect.objectContaining({
+          before: expect.objectContaining({ orderItemId: ITEM, priceOverride: null, pricePerUnit: '10.0000' }),
+          after: expect.objectContaining({ orderItemId: ITEM, priceOverride: '8.0000', overrideReason: 'Damaged on arrival', pricePerUnit: '8.0000' }),
+        })],
+      });
+    });
+
+    it('refuses a line price without pricing:override', async () => {
+      const result = await preview({ request: request([price('8', 'Damaged on arrival')]), bindings: [binding('CHANGE_ITEM_PRICE', 'ITEM')] });
+      expect(result).toEqual({ ok: false, status: 422, code: 'PRICE_OVERRIDE_NOT_PERMITTED' });
+    });
+
+    it('sets a line discount on its ITEM cell with orders:discount and audits what was entered', async () => {
+      const result = await preview({
+        request: request([discount({ type: 'PERCENTAGE', value: '10', reason: 'Stain' })]),
+        bindings: [binding('CHANGE_DISCOUNT', 'ITEM')],
+        permissions: ['orders:discount'],
+      });
+      expect(result).toMatchObject({
+        ok: true, status: 'READY', projectedTotal: '9.0000',
+        decisions: [expect.objectContaining({ targetType: 'ITEM' })],
+        operationAudits: [expect.objectContaining({
+          before: expect.objectContaining({ discountType: null, discountValue: null }),
+          after: expect.objectContaining({ orderItemId: ITEM, discountType: 'PERCENTAGE', discountValue: '10.0000', discountReason: 'Stain' }),
+        })],
+      });
+      const denied = await preview({ request: request([discount({ type: 'PERCENTAGE', value: '10', reason: 'Stain' })]), bindings: [binding('CHANGE_DISCOUNT', 'ITEM')] });
+      expect(denied).toEqual({ ok: false, status: 422, code: 'LINE_DISCOUNT_NOT_PERMITTED' });
+    });
+
+    it('treats the stored discount entered again as no change', async () => {
+      const stored = context({ items: [{ ...context().items[0], lineDiscount: { type: 'PERCENTAGE', value: '10.0000', reason: 'Stain' } }] });
+      const result = await preview({
+        context: stored,
+        request: request([discount({ type: 'PERCENTAGE', value: '10', reason: 'Stain' })]),
+        bindings: [binding('CHANGE_DISCOUNT', 'ITEM')],
+        permissions: ['orders:discount'],
+      });
+      expect(result).toMatchObject({ ok: true, status: 'NO_CHANGE', createsChange: false });
+    });
+
+    it('refuses a price or discount on a line the same change removes', async () => {
+      const result = await preview({
+        request: request([{ seq: 1, code: 'REMOVE_ITEM', target: { kind: 'PERSISTED_ITEM', id: ITEM }, payload: {} }, discount(null, ITEM, 2)]),
+        bindings: [binding('REMOVE_ITEM', 'ITEM'), binding('CHANGE_DISCOUNT', 'ITEM')],
+        permissions: ['orders:discount'],
+      });
+      expect(result).toEqual({ ok: false, status: 422, code: 'UPDATE_NOT_ACTIVE', seq: 2 });
+    });
+  });
+
+  describe('P1B-05: recorded discount re-evaluation', () => {
+    const add = { seq: 1, code: 'ADD_ITEM' as const, target: { kind: 'ORDER' as const }, payload: { clientRef: CLIENT, productId: PRODUCT, quantity: 1 } };
+    const removed: DiscountChange = {
+      key: 'DISCOUNT_RULE:r1', adjustmentId: 'order:d1', sourceType: 'DISCOUNT_RULE', sourceId: 'r1', promotionId: null,
+      sourceName: 'Weekday 10%', sourceName2: null, outcome: 'REMOVED', reason: 'MIN_ORDER_NOT_MET', previousAmount: '1.0000', amount: '0.0000',
+    };
+
+    it('lists the discount changes and needs an acknowledgement for each removal', async () => {
+      const missing = await preview({ request: request([add]), bindings: [binding('ADD_ITEM', 'ORDER')], discountChanges: [removed] });
+      expect(missing).toMatchObject({ ok: true, status: 'ACKNOWLEDGEMENT_REQUIRED', reviewProof: null, discountChanges: [removed] });
+
+      const acknowledged = await preview({
+        request: request([add], { gateDecisions: [{ seq: 1, gateCode: 'DISCOUNT_REMOVED:DISCOUNT_RULE:r1', acknowledgementChallenge: 'acknowledged' }] }),
+        bindings: [binding('ADD_ITEM', 'ORDER')],
+        discountChanges: [removed],
+      });
+      expect(acknowledged).toMatchObject({ ok: true, status: 'READY', reviewProof: expect.any(String) });
+    });
+
+    it('needs no acknowledgement for a kept or changed discount', async () => {
+      const result = await preview({
+        request: request([add]), bindings: [binding('ADD_ITEM', 'ORDER')],
+        discountChanges: [{ ...removed, outcome: 'CHANGED', reason: null, amount: '1.5000' }],
+      });
+      expect(result).toMatchObject({ ok: true, status: 'READY' });
+    });
+
+    it('a discount acknowledgement never stands in for a policy warning on the same operation', async () => {
+      const result = await preview({
+        request: request([add], { gateDecisions: [{ seq: 1, gateCode: 'DISCOUNT_REMOVED:DISCOUNT_RULE:r1', acknowledgementChallenge: 'acknowledged' }] }),
+        bindings: [binding('ADD_ITEM', 'ORDER', 'ALLOW_WITH_WARNING')],
+      });
+      expect(result).toMatchObject({ ok: true, status: 'ACKNOWLEDGEMENT_REQUIRED' });
+    });
+  });
+
+  describe('P6-02e: price confirmation', () => {
+    const add = (confirmedUnitPrice: string) => ({ seq: 1, code: 'ADD_ITEM' as const, target: { kind: 'ORDER' as const }, payload: { clientRef: CLIENT, productId: PRODUCT, quantity: 1, confirmedUnitPrice } });
+
+    it('lists an added line whose price is not the one the cart showed, and records the shown price', async () => {
+      const result = await preview({ request: request([add('7.5000')]), bindings: [binding('ADD_ITEM', 'ORDER')], unitPrices: { [CLIENT]: '8.0000' } });
+      expect(result).toMatchObject({
+        ok: true, status: 'READY',
+        priceChanges: [{ seq: 1, orderItemId: CLIENT, shownUnitPrice: 7.5, currentUnitPrice: 8 }],
+        operationAudits: [expect.objectContaining({ afterValues: expect.objectContaining({ shownUnitPrice: '7.5000', pricePerUnit: '8.0000' }) })],
+      });
+    });
+
+    it('lists nothing when the shown price still holds', async () => {
+      const result = await preview({ request: request([add('8')]), bindings: [binding('ADD_ITEM', 'ORDER')], unitPrices: { [CLIENT]: '8.0000' } });
+      expect(result).toMatchObject({ ok: true, status: 'READY', priceChanges: [] });
+    });
+
+    it('a price that moves after Preview changes the signed snapshot, so Apply refuses the stale proof', async () => {
+      const reviewed = await preview({ request: request([add('8')]), bindings: [binding('ADD_ITEM', 'ORDER')], unitPrices: { [CLIENT]: '8.0000' } });
+      const moved = await preview({ request: request([add('8')]), bindings: [binding('ADD_ITEM', 'ORDER')], unitPrices: { [CLIENT]: '9.0000' } });
+      if (!reviewed.ok || !moved.ok) throw new Error('preview failed');
+      expect(reviewed.reviewBinding?.operationSnapshotDigest).not.toBe(moved.reviewBinding?.operationSnapshotDigest);
+    });
+  });
+
+  describe('P6-02d: custom lines', () => {
+    const custom = { seq: 1, code: 'ADD_ITEM' as const, target: { kind: 'ORDER' as const }, payload: { clientRef: CLIENT, customItem: { name: 'Wedding dress', name2: null, unitPrice: '12.5', serviceCategoryCode: 'DRY_CLEAN' }, quantity: 1 } };
+
+    it('adds a custom line on the ADD_ITEM cell with pricing:override and audits it with no product', async () => {
+      const result = await preview({ request: request([custom]), bindings: [binding('ADD_ITEM', 'ORDER')], unitPrices: { [CLIENT]: '12.5000' }, permissions: ['pricing:override'] });
+      expect(result).toMatchObject({
+        ok: true, status: 'READY', projectedTotal: '22.5000',
+        operationAudits: [expect.objectContaining({ after: expect.objectContaining({ productId: null, productName: 'Wedding dress', serviceCategoryCode: 'DRY_CLEAN', pricePerUnit: '12.5000' }) })],
+      });
+    });
+
+    it('refuses a custom line without pricing:override, as on Create', async () => {
+      const result = await preview({ request: request([custom]), bindings: [binding('ADD_ITEM', 'ORDER')], unitPrices: { [CLIENT]: '12.5000' } });
+      expect(result).toEqual({ ok: false, status: 422, code: 'PRICE_OVERRIDE_NOT_PERMITTED' });
     });
   });
 

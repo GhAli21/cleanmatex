@@ -7,5 +7,9 @@
   "cash_disposition": "التصرف بالنقدية",
   "cash_drawer": "درج النقد",
   "saas_backoffice": "إدارة المنصة",
-  "organization_app": "تطبيق المنشأة"
+  "organization_app": "تطبيق المنشأة",
+  "order_balance": "الرصيد",
+  "order_settled": "مسدّد",
+  "order_overpaid": "مدفوع زيادة",
+  "figures_reconciled": "مطابق"
 }

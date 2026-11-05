@@ -1,5 +1,7 @@
 'use client';
 
+import { OrderFinBalanceBadge } from '@features/orders/order-fin-view/ui/order-fin-balance-badge';
+import { useOrderFinancialHeaders } from '@features/orders/order-fin-view/hooks/use-order-financial-view';
 import { useLocale, useTranslations } from 'next-intl';
 import type { CmxDataTableSimpleColumn } from '@ui/data-display';
 import { CmxTabsPanel } from '@ui/navigation';
@@ -65,6 +67,7 @@ function formatJson(value: Record<string, unknown> | undefined) {
  */
 export function ArInvoiceDetailTabs({ detail }: ArInvoiceDetailTabsProps) {
   const t = useTranslations('invoices.ar.detailTabs');
+  const orderHeaders = useOrderFinancialHeaders(detail.orders.map((o) => o.order_id));
   const locale = useLocale();
   const currencyCode = detail.invoice.currency_code;
   const textAlign = locale === 'ar' ? 'right' : 'left';
@@ -103,6 +106,8 @@ export function ArInvoiceDetailTabs({ detail }: ArInvoiceDetailTabsProps) {
     { key: 'credit_before_amount', header: t('columns.creditBeforeAmount'), sortable: false, align: 'right', render: (row) => <ArInvoiceDetailCopyValue value={row.credit_before_amount} displayValue={formatCurrency(row.credit_before_amount, currencyCode, locale)} align="right" /> },
     { key: 'outstanding_amount', header: t('columns.outstandingAmount'), sortable: false, align: 'right', render: (row) => <ArInvoiceDetailCopyValue value={row.outstanding_amount} displayValue={formatCurrency(row.outstanding_amount, currencyCode, locale)} align="right" /> },
     { key: 'allocation_policy', header: t('columns.allocationPolicy'), sortable: false, render: (row) => <ArInvoiceDetailCopyValue value={row.allocation_policy} align={textAlign} /> },
+    // P6-07: each linked order's live balance, one batch request for the whole list.
+    { key: 'order_balance', header: t('columns.orderBalance'), sortable: false, render: (row) => <OrderFinBalanceBadge header={orderHeaders.data?.[row.order_id]} /> },
   ];
 
   const allocationColumns: CmxDataTableSimpleColumn<ArInvoicePaymentAllocation>[] = [

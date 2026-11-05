@@ -1,6 +1,6 @@
 # API Route Auth Hardening (BF-23) — PLAN
 
-**Status:** DRAFT, waiting for owner approval (2026-10-30). Nothing is implemented yet.
+**Status:** Approved and implemented 2026-10-30 (Steps 0–8). D1, D2 and D4 as recommended; D3 stays a separate package. Progress, follow-ups (Gap C, BF-24) and QA scenarios: [STATUS.md](STATUS.md).
 **Origin:** BF-23 in [Reusable_Order_Fin_View/PLAN.md](../Order_Fin/Reusable_Order_Fin_View/PLAN.md) §4, found 2026-10-23 at `api/v1/orders/[id]/state`.
 **Related:** [User_Session_Lifecycle](../User_Session_Lifecycle/), [Tenant_Guard_Restoration](../Tenant_Guard_Restoration/), BF-20 (server actions, fixed; guard test `web-admin/__tests__/security/server-action-tenant-guard.test.ts`).
 
@@ -38,7 +38,7 @@ None of the 30 routes calls a permission check. RLS only isolates by tenant (`te
 
 The access contracts even claim a permission the route never enforces (for example `catalog-access.ts` lists `GET /api/v1/products` with `products:read`), so the permissions inspector shows a gate that does not exist.
 
-### Gap C — ending a session does not revoke the Supabase session (HIGH, related, separate fix)
+### Gap C — ending a session does not revoke the Supabase session (WITHDRAWN 2026-10-30: false finding, already revoked by `fn_auth_session_end_internal`; see STATUS.md)
 
 `fn_auth_session_end` and `fn_auth_sessions_revoke` only update the app's own session table; they do not touch `auth.sessions` / `auth.refresh_tokens`. Every sign-out uses `signOut({ scope: 'local' })`, which only clears that browser's cookies. Result: whoever holds the cookies of a revoked session can keep refreshing Supabase tokens and call (1) the 30 routes in this plan and (2) the **Supabase Data API directly** (PostgREST with the public anon key), where RLS checks membership but not the app session. Closing Gap A alone does not close (2).
 

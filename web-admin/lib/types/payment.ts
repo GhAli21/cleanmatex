@@ -482,6 +482,8 @@ export interface GiftCardTransaction {
 export interface GiftCardTransactionLogRow extends GiftCardTransaction {
   gift_card_code: string;
   card_name: string;
+  /** The order's number when the transaction belongs to an order (HFC T3.9: shown instead of a shortened id). */
+  order_no?: string;
 }
 
 export interface ValidateGiftCardInput {

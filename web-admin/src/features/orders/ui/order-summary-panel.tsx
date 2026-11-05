@@ -188,7 +188,7 @@ function OrderSummaryPanelComponent({
   const tEdit = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
-  const speedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED']);
+  const speedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED'], 'ORDER');
   const readyByCapability = useEditControlGroup(['CHANGE_READY_BY']);
   const lineCapability = useEditControlGroup(['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'ADD_PIECE', 'REMOVE_PIECE']);
   const [isCalculating, setIsCalculating] = useState(false);

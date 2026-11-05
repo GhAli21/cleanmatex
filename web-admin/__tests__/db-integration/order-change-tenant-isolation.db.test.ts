@@ -8,6 +8,9 @@ import { applyOrderChange, type OrderChangeApplyTx } from '@/lib/services/order-
 import type { OrderChangeFinancialResult } from '@/lib/services/order-change/order-change-financial-result.service';
 import { prisma } from '@/lib/db/prisma';
 
+// Apply imports discount-service (promo reversal), whose settings service builds a browser client at load.
+jest.mock('@/lib/supabase/client', () => ({ createClient: () => ({}), supabase: {} }));
+
 let dbUp = false;
 
 beforeAll(async () => {

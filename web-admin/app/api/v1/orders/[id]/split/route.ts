@@ -5,32 +5,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { OrderService } from '@/lib/services/order-service';
 import { SplitOrderRequestSchema } from '@/lib/validations/workflow-schema';
+import { ORDER_SPLIT_ERRORS, type OrderSplitError } from '@/lib/services/order-split.service';
 
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-
-  return {
-    user,
-    tenantId: tenants[0].tenant_id as string,
-    userId: user.id as string,
-    userName: user.user_metadata?.full_name || user.email || 'User',
-  };
-}
+/** HTTP status per split error code. */
+const SPLIT_ERROR_STATUS: Record<OrderSplitError, number> = {
+  [ORDER_SPLIT_ERRORS.NOTHING_SELECTED]: 400,
+  [ORDER_SPLIT_ERRORS.BAD_PIECE_ID]: 400,
+  [ORDER_SPLIT_ERRORS.ORDER_NOT_FOUND]: 404,
+  [ORDER_SPLIT_ERRORS.ITEM_NOT_FOUND]: 404,
+  [ORDER_SPLIT_ERRORS.ORDER_CLOSED]: 409,
+  [ORDER_SPLIT_ERRORS.UNITS_NOT_AVAILABLE]: 409,
+  [ORDER_SPLIT_ERRORS.WHOLE_ORDER]: 409,
+  [ORDER_SPLIT_ERRORS.BUSY]: 409,
+  [ORDER_SPLIT_ERRORS.NUMBERING_FAILED]: 500,
+  [ORDER_SPLIT_ERRORS.FAILED]: 500,
+};
 
 /**
  *
@@ -39,9 +31,12 @@ async function getAuthContext() {
  * @param root0.params
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requirePermission('orders:split')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { id } = await params;
-    const { tenantId, userId, userName } = await getAuthContext();
+    const { tenantId, userId, userName } = auth;
 
     const body = await request.json();
     const parsed = SplitOrderRequestSchema.safeParse(body);
@@ -56,7 +51,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Support both item-level and piece-level splitting
     const { itemIds, pieceIds, reason } = parsed.data;
 
-    let result;
+    let result: Awaited<ReturnType<typeof OrderService.splitOrder>>;
     if (pieceIds && pieceIds.length > 0) {
       // Piece-level splitting (NEW)
       result = await OrderService.splitOrderByPieces(
@@ -84,23 +79,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    if (!result.success) {
+    // 'in' narrowing: tsconfig has strict off, so a boolean discriminant does not narrow.
+    if ('errorCode' in result) {
       return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
+        { success: false, error: result.error, errorCode: result.errorCode },
+        { status: SPLIT_ERROR_STATUS[result.errorCode] ?? 400 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      newOrderId: result.suborder?.id,
-      newOrderNumber: result.suborder?.order_no,
-      movedPieces: pieceIds?.length || itemIds?.length || 0,
+      newOrderId: result.suborder.id,
+      newOrderNumber: result.suborder.order_no,
+      movedPieces: result.movedUnits,
     });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 400;
-    return NextResponse.json({ error: message }, { status });
+  } catch {
+    return NextResponse.json({ success: false, error: 'Invalid request' }, { status: 400 });
   }
 }
 

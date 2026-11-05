@@ -64,8 +64,6 @@
     "activeFilters": "الفلاتر النشطة:",
     "selectedCount": "{count, plural, one {# مستخدم محدد} other {# مستخدمون محددون}}",
     "processing": "جاري المعالجة...",
-    "workflowRole": "دور سير العمل",
-    "allWorkflowRoles": "جميع أدوار سير العمل",
     "deleteConfirm": "{count, plural, one {حذف # مستخدم؟ لا يمكن التراجع.} other {حذف # مستخدمين؟ لا يمكن التراجع.}}"
   },
   "table": {
@@ -197,25 +195,19 @@
     "tenantRoles": "الأدوار على مستوى المستأجر",
     "tenantRolesDesc": "الأدوار المطبقة على جميع الموارد في هذا المستأجر",
     "resourceRoles": "الأدوار المحددة بالموارد",
-    "workflowRoles": "أدوار سير العمل",
-    "workflowRolesDesc": "يتحكم في الوصول التشغيلي لسير العمل (مستقل عن أدوار المستخدم)",
     "permissionOverrides": "تجاوزات الصلاحيات",
     "permissionOverridesDesc": "منح أو رفض صلاحيات محددة لهذا المستخدم",
     "assignRoles": "تعيين الأدوار",
-    "assignWorkflowRoles": "تعيين أدوار سير العمل",
     "overridePermissions": "تجاوز الصلاحيات",
     "rebuildPermissions": "إعادة بناء الصلاحيات",
     "rebuilding": "جاري إعادة البناء...",
     "rebuildSuccess": "تمت إعادة بناء الصلاحيات بنجاح",
     "rebuildFailed": "فشلت إعادة بناء الصلاحيات",
     "noRolesAssigned": "لا توجد أدوار معينة",
-    "noWorkflowRoles": "لا توجد أدوار سير عمل معينة",
     "noOverrides": "لا توجد تجاوزات للصلاحيات",
     "assignRolesSuccess": "تم تعيين الأدوار بنجاح",
-    "assignWorkflowRolesSuccess": "تم تعيين أدوار سير العمل بنجاح",
     "overridesSavedSuccess": "تم حفظ تجاوزات الصلاحيات",
     "roleRemoved": "تمت إزالة الدور",
-    "workflowRoleRemoved": "تمت إزالة دور سير العمل",
     "overrideRemoved": "تمت إزالة التجاوز",
     "scopeTenant": "مستوى المستأجر",
     "scopeResource": "محدد بالمورد",
@@ -225,15 +217,6 @@
     "deny": "رفض",
     "addOverride": "إضافة تجاوز",
     "overrideWarning": "تجاوزات الصلاحيات لها الأولوية على الصلاحيات المستندة إلى الأدوار. استخدمها بحذر.",
-    "workflowRolesInfo": "أدوار سير العمل مستقلة عن أدوار المستخدم وتتحكم في الوصول التشغيلي فقط.",
-    "changesSummary": "التغييرات: +{added} / -{removed}",
-    "workflowRolesLegend": {
-      "ROLE_RECEPTION": "الاستقبال",
-      "ROLE_PREPARATION": "التحضير",
-      "ROLE_PROCESSING": "المعالجة",
-      "ROLE_QA": "ضمان الجودة",
-      "ROLE_DELIVERY": "التوصيل",
-      "ROLE_ADMIN": "مسؤول سير العمل"
-    }
+    "changesSummary": "التغييرات: +{added} / -{removed}"
   }
 }

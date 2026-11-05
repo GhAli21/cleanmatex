@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-10-28T02:26:55.465Z
+Generated: 2026-11-05T11:03:20.177Z
 
 | Flag key | Surface | File | Line | Context |
 | --- | --- | --- | --- | --- |
@@ -58,35 +58,35 @@ Generated: 2026-10-28T02:26:55.465Z
 | getFeatureFlags | api | app/api/settings/tenants/[tenantId]/feature-flags/route.ts | 34 | const flags = await hqApiClient.getFeatureFlags({ |
 | getFeatureFlags | service | lib/api/hq-api-client.ts | 406 | async getFeatureFlags(options?: { authHeader?: string | null; search?: string }) { |
 | getFeatureFlags | workflow | lib/config/workflow-engine-v2.server.ts | 31 | const flags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/feature-flags.service.ts | 142 | export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> { |
-| getFeatureFlags | service | lib/services/feature-flags.service.ts | 198 | return getFeatureFlags(user.user_metadata.tenant_org_id); |
-| getFeatureFlags | service | lib/services/feature-flags.service.ts | 215 | const flags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/feature-flags.service.ts | 248 | const flags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/feature-flags.service.ts | 302 | return getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/feature-flags.service.ts | 340 | return getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/feature-flags.service.ts | 363 | return getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/feature-flags.service.ts | 143 | export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> { |
+| getFeatureFlags | service | lib/services/feature-flags.service.ts | 195 | return getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/feature-flags.service.ts | 212 | const flags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/feature-flags.service.ts | 241 | const flags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/feature-flags.service.ts | 295 | return getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/feature-flags.service.ts | 333 | return getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/feature-flags.service.ts | 356 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/order-change/order-change-legacy-writer-guard.ts | 135 | getFeatureFlags(tenantId), |
 | getFeatureFlags | service | lib/services/order-change/order-change-preview-reads.ts | 101 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 220 | const featureFlags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 425 | const flags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 225 | const featureFlags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 446 | const flags = await getFeatureFlags(tenantId); |
 | multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 544 | {plan.feature_flags.multi_branch && ( |
 | multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 675 | {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>} |
 | multi_currency_fx | screen | src/features/fx/ui/currency-fx-screen.tsx | 32 | const multiCurrencyAllowed = useFeature('multi_currency_fx'); |
-| online_booking | api | app/api/v1/public/customer/booking/route.ts | 379 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
-| online_booking | api | app/api/v1/public/customer/booking/route.ts | 703 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
-| order_fin_governed_amendments | service | lib/services/order-service.ts | 2487 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
+| online_booking | api | app/api/v1/public/customer/booking/route.ts | 380 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
+| online_booking | api | app/api/v1/public/customer/booking/route.ts | 700 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
+| order_fin_governed_amendments | service | lib/services/order-service.ts | 2217 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
 | order_fin_refund_execution | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 55 | const executionEnabled = await canAccess(tenantId, 'order_fin_refund_execution'); |
 | order_fin_refund_execution | screen | app/dashboard/internal_fin/refunds/page.tsx | 46 | currentTenantCan('order_fin_refund_execution').catch(() => false), |
-| order_fin_refund_execution | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 194 | const refundExecutionEnabled = useFeature('order_fin_refund_execution'); |
+| order_fin_refund_execution | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 196 | const refundExecutionEnabled = useFeature('order_fin_refund_execution'); |
 | order_fin_refund_ui | screen | app/dashboard/internal_fin/refunds/page.tsx | 44 | currentTenantCan('order_fin_refund_ui').catch(() => false), |
-| order_fin_refund_ui | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 89 | const refundUiEnabled = useFeature('order_fin_refund_ui'); |
+| order_fin_refund_ui | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 90 | const refundUiEnabled = useFeature('order_fin_refund_ui'); |
 | order_fin_sv_funding_capture | server_action | app/actions/customers/stored-value-actions.ts | 280 | const flagOn = await currentTenantCan('order_fin_sv_funding_capture'); |
 | order_fin_sv_funding_capture | server_action | app/actions/customers/stored-value-actions.ts | 335 | const flagOn = await currentTenantCan('order_fin_sv_funding_capture'); |
 | order_fin_sv_funding_capture | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 104 | const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture'); |
 | order_fin_voucher_unwind | screen | app/dashboard/internal_fin/vouchers/[voucherId]/page.tsx | 91 | const unwindEnabled = await canAccess(auth.tenantId, 'order_fin_voucher_unwind'); |
 | order_fin_voucher_unwind | service | lib/services/voucher-reversal.service.ts | 88 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
-| pdf_invoices | service | lib/services/feature-flags.service.ts | 409 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |
+| pdf_invoices | service | lib/services/feature-flags.service.ts | 402 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |
 | pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 535 | {plan.feature_flags.pdf_invoices && ( |
 | pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 672 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
 | tax_inclusive_pricing | screen | src/features/settings/ui/branch-settings-screen.tsx | 40 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |

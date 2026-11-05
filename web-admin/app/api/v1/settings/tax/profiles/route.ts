@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { taxProfileRoundingColumns, taxProfileRoundingSchema } from '@/lib/validations/tax-profile-rounding-schema';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
@@ -38,7 +39,7 @@ const createSchema = z.object({
   effectiveFrom: z.string().datetime().optional(),
   effectiveTo:   z.string().datetime().optional(),
   isDefault:     z.boolean().optional(),
-});
+}).merge(taxProfileRoundingSchema);
 
 /**
  *
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
           effective_from: parsed.data.effectiveFrom ? new Date(parsed.data.effectiveFrom) : new Date(),
           effective_to:   parsed.data.effectiveTo ? new Date(parsed.data.effectiveTo) : null,
           is_default:     parsed.data.isDefault ?? false,
+          ...taxProfileRoundingColumns(parsed.data),
           is_active:      true,
           rec_status:     1,
         },

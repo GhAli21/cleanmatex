@@ -64,7 +64,7 @@
       "sid": "Twilio Content SID",
       "sidHint": "Copy the HX identifier from your approved template in Twilio. This field is not your Account SID.",
       "variables": "Template variables",
-      "variablesHint": "Copy each variable name or number exactly from Twilio. Map it to notification data or a fixed value. For order.created, available data includes order_number and estimated_ready_at.",
+      "variablesHint": "Copy each variable name or number exactly from Twilio. Map it to notification data or a fixed value. For order.created, available data includes order_number and estimated_ready_at. For credit_note.issued, it includes credit_note_no.",
       "noVariables": "No variables. Use this only for a template containing fixed text.",
       "variableName": "Template variable name or number",
       "valueType": "Value type",

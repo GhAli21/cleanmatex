@@ -26,6 +26,7 @@ import { CmxProgressIndicator } from '@/src/ui/feedback/cmx-progress-indicator';
 import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
 import { CmxProcessingStepTimeline } from '@/src/ui/data-display/cmx-processing-step-timeline';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import type {
   Order,
@@ -50,6 +51,7 @@ import { ProcessingModalFilters } from './processing-modal-filters';
 import { ProcessingItemRow } from './processing-item-row';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
 import { logger } from '@/lib/utils/logger';
+import { pieceTagErrorMessage } from '@/src/features/workflow/lib/piece-tag-error';
 
 interface ProcessingModalProps {
   isOpen: boolean;
@@ -147,13 +149,16 @@ export function ProcessingModal({
 
   // Fetch tenant settings
   const {
-    splitOrderEnabled,
+    splitOrderEnabled: splitOrderSettingEnabled,
     rejectEnabled,
     trackByPiece,
     rejectColor,
     processingConfirmationEnabled,
     isLoading: settingsLoading,
   } = useTenantSettingsWithDefaults(tenantId, null, null, isOpen);
+  // Split needs the tenant setting AND the user's orders:split permission (the API enforces it too).
+  const canSplitOrders = useHasPermissionCode('orders:split');
+  const splitOrderEnabled = splitOrderSettingEnabled && canSplitOrders;
 
   const getBilingual = useBilingual();
   const { servicePrefs, packingPrefs, conditionCatalog } = usePreferenceCatalog(
@@ -466,7 +471,8 @@ export function ProcessingModal({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || 'Failed to update order');
+        const tagMessage = pieceTagErrorMessage(errorData, (key, values) => String(t(key, values)));
+        throw new Error(tagMessage || errorData.error || errorData.message || 'Failed to update order');
       }
       return response.json();
     },
@@ -525,7 +531,7 @@ export function ProcessingModal({
     onError: (error) => {
       setSummaryMessage({
         type: 'error',
-        title: 'Update Failed',
+        title: String(t('error.updateFailed')),
         items: [String(error instanceof Error ? error.message : 'Unknown error')],
       });
     },

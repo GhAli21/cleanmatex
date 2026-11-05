@@ -4,25 +4,17 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth/require-auth';
 import { listActiveIssueTypes } from '@/lib/services/lookups';
-
-async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-  return supabase;
-}
 
 /**
  * List active issue types for report pickers.
  */
 export async function GET() {
   try {
-    const supabase = await requireUser();
-    const result = await listActiveIssueTypes(supabase);
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+    const result = await listActiveIssueTypes(auth.supabase);
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error },

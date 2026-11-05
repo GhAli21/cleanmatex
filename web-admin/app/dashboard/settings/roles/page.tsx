@@ -179,7 +179,6 @@ export default function RolesManagementPage() {
   // Access control check
   const isAdmin = evaluateAccessRequirement(SETTINGS_ROLES_ACCESS.page, {
     userPermissions: permissions ?? [],
-    userWorkflowRoles: [],
     userTenantRole: currentTenant?.user_role ?? null,
     featureFlags: {},
   }).passed

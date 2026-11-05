@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
+import { orderNoFromCode } from '@/lib/validations/code-format-schemas';
 import { logger } from '@/lib/utils/logger';
 import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
 import { listStageWorklistOrderPage } from '@/lib/services/workflow/stage-worklist-query.service';
@@ -292,7 +293,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Search - order_no, customer name, phone, email
-    if (!workflowScreen && search.length > 0) {
+    // Fast path (HFC T3.9): a full order number, line code or piece code matches that order and its sub-orders
+    // by exact order_no (index), instead of the wide ilike search.
+    const searchOrderNo = !workflowScreen && search.length > 0 ? orderNoFromCode(search) : null;
+    if (searchOrderNo) {
+      query = query.or(`order_no.eq.${searchOrderNo},order_no.like.${searchOrderNo}-S%`);
+    } else if (!workflowScreen && search.length > 0) {
       const escaped = search.replace(/[%_\\]/g, '\\$&').replace(/,/g, '');
       const pattern = `%${escaped}%`;
       query = query.or(
@@ -331,7 +337,15 @@ export async function GET(request: NextRequest) {
       total: 'total_amount',
     };
     const sortColumn = validSortColumns[sortBy] || 'received_at';
-    query = query.order(sortColumn, { ascending: sortOrder });
+    if (sortColumn === 'order_no') {
+      // Order numbers grow past 4 digits (ORD-YYYYMMDD-10000) and carry -S<n> sub-order
+      // suffixes, so text order is not creation order. Sort by creation, then number.
+      query = query
+        .order('created_at', { ascending: sortOrder })
+        .order('order_no', { ascending: sortOrder });
+    } else {
+      query = query.order(sortColumn, { ascending: sortOrder });
+    }
 
     if (!workflowScreen) {
       const from = (page - 1) * limit;

@@ -80,7 +80,8 @@ export function SortingPieceCard({
   };
 
   const renderStatus = () => {
-    const hasTag = Boolean(piece.piece_code);
+    // piece_code is always set by the DB (P3); the tag (barcode) is what staff attach.
+    const hasTag = Boolean(piece.barcode);
     return (
       <div className={`flex items-center gap-2 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <span className="text-xs font-semibold text-slate-500 uppercase">

@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
@@ -135,7 +136,7 @@ export default function OrdersReportTable({
                 onClick={() => router.push(`/dashboard/orders/${order.id}`)}
               >
                 <td className="px-4 py-3 font-medium text-blue-600">
-                  {order.orderNo}
+                  <CmxCodeChip code={order.orderNo} kind="order" />
                 </td>
                 <td className="px-4 py-3 text-gray-900">
                   {order.customerName}

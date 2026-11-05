@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxCard } from '@ui/primitives/cmx-card';
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import type { OrderItemPiece } from '@/types/order';
 import { Shirt, Scissors } from 'lucide-react'; // Fallback icons
 
@@ -19,12 +20,6 @@ export interface PieceBaseCardProps {
   actionSlot?: React.ReactNode;
   detailsSlot?: React.ReactNode;
   statusSlot?: React.ReactNode;
-}
-
-function formatPieceCodeDisplay(code: string): { short: string; full: string } {
-  const full = code.trim();
-  if (full.length <= 14) return { short: full, full };
-  return { short: `…${full.slice(-8)}`, full };
 }
 
 /**
@@ -47,9 +42,12 @@ export function PieceBaseCard({
   statusSlot,
 }: PieceBaseCardProps) {
   const t = useTranslations('orders.pieces');
+  const tCodes = useTranslations('codes');
   const isRTL = useRTL();
-  
-  const codeDisplay = piece.piece_code ? formatPieceCodeDisplay(piece.piece_code) : null;
+
+  // HFC T3.9: the full piece code is shown (no shortened UUID); the tag is a second chip while it is held.
+  const pieceCode = piece.piece_code?.trim() || null;
+  const externalTag = piece.barcode && !piece.tag_released_at ? piece.barcode : null;
   const isRejected = piece.is_rejected || false;
   const compact = density === 'compact';
 
@@ -80,13 +78,11 @@ export function PieceBaseCard({
             <span className="font-medium text-sm text-gray-900 shrink-0">
               {t('piece')} {piece.piece_seq}
             </span>
-            {codeDisplay && (
-              <span
-                className="text-xs text-gray-600 truncate min-w-0"
-                title={codeDisplay.full}
-              >
-                {codeDisplay.short}
-              </span>
+            {(pieceCode || externalTag) && (
+              <div className={`flex flex-wrap items-center gap-1 min-w-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <CmxCodeChip code={pieceCode} kind="piece" />
+                <CmxCodeChip code={externalTag} kind="tag" label={tCodes('tag')} />
+              </div>
             )}
           </div>
         </div>

@@ -428,3 +428,7 @@ docs/         # All documentation
   2. files changed
   3. validation results
   4. risks / follow-ups
+
+<!-- HFC-RULE:BEGIN (Human-Friendly Codes pointer) -->
+- **Human-Friendly Codes:** codes people see are generated only by the DB and registered in `sys_doc_seq_type_cd`; see the "Human-Friendly Codes" section in `.codex/docs/database_conventions.md`.
+<!-- HFC-RULE:END -->

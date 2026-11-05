@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -87,7 +88,8 @@ export function HomeCollectionOrderDetailScreen() {
           ← {t('actions.backToList')}
         </Link>
         <h1 className="text-3xl font-bold">
-          {tWorkflow('screens.homeCollection')} - {order.orderNo}
+          {tWorkflow('screens.homeCollection')}{' '}
+          <CmxCodeChip code={order.orderNo} kind="order" size="md" />
         </h1>
         <p className="mt-1 text-gray-600">
           {order.customer.name} • {order.customer.phone}

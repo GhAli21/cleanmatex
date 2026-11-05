@@ -5,6 +5,14 @@ import type { CustomerUpdateRequest } from '@/lib/types/customer';
 
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }));
 jest.mock('@/lib/db/tenant-context', () => ({ getTenantIdFromSession: jest.fn() }));
+jest.mock('@/lib/auth/server-auth', () => ({
+  getAuthContext: jest.fn().mockResolvedValue({
+    user: { id: 'staff-a' },
+    userId: 'staff-a',
+    tenantId: 'tenant-a',
+    userRole: 'admin',
+  }),
+}));
 jest.mock('@/lib/services/tenant-settings.service', () => ({ createTenantSettingsService: jest.fn() }));
 jest.mock('@/lib/services/credit-limit-plan-cap.service', () => ({ getCreditLimitPlanCap: jest.fn(), capCreditLimitToPlan: jest.fn() }));
 jest.mock('@/lib/utils/logger', () => ({ logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn() } }));
@@ -37,8 +45,6 @@ describe('customer notification preferences', () => {
     from.mockReturnValueOnce(read).mockReturnValueOnce(write);
     jest.mocked(createClient).mockResolvedValue({
       from,
-      auth: { getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'staff-a', user_metadata: { tenant_org_id: tenantId } } } }) },
-      rpc: jest.fn().mockResolvedValue({ data: [{ tenant_id: tenantId, user_role: 'admin' }], error: null }),
     } as unknown as Awaited<ReturnType<typeof createClient>>);
   });
 

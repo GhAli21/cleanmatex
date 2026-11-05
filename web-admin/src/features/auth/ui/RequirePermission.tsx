@@ -13,8 +13,6 @@ import {
   useHasPermission,
   useHasAnyPermission,
   useHasAllPermissions,
-  useHasWorkflowRole,
-  useHasAnyWorkflowRole,
 } from '@/lib/hooks/usePermissions'
 
 // ========================
@@ -148,66 +146,6 @@ export function PermissionGate({
   }
 
   if (!hasPermission) {
-    return <>{fallback}</>
-  }
-
-  return <>{children}</>
-}
-
-// ========================
-// Workflow Role Checks
-// ========================
-
-interface RequireWorkflowRoleProps {
-  workflowRole: string
-  fallback?: ReactNode
-  children: ReactNode
-}
-
-/**
- * Render children only if user has specific workflow role
- *
- * @example
- * <RequireWorkflowRole workflowRole="ROLE_RECEPTION">
- *   <ReceptionScreen />
- * </RequireWorkflowRole>
- */
-export function RequireWorkflowRole({
-  workflowRole,
-  fallback = null,
-  children,
-}: RequireWorkflowRoleProps) {
-  const hasRole = useHasWorkflowRole(workflowRole)
-
-  if (!hasRole) {
-    return <>{fallback}</>
-  }
-
-  return <>{children}</>
-}
-
-interface RequireAnyWorkflowRoleProps {
-  workflowRoles: string[]
-  fallback?: ReactNode
-  children: ReactNode
-}
-
-/**
- * Render children if user has ANY of the specified workflow roles
- *
- * @example
- * <RequireAnyWorkflowRole workflowRoles={['ROLE_RECEPTION', 'ROLE_PROCESSING']}>
- *   <OrderProcessingScreen />
- * </RequireAnyWorkflowRole>
- */
-export function RequireAnyWorkflowRole({
-  workflowRoles,
-  fallback = null,
-  children,
-}: RequireAnyWorkflowRoleProps) {
-  const hasAny = useHasAnyWorkflowRole(workflowRoles)
-
-  if (!hasAny) {
     return <>{fallback}</>
   }
 

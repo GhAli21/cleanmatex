@@ -5,6 +5,8 @@
 
 'use client';
 
+import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view';
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -132,7 +134,8 @@ export default function ReadyDetailPage() {
           &laquo; {t('ready.actions.backToReady')}
         </Link>
         <h1 className="text-3xl font-bold">
-          {t('screens.ready')} - {order.orderNo}
+          {t('screens.ready')}{' '}
+          <CmxCodeChip code={order.orderNo} kind="order" size="md" />
         </h1>
         <p className="text-gray-600 mt-1">
           {order.customer.name} &nbsp;&bull;&nbsp; {order.customer.phone}
@@ -285,20 +288,10 @@ export default function ReadyDetailPage() {
             <h3 className="font-semibold mb-3">{t('ready.paymentSection.title')}</h3>
             {order.paymentSummary && (
               <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">{t('ready.totalAmount')}</span>
-                  <span className="font-medium">{formatMoneyWithCode(order.paymentSummary.total)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">{tOrders('paidAmount')}</span>
-                  <span className="font-medium text-green-700">{formatMoneyWithCode(order.paymentSummary.paid)}</span>
-                </div>
+                {/* P6-04: total, paid, credits and the balance word from the read model. */}
+                {orderId && <OrderFinancialView source={{ kind: 'order', orderId }} config={{ preset: 'totals', layout: 'plain', density: 'compact', columns: 1 }} />}
                 {order.paymentSummary.remaining > 0 ? (
                   <>
-                    <div className="flex justify-between text-sm font-semibold">
-                      <span className="text-orange-600">{t('ready.paymentSection.remainingDue')}</span>
-                      <span className="text-orange-700">{formatMoneyWithCode(order.paymentSummary.remaining)}</span>
-                    </div>
                     {currentTenant?.tenant_id && orderId && (() => {
                       const isPoc =
                         order.paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION;

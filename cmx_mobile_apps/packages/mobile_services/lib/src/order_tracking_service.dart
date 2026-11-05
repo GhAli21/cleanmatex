@@ -95,6 +95,40 @@ class OrderTrackingService {
     }
   }
 
+  /// The order's customer-safe money statement (Reusable Order Fin View P4-07):
+  /// the server projection only; the app never computes a total or balance.
+  /// Returns null when the server has no figures yet, or in demo mode.
+  Future<OrderFinancialStatementModel?> fetchOrderFinancialStatement({
+    required CustomerSessionModel? session,
+    required String orderNumber,
+  }) async {
+    if (!_useRemoteTracking(session)) return null;
+
+    try {
+      // Same ownership rule as the detail route: the bearer token must belong
+      // to a customer of this tenant, and the order to that customer.
+      final payload = await _httpClient.getJson(
+        '/api/v1/public/customer/orders/${Uri.encodeComponent(orderNumber)}/financial-view',
+        headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
+        queryParameters: {'tenantId': session.tenantOrgId!},
+      );
+      final data = payload['data'];
+      if (data is! Map<String, Object?>) {
+        throw const OrderTrackingServiceException(
+          code: 'orders_invalid_payload',
+          messageKey: 'orders.statement.errorBody',
+        );
+      }
+      return OrderFinancialStatementModel.fromJson(data);
+    } on MobileHttpException catch (error) {
+      throw OrderTrackingServiceException(
+        code: error.code,
+        messageKey: 'orders.statement.errorBody',
+        originalError: error,
+      );
+    }
+  }
+
   OrderSummaryModel _mapRemoteOrderSummary(
     Map<String, Object?> json, {
     String? defaultCurrencyCode,

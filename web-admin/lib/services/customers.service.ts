@@ -152,39 +152,15 @@ export function maskPhone(phone: string): string {
 // ==================================================================
 
 async function getCurrentUserTenantSessionContext(): Promise<CurrentUserTenantSessionContext> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('Unauthorized: No user');
-  }
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + (error?.message ?? ''));
-  }
-
-  const jwtTenantId = user.user_metadata?.tenant_org_id as string | undefined;
-  const tenantFromRpc = tenants[0] as { tenant_id: string; user_role: string };
-  const hasAccessToJwtTenant = Boolean(
-    jwtTenantId && tenants.some((tenant: { tenant_id: string }) => tenant.tenant_id === jwtTenantId)
-  );
-
-  const curUserId = user.id;
-  const curUserRole = hasAccessToJwtTenant
-    ? ((tenants.find((tenant: { tenant_id: string }) => tenant.tenant_id === jwtTenantId) as { user_role?: string } | undefined)?.user_role ??
-      tenantFromRpc.user_role)
-    : tenantFromRpc.user_role;
-  const curUserTenantOrgId = hasAccessToJwtTenant ? jwtTenantId! : tenantFromRpc.tenant_id;
+  // Lazy: the session guard pulls in next/server, which this module must not load eagerly.
+  const { getAuthContext } = await import('@/lib/auth/server-auth');
+  const auth = await getAuthContext();
   return {
-    userId: curUserId,
-    userRole: curUserRole,
-    userTenantOrgId: curUserTenantOrgId,
+    userId: auth.userId,
+    userRole: auth.userRole,
+    userTenantOrgId: auth.tenantId,
   };
 }
-// Note: Using centralized getTenantIdFromSession from @/lib/db/tenant-context
-// The centralized version uses user.user_metadata?.tenant_org_id which is more reliable
 
 /** Default phone country code for current tenant (from tenant/branch settings). */
 async function getDefaultCountryCodeForCurrentTenant(): Promise<string> {

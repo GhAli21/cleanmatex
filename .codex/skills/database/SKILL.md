@@ -346,3 +346,13 @@ CREATE POLICY tenant_isolation ON org_example_mst
 - [table-check-workflow.md](./table-check-workflow.md) - Before creating tables
 - [postgresql-prisma.md](./postgresql-prisma.md) - PostgreSQL and Prisma rules
 - [migration-plan.md](./migration-plan.md) - Migration strategy
+
+<!-- HFC-RULE:BEGIN (Human-Friendly Codes; short form) -->
+## Human-Friendly Codes (document numbering)
+
+Codes people see (order no, invoice no, piece code ...) are made only by the DB and are immutable. Each code type has one row in `sys_doc_seq_type_cd` (unique 3-5 letter `type_prefix`, format, reset policy, `implement_description`). GENERAL types use the `fn_doc_seq_assign_code` trigger; never `MAX()+1` in app code; never expose UUIDs as business ids. Full rule: `conventions.md`.
+
+Reuse the shared code helpers (web-admin `code-format-schemas.ts` and `cmx-code-payload.ts`, mobile `mobile_core` `human_codes.dart`); show codes left-to-right with `CmxCodeChip`; notifications carry the code, never the UUID.
+
+New table with a code: code column NOT NULL + `UNIQUE (tenant_org_id, <code>)`, config row, assign + guard triggers, backfill + counter seed in the same migration, then `vw_doc_seq_consistency` shows 0 ERROR rows.
+<!-- HFC-RULE:END -->

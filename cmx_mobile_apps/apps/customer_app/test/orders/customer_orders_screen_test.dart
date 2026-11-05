@@ -1,5 +1,6 @@
 import 'package:customer_app/features/orders/ui/screens/customer_orders_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_testkit/mobile_testkit.dart';
 
 void main() {
@@ -14,7 +15,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CustomerOrdersScreen), findsOneWidget);
-    expect(find.text('CMX-10042'), findsOneWidget);
-    expect(find.text('CMX-10018'), findsOneWidget);
+    expect(find.text(ltrCode('CMX-10042')), findsOneWidget);
+    expect(find.text(ltrCode('CMX-10018')), findsOneWidget);
   });
 }

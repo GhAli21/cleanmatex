@@ -18,6 +18,7 @@ import {
 import { CmxButton, CmxSpinner } from '@ui/primitives';
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
 import { cn } from '@/lib/utils';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { OrderIssueSolveDialog } from './order-issue-solve-dialog';
 import { OrderIssueReportDialog } from './order-issue-report-dialog';
 import { OrderIssuesFilterBar } from './order-issues-filter-bar';
@@ -66,6 +67,8 @@ export function OrderIssuesListDialog({
     null
   );
   const [reportOpen, setReportOpen] = React.useState(false);
+  const canReportIssues = useHasPermissionCode('orders:transition');
+  const canResolveIssues = useHasPermissionCode('orders:update');
   const [scopeFilter, setScopeFilter] =
     React.useState<OrderIssuesDialogScopeFilter>('this');
   const [statusFilter, setStatusFilter] =
@@ -170,9 +173,9 @@ export function OrderIssuesListDialog({
         locale,
         t: (key, values) => t(key as never, values as never),
         includeScopeColumn: showScopeCol,
-        onSolve: (row) => setSolveTarget(row),
+        onSolve: canResolveIssues ? (row) => setSolveTarget(row) : undefined,
       }),
-    [locale, showScopeCol, t]
+    [locale, showScopeCol, t, canResolveIssues]
   );
 
   return (
@@ -254,13 +257,15 @@ export function OrderIssuesListDialog({
             >
               {tCommon('close')}
             </CmxButton>
-            <CmxButton
-              type="button"
-              variant="primary"
-              onClick={() => setReportOpen(true)}
-            >
-              {t('addIssue')}
-            </CmxButton>
+            {canReportIssues ? (
+              <CmxButton
+                type="button"
+                variant="primary"
+                onClick={() => setReportOpen(true)}
+              >
+                {t('addIssue')}
+              </CmxButton>
+            ) : null}
           </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>

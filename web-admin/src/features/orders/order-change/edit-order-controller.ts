@@ -7,6 +7,8 @@ import type { OrderChangeEditPolicyInfo } from '@/lib/types/order-change';
 import { EditOperationUnavailableError, buildOrderChangeOperations, type EditOrderDraft, type EditUnlistedChange } from './change-builder';
 import {
   sameIdentity,
+  type EditCustomItemDraft,
+  type EditLineDiscountDraft,
   type EditLineDraft,
   type EditOrderBaseline,
   type EditPieceDraft,
@@ -24,6 +26,8 @@ export interface EditPreviewResult {
   ok: boolean;
   status: number;
   body: unknown;
+  /** Response headers when the call reached the server (quote reads `Retry-After`). */
+  headers?: Headers;
 }
 
 function clone<T>(value: T): T {
@@ -110,7 +114,8 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       requireDraft().priority = priority;
       invalidateReview();
     },
-    setServiceSpeed(serviceSpeed: 'STANDARD' | 'EXPRESS'): void {
+    /** @param serviceSpeed a `sys_service_speed_cd` code; the calculator refuses an inactive one (`SERVICE_SPEED_INVALID`). */
+    setServiceSpeed(serviceSpeed: string): void {
       requireDraft().serviceSpeed = serviceSpeed;
       invalidateReview();
     },
@@ -129,14 +134,15 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
     },
     acknowledge(seq: number, gateCode: string): void {
       requireDraft();
-      gateDecisions = [...gateDecisions.filter((gate) => gate.seq !== seq), { seq, gateCode, acknowledgementChallenge: 'acknowledged' }];
+      // One decision per gate: a discount removal and a policy warning can share a seq.
+      gateDecisions = [...gateDecisions.filter((gate) => gate.seq !== seq || gate.gateCode !== gateCode), { seq, gateCode, acknowledgementChallenge: 'acknowledged' }];
       invalidateReview();
     },
     setOverrideReason(seq: number, gateCode: string, overrideReason: string): void {
       requireDraft();
-      const current = gateDecisions.find((gate) => gate.seq === seq);
+      const current = gateDecisions.find((gate) => gate.seq === seq && gate.gateCode === gateCode);
       gateDecisions = [
-        ...gateDecisions.filter((gate) => gate.seq !== seq),
+        ...gateDecisions.filter((gate) => gate.seq !== seq || gate.gateCode !== gateCode),
         { seq, gateCode, acknowledgementChallenge: current?.acknowledgementChallenge, overrideReason },
       ];
       invalidateReview();
@@ -148,19 +154,46 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       if (snapshot.customerEmail !== undefined) current.customerEmail = snapshot.customerEmail;
       invalidateReview();
     },
-    addItem(input: { productId: string; quantity: number; priceOverride?: string; overrideReason?: string }): EditRowIdentity {
+    /** @param input a catalog `productId` or a `customItem` (P6-02d), never both */
+    addItem(input: { productId?: string; customItem?: EditCustomItemDraft; quantity: number; priceOverride?: string; overrideReason?: string; serviceSpeed?: string; lineDiscount?: EditLineDiscountDraft; confirmedUnitPrice?: string }): EditRowIdentity {
       const identity = localRef(createId);
       requireDraft().lines.push({
         identity,
         productId: input.productId,
+        customItem: input.customItem,
         quantity: input.quantity,
         priceOverride: input.priceOverride,
         overrideReason: input.overrideReason,
+        serviceSpeed: input.serviceSpeed,
+        lineDiscount: input.lineDiscount,
+        confirmedUnitPrice: input.confirmedUnitPrice,
         pieces: [],
         preferences: [],
       });
       invalidateReview();
       return identity;
+    },
+    /** @param serviceSpeed the speed this line ends up with (P6-02b); the builder sends it only where the server would not. */
+    setLineSpeed(identity: EditRowIdentity, serviceSpeed: string): void {
+      const current = line(identity);
+      if (!current) throw new Error('EDIT_LINE_NOT_FOUND');
+      current.serviceSpeed = serviceSpeed;
+      invalidateReview();
+    },
+    /** @param priceOverride the line's cashier price as money text, or null for its standard price (P6-02c) */
+    setLinePrice(identity: EditRowIdentity, priceOverride: string | null, overrideReason?: string): void {
+      const current = line(identity);
+      if (!current) throw new Error('EDIT_LINE_NOT_FOUND');
+      current.priceOverride = priceOverride ?? undefined;
+      current.overrideReason = priceOverride === null ? undefined : overrideReason;
+      invalidateReview();
+    },
+    /** @param lineDiscount the line's cashier discount, or null to remove it (P6-02c) */
+    setLineDiscount(identity: EditRowIdentity, lineDiscount: EditLineDiscountDraft | null): void {
+      const current = line(identity);
+      if (!current) throw new Error('EDIT_LINE_NOT_FOUND');
+      current.lineDiscount = lineDiscount ?? undefined;
+      invalidateReview();
     },
     removeLine(identity: EditRowIdentity): void {
       const current = requireDraft();
@@ -275,6 +308,38 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       reviewProof = body.data?.reviewProof ?? null;
       calculationFingerprint = body.data?.calculationFingerprint ?? null;
       return { ok: response.ok, status: response.status, body };
+    },
+    /**
+     * The live card's quote (Reusable View P4-08/P5-11): the same request as Preview,
+     * sent to the quote route, which issues no review proof and writes nothing.
+     * @param orderId - order being edited
+     * @param options.preset - display preset of the returned view
+     * @param options.signal - aborts a superseded request
+     */
+    async quote(orderId: string, options: { preset?: string; signal?: AbortSignal } = {}): Promise<EditPreviewResult> {
+      if (!baseline || !draft) throw new Error('EDIT_NOT_LOADED');
+      let operations: ReturnType<typeof buildOrderChangeOperations>;
+      try { operations = buildOrderChangeOperations(baseline, draft); }
+      catch (error) {
+        if (error instanceof EditOperationUnavailableError) return { ok: false, status: 422, body: { error: { code: error.code, field: error.field } } };
+        throw error;
+      }
+      const query = options.preset ? `?preset=${encodeURIComponent(options.preset)}` : '';
+      const response = await fetchImpl()(`/api/v1/orders/${orderId}/changes/quote${query}`, {
+        method: 'POST',
+        headers: await requestHeaders(),
+        signal: options.signal,
+        body: JSON.stringify({
+          expectedEditStateVersion: draft.expectedEditStateVersion,
+          expectedWfStateVersion: draft.expectedWfStateVersion,
+          sourceContext: draft.sourceContext,
+          changeReason: draft.changeReason,
+          operations,
+          ...(loadedPolicy ? { expectedPolicy: loadedPolicy } : {}),
+          ...(gateDecisions.length > 0 ? { gateDecisions } : {}),
+        }),
+      });
+      return { ok: response.ok, status: response.status, body: await response.json().catch(() => null), headers: response.headers };
     },
     async apply(orderId: string, suppliedKey: string): Promise<EditPreviewResult> {
       if (!baseline || !draft) throw new Error('EDIT_NOT_LOADED');

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { ORDER_CHANGE_OPERATION_CODES } from '@/lib/constants/order-change';
 import type { EditReviewOperation } from './edit-review-view';
 
@@ -13,7 +14,7 @@ const HIDDEN_IN_SUMMARY = new Set([
   'barcode', 'piece_code', 'items', 'productName', 'productName2', 'product_name', 'product_name2',
   'rec_status', 'currencyCode', 'currency_code', 'field',
 ]);
-const MONEY_KEYS = new Set(['pricePerUnit', 'totalPrice', 'priceOverride', 'preferenceCharge', 'extraPrice', 'totalAmount', 'taxAmount', 'commercialDelta', 'price_per_unit', 'total_price', 'price_override', 'service_pref_charge', 'extra_price', 'total_amount', 'total_tax_amount', 'commercial_delta', 'express_charge_amount']);
+const MONEY_KEYS = new Set(['shownUnitPrice', 'pricePerUnit', 'totalPrice', 'priceOverride', 'preferenceCharge', 'extraPrice', 'totalAmount', 'taxAmount', 'commercialDelta', 'price_per_unit', 'total_price', 'price_override', 'service_pref_charge', 'extra_price', 'total_amount', 'total_tax_amount', 'commercial_delta', 'express_charge_amount']);
 const KIND_KEYS: Record<string, string> = {
   service_prefs: 'service', packing_prefs: 'packing', condition_stain: 'stain', condition_damag: 'damage',
   condition_special: 'condition', condition_pattern: 'condition', condition_material: 'condition', color: 'color', note: 'note',
@@ -45,6 +46,8 @@ export function EditReviewChanges({ operations, currencyCode, timezone, renderWa
     preferenceContent: t('workspace.audit.preferenceText'), level: t('workspace.audit.level'), extraPrice: t('workspace.audit.extraPrice'),
     pieceSeq: t('review.fields.pieceNumber'), pieceStatus: t('workspace.audit.status'), pieceStage: t('review.fields.stage'), scanState: t('review.fields.scanState'),
     brand: t('workspace.audit.brand'), value: t('review.fields.value'), overrideReason: t('workspace.reason'), isDefaultCustomer: t('review.fields.defaultCustomer'),
+    shownUnitPrice: t('review.fields.shownUnitPrice'),
+    discountType: t('review.fields.discountType'), discountValue: t('review.fields.discountValue'), discountReason: t('review.fields.discountReason'),
   };
   const aliases: Record<string, string> = {
     service_speed: 'serviceSpeed', ready_by: 'readyBy', total_amount: 'totalAmount', total_tax_amount: 'taxAmount',
@@ -60,6 +63,9 @@ export function EditReviewChanges({ operations, currencyCode, timezone, renderWa
       if (value === 'STANDARD') return t('workspace.standard');
       if (value === 'EXPRESS') return t('workspace.express');
     }
+    // A line discount (P6-02c) is a percent or an amount; its type is shown on its own row.
+    if (key === 'discountType') return value === DISCOUNT_CALC_TYPE.PERCENTAGE ? t('review.fields.discountPercent') : t('review.fields.discountAmount');
+    if (key === 'discountValue' && Number.isFinite(Number(value))) return new Intl.NumberFormat(locale, { maximumFractionDigits: 4 }).format(Number(value));
     if (MONEY_KEYS.has(key) && currencyCode && Number.isFinite(Number(value))) {
       // Four fraction digits preserve the database money scale without rewriting snapshot values.
       return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 4 }).format(Number(value));

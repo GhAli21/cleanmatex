@@ -1,122 +1,16 @@
 /**
- * Tax Service
- *
- * Handles tax rate retrieval and tax calculations for tenants.
- * Uses TenantSettingsService for 7-layer resolution (SYSTEM_DEFAULT → SYSTEM_PROFILE
- * → TENANT_OVERRIDE → BRANCH_OVERRIDE → USER_OVERRIDE).
+ * Tax Service: tax amount helpers for the legacy price lookups.
  */
 
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { roundMoneyAmount } from '@/lib/money/format-money';
-import { logger } from '@/lib/utils/logger';
-import {
-  tenantSettingsService,
-  SETTING_CODES,
-  type TenantSettingsService,
-} from './tenant-settings.service';
 
 /**
- *
- */
-export interface TaxServiceOptions {
-  /** Optional TenantSettingsService instance (e.g. server client). Defaults to client singleton. */
-  tenantSettings?: TenantSettingsService;
-  /** Financial quotes distinguish a verified unset rate from a failed settings read. */
-  strictResolution?: boolean;
-}
-
-/**
- *
+ * Tax amount helpers. The tax rate comes from tax profiles only
+ * (`getDefaultVatRate` in tax-engine.service); the `TENANT_VAT_RATE`
+ * setting, its rate cache and `getTaxRate` were retired in P6-03.
  */
 export class TaxService {
-  private readonly tenantSettings: TenantSettingsService;
-  private readonly strictResolution: boolean;
-  private readonly taxRateCache = new Map<string, { rate: number; timestamp: number }>();
-  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-  /**
-   *
-   * @param options
-   */
-  constructor(options: TaxServiceOptions = {}) {
-    this.tenantSettings = options.tenantSettings ?? tenantSettingsService;
-    this.strictResolution = options.strictResolution ?? false;
-  }
-
-  /**
-   * Build cache key for tenant/branch/user context.
-   * @param tenantId
-   * @param branchId
-   * @param userId
-   */
-  private cacheKey(tenantId: string, branchId?: string | null, userId?: string | null): string {
-    return `${tenantId}|${branchId ?? ''}|${userId ?? ''}`;
-  }
-
-  /**
-   * Get tax rate for a tenant (with optional branch/user context for overrides).
-   * @param tenantId - Tenant organization ID
-   * @param branchId - Optional branch ID for branch-level VAT override
-   * @param userId - Optional user ID for user-level override
-   * @returns Promise<number> - Tax rate as decimal (e.g., 0.05 for 5%)
-   */
-  async getTaxRate(
-    tenantId: string,
-    branchId?: string | null,
-    userId?: string | null
-  ): Promise<number> {
-    const key = this.cacheKey(tenantId, branchId, userId);
-    const cached = this.taxRateCache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      return cached.rate;
-    }
-
-    try {
-      const readSetting = this.strictResolution
-        ? this.tenantSettings.getSettingValueStrict.bind(this.tenantSettings)
-        : this.tenantSettings.getSettingValue.bind(this.tenantSettings);
-      const value = await readSetting(
-        tenantId,
-        SETTING_CODES.TENANT_VAT_RATE,
-        branchId ?? undefined,
-        userId ?? undefined
-      );
-
-      // B15 policy: tax fallbacks are forbidden — an unset or unparsable rate
-      // means the tenant does not use tax, never an assumed positive rate.
-      let taxRate = 0;
-      if (value !== null && value !== undefined) {
-        const parsed = typeof value === 'number' ? value : parseFloat(String(value));
-        if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 1) {
-          taxRate = parsed;
-        } else {
-          logger.warn('TaxService.getTaxRate: unparsable TENANT_VAT_RATE setting — treating tenant as zero-rated', {
-            tenantId,
-            branchId,
-            rawValue: value,
-          });
-        }
-      } else {
-        logger.warn('TaxService.getTaxRate: no TENANT_VAT_RATE setting configured — treating tenant as zero-rated', {
-          tenantId,
-          branchId,
-        });
-      }
-
-      this.taxRateCache.set(key, { rate: taxRate, timestamp: Date.now() });
-      return taxRate;
-    } catch (error) {
-      if (this.strictResolution) throw error;
-      logger.warn('TaxService.getTaxRate: error resolving VAT rate — treating tenant as zero-rated', {
-        tenantId,
-        branchId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      this.taxRateCache.set(key, { rate: 0, timestamp: Date.now() });
-      return 0;
-    }
-  }
-
   /**
    * Check if a product is tax exempt
    * @param tenantId - Tenant organization ID
@@ -147,26 +41,7 @@ export class TaxService {
   ): number {
     return roundMoneyAmount(amount * taxRate, decimalPlaces);
   }
-
-  /**
-   * Clear cache for a tenant (call after tax rate update in Finance Settings).
-   * Clears all cached rates for that tenant (any branch/user combo).
-   * @param tenantId
-   */
-  clearCache(tenantId: string): void {
-    const prefix = `${tenantId}|`;
-    for (const key of this.taxRateCache.keys()) {
-      if (key.startsWith(prefix) || key === tenantId) {
-        this.taxRateCache.delete(key);
-      }
-    }
-  }
-
-  /** Clear all cached tax rates. */
-  clearAllCache(): void {
-    this.taxRateCache.clear();
-  }
 }
 
-/** Default singleton (uses client-side TenantSettingsService). */
+/** Default singleton. */
 export const taxService = new TaxService();

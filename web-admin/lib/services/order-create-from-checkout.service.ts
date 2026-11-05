@@ -12,6 +12,8 @@
  *   3. Tax-document issuance when the tenant enabled it (non-blocking).
  *   4. The initial commitment (`committed_at`, `edit_state_version = 1`), so
  *      the order is edited only through Order Edit.
+ *   5. The promo usage row when the quote applied a promo (PF-15, C8), as the
+ *      staff submit records it.
  */
 
 import 'server-only';
@@ -21,6 +23,7 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { TAX_TYPES, TAX_DOCUMENT_TRIGGER_EVENTS } from '@/lib/constants/order-financial';
 import { OrderService, type CreateOrderParams, type CreateOrderResult } from '@/lib/services/order-service';
 import type { CheckoutQuote } from '@/lib/services/commercial/commercial-checkout.service';
+import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { settleOrderTx } from '@/lib/services/order-settlement.service';
 import { maybeIssueTaxDocumentTx } from '@/lib/services/tax-document-issuance.service';
 import type { FinancialBreakdownSnapshot, TaxLineItem } from '@/lib/types/order-financial';
@@ -68,21 +71,8 @@ export function checkoutBreakdown(
   settlement: { creditsTotal: number; paymentLegsTotal: number; outstanding: number },
 ): FinancialBreakdownSnapshot {
   const t = checkout.totals;
-  // No tax profile configured: the TENANT_VAT_RATE fallback is the only tax
-  // line possible here; CUSTOM lines come from profiles, so there are none.
-  const taxLines: TaxLineItem[] = t.taxBreakdown.length > 0
-    ? t.taxBreakdown
-    : t.vatValue > 0
-      ? [{
-        taxType: TAX_TYPES.VAT,
-        label: 'VAT',
-        label2: 'ضريبة القيمة المضافة',
-        rate: t.vatTaxPercent,
-        isCompound: false,
-        baseAmount: t.afterDiscounts,
-        taxAmount: t.vatValue,
-      }]
-      : [];
+  // Every tax line comes from a tax profile (P6-03), so the breakdown is complete.
+  const taxLines: TaxLineItem[] = t.taxBreakdown;
   return {
     subtotal: t.subtotal,
     chargesTotal: 0,
@@ -208,6 +198,19 @@ export async function createUnpaidOrderFromCheckoutTx(
     tenantId, orderId, branchId: input.order.branchId ?? null, orderStatus: created.order.currentStatus, issuedBy: input.issuedBy,
   });
   await commitInitialOrderTx(tx, { tenantId, orderId, committedBy: input.committedBy });
+  // PF-15 / C8: an applied promo (typed or automatic) logs its use, so an Edit that removes it can give it back.
+  const { promoDiscount, afterDiscounts } = checkout.totals;
+  if (checkout.promotionId && promoDiscount > 0) {
+    await applyPromoCodeTx(tx, {
+      promoCodeId: checkout.promotionId,
+      orderId,
+      tenantOrgId: tenantId,
+      customerId: input.order.customerId ?? undefined,
+      discountAmount: promoDiscount,
+      orderTotalBefore: afterDiscounts + promoDiscount,
+      appliedBy: input.committedBy ?? undefined,
+    });
+  }
   return { ...created, order: created.order };
 }
 

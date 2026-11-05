@@ -1,0 +1,27 @@
+{
+  "actions": {
+    "printOrderLabel": "Print order label",
+    "printPieceTags": "Print piece tags",
+    "printing": "Printing...",
+    "menu": "Print labels"
+  },
+  "template": {
+    "order": "Order",
+    "readyBy": "Ready by",
+    "tbd": "To be confirmed",
+    "items": "Items",
+    "pieces": "Pieces",
+    "customer": "Customer",
+    "tag": "Tag",
+    "pieceOf": "Piece {seq} of {total}",
+    "orderBarcode": "Order barcode",
+    "lineBarcode": "Line barcode",
+    "pieceBarcode": "Piece barcode",
+    "staffQr": "Staff QR code"
+  },
+  "errors": {
+    "loadFailed": "Could not load the label. Try again.",
+    "printFailed": "Could not open printing. Try again.",
+    "noPieces": "This order has no pieces to tag yet."
+  }
+}

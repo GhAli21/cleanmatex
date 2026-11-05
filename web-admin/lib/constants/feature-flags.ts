@@ -292,7 +292,6 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   { flag_key: 'whatsapp_receipts_enabled', flag_name: 'Whatsapp Receipts Enabled', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'General', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'white_label_enabled', flag_name: 'White Label Enabled', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'General', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'workflow_per_service_category', flag_name: 'Workflow Per Service Category', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'General', governance_category: 'tenant_feature', ui_display_order: 0 },
-  { flag_key: 'workflow_role_restrictions_enabled', flag_name: 'Workflow Role Restrictions Enabled', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'General', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'hq_advanced_analytics', flag_name: 'HQ Advanced Analytics', plan_binding_type: 'independent', data_type: 'boolean', default_value: true, ui_group: 'HQ Features', governance_category: 'hq_feature', ui_display_order: 101 },
   { flag_key: 'accounting_integration', flag_name: 'Accounting Integration', plan_binding_type: 'plan_bound', data_type: 'integer', default_value: 0, ui_group: 'Integration', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'api_access', flag_name: 'API Access', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Integration', governance_category: 'tenant_feature', ui_display_order: 0 },
@@ -340,7 +339,6 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   { flag_key: 'pdf_invoices', flag_name: 'PDF Invoices', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Payment & Billing', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'hq_maintenance_mode', flag_name: 'Maintenance Mode', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Platform Config', governance_category: 'hq_config', ui_display_order: 100 },
   { flag_key: 'invoice_printing', flag_name: 'Invoice Printing', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Printing', governance_category: 'tenant_feature', ui_display_order: 0 },
-  { flag_key: 'label_printing', flag_name: 'Label Printing', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Printing', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'packing_list_printing', flag_name: 'Packing List Printing', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Printing', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'printing', flag_name: 'Receipt Printing', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Printing', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'digital_receipts', flag_name: 'Digital Receipts', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Receipts', governance_category: 'tenant_feature', ui_display_order: 0 },
@@ -381,6 +379,9 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   // Tenant_Currency_FX plan 01, stage 5A-3 (0539) — plan-bound GROWTH/PRO/ENTERPRISE,
   // off everywhere until the Currencies/Rates screen (5C) ships.
   { flag_key: 'multi_currency_fx', flag_name: 'Multi-Currency & FX', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Finance', governance_category: 'tenant_feature', ui_display_order: 20 },
+  // Migration 0684 — scan a printed human-friendly code label (order/item) via
+  // camera/scanner. Plan-bound; enabled on all plans per DB plan mappings.
+  { flag_key: 'human_codes_scan_labels', flag_name: 'Scan Human-Friendly Code Labels', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Order Processing', governance_category: 'tenant_feature', ui_display_order: 20 },
 ];
 
 // ========================
@@ -425,7 +426,6 @@ export const FEATURE_FLAG_KEYS = {
     HQ_ADVANCED_ANALYTICS: 'hq_advanced_analytics',
     MACHINE_MAINTENANCE_LOGS: 'machine_maintenance_logs',
     TENANT_API_ACCESS: 'tenant_api_access',
-    WORKFLOW_ROLE_RESTRICTIONS_ENABLED: 'workflow_role_restrictions_enabled',
     TENANT_WHATSAPP_RECEIPTS: 'tenant_whatsapp_receipts',
     TENANT_IN_APP_RECEIPTS: 'tenant_in_app_receipts',
     TENANT_MULTI_BRANCH: 'tenant_multi_branch',
@@ -579,7 +579,6 @@ export const FEATURE_FLAG_KEYS = {
     INVOICE_PRINTING: 'invoice_printing',
     INVOICING_ENABLED: 'invoicing_enabled',
     ISSUE_TO_SOLVE_ENABLED: 'issue_to_solve_enabled',
-    LABEL_PRINTING: 'label_printing',
     LABEL_PRINTING_58MM: 'label_printing_58mm',
     LABEL_PRINTING_80MM: 'label_printing_80mm',
     LIVE_ORDER_TRACKING: 'live_order_tracking',

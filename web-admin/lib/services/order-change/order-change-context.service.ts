@@ -6,6 +6,8 @@ import { getOrderFinancialSummary } from '@/lib/services/order-financial-summary
 import { ORDER_CHANGE_CONTEXT_DEFERRED_REASON } from '@/lib/constants/order-change';
 import type { OrderChangeContext, OrderChangeEditPolicyInfo } from '@/lib/types/order-change';
 import { resolveOrderChangePolicyBindings } from '@/lib/services/order-change/order-change-edit-policy-resolver.service';
+import { manualLineDiscounts } from '@/lib/services/order-change/order-change-line-money';
+import { DISCOUNT_SOURCE_TYPE } from '@/lib/constants/discount-source-type';
 
 /** Typed failure so the HTTP route can preserve the V3 error envelope without exposing internals. */
 export class OrderChangeContextError extends Error {
@@ -91,10 +93,23 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
       select: {
         id: true, order_id: true, product_id: true, product_name: true, product_name2: true,
         service_category_code: true, quantity: true, price_per_unit: true, total_price: true,
-        price_override: true, service_pref_charge: true, packing_pref_code: true,
+        price_override: true, override_reason: true, service_pref_charge: true, packing_pref_code: true,
+        service_speed: true, quantity_ready: true, ready_at: true,
       },
     });
     const itemIds = new Set(items.map((item) => item.id));
+
+    // Each line's cashier discount (P6-02c): the screen shows it and Review compares against it.
+    const discountRows = await prisma.org_order_discounts_dtl.findMany({
+      where: { tenant_org_id: tenantId, order_id: input.orderId, is_voided: false, source_type: DISCOUNT_SOURCE_TYPE.MANUAL },
+      orderBy: { applied_seq: 'asc' },
+      select: { order_item_id: true, discount_level: true, source_type: true, discount_type: true, discount_rate: true, discount_amount: true, rec_notes: true },
+    });
+    const lineDiscounts = manualLineDiscounts(discountRows.map((row) => ({
+      ...row,
+      discount_rate: row.discount_rate == null ? null : decimalText(row.discount_rate),
+      discount_amount: decimalText(row.discount_amount),
+    })));
 
     // Keep pieces aligned with explicitly active item identities before exposing stable targets.
     const pieces = await prisma.org_order_item_pieces_dtl.findMany({
@@ -202,7 +217,9 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
       items: items.map((item) => ({
         id: item.id, orderId: item.order_id, productId: item.product_id, productName: item.product_name, productName2: item.product_name2,
         serviceCategoryCode: item.service_category_code, quantity: item.quantity, pricePerUnit: decimalText(item.price_per_unit), totalPrice: decimalText(item.total_price),
-        priceOverride: item.price_override == null ? null : decimalText(item.price_override), preferenceCharge: decimalText(item.service_pref_charge), packingPreferenceCode: item.packing_pref_code, active: true,
+        priceOverride: item.price_override == null ? null : decimalText(item.price_override), overrideReason: item.override_reason,
+        lineDiscount: lineDiscounts.get(item.id.toLowerCase()) ?? null, preferenceCharge: decimalText(item.service_pref_charge), packingPreferenceCode: item.packing_pref_code,
+        serviceSpeed: item.service_speed, quantityReady: item.quantity_ready, readyAt: toIso(item.ready_at), active: true,
       })),
       pieces: pieces.map((piece) => ({ id: piece.id, orderId: piece.order_id, orderItemId: piece.order_item_id, pieceSeq: piece.piece_seq, pieceStatus: piece.piece_status, pieceStage: piece.piece_stage, scanState: piece.scan_state, active: true })),
       preferences: preferences.map((preference) => ({

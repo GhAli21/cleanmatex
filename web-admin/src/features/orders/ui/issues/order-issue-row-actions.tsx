@@ -13,6 +13,7 @@ import { OrderIssueStatusBadge } from './order-issue-status-badge';
 import { OrderIssuesListDialog } from './order-issues-list-dialog';
 import { OrderIssueReportDialog } from './order-issue-report-dialog';
 import { ORDER_ISSUE_SCOPE, type OrderIssueScope } from '@/lib/constants/order-issues';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 
 export interface OrderIssueRowActionsProps {
   orderId: string;
@@ -47,6 +48,9 @@ export function OrderIssueRowActions({
   const t = useTranslations('orders.issues');
   const [listOpen, setListOpen] = React.useState(false);
   const [reportOpen, setReportOpen] = React.useState(false);
+  // Raising an issue is a floor action: the API requires orders:transition.
+  const canReportIssues = useHasPermissionCode('orders:transition');
+  const showReportControl = showReport && canReportIssues;
 
   const resolvedOpen =
     openCount ?? (hasOpenIssue ? 1 : 0);
@@ -61,7 +65,7 @@ export function OrderIssueRowActions({
         size={compact ? 'sm' : 'md'}
         onClick={() => setListOpen(true)}
       />
-      {showReport ? (
+      {showReportControl ? (
         <Tooltip content={t('reportHint')}>
           <CmxButton
             type="button"
@@ -89,7 +93,7 @@ export function OrderIssueRowActions({
         onOpenChange={setListOpen}
         onChanged={onChanged}
       />
-      {showReport ? (
+      {showReportControl ? (
         <OrderIssueReportDialog
           open={reportOpen}
           orderId={orderId}

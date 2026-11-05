@@ -81,7 +81,6 @@ jest.mock('@/lib/services/stored-value.service', () => ({
 
 jest.mock('@/lib/services/loyalty.service', () => ({
   redeemPointsTx:  jest.fn(),
-  queueEarnPoints: jest.fn(),
 }));
 
 jest.mock('@/lib/services/gift-card-service', () => ({

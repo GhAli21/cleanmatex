@@ -8,6 +8,7 @@ import { CmxCard } from '@ui/primitives/cmx-card';
 import { Badge } from '@ui/primitives/badge';
 import { CmxButton } from '@ui/primitives';
 import { useAuth } from "@/lib/auth/auth-context";
+import { useHasPermissionCode } from "@/lib/hooks/usePermissions";
 import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate';
 
 interface ServiceCategory {
@@ -34,6 +35,7 @@ export default function CategoriesPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const isRtl = useRTL();
+  const canManageCategories = useHasPermissionCode("products:categories");
 
   useEffect(() => {
     let mounted = true;
@@ -87,7 +89,7 @@ export default function CategoriesPage() {
     setError(null);
     setSuccess(null);
     try {
-      const res = await fetch("/api/v1/categories/enable", {
+      const res = await fetch("/api/v1/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ categoryCodes: Array.from(enabledCodes) }),
@@ -107,11 +109,13 @@ export default function CategoriesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("categories")}</h1>
-        <div className="flex items-center gap-2">
-          <CmxButton onClick={onSave} disabled={saving || loading} loading={saving}>
-            {saving ? tCommon("loading") : t("saveCategories")}
-          </CmxButton>
-        </div>
+        {canManageCategories && (
+          <div className="flex items-center gap-2">
+            <CmxButton onClick={onSave} disabled={saving || loading} loading={saving}>
+              {saving ? tCommon("loading") : t("saveCategories")}
+            </CmxButton>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -158,6 +162,7 @@ export default function CategoriesPage() {
 
                   <CmxSwitch
                     checked={enabled}
+                    disabled={!canManageCategories}
                     onCheckedChange={() => toggleCategory(ctg.service_category_code)}
                   />
                 </div>

@@ -1,0 +1,52 @@
+{
+  "trigger": {
+    "label": "Scan",
+    "title": "Find by scan (Ctrl+Shift+F)"
+  },
+  "dialog": {
+    "title": "Find by scan",
+    "description": "Scan or type an order number, line code, piece code, staff QR or tag.",
+    "inputLabel": "Code or tag",
+    "placeholder": "ORD-20261031-0001 or a tag",
+    "submit": "Find",
+    "empty": "Scan or type a code first",
+    "searching": "Looking up…",
+    "openOrder": "Open order",
+    "openPiece": "Open piece",
+    "linkTag": "Link a tag",
+    "changeTag": "Change tag",
+    "close": "Close"
+  },
+  "result": {
+    "status": "Status",
+    "matchedByTag": "Found by tag",
+    "removed": "This piece was removed from the order",
+    "found": "Found {code}"
+  },
+  "errors": {
+    "SCAN_NOT_FOUND": "Nothing matches this code.",
+    "SCAN_AMBIGUOUS": "This code matches more than one record. Use the piece code instead.",
+    "SCAN_UNSUPPORTED_PAYLOAD": "This label cannot be read here.",
+    "SCAN_INVALID": "This is not a valid code.",
+    "VALIDATION_ERROR": "Enter a code of up to 128 characters.",
+    "rateLimited": "Too many scans. Wait a moment and try again.",
+    "failed": "Could not look this up. Try again."
+  },
+  "linkTag": {
+    "title": "Link a tag",
+    "description": "Scan the tag attached to piece {pieceCode}.",
+    "inputLabel": "Tag",
+    "placeholder": "Scan or type the tag",
+    "submit": "Link",
+    "current": "Current tag",
+    "remove": "Remove tag",
+    "linked": "Tag {tag} linked to {pieceCode}",
+    "removedOk": "Tag removed from {pieceCode}",
+    "errors": {
+      "PIECE_TAG_ORDER_CLOSED": "This order is delivered, closed or cancelled, so its tags are free. Tags cannot be linked to it.",
+      "PIECE_TAG_PIECE_REMOVED": "This piece was removed from the order.",
+      "PIECE_NOT_FOUND": "Piece not found.",
+      "failed": "Could not save the tag. Try again."
+    }
+  }
+}

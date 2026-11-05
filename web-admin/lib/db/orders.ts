@@ -28,7 +28,7 @@ type OrderWorkflowProfileLabelRow = {
   workflow_profile_name: string | null;
   workflow_profile_name2: string | null;
 };
-import { generateBarcode } from '@/lib/utils/barcode-generator';
+import { reserveOrderItemSerials } from '@/lib/services/order-item-code.service';
 import {
   calculateReadyBy,
   DEFAULT_BUSINESS_HOURS,
@@ -40,6 +40,7 @@ import {
   calculateOrderTotal,
 } from '@/lib/utils/pricing-calculator';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
+import { orderNoFromCode } from '@/lib/validations/code-format-schemas';
 import { recalculateOrderFinancialSnapshot } from '@/lib/services/order-financial-write.service';
 import { taxService } from '@/lib/services/tax.service';
 
@@ -217,12 +218,26 @@ export async function addOrderItems(
   // Create items in database
   const createdItems = await prisma.$transaction(async (tx) => {
     const items = [];
-    for (const item of itemsWithPricing) {
-      // Create first to get generated order_item_srno via trigger; then update barcode
+    // HFC P3: serials continue from the order's highest `<order_no>-<n>` under the same lock as the DB trigger.
+    // The line barcode is the plain serial text (labels render it); never an image data URL (ck_ord_item_barcode_val).
+    const orderNo = orderForBarcode?.order_no || '';
+    const serials = orderNo
+      ? await reserveOrderItemSerials(tx, {
+          tenantOrgId,
+          orderId,
+          orderNo,
+          count: itemsWithPricing.length,
+        })
+      : [];
+    for (let index = 0; index < itemsWithPricing.length; index++) {
+      const item = itemsWithPricing[index];
+      // No order_no (should not happen): leave the serial empty and let trg_set_order_item_srno fill or refuse it.
+      const srno = serials[index];
       const created = await tx.org_order_items_dtl.create({
         data: {
           order_id: orderId,
           tenant_org_id: tenantOrgId,
+          ...(srno ? { order_item_srno: srno, barcode: srno } : {}),
           product_id: item.productId,
           product_name: item.product.product_name,
           product_name2: item.product.product_name2,
@@ -245,18 +260,7 @@ export async function addOrderItems(
             item.overrideApplied && currentUserId ? currentUserId : null,
         },
       });
-
-      // Compute an item code for barcode (ORD + SRNO)
-      const srno = (created as any).order_item_srno as string | null;
-      const orderNo = orderForBarcode?.order_no || '';
-      const barcodeValue = srno ? `${orderNo}-${srno}` : orderNo;
-      const itemBarcode = await generateBarcode(barcodeValue);
-
-      const updated = await tx.org_order_items_dtl.update({
-        where: { id: (created as any).id, tenant_org_id: tenantOrgId } as any,
-        data: { barcode: itemBarcode },
-      });
-      items.push(updated);
+      items.push(created);
     }
     return items;
   });
@@ -675,7 +679,12 @@ export async function listOrders(
     }
   }
 
-  if (search) {
+  // Fast path (HFC T3.9): a full order number, line code or piece code finds that order (and its sub-orders) by
+  // exact order_no, so the unique index is used and customer text search is skipped.
+  const searchOrderNo = search ? orderNoFromCode(search) : null;
+  if (searchOrderNo) {
+    where.OR = [{ order_no: searchOrderNo }, { order_no: { startsWith: `${searchOrderNo}-S` } }];
+  } else if (search) {
     where.OR = [
       { order_no: { contains: search, mode: 'insensitive' } },
       {

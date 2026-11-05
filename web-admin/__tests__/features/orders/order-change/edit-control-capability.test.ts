@@ -52,9 +52,19 @@ describe('resolveEditControlCapability', () => {
     expect(resolveEditControlCapability(loaded, 'ADD_ITEM')).toMatchObject({ state: 'WARNING', interactive: true, reasonKey: 'warning' });
   });
 
+  it('P6-02b: reads the order speed and a line speed from their own targets', () => {
+    const rules = policy([
+      { operationCode: 'CHANGE_SERVICE_SPEED', targetType: 'ORDER', decision: 'ALLOW', requiresReason: false },
+      { operationCode: 'CHANGE_SERVICE_SPEED', targetType: 'ITEM', decision: 'DENY', requiresReason: false },
+    ]);
+    expect(resolveEditControlCapability(rules, 'CHANGE_SERVICE_SPEED', 'ORDER').state).toBe('OPEN');
+    expect(resolveEditControlCapability(rules, 'CHANGE_SERVICE_SPEED', 'ITEM').state).toBe('DENIED');
+    expect(resolveEditControlGroup(rules, ['CHANGE_SERVICE_SPEED'], 'ORDER').interactive).toBe(true);
+  });
+
   it('keeps unshipped catalog controls closed even with ALLOW cells', () => {
-    const loaded = policy([{ operationCode: 'CHANGE_ITEM_PRICE', targetType: 'ITEM', decision: 'ALLOW', requiresReason: false }]);
-    expect(resolveEditControlCapability(loaded, 'CHANGE_ITEM_PRICE')).toEqual({ state: 'NOT_AVAILABLE_YET', interactive: false, reasonKey: 'notAvailable' });
+    const loaded = policy([{ operationCode: 'CHANGE_ITEM_PRODUCT', targetType: 'ITEM', decision: 'ALLOW', requiresReason: false }]);
+    expect(resolveEditControlCapability(loaded, 'CHANGE_ITEM_PRODUCT')).toEqual({ state: 'NOT_AVAILABLE_YET', interactive: false, reasonKey: 'notAvailable' });
   });
 
   it('uses the strictest decision and locks customer details in this version', () => {

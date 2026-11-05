@@ -459,6 +459,7 @@ model org_branches_mst {
   org_inv_stock_by_branch                                                                      org_inv_stock_by_branch[]
   org_inv_stock_tr                                                                             org_inv_stock_tr[]
   org_invoice_mst                                                                              org_invoice_mst[]
+  org_label_printing_cf                                                                        org_label_printing_cf[]
   org_ntf_user_prefs_dtl                                                                       org_ntf_user_prefs_dtl[]
   org_order_item_pieces_dtl                                                                    org_order_item_pieces_dtl[]
   org_order_item_processing_steps                                                              org_order_item_processing_steps[]
@@ -884,6 +885,7 @@ model org_order_items_dtl {
 
   @@unique([id, order_id, tenant_org_id])
   @@unique([id, tenant_org_id])
+  @@unique([tenant_org_id, order_item_srno], map: "uq_ord_item_srno")
   @@index([tenant_org_id], map: "idx_order_items_tenant")
   @@index([order_id], map: "idx_org_items_order")
   @@index([tenant_org_id], map: "idx_org_items_tenant")
@@ -1037,248 +1039,251 @@ model org_order_status_history {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_orders_mst {
-  id                                          String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id                               String                            @db.Uuid
-  branch_id                                   String?                           @db.Uuid
-  customer_id                                 String                            @db.Uuid
-  order_type_id                               String?                           @db.VarChar(30)
-  order_no                                    String                            @db.VarChar(100)
-  status                                      String?                           @default("intake")
-  priority                                    String?                           @default("normal")
-  total_items                                 Int?                              @default(0)
-  payment_status                              String?                           @default("pending") @db.VarChar(20)
-  payment_method_code                         String?                           @db.VarChar(50)
-  paid_at                                     DateTime?                         @db.Timestamp(6)
-  paid_by                                     String?                           @db.VarChar(255)
-  payment_notes                               String?
-  received_at                                 DateTime?                         @db.Timestamp(6)
-  ready_by                                    DateTime?                         @db.Timestamp(6)
-  ready_at                                    DateTime?                         @db.Timestamp(6)
-  delivered_at                                DateTime?                         @db.Timestamp(6)
-  customer_notes                              String?
-  internal_notes                              String?
-  created_at                                  DateTime?                         @default(now()) @db.Timestamp(6)
-  updated_at                                  DateTime?                         @default(now()) @db.Timestamp(6)
-  preparation_status                          String?                           @default("pending") @db.VarChar(20)
-  prepared_at                                 DateTime?                         @db.Timestamp(6)
-  prepared_by                                 String?                           @db.Uuid
-  ready_by_override                           DateTime?                         @db.Timestamp(6)
-  priority_multiplier                         Decimal?                          @default(1.0) @db.Decimal(4, 2)
-  photo_urls                                  Json?                             @default("[]")
-  bag_count                                   Int?                              @default(1)
-  qr_code                                     String?
-  barcode                                     String?
-  service_category_code                       String?                           @db.VarChar(120)
-  workflow_template_id                        String?                           @db.Uuid
-  current_status                              String?
-  current_stage                               String?
-  parent_order_id                             String?                           @db.Uuid
-  order_subtype                               String?
-  has_split                                   Boolean?                          @default(false)
-  is_rejected                                 Boolean?                          @default(false)
-  rejected_from_stage                         String?
-  issue_id                                    String?                           @db.Uuid
-  has_issue                                   Boolean?                          @default(false)
-  ready_by_at_new                             DateTime?                         @db.Timestamptz(6)
-  last_transition_at                          DateTime?                         @db.Timestamptz(6)
-  last_transition_by                          String?                           @db.Uuid
-  is_order_quick_drop                         Boolean?                          @default(false)
-  quick_drop_quantity                         Int?
-  rack_location                               String?                           @db.VarChar(100)
-  tax_rate                                    Decimal?                          @db.Decimal(5, 3)
-  currency_code                               String?
-  currency_ex_rate                            Decimal                           @default(1.000000) @db.Decimal(10, 6)
-  vat_rate                                    Decimal?                          @default(0) @db.Decimal(5, 2)
-  discount_rate                               Decimal?                          @default(0) @db.Decimal(5, 2)
-  discount_type                               String?                           @db.VarChar(20)
-  promo_code_id                               String?                           @db.Uuid
-  gift_card_id                                String?                           @db.Uuid
-  payment_type_code                           String?                           @db.VarChar(30)
-  payment_terms                               String?                           @db.VarChar(50)
-  payment_due_date                            DateTime?                         @db.Date
-  is_retail                                   Boolean                           @default(false)
-  created_by                                  String?
-  created_info                                String?
-  updated_by                                  String?
-  updated_info                                String?
-  rec_status                                  Int?                              @default(1) @db.SmallInt
-  rec_order                                   Int?
-  rec_notes                                   String?
-  is_default_customer                         Boolean?                          @default(false)
-  customer_mobile_number                      String?
-  customer_email                              String?
-  customer_name                               String?
-  customer_details                            Json?
-  cancelled_at                                DateTime?                         @db.Timestamptz(6)
-  cancelled_by                                String?                           @db.Uuid
-  cancelled_note                              String?
-  cancellation_reason_code                    String?                           @db.VarChar(50)
-  returned_at                                 DateTime?                         @db.Timestamptz(6)
-  returned_by                                 String?                           @db.Uuid
-  return_reason                               String?
-  return_reason_code                          String?                           @db.VarChar(50)
-  b2b_contract_id                             String?                           @db.Uuid
-  cost_center_code                            String?                           @db.VarChar(50)
-  po_number                                   String?                           @db.VarChar(100)
-  credit_limit_override_by                    String?
-  credit_limit_override_at                    DateTime?                         @db.Timestamp(6)
-  order_source_code                           String                            @default("legacy_unknown") @db.VarChar(64)
-  physical_intake_status                      String                            @default("received") @db.VarChar(30)
-  physical_intake_at                          DateTime?                         @db.Timestamptz(6)
-  physical_intake_by                          String?                           @db.Uuid
-  physical_intake_info                        String?
-  received_info                               String?
-  idempotency_key                             String?
-  total_charges_amount                        Decimal?                          @db.Decimal(19, 4)
-  total_discount_amount                       Decimal?                          @db.Decimal(19, 4)
-  total_tax_amount                            Decimal?                          @db.Decimal(19, 4)
-  total_credit_applied_amount                 Decimal?                          @db.Decimal(19, 4)
-  total_paid_amount                           Decimal?                          @db.Decimal(19, 4)
-  pay_on_collection_amount                    Decimal?                          @db.Decimal(19, 4)
-  rounding_adjustment_amount                  Decimal?                          @default(0) @db.Decimal(19, 4)
-  change_returned_amount                      Decimal?                          @default(0) @db.Decimal(19, 4)
-  outstanding_amount                          Decimal?                          @db.Decimal(19, 4)
-  financial_engine_version                    Int?                              @default(1) @db.SmallInt
-  subtotal_amount                             Decimal                           @default(0) @db.Decimal(19, 4)
-  items_base_amount                           Decimal                           @default(0) @db.Decimal(19, 4)
-  total_amount                                Decimal                           @default(0) @db.Decimal(19, 4)
-  piece_extra_price_amount                    Decimal                           @default(0) @db.Decimal(19, 4)
-  preference_extra_price_amount               Decimal                           @default(0) @db.Decimal(19, 4)
-  service_charge_amount                       Decimal                           @default(0) @db.Decimal(19, 4)
-  delivery_charge_amount                      Decimal                           @default(0) @db.Decimal(19, 4)
-  express_charge_amount                       Decimal                           @default(0) @db.Decimal(19, 4)
-  other_charges_amount                        Decimal                           @default(0) @db.Decimal(19, 4)
-  taxable_amount                              Decimal                           @default(0) @db.Decimal(19, 4)
-  refunded_amount                             Decimal                           @default(0) @db.Decimal(19, 4)
-  real_payment_refunded_amount                Decimal                           @default(0) @db.Decimal(19, 4)
-  stored_value_restored_amount                Decimal                           @default(0) @db.Decimal(19, 4)
-  customer_credit_issued_amount               Decimal                           @default(0) @db.Decimal(19, 4)
-  net_collected_amount                        Decimal                           @default(0) @db.Decimal(19, 4)
-  overpaid_amount                             Decimal                           @default(0) @db.Decimal(19, 4)
-  pending_payment_amount                      Decimal                           @default(0) @db.Decimal(19, 4)
-  authorized_payment_amount                   Decimal                           @default(0) @db.Decimal(19, 4)
-  failed_payment_amount                       Decimal                           @default(0) @db.Decimal(19, 4)
-  refund_reopens_due_amount                   Decimal                           @default(0) @db.Decimal(19, 4)
-  credit_reversal_reopens_due_amount          Decimal                           @default(0) @db.Decimal(19, 4)
-  credit_reversed_amount                      Decimal                           @default(0) @db.Decimal(19, 4)
-  ar_receivable_amount                        Decimal                           @default(0) @db.Decimal(19, 4)
-  ar_invoice_id                               String?                           @db.Uuid
-  ar_invoice_no                               String?
-  ar_invoice_status                           String?
-  tax_document_id                             String?                           @db.Uuid
-  tax_document_no                             String?
-  tax_document_status                         String?
-  tax_document_type                           String?
-  financial_last_calculated_at                DateTime?                         @db.Timestamptz(6)
-  financial_last_calculated_by                String?
-  financial_snapshot_status                   String                            @default("RECALCULATION_REQUIRED")
-  financial_mismatch_warning_count            Int                               @default(0)
-  financial_calculation_snapshot              Json                              @default("{}")
-  financial_calculation_hash                  String?
-  financial_calculation_trace_id              String?                           @db.Uuid
-  non_taxable_amount                          Decimal                           @default(0) @db.Decimal(19, 4)
-  exempt_amount                               Decimal                           @default(0) @db.Decimal(19, 4)
-  zero_rated_amount                           Decimal                           @default(0) @db.Decimal(19, 4)
-  out_of_scope_amount                         Decimal                           @default(0) @db.Decimal(19, 4)
-  pending_credit_application_amount           Decimal                           @default(0) @db.Decimal(19, 4)
-  failed_credit_application_amount            Decimal                           @default(0) @db.Decimal(19, 4)
-  base_cur_currency_code                      String?
-  base_cur_total_amount                       Decimal                           @default(0) @db.Decimal(19, 4)
-  base_cur_tax_amount                         Decimal                           @default(0) @db.Decimal(19, 4)
-  base_cur_paid_amount                        Decimal                           @default(0) @db.Decimal(19, 4)
-  base_cur_credit_applied_amount              Decimal                           @default(0) @db.Decimal(19, 4)
-  base_cur_outstanding_amount                 Decimal                           @default(0) @db.Decimal(19, 4)
-  base_cur_ar_receivable_amount               Decimal                           @default(0) @db.Decimal(19, 4)
-  state_version                               Int                               @default(1)
-  wf_profile_id                               String?                           @db.Uuid
-  wf_version_no                               Int?
-  hold_from_status                            String?
-  public_tracking_token                       String?                           @default(dbgenerated("lower(encode(gen_random_bytes(16), 'hex'::text))"))
-  public_tracking_token_expires_at            DateTime?                         @db.Timestamptz(6)
-  public_tracking_token_revoked_at            DateTime?                         @db.Timestamptz(6)
-  wf_profile_version_id                       String?                           @db.Uuid
-  wf_profile_artifact_id                      String?                           @db.Uuid
-  wf_profile_revision                         Int?
-  wf_profile_checksum                         String?
-  wf_profile_schema_version                   Int?
-  locker_location                             String?
-  locker_code                                 String?
-  hanging_count                               Int?                              @default(0)
+  id                                                                              String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                                                                   String                            @db.Uuid
+  branch_id                                                                       String?                           @db.Uuid
+  customer_id                                                                     String                            @db.Uuid
+  order_type_id                                                                   String?                           @db.VarChar(30)
+  order_no                                                                        String                            @db.VarChar(100)
+  status                                                                          String?                           @default("intake")
+  priority                                                                        String?                           @default("normal")
+  total_items                                                                     Int?                              @default(0)
+  payment_status                                                                  String?                           @default("pending") @db.VarChar(20)
+  payment_method_code                                                             String?                           @db.VarChar(50)
+  paid_at                                                                         DateTime?                         @db.Timestamp(6)
+  paid_by                                                                         String?                           @db.VarChar(255)
+  payment_notes                                                                   String?
+  received_at                                                                     DateTime?                         @db.Timestamp(6)
+  ready_by                                                                        DateTime?                         @db.Timestamp(6)
+  ready_at                                                                        DateTime?                         @db.Timestamp(6)
+  delivered_at                                                                    DateTime?                         @db.Timestamp(6)
+  customer_notes                                                                  String?
+  internal_notes                                                                  String?
+  created_at                                                                      DateTime?                         @default(now()) @db.Timestamp(6)
+  updated_at                                                                      DateTime?                         @default(now()) @db.Timestamp(6)
+  preparation_status                                                              String?                           @default("pending") @db.VarChar(20)
+  prepared_at                                                                     DateTime?                         @db.Timestamp(6)
+  prepared_by                                                                     String?                           @db.Uuid
+  ready_by_override                                                               DateTime?                         @db.Timestamp(6)
+  priority_multiplier                                                             Decimal?                          @default(1.0) @db.Decimal(4, 2)
+  photo_urls                                                                      Json?                             @default("[]")
+  bag_count                                                                       Int?                              @default(1)
+  qr_code                                                                         String?
+  barcode                                                                         String?
+  service_category_code                                                           String?                           @db.VarChar(120)
+  workflow_template_id                                                            String?                           @db.Uuid
+  current_status                                                                  String?
+  current_stage                                                                   String?
+  parent_order_id                                                                 String?                           @db.Uuid
+  order_subtype                                                                   String?
+  has_split                                                                       Boolean?                          @default(false)
+  is_rejected                                                                     Boolean?                          @default(false)
+  rejected_from_stage                                                             String?
+  issue_id                                                                        String?                           @db.Uuid
+  has_issue                                                                       Boolean?                          @default(false)
+  ready_by_at_new                                                                 DateTime?                         @db.Timestamptz(6)
+  last_transition_at                                                              DateTime?                         @db.Timestamptz(6)
+  last_transition_by                                                              String?                           @db.Uuid
+  is_order_quick_drop                                                             Boolean?                          @default(false)
+  quick_drop_quantity                                                             Int?
+  rack_location                                                                   String?                           @db.VarChar(100)
+  tax_rate                                                                        Decimal?                          @db.Decimal(5, 3)
+  currency_code                                                                   String?
+  currency_ex_rate                                                                Decimal                           @default(1.000000) @db.Decimal(10, 6)
+  vat_rate                                                                        Decimal?                          @default(0) @db.Decimal(5, 2)
+  discount_rate                                                                   Decimal?                          @default(0) @db.Decimal(5, 2)
+  discount_type                                                                   String?                           @db.VarChar(20)
+  promo_code_id                                                                   String?                           @db.Uuid
+  gift_card_id                                                                    String?                           @db.Uuid
+  payment_type_code                                                               String?                           @db.VarChar(30)
+  payment_terms                                                                   String?                           @db.VarChar(50)
+  payment_due_date                                                                DateTime?                         @db.Date
+  is_retail                                                                       Boolean                           @default(false)
+  created_by                                                                      String?
+  created_info                                                                    String?
+  updated_by                                                                      String?
+  updated_info                                                                    String?
+  rec_status                                                                      Int?                              @default(1) @db.SmallInt
+  rec_order                                                                       Int?
+  rec_notes                                                                       String?
+  is_default_customer                                                             Boolean?                          @default(false)
+  customer_mobile_number                                                          String?
+  customer_email                                                                  String?
+  customer_name                                                                   String?
+  customer_details                                                                Json?
+  cancelled_at                                                                    DateTime?                         @db.Timestamptz(6)
+  cancelled_by                                                                    String?                           @db.Uuid
+  cancelled_note                                                                  String?
+  cancellation_reason_code                                                        String?                           @db.VarChar(50)
+  returned_at                                                                     DateTime?                         @db.Timestamptz(6)
+  returned_by                                                                     String?                           @db.Uuid
+  return_reason                                                                   String?
+  return_reason_code                                                              String?                           @db.VarChar(50)
+  b2b_contract_id                                                                 String?                           @db.Uuid
+  cost_center_code                                                                String?                           @db.VarChar(50)
+  po_number                                                                       String?                           @db.VarChar(100)
+  credit_limit_override_by                                                        String?
+  credit_limit_override_at                                                        DateTime?                         @db.Timestamp(6)
+  order_source_code                                                               String                            @default("legacy_unknown") @db.VarChar(64)
+  physical_intake_status                                                          String                            @default("received") @db.VarChar(30)
+  physical_intake_at                                                              DateTime?                         @db.Timestamptz(6)
+  physical_intake_by                                                              String?                           @db.Uuid
+  physical_intake_info                                                            String?
+  received_info                                                                   String?
+  idempotency_key                                                                 String?
+  total_charges_amount                                                            Decimal?                          @db.Decimal(19, 4)
+  total_discount_amount                                                           Decimal?                          @db.Decimal(19, 4)
+  total_tax_amount                                                                Decimal?                          @db.Decimal(19, 4)
+  total_credit_applied_amount                                                     Decimal?                          @db.Decimal(19, 4)
+  total_paid_amount                                                               Decimal?                          @db.Decimal(19, 4)
+  pay_on_collection_amount                                                        Decimal?                          @db.Decimal(19, 4)
+  rounding_adjustment_amount                                                      Decimal?                          @default(0) @db.Decimal(19, 4)
+  change_returned_amount                                                          Decimal?                          @default(0) @db.Decimal(19, 4)
+  outstanding_amount                                                              Decimal?                          @db.Decimal(19, 4)
+  financial_engine_version                                                        Int?                              @default(1) @db.SmallInt
+  subtotal_amount                                                                 Decimal                           @default(0) @db.Decimal(19, 4)
+  items_base_amount                                                               Decimal                           @default(0) @db.Decimal(19, 4)
+  total_amount                                                                    Decimal                           @default(0) @db.Decimal(19, 4)
+  piece_extra_price_amount                                                        Decimal                           @default(0) @db.Decimal(19, 4)
+  preference_extra_price_amount                                                   Decimal                           @default(0) @db.Decimal(19, 4)
+  service_charge_amount                                                           Decimal                           @default(0) @db.Decimal(19, 4)
+  delivery_charge_amount                                                          Decimal                           @default(0) @db.Decimal(19, 4)
+  express_charge_amount                                                           Decimal                           @default(0) @db.Decimal(19, 4)
+  other_charges_amount                                                            Decimal                           @default(0) @db.Decimal(19, 4)
+  taxable_amount                                                                  Decimal                           @default(0) @db.Decimal(19, 4)
+  refunded_amount                                                                 Decimal                           @default(0) @db.Decimal(19, 4)
+  real_payment_refunded_amount                                                    Decimal                           @default(0) @db.Decimal(19, 4)
+  stored_value_restored_amount                                                    Decimal                           @default(0) @db.Decimal(19, 4)
+  customer_credit_issued_amount                                                   Decimal                           @default(0) @db.Decimal(19, 4)
+  net_collected_amount                                                            Decimal                           @default(0) @db.Decimal(19, 4)
+  overpaid_amount                                                                 Decimal                           @default(0) @db.Decimal(19, 4)
+  pending_payment_amount                                                          Decimal                           @default(0) @db.Decimal(19, 4)
+  authorized_payment_amount                                                       Decimal                           @default(0) @db.Decimal(19, 4)
+  failed_payment_amount                                                           Decimal                           @default(0) @db.Decimal(19, 4)
+  refund_reopens_due_amount                                                       Decimal                           @default(0) @db.Decimal(19, 4)
+  credit_reversal_reopens_due_amount                                              Decimal                           @default(0) @db.Decimal(19, 4)
+  credit_reversed_amount                                                          Decimal                           @default(0) @db.Decimal(19, 4)
+  ar_receivable_amount                                                            Decimal                           @default(0) @db.Decimal(19, 4)
+  ar_invoice_id                                                                   String?                           @db.Uuid
+  ar_invoice_no                                                                   String?
+  ar_invoice_status                                                               String?
+  tax_document_id                                                                 String?                           @db.Uuid
+  tax_document_no                                                                 String?
+  tax_document_status                                                             String?
+  tax_document_type                                                               String?
+  financial_last_calculated_at                                                    DateTime?                         @db.Timestamptz(6)
+  financial_last_calculated_by                                                    String?
+  financial_snapshot_status                                                       String                            @default("RECALCULATION_REQUIRED")
+  financial_mismatch_warning_count                                                Int                               @default(0)
+  financial_calculation_snapshot                                                  Json                              @default("{}")
+  financial_calculation_hash                                                      String?
+  financial_calculation_trace_id                                                  String?                           @db.Uuid
+  non_taxable_amount                                                              Decimal                           @default(0) @db.Decimal(19, 4)
+  exempt_amount                                                                   Decimal                           @default(0) @db.Decimal(19, 4)
+  zero_rated_amount                                                               Decimal                           @default(0) @db.Decimal(19, 4)
+  out_of_scope_amount                                                             Decimal                           @default(0) @db.Decimal(19, 4)
+  pending_credit_application_amount                                               Decimal                           @default(0) @db.Decimal(19, 4)
+  failed_credit_application_amount                                                Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_currency_code                                                          String?
+  base_cur_total_amount                                                           Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_tax_amount                                                             Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_paid_amount                                                            Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_credit_applied_amount                                                  Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_outstanding_amount                                                     Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_ar_receivable_amount                                                   Decimal                           @default(0) @db.Decimal(19, 4)
+  state_version                                                                   Int                               @default(1)
+  wf_profile_id                                                                   String?                           @db.Uuid
+  wf_version_no                                                                   Int?
+  hold_from_status                                                                String?
+  public_tracking_token                                                           String?                           @default(dbgenerated("lower(encode(gen_random_bytes(16), 'hex'::text))"))
+  public_tracking_token_expires_at                                                DateTime?                         @db.Timestamptz(6)
+  public_tracking_token_revoked_at                                                DateTime?                         @db.Timestamptz(6)
+  wf_profile_version_id                                                           String?                           @db.Uuid
+  wf_profile_artifact_id                                                          String?                           @db.Uuid
+  wf_profile_revision                                                             Int?
+  wf_profile_checksum                                                             String?
+  wf_profile_schema_version                                                       Int?
+  locker_location                                                                 String?
+  locker_code                                                                     String?
+  hanging_count                                                                   Int?                              @default(0)
   /// WP02 foundation only; PostgreSQL retains CHECK, trigger, RLS and deferred-FK enforcement.
   /// Commercial commitment evidence; NULL remains V2-ineligible; immutable once recorded.
-  committed_at                                DateTime?                         @db.Timestamptz(6)
+  committed_at                                                                    DateTime?                         @db.Timestamptz(6)
   /// Optional auth.users commitment actor; NULL preserves unknown proven historical attribution without fabrication.
-  committed_by                                String?                           @db.Uuid
+  committed_by                                                                    String?                           @db.Uuid
   /// Commercial revision only: uncommitted 0, initial commitment 1, applied Change +1; state_version remains workflow-owned.
-  edit_state_version                          Int                               @default(0)
+  edit_state_version                                                              Int                               @default(0)
   /// Stored OPEN, TEMPORARILY_BLOCKED or PERMANENTLY_BLOCKED access state; permanent blocks cannot be reopened by ordinary DML.
-  edit_access_status                          String                            @default("OPEN")
+  edit_access_status                                                              String                            @default("OPEN")
   /// Optional controlled block reason token; a blocked state requires a nonblank code or explanation.
-  edit_block_reason_code                      String?
+  edit_block_reason_code                                                          String?
   /// Optional block explanation; a blocked state requires a nonblank code or explanation.
-  edit_block_reason_text                      String?
+  edit_block_reason_text                                                          String?
   /// Required timestamp when a block is stored; anchors coherent optional temporary expiry.
-  edit_blocked_at                             DateTime?                         @db.Timestamptz(6)
+  edit_blocked_at                                                                 DateTime?                         @db.Timestamptz(6)
   /// Optional auth.users block actor; later runtime supplies authenticated attribution without inventing unknown historical actors.
-  edit_blocked_by                             String?                           @db.Uuid
+  edit_blocked_by                                                                 String?                           @db.Uuid
   /// Optional temporary-block expiry later than blocked_at; permanent blocks prohibit expiry and policy owns effective-time evaluation.
-  edit_block_until                            DateTime?                         @db.Timestamptz(6)
+  edit_block_until                                                                DateTime?                         @db.Timestamptz(6)
   /// Future STANDARD/EXPRESS commercial speed; NULL is unresolved. Never infer from priority or activate SAME_DAY here.
-  service_speed                               String?
+  service_speed                                                                   String?
   /// POS session that was open for this user and branch when the order was created. NULL outside an open POS session. Immutable once set.
-  created_pos_session_id                      String?                           @db.Uuid
-  commercial_level                            String?
-  tax_pricing_mode                            String?
-  extra_price_pricing_mode                    String?
-  disc_alloc_mode                             String?
-  disc_alloc_basis                            String?
-  commercial_calc_version                     Int?                              @db.SmallInt
-  speed_premium_amount                        Decimal?                          @db.Decimal(19, 4)
-  org_asm_tasks_mst                           org_asm_tasks_mst?
-  org_dlv_stops_dtl                           org_dlv_stops_dtl[]
-  org_fin_overpay_disp_dtl                    org_fin_overpay_disp_dtl[]
-  org_fin_vouchers_mst                        org_fin_vouchers_mst[]
-  org_invoice_lines_dtl                       org_invoice_lines_dtl[]           @relation("org_invoice_line_source_order")
-  org_invoice_mst                             org_invoice_mst[]                 @relation("org_invoice_order_header")
-  org_invoice_orders_dtl                      org_invoice_orders_dtl[]          @relation("org_invoice_linked_order")
-  org_ord_transition_events                   org_ord_transition_events[]
-  org_order_changes_mst                       org_order_changes_mst[]
-  org_order_charges_dtl                       org_order_charges_dtl[]
-  org_order_discounts_dtl                     org_order_discounts_dtl[]
-  org_order_edit_history                      org_order_edit_history[]
-  org_order_edit_locks                        org_order_edit_locks?
-  org_order_history                           org_order_history[]
-  org_order_issues                            org_order_issues[]
-  org_order_item_pieces_dtl                   org_order_item_pieces_dtl[]
-  org_order_item_processing_steps             org_order_item_processing_steps[]
-  org_order_items_dtl                         org_order_items_dtl[]
-  org_order_piece_hist_tr                     org_order_piece_hist_tr[]
-  org_order_preferences_dtl                   org_order_preferences_dtl[]
-  org_order_status_history                    org_order_status_history[]
-  org_order_taxes_dtl                         org_order_taxes_dtl[]
-  org_pos_sessions_mst                        org_pos_sessions_mst?             @relation(fields: [tenant_org_id, created_pos_session_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_ord_crt_pos_ses")
-  sys_wf_profile_ver_mst                      sys_wf_profile_ver_mst?           @relation(fields: [wf_profile_version_id, wf_profile_id, wf_version_no], references: [version_id, profile_id, version_no], onDelete: Restrict, onUpdate: NoAction, map: "fk_ord_wf_prof_ver_scope")
-  org_orders_mst                              org_orders_mst?                   @relation("org_orders_mstToorg_orders_mst", fields: [parent_order_id], references: [id], onUpdate: NoAction, map: "fk_order_parent_order")
-  other_org_orders_mst                        org_orders_mst[]                  @relation("org_orders_mstToorg_orders_mst")
-  org_b2b_contracts_mst                       org_b2b_contracts_mst?            @relation(fields: [b2b_contract_id], references: [id], onUpdate: NoAction, map: "fk_orders_b2b_contract")
-  org_gift_cards_mst                          org_gift_cards_mst?               @relation(fields: [gift_card_id], references: [id], onUpdate: NoAction, map: "fk_orders_gift_card")
-  sys_payment_type_cd                         sys_payment_type_cd?              @relation(fields: [payment_type_code], references: [payment_type_code], onUpdate: NoAction, map: "fk_orders_payment_type")
-  org_promotions_mst                          org_promotions_mst?               @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_orders_promo_code")
-  org_branches_mst                            org_branches_mst?                 @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_branch")
-  org_customers_mst                           org_customers_mst                 @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_customer")
-  org_tenants_mst                             org_tenants_mst                   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_order_tenant")
-  sys_order_type_cd                           sys_order_type_cd?                @relation(fields: [order_type_id], references: [order_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_type")
-  sys_currency_cd                             sys_currency_cd?                  @relation(fields: [currency_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_orders_mst_currency")
-  sys_payment_method_cd                       sys_payment_method_cd?            @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_orders_payment_method")
-  users_org_orders_mst_edit_blocked_byTousers users?                            @relation("org_orders_mst_edit_blocked_byTousers", fields: [edit_blocked_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_order_block_actor_fk")
-  users_org_orders_mst_committed_byTousers    users?                            @relation("org_orders_mst_committed_byTousers", fields: [committed_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_order_commit_actor_fk")
-  sys_order_sources_cd                        sys_order_sources_cd              @relation(fields: [order_source_code], references: [order_source_code], map: "fk_org_orders_order_source")
-  sys_workflow_template_cd                    sys_workflow_template_cd?         @relation(fields: [workflow_template_id], references: [template_id], onUpdate: NoAction)
-  org_pck_packing_lists_mst                   org_pck_packing_lists_mst?
-  org_qa_decisions_tr                         org_qa_decisions_tr[]
-  org_rcpt_receipts_mst                       org_rcpt_receipts_mst[]
-  org_tax_documents_mst                       org_tax_documents_mst[]
-  org_wf_gate_decision_mst                    org_wf_gate_decision_mst[]
+  created_pos_session_id                                                          String?                           @db.Uuid
+  commercial_level                                                                String?
+  tax_pricing_mode                                                                String?
+  extra_price_pricing_mode                                                        String?
+  disc_alloc_mode                                                                 String?
+  disc_alloc_basis                                                                String?
+  commercial_calc_version                                                         Int?                              @db.SmallInt
+  speed_premium_amount                                                            Decimal?                          @db.Decimal(19, 4)
+  root_order_id                                                                   String?                           @db.Uuid
+  org_asm_tasks_mst                                                               org_asm_tasks_mst?
+  org_dlv_stops_dtl                                                               org_dlv_stops_dtl[]
+  org_fin_overpay_disp_dtl                                                        org_fin_overpay_disp_dtl[]
+  org_fin_vouchers_mst                                                            org_fin_vouchers_mst[]
+  org_invoice_lines_dtl                                                           org_invoice_lines_dtl[]           @relation("org_invoice_line_source_order")
+  org_invoice_mst                                                                 org_invoice_mst[]                 @relation("org_invoice_order_header")
+  org_invoice_orders_dtl                                                          org_invoice_orders_dtl[]          @relation("org_invoice_linked_order")
+  org_ord_transition_events                                                       org_ord_transition_events[]
+  org_order_changes_mst                                                           org_order_changes_mst[]
+  org_order_charges_dtl                                                           org_order_charges_dtl[]
+  org_order_discounts_dtl                                                         org_order_discounts_dtl[]
+  org_order_edit_history                                                          org_order_edit_history[]
+  org_order_edit_locks                                                            org_order_edit_locks?
+  org_order_history                                                               org_order_history[]
+  org_order_issues                                                                org_order_issues[]
+  org_order_item_pieces_dtl                                                       org_order_item_pieces_dtl[]
+  org_order_item_processing_steps                                                 org_order_item_processing_steps[]
+  org_order_items_dtl                                                             org_order_items_dtl[]
+  org_order_piece_hist_tr                                                         org_order_piece_hist_tr[]
+  org_order_preferences_dtl                                                       org_order_preferences_dtl[]
+  org_order_status_history                                                        org_order_status_history[]
+  org_order_taxes_dtl                                                             org_order_taxes_dtl[]
+  org_pos_sessions_mst                                                            org_pos_sessions_mst?             @relation(fields: [tenant_org_id, created_pos_session_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_ord_crt_pos_ses")
+  org_orders_mst_org_orders_mst_root_order_id_tenant_org_idToorg_orders_mst       org_orders_mst?                   @relation("org_orders_mst_root_order_id_tenant_org_idToorg_orders_mst", fields: [root_order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: Restrict, map: "fk_ord_root_order")
+  other_org_orders_mst_org_orders_mst_root_order_id_tenant_org_idToorg_orders_mst org_orders_mst[]                  @relation("org_orders_mst_root_order_id_tenant_org_idToorg_orders_mst")
+  sys_wf_profile_ver_mst                                                          sys_wf_profile_ver_mst?           @relation(fields: [wf_profile_version_id, wf_profile_id, wf_version_no], references: [version_id, profile_id, version_no], onDelete: Restrict, onUpdate: NoAction, map: "fk_ord_wf_prof_ver_scope")
+  org_orders_mst                                                                  org_orders_mst?                   @relation("org_orders_mstToorg_orders_mst", fields: [parent_order_id], references: [id], onUpdate: NoAction, map: "fk_order_parent_order")
+  other_org_orders_mst                                                            org_orders_mst[]                  @relation("org_orders_mstToorg_orders_mst")
+  org_b2b_contracts_mst                                                           org_b2b_contracts_mst?            @relation(fields: [b2b_contract_id], references: [id], onUpdate: NoAction, map: "fk_orders_b2b_contract")
+  org_gift_cards_mst                                                              org_gift_cards_mst?               @relation(fields: [gift_card_id], references: [id], onUpdate: NoAction, map: "fk_orders_gift_card")
+  sys_payment_type_cd                                                             sys_payment_type_cd?              @relation(fields: [payment_type_code], references: [payment_type_code], onUpdate: NoAction, map: "fk_orders_payment_type")
+  org_promotions_mst                                                              org_promotions_mst?               @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_orders_promo_code")
+  org_branches_mst                                                                org_branches_mst?                 @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_branch")
+  org_customers_mst                                                               org_customers_mst                 @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_customer")
+  org_tenants_mst                                                                 org_tenants_mst                   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_order_tenant")
+  sys_order_type_cd                                                               sys_order_type_cd?                @relation(fields: [order_type_id], references: [order_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_type")
+  sys_currency_cd                                                                 sys_currency_cd?                  @relation(fields: [currency_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_orders_mst_currency")
+  sys_payment_method_cd                                                           sys_payment_method_cd?            @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_orders_payment_method")
+  users_org_orders_mst_edit_blocked_byTousers                                     users?                            @relation("org_orders_mst_edit_blocked_byTousers", fields: [edit_blocked_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_order_block_actor_fk")
+  users_org_orders_mst_committed_byTousers                                        users?                            @relation("org_orders_mst_committed_byTousers", fields: [committed_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "oc_order_commit_actor_fk")
+  sys_order_sources_cd                                                            sys_order_sources_cd              @relation(fields: [order_source_code], references: [order_source_code], map: "fk_org_orders_order_source")
+  sys_workflow_template_cd                                                        sys_workflow_template_cd?         @relation(fields: [workflow_template_id], references: [template_id], onUpdate: NoAction)
+  org_pck_packing_lists_mst                                                       org_pck_packing_lists_mst?
+  org_qa_decisions_tr                                                             org_qa_decisions_tr[]
+  org_rcpt_receipts_mst                                                           org_rcpt_receipts_mst[]
+  org_tax_documents_mst                                                           org_tax_documents_mst[]
+  org_wf_gate_decision_mst                                                        org_wf_gate_decision_mst[]
 
   @@unique([tenant_org_id, order_no])
   @@unique([id, tenant_org_id])
@@ -1591,9 +1596,9 @@ model org_tenants_mst {
   onboarding_completed             Boolean?                           @default(false)
   country_code                     String?                            @db.VarChar(100)
   phone_country_code               String?                            @default("+1") @db.VarChar(5)
-  date_format                      String?                            @default("DD/MM/YYYY") @db.VarChar(20)
-  time_format                      String?                            @default("24h") @db.VarChar(5)
-  first_day_of_week                Int?                               @default(6)
+  date_format                      String?                            @db.VarChar(20)
+  time_format                      String?                            @db.VarChar(5)
+  first_day_of_week                Int?
   business_type_code               String?                            @db.VarChar(60)
   stng_profile_code                String?
   stng_profile_version_applied     Int?
@@ -1608,6 +1613,9 @@ model org_tenants_mst {
   commercial_level                 String                             @default("ITEM")
   disc_alloc_mode                  String                             @default("DOCUMENT_LEVEL")
   disc_alloc_basis                 String                             @default("PROPORTIONAL_NET")
+  current_fiscal_year              String?
+  fiscal_year_start_month          Int?                               @db.SmallInt
+  locale_code                      String?                            @db.VarChar(10)
   cmx_effective_permissions        cmx_effective_permissions[] @ignore
   hq_tenant_status_history         hq_tenant_status_history[]
   org_advance_txn_dtl              org_advance_txn_dtl[]
@@ -1645,6 +1653,7 @@ model org_tenants_mst {
   org_dlv_route_seq_cf             org_dlv_route_seq_cf[]
   org_dlv_routes_mst               org_dlv_routes_mst[]
   org_dlv_slots_mst                org_dlv_slots_mst[]
+  org_doc_seq_mst                  org_doc_seq_mst[]
   org_domain_events_outbox         org_domain_events_outbox[]
   org_drivers_mst                  org_drivers_mst[]
   org_ff_overrides_cf              org_ff_overrides_cf[]
@@ -1700,6 +1709,7 @@ model org_tenants_mst {
   org_inv_stock_by_branch          org_inv_stock_by_branch[]
   org_inv_stock_tr                 org_inv_stock_tr[]
   org_invoice_mst                  org_invoice_mst[]
+  org_label_printing_cf            org_label_printing_cf[]
   org_ntf_audit_dtl                org_ntf_audit_dtl[]
   org_ntf_camp_targets_dtl         org_ntf_camp_targets_dtl[]
   org_ntf_campaigns_mst            org_ntf_campaigns_mst[]
@@ -2982,30 +2992,6 @@ model org_auth_user_roles {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model org_auth_user_workflow_roles {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id       String    @db.Uuid
-  tenant_org_id String    @db.Uuid
-  workflow_role String
-  is_active     Boolean   @default(true)
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-  created_by    String?   @db.VarChar(120)
-  updated_at    DateTime? @db.Timestamptz(6)
-  updated_by    String?   @db.VarChar(120)
-  created_info  String?
-  updated_info  String?
-  rec_status    Int?      @default(1) @db.SmallInt
-  rec_order     Int?
-  rec_notes     String?
-
-  @@unique([user_id, tenant_org_id, workflow_role])
-  @@index([user_id], map: "idx_org_auth_user_workflow_roles_user")
-  @@schema("public")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model org_tenant_settings_cf {
   id                     String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id          String          @db.Uuid
@@ -4202,6 +4188,7 @@ model sys_country_cd {
   updated_at               DateTime?                  @db.Timestamp(6)
   updated_by               String?                    @db.Uuid
   rec_status               Int?                       @default(1) @db.SmallInt
+  hq_general_config        hq_general_config[]
   sys_tax_exempt_reason_cd sys_tax_exempt_reason_cd[]
 
   @@index([is_active, display_order], map: "idx_country_active")
@@ -4286,6 +4273,7 @@ model sys_currency_cd {
   /// Currency Setup Phase 3 (migration 0524). Whether this currency is
   /// offered to tenants — independent of is_system/is_active.
   is_platform_enabled                                                                               Boolean                                @default(false)
+  hq_general_config                                                                                 hq_general_config[]
   org_cash_drawer_cnt_mst                                                                           org_cash_drawer_cnt_mst[]
   org_cash_drawer_ses_bal_dtl                                                                       org_cash_drawer_ses_bal_dtl[]
   org_cash_drawer_sessions_mst                                                                      org_cash_drawer_sessions_mst[]
@@ -4551,6 +4539,7 @@ model sys_language_cd {
   updated_info      String?
   rec_order         Int?
   rec_notes         String?
+  hq_general_config hq_general_config[]
   org_customers_mst org_customers_mst[]
 
   @@index([is_active, display_order], map: "idx_language_active")
@@ -4972,31 +4961,32 @@ model sys_service_prod_templates_cd {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_timezone_cd {
-  code               String             @id @db.VarChar(50)
-  name               String             @db.VarChar(250)
-  name2              String?            @db.VarChar(250)
+  code               String              @id @db.VarChar(50)
+  name               String              @db.VarChar(250)
+  name2              String?             @db.VarChar(250)
   description        String?
   description2       String?
-  display_order      Int?               @default(0)
-  icon               String?            @db.VarChar(100)
-  color              String?            @db.VarChar(60)
+  display_order      Int?                @default(0)
+  icon               String?             @db.VarChar(100)
+  color              String?             @db.VarChar(60)
   utc_offset_hours   Int
-  utc_offset_minutes Int?               @default(0)
-  utc_offset_string  String?            @db.VarChar(10)
-  uses_dst           Boolean?           @default(false)
+  utc_offset_minutes Int?                @default(0)
+  utc_offset_string  String?             @db.VarChar(10)
+  uses_dst           Boolean?            @default(false)
   dst_start_rule     String?
   dst_end_rule       String?
-  region             String?            @db.VarChar(50)
-  country_code       String?            @db.VarChar(2)
-  is_default         Boolean?           @default(false)
-  is_system          Boolean?           @default(true)
-  is_active          Boolean?           @default(true)
+  region             String?             @db.VarChar(50)
+  country_code       String?             @db.VarChar(2)
+  is_default         Boolean?            @default(false)
+  is_system          Boolean?            @default(true)
+  is_active          Boolean?            @default(true)
   metadata           Json?
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
-  created_by         String?            @db.Uuid
-  updated_at         DateTime?          @db.Timestamp(6)
-  updated_by         String?            @db.Uuid
-  rec_status         Int?               @default(1) @db.SmallInt
+  created_at         DateTime?           @default(now()) @db.Timestamp(6)
+  created_by         String?             @db.Uuid
+  updated_at         DateTime?           @db.Timestamp(6)
+  updated_by         String?             @db.Uuid
+  rec_status         Int?                @default(1) @db.SmallInt
+  hq_general_config  hq_general_config[]
   org_branches_mst   org_branches_mst[]
 
   @@index([is_active, display_order], map: "idx_timezone_active")
@@ -5742,9 +5732,9 @@ model org_rcpt_receipts_mst {
 
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_rcpt_receipts_created")
   @@index([tenant_org_id, delivery_status_code, created_at], map: "idx_rcpt_receipts_delivery_status")
-  @@index([order_id], map: "idx_rcpt_receipts_order")
   @@index([tenant_org_id], map: "idx_rcpt_receipts_tenant")
   @@index([tenant_org_id, rec_status], map: "idx_rcpt_receipts_tenant_status")
+  @@index([tenant_org_id, order_id], map: "idx_rcpt_receipts_tenant_order")
   @@schema("public")
 }
 
@@ -6167,7 +6157,7 @@ model org_order_item_pieces_dtl {
   order_id                                                                                                                  String                      @db.Uuid
   order_item_id                                                                                                             String                      @db.Uuid
   piece_seq                                                                                                                 Int
-  piece_code                                                                                                                String?                     @default(dbgenerated("(((((order_id)::text || '-'::text) || (order_item_id)::text) || '-'::text) || piece_seq)"))
+  piece_code                                                                                                                String                      @default("")
   service_category_code                                                                                                     String?                     @db.VarChar(120)
   product_id                                                                                                                String?                     @db.Uuid
   scan_state                                                                                                                String?
@@ -6229,6 +6219,7 @@ model org_order_item_pieces_dtl {
   taxable_amount                                                                                                            Decimal?                    @db.Decimal(19, 4)
   tax_amount                                                                                                                Decimal?                    @db.Decimal(19, 4)
   line_total_amount                                                                                                         Decimal?                    @db.Decimal(19, 4)
+  tag_released_at                                                                                                           DateTime?                   @db.Timestamptz(6)
   org_order_change_ops_dtl                                                                                                  org_order_change_ops_dtl[]
   org_order_discounts_dtl                                                                                                   org_order_discounts_dtl[]
   org_order_issues                                                                                                          org_order_issues[]
@@ -6252,6 +6243,7 @@ model org_order_item_pieces_dtl {
 
   @@unique([id, tenant_org_id], map: "oc_piece_identity_uq")
   @@unique([tenant_org_id, order_id, order_item_id, piece_seq], map: "ak_piece_seq_unique_ord_item")
+  @@unique([tenant_org_id, piece_code], map: "uq_ord_piece_code")
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_order_pieces_created")
   @@index([order_id, order_item_id], map: "idx_order_pieces_order_item")
   @@index([order_id, order_item_id, piece_status], map: "idx_order_pieces_order_item_status")
@@ -6390,8 +6382,8 @@ model org_price_history_audit {
   entity_id            String                @db.Uuid
   price_list_id        String?               @db.Uuid
   product_id           String?               @db.Uuid
-  old_price            Decimal?              @db.Decimal(10, 3)
-  new_price            Decimal?              @db.Decimal(10, 3)
+  old_price            Decimal?              @db.Decimal(19, 4)
+  new_price            Decimal?              @db.Decimal(19, 4)
   old_discount_percent Decimal?              @db.Decimal(5, 2)
   new_discount_percent Decimal?              @db.Decimal(5, 2)
   change_reason        String?
@@ -8075,6 +8067,7 @@ model org_order_charges_dtl {
   tax_rate            Decimal?             @db.Decimal(5, 2)
   taxable_amount      Decimal?             @db.Decimal(19, 4)
   tax_amount          Decimal?             @db.Decimal(19, 4)
+  sys_charge_types_cd sys_charge_types_cd  @relation(fields: [charge_type], references: [charge_type], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocd_charge_type")
   sys_tax_category_cd sys_tax_category_cd? @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocd_tax_category")
   org_tax_profiles_cf org_tax_profiles_cf? @relation(fields: [tax_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocd_tax_profile")
   org_orders_mst      org_orders_mst       @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -8310,7 +8303,7 @@ model org_credit_notes_mst {
   id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id           String                    @db.Uuid
   customer_id             String                    @db.Uuid
-  credit_note_no          String
+  credit_note_no          String                    @default("")
   original_amount         Decimal                   @db.Decimal(19, 4)
   remaining_balance       Decimal                   @db.Decimal(19, 4)
   currency_code           String
@@ -8648,6 +8641,8 @@ model org_loyalty_txn_dtl {
   /// B19 (migration 0511) — FIFO lot-remaining balance. Only meaningful on a
   /// credit row (EARN/BONUS/positive ADJUST, points > 0); NULL on debit rows.
   remaining_points              Int?
+  earn_rate                     Decimal?                       @db.Decimal(10, 4)
+  unreversed_points             Int?
   allocs_as_consuming           org_loyalty_txn_allocs_dtl[]   @relation("loyalty_alloc_consuming")
   allocs_as_source              org_loyalty_txn_allocs_dtl[]   @relation("loyalty_alloc_source")
   org_fin_vouchers_mst          org_fin_vouchers_mst?          @relation(fields: [tenant_org_id, fin_voucher_id], references: [tenant_org_id, id], onDelete: SetNull, onUpdate: NoAction, map: "fk_loyalty_txn_fin_voucher")
@@ -12815,21 +12810,22 @@ model org_wf_release_mst {
 }
 
 model sys_charge_types_cd {
-  charge_type  String    @id
-  name         String
-  name2        String?
-  description  String?
-  sort_order   Int       @default(0) @db.SmallInt
-  is_active    Boolean   @default(true)
-  rec_status   Int       @default(1) @db.SmallInt
-  rec_order    Int?
-  rec_notes    String?
-  created_at   DateTime  @default(now()) @db.Timestamptz(6)
-  created_by   String?
-  created_info String?
-  updated_at   DateTime? @db.Timestamptz(6)
-  updated_by   String?
-  updated_info String?
+  charge_type           String                  @id
+  name                  String
+  name2                 String?
+  description           String?
+  sort_order            Int                     @default(0) @db.SmallInt
+  is_active             Boolean                 @default(true)
+  rec_status            Int                     @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?               @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  org_order_charges_dtl org_order_charges_dtl[]
 
   @@schema("public")
 }
@@ -16837,6 +16833,400 @@ model sys_oc_edit_policy_profile_def_cf {
   is_active              Boolean                @default(true)
   sys_oc_edit_policy_mst sys_oc_edit_policy_mst @relation(fields: [edit_policy_id], references: [id], onUpdate: Restrict, map: "fk_oc_edit_profile_def_pol")
   sys_wf_profiles_cd     sys_wf_profiles_cd     @relation(fields: [workflow_profile_id], references: [profile_id], onUpdate: Restrict, map: "fk_oc_edit_profile_def_profile")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model hq_doc_seq_mst {
+  doc_type_code       String
+  period_key          String              @default("")
+  last_value          BigInt
+  prefix_override     String?
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?           @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  updated_count       Int?                @default(0)
+  deleted_at          DateTime?           @db.Timestamptz(6)
+  deleted_by          String?
+  deleted_info        String?
+  rec_status          Int                 @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean             @default(true)
+  sys_doc_seq_type_cd sys_doc_seq_type_cd @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: NoAction, map: "fk_hq_doc_seq_type")
+
+  @@id([doc_type_code, period_key], map: "pk_hq_doc_seq_mst")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model hq_general_config {
+  config_id               Boolean         @id(map: "pk_hq_general_config") @default(true)
+  default_currency_code   String
+  default_country_code    String          @db.VarChar(2)
+  default_language_code   String          @db.VarChar(2)
+  locale_code             String          @db.VarChar(10)
+  timezone                String          @db.VarChar(50)
+  current_fiscal_year     String
+  fiscal_year_start_month Int             @db.SmallInt
+  date_format             String          @db.VarChar(20)
+  time_format             String          @db.VarChar(5)
+  first_day_of_week       Int             @db.SmallInt
+  default_vat_rate        Decimal         @db.Decimal(5, 2)
+  support_email           String?
+  support_phone           String?
+  default_trial_days      Int             @db.SmallInt
+  created_at              DateTime        @default(now()) @db.Timestamptz(6)
+  created_by              String?
+  created_info            String?
+  updated_at              DateTime?       @db.Timestamptz(6)
+  updated_by              String?
+  updated_info            String?
+  updated_count           Int?            @default(0)
+  rec_status              Int             @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?
+  is_active               Boolean         @default(true)
+  sys_country_cd          sys_country_cd  @relation(fields: [default_country_code], references: [code], onUpdate: NoAction, map: "fk_hq_gen_cfg_country")
+  sys_currency_cd         sys_currency_cd @relation(fields: [default_currency_code], references: [code], onUpdate: NoAction, map: "fk_hq_gen_cfg_currency")
+  sys_language_cd         sys_language_cd @relation(fields: [default_language_code], references: [code], onUpdate: NoAction, map: "fk_hq_gen_cfg_language")
+  sys_timezone_cd         sys_timezone_cd @relation(fields: [timezone], references: [code], onUpdate: NoAction, map: "fk_hq_gen_cfg_timezone")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_doc_seq_mst {
+  tenant_org_id       String              @db.Uuid
+  doc_type_code       String
+  period_key          String              @default("")
+  last_value          BigInt
+  prefix_override     String?
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?           @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  updated_count       Int?                @default(0)
+  deleted_at          DateTime?           @db.Timestamptz(6)
+  deleted_by          String?
+  deleted_info        String?
+  rec_status          Int                 @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean             @default(true)
+  org_tenants_mst     org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_org_doc_seq_tenant")
+  sys_doc_seq_type_cd sys_doc_seq_type_cd @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: NoAction, map: "fk_org_doc_seq_type")
+
+  @@id([tenant_org_id, doc_type_code, period_key], map: "pk_org_doc_seq_mst")
+  @@index([doc_type_code], map: "idx_org_doc_seq_type")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_doc_seq_category_cd {
+  category_code       String                @id(map: "pk_sys_doc_seq_category_cd")
+  name                String
+  name2               String?
+  description         String?
+  description2        String?
+  display_order       Int                   @default(0)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?             @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  updated_count       Int?                  @default(0)
+  deleted_at          DateTime?             @db.Timestamptz(6)
+  deleted_by          String?
+  deleted_info        String?
+  rec_status          Int                   @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean               @default(true)
+  sys_doc_seq_type_cd sys_doc_seq_type_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_doc_seq_manage_level_cd {
+  manage_level_code   String                @id(map: "pk_sys_doc_seq_manage_level_cd")
+  name                String
+  name2               String?
+  description         String?
+  description2        String?
+  display_order       Int                   @default(0)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?             @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  updated_count       Int?                  @default(0)
+  deleted_at          DateTime?             @db.Timestamptz(6)
+  deleted_by          String?
+  deleted_info        String?
+  rec_status          Int                   @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean               @default(true)
+  sys_doc_seq_type_cd sys_doc_seq_type_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_doc_seq_mst {
+  doc_type_code       String
+  period_key          String              @default("")
+  last_value          BigInt
+  prefix_override     String?
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?           @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  updated_count       Int?                @default(0)
+  deleted_at          DateTime?           @db.Timestamptz(6)
+  deleted_by          String?
+  deleted_info        String?
+  rec_status          Int                 @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean             @default(true)
+  sys_doc_seq_type_cd sys_doc_seq_type_cd @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: NoAction, map: "fk_sys_doc_seq_type")
+
+  @@id([doc_type_code, period_key], map: "pk_sys_doc_seq_mst")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_doc_seq_type_cd {
+  doc_type_code               String                      @id(map: "pk_sys_doc_seq_type_cd")
+  name                        String
+  name2                       String?
+  description                 String?
+  description2                String?
+  scope_code                  String
+  category_code               String
+  module_code                 String
+  sub_system_code             String
+  target_table                String
+  target_column               String
+  is_unique                   Boolean                     @default(true)
+  unique_with                 String[]
+  prefix                      String?
+  type_prefix                 String                      @unique(map: "uq_doc_seq_type_tprefix")
+  separator                   String                      @default("-")
+  parts_format                String
+  how_many_parts              Int?                        @default(dbgenerated("(cardinality(string_to_array(parts_format, '-'::text)))::smallint")) @db.SmallInt
+  seq_pad_length              Int                         @default(6) @db.SmallInt
+  full_size                   Int?                        @default(dbgenerated("fn_doc_seq_full_size(prefix, separator, parts_format, seq_pad_length)")) @db.SmallInt
+  reset_policy                String?
+  manage_by_level             String
+  managed_by_object           String?
+  allow_tenant_override       Boolean                     @default(false)
+  strict_no_gaps              Boolean                     @default(false)
+  implement_description       String
+  display_order               Int                         @default(0)
+  created_at                  DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                  String?
+  created_info                String?
+  updated_at                  DateTime?                   @db.Timestamptz(6)
+  updated_by                  String?
+  updated_info                String?
+  updated_count               Int?                        @default(0)
+  deleted_at                  DateTime?                   @db.Timestamptz(6)
+  deleted_by                  String?
+  deleted_info                String?
+  rec_status                  Int                         @default(1) @db.SmallInt
+  rec_order                   Int?
+  rec_notes                   String?
+  is_active                   Boolean                     @default(true)
+  hq_doc_seq_mst              hq_doc_seq_mst[]
+  org_doc_seq_mst             org_doc_seq_mst[]
+  sys_doc_seq_mst             sys_doc_seq_mst[]
+  sys_doc_seq_category_cd     sys_doc_seq_category_cd     @relation(fields: [category_code], references: [category_code], onUpdate: NoAction, map: "fk_doc_seq_type_cat")
+  sys_doc_seq_manage_level_cd sys_doc_seq_manage_level_cd @relation(fields: [manage_by_level], references: [manage_level_code], onUpdate: NoAction, map: "fk_doc_seq_type_level")
+  sys_saas_scope_cd           sys_saas_scope_cd           @relation(fields: [scope_code], references: [scope_code], onUpdate: NoAction, map: "fk_doc_seq_type_scope")
+  sys_module_sub_systems_cd   sys_module_sub_systems_cd   @relation(fields: [module_code, sub_system_code], references: [module_code, sub_system_code], onUpdate: NoAction, map: "fk_doc_seq_type_subsys")
+
+  @@index([module_code, sub_system_code], map: "idx_doc_seq_type_subsys")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_module_sub_systems_cd {
+  module_code         String
+  sub_system_code     String
+  short_code          String                @unique(map: "uq_mod_subsys_short")
+  name                String
+  name2               String?
+  description         String?
+  description2        String?
+  display_order       Int                   @default(0)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?             @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  rec_status          Int                   @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean               @default(true)
+  sys_doc_seq_type_cd sys_doc_seq_type_cd[]
+  sys_modules_cd      sys_modules_cd        @relation(fields: [module_code], references: [module_code], onUpdate: NoAction, map: "fk_mod_subsys_module")
+
+  @@id([module_code, sub_system_code], map: "pk_sys_module_sub_systems_cd")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_modules_cd {
+  module_code               String                      @id(map: "pk_sys_modules_cd")
+  short_code                String                      @unique(map: "uq_modules_short")
+  scope_code                String
+  name                      String
+  name2                     String?
+  description               String?
+  description2              String?
+  display_order             Int                         @default(0)
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  updated_count             Int?                        @default(0)
+  deleted_at                DateTime?                   @db.Timestamptz(6)
+  deleted_by                String?
+  deleted_info              String?
+  rec_status                Int                         @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                     @default(true)
+  sys_module_sub_systems_cd sys_module_sub_systems_cd[]
+  sys_saas_scope_cd         sys_saas_scope_cd           @relation(fields: [scope_code], references: [scope_code], onUpdate: NoAction, map: "fk_modules_scope")
+
+  @@index([scope_code], map: "idx_modules_scope")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_saas_scope_cd {
+  scope_code          String                @id(map: "pk_sys_saas_scope_cd")
+  short_code          String                @unique(map: "uq_saas_scope_short")
+  name                String
+  name2               String?
+  description         String?
+  description2        String?
+  display_order       Int                   @default(0)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?             @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  updated_count       Int?                  @default(0)
+  deleted_at          DateTime?             @db.Timestamptz(6)
+  deleted_by          String?
+  deleted_info        String?
+  rec_status          Int                   @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean               @default(true)
+  sys_doc_seq_type_cd sys_doc_seq_type_cd[]
+  sys_modules_cd      sys_modules_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_label_printing_cf {
+  id                    String                @id(map: "pk_org_label_printing_cf") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id         String                @db.Uuid
+  label_type            String
+  branch_id             String?               @db.Uuid
+  size_code             String?
+  show_qr               Boolean?
+  show_customer_name    Boolean?
+  show_order_barcode    Boolean?
+  copies                Int?                  @db.SmallInt
+  is_active             Boolean               @default(true)
+  rec_status            Int                   @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?             @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  updated_count         Int?                  @default(0)
+  org_branches_mst      org_branches_mst?     @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_lblp_branch")
+  org_tenants_mst       org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_lblp_tenant")
+  sys_label_printing_cf sys_label_printing_cf @relation(fields: [label_type], references: [label_type], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_lblp_type")
+
+  @@unique([tenant_org_id, label_type, branch_id], map: "uq_org_lblp_scope")
+  @@index([tenant_org_id, branch_id], map: "idx_org_lblp_tenant_branch")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_label_printing_cf {
+  label_type            String                  @id(map: "pk_sys_label_printing_cf")
+  name                  String
+  name2                 String?
+  size_code             String?
+  show_qr               Boolean?
+  show_customer_name    Boolean?
+  show_order_barcode    Boolean?
+  copies                Int?                    @db.SmallInt
+  is_active             Boolean                 @default(true)
+  rec_status            Int                     @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?               @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  updated_count         Int?                    @default(0)
+  org_label_printing_cf org_label_printing_cf[]
 
   @@schema("public")
 }

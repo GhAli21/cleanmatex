@@ -59,7 +59,10 @@ export function routeContentSatisfiesEnforcement(
 ): boolean {
   if (enforcement === 'external') return true;
 
-  const hasRequirePermission = content.includes('requirePermission');
+  const hasRequirePermission =
+    /\b(requirePermission|requireAnyPermission|requireAllPermissions|withPermission|withAnyPermission|withAllPermissions)\s*\(/.test(
+      content
+    );
   const hasSessionAuth =
     /getUser\s*\(/.test(content) &&
     (/Unauthorized/i.test(content) || /status:\s*401/.test(content));

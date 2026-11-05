@@ -5,6 +5,7 @@
  */
 
 import { createAdminSupabaseClient, createClient } from '@/lib/supabase/server';
+import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type { FeatureFlags } from '@/lib/types/tenant';
 import {
   type FeatureFlagKey,
@@ -185,17 +186,13 @@ export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {
  * @returns Feature flags for current tenant
  */
 export async function getCurrentFeatureFlags(): Promise<FeatureFlags> {
-  const supabase = await createClient();
+  const tenantId = await getTenantIdFromSession();
 
-  const { 
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || !user.user_metadata?.tenant_org_id) {
+  if (!tenantId) {
     throw new Error('No authenticated user or missing tenant context');
   }
 
-  return getFeatureFlags(user.user_metadata.tenant_org_id);
+  return getFeatureFlags(tenantId);
 }
 
 // ========================
@@ -222,17 +219,13 @@ export async function canAccess(
  * @returns True if feature is enabled
  */
 export async function currentTenantCan(feature: FeatureFlagKey): Promise<boolean> {
-  const supabase = await createClient();
+  const tenantId = await getTenantIdFromSession();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || !user.user_metadata?.tenant_org_id) {
+  if (!tenantId) {
     return false;
   }
 
-  return canAccess(user.user_metadata.tenant_org_id, feature);
+  return canAccess(tenantId, feature);
 }
 
 /**

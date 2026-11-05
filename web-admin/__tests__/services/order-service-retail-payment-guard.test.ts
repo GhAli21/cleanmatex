@@ -1,15 +1,17 @@
 /**
- * T03 (Production Readiness Checklist): retail-only orders must never be
- * created with PAY_ON_COLLECTION. The client blocks this in the New Order
- * modal, but retail resolves straight to a terminal status with no
- * downstream collection gate (unlike laundry orders, which are still gated
- * by PICKUP_COLLECTION_REQUIRED / DELIVERY_COLLECTION_REQUIRED before
- * pickup/delivery). A direct or forged API call must be rejected server-side
- * too, before any write.
+ * T03 (Production Readiness Checklist): a retail-only order sold by staff must be
+ * paid at the counter. Counter retail starts handed over (delivered), so no
+ * collection gate would ever ask for the money. A direct or forged API call
+ * must be rejected server-side too, before any write.
+ *
+ * Owner rule (2026-10-30): a customer-app retail order may be paid later, as
+ * PAY_ON_COLLECTION, when its profile starts it before handover; the pickup and
+ * delivery collection gates then hold it until the balance is collected.
  */
 import { OrderService } from '@/lib/services/order-service';
 import { PAYMENT_METHODS, PAYMENT_TYPE_IDS } from '@/lib/constants/payment';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
+import { resolveOrderCreateWorkflowState } from '@/lib/services/workflow/order-create-workflow.service';
 
 jest.mock('@/lib/supabase/client', () => ({
   createClient: jest.fn(() => ({
@@ -97,4 +99,56 @@ describe('OrderService retail PAY_ON_COLLECTION guard (T03)', () => {
       expect(generateOrderNumberWithTx).not.toHaveBeenCalled();
     },
   );
+
+  describe('customer app (online) retail', () => {
+    const online = {
+      tenantId: 'tenant-1',
+      customerId: 'cust-1',
+      orderTypeId: 'PICKUP',
+      items: retailItems,
+      userId: 'cust-1',
+      userName: 'Customer Mobile App',
+      orderSourceCode: 'customer_mobile_app',
+    };
+    const startsAt = (status: string) => {
+      (resolveOrderCreateWorkflowState as jest.Mock).mockResolvedValueOnce({
+        v_initialStatus: status, v_transitionFrom: status, v_orderStatus: status,
+        v_current_status: status, v_current_stage: status,
+        physicalIntakeStatus: 'received', receivedAt: null, contractScreen: 'retail',
+        isRetailOnlyOrder: true, hydrated: {},
+      });
+    };
+
+    it('passes the guard when paid on collection and the profile starts it before handover', async () => {
+      startsAt('ready');
+      // The guard is the only check before the order number; stop the create there.
+      (generateOrderNumberWithTx as jest.Mock).mockRejectedValueOnce(new Error('past the guard'));
+
+      await expect(OrderService.createOrderInTransaction({} as any, {
+        ...online, paymentTypeCode: PAYMENT_TYPE_IDS.PAY_ON_COLLECTION,
+      })).rejects.toThrow('past the guard');
+    });
+
+    it('refuses when the profile would start the unpaid order handed over', async () => {
+      startsAt('delivered');
+
+      const result = await OrderService.createOrderInTransaction({} as any, {
+        ...online, paymentTypeCode: PAYMENT_TYPE_IDS.PAY_ON_COLLECTION,
+      });
+
+      expect(result).toMatchObject({ success: false, errorCode: 'RETAIL_PAY_LATER_STARTS_HANDED_OVER' });
+      expect(generateOrderNumberWithTx).not.toHaveBeenCalled();
+    });
+
+    // PAY_ON_DELIVERY has no collection gate holding the release, so it stays refused.
+    it('refuses pay on delivery', async () => {
+      startsAt('ready');
+
+      const result = await OrderService.createOrderInTransaction({} as any, {
+        ...online, paymentTypeCode: PAYMENT_TYPE_IDS.PAY_ON_DELIVERY,
+      });
+
+      expect(result).toMatchObject({ success: false, errorCode: 'RETAIL_PAY_ON_COLLECTION_NOT_ALLOWED' });
+    });
+  });
 });

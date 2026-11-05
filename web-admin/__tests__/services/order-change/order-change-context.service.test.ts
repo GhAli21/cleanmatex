@@ -4,6 +4,7 @@ const mockFindFirst = jest.fn();
 const mockItemFindMany = jest.fn();
 const mockPieceFindMany = jest.fn();
 const mockPreferenceFindMany = jest.fn();
+const mockDiscountFindMany = jest.fn();
 const mockFinancialSummary = jest.fn();
 const mockResolve = jest.fn();
 const mockDisplay = jest.fn();
@@ -17,6 +18,7 @@ jest.mock('@/lib/db/prisma', () => ({
     org_order_items_dtl: { findMany: (...args: unknown[]) => mockItemFindMany(...args) },
     org_order_item_pieces_dtl: { findMany: (...args: unknown[]) => mockPieceFindMany(...args) },
     org_order_preferences_dtl: { findMany: (...args: unknown[]) => mockPreferenceFindMany(...args) },
+    org_order_discounts_dtl: { findMany: (...args: unknown[]) => mockDiscountFindMany(...args) },
   },
 }));
 jest.mock('@/lib/services/order-financial-summary.service', () => ({
@@ -61,6 +63,7 @@ describe('getOrderChangeContext', () => {
     mockResolve.mockResolvedValue({ resolutionLevel: 'DENY', denyReason: 'NO_AUTHORITY', editPolicyId: null, policyRevision: null, policyCode: null, bindings: [] });
     mockDisplay.mockResolvedValue([]);
     mockOrganization.mockResolvedValue({ timezone: 'Asia/Muscat' });
+    mockDiscountFindMany.mockResolvedValue([]);
   });
 
   it('preserves stable identities and excludes NULL/0 commercial rows through explicit active queries', async () => {
@@ -86,6 +89,26 @@ describe('getOrderChangeContext', () => {
     expect(mockItemFindMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT_ID, order_id: ORDER_ID, rec_status: 1 });
     expect(mockPieceFindMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT_ID, order_id: ORDER_ID, rec_status: 1 });
     expect(mockPreferenceFindMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT_ID, order_id: ORDER_ID, rec_status: 1 });
+  });
+
+  it('P6-02c: gives each line its cashier discount, read tenant-scoped from its MANUAL rows', async () => {
+    seedEligibleOrder();
+    mockItemFindMany.mockResolvedValue([
+      { id: ITEM_A, order_id: ORDER_ID, product_id: null, product_name: 'Shirt', product_name2: null, service_category_code: null, quantity: 2, price_per_unit: '5.000', total_price: '10.000', price_override: '5.0000', override_reason: 'Loyal customer', service_pref_charge: '0.0000', packing_pref_code: null },
+      { id: ITEM_B, order_id: ORDER_ID, product_id: null, product_name: 'Shirt', product_name2: null, service_category_code: null, quantity: 1, price_per_unit: '5.000', total_price: '5.000', price_override: null, service_pref_charge: '0.0000', packing_pref_code: null },
+    ]);
+    mockPieceFindMany.mockResolvedValue([]);
+    mockPreferenceFindMany.mockResolvedValue([]);
+    mockDiscountFindMany.mockResolvedValue([
+      { order_item_id: ITEM_A, discount_level: 'ITEM', source_type: 'MANUAL', discount_type: 'PERCENTAGE', discount_rate: '12.50', discount_amount: '1.2500', rec_notes: 'Stain' },
+      { order_item_id: null, discount_level: 'ORDER', source_type: 'MANUAL', discount_type: 'FIXED_AMOUNT', discount_rate: null, discount_amount: '1.0000', rec_notes: null },
+    ]);
+
+    const context = await getOrderChangeContext({ tenantId: TENANT_ID, orderId: ORDER_ID });
+
+    expect(context.items[0]).toMatchObject({ priceOverride: '5.0000', overrideReason: 'Loyal customer', lineDiscount: { type: 'PERCENTAGE', value: '12.5000', reason: 'Stain' } });
+    expect(context.items[1].lineDiscount).toBeNull();
+    expect(mockDiscountFindMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT_ID, order_id: ORDER_ID, is_voided: false, source_type: 'MANUAL' });
   });
 
   it('retains the SQL-selected policy identity and status-hole reason without joining an override', async () => {

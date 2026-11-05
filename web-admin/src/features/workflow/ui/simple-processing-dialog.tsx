@@ -25,6 +25,7 @@ import {
 } from '@ui/data-display';
 import { X } from 'lucide-react';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
@@ -124,8 +125,11 @@ export function SimpleProcessingDialog({
   const queryClient = useQueryClient();
   const { token: csrfToken } = useCSRFToken();
   const { formatMoneyWithCode } = useTenantCurrency();
-  const { splitOrderEnabled, trackByPiece, isLoading: settingsLoading } =
+  const { splitOrderEnabled: splitOrderSettingEnabled, trackByPiece, isLoading: settingsLoading } =
     useTenantSettingsWithDefaults(tenantId, null, null, isOpen);
+  // Split needs the tenant setting AND the user's orders:split permission (the API enforces it too).
+  const canSplitOrders = useHasPermissionCode('orders:split');
+  const splitOrderEnabled = splitOrderSettingEnabled && canSplitOrders;
   const getBilingual = useBilingual();
   const { servicePrefs, packingPrefs, conditionCatalog } = usePreferenceCatalog(
     undefined,

@@ -1,5 +1,7 @@
 # CleanMateX Order Details Financial Summary Enhancement Specification
 
+> **Implemented by** [Reusable Order Financial View](Reusable_Order_Fin_View/README.md) (2026-11-01); that folder is the current source of truth.
+
 **Document Type:** UI/UX + Functional Specification  
 **Feature:** Order Details Financial Summary Redesign  
 **Version:** v1.0  

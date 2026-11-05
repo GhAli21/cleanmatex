@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import type { OrderFinancialView as OrderFinancialViewModel } from '@/lib/types/order-fin-view';
+import { OrderFinancialView } from '@/src/features/orders/order-fin-view/ui/order-financial-view';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -61,6 +63,8 @@ interface PublicOrderTimelineEntry {
 interface PublicOrderTrackingPageProps {
     lookupPath: string;
     confirmPath: string;
+    /** Public financial view route (P4-06); absent on retired paths, which then show no statement. */
+    financialViewPath?: string;
 }
 
 interface PublicOrderMoneyConfig {
@@ -95,7 +99,7 @@ interface ConfirmReceivedResponse {
  * @param root0.lookupPath
  * @param root0.confirmPath
  */
-export function PublicOrderTrackingPage({ lookupPath, confirmPath }: PublicOrderTrackingPageProps) {
+export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialViewPath }: PublicOrderTrackingPageProps) {
     const isRTL = useRTL();
     const locale = useLocale();
     const { currencyCode: ctxCurrencyCode, decimalPlaces: ctxDecimalPlaces } = useTenantCurrency();
@@ -121,6 +125,20 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath }: PublicOrder
     const [timeline, setTimeline] = useState<PublicOrderTimelineEntry[]>([]);
     const [isConfirming, setIsConfirming] = useState(false);
     const [confirmSuccess, setConfirmSuccess] = useState<string | null>(null);
+    // The customer-safe statement (P6-11): projected on the server, never computed here.
+    const [financialView, setFinancialView] = useState<OrderFinancialViewModel | null>(null);
+    useEffect(() => {
+        if (!financialViewPath) return undefined;
+        const abort = new AbortController();
+        fetch(financialViewPath, { signal: abort.signal, cache: 'no-store', headers: { Accept: 'application/json' } })
+            .then(async (res) => {
+                const body = await res.json().catch(() => null) as { success?: boolean; data?: OrderFinancialViewModel } | null;
+                if (res.ok && body?.success && body.data) setFinancialView(body.data);
+            })
+            // The statement is extra: without it the page still shows the order.
+            .catch(() => undefined);
+        return () => abort.abort();
+    }, [financialViewPath, confirmSuccess]);
 
     useEffect(() => {
         let cancelled = false;
@@ -226,11 +244,13 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath }: PublicOrder
         isPaymentSettled
             ? tOrders('paid')
             : tOrders('pendingPayment');
+    // The balance as the server states it; never total minus paid in the browser.
     const remainingCollectionAmount = Math.max(
         0,
-        order.totals.payOnCollectionAmount
+        financialView?.header.metrics.balance
+        ?? order.totals.payOnCollectionAmount
         ?? order.totals.outstandingAmount
-        ?? ((order.totals.total ?? 0) - (order.totals.paidAmount ?? 0)),
+        ?? 0,
     );
     const showPayOnCollectionNotice =
         order.paymentTypeCode === 'PAY_ON_COLLECTION' &&
@@ -377,6 +397,10 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath }: PublicOrder
                             </p>
                         </div>
                     </div>
+
+                    {financialView && (
+                        <OrderFinancialView source={{ kind: 'data', view: financialView }} config={{ preset: 'public', layout: 'plain', density: 'compact', columns: 1 }} />
+                    )}
 
                     {isAvailableForPickup && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">

@@ -1,5 +1,6 @@
 'use client'
 
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -245,7 +246,7 @@ export function ReadyListScreen() {
               <CmxCard className="h-full p-6 transition-shadow hover:shadow-md">
                 <div className="mb-4 flex items-start justify-between gap-2">
                   <h3 className="text-xl font-bold text-[rgb(var(--cmx-primary-rgb,14_165_233))]">
-                    {order.order_no}
+                    <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
                   </h3>
                   <div className="flex flex-col items-end gap-1">
                     <PickupReleaseStatus

@@ -63,7 +63,8 @@
     "movement": "الحركة",
     "side": "الجانب",
     "runningBalance": "الرصيد الجاري",
-    "refDocNo": "رقم المستند المرجعي"
+    "refDocNo": "رقم المستند المرجعي",
+    "orderBalance": "رصيد الطلب"
   },
   "emptyLinesTitle": "لا توجد بنود فاتورة",
   "emptyLinesDescription": "لا تحتوي هذه الفاتورة على تفاصيل بنود للذمم حتى الآن.",
