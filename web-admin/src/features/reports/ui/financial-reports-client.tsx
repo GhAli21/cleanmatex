@@ -9,6 +9,8 @@ import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primit
 import { CmxTabsPanel } from '@ui/navigation';
 import { Badge } from '@ui/primitives/badge';
 import { cmxMessage } from '@ui/feedback';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { useTaxCategoryOptions } from '@features/catalog/hooks/use-tax-category-options';
 
 type OrderRow = {
   id: string;
@@ -53,9 +55,9 @@ function defaultTo() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function fmt(n: number | null | undefined, currency?: string | null): string {
+function fmt(n: number | null | undefined, currency: string | null | undefined, decimalPlaces: number): string {
   if (n == null) return '—';
-  return `${currency ?? ''} ${n.toFixed(3)}`.trim();
+  return `${currency ?? ''} ${n.toFixed(decimalPlaces)}`.trim();
 }
 
 /**
@@ -78,6 +80,9 @@ export function FinancialReportsClient() {
   // Tax tab state
   const [taxRows, setTaxRows] = useState<TaxRow[]>([]);
   const [taxGrandTotal, setTaxGrandTotal] = useState(0);
+  const [taxCategories, setTaxCategories] = useState<{ taxCategoryCode: string; amount: number }[]>([]);
+  const { decimalPlaces } = useTenantCurrency();
+  const taxCategoryOptions = useTaxCategoryOptions();
   const [taxLoading, setTaxLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState('orders');
@@ -125,6 +130,7 @@ export function FinancialReportsClient() {
       if (data.success) {
         setTaxRows(data.data.rows);
         setTaxGrandTotal(data.data.grandTotal);
+        setTaxCategories(data.data.categories ?? []);
       } else {
         cmxMessage.error(data.error ?? 'Failed to load report');
       }
@@ -163,17 +169,17 @@ export function FinancialReportsClient() {
     {
       key: 'tax',
       header: t('tax'),
-      render: (o: OrderRow) => <span className="font-mono text-sm">{fmt(o.total_tax_amount, o.currency_code)}</span>,
+      render: (o: OrderRow) => <span className="font-mono text-sm">{fmt(o.total_tax_amount, o.currency_code, decimalPlaces)}</span>,
     },
     {
       key: 'discounts',
       header: t('discounts'),
-      render: (o: OrderRow) => <span className="font-mono text-sm">{fmt(o.total_discount_amount, o.currency_code)}</span>,
+      render: (o: OrderRow) => <span className="font-mono text-sm">{fmt(o.total_discount_amount, o.currency_code, decimalPlaces)}</span>,
     },
     {
       key: 'total',
       header: t('grandTotal'),
-      render: (o: OrderRow) => <span className="font-mono font-medium">{fmt(o.total_paid_amount, o.currency_code)}</span>,
+      render: (o: OrderRow) => <span className="font-mono font-medium">{fmt(o.total_paid_amount, o.currency_code, decimalPlaces)}</span>,
     },
   ];
 
@@ -196,7 +202,7 @@ export function FinancialReportsClient() {
     {
       key: 'amount',
       header: t('amount'),
-      render: (p: PaymentRow) => <span className="font-mono font-medium">{p.totalAmount.toFixed(3)}</span>,
+      render: (p: PaymentRow) => <span className="font-mono font-medium">{p.totalAmount.toFixed(decimalPlaces)}</span>,
     },
   ];
 
@@ -214,12 +220,12 @@ export function FinancialReportsClient() {
     {
       key: 'taxable',
       header: t('taxableAmount'),
-      render: (r: TaxRow) => <span className="font-mono">{r.baseAmount.toFixed(3)}</span>,
+      render: (r: TaxRow) => <span className="font-mono">{r.baseAmount.toFixed(decimalPlaces)}</span>,
     },
     {
       key: 'tax',
       header: t('taxAmount'),
-      render: (r: TaxRow) => <span className="font-mono font-medium">{r.taxAmount.toFixed(3)}</span>,
+      render: (r: TaxRow) => <span className="font-mono font-medium">{r.taxAmount.toFixed(decimalPlaces)}</span>,
     },
     {
       key: 'orders',
@@ -267,15 +273,15 @@ export function FinancialReportsClient() {
               </CmxCard>
               <CmxCard>
                 <CmxCardHeader><CmxCardTitle className="text-sm font-medium text-muted-foreground">{t('grossRevenue')}</CmxCardTitle></CmxCardHeader>
-                <CmxCardContent><span className="text-2xl font-bold">{kpis.grossRevenue.toFixed(3)}</span></CmxCardContent>
+                <CmxCardContent><span className="text-2xl font-bold">{kpis.grossRevenue.toFixed(decimalPlaces)}</span></CmxCardContent>
               </CmxCard>
               <CmxCard>
                 <CmxCardHeader><CmxCardTitle className="text-sm font-medium text-muted-foreground">{t('totalTax')}</CmxCardTitle></CmxCardHeader>
-                <CmxCardContent><span className="text-2xl font-bold">{kpis.totalTax.toFixed(3)}</span></CmxCardContent>
+                <CmxCardContent><span className="text-2xl font-bold">{kpis.totalTax.toFixed(decimalPlaces)}</span></CmxCardContent>
               </CmxCard>
               <CmxCard>
                 <CmxCardHeader><CmxCardTitle className="text-sm font-medium text-muted-foreground">{t('totalDiscounts')}</CmxCardTitle></CmxCardHeader>
-                <CmxCardContent><span className="text-2xl font-bold">{kpis.totalDiscounts.toFixed(3)}</span></CmxCardContent>
+                <CmxCardContent><span className="text-2xl font-bold">{kpis.totalDiscounts.toFixed(decimalPlaces)}</span></CmxCardContent>
               </CmxCard>
             </div>
           )}
@@ -311,13 +317,24 @@ export function FinancialReportsClient() {
           {filterBar}
           {taxLoading
             ? <p className="text-sm text-muted-foreground">{t('loading')}</p>
-            : taxRows.length === 0
+            : taxRows.length === 0 && !taxCategories.some((c) => c.amount !== 0)
             ? <p className="text-sm text-muted-foreground">{t('empty')}</p>
             : (
               <div className="space-y-3">
+                <CmxCard>
+                  <CmxCardHeader><CmxCardTitle className="text-sm font-medium">{t('byTaxCategory')}</CmxCardTitle></CmxCardHeader>
+                  <CmxCardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {taxCategories.map((c) => (
+                      <div key={c.taxCategoryCode}>
+                        <div className="text-sm text-muted-foreground">{taxCategoryOptions.find((o) => o.value === c.taxCategoryCode)?.label ?? c.taxCategoryCode}</div>
+                        <div className="font-mono font-medium">{c.amount.toFixed(decimalPlaces)}</div>
+                      </div>
+                    ))}
+                  </CmxCardContent>
+                </CmxCard>
                 <CmxDataTable columns={taxColumns} data={taxRows} />
                 <div className="flex justify-end rounded-md border border-border bg-muted/30 px-4 py-2 text-sm font-medium">
-                  {t('grandTotalRow')}: <span className="ms-2 font-mono font-bold">{taxGrandTotal.toFixed(3)}</span>
+                  {t('grandTotalRow')}: <span className="ms-2 font-mono font-bold">{taxGrandTotal.toFixed(decimalPlaces)}</span>
                 </div>
                 <div className="flex justify-end">
                   <a

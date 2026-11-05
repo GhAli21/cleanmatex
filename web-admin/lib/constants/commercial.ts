@@ -41,6 +41,14 @@ export const TAX_CATEGORIES = {
 export type TaxCategory = (typeof TAX_CATEGORIES)[keyof typeof TAX_CATEGORIES];
 
 /**
+ * Guards a tax category code from input.
+ * @param value - the code to check
+ * @returns true for a `sys_tax_category_cd.code` value
+ */
+export const isTaxCategory = (value: unknown): value is TaxCategory =>
+  (Object.values(TAX_CATEGORIES) as unknown[]).includes(value);
+
+/**
  * `sys_tax_category_cd.uncl5305_code` per category (DB-mirror; read-only
  * lookup, never written back — the DB column is the source of truth).
  */

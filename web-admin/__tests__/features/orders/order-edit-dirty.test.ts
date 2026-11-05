@@ -14,7 +14,6 @@ function item(overrides: Partial<OrderItem> = {}): OrderItem {
     pricePerUnit: 2.5,
     totalPrice: 2.5,
     defaultSellPrice: 2.5,
-    defaultExpressSellPrice: null,
     ...overrides,
   };
 }

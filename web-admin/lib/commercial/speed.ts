@@ -88,6 +88,19 @@ const matches = (rule: SpeedRuleCandidate, ctx: SpeedContext): boolean =>
   && (rule.productId == null || rule.productId === ctx.productId);
 
 /**
+ * The rules that can price a product. Speed is a service: a retail item has no
+ * turnaround to shorten, so a rule for all products does not reach it. A rule that
+ * names its product or category was meant for it and still applies.
+ * @param rules the tenant's candidate rules
+ * @param isRetailItem the product's `is_retail_item`
+ * @returns the rules to select from
+ * @example speedRulesForProduct(rules, true); // leaves out the all-products rules
+ */
+export function speedRulesForProduct(rules: readonly SpeedRuleCandidate[], isRetailItem: boolean): readonly SpeedRuleCandidate[] {
+  return isRetailItem ? rules.filter((r) => r.productId != null || r.serviceCategoryCode != null) : rules;
+}
+
+/**
  * Picks the most specific active, effective rule for the row.
  *
  * The scope unique index includes `effective_from`, so two rules at the same

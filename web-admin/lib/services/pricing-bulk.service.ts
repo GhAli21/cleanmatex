@@ -361,13 +361,10 @@ export class PricingBulkService {
       return result;
     }
 
-    // Determine which default price field to use based on price list type
-    const useExpressPrice = priceListType === 'express' || priceListType === 'vip';
-
     // Fetch all active products for the tenant
     const { data: products, error: productsError } = await this.supabase
       .from('org_product_data_mst')
-      .select('id, product_code, product_name, default_sell_price, default_express_sell_price')
+      .select('id, product_code, product_name, default_sell_price')
       .eq('tenant_org_id', v_tenantId)
       .eq('is_active', true)
       .eq('rec_status', 1);
@@ -415,10 +412,8 @@ export class PricingBulkService {
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
       try {
-        // Determine default price based on price list type
-        const defaultPrice = useExpressPrice
-          ? product.default_express_sell_price
-          : product.default_sell_price;
+        // Every list starts from the normal price: a speed premium lives in speed rules, not in a list.
+        const defaultPrice = product.default_sell_price;
 
         // Skip products without default price
         if (!defaultPrice || Number(defaultPrice) <= 0) {
@@ -429,7 +424,7 @@ export class PricingBulkService {
               product_code: product.product_code,
               price: 0,
             } as BulkImportRow,
-            error: `No default ${useExpressPrice ? 'express' : 'standard'} price set for product`,
+            error: 'No default price set for product',
           });
           continue;
         }

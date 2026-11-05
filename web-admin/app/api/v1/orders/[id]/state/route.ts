@@ -66,6 +66,7 @@ const ORDER_ITEM_STATE_SELECT = `
   quantity,
   price_per_unit,
   total_price,
+  net_amount,
   quantity_ready,
   service_category_code,
   item_last_step,

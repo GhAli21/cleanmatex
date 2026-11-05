@@ -131,16 +131,12 @@ describe('calculateCommercialOrder', () => {
     expect(suit.pieces.map((p) => p.money.grossAmount.toString())).toEqual(['4.5', '4.5']);
   });
 
-  it('PIECE level: a line preference goes on the first piece; line discounts are rejected (they belong on pieces)', () => {
+  it('PIECE level: a line preference goes on the first piece; a line discount is shared across the pieces (P9-01)', () => {
     const result = calculateCommercialOrder(order({
       level: 'PIECE',
       lines: [line('a', 2, '1', { modifiers: [{ id: 'm', kind: 'PREFERENCE', amount: '1', placement: 'INCLUDED' }] })],
     }));
     expect(result.lines[0].pieces.map((p) => p.money.grossAmount.toString())).toEqual(['2', '1']);
-    expect(() => calculateCommercialOrder(order({
-      level: 'PIECE',
-      lines: [line('a', 2, '1', { adjustments: [{ id: 'd', source: 'MANUAL', calcType: 'PERCENTAGE', value: '10' }] })],
-    }))).toThrow(/belong on its pieces/);
   });
 
   it('ITEM level: a piece preference lands in its piece gross (weight = unit + own extras)', () => {

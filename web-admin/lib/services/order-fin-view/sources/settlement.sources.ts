@@ -25,10 +25,11 @@ export function loadOrderDiscounts(tenantId: string, orderId: string) {
   return getDiscountLinesForOrder(tenantId, orderId);
 }
 
+/** Live tax lines: an Edit retires the old rows (`rec_status` 0) and writes new ones. */
 export function loadOrderTaxes(tenantId: string, orderId: string) {
   return withTenantContext(tenantId, () =>
     prisma.org_order_taxes_dtl.findMany({
-      where: { tenant_org_id: tenantId, order_id: orderId },
+      where: { tenant_org_id: tenantId, order_id: orderId, rec_status: 1 },
       orderBy: { created_at: 'asc' },
     }),
   );

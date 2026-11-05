@@ -9,5 +9,6 @@
   "stainNotes": "Stain Notes",
   "damageNotes": "Damage Notes",
   "notes": "Notes",
-  "totalItems": "Total Items"
+  "totalItems": "Total Items",
+  "afterDiscount": "After discount: {amount}"
 }

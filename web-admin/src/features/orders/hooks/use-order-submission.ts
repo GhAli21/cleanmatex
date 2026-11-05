@@ -395,6 +395,8 @@ export function useOrderSubmission() {
                                 ...(piece.servicePrefs && piece.servicePrefs.length > 0 && {
                                     servicePrefs: piece.servicePrefs,
                                 }),
+                                serviceSpeed: piece.serviceSpeed ?? null,
+                                lineDiscount: piece.lineDiscount ?? null,
                             })),
                         }),
                         ...(item.servicePrefs && item.servicePrefs.length > 0 && {

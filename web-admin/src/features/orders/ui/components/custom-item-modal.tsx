@@ -156,7 +156,6 @@ export function CustomItemModal({
       pricePerUnit: data.price,
       totalPrice: data.price * data.quantity,
       defaultSellPrice: data.price,
-      defaultExpressSellPrice: null,
       serviceCategoryCode,
       notes: sanitizedNotes,
       pieces: trackByPiece

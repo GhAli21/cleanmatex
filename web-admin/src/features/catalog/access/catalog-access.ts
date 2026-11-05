@@ -130,6 +130,42 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/products/[id]/image',
         enforcement: 'auth_only',
       },
+      {
+        label: 'List this product speed rules',
+        method: 'GET',
+        path: '/api/v1/catalog/speed-rules',
+        requirement: {
+          permissions: ['pricing:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Price this product at each speed',
+        method: 'GET',
+        path: '/api/v1/catalog/speed-rules/resolve',
+        requirement: {
+          permissions: ['pricing:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Add a speed rule',
+        method: 'POST',
+        path: '/api/v1/catalog/speed-rules',
+        requirement: {
+          permissions: ['pricing:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Edit a speed rule',
+        method: 'PATCH',
+        path: '/api/v1/catalog/speed-rules/[id]',
+        requirement: {
+          permissions: ['pricing:update'],
+          requireAllPermissions: true,
+        },
+      },
     ],
     notes: CATALOG_CHILD_NOTES,
   },
@@ -183,7 +219,7 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['pricing:delete'], requireAllPermissions: true },
       },
       bulk: {
-        label: 'Add rules for a category',
+        label: 'Add rules for a category; retire or restore product rules',
         requirement: { permissions: ['pricing:bulk'], requireAllPermissions: true },
       },
     },
@@ -237,6 +273,15 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Bulk create speed rules for a category',
         method: 'POST',
         path: '/api/v1/catalog/speed-rules/bulk',
+        requirement: {
+          permissions: ['pricing:bulk'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Retire or restore product speed rules',
+        method: 'POST',
+        path: '/api/v1/catalog/speed-rules/bulk-status',
         requirement: {
           permissions: ['pricing:bulk'],
           requireAllPermissions: true,

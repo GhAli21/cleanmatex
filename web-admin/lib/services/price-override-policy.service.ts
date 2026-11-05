@@ -58,6 +58,8 @@ export interface PriceOverrideLine {
   overrideReason?: string | null;
   /** A cashier discount on this line (P5-03c). */
   lineDiscount?: { reason?: string | null } | null;
+  /** A piece's own discount needs the same permission and reason (P9-01). */
+  pieces?: readonly { lineDiscount?: { reason?: string | null } | null }[];
   /** A custom item (P5-03e): its price is entered, so it needs `pricing:override` like an override. */
   customItem?: unknown;
 }
@@ -88,13 +90,16 @@ export async function assertPriceOverridesAllowed(
   // ─── Line discounts (P5-03c) ──────────────────────────────────────────────
   const discounted = lines
     .map((line, index) => ({ line, index }))
-    .filter(({ line }) => line.lineDiscount != null);
+    .filter(({ line }) => line.lineDiscount != null || line.pieces?.some((p) => p.lineDiscount != null));
   if (discounted.length > 0) {
     if (!(await hasPermission(ORDERS_PERMISSIONS.DISCOUNT))) {
       throw new PriceOverrideError(PRICE_OVERRIDE_ERRORS.LINE_DISCOUNT_NOT_PERMITTED, discounted.map(({ index }) => index));
     }
     if (options.requireReason) {
-      const missing = discounted.filter(({ line }) => blank(line.lineDiscount?.reason)).map(({ index }) => index);
+      const missing = discounted
+        .filter(({ line }) => (line.lineDiscount != null && blank(line.lineDiscount.reason))
+          || line.pieces?.some((p) => p.lineDiscount != null && blank(p.lineDiscount.reason)))
+        .map(({ index }) => index);
       if (missing.length > 0) throw new PriceOverrideError(PRICE_OVERRIDE_ERRORS.LINE_DISCOUNT_REASON_REQUIRED, missing);
     }
   }

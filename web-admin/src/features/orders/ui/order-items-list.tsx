@@ -11,6 +11,7 @@ import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { lineCodeOfPieceRef } from '@features/orders/lib/piece-highlight';
+import { OrderLineNetNote } from './order-line-net-note';
 
 interface OrderItem {
   id: string;
@@ -22,6 +23,7 @@ interface OrderItem {
   quantity?: number | null;
   price_per_unit: number | string;
   total_price: number | string;
+  net_amount?: number | string | null;
   status?: string | null;
   color?: string | null;
   brand?: string | null;
@@ -127,6 +129,7 @@ export function OrderItemsList({
               <div className={`text-xs text-gray-500 ${isRTL ? 'text-left' : 'text-right'}`}>
                 {item.quantity || 1} × {formatMoneyWithCode(parseFloat(item.price_per_unit.toString()))}
               </div>
+              <OrderLineNetNote gross={item.total_price} net={item.net_amount} format={formatMoneyWithCode} />
             </div>
           </div>
 

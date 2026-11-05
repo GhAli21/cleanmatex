@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { isTaxCategory } from '@/lib/constants/commercial';
 import {
   createProduct,
   searchProducts,
@@ -198,6 +199,10 @@ export async function POST(request: NextRequest) {
         { error: 'service_category_code is required' },
         { status: 400 }
       );
+    }
+
+    if (body.tax_category_code !== undefined && !isTaxCategory(body.tax_category_code)) {
+      return NextResponse.json({ error: 'tax_category_code is not valid' }, { status: 400 });
     }
 
     // Create product

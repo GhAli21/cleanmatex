@@ -133,6 +133,7 @@ export class ReceiptService {
             product_name2,
             quantity,
             total_price,
+            line_total_amount,
             packing_pref_code,
             service_pref_charge,
             service_prefs:org_order_preferences_dtl(
@@ -420,7 +421,7 @@ export class ReceiptService {
           : customer.customer_name || '',
       '{{orderDate}}': new Date(order.created_at).toLocaleDateString(),
       '{{total}}': order.total?.toString() || '0',
-      '{{items}}': this.formatItemsList(items, language),
+      '{{items}}': this.formatItemsList(items, language, opts),
       '{{preferences_summary}}': preferencesSummary,
       '{{service_pref_charge}}': formatMoneyAmountWithCode(servicePrefCharge, {
         currencyCode: opts.currencyCode,
@@ -506,16 +507,28 @@ export class ReceiptService {
   /**
    * Format items list for receipt
    */
-  private static formatItemsList(items: any[], language: string): string {
+  private static formatItemsList(items: any[], language: string, money: { decimalPlaces: number; currencyCode: string }): string {
     return items
       .map((item) => {
         const name =
           language === 'ar'
             ? item.product_name2 || item.product_name || ''
             : item.product_name || '';
-        return `${name} x${item.quantity} - ${item.total_price}`;
+        return `${name} x${item.quantity} - ${this.formatLineAmount(item, language, money)}`;
       })
       .join('\n');
+  }
+
+  /**
+   * What the customer pays for a line: after its discounts and with its tax.
+   * An older line with no stored total shows its gross.
+   */
+  private static formatLineAmount(item: any, language: string, money: { decimalPlaces: number; currencyCode: string }): string {
+    return formatMoneyAmountWithCode(Number(item.line_total_amount ?? item.total_price ?? 0), {
+      currencyCode: money.currencyCode,
+      decimalPlaces: money.decimalPlaces,
+      locale: language === 'ar' ? 'ar' : 'en',
+    });
   }
 
   /**
@@ -562,7 +575,7 @@ export class ReceiptService {
         <div class="items">
           <h3>${isRTL ? 'العناصر' : 'Items'}</h3>
           ${items.map((item: any) => `
-            <p>${isRTL ? item.product_name2 || item.product_name : item.product_name} x${item.quantity} - ${item.total_price}</p>
+            <p>${isRTL ? item.product_name2 || item.product_name : item.product_name} x${item.quantity} - ${this.formatLineAmount(item, language, money)}</p>
           `).join('')}
         </div>
         ${this.formatPreferencesSummary(items) !== '—' ? `

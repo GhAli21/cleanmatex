@@ -19,6 +19,10 @@ export interface EditPreferenceDraft {
 
 export interface EditPieceDraft {
   identity: EditRowIdentity;
+  /** The piece's own speed (P9-01); absent follows its line. */
+  serviceSpeed?: string;
+  /** The piece's own cashier discount (P9-01). */
+  lineDiscount?: EditLineDiscountDraft;
   color?: string;
   brand?: string;
   hasStain?: boolean;
@@ -95,6 +99,8 @@ export interface LoadedEditPiece {
   has_stain?: boolean;
   has_damage?: boolean;
   notes?: string;
+  service_speed?: string | null;
+  line_discount?: { type: string; value: string; reason: string | null } | null;
   service_prefs?: LoadedEditPreference[];
 }
 
@@ -169,6 +175,8 @@ export function mapLoadedOrderToEditBaseline(order: LoadedEditOrder, orderId: st
     for (const piece of item.pieces ?? []) {
       if (!piece.id) return { ok: false, code: 'EDIT_BASELINE_INVALID' };
       pieces.push({
+        ...(piece.service_speed && piece.service_speed !== (item.service_speed ?? order.service_speed) ? { serviceSpeed: piece.service_speed } : {}),
+        ...(piece.line_discount ? { lineDiscount: { type: piece.line_discount.type as DiscountCalcType, value: piece.line_discount.value, reason: piece.line_discount.reason ?? '' } } : {}),
         identity: { kind: 'persisted', id: piece.id },
         color: piece.color,
         brand: piece.brand,
@@ -272,6 +280,8 @@ export function mapChangeContextToEditBaseline(context: OrderChangeContext): Edi
       service_speed: item.serviceSpeed ?? null,
       pieces: context.pieces.filter((piece) => piece.orderItemId === item.id).map((piece) => ({
         id: piece.id,
+        service_speed: piece.serviceSpeed,
+        line_discount: piece.lineDiscount,
         service_prefs: preferencesFor('PIECE', item.id, piece.id).map((preference) => ({
           id: preference.identity.kind === 'persisted' ? preference.identity.id : undefined,
           preference_code: preference.preferenceCode,

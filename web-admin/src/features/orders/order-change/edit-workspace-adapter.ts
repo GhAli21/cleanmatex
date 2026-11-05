@@ -1,3 +1,4 @@
+import { MONEY_BASIS } from '@/lib/constants/commercial';
 import type { OrderChangeContext, OrderChangeContextPreference } from '@/lib/types/order-change';
 import type { OrderItem, OrderItemServicePref, PreSubmissionPiece } from '@features/orders/model/new-order-types';
 import type { EditUnlistedChange } from './change-builder';
@@ -76,9 +77,9 @@ export function projectEditVisualOrder(context: OrderChangeContext): {
         pricePerUnit: Number(item.pricePerUnit),
         totalPrice: Number(item.totalPrice),
         defaultSellPrice: null,
-        defaultExpressSellPrice: null,
         serviceCategoryCode: item.serviceCategoryCode ?? undefined,
         serviceSpeed: ownSpeed,
+        piecePriced: item.moneyBasis === MONEY_BASIS.ROLLUP,
         // The line's cashier price and discount (P6-02c), editable from the cart like on Create.
         priceOverride: item.priceOverride == null ? null : Number(item.priceOverride),
         overrideReason: item.overrideReason ?? null,
@@ -94,6 +95,10 @@ export function projectEditVisualOrder(context: OrderChangeContext): {
             itemId: item.id,
             pieceSeq: piece.pieceSeq,
             servicePrefs: piecePrefs.length > 0 ? piecePrefs : undefined,
+            serviceSpeed: piece.serviceSpeed && piece.serviceSpeed !== item.serviceSpeed ? piece.serviceSpeed : null,
+            lineDiscount: piece.lineDiscount
+              ? { type: piece.lineDiscount.type as EditLineDiscountDraft['type'], value: Number(piece.lineDiscount.value), reason: piece.lineDiscount.reason ?? '' }
+              : null,
           };
         }),
       }];
@@ -228,6 +233,13 @@ function syncPersistedLine(controller: EditOrderController, line: EditOrderBasel
     if (!current) continue;
     syncPreferences(controller, current.preferences, piece.servicePrefs, 'PIECE', current.identity, { kind: 'PERSISTED_PIECE', id });
     recordUnlisted(controller, persistedPieceExtras(current, piece));
+    if ((piece.serviceSpeed ?? undefined) !== current.serviceSpeed) {
+      controller.setPieceMoney(line.identity, current.identity, { serviceSpeed: piece.serviceSpeed ?? null });
+    }
+    const pieceDiscount = piece.lineDiscount ? lineDiscountDraft(piece) : null;
+    if (!sameLineDiscount(current.lineDiscount ?? null, pieceDiscount)) {
+      controller.setPieceMoney(line.identity, current.identity, { lineDiscount: pieceDiscount });
+    }
   }
 }
 
@@ -284,7 +296,7 @@ function linePriceChanged(line: EditOrderBaseline['lines'][number], item: OrderI
 }
 
 /** The cart's line discount as Edit sends it: a percent keeps 2 decimals (`discount_rate`), an amount 4. */
-function lineDiscountDraft(item: OrderItem): EditLineDiscountDraft | null {
+function lineDiscountDraft(item: Pick<OrderItem, 'lineDiscount'>): EditLineDiscountDraft | null {
   const discount = item.lineDiscount;
   if (!discount || !Number.isFinite(discount.value)) return null;
   const decimals = discount.type === DISCOUNT_CALC_TYPE.PERCENTAGE ? 2 : 4;

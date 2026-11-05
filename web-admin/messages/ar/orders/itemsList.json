@@ -9,5 +9,6 @@
   "stainNotes": "ملاحظات البقع",
   "damageNotes": "ملاحظات التلف",
   "notes": "ملاحظات",
-  "totalItems": "إجمالي العناصر"
+  "totalItems": "إجمالي العناصر",
+  "afterDiscount": "بعد الخصم: {amount}"
 }

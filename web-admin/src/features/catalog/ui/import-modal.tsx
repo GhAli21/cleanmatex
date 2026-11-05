@@ -11,7 +11,7 @@ interface ImportResult {
   invalidRows: number
   imported: number
   skipped: number
-  errors: { row: number; field: string; message: string }[]
+  errors: { row: number; field: string; message: string; code?: string }[]
 }
 
 interface ImportModalProps {
@@ -54,7 +54,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
   }
 
   const sampleBasic = 'product_code,product_name,product_name_ar,category_code,price,unit\nPROD-00001,Shirt,قميص,LAUNDRY,1.000,piece'
-  const sampleAdvanced = 'product_code,product_name,product_name_ar,category_code,price_regular,price_express,unit,min_qty,turnaround_hh,turnaround_hh_express,is_active\nPROD-00002,Dress,فستان,DRY_CLEAN,2.500,3.000,piece,1,24,12,true'
+  const sampleAdvanced = 'product_code,product_name,product_name_ar,category_code,price_regular,price_express,express_multiplier,unit,min_qty,turnaround_hh,turnaround_hh_express,tax_category_code,is_active\nPROD-00002,Dress,فستان,DRY_CLEAN,2.500,3.000,,piece,1,24,12,STANDARD,true'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
@@ -85,6 +85,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                 <pre className="overflow-auto rounded bg-gray-50 p-2 text-xs">
                   {template === 'basic' ? sampleBasic : sampleAdvanced}
                 </pre>
+                {template === 'advanced' ? <p className="mt-1">{t('importAdvancedHint')}</p> : null}
               </div>
             </div>
             <div className="md:col-span-2">
@@ -107,7 +108,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
             ) : (
               <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-yellow-800">
                 {result.errors.slice(0, 50).map((er, idx) => (
-                  <div key={idx} className="text-xs">Row {er.row} • {er.field}: {er.message}</div>
+                  <div key={idx} className="text-xs">Row {er.row} • {er.field}: {er.code && t.has(`importErrors.${er.code}`) ? t(`importErrors.${er.code}` as never) : er.message}</div>
                 ))}
                 {result.errors.length > 50 && <div className="text-xs">+{result.errors.length - 50} more...</div>}
               </div>

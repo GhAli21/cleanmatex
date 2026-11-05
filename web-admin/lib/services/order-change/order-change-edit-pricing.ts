@@ -71,39 +71,45 @@ export function reviewedItemTotal(line: { merchandiseAmount: string; embeddedExt
  * The speeds the reviewed operations set (P6-02b): the order speed (ORDER target)
  * and each line's own speed (ITEM target). The last operation for a target wins.
  * @param operations the reviewed operations
- * @returns the new order speed (null when unchanged) and line speeds by lower-case item id
+ * @returns the new order speed (null when unchanged), line speeds by lower-case item id and piece speeds by lower-case piece id (P9-01)
  */
-export function speedChangesOf(operations: readonly ChangeOperation[]): { orderSpeed: string | null; lineSpeeds: Map<string, string> } {
+export function speedChangesOf(operations: readonly ChangeOperation[]): { orderSpeed: string | null; lineSpeeds: Map<string, string>; pieceSpeeds: Map<string, string> } {
   let orderSpeed: string | null = null;
   const lineSpeeds = new Map<string, string>();
+  const pieceSpeeds = new Map<string, string>();
   for (const operation of operations) {
     if (operation.code !== 'CHANGE_SERVICE_SPEED') continue;
     if (operation.target.kind === 'ORDER') orderSpeed = operation.payload.serviceSpeed;
+    else if (operation.target.kind === 'PERSISTED_PIECE') pieceSpeeds.set(operation.target.id.toLowerCase(), operation.payload.serviceSpeed);
     else lineSpeeds.set(operation.target.id.toLowerCase(), operation.payload.serviceSpeed);
   }
-  return { orderSpeed, lineSpeeds };
+  return { orderSpeed, lineSpeeds, pieceSpeeds };
 }
 
 /**
  * The cashier prices and discounts the reviewed operations set on stored lines (P6-02c).
  * A null value clears the line's price or discount; an absent line keeps its own.
  * @param operations the reviewed operations
- * @returns prices and discounts by lower-case item id
+ * @returns prices and discounts by lower-case item id, and piece discounts by lower-case piece id (P9-01)
  */
 export function lineMoneyChangesOf(operations: readonly ChangeOperation[]): {
   prices: Map<string, { priceOverride: string | null; overrideReason: string | null }>;
   discounts: Map<string, EditLineDiscount | null>;
+  pieceDiscounts: Map<string, EditLineDiscount | null>;
 } {
   const prices = new Map<string, { priceOverride: string | null; overrideReason: string | null }>();
   const discounts = new Map<string, EditLineDiscount | null>();
+  const pieceDiscounts = new Map<string, EditLineDiscount | null>();
   for (const operation of operations) {
     if (operation.code === 'CHANGE_ITEM_PRICE') {
       const { priceOverride, overrideReason } = operation.payload;
       prices.set(operation.target.id.toLowerCase(), { priceOverride, overrideReason: priceOverride === null ? null : overrideReason ?? null });
     }
-    if (operation.code === 'CHANGE_DISCOUNT') discounts.set(operation.target.id.toLowerCase(), operation.payload.lineDiscount);
+    if (operation.code === 'CHANGE_DISCOUNT') {
+      (operation.target.kind === 'PERSISTED_PIECE' ? pieceDiscounts : discounts).set(operation.target.id.toLowerCase(), operation.payload.lineDiscount);
+    }
   }
-  return { prices, discounts };
+  return { prices, discounts, pieceDiscounts };
 }
 
 /**
@@ -129,6 +135,15 @@ export function lockedSpeedLineIds(
     const ready = (item.quantityReady ?? 0) > 0 || item.readyAt != null;
     if (next != null && next !== current && ready) locked.add(id);
   }
+  // A ready line's pieces keep their speed too (P9-01); the piece id marks the operation.
+  const { pieceSpeeds } = speedChangesOf(operations);
+  for (const piece of context.pieces) {
+    const key = piece.id.toLowerCase();
+    const next = pieceSpeeds.get(key);
+    const item = context.items.find((row) => row.id === piece.orderItemId);
+    if (next == null || !item || next === piece.serviceSpeed) continue;
+    if ((item.quantityReady ?? 0) > 0 || item.readyAt != null) locked.add(key);
+  }
   return locked;
 }
 
@@ -146,8 +161,8 @@ export function editProjectionOf(input: {
   operations: readonly ChangeOperation[];
   editedAt: Date;
 }): EditProjection {
-  const { orderSpeed: speedChange, lineSpeeds } = speedChangesOf(input.operations);
-  const { prices, discounts } = lineMoneyChangesOf(input.operations);
+  const { orderSpeed: speedChange, lineSpeeds, pieceSpeeds } = speedChangesOf(input.operations);
+  const { prices, discounts, pieceDiscounts } = lineMoneyChangesOf(input.operations);
   const serviceSpeed = speedChange ?? input.context.order.serviceSpeed ?? 'STANDARD';
   const added = new Map(input.operations.flatMap((operation) => (
     operation.code === 'ADD_ITEM' ? [[operation.payload.clientRef, operation.payload] as const] : []
@@ -170,6 +185,14 @@ export function editProjectionOf(input: {
         quantity: item.quantity,
         serviceSpeed: lineSpeeds.get(key) ?? add?.serviceSpeed ?? speedChange,
         pieceIds: pieceIdsOf(item.id),
+        pieceChanges: new Map(pieceIdsOf(item.id).flatMap((pieceId) => {
+          const pieceKey = pieceId.toLowerCase();
+          if (!pieceSpeeds.has(pieceKey) && !pieceDiscounts.has(pieceKey)) return [];
+          return [[pieceId, {
+            ...(pieceSpeeds.has(pieceKey) ? { serviceSpeed: pieceSpeeds.get(pieceKey) } : {}),
+            ...(pieceDiscounts.has(pieceKey) ? { lineDiscount: pieceDiscounts.get(pieceKey) ?? null } : {}),
+          }] as const];
+        })),
         ...(add ? {
           productId: add.productId ?? null,
           // A custom item (P6-02d) is priced at its entered price as MANUAL.

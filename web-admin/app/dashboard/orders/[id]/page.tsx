@@ -208,6 +208,7 @@ async function OrderDetailContent({
         const serializedItem = { ...item } as Record<string, unknown>;
         if (item.price_per_unit != null) serializedItem.price_per_unit = Number(item.price_per_unit);
         if (item.total_price != null) serializedItem.total_price = Number(item.total_price);
+        if (item.net_amount != null) serializedItem.net_amount = Number(item.net_amount);
         if (item.quantity != null) serializedItem.quantity = Number(item.quantity);
         if (item.quantity_ready != null) {
           serializedItem.quantity_ready = Number(item.quantity_ready);

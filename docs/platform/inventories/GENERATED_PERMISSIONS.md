@@ -3,13 +3,13 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-05T11:03:20.177Z
+Generated: 2026-11-05T16:24:18.230Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 362 |
+| api | 360 |
 | middleware | 4 |
 | screen | 103 |
 | service | 3 |
@@ -213,7 +213,7 @@ Generated: 2026-11-05T11:03:20.177Z
 | finance_reports:view | api | app/api/v1/finance/reports/reconciliation/cash-drawer/route.ts | 18 | /api/v1/finance/reports/reconciliation/cash-drawer |
 | finance_reports:view | api | app/api/v1/finance/reports/reconciliation/excess-liability/route.ts | 18 | /api/v1/finance/reports/reconciliation/excess-liability |
 | finance_reports:view | api | app/api/v1/finance/reports/reconciliation/overpayment-disposition/route.ts | 18 | /api/v1/finance/reports/reconciliation/overpayment-disposition |
-| finance_reports:view | api | app/api/v1/finance/reports/tax-report/route.ts | 11 | /api/v1/finance/reports/tax-report |
+| finance_reports:view | api | app/api/v1/finance/reports/tax-report/route.ts | 12 | /api/v1/finance/reports/tax-report |
 | gift_cards:view | api | app/api/v1/gift-cards/[cardCode]/balance/route.ts | 15 | /api/v1/gift-cards/[cardCode]/balance |
 | gift_cards:view | api | app/api/v1/gift-cards/[cardCode]/ledger/route.ts | 15 | /api/v1/gift-cards/[cardCode]/ledger |
 | invoices:allocate_payment | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 69 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
@@ -279,7 +279,6 @@ Generated: 2026-11-05T11:03:20.177Z
 | orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 45 | /api/v1/orders/[id]/payments |
 | orders:create | screen | src/features/auth/ui/RequirePermission.tsx | 33 | src/features/auth/ui/RequirePermission.tsx |
 | orders:create | api | app/api/v1/orders/payment-quote/route.ts | 59 | /api/v1/orders/payment-quote |
-| orders:create | api | app/api/v1/orders/preview-financials/route.ts | 26 | /api/v1/orders/preview-financials |
 | orders:create | api | app/api/v1/orders/preview-payment/route.ts | 32 | /api/v1/orders/preview-payment |
 | orders:create | api | app/api/v1/orders/quote/route.ts | 31 | /api/v1/orders/quote |
 | orders:create | api | app/api/v1/orders/submit-order/route.ts | 93 | /api/v1/orders/submit-order |
@@ -298,7 +297,6 @@ Generated: 2026-11-05T11:03:20.177Z
 | orders:overpayment_allocate | api | app/api/v1/customers/[id]/open-balances/route.ts | 15 | /api/v1/customers/[id]/open-balances |
 | orders:overpayment_allocate | api | app/api/v1/orders/[id]/financial-resolution/route.ts | 39 | /api/v1/orders/[id]/financial-resolution |
 | orders:pending_payments_view | api | app/api/v1/finance/pending-payments/route.ts | 21 | /api/v1/finance/pending-payments |
-| orders:post_settlement_edit | api | app/api/v1/orders/recalc-preference-charges/route.ts | 24 | /api/v1/orders/recalc-preference-charges |
 | orders:post_settlement_edit | api | app/api/v1/orders/[id]/edit-history/[editHistoryId]/settlement/route.ts | 34 | /api/v1/orders/[id]/edit-history/[editHistoryId]/settlement |
 | orders:process_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 165 | src/features/billing/ui/refunds-list-client.tsx |
 | orders:process_refund | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 91 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
@@ -337,7 +335,7 @@ Generated: 2026-11-05T11:03:20.177Z
 | orders:read | api | app/api/v1/orders/[id]/rack-bags/route.ts | 16 | /api/v1/orders/[id]/rack-bags |
 | orders:read | api | app/api/v1/orders/[id]/report/invoices-payments-rprt/route.ts | 53 | /api/v1/orders/[id]/report/invoices-payments-rprt |
 | orders:read | api | app/api/v1/orders/[id]/report/payments-rprt/route.ts | 44 | /api/v1/orders/[id]/report/payments-rprt |
-| orders:read | api | app/api/v1/orders/[id]/state/route.ts | 93 | /api/v1/orders/[id]/state |
+| orders:read | api | app/api/v1/orders/[id]/state/route.ts | 94 | /api/v1/orders/[id]/state |
 | orders:read | api | app/api/v1/orders/[id]/transitions/route.ts | 13 | /api/v1/orders/[id]/transitions |
 | orders:read | api | app/api/v1/preferences/last-order/route.ts | 22 | /api/v1/preferences/last-order |
 | orders:read | api | app/api/v1/preferences/resolve/route.ts | 21 | /api/v1/preferences/resolve |
@@ -449,15 +447,15 @@ Generated: 2026-11-05T11:03:20.177Z
 | pricing:update | api | app/api/v1/price-lists/[id]/route.ts | 87 | /api/v1/price-lists/[id] |
 | products:categories | screen | app/dashboard/catalog/categories/page.tsx | 38 | /dashboard/catalog/categories |
 | products:categories | api | app/api/v1/categories/route.ts | 188 | /api/v1/categories |
-| products:create | service | app/dashboard/catalog/services/page.tsx | 54 | /dashboard/catalog/services |
-| products:create | api | app/api/v1/products/import/route.ts | 29 | /api/v1/products/import |
-| products:create | api | app/api/v1/products/route.ts | 168 | /api/v1/products |
-| products:delete | api | app/api/v1/products/[id]/route.ts | 156 | /api/v1/products/[id] |
-| products:export | service | app/dashboard/catalog/services/page.tsx | 55 | /dashboard/catalog/services |
+| products:create | service | app/dashboard/catalog/services/page.tsx | 53 | /dashboard/catalog/services |
+| products:create | api | app/api/v1/products/import/route.ts | 33 | /api/v1/products/import |
+| products:create | api | app/api/v1/products/route.ts | 169 | /api/v1/products |
+| products:delete | api | app/api/v1/products/[id]/route.ts | 161 | /api/v1/products/[id] |
+| products:export | service | app/dashboard/catalog/services/page.tsx | 54 | /dashboard/catalog/services |
 | products:export | api | app/api/v1/products/export/route.ts | 28 | /api/v1/products/export |
-| products:read | api | app/api/v1/products/route.ts | 51 | /api/v1/products |
-| products:read | api | app/api/v1/products/[id]/route.ts | 35 | /api/v1/products/[id] |
-| products:update | api | app/api/v1/products/[id]/route.ts | 87 | /api/v1/products/[id] |
+| products:read | api | app/api/v1/products/route.ts | 52 | /api/v1/products |
+| products:read | api | app/api/v1/products/[id]/route.ts | 36 | /api/v1/products/[id] |
+| products:update | api | app/api/v1/products/[id]/route.ts | 88 | /api/v1/products/[id] |
 | promotions:manage | api | app/api/v1/marketing/promotions/route.ts | 50 | /api/v1/marketing/promotions |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 61 | /api/v1/marketing/promotions/[promoId] |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 109 | /api/v1/marketing/promotions/[promoId] |
@@ -489,10 +487,10 @@ Generated: 2026-11-05T11:03:20.177Z
 | tax_document:issue | screen | src/features/orders/ui/order-financial/order-tax-document-panel.tsx | 35 | src/features/orders/ui/order-financial/order-tax-document-panel.tsx |
 | tax_document:issue | api | app/api/v1/orders/[id]/tax-documents/issue/route.ts | 34 | /api/v1/orders/[id]/tax-documents/issue |
 | tax:manage_config | api | app/api/v1/settings/tax/exemptions/route.ts | 55 | /api/v1/settings/tax/exemptions |
-| tax:manage_config | api | app/api/v1/settings/tax/profiles/route.ts | 51 | /api/v1/settings/tax/profiles |
+| tax:manage_config | api | app/api/v1/settings/tax/profiles/route.ts | 52 | /api/v1/settings/tax/profiles |
 | tax:manage_config | api | app/api/v1/settings/tax/profiles/[profileId]/route.ts | 29 | /api/v1/settings/tax/profiles/[profileId] |
 | tax:view_config | api | app/api/v1/settings/tax/exemptions/route.ts | 13 | /api/v1/settings/tax/exemptions |
-| tax:view_config | api | app/api/v1/settings/tax/profiles/route.ts | 13 | /api/v1/settings/tax/profiles |
+| tax:view_config | api | app/api/v1/settings/tax/profiles/route.ts | 14 | /api/v1/settings/tax/profiles |
 | user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 40 | src/features/users/ui/user-detail-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 32 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 41 | src/features/auth-session/ui/user-sessions-tab.tsx |

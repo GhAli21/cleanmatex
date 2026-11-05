@@ -56,8 +56,7 @@ import {
   type StandardPriceResult,
   type TaxProfileInput,
   type MoneyInput,
-  toMoney,
-} from '@/lib/commercial';
+  toMoney, speedRulesForProduct } from '@/lib/commercial';
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
 import { resolveExtraPricePricingMode, resolveTaxPricingMode } from '../pricing-mode-resolver.service';
 
@@ -109,6 +108,12 @@ export const PRICED_PREFERENCE_SYS_KINDS: Readonly<Record<string, PreferenceInte
 export interface PieceIntent {
   pieceId: string;
   preferences: readonly PreferenceIntent[];
+  /** This piece's own speed (P9-01); null follows the line. Piece-priced lines only. */
+  serviceSpeed?: string | null;
+  /** This piece's own discounts (P9-01); the caller has already checked `orders:discount`. */
+  discounts?: readonly AdjustmentInput[];
+  /** Order Edit (L24): the stored premium of a piece on its own speed; its rule is not read again. */
+  pinnedSpeed?: { unitPremium: string; linePremium: string; ruleId: string | null; readyByAt: Date | null } | null;
 }
 
 /**
@@ -260,6 +265,8 @@ export interface ProductFacts {
   defaultSellPrice: string | null;
   minSellPrice: string | null;
   turnaroundHours: string | null;
+  /** A rule for all products does not reach a retail item. */
+  isRetailItem: boolean;
   taxCategoryCode: string;
   taxSupplyCode: string | null;
   taxExemptReason: string | null;
@@ -376,7 +383,10 @@ export async function loadCommercialFacts(
   const at = intent.receivedAt;
   // A pinned line (Edit) carries its own product facts and price: no catalog read for it.
   const productIds = [...new Set(intent.lines.filter((l) => !l.pinned).map((l) => l.productId).filter((id): id is string => id != null))];
-  const speeds = [...new Set(intent.lines.map((l) => lineSpeed(intent, l)))];
+  const speeds = [...new Set(intent.lines.flatMap((l) => [
+    lineSpeed(intent, l),
+    ...(l.pieces ?? []).flatMap((p) => (p.serviceSpeed ? [p.serviceSpeed] : [])),
+  ]))];
   const otherSpeeds = speeds.filter((s) => s !== SERVICE_SPEEDS.STANDARD);
   const allPreferences = [
     ...intent.orderPreferences,
@@ -404,7 +414,7 @@ export async function loadCommercialFacts(
       where: { tenant_org_id: tenantOrgId, id: { in: productIds }, is_active: true, rec_status: 1 },
       select: {
         id: true, service_category_code: true, price_type: true, default_sell_price: true, min_sell_price: true,
-        turnaround_hh: true, tax_category_code: true, tax_supply_code: true, tax_exempt_reason: true,
+        turnaround_hh: true, is_retail_item: true, tax_category_code: true, tax_supply_code: true, tax_exempt_reason: true,
       },
     }),
     db.org_price_list_items_dtl.findMany({
@@ -609,6 +619,7 @@ export async function loadCommercialFacts(
       defaultSellPrice: text(p.default_sell_price),
       minSellPrice: text(p.min_sell_price),
       turnaroundHours: text(p.turnaround_hh),
+      isRetailItem: p.is_retail_item === true,
       taxCategoryCode: p.tax_category_code,
       taxSupplyCode: p.tax_supply_code,
       taxExemptReason: p.tax_exempt_reason,
@@ -687,6 +698,7 @@ function customProductFacts(custom: CustomItemIntent) {
     defaultSellPrice: custom.unitPrice,
     minSellPrice: null,
     turnaroundHours: null,
+    isRetailItem: false,
     taxCategoryCode: null,
     taxExemptReason: null,
     taxSupplyCode: null,
@@ -701,6 +713,8 @@ export interface ResolvedLinePrice {
   serviceSpeed: string;
   standard: StandardPriceResult;
   speed: SpeedPricingResult;
+  /** Pieces on their own speed (P9-01); the writer stores it on the piece row. */
+  pieceSpeeds?: ReadonlyMap<string, { serviceSpeed: string; ruleId: string | null }>;
 }
 
 /**
@@ -769,14 +783,65 @@ export function buildCommercialOrderInput(
       // A custom item has no authored reference: the entered price is the reference.
       referenceUnitPrice: line.customItem ? null : product.defaultSellPrice,
       quantity: line.quantity,
-      rules: facts.speedRules,
+      rules: speedRulesForProduct(facts.speedRules, product.isRetailItem),
     });
-    prices.push({ lineId: line.lineId, productId: product.id, serviceSpeed, standard, speed });
+    const pieceSpeeds = new Map<string, { serviceSpeed: string; ruleId: string | null }>();
+    prices.push({ lineId: line.lineId, productId: product.id, serviceSpeed, standard, speed, pieceSpeeds });
 
     const pieces = line.pieces ?? Array.from({ length: Math.max(1, Math.ceil(line.quantity)) }, (_, k) => ({
       pieceId: `${line.lineId}-p${k + 1}`, preferences: [],
     }));
     const hours = facts.categoryHours.get(product.serviceCategoryCode ?? '');
+    const extraMinutes = minutesOf(line.preferences) + pieces.reduce((s, p) => s + minutesOf(p.preferences), 0);
+    const hoursAt = (code: string) => (code === SERVICE_SPEEDS.STANDARD ? hours?.standard ?? null : hours?.other ?? null);
+    const pieceInput = (piece: PieceIntent) => {
+      const base = { pieceId: piece.pieceId, modifiers: modifiersOf(piece.preferences, piece.pieceId), adjustments: piece.discounts ?? [] };
+      const code = piece.serviceSpeed;
+      if (!code || code === serviceSpeed) return base;
+      if (piece.pinnedSpeed) {
+        pieceSpeeds.set(piece.pieceId, { serviceSpeed: code, ruleId: piece.pinnedSpeed.ruleId });
+        return {
+          ...base,
+          speed: { unitPremium: piece.pinnedSpeed.unitPremium, linePremium: piece.pinnedSpeed.linePremium },
+          readyBy: {
+            serviceSpeed: code,
+            speedRuleHours: null,
+            productHours: product.turnaroundHours,
+            categoryHours: hoursAt(code),
+            extraMinutes,
+            recordedReadyByAt: piece.pinnedSpeed.readyByAt,
+          },
+        };
+      }
+      if (!facts.activeSpeeds.has(code)) {
+        throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.SERVICE_SPEED_INVALID,
+          `Service speed ${code} is not an active speed.`, { serviceSpeed: code });
+      }
+      const own = resolveSpeedPricing({
+        serviceSpeed: code,
+        branchId: intent.branchId,
+        serviceCategoryCode: product.serviceCategoryCode,
+        productId: product.id,
+        businessDate: facts.businessDate,
+        standardUnitPrice: standard.unitPrice,
+        referenceUnitPrice: line.customItem ? null : product.defaultSellPrice,
+        quantity: 1,
+        rules: speedRulesForProduct(facts.speedRules, product.isRetailItem),
+      });
+      pieceSpeeds.set(piece.pieceId, { serviceSpeed: code, ruleId: own.ruleId });
+      return {
+        ...base,
+        speed: { unitPremium: own.unitPremium, linePremium: own.linePremium },
+        readyBy: {
+          serviceSpeed: code,
+          speedRuleHours: own.turnaroundHours,
+          productHours: product.turnaroundHours,
+          categoryHours: hoursAt(code),
+          extraMinutes,
+          recordedReadyByAt: null,
+        },
+      };
+    };
     const { category, exemptReason } = line.pinned
       ? { category: line.pinned.tax.taxCategoryCode, exemptReason: line.pinned.tax.exemptReason }
       : resolveTaxCategory({
@@ -808,13 +873,13 @@ export function buildCommercialOrderInput(
         profiles: selectTaxProfiles(facts.taxProfiles, product.taxSupplyCode),
       },
       // The calculator puts piece extras on the item or the piece, by the line's basis.
-      pieces: pieces.map((p) => ({ pieceId: p.pieceId, modifiers: modifiersOf(p.preferences, p.pieceId) })),
+      pieces: pieces.map(pieceInput),
       readyBy: {
         serviceSpeed,
         speedRuleHours: speed.turnaroundHours,
         productHours: product.turnaroundHours,
-        categoryHours: serviceSpeed === SERVICE_SPEEDS.STANDARD ? hours?.standard ?? null : hours?.other ?? null,
-        extraMinutes: minutesOf(line.preferences) + pieces.reduce((s, p) => s + minutesOf(p.preferences), 0),
+        categoryHours: hoursAt(serviceSpeed),
+        extraMinutes,
         recordedReadyByAt: line.pinned?.readyByAt ?? null,
       },
     };

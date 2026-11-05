@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { bulkImportProducts } from '@/lib/services/catalog.service';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import { PRICING_PERMISSIONS } from '@/lib/constants/permissions/pricing-perm';
 import type { BulkImportRequest } from '@/lib/types/catalog';
 
 /** Each row is created one by one inside the request, so the upload is bounded. */
@@ -17,6 +19,8 @@ const MAX_IMPORT_CSV_CHARS = 2 * 1024 * 1024;
 
 /**
  * Import products from CSV file (insert only, so `products:create` is the gate).
+ * A row with an express column also writes a speed rule, which needs `pricing:create`
+ * (checked per row, so the other rows of the file are reported together).
  *
  * Request Body:
  * - template: 'basic' | 'advanced'
@@ -62,7 +66,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Import products
-    const result = await bulkImportProducts(body.data, body.template);
+    const result = await bulkImportProducts(body.data, body.template, {
+      userId: authCheck.userId,
+      canCreateSpeedRules: await hasPermissionServer(PRICING_PERMISSIONS.CREATE),
+    });
 
     return NextResponse.json({
       success: result.success,

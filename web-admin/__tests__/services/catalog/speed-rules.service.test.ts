@@ -8,6 +8,7 @@
 jest.mock('server-only', () => ({}));
 
 const rules = {
+  count: jest.fn(),
   findFirst: jest.fn(),
   findFirstOrThrow: jest.fn(),
   findMany: jest.fn(),
@@ -46,6 +47,7 @@ import {
   createSpeedRule,
   deleteSpeedRule,
   resolveSpeedRule,
+  setProductRulesActive,
   updateSpeedRule,
 } from '@/lib/services/catalog/speed-rules.service';
 import { speedRuleBulkSchema, speedRuleCreateSchema } from '@/lib/validations/speed-rule-schemas';
@@ -232,10 +234,88 @@ describe('resolveSpeedRule', () => {
     expect(result.matched.map((r) => r.id)).toEqual(['product-rule', 'category-rule', 'tenant-rule']);
   });
 
+  it('prices one unit of the product at this speed from its default price', async () => {
+    products.findFirst.mockResolvedValue({ service_category_code: 'DRY', default_sell_price: { toString: () => '10' } });
+    rules.findMany.mockResolvedValue([row({ id: 'product-rule', product_id: PRODUCT })]);
+
+    const result = await resolveSpeedRule(TENANT, { serviceSpeed: 'EXPRESS', productId: PRODUCT, date: '2026-06-01' });
+
+    expect(products.findFirst.mock.calls[0][0].where).toMatchObject({ id: PRODUCT, tenant_org_id: TENANT });
+    expect(result.price).toEqual({ standardUnitPrice: '10', unitPrice: '13', linePremium: '0' });
+  });
+
+  it('has no price without a product', async () => {
+    rules.findMany.mockResolvedValue([row({ id: 'tenant-rule' })]);
+    const result = await resolveSpeedRule(TENANT, { serviceSpeed: 'EXPRESS', date: '2026-06-01' });
+    expect(result.price).toBeNull();
+  });
+
   it('has no winner when no rule matches', async () => {
     rules.findMany.mockResolvedValue([row({ effective_from: new Date('2027-01-01T00:00:00Z') })]);
     const result = await resolveSpeedRule(TENANT, { serviceSpeed: 'EXPRESS', date: '2026-06-01' });
     expect(result.winner).toBeNull();
     expect(result.matched).toEqual([]);
+  });
+});
+
+describe('retail items and general rules', () => {
+  it('leaves out a rule for all products, and keeps one naming its category or product', async () => {
+    products.findFirst.mockResolvedValue({ service_category_code: 'RETAIL_ITEMS', default_sell_price: { toString: () => '10' }, is_retail_item: true });
+    rules.findMany.mockResolvedValue([row({ id: 'all-products' })]);
+    const none = await resolveSpeedRule(TENANT, { serviceSpeed: 'EXPRESS', productId: PRODUCT, date: '2026-06-01' });
+    expect(none.winner).toBeNull();
+    expect(none.price?.unitPrice).toBe('10');
+
+    rules.findMany.mockResolvedValue([row({ id: 'all-products' }), row({ id: 'own', product_id: PRODUCT })]);
+    const own = await resolveSpeedRule(TENANT, { serviceSpeed: 'EXPRESS', productId: PRODUCT, date: '2026-06-01' });
+    expect(own.winner?.id).toBe('own');
+    expect(own.matched.map((r) => r.id)).toEqual(['own']);
+  });
+});
+
+describe('setProductRulesActive', () => {
+  const retire = { serviceSpeed: 'EXPRESS', serviceCategoryCode: null, isActive: false, dryRun: false };
+
+  beforeEach(() => {
+    rules.findMany.mockReset();
+    rules.count.mockReset();
+    rules.updateMany.mockReset();
+    audit.createMany.mockReset();
+    products.findMany.mockReset();
+    rules.count.mockResolvedValue(1);
+    rules.findMany.mockResolvedValue([row({ id: 'a', product_id: PRODUCT }), row({ id: 'b', product_id: PRODUCT })]);
+    rules.updateMany.mockResolvedValue({ count: 2 });
+  });
+
+  it('only counts on a dry run', async () => {
+    const result = await setProductRulesActive(TENANT, USER, { ...retire, dryRun: true });
+    expect(result).toEqual({ matched: 2, changed: 0, generalRules: 1 });
+    expect(rules.updateMany).not.toHaveBeenCalled();
+    expect(audit.createMany).not.toHaveBeenCalled();
+  });
+
+  it('deactivates product rules of this tenant, with one history row each, and deletes nothing', async () => {
+    const result = await setProductRulesActive(TENANT, USER, retire);
+    expect(result.changed).toBe(2);
+    expect(rules.findMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT, service_speed: 'EXPRESS', is_active: true, product_id: { not: null } });
+    expect(rules.updateMany.mock.calls[0][0]).toMatchObject({ where: { tenant_org_id: TENANT, id: { in: ['a', 'b'] } }, data: { is_active: false, updated_by: USER } });
+    expect(audit.createMany.mock.calls[0][0].data.map((d: { entity_id: string; change_reason: string; tenant_org_id: string }) => [d.entity_id, d.change_reason, d.tenant_org_id]))
+      .toEqual([['a', 'BULK_RETIRE', TENANT], ['b', 'BULK_RETIRE', TENANT]]);
+    expect(rules.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('finds a category through its products, because a product rule does not name its category', async () => {
+    products.findMany.mockResolvedValue([{ id: PRODUCT }]);
+    await setProductRulesActive(TENANT, USER, { ...retire, serviceCategoryCode: 'DRY', dryRun: true });
+    expect(products.findMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT, service_category_code: 'DRY' });
+    expect(rules.findMany.mock.calls[0][0].where.product_id).toEqual({ in: [PRODUCT] });
+    expect(rules.count.mock.calls[0][0].where).toMatchObject({ tenant_org_id: TENANT, product_id: null, is_active: true });
+  });
+
+  it('restores retired rules', async () => {
+    await setProductRulesActive(TENANT, USER, { ...retire, isActive: true });
+    expect(rules.findMany.mock.calls[0][0].where.is_active).toBe(false);
+    expect(rules.updateMany.mock.calls[0][0].data.is_active).toBe(true);
+    expect(audit.createMany.mock.calls[0][0].data[0].change_reason).toBe('BULK_RESTORE');
   });
 });

@@ -175,6 +175,14 @@ function appendLineChanges(
       continue;
     }
     appendPreferenceChanges(piece.preferences, current.preferences, { kind: 'PERSISTED_PIECE', id: piece.identity.id }, push);
+    // A piece's own speed and discount (P9-01). Clearing its speed returns it to its line's.
+    if (piece.serviceSpeed !== current.serviceSpeed) {
+      const serviceSpeed = current.serviceSpeed ?? draft.serviceSpeed;
+      if (serviceSpeed) push({ code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_PIECE', id: piece.identity.id }, payload: { serviceSpeed } });
+    }
+    if (!sameLineDiscount(piece.lineDiscount ?? null, current.lineDiscount ?? null)) {
+      push({ code: 'CHANGE_DISCOUNT', target: { kind: 'PERSISTED_PIECE', id: piece.identity.id }, payload: { lineDiscount: current.lineDiscount ?? null } });
+    }
   }
   for (const piece of draft.pieces) {
     if (piece.identity.kind !== 'local') continue;

@@ -10,5 +10,6 @@
   "premiumIncluded": "incl. {speed} +{amount}",
   "premiumInCart": "{speed} price is shown in the cart",
   "repricedTitle": "{count, plural, one {The speed change re-priced # line} other {The speed change re-priced # lines}}",
-  "repricedLine": "{item}: {from} → {to}"
+  "repricedLine": "{item}: {from} → {to}",
+  "priceAtSpeed": "{speed} price"
 }

@@ -13,6 +13,7 @@ import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useMessage } from '@ui/feedback';
 import type { OrderItem } from '@/types/order';
+import { OrderLineNetNote } from '@features/orders/ui/order-line-net-note';
 
 interface ItemListProps {
   orderId: string;
@@ -139,6 +140,7 @@ export function ItemList({
                 <div className="text-xs text-gray-600 mt-0.5">
                   {item.quantity} × {formatMoneyWithCode(Number(item.price_per_unit))}
                 </div>
+                <OrderLineNetNote gross={item.total_price} net={item.net_amount} format={formatMoneyWithCode} />
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <div className="text-sm font-semibold text-gray-900 tabular-nums">

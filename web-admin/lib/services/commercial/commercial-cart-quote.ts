@@ -43,6 +43,12 @@ export function toCartQuote(checkout: CheckoutQuote, requestId: string): CartQuo
       taxAmount: n(money.taxAmount),
       lineTotalAmount: n(money.lineTotalAmount),
       readyByAt: line.readyBy.readyByAt.toISOString(),
+      pieces: line.pieces.filter((p) => p.pricing).map((p) => ({
+        unitPrice: n(p.money.unitPrice),
+        grossAmount: n(p.money.grossAmount),
+        lineDiscountAmount: n(p.money.lineDiscountAmount),
+        netAmount: n(p.money.netAmount),
+      })),
     };
   });
 

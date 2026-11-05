@@ -31,6 +31,7 @@ interface PublicOrderItem {
     name2: string | null;
     quantity: number;
     totalPrice: number;
+    lineTotalAmount?: number | null;
 }
 
 interface PublicOrderData {
@@ -520,7 +521,7 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                                             })}
                                         </span>
                                         <span className="text-xs font-medium text-slate-900">
-                                            {fmt(item.totalPrice)}
+                                            {fmt(item.lineTotalAmount ?? item.totalPrice)}
                                         </span>
                                     </div>
                                 </li>

@@ -470,6 +470,10 @@ export const previewPaymentRequestSchema = z.object({
       packingPrefCode: z.string().optional(),
       /** Piece k's own preferences, in the order Create writes the pieces. */
       pieces: z.array(z.object({
+        /** This piece's own speed (P9-01); absent or null follows the line. */
+        serviceSpeed: serviceSpeedCodeSchema.nullable().optional(),
+        /** A cashier discount on this piece (P9-01). */
+        lineDiscount: lineDiscountSchema.nullable().optional(),
         servicePrefs: z.array(checkoutPreferenceCodeSchema).optional(),
         packingPrefCode: z.string().optional(),
       })).optional(),
@@ -562,6 +566,10 @@ export const createWithPaymentRequestSchema = z.object({
       stainNotes: z.string().optional(),
       damageNotes: z.string().optional(),
       pieces: z.array(z.object({
+        /** This piece's own speed (P9-01); absent or null follows the line. */
+        serviceSpeed: serviceSpeedCodeSchema.nullable().optional(),
+        /** A cashier discount on this piece (P9-01). */
+        lineDiscount: lineDiscountSchema.nullable().optional(),
         pieceSeq: z.number().positive(),
         color: z.string().optional(),
         colorCodes: z.array(z.string()).optional(),

@@ -27,6 +27,16 @@ export interface CartQuoteLine {
   taxAmount: number;
   lineTotalAmount: number;
   readyByAt: string;
+  /** Each piece's figures when the line is priced per piece (PIECE level, P9-01); else empty. */
+  pieces: CartQuotePiece[];
+}
+
+/** One piece of a piece-priced line, in the order Create writes the pieces. */
+export interface CartQuotePiece {
+  unitPrice: number;
+  grossAmount: number;
+  lineDiscountAmount: number;
+  netAmount: number;
 }
 
 /** One applied line discount; `source` mirrors `org_order_discounts_dtl.source_type`. */

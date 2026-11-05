@@ -37,7 +37,7 @@ import {
   type CommercialLoaderDeps,
   type CommercialOrderIntent,
   type CustomItemIntent,
-  type LineIntent,
+  type LineIntent, type PieceIntent,
   type PreferenceIntent,
   type ProductFacts,
   type RecordedCommercialSnapshot,
@@ -102,6 +102,12 @@ export interface EditStoredPiece {
   id: string;
   itemId: string;
   pieceSeq: number;
+  /** The figures a piece with its own speed keeps through an edit (P9-01). */
+  serviceSpeed: string | null;
+  pricePerUnit: string | null;
+  speedPremiumAmount: string | null;
+  speedRuleId: string | null;
+  readyByAt: Date | null;
 }
 
 /** One active preference row and its stored price. */
@@ -230,7 +236,10 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
     db.org_order_item_pieces_dtl.findMany({
       where: { ...scope, rec_status: 1 },
       orderBy: [{ piece_seq: 'asc' }, { id: 'asc' }],
-      select: { id: true, order_item_id: true, piece_seq: true },
+      select: {
+        id: true, order_item_id: true, piece_seq: true, service_speed: true, price_per_unit: true,
+        speed_premium_amount: true, speed_rule_id: true, ready_by_at: true,
+      },
     }),
     db.org_order_preferences_dtl.findMany({
       where: { ...scope, rec_status: 1 },
@@ -272,6 +281,7 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
     db.org_product_data_mst.findMany({
       where: { tenant_org_id: tenantOrgId, id: { in: productIds } },
         select: {
+          is_retail_item: true,
           id: true, service_category_code: true, price_type: true, default_sell_price: true, min_sell_price: true,
           turnaround_hh: true, tax_category_code: true, tax_supply_code: true, tax_exempt_reason: true,
         },
@@ -336,7 +346,16 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
       taxCategoryCode: i.tax_category_code,
       taxExemptReason: i.tax_exempt_reason,
     })),
-    pieces: pieces.map((p) => ({ id: p.id, itemId: p.order_item_id, pieceSeq: p.piece_seq ?? 0 })),
+    pieces: pieces.map((p) => ({
+      id: p.id,
+      itemId: p.order_item_id,
+      pieceSeq: p.piece_seq ?? 0,
+      serviceSpeed: p.service_speed,
+      pricePerUnit: text(p.price_per_unit),
+      speedPremiumAmount: text(p.speed_premium_amount),
+      speedRuleId: p.speed_rule_id,
+      readyByAt: p.ready_by_at,
+    })),
     preferences: preferences.map((p) => ({
       id: p.id,
       level: p.prefs_level,
@@ -384,6 +403,7 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
       defaultSellPrice: text(p.default_sell_price),
       minSellPrice: text(p.min_sell_price),
       turnaroundHours: text(p.turnaround_hh),
+      isRetailItem: p.is_retail_item === true,
       taxCategoryCode: p.tax_category_code,
       taxSupplyCode: p.tax_supply_code,
       taxExemptReason: p.tax_exempt_reason,
@@ -425,6 +445,8 @@ export interface EditLineDiscount {
 export interface EditProjectedLine {
   /** The stored item id, or the new line's client reference. */
   id: string;
+  /** What the edit sets on this line's pieces (P9-01), by piece id. */
+  pieceChanges?: ReadonlyMap<string, { serviceSpeed?: string; lineDiscount?: EditLineDiscount | null }>;
   quantity: number;
   /** The line's speed after the edit; null keeps a stored line's speed (a new line takes the order speed). */
   serviceSpeed: string | null;
@@ -549,6 +571,35 @@ function storedSpeed(item: EditStoredItem): { unitPremium: string; linePremium: 
   return { unitPremium: unitPremium.toString(), linePremium: linePremium.toString(), ruleId: item.speedRuleId };
 }
 
+/** A piece on its own speed is stored with a speed other than its line's (every piece row stores one). */
+const hasOwnSpeed = (piece: EditStoredPiece, item: EditStoredItem) =>
+  piece.serviceSpeed != null && piece.serviceSpeed !== item.serviceSpeed;
+
+/** A piece's stored premium, as its own one-unit line: what it keeps while its speed is unchanged. */
+function storedPieceSpeed(piece: EditStoredPiece, item: EditStoredItem) {
+  if (item.priceOverride != null) return { unitPremium: '0', linePremium: '0', ruleId: piece.speedRuleId };
+  const unitPremium = toMoney(piece.pricePerUnit ?? '0').minus(toMoney(item.listUnitPrice as string));
+  const linePremium = toMoney(piece.speedPremiumAmount ?? '0').minus(unitPremium);
+  return { unitPremium: unitPremium.toString(), linePremium: linePremium.toString(), ruleId: piece.speedRuleId };
+}
+
+/**
+ * The stored premium of a line with pieces on their own speed: only the pieces that
+ * follow the line count, because the item's own figures are the sum of them all.
+ */
+function storedFollowerSpeed(item: EditStoredItem, pieces: readonly EditStoredPiece[]) {
+  const followers = pieces.filter((p) => !hasOwnSpeed(p, item));
+  const [first] = followers;
+  if (!first) return { unitPremium: '0', linePremium: '0', ruleId: item.speedRuleId };
+  const own = storedPieceSpeed(first, item);
+  const premium = followers.reduce((sum, p) => sum.plus(p.speedPremiumAmount ?? '0'), toMoney(0));
+  return {
+    unitPremium: own.unitPremium,
+    linePremium: premium.minus(toMoney(own.unitPremium).times(followers.length)).toString(),
+    ruleId: item.speedRuleId,
+  };
+}
+
 /**
  * Turns the stored order and the projected edit into calculator intents.
  * @param record what `readEditOrderRecord` read
@@ -593,7 +644,37 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
   const lines: LineIntent[] = ordered.map((line) => {
     const item = stored.get(line.id);
     const serviceSpeed = line.serviceSpeed ?? item?.serviceSpeed ?? projection.serviceSpeed;
-    const pieces = line.pieceIds.map((pieceId) => ({ pieceId, preferences: prefsAt(PREFS_LEVEL.PIECE, pieceId) }));
+    const storedPieceById = new Map(record.pieces.filter((p) => p.itemId === line.id).map((p) => [p.id, p] as const));
+    // A discount the edit sets on the line replaces the cashier discounts of its pieces too.
+    const replacesPieceManual = line.lineDiscount !== undefined;
+    const pieces = line.pieceIds.map((pieceId): PieceIntent => {
+      const stored = storedPieceById.get(pieceId);
+      const change = line.pieceChanges?.get(pieceId);
+      const replaces = replacesPieceManual || change?.lineDiscount !== undefined;
+      const discounts = [
+        ...record.discounts
+          .filter((d) => d.pieceId === pieceId && d.sourceType !== DISCOUNT_SOURCE_TYPE.PRICE_LIST
+            && !(replaces && d.sourceType === DISCOUNT_SOURCE_TYPE.MANUAL))
+          .map((d, k) => {
+            const id = `${pieceId}:d${k + 1}`;
+            adjustmentMeta.set(id, metaOf(d));
+            return adjustmentOf(id, [d]);
+          }),
+        ...manualDiscount(pieceId, change?.lineDiscount),
+      ];
+      const ownStored = item && stored && hasOwnSpeed(stored, item) ? stored : null;
+      const pieceSpeed = change?.serviceSpeed ?? ownStored?.serviceSpeed ?? null;
+      return {
+        pieceId,
+        preferences: prefsAt(PREFS_LEVEL.PIECE, pieceId),
+        discounts,
+        serviceSpeed: pieceSpeed,
+        // Unchanged, it keeps the premium and ready time agreed at drop-off (L24).
+        pinnedSpeed: item && ownStored && !change?.serviceSpeed
+          ? { ...storedPieceSpeed(ownStored, item), readyByAt: ownStored.readyByAt }
+          : null,
+      };
+    });
     const base = {
       lineId: line.id,
       quantity: line.quantity,
@@ -614,10 +695,14 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
     // ─── A stored line keeps its agreed price (L24) ──────────────────────
     const own = record.discounts.filter((d) => d.itemId === item.id && d.level !== 'ORDER');
     const priceList = own.find((d) => d.sourceType === DISCOUNT_SOURCE_TYPE.PRICE_LIST);
+    const itemPieces = record.pieces.filter((p) => p.itemId === item.id);
+    const mixedSpeeds = itemPieces.some((p) => hasOwnSpeed(p, item));
+    const firstFollower = itemPieces.find((p) => !hasOwnSpeed(p, item));
     // A discount the edit sets replaces the line's own cashier discount (P6-02c).
     const replacesManual = line.lineDiscount !== undefined;
     const lineDiscounts = [
-      ...own.filter((d) => d !== priceList && !(replacesManual && d.sourceType === DISCOUNT_SOURCE_TYPE.MANUAL)).map((d, k) => {
+      // A piece's discounts stay on the piece (P9-01); a price list applies through the unit price.
+      ...own.filter((d) => d.pieceId == null && d.sourceType !== DISCOUNT_SOURCE_TYPE.PRICE_LIST && !(replacesManual && d.sourceType === DISCOUNT_SOURCE_TYPE.MANUAL)).map((d, k) => {
         const id = `${item.id}:d${k + 1}`;
         adjustmentMeta.set(id, metaOf(d));
         return adjustmentOf(id, [d]);
@@ -655,14 +740,15 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
           defaultSellPrice: product?.defaultSellPrice ?? listUnitPrice,
           minSellPrice: null,
           turnaroundHours: product?.turnaroundHours ?? null,
+          isRetailItem: product?.isRetailItem ?? false,
           taxCategoryCode: item.taxCategoryCode ?? 'STANDARD',
           taxSupplyCode: product?.taxSupplyCode ?? null,
           taxExemptReason: item.taxExemptReason,
         },
         standard,
         // A changed speed reads the rule in force today; the ready-by is counted again.
-        speed: speedChanged || overrideCleared ? null : storedSpeed(item),
-        readyByAt: speedChanged ? null : item.readyByAt,
+        speed: speedChanged || overrideCleared ? null : mixedSpeeds ? storedFollowerSpeed(item, itemPieces) : storedSpeed(item),
+        readyByAt: speedChanged ? null : mixedSpeeds ? firstFollower?.readyByAt ?? item.readyByAt : item.readyByAt,
         tax: { taxCategoryCode: item.taxCategoryCode ?? 'STANDARD', exemptReason: item.taxExemptReason },
       },
     };

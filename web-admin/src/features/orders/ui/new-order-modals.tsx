@@ -375,7 +375,7 @@ export function NewOrderModals() {
     const hasOverride = item.priceOverride !== null && item.priceOverride !== undefined;
 
     // Calculate the original price (before override)
-    const originalPrice = item.defaultSellPrice || item.defaultExpressSellPrice || item.pricePerUnit;
+    const originalPrice = item.defaultSellPrice || item.pricePerUnit;
 
     return {
       id: item.productId,

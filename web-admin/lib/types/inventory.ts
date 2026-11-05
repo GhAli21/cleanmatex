@@ -129,7 +129,6 @@ export interface CreateInventoryItemRequest {
   product_unit?: string;
   product_cost?: number;
   default_sell_price?: number;
-  default_express_sell_price?: number;
   min_sell_price?: number;
   id_sku?: string;
   qty_on_hand?: number;
@@ -147,10 +146,8 @@ export interface CreateInventoryItemRequest {
   pieces_per_product?: number;
   extra_days?: number;
   turnaround_hh?: number;
-  turnaround_hh_express?: number;
-  multiplier_express?: number;
   product_order?: number;
-  is_tax_exempt?: number;
+  tax_category_code?: string;
   product_color1?: string;
   product_color2?: string;
   product_color3?: string;
@@ -174,7 +171,6 @@ export interface UpdateInventoryItemRequest {
   product_unit?: string;
   product_cost?: number;
   default_sell_price?: number;
-  default_express_sell_price?: number;
   min_sell_price?: number;
   id_sku?: string;
   reorder_point?: number;
@@ -191,10 +187,8 @@ export interface UpdateInventoryItemRequest {
   pieces_per_product?: number;
   extra_days?: number;
   turnaround_hh?: number;
-  turnaround_hh_express?: number;
-  multiplier_express?: number;
   product_order?: number;
-  is_tax_exempt?: number;
+  tax_category_code?: string;
   product_color1?: string;
   product_color2?: string;
   product_color3?: string;

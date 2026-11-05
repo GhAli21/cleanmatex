@@ -97,6 +97,24 @@ const intent = (over: Partial<CommercialOrderIntent> = {}): CommercialOrderInten
 
 const deps = { currency: { code: 'OMR', decimalPlaces: 3 } };
 
+describe('a rule for all products and a retail item', () => {
+  const expressLine = (lineId: string, productId: string) => ({
+    lineId, productId, quantity: 1, serviceSpeed: 'EXPRESS', overrideUnitPrice: null, lineDiscounts: [], preferences: [],
+  });
+
+  it('prices the service line from the rule and leaves the retail line at its normal price', async () => {
+    const { db } = mockDb({
+      ...baseFixtures(),
+      org_product_data_mst: [product(SHIRT), product(SUIT, { default_sell_price: '4.000', is_retail_item: true })],
+    });
+    const facts = await loadCommercialFacts(db, TENANT, intent({ lines: [expressLine('L1', SHIRT), expressLine('L2', SUIT)], orderPreferences: [] }), deps);
+    const { prices, input } = buildCommercialOrderInput(intent({ lines: [expressLine('L1', SHIRT), expressLine('L2', SUIT)], orderPreferences: [] }), facts);
+    expect(prices.map((price) => price.speed.ruleId)).toEqual(['rule-1', null]);
+    expect(prices[1].speed.unitPremium.toString()).toBe('0');
+    expect(input.lines[1].readyBy.speedRuleHours).toBeNull();
+  });
+});
+
 describe('loadCommercialFacts', () => {
   it('filters every org_* read by tenant_org_id (org_tenants_mst by its own id)', async () => {
     const { db, calls } = mockDb(baseFixtures());

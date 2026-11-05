@@ -1,3 +1,4 @@
+import type { OrderChangeLineDiscount } from '@/lib/services/order-change/order-change-line-money';
 import type { OrderChangeOperationCode, OrderChangeTargetKind } from '@/lib/constants/order-change';
 
 /** Persisted or batch-local identity used by a typed Change operation. */
@@ -22,6 +23,8 @@ export interface OrderChangeOperationInput {
 /** Read-only commercial item facts with the persisted identity preserved. */
 export interface OrderChangeContextItem {
   id: string;
+  /** `ROLLUP` when the line is priced per piece (PIECE level): its pieces can have their own speed and discount. */
+  moneyBasis: string | null;
   orderId: string;
   productId: string | null;
   productName: string | null;
@@ -56,6 +59,10 @@ export interface OrderChangeContextPiece {
   pieceStatus: string | null;
   pieceStage: string | null;
   scanState: string | null;
+  /** The speed stored on this piece; differs from its line's when the piece has its own (P9-01). */
+  serviceSpeed: string | null;
+  /** This piece's own cashier discount (P9-01). */
+  lineDiscount: OrderChangeLineDiscount | null;
   /** Always true because the context query includes only explicitly active governed commercial rows. */
   active: true;
 }

@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-01T16:03:11.883Z",
+  "extractedAt": "2026-11-05T16:14:31.495Z",
   "usages": {
     "B2B_DUNNING_LEVELS": [
       {
@@ -14,11 +14,6 @@
       }
     ],
     "B2B_CREDIT_LIMIT_MODE": [
-      {
-        "path": "app\\api\\v1\\orders\\preview-financials\\route.ts",
-        "line": 89,
-        "context": "SETTING_CODES.B2B_CREDIT_LIMIT_MODE,"
-      },
       {
         "path": "app\\api\\v1\\orders\\preview-payment\\route.ts",
         "line": 95,

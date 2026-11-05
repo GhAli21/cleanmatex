@@ -364,8 +364,10 @@ The tax-document print gets an item table, so a document never re-reads live ord
   Premium = speed unit price − normal unit price. `speed_premium_amount` explains it. A manual override (`pricing:override`) replaces the final unit price, and premium is then recorded as 0 with `price_source = MANUAL`.
 - **Standard price** (`lib/commercial/standard-price.ts`): the customer list (b2b/vip) → the standard list → the product default, with effective dates, quantity tiers, and priority then deepest tier then item id. The list `discount_percent` comes back separately (applied once in P4-03, PF-03). No price at all is an error (`PRICE_NOT_RESOLVED`), never a silent 0. `price_source` records the standard source; the speed rule is recorded on `speed_rule_id`, so `SPEED_RULE` is never produced. Checked on remote 2026-10-24: only `standard` lists exist and no product with a `SELL_PRICE` rule has a standard-list price different from its default, so the SELL_PRICE reference and the new customer → standard list fallback (today a b2b customer with no b2b row skips the standard list) change no current figure.
 - **No rule** means no premium. The cart says "No express premium configured for this item": an explanation, never a silent change.
+- **Retail items** (added 2026-11-05): a rule for all products does not reach a retail item, because speed is a service; a rule naming its category or product still does (`speedRulesForProduct`).
+- **Bulk retire** (added 2026-11-05): product rules of a speed, optionally one category, are deactivated together from Speed Pricing (`pricing:bulk`) and can be restored there; the dialog warns when no general rule takes over.
 - **Custom items** (New Order custom-item modal): the unit price is entered (`MANUAL`), and the premium comes from category or tenant rules only, shown inline.
-- **Catalog import/export:** keeps an "Express price" column (plus an optional "Express multiplier" column), which upserts or removes the product-level `EXPRESS` rule (`SELL_PRICE` or `MULTIPLIER`). Bulk users lose nothing.
+- **Catalog import/export:** keeps an "Express price" column (plus an optional "Express multiplier" column), which creates the product-level `EXPRESS` rule (`SELL_PRICE` or `MULTIPLIER`) on a new product. Import is insert-only (`products:create`), so it does not change an existing product (decided in P7-04; see STATUS 2026-11-05). Bulk users lose nothing.
 
 ## 8. Calculation rules
 
@@ -625,7 +627,7 @@ Legend: (S) STATUS.md, (D) docs, (Q) QA guide. **Every phase ends with all three
 ### Phase 9 — PIECE level enablement (L11)
 | ID | Task |
 |---|---|
-| P9-01 | Per-piece line discount and speed override in Create and Edit (piece preferences exist already). |
+| P9-01 | Per-piece line discount and speed override in Create and Edit (piece preferences exist already). A line discount on a piece-priced line stays available: a percent applies to each piece, an amount is split by what each piece costs. Edit adds the PIECE pairs (migration 0692); HQ adds their policy rules. |
 | P9-02 | Enable `PIECE` in the HQ card and the `platform-api` DTO; QA at PIECE level, including the FIXED fallback. (S)(Q) |
 
 ### Phase 10 — Recompute, tighten, clean up
@@ -634,7 +636,7 @@ Legend: (S) STATUS.md, (D) docs, (Q) QA guide. **Every phase ends with all three
 | P10-01 | Remove `order-preference-charge-recalc` if it is made obsolete, after confirming nothing calls it. |
 | P10-04 | **Remove the order-total rounding step from Create** (owner-approved 2026-10-31). The checkout quote applies the `ACCOUNTING` rounding rule to the sale total (`commercial-checkout.service.ts`, `roundingAdjustmentAmount`); since migration 0686 that rule is always one minor unit, so the step always gives 0. Remove it with its writer of `rounding_adjustment_amount` on new orders (the column stays for older rows and the view's rounding line), and the modal's rounding row. Cash rounding stays where it belongs: the change on a cash tender (`cash-change-rounding.service.ts`). Grep every reader first; tests for quote = Create = Edit totals. |
 | P10-02 | Idempotent recompute command for existing (demo) orders through the calculator, run per tenant with a dry-run report first (pre-launch, no compatibility code). |
-| P10-03 | M10 (NOT NULL + CHECK), then M11 (drop retired product columns). (S) |
+| P10-03 | M10 (NOT NULL + CHECK), then M11 (drop retired product columns). M11 must first replace the 5 DB functions that read them and seed Express rules for new tenants; Preparation's `addOrderItems` moves to speed rules first (STATUS 2026-11-05). (S) |
 
 ### Phase 11 — Verification and docs
 | ID | Task |

@@ -1,6 +1,6 @@
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import type { SpeedRuleResolution, SpeedRuleView } from '@/lib/services/catalog/speed-rules.service';
-import type { SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
+import type { SpeedRuleBulkStatusInput, SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 
 const BASE = '/api/v1/catalog/speed-rules';
 
@@ -86,6 +86,14 @@ export const deleteSpeedRuleApi = (id: string, csrfToken: string | null) =>
  */
 export const bulkCreateSpeedRulesApi = (rule: SpeedRuleCreateInput, csrfToken: string | null) =>
   send<{ created: number; skipped: number }>(`${BASE}/bulk`, 'POST', csrfToken, rule);
+
+/**
+ * Retires or restores the product rules of a speed; `dryRun` only counts them.
+ * @param input - the speed, the category, the new status and `dryRun`
+ * @param csrfToken - CSRF token
+ */
+export const setProductRulesActiveApi = (input: SpeedRuleBulkStatusInput, csrfToken: string | null) =>
+  send<{ matched: number; changed: number; generalRules: number }>(`${BASE}/bulk-status`, 'POST', csrfToken, input);
 
 /**
  * Which rule applies to this row, and every rule that matched.

@@ -14,6 +14,7 @@ const service = {
   updateSpeedRule: jest.fn(),
   deleteSpeedRule: jest.fn(),
   bulkCreateSpeedRules: jest.fn(),
+  setProductRulesActive: jest.fn(),
   resolveSpeedRule: jest.fn(),
 };
 const checked: string[] = [];
@@ -32,6 +33,7 @@ jest.mock('@/lib/services/catalog/speed-rules.service', () => {
     updateSpeedRule: (...a: unknown[]) => service.updateSpeedRule(...a),
     deleteSpeedRule: (...a: unknown[]) => service.deleteSpeedRule(...a),
     bulkCreateSpeedRules: (...a: unknown[]) => service.bulkCreateSpeedRules(...a),
+    setProductRulesActive: (...a: unknown[]) => service.setProductRulesActive(...a),
     resolveSpeedRule: (...a: unknown[]) => service.resolveSpeedRule(...a),
   };
 });
@@ -49,6 +51,7 @@ import { SpeedRuleError } from '@/lib/services/catalog/speed-rules.service';
 import { GET as listGET, POST as createPOST } from '@/app/api/v1/catalog/speed-rules/route';
 import { DELETE as ruleDELETE, PATCH as rulePATCH } from '@/app/api/v1/catalog/speed-rules/[id]/route';
 import { POST as bulkPOST } from '@/app/api/v1/catalog/speed-rules/bulk/route';
+import { POST as bulkStatusPOST } from '@/app/api/v1/catalog/speed-rules/bulk-status/route';
 import { GET as resolveGET } from '@/app/api/v1/catalog/speed-rules/resolve/route';
 
 const RULE_ID = '22222222-2222-4222-8222-222222222222';
@@ -78,6 +81,7 @@ describe('Speed Pricing routes', () => {
     ['update', () => rulePATCH(req(`/api/v1/catalog/speed-rules/${RULE_ID}`, 'PATCH', rule), params), 'pricing:update', 'updateSpeedRule', 200],
     ['delete', () => ruleDELETE(req(`/api/v1/catalog/speed-rules/${RULE_ID}`, 'DELETE'), params), 'pricing:delete', 'deleteSpeedRule', 200],
     ['bulk', () => bulkPOST(req('/api/v1/catalog/speed-rules/bulk', 'POST', { ...rule, serviceCategoryCode: 'DRY' })), 'pricing:bulk', 'bulkCreateSpeedRules', 201],
+    ['bulk status', () => bulkStatusPOST(req('/api/v1/catalog/speed-rules/bulk-status', 'POST', { serviceSpeed: 'EXPRESS', isActive: false })), 'pricing:bulk', 'setProductRulesActive', 200],
   ] as const)('%s checks its permission and CSRF', async (_name, call, code, method, status) => {
     service[method].mockResolvedValue({});
     const ok = await call();

@@ -172,7 +172,6 @@ export async function GET(
           quantity_ready: toNumber(item.quantity_ready) ?? 0,
           price_override: toNumber(item.price_override) ?? null,
           default_sell_price: toNumber(item.default_sell_price) ?? null,
-          default_express_sell_price: toNumber(item.default_express_sell_price) ?? null,
           pieces: itemPieces.map((p) => ({
             id: p.id,
             piece_seq: p.piece_seq,

@@ -33,6 +33,9 @@ import {
 } from '@ui/primitives'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
+import { TAX_CATEGORIES } from '@/lib/constants/commercial'
+import { useTaxCategoryOptions } from '../hooks/use-tax-category-options'
+import { ProductSpeedPricingSection } from './product-speed-pricing-section'
 
 interface CategoryOption {
   code: string
@@ -66,10 +69,9 @@ export interface ProductFormValues {
   product_name2?: string
   product_unit: 'piece' | 'kg' | 'item'
   default_sell_price: number
-  default_express_sell_price?: number
   min_quantity?: number
   turnaround_hh?: number
-  turnaround_hh_express?: number
+  tax_category_code?: string
   is_active?: boolean
   product_image?: string | null
   product_icon?: string | null
@@ -97,6 +99,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   const isRtl = useRTL()
   const { decimalPlaces } = useTenantCurrency()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const taxCategoryOptions = useTaxCategoryOptions()
 
   const [loadingCategories, setLoadingCategories] = useState(false)
   const [categories, setCategories] = useState<CategoryOption[]>([])
@@ -116,10 +119,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         product_name2: z.string().trim().optional(),
         product_unit: z.enum(['piece', 'kg', 'item']),
         default_sell_price: z.number().min(0, tCommon('required')),
-        default_express_sell_price: z.number().min(0).optional(),
         min_quantity: z.number().min(0).optional(),
         turnaround_hh: z.number().min(0).optional(),
-        turnaround_hh_express: z.number().min(0).optional(),
+        tax_category_code: z.string().optional(),
         is_active: z.boolean().default(true),
         product_image: z.string().nullable().optional(),
         product_icon: z.string().nullable().optional(),
@@ -136,18 +138,11 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
       product_name2: initialValues?.product_name2 ?? '',
       product_unit: initialValues?.product_unit ?? 'piece',
       default_sell_price: Number(initialValues?.default_sell_price ?? 0),
-      default_express_sell_price:
-        initialValues?.default_express_sell_price !== undefined
-          ? Number(initialValues.default_express_sell_price)
-          : undefined,
       min_quantity:
         initialValues?.min_quantity !== undefined ? Number(initialValues.min_quantity) : undefined,
       turnaround_hh:
         initialValues?.turnaround_hh !== undefined ? Number(initialValues.turnaround_hh) : undefined,
-      turnaround_hh_express:
-        initialValues?.turnaround_hh_express !== undefined
-          ? Number(initialValues.turnaround_hh_express)
-          : undefined,
+      tax_category_code: initialValues?.tax_category_code ?? TAX_CATEGORIES.STANDARD,
       is_active: initialValues?.is_active ?? true,
       id: initialValues?.id,
       product_image: initialValues?.product_image ?? null,
@@ -280,14 +275,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
       product_name2: values.product_name2 || undefined,
       product_unit: values.product_unit,
       default_sell_price: Number(values.default_sell_price),
-      default_express_sell_price:
-        values.default_express_sell_price !== undefined
-          ? Number(values.default_express_sell_price)
-          : undefined,
       min_quantity: values.min_quantity !== undefined ? Number(values.min_quantity) : undefined,
       turnaround_hh: values.turnaround_hh !== undefined ? Number(values.turnaround_hh) : undefined,
-      turnaround_hh_express:
-        values.turnaround_hh_express !== undefined ? Number(values.turnaround_hh_express) : undefined,
+      tax_category_code: values.tax_category_code,
       is_active: values.is_active ?? true,
       product_icon: values.product_icon ?? undefined,
     }
@@ -474,27 +464,6 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
               )}
             </CmxFormField>
 
-            <CmxFormField
-              name="default_express_sell_price"
-              label={t('priceExpress')}
-              optionalLabel={tCommon('optional')}
-            >
-              {({ id, describedBy, invalid, value, onChange, onBlur, ref }) => (
-                <CmxMoneyField
-                  id={id}
-                  ref={ref}
-                  value={typeof value === 'number' ? value : null}
-                  decimalPlaces={decimalPlaces}
-                  min={0}
-                  onValueChange={(v, _, isComplete) => {
-                    if (isComplete) onChange(v > 0 ? v : undefined)
-                  }}
-                  onBlur={onBlur}
-                  aria-describedby={describedBy}
-                  aria-invalid={invalid}
-                />
-              )}
-            </CmxFormField>
 
             <CmxFormField
               name="min_quantity"
@@ -542,24 +511,21 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
               )}
             </CmxFormField>
 
+
             <CmxFormField
-              name="turnaround_hh_express"
-              label={t('express')}
-              optionalLabel={tCommon('optional')}
-              hint={t('turnaroundHours')}
+              name="tax_category_code"
+              label={t('taxCategory.label')}
+              hint={t('taxCategory.hint')}
             >
               {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
-                <CmxInput
+                <CmxSelect
                   id={id}
                   name={name}
                   ref={ref}
-                  type="number"
-                  step="0.1"
-                  value={value ?? ''}
-                  onChange={(event) =>
-                    onChange(event.target.value === '' ? undefined : Number(event.target.value))
-                  }
+                  value={String(value ?? '')}
+                  onChange={(event) => onChange(event.target.value)}
                   onBlur={onBlur}
+                  options={taxCategoryOptions}
                   aria-describedby={describedBy}
                   aria-invalid={invalid}
                 />
@@ -675,6 +641,15 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
             sticky
           />
         </CmxForm>
+
+        {mode === 'edit' && currentValues.id ? (
+          <ProductSpeedPricingSection
+            productId={currentValues.id}
+            productLabel={(isRtl ? currentValues.product_name2 || currentValues.product_name : currentValues.product_name) || currentValues.id}
+          />
+        ) : (
+          <p className="mt-5 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('speedPricing.product.saveFirst')}</p>
+        )}
       </CmxCardContent>
     </CmxCard>
   )

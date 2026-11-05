@@ -219,8 +219,11 @@ function projectPreviewOperationRows(input: {
     }
     if (operation.code === 'CHANGE_DISCOUNT') {
       // The stored discount comes from the context: an audit row loaded for another operation does not carry it.
-      const stored = input.context.items.find((item) => keyOf(item.id) === keyOf(operation.target.id))?.lineDiscount ?? null;
-      const before = { ...(itemById(operation.target.id) ?? {}), ...lineDiscountAuditFields(stored) };
+      const stored = input.context.items.find((item) => keyOf(item.id) === keyOf(operation.target.id))?.lineDiscount
+        ?? input.context.pieces.find((piece) => keyOf(piece.id) === keyOf(operation.target.id))?.lineDiscount
+        ?? null;
+      const row = operation.target.kind === 'PERSISTED_PIECE' ? pieceById(operation.target.id) : itemById(operation.target.id);
+      const before = { ...(row ?? {}), ...lineDiscountAuditFields(stored) };
       return { seq: operation.seq, before, after: { ...before, ...lineDiscountAuditFields(operation.payload.lineDiscount) } };
     }
     if (operation.code === 'ADD_PIECE') {

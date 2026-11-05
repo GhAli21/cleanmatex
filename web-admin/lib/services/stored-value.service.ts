@@ -10,12 +10,9 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import { assertCurrencyMatch, requireCurrencyCode } from '@/lib/money/currency-resolution';
 import { logger } from '@/lib/utils/logger';
-import {
-  STORE_CREDIT_NOTE_NUMBERING,
-  STORE_CREDIT_NOTE_NUMBERING_MODES,
-  STORE_CREDIT_NOTE_NO_NOT_ASSIGNED,
-  type StoreCreditNoteNumberingMode,
-} from '@/lib/constants/doc-seq';
+import { STORE_CREDIT_NOTE_NO_NOT_ASSIGNED } from '@/lib/constants/doc-seq';
+import { emitNotificationEvent } from '@/lib/notifications/event-emitter';
+import { buildCreditNoteIssuedNotificationVariables } from '@/lib/notifications/credit-note-variables';
 import {
   getLoyaltyAccount,
   getLoyaltyConfig,
@@ -378,23 +375,66 @@ export async function redeemAdvanceTx(
 
 // ── Credit Note ───────────────────────────────────────────────────────────────
 
+
 /**
- * credit_note_no to send on INSERT.
- * ENGINE (default): '' so the DB trigger trg_fin_cn_no_assign assigns SCN-YYYY-NNNNNN (migration 0687).
- * LEGACY (one-release rollback path, plan T5.2): the pre-P5 CN-<tenant8>-<count+1> value.
- * @param tenantId tenant id
- * @param countNotes counts the tenant's credit notes (LEGACY only)
- * @param mode numbering mode (defaults to STORE_CREDIT_NOTE_NUMBERING)
- * @returns the value for credit_note_no
+ * Fire-and-forget credit_note.issued notification (FOLLOWUPS #11 / A-74).
+ * Never throws. Skips when the note has no number or no recipient (issuedBy).
+ * Idempotent at the hub via sourceEntityId = credit note id.
  */
-export async function creditNoteNoForInsert(
-  tenantId: string,
-  countNotes: () => Promise<number>,
-  mode: StoreCreditNoteNumberingMode = STORE_CREDIT_NOTE_NUMBERING
-): Promise<string> {
-  if (mode === STORE_CREDIT_NOTE_NUMBERING_MODES.ENGINE) return '';
-  const count = await countNotes();
-  return `CN-${tenantId.slice(0, 8).toUpperCase()}-${String(count + 1).padStart(5, '0')}`;
+async function emitCreditNoteIssuedNotification(params: {
+  tenantId: string;
+  creditNote: { id: string; credit_note_no: string | null; customer_id: string; related_order_id?: string | null };
+  amount: number;
+  currencyCode: string;
+  issuedBy?: string | null;
+}): Promise<void> {
+  const { tenantId, creditNote, amount, currencyCode, issuedBy } = params;
+  const no = (creditNote.credit_note_no ?? '').trim();
+  if (!no) return;
+  const recipientUserIds = issuedBy && issuedBy.trim() ? [issuedBy.trim()] : [];
+  if (recipientUserIds.length === 0) {
+    logger.warn('credit_note.issued skipped — no issuedBy recipient', {
+      feature: 'stored-value',
+      tenantId,
+      creditNoteId: creditNote.id,
+    });
+    return;
+  }
+  let variables: Record<string, string>;
+  try {
+    variables = buildCreditNoteIssuedNotificationVariables({
+      creditNoteNo: no,
+      amount,
+      currencyCode,
+    });
+  } catch (err) {
+    logger.warn('credit_note.issued variables build failed', {
+      feature: 'stored-value',
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return;
+  }
+  await emitNotificationEvent({
+    code: 'credit_note.issued',
+    tenantOrgId: tenantId,
+    recipientUserIds,
+    sourceEntityType: 'credit_note',
+    sourceEntityId: creditNote.id,
+    variables,
+    actionUrl: creditNote.related_order_id
+      ? `/dashboard/orders/${creditNote.related_order_id}`
+      : undefined,
+    actionLabel: 'View',
+    actionLabel2: 'عرض',
+  });
+}
+/**
+ * credit_note_no to send on INSERT (FOLLOWUPS #6 / A-50): always '' so
+ * trg_fin_cn_no_assign assigns SCN-YYYY-NNNNNN (migration 0687). LEGACY removed.
+ * @returns empty string for the INSERT
+ */
+export async function creditNoteNoForInsert(): Promise<string> {
+  return '';
 }
 
 /**
@@ -450,9 +490,7 @@ export async function issueCreditNoteTx(
     }
   }
 
-  const creditNoteNo = await creditNoteNoForInsert(tenantId, () =>
-    tx.org_credit_notes_mst.count({ where: { tenant_org_id: tenantId } })
-  );
+  const creditNoteNo = await creditNoteNoForInsert();
 
   const creditNote = await tx.org_credit_notes_mst.create({
     data: {
@@ -491,6 +529,14 @@ export async function issueCreditNoteTx(
     });
   }
 
+  // Fire-and-forget; emitNotificationEvent never throws to the business path.
+  await emitCreditNoteIssuedNotification({
+    tenantId,
+    creditNote,
+    amount,
+    currencyCode,
+    issuedBy,
+  });
   return creditNote;
 }
 
@@ -508,11 +554,7 @@ export async function issueCreditNote(
 ) {
   const { customerId, amount, reason, orderId, expiresAt, issuedBy, currencyCode } = params;
 
-  const creditNoteNo = await creditNoteNoForInsert(tenantId, () =>
-    withTenantContext(tenantId, () =>
-      prisma.org_credit_notes_mst.count({ where: { tenant_org_id: tenantId } })
-    )
-  );
+  const creditNoteNo = await creditNoteNoForInsert();
 
   const creditNote = await withTenantContext(tenantId, () =>
     prisma.org_credit_notes_mst.create({
@@ -534,6 +576,13 @@ export async function issueCreditNote(
     })
   );
   assertCreditNoteNoAssigned(creditNote.credit_note_no);
+  await emitCreditNoteIssuedNotification({
+    tenantId,
+    creditNote,
+    amount,
+    currencyCode,
+    issuedBy,
+  });
   return creditNote;
 }
 

@@ -1,3 +1,5 @@
+jest.mock('@/lib/notifications/event-emitter', () => ({ emitNotificationEvent: jest.fn().mockResolvedValue(undefined) }));
+import { emitNotificationEvent } from '@/lib/notifications/event-emitter';
 /**
  * Tests: stored-value.service
  *
@@ -7,7 +9,7 @@
  * - redeemWalletTx   — deducts balance, idempotency skip on duplicate orderId
  * - redeemWalletTx   — throws INSUFFICIENT_BALANCE
  * - issueCreditNote  — creates credit note record
- * - credit note numbering (P5) — ENGINE inserts '' and reads SCN back; LEGACY fallback; missing number stops the issue
+ * - credit note numbering (P5) — ENGINE inserts '' and reads SCN back; LEGACY removed (#6); missing number stops the issue
  */
 
 // ---------------------------------------------------------------------------
@@ -316,6 +318,32 @@ describe('stored-value.service — credit note numbering (HFC P5)', () => {
     expect(note.credit_note_no).toBe('SCN-2026-000007');
   });
 
+  it('emits credit_note.issued with credit_note_no variables (mocked sender)', async () => {
+    mockCreditNoteCreate.mockResolvedValue({
+      id: 'cn-emit-1',
+      credit_note_no: 'SCN-2026-000099',
+      customer_id: CUST,
+      related_order_id: null,
+    });
+    await issueCreditNote(TENANT, {
+      customerId: CUST, amount: 12.5, currencyCode: 'OMR', reason: 'Goodwill', issuedBy: 'user-1',
+    });
+    expect(jest.mocked(emitNotificationEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'credit_note.issued',
+        tenantOrgId: TENANT,
+        recipientUserIds: ['user-1'],
+        sourceEntityType: 'credit_note',
+        sourceEntityId: 'cn-emit-1',
+        variables: expect.objectContaining({
+          credit_note_no: 'SCN-2026-000099',
+          invoice_number: 'SCN-2026-000099',
+          amount: '12.50',
+          currency: 'OMR',
+        }),
+      })
+    );
+  });
   it('ENGINE: issueCreditNoteTx inserts an empty number and writes the ISSUE ledger row', async () => {
     const txCreate = jest.fn().mockResolvedValue({ id: 'cn-2', credit_note_no: 'SCN-2026-000008' });
     const txCount = jest.fn();
@@ -353,13 +381,11 @@ describe('stored-value.service — credit note numbering (HFC P5)', () => {
     expect(txnCreate).not.toHaveBeenCalled();
   });
 
-  it('LEGACY fallback keeps the pre-P5 CN-<tenant8>-<count+1> format', async () => {
-    const no = await creditNoteNoForInsert('abcdef12-3456-7890-abcd-ef1234567890', async () => 41, 'LEGACY');
-    expect(no).toBe('CN-ABCDEF12-00042');
-    await expect(creditNoteNoForInsert(TENANT, async () => 1, 'ENGINE')).resolves.toBe('');
+  it('creditNoteNoForInsert always returns empty (ENGINE only; LEGACY removed FOLLOWUPS #6)', async () => {
+    await expect(creditNoteNoForInsert()).resolves.toBe('');
   });
 
-  it('assertCreditNoteNoAssigned accepts legacy and SCN numbers, rejects empty', () => {
+  it('assertCreditNoteNoAssigned accepts existing CN-/SCN numbers, rejects empty', () => {
     expect(assertCreditNoteNoAssigned('CN-ABCDEF12-00001')).toBe('CN-ABCDEF12-00001');
     expect(assertCreditNoteNoAssigned('SCN-2026-000001')).toBe('SCN-2026-000001');
     expect(() => assertCreditNoteNoAssigned('  ')).toThrow('STORE_CREDIT_NOTE_NO_NOT_ASSIGNED');

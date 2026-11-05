@@ -215,10 +215,10 @@ describe('P1-01 golden — price lookup', () => {
     expect([r.basePrice, r.priceListType]).toEqual([2.25, 'express']);
   });
 
-  it('P03 express without any list: the product express price', async () => {
-    db.product = { default_sell_price: 1.5, default_express_sell_price: 2.5 };
+  it('P03 express without any list: the normal price (a premium comes from speed rules, P7-04)', async () => {
+    db.product = { default_sell_price: 1.5 };
     const r = await lookup({ isExpress: true });
-    expect([r.basePrice, r.source]).toEqual([2.5, 'product_default']);
+    expect([r.basePrice, r.source]).toEqual([1.5, 'product_default']);
     expect(db.eqCalls).toEqual(expect.arrayContaining([
       { table: 'org_product_data_mst', column: 'tenant_org_id', value: TENANT },
     ]));

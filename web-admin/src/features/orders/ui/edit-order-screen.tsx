@@ -97,7 +97,6 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         pricePerUnit: item.price_per_unit || 0,
         totalPrice: item.total_price || 0,
         defaultSellPrice: item.default_sell_price || null,
-        defaultExpressSellPrice: item.default_express_sell_price || null,
         serviceCategoryCode: item.service_category_code || undefined,
         notes: item.notes || undefined,
         pieces,

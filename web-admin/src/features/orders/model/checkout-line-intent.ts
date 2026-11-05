@@ -31,6 +31,8 @@ export function checkoutLineIntentOf(item: OrderItem, gates: CheckoutIntentGates
     ? item.pieces.map((piece) => ({
       servicePrefs: codes(piece.servicePrefs),
       packingPrefCode: gates.packingPerPieceEnabled && piece.packingPrefCode ? piece.packingPrefCode : undefined,
+      serviceSpeed: piece.serviceSpeed ?? null,
+      lineDiscount: piece.lineDiscount ?? null,
     }))
     : undefined;
   return {

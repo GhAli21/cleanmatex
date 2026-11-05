@@ -32,6 +32,8 @@ export interface ReadyOrderItem {
   productName: string;
   quantity: number;
   totalPrice: number;
+  /** After the line's discounts; null only on an older line. */
+  netAmount: number | null;
 }
 
 /**
@@ -120,6 +122,7 @@ export function mapReadyOrderFromStateResponse(
       productName: it.product_name || it.org_product_data_mst?.product_name || 'Item',
       quantity: Number(it.quantity ?? 0),
       totalPrice: Number(it.total_price ?? 0),
+      netAmount: it.net_amount == null ? null : Number(it.net_amount),
     }),
   );
 

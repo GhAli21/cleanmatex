@@ -29,6 +29,8 @@ export interface ItemCartListQuoteProps {
   lineSpeedDisabled?: boolean;
   /** Opens the line discount dialog; absent when the user lacks `orders:discount` (P5-03c). */
   onEditLineDiscount?: (productId: string) => void;
+  /** Opens the discount dialog for one piece (PIECE level, P9-01). */
+  onEditPieceDiscount?: (productId: string, pieceId: string) => void;
 }
 
 interface CartItem {
@@ -44,6 +46,8 @@ interface CartItem {
   hasDamage?: boolean;
   notes?: string;
   pieces?: PreSubmissionPiece[];
+  /** Order Edit: the line is priced per piece (P9-01). */
+  piecePriced?: boolean;
   serviceCategoryCode?: string;
   serviceCategoryName?: string;
   serviceCategoryName2?: string;
@@ -91,6 +95,7 @@ function ItemCartListComponent({
   packingExtraPriceByCode,
   orderSpeed,
   quote,
+  onPiecesChange,
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
@@ -160,12 +165,22 @@ function ItemCartListComponent({
               unquoted: quote.unquoted,
               orderSpeed: orderSpeed ?? '',
               lineSpeed: item.serviceSpeed ?? null,
+              piecePriced: item.piecePriced,
               onLineSpeedChange: quote.onLineSpeedChange
                 ? (code: string | null) => quote.onLineSpeedChange?.(item.productId, code)
                 : undefined,
               lineSpeedDisabled: quote.lineSpeedDisabled,
               onEditLineDiscount: quote.onEditLineDiscount
                 ? () => quote.onEditLineDiscount?.(item.productId)
+                : undefined,
+              onPieceSpeedChange: onPiecesChange && quote.onLineSpeedChange
+                ? (pieceId: string, code: string | null) => onPiecesChange(
+                    item.productId,
+                    (item.pieces ?? []).map((p) => (p.id === pieceId ? { ...p, serviceSpeed: code } : p)),
+                  )
+                : undefined,
+              onEditPieceDiscount: quote.onEditPieceDiscount
+                ? (pieceId: string) => quote.onEditPieceDiscount?.(item.productId, pieceId)
                 : undefined,
             } : undefined}
           />

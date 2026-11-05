@@ -23,7 +23,6 @@ interface Product {
   product_name: string | null;
   product_name2: string | null;
   default_sell_price: number | null;
-  default_express_sell_price: number | null;
   service_category_code: string | null;
   product_image?: string | null;
   product_icon?: string | null;
@@ -42,6 +41,10 @@ interface ProductGridProps {
   items: OrderItem[];
   /** Shown on each card when the order speed adds a premium the cart prices (P5-03b). */
   speedNote?: string | null;
+  /** Each product's price at the order speed, when the server has answered. */
+  speedPrices?: ReadonlyMap<string, number> | null;
+  /** Shown instead of `speedNote` on a card that shows its price at the order speed. */
+  speedPricedNote?: string | null;
   currencyCode?: string;
   productSearch?: string;
   onProductSearchChange?: (value: string) => void;
@@ -72,6 +75,8 @@ export const ProductGrid = memo(function ProductGrid({
   products,
   items,
   speedNote = null,
+  speedPrices = null,
+  speedPricedNote = null,
   currencyCode = '',
   productSearch = '',
   onProductSearchChange,
@@ -106,8 +111,8 @@ export const ProductGrid = memo(function ProductGrid({
     return item?.quantity || 0;
   };
 
-  // The standard catalog price; a speed premium comes from the server's speed rules and is shown in the cart.
-  const getItemPrice = (product: Product): number => product.default_sell_price || 0;
+  // The server's price at the order speed, else the catalog price with a note that the cart prices it.
+  const getItemPrice = (product: Product): number => speedPrices?.get(product.id) ?? (product.default_sell_price || 0);
 
   const prefsPanelRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -278,7 +283,7 @@ export const ProductGrid = memo(function ProductGrid({
                     product={product}
                     quantity={quantity}
                     price={price}
-                    speedNote={speedNote}
+                    speedNote={speedPrices?.has(product.id) ? speedPricedNote : speedNote}
                     currencyCode={currencyCode}
                     categoryLabel={categoryLabel}
                     onAdd={() => onAddItem(product)}

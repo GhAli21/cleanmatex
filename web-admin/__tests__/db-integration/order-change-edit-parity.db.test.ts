@@ -48,6 +48,7 @@ jest.mock('@/lib/services/tenant-settings.service', () => ({
 }));
 
 import { prisma } from '@/lib/db/prisma';
+import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import { OrderService, type CreateOrderParams } from '@/lib/services/order-service';
 import { checkoutCreateTotals, createUnpaidOrderFromCheckoutTx } from '@/lib/services/order-create-from-checkout.service';
 import { quoteCheckout } from '@/lib/services/commercial/commercial-checkout.service';
@@ -134,6 +135,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           ['CHANGE_ORDER_NOTES', 'ORDER'], ['CHANGE_ITEM_QUANTITY', 'ITEM'], ['ADD_ITEM', 'ORDER'], ['REMOVE_ITEM', 'ITEM'],
           ['ADD_PREFERENCE', 'ITEM'], ['REMOVE_PREFERENCE', 'PREFERENCE'], ['CHANGE_SERVICE_SPEED', 'ORDER'], ['ADD_PIECE', 'ITEM'],
           ['CHANGE_SERVICE_SPEED', 'ITEM'], ['CHANGE_ITEM_PRICE', 'ITEM'], ['CHANGE_DISCOUNT', 'ITEM'],
+          ['CHANGE_SERVICE_SPEED', 'PIECE'], ['CHANGE_DISCOUNT', 'PIECE'],
         ];
         for (const [code, target] of rules) {
           await tx.$executeRaw`
@@ -250,6 +252,8 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           expect([card.header.metrics.originalTotal, card.header.metrics.projectedTotal, card.header.editOutcome])
             .toEqual([Number(review.currentTotal), Number(review.estimatedTotal), review.financialOutcome]);
           const after = await getOrderFinancialView(tenantId, orderId, resolveOrderFinDisplayConfig({ preset: 'detailed' }));
+          // Retired rows must not reach the statement: its lines add up to its totals.
+          expect(after.warnings.map((w) => w.code)).not.toContain('SECTION_LINES_MISMATCH');
           const figures = (v: OrderFinancialView) => ({
             ...Object.fromEntries((['items', 'charges', 'discounts', 'taxes', 'rounding'] as const).map((k) => [k, money(v.sections[k]?.totals[0]?.amount ?? 0)])),
             included: (v.sections.items?.lines ?? []).filter((l) => l.role === 'included').map((l) => [l.id, money(l.amount)]),
@@ -281,7 +285,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           }
           if (!preview.reviewProof || !preview.calculationFingerprint) {
             if (allowRejected) return { context, preview, applied: null };
-            throw new Error('Signed preview unavailable');
+            throw new Error(`Signed preview unavailable: ${preview.status} ${JSON.stringify(preview.decisions?.filter((d) => !d.allowed))} ${JSON.stringify(preview.acknowledgements ?? null)}`);
           }
           // P3-08/P4-08: the live card, built by the quote route's service from this preview, before Apply.
           const card = editQuoteFromPreview(preview)
@@ -521,6 +525,121 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         expect(livePromoRows).toEqual([]);
         // The card proof ran on every applied edit, priced or not.
         expect(cardChecks).toBeGreaterThanOrEqual(15);
+
+        // P8-01: the header buckets are the real totals of the stored rows, and an
+        // order with no standard-rated line has nothing taxable on the header.
+        await tx.$executeRaw`
+          UPDATE public.org_order_items_dtl SET tax_category_code = 'EXEMPT', taxable_amount = net_amount, tax_amount = 0
+          WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND rec_status = 1`;
+        await tx.$executeRaw`
+          UPDATE public.org_order_taxes_dtl SET rec_status = 0
+          WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid`;
+        await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
+        const buckets = (await tx.$queryRaw<Array<{ taxable_amount: string; exempt_amount: string; lines_net: string }>>`
+          SELECT o.taxable_amount::text, o.exempt_amount::text,
+                 (SELECT SUM(i.net_amount)::text FROM public.org_order_items_dtl i
+                  WHERE i.tenant_org_id = o.tenant_org_id AND i.order_id = o.id AND i.rec_status = 1) AS lines_net
+          FROM public.org_orders_mst o WHERE o.tenant_org_id = ${tenantId}::uuid AND o.id = ${orderId}::uuid`)[0];
+        expect(Number(buckets.lines_net)).toBeGreaterThan(0);
+        expect(Number(buckets.exempt_amount)).toBeCloseTo(Number(buckets.lines_net), 4);
+        expect(Number(buckets.taxable_amount)).toBe(0);
+
+        // ─── 16. PIECE level (P9-01): a piece's own speed and discount, Create → Edit ──
+        await tx.$executeRaw`UPDATE public.org_tenants_mst SET commercial_level = 'PIECE' WHERE id = ${tenantId}::uuid`;
+        // Shirt: 2.000, Express 3.000. Trouser: 5.000; its line discount is shared across its pieces.
+        const pieceCheckout = await quoteCheckout({
+          db: tx as unknown as CommercialDb, tenantId, customerId,
+          items: [
+            { productId: shirt, quantity: 3, pieces: [
+              { serviceSpeed: 'EXPRESS' },
+              { lineDiscount: { type: 'FIXED_AMOUNT', value: 0.5, reason: 'Stain' } },
+              {},
+            ] },
+            { productId: trouser, quantity: 2, pieces: [{}, {}], lineDiscount: { type: 'FIXED_AMOUNT', value: 1, reason: 'Goodwill' } },
+          ],
+        });
+        const pieceOrder = await createUnpaidOrderFromCheckoutTx(tx as never, {
+          tenantId, checkout: pieceCheckout, committedBy: null, issuedBy: customerId,
+          order: {
+            customerId, orderTypeId: 'POS', userId: actorId, userName: 'Parity cashier', paymentTypeCode: 'PAY_ON_COLLECTION',
+            items: [
+              { productId: shirt, quantity: 3, pricePerUnit: 0, totalPrice: 0, pieces: [{ pieceSeq: 1 }, { pieceSeq: 2 }, { pieceSeq: 3 }] },
+              { productId: trouser, quantity: 2, pricePerUnit: 0, totalPrice: 0, pieces: [{ pieceSeq: 1 }, { pieceSeq: 2 }] },
+            ],
+          },
+        });
+        orderId = pieceOrder.order.id;
+        await tx.$executeRaw`
+          UPDATE public.org_orders_mst SET current_status = 'processing'
+          WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid`;
+        const pieceRows = () => tx.$queryRaw<Array<{ id: string; order_item_id: string; product_id: string; piece_seq: number; money_basis: string; service_speed: string; speed_rule_id: string | null; price_per_unit: string; net_amount: string; line_disc_amount: string; ready_by_at: Date }>>`
+          SELECT p.id, p.order_item_id, i.product_id, p.piece_seq, p.money_basis, p.service_speed, p.speed_rule_id,
+                 p.price_per_unit::text AS price_per_unit, p.net_amount::text AS net_amount,
+                 p.line_disc_amount::text AS line_disc_amount, p.ready_by_at
+          FROM public.org_order_item_pieces_dtl p
+          JOIN public.org_order_items_dtl i ON i.id = p.order_item_id AND i.tenant_org_id = p.tenant_org_id
+          WHERE p.tenant_org_id = ${tenantId}::uuid AND p.order_id = ${orderId}::uuid AND p.rec_status = 1
+          ORDER BY i.created_at, i.id, p.piece_seq`;
+        const shirtPieces = async () => (await pieceRows()).filter((r) => r.product_id === shirt);
+        const nets = async () => (await shirtPieces()).map((r) => money(r.net_amount));
+
+        // Create: each piece is priced; the item is the exact sum; the promised time is the slowest piece's.
+        const created16 = await pieceRows();
+        expect(new Set(created16.map((r) => r.money_basis))).toEqual(new Set(['PRICED']));
+        expect(await nets()).toEqual([money(3), money(1.5), money(2)]);
+        const [expressPiece, discountPiece, plainPiece] = await shirtPieces();
+        expect([expressPiece.service_speed, expressPiece.speed_rule_id != null]).toEqual(['EXPRESS', true]);
+        expect([plainPiece.service_speed, plainPiece.speed_rule_id]).toEqual(['STANDARD', null]);
+        expect(created16.filter((r) => r.product_id === trouser).map((r) => money(r.net_amount))).toEqual([money(4.5), money(4.5)]);
+        await assertStoredInvariants(pieceCheckout.totals.saleTotal.toString());
+        const pieceDiscountRows = await tx.$queryRaw<Array<{ order_item_piece_id: string | null; discount_level: string; rec_notes: string | null }>>`
+          SELECT order_item_piece_id, discount_level, rec_notes FROM public.org_order_discounts_dtl
+          WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND is_voided = false AND source_type = 'MANUAL'`;
+        expect(pieceDiscountRows).toHaveLength(3);
+        expect(new Set(pieceDiscountRows.map((r) => r.discount_level))).toEqual(new Set(['PIECE']));
+        expect(pieceDiscountRows.find((r) => r.order_item_piece_id === discountPiece.id)?.rec_notes).toBe('Stain');
+        const shirtItem = (await items()).find((i) => i.product_id === shirt)!;
+        expect(shirtItem.ready_by_at?.getTime()).toBe(Math.max(...(await shirtPieces()).map((r) => r.ready_by_at.getTime())));
+        expect(expressPiece.ready_by_at.getTime()).not.toBe(plainPiece.ready_by_at.getTime());
+
+        // Edit: a new rule price reaches only the piece being changed; the others keep what was agreed (L24).
+        await tx.$executeRaw`
+          UPDATE public.org_speed_price_rules_cf SET default_speed_sell_price = 4
+          WHERE tenant_org_id = ${tenantId}::uuid AND product_id = ${shirt}::uuid`;
+        const toExpress = await edit([{ seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_PIECE', id: plainPiece.id }, payload: { serviceSpeed: 'EXPRESS' } }]);
+        expect(toExpress.preview.ok).toBe(true);
+        expect(await nets()).toEqual([money(3), money(1.5), money(4)]);
+        expect(((await shirtPieces())[0]).ready_by_at.getTime()).toBe(expressPiece.ready_by_at.getTime());
+
+        // Edit: a piece's discount changes on that piece only, and is stored with its reason.
+        const changedDiscount = await edit([{ seq: 1, code: 'CHANGE_DISCOUNT', target: { kind: 'PERSISTED_PIECE', id: discountPiece.id }, payload: { lineDiscount: { type: 'PERCENTAGE', value: '50', reason: 'Bigger stain' } } }]);
+        expect(changedDiscount.preview.ok).toBe(true);
+        expect(await nets()).toEqual([money(3), money(1), money(4)]);
+        const removedDiscount = await edit([{ seq: 1, code: 'CHANGE_DISCOUNT', target: { kind: 'PERSISTED_PIECE', id: discountPiece.id }, payload: { lineDiscount: null } }]);
+        expect(removedDiscount.preview.ok).toBe(true);
+        expect(await nets()).toEqual([money(3), money(2), money(4)]);
+        // The trouser's shared discount is still there: another edit did not touch it.
+        expect((await pieceRows()).filter((r) => r.product_id === trouser).map((r) => money(r.net_amount))).toEqual([money(4.5), money(4.5)]);
+
+        // Back to the line's speed: the piece follows its line again.
+        const backToLine = await edit([{ seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_PIECE', id: expressPiece.id }, payload: { serviceSpeed: 'STANDARD' } }]);
+        expect(backToLine.preview.ok).toBe(true);
+        expect(await nets()).toEqual([money(2), money(2), money(4)]);
+
+        // History names the piece and its line.
+        const pieceOps = await tx.$queryRaw<Array<{ operation_code: string; order_item_id: string; order_item_piece_id: string }>>`
+          SELECT operation_code, order_item_id, order_item_piece_id FROM public.org_order_change_ops_dtl
+          WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND target_type = 'PIECE'`;
+        expect(pieceOps).toHaveLength(4);
+        expect(pieceOps.every((op) => op.order_item_id === shirtItem.id)).toBe(true);
+
+        // A line already ready keeps its pieces' speed.
+        await tx.$executeRaw`
+          UPDATE public.org_order_items_dtl SET quantity_ready = 1
+          WHERE tenant_org_id = ${tenantId}::uuid AND id = ${shirtItem.id}::uuid`;
+        const locked = await edit([{ seq: 1, code: 'CHANGE_SERVICE_SPEED', target: { kind: 'PERSISTED_PIECE', id: discountPiece.id }, payload: { serviceSpeed: 'EXPRESS' } }], true);
+        expect(locked.applied).toBeNull();
+        expect(JSON.stringify(locked.preview)).toContain('LINE_SPEED_LOCKED');
       } finally {
         delete (globalThis as { __editParityTx?: unknown }).__editParityTx;
       }

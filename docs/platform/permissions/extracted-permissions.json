@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-01T16:03:09.994Z",
+  "extractedAt": "2026-11-05T16:14:29.288Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -15,7 +15,7 @@
       "route": "/dashboard/catalog/services",
       "permission": "products:create",
       "component": "useHasPermissionCode",
-      "line": 54,
+      "line": 53,
       "surface": "service"
     },
     {
@@ -23,7 +23,7 @@
       "route": "/dashboard/catalog/services",
       "permission": "products:export",
       "component": "useHasPermissionCode",
-      "line": 55,
+      "line": 54,
       "surface": "service"
     },
     {
@@ -2337,7 +2337,7 @@
       "method": "GET",
       "route": "/api/v1/finance/reports/tax-report",
       "permission": "finance_reports:view",
-      "line": 11,
+      "line": 12,
       "surface": "api"
     },
     {
@@ -2749,14 +2749,6 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/orders/preview-financials/route.ts",
-      "method": "POST",
-      "route": "/api/v1/orders/preview-financials",
-      "permission": "orders:create",
-      "line": 26,
-      "surface": "api"
-    },
-    {
       "file": "app/api/v1/orders/preview-payment/route.ts",
       "method": "POST",
       "route": "/api/v1/orders/preview-payment",
@@ -2770,14 +2762,6 @@
       "route": "/api/v1/orders/quote",
       "permission": "orders:create",
       "line": 31,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/orders/recalc-preference-charges/route.ts",
-      "method": "POST",
-      "route": "/api/v1/orders/recalc-preference-charges",
-      "permission": "orders:post_settlement_edit",
-      "line": 24,
       "surface": "api"
     },
     {
@@ -3313,7 +3297,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/state",
       "permission": "orders:read",
-      "line": 93,
+      "line": 94,
       "surface": "api"
     },
     {
@@ -3577,7 +3561,7 @@
       "method": "POST",
       "route": "/api/v1/products/import",
       "permission": "products:create",
-      "line": 29,
+      "line": 33,
       "surface": "api"
     },
     {
@@ -3585,7 +3569,7 @@
       "method": "GET",
       "route": "/api/v1/products",
       "permission": "products:read",
-      "line": 51,
+      "line": 52,
       "surface": "api"
     },
     {
@@ -3593,7 +3577,7 @@
       "method": "GET",
       "route": "/api/v1/products",
       "permission": "products:create",
-      "line": 168,
+      "line": 169,
       "surface": "api"
     },
     {
@@ -3601,7 +3585,7 @@
       "method": "GET",
       "route": "/api/v1/products/[id]",
       "permission": "products:read",
-      "line": 35,
+      "line": 36,
       "surface": "api"
     },
     {
@@ -3609,7 +3593,7 @@
       "method": "GET",
       "route": "/api/v1/products/[id]",
       "permission": "products:update",
-      "line": 87,
+      "line": 88,
       "surface": "api"
     },
     {
@@ -3617,7 +3601,7 @@
       "method": "GET",
       "route": "/api/v1/products/[id]",
       "permission": "products:delete",
-      "line": 156,
+      "line": 161,
       "surface": "api"
     },
     {
@@ -3753,7 +3737,7 @@
       "method": "GET",
       "route": "/api/v1/settings/tax/profiles",
       "permission": "tax:view_config",
-      "line": 13,
+      "line": 14,
       "surface": "api"
     },
     {
@@ -3761,7 +3745,7 @@
       "method": "GET",
       "route": "/api/v1/settings/tax/profiles",
       "permission": "tax:manage_config",
-      "line": 51,
+      "line": 52,
       "surface": "api"
     },
     {

@@ -222,6 +222,7 @@
     "grandTotalRow": "Grand Total",
     "empty": "No data for the selected period",
     "loading": "Loading report...",
-    "exportCSV": "Export CSV"
+    "exportCSV": "Export CSV",
+    "byTaxCategory": "Taxable amount by tax category"
   }
 }

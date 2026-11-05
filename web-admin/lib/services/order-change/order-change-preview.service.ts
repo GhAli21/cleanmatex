@@ -369,7 +369,9 @@ export async function previewOrderChange(input: {
   const activeLineIds = new Set(structure.items.filter((item) => item.active).map((item) => item.id.toLowerCase()));
   const storedLineIds = new Set(input.context.items.map((item) => item.id.toLowerCase()));
   const strayLineMoney = input.request.operations.find((operation) => (operation.code === 'CHANGE_ITEM_PRICE' || operation.code === 'CHANGE_DISCOUNT')
-    && !(storedLineIds.has(operation.target.id.toLowerCase()) && activeLineIds.has(operation.target.id.toLowerCase())));
+    && !(operation.target.kind === 'PERSISTED_PIECE'
+      ? input.context.pieces.some((piece) => piece.id.toLowerCase() === operation.target.id.toLowerCase())
+      : storedLineIds.has(operation.target.id.toLowerCase()) && activeLineIds.has(operation.target.id.toLowerCase())));
   if (strayLineMoney) return { ok: false, status: 422, code: 'UPDATE_NOT_ACTIVE', seq: strayLineMoney.seq };
 
   // A ready line keeps its speed (P6-02b): refuse the operation that would move it.
@@ -438,9 +440,19 @@ export async function previewOrderChange(input: {
     lineSpeeds.has(item.id.toLowerCase())
     && nextLineSpeeds.get(item.id.toLowerCase()) !== (item.serviceSpeed ?? input.context.order.serviceSpeed)
   ));
-  const speedChanged = (orderSpeed !== null && orderSpeed !== input.context.order.serviceSpeed) || lineSpeedChanged;
+  // A piece's own speed (P9-01); the same speed as stored changes nothing.
+  const { pieceSpeeds } = speedChangesOf(input.request.operations);
+  const pieceSpeedChanged = input.context.pieces.some((piece) => {
+    const next = pieceSpeeds.get(piece.id.toLowerCase());
+    return next !== undefined && next !== piece.serviceSpeed;
+  });
+  const speedChanged = (orderSpeed !== null && orderSpeed !== input.context.order.serviceSpeed) || lineSpeedChanged || pieceSpeedChanged;
   // A cashier price or discount equal to the stored one changes nothing (P6-02c).
-  const { prices, discounts } = lineMoneyChangesOf(input.request.operations);
+  const { prices, discounts, pieceDiscounts } = lineMoneyChangesOf(input.request.operations);
+  const pieceMoneyChanged = pieceSpeedChanged || input.context.pieces.some((piece) => {
+    const key = piece.id.toLowerCase();
+    return pieceDiscounts.has(key) && !sameLineDiscount(pieceDiscounts.get(key) ?? null, piece.lineDiscount ?? null);
+  });
   const lineMoneyChanged = input.context.items.some((item) => {
     const key = item.id.toLowerCase();
     const price = prices.get(key);
@@ -449,7 +461,7 @@ export async function previewOrderChange(input: {
     return priceMoved || (discounts.has(key) && !sameLineDiscount(discounts.get(key) ?? null, item.lineDiscount ?? null));
   });
   const unlisted = input.request.operations.some((operation) => operation.code === 'CHANGE_UNLISTED');
-  const createsChange = structure.createsChange || projectedPreferences.createsChange || header || lineSpeedChanged || lineMoneyChanged || unlisted;
+  const createsChange = structure.createsChange || projectedPreferences.createsChange || header || lineSpeedChanged || lineMoneyChanged || pieceMoneyChanged || unlisted;
   const activeItemIds = structure.items.filter((item) => item.active).map((item) => item.id);
   if (!createsChange || denied) {
     return {

@@ -58,6 +58,7 @@ interface PublicOrderItemRow {
   id: string;
   quantity: number | string | null;
   total_price: number | string | null;
+  line_total_amount?: number | string | null;
   product_name?: string | null;
   product_name2?: string | null;
   org_product_data_mst?: PublicOrderProductRow | null;
@@ -379,6 +380,7 @@ export async function getPublicOrderTrackingResponse(
             id,
             quantity,
             total_price,
+            line_total_amount,
             org_product_data_mst(
               id,
               product_name,
@@ -468,6 +470,8 @@ export async function getPublicOrderTrackingResponse(
               name2: item.org_product_data_mst?.product_name2 || item.product_name2 || null,
               quantity: item.quantity ? Number(item.quantity) : 0,
               totalPrice: item.total_price ? Number(item.total_price) : 0,
+              // What the customer pays for the line; null only on an older line.
+              lineTotalAmount: item.line_total_amount == null ? null : Number(item.line_total_amount),
             })),
             customerNotes: order.customer_notes,
           },

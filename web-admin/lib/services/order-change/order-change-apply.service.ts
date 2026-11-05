@@ -30,7 +30,7 @@ import {
 import { collectionRequiredForPaymentType, mapPersistedFinancialOutcome, OrderChangeMutationError, persistOrderChangeTx, type OrderChangePersistedOperation, type OrderChangeWriteTx } from '@/lib/services/order-change/order-change-mutation.service';
 import type { OrderChangePreviewSuccess, OrderChangeSpeedAudit } from '@/lib/services/order-change/order-change-preview.service';
 import { buildOrderChangeOperationAudit, digestOrderChangeOperationAudits } from '@/lib/services/order-change/order-change-review-audit';
-import { lineDiscountAuditFields, manualLineDiscounts, type StoredLineDiscountRow } from '@/lib/services/order-change/order-change-line-money';
+import { lineDiscountAuditFields, manualLineDiscounts, manualPieceDiscounts, type StoredLineDiscountRow } from '@/lib/services/order-change/order-change-line-money';
 import { DISCOUNT_SOURCE_TYPE } from '@/lib/constants/discount-source-type';
 import { DISCOUNT_CHANGE_OUTCOMES } from '@/lib/services/commercial/edit-discount-reevaluation';
 import { reversePromoUsageTx } from '@/lib/services/discount-service';
@@ -302,6 +302,10 @@ interface PieceBeforeRow {
   piece_stage: string | null;
   scan_state: string | null;
   rec_status: number | null;
+  /** Set when a discount operation reads this piece (P9-01). */
+  line_disc_type?: string | null;
+  line_disc_value?: string | null;
+  line_disc_reason?: string | null;
 }
 
 interface PreferenceBeforeRow {
@@ -409,6 +413,9 @@ function pieceSnapshot(row: PieceBeforeRow): Record<string, unknown> {
     piece_stage: row.piece_stage,
     scan_state: row.scan_state,
     rec_status: row.rec_status,
+    line_disc_type: row.line_disc_type,
+    line_disc_value: row.line_disc_value,
+    line_disc_reason: row.line_disc_reason,
   });
 }
 
@@ -512,7 +519,7 @@ function beforeValuesFor(
     const item = facts.items.get(operation.target.id.toLowerCase());
     return item ? itemSnapshot(item) : {};
   }
-  if (operation.code === 'REMOVE_PIECE' && operation.target.kind === 'PERSISTED_PIECE') {
+  if ((operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_DISCOUNT') && operation.target.kind === 'PERSISTED_PIECE') {
     const piece = facts.pieces.get(operation.target.id.toLowerCase());
     return piece ? pieceSnapshot(piece) : {};
   }
@@ -549,7 +556,8 @@ async function loadOperationBeforeFacts(
       : []
   ));
   const pieceIds = operations.flatMap((operation) => (
-    (operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_UNLISTED')
+    (operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_UNLISTED'
+      || operation.code === 'CHANGE_SERVICE_SPEED' || operation.code === 'CHANGE_DISCOUNT')
     && operation.target.kind === 'PERSISTED_PIECE'
       ? [operation.target.id]
       : []
@@ -611,22 +619,6 @@ async function loadOperationBeforeFacts(
     `;
     if (rows[0]) items.set(itemId.toLowerCase(), rows[0]);
   }
-  // A line discount's audit is the line's cashier discount rows, read the same way Review read them.
-  const discountChanged = operations.some((operation) => operation.code === 'CHANGE_DISCOUNT'
-    || (operation.code === 'ADD_ITEM' && operation.payload.lineDiscount));
-  if (discountChanged && items.size > 0) {
-    const discountRows = await query<StoredLineDiscountRow[]>`
-      SELECT order_item_id::text AS order_item_id, discount_level, source_type, discount_type,
-             discount_rate::text AS discount_rate, discount_amount::text AS discount_amount, rec_notes
-      FROM org_order_discounts_dtl
-      WHERE tenant_org_id = ${tenantId}::uuid
-        AND order_id = ${orderId}::uuid
-        AND is_voided = false
-        AND source_type = ${DISCOUNT_SOURCE_TYPE.MANUAL}
-      ORDER BY applied_seq`;
-    const discounts = manualLineDiscounts(discountRows);
-    for (const [id, row] of items) Object.assign(row, lineDiscountAuditFields(discounts.get(id) ?? null));
-  }
   const pieces = new Map<string, PieceBeforeRow>();
   for (const pieceId of pieceIds) {
     const rows = await query<PieceBeforeRow[]>`
@@ -643,6 +635,28 @@ async function loadOperationBeforeFacts(
         AND (rec_status = 1 OR ${includeRetiredAndCreated})
     `;
     if (rows[0]) pieces.set(pieceId.toLowerCase(), rows[0]);
+  }
+  // A discount's audit is the cashier discount rows of its line or piece, read the same way Review read them.
+  const discountChanged = operations.some((operation) => operation.code === 'CHANGE_DISCOUNT'
+    || (operation.code === 'ADD_ITEM' && operation.payload.lineDiscount));
+  if (discountChanged && (items.size > 0 || pieces.size > 0)) {
+    const discountRows = await query<StoredLineDiscountRow[]>`
+      SELECT order_item_id::text AS order_item_id, order_item_piece_id::text AS order_item_piece_id, discount_level, source_type, discount_type,
+             discount_rate::text AS discount_rate, discount_amount::text AS discount_amount, rec_notes
+      FROM org_order_discounts_dtl
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND order_id = ${orderId}::uuid
+        AND is_voided = false
+        AND source_type = ${DISCOUNT_SOURCE_TYPE.MANUAL}
+      ORDER BY applied_seq`;
+    const discounts = manualLineDiscounts(discountRows);
+    for (const [id, row] of items) Object.assign(row, lineDiscountAuditFields(discounts.get(id) ?? null));
+    const pieceDiscounts = manualPieceDiscounts(discountRows);
+    for (const [id, row] of pieces) {
+      if (operations.some((operation) => operation.code === 'CHANGE_DISCOUNT' && operation.target.kind === 'PERSISTED_PIECE' && operation.target.id.toLowerCase() === id)) {
+        Object.assign(row, lineDiscountAuditFields(pieceDiscounts.get(id) ?? null));
+      }
+    }
   }
   const preferences = new Map<string, PreferenceBeforeRow>();
   for (const preferenceId of preferenceIds) {
@@ -663,7 +677,7 @@ async function loadOperationBeforeFacts(
   if (!includeRetiredAndCreated) {
     for (const operation of operations) {
       const missing = operation.target.kind === 'PERSISTED_ITEM' && (operation.code === 'REMOVE_ITEM' || operation.code === 'CHANGE_ITEM_QUANTITY' || operation.code === 'CHANGE_UNLISTED' || LINE_MONEY_CODES.has(operation.code)) ? !items.has(operation.target.id.toLowerCase())
-        : operation.target.kind === 'PERSISTED_PIECE' && (operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_UNLISTED') ? !pieces.has(operation.target.id.toLowerCase())
+        : operation.target.kind === 'PERSISTED_PIECE' && (operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_UNLISTED' || operation.code === 'CHANGE_DISCOUNT' || operation.code === 'CHANGE_SERVICE_SPEED') ? !pieces.has(operation.target.id.toLowerCase())
           : operation.target.kind === 'PERSISTED_PREFERENCE' ? !preferences.has(operation.target.id.toLowerCase()) : false;
       if (missing) throw new OrderChangeMutationError(operation.code.startsWith('REMOVE_') ? 'REMOVAL_NOT_ACTIVE' : 'UPDATE_NOT_ACTIVE');
     }
@@ -773,6 +787,8 @@ function persistedOperations(
     const audit = auditBySeq.get(operation.seq);
     // A line speed, price or discount is recorded against its line.
     const lineTarget = (operation.code === 'CHANGE_SERVICE_SPEED' || LINE_MONEY_CODES.has(operation.code)) && operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : null;
+    // A piece's own speed or discount (P9-01) is recorded against the piece, under its line.
+    const pieceTarget = (operation.code === 'CHANGE_SERVICE_SPEED' || operation.code === 'CHANGE_DISCOUNT') && operation.target.kind === 'PERSISTED_PIECE' ? operation.target.id : null;
     const speedValues = operation.code === 'CHANGE_SERVICE_SPEED' && speedAudit;
     const beforeValues = speedValues ? storedSpeedSnapshot(speedAudit.before, beforeFacts) : beforeValuesFor(operation, beforeFacts);
     const afterSpeed = speedValues ? speedSnapshot(speedAudit.after, beforeFacts?.order ?? null) : null;
@@ -800,9 +816,9 @@ function persistedOperations(
     return {
       seq: operation.seq,
       code: operation.code,
-      targetType: audit?.targetType ?? (lineTarget ? 'ITEM' : 'ORDER'),
-      orderItemId: audit?.orderItemId ?? lineTarget ?? null,
-      orderItemPieceId: audit?.orderItemPieceId ?? null,
+      targetType: audit?.targetType ?? (pieceTarget ? 'PIECE' : lineTarget ? 'ITEM' : 'ORDER'),
+      orderItemId: audit?.orderItemId ?? lineTarget ?? (pieceTarget ? beforeFacts?.pieces.get(pieceTarget.toLowerCase())?.order_item_id ?? null : null),
+      orderItemPieceId: audit?.orderItemPieceId ?? pieceTarget,
       orderPreferenceId: audit?.orderPreferenceId ?? null,
       clientRef: audit?.clientRef ?? null,
       beforeValues: canonical.beforeValues,

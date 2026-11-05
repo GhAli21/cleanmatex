@@ -21,6 +21,7 @@ export interface OrderChangeLineDiscount {
 /** The `org_order_discounts_dtl` columns the reader needs. */
 export interface StoredLineDiscountRow {
   order_item_id: string | null;
+  order_item_piece_id?: string | null;
   discount_level: string | null;
   source_type: string;
   discount_type: string;
@@ -37,7 +38,7 @@ export interface StoredLineDiscountRow {
 export function manualLineDiscounts(rows: readonly StoredLineDiscountRow[]): Map<string, OrderChangeLineDiscount> {
   const byItem = new Map<string, StoredLineDiscountRow[]>();
   for (const row of rows) {
-    if (!row.order_item_id || row.source_type !== DISCOUNT_SOURCE_TYPE.MANUAL || row.discount_level === 'ORDER') continue;
+    if (!row.order_item_id || row.source_type !== DISCOUNT_SOURCE_TYPE.MANUAL || row.discount_level !== 'ITEM') continue;
     const key = row.order_item_id.toLowerCase();
     byItem.set(key, [...(byItem.get(key) ?? []), row]);
   }
@@ -49,6 +50,26 @@ export function manualLineDiscounts(rows: readonly StoredLineDiscountRow[]): Map
       : toMoneyString(own.reduce((sum, row) => addMoney(sum, row.discount_amount).toString(), '0'));
     return [id, { type: first.discount_type, value, reason: first.rec_notes }] as const;
   }));
+}
+
+/**
+ * Each piece's own manual discount (P9-01). A line discount on a piece-priced line is
+ * stored per piece too, so it reads back here, one piece at a time.
+ * @param rows the order's non-voided discount rows
+ * @returns the discount by lower-case piece id; a piece without one is absent
+ */
+export function manualPieceDiscounts(rows: readonly StoredLineDiscountRow[]): Map<string, OrderChangeLineDiscount> {
+  const result = new Map<string, OrderChangeLineDiscount>();
+  for (const row of rows) {
+    if (!row.order_item_piece_id || row.source_type !== DISCOUNT_SOURCE_TYPE.MANUAL || row.discount_level !== 'PIECE') continue;
+    const percent = row.discount_type === DISCOUNT_CALC_TYPE.PERCENTAGE && row.discount_rate != null;
+    result.set(row.order_item_piece_id.toLowerCase(), {
+      type: row.discount_type,
+      value: toMoneyString(percent ? row.discount_rate as string : row.discount_amount),
+      reason: row.rec_notes,
+    });
+  }
+  return result;
 }
 
 /**

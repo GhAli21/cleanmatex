@@ -20,6 +20,8 @@ export interface SpeedRuleEditorDialogProps {
   /** `edit` needs `rule`; `bulk` creates one product rule per product of a category. */
   mode: 'create' | 'edit' | 'bulk';
   rule?: SpeedRuleView;
+  /** Opened from a product: the rule belongs to this product and the scope cannot change. */
+  fixedProduct?: PickedProduct;
   speedOptions: Option[];
   branchOptions: Option[];
   categoryOptions: Option[];
@@ -33,19 +35,19 @@ export interface SpeedRuleEditorDialogProps {
  * @param props - mode, the rule, the menu options and callbacks
  * @returns the dialog
  */
-export function SpeedRuleEditorDialog({ mode, rule, speedOptions, branchOptions, categoryOptions, onClose, onSaved }: SpeedRuleEditorDialogProps) {
+export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, branchOptions, categoryOptions, onClose, onSaved }: SpeedRuleEditorDialogProps) {
   const t = useTranslations('catalog.speedPricing');
   const tCommon = useTranslations('common');
   const locale = useLocale();
   const { token: csrfToken } = useCSRFToken();
 
   const [serviceSpeed, setServiceSpeed] = useState(rule?.serviceSpeed ?? speedOptions[0]?.value ?? '');
-  const [scope, setScope] = useState<Scope>(mode === 'bulk' ? 'CATEGORY' : rule?.productId ? 'PRODUCT' : rule?.serviceCategoryCode ? 'CATEGORY' : 'TENANT');
+  const [scope, setScope] = useState<Scope>(mode === 'bulk' ? 'CATEGORY' : fixedProduct || rule?.productId ? 'PRODUCT' : rule?.serviceCategoryCode ? 'CATEGORY' : 'TENANT');
   const [categoryCode, setCategoryCode] = useState(rule?.serviceCategoryCode ?? '');
   const [product, setProduct] = useState<PickedProduct | null>(
-    rule?.productId
+    fixedProduct ?? (rule?.productId
       ? { id: rule.productId, label: (locale === 'ar' ? rule.productName2 || rule.productName : rule.productName || rule.productName2) ?? rule.productId }
-      : null,
+      : null),
   );
   const [branchId, setBranchId] = useState(rule?.branchId ?? '');
   const [priceType, setPriceType] = useState(rule?.speedPriceType ?? SPEED_PRICE_TYPES.MULTIPLIER);
@@ -143,7 +145,7 @@ export function SpeedRuleEditorDialog({ mode, rule, speedOptions, branchOptions,
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
             />
-            {mode === 'bulk' ? null : (
+            {mode === 'bulk' || fixedProduct ? null : (
               <CmxSelect
                 label={t('fields.scope')}
                 options={[
@@ -165,7 +167,9 @@ export function SpeedRuleEditorDialog({ mode, rule, speedOptions, branchOptions,
                 error={fieldErrors.serviceCategoryCode}
               />
             ) : null}
-            {scope === 'PRODUCT' ? (
+            {fixedProduct ? (
+              <CmxInput label={t('fields.product')} value={fixedProduct.label} disabled />
+            ) : scope === 'PRODUCT' ? (
               <SpeedRuleProductField label={t('fields.product')} value={product} onChange={setProduct} error={fieldErrors.productId} />
             ) : null}
           </div>

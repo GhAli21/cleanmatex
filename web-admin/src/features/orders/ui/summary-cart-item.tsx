@@ -38,6 +38,12 @@ export interface SummaryCartItemQuote {
   lineSpeedDisabled?: boolean;
   /** Opens the line discount dialog (P5-03c); absent without `orders:discount`. */
   onEditLineDiscount?: () => void;
+  /** Sets a piece's own speed (PIECE level, P9-01); null follows the line. */
+  onPieceSpeedChange?: (pieceId: string, serviceSpeed: string | null) => void;
+  /** Opens the discount dialog for one piece; absent without `orders:discount`. */
+  onEditPieceDiscount?: (pieceId: string) => void;
+  /** Order Edit has no quote: the stored line says it is priced per piece. */
+  piecePriced?: boolean;
 }
 
 function humanizePreferenceCode(code: string): string {
@@ -244,6 +250,40 @@ function SummaryCartItemComponent({
   const effectiveSpeed = quote ? quote.lineSpeed ?? quote.orderSpeed : null;
   const premium = quote?.line && quote.line.speedPremiumAmount > 0 ? quote.line.speedPremiumAmount : 0;
 
+  // A piece's own speed and discount, for a line priced per piece once pieces are tracked (P9-01).
+  const showPieceRows = trackByPiece && pieces.length > 0
+    && (quote?.line ? quote.line.pieces.length === pieces.length : quote?.piecePriced === true);
+  const pieceRows = pieces.map((piece, k) => (
+    <div key={piece.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 py-1">
+      <dt className="min-w-16">{tPieces('pieceNumber', { number: k + 1 })}</dt>
+      <dd className="flex items-center gap-2">
+        {quote?.onPieceSpeedChange ? (
+          <ServiceSpeedSelect
+            size="line"
+            className="w-32"
+            value={piece.serviceSpeed ?? null}
+            orderSpeed={quote.lineSpeed ?? quote.orderSpeed}
+            onChange={(code) => quote.onPieceSpeedChange?.(piece.id, code)}
+            disabled={quote.lineSpeedDisabled}
+            disabledReason={tSpeed('locked')}
+            ariaLabel={tSpeed('lineAria', { item: `${displayName} ${k + 1}` })}
+          />
+        ) : null}
+        {quote?.onEditPieceDiscount ? (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); quote.onEditPieceDiscount?.(piece.id); }}
+            className="shrink-0 p-0.5 text-gray-500 hover:text-green-700 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+            aria-label={tLine('discountActionFor', { item: `${displayName} ${k + 1}` })}
+          >
+            <Percent className="w-3 h-3" />
+          </button>
+        ) : null}
+        {quote?.line?.pieces[k] ? <span className="tabular-nums">{fmt(quote.line.pieces[k].netAmount)}</span> : null}
+      </dd>
+    </div>
+  ));
+
   return (
     <div className={`border-b border-dashed border-gray-200 last:border-b-0 ${isRTL ? 'text-right' : 'text-left'}`}>
       {/* Main row */}
@@ -312,7 +352,7 @@ function SummaryCartItemComponent({
         )}
 
         {/* Line breakdown toggle: gross, discounts, net, tax (server figures) */}
-        {quote?.line && (
+        {(quote?.line || (quote?.piecePriced && showPieceRows)) && (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
@@ -347,6 +387,12 @@ function SummaryCartItemComponent({
         </button>
       </div>
 
+      {quote?.piecePriced && !quote.line && expanded && showPieceRows ? (
+        <dl className={cn('mx-2 mb-1.5 space-y-0.5 rounded-md bg-gray-50 px-2 py-1 text-[11px] text-gray-600', isRTL ? 'me-8' : 'ms-8')}>
+          {pieceRows}
+        </dl>
+      ) : null}
+
       {quote?.line && expanded ? (
         <dl
           className={cn('mx-2 mb-1.5 space-y-0.5 rounded-md bg-gray-50 px-2 py-1 text-[11px] text-gray-600', isRTL ? 'me-8' : 'ms-8', quote.pending && 'opacity-50')}
@@ -370,6 +416,7 @@ function SummaryCartItemComponent({
           ) : null}
           <div className="flex justify-between gap-2"><dt>{tLine('net')}</dt><dd className="tabular-nums">{fmt(quote.line.netAmount)}</dd></div>
           <div className="flex justify-between gap-2"><dt>{tLine('tax')}</dt><dd className="tabular-nums">{fmt(quote.line.taxAmount)}</dd></div>
+          {showPieceRows ? pieceRows : null}
           <div className="flex justify-between gap-2 font-semibold text-gray-800"><dt>{tLine('lineTotal')}</dt><dd className="tabular-nums">{fmt(quote.line.lineTotalAmount)}</dd></div>
         </dl>
       ) : null}

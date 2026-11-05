@@ -52,7 +52,8 @@
       "MISSING_TENANT_CURRENCY": "The Organization Base Currency is not configured.",
       "LINE_DISCOUNT_NOT_PERMITTED": "A line has a discount, which needs the order discount permission.",
       "LINE_DISCOUNT_EXCEEDS_GROSS": "A line discount is more than the line price. Lower it to see the amounts.",
-      "INVALID_ADJUSTMENT": "A discount value is not valid. Check the line discounts."
+      "INVALID_ADJUSTMENT": "A discount value is not valid. Check the line discounts.",
+      "PIECE_PRICING_UNAVAILABLE": "This line is priced as a whole, so a piece cannot have its own discount or speed."
     }
   }
 }

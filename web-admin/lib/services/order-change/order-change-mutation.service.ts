@@ -26,7 +26,8 @@ const PROTECTED_WRITE_FIELDS = new Set([
 
 // Mirrors oc_op_target_ck (0664): a line's speed, price and discount are line rows too.
 const ITEM_CODES = new Set(['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'CHANGE_SERVICE_SPEED', 'CHANGE_ITEM_PRICE', 'CHANGE_DISCOUNT']);
-const PIECE_CODES = new Set(['ADD_PIECE', 'REMOVE_PIECE']);
+// A piece's own speed and discount are piece rows (P9-01).
+const PIECE_CODES = new Set(['ADD_PIECE', 'REMOVE_PIECE', 'CHANGE_SERVICE_SPEED', 'CHANGE_DISCOUNT']);
 const PREFERENCE_CODES = new Set(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE']);
 const ORDER_CODES = new Set([
   'CHANGE_PRIORITY',

@@ -56,6 +56,10 @@ export interface CheckoutPreferenceRequest {
 export interface CheckoutPieceRequest {
   servicePrefs?: readonly CheckoutPreferenceRequest[];
   packingPrefCode?: string | null;
+  /** This piece's own speed (P9-01); null or absent follows the line. */
+  serviceSpeed?: string | null;
+  /** A cashier discount on this piece (P9-01); `orders:discount` is checked by the caller. */
+  lineDiscount?: CheckoutLineDiscountRequest | null;
 }
 
 /** A custom item line (no catalog product, P5-03e): entered unit price and its category. */
@@ -170,6 +174,8 @@ export const checkoutLineId = (index: number): string => `L${index + 1}`;
  */
 export const lineDiscountId = (index: number): string => `${checkoutLineId(index)}:${CHECKOUT_ADJUSTMENT_IDS.MANUAL}`;
 
+const pieceDiscountId = (index: number, pieceIndex: number): string => `${checkoutPieceId(index, pieceIndex)}:${CHECKOUT_ADJUSTMENT_IDS.MANUAL}`;
+
 /**
  * The cart piece id the quote and Create agree on.
  * @param index the line's position
@@ -197,10 +203,17 @@ export function checkoutIntentOf(params: CheckoutQuoteParams, receivedAt: Date):
     overrideUnitPrice: item.priceOverride != null ? String(item.priceOverride) : null,
     preferences: prefsOf(item.servicePrefs, item.packingPrefCode),
     // Create writes ceil(quantity) pieces; piece k carries the cart's piece k.
-    pieces: Array.from({ length: Math.max(1, Math.ceil(item.quantity)) }, (_, k) => ({
-      pieceId: checkoutPieceId(index, k),
-      preferences: prefsOf(item.pieces?.[k]?.servicePrefs, item.pieces?.[k]?.packingPrefCode),
-    })),
+    pieces: Array.from({ length: Math.max(1, Math.ceil(item.quantity)) }, (_, k) => {
+      const piece = item.pieces?.[k];
+      return {
+        pieceId: checkoutPieceId(index, k),
+        preferences: prefsOf(piece?.servicePrefs, piece?.packingPrefCode),
+        serviceSpeed: piece?.serviceSpeed ?? null,
+        discounts: piece?.lineDiscount
+          ? [{ id: pieceDiscountId(index, k), source: DISCOUNT_SOURCE_TYPE.MANUAL, calcType: piece.lineDiscount.type, value: String(piece.lineDiscount.value) }]
+          : [],
+      };
+    }),
     lineDiscounts: item.lineDiscount
       ? [{ id: lineDiscountId(index), source: DISCOUNT_SOURCE_TYPE.MANUAL, calcType: item.lineDiscount.type, value: String(item.lineDiscount.value) }]
       : [],
@@ -250,6 +263,11 @@ export async function quoteCheckout(params: CheckoutQuoteParams): Promise<Checko
   const adjustmentMeta = new Map<string, AdjustmentMeta>();
   // Line discounts (P5-03c): labelled and carrying the cashier's reason for audit.
   params.items.forEach((item, index) => {
+    item.pieces?.forEach((piece, k) => {
+      if (piece.lineDiscount) {
+        adjustmentMeta.set(pieceDiscountId(index, k), { ...MANUAL_LINE_DISCOUNT_LABEL, notes: piece.lineDiscount.reason?.trim() || null });
+      }
+    });
     if (!item.lineDiscount) return;
     adjustmentMeta.set(lineDiscountId(index), {
       ...MANUAL_LINE_DISCOUNT_LABEL, notes: item.lineDiscount.reason?.trim() || null,

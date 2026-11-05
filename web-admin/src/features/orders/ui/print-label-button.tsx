@@ -16,10 +16,7 @@ import { useLabelPrint } from '@/lib/hooks/use-label-print';
 export type PrintLabelOrderInput = {
   id: string;
   order_no: string;
-  /** @deprecated Not read since HFC P4: the label draws its own codes. */
-  qr_code?: string | null;
-  /** @deprecated Not read since HFC P4: the label draws its own codes. */
-  barcode?: string | null;
+  // org_orders_mst.qr_code / barcode dropped by HFC 0696 (FOLLOWUPS #5)
   ready_by?: Date | string | null;
   org_customers_mst?: {
     sys_customers_mst?: {

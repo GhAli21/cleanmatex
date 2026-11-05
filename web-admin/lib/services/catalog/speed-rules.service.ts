@@ -2,10 +2,10 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 
-import { SPEED_RULE_LEVELS, selectSpeedRule, type SpeedRuleCandidate, type SpeedRuleLevel } from '@/lib/commercial/speed';
-import { PRICE_HISTORY_SPEED_RULE, type PriceBasis, type SpeedPriceType } from '@/lib/constants/commercial';
+import { SPEED_RULE_LEVELS, resolveSpeedPricing, selectSpeedRule, speedRulesForProduct, type SpeedRuleCandidate, type SpeedRuleLevel } from '@/lib/commercial/speed';
+import { PRICE_HISTORY_SPEED_RULE, SERVICE_SPEEDS, type PriceBasis, type SpeedPriceType } from '@/lib/constants/commercial';
 import { prisma } from '@/lib/db/prisma';
-import type { SpeedRuleBulkInput, SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
+import type { SpeedRuleBulkInput, SpeedRuleBulkStatusInput, SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 
 /**
  * Speed Pricing rules (Line-Level P7-01, PLAN §7, §10.1): CRUD and the
@@ -298,6 +298,66 @@ export async function bulkCreateSpeedRules(tenantId: string, userId: string, inp
 }
 
 /**
+ * Retires or restores the product rules of a speed, optionally for one category, so
+ * products fall back to a general rule (or come back from it). Rules are deactivated,
+ * never deleted, so this can be undone and history stays explainable. Each one writes
+ * its history row in the same transaction.
+ * @param tenantId - session tenant
+ * @param userId - actor
+ * @param input - the speed, the category, the new status and `dryRun`
+ * @returns the rules that match, the rules changed, and how many active general rules would take over
+ * @example await setProductRulesActive(tenantId, userId, { serviceSpeed: 'EXPRESS', serviceCategoryCode: null, isActive: false, dryRun: true })
+ */
+export async function setProductRulesActive(tenantId: string, userId: string, input: SpeedRuleBulkStatusInput): Promise<{ matched: number; changed: number; generalRules: number }> {
+  const { serviceSpeed, serviceCategoryCode, isActive, dryRun } = input;
+  // A product rule names its product, not its category, so the category is read from the products.
+  const categoryProducts = serviceCategoryCode
+    ? await prisma.org_product_data_mst.findMany({ where: { tenant_org_id: tenantId, service_category_code: serviceCategoryCode }, select: { id: true } })
+    : null;
+  const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+  const [rows, generalRules] = await Promise.all([
+    prisma.org_speed_price_rules_cf.findMany({
+      where: {
+        tenant_org_id: tenantId,
+        service_speed: serviceSpeed,
+        rec_status: 1,
+        is_active: !isActive,
+        product_id: categoryProducts ? { in: categoryProducts.map((p) => p.id) } : { not: null },
+      },
+    }),
+    prisma.org_speed_price_rules_cf.count({
+      where: {
+        tenant_org_id: tenantId,
+        service_speed: serviceSpeed,
+        rec_status: 1,
+        is_active: true,
+        product_id: null,
+        effective_from: { lte: today },
+        OR: [{ effective_to: null }, { effective_to: { gte: today } }],
+        ...(serviceCategoryCode ? { service_category_code: { in: [serviceCategoryCode] } } : { service_category_code: null }),
+      },
+    }),
+  ]);
+  if (dryRun || rows.length === 0) return { matched: rows.length, changed: 0, generalRules };
+
+  const ids = rows.map((r) => r.id);
+  const changed = await prisma.$transaction(async (tx) => {
+    const updated = await tx.org_speed_price_rules_cf.updateMany({
+      where: { id: { in: ids }, tenant_org_id: tenantId, is_active: !isActive },
+      data: { is_active: isActive, updated_by: userId, updated_at: new Date() },
+    });
+    await tx.org_price_history_audit.createMany({
+      data: rows.map((r) => ({
+        ...auditRow(tenantId, userId, 'UPDATE', r, { ...r, is_active: isActive }),
+        change_reason: isActive ? 'BULK_RESTORE' : 'BULK_RETIRE',
+      })),
+    });
+    return updated.count;
+  });
+  return { matched: rows.length, changed, generalRules };
+}
+
+/**
  * Replaces a rule's scope, type and values (validated together).
  * @param tenantId - session tenant
  * @param userId - actor
@@ -343,10 +403,59 @@ export async function deleteSpeedRule(tenantId: string, userId: string, id: stri
   });
 }
 
+/** A product's own Express rule, as the catalog export writes it. */
+export interface ProductExpressRule {
+  sellPrice: string | null;
+  multiplier: string | null;
+  turnaroundHours: string | null;
+}
+
+/**
+ * Each product's own all-branches Express rule in effect today, for the catalog
+ * export. shortcut: a FIXED_AMOUNT rule has no export column, so it exports blank;
+ * add a column if bulk users ask for it.
+ * @param tenantId - session tenant
+ * @returns the rule per product id
+ */
+export async function listProductExpressRules(tenantId: string): Promise<Map<string, ProductExpressRule>> {
+  const rows = await prisma.org_speed_price_rules_cf.findMany({
+    where: {
+      tenant_org_id: tenantId,
+      service_speed: SERVICE_SPEEDS.EXPRESS,
+      branch_id: null,
+      service_category_code: null,
+      product_id: { not: null },
+      is_active: true,
+      rec_status: 1,
+    },
+  });
+  const byProduct = new Map<string, SpeedRuleCandidate[]>();
+  for (const row of rows) {
+    const list = byProduct.get(row.product_id!) ?? [];
+    list.push(toCandidate(row));
+    byProduct.set(row.product_id!, list);
+  }
+  const businessDate = new Date().toISOString().slice(0, 10);
+  const result = new Map<string, ProductExpressRule>();
+  for (const [productId, rules] of byProduct) {
+    const selected = selectSpeedRule({ serviceSpeed: SERVICE_SPEEDS.EXPRESS, productId, serviceCategoryCode: null, branchId: null, businessDate }, rules);
+    if (selected) {
+      result.set(productId, {
+        sellPrice: selected.rule.defaultSpeedSellPrice?.toString() ?? null,
+        multiplier: selected.rule.multiplierSpeed?.toString() ?? null,
+        turnaroundHours: selected.rule.turnaroundHhSpeed?.toString() ?? null,
+      });
+    }
+  }
+  return result;
+}
+
 /** The resolver's answer: the winning rule and every rule that matched, most specific first. */
 export interface SpeedRuleResolution {
   winner: SpeedRuleView | null;
   matched: SpeedRuleView[];
+  /** One unit at this speed from the product's default price; null with no product or no default price. */
+  price: { standardUnitPrice: string; unitPrice: string; linePremium: string } | null;
   context: { serviceSpeed: string; productId: string | null; serviceCategoryCode: string | null; branchId: string | null; date: string };
 }
 
@@ -361,7 +470,7 @@ export async function resolveSpeedRule(tenantId: string, q: {
   serviceSpeed: string; productId?: string; serviceCategoryCode?: string; branchId?: string; date?: string;
 }): Promise<SpeedRuleResolution> {
   const product = q.productId
-    ? await prisma.org_product_data_mst.findFirst({ where: { id: q.productId, tenant_org_id: tenantId }, select: { service_category_code: true } })
+    ? await prisma.org_product_data_mst.findFirst({ where: { id: q.productId, tenant_org_id: tenantId }, select: { service_category_code: true, default_sell_price: true, is_retail_item: true } })
     : null;
   if (q.productId && !product) throw new SpeedRuleError('INVALID_REFERENCE', 422);
   const ctx = {
@@ -374,8 +483,13 @@ export async function resolveSpeedRule(tenantId: string, q: {
   const rows = await prisma.org_speed_price_rules_cf.findMany({
     where: { tenant_org_id: tenantId, service_speed: q.serviceSpeed, rec_status: 1 },
   });
-  const candidates = rows.map(toCandidate);
+  // The same rules the calculator may use for this product.
+  const candidates = [...speedRulesForProduct(rows.map(toCandidate), product?.is_retail_item === true)];
   const winner = selectSpeedRule(ctx, candidates);
+  const standard = product?.default_sell_price?.toString() ?? null;
+  const priced = standard == null
+    ? null
+    : resolveSpeedPricing({ ...ctx, standardUnitPrice: standard, referenceUnitPrice: standard, quantity: 1, rules: candidates });
   const names = await productNames(tenantId, rows.flatMap((r) => (r.product_id ? [r.product_id] : [])));
   const byId = new Map(rows.map((r) => [r.id, r]));
   // Every rule that alone would apply, in the calculator's order of preference.
@@ -386,6 +500,9 @@ export async function resolveSpeedRule(tenantId: string, q: {
   return {
     winner: winner ? toView(byId.get(winner.rule.id)!, names) : null,
     matched,
+    price: priced && standard != null
+      ? { standardUnitPrice: standard, unitPrice: priced.unitPrice.toString(), linePremium: priced.linePremium.toString() }
+      : null,
     context: { serviceSpeed: ctx.serviceSpeed, productId: ctx.productId, serviceCategoryCode: ctx.serviceCategoryCode, branchId: ctx.branchId, date: ctx.businessDate },
   };
 }

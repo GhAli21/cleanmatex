@@ -23,7 +23,6 @@ describe('Order Item Helpers', () => {
     pricePerUnit: 10.0,
     totalPrice: 10.0,
     defaultSellPrice: 10.0,
-    defaultExpressSellPrice: null,
   };
 
   const mockItem2: OrderItem = {
@@ -34,7 +33,6 @@ describe('Order Item Helpers', () => {
     pricePerUnit: 20.0,
     totalPrice: 40.0,
     defaultSellPrice: 20.0,
-    defaultExpressSellPrice: null,
   };
 
   describe('addItemToOrder', () => {

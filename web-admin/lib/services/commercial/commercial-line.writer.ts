@@ -76,14 +76,15 @@ export function lineMoneyColumns(
   pricingMode: string,
 ): LineMoneyColumns {
   const m = row.money;
+  const ownSpeed = price.pieceSpeeds?.get(row.rowId);
   return {
     money_basis: row.moneyBasis,
-    service_speed: price.serviceSpeed,
-    ready_by_at: line.readyBy.readyByAt,
+    service_speed: ownSpeed?.serviceSpeed ?? price.serviceSpeed,
+    ready_by_at: row.readyByAt ?? line.readyBy.readyByAt,
     // A cashier override or a custom item's entered price (no product) is MANUAL.
     price_source: isOverride || price.productId === null ? PRICE_SOURCES.MANUAL : price.standard.source,
     price_list_id: isOverride ? null : price.standard.priceListId,
-    speed_rule_id: isOverride ? null : price.speed.ruleId,
+    speed_rule_id: isOverride ? null : ownSpeed ? ownSpeed.ruleId : price.speed.ruleId,
     list_unit_price: money(m.listUnitPrice),
     price_per_unit: money(m.unitPrice),
     total_price: money(m.grossAmount),

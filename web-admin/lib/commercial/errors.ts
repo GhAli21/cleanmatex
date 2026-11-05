@@ -22,6 +22,8 @@ export const COMMERCIAL_ERROR_CODES = {
   GIFT_CARD_NOT_ADJUSTMENT: 'GIFT_CARD_NOT_ADJUSTMENT',
   /** A malformed adjustment or modifier (bad rate, negative or over-precise amount). */
   INVALID_ADJUSTMENT: 'INVALID_ADJUSTMENT',
+  /** A piece discount or speed on a line priced on the item (ITEM level, or the PIECE fallback). */
+  PIECE_PRICING_UNAVAILABLE: 'PIECE_PRICING_UNAVAILABLE',
   /** An output breaks a money invariant I1–I6 (PLAN.md §5.2); nothing is written. */
   COMMERCIAL_INVARIANT_FAILED: 'COMMERCIAL_INVARIANT_FAILED',
 } as const;

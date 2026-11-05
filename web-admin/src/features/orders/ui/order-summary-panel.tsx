@@ -44,6 +44,8 @@ interface CartItem {
   hasDamage?: boolean;
   notes?: string;
   pieces?: PreSubmissionPiece[];
+  /** Order Edit: the line is priced per piece (P9-01). */
+  piecePriced?: boolean;
   serviceCategoryCode?: string;
   serviceCategoryName?: string;
   serviceCategoryName2?: string;

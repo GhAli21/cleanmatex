@@ -89,17 +89,14 @@ export interface Product {
   price_type: PriceType | null;
   product_unit: ProductUnit | null;
   default_sell_price: number | null;
-  default_express_sell_price: number | null;
   product_cost: number | null;
   min_sell_price: number | null;
   min_quantity: number | null;
   pieces_per_product: number | null;
   extra_days: number | null;
   turnaround_hh: number | null;
-  turnaround_hh_express: number | null;
-  multiplier_express: number | null;
   product_order: number | null;
-  is_tax_exempt: number | null;
+  tax_category_code: string | null;
   tags: Record<string, any> | null;
   id_sku: string | null;
   is_active: boolean;
@@ -132,7 +129,6 @@ export interface ProductListItem {
   category_name: string | null;
   category_name2: string | null;
   default_sell_price: number | null;
-  default_express_sell_price: number | null;
   product_unit: ProductUnit | null;
   is_active: boolean;
   created_at: string;
@@ -154,17 +150,14 @@ export interface ProductCreateRequest {
   price_type?: PriceType;
   product_unit: ProductUnit;
   default_sell_price: number;
-  default_express_sell_price?: number;
   product_cost?: number;
   min_sell_price?: number;
   min_quantity?: number;
   pieces_per_product?: number;
   extra_days?: number;
   turnaround_hh?: number;
-  turnaround_hh_express?: number;
-  multiplier_express?: number;
   product_order?: number;
-  is_tax_exempt?: number;
+  tax_category_code?: string;
   tags?: Record<string, any>;
   id_sku?: string;
   is_active?: boolean;
@@ -331,6 +324,8 @@ export interface ValidationError {
   row: number;
   field: string;
   message: string;
+  /** Selects the translated text (`catalog.importErrors.<code>`); `message` is the fallback. */
+  code?: string;
   value?: any;
 }
 
@@ -372,10 +367,15 @@ export interface BasicCSVRow {
  */
 export interface AdvancedCSVRow extends BasicCSVRow {
   price_regular: number;
+  /** Creates the product's EXPRESS `SELL_PRICE` rule. */
   price_express?: number;
+  /** Creates the product's EXPRESS `MULTIPLIER` rule (0.30 adds 30%). Not with `price_express`. */
+  express_multiplier?: number;
   min_qty?: number;
   turnaround_hh?: number;
+  /** The EXPRESS rule's hours; needs `price_express` or `express_multiplier`. */
   turnaround_hh_express?: number;
+  tax_category_code?: string;
   is_active?: string | boolean;
 }
 

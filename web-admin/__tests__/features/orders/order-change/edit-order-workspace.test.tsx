@@ -56,6 +56,8 @@ function context(): OrderChangeContext {
       pieceStatus: null,
       pieceStage: null,
       scanState: null,
+      serviceSpeed: null,
+      lineDiscount: null,
       active: true,
     }],
     preferences: [],
@@ -73,6 +75,7 @@ function context(): OrderChangeContext {
 function item(id: string, quantity: number): OrderChangeContext['items'][number] {
   return {
     id,
+    moneyBasis: null,
     orderId: ORDER_ID,
     productId: PRODUCT,
     productName: 'Shirt',
@@ -156,7 +159,6 @@ describe('shared edit workspace adapter', () => {
       pricePerUnit: 3,
       totalPrice: 3,
       defaultSellPrice: 3,
-      defaultExpressSellPrice: null,
     };
     if (!kept) throw new Error('line');
     applyVisualDraftToController(controller, loaded, {
@@ -228,7 +230,7 @@ describe('shared edit workspace adapter', () => {
     const mapped = mapChangeContextToEditBaseline(context());
     if (!mapped.ok) throw new Error('baseline');
     const visual = projectEditVisualOrder(context());
-    const line = { productId: PRODUCT, productName: 'Shirt', productName2: null, quantity: 1, pricePerUnit: 2.5, totalPrice: 2.5, defaultSellPrice: 2.5, defaultExpressSellPrice: null };
+    const line = { productId: PRODUCT, productName: 'Shirt', productName2: null, quantity: 1, pricePerUnit: 2.5, totalPrice: 2.5, defaultSellPrice: 2.5, };
     let next = 0;
     const ids = ['dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'];
     const controller = createEditOrderController({ createId: () => ids[next++] });
@@ -259,7 +261,7 @@ describe('shared edit workspace adapter', () => {
       notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
       items: [...visual.items, {
         productId: 'custom:new', customItem: { name: 'Curtain', name2: null, unitPrice: 7.25 }, productName: 'Curtain', productName2: null,
-        quantity: 1, pricePerUnit: 7.25, totalPrice: 7.25, defaultSellPrice: 7.25, defaultExpressSellPrice: null, serviceCategoryCode: 'LAUNDRY',
+        quantity: 1, pricePerUnit: 7.25, totalPrice: 7.25, defaultSellPrice: 7.25, serviceCategoryCode: 'LAUNDRY',
       }],
     });
     expect(controller.buildOperations()).toEqual([{

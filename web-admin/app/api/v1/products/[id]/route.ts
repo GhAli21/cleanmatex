@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { isTaxCategory } from '@/lib/constants/commercial';
 import {
   getProductById,
   updateProduct,
@@ -98,6 +99,10 @@ export async function PATCH(
         { error: 'At least one field must be provided for update' },
         { status: 400 }
       );
+    }
+
+    if (body.tax_category_code !== undefined && !isTaxCategory(body.tax_category_code)) {
+      return NextResponse.json({ error: 'tax_category_code is not valid' }, { status: 400 });
     }
 
     // Update product

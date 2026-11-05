@@ -488,13 +488,14 @@ export class DashboardService {
           const chunk = orderIdList.slice(i, i + chunkSize)
           const { data: lines } = await this.supabase
             .from('org_order_items_dtl')
-            .select('service_category_code, total_price')
+            .select('service_category_code, total_price, net_amount')
             .eq('tenant_org_id', tenantId)
             .in('order_id', chunk)
           for (const line of lines || []) {
-            const l = line as { service_category_code?: string | null; total_price?: number | null }
+            const l = line as { service_category_code?: string | null; total_price?: number | null; net_amount?: number | null }
             const key = (l.service_category_code || 'unknown').trim() || 'unknown'
-            agg[key] = (agg[key] || 0) + Number(l.total_price || 0)
+            // Revenue is after line discounts; an older line has only its gross.
+            agg[key] = (agg[key] || 0) + Number(l.net_amount ?? l.total_price ?? 0)
           }
         }
         topServices = Object.entries(agg)

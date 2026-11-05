@@ -39,13 +39,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Service preferences'), findsWidgets);
-    expect(find.text('Packing preferences'), findsOneWidget);
+    expect(find.text('Packing'), findsOneWidget); // UI uses l10n booking.step2.packingSection ('Packing'), not kind.name
     expect(find.text('Gentle wash'), findsOneWidget);
 
     await tester.tap(find.text('Gentle wash'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Selected preferences'), findsOneWidget);
-    expect(find.text('1 selected'), findsOneWidget);
+    // Per-piece rewrite (e8201264): selection is FilterChip.selected, not
+    // the old order-level "Selected preferences" / "1 selected" summary.
+    final gentleChip = find.widgetWithText(FilterChip, 'Gentle wash');
+    expect(gentleChip, findsOneWidget);
+    expect(tester.widget<FilterChip>(gentleChip).selected, isTrue);
   });
 }

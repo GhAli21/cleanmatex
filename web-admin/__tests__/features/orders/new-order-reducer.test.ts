@@ -96,7 +96,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 10.0,
                 totalPrice: 10.0,
                 defaultSellPrice: 10.0,
-                defaultExpressSellPrice: null,
             };
 
             const action: NewOrderAction = {
@@ -119,7 +118,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 10.0,
                 totalPrice: 10.0,
                 defaultSellPrice: 10.0,
-                defaultExpressSellPrice: null,
             };
 
             const stateWithItem: NewOrderState = {
@@ -150,7 +148,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 10.0,
                 totalPrice: 10.0,
                 defaultSellPrice: 10.0,
-                defaultExpressSellPrice: null,
             };
 
             const item2: OrderItem = {
@@ -161,7 +158,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 20.0,
                 totalPrice: 20.0,
                 defaultSellPrice: 20.0,
-                defaultExpressSellPrice: null,
             };
 
             const stateWithItems: NewOrderState = {
@@ -190,7 +186,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 10.0,
                 totalPrice: 10.0,
                 defaultSellPrice: 10.0,
-                defaultExpressSellPrice: null,
             };
             const stateWithSaved: NewOrderState = { ...initialState, items: [saved] };
 
@@ -212,7 +207,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 10.0,
                 totalPrice: 10.0,
                 defaultSellPrice: 10.0,
-                defaultExpressSellPrice: null,
             };
 
             const stateWithItem: NewOrderState = {
@@ -243,7 +237,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 10.0,
                 totalPrice: 10.0,
                 defaultSellPrice: 10.0,
-                defaultExpressSellPrice: null,
             };
 
             const stateWithItem: NewOrderState = {
@@ -275,7 +268,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 10.0,
                 totalPrice: 10.0,
                 defaultSellPrice: 10.0,
-                defaultExpressSellPrice: null,
             };
 
             const stateWithItem: NewOrderState = {
@@ -307,7 +299,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 10.0,
                 totalPrice: 20.0,
                 defaultSellPrice: 10.0,
-                defaultExpressSellPrice: 15.0,
             };
             const result = newOrderReducer({ ...initialState, items: [item] }, { type: 'SET_SERVICE_SPEED', payload: 'EXPRESS' });
             expect(result.serviceSpeed).toBe('EXPRESS');
@@ -362,7 +353,6 @@ describe('newOrderReducer', () => {
                         pricePerUnit: 10.0,
                         totalPrice: 10.0,
                         defaultSellPrice: 10.0,
-                        defaultExpressSellPrice: null,
                     },
                 ],
                 categories: [{ service_category_code: 'DC', ctg_name: 'Dry Cleaning', ctg_name2: 'تنظيف جاف' }],
@@ -396,7 +386,6 @@ describe('newOrderReducer', () => {
                 pricePerUnit: 3.5,
                 totalPrice: 7.0,
                 defaultSellPrice: 3.5,
-                defaultExpressSellPrice: null,
                 servicePrefCharge: 0,
             };
             const state: NewOrderState = { ...initialState, items: [item] };

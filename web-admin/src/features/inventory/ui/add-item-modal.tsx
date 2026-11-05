@@ -10,6 +10,8 @@ import {
   CmxDialogFooter,
 } from '@ui/overlays';
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
+import { TAX_CATEGORIES } from '@/lib/constants/commercial';
+import { useTaxCategoryOptions } from '@features/catalog/hooks/use-tax-category-options';
 import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';
 import { createInventoryItemAction } from '@/app/actions/inventory/inventory-actions';
 import type { BranchOption } from '@/lib/services/inventory-service';
@@ -47,7 +49,6 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
   // Pricing
   const [productCost, setProductCost] = useState('0');
   const [sellPrice, setSellPrice] = useState('0');
-  const [expressSellPrice, setExpressSellPrice] = useState('');
   const [minSellPrice, setMinSellPrice] = useState('');
 
   // Inventory
@@ -65,9 +66,10 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
   const [minQuantity, setMinQuantity] = useState('');
   const [piecesPerProduct, setPiecesPerProduct] = useState('');
   const [turnaroundHh, setTurnaroundHh] = useState('');
-  const [turnaroundHhExpress, setTurnaroundHhExpress] = useState('');
   const [extraDays, setExtraDays] = useState('');
-  const [multiplierExpress, setMultiplierExpress] = useState('');
+  const [taxCategory, setTaxCategory] = useState<string>(TAX_CATEGORIES.STANDARD);
+  const taxCategoryOptions = useTaxCategoryOptions();
+  const tTax = useTranslations('catalog.taxCategory');
   const [productOrder, setProductOrder] = useState('');
   const [recNotes, setRecNotes] = useState('');
   const [isActive, setIsActive] = useState(true);
@@ -90,7 +92,6 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
       product_unit: productUnit,
       product_cost: parseFloat(productCost) || 0,
       default_sell_price: parseFloat(sellPrice) || 0,
-      default_express_sell_price: expressSellPrice ? parseFloat(expressSellPrice) : undefined,
       min_sell_price: minSellPrice ? parseFloat(minSellPrice) : undefined,
       id_sku: sku.trim() || undefined,
       qty_on_hand: parseFloat(qtyOnHand) || 0,
@@ -105,9 +106,8 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
       min_quantity: minQuantity ? parseInt(minQuantity, 10) : undefined,
       pieces_per_product: piecesPerProduct ? parseInt(piecesPerProduct, 10) : undefined,
       turnaround_hh: turnaroundHh ? parseFloat(turnaroundHh) : undefined,
-      turnaround_hh_express: turnaroundHhExpress ? parseFloat(turnaroundHhExpress) : undefined,
       extra_days: extraDays ? parseInt(extraDays, 10) : undefined,
-      multiplier_express: multiplierExpress ? parseFloat(multiplierExpress) : undefined,
+      tax_category_code: taxCategory,
       product_order: productOrder ? parseInt(productOrder, 10) : undefined,
       rec_notes: recNotes.trim() || undefined,
       is_active: isActive,
@@ -225,14 +225,6 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   onChange={(e) => setSellPrice(e.target.value)}
                 />
                 <CmxInput
-                  label={t('labels.defaultExpressSellPrice')}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={expressSellPrice}
-                  onChange={(e) => setExpressSellPrice(e.target.value)}
-                />
-                <CmxInput
                   label={t('labels.minSellPrice')}
                   type="number"
                   step="0.01"
@@ -348,27 +340,18 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   onChange={(e) => setTurnaroundHh(e.target.value)}
                 />
                 <CmxInput
-                  label={t('labels.turnaroundHhExpress')}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={turnaroundHhExpress}
-                  onChange={(e) => setTurnaroundHhExpress(e.target.value)}
-                />
-                <CmxInput
                   label={t('labels.extraDays')}
                   type="number"
                   min="0"
                   value={extraDays}
                   onChange={(e) => setExtraDays(e.target.value)}
                 />
-                <CmxInput
-                  label={t('labels.multiplierExpress')}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={multiplierExpress}
-                  onChange={(e) => setMultiplierExpress(e.target.value)}
+                <CmxSelect
+                  label={tTax('label')}
+                  options={taxCategoryOptions}
+                  value={taxCategory}
+                  onChange={(e) => setTaxCategory(e.target.value)}
+                  helpText={tTax('hint')}
                 />
                 <CmxInput
                   label={t('labels.productOrder')}

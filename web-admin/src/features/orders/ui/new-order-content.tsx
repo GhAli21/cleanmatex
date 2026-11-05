@@ -51,6 +51,7 @@ import { useNewOrderPosSessionGate } from '../hooks/use-new-order-pos-session';
 import { EditControlNotice } from '../order-change/edit-control-notice';
 import { useEditControlGroup } from '../order-change/use-edit-control-capability';
 import { ProductGrid } from './product-grid';
+import { useProductSpeedPrices } from '../hooks/use-product-speed-prices';
 import { OrderSummaryPanel } from './order-summary-panel';
 import { OrderSummaryBottomSheet } from './OrderSummaryBottomSheet';
 import { ProductGridSkeleton } from './loading-skeletons';
@@ -247,6 +248,8 @@ export function NewOrderContent() {
   const productSpeedNote = state.state.serviceSpeed !== SERVICE_SPEEDS.STANDARD
     ? tSpeed('premiumInCart', { speed: speedLabel(state.state.serviceSpeed) })
     : null;
+  const productSpeedPrices = useProductSpeedPrices(state.state.products);
+  const productSpeedPricedNote = productSpeedPrices ? tSpeed('priceAtSpeed', { speed: speedLabel(state.state.serviceSpeed) }) : null;
   const handleServiceSpeedChange = (serviceSpeed: string) => {
     if (serviceSpeed === state.state.serviceSpeed) return;
     captureSpeedChange();
@@ -261,6 +264,7 @@ export function NewOrderContent() {
   // P5-03e: a custom item's entered price is a price decision (`pricing:override`); in Edit also an ADD_ITEM (P6-02d).
   const canEnterPrices = useHasAnyPermission(NEW_ORDER_ACCESS.actions?.priceOverride?.requirement.permissions ?? []);
   const [discountProductId, setDiscountProductId] = useState<string | null>(null);
+  const [discountPieceId, setDiscountPieceId] = useState<string | null>(null);
   const discountItemIndex = discountProductId
     ? state.state.items.findIndex((item) => item.productId === discountProductId)
     : -1;
@@ -271,6 +275,18 @@ export function NewOrderContent() {
     : discountItemIndex >= 0 && cartQuote.current
       ? cartQuote.data?.lines.find((line) => line.index === discountItemIndex)?.grossAmount ?? null
       : null;
+
+  const discountPieceIndex = discountItem?.pieces?.findIndex((p) => p.id === discountPieceId) ?? -1;
+  const discountPiece = discountPieceIndex >= 0 ? discountItem?.pieces?.[discountPieceIndex] ?? null : null;
+  const discountPieceGross = discountPieceIndex >= 0 && state.state.isEditMode
+    ? discountItem?.pricePerUnit ?? null
+    : discountPieceIndex >= 0 && cartQuote.current
+    ? cartQuote.data?.lines.find((line) => line.index === discountItemIndex)?.pieces[discountPieceIndex]?.grossAmount ?? null
+    : null;
+  const closeDiscountDialog = () => {
+    setDiscountProductId(null);
+    setDiscountPieceId(null);
+  };
 
   const handleApplySpeedToAllLines = () => {
     captureSpeedChange();
@@ -514,7 +530,6 @@ export function NewOrderContent() {
         pricePerUnit,
         totalPrice: pricePerUnit + servicePrefCharge,
         defaultSellPrice: product.default_sell_price ?? null,
-        defaultExpressSellPrice: product.default_express_sell_price ?? null,
         serviceCategoryCode: product.service_category_code || undefined,
         servicePrefs:
           resolvedServicePrefs.length > 0 ? resolvedServicePrefs : undefined,
@@ -777,6 +792,7 @@ export function NewOrderContent() {
           totalPrice: calculateItemTotal(item),
           notes: item.notes,
           pieces: item.pieces,
+          piecePriced: item.piecePriced,
           conditions,
           hasStain,
           hasDamage,
@@ -976,12 +992,24 @@ export function NewOrderContent() {
           onLineSpeedChange: handleLineSpeedChange,
           lineSpeedDisabled: !lineSpeedCapability.interactive,
           onEditLineDiscount: canDiscountLines && lineDiscountCapability.interactive ? setDiscountProductId : undefined,
+          onEditPieceDiscount: canDiscountLines && lineDiscountCapability.interactive
+            ? (productId: string, pieceId: string) => {
+                setDiscountProductId(productId);
+                setDiscountPieceId(pieceId);
+              }
+            : undefined,
         }
       : {
           lines: cartQuote.data?.lines ?? null,
           pending: cartQuote.pending,
           onLineSpeedChange: handleLineSpeedChange,
           onEditLineDiscount: canDiscountLines ? setDiscountProductId : undefined,
+          onEditPieceDiscount: canDiscountLines
+            ? (productId: string, pieceId: string) => {
+                setDiscountProductId(productId);
+                setDiscountPieceId(pieceId);
+              }
+            : undefined,
         },
     speedChangeNote,
     // Bags
@@ -1225,6 +1253,8 @@ export function NewOrderContent() {
                           products={state.state.products}
                           items={state.state.items}
                           speedNote={productSpeedNote}
+                          speedPrices={productSpeedPrices}
+                          speedPricedNote={productSpeedPricedNote}
                           currencyCode={currencyCode}
                           productSearch={productsQuery.productSearch}
                           onProductSearchChange={productsQuery.setProductSearch}
@@ -1441,11 +1471,22 @@ export function NewOrderContent() {
         info={amendmentDeltaNotice}
         onClose={closeAmendmentDeltaNotice}
       />
-      {discountItem ? (
+      {discountItem && discountPiece ? (
+        <LineDiscountDialog
+          key={discountPiece.id}
+          open
+          onClose={closeDiscountDialog}
+          productName={`${getBilingual(discountItem.productName, discountItem.productName2) || discountItem.productId} · ${discountPieceIndex + 1}`}
+          lineGross={discountPieceGross}
+          current={discountPiece.lineDiscount ?? null}
+          onApply={(lineDiscount) => handlePiecesChange(discountItem.productId, (discountItem.pieces ?? []).map((p) => (p.id === discountPiece.id ? { ...p, lineDiscount } : p)))}
+          onRemove={() => handlePiecesChange(discountItem.productId, (discountItem.pieces ?? []).map((p) => (p.id === discountPiece.id ? { ...p, lineDiscount: null } : p)))}
+        />
+      ) : discountItem ? (
         <LineDiscountDialog
           key={discountItem.productId}
           open
-          onClose={() => setDiscountProductId(null)}
+          onClose={closeDiscountDialog}
           productName={getBilingual(discountItem.productName, discountItem.productName2) || discountItem.productId}
           lineGross={discountLineGross}
           current={discountItem.lineDiscount ?? null}

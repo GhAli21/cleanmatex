@@ -66,7 +66,6 @@ export interface Product {
   product_name: string | null;
   product_name2: string | null;
   default_sell_price: number | null;
-  default_express_sell_price: number | null;
   service_category_code: string | null;
   is_retail_item?: boolean;
   product_image?: string | null;
@@ -117,6 +116,10 @@ export interface PreSubmissionPiece {
   packingPrefCode?: string;
   /** FK to tenant catalog — `org_packing_preference_cf.id` for piece packing pref row */
   packingCfId?: string | null;
+  /** This piece's own speed (PIECE level, P9-01); null follows the line. */
+  serviceSpeed?: string | null;
+  /** The cashier's discount on this piece (PIECE level, P9-01). */
+  lineDiscount?: OrderItemLineDiscount | null;
 }
 
 // ==================================================================
@@ -154,7 +157,6 @@ export interface OrderItem {
   pricePerUnit: number;
   totalPrice: number;
   defaultSellPrice: number | null;
-  defaultExpressSellPrice: number | null;
   serviceCategoryCode?: string;
   notes?: string;
   /** Line-level condition flags (optional; often mirrored on pieces) */
@@ -176,6 +178,8 @@ export interface OrderItem {
   serviceSpeed?: string | null;
   /** A cashier discount on this line (P5-03c); the server prices it and needs `orders:discount`. */
   lineDiscount?: OrderItemLineDiscount | null;
+  /** Order Edit: the stored line is priced per piece, so its pieces can have their own speed and discount (P9-01). */
+  piecePriced?: boolean;
   /** Set for a custom item (no catalog product, P5-03e). */
   customItem?: OrderItemCustom | null;
   /** Service preferences (starch, perfume, delicate, etc.) */

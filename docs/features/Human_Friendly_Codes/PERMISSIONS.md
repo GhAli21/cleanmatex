@@ -1,6 +1,6 @@
 # Human-Friendly Codes — Permissions, navigation and feature flag (P6)
 
-Status: written 2026-10-31 (Asia/Muscat, UTC+4). Migrations `0688_hq_doc_seq_permissions.sql` and `0689_ord_label_image_cols_deprecated.sql` were **applied by you on 2026-11-01** (local + remote). Decisions A-54..A-56 were made by the assistant while you were away; please review them (plan §20).
+Status: written 2026-10-31 (Asia/Muscat, UTC+4). Migrations `0688_hq_doc_seq_permissions.sql` and `0689_ord_label_image_cols_deprecated.sql` were **applied by you on 2026-11-01** (local + remote). Decisions A-54..A-56 were made by the assistant while you were away; **reviewed + accepted by Jehad Ali 2026-11-05** (expert recommendation; plan §20).
 
 ## 1. HQ permissions (platform-api / platform-web)
 
@@ -19,11 +19,11 @@ Status: written 2026-10-31 (Asia/Muscat, UTC+4). Migrations `0688_hq_doc_seq_per
 | Role | Gets the codes? | How |
 |------|-----------------|-----|
 | `SUPER_ADMIN` | Yes, all 3 | Already holds `*` in `hq_role_permissions` |
-| `TECH_ADMIN` | Yes, all 3, after `0690` is applied (P11, A-71) | `0690_hq_doc_seq_role_grants.sql` |
-| `SUPPORT` | `hq_doc_seq:read` only, after `0690` (A-71) | `0690_hq_doc_seq_role_grants.sql` |
+| `TECH_ADMIN` | Yes, all 3 (**`0690` applied 2026-11-05**, A-71) | `0690_hq_doc_seq_role_grants.sql` |
+| `SUPPORT` | `hq_doc_seq:read` only (**`0690` applied 2026-11-05**, A-71) | `0690_hq_doc_seq_role_grants.sql` |
 | Other roles (`BUSINESS_ADMIN`, `ANALYST`, `VIEWER`, custom) | No, until you grant them | HQ → Roles screen (A-54) |
 
-Recommendation (A-54), now done by `0690` (A-71, not applied yet): give `hq_doc_seq:read` to `TECH_ADMIN` and `SUPPORT`, and `hq_general_config:read` + `hq_general_config:manage` only to `TECH_ADMIN`. Note: `VIEWER` holds `*.view`, which does **not** match `:read` codes.
+Recommendation (A-54), done by `0690` (A-71, **applied 2026-11-05**): give `hq_doc_seq:read` to `TECH_ADMIN` and `SUPPORT`, and `hq_general_config:read` + `hq_general_config:manage` only to `TECH_ADMIN`. Note: `VIEWER` holds `*.view`, which does **not** match `:read` codes.
 
 ## 3. Tenant side (web-admin)
 

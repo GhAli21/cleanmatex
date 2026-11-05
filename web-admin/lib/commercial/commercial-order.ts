@@ -17,9 +17,12 @@
  * preference charge a tax input (L25), so this is for charges that are truly
  * outside the supply.
  */
+import { DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { MONEY_BASIS, type CommercialLevel, type DiscAllocBasis, type DiscAllocMode, type MoneyBasis } from '@/lib/constants/commercial';
 import { TAX_PRICING_MODES, type TaxPricingMode } from '@/lib/constants/order-financial';
 import type { AdjustmentInput } from './adjustments';
+import { allocateLargestRemainder } from './allocation';
+import { COMMERCIAL_ERROR_CODES, CommercialRuleError } from './errors';
 import { applyDocumentAdjustments, type DocumentAdjustmentResult } from './document-adjustments';
 import { assertMoneyInvariants, type InvariantOrder } from './invariants';
 import {
@@ -65,6 +68,10 @@ export interface CommercialPieceInput {
   modifiers?: readonly PriceModifier[];
   /** This piece's own discounts; piece-priced lines only (P9). */
   adjustments?: readonly AdjustmentInput[];
+  /** This piece's own speed premium, replacing the line's; piece-priced lines only (P9). */
+  speed?: { unitPremium: MoneyInput; linePremium: MoneyInput } | null;
+  /** The ready-by facts of that own speed; the item is ready when its slowest piece is. */
+  readyBy?: Omit<ReadyByLineInput, 'lineId'> | null;
 }
 
 /** One order line with every fact the calculator needs. */
@@ -125,6 +132,8 @@ export interface CommercialRowResult {
   tax: CommercialRowTax;
   /** PRICED rows only: the applied discounts, modifiers and notices for the writer. */
   pricing: LinePricingResult | null;
+  /** A piece's own ready time, when a piece of its line has its own speed (P9-01). */
+  readyByAt?: Date;
 }
 
 /** One line: its basis, item row, piece rows and ready-by. */
@@ -220,6 +229,58 @@ function mergeTaxLines(...passes: TaxLineResult[][]): TaxLineResult[] {
 }
 
 /**
+ * Each piece's discounts on a piece-priced line: its own, plus its share of the
+ * line's. A percent applies to every piece; an amount is split exactly by what each
+ * piece costs, so the cashier's line discount keeps working at PIECE level.
+ */
+function pieceAdjustments(line: CommercialLineInput, decimalPlaces: number): AdjustmentInput[][] {
+  const weights = line.pieces.map((piece) => {
+    const { overrideUnitPrice, listUnitPrice, speedUnitPremium } = line.pricing;
+    const unit = overrideUnitPrice != null
+      ? toMoney(overrideUnitPrice)
+      : toMoney(listUnitPrice).plus(piece.speed ? piece.speed.unitPremium : speedUnitPremium);
+    return unit.plus(sumMoney((piece.modifiers ?? [])
+      .filter((m) => m.placement === MODIFIER_PLACEMENTS.INCLUDED).map((m) => m.amount)));
+  });
+  const shared = line.pricing.adjustments.map((a) => (a.calcType === DISCOUNT_CALC_TYPE.PERCENTAGE
+    ? line.pieces.map(() => a)
+    : allocateLargestRemainder(a.value, weights, decimalPlaces).map((value) => ({ ...a, value }))));
+  return line.pieces.map((piece, k) => [
+    ...shared.map((shares) => shares[k]).filter((a) => a.calcType === DISCOUNT_CALC_TYPE.PERCENTAGE || !toMoney(a.value).isZero()),
+    ...(piece.adjustments ?? []),
+  ]);
+}
+
+/**
+ * The order's ready-by, with pieces on their own speed (P9-01): a line is ready
+ * when its slowest piece is. A piece's own time is returned for the writer.
+ */
+function readyByWithPieces(input: CommercialOrderInput) {
+  const own = input.lines.flatMap((line) => line.pieces.flatMap((p) => (p.readyBy ? [{ ...p.readyBy, lineId: p.pieceId }] : [])));
+  const resolved = resolveReadyBy({
+    ...input.readyBy,
+    lines: [...input.lines.map((line) => ({ ...line.readyBy, lineId: line.lineId })), ...own],
+  });
+  const lineCount = input.lines.length;
+  if (own.length === 0) return { ...resolved, pieces: new Map<string, Date>() };
+
+  const ownById = new Map(resolved.lines.slice(lineCount).map((r) => [r.lineId, r]));
+  const pieces = new Map<string, Date>();
+  const lines = input.lines.map((line, i) => {
+    const base = resolved.lines[i];
+    if (!line.pieces.some((p) => p.readyBy)) return base;
+    const times = line.pieces.map((p) => ownById.get(p.pieceId) ?? base);
+    line.pieces.forEach((p, k) => pieces.set(p.pieceId, times[k].readyByAt));
+    const slowest = times.reduce((a, b) => (b.readyByAt > a.readyByAt ? b : a));
+    return { ...slowest, lineId: line.lineId };
+  });
+  const orderReadyBy = resolved.isOverride
+    ? resolved.orderReadyBy
+    : new Date(Math.max(...lines.map((l) => l.readyByAt.getTime())));
+  return { ...resolved, lines, orderReadyBy, pieces };
+}
+
+/**
  * Calculates a whole order and checks I1–I6 before returning it.
  * @param input the order's snapshots, lines, order discounts, charges and ready-by facts, all resolved by the loader
  * @returns every stored row, the header tax lines, the totals and the ready-by
@@ -239,24 +300,26 @@ export function calculateCommercialOrder(input: CommercialOrderInput): Commercia
   // ─── 1. Price the PRICED rows ──────────────────────────────────────────
   const pricedRows: PricedRow[] = input.lines.flatMap((line, lineIndex) => {
     if (basisOf[lineIndex].pieceBasis !== MONEY_BASIS.PRICED) {
-      if (line.pieces.some((p) => (p.adjustments ?? []).length > 0)) {
-        throw new Error(`Line ${line.lineId} is priced on the item; piece discounts need a piece-priced line.`);
+      if (line.pieces.some((p) => (p.adjustments ?? []).length > 0 || p.speed || p.readyBy)) {
+        throw new CommercialRuleError(COMMERCIAL_ERROR_CODES.PIECE_PRICING_UNAVAILABLE,
+          `Line ${line.lineId} is priced on the item, so a piece cannot have its own discount or speed.`, { lineId: line.lineId });
       }
       const modifiers = [...line.pricing.modifiers, ...line.pieces.flatMap((p) => p.modifiers ?? [])];
       return [{ rowId: line.lineId, lineIndex, pieceId: null, pricing: priceLine({ ...line.pricing, modifiers, quantity: line.quantity, rounding }) }];
     }
-    if (line.pricing.adjustments.length > 0) {
-      throw new Error(`Line ${line.lineId} is priced per piece; its discounts belong on its pieces.`);
-    }
+    const adjustmentsOf = pieceAdjustments(line, decimals);
+    const firstFollowing = line.pieces.findIndex((p) => !p.speed);
     // One piece = one unit. What is charged once per line (a per-line speed
-    // premium, a line preference) goes on the first piece.
+    // premium, a line preference) goes on the first piece; a per-line premium
+    // goes on the first piece that follows the line's speed.
     return line.pieces.map((piece, k) => ({
       rowId: piece.pieceId, lineIndex, pieceId: piece.pieceId,
       pricing: priceLine({
         ...line.pricing,
-        speedLinePremium: k === 0 ? line.pricing.speedLinePremium : 0,
+        speedUnitPremium: piece.speed ? piece.speed.unitPremium : line.pricing.speedUnitPremium,
+        speedLinePremium: piece.speed ? piece.speed.linePremium : k === firstFollowing ? line.pricing.speedLinePremium : 0,
         modifiers: [...(k === 0 ? line.pricing.modifiers : []), ...(piece.modifiers ?? [])],
-        adjustments: piece.adjustments ?? [],
+        adjustments: adjustmentsOf[k],
         quantity: 1,
         rounding,
       }),
@@ -342,10 +405,7 @@ export function calculateCommercialOrder(input: CommercialOrderInput): Commercia
     };
   };
 
-  const readyBy = resolveReadyBy({
-    ...input.readyBy,
-    lines: input.lines.map((line) => ({ ...line.readyBy, lineId: line.lineId })),
-  });
+  const readyBy = readyByWithPieces(input);
 
   const lines: CommercialLineResult[] = input.lines.map((line, lineIndex) => {
     const basis = basisOf[lineIndex];
@@ -353,10 +413,13 @@ export function calculateCommercialOrder(input: CommercialOrderInput): Commercia
     let item: CommercialRowResult;
     let pieces: CommercialRowResult[];
     if (basis.itemBasis === MONEY_BASIS.ROLLUP) {
-      pieces = rows;
+      pieces = rows.map((row) => {
+        const own = readyBy.pieces.get(row.rowId);
+        return own ? { ...row, readyByAt: own } : row;
+      });
       item = {
         rowId: line.lineId, moneyBasis: MONEY_BASIS.ROLLUP,
-        money: rollupPiecesToItem(rows.map((p) => p.money), line.quantity, pricingMode, rounding),
+        money: rollupPiecesToItem(pieces.map((p) => p.money), line.quantity, pricingMode, rounding),
         // Every piece is the same product, so it is taxed the same way.
         tax: rows[0].tax,
         pricing: null,

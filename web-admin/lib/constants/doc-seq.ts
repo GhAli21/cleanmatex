@@ -179,21 +179,10 @@ export type DocSeqError = (typeof DOC_SEQ_ERRORS)[keyof typeof DOC_SEQ_ERRORS];
 
 /**
  * Store credit note numbering (P5, migration 0687_fin_store_credit_note_scn).
- * ENGINE: insert with credit_note_no = '' and read back SCN-YYYY-NNNNNN set by trg_fin_cn_no_assign.
- * LEGACY: the pre-P5 CN-<tenant8>-<count+1> generator, kept for one release as the rollback path
- * (plan T5.2, A-50). Remove LEGACY in P9.
+ * Always ENGINE: insert with credit_note_no = '' and read back SCN-YYYY-NNNNNN set by
+ * trg_fin_cn_no_assign. The pre-P5 CN-<tenant8>-<count+1> LEGACY fallback was removed
+ * in FOLLOWUPS #6 / A-50 (2026-11-05) after SCN was deployed.
  */
-export const STORE_CREDIT_NOTE_NUMBERING_MODES = {
-  ENGINE: 'ENGINE',
-  LEGACY: 'LEGACY',
-} as const;
-/** One of STORE_CREDIT_NOTE_NUMBERING_MODES. */
-export type StoreCreditNoteNumberingMode =
-  (typeof STORE_CREDIT_NOTE_NUMBERING_MODES)[keyof typeof STORE_CREDIT_NOTE_NUMBERING_MODES];
-
-/** Active mode. Switch to LEGACY only together with the documented DB rollback (DEV_GUIDE section 20). */
-export const STORE_CREDIT_NOTE_NUMBERING: StoreCreditNoteNumberingMode = STORE_CREDIT_NOTE_NUMBERING_MODES.ENGINE;
-
 /** Error raised when the DB did not assign a credit note number (migration 0687 not applied). */
 export const STORE_CREDIT_NOTE_NO_NOT_ASSIGNED = 'STORE_CREDIT_NOTE_NO_NOT_ASSIGNED';
 

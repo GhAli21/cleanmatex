@@ -39,6 +39,8 @@ import {
   sumPaymentsByStatuses,
   type RefundFactRow,
 } from '@/lib/services/order-financial-aggregation';
+import { orderTaxCategoryBuckets } from '@/lib/commercial/tax-category-buckets';
+import { DISC_ALLOC_MODES } from '@/lib/constants/commercial';
 export { extractTaxFromInclusive } from '@/lib/services/tax-extraction';
 
 // Re-exported so existing consumers/tests keep importing from the writer
@@ -475,6 +477,7 @@ export async function recalculateOrderFinancialSnapshotTx(
 
   const [
     itemAgg,
+    itemTaxRows,
     pieceAgg,
     preferenceAgg,
     charges,
@@ -490,6 +493,10 @@ export async function recalculateOrderFinancialSnapshotTx(
       where: { tenant_org_id: tenantId, order_id: orderId, rec_status: 1 },
       _sum: { total_price: true },
     }),
+    tx.org_order_items_dtl.findMany({
+      where: { tenant_org_id: tenantId, order_id: orderId, rec_status: 1 },
+      select: { tax_category_code: true, taxable_amount: true },
+    }),
     tx.org_order_item_pieces_dtl.aggregate({
       where: { tenant_org_id: tenantId, order_id: orderId, rec_status: 1 },
       _sum: { service_pref_charge: true },
@@ -500,7 +507,7 @@ export async function recalculateOrderFinancialSnapshotTx(
     }),
     tx.org_order_charges_dtl.findMany({
       where: { tenant_org_id: tenantId, order_id: orderId, is_voided: false },
-      select: { amount: true, charge_type: true, charge_source_id: true },
+      select: { amount: true, charge_type: true, charge_source_id: true, tax_category_code: true, taxable_amount: true },
     }),
     tx.org_order_discounts_dtl.aggregate({
       where: { tenant_org_id: tenantId, order_id: orderId, is_voided: false },
@@ -540,7 +547,7 @@ export async function recalculateOrderFinancialSnapshotTx(
     }),
     tx.org_order_discounts_dtl.findMany({
       where: { tenant_org_id: tenantId, order_id: orderId, is_voided: false },
-      select: { source_type: true },
+      select: { source_type: true, disc_alloc_mode: true, tax_category_code: true, discount_amount: true },
     }),
     tx.org_order_refunds_dtl.findMany({
       where: {
@@ -616,18 +623,25 @@ export async function recalculateOrderFinancialSnapshotTx(
     const taxType = normalizeUpper(row.tax_type);
     return taxType === TAX_TYPES.VAT || taxType === TAX_TYPES.GST;
   }) ?? taxLines[0];
+  // Tax-base decomposition (PLAN §6.2). Older rows have no category and add nothing.
+  const buckets = orderTaxCategoryBuckets(
+    itemTaxRows.map((row) => ({ taxCategoryCode: row.tax_category_code, amount: row.taxable_amount?.toString() ?? null })),
+    charges.map((row) => ({ taxCategoryCode: row.tax_category_code, amount: row.taxable_amount?.toString() ?? null })),
+    discountRows
+      .filter((row) => row.disc_alloc_mode === DISC_ALLOC_MODES.DOCUMENT_LEVEL)
+      .map((row) => ({ taxCategoryCode: row.tax_category_code, amount: row.discount_amount.toString() })),
+  );
+  // An all-exempt calculator order has no tax lines and nothing taxable.
   const taxableAmount = uniqueTaxableLine
     ? toNumber(uniqueTaxableLine.taxable_amount)
-    : Math.max(0, subtotalAmount + totalChargesAmount - totalDiscountAmount);
-  // Tax-base decomposition (v1.1 §8.11). The current tax engine emits only
-  // `taxable_amount`; classification into non-taxable / exempt / zero-rated /
-  // out-of-scope buckets lands in Phase 5 alongside TAX_INCLUSIVE pricing. The
-  // path is wired now so the future engine only needs to plug values in here;
-  // the read model, snapshot JSON, and UI breakdown already surface them.
+    : isCalculatorOrder
+      ? buckets.standard.toNumber()
+      : Math.max(0, subtotalAmount + totalChargesAmount - totalDiscountAmount);
+  // No tax category maps to this bucket; it stays for the read model.
   const nonTaxableAmount = 0;
-  const exemptAmount = 0;
-  const zeroRatedAmount = 0;
-  const outOfScopeAmount = 0;
+  const exemptAmount = round4(buckets.exempt.toNumber());
+  const zeroRatedAmount = round4(buckets.zeroRated.toNumber());
+  const outOfScopeAmount = round4(buckets.outOfScope.toNumber());
   const totalCreditAppliedAmount = sumCreditsByStatuses(
     creditRows,
     [CREDIT_APPLICATION_STATUSES.APPLIED],

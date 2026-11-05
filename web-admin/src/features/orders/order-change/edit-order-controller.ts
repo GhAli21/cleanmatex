@@ -195,6 +195,18 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       current.lineDiscount = lineDiscount ?? undefined;
       invalidateReview();
     },
+    /**
+     * @param parent the piece's line
+     * @param piece the piece
+     * @param change its own speed or cashier discount (P9-01); null clears it
+     */
+    setPieceMoney(parent: EditRowIdentity, piece: EditRowIdentity, change: { serviceSpeed?: string | null; lineDiscount?: EditLineDiscountDraft | null }): void {
+      const current = line(parent)?.pieces.find((row) => sameIdentity(row.identity, piece));
+      if (!current) throw new Error('EDIT_PIECE_NOT_FOUND');
+      if (change.serviceSpeed !== undefined) current.serviceSpeed = change.serviceSpeed ?? undefined;
+      if (change.lineDiscount !== undefined) current.lineDiscount = change.lineDiscount ?? undefined;
+      invalidateReview();
+    },
     removeLine(identity: EditRowIdentity): void {
       const current = requireDraft();
       current.lines = current.lines.filter((row) => !sameIdentity(row.identity, identity));

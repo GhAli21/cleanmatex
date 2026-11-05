@@ -144,8 +144,7 @@ export interface Order {
 
   // Media (new in PRD-004)
   photo_urls: string[];
-  qr_code: string | null;
-  barcode: string | null;
+  // org_orders_mst.qr_code / barcode dropped by HFC 0696 (FOLLOWUPS #5)
 
   // Audit
   created_at: Date;
@@ -183,10 +182,10 @@ export interface OrderItem {
   quantity_ready: number; // Number of pieces marked as ready (0 to quantity)
   price_per_unit: number;
   total_price: number;
+  net_amount?: number | string | null;
   /** Catalog / override pricing (joined or API-serialized fields) */
   price_override?: number | null;
   default_sell_price?: number | null;
-  default_express_sell_price?: number | null;
 
   // Status
   status: ItemStatus;
@@ -252,6 +251,7 @@ export interface OrderItemPiece {
   quantity: number | null;
   price_per_unit: number;
   total_price: number;
+  net_amount?: number | string | null;
 
   // Status and workflow
   piece_status: 'intake' | 'processing' | 'qa' | 'ready' | null;
@@ -348,7 +348,6 @@ export interface Product {
   price_type: string | null;
   product_unit: string | null;
   default_sell_price: number | null;
-  default_express_sell_price: number | null;
   product_cost: number | null;
   min_sell_price: number | null;
   min_quantity: number | null;
@@ -356,9 +355,8 @@ export interface Product {
   extra_days: number | null;
   turnaround_hh: number | null;
   turnaround_hh_express: number | null;
-  multiplier_express: number | null;
   product_order: number | null;
-  is_tax_exempt: number | null;
+  tax_category_code: string | null;
   tags: any;
   id_sku: string | null;
   is_active: boolean;

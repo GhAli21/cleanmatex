@@ -183,7 +183,6 @@ export async function addOrderItems(
 
       // Convert PriceResult to pricing format expected by existing code
       // Use pricing calculator for consistency with existing structure
-      const expressMultiplier = Number(product.multiplier_express || 1.5);
       const pricing = calculateItemPrice({
         basePrice: finalPrice, // Use final price (override or calculated)
         quantity: item.quantity,
@@ -854,46 +853,6 @@ export async function listOrders(
       limit,
       totalPages: Math.ceil(total / limit),
     },
-  };
-}
-
-/**
- * Get order for preparation (with product catalog)
- */
-export async function getOrderForPreparation(
-  tenantOrgId: string,
-  orderId: string,
-) {
-  // Get order with details
-  const order = await getOrderById(tenantOrgId, orderId);
-
-  if (!order) {
-    throw new Error('Order not found');
-  }
-
-  // Get product catalog for the service category
-  const products = await prisma.org_product_data_mst.findMany({
-    where: {
-      tenant_org_id: tenantOrgId,
-      service_category_code: order.service_category_code,
-      is_active: true,
-    },
-    orderBy: { product_order: 'asc' },
-  });
-
-  return {
-    order,
-    productCatalog: products.map((p) => ({
-      id: p.id,
-      code: p.product_code,
-      name: p.product_name || '',
-      name2: p.product_name2 || '',
-      price: Number(p.default_sell_price || 0),
-      expressPrice: Number(p.default_express_sell_price || 0),
-      serviceCategory: p.service_category_code || '',
-      unit: p.product_unit || 'piece',
-      isActive: p.is_active,
-    })),
   };
 }
 

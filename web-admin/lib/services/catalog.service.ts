@@ -7,6 +7,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { buildProductSearchOrFilter } from '@/lib/utils/product-search';
+import { SERVICE_SPEEDS, SPEED_PRICE_TYPES, isTaxCategory } from '@/lib/constants/commercial';
+import { createSpeedRule, listProductExpressRules } from '@/lib/services/catalog/speed-rules.service';
+import { speedRuleCreateSchema, type SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 import type {
   ServiceCategory,
   EnabledCategory,
@@ -258,17 +261,14 @@ export async function createProduct(
       price_type: request.price_type || null,
       product_unit: request.product_unit,
       default_sell_price: request.default_sell_price,
-      default_express_sell_price: request.default_express_sell_price || null,
       product_cost: request.product_cost || null,
       min_sell_price: request.min_sell_price || null,
       min_quantity: request.min_quantity || null,
       pieces_per_product: request.pieces_per_product || null,
       extra_days: request.extra_days || null,
       turnaround_hh: request.turnaround_hh || null,
-      turnaround_hh_express: request.turnaround_hh_express || null,
-      multiplier_express: request.multiplier_express || null,
       product_order: request.product_order || null,
-      is_tax_exempt: request.is_tax_exempt || null,
+      ...(request.tax_category_code ? { tax_category_code: request.tax_category_code } : {}),
       tags: request.tags || null,
       id_sku: request.id_sku || null,
       is_active: request.is_active !== undefined ? request.is_active : true,
@@ -326,8 +326,6 @@ export async function updateProduct(
   if (request.product_unit !== undefined) updateData.product_unit = request.product_unit;
   if (request.default_sell_price !== undefined)
     updateData.default_sell_price = request.default_sell_price;
-  if (request.default_express_sell_price !== undefined)
-    updateData.default_express_sell_price = request.default_express_sell_price;
   if (request.product_cost !== undefined) updateData.product_cost = request.product_cost;
   if (request.min_sell_price !== undefined) updateData.min_sell_price = request.min_sell_price;
   if (request.min_quantity !== undefined) updateData.min_quantity = request.min_quantity;
@@ -335,12 +333,8 @@ export async function updateProduct(
     updateData.pieces_per_product = request.pieces_per_product;
   if (request.extra_days !== undefined) updateData.extra_days = request.extra_days;
   if (request.turnaround_hh !== undefined) updateData.turnaround_hh = request.turnaround_hh;
-  if (request.turnaround_hh_express !== undefined)
-    updateData.turnaround_hh_express = request.turnaround_hh_express;
-  if (request.multiplier_express !== undefined)
-    updateData.multiplier_express = request.multiplier_express;
   if (request.product_order !== undefined) updateData.product_order = request.product_order;
-  if (request.is_tax_exempt !== undefined) updateData.is_tax_exempt = request.is_tax_exempt;
+  if (request.tax_category_code !== undefined) updateData.tax_category_code = request.tax_category_code;
   if (request.tags !== undefined) updateData.tags = request.tags;
   if (request.id_sku !== undefined) updateData.id_sku = request.id_sku;
   if (request.is_active !== undefined) updateData.is_active = request.is_active;
@@ -516,7 +510,6 @@ export async function searchProducts(
     category_name: item.service_category_code, // Use code for now
     category_name2: item.service_category_code,
     default_sell_price: item.default_sell_price,
-    default_express_sell_price: item.default_express_sell_price,
     product_unit: item.product_unit,
     is_active: item.is_active,
     created_at: item.created_at,
@@ -772,13 +765,51 @@ function parseCSV(csvContent: string): string[][] {
   });
 }
 
+/** What an import needs beyond the CSV: who is importing and what they may do. */
+export interface ProductImportContext {
+  userId: string;
+  /** `pricing:create`: an express column writes a speed rule, not only a product. */
+  canCreateSpeedRules: boolean;
+}
+
+type ExpressRuleDraft = Omit<SpeedRuleCreateInput, 'productId'>;
+
+/**
+ * The product's EXPRESS rule from a row's express columns (PLAN §7). These columns
+ * replaced the retired product fields, so a bulk user can still set an express price.
+ * @param data - the row by header
+ * @returns the rule, a refusal with the column to blame, or null when no column is filled
+ */
+function expressRuleFromRow(data: Record<string, string>): ExpressRuleDraft | { code: string; field: string } | null {
+  const sellPrice = data.price_express?.trim() || null;
+  const multiplier = data.express_multiplier?.trim() || null;
+  const turnaround = data.turnaround_hh_express?.trim() || null;
+  if (!sellPrice && !multiplier && !turnaround) return null;
+  if (sellPrice && multiplier) return { code: 'EXPRESS_PRICE_AND_MULTIPLIER', field: 'price_express' };
+  if (!sellPrice && !multiplier) return { code: 'EXPRESS_TURNAROUND_NEEDS_PRICE', field: 'turnaround_hh_express' };
+  const parsed = speedRuleCreateSchema.safeParse({
+    serviceSpeed: SERVICE_SPEEDS.EXPRESS,
+    branchId: null,
+    serviceCategoryCode: null,
+    productId: null,
+    speedPriceType: sellPrice ? SPEED_PRICE_TYPES.SELL_PRICE : SPEED_PRICE_TYPES.MULTIPLIER,
+    defaultSpeedSellPrice: sellPrice,
+    multiplierSpeed: multiplier,
+    turnaroundHhSpeed: turnaround,
+    effectiveFrom: new Date().toISOString().slice(0, 10),
+  });
+  if (!parsed.success) return { code: 'EXPRESS_VALUE_INVALID', field: sellPrice ? 'price_express' : 'express_multiplier' };
+  return parsed.data;
+}
+
 /**
  * Validate CSV row data
  */
 function validateCSVRow(
   row: string[],
   headers: string[],
-  rowNumber: number
+  rowNumber: number,
+  ctx: ProductImportContext
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -822,22 +853,46 @@ function validateCSVRow(
     });
   }
 
-  if (!data.price) {
+  // The advanced template names this column price_regular.
+  const priceText = data.price || data.price_regular;
+  if (!priceText) {
     errors.push({
       row: rowNumber,
       field: 'price',
       message: 'Price is required',
     });
   } else {
-    const price = parseFloat(data.price);
+    const price = parseFloat(priceText);
     if (isNaN(price) || price < 0) {
       errors.push({
         row: rowNumber,
         field: 'price',
         message: 'Price must be a valid positive number',
-        value: data.price,
+        value: priceText,
       });
     }
+  }
+
+  if (data.tax_category_code && !isTaxCategory(data.tax_category_code)) {
+    errors.push({
+      row: rowNumber,
+      field: 'tax_category_code',
+      code: 'INVALID_TAX_CATEGORY',
+      message: 'Tax category must be STANDARD, ZERO_RATED, EXEMPT or OUT_OF_SCOPE',
+      value: data.tax_category_code,
+    });
+  }
+
+  const expressRule = expressRuleFromRow(data);
+  if (expressRule && 'code' in expressRule) {
+    errors.push({ row: rowNumber, field: expressRule.field, code: expressRule.code, message: expressRule.code });
+  } else if (expressRule && !ctx.canCreateSpeedRules) {
+    errors.push({
+      row: rowNumber,
+      field: 'price_express',
+      code: 'EXPRESS_NEEDS_PERMISSION',
+      message: 'Setting an express price needs the pricing:create permission',
+    });
   }
 
   if (!data.unit || !['piece', 'kg', 'item'].includes(data.unit)) {
@@ -857,8 +912,10 @@ function validateCSVRow(
  */
 export async function bulkImportProducts(
   csvContent: string,
-  template: 'basic' | 'advanced'
+  template: 'basic' | 'advanced',
+  ctx: ProductImportContext
 ): Promise<BulkImportResult> {
+  const tenantId = await getTenantIdFromSession();
   const rows = parseCSV(csvContent);
   if (rows.length === 0) {
     return {
@@ -881,7 +938,7 @@ export async function bulkImportProducts(
 
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i];
-    const errors = validateCSVRow(row, headers, i + 2);
+    const errors = validateCSVRow(row, headers, i + 2, ctx);
     if (errors.length > 0) {
       allErrors.push(...errors);
     } else {
@@ -914,19 +971,34 @@ export async function bulkImportProducts(
         data[header] = rowData[index];
       });
 
-      await createProduct({
+      const product = await createProduct({
         product_code: data.product_code,
         product_name: data.product_name,
         product_name2: data.product_name_ar || '',
         service_category_code: data.category_code,
         product_unit: data.unit,
-        default_sell_price: parseFloat(data.price),
-        default_express_sell_price: data.price_express
-          ? parseFloat(data.price_express)
-          : undefined,
+        default_sell_price: parseFloat(data.price || data.price_regular),
+        min_quantity: data.min_qty ? parseInt(data.min_qty, 10) : undefined,
+        turnaround_hh: data.turnaround_hh ? parseFloat(data.turnaround_hh) : undefined,
+        tax_category_code: data.tax_category_code || undefined,
+        is_active: data.is_active ? data.is_active.toLowerCase() !== 'false' : undefined,
       });
 
       imported++;
+
+      const expressRule = expressRuleFromRow(data);
+      if (expressRule && !('code' in expressRule)) {
+        try {
+          await createSpeedRule(tenantId, ctx.userId, { ...expressRule, productId: product.id });
+        } catch {
+          importErrors.push({
+            row: validRow.row,
+            field: 'price_express',
+            code: 'EXPRESS_RULE_NOT_SAVED',
+            message: 'The product was created, but its express price was not saved. Add it in Speed Pricing.',
+          });
+        }
+      }
     } catch (error: any) {
       importErrors.push({
         row: validRow.row,
@@ -990,22 +1062,26 @@ export async function exportProducts(
   } else {
     // Advanced template
     const headers =
-      'product_code,product_name,product_name_ar,category_code,price_regular,price_express,unit,min_qty,turnaround_hh,turnaround_hh_express,is_active';
-    const rows = (data || []).map((product: any) =>
-      [
+      'product_code,product_name,product_name_ar,category_code,price_regular,price_express,express_multiplier,unit,min_qty,turnaround_hh,turnaround_hh_express,tax_category_code,is_active';
+    const expressRules = await listProductExpressRules(tenantId);
+    const rows = (data || []).map((product: any) => {
+      const express = expressRules.get(product.id);
+      return [
         product.product_code,
         product.product_name || '',
         product.product_name2 || '',
         product.service_category_code || '',
         product.default_sell_price || '',
-        product.default_express_sell_price || '',
+        express?.sellPrice ?? '',
+        express?.multiplier ?? '',
         product.product_unit || '',
         product.min_quantity || '',
         product.turnaround_hh || '',
-        product.turnaround_hh_express || '',
+        express?.turnaroundHours ?? '',
+        product.tax_category_code || '',
         product.is_active,
-      ].join(',')
-    );
+      ].join(',');
+    });
     return [headers, ...rows].join('\n');
   }
 }

@@ -523,7 +523,7 @@ Written 2026-10-31. Full guide: `SCAN_AND_PIECE_CODES.md`.
 
 ## 19. P4 label printing config (`0685_add_settings_label_printing.sql`)
 
-Written 2026-10-31 (plan A-45..A-49). **Applied by the user 2026-10-31** (local + remote; types in both repos and `prisma.schema` regenerated). **Pending follow-ups (not done, recorded 2026-10-31, each needs your OK):** (1) retire the `label_printing` flag from HQ later, separately; (2) delete the old `sys_tenant_settings_cd` `LABEL_*` / `RECEIPT_ORDER_CODE128` rows later, only if the `0685` NOTICE reported any; (3) regenerate the platform inventory with `scripts/sync-platform-inventory.mjs`; (4) the stray `C:\Users\JHNLP\p4v2code.zip` can be deleted.
+Written 2026-10-31 (plan A-45..A-49). **Applied by the user 2026-10-31** (local + remote; types in both repos and `prisma.schema` regenerated). **Pending follow-ups (not done, recorded 2026-10-31, each needs your OK):** (1) ~~retire `label_printing` flag~~ **`0693` written 2026-11-05 — apply pending**; (2) delete the old `sys_tenant_settings_cd` `LABEL_*` / `RECEIPT_ORDER_CODE128` rows later, only if the `0685` NOTICE reported any; (3) regenerate the platform inventory with `scripts/sync-platform-inventory.mjs`; (4) ~~stray `C:\Users\JHNLP\p4v2code.zip`~~ **deleted 2026-11-05**.
 
 Label printing is available to every tenant; nothing checks the `label_printing` flag any more (A-47).
 
@@ -570,7 +570,7 @@ The migration repeats checks 2, 3 and the needed functions itself (`LABEL_PRINTI
 
 ## 20. P5 store credit notes (`0687_fin_store_credit_note_scn.sql`)
 
-Written 2026-10-31 (plan §5.11, T5.1–T5.3, A-50..A-53 decided by assistant while user away, please review). **Not applied.** Store credit notes change from `CN-<first 8 chars of tenant id>-<count+1>` (app COUNT, race-prone, leaks part of the tenant id) to the engine: `SCN-<YYYY in the tenant time zone>-<NNNNNN>`, yearly reset, grows past 6 digits. Old `CN-` rows are kept.
+Written 2026-10-31 (plan §5.11, T5.1–T5.3, A-50..A-53 **reviewed + accepted by Jehad Ali 2026-11-05**). **Not applied.** Store credit notes change from `CN-<first 8 chars of tenant id>-<count+1>` (app COUNT, race-prone, leaks part of the tenant id) to the engine: `SCN-<YYYY in the tenant time zone>-<NNNNNN>`, yearly reset, grows past 6 digits. Old `CN-` rows are kept.
 
 **What it adds**
 - Config row `STORE_CREDIT_NOTE`: DOMAIN → GENERAL, prefix `SCN`, `YYYY-SEQ`, pad 6, YEARLY.
@@ -638,33 +638,33 @@ UNION ALL SELECT 'barcode', count(barcode) FROM org_orders_mst;
 
 **Rollback:** `DELETE FROM hq_permissions WHERE created_info = '0688 HFC doc seq permissions' AND permission_code NOT IN (SELECT permission_code FROM hq_role_permissions);` and re-run the two `COMMENT ON` lines from `0012_order_intake_enhancements.sql`.
 
-## 22. APPLY_RUNBOOK — HFC migrations `0687`–`0690`, in order (updated 2026-11-01, P11)
+## 22. APPLY_RUNBOOK — HFC migrations `0687`–`0690`, in order (updated 2026-11-05)
 
-**P11 (2026-11-01): `0690_hq_doc_seq_role_grants.sql` is NEW and NOT APPLIED — see step 6a.** Before P11, all HFC migrations were applied. `0687`, `0688` and `0689` were applied by the user 2026-11-01, local + remote (everything up to `0685` was applied earlier; `0686_scrr_acct_minor_unit_chk.sql` is not an HFC file). Steps 1, 2 and 5 are DONE; **next: step 3 (post-apply safety tests), then step 6 (deploy)**, 6a, 6b and 7. Step 4 is optional.
+**All HFC migrations are applied through `0697`.** `0687`–`0689` applied 2026-11-01; `0690` applied 2026-11-05 morning; **`0693`, `0695`, `0696`, `0697` applied by the user 2026-11-05 evening** (local + remote). Types and `prisma.schema` regenerated both repos after 0697. Morning deploy covered through `0690`; **evening web-admin deploy still pending**. Non-HFC: `0686`, `0691`, `0692`, `0694`. **Next free: `0698`.** See also [`FINAL_QA_RUNBOOK.md`](./FINAL_QA_RUNBOOK.md). Steps 1–6a DONE for 0687–0690; evening apply/typegen DONE; **next: deploy latest web-admin, smoke (step 7 + FINAL_QA §5), QA / mobile.**
 
 | # | File | Phase | Changes | Deploy needed after? |
 |---|------|-------|---------|----------------------|
 | 1 | `0687_fin_store_credit_note_scn.sql` (**applied 2026-11-01**) | P5 | SCN trigger + guard + CHECK on `org_credit_notes_mst.credit_note_no`; STORE_CREDIT_NOTE config row → GENERAL / `SCN` | **Yes, web-admin** (apply 0687 **first**, then deploy: the new code sends `''` and needs the trigger) |
 | 2 | `0688_hq_doc_seq_permissions.sql` (**applied 2026-11-01**) | P6 | 3 rows in `hq_permissions` | No (P7 uses them) |
 | 3 | `0689_ord_label_image_cols_deprecated.sql` (**applied 2026-11-01**) | P6 | COMMENT ON 2 columns | No |
-| — | (no migration) | P7 | HQ API modules `doc-seq-config`, `general-config`; HQ screens; wizard prefill | **Yes, HQ `platform-api` then `platform-web`** (after `0688`; §23) |
-| — | (no migration) | P8 | Notification sends `order_no`; mobile LTR display + Dart codec; rule text | **Yes, web-admin** (same deploy as P5 is fine; §24) and the next mobile release |
+| — | (no migration) | P7 | HQ API modules `doc-seq-config`, `general-config`; HQ screens; wizard prefill | **Deployed 2026-11-05** (§23) |
+| — | (no migration) | P8 | Notification sends `order_no`; mobile LTR display + Dart codec; rule text | **web-admin deployed 2026-11-05**; next mobile release still pending (§24) |
 | — | (no migration) | P9 | Docs pack, QA guide, report, ADR-004 | No (docs only; §25) |
-| 4 | `0690_hq_doc_seq_role_grants.sql` (**NOT APPLIED — P11, 2026-11-01**) | P11 | A-54 grants: `hq_doc_seq:read` → `TECH_ADMIN`, `SUPPORT`; `hq_general_config:read` + `:manage` → `TECH_ADMIN`; JSON copy in `hq_roles.permissions` synced (A-71) | No deploy; affected HQ users sign in again |
-| — | (no migration) | P11 | web-admin: `label_printing` removed from code (A-72), `credit_note_no` variables (A-74); mobile booking `ltrCode` (A-73) | **Yes, web-admin**; next mobile release. Next free migration number: `0691` |
+| 4 | `0690_hq_doc_seq_role_grants.sql` (**applied 2026-11-05**) | P11 | A-54 grants: `hq_doc_seq:read` → `TECH_ADMIN`, `SUPPORT`; `hq_general_config:read` + `:manage` → `TECH_ADMIN`; JSON copy in `hq_roles.permissions` synced (A-71) | Done; affected HQ users may need to sign in again |
+| 5–8 | `0693`, `0695`, `0696`, `0697` (**applied 2026-11-05 evening**) | follow-ups | #1 flag retire; #2 settings cleanup; #5 drop order image cols; #11 template `{{credit_note_no}}` | **Types/Prisma DONE**; **deploy latest web-admin PENDING**. Next free: `0698`. Details: [`FINAL_QA_RUNBOOK.md`](./FINAL_QA_RUNBOOK.md) |
 
 **Steps (local DB first, check, then remote):**
 1. **DONE (before the 2026-11-01 apply).** **Pre-checks** (read-only SELECTs): §20 (0687, six checks) and §21 (0688/0689, three checks). Stop if a result differs from the expected one.
 2. **DONE 2026-11-01 (applied by you, local + remote).** **Apply** in order: `0687` → `0688` → `0689`. `0688`/`0689` are safe to run twice; `0687` refuses a second run on purpose (`FIN_SCN_ALREADY_GENERAL`, nothing changes).
-3. **NEXT — post-apply check (not reported yet).** **Safety tests (local only, each rolls back):**
+3. **Safety tests (local only, each rolls back)** — still useful after any re-apply; not required to have been reported:
    - `psql "$LOCAL_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/hfc_p5_scn_safety.test.sql` → all `PASS T5.1…` notices.
    - `psql "$LOCAL_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/hfc_p6_safety.test.sql` → two `P6 PASS` notices.
-4. **Optional (not reported).** **Types / Prisma (both repos):** `0687` adds a CHECK constraint and triggers, no new column; `0688`/`0689` change no table shape. Regenerating is optional but keeps comments in sync: tenant `npm run supabase:types`, web-admin `prisma:pull` + `prisma:generate`; HQ `platform-api` and `platform-web` `types:generate`.
-5. **Apply DONE 2026-11-01.** **Remote:** repeat 1–3 (skip the safety tests on remote, or run them only on a staging copy).
-6. **NEXT.** **Deploy order:**
+4. **DONE 2026-11-05 (by you).** **Types / Prisma (both repos):** regenerated and `prisma.schema` pulled. Note: `0687` adds a CHECK constraint and triggers, no new column; `0688`/`0689`/`0690` change no table shape. (Was optional.) Path reminder: tenant `npm run supabase:types`, web-admin `prisma:pull` + `prisma:generate`; HQ `platform-api` and `platform-web` `types:generate`.
+5. **Apply DONE** — `0687`–`0689` remote on 2026-11-01; `0690` remote on 2026-11-05 (step 6a). (Safety tests stay local-only.)
+6. **DONE 2026-11-05 (deployed by you).** **Deploy order** (for the record):
    1. web-admin (P5 code) **after** `0687` is on that database. If the deploy must wait, the old code still works with `0687` (it sends a `CN-…` value, which the trigger keeps).
    2. HQ `platform-api` (P7 modules) **after** `0688` is on that database (the guards need the 3 permission codes), then HQ `platform-web` (P7 screens; it calls the new API routes). Before the HQ deploy run, in each HQ app: `npx tsc --noEmit`, `npx jest`, `npm run build` (and `npm run check:i18n` in `platform-web`).
-6a. **NEW (P11, A-71) — apply `0690_hq_doc_seq_role_grants.sql`** (local first, then remote; replaces the manual SQL that was here). It gives `hq_doc_seq:read` → `TECH_ADMIN`, `SUPPORT` and `hq_general_config:read` + `hq_general_config:manage` → `TECH_ADMIN`, in `hq_role_permissions` and in the `hq_roles.permissions` JSON. `SUPER_ADMIN` is not touched (`*`). Safe to run twice (second run prints "already has …" NOTICEs); a missing role is skipped with a NOTICE. If you already ran the old manual 6a SQL, `0690` only prints NOTICEs.
+6a. **DONE 2026-11-05 (applied by you, local + remote; A-71).** `0690_hq_doc_seq_role_grants.sql` (replaces the old manual SQL). It gives `hq_doc_seq:read` → `TECH_ADMIN`, `SUPPORT` and `hq_general_config:read` + `hq_general_config:manage` → `TECH_ADMIN`, in `hq_role_permissions` and in the `hq_roles.permissions` JSON. `SUPER_ADMIN` is not touched (`*`). Safe to run twice (second run prints "already has …" NOTICEs); a missing role is skipped with a NOTICE. If you already ran the old manual 6a SQL, `0690` only prints NOTICEs.
    - Pre-check (read-only): `SELECT code FROM hq_permissions WHERE code IN ('hq_doc_seq:read','hq_general_config:read','hq_general_config:manage');` → 3 rows (from `0688`).
    - Safety test (local only, rolls back): `psql "$LOCAL_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/hfc_p11_role_grants_safety.test.sql` → `PASS: hfc_p11_role_grants_safety`.
    - Users of those roles may need to sign in again so their HQ token picks up the codes.
@@ -672,11 +672,11 @@ UNION ALL SELECT 'barcode', count(barcode) FROM org_orders_mst;
 6b. **Mobile (P8):** build and release the customer app as usual (`mobile_core` changed; no config). 
 7. **Smoke test:** issue one store credit note in web-admin → number looks like `SCN-2026-000001`; `SELECT * FROM vw_doc_seq_consistency WHERE severity = 'ERROR'` → 0 rows. HQ (P7, as SUPER_ADMIN): open Data → Code Types (list loads, a GENERAL type shows a preview), Data → Code Consistency (0 errors), Settings → General Config (values show; edit one support field and save; save again from an old tab → 409 "Load latest"); start "Create tenant" → country/currency/time zone match General Config. P8: move a test order to the next status with notifications on → the message shows `ORD-…`, not a UUID; in the customer app (Arabic) the order number reads left-to-right.
 
-**Rollback:** per file, in reverse order: §21 (0689, 0688), then §20 (0687: set `STORE_CREDIT_NOTE_NUMBERING = 'LEGACY'` and deploy first).
+**Rollback:** per file, in reverse order: step 6a (`0690`), §21 (0689, 0688), then §20 (0687: set `STORE_CREDIT_NOTE_NUMBERING = 'LEGACY'` and deploy first).
 
 ## 23. P7 HQ API and screens (no migration, 2026-10-31)
 
-**Status:** written 2026-10-31, WAITING FOR USER (deploy). `0688` (P6) is applied (2026-11-01), so the deploy can go now. Decisions A-57..A-63 (plan §20, decided by assistant while user away, please review).
+**Status:** written 2026-10-31; **DEPLOYED 2026-11-05** (`platform-api` + `platform-web`). Decisions A-57..A-63 (plan §20, **reviewed + accepted by Jehad Ali 2026-11-05**).
 
 ### 23.1 API (`platform-api`, global prefix `/api/hq/v1`)
 
@@ -717,7 +717,7 @@ Code only: redeploy the previous `platform-api` / `platform-web` build. Nothing 
 
 ## 24. P8 clients, notifications and rules (no migration, 2026-10-31)
 
-**Status:** written 2026-10-31, WAITING FOR USER (deploy web-admin; next mobile release). Decisions A-64..A-67 (plan §20, decided by assistant while user away, please review).
+**Status:** written 2026-10-31; **web-admin DEPLOYED 2026-11-05**; next mobile release still pending. Decisions A-64..A-67 (plan §20, **reviewed + accepted by Jehad Ali 2026-11-05**).
 
 ### 24.1 Mobile (`cmx_mobile_apps`)
 
@@ -747,25 +747,25 @@ Deploy web-admin (any time; no migration needed for this fix). Mobile: ships wit
 
 ## 25. P9 close-out (no migration, 2026-10-31)
 
-- **Migrations:** P9 adds none. P11 adds `0690` (not applied). HFC files are `0666`–`0690`; the **next free number is `0691`** (`0680`, `0681`, `0686` are not HFC files).
-- **Docs:** the full pack, `QA_TEST_GUIDE.md` (S1–S20) and `IMPLEMENTATION_REPORT.md` are in this folder; HQ has ADR-004 (`docs/Dev/ADRs/`, Proposed).
+- **Migrations:** P9 adds none. P11 adds `0690` (**applied 2026-11-05**). HFC files applied through `0697` (`0693`/`0695`/`0696`/`0697` on 2026-11-05 evening); the **next free number is `0698`** (`0680`, `0681`, `0686`, and `0691_speed_pricing_nav_audit.sql` are not HFC files).
+- **Docs:** the full pack, `QA_TEST_GUIDE.md` (S1–S20) and `IMPLEMENTATION_REPORT.md` are in this folder; HQ has ADR-004 (`docs/Dev/ADRs/`, **Accepted** 2026-11-05).
 - **Shims (A-68):** `order-number-generator.ts`, `barcode-generator.ts` and the `STORE_CREDIT_NOTE_NUMBERING` `LEGACY` fallback are kept.
-- **Your steps:** §22 (apply `0687` → `0688` → `0689` **done 2026-11-01**; next: safety tests step 3, deploy, optional 6a, mobile 6b, smoke test), then run `QA_TEST_GUIDE.md` and the perf checks on the deployed env.
+- **Your steps:** §22 apply + deploy **done through `0690` and the web/HQ deploys (2026-11-05)**; next: smoke test (step 7), mobile release (6b), then `QA_TEST_GUIDE.md` and the perf checks.
 
 ### 25.1 Follow-ups that need your approval
-(Updated 2026-11-01, P11: items marked DONE were done in code by the assistant, A-71..A-74, please review.)
-1. Retire the `label_printing` flag (A-47). **Code part DONE in P11 (A-72).** Still open: deactivate/delete the `hq_ff_feature_flags_mst` row and its plan mappings (needs approval), then `npm run rebuild:platform-info-inventories`.
-2. Delete old `sys_tenant_settings_cd` `LABEL_*` / `RECEIPT_ORDER_CODE128` rows (only if the `0685` NOTICE reported any).
-3. Run `scripts/sync-platform-inventory.mjs`.
-4. Delete the stray `C:\Users\JHNLP\p4v2code.zip`.
-5. Drop `org_orders_mst.qr_code` / `barcode` (deprecated by `0689`; destructive).
-6. Remove the A-50 `LEGACY` fallback ~2026-12-01.
-7. Delete `barcode-generator.ts` + its test; retire `order-number-generator.ts` when `order-service.ts` stops importing it (A-68).
-8. ~~Apply the A-54 HQ role grants (§22 step 6a).~~ **DONE in code (P11, A-71): `0690`, waiting for you to apply.**
-9. Install `jest-axe` in `platform-web` (A-63).
+(Updated 2026-11-05: A-50..A-74 **reviewed + accepted by Jehad Ali** on assistant expert recommendation. P11 items marked DONE were done in code earlier.) **Approval sheet (risk + recommend):** [`FOLLOWUPS_APPROVAL.md`](./FOLLOWUPS_APPROVAL.md) — reply with item numbers to approve; nothing on that sheet is done until you do.
+1. ~~Retire the `label_printing` flag (A-47).~~ **APPLIED 2026-11-05** — `0693` local + remote; types/Prisma regenerated. Safety `hfc_f1_...` report still useful.
+2. ~~Delete old LABEL_* / RECEIPT_ORDER_CODE128 settings.~~ **APPLIED 2026-11-05** — `0695` local + remote. Safety `hfc_f2_...` report pending.
+3. ~~Sync platform inventory.~~ **DONE 2026-11-05** — `web-admin/scripts/sync-platform-inventory.mjs` (local copy).
+4. ~~Delete the stray `C:\Users\JHNLP\p4v2code.zip`.~~ **DONE 2026-11-05** (Jehad Ali OK Now; 87,089 bytes deleted).
+5. ~~Drop order qr_code/barcode.~~ **APPLIED 2026-11-05** — `0696` local + remote; types/Prisma regenerated. Safety `hfc_f5_...` report pending.
+6. ~~Remove LEGACY fallback.~~ **DONE 2026-11-05** (code).
+7. ~~barcode-generator.~~ **DELETED 2026-11-05**. `order-number-generator` **kept** (still used by `order-service.ts`).
+8. ~~Apply the A-54 HQ role grants (§22 step 6a).~~ **DONE — `0690` applied by you 2026-11-05 (A-71).**
+9. ~~Install `jest-axe` in `platform-web` (A-63).~~ **DONE 2026-11-05** (`jest-axe@^10.0.0` + `@types/jest-axe@^3.5.9`; no jest-axe-consuming HQ tests existed yet).
 10. ~~Use `ltrCode` on the mobile booking screen (A-64).~~ **DONE (P11, A-73).**
-11. ~~Add `{{credit_note_no}}`.~~ **Variables DONE (P11, A-74).** Still open: emit `credit_note.issued` when a store credit note is issued and update the `0382` template text to use `{{credit_note_no}}` (sends real customer messages; needs approval).
+11. ~~Emit credit_note.issued + template.~~ **MIG APPLIED 2026-11-05** (`0697`). Emit code wired; **deploy + test-tenant verify still open** before prod messages.
 12. Run QA S1–S20 and the perf checks (T9.1, T9.2).
-13. Review A-50..A-74 and ADR-004 (Proposed → Accepted).
-14. P10 backfill waves (plan §5.13), one approval per table.
-15. (P11) Look at the failing customer-app test "shows grouped preferences on booking step two" (`test/booking/customer_order_booking_screen_test.dart:42`, "Packing preferences" not found); not caused by P11.
+13. ~~Review A-50..A-74.~~ **DONE 2026-11-05** — reviewed + accepted by Jehad Ali (expert recommendation); record in [`FOLLOWUPS_APPROVAL.md`](./FOLLOWUPS_APPROVAL.md) #13. ~~ADR-004 Proposed → Accepted~~ **DONE 2026-11-05** (#13a).
+14. ~~P10 start.~~ **RUNBOOK 2026-11-05** — `P10_BACKFILL_RUNBOOK.md` (suppliers already have code+unique; rewrite blocked on live samples).
+15. ~~(P11) Fix failing customer-app booking step-two test.~~ **DONE 2026-11-05** — stale expects (`Packing preferences` → l10n `Packing`; selection summary → `FilterChip.selected`). `flutter test …customer_order_booking_screen_test.dart` 2/2 pass.

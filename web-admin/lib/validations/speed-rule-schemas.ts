@@ -70,6 +70,15 @@ export const speedRuleBulkSchema = ruleFields
   .superRefine(checkValues);
 export type SpeedRuleBulkInput = z.infer<typeof speedRuleBulkSchema>;
 
+/** POST bulk status: retires or restores the product rules of a speed; `dryRun` only counts. */
+export const speedRuleBulkStatusSchema = z.object({
+  serviceSpeed: z.string().min(1).max(40),
+  serviceCategoryCode: z.string().min(1).max(60).nullable().default(null),
+  isActive: z.boolean(),
+  dryRun: z.boolean().default(false),
+});
+export type SpeedRuleBulkStatusInput = z.infer<typeof speedRuleBulkStatusSchema>;
+
 /** GET list filters. */
 export const speedRuleListQuerySchema = z.object({
   serviceSpeed: z.string().max(40).optional(),

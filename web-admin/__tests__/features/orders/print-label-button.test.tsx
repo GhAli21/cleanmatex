@@ -42,7 +42,7 @@ const respond = (body: unknown, ok = true) => fetchMock.mockResolvedValue({ ok, 
 describe('PrintLabelButton', () => {
   it('is enabled without stored codes and prints the order label with the A6 page in Arabic', async () => {
     respond(data());
-    render(<PrintLabelButton order={{ id: 'o1', order_no: 'ORD-1', qr_code: null, barcode: null }} />);
+    render(<PrintLabelButton order={{ id: 'o1', order_no: 'ORD-1' }} />);
     const btn = screen.getByRole('button', { name: /orders.printLabel.printLabel/ });
     expect(btn).toBeEnabled();
     await act(async () => {

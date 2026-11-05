@@ -138,7 +138,8 @@ export async function loadOrderChangePreviewFacts(input: {
         && operation.target.kind === 'PERSISTED_ITEM' ? [operation.target.id] : []
       ));
       const pieceIds = input.operations.flatMap((operation) => (
-        (operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_UNLISTED')
+        (operation.code === 'REMOVE_PIECE' || operation.code === 'CHANGE_UNLISTED'
+          || operation.code === 'CHANGE_SERVICE_SPEED' || operation.code === 'CHANGE_DISCOUNT')
         && operation.target.kind === 'PERSISTED_PIECE' ? [operation.target.id] : []
       ));
       const preferenceIdsForAudit = input.operations.flatMap((operation) => (

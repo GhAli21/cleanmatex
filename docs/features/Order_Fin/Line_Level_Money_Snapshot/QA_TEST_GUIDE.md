@@ -207,6 +207,48 @@ Needs migration 0691 applied. Sign in as an organization admin. Sidebar: **Catal
 9. Sign in as a user with `pricing:read` only (for example a viewer). Expect the list and the panel, with no Add, Edit, Deactivate or Delete buttons. Calling `POST /api/v1/catalog/speed-rules` directly answers 403.
 10. Open **Catalog & Pricing › Pricing** and a product's price history. Expect no speed-rule rows there. `GET /api/v1/pricing/history?entityType=speed_rule` lists the changes from the steps above, each with who and when.
 
+## S19 — Product speed prices, tax category, import and cards (P7-04)
+
+Sign in as an organization admin.
+
+1. **Catalog & Pricing › Services**, open a product (`/dashboard/catalog/services/<id>`). Expect no Express price or Express turnaround field, and a **Tax category** select with the hint "Applies to new orders only". Change it to Exempt and save. Create a new order with this product. Expect no tax on the line. Older orders do not change.
+2. Below the form, in **Speed pricing**: expect each speed with its price and "Rule: …", or "Same as Standard (no rule)". Compare with **Which rule applies?** on the Speed Pricing screen; both must agree.
+3. Click **Add rule**. Expect the product already filled in and not changeable. Save a rule with a new start date. Expect the price and the list to update without a page reload. Click **Edit** on a rule, change the amount, save.
+4. Sign in as a user with `products:update` but not `pricing:read`. Expect no Speed pricing section. With `pricing:read` only: the section shows, with no Add or Edit buttons.
+5. **Services › New**: expect no speed section and the note that speed prices come after saving.
+6. **Inventory › Add item**: expect no express fields, and the Tax category select.
+7. **Services › Import**, Advanced template, with this file (use a new code and a real category):
+   ```
+   product_code,product_name,product_name_ar,category_code,price_regular,price_express,express_multiplier,unit,min_qty,turnaround_hh,turnaround_hh_express,tax_category_code,is_active
+   QA-P7-1,QA Shirt,قميص,DRY_CLEAN,2.500,3.000,,piece,1,24,12,STANDARD,true
+   ```
+   Expect the product created and, in its Speed pricing section, an Express rule at 3.000 with 12 hours.
+8. Import rows with these changes, each with a new code. Expect a row error in the screen's language and nothing created: both `price_express` and `express_multiplier`; `turnaround_hh_express` alone; `abc` as the price; `NOPE` as the tax category. As a user without `pricing:create`: a row with an express price is refused, and a row without one imports.
+9. **Services › Export**, Advanced. Expect `price_express` or `express_multiplier` filled from each product's rule, and `tax_category_code`.
+10. **New Order**: pick Express. Expect each product card to show its Express price with the label "Express price" within a moment. Add one: the cart line shows the same price. Pick a customer on a price list and repeat; pick Standard. Expect the normal price and no label.
+11. **Catalog & Pricing › Pricing**, generate a list from default prices. Expect normal prices for every list type.
+
+## S20 — Readers use the line figures (P8-01)
+
+1. In **Catalog & Pricing › Services**, set one product to Exempt and one to Zero rated. Create an order with both, plus a standard-rated product, and add a line discount on the standard one.
+2. Open the order's receipt. Each line shows what the customer pays for it, in the currency format.
+3. Open **Reports › Financial › Tax**, for today. Expect **Taxable amount by tax category** with Standard, Zero rated and Exempt filled, each equal to that order's lines. Cancel the order and refresh. Expect its amounts gone.
+4. Open the order's detail page. Under the discounted line's amount, expect "After discount: …". Open **Ready** for it later: the same note. Switch to Arabic.
+5. Open the public tracking link. Expect each item to show its line total. The sum of the items plus charges equals the order total, when no order-wide discount was given.
+6. **Dashboard:** top services reflect the discounted amount.
+
+## S21 — General rules, retail and bulk retire
+
+Sign in as an organization admin. Sidebar: **Catalog & Pricing › Speed Pricing** (`/dashboard/catalog/speed-pricing`).
+
+1. Add a rule: Express, All products, Percentage of the price, `0.30`. Under **Which rule applies?** pick a service product with no rule of its own. Expect this rule to apply. Pick a retail item. Expect "No rule applies".
+2. New Order at Express: a 10.000 service product shows 13.000. A retail item stays at its normal price and is ready at once.
+3. Click **Retire product rules**. Pick Express and a category. Expect a count of the rules. With no general rule for that category or all products, expect the red warning that those products will cost the same as Standard.
+4. Apply. Expect "N rules retired", those rules Inactive in the list, and a product from that category now following the general rule. Older orders do not change.
+5. Open the dialog again, choose **Restore retired rules**, the same speed and category. Expect the same count, then the rules Active again.
+6. As a user without `pricing:bulk`, expect no **Retire product rules** button. Calling `POST /api/v1/catalog/speed-rules/bulk-status` directly answers 403.
+7. After migration 0694: expect no product rule with a +0% multiplier from the seed. Retail items keep their price and stay ready at once.
+
 ## Sign-off
 
 | Scenario | Result | Tester | Date |

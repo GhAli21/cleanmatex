@@ -30,6 +30,7 @@ import { PickupReleaseStatus } from '@features/pickup/ui/pickup-release-status';
 import { ReadyFulfilmentPanel } from '@features/pickup/ui/ready-fulfilment-panel';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
+import { OrderLineNetNote } from '@features/orders/ui/order-line-net-note';
 
 /**
  *
@@ -162,9 +163,12 @@ export default function ReadyDetailPage() {
                         {t('ready.quantity')}: {item.quantity}
                       </p>
                     </div>
-                    <span className="font-bold text-blue-600">
-                      {formatMoneyWithCode(item.totalPrice)}
-                    </span>
+                    <div className="text-end">
+                      <span className="font-bold text-blue-600">
+                        {formatMoneyWithCode(item.totalPrice)}
+                      </span>
+                      <OrderLineNetNote gross={item.totalPrice} net={item.netAmount} format={formatMoneyWithCode} />
+                    </div>
                   </div>
 
                   {/* Pieces Section - Expandable */}

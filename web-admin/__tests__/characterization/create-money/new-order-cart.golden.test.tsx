@@ -39,7 +39,6 @@ function line(over: Partial<OrderItem> = {}): OrderItem {
     pricePerUnit: 1.5,
     totalPrice: 3,
     defaultSellPrice: 1.5,
-    defaultExpressSellPrice: 2.5,
     pieces: [
       { id: 'pc-1', itemId: 'shirt', pieceSeq: 1 },
       { id: 'pc-2', itemId: 'shirt', pieceSeq: 2 },
@@ -65,7 +64,7 @@ describe('P1-01 golden — cart line money', () => {
   });
 
   it('C02 CHANGED (P5-03b): the speed is a code; the client never re-prices a line (the server quote does)', () => {
-    dispatch({ type: 'ADD_ITEM', payload: line({ productId: 'tie', defaultSellPrice: 1, defaultExpressSellPrice: null, pricePerUnit: 1, totalPrice: 1, quantity: 1, pieces: [] }) } as NewOrderAction);
+    dispatch({ type: 'ADD_ITEM', payload: line({ productId: 'tie', defaultSellPrice: 1, pricePerUnit: 1, totalPrice: 1, quantity: 1, pieces: [] }) } as NewOrderAction);
     dispatch({ type: 'SET_SERVICE_SPEED', payload: 'EXPRESS' } as NewOrderAction);
     expect(store.state.serviceSpeed).toBe('EXPRESS');
     // The express premium comes from the speed rules on the server; the cart shows the quote.

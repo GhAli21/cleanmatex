@@ -88,7 +88,7 @@ export class PricingService {
         supabase: Awaited<ReturnType<typeof createClient>>,
         params: { tenantId: string; productId: string; quantity: number; priceListType: PriceListType; isExpress: boolean; effectiveDate: string; strictResolution?: boolean },
     ): Promise<{ basePrice: number; source: PriceSource }> {
-        const { tenantId, productId, quantity, priceListType, isExpress, effectiveDate } = params;
+        const { tenantId, productId, quantity, priceListType, effectiveDate } = params;
         const { data: priceData, error: priceError } = await supabase.rpc('get_product_price', {
             p_tenant_org_id: tenantId,
             p_product_id: productId,
@@ -103,7 +103,7 @@ export class PricingService {
         console.warn(`[PricingService] Price list lookup failed for product ${productId}, falling back to product default:`, priceError);
         const { data: product, error: productError } = await supabase
             .from('org_product_data_mst')
-            .select('default_sell_price, default_express_sell_price')
+            .select('default_sell_price')
             .eq('tenant_org_id', tenantId)
             .eq('id', productId)
             .eq('is_active', true)
@@ -113,8 +113,7 @@ export class PricingService {
         }
         if (productError || !product) throw new Error(`Product not found: ${productId}`);
         return {
-            basePrice: Number(isExpress && product.default_express_sell_price
-                ? product.default_express_sell_price : product.default_sell_price || 0),
+            basePrice: Number(product.default_sell_price || 0),
             source: 'product_default',
         };
     }

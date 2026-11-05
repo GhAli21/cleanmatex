@@ -29,7 +29,6 @@
   "category": "Category",
   "price": "Price",
   "priceRegular": "Regular Price",
-  "priceExpress": "Express Price",
   "unit": "Unit",
   "unitPiece": "Per Piece",
   "unitKg": "Per Kg",
@@ -353,6 +352,54 @@
       "cancel": "Cancel",
       "apply": "Apply",
       "options": "Products"
+    },
+    "product": {
+      "title": "Speed pricing",
+      "description": "The price of one unit of this product at each speed, for all branches. Changes apply to new orders only.",
+      "ruleSource": "Rule: {level}",
+      "noRule": "Same as Standard (no rule)",
+      "plusPerLine": "+ {amount} per line",
+      "rulesTitle": "This product's rules",
+      "empty": "This product has no rules of its own. Category and organization rules still apply.",
+      "openAll": "Open Speed Pricing",
+      "saveFirst": "Express and other speed prices are set after saving, in this form or in Speed Pricing. Until then, category and organization rules apply."
+    },
+    "bulkStatus": {
+      "open": "Retire product rules",
+      "title": "Retire or restore product rules",
+      "description": "Acts on each product's own rules at this speed, at all branches. A retired rule stays on record and can be restored here. A rule for a category or for all products is not changed.",
+      "action": "Action",
+      "retire": "Retire product rules",
+      "restore": "Restore retired rules",
+      "allCategories": "All categories",
+      "previewRetire": "{count, plural, =0 {No active product rules match.} one {# product rule will be retired.} other {# product rules will be retired.}}",
+      "previewRestore": "{count, plural, =0 {No retired product rules match.} one {# product rule will be restored.} other {# product rules will be restored.}}",
+      "hasGeneralRule": "These products will then follow the category or organization rule. Retail items do not follow a rule for all products.",
+      "noGeneralRule": "No active general rule covers these products, so at this speed they will cost the same as Standard. Add a rule for the category or all products first.",
+      "restoreNote": "This restores every retired product rule in this choice, including any retired one at a time.",
+      "confirmRetire": "Retire rules",
+      "confirmRestore": "Restore rules",
+      "doneRetired": "{count, plural, one {# rule retired.} other {# rules retired.}}",
+      "doneRestored": "{count, plural, one {# rule restored.} other {# rules restored.}}"
     }
+  },
+  "taxCategory": {
+    "label": "Tax category",
+    "hint": "Applies to new orders only. Orders already created keep their tax.",
+    "options": {
+      "STANDARD": "Standard rated",
+      "ZERO_RATED": "Zero rated",
+      "EXEMPT": "Exempt",
+      "OUT_OF_SCOPE": "Out of scope"
+    }
+  },
+  "importAdvancedHint": "Import adds new products only. price_express or express_multiplier (0.30 adds 30%) creates the product's Express rule in Speed Pricing; use one of them, not both. Leave both empty for no product rule.",
+  "importErrors": {
+    "EXPRESS_PRICE_AND_MULTIPLIER": "Use price_express or express_multiplier, not both.",
+    "EXPRESS_TURNAROUND_NEEDS_PRICE": "turnaround_hh_express needs price_express or express_multiplier.",
+    "EXPRESS_VALUE_INVALID": "The express price, multiplier or turnaround is not a valid number.",
+    "EXPRESS_NEEDS_PERMISSION": "Setting an express price needs the pricing:create permission.",
+    "EXPRESS_RULE_NOT_SAVED": "The product was created, but its express price was not saved. Add it in Speed Pricing.",
+    "INVALID_TAX_CATEGORY": "Tax category must be STANDARD, ZERO_RATED, EXEMPT or OUT_OF_SCOPE."
   }
 }

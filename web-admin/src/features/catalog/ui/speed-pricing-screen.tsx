@@ -16,6 +16,7 @@ import type { SpeedRuleView } from '@/lib/services/catalog/speed-rules.service';
 import type { SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 import { SpeedRulesApiError, deleteSpeedRuleApi, fetchSpeedRules, updateSpeedRuleApi, type SpeedRuleFilters } from '../api/speed-rules-api';
 import { useSpeedRuleLookups } from '../hooks/use-speed-rule-lookups';
+import { SpeedRuleBulkStatusDialog } from './speed-rule-bulk-status-dialog';
 import { SpeedRuleEditorDialog } from './speed-rule-editor-dialog';
 import { SpeedRuleProductField, SpeedRuleScopeText, useSpeedRuleValueText, type PickedProduct } from './speed-rule-parts';
 import { SpeedRuleResolverPanel } from './speed-rule-resolver-panel';
@@ -65,6 +66,7 @@ export function SpeedPricingScreen() {
   const [pageSize, setPageSize] = useState(CMX_DEFAULT_PAGE_SIZE);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [deleting, setDeleting] = useState<SpeedRuleView | null>(null);
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
 
   const tenantId = currentTenant?.tenant_id;
   const list = useQuery({
@@ -160,6 +162,7 @@ export function SpeedPricingScreen() {
           <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {canBulk ? <CmxButton type="button" variant="outline" onClick={() => setBulkStatusOpen(true)}>{t('bulkStatus.open')}</CmxButton> : null}
           {canBulk ? <CmxButton type="button" variant="outline" onClick={() => setEditor({ mode: 'bulk' })}>{t('bulk.open')}</CmxButton> : null}
           {canCreate ? <CmxButton type="button" onClick={() => setEditor({ mode: 'create' })}>{t('addRule')}</CmxButton> : null}
         </div>
@@ -238,6 +241,18 @@ export function SpeedPricingScreen() {
         categoryLabel={categoryLabel}
         branchLabel={branchLabel}
       />
+
+      {bulkStatusOpen ? (
+        <SpeedRuleBulkStatusDialog
+          speedOptions={speedOptions}
+          categoryOptions={categoryOptions}
+          onClose={() => setBulkStatusOpen(false)}
+          onDone={() => {
+            setBulkStatusOpen(false);
+            void refresh();
+          }}
+        />
+      ) : null}
 
       {editor ? (
         <SpeedRuleEditorDialog

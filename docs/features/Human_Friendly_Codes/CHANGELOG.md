@@ -2,17 +2,45 @@
 
 All dates are 2026, Asia/Muscat. "Applied" means the user applied the migrations to local and remote databases.
 
-## [Unreleased] — 2026-11-01 — P11 follow-ups (code done, `0690` not applied)
+## [Unreleased] — 2026-11-05 — P11 applied + deployed
 
-### Added
-- `0690_hq_doc_seq_role_grants` (not applied): A-54 grants — `hq_doc_seq:read` → TECH_ADMIN, SUPPORT; `hq_general_config:read|manage` → TECH_ADMIN; JSON copy synced; safety test `hfc_p11_role_grants_safety.test.sql` (A-71).
+### Added (FOLLOWUPS NOW batch, 2026-11-05 evening)
+- Migrations **applied by user 2026-11-05** (local + remote): `0693` label_printing flag retire; `0695` legacy label settings delete; `0696` drop `org_orders_mst.qr_code`/`barcode`; `0697` credit_note.issued template → `{{credit_note_no}}`. Types + Prisma regenerated both repos. Next free: `0698`.
+- `FINAL_QA_RUNBOOK.md`, `P10_BACKFILL_RUNBOOK.md`.
+- HQ `platform-web` jest-axe: `__tests__/features/doc-seq-a11y.test.tsx` (3/3).
+
+### Changed (FOLLOWUPS NOW batch)
+- Removed store-credit LEGACY numbering (#6). Always ENGINE `''` insert.
+- Deleted `barcode-generator` shim (#7). `order-number-generator` kept (order-service).
+- Wired `credit_note.issued` emit from stored-value (#11; needs issuedBy; fire-and-forget).
+- Synced platform inventory into web-admin data (#3).
+
+### Applied / deployed (2026-11-05)
+- `0690_hq_doc_seq_role_grants` applied by the user (local + remote). Types and `prisma.schema` regenerated for both repos. web-admin, HQ `platform-api` and HQ `platform-web` deployed. (`0691_speed_pricing_nav_audit.sql` was also applied with the folder through `0691`; it is **not** an HFC file.)
+
+### Added (FOLLOWUPS #1, 2026-11-05)
+- `0693_retire_label_printing_feature_flag.sql`: hard-delete `label_printing` plan mappings + org overrides + flag row (siblings kept). Safety test `hfc_f1_retire_label_printing_safety.test.sql`. Scratch `hfc_f1` PASS. Inventory rebuild ran (exact key gone from catalog extract). **Applied by user 2026-11-05** local+remote; types/Prisma regenerated.
+
+### Added (FOLLOWUPS #9, 2026-11-05)
+- HQ `platform-web`: `jest-axe@^10.0.0` + `@types/jest-axe@^3.5.9` as devDependencies (A-63 / A-25). No HQ jest-axe tests existed yet to un-skip.
+
+### Added (P11, code landed earlier; now live)
+- `0690_hq_doc_seq_role_grants`: A-54 grants — `hq_doc_seq:read` → TECH_ADMIN, SUPPORT; `hq_general_config:read|manage` → TECH_ADMIN; JSON copy synced; safety test `hfc_p11_role_grants_safety.test.sql` (A-71).
 - web-admin `lib/notifications/credit-note-variables.ts`: `credit_note_no` (+ `invoice_number` alias, `amount`, `currency`) for `credit_note.issued`; WhatsApp key; EN/AR hint (A-74).
 
+### Fixed (FOLLOWUPS #15, 2026-11-05)
+- Customer-app `test/booking/customer_order_booking_screen_test.dart`: stale step-two expects updated to match per-piece UI (`Packing` l10n; `FilterChip.selected`). 2/2 pass.
+
+### Docs (FOLLOWUPS #13, 2026-11-05)
+- A-50..A-74 **reviewed + accepted** by Jehad Ali 2026-11-05 (expert recommendation). Plan §20 markers updated; A-50 LEGACY status wording corrected (kept until FOLLOWUPS #6 later); A-66/A-72 status lines refreshed. Compact assessment kept in `FOLLOWUPS_APPROVAL.md` as the record.
+
 ### Changed
-- Mobile customer booking success message shows the order number left-to-right (`ltrCode`, A-73).
+- Mobile customer booking success message shows the order number left-to-right (`ltrCode`, A-73); ships with the next customer app release.
+- HQ ADR-004 Status **Proposed → Accepted** (Jehad Ali, 2026-11-05): engine lives in the tenant DB; HQ reaches it only through `platform-api` (A-69).
 
 ### Removed
-- `label_printing` from the web-admin flag catalog, `FEATURE_FLAG_KEYS` and `TenantFeatureFlags` (A-72). The DB flag row stays (removal needs approval).
+- Stray staging zip `C:\Users\JHNLP\p4v2code.zip` deleted (FOLLOWUPS #4, Jehad Ali OK Now; 87,089 bytes).
+- `label_printing` from the web-admin flag catalog, `FEATURE_FLAG_KEYS` and `TenantFeatureFlags` (A-72). DB retirement migration `0693` **applied 2026-11-05** local+remote.
 
 ## [1.0.0] — 2026-10-31 — plan CLOSED; migrations all applied 2026-11-01, waiting for user deploy
 

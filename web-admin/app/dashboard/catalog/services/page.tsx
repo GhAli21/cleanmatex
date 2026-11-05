@@ -22,7 +22,6 @@ interface ProductListItem {
   category_name: string | null
   category_name2: string | null
   default_sell_price: number | null
-  default_express_sell_price: number | null
   product_unit: string | null
   is_active: boolean
   created_at: string

@@ -6,7 +6,7 @@ import { getOrderFinancialSummary } from '@/lib/services/order-financial-summary
 import { ORDER_CHANGE_CONTEXT_DEFERRED_REASON } from '@/lib/constants/order-change';
 import type { OrderChangeContext, OrderChangeEditPolicyInfo } from '@/lib/types/order-change';
 import { resolveOrderChangePolicyBindings } from '@/lib/services/order-change/order-change-edit-policy-resolver.service';
-import { manualLineDiscounts } from '@/lib/services/order-change/order-change-line-money';
+import { manualLineDiscounts, manualPieceDiscounts } from '@/lib/services/order-change/order-change-line-money';
 import { DISCOUNT_SOURCE_TYPE } from '@/lib/constants/discount-source-type';
 
 /** Typed failure so the HTTP route can preserve the V3 error envelope without exposing internals. */
@@ -91,7 +91,7 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
       where: { tenant_org_id: tenantId, order_id: input.orderId, rec_status: 1 },
       orderBy: [{ rec_order: 'asc' }, { created_at: 'asc' }],
       select: {
-        id: true, order_id: true, product_id: true, product_name: true, product_name2: true,
+        id: true, order_id: true, money_basis: true, product_id: true, product_name: true, product_name2: true,
         service_category_code: true, quantity: true, price_per_unit: true, total_price: true,
         price_override: true, override_reason: true, service_pref_charge: true, packing_pref_code: true,
         service_speed: true, quantity_ready: true, ready_at: true,
@@ -103,19 +103,21 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
     const discountRows = await prisma.org_order_discounts_dtl.findMany({
       where: { tenant_org_id: tenantId, order_id: input.orderId, is_voided: false, source_type: DISCOUNT_SOURCE_TYPE.MANUAL },
       orderBy: { applied_seq: 'asc' },
-      select: { order_item_id: true, discount_level: true, source_type: true, discount_type: true, discount_rate: true, discount_amount: true, rec_notes: true },
+      select: { order_item_id: true, order_item_piece_id: true, discount_level: true, source_type: true, discount_type: true, discount_rate: true, discount_amount: true, rec_notes: true },
     });
-    const lineDiscounts = manualLineDiscounts(discountRows.map((row) => ({
+    const storedDiscounts = discountRows.map((row) => ({
       ...row,
       discount_rate: row.discount_rate == null ? null : decimalText(row.discount_rate),
       discount_amount: decimalText(row.discount_amount),
-    })));
+    }));
+    const lineDiscounts = manualLineDiscounts(storedDiscounts);
+    const pieceDiscounts = manualPieceDiscounts(storedDiscounts);
 
     // Keep pieces aligned with explicitly active item identities before exposing stable targets.
     const pieces = await prisma.org_order_item_pieces_dtl.findMany({
       where: { tenant_org_id: tenantId, order_id: input.orderId, rec_status: 1, order_item_id: { in: [...itemIds] } },
       orderBy: [{ order_item_id: 'asc' }, { piece_seq: 'asc' }],
-      select: { id: true, order_id: true, order_item_id: true, piece_seq: true, piece_status: true, piece_stage: true, scan_state: true },
+      select: { id: true, order_id: true, order_item_id: true, piece_seq: true, piece_status: true, piece_stage: true, scan_state: true, service_speed: true },
     });
     if (pieces.some((piece) => !itemIds.has(piece.order_item_id))) {
       throw new OrderChangeContextError('INVALID_TARGET_HIERARCHY', 422);
@@ -215,13 +217,13 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
         readyBy: toIso(order.ready_by), notes: order.internal_notes, customerNotes: order.customer_notes,
       },
       items: items.map((item) => ({
-        id: item.id, orderId: item.order_id, productId: item.product_id, productName: item.product_name, productName2: item.product_name2,
+        id: item.id, moneyBasis: item.money_basis, orderId: item.order_id, productId: item.product_id, productName: item.product_name, productName2: item.product_name2,
         serviceCategoryCode: item.service_category_code, quantity: item.quantity, pricePerUnit: decimalText(item.price_per_unit), totalPrice: decimalText(item.total_price),
         priceOverride: item.price_override == null ? null : decimalText(item.price_override), overrideReason: item.override_reason,
         lineDiscount: lineDiscounts.get(item.id.toLowerCase()) ?? null, preferenceCharge: decimalText(item.service_pref_charge), packingPreferenceCode: item.packing_pref_code,
         serviceSpeed: item.service_speed, quantityReady: item.quantity_ready, readyAt: toIso(item.ready_at), active: true,
       })),
-      pieces: pieces.map((piece) => ({ id: piece.id, orderId: piece.order_id, orderItemId: piece.order_item_id, pieceSeq: piece.piece_seq, pieceStatus: piece.piece_status, pieceStage: piece.piece_stage, scanState: piece.scan_state, active: true })),
+      pieces: pieces.map((piece) => ({ id: piece.id, orderId: piece.order_id, orderItemId: piece.order_item_id, pieceSeq: piece.piece_seq, pieceStatus: piece.piece_status, pieceStage: piece.piece_stage, scanState: piece.scan_state, serviceSpeed: piece.service_speed, lineDiscount: pieceDiscounts.get(piece.id.toLowerCase()) ?? null, active: true })),
       preferences: preferences.map((preference) => ({
         id: preference.id, orderId: preference.order_id, level: preference.prefs_level, orderItemId: preference.order_item_id, orderItemPieceId: preference.order_item_piece_id,
         preferenceId: preference.preference_id, preferenceCode: preference.preference_code, preferenceKind: preference.preference_sys_kind, preferenceCategory: preference.preference_category,

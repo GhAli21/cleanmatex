@@ -130,8 +130,6 @@ export async function createInventoryItem(
     rec_status: 1,
   };
 
-  if (request.default_express_sell_price !== undefined)
-    insertData.default_express_sell_price = request.default_express_sell_price;
   if (request.min_sell_price !== undefined) insertData.min_sell_price = request.min_sell_price;
   if (request.product_group1 !== undefined) insertData.product_group1 = request.product_group1;
   if (request.product_group2 !== undefined) insertData.product_group2 = request.product_group2;
@@ -143,12 +141,8 @@ export async function createInventoryItem(
     insertData.pieces_per_product = request.pieces_per_product;
   if (request.extra_days !== undefined) insertData.extra_days = request.extra_days;
   if (request.turnaround_hh !== undefined) insertData.turnaround_hh = request.turnaround_hh;
-  if (request.turnaround_hh_express !== undefined)
-    insertData.turnaround_hh_express = request.turnaround_hh_express;
-  if (request.multiplier_express !== undefined)
-    insertData.multiplier_express = request.multiplier_express;
   if (request.product_order !== undefined) insertData.product_order = request.product_order;
-  if (request.is_tax_exempt !== undefined) insertData.is_tax_exempt = request.is_tax_exempt;
+  if (request.tax_category_code !== undefined) insertData.tax_category_code = request.tax_category_code;
   if (request.product_color1 !== undefined) insertData.product_color1 = request.product_color1;
   if (request.product_color2 !== undefined) insertData.product_color2 = request.product_color2;
   if (request.product_color3 !== undefined) insertData.product_color3 = request.product_color3;
@@ -214,8 +208,6 @@ export async function updateInventoryItem(
   if (request.product_unit !== undefined) updateData.product_unit = request.product_unit;
   if (request.product_cost !== undefined) updateData.product_cost = request.product_cost;
   if (request.default_sell_price !== undefined) updateData.default_sell_price = request.default_sell_price;
-  if (request.default_express_sell_price !== undefined)
-    updateData.default_express_sell_price = request.default_express_sell_price;
   if (request.min_sell_price !== undefined) updateData.min_sell_price = request.min_sell_price;
   if (request.id_sku !== undefined) updateData.id_sku = request.id_sku;
   if (request.reorder_point !== undefined) updateData.reorder_point = request.reorder_point;
@@ -233,12 +225,8 @@ export async function updateInventoryItem(
   if (request.pieces_per_product !== undefined) updateData.pieces_per_product = request.pieces_per_product;
   if (request.extra_days !== undefined) updateData.extra_days = request.extra_days;
   if (request.turnaround_hh !== undefined) updateData.turnaround_hh = request.turnaround_hh;
-  if (request.turnaround_hh_express !== undefined)
-    updateData.turnaround_hh_express = request.turnaround_hh_express;
-  if (request.multiplier_express !== undefined)
-    updateData.multiplier_express = request.multiplier_express;
   if (request.product_order !== undefined) updateData.product_order = request.product_order;
-  if (request.is_tax_exempt !== undefined) updateData.is_tax_exempt = request.is_tax_exempt;
+  if (request.tax_category_code !== undefined) updateData.tax_category_code = request.tax_category_code;
   if (request.product_color1 !== undefined) updateData.product_color1 = request.product_color1;
   if (request.product_color2 !== undefined) updateData.product_color2 = request.product_color2;
   if (request.product_color3 !== undefined) updateData.product_color3 = request.product_color3;

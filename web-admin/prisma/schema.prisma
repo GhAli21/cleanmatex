@@ -1068,8 +1068,6 @@ model org_orders_mst {
   priority_multiplier                                                             Decimal?                          @default(1.0) @db.Decimal(4, 2)
   photo_urls                                                                      Json?                             @default("[]")
   bag_count                                                                       Int?                              @default(1)
-  qr_code                                                                         String?
-  barcode                                                                         String?
   service_category_code                                                           String?                           @db.VarChar(120)
   workflow_template_id                                                            String?                           @db.Uuid
   current_status                                                                  String?

@@ -3,7 +3,7 @@
  *
  * Templates use {{credit_note_no}} for the store credit note number (HFC A-74). The seeded default template
  * (migration 0382) still uses {{invoice_number}}, so the same number is also sent under that key.
- * Nothing emits credit_note.issued yet; wire this builder in when that event is turned on.
+ * Emitted from stored-value.service issueCreditNote / issueCreditNoteTx (FOLLOWUPS #11). Templates updated by migration 0697 to {{credit_note_no}}; invoice_number alias kept for older overrides.
  */
 
 export interface CreditNoteIssuedVariableInput {
