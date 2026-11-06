@@ -13,6 +13,8 @@ import type { PriceListItem } from '@/lib/types/catalog';
  */
 export interface BulkImportRow {
   product_code?: string;
+  // A product code is unique per service category; needed only when the code is in several.
+  category_code?: string;
   product_id?: string;
   price: number;
   discount_percent?: number;
@@ -106,17 +108,26 @@ export class PricingBulkService {
         if (row.product_id) {
           productId = row.product_id;
         } else if (row.product_code) {
-          const { data: product } = await this.supabase
+          let productQuery = this.supabase
             .from('org_product_data_mst')
             .select('id')
             .eq('tenant_org_id', tenantId)
             .eq('product_code', row.product_code)
-            .eq('is_active', true)
-            .single();
-
-          if (product) {
-            productId = product.id;
+            .eq('is_active', true);
+          if (row.category_code) {
+            productQuery = productQuery.eq('service_category_code', row.category_code);
           }
+          const { data: products } = await productQuery.limit(2);
+
+          if (products && products.length > 1) {
+            result.errors.push({
+              row: i + 1,
+              data: row,
+              error: 'Product code is used in more than one category (add category_code or product_id)',
+            });
+            continue;
+          }
+          productId = products?.[0]?.id ?? null;
         }
 
         if (!productId) {

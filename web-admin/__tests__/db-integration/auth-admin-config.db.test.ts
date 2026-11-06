@@ -69,7 +69,10 @@ describe('catalog seed', () => {
   dbit('has the 10 items; the 3 lockout items are platform-managed, the other 7 tenant-changeable', async () => {
     const rows = await prisma.$queryRaw<Array<{ config_group: string; changeable: boolean; n: bigint }>>`
       SELECT config_group, is_allow_tenant_change AS changeable, count(*) AS n
-      FROM public.sys_auth_admin_config_cf GROUP BY 1, 2 ORDER BY 1, 2`;
+      FROM public.sys_auth_admin_config_cf
+      -- The session catalog only; the PASSWORD group was seeded later by the password package.
+      WHERE config_group IN ('SESSION', 'LOCKOUT', 'DEVICE')
+      GROUP BY 1, 2 ORDER BY 1, 2`;
     const lockout = rows.filter((r) => r.config_group === 'LOCKOUT');
     expect(lockout).toHaveLength(1);
     expect(lockout[0].changeable).toBe(false);

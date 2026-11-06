@@ -149,8 +149,6 @@ export const PRICE_SOURCES = {
   PRODUCT_DEFAULT: 'PRODUCT_DEFAULT',
   /** The customer's own list (b2b / vip). */
   CUSTOMER_PRICE: 'CUSTOMER_PRICE',
-  /** Reserved by the DB CHECK; not produced, because the speed rule is recorded on `speed_rule_id`. */
-  SPEED_RULE: 'SPEED_RULE',
   /** A cashier override (`pricing:override`) or a custom item's entered price. */
   MANUAL: 'MANUAL',
 } as const;

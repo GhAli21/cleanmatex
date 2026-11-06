@@ -7,55 +7,27 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
-import { getOrderById } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
 import { Prisma } from '@prisma/client';
-import { OrderPieceService, type OrderPreferencesSourceDefault } from './order-piece-service';
-import { logger } from '@/lib/utils/logger';
+import { type OrderPreferencesSourceDefault } from './order-piece-service';
 import { resolveOrderCreateWorkflowState } from '@/lib/services/workflow/order-create-workflow.service';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
-import {
-  buildOrderItemSrno,
-  lockOrderItemSerials,
-  readOrderItemSerialMax,
-} from '@/lib/services/order-item-code.service';
-import { isOrderEditable } from '@/lib/utils/order-editability';
-import { checkOrderLock, unlockOrder } from '@/lib/services/order-lock.service';
-import { createEditAudit } from '@/lib/services/order-audit.service';
-import {
-  computeAmendmentDelta,
-  assertGovernedAmendmentAllowed,
-  stakeAmendmentIdempotency,
-  completeAmendmentIdempotency,
-  AmendmentGovernanceError,
-  type AmendmentDeltaResult,
-} from '@/lib/services/order-amendment.service';
-import { canAccess } from '@/lib/services/feature-flags.service';
-import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import type { CheckoutQuote } from '@/lib/services/commercial/commercial-checkout.service';
 import { openCommercialCreateSession } from '@/lib/services/commercial/commercial-create.session';
-import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import {
   splitOrderUnits,
   buildSplitLines,
   ORDER_SPLIT_ERRORS,
   type OrderSplitResult,
 } from '@/lib/services/order-split.service';
-import { voidPreferenceChargesForOrderRewriteTx } from '@/lib/services/order-charge.service';
-import { customerSnapshotFieldChanged } from '@/lib/utils/order-customer-snapshot';
-import { CHARGE_TYPES } from '@/lib/constants/order-financial';
-import { PREFS_LEVEL, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
-import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { DEFAULT_ORDER_SOURCE_CODE, type OrderSourceCode } from '@/lib/constants/order-sources';
 import type { OrderStatus } from '@/lib/types/workflow';
-import { findOpenPosSessionIdForOrder } from '@/lib/services/order-created-pos-session';
 import { PAYMENT_METHODS, PAYMENT_TYPE_IDS } from '@/lib/constants/payment';
 import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/lib/services/order-source-policy';
 import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
 import { fetchOrgPackingExtraPriceByCodesPrismaTx } from '@/lib/utils/org-packing-extra-price';
 import { fetchOrgServicePreferenceCfIdsByCodesPrismaTx } from '@/lib/utils/org-service-preference-cf-lookup';
-import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import type { PreferenceSnapshot } from '@/lib/utils/order-preference-snapshot';
 import {
   normalizePieceColorCodes,
@@ -258,7 +230,7 @@ export interface CreateOrderParams {
    * from it (line `i` = quote line `L{i+1}`); client prices are ignored.
    * Only `createOrderInTransaction` reads it.
    */
-  commercial?: CheckoutQuote;
+  commercial: CheckoutQuote;
   isQuickDrop?: boolean;
   quickDropQuantity?: number;
   priority?: string;
@@ -338,168 +310,6 @@ export interface CreateOrderResult {
   error?: string;
   errorCode?: string;
   serviceCode?: string;
-}
-
-export interface UpdateOrderParams extends Partial<UpdateOrderInput> {
-  orderId: string;
-  tenantId: string;
-  userId: string;
-  userName: string;
-  ipAddress?: string;
-  userAgent?: string;
-  /** B12 — required when this edit is financially governed (see UpdateOrderResult.financialDelta). */
-  editReason?: string;
-  /** B12 — required when this edit is financially governed; D010-shaped replay/conflict key. */
-  idempotencyKey?: string;
-}
-
-export interface UpdateOrderResult {
-  success: boolean;
-  order?: any;
-  error?: string;
-  /** B12 — set when `error` came from a governed-amendment gate (AmendmentGovernanceError.code). */
-  errorCode?:
-    | 'EDIT_REASON_REQUIRED'
-    | 'PERMISSION_DENIED'
-    | 'IDEMPOTENCY_KEY_REQUIRED'
-    | 'IDEMPOTENCY_CONFLICT'
-    | 'IDEMPOTENCY_IN_PROGRESS';
-  /** B12 — signed grand-total delta from a governed edit (item change on an order with prior payments). Absent when not governed. */
-  financialDelta?: AmendmentDeltaResult;
-  /** B12 — the org_order_edit_history row id to attach a settlement outcome to, when financialDelta.isGoverned is true. */
-  editHistoryId?: string;
-  /** B12 — true when the caller must still complete a collect-additional/overpayment-resolution step before this edit is considered settled. */
-  requiresSettlement?: boolean;
-  /** B12 — true when this call replayed a prior successful edit with the same idempotency key (no new writes). */
-  idempotentReplay?: boolean;
-}
-
-/**
- * Builds a current-state preference snapshot for order detail responses.
- *
- * Removed preferences and their former parents remain immutable Change evidence,
- * not part of the live order representation.
- */
-async function loadOrderPreferenceSnapshots(
-  tenantId: string,
-  orderId: string,
-  productNameByProductId?: Map<string, string>
-): Promise<PreferenceSnapshot[]> {
-  const rows = await prisma.org_order_preferences_dtl.findMany({
-    where: { tenant_org_id: tenantId, order_id: orderId, rec_status: 1 },
-    select: {
-      preference_code: true,
-      preference_sys_kind: true,
-      preference_content: true,
-      preference_id: true,
-      extra_price: true,
-      prefs_level: true,
-      order_item_id: true,
-      order_item_piece_id: true,
-    },
-  });
-
-  const itemIds = [...new Set(rows.map((row) => row.order_item_id).filter((id): id is string => Boolean(id)))];
-  const pieceIds = [
-    ...new Set(rows.map((row) => row.order_item_piece_id).filter((id): id is string => Boolean(id))),
-  ];
-
-  const [items, pieces] = await Promise.all([
-    itemIds.length > 0
-      ? prisma.org_order_items_dtl.findMany({
-          where: { tenant_org_id: tenantId, id: { in: itemIds }, rec_status: 1 },
-          select: { id: true, product_id: true, product_name: true },
-        })
-      : Promise.resolve([]),
-    pieceIds.length > 0
-      ? prisma.org_order_item_pieces_dtl.findMany({
-          where: { tenant_org_id: tenantId, id: { in: pieceIds }, rec_status: 1 },
-          select: { id: true, piece_seq: true },
-        })
-      : Promise.resolve([]),
-  ]);
-
-  const itemById = new Map(items.map((item) => [item.id, item]));
-  const pieceById = new Map(pieces.map((piece) => [piece.id, piece]));
-
-  return rows.map((row) => {
-    const item = row.order_item_id ? itemById.get(row.order_item_id) : undefined;
-    const piece = row.order_item_piece_id ? pieceById.get(row.order_item_piece_id) : undefined;
-    const productId = item?.product_id ?? null;
-    return {
-      preferenceCode: row.preference_code,
-      preferenceSysKind: row.preference_sys_kind ?? null,
-      preferenceContent: row.preference_content ?? null,
-      preferenceId: row.preference_id ?? null,
-      extraPrice: Number(row.extra_price ?? 0),
-      prefsLevel: row.prefs_level,
-      productId,
-      productName:
-        (productId ? productNameByProductId?.get(productId) : undefined) ??
-        item?.product_name ??
-        null,
-      pieceSeq: piece?.piece_seq ?? null,
-    };
-  });
-}
-
-/**
- * Builds a current-state piece snapshot for order detail responses.
- *
- * Removed pieces and their former item relationships remain immutable Change
- * evidence, not part of the live order representation.
- */
-async function loadOrderPieceSnapshots(
-  tenantId: string,
-  orderId: string,
-  productNameByProductId?: Map<string, string>
-): Promise<PieceSnapshot[]> {
-  const rows = await prisma.org_order_item_pieces_dtl.findMany({
-    where: { tenant_org_id: tenantId, order_id: orderId, rec_status: 1 },
-    select: {
-      piece_seq: true,
-      product_id: true,
-      order_item_id: true,
-      color: true,
-      brand: true,
-      has_stain: true,
-      has_damage: true,
-      notes: true,
-      rack_location: true,
-      packing_pref_code: true,
-    },
-    orderBy: [{ order_item_id: 'asc' }, { piece_seq: 'asc' }],
-  });
-
-  const itemIds = [...new Set(rows.map((row) => row.order_item_id).filter((id): id is string => Boolean(id)))];
-  const items =
-    itemIds.length > 0
-      ? await prisma.org_order_items_dtl.findMany({
-          where: { tenant_org_id: tenantId, id: { in: itemIds }, rec_status: 1 },
-          select: { id: true, product_id: true, product_name: true },
-        })
-      : [];
-  const itemById = new Map(items.map((item) => [item.id, item]));
-
-  return rows.map((row) => {
-    const item = row.order_item_id ? itemById.get(row.order_item_id) : undefined;
-    const productId = row.product_id ?? item?.product_id ?? null;
-    return {
-      productId,
-      productName:
-        (productId ? productNameByProductId?.get(productId) : undefined) ??
-        item?.product_name ??
-        null,
-      pieceSeq: row.piece_seq,
-      colorCodes: normalizePieceColorCodes(row.color),
-      brand: row.brand ?? null,
-      hasStain: Boolean(row.has_stain),
-      hasDamage: Boolean(row.has_damage),
-      notes: row.notes ?? null,
-      rackLocation: row.rack_location ?? null,
-      packingPrefCode: row.packing_pref_code ?? null,
-    };
-  });
 }
 
 export class OrderService {
@@ -611,10 +421,10 @@ export class OrderService {
       return { success: false, error: sourceValidated.error };
     }
     // P5-02: line money comes from the checkout quote.
-    const commercial = params.commercial ? openCommercialCreateSession(params.commercial) : null;
+    const commercial = openCommercialCreateSession(params.commercial);
     /** Server price of a preference row when Create is quote-driven; otherwise the given legacy value. */
     const prefPrice = (sysKind: string, code: string, legacy: number | Prisma.Decimal | string) =>
-      (commercial ? commercial.preferencePrice(sysKind, code) : null) ?? legacy;
+      (commercial.preferencePrice(sysKind, code)) ?? legacy;
 
     let wf: Awaited<ReturnType<typeof OrderService.computeCreateOrderWorkflowState>>;
     let workflowProfileBinding: Awaited<ReturnType<typeof resolveWorkflowProfileBindingForOrderWithPrisma>>;
@@ -699,9 +509,7 @@ export class OrderService {
     const discount = totals?.discount ?? 0;
     // A calculated order stores its whole tax (every tax line), so the header
     // agrees with org_order_taxes_dtl from the first insert.
-    const tax = params.commercial
-      ? Number(params.commercial.quote.result.totals.taxTotal.toFixed(4))
-      : totals?.tax ?? 0;
+    const tax = Number(params.commercial.quote.result.totals.taxTotal.toFixed(4));
     const total = totals?.total ?? subtotal - discount + tax;
     const vatRate = totals?.vatRate;
     const taxRate = totals?.taxRate;
@@ -871,7 +679,7 @@ export class OrderService {
             packing_pref_source: item.packingPrefSource ?? null,
             service_pref_charge: persistedServicePrefChargeColumn(item, packingPriceMapPrisma),
             // P5-02: every §6.1 column from the calculator, replacing the cart's prices above.
-            ...(commercial ? commercial.itemColumns(index) : {}),
+            ...commercial.itemColumns(index),
             // PF-01: override audit. The overriding user is the session user, never a client value.
             ...(item.priceOverride !== null && item.priceOverride !== undefined
               ? {
@@ -883,7 +691,7 @@ export class OrderService {
           },
         });
 
-        commercial?.recordItem(index, createdItem.id);
+        commercial.recordItem(index, createdItem.id);
 
         // Insert service preferences for this item (org_order_preferences_dtl, prefs_level=ITEM)
         const prefs = item.servicePrefs;
@@ -907,7 +715,7 @@ export class OrderService {
             })),
           });
           for (const row of createdPrefs) {
-            commercial?.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index, pieceIndex: null });
+            commercial.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index, pieceIndex: null });
           }
         }
 
@@ -932,7 +740,7 @@ export class OrderService {
               ...(item.packingCfId ? { preference_id: item.packingCfId } : {}),
             },
           });
-          commercial?.recordPreference({ id: createdPacking.id, sysKind: 'packing_prefs', code: item.packingPrefCode, index, pieceIndex: null });
+          commercial.recordPreference({ id: createdPacking.id, sysKind: 'packing_prefs', code: item.packingPrefCode, index, pieceIndex: null });
         }
 
         // Always create pieces for each order item
@@ -978,10 +786,10 @@ export class OrderService {
                 packing_pref_code: pieceInput?.packingPrefCode ?? null,
                 service_pref_charge: servicePrefChargePiece + packingChargePiece,
                 // P5-02: the piece's own §6.1 columns (allocated from its item, or priced).
-                ...(commercial ? commercial.pieceColumns(index, i) : {}),
+                ...commercial.pieceColumns(index, i),
               },
             });
-            commercial?.recordPiece(index, i, createdPiece.id);
+            commercial.recordPiece(index, i, createdPiece.id);
 
             // Save piece conditions to org_order_preferences_dtl
             const conditions = pieceInput?.conditions ?? [];
@@ -1032,7 +840,7 @@ export class OrderService {
                 })),
               });
               for (const row of createdPiecePrefs) {
-                commercial?.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index, pieceIndex: i });
+                commercial.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index, pieceIndex: i });
               }
             }
 
@@ -1058,7 +866,7 @@ export class OrderService {
                   ...(pieceInput.packingCfId ? { preference_id: pieceInput.packingCfId } : {}),
                 },
               });
-              commercial?.recordPreference({ id: createdPiecePacking.id, sysKind: 'packing_prefs', code: pieceInput.packingPrefCode, index, pieceIndex: i });
+              commercial.recordPreference({ id: createdPiecePacking.id, sysKind: 'packing_prefs', code: pieceInput.packingPrefCode, index, pieceIndex: i });
             }
 
             const packingOffset = pieceInput?.packingPrefCode ? 1 : 0;
@@ -1135,7 +943,7 @@ export class OrderService {
           })),
         });
         for (const row of createdOrderPrefs) {
-          commercial?.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index: null, pieceIndex: null });
+          commercial.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index: null, pieceIndex: null });
         }
       }
 
@@ -1148,32 +956,6 @@ export class OrderService {
         if (childRows.discounts.length > 0) await tx.org_order_discounts_dtl.createMany({ data: childRows.discounts });
         if (childRows.charges.length > 0) await tx.org_order_charges_dtl.createMany({ data: childRows.charges });
         if (childRows.taxes.length > 0) await tx.org_order_taxes_dtl.createMany({ data: childRows.taxes });
-      }
-
-      // Legacy path only: the quote-driven path wrote its charges above.
-      const chargeablePreferences = commercial ? [] : await tx.org_order_preferences_dtl.findMany({
-        where: {
-          tenant_org_id: tenantId,
-          order_id: order.id,
-          extra_price: { gt: 0 },
-          prefs_level: 'ORDER',
-        },
-        select: { id: true, extra_price: true, preference_code: true },
-      });
-      if (chargeablePreferences.length > 0) {
-        await tx.org_order_charges_dtl.createMany({
-          data: chargeablePreferences.map((pref, idx) => ({
-            tenant_org_id: tenantId,
-            order_id: order.id,
-            charge_type: 'PREFERENCE',
-            charge_source_id: pref.id,
-            label: pref.preference_code,
-            amount: pref.extra_price,
-            currency_code: order.currency_code,
-            applied_seq: idx + 1,
-            created_by: userId,
-          })),
-        });
       }
 
       if (isRetailOnlyOrder) {
@@ -1969,727 +1751,6 @@ export class OrderService {
       return { success: false, errorCode: ORDER_SPLIT_ERRORS.NOTHING_SELECTED, error: 'No valid piece IDs found' };
     }
     return splitOrderUnits({ tenantId, orderId, userId, userName, reason, lines: built.lines });
-  }
-
-  /**
-   * Update an existing order
-   * PRD: Edit Order Feature - Backend Service
-   *
-   * Validates editability, manages locks, updates items/pieces, recalculates totals,
-   * creates audit trail
-   */
-  static async updateOrder(params: UpdateOrderParams): Promise<UpdateOrderResult> {
-    const {
-      orderId,
-      tenantId,
-      userId,
-      userName,
-      ipAddress,
-      userAgent,
-      customerId,
-      branchId,
-      notes,
-      customerNotes,
-      paymentNotes,
-      readyByAt,
-      express,
-      items,
-      customerName,
-      customerMobile,
-      customerEmail,
-      isDefaultCustomer,
-      customerDetails,
-      recalculate = false,
-      expectedUpdatedAt,
-      isQuickDrop,
-      quickDropQuantity,
-      editReason,
-      idempotencyKey,
-      orderServicePrefs,
-    } = params;
-
-    try {
-      // 1. Fetch existing order with items (use Prisma for consistency with GET - bypasses Supabase RLS)
-      const orderFromDb = await getOrderById(tenantId, orderId);
-      if (!orderFromDb) {
-        return {
-          success: false,
-          error: 'Order not found',
-        };
-      }
-
-      // Map to shape expected by rest of updateOrder (snake_case, items with product_id)
-      const existingOrder = {
-        ...orderFromDb,
-        items: (orderFromDb.items ?? []).map((item: { id: string; product_id?: string; quantity?: number; price_per_unit?: unknown; total_price?: unknown; notes?: string; has_stain?: boolean; has_damage?: boolean }) => ({
-          id: item.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price_per_unit: item.price_per_unit,
-          total_price: item.total_price,
-          notes: item.notes,
-          has_stain: item.has_stain,
-          has_damage: item.has_damage,
-        })),
-        ready_by_at: (orderFromDb as { ready_by?: Date; ready_by_at_new?: Date }).ready_by_at_new ?? (orderFromDb as { ready_by?: Date }).ready_by ?? null,
-      };
-
-      // 2. Validate editability
-      const editabilityCheck = isOrderEditable(existingOrder);
-      if (!editabilityCheck.canEdit) {
-        return {
-          success: false,
-          error: editabilityCheck.reason || 'Order cannot be edited',
-        };
-      }
-
-      // 3. Check for active lock
-      const lockStatus = await checkOrderLock(orderId, tenantId);
-      if (lockStatus.isLocked && lockStatus.lock?.lockedBy !== userId) {
-        return {
-          success: false,
-          error: `Order is locked by ${lockStatus.lock?.lockedByName || 'another user'}`,
-        };
-      }
-
-      // 4. Optimistic locking check
-      if (expectedUpdatedAt) {
-        const existingUpdatedAt = new Date(existingOrder.updated_at);
-        const expectedDate = new Date(expectedUpdatedAt);
-        if (existingUpdatedAt.getTime() !== expectedDate.getTime()) {
-          return {
-            success: false,
-            error: 'Order has been modified by another user. Please refresh and try again.',
-          };
-        }
-      }
-
-      const snapshotBeforeFinancial = readCanonicalOrderFinancialSnapshot(
-        existingOrder as Record<string, unknown>,
-      );
-
-      // 5. Create snapshot_before
-      const preferencesBefore = await loadOrderPreferenceSnapshots(tenantId, orderId);
-      const piecesBefore = await loadOrderPieceSnapshots(tenantId, orderId);
-      const snapshotBefore = {
-        order: {
-          id: existingOrder.id,
-          orderNo: existingOrder.order_no,
-          customerId: existingOrder.customer_id,
-          branchId: existingOrder.branch_id,
-          notes: existingOrder.internal_notes,
-          customerNotes: existingOrder.customer_notes,
-          paymentNotes: existingOrder.payment_notes,
-          readyByAt: existingOrder.ready_by_at,
-          express: existingOrder.priority_multiplier === 0.5,
-          subtotal: snapshotBeforeFinancial.subtotalAmount,
-          discount: snapshotBeforeFinancial.totalDiscountAmount,
-          tax: snapshotBeforeFinancial.totalTaxAmount,
-          total: snapshotBeforeFinancial.totalAmount,
-          customerName: existingOrder.customer_name,
-          customerMobile: existingOrder.customer_mobile_number,
-          customerEmail: existingOrder.customer_email,
-          isQuickDrop: existingOrder.is_order_quick_drop,
-          quickDropQuantity: existingOrder.quick_drop_quantity,
-        },
-        items: existingOrder.items?.map((item: any) => ({
-          id: item.id,
-          productId: item.product_id,
-          productName: item.product_name ?? item.productName ?? null,
-          quantity: item.quantity,
-          pricePerUnit: item.price_per_unit,
-          totalPrice: item.total_price,
-          notes: item.notes ?? null,
-          hasStain: item.has_stain ?? null,
-          hasDamage: item.has_damage ?? null,
-          stainNotes: item.stain_notes ?? null,
-          damageNotes: item.damage_notes ?? null,
-        })) || [],
-        preferences: preferencesBefore,
-        pieces: piecesBefore,
-      };
-
-      // 5b. B12 — governed-amendment gate. Only item-list replacements are in
-      // scope (matches the doc's "item add/remove/qty/price-override" scope);
-      // notes-only/express-only/recalculate-only edits never reach this branch.
-      // Runs entirely BEFORE the transaction opens: a dry-run reprice (same
-      // canonical-engine call the real repricing below makes, side-effect-free)
-      // tells us the prospective delta so reason/permission/idempotency can
-      // fail fast with zero partial writes.
-      let amendmentGate: {
-        delta: AmendmentDeltaResult;
-        payloadHash: string;
-      } | null = null;
-      let idempotentReplayEditHistoryId: string | null = null;
-
-      if (items && items.length > 0) {
-        const totalPaidAmount = Number((existingOrder as any).total_paid_amount ?? 0);
-        const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments');
-
-        if (governedFlagEnabled && totalPaidAmount > 0) {
-          const dryRunResult = await calculateOrderTotals({
-            tenantId,
-            branchId: branchId ?? existingOrder.branch_id,
-            items: items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              priceOverride: item.quantity > 0 ? item.totalPrice / item.quantity : item.pricePerUnit,
-              servicePrefCharge: 0,
-              packingPrefCharge: 0,
-            })),
-            orderCharges: (orderServicePrefs ?? []).map((pref) => ({
-              label: pref.preference_code,
-              amount: pref.extra_price ?? 0,
-            })),
-            customerId: customerId ?? existingOrder.customer_id,
-            isExpress: express ?? existingOrder.priority_multiplier === 0.5,
-            userId,
-          });
-
-          const delta = computeAmendmentDelta({
-            previousTotal: snapshotBeforeFinancial.totalAmount,
-            newTotal: dryRunResult.saleTotal,
-            totalPaidAmount,
-            governedFlagEnabled,
-          });
-
-          if (delta.isGoverned) {
-            await assertGovernedAmendmentAllowed({ tenantId, userId, editReason });
-            const staked = await stakeAmendmentIdempotency(
-              tenantId,
-              orderId,
-              idempotencyKey,
-              { items, express, customerId, branchId, orderServicePrefs },
-            );
-            if (staked.editHistoryId) {
-              // Replay: a prior call with this exact key+payload already
-              // completed. Short-circuit — no re-edit, no duplicate audit row.
-              idempotentReplayEditHistoryId = staked.editHistoryId;
-            } else {
-              amendmentGate = { delta, payloadHash: staked.payloadHash };
-            }
-          }
-        }
-      }
-
-      if (idempotentReplayEditHistoryId) {
-        const replayed = await prisma.org_order_edit_history.findFirst({
-          where: { id: idempotentReplayEditHistoryId, tenant_org_id: tenantId, order_id: orderId },
-        });
-        const currentOrder = await prisma.org_orders_mst.findUnique({
-          where: { id: orderId, tenant_org_id: tenantId },
-        });
-        return {
-          success: true,
-          order: currentOrder && {
-            ...currentOrder,
-            // state_version is BIGINT in the DB — see migration 0439.
-            state_version:
-              typeof currentOrder.state_version === 'bigint'
-                ? Number(currentOrder.state_version)
-                : currentOrder.state_version,
-          },
-          idempotentReplay: true,
-          editHistoryId: idempotentReplayEditHistoryId,
-          requiresSettlement: replayed ? !replayed.payment_adjusted : false,
-          ...(replayed?.payment_adjustment_amount != null && {
-            financialDelta: {
-              previousTotal: snapshotBeforeFinancial.totalAmount,
-              newTotal: snapshotBeforeFinancial.totalAmount + Number(replayed.payment_adjustment_amount) * (replayed.payment_adjustment_type === 'REFUND' ? -1 : 1),
-              deltaAmount: Number(replayed.payment_adjustment_amount) * (replayed.payment_adjustment_type === 'REFUND' ? -1 : 1),
-              unresolvedOverpaymentAmount: Number(currentOrder.overpaid_amount ?? 0),
-              isGoverned: true,
-            },
-          }),
-        };
-      }
-
-      // 6. Use Prisma transaction for atomic updates
-      const result = await prisma.$transaction(async (tx) => {
-        // 7. Delete old items/pieces if items array provided
-        // HFC P3: read the order's highest line serial BEFORE the delete (same lock as the DB trigger), so the new
-        // lines continue the numbering. A serial that was printed on a label is never given to a different line.
-        let itemSerialFloor = 0;
-        if (items && items.length >= 0) {
-          await lockOrderItemSerials(tx, orderId);
-          itemSerialFloor = await readOrderItemSerialMax(tx, {
-            tenantOrgId: tenantId,
-            orderId,
-            orderNo: existingOrder.order_no,
-          });
-          // Delete all pieces first
-          await tx.org_order_item_pieces_dtl.deleteMany({
-            where: {
-              order_id: orderId,
-              tenant_org_id: tenantId,
-            },
-          });
-
-          // Delete all items
-          await tx.org_order_items_dtl.deleteMany({
-            where: {
-              order_id: orderId,
-              tenant_org_id: tenantId,
-            },
-          });
-
-          // ITEM/PIECE prefs cascade with items; leftover PREFERENCE charges have
-          // no FK. Void them in this tx so snapshot money cannot re-add them.
-          await voidPreferenceChargesForOrderRewriteTx(tx, {
-            tenantId,
-            orderId,
-            userId,
-            reason: 'ORDER_EDIT_PREFERENCE_REWRITE',
-          });
-          await tx.org_order_preferences_dtl.deleteMany({
-            where: {
-              order_id: orderId,
-              tenant_org_id: tenantId,
-              prefs_level: PREFS_LEVEL.ORDER,
-            },
-          });
-        }
-
-        // 8. Recalculate tax lines if items changed or recalculate flag set
-        let vatRate = (existingOrder as any).vat_rate;
-        // B17: preserve the already-persisted adjustment unless a recalc runs —
-        // a non-recalculating edit (e.g. notes-only) must never zero it out.
-        let roundingAdjustment = Number((existingOrder as any).rounding_adjustment_amount ?? 0);
-
-        const shouldRecalculateTotals = Boolean((items && items.length > 0) || recalculate || express !== undefined);
-
-        if (shouldRecalculateTotals) {
-          const calculationItems = items && items.length > 0
-            ? items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                priceOverride: item.quantity > 0 ? item.totalPrice / item.quantity : item.pricePerUnit,
-                servicePrefCharge: 0,
-                packingPrefCharge: 0,
-              }))
-            : (await tx.org_order_items_dtl.findMany({
-                where: {
-                  order_id: orderId,
-                  tenant_org_id: tenantId,
-                },
-                select: {
-                  product_id: true,
-                  quantity: true,
-                  total_price: true,
-                  price_per_unit: true,
-                },
-              })).map((item) => ({
-                productId: item.product_id,
-                quantity: item.quantity,
-                priceOverride: item.quantity > 0
-                  ? Number(item.total_price ?? 0) / item.quantity
-                  : Number(item.price_per_unit ?? 0),
-                servicePrefCharge: 0,
-                packingPrefCharge: 0,
-              }));
-
-          const calculationResult = await calculateOrderTotals({
-            tenantId,
-            branchId: branchId ?? existingOrder.branch_id,
-            items: calculationItems,
-            orderCharges: (orderServicePrefs ?? []).map((pref) => ({
-              label: pref.preference_code,
-              amount: pref.extra_price ?? 0,
-            })),
-            customerId: customerId ?? existingOrder.customer_id,
-            isExpress: express ?? existingOrder.priority_multiplier === 0.5,
-            userId,
-          });
-
-          vatRate = calculationResult.taxRate;
-          roundingAdjustment = calculationResult.roundingAdjustmentAmount;
-
-          await tx.org_order_taxes_dtl.deleteMany({
-            where: { tenant_org_id: tenantId, order_id: orderId },
-          });
-          for (let taxSeq = 0; taxSeq < calculationResult.taxBreakdown.length; taxSeq++) {
-            const taxLine = calculationResult.taxBreakdown[taxSeq];
-            await tx.org_order_taxes_dtl.create({
-              data: {
-                tenant_org_id: tenantId,
-                order_id: orderId,
-                tax_profile_id: taxLine.profileId ?? null,
-                tax_type: taxLine.taxType,
-                label: taxLine.label,
-                label2: taxLine.label2 ?? null,
-                rate: taxLine.rate,
-                is_compound: taxLine.isCompound,
-                taxable_amount: taxLine.baseAmount,
-                tax_amount: taxLine.taxAmount,
-                currency_code: calculationResult.currencyCode,
-                applied_seq: taxSeq + 1,
-                rec_status: 1,
-              },
-            });
-          }
-        }
-
-        // 9. Create new items/pieces
-        if (items && items.length > 0) {
-          const orderNo = existingOrder.order_no;
-          const v_initialStatus = existingOrder.current_status || 'processing';
-          const v_transitionFrom = existingOrder.current_stage || 'intake';
-
-          const packingPriceMapOrderEdit = await fetchOrgPackingExtraPriceByCodesPrismaTx(
-            tx,
-            tenantId,
-            collectPackingPrefCodesFromOrderPayload(items)
-          );
-
-          for (let index = 0; index < items.length; index++) {
-            const item = items[index];
-
-            // Create item (omit undefined - Prisma rejects undefined for optional fields)
-            const createdItem = await tx.org_order_items_dtl.create({
-              data: {
-                order_id: orderId,
-                tenant_org_id: tenantId,
-                branch_id: branchId ?? existingOrder.branch_id ?? null,
-                service_category_code: item.serviceCategoryCode || 'GENERAL',
-                order_item_srno: buildOrderItemSrno(orderNo, itemSerialFloor + index + 1),
-                barcode: buildOrderItemSrno(orderNo, itemSerialFloor + index + 1),
-                product_id: item.productId,
-                quantity: item.quantity,
-                price_per_unit: item.pricePerUnit,
-                total_price: item.totalPrice,
-                status: 'pending',
-                item_status: v_initialStatus,
-                item_stage: v_transitionFrom,
-                created_by: userId,
-                rec_status: 1,
-                ...(item.notes != null && { notes: item.notes }),
-                ...(item.hasStain != null && { has_stain: item.hasStain }),
-                ...(item.hasDamage != null && { has_damage: item.hasDamage }),
-                ...(item.stainNotes != null && { stain_notes: item.stainNotes }),
-                ...(item.damageNotes != null && { damage_notes: item.damageNotes }),
-              },
-            });
-
-            // Create pieces for item
-            const piecesData = item.pieces && item.pieces.length > 0
-              ? item.pieces.map((piece, idx) => ({
-                pieceSeq: piece.pieceSeq || idx + 1,
-                color: piece.color,
-                colorCodes: piece.colorCodes,
-                colorCfIds: piece.colorCfIds,
-                brand: piece.brand,
-                hasStain: piece.hasStain ?? item.hasStain,
-                hasDamage: piece.hasDamage ?? item.hasDamage,
-                notes: piece.notes || item.notes,
-                rackLocation: piece.rackLocation,
-                metadata: piece.metadata || {},
-                packingPrefCode: piece.packingPrefCode,
-                packingCfId: piece.packingCfId,
-                servicePrefs: piece.servicePrefs,
-                conditions: piece.conditions,
-              }))
-              : undefined;
-
-            // Use the tx-aware method: runs entirely within the Prisma transaction
-            // so all writes are atomic and visible to each other without isolation gaps.
-            await OrderPieceService.createPiecesForItemWithTx(
-              tx,
-              tenantId,
-              orderId,
-              createdItem.id,
-              item.quantity,
-              {
-                serviceCategoryCode: item.serviceCategoryCode || 'GENERAL',
-                productId: item.productId,
-                pricePerUnit: item.pricePerUnit,
-                totalPrice: item.totalPrice,
-                hasStain: item.hasStain,
-                hasDamage: item.hasDamage,
-                notes: item.notes,
-                metadata: {},
-              },
-              piecesData,
-              branchId ?? existingOrder.branch_id ?? undefined,
-              packingPriceMapOrderEdit,
-              'ORDER_EDIT'
-            );
-          }
-
-          if (orderServicePrefs && orderServicePrefs.length > 0) {
-            await tx.org_order_preferences_dtl.createMany({
-              data: orderServicePrefs.map((pref, idx) => ({
-                tenant_org_id: tenantId,
-                order_id: orderId,
-                prefs_no: idx + 1,
-                prefs_level: PREFS_LEVEL.ORDER,
-                preference_code: pref.preference_code,
-                preference_content: pref.preference_code,
-                preference_sys_kind: 'service_prefs',
-                prefs_source: pref.source ?? PREFS_SOURCE_STAGE.ORDER_EDIT,
-                extra_price: pref.extra_price ?? 0,
-                branch_id: branchId ?? existingOrder.branch_id ?? null,
-                created_by: userId,
-                ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
-              })),
-            });
-          }
-
-          const orderLevelPrefs = await tx.org_order_preferences_dtl.findMany({
-            where: {
-              tenant_org_id: tenantId,
-              order_id: orderId,
-              prefs_level: PREFS_LEVEL.ORDER,
-              extra_price: { gt: 0 },
-            },
-            select: { id: true, extra_price: true, preference_code: true },
-          });
-          if (orderLevelPrefs.length > 0) {
-            await tx.org_order_charges_dtl.createMany({
-              data: orderLevelPrefs.map((pref, idx) => ({
-                tenant_org_id: tenantId,
-                order_id: orderId,
-                charge_type: CHARGE_TYPES.PREFERENCE,
-                charge_source_id: pref.id,
-                label: pref.preference_code,
-                amount: pref.extra_price,
-                currency_code: (orderFromDb as { currency_code?: string | null }).currency_code ?? null,
-                applied_seq: idx + 1,
-                created_by: userId,
-              })),
-            });
-          }
-        }
-
-        // 10. Update order master fields
-        const updateData: any = {
-          updated_at: new Date(),
-          updated_by: userId,
-        };
-
-        if (customerId !== undefined) updateData.customer_id = customerId;
-        if (branchId !== undefined) updateData.branch_id = branchId;
-        if (notes !== undefined) updateData.internal_notes = notes;
-        if (customerNotes !== undefined) updateData.customer_notes = customerNotes;
-        if (paymentNotes !== undefined) updateData.payment_notes = paymentNotes;
-        if (readyByAt !== undefined) {
-          updateData.ready_by = readyByAt;
-          updateData.ready_by_at_new = readyByAt;
-        }
-        if (express !== undefined) updateData.priority_multiplier = express ? 0.5 : 1.0;
-        if (
-          customerName !== undefined &&
-          customerSnapshotFieldChanged(customerName, existingOrder.customer_name)
-        ) {
-          updateData.customer_name = customerName;
-        }
-        if (
-          customerMobile !== undefined &&
-          customerSnapshotFieldChanged(customerMobile, existingOrder.customer_mobile_number)
-        ) {
-          updateData.customer_mobile_number = customerMobile;
-        }
-        if (
-          customerEmail !== undefined &&
-          customerSnapshotFieldChanged(customerEmail, existingOrder.customer_email)
-        ) {
-          updateData.customer_email = customerEmail;
-        }
-        if (isDefaultCustomer !== undefined) updateData.is_default_customer = isDefaultCustomer;
-        if (customerDetails !== undefined) updateData.customer_details = customerDetails;
-        if (isQuickDrop !== undefined) updateData.is_order_quick_drop = isQuickDrop;
-        if (quickDropQuantity !== undefined) updateData.quick_drop_quantity = quickDropQuantity;
-
-        // Do not stamp tax/subtotal/discount here. calculateOrderTotals.taxAmount
-        // is VAT-only; municipal lines are extra. Snapshot is the header writer.
-        if (items && items.length >= 0) {
-          updateData.vat_rate = vatRate;
-          updateData.rounding_adjustment_amount = roundingAdjustment;
-          updateData.total_items = items.length;
-        }
-
-        const updatedOrder = await tx.org_orders_mst.update({
-          where: {
-            id: orderId,
-            tenant_org_id: tenantId,
-          },
-          data: updateData,
-        });
-
-        if (shouldRecalculateTotals) {
-          await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
-        }
-
-        return updatedOrder;
-      });
-
-      // 11. Fetch updated order with items for snapshot_after (use Prisma)
-      const updatedOrderWithItems = await prisma.org_orders_mst.findUnique({
-        where: { id: orderId, tenant_org_id: tenantId },
-        include: { org_order_items_dtl: { orderBy: { created_at: 'asc' } } },
-      });
-
-      if (!updatedOrderWithItems) {
-        logger.error('[updateOrder] Order not found after update', undefined, {
-          feature: 'orders',
-          action: 'update_order',
-          orderId,
-          tenantId,
-        });
-        return {
-          success: false,
-          error: 'Order not found',
-        };
-      }
-
-      const readyByAtVal = updatedOrderWithItems.ready_by_at_new ?? updatedOrderWithItems.ready_by ?? null;
-
-      // 12. Create snapshot_after
-      // Build product name lookup from input items (DB re-fetch doesn't join product names)
-      const inputItemNameMap = new Map<string, string>(
-        (items ?? []).map((i) => [i.productId, i.productName ?? i.productId.slice(0, 8)])
-      );
-      const snapshotAfterFinancial = readCanonicalOrderFinancialSnapshot(
-        updatedOrderWithItems as unknown as Record<string, unknown>,
-      );
-
-      const preferencesAfter = await loadOrderPreferenceSnapshots(
-        tenantId,
-        orderId,
-        inputItemNameMap,
-      );
-      const piecesAfter = await loadOrderPieceSnapshots(
-        tenantId,
-        orderId,
-        inputItemNameMap,
-      );
-      const snapshotAfter = {
-        order: {
-          id: updatedOrderWithItems.id,
-          orderNo: updatedOrderWithItems.order_no,
-          customerId: updatedOrderWithItems.customer_id,
-          branchId: updatedOrderWithItems.branch_id,
-          notes: updatedOrderWithItems.internal_notes,
-          customerNotes: updatedOrderWithItems.customer_notes,
-          paymentNotes: updatedOrderWithItems.payment_notes,
-          readyByAt: readyByAtVal,
-          express: Number(updatedOrderWithItems.priority_multiplier) === 0.5,
-          subtotal: snapshotAfterFinancial.subtotalAmount,
-          discount: snapshotAfterFinancial.totalDiscountAmount,
-          tax: snapshotAfterFinancial.totalTaxAmount,
-          total: snapshotAfterFinancial.totalAmount,
-          customerName: updatedOrderWithItems.customer_name,
-          customerMobile: updatedOrderWithItems.customer_mobile_number,
-          customerEmail: updatedOrderWithItems.customer_email,
-          isQuickDrop: updatedOrderWithItems.is_order_quick_drop,
-          quickDropQuantity: updatedOrderWithItems.quick_drop_quantity,
-        },
-        items: (updatedOrderWithItems.org_order_items_dtl ?? []).map((item) => {
-          const inputItem = (items ?? []).find((i) => i.productId === item.product_id);
-          return {
-            id: item.id,
-            productId: item.product_id,
-            productName: inputItemNameMap.get(item.product_id ?? '') ?? (item as any).product_name ?? null,
-            quantity: item.quantity,
-            pricePerUnit: item.price_per_unit,
-            totalPrice: item.total_price,
-            notes: item.notes ?? null,
-            hasStain: item.has_stain ?? null,
-            hasDamage: item.has_damage ?? null,
-            stainNotes: inputItem?.stainNotes ?? (item as any).stain_notes ?? null,
-            damageNotes: inputItem?.damageNotes ?? (item as any).damage_notes ?? null,
-          };
-        }),
-        preferences: preferencesAfter,
-        pieces: piecesAfter,
-      };
-
-      // 13. Create audit entry. payment_adjusted stays false at this point even
-      // for a governed edit — the delta is known, but settlement (collect-
-      // additional / overpayment-resolution) is a separate cashier-driven step
-      // the caller completes afterward via recordAmendmentSettlement (B12).
-      const auditEntry = await createEditAudit({
-        tenantId,
-        orderId,
-        orderNo: existingOrder.order_no,
-        editedBy: userId,
-        editedByName: userName,
-        ipAddress,
-        userAgent,
-        snapshotBefore,
-        snapshotAfter,
-        paymentAdjusted: false,
-        paymentAdjustmentAmount: undefined,
-        paymentAdjustmentType: undefined,
-        editReason: amendmentGate ? editReason : undefined,
-      });
-
-      if (amendmentGate && idempotencyKey) {
-        await completeAmendmentIdempotency(tenantId, idempotencyKey, amendmentGate.payloadHash, auditEntry.id);
-      }
-
-      // 14. Unlock order
-      try {
-        await unlockOrder({
-          orderId,
-          tenantId,
-          userId,
-        });
-      } catch (unlockError) {
-        // Log but don't fail - lock will expire anyway
-        logger.warn('[updateOrder] Failed to unlock order', {
-          feature: 'orders',
-          action: 'update_order',
-          orderId,
-          error: unlockError instanceof Error ? unlockError.message : 'Unknown error',
-        });
-      }
-
-      logger.info('[updateOrder] Order updated successfully', {
-        feature: 'orders',
-        action: 'update_order',
-        orderId,
-        userId,
-        itemsChanged: items ? items.length : 0,
-      });
-
-      return {
-        success: true,
-        order: {
-          ...updatedOrderWithItems,
-          // state_version is BIGINT in the DB (workflow-engine optimistic
-          // concurrency token); Prisma returns it as a native bigint, which
-          // JSON.stringify cannot serialize (see migration 0439).
-          state_version:
-            typeof updatedOrderWithItems.state_version === 'bigint'
-              ? Number(updatedOrderWithItems.state_version)
-              : updatedOrderWithItems.state_version,
-        },
-        ...(amendmentGate && {
-          financialDelta: computeAmendmentDelta({
-            previousTotal: snapshotBeforeFinancial.totalAmount,
-            newTotal: snapshotAfterFinancial.totalAmount,
-            totalPaidAmount: Number((existingOrder as { total_paid_amount?: number }).total_paid_amount ?? 0),
-            unresolvedOverpaymentAmount: Number(updatedOrderWithItems.overpaid_amount ?? 0),
-            governedFlagEnabled: true,
-          }),
-          editHistoryId: auditEntry.id,
-          requiresSettlement: true,
-        }),
-      };
-    } catch (error) {
-      logger.error('[updateOrder] Failed to update order', error as Error, {
-        feature: 'orders',
-        action: 'update_order',
-        orderId,
-        userId,
-      });
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to update order',
-        ...(error instanceof AmendmentGovernanceError && { errorCode: error.code }),
-      };
-    }
   }
 }
 

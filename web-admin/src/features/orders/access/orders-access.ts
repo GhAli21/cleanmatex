@@ -761,15 +761,6 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
       },
       {
-        label: '[Id] Update',
-        method: 'PATCH',
-        path: '/api/v1/orders/[id]/update',
-        requirement: {
-          permissions: ['orders:update'],
-          requireAllPermissions: true,
-        },
-      },
-      {
         label: 'V1 Plan Flags',
         method: 'GET',
         path: '/api/v1/plan-flags',
@@ -789,18 +780,6 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: '[Id] Complete',
         method: 'POST',
         path: '/api/v1/preparation/[id]/complete',
-        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
-      },
-      {
-        label: '[Id] Items',
-        method: 'POST',
-        path: '/api/v1/preparation/[id]/items',
-        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
-      },
-      {
-        label: 'Items [ItemId]',
-        method: 'PATCH',
-        path: '/api/v1/preparation/[id]/items/[itemId]',
         notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
       },
       {
@@ -1528,18 +1507,6 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
       },
       {
-        label: '[Id] Items',
-        method: 'POST',
-        path: '/api/v1/preparation/[id]/items',
-        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
-      },
-      {
-        label: 'Items [ItemId]',
-        method: 'PATCH',
-        path: '/api/v1/preparation/[id]/items/[itemId]',
-        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
-      },
-      {
         label: '[Id] Preview',
         method: 'GET',
         path: '/api/v1/preparation/[id]/preview',
@@ -1615,68 +1582,9 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/orders/[id]/unlock',
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
       },
-      {
-        label: 'Update order',
-        method: 'PATCH',
-        path: '/api/v1/orders/[id]/update',
-        requirement: {
-          permissions: ['orders:update'],
-          requireAllPermissions: true,
-        },
-      },
     ],
     notes: ORDER_NOTES,
   },
-  {
-    routePattern: '/dashboard/orders/[id]/prepare',
-    label: 'Prepare Order',
-    page: {
-      permissions: ['orders:read'],
-      requireAllPermissions: true,},
-    notes: ORDER_NOTES,
-    apiDependencies: [
-      {
-        label: 'Server action: find-or-create-product',
-        method: 'POST',
-        path: '/app/actions/catalog/find-or-create-product',
-        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
-      },
-      {
-        label: 'Server action: add-order-items',
-        method: 'POST',
-        path: '/app/actions/orders/add-order-items',
-        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
-      },
-      {
-        label: 'Server action: complete-preparation',
-        method: 'POST',
-        path: '/app/actions/orders/complete-preparation',
-        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
-      },
-      {
-        label: 'Server action: get-order',
-        method: 'POST',
-        path: '/app/actions/orders/get-order',
-        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
-      },
-    ],
-    actions: {
-      transition: {
-        label: 'Transition',
-        requirement: {
-          permissions: ['orders:transition'],
-          requireAllPermissions: true,
-        },
-      },
-      update: {
-        label: 'Update',
-        requirement: {
-          permissions: ['orders:update'],
-          requireAllPermissions: true,
-        },
-      },
-    },
-},
   {
     routePattern: '/dashboard/orders/[id]/full',
     label: 'Full Order Details',
@@ -2026,27 +1934,6 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'GET',
         path: '/api/v1/preparation/[id]/preview',
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
-      },
-      {
-        label: 'Preparation items',
-        method: 'POST',
-        path: '/api/v1/preparation/[id]/items',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
-      },
-      {
-        label: 'Preparation item delete',
-        method: 'DELETE',
-        path: '/api/v1/preparation/[id]/items/[itemId]',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
-      },
-      {
-        label: 'Preparation item update',
-        method: 'PATCH',
-        path: '/api/v1/preparation/[id]/items/[itemId]',
-        requirement: {
-          permissions: ['orders:update'],
-          requireAllPermissions: true,
-        },
       },
       {
         label: 'Order item pieces list',
@@ -3817,15 +3704,6 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
       },
       {
-        label: '[Id] Update',
-        method: 'PATCH',
-        path: '/api/v1/orders/[id]/update',
-        requirement: {
-          permissions: ['orders:update'],
-          requireAllPermissions: true,
-        },
-      },
-      {
         label: 'Order Financial Headers (batch)',
         method: 'POST',
         path: '/api/v1/orders/financial-headers',
@@ -3994,21 +3872,6 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: '[Id] Complete',
         method: 'POST',
         path: '/api/v1/preparation/[id]/complete',
-        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
-      },
-      {
-        label: '[Id] Items',
-        method: 'POST',
-        path: '/api/v1/preparation/[id]/items',
-        requirement: {
-          permissions: ['orders:update'],
-          requireAllPermissions: true,
-        },
-      },
-      {
-        label: 'Items [ItemId]',
-        method: 'PATCH',
-        path: '/api/v1/preparation/[id]/items/[itemId]',
         notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
       },
       {

@@ -14,6 +14,8 @@
 - Documentation pack, QA and performance guides, ADR-004 **Accepted** 2026-11-05 (P9 / A-69).
 - P11 follow-ups: `0690` HQ role grants (**applied 2026-11-05**), `label_printing` removed from web-admin code, mobile booking `ltrCode` (ships with next app release), `credit_note_no` notification variables (A-71..A-74). Types + `prisma.schema` regenerated; web-admin / `platform-api` / `platform-web` deployed 2026-11-05.
 
+- HQ doc-seq console redesign A-76..A-83 (2026-11-06, code + tests, no migration): hub KPIs, type detail page, read-only counters, consistency issue list, General Config validation / review / history. **Deploy `platform-api` + `platform-web` pending.**
+
 ## Waiting for the user
 1. ~~Apply `0687` → `0688` → `0689`~~ — **done by the user 2026-11-01** (local + remote).
 2. ~~Apply `0690`; regenerate types / `prisma.schema`; deploy web-admin, HQ `platform-api`, HQ `platform-web`~~ — **done by the user 2026-11-05** (morning).

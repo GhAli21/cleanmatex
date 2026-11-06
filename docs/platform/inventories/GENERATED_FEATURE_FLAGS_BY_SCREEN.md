@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-05T16:24:18.230Z
+Generated: 2026-11-05T19:10:14.658Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -24,6 +24,6 @@ Generated: 2026-11-05T16:24:18.230Z
 | order_fin_voucher_unwind | app/dashboard/internal_fin/vouchers/[voucherId]/page.tsx | 91 | const unwindEnabled = await canAccess(auth.tenantId, 'order_fin_voucher_unwind'); |
 | pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 535 | {plan.feature_flags.pdf_invoices && ( |
 | pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 672 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
-| usePlanFlags | src/features/orders/ui/new-order-content.tsx | 110 | usePlanFlags(); |
+| usePlanFlags | src/features/orders/ui/new-order-content.tsx | 108 | usePlanFlags(); |
 | whatsapp_receipts | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 538 | {plan.feature_flags.whatsapp_receipts && ( |
 | whatsapp_receipts | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 673 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |

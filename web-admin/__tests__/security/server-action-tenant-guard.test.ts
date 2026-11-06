@@ -23,8 +23,6 @@ const SCAN_DIRS = ['app', 'src', 'lib'];
 const ALLOWED: Record<string, string> = {
   'app/actions/orders/delete-order.ts::deleteOrderAction':
     'Compares the caller tenant with getAuthContext().tenantId and checks orders:delete (pattern predating the guard).',
-  'app/actions/orders/complete-preparation.ts::completePreparation':
-    'Ignores the `_tenantOrgId` argument and resolves tenant and user from the session; checks orders:update and orders:transition.',
   'app/actions/payments/voucher-crud-actions.ts::createVoucherAction':
     'Parameter type is Omit<…, "tenant_org_id">: it excludes the tenant; the action resolves it from the session.',
 };

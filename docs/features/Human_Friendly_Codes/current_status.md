@@ -23,3 +23,11 @@ None in schema/types. Remaining: evening **deploy**, safety-test report, test-te
 3. Report four safety tests if not already run.
 4. QA S1–S20 (#12).
 5. Paste supplier_code samples when ready for P10.
+
+## A-75 HQ nav (2026-11-06 Asia/Muscat)
+
+Approved: Doc Seq Config at `/doc-seq-config` (types + consistency); legacy `/system-codes/doc-seq-*` redirect. Sidebar section **SaaS Backoffice Admin- HQ** (General Config + Doc Seq). **System Catalogs Codes** → `/system-codes`; Settlement + BVM direct links. Deploy platform-web to pick up.
+
+## A-76..A-83 HQ doc-seq console redesign (2026-11-06 Asia/Muscat)
+
+Code done and tested (no migration; folder check: latest `0700_retire_product_express_cols.sql` is not HFC, next free `0701`). New read-only API routes (`doc-seq/stats`, `doc-seq/counters`, `doc-seq/counters/tenants`, `general-config/history`) and redesigned hub, types (+ detail page), counters, consistency and General Config screens. **User next:** deploy `platform-api` **and** `platform-web` together (the new screens call the new routes), then run `FINAL_QA_RUNBOOK.md` §8. Proposals P-1 (counter correction) and P-2 (delete old dialog) wait for approval.

@@ -18,7 +18,6 @@ const db = {
   getOrderByReference: jest.fn(),
   listOrders: jest.fn(),
   getOrderStats: jest.fn(),
-  addOrderItems: jest.fn(),
 };
 const mockGetInvoicesForOrder = jest.fn();
 const mockValidatePromoCode = jest.fn();
@@ -39,14 +38,12 @@ jest.mock('@/lib/db/orders', () => ({
   getOrderByReference: (...a: unknown[]) => db.getOrderByReference(...a),
   listOrders: (...a: unknown[]) => db.listOrders(...a),
   getOrderStats: (...a: unknown[]) => db.getOrderStats(...a),
-  addOrderItems: (...a: unknown[]) => db.addOrderItems(...a),
 }));
 jest.mock('@/lib/db/tenant-context', () => ({
   withTenantContext: jest.fn(async (_tenant: string, fn: () => Promise<unknown>) => fn()),
 }));
 jest.mock('@/lib/validations/order-schema', () => ({
   orderFiltersSchema: { safeParseAsync: jest.fn(async () => ({ success: true, data: {} })) },
-  addOrderItemsSchema: { safeParse: jest.fn(() => ({ success: true, data: { items: [] } })) },
 }));
 jest.mock('@/lib/services/order-change/order-change-legacy-writer-guard', () => ({
   blockCommittedCommercialWrite: jest.fn(async () => null),
@@ -70,7 +67,6 @@ jest.mock('@/lib/services/tenant-settings.service', () => ({
 
 import { getOrder, getOrderByRef } from '@/app/actions/orders/get-order';
 import { listOrders, getStats } from '@/app/actions/orders/list-orders';
-import { addOrderItems } from '@/app/actions/orders/add-order-items';
 import { getOrderInvoices } from '@/app/actions/payments/invoice-actions';
 import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import {
@@ -87,7 +83,6 @@ beforeEach(() => {
   db.getOrderByReference.mockResolvedValue({ id: 'o1' });
   db.listOrders.mockResolvedValue({ orders: [] });
   db.getOrderStats.mockResolvedValue({});
-  db.addOrderItems.mockResolvedValue({ items: [], order: {} });
   mockGetInvoicesForOrder.mockResolvedValue([]);
   mockValidatePromoCode.mockResolvedValue({ isValid: true });
   mockGetCurrencyConfig.mockResolvedValue({ currencyCode: 'OMR', decimalPlaces: 3 });
@@ -110,7 +105,6 @@ const cases: Case[] = [
   { name: 'getOrderByRef', call: (t) => getOrderByRef(t, 'ORD-1'), dataLayer: db.getOrderByReference, tenantArg: 0, permission: 'orders:read', rejects: 'result' },
   { name: 'listOrders', call: (t) => listOrders(t, {}), dataLayer: db.listOrders, tenantArg: 0, permission: 'orders:read', rejects: 'result' },
   { name: 'getStats', call: (t) => getStats(t), dataLayer: db.getOrderStats, tenantArg: 0, permission: 'orders:read', rejects: 'result' },
-  { name: 'addOrderItems', call: (t) => addOrderItems(t, 'o1', { items: [] }), dataLayer: db.addOrderItems, tenantArg: 0, permission: 'orders:update', rejects: 'result' },
   { name: 'validatePromoCodeAction', call: (t) => validatePromoCodeAction(t, { promo_code: 'X', order_total: 1 }), dataLayer: mockValidatePromoCode, tenantArg: null, rejects: 'result' },
   { name: 'getCurrencyConfigAction', call: (t) => getCurrencyConfigAction(t, undefined, 'spoofed-user'), dataLayer: mockGetCurrencyConfig, tenantArg: 0, rejects: 'throws' },
   { name: 'getCurrencyConfigOutcomeAction', call: (t) => getCurrencyConfigOutcomeAction(t), dataLayer: mockGetCurrencyConfig, tenantArg: 0, rejects: 'outcome' },

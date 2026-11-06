@@ -129,8 +129,16 @@ describe('F-T5 finance DB smoke — F-01 RLS on org_tax_doc_seq_counters', () =>
         INSERT INTO public.org_tax_doc_seq_counters (tenant_org_id, document_type, fiscal_year, last_sequence)
         VALUES (${tenantB}::uuid, 'CREDIT_NOTE', 9999, 0)`;
 
-      // Become an app user scoped to tenant A, then read back under RLS.
-      const claims = JSON.stringify({ user_metadata: { tenant_org_id: tenantA }, role: 'authenticated' });
+      // Become an app user of tenant A, then read back under RLS. current_tenant_id() resolves
+      // the tenant from the user's active membership (auth.uid()), so use a single-tenant member.
+      const member = await tx.$queryRaw<Array<{ user_id: string }>>`
+        SELECT ou.user_id FROM public.org_users_mst ou
+        WHERE ou.tenant_org_id = ${tenantA}::uuid AND ou.is_active = true AND ou.user_id IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM public.org_users_mst o2
+                          WHERE o2.user_id = ou.user_id AND o2.is_active = true AND o2.tenant_org_id <> ou.tenant_org_id)
+        LIMIT 1`;
+      expect(member).toHaveLength(1);
+      const claims = JSON.stringify({ sub: member[0].user_id, role: 'authenticated' });
       await tx.$queryRaw`SELECT set_config('request.jwt.claims', ${claims}, true)`;
       await tx.$executeRaw`SET LOCAL ROLE authenticated`;
 

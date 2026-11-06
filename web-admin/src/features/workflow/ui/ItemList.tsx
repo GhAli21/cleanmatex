@@ -6,12 +6,10 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { formatCodeLabel } from '@/lib/utils/format-code-label';
-import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
-import { useMessage } from '@ui/feedback';
 import type { OrderItem } from '@/types/order';
 import { OrderLineNetNote } from '@features/orders/ui/order-line-net-note';
 
@@ -63,9 +61,6 @@ export function ItemList({
   const { formatMoneyWithCode } = useTenantCurrency();
   const { trackByPiece } = useTenantSettingsWithDefaults(tenantOrgId);
   const getBilingual = useBilingual();
-  const { token: csrfToken } = useCSRFToken();
-  const { showErrorFrom } = useMessage();
-  const [busyId, setBusyId] = useState<string | null>(null);
   const itemIdsKey = items.map((i) => i.id).join('|');
   const expandSyncKey = `${defaultExpandAllPieces}:${trackByPiece}:${itemIdsKey}`;
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(() =>
@@ -92,27 +87,6 @@ export function ItemList({
       return next;
     });
   };
-
-  async function handleDelete(id: string) {
-    setBusyId(id);
-    try {
-      const response = await fetch(`/api/v1/preparation/${orderId}/items/${id}`, {
-        method: 'DELETE',
-        headers: {
-          ...getCSRFHeader(csrfToken),
-        },
-      });
-      const json = await response.json().catch(() => ({}));
-      if (!response.ok || json?.success === false) {
-        throw new Error(json?.error || tWorkflow('preparation.detail.deleteItemFailed'));
-      }
-      onItemsChange(items.filter((i) => i.id !== id));
-    } catch (error) {
-      showErrorFrom(error, { fallback: tWorkflow('preparation.detail.deleteItemFailed') });
-    } finally {
-      setBusyId(null);
-    }
-  }
 
   return (
     <div className="space-y-3">
@@ -146,20 +120,6 @@ export function ItemList({
                 <div className="text-sm font-semibold text-gray-900 tabular-nums">
                   {formatMoneyWithCode(Number(item.total_price))}
                 </div>
-                <CmxButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-red-700 border-red-200 hover:bg-red-50"
-                  disabled={disabled || busyId === item.id}
-                  aria-label={`${tCommon('delete')}: ${name}`}
-                  onClick={() => {
-                    void handleDelete(item.id);
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5 me-1" aria-hidden />
-                  {tCommon('delete')}
-                </CmxButton>
               </div>
             </div>
 

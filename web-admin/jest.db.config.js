@@ -20,6 +20,7 @@ const dbJestConfig = {
   testEnvironment: 'node',
   roots: ['<rootDir>/__tests__/db-integration'],
   testMatch: ['**/*.test.ts'],
+  setupFiles: ['<rootDir>/jest.db.setup.js'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^@features/(.*)$': '<rootDir>/src/features/$1',

@@ -188,6 +188,11 @@ type ParentItemRow = {
   damage_notes: string | null;
   service_speed: string | null;
   ready_by_at: Date | null;
+  price_source: string | null;
+  price_list_id: string | null;
+  speed_rule_id: string | null;
+  tax_pricing_mode: string | null;
+  tax_category_code: string | null;
 };
 
 type PlannedLine = { item: ParentItemRow; units: number; pieceSeqs: number[] | null };
@@ -385,6 +390,12 @@ export async function splitOrderUnits(input: OrderSplitInput): Promise<OrderSpli
             customer_email: parent.customer_email,
             customer_details: parent.customer_details ?? undefined,
             service_speed: parent.service_speed,
+            // Same commercial settings as the parent. commercial_calc_version stays empty: Edit refuses money on a sub-order.
+            commercial_level: parent.commercial_level,
+            tax_pricing_mode: parent.tax_pricing_mode,
+            extra_price_pricing_mode: parent.extra_price_pricing_mode,
+            disc_alloc_mode: parent.disc_alloc_mode,
+            disc_alloc_basis: parent.disc_alloc_basis,
             total_items: planned.length,
             customer_notes: `Split from ${parent.order_no}: ${reason}`,
             internal_notes: `Split order created - reason: ${reason}`,
@@ -439,6 +450,23 @@ export async function splitOrderUnits(input: OrderSplitInput): Promise<OrderSpli
               damage_notes: p.item.damage_notes,
               service_speed: p.item.service_speed,
               ready_by_at: p.item.ready_by_at,
+              // Zero line figures (I5 holds): the money stays on the parent line.
+              money_basis: 'ALLOCATED',
+              price_source: p.item.price_source,
+              // Same source facts as the parent line (0699 pairs a list source with its list).
+              price_list_id: p.item.price_list_id,
+              speed_rule_id: p.item.speed_rule_id,
+              list_unit_price: 0,
+              speed_premium_amount: 0,
+              line_disc_amount: 0,
+              order_disc_alloc_amount: 0,
+              net_amount: 0,
+              tax_pricing_mode: p.item.tax_pricing_mode,
+              tax_category_code: p.item.tax_category_code,
+              tax_rate: 0,
+              taxable_amount: 0,
+              tax_amount: 0,
+              line_total_amount: 0,
               metadata: {
                 split_from_order_id: orderId,
                 split_from_order_no: parent.order_no,

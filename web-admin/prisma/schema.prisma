@@ -840,26 +840,26 @@ model org_order_items_dtl {
   deleted_by                      String?                           @db.Uuid
   /// Preallocated applied Change identity establishing removal lineage; tenant-qualified deferred FK must resolve by COMMIT. PostgreSQL owns deferred timing and its sparse lineage index; Prisma does not represent them.
   deleted_order_change_id         String?                           @db.Uuid
-  money_basis                     String?
-  service_speed                   String?
+  money_basis                     String
+  service_speed                   String
   ready_by_at                     DateTime?                         @db.Timestamptz(6)
   ready_at                        DateTime?                         @db.Timestamptz(6)
-  price_source                    String?
+  price_source                    String
   price_list_id                   String?                           @db.Uuid
   speed_rule_id                   String?                           @db.Uuid
-  list_unit_price                 Decimal?                          @db.Decimal(19, 4)
-  speed_premium_amount            Decimal?                          @db.Decimal(19, 4)
-  line_disc_amount                Decimal?                          @db.Decimal(19, 4)
-  order_disc_alloc_amount         Decimal?                          @db.Decimal(19, 4)
-  net_amount                      Decimal?                          @db.Decimal(19, 4)
-  tax_pricing_mode                String?
+  list_unit_price                 Decimal                           @db.Decimal(19, 4)
+  speed_premium_amount            Decimal                           @db.Decimal(19, 4)
+  line_disc_amount                Decimal                           @db.Decimal(19, 4)
+  order_disc_alloc_amount         Decimal                           @db.Decimal(19, 4)
+  net_amount                      Decimal                           @db.Decimal(19, 4)
+  tax_pricing_mode                String
   tax_profile_id                  String?                           @db.Uuid
-  tax_category_code               String?
+  tax_category_code               String
   tax_exempt_reason               String?
-  tax_rate                        Decimal?                          @db.Decimal(5, 2)
-  taxable_amount                  Decimal?                          @db.Decimal(19, 4)
-  tax_amount                      Decimal?                          @db.Decimal(19, 4)
-  line_total_amount               Decimal?                          @db.Decimal(19, 4)
+  tax_rate                        Decimal                           @db.Decimal(5, 2)
+  taxable_amount                  Decimal                           @db.Decimal(19, 4)
+  tax_amount                      Decimal                           @db.Decimal(19, 4)
+  line_total_amount               Decimal                           @db.Decimal(19, 4)
   org_asm_items_dtl               org_asm_items_dtl[]
   org_order_change_ops_dtl        org_order_change_ops_dtl[]
   org_order_discounts_dtl         org_order_discounts_dtl[]
@@ -867,9 +867,9 @@ model org_order_items_dtl {
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
   org_order_item_processing_steps org_order_item_processing_steps[]
   org_price_lists_mst             org_price_lists_mst?              @relation(fields: [tenant_org_id, price_list_id], references: [tenant_org_id, id], onDelete: NoAction, onUpdate: NoAction, map: "fk_oid_price_list")
-  sys_service_speed_cd            sys_service_speed_cd?             @relation(fields: [service_speed], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_oid_service_speed")
+  sys_service_speed_cd            sys_service_speed_cd              @relation(fields: [service_speed], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_oid_service_speed")
   org_speed_price_rules_cf        org_speed_price_rules_cf?         @relation(fields: [tenant_org_id, speed_rule_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_oid_speed_rule")
-  sys_tax_category_cd             sys_tax_category_cd?              @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_oid_tax_category")
+  sys_tax_category_cd             sys_tax_category_cd               @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_oid_tax_category")
   org_tax_profiles_cf             org_tax_profiles_cf?              @relation(fields: [tenant_org_id, tax_profile_id], references: [tenant_org_id, id], onDelete: NoAction, onUpdate: NoAction, map: "fk_oid_tax_profile")
   org_branches_mst                org_branches_mst?                 @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ord_items_branch")
   org_service_category_cf         org_service_category_cf?          @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_ctg")
@@ -985,7 +985,7 @@ model org_order_discounts_dtl {
   promotion_id              String?                    @db.Uuid
   stacking_group            String?
   charge_type               String?
-  discount_level            String?
+  discount_level            String
   order_item_id             String?                    @db.Uuid
   order_item_piece_id       String?                    @db.Uuid
   disc_alloc_mode           String?
@@ -1452,75 +1452,71 @@ model org_fin_voucher_audit_log {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_product_data_mst {
-  id                         String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id              String                      @db.Uuid
-  service_category_code      String?
-  product_code               String
-  product_name               String?
-  product_name2              String?
-  hint_text                  String?
-  is_retail_item             Boolean?                    @default(false)
-  product_group1             String?
-  product_group2             String?
-  product_group3             String?
-  product_type               Int?
-  price_type                 String?
-  product_unit               String?                     @db.VarChar(60)
-  default_sell_price         Decimal?                    @db.Decimal(10, 3)
-  default_express_sell_price Decimal?                    @db.Decimal(10, 3)
-  product_cost               Decimal?                    @db.Decimal(10, 3)
-  min_sell_price             Decimal?                    @db.Decimal(10, 3)
-  min_quantity               Int?
-  pieces_per_product         Int?
-  extra_days                 Int?
-  turnaround_hh              Decimal?                    @db.Decimal(4, 2)
-  turnaround_hh_express      Decimal?                    @db.Decimal(4, 2)
-  multiplier_express         Decimal?                    @db.Decimal(4, 2)
-  product_order              Int?
-  is_tax_exempt              Int?
-  tags                       Json?                       @db.Json
-  id_sku                     String?
-  is_active                  Boolean                     @default(true)
-  product_color1             String?
-  product_color2             String?
-  product_color3             String?
-  product_icon               String?
-  product_image              String?
-  rec_order                  Int?
-  rec_notes                  String?
-  rec_status                 Int?                        @default(1) @db.SmallInt
-  created_at                 DateTime?                   @default(now()) @db.Timestamp(6)
-  created_by                 String?
-  created_info               String?
-  updated_at                 DateTime?                   @db.Timestamp(6)
-  updated_by                 String?
-  updated_info               String?
-  item_type_code             String?                     @db.VarChar(50)
-  qty_on_hand                Decimal?                    @default(0) @db.Decimal(19, 4)
-  reorder_point              Decimal?                    @default(0) @db.Decimal(19, 4)
-  min_stock_level            Decimal?                    @default(0) @db.Decimal(19, 4)
-  max_stock_level            Decimal?                    @db.Decimal(19, 4)
-  last_purchase_cost         Decimal?                    @db.Decimal(19, 4)
-  storage_location           String?                     @db.VarChar(100)
-  default_packing_pref       String?                     @db.VarChar(50)
-  tax_category_code          String                      @default("STANDARD")
-  tax_supply_code            String?
-  tax_exempt_reason          String?
-  org_inv_stock_by_branch    org_inv_stock_by_branch[]
-  org_inv_stock_tr           org_inv_stock_tr[]
-  org_order_item_pieces_dtl  org_order_item_pieces_dtl[]
-  org_order_items_dtl        org_order_items_dtl[]
-  org_price_history_audit    org_price_history_audit[]
-  org_price_list_items_dtl   org_price_list_items_dtl[]
-  org_service_category_cf    org_service_category_cf?    @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_prod_ctg")
-  org_tenants_mst            org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_prod_tenant")
-  sys_tax_category_cd        sys_tax_category_cd         @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_product_tax_category")
-  sys_item_type_cd           sys_item_type_cd?           @relation(fields: [item_type_code], references: [item_type_code], onUpdate: NoAction, map: "fk_product_item_type")
-  sys_packing_preference_cd  sys_packing_preference_cd?  @relation(fields: [default_packing_pref], references: [code], onDelete: NoAction, onUpdate: NoAction)
-  org_speed_price_rules_cf   org_speed_price_rules_cf[]
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id             String                      @db.Uuid
+  service_category_code     String
+  product_code              String
+  product_name              String?
+  product_name2             String?
+  hint_text                 String?
+  is_retail_item            Boolean?                    @default(false)
+  product_group1            String?
+  product_group2            String?
+  product_group3            String?
+  product_type              Int?
+  price_type                String?
+  product_unit              String?                     @db.VarChar(60)
+  default_sell_price        Decimal?                    @db.Decimal(10, 3)
+  product_cost              Decimal?                    @db.Decimal(10, 3)
+  min_sell_price            Decimal?                    @db.Decimal(10, 3)
+  min_quantity              Int?
+  pieces_per_product        Int?
+  extra_days                Int?
+  turnaround_hh             Decimal?                    @db.Decimal(4, 2)
+  product_order             Int?
+  tags                      Json?                       @db.Json
+  id_sku                    String?
+  is_active                 Boolean                     @default(true)
+  product_color1            String?
+  product_color2            String?
+  product_color3            String?
+  product_icon              String?
+  product_image             String?
+  rec_order                 Int?
+  rec_notes                 String?
+  rec_status                Int?                        @default(1) @db.SmallInt
+  created_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamp(6)
+  updated_by                String?
+  updated_info              String?
+  item_type_code            String?                     @db.VarChar(50)
+  qty_on_hand               Decimal?                    @default(0) @db.Decimal(19, 4)
+  reorder_point             Decimal?                    @default(0) @db.Decimal(19, 4)
+  min_stock_level           Decimal?                    @default(0) @db.Decimal(19, 4)
+  max_stock_level           Decimal?                    @db.Decimal(19, 4)
+  last_purchase_cost        Decimal?                    @db.Decimal(19, 4)
+  storage_location          String?                     @db.VarChar(100)
+  default_packing_pref      String?                     @db.VarChar(50)
+  tax_category_code         String                      @default("STANDARD")
+  tax_supply_code           String?
+  tax_exempt_reason         String?
+  org_inv_stock_by_branch   org_inv_stock_by_branch[]
+  org_inv_stock_tr          org_inv_stock_tr[]
+  org_order_item_pieces_dtl org_order_item_pieces_dtl[]
+  org_order_items_dtl       org_order_items_dtl[]
+  org_price_history_audit   org_price_history_audit[]
+  org_price_list_items_dtl  org_price_list_items_dtl[]
+  org_service_category_cf   org_service_category_cf     @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_prod_ctg")
+  org_tenants_mst           org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_prod_tenant")
+  sys_tax_category_cd       sys_tax_category_cd         @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_product_tax_category")
+  sys_item_type_cd          sys_item_type_cd?           @relation(fields: [item_type_code], references: [item_type_code], onUpdate: NoAction, map: "fk_product_item_type")
+  sys_packing_preference_cd sys_packing_preference_cd?  @relation(fields: [default_packing_pref], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  org_speed_price_rules_cf  org_speed_price_rules_cf[]
 
-  @@unique([tenant_org_id, product_code])
   @@unique([tenant_org_id, id], map: "uk_org_products_tenant_id")
+  @@unique([tenant_org_id, service_category_code, product_code], map: "uq_org_prod_tenant_ctg_code")
   @@index([tenant_org_id, service_category_code], map: "idx_org_products_category")
   @@index([tenant_org_id], map: "idx_org_products_tenant")
   @@index([tenant_org_id, item_type_code], map: "idx_products_item_type")
@@ -6197,34 +6193,34 @@ model org_order_item_pieces_dtl {
   deleted_by                                                                                                                String?                     @db.Uuid
   /// Preallocated applied Change identity establishing removal lineage; tenant-qualified deferred FK must resolve by COMMIT. PostgreSQL owns deferred timing and its sparse lineage index; Prisma does not represent them.
   deleted_order_change_id                                                                                                   String?                     @db.Uuid
-  money_basis                                                                                                               String?
-  service_speed                                                                                                             String?
+  money_basis                                                                                                               String
+  service_speed                                                                                                             String
   ready_by_at                                                                                                               DateTime?                   @db.Timestamptz(6)
   ready_at                                                                                                                  DateTime?                   @db.Timestamptz(6)
-  price_source                                                                                                              String?
+  price_source                                                                                                              String
   price_list_id                                                                                                             String?                     @db.Uuid
   speed_rule_id                                                                                                             String?                     @db.Uuid
-  list_unit_price                                                                                                           Decimal?                    @db.Decimal(19, 4)
-  speed_premium_amount                                                                                                      Decimal?                    @db.Decimal(19, 4)
-  line_disc_amount                                                                                                          Decimal?                    @db.Decimal(19, 4)
-  order_disc_alloc_amount                                                                                                   Decimal?                    @db.Decimal(19, 4)
-  net_amount                                                                                                                Decimal?                    @db.Decimal(19, 4)
-  tax_pricing_mode                                                                                                          String?
+  list_unit_price                                                                                                           Decimal                     @db.Decimal(19, 4)
+  speed_premium_amount                                                                                                      Decimal                     @db.Decimal(19, 4)
+  line_disc_amount                                                                                                          Decimal                     @db.Decimal(19, 4)
+  order_disc_alloc_amount                                                                                                   Decimal                     @db.Decimal(19, 4)
+  net_amount                                                                                                                Decimal                     @db.Decimal(19, 4)
+  tax_pricing_mode                                                                                                          String
   tax_profile_id                                                                                                            String?                     @db.Uuid
-  tax_category_code                                                                                                         String?
+  tax_category_code                                                                                                         String
   tax_exempt_reason                                                                                                         String?
-  tax_rate                                                                                                                  Decimal?                    @db.Decimal(5, 2)
-  taxable_amount                                                                                                            Decimal?                    @db.Decimal(19, 4)
-  tax_amount                                                                                                                Decimal?                    @db.Decimal(19, 4)
-  line_total_amount                                                                                                         Decimal?                    @db.Decimal(19, 4)
+  tax_rate                                                                                                                  Decimal                     @db.Decimal(5, 2)
+  taxable_amount                                                                                                            Decimal                     @db.Decimal(19, 4)
+  tax_amount                                                                                                                Decimal                     @db.Decimal(19, 4)
+  line_total_amount                                                                                                         Decimal                     @db.Decimal(19, 4)
   tag_released_at                                                                                                           DateTime?                   @db.Timestamptz(6)
   org_order_change_ops_dtl                                                                                                  org_order_change_ops_dtl[]
   org_order_discounts_dtl                                                                                                   org_order_discounts_dtl[]
   org_order_issues                                                                                                          org_order_issues[]
   org_price_lists_mst                                                                                                       org_price_lists_mst?        @relation(fields: [tenant_org_id, price_list_id], references: [tenant_org_id, id], onDelete: NoAction, onUpdate: NoAction, map: "fk_opd_price_list")
-  sys_service_speed_cd                                                                                                      sys_service_speed_cd?       @relation(fields: [service_speed], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_opd_service_speed")
+  sys_service_speed_cd                                                                                                      sys_service_speed_cd        @relation(fields: [service_speed], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_opd_service_speed")
   org_speed_price_rules_cf                                                                                                  org_speed_price_rules_cf?   @relation(fields: [tenant_org_id, speed_rule_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_opd_speed_rule")
-  sys_tax_category_cd                                                                                                       sys_tax_category_cd?        @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_opd_tax_category")
+  sys_tax_category_cd                                                                                                       sys_tax_category_cd         @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_opd_tax_category")
   org_tax_profiles_cf                                                                                                       org_tax_profiles_cf?        @relation(fields: [tenant_org_id, tax_profile_id], references: [tenant_org_id, id], onDelete: NoAction, onUpdate: NoAction, map: "fk_opd_tax_profile")
   org_branches_mst                                                                                                          org_branches_mst?           @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ord_pieces_branch")
   org_order_items_dtl                                                                                                       org_order_items_dtl         @relation(fields: [order_item_id], references: [id], onUpdate: Restrict, map: "fk_org_orde_reference_org_orde")

@@ -25,6 +25,11 @@ jest.mock('@/lib/supabase/client', () => ({
   })),
 }));
 
+// These cases stop at the guard, before any quote figure is read.
+jest.mock('@/lib/services/commercial/commercial-create.session', () => ({
+  openCommercialCreateSession: () => ({}),
+}));
+
 jest.mock('@/lib/services/order-source-policy', () => ({
   validateOrderSourceForCreation: jest.fn().mockResolvedValue({
     ok: true,

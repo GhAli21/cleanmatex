@@ -350,6 +350,8 @@ describe('concurrent session limit', () => {
 describe('new-device detection', () => {
   dbit('flags a browser never seen for this user (not the first sign-in) and honours the alert setting', async () => {
     const out = await rolledBack(async (tx) => {
+      // The fixture member may have real local sign-ins; start from no device history (rolled back).
+      await tx.$executeRaw`DELETE FROM public.sys_auth_user_sessions_mst WHERE auth_user_id = ${a.userId}::uuid`;
       const first = await register(tx, randomUUID(), a.userId, { device: 'hash-A' });
       const sameDevice = await register(tx, randomUUID(), a.userId, { device: 'hash-A' });
       const newDevice = await register(tx, randomUUID(), a.userId, { device: 'hash-B' });
@@ -359,7 +361,7 @@ describe('new-device detection', () => {
       const alertOff = await register(tx, randomUUID(), a.userId, { device: 'hash-C' });
       const noCookie = await register(tx, randomUUID(), a.userId, { device: null });
       const ev = await tx.$queryRaw<Array<{ n: bigint }>>`
-        SELECT count(*) AS n FROM public.sys_auth_audit_log WHERE auth_user_id = ${a.userId}::uuid AND event_code = 'NEW_DEVICE'`;
+        SELECT count(*) AS n FROM public.sys_auth_audit_log WHERE auth_user_id = ${a.userId}::uuid AND event_code = 'NEW_DEVICE' AND created_at >= now()`; // now() = this tx's start: ignores real history
       return { first, sameDevice, newDevice, alertOff, noCookie, ev: Number(ev[0].n) };
     });
     expect(out.first.new_device).toBe(false); // first-ever sign-in is not flagged

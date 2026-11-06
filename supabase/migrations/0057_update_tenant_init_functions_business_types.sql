@@ -16,6 +16,101 @@ BEGIN;
 -- FUNCTION 1: initialize_tenant_product_catalog() - UPDATED
 -- ==================================================================
 
+Update sys_service_prod_templates_cd
+Set name='Blouse'
+   , name2='بلوزة'
+where name='Blouse (Dry Clean)'
+;
+Update sys_service_prod_templates_cd
+Set name='Polo Shirt'
+   , name2='قميص بولو'
+where name='Polo Shirt (Launder)'
+;
+
+Update sys_items_data_list_cd
+Set item_name='Blouse'
+   , item_name2='بلوزة'
+where item_name='Blouse (Dry Clean)'
+;
+Update sys_items_data_list_cd
+Set item_name='Polo Shirt'
+   , item_name2='قميص بولو'
+where item_name='Polo Shirt (Launder)'
+;
+
+Update org_product_data_mst
+Set product_name='Blouse'
+   , product_name2='بلوزة'
+where product_name='Blouse (Dry Clean)'
+;
+Update org_product_data_mst
+Set product_name='Polo Shirt'
+   , product_name2='قميص بولو'
+where product_name='Polo Shirt (Launder)'
+;
+
+UPDATE org_product_data_mst SET product_name = 'Shirt', product_name2 = 'قميص' WHERE product_code = 'BW-SHIRT-WASH';
+UPDATE org_product_data_mst SET product_name = 'Suit', product_name2 = 'بدلة' WHERE product_code = 'BW-SUIT-DRY';
+UPDATE org_product_data_mst SET product_name = 'Trouser', product_name2 = 'بنطلون' WHERE product_code = 'BW-TROUSER-PRESS';
+UPDATE org_product_data_mst SET product_name = 'Pants', product_name2 = 'بنطال' WHERE product_code = 'PROD-PANTS-WI';
+UPDATE org_product_data_mst SET product_name = 'Shirt', product_name2 = 'قميص' WHERE product_code = 'PROD-SHIRT-IO';
+UPDATE org_product_data_mst SET product_name = 'Shirt', product_name2 = 'قميص' WHERE product_code = 'PROD-SHIRT-WI';
+UPDATE org_product_data_mst SET product_name = 'Suit', product_name2 = 'بدلة' WHERE product_code = 'PROD-SUIT-DC';
+
+update org_product_data_mst set product_code='PROD-SHIRT', updated_info='Solve Duplicated was PROD-SHIRT-IO' where product_code='PROD-SHIRT-IO';
+update org_product_data_mst set is_active=false, rec_status=0 , updated_info='Duplicated Replaced By One PROD-SHIRT' where product_code='BW-SHIRT-WASH';
+update org_product_data_mst set is_active=false, rec_status=0 , updated_info='Duplicated Replaced By One PROD-SHIRT' where product_code='PROD-SHIRT-WI';
+-- Suit
+update org_product_data_mst set product_code='PROD-SUIT', updated_info='Solve Duplicated was PROD-SUIT-DC' where product_code='PROD-SUIT-DC';
+update org_product_data_mst set is_active=false, rec_status=0 , updated_info='Duplicated Replaced By One PROD-SUIT' where product_code='BW-SUIT-DRY';
+-- 
+UPDATE org_product_data_mst SET product_code='PROD-TROUSER', updated_info='Fix the code BW-TROUSER-PRESS' where product_code='BW-TROUSER-PRESS';
+
+-----
+
+UPDATE sys_service_prod_templates_cd SET name = 'Shirt', name2 = 'قميص' WHERE template_code = 'BW-SHIRT-WASH';
+UPDATE sys_service_prod_templates_cd SET name = 'Suit', name2 = 'بدلة' WHERE template_code = 'BW-SUIT-DRY';
+UPDATE sys_service_prod_templates_cd SET name = 'Trouser', name2 = 'بنطلون' WHERE template_code = 'BW-TROUSER-PRESS';
+UPDATE sys_service_prod_templates_cd SET name = 'Pants', name2 = 'بنطال' WHERE template_code = 'PROD-PANTS-WI';
+UPDATE sys_service_prod_templates_cd SET name = 'Shirt', name2 = 'قميص' WHERE template_code = 'PROD-SHIRT-IO';
+UPDATE sys_service_prod_templates_cd SET name = 'Shirt', name2 = 'قميص' WHERE template_code = 'PROD-SHIRT-WI';
+UPDATE sys_service_prod_templates_cd SET name = 'Suit', name2 = 'بدلة' WHERE template_code = 'PROD-SUIT-DC';
+
+update sys_service_prod_templates_cd set template_code='PROD-SHIRT', updated_info='Solve Duplicated was PROD-SHIRT-IO' where template_code='PROD-SHIRT-IO';
+update sys_service_prod_templates_cd set is_active=false, rec_status=0 , updated_info='Duplicated Replaced By One PROD-SHIRT' where template_code='BW-SHIRT-WASH';
+update sys_service_prod_templates_cd set is_active=false, rec_status=0 , updated_info='Duplicated Replaced By One PROD-SHIRT' where template_code='PROD-SHIRT-WI';
+-- Suit
+update sys_service_prod_templates_cd set template_code='PROD-SUIT', updated_info='Solve Duplicated was PROD-SUIT-DC' where template_code='PROD-SUIT-DC';
+update sys_service_prod_templates_cd set is_active=false, rec_status=0 , updated_info='Duplicated Replaced By One PROD-SUIT' where template_code='BW-SUIT-DRY';
+-- 
+UPDATE sys_service_prod_templates_cd SET template_code='PROD-TROUSER', updated_info='Fix the code BW-TROUSER-PRESS' where template_code='BW-TROUSER-PRESS';
+
+delete  from sys_service_prod_templates_cd where rec_status=0;
+
+----
+
+UPDATE sys_items_data_list_cd SET item_name = 'Shirt', item_name2 = 'قميص' WHERE item_code = 'BW-SHIRT-WASH';
+UPDATE sys_items_data_list_cd SET item_name = 'Suit', item_name2 = 'بدلة' WHERE item_code = 'BW-SUIT-DRY';
+UPDATE sys_items_data_list_cd SET item_name = 'Trouser', item_name2 = 'بنطلون' WHERE item_code = 'BW-TROUSER-PRESS';
+UPDATE sys_items_data_list_cd SET item_name = 'Pants', item_name2 = 'بنطال' WHERE item_code = 'PROD-PANTS-WI';
+UPDATE sys_items_data_list_cd SET item_name = 'Shirt', item_name2 = 'قميص' WHERE item_code = 'PROD-SHIRT-IO';
+UPDATE sys_items_data_list_cd SET item_name = 'Shirt', item_name2 = 'قميص' WHERE item_code = 'PROD-SHIRT-WI';
+UPDATE sys_items_data_list_cd SET item_name = 'Suit', item_name2 = 'بدلة' WHERE item_code = 'PROD-SUIT-DC';
+
+update sys_items_data_list_cd set item_code='PROD-SHIRT', updated_info='Solve Duplicated was PROD-SHIRT-IO' where item_code='PROD-SHIRT-IO';
+update sys_items_data_list_cd set is_active=false, rec_status=0 , updated_info='Duplicated Replaced By One PROD-SHIRT' where item_code='BW-SHIRT-WASH';
+update sys_items_data_list_cd set is_active=false, rec_status=0 , updated_info='Duplicated Replaced By One PROD-SHIRT' where item_code='PROD-SHIRT-WI';
+-- Suit
+update sys_items_data_list_cd set item_code='PROD-SUIT', updated_info='Solve Duplicated was PROD-SUIT-DC' where item_code='PROD-SUIT-DC';
+update sys_items_data_list_cd set is_active=false, rec_status=0 , updated_info='Duplicated Replaced By One PROD-SUIT' where item_code='BW-SUIT-DRY';
+--
+UPDATE sys_items_data_list_cd SET item_code='PROD-TROUSER', updated_info='Fix the code BW-TROUSER-PRESS' where item_code='BW-TROUSER-PRESS';
+
+-- 
+Delete  from sys_items_data_list_cd where rec_status=0;
+
+----------------
+
 CREATE OR REPLACE FUNCTION initialize_tenant_product_catalog(
   p_tenant_org_id UUID,
   p_include_pricing BOOLEAN DEFAULT false,

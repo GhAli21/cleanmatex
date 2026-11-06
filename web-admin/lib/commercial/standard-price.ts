@@ -51,7 +51,7 @@ export interface StandardPriceInput {
 /** The resolved standard price, before any speed premium or discount. */
 export interface StandardPriceResult {
   unitPrice: Money;
-  source: Exclude<PriceSourceCode, 'SPEED_RULE' | 'MANUAL'>;
+  source: Exclude<PriceSourceCode, 'MANUAL'>;
   priceListId: string | null;
   priceListItemId: string | null;
   /** The list row's discount, returned for P4-03 to apply once as a line discount. */

@@ -676,6 +676,8 @@ UNION ALL SELECT 'barcode', count(barcode) FROM org_orders_mst;
 
 ## 23. P7 HQ API and screens (no migration, 2026-10-31)
 
+**A-75 (2026-11-06):** Frontend module routes moved to `/doc-seq-config` (hub / types / consistency). Sidebar section **SaaS Backoffice Admin- HQ**. API paths unchanged.
+
 **Status:** written 2026-10-31; **DEPLOYED 2026-11-05** (`platform-api` + `platform-web`). Decisions A-57..A-63 (plan §20, **reviewed + accepted by Jehad Ali 2026-11-05**).
 
 ### 23.1 API (`platform-api`, global prefix `/api/hq/v1`)
@@ -696,13 +698,13 @@ Files: `src/modules/doc-seq-config/*` (controller, service, consistency service,
 
 | Route | Sidebar | Feature folder |
 |-------|---------|----------------|
-| `/system-codes/doc-seq-types` | Data → Code Types | `src/features/doc-seq` (`doc-seq-types-screen.tsx`, `doc-seq-type-dialog.tsx`) |
-| `/system-codes/doc-seq-consistency` | Data → Code Consistency | `src/features/doc-seq` (`doc-seq-consistency-screen.tsx`) |
-| `/settings/general-config` | Settings → General Config | `src/features/general-config` (`general-config-screen.tsx`, `general-config-edit-dialog.tsx`) |
+| `/doc-seq-config` (hub) + `/doc-seq-config/types` | SaaS Backoffice Admin- HQ → Doc Seq Config / Code Types | `src/features/doc-seq` (`doc-seq-types-screen.tsx`, `doc-seq-type-dialog.tsx`) |
+| `/doc-seq-config/consistency` | SaaS Backoffice Admin- HQ → Code Consistency | `src/features/doc-seq` (`doc-seq-consistency-screen.tsx`) |
+| `/settings/general-config` | SaaS Backoffice Admin- HQ → General Config | `src/features/general-config` (`general-config-screen.tsx`, `general-config-edit-dialog.tsx`) |
 
 - Shared: `CmxCodeChip` (`src/ui/data-display/cmx-code-chip.tsx`, exported from `@ui/data-display`): `<bdi dir="ltr">` monospace, copy button with toast, kinds `order|item|piece|tag|doc`.
 - Data: `src/features/*/api` (apiClient), `hooks` (TanStack Query), `model` (types + pure helpers `toGeneralConfigForm`, `diffGeneralConfig`).
-- i18n: `messages/{en,ar}/docSeq.json`, `generalConfig.json`, `layout.json` (`sidebar.routes.docSeqTypes|docSeqConsistency|generalConfig`); catalog regenerated (`npm run i18n:generate`).
+- i18n: `messages/{en,ar}/docSeq.json`, `generalConfig.json`, `layout.json` (`sections.saasBackofficeAdminHq`, `routes.docSeqConfig|docSeqTypes|docSeqConsistency|generalConfig|systemCatalogsCodes`); catalog regenerated (`npm run i18n:generate`).
 - Wizard prefill (A-13 / A-62): `src/features/tenants/hooks/use-tenant-creation-wizard.ts` → `applyPlatformDefaults` (exported, unit-tested).
 
 ### 23.3 Tests run (2026-10-31, Windows)
@@ -714,6 +716,40 @@ Files: `src/modules/doc-seq-config/*` (controller, service, consistency service,
 ### 23.4 Rollback
 
 Code only: redeploy the previous `platform-api` / `platform-web` build. Nothing in the database changes.
+
+### 23.5 Doc-seq console redesign (A-76..A-83, 2026-11-06, no migration)
+
+**New API routes** (all `hq_doc_seq:read` unless noted; global prefix `/api/hq/v1`):
+
+| Method + route | What it does |
+|----------------|--------------|
+| `GET doc-seq/stats` | Hub numbers: types by scope / level / reset / module, active vs inactive, counter rows (tenant / HQ / SYS), tenants with counters, last counter activity, filter facets. Cached 60 s per process. |
+| `GET doc-seq/counters?scope&tenantId&docType&periodKey&sort&dir&page&pageSize` | Read-only counters. `scope` = `TENANT_ORG` (default, `org_doc_seq_mst`), `HQ` (`hq_doc_seq_mst`), `SYS` (`sys_doc_seq_mst`) — fixed table map, never from input. `pageSize` ≤ 50. Each row: tenant name, type name, `periodKey`, `isCurrentPeriod` (from `fn_doc_seq_period_key` with the tenant time zone / fiscal start, HQ fallback — the same rule as `fn_doc_seq_next_by_row`), `nextValue` and `nextPreview` (`fn_doc_seq_format`, read only) for the current period of GENERAL types. |
+| `GET doc-seq/counters/tenants?docType&q` | Tenants that have counters (optionally for one type) with row count, type count, last activity. Cached 60 s; scans at most 20,000 counter rows (`approximate: true` when capped). |
+| `GET doc-seq/types` (changed) | New `reset` filter (`NEVER` = no restart) and server sort `sort=displayOrder|code|name|module|level|reset|scope` + `dir=asc|desc` (whitelisted; `code` tie-breaker). |
+| `GET general-config/history?limit` (`hq_general_config:read`) | Last ≤ 50 saved changes from `hq_audit_logs` (`resource_type='hq_general_config'`, `action='general_config.update'`), each with field-level old → new and the editor name (`hq_users` name / email only). |
+| `GET general-config` (changed) | Adds `updatedByName`. |
+
+Files: `doc-seq-config/doc-seq-counters.service.ts` (new), repository / service / controller / DTOs / types updated; specs `doc-seq-counters.service.spec.ts` (new) and controller spec. `general-config` repository / service / controller / DTO / types + spec.
+
+**Screens** (`platform-web`, all under `app/doc-seq-config/layout.tsx` = `CmxDashboardShell`):
+
+| Route | Screen | Notes |
+|-------|--------|-------|
+| `/doc-seq-config` | `doc-seq-hub-screen.tsx` | Health banner (links to Consistency), 8 KPI cards, distribution by generator / scope / restart (each links to a filtered Types list), quick links that show disabled with the missing permission. |
+| `/doc-seq-config/types` | `doc-seq-types-screen.tsx` | URL filters `q, level, scope, module, reset, status, sort, dir, page, size`; server sort; CSV; row → detail. |
+| `/doc-seq-config/types/[code]` | `doc-seq-type-detail-screen.tsx` | Tabs in `?tab=` overview / preview / counters / checks. |
+| `/doc-seq-config/counters` | `doc-seq-counters-screen.tsx` | URL filters `scope, tenantId, docType, period, sort, dir, page, size`; CSV. Read only. |
+| `/doc-seq-config/consistency` | `doc-seq-consistency-screen.tsx` | One issue list; URL filters `q, severity, source, ok`; CSV + JSON. |
+| `/settings/general-config` | `general-config-screen.tsx`, `general-config-edit-dialog.tsx`, `general-config-value.tsx` | Validation, review step, discard guard, history. |
+
+Building blocks: `src/features/doc-seq/ui/doc-seq-shared.tsx`, `hooks/use-url-filters.ts` (URL is user-editable: every screen validates what it reads with `lib/doc-seq-search.ts`), `hooks/use-debounced-value.ts`, `lib/doc-seq-csv.ts` (formula-injection safe, BOM for Arabic in Excel), `lib/doc-seq-issues.ts`, `lib/doc-seq-format.ts`; shared `CmxBreadcrumbs`. i18n: `messages/{en,ar}/docSeqConsole.json`, `docSeqChecks.json` (one entry per check code: title / meaning / fix — **add an entry here when you add a check to `vw_doc_seq_consistency`**), new keys in `generalConfig.json`, `layout.json` `routes.docSeqCounters`.
+
+**Counters are never edited from HQ.** Correcting a counter that is behind (`DATA_COUNTER_BEHIND`) stays a reviewed migration; an audited "move forward only" endpoint is proposal P-1 (plan §20), not built.
+
+**Tests (2026-11-06):** box + Windows — platform-api `jest src/modules/doc-seq-config src/modules/general-config` (6 suites, 57 tests on Windows); platform-web `__tests__/features/doc-seq-*` + `__tests__/lib/i18n` + `__tests__/ui` (151 tests incl. jest-axe on every screen in data / empty / error / no-access states); `tsc --noEmit` 0 errors; eslint 0 errors; `npm run check:i18n` pass.
+
+**Rollback:** redeploy the previous `platform-api` / `platform-web`. No database change.
 
 ## 24. P8 clients, notifications and rules (no migration, 2026-10-31)
 

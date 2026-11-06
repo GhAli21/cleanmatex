@@ -159,6 +159,14 @@ export function FastItemizer({ order, returnUrl = '/dashboard/preparation' }: Fa
             ) : null}
           </div>
         ) : (
+          <div className="space-y-3">
+          {canUpdate ? (
+            <StartOrderEditButton
+              orderId={order.id}
+              label={tOrderActions('buttons.editOrder')}
+              disabled={busy}
+            />
+          ) : null}
           <ItemList
             orderId={order.id}
             tenantOrgId={order.tenant_org_id}
@@ -172,6 +180,7 @@ export function FastItemizer({ order, returnUrl = '/dashboard/preparation' }: Fa
             onPiecesOrPrefsChange={bumpPricePreview}
             disabled={busy}
           />
+          </div>
         )}
       </div>
 

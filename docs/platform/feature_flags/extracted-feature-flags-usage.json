@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-05T16:14:30.528Z",
+  "extractedAt": "2026-11-05T19:10:11.282Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -112,7 +112,7 @@
       },
       {
         "path": "lib/services/order-change/order-change-legacy-writer-guard.ts",
-        "line": 135,
+        "line": 137,
         "context": "getFeatureFlags(tenantId),",
         "surface": "service",
         "pattern": "getFeatureFlags"
@@ -382,15 +382,6 @@
         "pattern": "feature_flags"
       }
     ],
-    "order_fin_governed_amendments": [
-      {
-        "path": "lib/services/order-service.ts",
-        "line": 2127,
-        "context": "const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments');",
-        "surface": "service",
-        "pattern": "canAccess"
-      }
-    ],
     "b2b_contracts": [
       {
         "path": "src/features/customers/ui/customer-create-modal.tsx",
@@ -447,7 +438,7 @@
       },
       {
         "path": "src/features/orders/ui/new-order-content.tsx",
-        "line": 110,
+        "line": 108,
         "context": "usePlanFlags();",
         "surface": "screen",
         "pattern": "usePlanFlags"

@@ -144,7 +144,7 @@ Both plans run as one sequence, because they change the same files.
 | P7 | Configuration UI (tenant app) + HQ card | A | ✅ Done 2026-11-05 (P7-02, P7-03, P7-05 2026-11-01; P7-01 + migration 0691 applied, P7-04 2026-11-05). Next P8-01 | Nav dual-write, access contract |
 | P8 | Readers + fiscal item lines | A | Not started | `org_tax_doc_items_dtl` (owner item §20-3) |
 | P9 | PIECE level enablement | B | Not started | `PIECE` disabled in HQ until P9-01 |
-| P10 | Recompute, tighten (M10), drop (M11) | A / C | Not started | |
+| P10 | Recompute, tighten (M10), drop (M11) | A / C | ✅ Done 2026-11-06 (0698, M10 = 0699, M11 = 0700 applied; HQ cleanup done) | |
 | P11 | Verification and docs (both repos) | A–C | Not started | |
 
 ## Log
@@ -157,6 +157,81 @@ Both plans run as one sequence, because they change the same files.
   - **HQ web:** Tax & Pricing tab → card **Commercial calculation** (level disabled with "Per-piece pricing is not available yet", allocation select, read-only basis, "Changes apply to new orders only"); branch edit page → card **Pricing overrides** (Inherit from organization / modes; Inherit sends null). EN/AR `tenants.orderFinSettings.taxPricing.commercial.*`, `branchOverrides.*`; `check:i18n` ✓. (The 8 ESLint errors in `edit-branch-screen.tsx` predate this change: `any` in old catch blocks, unescaped quotes.)
   - **Tenant app:** `PATCH /api/v1/tenants/me` refuses `tax_pricing_mode`, `extra_price_pricing_mode`, `commercial_level`, `disc_alloc_mode`, `disc_alloc_basis`; `PATCH /api/v1/branches/[id]` refuses the two overrides (even null) — both answer `403 { code: 'FIELD_MANAGED_BY_HQ', fields }` before anything is written (`HQ_MANAGED_PRICING_FIELDS`, `FIELD_MANAGED_BY_HQ` in `lib/constants/order-financial.ts`). Organization and branch settings screens show the modes read-only with "Managed by platform administration" (EN/AR `settings.pricingMode.managedByPlatform`, `inheritFromOrganization`); their Save/Cancel and draft state are gone. Test `__tests__/api/v1/hq-managed-pricing-fields.route.test.ts` (7). `tsc`, ESLint clean.
 - **2026-11-01 (P8-02 done: tax-document item lines):** `createTaxDocumentTx` copies each active item's line money into `org_tax_doc_items_dtl` in the same transaction as the document (line no, name EN/AR snapshot, quantity, unit price, discount = line + allocated order discount, net, tax category, rate, tax, line total); the rows are never updated (credit notes reference them). An order written before the calculator has no line money: no item lines are written and a warning is logged, never invented figures. `getTaxDocumentPrintDetail` returns `items`; the tax-document print shows an **Items** table above the tax lines (EN/AR `taxDocuments.print.itemColumns.*`, `itemsTitle`). DB test (`order-fin-view-sources.db.test.ts`): a calculator order's two lines copied and read back exactly; a legacy order → no lines. `tsc`, `check:i18n` ✓.
+- **2026-11-05 (P9-02 code done; P10-02 and P10-03 code done; migration 0698 waiting for the owner):**
+  - **P9-02:** HQ offers `PIECE` (DTO, Tax & Pricing card, EN/AR). The card now shows the stored level; it always showed Item before. HQ web and API build pass. Piece speed and discount in Edit still need the HQ policy rules (`CHANGE_SERVICE_SPEED`/`PIECE`, `CHANGE_DISCOUNT`/`PIECE`).
+  - **Legacy writers retired:** every order is now on the calculator, so the guard already refused these. Removed the orphan page `/dashboard/orders/[id]/prepare`, `addOrderItems`, `completePreparation` (`lib/db`), their actions, `find-or-create-product`, `/api/v1/preparation/[id]/items` (POST, PATCH, DELETE), `insertDiscountLines*`. The Preparation screen's Delete button, which always got 409, is gone; its Edit Order button does this. Create now requires a quote. A split sub-order is refused by the legacy guard too, copies the parent's commercial settings and writes zero line figures.
+  - **Bug fixed:** the Preparation price panel recalculated tax from one default rate; it now reads the stored header.
+  - **Legacy update removed (owner asked to close the risks):** the edit-a-draft mode did not exist any more (only Edit Order V2 enters edit mode, and it never called `/update`). Removed `PATCH /api/v1/orders/[id]/update`, the `update-order` action, `OrderService.updateOrder` (~800 lines), the unused `EditOrderScreen`, New Order's legacy save and amendment-reason dialogs, `POST /api/v1/orders/[id]/items/[itemId]/pieces` and `createPiecesForItem*`, with their tests (`order-service.edit-boundary`, `order-amendment-governed-flow` DB test). Amendment settlement history and its route stay. The orphan `/prepare` page had no menu row (`sys_components_cd` has only `/dashboard/preparation`).
+  - **Migration 0698 applied by the owner (local + remote), verified: 0 empty price types, 0 minimums above price. Migration 0699 (M10) written, waiting for the owner:** items and pieces NOT NULL + I5 CHECK; discount level NOT NULL; `fix_order_data` skips calculator orders and sub-orders. DB fixtures updated (one legacy no-figures case removed: such a line can no longer exist).
+  - **0699 owner review (before apply), changes:** a piece can no longer be ROLLUP; `SPEED_RULE` dropped from `price_source` (never written; DB and constant); a list source must name its list and other sources none; a speed premium must name its rule, Standard has none (ROLLUP items exempt: the parity proof found a piece-priced item at Standard summing an Express piece's premium); money columns never negative (speed premium excepted: a speed sell price may be below the normal price); a PIECE discount names its line too. **Security fix:** `fix_order_data` was SECURITY DEFINER and executable by `anon` and PUBLIC with an optional organization, so anyone could run it across all organizations; now anon/PUBLIC lose EXECUTE and a signed-in user must name an organization they belong to (the service role keeps all). The split sub-order line copies `price_list_id`/`speed_rule_id`. The parity DB proof now checks every 0699 rule on the rows Create and Edit store.
+  - **2026-11-06: 0699 applied by the owner (local + remote), types and Prisma regenerated in both repos.** Remote has all 8 new CHECKs; tenant `tsc` clean. The rules caught two test fixtures (an EXEMPT rewrite that zeroed tax but kept the line total; a speed premium with no rule): fixed, DB proofs 11/11. Full DB suite: 44/55 suites pass; the 11 failures are unrelated environment/fixture issues (missing Supabase URL in the test env, RLS JWT, user code, cash drawer), none touch line money. Next: M11 (0700).
+  - **2026-11-06: M11 `0700_retire_product_express_cols.sql` applied by the owner (local + remote), types and Prisma regenerated in both repos.** Remote: the 4 columns are gone, `service_category_code` is NOT NULL, the key is `uq_org_prod_tenant_ctg_code`, and `get_product_price_with_tax` is gone. HQ cleanup and seeder proof: see the next entry.
+    - New `seed_product_speed_rules`: gives each product a catalog seeder just created its EXPRESS rule, taken from the template. With pricing and an Express price that differs from the normal price, the rule is SELL_PRICE. Otherwise, a factor above 1 gives MULTIPLIER (factor − 1). Turnaround comes from the template. It never creates a rule that adds nothing (the 0694 lesson) and never a second rule for a product. It creates none when the organization's own active, in-date, all-branch rule for all products or for the product's category already covers it, so a template rule never overrides the organization's pricing. `get_product_price` keeps its NUMERIC(10,3) precision, so its results don't change.
+    - **Production review pass (same day), existing seeder bugs fixed:**
+      - An unknown organization id seeded every template; it now raises.
+      - Products are unique on (tenant, `product_code`), but the seeders skipped only active products. One inactive product made the whole run fail; any existing row is now skipped (a product switched off stays off), with `ON CONFLICT` for concurrent runs.
+      - A second run created a second default price list.
+      - The price-history trigger cast free-text `updated_by` (e.g. `system_migration`) into a UUID column, which made default-price updates by such actors fail.
+      - Seeded rules now get the same history row the Speed Pricing screen writes (`created_by` is a UUID column, so it is NULL for a system seed).
+      - Rule inserts use `ON CONFLICT` on the scope index.
+      - `DROP TRIGGER ... RESTRICT`.
+      - Deploy note: HQ catalog screens that select the dropped columns by name must deploy with the HQ cleanup, right after 0700. Existing products and rules are untouched, so no price changes silently.
+    - **Product key changed (owner request, 2026-11-06):** `org_product_data_mst.service_category_code` is now NOT NULL, and the table is unique on (tenant, `service_category_code`, `product_code`) (`uq_org_prod_tenant_ctg_code`), replacing `org_product_data_mst_tenant_org_id_product_code_key`. The same item can now be offered in several categories, as the templates already allow. Every writer already sets a category: seeders copy the template's (NOT NULL), tenant create requires an enabled one, inventory uses `RETAIL_ITEMS`. Checked:
+      - no foreign key uses the old key;
+      - no NULL categories (remote 0/127, local 0/53);
+      - after regenerating types, `service_category_code` is required on insert. HQ `|| null` fallbacks in `tenants.service.ts` (initializeCatalogCustom) and `catalog.repository.ts` (`addProductsFromTemplates`) must be removed in the HQ cleanup;
+      - no other function has a conflict target on it;
+      - Postgres 17.
+      - The seeders match existing products on category + code and use `ON CONFLICT ON CONSTRAINT uq_org_prod_tenant_ctg_code`.
+      - Tenant pricing CSV import (`lib/services/pricing-bulk.service.ts`, `app/api/v1/pricing/import/route.ts`): it accepts an optional `category_code`. A code found in several categories is reported as ambiguous instead of failing `.single()`.
+      - After `prisma:pull` the compound unique becomes `@@unique([tenant_org_id, service_category_code, product_code])`. No code uses the old Prisma name.
+      - **HQ follow-up (M11 cleanup):** these places still match tenant products on code alone and must match on category + code:
+        - `platform-api/src/modules/catalog/catalog.repository.ts`: available templates (~1514) and `addProductsFromTemplates` (~1612; it also skips only `rec_status <> 0` rows);
+        - `services/tenant-catalog.service.ts:123` (missing products);
+        - `services/product-comparison.service.ts:90-91, 203` (comparison maps and the single-product lookup).
+
+        Templates have no code in two categories today, so nothing breaks yet.
+    - `initialize_tenant_product_catalog` and `reseed_missing_products` stop writing the retired columns and call the helper. Their result gains `speed_rules_created`. They are now service-role only: anon and signed-in users had EXECUTE before.
+    - `get_product_price`: the Express fallback is gone, and the missing tenant predicate is added on the price-list join. anon loses EXECUTE.
+    - `get_product_price_with_tax`: dropped. It had no caller and a hard-coded 5% tax fallback.
+    - Price-history trigger rebuilt without the Express column; the old version wrote the invalid `NEW.id || '_express'`.
+    - The 4 product columns are dropped with RESTRICT.
+    - Remote check before writing: no views, constraints or indexes on the 4 columns, and no other function calls them. Tenant code no longer reads them. SQL and PL/pgSQL parse offline with pglast; the migration was not executed.
+    - **After apply:** an HQ cleanup (product screens/types/bulk ops/`product.dto`; the custom catalog path calls `seed_product_speed_rules` for the products it inserts), then build and `tsc` in both repos. Done; see the next entry.
+  - **2026-11-06: M11 HQ cleanup (`cleanmatexsaas`) done.**
+    - `platform-api/src/modules/tenants/tenants.service.ts`, `initializeCatalogCustom` (onboarding with picked templates). It was broken: it inserted a column that does not exist (`created_at2`), so every custom initialization failed. Now:
+      - it enables the template categories for the tenant first (`fk_org_prod_ctg`), as the RPC does;
+      - it upserts products on the new key, ignoring duplicates, so a re-run is safe;
+      - the product code is the template `item_code`;
+      - `??` instead of `||` on prices, so a 0 price stays 0;
+      - the minimum price is copied only with pricing;
+      - it calls `seed_product_speed_rules` for the inserted ids and returns the real inserted count, plus `speed_rules_created` (additive).
+    - `platform-api/src/modules/catalog/catalog.repository.ts`, available templates and `addProductsFromTemplates`:
+      - existence is keyed on category + code, counting any status (an inactive product blocks re-adding, as in the seeders);
+      - the code is `item_code` (it used `template_code`, equal today, with a `PROD-…` fallback that would never match a template again);
+      - upsert ignoring duplicates; `??` on prices;
+      - Express rules seeded.
+    - `services/tenant-catalog.service.ts` (catalog status, missing products) and `services/product-comparison.service.ts` (comparison maps): keyed on category + code. Result rows keep the real `product_code` and gain `service_category_code` (additive).
+    - `dto/tenant-product.dto.ts`: `UpdateTenantProductDto.service_category_code` can be left out but not null or empty (the DB now rejects null).
+    - `platform-web/lib/api/catalog.ts` (`TenantProduct`) and `src/features/tenants/ui/tenant-products-screen.tsx`: the retired Express price is removed.
+    - Left as is, because these are template or category fields that stay: the template and category screens/DTOs (`product.dto.ts`, `product-template.dto.ts`, `service-category.dto.ts`, `catalog.types.ts`), and the template express price in bulk import/export.
+    - Checks:
+      - HQ API `tsc`: 0 errors outside test files (the spec-file errors predate this);
+      - ESLint: only errors that predate this, on lines not changed;
+      - `nest build` exit 0; `platform-web` `next build` exit 0;
+      - tenant `tsc` 0; tenant catalog unit suites 36/36; DB proofs `order-change-edit-parity` + `order-fin-view-sources` 8/8.
+    - Seeder proof on local, in a block that always rolls back (nothing kept):
+      - a fresh organization got 59 products, 44 Express SELL_PRICE rules with 44 history rows, and 1 default price list;
+      - a second initialize created 0 products and no second list;
+      - an inactive product was not re-added by reseed (`already_exists` 59);
+      - a default-price change by `system_migration` wrote a history row (`created_by` NULL, actor in `created_info`);
+      - the demo organization reseed added its 13 missing retail items with 0 rules (retail templates have no Express price or factor).
+    - The P10-03 items above are resolved: the 5 functions were replaced, a new tenant gets Express rules, and `addOrderItems` no longer exists.
+    - **Found, not changed (pre-existing, unrelated to 0700):** the old HQ template-by-code methods filter `sys_service_prod_templates_cd` on a `product_code` column that does not exist: `getProductByCode`/`createProduct`/`updateProduct`/`deleteProduct` in `catalog.repository.ts`, and `compareSingleProduct` in `product-comparison.service.ts`. Templates are keyed by `item_code` + `service_category_code` (the newer composite-key template methods work). Listed in the owner follow-ups.
+    - **Found for P11:** `/api/v1/pricing/calculate`, `pricing.service` and the legacy `calculateOrderTotals` have no runtime caller and should be deleted.
+  - **Checks:** `tsc` clean; `npx eslint . --quiet` clean; 19 related suites (156 tests) pass; DB proofs 11/11; `npm run build` exit 0; inventories synced.
+  - **Migration 0698 (P10-02):** demo organization only. 6 empty price types become `PER_PC`; 41 minimums above the sale price are cleared (PF-24 was recorded as 4). New products default to `PER_PC`.
+  - **M10 scope decided:** items and pieces NOT NULL + I5 CHECK; discount `discount_level` NOT NULL. Not constrained: order headers (20 DB test fixtures and 68 local rows have none, sub-orders stay without a calc version), charge tax columns (nullable by design), preference §6.3 columns (no writer sets them; review whether to drop).
 - **2026-11-05 (P9-01 proved on real PostgreSQL; migrations 0692 and 0694 applied by the owner, local and remote):** The Edit parity proof now runs a PIECE order: Create with a piece on its own speed, a piece discount and a line discount shared across pieces; then Edit changing a piece's speed and discount. It checks the item equals the sum of its pieces, a new rule price reaches only the piece being changed (L24), the slowest piece sets the ready time, history rows name the piece and its line, and a ready line refuses a piece speed change.
   - **Bugs this proof found and fixed, none of which the mocked tests caught:**
     1. A piece's own speed was refused as inactive, because the loader only read the speeds of the order and its lines.

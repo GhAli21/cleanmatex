@@ -70,36 +70,6 @@ export const orderItemSchema = z.object({
 );
 
 /**
- * Schema for adding multiple items to an order
- */
-export const addOrderItemsSchema = z.object({
-  items: z.array(orderItemSchema).min(1, 'At least one item is required').max(100, 'Maximum 100 items per batch'),
-  isExpressService: z.boolean().default(false),
-});
-
-/**
- *
- */
-export type AddOrderItemsInput = z.infer<typeof addOrderItemsSchema>;
-
-// ==================================================================
-// UPDATE ORDER SCHEMAS
-// ==================================================================
-
-/**
- * Schema for completing preparation
- */
-export const completePreparationSchema = z.object({
-  readyByOverride: z.coerce.date().optional(),
-  internalNotes: z.string().max(1000, 'Internal notes too long').optional(),
-});
-
-/**
- *
- */
-export type CompletePreparationInput = z.infer<typeof completePreparationSchema>;
-
-/**
  * Schema for updating order status
  */
 export const updateOrderStatusSchema = z.object({

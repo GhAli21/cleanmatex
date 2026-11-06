@@ -1,5 +1,30 @@
 # Changelog — Human-Friendly Codes
 
+## 2026-11-06 (Asia/Muscat) — A-76..A-83 HQ doc-seq console redesign (no migration)
+
+### Added
+- **platform-api:** `GET doc-seq/stats`, `GET doc-seq/counters`, `GET doc-seq/counters/tenants` (read only, `hq_doc_seq:read`); `GET general-config/history`; `updatedByName` on `GET general-config`; `reset` filter + server sort on `GET doc-seq/types`.
+- **platform-web:** Doc Seq hub with health + KPIs; Code Type detail page `/doc-seq-config/types/[code]` (overview, live preview, counters/tenants, checks); read-only **Code Counters** `/doc-seq-config/counters` (sidebar link); General Config change history.
+- URL-synced filters, CSV export, breadcrumbs (`CmxBreadcrumbs`), skeletons, empty / error-with-retry / no-access states on every screen; EN/AR catalogs `docSeqConsole`, `docSeqChecks`.
+
+### Changed
+- Code Consistency is one issue list with severity, meaning and fix per check; KPI cards filter it.
+- General Config edit: inline validation, review-changes step on every save, discard guard, Edit disabled with a reason when you lack `hq_general_config:manage`.
+
+### Fixed
+- `/doc-seq-config/types` and `/consistency` had no sidebar/top bar after A-75 (A-76).
+- Type search with characters such as `.` or `/` broke the list (API 400).
+- Page size 25 not offered by the table; sort headers not keyboard operable; `PREFIX_SHARED` rows missing from a type's checks; editor shown as a raw id.
+
+### Proposed (not built)
+- P-1 audited "move counter forward" endpoint; P-2 delete the now unused `doc-seq-type-dialog.tsx`.
+
+## 2026-11-06 (Asia/Muscat) — A-75 HQ navigation / Doc Seq Config module
+
+- **platform-web:** Doc Seq screens moved to `/doc-seq-config` (hub, `/types`, `/consistency`). Permanent redirects from `/system-codes/doc-seq-*`.
+- Sidebar: new section label exactly `SaaS Backoffice Admin- HQ` (General Config + Doc Seq). **System Catalogs Codes** → `/system-codes`; Settlement + BVM added beside Payment Setup / Cash & POS. `/codes` kept as **Code Tables**.
+- platform-api `/doc-seq` URLs unchanged. Decision A-75 in IMPLEMENTATION_PLAN §20.
+
 All dates are 2026, Asia/Muscat. "Applied" means the user applied the migrations to local and remote databases.
 
 ## [Unreleased] — 2026-11-05 — P11 applied + deployed

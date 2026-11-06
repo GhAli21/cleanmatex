@@ -68,9 +68,9 @@ INSERT INTO sys_service_prod_templates_cd (
 -- T-shirt
 ('TSHIRT_STD', 'DRY_CLEAN', 'TOPS', 'T-shirt (Standard)', 'قميص تيشيرت (عادي)', 'Simple wash & fold.', false, 'PER_PC', 'PC', 4.000, 6.000, 1.000, 3.500, 1, 1, 0, 48.00, 24.00, 1.50, '{"tags": ["tshirt", "casual"]}', 'SKU-T-TSH', true, 11, '#007bff', 'mdi-tshirt-crew', true, 'system_seed', 1),
 -- Blouse
-('BLOUSE_DC', 'WASH_AND_IRON', 'TOPS', 'Blouse (Dry Clean)', 'بلوزة (تنظيف جاف)', 'Delicate dry clean for silk/rayon.', false, 'PER_PC', 'PC', 22.000, 30.000, 6.000, 20.000, 1, 1, 0, 72.00, 48.00, 1.36, '{"tags": ["blouse", "delicate"]}', 'SKU-T-BLO', true, 12, '#007bff', 'mdi-human-female-girl', true, 'system_seed', 1),
+('BLOUSE_DC', 'WASH_AND_IRON', 'TOPS', 'Blouse', 'بلوزة', 'Delicate dry clean for silk/rayon.', false, 'PER_PC', 'PC', 22.000, 30.000, 6.000, 20.000, 1, 1, 0, 72.00, 48.00, 1.36, '{"tags": ["blouse", "delicate"]}', 'SKU-T-BLO', true, 12, '#007bff', 'mdi-human-female-girl', true, 'system_seed', 1),
 -- Polo
-('POLO_LAU', 'DRY_CLEAN', 'TOPS', 'Polo Shirt (Launder)', 'قميص بولو (غسيل)', 'Launder and fold.', false, 'PER_PC', 'PC', 6.000, 9.000, 1.500, 5.000, 1, 1, 0, 48.00, 24.00, 1.50, '{"tags": ["polo", "casual"]}', 'SKU-T-POL', true, 13, '#007bff', 'mdi-tshirt', true, 'system_seed', 1),
+('POLO_LAU', 'DRY_CLEAN', 'TOPS', 'Polo Shirt', 'قميص بولو', 'Launder and fold.', false, 'PER_PC', 'PC', 6.000, 9.000, 1.500, 5.000, 1, 1, 0, 48.00, 24.00, 1.50, '{"tags": ["polo", "casual"]}', 'SKU-T-POL', true, 13, '#007bff', 'mdi-tshirt', true, 'system_seed', 1),
 -- Tank Top
 ('TANK_TOP', 'DRY_CLEAN', 'TOPS', 'Tank Top', 'فانيلة (بلوزة بلا أكمام)', 'Simple wash & fold.', false, 'PER_PC', 'PC', 3.500, 5.250, 0.800, 3.000, 1, 1, 0, 48.00, 24.00, 1.50, '{"tags": ["tank", "sport"]}', 'SKU-T-TANK', true, 14, '#007bff', 'mdi-tshirt-tank', true, 'system_seed', 1),
 -- Wool Sweater

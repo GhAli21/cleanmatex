@@ -7,7 +7,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { buildProductSearchOrFilter } from '@/lib/utils/product-search';
-import { SERVICE_SPEEDS, SPEED_PRICE_TYPES, isTaxCategory } from '@/lib/constants/commercial';
+import { PRODUCT_PRICE_TYPES, SERVICE_SPEEDS, SPEED_PRICE_TYPES, isTaxCategory } from '@/lib/constants/commercial';
 import { createSpeedRule, listProductExpressRules } from '@/lib/services/catalog/speed-rules.service';
 import { speedRuleCreateSchema, type SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 import type {
@@ -258,7 +258,7 @@ export async function createProduct(
       hint_text: request.hint_text || null,
       is_retail_item: request.is_retail_item || false,
       product_type: request.product_type || null,
-      price_type: request.price_type || null,
+      price_type: request.price_type || PRODUCT_PRICE_TYPES.PER_PC,
       product_unit: request.product_unit,
       default_sell_price: request.default_sell_price,
       product_cost: request.product_cost || null,

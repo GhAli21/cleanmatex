@@ -249,6 +249,21 @@ Sign in as an organization admin. Sidebar: **Catalog & Pricing › Speed Pricing
 6. As a user without `pricing:bulk`, expect no **Retire product rules** button. Calling `POST /api/v1/catalog/speed-rules/bulk-status` directly answers 403.
 7. After migration 0694: expect no product rule with a +0% multiplier from the seed. Retail items keep their price and stay ready at once.
 
+## S22 — Piece level (P9-02)
+
+In HQ: **Tenants › Order Fin Settings › Tax & Pricing**, set **Commercial level** to Piece and save. Reopen: expect Piece still selected.
+
+In HQ, first add Edit policy rules for `CHANGE_SERVICE_SPEED` / `PIECE` and `CHANGE_DISCOUNT` / `PIECE` (new draft, then publish).
+
+1. **Orders › New Order:** add a per-piece product with quantity 2. Give one piece its own speed and a discount. Expect the line to equal the sum of its pieces, and the slowest piece to set the ready time.
+2. Add a Fixed price product (for example a suit). Expect no piece money controls: it stays priced on the item.
+3. Open that order in **Edit Order**, change a piece's speed. Expect only that piece's price to change.
+4. Older orders keep the level they were created with.
+
+## S23 — Preparation
+
+Sidebar: **Preparation**, open a Quick Drop order. Expect **Edit Order** to add or remove items, no Delete button on a line, and the price panel to match the order's stored totals.
+
 ## Sign-off
 
 | Scenario | Result | Tester | Date |

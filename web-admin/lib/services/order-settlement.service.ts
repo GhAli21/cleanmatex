@@ -218,6 +218,9 @@ export async function settleOrderTx(
           discount_amount: disc.discountAmount,
           promotion_id: disc.promotionId ?? null,
           stacking_group: disc.stackingGroup ?? null,
+          // A settlement discount sits on the whole order and is never split to lines.
+          discount_level: 'ORDER',
+          disc_alloc_mode: 'DOCUMENT_LEVEL',
           rec_status: 1,
         },
       });

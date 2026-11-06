@@ -188,8 +188,10 @@ describe('Order Fin View sources (DB-level)', () => {
       const orderId = order[0].id;
       // 6 + 4 items, delivery 1, order discount 0.5, VAT 5% on 9.5 → total 10.975.
       await tx.$executeRaw`
-        INSERT INTO public.org_order_items_dtl (tenant_org_id, order_id, price_per_unit, total_price, quantity)
-        VALUES (${t}::uuid, ${orderId}::uuid, 6, 6, 1), (${t}::uuid, ${orderId}::uuid, 4, 4, 1)`;
+        INSERT INTO public.org_order_items_dtl (tenant_org_id, order_id, price_per_unit, total_price, quantity,
+          money_basis, service_speed, price_source, list_unit_price, speed_premium_amount, line_disc_amount, order_disc_alloc_amount, net_amount, tax_pricing_mode, tax_category_code, tax_rate, taxable_amount, tax_amount, line_total_amount)
+        VALUES (${t}::uuid, ${orderId}::uuid, 6, 6, 1, 'PRICED', 'STANDARD', 'MANUAL', 6, 0, 0, 0, 6, 'TAX_EXCLUSIVE', 'STANDARD', 0, 6, 0, 6),
+               (${t}::uuid, ${orderId}::uuid, 4, 4, 1, 'PRICED', 'STANDARD', 'MANUAL', 4, 0, 0, 0, 4, 'TAX_EXCLUSIVE', 'STANDARD', 0, 4, 0, 4)`;
       await tx.$executeRaw`
         INSERT INTO public.org_order_charges_dtl (tenant_org_id, order_id, charge_type, label, amount, currency_code)
         VALUES (${t}::uuid, ${orderId}::uuid, 'DELIVERY', 'Delivery', 1, 'OMR')`;
@@ -281,9 +283,12 @@ describe('Order Fin View sources (DB-level)', () => {
       const cat = (await tx.$queryRaw<Array<{ code: string }>>`SELECT code FROM public.sys_tax_category_cd ORDER BY code LIMIT 1`)[0].code;
       await tx.$executeRaw`
         INSERT INTO public.org_order_items_dtl (tenant_org_id, order_id, product_name, product_name2, price_per_unit, total_price, quantity,
-          line_disc_amount, order_disc_alloc_amount, net_amount, tax_category_code, tax_rate, tax_amount, line_total_amount, created_at)
-        VALUES (${t}::uuid, ${orderId}::uuid, 'Shirt', 'قميص', 3, 6, 2, 0.5, 0.1, 5.4, ${cat}, 5, 0.27, 5.67, now() - interval '1 minute'),
-               (${t}::uuid, ${orderId}::uuid, 'Trousers', NULL, 4, 4, 1, 0, 0.2, 3.8, ${cat}, 5, 0.19, 3.99, now())`;
+          line_disc_amount, order_disc_alloc_amount, net_amount, tax_category_code, tax_rate, tax_amount, line_total_amount, created_at,
+          money_basis, service_speed, price_source, list_unit_price, speed_premium_amount, tax_pricing_mode, taxable_amount)
+        VALUES (${t}::uuid, ${orderId}::uuid, 'Shirt', 'قميص', 3, 6, 2, 0.5, 0.1, 5.4, ${cat}, 5, 0.27, 5.67, now() - interval '1 minute',
+                'PRICED', 'STANDARD', 'MANUAL', 3, 0, 'TAX_EXCLUSIVE', 5.4),
+               (${t}::uuid, ${orderId}::uuid, 'Trousers', NULL, 4, 4, 1, 0, 0.2, 3.8, ${cat}, 5, 0.19, 3.99, now(),
+                'PRICED', 'STANDARD', 'MANUAL', 4, 0, 'TAX_EXCLUSIVE', 3.8)`;
       const docId = await createTaxDocumentTx(tx as never, {
         tenantId: t, orderId, documentType: 'SIMPLIFIED_INVOICE', triggerEvent: 'ON_ORDER_SUBMIT',
         totalAmount: 9.66, taxAmount: 0.46, currencyCode: 'OMR',
@@ -294,19 +299,6 @@ describe('Order Fin View sources (DB-level)', () => {
         expect.objectContaining({ lineNo: 1, productName: 'Shirt', productName2: 'قميص', quantity: 2, pricePerUnit: 3, discountAmount: 0.6, netAmount: 5.4, taxRate: 5, taxAmount: 0.27, lineTotalAmount: 5.67 }),
         expect.objectContaining({ lineNo: 2, productName: 'Trousers', discountAmount: 0.2, lineTotalAmount: 3.99 }),
       ]);
-
-      // An order written before the calculator has no line money: no item lines, never invented.
-      const legacy = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, total_amount)
-        VALUES (${t}::uuid, ${cust[0].id}::uuid, ${`FV-${randomUUID()}`}, 'OMR', 4) RETURNING id`;
-      await tx.$executeRaw`
-        INSERT INTO public.org_order_items_dtl (tenant_org_id, order_id, product_name, price_per_unit, total_price, quantity)
-        VALUES (${t}::uuid, ${legacy[0].id}::uuid, 'Old shirt', 4, 4, 1)`;
-      const legacyDoc = await createTaxDocumentTx(tx as never, {
-        tenantId: t, orderId: legacy[0].id, documentType: 'SIMPLIFIED_INVOICE', triggerEvent: 'ON_ORDER_SUBMIT',
-        totalAmount: 4, taxAmount: 0, currencyCode: 'OMR',
-      });
-      expect((await getTaxDocumentPrintDetail(t, legacy[0].id, legacyDoc)).items).toEqual([]);
     });
   });
 
@@ -357,10 +349,17 @@ describe('Order Fin View sources (DB-level)', () => {
           VALUES (${t}::uuid, ${cust[0].id}::uuid, ${`FV-${randomUUID()}`}, 'OMR', 'PAY_ON_COLLECTION',
             8, 0.5, 1, 8, 8, 5, 'CURRENT', ${calcVersion}::smallint)
           RETURNING id`;
+        // A premium names its rule (0699); the old dates keep it clear of real tenant rules.
+        const rule = await tx.$queryRaw<Array<{ id: string }>>`
+          INSERT INTO public.org_speed_price_rules_cf (tenant_org_id, service_speed, speed_price_type, speed_extra_amount, effective_from, effective_to)
+          VALUES (${t}::uuid, 'EXPRESS', 'FIXED_AMOUNT', 1, ${`2001-01-${String(calcVersion ?? 2).padStart(2, '0')}`}::date, '2001-01-31')
+          RETURNING id`;
         // Two lines; inside total_price: extras 0.4 + 0.35, express premium 1 on the first.
         await tx.$executeRaw`
-          INSERT INTO public.org_order_items_dtl (tenant_org_id, order_id, price_per_unit, total_price, service_pref_charge, speed_premium_amount)
-          VALUES (${t}::uuid, ${o[0].id}::uuid, 5, 5, 0.4, 1), (${t}::uuid, ${o[0].id}::uuid, 3, 3, 0.35, 0)`;
+          INSERT INTO public.org_order_items_dtl (tenant_org_id, order_id, price_per_unit, total_price, service_pref_charge, speed_premium_amount, speed_rule_id,
+            money_basis, service_speed, price_source, list_unit_price, line_disc_amount, order_disc_alloc_amount, net_amount, tax_pricing_mode, tax_category_code, tax_rate, taxable_amount, tax_amount, line_total_amount)
+          VALUES (${t}::uuid, ${o[0].id}::uuid, 5, 5, 0.4, 1, ${rule[0].id}::uuid, 'PRICED', 'EXPRESS', 'MANUAL', 5, 0, 0, 5, 'TAX_EXCLUSIVE', 'STANDARD', 0, 5, 0, 5),
+                 (${t}::uuid, ${o[0].id}::uuid, 3, 3, 0.35, 0, NULL, 'PRICED', 'STANDARD', 'MANUAL', 3, 0, 0, 3, 'TAX_EXCLUSIVE', 'STANDARD', 0, 3, 0, 3)`;
         return getOrderFinancialView(t, o[0].id, resolveOrderFinDisplayConfig({ preset: 'detailed' }));
       };
 

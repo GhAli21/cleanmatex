@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-05T16:24:18.230Z
+Generated: 2026-11-05T19:10:14.658Z
 
 | Flag key | Surface | File | Line | Context |
 | --- | --- | --- | --- | --- |
@@ -65,7 +65,7 @@ Generated: 2026-11-05T16:24:18.230Z
 | getFeatureFlags | service | lib/services/feature-flags.service.ts | 295 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/feature-flags.service.ts | 333 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/feature-flags.service.ts | 356 | return getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/order-change/order-change-legacy-writer-guard.ts | 135 | getFeatureFlags(tenantId), |
+| getFeatureFlags | service | lib/services/order-change/order-change-legacy-writer-guard.ts | 137 | getFeatureFlags(tenantId), |
 | getFeatureFlags | service | lib/services/order-change/order-change-preview-reads.ts | 101 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 225 | const featureFlags = await getFeatureFlags(tenantId); |
@@ -75,7 +75,6 @@ Generated: 2026-11-05T16:24:18.230Z
 | multi_currency_fx | screen | src/features/fx/ui/currency-fx-screen.tsx | 32 | const multiCurrencyAllowed = useFeature('multi_currency_fx'); |
 | online_booking | api | app/api/v1/public/customer/booking/route.ts | 380 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
 | online_booking | api | app/api/v1/public/customer/booking/route.ts | 700 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
-| order_fin_governed_amendments | service | lib/services/order-service.ts | 2127 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
 | order_fin_refund_execution | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 55 | const executionEnabled = await canAccess(tenantId, 'order_fin_refund_execution'); |
 | order_fin_refund_execution | screen | app/dashboard/internal_fin/refunds/page.tsx | 46 | currentTenantCan('order_fin_refund_execution').catch(() => false), |
 | order_fin_refund_execution | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 196 | const refundExecutionEnabled = useFeature('order_fin_refund_execution'); |
@@ -90,6 +89,6 @@ Generated: 2026-11-05T16:24:18.230Z
 | pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 535 | {plan.feature_flags.pdf_invoices && ( |
 | pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 672 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
 | usePlanFlags | hook | src/features/orders/hooks/use-plan-flags.ts | 30 | export function usePlanFlags() { |
-| usePlanFlags | screen | src/features/orders/ui/new-order-content.tsx | 110 | usePlanFlags(); |
+| usePlanFlags | screen | src/features/orders/ui/new-order-content.tsx | 108 | usePlanFlags(); |
 | whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 538 | {plan.feature_flags.whatsapp_receipts && ( |
 | whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 673 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |

@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     // Convert to BulkImportRow format
     const importRows = rows.map((row) => ({
       product_code: row.product_code || undefined,
+      category_code: row.category_code || undefined,
       product_id: row.product_id || undefined,
       price: parseFloat(row.price || '0'),
       discount_percent: row.discount_percent ? parseFloat(row.discount_percent) : undefined,

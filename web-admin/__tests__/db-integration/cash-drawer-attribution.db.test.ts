@@ -27,6 +27,8 @@ import {
 let scope: DbTestScope | null = null;
 let tenantTz = '';
 let realUserId = '';
+// A member's auth user id: 0600 requires a drawer session's cashier to belong to the tenant.
+let memberUserId = '';
 
 beforeAll(async () => {
   scope = await resolveTestScope();
@@ -34,9 +36,10 @@ beforeAll(async () => {
   const [tenant] = await prisma.$queryRaw<Array<{ timezone: string }>>`
     SELECT timezone FROM public.org_tenants_mst WHERE id = ${scope.tenantId}::uuid`;
   tenantTz = tenant.timezone;
-  const [user] = await prisma.$queryRaw<Array<{ id: string }>>`
-    SELECT id FROM public.org_users_mst WHERE tenant_org_id = ${scope.tenantId}::uuid ORDER BY created_at LIMIT 1`;
+  const [user] = await prisma.$queryRaw<Array<{ id: string; user_id: string }>>`
+    SELECT id, user_id FROM public.org_users_mst WHERE tenant_org_id = ${scope.tenantId}::uuid ORDER BY created_at LIMIT 1`;
   realUserId = user.id;
+  memberUserId = user.user_id;
 });
 
 afterAll(async () => {
@@ -118,7 +121,7 @@ describe('per-cashier attribution in a shared drawer session (E2)', () => {
 
   dbit('EXCLUSIVE refuses a second POS session on the drawer session; SHARED allows it', async () => {
     const userA = randomUUID();
-    const userC = randomUUID();
+    const userC = memberUserId;
     const drawerId = await createTestDrawer(scope!, { codePrefix: 'E2-TEST', name: 'E2 exclusive' });
     const { sessionId: drawerSessionId } = await openTestSession(scope!, userA, drawerId);
     const posA = await insertPosSession(userA, drawerId, drawerSessionId);

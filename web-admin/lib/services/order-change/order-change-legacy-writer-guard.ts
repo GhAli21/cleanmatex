@@ -111,8 +111,10 @@ export function legacyCommittedReplacementDecision(input: {
   featureEnabled: boolean;
   /** `org_orders_mst.commercial_calc_version`; set: the legacy writer may not touch the order's money. */
   commercialCalcVersion?: number | null;
+  /** A split sub-order holds no money of its own (it stays on the parent), so no legacy writer may price it. */
+  parentOrderId?: string | null;
 }): 'ALLOW' | 'RETIRED' {
-  if (input.commercialCalcVersion != null) return 'RETIRED';
+  if (input.commercialCalcVersion != null || input.parentOrderId != null) return 'RETIRED';
   if (!input.featureEnabled) return 'ALLOW';
   if (!input.committedAt) return 'ALLOW';
   if ((input.editStateVersion ?? 0) < 1) return 'ALLOW';
@@ -130,7 +132,7 @@ export async function legacyCommittedReplacementStatus(
     const [order, flags] = await Promise.all([
       prisma.org_orders_mst.findFirst({
         where: { id: orderId, tenant_org_id: tenantId },
-        select: { committed_at: true, edit_state_version: true, commercial_calc_version: true },
+        select: { committed_at: true, edit_state_version: true, commercial_calc_version: true, parent_order_id: true },
       }),
       getFeatureFlags(tenantId),
     ]);
@@ -140,6 +142,7 @@ export async function legacyCommittedReplacementStatus(
       editStateVersion: order.edit_state_version,
       featureEnabled: flags.order_edit_v2 === true,
       commercialCalcVersion: order.commercial_calc_version,
+      parentOrderId: order.parent_order_id,
     });
   });
 }

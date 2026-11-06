@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { PRODUCT_PRICE_TYPES } from '@/lib/constants/commercial';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { getStockStatus, TRANSACTION_TYPES, ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
 import type {
@@ -135,7 +136,7 @@ export async function createInventoryItem(
   if (request.product_group2 !== undefined) insertData.product_group2 = request.product_group2;
   if (request.product_group3 !== undefined) insertData.product_group3 = request.product_group3;
   if (request.product_type !== undefined) insertData.product_type = request.product_type;
-  if (request.price_type !== undefined) insertData.price_type = request.price_type;
+  insertData.price_type = request.price_type ?? PRODUCT_PRICE_TYPES.PER_PC;
   if (request.min_quantity !== undefined) insertData.min_quantity = request.min_quantity;
   if (request.pieces_per_product !== undefined)
     insertData.pieces_per_product = request.pieces_per_product;

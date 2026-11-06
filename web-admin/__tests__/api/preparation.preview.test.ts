@@ -1,32 +1,23 @@
 /** @jest-environment node */
 
-// tenant-settings.service exports a module-level TenantSettingsService instance
-// that calls createClient() (browser client) at import time — mock it before any imports.
-jest.mock('@/lib/supabase/client', () => ({
-  createClient: jest.fn(() => ({
-    rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-  })),
-}));
+jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn(() => ({})) }));
 
-jest.mock('@/lib/supabase/server', () => {
-  return {
-    createClient: () => ({
-      from: () => ({
-        select: () => ({ eq: () => ({ eq: () => ({ data: [{ quantity: 2, total_price: 2.1 }], error: null }) }) })
+const eqCalls: Array<[string, string]> = [];
+jest.mock('@/lib/supabase/server', () => ({
+  createClient: () => {
+    const q = {
+      from: () => q,
+      select: () => q,
+      eq: (c: string, v: string) => { eqCalls.push([c, v]); return q; },
+      maybeSingle: async () => ({
+        data: { subtotal_amount: '2.1000', total_tax_amount: '0.1050', total_amount: '2.2050', total_items: 2 },
+        error: null,
       }),
-    }),
-  } as any;
-});
-
-// P6-03: the rate comes from the tenant's default tax profiles, never from a setting.
-const mockGetDefaultVatRate = jest.fn();
-jest.mock('@/lib/services/tax-engine.service', () => ({ getDefaultVatRate: (...a: unknown[]) => mockGetDefaultVatRate(...a) }));
-
+    };
+    return q;
+  },
+}));
 jest.mock('@/lib/config/features', () => ({ isPreparationEnabled: () => true }));
-
 jest.mock('@/lib/middleware/require-permission', () => ({
   requirePermission: () => async () => ({ user: { id: 'u1' }, tenantId: 't1', userId: 'u1', userName: 'U1' }),
 }));
@@ -34,23 +25,11 @@ jest.mock('@/lib/middleware/require-permission', () => ({
 import { GET } from '@/app/api/v1/preparation/[id]/preview/route';
 
 describe('GET /api/v1/preparation/:id/preview', () => {
-  it('returns totals taxed at the default profile rate', async () => {
-    mockGetDefaultVatRate.mockResolvedValueOnce(0.05);
-    const res = await GET({} as any, { params: { id: 'o1' } });
-    // @ts-ignore
-    const json = await res.json();
-    expect(json.success).toBe(true);
-    expect(mockGetDefaultVatRate).toHaveBeenCalledWith('t1');
-    expect(json.data.tax).toBeCloseTo(0.105);
-    expect(json.data.total).toBeCloseTo(2.205);
-  });
-
-  it('charges no tax when the tenant has no tax profile (no assumed 5%)', async () => {
-    mockGetDefaultVatRate.mockResolvedValueOnce(0);
-    const res = await GET({} as any, { params: { id: 'o1' } });
-    // @ts-ignore
-    const json = await res.json();
-    expect(json.data.tax).toBe(0);
-    expect(json.data.total).toBeCloseTo(2.1);
+  it('returns the stored header figures for the session tenant', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await GET({} as any, { params: Promise.resolve({ id: 'o1' }) } as any);
+    const json = await (res as Response).json();
+    expect(json.data).toEqual({ subtotal: 2.1, tax: 0.105, total: 2.205, total_items: 2 });
+    expect(eqCalls).toEqual([['tenant_org_id', 't1'], ['id', 'o1']]);
   });
 });

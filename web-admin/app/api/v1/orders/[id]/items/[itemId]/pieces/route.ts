@@ -8,10 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { requirePermission } from '@/lib/middleware/require-permission';
-import {
-  blockCommittedCommercialFields,
-  blockCommittedCommercialWrite,
-} from '@/lib/services/order-change/order-change-legacy-writer-guard';
+import { blockCommittedCommercialFields } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { log } from '@/lib/utils/logger';
 
 /**
@@ -71,109 +68,6 @@ export async function GET(
     log.error('[API] GET /pieces error', error instanceof Error ? error : new Error(String(error)), {
       feature: 'order_pieces',
       action: 'get_pieces',
-      endpoint: '/api/v1/orders/[id]/items/[itemId]/pieces',
-    });
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * POST /api/v1/orders/:id/items/:itemId/pieces
- * Create pieces for an order item (bulk creation)
- * Requires: orders:create permission
- * @param request
- * @param root0
- * @param root0.params
- */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string; itemId: string }> }
-) {
-  try {
-    // Check permission
-    const authCheck = await requirePermission('orders:create')(request);
-    if (authCheck instanceof NextResponse) {
-      return authCheck; // Permission denied
-    }
-    const { tenantId, userId, userName } = authCheck;
-
-    const { id: orderId, itemId } = await params;
-    const body = await request.json();
-    const { quantity, ...baseData } = body;
-
-    if (!quantity || quantity < 1) {
-      return NextResponse.json(
-        { success: false, error: 'Quantity is required and must be at least 1' },
-        { status: 400 }
-      );
-    }
-
-    // Verify order and item belong to tenant
-    const supabase = await createClient();
-    const { data: item, error: itemError } = await supabase
-      .from('org_order_items_dtl')
-      .select('id, order_id, tenant_org_id, quantity, price_per_unit, total_price, branch_id')
-      .eq('id', itemId)
-      .eq('order_id', orderId)
-      .eq('tenant_org_id', tenantId)
-      .single();
-
-    if (itemError || !item) {
-      return NextResponse.json(
-        { success: false, error: 'Order item not found' },
-        { status: 404 }
-      );
-    }
-
-    const retiredWrite = await blockCommittedCommercialWrite(tenantId, orderId);
-    if (retiredWrite) {
-      return NextResponse.json(retiredWrite.body, { status: retiredWrite.status });
-    }
-
-    // Create pieces
-    const result = await OrderPieceService.createPiecesForItem(
-      tenantId,
-      orderId,
-      itemId,
-      quantity,
-      {
-        serviceCategoryCode: baseData.serviceCategoryCode,
-        productId: baseData.productId,
-        pricePerUnit: baseData.pricePerUnit || item.price_per_unit,
-        totalPrice: baseData.totalPrice || item.total_price,
-        color: baseData.color,
-        brand: baseData.brand,
-        hasStain: baseData.hasStain,
-        hasDamage: baseData.hasDamage,
-        notes: baseData.notes,
-        metadata: baseData.metadata,
-      },
-      undefined,
-      (item as any).branch_id ?? undefined
-    );
-
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        pieces: result.pieces || [],
-        count: result.pieces?.length || 0,
-      },
-    });
-  } catch (error) {
-    log.error('[API] POST /pieces error', error instanceof Error ? error : new Error(String(error)), {
-      feature: 'order_pieces',
-      action: 'create_pieces',
       endpoint: '/api/v1/orders/[id]/items/[itemId]/pieces',
     });
     const message = error instanceof Error ? error.message : 'Unknown error';

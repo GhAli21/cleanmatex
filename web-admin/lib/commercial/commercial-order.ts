@@ -285,7 +285,7 @@ function readyByWithPieces(input: CommercialOrderInput) {
  * @param input the order's snapshots, lines, order discounts, charges and ready-by facts, all resolved by the loader
  * @returns every stored row, the header tax lines, the totals and the ready-by
  * @throws CommercialRuleError a business rule the input breaks (e.g. DOCUMENT_DISCOUNT_EXCEEDS_BASE), or COMMERCIAL_INVARIANT_FAILED
- * @throws Error a malformed input (line-level modifiers or discounts on a PIECE-priced line)
+ * @throws Error a malformed input (for example a negative charge)
  * @example
  * const result = calculateCommercialOrder(await loadCommercialContext(tenantOrgId, request));
  * result.totals.totalAmount.toString();

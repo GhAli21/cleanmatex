@@ -41,7 +41,7 @@ export const ORDERS_PERMISSIONS = {
   EDIT_OVERRIDE: 'orders:edit_override',
   /** Reserved for B26 (FX/gateway/rate override) — not built yet. */
   RATE_OVERRIDE: 'orders:rate_override',
-  /** Already seeded/granted pre-B27 (lib/db/orders.ts addOrderItems) — resource is `pricing`, kept here for the orders-domain grouping. */
+  /** Already seeded/granted pre-B27 — resource is `pricing`, kept here for the orders-domain grouping. */
   PRICING_OVERRIDE: 'pricing:override',
   // B30 (migration 0415) — pending-payment back-office lifecycle worklist
   /** View the cross-order PENDING/PROCESSING payment worklist. */

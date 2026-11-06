@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-05T16:14:29.288Z",
+  "extractedAt": "2026-11-05T19:10:10.252Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -3033,15 +3033,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces",
       "permission": "orders:read",
-      "line": 31,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts",
-      "method": "GET",
-      "route": "/api/v1/orders/[id]/items/[itemId]/pieces",
-      "permission": "orders:create",
-      "line": 98,
+      "line": 28,
       "surface": "api"
     },
     {
@@ -3049,7 +3041,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/items/[itemId]/pieces",
       "permission": "orders:update",
-      "line": 201,
+      "line": 95,
       "surface": "api"
     },
     {
@@ -3333,14 +3325,6 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/orders/[id]/update/route.ts",
-      "method": "PATCH",
-      "route": "/api/v1/orders/[id]/update",
-      "permission": "orders:update",
-      "line": 38,
-      "surface": "api"
-    },
-    {
       "file": "app/api/v1/pos-sessions/close/route.ts",
       "method": "POST",
       "route": "/api/v1/pos-sessions/close",
@@ -3461,19 +3445,11 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/preparation/[id]/items/route.ts",
-      "method": "POST",
-      "route": "/api/v1/preparation/[id]/items",
-      "permission": "orders:update",
-      "line": 38,
-      "surface": "api"
-    },
-    {
       "file": "app/api/v1/preparation/[id]/preview/route.ts",
       "method": "GET",
       "route": "/api/v1/preparation/[id]/preview",
       "permission": "orders:read",
-      "line": 27,
+      "line": 26,
       "surface": "api"
     },
     {

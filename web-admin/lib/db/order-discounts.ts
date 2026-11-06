@@ -128,33 +128,6 @@ async function insertDiscountLinesInternal(
   });
 }
 
-/**
- * Insert discount lines inside a caller-owned Prisma transaction.
- * applied_seq = MAX(existing seq for this order) + array_index + 1
- * — safe for multiple calls (creation + payment-time); never produces duplicate seq values.
- * Skips lines with discountAmount <= 0. Idempotency is caller's responsibility.
- */
-export async function insertDiscountLinesTx(
-  tx: PrismaTx,
-  params: {
-    orderId: string;
-    tenantOrgId: string;
-    lines: DiscountLineInput[];
-    createdBy?: string;
-  }
-): Promise<void> {
-  return insertDiscountLinesInternal(tx as unknown as DiscountDbClient, params);
-}
-
-/** Insert discount lines outside a transaction (e.g. createOrder Supabase path). */
-export async function insertDiscountLines(params: {
-  orderId: string;
-  tenantOrgId: string;
-  lines: DiscountLineInput[];
-  createdBy?: string;
-}): Promise<void> {
-  return insertDiscountLinesInternal(prisma, params);
-}
 
 /**
  * Void all active discount lines for an order (cancellation/refund flow).

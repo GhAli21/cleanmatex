@@ -3,13 +3,13 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-05T16:24:18.230Z
+Generated: 2026-11-05T19:10:14.658Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 360 |
+| api | 357 |
 | middleware | 4 |
 | screen | 103 |
 | service | 3 |
@@ -282,7 +282,6 @@ Generated: 2026-11-05T16:24:18.230Z
 | orders:create | api | app/api/v1/orders/preview-payment/route.ts | 32 | /api/v1/orders/preview-payment |
 | orders:create | api | app/api/v1/orders/quote/route.ts | 31 | /api/v1/orders/quote |
 | orders:create | api | app/api/v1/orders/submit-order/route.ts | 93 | /api/v1/orders/submit-order |
-| orders:create | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 98 | /api/v1/orders/[id]/items/[itemId]/pieces |
 | orders:create_adjustment | api | app/api/v1/orders/[id]/adjustments/route.ts | 38 | /api/v1/orders/[id]/adjustments |
 | orders:delete | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/route.ts | 209 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId] |
 | orders:edit | api | app/api/v1/orders/[id]/changes/follow-up/route.ts | 23 | /api/v1/orders/[id]/changes/follow-up |
@@ -324,7 +323,7 @@ Generated: 2026-11-05T16:24:18.230Z
 | orders:read | api | app/api/v1/orders/[id]/discounts/route.ts | 18 | /api/v1/orders/[id]/discounts |
 | orders:read | api | app/api/v1/orders/[id]/issue-summary/route.ts | 19 | /api/v1/orders/[id]/issue-summary |
 | orders:read | api | app/api/v1/orders/[id]/issues/route.ts | 19 | /api/v1/orders/[id]/issues |
-| orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 31 | /api/v1/orders/[id]/items/[itemId]/pieces |
+| orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 28 | /api/v1/orders/[id]/items/[itemId]/pieces |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/scan/route.ts | 30 | /api/v1/orders/[id]/items/[itemId]/pieces/scan |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/route.ts | 45 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/route.ts | 32 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId] |
@@ -341,7 +340,7 @@ Generated: 2026-11-05T16:24:18.230Z
 | orders:read | api | app/api/v1/preferences/resolve/route.ts | 21 | /api/v1/preferences/resolve |
 | orders:read | api | app/api/v1/preferences/suggest/route.ts | 22 | /api/v1/preferences/suggest |
 | orders:read | api | app/api/v1/preparation/route.ts | 20 | /api/v1/preparation |
-| orders:read | api | app/api/v1/preparation/[id]/preview/route.ts | 27 | /api/v1/preparation/[id]/preview |
+| orders:read | api | app/api/v1/preparation/[id]/preview/route.ts | 26 | /api/v1/preparation/[id]/preview |
 | orders:read | api | app/api/v1/scan/resolve/route.ts | 17 | /api/v1/scan/resolve |
 | orders:rebill_authorize | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 93 | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx |
 | orders:reverse_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 82 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
@@ -379,7 +378,7 @@ Generated: 2026-11-05T16:24:18.230Z
 | orders:update | api | app/api/v1/orders/[id]/issue/[issueId]/route.ts | 21 | /api/v1/orders/[id]/issue/[issueId] |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode]/route.ts | 31 | /api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode] |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/packing-pref/route.ts | 28 | /api/v1/orders/[id]/items/[itemId]/packing-pref |
-| orders:update | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 201 | /api/v1/orders/[id]/items/[itemId]/pieces |
+| orders:update | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 95 | /api/v1/orders/[id]/items/[itemId]/pieces |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/pieces/sync/route.ts | 27 | /api/v1/orders/[id]/items/[itemId]/pieces/sync |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions/route.ts | 32 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/route.ts | 88 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences |
@@ -392,8 +391,6 @@ Generated: 2026-11-05T16:24:18.230Z
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs/route.ts | 161 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/service-prefs/route.ts | 83 | /api/v1/orders/[id]/items/[itemId]/service-prefs |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/service-prefs/route.ts | 145 | /api/v1/orders/[id]/items/[itemId]/service-prefs |
-| orders:update | api | app/api/v1/orders/[id]/update/route.ts | 38 | /api/v1/orders/[id]/update |
-| orders:update | api | app/api/v1/preparation/[id]/items/route.ts | 38 | /api/v1/preparation/[id]/items |
 | orders:verify_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 72 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:verify_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 80 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:verify_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 75 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |

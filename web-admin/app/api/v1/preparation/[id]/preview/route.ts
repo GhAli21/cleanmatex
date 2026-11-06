@@ -3,7 +3,6 @@
  * GET /api/v1/preparation/[id]/preview
  */
 
-import { getDefaultVatRate } from '@/lib/services/tax-engine.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isPreparationEnabled } from '@/lib/config/features';
@@ -29,22 +28,22 @@ export async function GET(
     const { tenantId } = auth;
     const supabase = await createClient();
 
-    const { data: items, error } = await supabase
-      .from('org_order_items_dtl')
-      .select('quantity, total_price')
+    // The stored header is the one source of these figures; nothing is recalculated here.
+    const { data: order, error } = await supabase
+      .from('org_orders_mst')
+      .select('subtotal_amount, total_tax_amount, total_amount, total_items')
       .eq('tenant_org_id', tenantId)
-      .eq('order_id', orderId);
+      .eq('id', orderId)
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
 
-    const subtotal = (items || []).reduce((sum, it) => sum + Number(it.total_price || 0), 0);
-    // Tax rate from the tenant's default tax profiles; none means no tax, never an assumed rate (B15).
-    const taxRate = await getDefaultVatRate(tenantId);
-    const tax = subtotal * taxRate;
-    const total = subtotal + tax;
-    const totalItems = (items || []).reduce((sum, it) => sum + Number(it.quantity || 0), 0);
+    const subtotal = Number(order?.subtotal_amount ?? 0);
+    const tax = Number(order?.total_tax_amount ?? 0);
+    const total = Number(order?.total_amount ?? 0);
+    const totalItems = Number(order?.total_items ?? 0);
 
     return NextResponse.json({
       success: true,

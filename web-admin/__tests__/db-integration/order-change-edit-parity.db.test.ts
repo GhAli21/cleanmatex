@@ -252,6 +252,43 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           expect([card.header.metrics.originalTotal, card.header.metrics.projectedTotal, card.header.editOutcome])
             .toEqual([Number(review.currentTotal), Number(review.estimatedTotal), review.financialOutcome]);
           const after = await getOrderFinancialView(tenantId, orderId, resolveOrderFinDisplayConfig({ preset: 'detailed' }));
+          // Migration 0699 rules, checked on the rows Create and Edit really stored (live and retired).
+          const breaches = await tx.$queryRaw<Array<{ tbl: string; id: string }>>`
+            SELECT 'item' AS tbl, id::text FROM public.org_order_items_dtl
+            WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND NOT (
+              money_basis IN ('PRICED', 'ALLOCATED', 'ROLLUP')
+              AND price_source IN ('PRICE_LIST', 'PRODUCT_DEFAULT', 'CUSTOMER_PRICE', 'MANUAL')
+              AND (price_source IN ('PRICE_LIST', 'CUSTOMER_PRICE')) = (price_list_id IS NOT NULL)
+              AND (money_basis = 'ROLLUP' OR ((speed_premium_amount = 0 OR speed_rule_id IS NOT NULL)
+                AND (service_speed <> 'STANDARD' OR speed_rule_id IS NULL)))
+              AND list_unit_price >= 0 AND line_disc_amount >= 0 AND order_disc_alloc_amount >= 0
+              AND net_amount >= 0 AND tax_rate >= 0 AND taxable_amount >= 0 AND tax_amount >= 0 AND line_total_amount >= 0
+              AND net_amount = total_price - line_disc_amount - order_disc_alloc_amount
+              AND line_total_amount = net_amount + CASE WHEN tax_pricing_mode = 'TAX_EXCLUSIVE' THEN tax_amount ELSE 0 END
+              AND tax_category_code IS NOT NULL AND tax_pricing_mode IS NOT NULL
+            ) IS NOT FALSE
+            UNION ALL
+            SELECT 'piece', id::text FROM public.org_order_item_pieces_dtl
+            WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND NOT (
+              money_basis IN ('PRICED', 'ALLOCATED')
+              AND price_source IN ('PRICE_LIST', 'PRODUCT_DEFAULT', 'CUSTOMER_PRICE', 'MANUAL')
+              AND (price_source IN ('PRICE_LIST', 'CUSTOMER_PRICE')) = (price_list_id IS NOT NULL)
+              AND (money_basis = 'ROLLUP' OR ((speed_premium_amount = 0 OR speed_rule_id IS NOT NULL)
+                AND (service_speed <> 'STANDARD' OR speed_rule_id IS NULL)))
+              AND list_unit_price >= 0 AND line_disc_amount >= 0 AND order_disc_alloc_amount >= 0
+              AND net_amount >= 0 AND tax_rate >= 0 AND taxable_amount >= 0 AND tax_amount >= 0 AND line_total_amount >= 0
+              AND net_amount = total_price - line_disc_amount - order_disc_alloc_amount
+              AND line_total_amount = net_amount + CASE WHEN tax_pricing_mode = 'TAX_EXCLUSIVE' THEN tax_amount ELSE 0 END
+              AND tax_category_code IS NOT NULL AND tax_pricing_mode IS NOT NULL
+            ) IS NOT FALSE
+            UNION ALL
+            SELECT 'discount', id::text FROM public.org_order_discounts_dtl
+            WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND NOT (
+              (discount_level = 'ORDER' AND order_item_id IS NULL AND order_item_piece_id IS NULL)
+              OR (discount_level = 'ITEM' AND order_item_id IS NOT NULL AND order_item_piece_id IS NULL)
+              OR (discount_level = 'PIECE' AND order_item_id IS NOT NULL AND order_item_piece_id IS NOT NULL)
+            ) IS NOT FALSE`;
+          expect(breaches).toEqual([]);
           // Retired rows must not reach the statement: its lines add up to its totals.
           expect(after.warnings.map((w) => w.code)).not.toContain('SECTION_LINES_MISMATCH');
           const figures = (v: OrderFinancialView) => ({
@@ -529,7 +566,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         // P8-01: the header buckets are the real totals of the stored rows, and an
         // order with no standard-rated line has nothing taxable on the header.
         await tx.$executeRaw`
-          UPDATE public.org_order_items_dtl SET tax_category_code = 'EXEMPT', taxable_amount = net_amount, tax_amount = 0
+          UPDATE public.org_order_items_dtl SET tax_category_code = 'EXEMPT', taxable_amount = net_amount, tax_amount = 0, tax_rate = 0, line_total_amount = net_amount
           WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND rec_status = 1`;
         await tx.$executeRaw`
           UPDATE public.org_order_taxes_dtl SET rec_status = 0

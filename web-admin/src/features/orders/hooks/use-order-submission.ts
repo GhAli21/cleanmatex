@@ -5,7 +5,6 @@
 
 'use client';
 
-import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import type { PriceChangedLine } from '@/lib/services/commercial/price-confirmation';
 import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,7 +18,6 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { cmxMessage } from '@ui/feedback';
 import { validateProductIds } from '@/lib/utils/validation-helpers';
 import { sanitizeOrderNotes, sanitizeInput } from '@/lib/utils/security-helpers';
-import { pickChangedCustomerSnapshot } from '@/lib/utils/order-customer-snapshot';
 import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { newOrderPaymentPayloadSchema } from '@/lib/validations/new-order-payment-schemas';
@@ -48,35 +46,6 @@ const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]
 
 function isValidBranchId(value: string | null | undefined): value is string {
   return true; //typeof value === 'string' && value.trim().length > 0 && UUID_REGEX_V2.test(value.trim());
-}
-
-function resolveEditCustomerSnapshotFields(state: {
-  originalOrderData?: unknown;
-  customerSnapshotOverride?: { name?: string | null; phone?: string | null; email?: string | null } | null;
-  customerNameSnapshot?: string;
-  customerMobile?: string;
-  customerEmail?: string;
-}): {
-  customerName?: string;
-  customerMobile?: string;
-  customerEmail?: string;
-} {
-  const orig = (state.originalOrderData ?? {}) as Record<string, unknown>;
-  const override = state.customerSnapshotOverride;
-  return pickChangedCustomerSnapshot({
-    nextName: override?.name != null
-      ? sanitizeInput(override.name)
-      : (state.customerNameSnapshot ? sanitizeInput(state.customerNameSnapshot) : undefined),
-    nextMobile: override?.phone != null
-      ? sanitizeInput(override.phone)
-      : (state.customerMobile ? sanitizeInput(state.customerMobile) : undefined),
-    nextEmail: override?.email != null
-      ? sanitizeInput(override.email)
-      : (state.customerEmail ? sanitizeInput(state.customerEmail) : undefined),
-    originalName: orig.customer_name,
-    originalMobile: orig.customer_mobile ?? orig.customer_mobile_number,
-    originalEmail: orig.customer_email,
-  });
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -203,19 +172,6 @@ export function useOrderSubmission() {
     const [serverGuard, setServerGuard] = useState<PaymentServerGuard | null>(null);
     const clearServerGuard = useCallback(() => setServerGuard(null), []);
 
-    // B12 — governed order amendment: reason prompt (opened when the server
-    // rejects a save with errorCode EDIT_REASON_REQUIRED) and the post-save
-    // delta notice (shown when a governed edit's response carries
-    // requiresSettlement). Both are no-ops for the vast majority of edits
-    // (order_fin_governed_amendments defaults OFF).
-    const [amendmentReasonPromptOpen, setAmendmentReasonPromptOpen] = useState(false);
-    const [amendmentDeltaNotice, setAmendmentDeltaNotice] = useState<{
-        deltaAmount: number;
-        previousTotal: number;
-        newTotal: number;
-        unresolvedOverpaymentAmount: number;
-        editHistoryId: string;
-    } | null>(null);
 
     const submitOrder = useCallback(
         async (
@@ -502,86 +458,12 @@ export function useOrderSubmission() {
                     ...getCSRFHeader(csrfToken),
                 };
 
-                // Edit mode: use update API instead of create
-                let res: Response;
-                if (isEditMode) {
-                    const updateBody = {
-                        customerId: state.state.customer?.id || '',
-                        items: state.state.items.map((item) => ({
-                            productId: item.productId,
-                            productName: item.productName ?? undefined,
-                            productName2: item.productName2 ?? undefined,
-                            quantity: item.quantity,
-                            pricePerUnit: item.pricePerUnit ?? 0,
-                            totalPrice: item.totalPrice ?? 0,
-                            serviceCategoryCode: item.serviceCategoryCode,
-                            notes: item.notes ? sanitizeOrderNotes(item.notes) : undefined,
-                            ...(trackByPiece && item.pieces && item.pieces.length > 0 && {
-                                pieces: item.pieces.map((piece) => ({
-                                    pieceSeq: piece.pieceSeq,
-                                    color: piece.color,
-                                    ...(piece.colorCodes?.length ? { colorCodes: piece.colorCodes } : {}),
-                                    ...(piece.colorCfIds?.length ? { colorCfIds: piece.colorCfIds } : {}),
-                                    brand: piece.brand,
-                                    hasStain: piece.hasStain,
-                                    hasDamage: piece.hasDamage,
-                                    notes: piece.notes,
-                                    rackLocation: piece.rackLocation,
-                                    metadata: piece.metadata,
-                                    conditions: piece.conditions,
-                                    ...(packingPerPieceEnabled && piece.packingPrefCode && {
-                                        packingPrefCode: piece.packingPrefCode,
-                                        packingCfId: piece.packingCfId ?? null,
-                                    }),
-                                    ...(piece.servicePrefs && piece.servicePrefs.length > 0 && {
-                                        servicePrefs: piece.servicePrefs,
-                                    }),
-                                })),
-                            }),
-                            priceOverride: item.priceOverride,
-                            overrideReason: item.overrideReason,
-                            overrideBy: item.overrideBy,
-                            ...(item.servicePrefs && item.servicePrefs.length > 0 && {
-                                servicePrefs: item.servicePrefs,
-                            }),
-                            servicePrefCharge: item.servicePrefCharge ?? 0,
-                            ...(item.packingPrefCharge != null && { packingPrefCharge: item.packingPrefCharge }),
-                            ...(item.packingPrefCode && {
-                                packingPrefCode: item.packingPrefCode,
-                                packingPrefIsOverride: item.packingPrefIsOverride,
-                                packingPrefSource: item.packingPrefSource,
-                                ...(item.packingCfId ? { packingCfId: item.packingCfId } : {}),
-                            }),
-                        })),
-                        // Legacy Edit update API: a boolean until P6-01 moves Edit to the calculator.
-                        express: state.state.serviceSpeed === SERVICE_SPEEDS.EXPRESS,
-                        notes: sanitizedNotes,
-                        customerNotes: sanitizedCustomerNotes,
-                        paymentNotes: sanitizedPaymentNotes,
-                        readyByAt: state.state.readyByAt,
-                        ...(state.state.branchId && { branchId: state.state.branchId }),
-                        ...resolveEditCustomerSnapshotFields(state.state),
-                        expectedUpdatedAt: state.state.expectedUpdatedAt?.toISOString(),
-                        recalculate: true,
-                        ...(state.state.orderServicePrefs && state.state.orderServicePrefs.length > 0 && {
-                            orderServicePrefs: state.state.orderServicePrefs,
-                        }),
-                    };
-
-                    res = await fetch(`/api/v1/orders/${state.state.editingOrderId}/update`, {
-                        method: 'PATCH',
-                        headers,
-                        credentials: 'include',
-                        body: JSON.stringify(updateBody),
-                    });
-                } else {
-                    res = await fetch('/api/v1/orders/submit-order', {
+                const res = await fetch('/api/v1/orders/submit-order', {
                         method: 'POST',
                         headers,
                         credentials: 'include',
                         body: JSON.stringify(createWithPaymentBody),
                     });
-                }
 
                 // Handle error responses
                 if (!res.ok) {
@@ -924,192 +806,8 @@ export function useOrderSubmission() {
         ]
     );
 
-    const saveOrderUpdate = useCallback(async (editReason?: string) => {
-        const isEditMode = state.state.isEditMode && state.state.editingOrderId;
-        if (!isEditMode) return;
-
-        setIsSubmitting(true);
-        state.setLoading(true);
-
-        try {
-            const productIds = state.state.items.map((item) => item.productId);
-            const invalidProductIds = validateProductIds(productIds);
-            if (invalidProductIds.length > 0) {
-                cmxMessage.error(t('errors.invalidProductIds'));
-                setIsSubmitting(false);
-                state.setLoading(false);
-                return;
-            }
-
-            const sanitizedNotes = state.state.notes
-                ? sanitizeOrderNotes(state.state.notes)
-                : undefined;
-            const sanitizedCustomerNotes = (state.state.customerNotes ?? state.state.notes)
-                ? sanitizeOrderNotes(state.state.customerNotes ?? state.state.notes)
-                : undefined;
-            const sanitizedPaymentNotes = state.state.paymentNotes?.trim()
-                ? sanitizeOrderNotes(state.state.paymentNotes.trim())
-                : undefined;
-
-            const updateBody = {
-                customerId: state.state.customer?.id || '',
-                items: state.state.items.map((item) => ({
-                    productId: item.productId,
-                    productName: item.productName ?? undefined,
-                    productName2: item.productName2 ?? undefined,
-                    quantity: item.quantity,
-                    pricePerUnit: item.pricePerUnit ?? 0,
-                    totalPrice: item.totalPrice ?? 0,
-                    serviceCategoryCode: item.serviceCategoryCode,
-                    notes: item.notes ? sanitizeOrderNotes(item.notes) : undefined,
-                    ...(trackByPiece && item.pieces && item.pieces.length > 0 && {
-                        pieces: item.pieces.map((piece) => ({
-                            pieceSeq: piece.pieceSeq,
-                            color: piece.color,
-                            ...(piece.colorCodes?.length ? { colorCodes: piece.colorCodes } : {}),
-                            ...(piece.colorCfIds?.length ? { colorCfIds: piece.colorCfIds } : {}),
-                            brand: piece.brand,
-                            hasStain: piece.hasStain,
-                            hasDamage: piece.hasDamage,
-                            notes: piece.notes,
-                            rackLocation: piece.rackLocation,
-                            metadata: piece.metadata,
-                            conditions: piece.conditions,
-                            ...(packingPerPieceEnabled && piece.packingPrefCode && {
-                                packingPrefCode: piece.packingPrefCode,
-                                packingCfId: piece.packingCfId ?? null,
-                            }),
-                            ...(piece.servicePrefs && piece.servicePrefs.length > 0 && {
-                                servicePrefs: piece.servicePrefs,
-                            }),
-                        })),
-                    }),
-                    priceOverride: item.priceOverride,
-                    overrideReason: item.overrideReason,
-                    overrideBy: item.overrideBy,
-                    ...(item.servicePrefs && item.servicePrefs.length > 0 && {
-                        servicePrefs: item.servicePrefs,
-                    }),
-                    servicePrefCharge: item.servicePrefCharge ?? 0,
-                    ...(item.packingPrefCharge != null && { packingPrefCharge: item.packingPrefCharge }),
-                    ...(item.packingPrefCode && {
-                        packingPrefCode: item.packingPrefCode,
-                        packingPrefIsOverride: item.packingPrefIsOverride,
-                        packingPrefSource: item.packingPrefSource,
-                        ...(item.packingCfId ? { packingCfId: item.packingCfId } : {}),
-                    }),
-                })),
-                // Legacy Edit update API: a boolean until P6-01 moves Edit to the calculator.
-                        express: state.state.serviceSpeed === SERVICE_SPEEDS.EXPRESS,
-                notes: sanitizedNotes,
-                customerNotes: sanitizedCustomerNotes,
-                paymentNotes: sanitizedPaymentNotes,
-                ...(state.state.readyByAt && { readyByAt: state.state.readyByAt }),
-                ...(state.state.branchId && isValidBranchId(state.state.branchId) && { branchId: state.state.branchId }),
-                ...resolveEditCustomerSnapshotFields(state.state),
-                expectedUpdatedAt: state.state.expectedUpdatedAt?.toISOString(),
-                recalculate: true,
-                ...(state.state.orderServicePrefs && state.state.orderServicePrefs.length > 0 && {
-                    orderServicePrefs: state.state.orderServicePrefs,
-                }),
-                // B12 — always sent (D010 baseline hygiene); the server only
-                // enforces its presence/requires a reason when this edit turns
-                // out to be financially governed (item change on an order with
-                // prior payments, order_fin_governed_amendments ON — default
-                // OFF today). A safe no-op key for the common, ungoverned case.
-                // A fresh key per call is safe here: a rejected attempt (missing
-                // reason/permission) never reaches the idempotency stake on the
-                // server, so a retry-with-reason staking a new key never conflicts.
-                idempotencyKey: crypto.randomUUID(),
-                ...(editReason && { editReason }),
-            };
-
-            const res = await fetch(`/api/v1/orders/${state.state.editingOrderId}/update`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getCSRFHeader(csrfToken),
-                },
-                credentials: 'include',
-                body: JSON.stringify(updateBody),
-            });
-
-            const json = await res.json().catch(() => ({}));
-            if (!res.ok || !json.success) {
-                // B12 — a governed edit missing its reason isn't a generic
-                // failure: open the reason prompt and let the caller retry
-                // with it, instead of surfacing a raw error toast.
-                if (json.errorCode === 'EDIT_REASON_REQUIRED') {
-                    setAmendmentReasonPromptOpen(true);
-                    setIsSubmitting(false);
-                    state.setLoading(false);
-                    return;
-                }
-                // P6-01d: a calculator order's money is saved through Edit Order review only.
-                const errorMessage = json.errorCode === 'LEGACY_COMMITTED_UPDATE_RETIRED'
-                    ? tEdit('legacyUpdateRetired')
-                    : formatValidationErrorMessage(json, res.status);
-                cmxMessage.error(errorMessage);
-                setIsSubmitting(false);
-                state.setLoading(false);
-                return;
-            }
-
-            const orderNo = (json.data?.order?.order_no ?? json.data?.order_no ?? state.state.editingOrderNo) || '';
-            void queryClient.invalidateQueries({ queryKey: ['checkout-options'] });
-            void queryClient.invalidateQueries({ queryKey: ['customer-stored-value-summary'] });
-            cmxMessage.success(tEdit('success') || t('success.orderUpdated', { orderNo }) || `Order ${orderNo} updated successfully`);
-
-            // Update expectedUpdatedAt with the new updated_at from the server response
-            // so optimistic locking works correctly if the user stays on the page
-            const newUpdatedAt = json.data?.order?.updated_at;
-            if (newUpdatedAt) {
-                state.dispatch({ type: 'SET_EXPECTED_UPDATED_AT', payload: new Date(newUpdatedAt) });
-            }
-
-            // B12 — a governed edit shows the delta notice first and navigates
-            // back only once the operator dismisses it; every other edit keeps
-            // the existing immediate-navigate behavior unchanged.
-            if (json.data?.requiresSettlement && json.data?.financialDelta && json.data?.editHistoryId) {
-                setAmendmentDeltaNotice({
-                    deltaAmount: json.data.financialDelta.deltaAmount,
-                    previousTotal: json.data.financialDelta.previousTotal,
-                    newTotal: json.data.financialDelta.newTotal,
-                    unresolvedOverpaymentAmount: json.data.financialDelta.unresolvedOverpaymentAmount,
-                    editHistoryId: json.data.editHistoryId,
-                });
-            } else {
-                router.back();
-            }
-        } catch (err: unknown) {
-            const error = err as Error;
-            cmxMessage.error(error.message || t('errors.unknownError'));
-        } finally {
-            setIsSubmitting(false);
-            state.setLoading(false);
-        }
-    }, [state, trackByPiece, packingPerPieceEnabled, csrfToken, t, tEdit, router, queryClient]);
-
-    // B12 — reason-prompt confirm/cancel retries or abandons the same save
-    // attempt; the delta notice's close navigates back (the step the
-    // non-governed success path already does immediately).
-    const confirmAmendmentReason = useCallback((reason: string) => {
-        setAmendmentReasonPromptOpen(false);
-        void saveOrderUpdate(reason);
-    }, [saveOrderUpdate]);
-
-    const cancelAmendmentReason = useCallback(() => {
-        setAmendmentReasonPromptOpen(false);
-    }, []);
-
-    const closeAmendmentDeltaNotice = useCallback(() => {
-        setAmendmentDeltaNotice(null);
-        router.back();
-    }, [router]);
-
     return {
         submitOrder,
-        saveOrderUpdate,
         isSubmitting,
         amountMismatch,
         setAmountMismatch,
@@ -1117,10 +815,5 @@ export function useOrderSubmission() {
         setPriceChanged,
         serverGuard,
         clearServerGuard,
-        amendmentReasonPromptOpen,
-        confirmAmendmentReason,
-        cancelAmendmentReason,
-        amendmentDeltaNotice,
-        closeAmendmentDeltaNotice,
     };
 }
