@@ -10,6 +10,7 @@ import { prisma } from '@/lib/db/prisma';
 // Apply imports discount-service (promo reversal), whose settings service builds a browser client at load.
 jest.mock('@/lib/supabase/client', () => ({ createClient: () => ({}), supabase: {} }));
 import type { OrderChangeContext } from '@/lib/types/order-change';
+import { readSettlementFingerprint, type SettlementFingerprintDb } from '@/lib/services/order-change/order-change-settlement-fingerprint';
 import { previewOrderChange, type OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
 import { applyOrderChange, type OrderChangeApplyTx } from '@/lib/services/order-change/order-change-apply.service';
 import { resolveOrderChangePolicyBindings } from '@/lib/services/order-change/order-change-edit-policy-resolver.service';
@@ -168,6 +169,7 @@ describe('signed operation snapshots on local PostgreSQL', () => {
             { currency: { code: 'OMR', decimalPlaces: 3 } }),
           catalog: [], currencyDecimalPlaces: 3,
           payments: [], credits: [], refunds: [], persistedTaxAmount: order.total_tax_amount, proofKey: key,
+          settlementFingerprint: await readSettlementFingerprint(tx as unknown as SettlementFingerprintDb, tenantId, orderId),
           auditFacts: { order: { internal_notes: order.internal_notes, customer_notes: null, total_amount: order.total_amount, total_tax_amount: order.total_tax_amount }, items: {}, pieces: {}, preferences: {}, products: {} },
         });
         expect(preview).toMatchObject({ ok: true, status: 'READY' });

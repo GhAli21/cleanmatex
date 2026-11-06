@@ -197,7 +197,11 @@ const required = (map: ReadonlyMap<string, string>, key: string, what: string): 
 export function buildCommercialChildRows(result: CommercialOrderResult, ctx: CommercialChildRowsContext): CommercialChildRows {
   const base = { tenant_org_id: ctx.tenantOrgId, order_id: ctx.orderId, created_by: ctx.userId };
   const discounts: Prisma.org_order_discounts_dtlUncheckedCreateInput[] = [];
-  const discountRow = (a: AppliedAdjustment, amount: MoneyInput, extra: Partial<Prisma.org_order_discounts_dtlUncheckedCreateInput>) => {
+  const discountRow = (
+    a: AppliedAdjustment,
+    amount: MoneyInput,
+    extra: Pick<Prisma.org_order_discounts_dtlUncheckedCreateInput, 'discount_level'> & Partial<Prisma.org_order_discounts_dtlUncheckedCreateInput>,
+  ) => {
     const meta = ctx.adjustmentMeta.get(a.id) ?? {};
     // A price-list discount's id is its price list item.
     const defaultSourceId = a.source === DISCOUNT_SOURCE_TYPE.PRICE_LIST ? a.id : null;

@@ -37,6 +37,7 @@ import { reversePromoUsageTx } from '@/lib/services/discount-service';
 import { subMoney, toMoneyString } from '@/lib/utils/money';
 import type { z } from 'zod';
 import type { orderChangeApplyRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
+import { readSettlementFingerprint, type SettlementFingerprintDb } from './order-change-settlement-fingerprint';
 
 const EMPTY_COMMERCIAL_FACTS: CommercialWriteFacts = {
   pieceItemIds: new Map(),
@@ -899,6 +900,12 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
         WHERE id = ${input.orderId}::uuid AND tenant_org_id = ${input.tenantId}::uuid
         FOR UPDATE`;
       if (!locked[0]) throw new OrderChangeMutationError('ORDER_NOT_FOUND');
+      // OC-CON-005: a payment, credit, refund or disposition that landed after Review is never applied over silently.
+      if (input.preview.reviewBinding
+        && await readSettlementFingerprint(tx as unknown as SettlementFingerprintDb, input.tenantId, input.orderId)
+          !== input.preview.reviewBinding.settlementSourceFingerprint) {
+        throw new OrderChangeMutationError('REVIEW_CHANGED');
+      }
     }
     const facts = hasPreference
       ? await loadCommercialWriteFacts(tx, input.tenantId, input.orderId, input.request.operations)

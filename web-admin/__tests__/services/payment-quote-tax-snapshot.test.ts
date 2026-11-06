@@ -22,8 +22,6 @@ jest.mock('@/lib/services/tenant-settings.service', () => ({
   SETTING_CODES: { B2B_CREDIT_LIMIT_MODE: 'B2B_CREDIT_LIMIT_MODE' },
 }));
 jest.mock('@/lib/services/pricing-mode-resolver.service', () => ({ resolveTaxPricingMode: async () => 'TAX_EXCLUSIVE' }));
-jest.mock('@/lib/services/pricing.service', () => ({ pricingService: { getBasePricesForOrder: async () => [100] } }));
-jest.mock('@/lib/services/tax.service', () => ({ TaxService: jest.fn().mockImplementation(() => ({ getTaxRate: async () => 0 })) }));
 jest.mock('@/lib/services/discount-service', () => ({ getBestDiscount: async () => null, evaluateBestAutoApplyPromo: async () => null }));
 jest.mock('@/lib/money/currency-rounding', () => ({ resolveCurrencyRoundingRule: async () => null }));
 jest.mock('@/lib/services/payment-config.service', () => ({ listEffectivePaymentMethodConfigs: async () => [] }));

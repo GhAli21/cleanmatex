@@ -31,11 +31,11 @@ This file records execution choices. When existing code is better than a suggest
 
 | Phase | Status | Note |
 |---|---|---|
-| 1 Database | PARTIAL — applied; acceptance pending | 2026-10-23: `0637_edit_policy_resolution_scopes.sql` applied locally and remotely by the user; type regeneration and Prisma schema update confirmed. Local catalog, privilege, resolver precedence and activation-guard checks passed. The remaining section 17 acceptance items stay explicit; Phase 2 is complete independently of those residual Phase 1 proofs. |
+| 1 Database | DONE | `0637` applied (2026-10-23). Section 17 acceptance proved on PostgreSQL by `__tests__/db-integration/order-change-edit-policy-resolution.db.test.ts` (green in the 2026-11-07 full DB run): cases A–E, G and H (version default, broad organization override, profile default when the version row is inactive, per-profile default, `NO_AUTHORITY` deny, an unusable broad link blocks narrower ones, `STATUS_NOT_COVERED`), plus constraint rejections for invalid defaults and assignments. |
 | 2 Tenant resolver | DONE | One SQL-backed resolver is used by context and Preview, and Apply revalidates it under the order lock immediately before mutation. Canonical operation snapshots are proof-bound and persisted, shipped writers are gated, compact bilingual review/policy UI is complete, and focused/unit/database/build validation passed. |
 | 3 HQ API | DONE | Found already implemented, uncommitted, in `cleanmatexsaas`. Audited and validated 2026-10-23 — see evidence below. |
 | 4 HQ screens | DONE | Studio tab found already implemented, uncommitted. A new standalone Order Change hub (hub + Edit Policies + Operation Catalog pages) was added 2026-10-23 at the user's request. See evidence below. |
-| 5 Proof and docs | Not started | Cross-application resolution-parity proof (section 11.4) still needs a manual run against both live apps. |
+| 5 Proof and docs | DONE except the manual check | Docs current (this file, the plan, the main ledger). Tenant and HQ both call `sys_wf_resolve_edit_policy`, so parity holds by construction; the 7-step manual check in plan §11.4 (both apps running) is an owner action, listed in the Order Edit V2 `followups_by_user.md`. |
 
 ## Phase 1 evidence — 2026-10-23
 

@@ -6536,7 +6536,7 @@ model org_inv_stock_tr {
   id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id        String               @db.Uuid
   product_id           String               @db.Uuid
-  transaction_no       String?              @db.VarChar(30)
+  transaction_no       String
   transaction_date     DateTime             @default(now()) @db.Timestamptz(6)
   transaction_type     String               @db.VarChar(20)
   quantity             Decimal              @db.Decimal(19, 4)
@@ -6564,6 +6564,7 @@ model org_inv_stock_tr {
   org_branches_mst     org_branches_mst     @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_inv_stock_tr_branch")
 
   @@unique([tenant_org_id, id], map: "uk_inv_stock_tr_tenant")
+  @@unique([tenant_org_id, transaction_no], map: "uq_inv_stock_tr_no")
   @@index([tenant_org_id, transaction_date(sort: Desc)], map: "idx_inv_stock_date")
   @@index([tenant_org_id, product_id, transaction_date(sort: Desc)], map: "idx_inv_stock_product")
   @@index([tenant_org_id], map: "idx_inv_stock_tenant")
@@ -17222,6 +17223,49 @@ model sys_label_printing_cf {
   updated_count         Int?                    @default(0)
   org_label_printing_cf org_label_printing_cf[]
 
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model hq_navigation_cd {
+  nav_id                 String             @id(map: "pk_hq_navigation_cd") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nav_code               String             @unique(map: "ak_hq_nav_code")
+  parent_nav_code        String?
+  section_code           String
+  label                  String
+  label2                 String
+  description            String?
+  description2           String?
+  nav_path               String
+  nav_icon               String             @db.VarChar(60)
+  badge                  String?
+  main_permission_code   String?
+  nav_level              Int                @default(1)
+  display_order          Int                @default(100)
+  is_leaf                Boolean            @default(true)
+  is_navigable           Boolean            @default(true)
+  is_active              Boolean            @default(true)
+  is_system              Boolean            @default(true)
+  metadata               Json?              @default("{}")
+  created_at             DateTime           @default(now()) @db.Timestamptz(6)
+  created_by             String?            @default("system")
+  created_info           String?
+  updated_at             DateTime?          @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  updated_count          Int?               @default(0)
+  deleted_at             DateTime?          @db.Timestamptz(6)
+  deleted_by             String?
+  deleted_info           String?
+  rec_status             Int?               @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  hq_navigation_cd       hq_navigation_cd?  @relation("hq_navigation_cdTohq_navigation_cd", fields: [parent_nav_code], references: [nav_code], map: "fk_hq_nav_parent")
+  other_hq_navigation_cd hq_navigation_cd[] @relation("hq_navigation_cdTohq_navigation_cd")
+
+  @@index([parent_nav_code], map: "idx_hq_nav_parent")
+  @@index([section_code, display_order], map: "idx_hq_nav_section")
   @@schema("public")
 }
 

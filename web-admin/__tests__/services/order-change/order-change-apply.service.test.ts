@@ -4,6 +4,7 @@ import { join } from 'path';
 import { buildOrderChangeOperationAudit, digestOrderChangeOperationAudits } from '@/lib/services/order-change/order-change-review-audit';
 import { issueOrderChangeReviewProof, type OrderChangeReviewProofBinding } from '@/lib/services/order-change/order-change-capability.service';
 import { applyOrderChange, type ApplyOrderChangeInput, type OrderChangeApplyTx } from '@/lib/services/order-change/order-change-apply.service';
+import { digestSettlementKeys } from '@/lib/services/order-change/order-change-settlement-fingerprint';
 import { persistOrderChangeTx, OrderChangeMutationError } from '@/lib/services/order-change/order-change-mutation.service';
 import type { OrderChangeFinancialResult } from '@/lib/services/order-change/order-change-financial-result.service';
 import type { OrderChangePreviewSuccess } from '@/lib/services/order-change/order-change-preview.service';
@@ -292,7 +293,7 @@ describe('applyOrderChange', () => {
       expectedEditStateVersion: 3, expectedWfStateVersion: 5, sourceContext: 'order-edit',
       canonicalIntent: input.request.operations, changeReason: null, gateDecisions: [],
       policyIdentity: { editPolicyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', profileVersionId: null, policyRevision: 1 },
-      policyFacts: [], calculationFingerprint: 'fingerprint-1', settlementSourceFingerprint: 'settlement',
+      policyFacts: [], calculationFingerprint: 'fingerprint-1', settlementSourceFingerprint: digestSettlementKeys([]),
       operationSnapshotDigest: digestOrderChangeOperationAudits([expected]),
     };
     input.proofKey = key;
@@ -301,11 +302,37 @@ describe('applyOrderChange', () => {
     let reads = 0;
     tx.$queryRaw = jest.fn(async (strings: TemplateStringsArray) => {
       if (strings.join(' ').includes('FOR UPDATE')) return [{ id: input.orderId }];
+      if (strings.join(' ').includes('org_order_payments_dtl')) return [];
       reads += 1;
       return [{ internal_notes: reads === 1 ? 'Keep' : 'Different stored result', customer_notes: null }];
     });
     await expect(applyOrderChange(input)).resolves.toEqual({ ok: false, status: 409, code: 'REVIEW_CHANGED' });
     expect(persistMock).toHaveBeenCalledTimes(1);
+    expect(committed()).toBe(false);
+  });
+
+  it('OC-CON-005: a settlement fact that landed after Review stops Apply under the lock, before any write', async () => {
+    const { input, tx, committed } = harness();
+    const key = { keyId: 'review-v1', secret: 'test-secret-test-secret-test-secret' };
+    const binding: OrderChangeReviewProofBinding = {
+      tenantId: input.tenantId, orderId: input.orderId, actorUserId: input.actorUserId,
+      expectedEditStateVersion: 3, expectedWfStateVersion: 5, sourceContext: 'order-edit',
+      canonicalIntent: input.request.operations, changeReason: null, gateDecisions: [],
+      policyIdentity: { editPolicyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', profileVersionId: null, policyRevision: 1 },
+      policyFacts: [], calculationFingerprint: 'fingerprint-1', settlementSourceFingerprint: digestSettlementKeys([]),
+      operationSnapshotDigest: 'not-reached',
+    };
+    input.proofKey = key;
+    input.request.reviewProof = issueOrderChangeReviewProof({ key, binding, now: input.appliedAt });
+    input.preview.reviewBinding = binding;
+    tx.$queryRaw = jest.fn(async (strings: TemplateStringsArray) => {
+      if (strings.join(' ').includes('FOR UPDATE')) return [{ id: input.orderId }];
+      // A refund committed after Review.
+      if (strings.join(' ').includes('org_order_payments_dtl')) return [{ k: 'R:r1:COMPLETED:5.0000:0.0000' }];
+      return [];
+    });
+    await expect(applyOrderChange(input)).resolves.toEqual({ ok: false, status: 409, code: 'REVIEW_CHANGED' });
+    expect(persistMock).not.toHaveBeenCalled();
     expect(committed()).toBe(false);
   });
 

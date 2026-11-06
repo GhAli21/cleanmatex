@@ -73,15 +73,12 @@ describe('B15 source guard — money paths have no currency literals', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('recalculateOrderTotals has no 0.05 VAT fallback and zero-rates unconfigured tax', () => {
+  it('lib/db/orders.ts no longer recalculates order totals (legacy writer retired)', () => {
     const code = stripComments(
       fs.readFileSync(path.join(process.cwd(), 'lib/db/orders.ts'), 'utf8')
     );
+    expect(code).not.toContain('recalculateOrderTotals');
     expect(code).not.toMatch(/:\s*0\.05\b/);
-    // Resolution ladder: header stamp → org_order_taxes_dtl effective rate →
-    // zero-rated (owner policy: no tax setup = tenant does not use tax).
-    expect(code).toContain('org_order_taxes_dtl');
-    expect(code).toContain('vatRate = 0');
   });
 
   it('use-payment-totals has no 0.06/0.05 tax fallback', () => {

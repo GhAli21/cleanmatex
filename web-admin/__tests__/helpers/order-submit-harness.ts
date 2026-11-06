@@ -3,7 +3,7 @@
  * Callback mocks verify transaction composition; they cannot prove database rollback.
  */
 import type { SubmitOrderRequest } from '@/lib/validations/new-order-payment-schemas';
-import type { OrderCalculationResult } from '@/lib/services/order-calculation.service';
+import type { OrderCalculationResult } from '@/lib/types/order-financial';
 
 /** Records the guarded initial-commit write at the end of the aggregate transaction. */
 export const mockInitialCommit = jest.fn();

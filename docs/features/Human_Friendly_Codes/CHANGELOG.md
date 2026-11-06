@@ -1,5 +1,16 @@
 # Changelog — Human-Friendly Codes
 
+## [Unreleased] — 2026-11-07 — P12 release-blocker remediation
+
+### Fixed (applied/implemented; pending deployment verification)
+- Deferred Pay Later / Pay on Collection creation no longer requires a receipt voucher before a real collection occurs.
+- Processing split converts persisted piece-row UUIDs to the established `{itemId}-piece-{pieceNumber}` service contract.
+- The receipt-send screen shows the human-friendly order number rather than the route UUID; printed thermal/A4 receipts include an opaque public-tracking QR.
+- `0703_stock_transaction_hfc.sql` was **applied by the user locally and remotely**: it moves STOCK_TRANSACTION allocation to `fn_doc_seq_next`, repairs duplicate/missing codes with provenance, and adds tenant-scoped uniqueness plus immutability. Database types were regenerated in both repos and Prisma was pulled.
+
+### Open verification
+- Deploy and run S1, S4, S13, S14 and S17. Physical scanner S7/S8, live flag-off S19, and staging/concurrency S20 remain required.
+
 ## 2026-11-06 (Asia/Muscat) — A-76..A-83 HQ doc-seq console redesign (no migration)
 
 ### Added

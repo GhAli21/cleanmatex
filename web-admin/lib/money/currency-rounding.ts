@@ -6,8 +6,7 @@
  * `(currency, context)` -> fall back to `(currency, 'ACCOUNTING')` -> no-op
  * if still absent, per the handoff's resolution contract. Callers that don't
  * pass a context resolve ACCOUNTING, preserving this module's original B17
- * behavior exactly (the only live caller, `order-calculation.service.ts`,
- * has never passed one). Never invents a rounding behavior, matching the
+ * behavior exactly. Never invents a rounding behavior, matching the
  * B15 "resolve or zero, never assume" policy already applied to tax rates
  * and currency defaults.
  */

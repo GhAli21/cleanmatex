@@ -11,5 +11,9 @@
   "order_balance": "Balance",
   "order_settled": "Settled",
   "order_overpaid": "Overpaid",
-  "figures_reconciled": "Reconciled"
+  "figures_reconciled": "Reconciled",
+  "service_speed": "Service speed",
+  "speed_premium": "Speed premium",
+  "tax_category": "Tax category",
+  "line_net": "After discounts"
 }

@@ -57,12 +57,12 @@ function body() {
   };
 }
 
-function call(headers: Record<string, string> = { 'Idempotency-Key': 'key-1' }) {
+function call(headers: Record<string, string> = { 'Idempotency-Key': 'key-1' }, payload: unknown = body()) {
   return POST(
     new NextRequest(`http://localhost/api/v1/orders/${ORDER_ID}/changes`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...headers },
-      body: JSON.stringify(body()),
+      body: JSON.stringify(payload),
     }),
     { params: Promise.resolve({ id: ORDER_ID }) },
   );
@@ -97,6 +97,28 @@ describe('POST /api/v1/orders/[id]/changes', () => {
     const response = await call();
     expect(response.status).toBe(403);
     expect(previewMock).not.toHaveBeenCalled();
+  });
+
+  it('OC-SEC-003 refuses forged identity fields before reading the order', async () => {
+    for (const forged of [
+      { tenantId: '99999999-9999-4999-8999-999999999999' },
+      { actorUserId: '99999999-9999-4999-8999-999999999999' },
+      { tenantOrgId: '99999999-9999-4999-8999-999999999999', createdBy: 'someone-else' },
+    ]) {
+      const response = await call(undefined, { ...body(), ...forged });
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({ ok: false, error: { code: 'VALIDATION_ERROR' } });
+    }
+    expect(contextMock).not.toHaveBeenCalled();
+    expect(applyMock).not.toHaveBeenCalled();
+  });
+
+  it('OC-SEC-003 applies as the session organization and user only', async () => {
+    const response = await call();
+    expect(response.status).toBe(200);
+    expect(contextMock).toHaveBeenCalledWith(expect.objectContaining({ tenantId: TENANT_ID, orderId: ORDER_ID }));
+    expect(previewMock).toHaveBeenCalledWith(expect.objectContaining({ tenantId: TENANT_ID, actorUserId: '33333333-3333-4333-8333-333333333333' }));
+    expect(applyMock).toHaveBeenCalledWith(expect.objectContaining({ tenantId: TENANT_ID, orderId: ORDER_ID, actorUserId: '33333333-3333-4333-8333-333333333333' }));
   });
 
   it('commits through one transaction after a fresh preview', async () => {

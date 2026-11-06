@@ -559,37 +559,9 @@ export async function updateBranchStock(request: UpdateBranchStockRequest): Prom
 // ==================================================================
 
 /**
- * Generate transaction number: STK-20260207-0001
- */
-async function generateTransactionNo(): Promise<string> {
-  const supabase = await createClient();
-  const tenantId = await getTenantIdFromSession();
-
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-
-  const { data } = await supabase
-    .from('org_inv_stock_tr')
-    .select('transaction_no')
-    .eq('tenant_org_id', tenantId)
-    .like('transaction_no', `STK-${today}-%`)
-    .order('transaction_no', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let seq = 1;
-  if (data?.transaction_no) {
-    const match = data.transaction_no.match(/STK-\d{8}-(\d+)/);
-    if (match) {
-      seq = parseInt(match[1], 10) + 1;
-    }
-  }
-
-  return `STK-${today}-${String(seq).padStart(4, '0')}`;
-}
-
-/**
  * Adjust stock for an item (increase, decrease, or set).
  * Creates a transaction in org_inv_stock_tr and updates qty in org_inv_stock_by_branch.
+ * The database trigger assigns the human-friendly transaction number atomically.
  * branch_id is required — all stock transactions must be branch-scoped.
  */
 export async function adjustStock(
@@ -652,14 +624,13 @@ export async function adjustStock(
       throw new Error('Invalid adjustment action');
   }
 
-  const transactionNo = await generateTransactionNo();
   const unitCost = request.unit_cost ?? Number(item.product_cost) ?? 0;
 
+  // The DB trigger owns transaction numbering so every writer uses one atomic counter.
   const insertPayload: Record<string, unknown> = {
     tenant_org_id: tenantId,
     product_id: request.product_id,
     branch_id: request.branch_id,
-    transaction_no: transactionNo,
     transaction_type: transactionType,
     quantity,
     unit_cost: unitCost,

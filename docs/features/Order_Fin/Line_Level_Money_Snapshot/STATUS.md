@@ -1,7 +1,7 @@
 # Line-Level Money Snapshot — STATUS
 
 **Plan:** [PLAN.md](PLAN.md) · **Discussion:** [DISCUSSION.md](DISCUSSION.md)
-**Overall:** APPROVED by owner 2026-10-23 (v2.1). In execution. Migrations 0639–0645 (M1–M7) applied 2026-10-24; 0646 (exempt-reason seed) applied 2026-10-24; next free number 0647.
+**Overall:** ✅ COMPLETE in code 2026-11-07 (v1.0.0, see [README](README.md) and [CHANGELOG](CHANGELOG.md)). Left for the owner: QA ([QA_TEST_GUIDE.md](QA_TEST_GUIDE.md)), HQ Edit policy rules, commit. Approved 2026-10-23 (v2.1); migrations 0639–0646, 0661–0665, 0673, 0691–0694, 0698–0700 (+ 0702 Order Edit V2) applied.
 
 ## Remaining work (consolidated 2026-10-24, re-checked 2026-10-30)
 
@@ -22,7 +22,7 @@ The one place that lists everything left in this plan and in Reusable Order Fin 
 | P8 readers | ✅ Done: P8-02 2026-11-01, P8-01 2026-11-05 |
 | P9 (Release B) | ✅ P9-01 per-piece discount/speed done 2026-11-05 (migration 0692 applied, proved on PostgreSQL) · P9-02 enable `PIECE` in HQ |
 | P10 | P10-04 (added 2026-10-31): remove Create's order-total rounding step (always 0 since 0686). (Demo orders were all deleted by the owner 2026-10-30, so P10-02 only fixes the demo catalog: NULL `price_type`, PF-24.) P10-01 remove obsolete recalc and the legacy money services: `preview-financials` (legacy `calculateOrderTotals`), `estimate-ready-by`, the legacy `express` boolean update API, `order-preference-charge-recalc` · P10-02 recompute or delete the demo orders made before the calculator (dry-run first) · P10-03 M10 NOT NULL + CHECK, M11 drop retired columns |
-| P11 | Gates in both repos, QA guide per scenario, feature documentation pack, final docs in this folder (README, developer and user guides EN/AR, CHANGELOG), Order_Fin root docs + glossary + ADR-060 status, HQ docs (P11-03…06) |
+| P11 | ✅ Done 2026-11-07: gates (tenant `tsc`, ESLint, jest, DB suite, build, `check:i18n`; HQ builds 2026-11-06), README / developer / user guides / CHANGELOG / version in this folder, Order_Fin root docs, ADR-060 Implemented, glossary, integration contracts, HQ progress doc. |
 
 ### P6-02 plan (approved by owner 2026-10-30)
 
@@ -142,13 +142,25 @@ Both plans run as one sequence, because they change the same files.
 | P5 | Services + Create | A | ✅ Done 2026-10-28 (P5-01, P5-02, P5-03a–e) | One writer |
 | P6 | Order Edit V2 write parity | A | In progress: ✅ P6-01 done 2026-10-28; P6-02 next | Same release as P5 |
 | P7 | Configuration UI (tenant app) + HQ card | A | ✅ Done 2026-11-05 (P7-02, P7-03, P7-05 2026-11-01; P7-01 + migration 0691 applied, P7-04 2026-11-05). Next P8-01 | Nav dual-write, access contract |
-| P8 | Readers + fiscal item lines | A | Not started | `org_tax_doc_items_dtl` (owner item §20-3) |
-| P9 | PIECE level enablement | B | Not started | `PIECE` disabled in HQ until P9-01 |
+| P8 | Readers + fiscal item lines | A | ✅ Done 2026-11-05 (P8-02 2026-11-01, P8-01 2026-11-05) | `org_tax_doc_items_dtl` (owner item §20-3) |
+| P9 | PIECE level enablement | B | ✅ Done 2026-11-05 (P9-01 migs 0692/0694 applied; P9-02 HQ offers `PIECE`) | Edit piece speed/discount need HQ policy rules (owner) |
 | P10 | Recompute, tighten (M10), drop (M11) | A / C | ✅ Done 2026-11-06 (0698, M10 = 0699, M11 = 0700 applied; HQ cleanup done) | |
-| P11 | Verification and docs (both repos) | A–C | Not started | |
+| P11 | Verification and docs (both repos) | A–C | ✅ Done 2026-11-07 (gates, docs pack, related docs, HQ docs) | Owner QA remains |
 
 ## Log
 
+- **2026-11-07 (P11 docs done — plan complete in code):**
+  - **This folder:** new [README.md](README.md) (doc map + implementation checklist: permissions none new, navigation, HQ-owned settings, APIs added / removed, migrations, constants, i18n, shared UI, HQ, mobile), [developer_guide.md](developer_guide.md) (calculator boundary and contract, Create / Edit flow, extending, tests), [user_guide.md](user_guide.md) EN/AR, [CHANGELOG.md](CHANGELOG.md), `version.txt` 1.0.0.
+  - **Related:** Order_Fin `README.md`, `IMPLEMENTATION_STATUS.md`, `CHANGELOG.md`; ADR-060 status Accepted and Implemented; glossary terms `service_speed`, `speed_premium`, `tax_category`, `line_net` (EN/AR, taken from the existing UI copy); `integration-contracts.md` (both repos) records the HQ-owned order-finance settings exception (C14); HQ `docs/features/Order_Fin/progress_status.md` HQ part.
+  - **Gates:** `check:i18n` passes. `check:platform-info-inventories` reports the same 6 navigation-vs-contract drift warnings as before (delivery, catalog preferences, roles, permissions, payment settings; none from this plan); it only refreshed the DRIFT_REPORT timestamp.
+- **2026-11-07 (P11: legacy pricing code removed):** no runtime caller was left for the pre-calculator money path, so it is deleted (pre-launch, no compat):
+  - `POST /api/v1/pricing/calculate` (route), `lib/services/pricing.service.ts`, `lib/services/order-calculation.service.ts` (legacy `calculateOrderTotals`, `toFinancialBreakdownSnapshot`), `lib/services/tax.service.ts` (only the pricing service used it);
+  - `lib/db/orders.ts` `deleteOrderItem` + `recalculateOrderTotals` (a legacy header-totals writer with no caller); `lib/db/order-discounts.ts` `insertDiscountLinesInternal` (no caller);
+  - tests of the deleted code: `create-totals.golden`, `create-pricing.golden`, `order-calculation.service.test`, `tax.service.test`; stale mocks removed from 4 commercial/payment tests; the b15 guard now asserts `lib/db/orders.ts` has no totals recalculation.
+  - Kept: the `OrderCalculationResult` shape (the checkout quote's totals) moved to `lib/types/order-financial.ts`.
+  - Found while checking: after today's Prisma pull `discount_level` is required (M10); `commercial-line.writer.ts` always set it, now its type says so.
+  - Checks: `tsc` 0; ESLint 0; affected suites 13/13 (115 tests); full jest 531/543 suites — the 12 failures are not from this change (6 need `NEXT_PUBLIC_SUPABASE_*` env and pass with placeholders; labels / receipt print / receipt page are other uncommitted work in the tree; `overpayment-disposition.wallet` mock lacks `findMany`, pre-existing since P8; `platform-inventories` nav drift); DB suite 55/56 (only local wf SIMPLE v2 stage-sequence drift); `npm run build` exit 0.
+  - Also 2026-11-07, Order Edit V2 WP17: migration 0702 (committed-order column guard) applied and proved, see the [WP17 note](../../Order_Edit_V2/CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_ACTIVE_ONLY/WP17_Postponed_Committed_Column_Guard_v3.0.md).
 - **2026-10-31 (Reusable View speed premium):** the express premium inside item prices is shown as its own "included" line (saved: item `speed_premium_amount` on calculator orders; draft: optional quote `speedPremiumIncludedAmount`). Details in the [Reusable View STATUS log](../Reusable_Order_Fin_View/STATUS.md#log).
 - **2026-10-31 (Reusable View extras fix):** one "Extras included" line from the calculator's `includedModifierAmount` (saved: item `service_pref_charge` on calculator orders; draft: new optional `extrasIncludedAmount` on the checkout quote). The old piece/preference lines overlapped. Draft overpayment now passed through. Details in the [Reusable View STATUS log](../Reusable_Order_Fin_View/STATUS.md#log).
 - **2026-11-01 (P7-03 done: tax rounding fields):** one Zod schema `lib/validations/tax-profile-rounding-schema.ts` (level `LINE`|`DOCUMENT` from `TAX_ROUNDING_LEVELS`, mode from `CURRENCY_ROUNDING_MODES` = `sys_rounding_mode_cd`, output decimals 0–6, increment 1–1000 minor units; null = currency default) used by `createTaxProfileAction` / `updateTaxProfileAction` (now validated at the boundary), `POST /api/v1/settings/tax/profiles` and `PATCH …/[profileId]`. Tax setup form → **Rounding** fieldset (round at, method with "Currency default", decimals, increment; EN/AR `taxSetup.rounding.*`). **Found and fixed:** `PATCH /api/v1/settings/tax/profiles/[profileId]` wrote `tax_rate` / `secondary_tax_rate`, columns that do not exist — every rate change through that route failed; it now writes `rate` (`secondaryTaxRate` removed: no column). Test `__tests__/validations/tax-profile-rounding-schema.test.ts` (3). `tsc`, ESLint, `check:i18n` ✓.
@@ -229,6 +241,7 @@ Both plans run as one sequence, because they change the same files.
     - The P10-03 items above are resolved: the 5 functions were replaced, a new tenant gets Express rules, and `addOrderItems` no longer exists.
     - **Found, not changed (pre-existing, unrelated to 0700):** the old HQ template-by-code methods filter `sys_service_prod_templates_cd` on a `product_code` column that does not exist: `getProductByCode`/`createProduct`/`updateProduct`/`deleteProduct` in `catalog.repository.ts`, and `compareSingleProduct` in `product-comparison.service.ts`. Templates are keyed by `item_code` + `service_category_code` (the newer composite-key template methods work). Listed in the owner follow-ups.
     - **Found for P11:** `/api/v1/pricing/calculate`, `pricing.service` and the legacy `calculateOrderTotals` have no runtime caller and should be deleted.
+  - **2026-11-06: HQ Products & Items Config workspace built (owner request).** All HQ product setup moved out of `/catalog` into `/products-items-config` (API module `products-items-config`, own screens, `catalog.view` / `catalog.manage`, audited). The HQ catalog paths named in the M11 cleanup above moved with it (`modules/catalog/*` product code is now `modules/products-items-config/*`); the template-by-code bugs listed there are gone (dead `catalog/products` removed, single compare re-keyed). 19 pre-existing HQ bugs fixed on the way, including onboarding custom catalog picks that always failed. No migration; tenant app unchanged. Detail, QA list and owner follow-ups: HQ repo `docs/features/Products_Items_Config/STATUS.md`.
   - **Checks:** `tsc` clean; `npx eslint . --quiet` clean; 19 related suites (156 tests) pass; DB proofs 11/11; `npm run build` exit 0; inventories synced.
   - **Migration 0698 (P10-02):** demo organization only. 6 empty price types become `PER_PC`; 41 minimums above the sale price are cleared (PF-24 was recorded as 4). New products default to `PER_PC`.
   - **M10 scope decided:** items and pieces NOT NULL + I5 CHECK; discount `discount_level` NOT NULL. Not constrained: order headers (20 DB test fixtures and 68 local rows have none, sub-orders stay without a calc version), charge tax columns (nullable by design), preference §6.3 columns (no writer sets them; review whether to drop).

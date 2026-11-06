@@ -1,11 +1,11 @@
 # Implementation Report — Human-Friendly Codes
 
-**Status:** CLOSED — all 17 HFC migrations applied through `0690` (`0687`–`0689` on 2026-11-01, `0690` on 2026-11-05, local + remote); types + `prisma.schema` regenerated; web-admin / `platform-api` / `platform-web` deployed 2026-11-05; waiting for smoke test, QA and the next mobile release. **Date:** 2026-10-31, updated 2026-11-05 (Asia/Muscat). **Version:** 1.0.0.
+**Status:** REOPENED — P12 release-blocker remediation began 2026-11-07 after deployed QA exposed stock-code, deferred-payment, split, and receipt defects. The user applied `0703_stock_transaction_hfc.sql` locally and remotely, regenerated database types in both repos, and pulled Prisma. **Date:** 2026-10-31, updated 2026-11-07 (Asia/Muscat). **Version:** 1.0.1-unreleased.
 **Repos:** tenant `cleanmatex` (all migrations, `web-admin`, `cmx-api`, `cmx_mobile_apps`), HQ `cleanmatexsaas` (`platform-api`, `platform-web`).
 **Plan:** [`IMPLEMENTATION_PLAN_Human_Friendly_Codes.md`](./IMPLEMENTATION_PLAN_Human_Friendly_Codes.md) (§1 status, §20 decisions, §21 tasks). **Runbook:** `DEV_GUIDE_DOC_SEQ_ENGINE.md` §22.
 
 ## 1. Summary
-One doc-seq engine in the tenant DB now issues readable, unique, immutable codes for orders, sub-orders, items, pieces and store credit notes, with consistency checks, HQ configuration screens, real CODE128/QR labels, tenant-wide scanning and left-to-right display in Arabic. All 17 HFC migrations are applied by the user through `0690` (`0687`–`0689` on 2026-11-01, `0690` on 2026-11-05, local + remote); types and `prisma.schema` regenerated; web-admin / `platform-api` / `platform-web` deployed 2026-11-05. Smoke test, QA and the next mobile release remain.
+One doc-seq engine in the tenant DB issues readable codes for orders, sub-orders, items, pieces and store credit notes. P12 routes STOCK_TRANSACTION through the existing atomic engine and closes the deferred-payment, piece-split, and receipt/tracking-QR gaps. The user applied the migration locally and remotely; local read-only checks confirm the core stock-code schema/data invariants. Deployment, behavior/concurrency proof, hardware, staging, and deployed QA remain open.
 
 ## 2. Per phase — files, migrations, tests
 
@@ -25,6 +25,7 @@ One doc-seq engine in the tenant DB now issues readable, unique, immutable codes
 | P8 | `mobile_core/lib/src/human_codes.dart`, customer app order card/detail; `app/api/v1/orders/[id]/transition/route.ts`; HFC-RULE text in 6 tenant + 6 HQ rule files | — | mobile_core 7, customer app 2, `orders-transition.route.test.ts` 5/5 | Code done, deploy / release pending |
 | P9 | this pack (README, development_plan, progress_summary, current_status, developer_guide(+mermaid), user_guide(+mermaid), deploy_guide, testing_guide_and_scenarios, QA_TEST_GUIDE, CHANGELOG, version.txt, technical_docs/README, this report); HQ ADR-004 + both ADR indexes, HQ README | — | final regression 2026-10-31: web-admin HFC jest 29 suites / 237 tests pass; box chain `0666`→`0689` + P5/P6 safety PASS | DONE (docs); QA + perf user-run |
 | P11 | `0690` grants; web-admin `feature-flags.ts`, `types/tenant.ts`, `lib/notifications/credit-note-variables.ts`, `whatsapp-content-variables.ts`, `messages/{en,ar}/notifications.json`; mobile `customer_order_booking_screen.dart` | `0690_hq_doc_seq_role_grants` (**applied 2026-11-05**) | `hfc_p11_role_grants_safety.test.sql`; box chain `0687`→`0690` + rerun PASS; jest + Windows `tsc` clean; `flutter analyze` clean | Applied + web/HQ deployed 2026-11-05; mobile release pending |
+| P12 | deferred-payment orchestrator; processing-piece mapping/modal; receipt page and print; stock inventory writer; P12 tests/docs | `0703_stock_transaction_hfc` (**applied by user locally + remotely**) | focused Jest/source-contract tests; local read-only schema/data invariant check; `hfc_stock_transaction_engine_safety.test.sql` still required | WAITING FOR USER (deploy/test) |
 
 Migration numbering: latest HFC file `0697` (applied 2026-11-05 evening with `0693`/`0695`/`0696`); next free `0698`. `0680`, `0681`, `0686`, and `0691_speed_pricing_nav_audit.sql` (Speed Pricing nav/audit) are not HFC files.
 

@@ -44,6 +44,8 @@ interface OrderReceiptPrintProps {
    * migration 0685, capped by the human_codes_scan_labels flag). Default false: the receipt looks as before.
    */
   showOrderBarcode?: boolean;
+  /** Absolute opaque-token URL encoded in the customer-facing tracking QR. */
+  publicTrackingUrl?: string | null;
 }
 
 /**
@@ -55,6 +57,7 @@ interface OrderReceiptPrintProps {
  * @param root0.payments
  * @param root0.cashChangeRounding
  * @param root0.showOrderBarcode
+ * @param root0.publicTrackingUrl
  */
 export function OrderReceiptPrint({
   order,
@@ -63,6 +66,7 @@ export function OrderReceiptPrint({
   payments = [],
   cashChangeRounding = [],
   showOrderBarcode = false,
+  publicTrackingUrl = null,
 }: OrderReceiptPrintProps) {
   const tPaymentsDetail = useTranslations('orders.detailFull');
   const tOrders = useTranslations('orders');
@@ -257,6 +261,22 @@ export function OrderReceiptPrint({
           })}
         </section>
       )}
+
+      {publicTrackingUrl ? (
+        <section
+          className="print-section flex flex-col items-center gap-1 border-t border-gray-200 pt-2 text-center"
+          data-testid="receipt-public-tracking-qr"
+        >
+          <CmxBarcode
+            kind="qr"
+            value={publicTrackingUrl}
+            label={tLabels('template.customerTrackingQr')}
+            size={layout === 'thermal' ? 88 : 112}
+            className="block [&_svg]:h-auto [&_svg]:max-w-full"
+          />
+          <p className="text-[11px] text-gray-600">{tLabels('template.customerTrackingQr')}</p>
+        </section>
+      ) : null}
 
       <footer className="print-footer">
         <p>{tCommon('thanks') ?? 'Thank you for your business!'}</p>

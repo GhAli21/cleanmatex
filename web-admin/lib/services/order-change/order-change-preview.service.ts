@@ -53,7 +53,12 @@ import {
   projectOrderChangeFinancialResult,
   type OrderChangeFinancialResult,
 } from '@/lib/services/order-change/order-change-financial-result.service';
-import type { AggregationCreditRow, AggregationPaymentRow } from '@/lib/services/order-financial-aggregation';
+import {
+  round4,
+  sumChangeReturnedAmount,
+  type AggregationCreditRow,
+  type AggregationPaymentRow,
+} from '@/lib/services/order-financial-aggregation';
 import { buildPreviewOperationAudits, digestOrderChangeOperationAudits, type OrderChangeOperationAudit, type OrderChangePreviewAuditFacts } from '@/lib/services/order-change/order-change-review-audit';
 
 type ChangeRequest = z.infer<typeof orderChangeRequestSchema>;
@@ -292,9 +297,13 @@ export async function previewOrderChange(input: {
   /** Prices the projected order on the commercial calculator; called only for an edit that changes money. */
   priceEdit: OrderChangeEditPricer;
   catalog: readonly OrderChangePreferenceDefinition[];
-  payments: readonly AggregationPaymentRow[];
+  payments: ReadonlyArray<AggregationPaymentRow & { change_returned_amount?: string | null }>;
   credits: readonly AggregationCreditRow[];
   refunds: ReadonlyArray<{ refund_status: string | null; refund_amount: string; reopens_due_amount: string }>;
+  /** Overpayment already disposed to wallet or advance; with the change returned it is not "overpaid" any more. */
+  appliedDispositions?: readonly string[];
+  /** Settlement digest from `readSettlementFingerprint`; Apply compares it under the order lock. */
+  settlementFingerprint?: string;
   /** Stored order tax at preview time. The speed audit freezes this as the tax before the decision. */
   persistedTaxAmount?: string;
   /** Stored commercial rows for the review. Context is used when a row was not loaded. */
@@ -558,6 +567,9 @@ export async function previewOrderChange(input: {
     payments: input.payments,
     credits: input.credits,
     refunds: input.refunds,
+    // Same basis as the saved snapshot (`computeOverpaidAmount`): change handed back and disposed excess are not overpaid.
+    changeReturnedAmount: String(round4(sumChangeReturnedAmount(input.payments))),
+    appliedDispositions: input.appliedDispositions,
   });
   const policy = decisions.find((decision) => decision.policyIdentity)?.policyIdentity ?? null;
   const financiallyBlocked = financial.outcome === 'DENIED';
@@ -601,7 +613,7 @@ export async function previewOrderChange(input: {
       policyIdentity: policy,
       policyFacts: decisions,
       calculationFingerprint,
-      settlementSourceFingerprint: digestSettlementSource(input.payments),
+      settlementSourceFingerprint: input.settlementFingerprint ?? digestSettlementSource(input.payments),
       operationSnapshotDigest: digestOrderChangeOperationAudits(operationAudits),
     }
     : null;

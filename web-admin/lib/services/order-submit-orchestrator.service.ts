@@ -1028,8 +1028,9 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       // ── 6. settleOrderTx — same transaction as order + voucher wiring ───────
       // Payment / credit fact rows were written by BVM wiring above; settlement
       // only writes charges / taxes / discounts and recalculates the snapshot.
-      // Fail closed: legs without a posted receipt voucher would record nothing.
-      if (settlementLegs.length > 0 && !plan.shouldCreateReceiptVoucher) {
+      // Fail closed only for immediate settlement: deferred legs intentionally create
+      // a receivable without a receipt voucher until collection.
+      if (plan.shouldCreateReceiptVoucher && !voucherPostResult) {
         throw new Error('SETTLEMENT_LEGS_REQUIRE_RECEIPT_VOUCHER');
       }
       // P5-02: Create already wrote the tax and discount rows from the calculated

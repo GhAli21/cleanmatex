@@ -574,6 +574,28 @@ describe('previewOrderChange', () => {
     expect(result).toMatchObject({ ok: true, status: 'READY', projectedTotal: '10.5000', projectedTax: '0.5000', lines: [] });
   });
 
+  it('Reusable View P3-08 finding: cash change returned and disposed excess are not shown as overpaid', async () => {
+    const run = (appliedDispositions?: string[], changeReturned: string | null = '5.0000') => previewOrderChange({
+      now: NOW, tenantId: TENANT, actorUserId: ACTOR, featureEnabled: true,
+      canUsePermission: async () => true,
+      context: context({ financial: { totalAmount: '15.0000', netCollectedAmount: '15.0000', outstandingAmount: '0.0000', overpaidAmount: '0.0000' } }),
+      request: request([{ seq: 1, code: 'CHANGE_ORDER_NOTES', target: { kind: 'ORDER' }, payload: { notes: 'Updated' } }]),
+      bindings: [binding('CHANGE_ORDER_NOTES', 'ORDER')],
+      priceEdit: async () => { throw new Error('not priced'); },
+      catalog: [],
+      // Cash tender of 20 on a 15.000 order, 5.000 handed back.
+      payments: [{ amount: '20.0000', payment_status: 'COMPLETED', payment_nature_snapshot: 'REAL_PAYMENT', payment_method_code: 'CASH', change_returned_amount: changeReturned }],
+      credits: [], refunds: [], appliedDispositions, persistedTaxAmount: '0.0000', proofKey: KEY,
+    });
+    const settled = await run();
+    expect(settled).toMatchObject({ ok: true, financial: { overpaidAmount: '0.0000', unresolvedOverpayment: '0.0000', outstandingAmount: '0.0000' } });
+    // No change recorded: the 5.000 excess is overpaid until it is disposed.
+    const excess = await run(undefined, null);
+    expect(excess).toMatchObject({ ok: true, financial: { overpaidAmount: '5.0000', unresolvedOverpayment: '5.0000' } });
+    const disposed = await run(['5.0000'], null);
+    expect(disposed).toMatchObject({ ok: true, financial: { overpaidAmount: '5.0000', unresolvedOverpayment: '0.0000' } });
+  });
+
   it('P6-01b: a money edit on an order from before the calculator returns ORDER_NEEDS_RECOMPUTE', async () => {
     const { CommercialEditError } = jest.requireActual('@/lib/services/commercial/commercial-edit.loader');
     const result = await previewOrderChange({

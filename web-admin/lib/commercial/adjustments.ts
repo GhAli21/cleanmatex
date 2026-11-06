@@ -2,8 +2,7 @@
  * Adjustments (discounts) applied in sequence (PLAN.md §8.3, §8.4).
  *
  * Why: Create applies order discounts one after another, each on what is
- * left, and stores each one rounded (`order-calculation.service.ts`, manual →
- * rule → promo). Line and document discounts share that one rule here, so
+ * left, and stores each one rounded (manual → rule → promo). Line and document discounts share that one rule here, so
  * Create, Edit and the quote cannot drift apart. An amount larger than what
  * is left is rejected, never clamped (rule #15).
  */

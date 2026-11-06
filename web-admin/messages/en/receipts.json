@@ -1,0 +1,49 @@
+{
+  "page": {
+    "title": "Receipts",
+    "orderLabel": "Order"
+  },
+  "send": {
+    "title": "Send receipt",
+    "receiptType": "Receipt type",
+    "deliveryChannels": "Delivery channels",
+    "language": "Language",
+    "action": "Send receipt"
+  },
+  "receiptTypes": {
+    "whatsapp_text": "WhatsApp text",
+    "whatsapp_image": "WhatsApp image",
+    "in_app": "In-app receipt"
+  },
+  "deliveryChannels": {
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "app": "In-app"
+  },
+  "languages": {
+    "en": "English",
+    "ar": "Arabic"
+  },
+  "history": {
+    "title": "Receipt history",
+    "loading": "Loading receipt history...",
+    "emptyTitle": "No receipts sent yet",
+    "emptyDescription": "Sent receipts will appear here.",
+    "sentAt": "Sent: {date}",
+    "notSent": "Not sent"
+  },
+  "statuses": {
+    "delivered": "Delivered",
+    "sent": "Sent",
+    "failed": "Failed",
+    "pending": "Pending",
+    "unknown": "Unknown"
+  },
+  "messages": {
+    "loadFailed": "Could not load this order. Try again.",
+    "historyLoadFailed": "Could not load receipt history. Try again.",
+    "channelRequired": "Select at least one delivery channel.",
+    "sendSuccess": "Receipt sent successfully.",
+    "sendFailed": "Could not send the receipt. Try again."
+  }
+}

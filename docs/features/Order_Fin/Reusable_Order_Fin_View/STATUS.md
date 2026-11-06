@@ -25,11 +25,16 @@ The combined order lives in [Line-Level STATUS → Remaining work](../Line_Level
 |---|---|---|
 | P7 | Owner steps only: P7-05 QA run of [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md); run `e2e/order-financial-view.spec.ts` with `E2E_LOGIN_EMAIL`, `E2E_LOGIN_PASSWORD`, `E2E_FIN_ORDER_ID` | None |
 
-**Open findings to carry:** the preview's overpaid figure ignores cash change returned (P3-08); the stale banner must key on `snapshotStatus` (P3-04); the legacy `order-value-breakdown.tsx` shows overlapping extras until P6 retires it.
+**Open findings:** none (all three closed 2026-11-07, see the log).
 
 **Own package (security):** BF-23 → [API_Route_Auth_Hardening](../../API_Route_Auth_Hardening/PLAN.md), implemented 2026-10-30; QA and follow-ups in its STATUS.
 
 ## Log
+
+- **2026-11-07 (open findings re-checked, all closed):**
+  - **Edit preview overpaid ignored cash change — fixed.** The Order Edit preview (and the live card built from it) called the financial result without the change handed back or the excess already disposed, so a cash tender of 20 on a 15 order with 5 change showed "Overpaid 5" while the saved order said settled. `loadOrderChangePreviewFacts` now reads the same payment fields as the snapshot writer plus `change_returned_amount`, and the active `org_fin_overpay_disp_dtl` amounts (tenant-filtered); `previewOrderChange` passes `changeReturnedAmount` and `appliedDispositions` (both the preview route and Apply's re-preview). One shared helper `sumChangeReturnedAmount` in `order-financial-aggregation.ts` now serves the writer and the preview. The settlement digest is unchanged. Tests: preview (change → settled; no change → overpaid 5; disposed → unresolved 0), helper (completed real payments only); Order Edit DB proofs 10/10.
+  - **Stale banner keys on `snapshotStatus` — already done.** `order-financial-view.tsx` shows the banner for a saved view whose `snapshotStatus` is not `CURRENT` / `LOCKED` (the values of `ORDER_FINANCIAL_SNAPSHOT_STATUS`); the header badge uses the same set.
+  - **Legacy `order-value-breakdown.tsx` — already gone.** Only the payment modal's `order-value-breakdown-panel.tsx` remains; it shows subtotal, order charges, discounts and tax from the server quote, no piece / preference extras rows, so nothing overlaps.
 
 - **2026-11-01 (P9 done: documentation — plan complete):** folder `README.md` (doc map + P9-03 checklist: no new permissions, navigation, settings, flags, plan limits or env vars; routes, rate limits, migrations 0679/0681/0686, constants, i18n, shared UI, HQ, mobile), `developer_guide.md`, `user_guide.md` (EN/AR terms), `CHANGELOG.md` 1.0.0, `version.txt`; Order_Fin root: README quick links, IMPLEMENTATION_STATUS section, CHANGELOG entry, developer-guide pointer, the enhancement spec marked "implemented by"; glossary terms `order_balance`, `order_settled`, `order_overpaid`, `figures_reconciled` (EN/AR, matching the catalog); `.clauderc` `order_financial_view`; HQ pointer in `cleanmatexsaas/docs/features/Order_Edit_V2/WP05-B_HQ_PROGRESS.md`; inventories synced (P4-05); memory updated.
   - **Reusable Order Financial View: all phases P0–P9 done.** Owner steps: run [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) in EN/AR at phone, tablet, desktop and A4; run `e2e/order-financial-view.spec.ts` against a live app; commit (web-admin, HQ, mobile).

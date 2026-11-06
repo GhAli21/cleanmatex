@@ -83,52 +83,6 @@ export function buildDiscountLinesFromOrderInput(input: {
 // DB Write Functions
 // ============================================================================
 
-/** Prisma-compatible client interface for discount line operations (accepts tx or prisma directly) */
-type DiscountDbClient = Pick<typeof prisma, 'org_order_discounts_dtl'>;
-
-/**
- * Insert discount lines using any Prisma-compatible client (tx or prisma directly).
- * applied_seq = MAX(existing seq for this order) + array_index + 1
- * — safe for multiple calls (creation + payment-time); never produces duplicate seq values.
- * Skips lines with discountAmount <= 0. Idempotency is caller's responsibility.
- */
-async function insertDiscountLinesInternal(
-  db: DiscountDbClient,
-  params: {
-    orderId: string;
-    tenantOrgId: string;
-    lines: DiscountLineInput[];
-    createdBy?: string;
-  }
-): Promise<void> {
-  const { orderId, tenantOrgId, lines, createdBy } = params;
-  const positiveLines = lines.filter((l) => l.discountAmount > 0);
-  if (positiveLines.length === 0) return;
-
-  const existing = await db.org_order_discounts_dtl.aggregate({
-    where: { order_id: orderId, tenant_org_id: tenantOrgId },
-    _max: { applied_seq: true },
-  });
-  const baseSeq = existing._max.applied_seq ?? 0;
-
-  await db.org_order_discounts_dtl.createMany({
-    data: positiveLines.map((line, index) => ({
-      tenant_org_id:   tenantOrgId,
-      order_id:        orderId,
-      applied_seq:     baseSeq + index + 1,
-      source_type:     line.sourceType,
-      source_id:       line.sourceId ?? null,
-      source_name:     line.sourceName,
-      source_name2:    line.sourceName2 ?? null,
-      discount_type:   line.discountType,
-      discount_rate:   line.discountRate != null ? line.discountRate : null,
-      discount_amount: line.discountAmount,
-      created_by:      createdBy ?? null,
-    })),
-  });
-}
-
-
 /**
  * Void all active discount lines for an order (cancellation/refund flow).
  * Marks is_voided=true; rows remain in table for accounting history.

@@ -26,6 +26,7 @@ import type {
   TaxDocumentStatus,
   TaxDocumentTriggerEvent,
 } from '@/lib/constants/order-financial';
+import type { DiscountLineInput as DiscountRowInput } from '@/lib/db/order-discounts';
 
 // Re-export constant-derived types for single-import usage
 export type {
@@ -103,7 +104,7 @@ export type PaymentLegInput = {
   cashTendered?:   number;
 };
 
-// ── Full financial snapshot returned by order-calculation.service.ts ──────────
+// ── Full financial snapshot ────────────────────────────────────────────────
 /**
  *
  */
@@ -372,3 +373,42 @@ export type DiscountLineInput = {
   promotionId?:   string;
   stackingGroup?: string;
 };
+
+/** Order totals of a checkout quote (`commercial-checkout.service.ts`), built from the commercial calculator. */
+export interface OrderCalculationResult {
+  subtotal: number;
+  manualDiscount: number;
+  /** Discount from the best-matching automatic discount rule (no code required). */
+  autoRuleDiscount: number;
+  promoDiscount: number;
+  afterDiscounts: number;
+  taxRate: number;
+  taxAmount: number;
+  /** Sum of CUSTOM-type tax-profile lines, reported separately from VAT/GST (`vatValue`). */
+  additionalTaxAmount: number;
+  vatTaxPercent: number;
+  vatValue: number;
+  taxBreakdown: TaxLineItem[];
+  /** Stored-value settlement amount reserved for the gift card leg, not a pricing discount. */
+  giftCardApplied: number;
+  /** Canonical sale total after commercial discounts, tax, and rounding, before settlement credits. */
+  saleTotal: number;
+  currencyCode: string;
+  decimalPlaces: number;
+  /** Structured discount lines for the audit trail — one entry per discount source. */
+  discountLines: DiscountRowInput[];
+  /** Resolved tenant/branch tax pricing mode (B11) — drives "tax included" display. */
+  taxPricingMode: TaxPricingMode;
+  /** B17 — delta applied by the currency cash-rounding rule; 0 when no rule changes the total. */
+  roundingAdjustmentAmount: number;
+  /** B18 — sum of order-level charge facts (`orderCharges`); 0 when none were supplied. */
+  chargesTotal: number;
+  /**
+   * Extras inside the line prices (Σ the calculator's `includedModifierAmount`,
+   * stored per item as `service_pref_charge`). Set by the commercial checkout
+   * quote only; absent from this legacy calculator (unknown, never zero).
+   */
+  extrasIncludedAmount?: number;
+  /** Speed premiums inside the line prices (calculator `speedPremiumTotal`); same rule as `extrasIncludedAmount`. */
+  speedPremiumIncludedAmount?: number;
+}

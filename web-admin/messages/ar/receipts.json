@@ -1,0 +1,49 @@
+{
+  "page": {
+    "title": "الإيصالات",
+    "orderLabel": "الطلب"
+  },
+  "send": {
+    "title": "إرسال الإيصال",
+    "receiptType": "نوع الإيصال",
+    "deliveryChannels": "قنوات الإرسال",
+    "language": "اللغة",
+    "action": "إرسال الإيصال"
+  },
+  "receiptTypes": {
+    "whatsapp_text": "نص عبر واتساب",
+    "whatsapp_image": "صورة عبر واتساب",
+    "in_app": "إيصال داخل التطبيق"
+  },
+  "deliveryChannels": {
+    "whatsapp": "واتساب",
+    "email": "البريد الإلكتروني",
+    "app": "داخل التطبيق"
+  },
+  "languages": {
+    "en": "الإنجليزية",
+    "ar": "العربية"
+  },
+  "history": {
+    "title": "سجل الإيصالات",
+    "loading": "جارٍ تحميل سجل الإيصالات...",
+    "emptyTitle": "لم تُرسل أي إيصالات بعد",
+    "emptyDescription": "ستظهر الإيصالات المرسلة هنا.",
+    "sentAt": "أُرسل: {date}",
+    "notSent": "لم يُرسل"
+  },
+  "statuses": {
+    "delivered": "تم التسليم",
+    "sent": "تم الإرسال",
+    "failed": "فشل",
+    "pending": "قيد الانتظار",
+    "unknown": "غير معروف"
+  },
+  "messages": {
+    "loadFailed": "تعذّر تحميل هذا الطلب. حاول مرة أخرى.",
+    "historyLoadFailed": "تعذّر تحميل سجل الإيصالات. حاول مرة أخرى.",
+    "channelRequired": "اختر قناة إرسال واحدة على الأقل.",
+    "sendSuccess": "تم إرسال الإيصال بنجاح.",
+    "sendFailed": "تعذّر إرسال الإيصال. حاول مرة أخرى."
+  }
+}

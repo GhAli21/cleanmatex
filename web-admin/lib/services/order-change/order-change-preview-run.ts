@@ -52,6 +52,8 @@ export async function runOrderChangePreview(input: {
     payments: facts.payments,
     credits: facts.credits,
     refunds: facts.refunds,
+    appliedDispositions: facts.appliedDispositions,
+    settlementFingerprint: facts.settlementFingerprint,
     persistedTaxAmount: facts.persistedTaxAmount,
     auditFacts: facts.auditFacts,
     proofKey: input.issueProof ? facts.proofKey : null,

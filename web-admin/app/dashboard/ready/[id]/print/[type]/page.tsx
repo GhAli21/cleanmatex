@@ -23,6 +23,7 @@ import { OrderInvoicesPaymentsPrintRprt, type OrderInvoicesPaymentsPrintRprtData
 import { OrderPaymentsPrintRprt, type OrderPaymentsPrintRprtData } from '@features/orders/ui/order-payments-print-rprt';
 import { OrdersFinancialStatementRprt } from '@features/orders/order-fin-view/ui/orders-financial-statement-rprt';
 import { OrderHistoryPrintRprt, type OrderHistoryPrintRprtData } from '@features/orders/ui/order-history-print-rprt';
+import { buildAbsolutePublicTrackingUrl } from '@/lib/utils/public-order-tracking';
 
 type PrintType = 'receipt' | 'order-details' | 'invoices-payments-rprt' | 'payments-rprt' | 'history-rprt';
 type PrintLayout = 'thermal' | 'a4';
@@ -52,6 +53,7 @@ export default function ReadyPrintPage() {
   // HFC P4: CODE128 of the order no on the receipt when the RECEIPT label config (0685) resolves on
   // (show_order_barcode for the order's branch, capped by the human_codes_scan_labels flag).
   const [receiptOrderBarcode, setReceiptOrderBarcode] = useState(false);
+  const [receiptPublicTrackingUrl, setReceiptPublicTrackingUrl] = useState<string | null>(null);
   const [reportData, setReportData] = useState<OrderInvoicesPaymentsPrintRprtData | OrderPaymentsPrintRprtData | OrderHistoryPrintRprtData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export default function ReadyPrintPage() {
           ),
           // Label settings are supplementary too: on failure the receipt prints without the barcode.
           type === 'receipt'
-            ? fetch(`/api/v1/orders/${id}/label-data?pieces=none`, { signal: controller.signal, cache: 'no-store' }).catch(
+            ? fetch(`/api/v1/orders/${id}/label-data?pieces=none&includePublicTracking=true`, { signal: controller.signal, cache: 'no-store' }).catch(
                 () => null,
               )
             : Promise.resolve(null),
@@ -95,6 +97,12 @@ export default function ReadyPrintPage() {
         if (labelRes?.ok) {
           const labelJson = await labelRes.json().catch(() => null);
           setReceiptOrderBarcode(labelJson?.data?.settings?.receiptOrderCode128 === true);
+          const publicTrackingPath = labelJson?.data?.publicTrackingPath;
+          setReceiptPublicTrackingUrl(
+            typeof publicTrackingPath === 'string' && publicTrackingPath.startsWith('/track/')
+              ? buildAbsolutePublicTrackingUrl(window.location.origin, publicTrackingPath)
+              : null,
+          );
         }
       } catch (e: unknown) {
         if (e instanceof Error && e.name === 'AbortError') return;
@@ -334,6 +342,7 @@ export default function ReadyPrintPage() {
               payments={receiptPayments}
               cashChangeRounding={receiptCashChangeRounding}
               showOrderBarcode={receiptOrderBarcode}
+              publicTrackingUrl={receiptPublicTrackingUrl}
             />
           )}
           {type === 'order-details' && order && (

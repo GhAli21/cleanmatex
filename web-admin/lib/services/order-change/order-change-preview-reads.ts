@@ -14,6 +14,7 @@ import { createTenantSettingsService } from '@/lib/services/tenant-settings.serv
 import { quoteOrderEdit, readEditOrderRecord, type EditOrderRecord } from '@/lib/services/commercial/commercial-edit.loader';
 import type { CommercialDb } from '@/lib/services/commercial/commercial-context.loader';
 import type { OrderChangeEditPricer } from '@/lib/services/order-change/order-change-edit-pricing';
+import { readSettlementFingerprint } from './order-change-settlement-fingerprint';
 import type { OrderChangeContext } from '@/lib/types/order-change';
 import type { z } from 'zod';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
@@ -49,9 +50,14 @@ export interface OrderChangePreviewFacts {
   priceEdit: OrderChangeEditPricer;
   catalog: readonly OrderChangePreferenceDefinition[];
   currencyDecimalPlaces: number;
-  payments: readonly AggregationPaymentRow[];
+  /** Active payment rows, with the cash change handed back on each tender. */
+  payments: ReadonlyArray<AggregationPaymentRow & { change_returned_amount: string | null }>;
   credits: readonly AggregationCreditRow[];
   refunds: ReadonlyArray<{ refund_status: string | null; refund_amount: string; reopens_due_amount: string }>;
+  /** Overpayment already moved to the customer's wallet or advance (active disposition amounts). */
+  appliedDispositions: readonly string[];
+  /** Digest of every settlement fact; Review signs it and Apply re-reads it under the order lock. */
+  settlementFingerprint: string;
   /** Order tax stored before this review. The speed audit freezes it as the before tax. */
   persistedTaxAmount: string;
   /** Stored commercial rows used to show the same before and after values Apply will record. */
@@ -109,7 +115,16 @@ export async function loadOrderChangePreviewFacts(input: {
       });
       const payments = await tx.org_order_payments_dtl.findMany({
         where: { tenant_org_id: tenantId, order_id: input.context.orderId, rec_status: 1 },
-        select: { amount: true, payment_status: true, payment_nature_snapshot: true, payment_method_code: true },
+        // Same fields the snapshot writer reads: the real-payment rule and the change returned need them.
+        select: {
+          amount: true, payment_status: true, payment_nature_snapshot: true, payment_method_code: true,
+          org_payment_method_id: true, gateway_code: true, gateway_reference: true, tendered_amount: true,
+          check_no: true, bank_reference: true, change_returned_amount: true,
+        },
+      });
+      const dispositions = await tx.org_fin_overpay_disp_dtl.findMany({
+        where: { tenant_org_id: tenantId, order_id: input.context.orderId, is_active: true },
+        select: { amount: true },
       });
       const credits = await tx.org_order_credit_apps_dtl.findMany({
         where: { tenant_org_id: tenantId, order_id: input.context.orderId, rec_status: 1 },
@@ -185,7 +200,8 @@ export async function loadOrderChangePreviewFacts(input: {
           where: { tenant_org_id: tenantId, id: { in: preferenceIds }, is_active: true, rec_status: 1 },
           select: { id: true, preference_code: true, extra_price: true, preference_category: true, preference_sys_kind: true },
         });
-      return { policyResolution, payments, credits, refunds, preferences, storedOrder, auditItems, auditPieces, auditPreferences, auditProducts };
+      const settlementFingerprint = await readSettlementFingerprint(tx, tenantId, input.context.orderId);
+      return { policyResolution, payments, dispositions, settlementFingerprint, credits, refunds, preferences, storedOrder, auditItems, auditPieces, auditPreferences, auditProducts };
     });
 
     const catalog: OrderChangePreferenceDefinition[] = [];
@@ -236,7 +252,16 @@ export async function loadOrderChangePreviewFacts(input: {
         payment_status: row.payment_status,
         payment_nature_snapshot: row.payment_nature_snapshot,
         payment_method_code: row.payment_method_code,
+        org_payment_method_id: row.org_payment_method_id,
+        gateway_code: row.gateway_code,
+        gateway_reference: row.gateway_reference,
+        tendered_amount: row.tendered_amount == null ? null : decimalText(row.tendered_amount),
+        check_no: row.check_no,
+        bank_reference: row.bank_reference,
+        change_returned_amount: row.change_returned_amount == null ? null : decimalText(row.change_returned_amount),
       })),
+      appliedDispositions: settlement.dispositions.map((row) => decimalText(row.amount)),
+      settlementFingerprint: settlement.settlementFingerprint,
       credits: settlement.credits.map((row) => ({
         applied_amount: decimalText(row.applied_amount),
         application_status: row.application_status,

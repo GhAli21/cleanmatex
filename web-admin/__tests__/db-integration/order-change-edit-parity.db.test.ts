@@ -314,6 +314,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
             tenantId, actorUserId: actorId, featureEnabled: facts.featureEnabled, canUsePermission: async () => true,
             context, request, bindings: facts.bindings, policyResolution: facts.policyResolution, priceEdit: facts.priceEdit,
             catalog: facts.catalog, payments: facts.payments, credits: facts.credits, refunds: facts.refunds,
+            appliedDispositions: facts.appliedDispositions, settlementFingerprint: facts.settlementFingerprint,
             persistedTaxAmount: facts.persistedTaxAmount, auditFacts: facts.auditFacts, proofKey: facts.proofKey,
           });
           if (!preview.ok) {

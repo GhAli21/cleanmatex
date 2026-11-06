@@ -8,6 +8,7 @@ import {
   hasProcessingPieceChanged,
   hasSimplePieceChanged,
   isPieceUuid,
+  toSplitPieceId,
 } from '@/src/features/workflow/lib/processing-piece-map';
 
 function piece(partial: Partial<ItemPiece> & Pick<ItemPiece, 'id' | 'itemId'>): ItemPiece {
@@ -25,6 +26,18 @@ describe('processing-piece-map', () => {
   it('isPieceUuid accepts only UUID strings', () => {
     expect(isPieceUuid('a1b2c3d4-e5f6-7890-abcd-ef1234567890')).toBe(true);
     expect(isPieceUuid('piece-1')).toBe(false);
+  });
+
+  it('maps persisted piece UUID rows to the split-service item/sequence contract', () => {
+    expect(
+      toSplitPieceId(
+        piece({
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          itemId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          pieceNumber: 3,
+        })
+      )
+    ).toBe('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-piece-3');
   });
 
   it('hasSimplePieceChanged detects ready/notes/rack/reject only', () => {

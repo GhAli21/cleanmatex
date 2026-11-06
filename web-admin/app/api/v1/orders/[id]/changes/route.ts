@@ -111,6 +111,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       payments: facts.payments,
       credits: facts.credits,
       refunds: facts.refunds,
+    appliedDispositions: facts.appliedDispositions,
+    settlementFingerprint: facts.settlementFingerprint,
       persistedTaxAmount: facts.persistedTaxAmount,
       auditFacts: facts.auditFacts,
       proofKey: facts.proofKey,

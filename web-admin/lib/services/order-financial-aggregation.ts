@@ -130,6 +130,21 @@ export function isCompletedPaymentStatus(status: string | null | undefined): boo
 }
 
 /**
+ * Cash handed back on completed real-payment tenders. It reduces overpayment and is not a refund.
+ * Shared by the snapshot writer and the Order Edit preview so both read change the same way.
+ * @param rows active payment rows with their `change_returned_amount`
+ * @returns the total change returned, unrounded
+ */
+export function sumChangeReturnedAmount(
+  rows: ReadonlyArray<AggregationPaymentRow & { change_returned_amount?: AmountLike }>,
+): number {
+  return rows.reduce((sum, row) => {
+    if (!isCompletedPaymentStatus(row.payment_status) || !isClearlyRealPaymentRow(row)) return sum;
+    return sum + toAmount(row.change_returned_amount);
+  }, 0);
+}
+
+/**
  * Sum real-payment rows whose lifecycle status is in `allowedStatuses`.
  * Callers pass `is_active = true` rows (the aggregation never sees soft-
  * deleted facts).

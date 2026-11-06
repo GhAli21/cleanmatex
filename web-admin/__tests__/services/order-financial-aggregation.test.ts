@@ -26,6 +26,7 @@ import {
   hasAmbiguousHistoricalPaymentRow,
   isClearlyRealPaymentRow,
   isCompletedPaymentStatus,
+  sumChangeReturnedAmount,
   sumCreditsByStatuses,
   sumEffectiveCredits,
   sumEffectivePayments,
@@ -130,6 +131,17 @@ describe('D005 components — effectivePayments', () => {
         branch_payment_method_id: 'bpm-1',
       }),
     ).toBe(true);
+  });
+});
+
+describe('sumChangeReturnedAmount', () => {
+  it('counts change on completed real payments only', () => {
+    expect(sumChangeReturnedAmount([
+      { amount: '20', payment_status: 'COMPLETED', payment_nature_snapshot: 'REAL_PAYMENT', change_returned_amount: '5' },
+      { amount: '10', payment_status: 'PENDING', payment_nature_snapshot: 'REAL_PAYMENT', change_returned_amount: '2' },
+      { amount: '10', payment_status: 'COMPLETED', payment_nature_snapshot: 'CREDIT_APPLICATION', change_returned_amount: '3' },
+      { amount: '10', payment_status: 'COMPLETED', payment_nature_snapshot: 'REAL_PAYMENT', change_returned_amount: null },
+    ])).toBe(5);
   });
 });
 

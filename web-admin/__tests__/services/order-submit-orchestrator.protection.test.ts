@@ -101,6 +101,54 @@ describe('WP01 actual canonical Create orchestration', () => {
     expect(mockLine.mock.calls[0][2].payment_status).toBe('PENDING');
     expect(result.warnings).toContain('CARD_PENDING_CONFIRMATION');
   });
+  it('creates a Pay on Collection order without an immediate receipt voucher', async () => {
+    const original = mockMethodConfigs.getMockImplementation()!;
+    mockMethodConfigs.mockImplementation(async (filters) => {
+      const rows = await original(filters);
+      return rows.map((row: Record<string, unknown>) => ({
+        ...row,
+        payment_nature: 'DEFERRED_SETTLEMENT',
+      }));
+    });
+    mockReadOrder.mockResolvedValueOnce({
+      id: orderId,
+      order_no: 'ORD-WP01',
+      current_status: 'intake',
+      total_amount: '20.000',
+      total_paid_amount: '0.000',
+      total_credit_applied_amount: '0.000',
+      outstanding_amount: '20.000',
+      payment_status: 'unpaid',
+      payment_type_code: 'PAY_ON_COLLECTION',
+    });
+
+    await expect(
+      submitOrder(
+        submitParams(
+          makeSubmitInput({
+            paymentMethod: 'PAY_ON_COLLECTION',
+            outstandingPolicy: 'PAY_ON_COLLECTION',
+          })
+        )
+      )
+    ).resolves.toMatchObject({ order: { outstandingAmount: '20.000' } });
+
+    expect(mockVoucher).not.toHaveBeenCalled();
+    expect(mockLine).not.toHaveBeenCalled();
+    expect(mockWire).not.toHaveBeenCalled();
+    expect(mockSettle).toHaveBeenCalledWith(
+      mockTx,
+      expect.objectContaining({
+        settlementLegs: [
+          expect.objectContaining({
+            settlementOption: expect.objectContaining({
+              paymentNature: 'DEFERRED_SETTLEMENT',
+            }),
+          }),
+        ],
+      })
+    );
+  });
   it.each(['create', 'voucher', 'wire', 'settle'] as const)('propagates %s failure without success or final reads', async (stage) => {
     const failure = new Error(`wp01-${stage}-failure`);
     ({ create: mockCreate, voucher: mockVoucher, wire: mockWire, settle: mockSettle })[stage].mockRejectedValueOnce(failure);

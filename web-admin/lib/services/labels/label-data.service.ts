@@ -12,6 +12,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { encodeCmxPayload } from '@/lib/services/scan-resolve/cmx-code-payload';
 import { LabelPrintingConfigService } from '@/lib/services/labels/label-printing-config.service';
+import { getPublicTrackingPathForOrderId } from '@/lib/services/public-order-tracking.service';
 import {
   DEFAULT_LABEL_SETTINGS,
   type LabelDataResult,
@@ -133,10 +134,10 @@ export const LabelDataService = {
    */
   async getLabelData(
     supabase: SupabaseClient,
-    params: { tenantId: string; orderId: string; userId?: string | null; pieces?: PieceSelection },
+    params: { tenantId: string; orderId: string; userId?: string | null; pieces?: PieceSelection; includePublicTracking?: boolean },
     resolveSettings?: ResolveSettings,
   ): Promise<LabelDataResult | null> {
-    const { tenantId, orderId, pieces: selection = 'none' } = params;
+    const { tenantId, orderId, pieces: selection = 'none', includePublicTracking = false } = params;
 
     const { data: order, error: orderError } = await supabase
       .from('org_orders_mst')
@@ -221,6 +222,10 @@ export const LabelDataService = {
       tags = buildPieceTagData(o.order_no, items, chosen, allPieces);
     }
 
-    return { order: orderLabel, pieces: tags, settings };
+    const publicTrackingPath = includePublicTracking
+      ? await getPublicTrackingPathForOrderId({ tenantId, orderId })
+      : undefined;
+
+    return { order: orderLabel, pieces: tags, settings, publicTrackingPath };
   },
 };

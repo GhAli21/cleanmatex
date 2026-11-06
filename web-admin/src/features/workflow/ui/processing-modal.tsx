@@ -46,6 +46,7 @@ import {
   groupPiecesByItemId,
   hasProcessingPieceChanged,
   normalizeOrderStateResponse,
+  toSplitPieceId,
 } from '@features/workflow/lib/processing-piece-map';
 import { ProcessingModalFilters } from './processing-modal-filters';
 import { ProcessingItemRow } from './processing-item-row';
@@ -643,9 +644,12 @@ export function ProcessingModal({
   ]);
 
   const handleSplitConfirm = React.useCallback((reason: string) => {
-    const pieceIds = Array.from(selectedForSplit);
+    const pieceIds = Array.from(selectedForSplit, (selectedId) => {
+      const piece = pieceStates.get(selectedId);
+      return piece ? toSplitPieceId(piece) : selectedId;
+    });
     splitMutation.mutate({ pieceIds, reason });
-  }, [selectedForSplit, splitMutation]);
+  }, [pieceStates, selectedForSplit, splitMutation]);
 
   const handlePieceChange = React.useCallback((pieceId: string, updates: Partial<ItemPiece>) => {
     setPieceStates(prev => {

@@ -1,6 +1,6 @@
 # ADR-060: Line-Level Commercial Calculation (one calculator, line money on items and pieces)
 
-**Status:** Accepted (owner-approved plans, 2026-10-23) · **Date:** 2026-10-23
+**Status:** Accepted and Implemented (owner-approved 2026-10-23; implemented 2026-11-07, see [Line-Level STATUS](../Line_Level_Money_Snapshot/STATUS.md)) · **Date:** 2026-10-23
 **Covers:** Line-Level Money Snapshot plan (P0-06) and Reusable Order Fin View plan (P0-06, the commercial-calculator part).
 **Evidence:** [PHASE0_FINDINGS.md](../Line_Level_Money_Snapshot/PHASE0_FINDINGS.md) · **Plans:** [Line-Level](../Line_Level_Money_Snapshot/PLAN.md), [Reusable View](../Reusable_Order_Fin_View/PLAN.md)
 

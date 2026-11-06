@@ -33,8 +33,7 @@ import {
   computeOutstanding,
   computeOverpaidAmount,
   hasAmbiguousHistoricalPaymentRow,
-  isClearlyRealPaymentRow,
-  isCompletedPaymentStatus,
+  sumChangeReturnedAmount,
   sumCreditsByStatuses,
   sumPaymentsByStatuses,
   type RefundFactRow,
@@ -118,13 +117,6 @@ function normalizeCurrencyCode(value: string | null | undefined): string | null 
 
 // change_returned is writer-specific (not a D005 component) but keys off the
 // same frozen COMPLETED set + nature filter as effectivePayments.
-function sumChangeReturned(rows: PaymentFactRow[]): number {
-  return rows.reduce((sum, row) => {
-    if (!isCompletedPaymentStatus(row.payment_status)) return sum;
-    if (!isClearlyRealPaymentRow(row)) return sum;
-    return sum + toNumber(row.change_returned_amount);
-  }, 0);
-}
 
 /**
  * Exported for direct testing (B11) — the taxAddend branch is exactly what
@@ -447,6 +439,12 @@ export async function recalculateOrderFinancialSnapshotTx(
   baseCurArReceivableAmount: number;
   financialSnapshotStatus: string;
 }> {
+  // Lock the order first so settlement writers and Order Edit Apply recompute one at a time and
+  // every read below sees the other's committed rows (OC-CON-005); a no-op when the caller holds it.
+  await tx.$queryRaw`
+    SELECT id FROM public.org_orders_mst
+    WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid
+    FOR UPDATE`;
   const order = await tx.org_orders_mst.findFirstOrThrow({
     where: { tenant_org_id: tenantId, id: orderId },
     select: {
@@ -678,7 +676,7 @@ export async function recalculateOrderFinancialSnapshotTx(
   const pendingPaymentAmount = sumPaymentsByStatuses(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING);
   const authorizedPaymentAmount = sumPaymentsByStatuses(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED);
   const failedPaymentAmount = sumPaymentsByStatuses(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.FAILED);
-  const changeReturnedAmount = sumChangeReturned(payments);
+  const changeReturnedAmount = sumChangeReturnedAmount(payments);
   const ambiguousHistoricalPaymentRow = hasAmbiguousHistoricalPaymentRow(payments);
 
   const disposedOverpaymentRows = await tx.$queryRaw<Array<{ total: number | null }>>`

@@ -23,7 +23,6 @@ jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn().mockResolved
 jest.mock('@/lib/services/tenant-settings.service', () => ({
   createTenantSettingsService: () => ({ getCurrencyConfig: async () => ({ currencyCode: 'OMR', decimalPlaces: 3 }) }),
 }));
-jest.mock('@/lib/services/tax.service', () => ({ TaxService: jest.fn().mockImplementation(() => ({ getTaxRate: async () => 0 })) }));
 jest.mock('@/lib/money/currency-rounding', () => ({ resolveCurrencyRoundingRule: async () => null, roundToIncrement: (v: number) => v }));
 jest.mock('@/lib/services/discount-service', () => ({
   getBestDiscount: (...args: unknown[]) => mockBestDiscount(...args),

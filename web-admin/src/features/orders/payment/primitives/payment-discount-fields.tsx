@@ -8,7 +8,7 @@
  * handling for the amount input, percent↔amount sync, clamp-to-order-total,
  * and the shared error line) so the two faces never drift. No money math lives
  * here beyond that clamp/sync — the authoritative discount total is always
- * `totals.manualDiscount` computed server-side (`order-calculation.service.ts`)
+ * `totals.manualDiscount` computed server-side (the checkout quote)
  * and read back by the receipt. This keeps discounts compliant with
  * `docs/dev/rules/no-silent-money-mutation.md`: invalid entry is prevented
  * (clamped to `[0, total]`) rather than silently corrected after the fact, and

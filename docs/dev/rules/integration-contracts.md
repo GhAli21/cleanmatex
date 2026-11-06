@@ -21,6 +21,7 @@
 | Tenant-scoped business logic | `cleanmatex` | — |
 | Cross-tenant admin operations | `cleanmatexsaas` | — |
 | ADR approval | User (writes `Approved_By_Jh` in ADR file) | Both projects |
+| Order-finance settings on `org_tenants_mst` / branches (`tax_pricing_mode`, `extra_price_pricing_mode`, `commercial_level`, `disc_alloc_mode`, `disc_alloc_basis`) | `cleanmatexsaas` (Tax & Pricing, branch Pricing overrides; ADR-060 §8 — written directly by HQ, not via `sys_stng_*`) | `cleanmatex` reads them; its tenant / branch PATCH routes refuse them with `403 FIELD_MANAGED_BY_HQ` |
 
 ---
 

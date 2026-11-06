@@ -17,7 +17,8 @@
     "orderBarcode": "Order barcode",
     "lineBarcode": "Line barcode",
     "pieceBarcode": "Piece barcode",
-    "staffQr": "Staff QR code"
+    "staffQr": "Staff QR code",
+    "customerTrackingQr": "Scan to track your order"
   },
   "errors": {
     "loadFailed": "Could not load the label. Try again.",

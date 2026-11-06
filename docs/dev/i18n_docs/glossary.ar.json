@@ -11,5 +11,9 @@
   "order_balance": "الرصيد",
   "order_settled": "مسدّد",
   "order_overpaid": "مدفوع زيادة",
-  "figures_reconciled": "مطابق"
+  "figures_reconciled": "مطابق",
+  "service_speed": "سرعة الخدمة",
+  "speed_premium": "رسوم السرعة",
+  "tax_category": "الفئة الضريبية",
+  "line_net": "بعد الخصومات"
 }

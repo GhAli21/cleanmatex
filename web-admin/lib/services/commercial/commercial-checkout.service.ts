@@ -30,11 +30,10 @@ import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { DISCOUNT_CALC_TYPE, DISCOUNT_SOURCE_TYPE, MANUAL_LINE_DISCOUNT_LABEL, type DiscountCalcType } from '@/lib/constants/discount-source-type';
 import { TAX_PRICING_MODES, TAX_TYPES } from '@/lib/constants/order-financial';
 import type { DiscountLineInput } from '@/lib/db/order-discounts';
-import type { TaxLineItem } from '@/lib/types/order-financial';
+import type { OrderCalculationResult, TaxLineItem } from '@/lib/types/order-financial';
 import type { PromoNotice, TaxProfileEntry } from '@/lib/types/payment-quote';
 import { evaluateBestAutoApplyPromo, getBestDiscount, validatePromoCode } from '../discount-service';
 import { validateGiftCard, validateGiftCardByIdForCalculation } from '../gift-card-service';
-import type { OrderCalculationResult } from '../order-calculation.service';
 import { createTenantSettingsService } from '../tenant-settings.service';
 import {
   PREFERENCE_KINDS,

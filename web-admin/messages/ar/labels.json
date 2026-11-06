@@ -17,7 +17,8 @@
     "orderBarcode": "باركود الطلب",
     "lineBarcode": "باركود الصنف",
     "pieceBarcode": "باركود القطعة",
-    "staffQr": "رمز QR للموظفين"
+    "staffQr": "رمز QR للموظفين",
+    "customerTrackingQr": "امسح الرمز لتتبع طلبك"
   },
   "errors": {
     "loadFailed": "تعذّر تحميل الملصق. حاول مرة أخرى.",

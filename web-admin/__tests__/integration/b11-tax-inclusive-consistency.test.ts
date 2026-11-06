@@ -1,7 +1,7 @@
 /**
  * Integration: B11 — preview == submit == snapshot tax-inclusive consistency.
  *
- * calculateOrderTotals (preview + submit, order-calculation.service.ts) computes
+ * calculateOrderTotals (preview + submit, the retired order-calculation.service.ts) computed
  * taxBreakdown via calculateTax (tax-engine.service.ts); settleOrderTx persists
  * those same lines into org_order_taxes_dtl. The recalculation snapshot later
  * re-derives the header total from persisted rows via resolveCanonicalTotalAmount

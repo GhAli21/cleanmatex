@@ -1,5 +1,5 @@
 /**
- * GET /api/v1/orders/[id]/label-data?pieces=none|all|<uuid,uuid,...> (HFC P4, plan T4.2)
+ * GET /api/v1/orders/[id]/label-data?pieces=none|all|<uuid,uuid,...>&includePublicTracking=true (HFC P4, plan T4.2)
  * -> { success, data: { order, pieces, settings } } for the printed order label, piece tags and receipt barcode.
  * 400 VALIDATION_ERROR (bad id or piece list), 404 ORDER_NOT_FOUND (also for another tenant's order).
  * Requires orders:read. Read only.
@@ -19,6 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!isUuidLike(id)) return apiError('VALIDATION_ERROR', 400);
     const pieces = parsePieceSelection(request.nextUrl.searchParams.get('pieces'));
     if (pieces === null) return apiError('VALIDATION_ERROR', 400);
+    const includePublicTracking = request.nextUrl.searchParams.get('includePublicTracking') === 'true';
 
     const supabase = await createClient();
     const data = await LabelDataService.getLabelData(supabase, {
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       orderId: id,
       userId: auth.userId,
       pieces,
+      includePublicTracking,
     });
     if (!data) return apiError('ORDER_NOT_FOUND', 404);
     return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 'no-store' } });

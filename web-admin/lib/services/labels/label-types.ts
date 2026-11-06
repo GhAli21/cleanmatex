@@ -148,6 +148,8 @@ export interface LabelDataResult {
   order: OrderLabelData;
   pieces: PieceTagData[];
   settings: LabelSettings;
+  /** Opaque customer tracking path when the caller explicitly requests it. */
+  publicTrackingPath?: string | null;
 }
 
 /** Which piece tags to build: none, all live pieces, or the given piece ids (others are ignored). */

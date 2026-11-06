@@ -14,6 +14,7 @@ It shows the server's figures and never computes money in the browser.
 | [developer_guide.md](developer_guide.md) | How to use, extend and test it |
 | [user_guide.md](user_guide.md) | What each part of the statement means (EN/AR terms) |
 | [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) | Owner-runnable scenarios, screen by screen |
+| [followups_by_user.md](followups_by_user.md) | Everything left for the owner (QA, E2E, commit) |
 | [CHANGELOG.md](CHANGELOG.md) · [version.txt](version.txt) | Release notes |
 | Rules | [`docs/dev/rules/order-fin-rules.md`](../../../dev/rules/order-fin-rules.md) · skill `/order-fin` · `.cursor/rules/order-fin.mdc` |
 

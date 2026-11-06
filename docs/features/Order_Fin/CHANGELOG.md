@@ -1,5 +1,9 @@
 # Changelog — Order Financial Platform
 
+## 2026-11-07 — Line-Level Money Snapshot 1.0.0
+
+One commercial calculator for every money path; line-level money on items and pieces; Speed Pricing; tax from profiles only; order lock in the snapshot writer; legacy pricing code removed. Details: [`Line_Level_Money_Snapshot/CHANGELOG.md`](Line_Level_Money_Snapshot/CHANGELOG.md).
+
 ## 2026-11-01 — Reusable Order Financial View 1.0.0
 
 One money view for every order screen; legacy panels and four browser/app balance computations removed; ACCOUNTING rounding guard (migration 0686). Details: [`Reusable_Order_Fin_View/CHANGELOG.md`](Reusable_Order_Fin_View/CHANGELOG.md).

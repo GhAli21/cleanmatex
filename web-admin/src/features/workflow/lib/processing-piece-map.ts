@@ -16,6 +16,20 @@ export function isPieceUuid(id: string): boolean {
 }
 
 /**
+ * Builds the split-service identifier from stable item identity and piece sequence.
+ * Persisted piece UUIDs remain UI row identities, while split allocation is tracked
+ * by the parent item and its original sequence.
+ *
+ * @param piece Piece selected in the processing workspace.
+ * @returns Identifier accepted by the order split service.
+ */
+export function toSplitPieceId(
+  piece: Pick<ItemPiece, 'itemId' | 'pieceNumber'>
+): string {
+  return `${piece.itemId}-piece-${piece.pieceNumber}`;
+}
+
+/**
  * Map DB piece row to UI ItemPiece. `is_ready` is the source of truth for Ready.
  */
 export function mapDbPieceToItemPiece(

@@ -390,6 +390,25 @@ isOneToOne: false
       referencedColumns: ["code"]
     }
                   ]
+                },"hq_navigation_cd": {
+                  Row: {
+                    "badge": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"is_leaf": boolean,"is_navigable": boolean,"is_system": boolean,"label": string,"label2": string,"main_permission_code": string | null,"metadata": Json | null,"nav_code": string,"nav_icon": string,"nav_id": string,"nav_level": number,"nav_path": string,"parent_nav_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"section_code": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number | null,"updated_info": string | null
+                  }
+                  Insert: {
+                    "badge"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_leaf"?: boolean,"is_navigable"?: boolean,"is_system"?: boolean,"label": string,"label2": string,"main_permission_code"?: string | null,"metadata"?: Json | null,"nav_code": string,"nav_icon": string,"nav_id"?: string,"nav_level"?: number,"nav_path": string,"parent_nav_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"section_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number | null,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "badge"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_leaf"?: boolean,"is_navigable"?: boolean,"is_system"?: boolean,"label"?: string,"label2"?: string,"main_permission_code"?: string | null,"metadata"?: Json | null,"nav_code"?: string,"nav_icon"?: string,"nav_id"?: string,"nav_level"?: number,"nav_path"?: string,"parent_nav_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"section_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number | null,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_hq_nav_parent"
+      columns: ["parent_nav_code"]
+isOneToOne: false
+      referencedRelation: "hq_navigation_cd"
+      referencedColumns: ["nav_code"]
+    }
+                  ]
                 },"hq_ntf_dispatch_log": {
                   Row: {
                     "attempt_count": number,"audit_id": string | null,"channel_code": string,"created_at": string,"dispatch_mode": string,"dispatched_at": string | null,"duration_ms": number | null,"error_code": string | null,"error_message": string | null,"failed_at": string | null,"id": string,"idempotency_key": string,"is_test": boolean,"provider_code": string,"provider_message_id": string | null,"recipient_hash": string | null,"request_id": string | null,"status": string,"tenant_org_id": string,"updated_at": string | null
@@ -5238,13 +5257,13 @@ isOneToOne: false
                   ]
                 },"org_inv_stock_tr": {
                   Row: {
-                    "branch_id": string,"created_at": string | null,"created_by": string | null,"created_info": string | null,"id": string,"is_active": boolean,"notes": string | null,"processed_by": string | null,"product_id": string,"qty_after": number | null,"qty_before": number | null,"quantity": number,"reason": string | null,"rec_status": number | null,"reference_id": string | null,"reference_no": string | null,"reference_type": string | null,"tenant_org_id": string,"total_cost": number | null,"transaction_date": string,"transaction_no": string | null,"transaction_type": string,"unit_cost": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "branch_id": string,"created_at": string | null,"created_by": string | null,"created_info": string | null,"id": string,"is_active": boolean,"notes": string | null,"processed_by": string | null,"product_id": string,"qty_after": number | null,"qty_before": number | null,"quantity": number,"reason": string | null,"rec_status": number | null,"reference_id": string | null,"reference_no": string | null,"reference_type": string | null,"tenant_org_id": string,"total_cost": number | null,"transaction_date": string,"transaction_no": string,"transaction_type": string,"unit_cost": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "branch_id": string,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"notes"?: string | null,"processed_by"?: string | null,"product_id": string,"qty_after"?: number | null,"qty_before"?: number | null,"quantity": number,"reason"?: string | null,"rec_status"?: number | null,"reference_id"?: string | null,"reference_no"?: string | null,"reference_type"?: string | null,"tenant_org_id": string,"total_cost"?: number | null,"transaction_date"?: string,"transaction_no"?: string | null,"transaction_type": string,"unit_cost"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id": string,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"notes"?: string | null,"processed_by"?: string | null,"product_id": string,"qty_after"?: number | null,"qty_before"?: number | null,"quantity": number,"reason"?: string | null,"rec_status"?: number | null,"reference_id"?: string | null,"reference_no"?: string | null,"reference_type"?: string | null,"tenant_org_id": string,"total_cost"?: number | null,"transaction_date"?: string,"transaction_no": string,"transaction_type": string,"unit_cost"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "branch_id"?: string,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"notes"?: string | null,"processed_by"?: string | null,"product_id"?: string,"qty_after"?: number | null,"qty_before"?: number | null,"quantity"?: number,"reason"?: string | null,"rec_status"?: number | null,"reference_id"?: string | null,"reference_no"?: string | null,"reference_type"?: string | null,"tenant_org_id"?: string,"total_cost"?: number | null,"transaction_date"?: string,"transaction_no"?: string | null,"transaction_type"?: string,"unit_cost"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"notes"?: string | null,"processed_by"?: string | null,"product_id"?: string,"qty_after"?: number | null,"qty_before"?: number | null,"quantity"?: number,"reason"?: string | null,"rec_status"?: number | null,"reference_id"?: string | null,"reference_no"?: string | null,"reference_type"?: string | null,"tenant_org_id"?: string,"total_cost"?: number | null,"transaction_date"?: string,"transaction_no"?: string,"transaction_type"?: string,"unit_cost"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {

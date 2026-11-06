@@ -1439,3 +1439,7 @@ B23 (legacy path retirement), B24/B25 (AR periods / revenue recognition), and B2
 ## Reusable Order Financial View — 2026-11-01
 
 Complete through P9 (owner QA and the live E2E run remain): one read model, routes and `OrderFinancialView` for every order money screen, the Order Edit live card, public tracking and the customer app. Canonical tracking: [`Reusable_Order_Fin_View/STATUS.md`](Reusable_Order_Fin_View/STATUS.md).
+
+## Line-Level Money Snapshot — 2026-11-07
+
+Complete in code (P0–P10, P11 gates and docs; owner QA and the HQ Edit policy rules remain): one pure calculator `lib/commercial/` prices New Order, the cart, the payment quote, Create, booking and Order Edit; every item / piece stores its own money and the header is the sum of the rows; Speed Pricing screen; tax only from tax profiles (VAT setting retired); DB constraints on line money (0699); legacy money paths removed. Migrations 0639–0646, 0661–0665, 0673, 0691–0694, 0698–0700 applied. Canonical tracking: [`Line_Level_Money_Snapshot/STATUS.md`](Line_Level_Money_Snapshot/STATUS.md) · [README](Line_Level_Money_Snapshot/README.md).
